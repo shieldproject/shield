@@ -201,7 +201,7 @@ CREATE TABLE tasks (
 Purpose: allows the Web UI and CLI to find out what schedules are defined, and provides CRUD operations for schedule management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show schedules that can be deleted safely.
 
 | | | |
-|----|
+|----|----|----|
 | GET | /v1/schedules | ?unused=[tf] |
 | POST | /v1/schedules | |
 | DELETE | /v1/schedule/:uuid | |
@@ -213,7 +213,7 @@ Purpose: allows the Web UI and CLI to find out what schedules are defined, and p
 Purpose: allows the Web UI and CLI to find out what retention policies are defined, and provides CRUD operations for policy management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show retention policies that can be deleted safely.
 
 | | | |
-|----|
+|----|----|----|
 | GET | /v1/retention/policies | ?unused=[tf] |
 | POST | /v1/retention/policies | |
 | DELETE | /v1/retention/policy/:uuid | |
@@ -225,14 +225,11 @@ Purpose: allows the Web UI and CLI to find out what retention policies are defin
 Purpose: allows the Web UI and CLI to review what targets have been defined, and allows updates to existing targets (to change endpoints or plugins, for example) and remove unused targets (i.e. retired / decommissioned services).
 
 | | | |
-|----|
+|----|----|----|
 | GET | /v1/targets | ?plugin=:name <br> ?unused=[tf] |
 | POST | /v1/targets | |
 | DELETE | /v1/target/:uuid | |
 | PUT | /v1/target/:uuid | |
-
-
-
 
 
 ### Stores API
@@ -240,25 +237,25 @@ Purpose: allows the Web UI and CLI to review what targets have been defined, and
 Purpose: allows operators (via the Web UI and CLI components) to view what storage systems are available for configuring backups, provision new ones, update existing ones and delete unused ones.
 
 | | | |
-|----|
+|----|----|----|
 | GET | /v1/stores | ?plugin=:name <br>?unused=[tf] |
 | POST | /v1/stores | |
 | DELETE | /v1/store/:uuid | |
 | PUT | /v1/store/:uuid | |
 
 
-
 ### Jobs API
 Purpose: allows end-users and operators to see what jobs have been configured, and the details of those configurations.  The filtering on the main listing / search endpoint (/v1/jobs) allows the frontends to show only jobs for specific schedules (what weekly backups are we running?), retention policies (what backups are we keeping for 90d or more?), and specific targets / stores.
 
 | | | |
-|----|
+|----|----|----|
 | GET | /v1/jobs | ?target=:uuid<br>?store=:uuid<br>?schedule=:uuid<br>?retention=:uuid<br>?paused=[tf] |
 | POST | /v1/jobs | |
 | DELETE | /v1/job/:uuid | |
 | PUT | /v1/job/:uuid | |
 | POST | /v1/job/:uuid/pause | |
 | POST | /v1/job/:uuid/unpause | |
+
 
 ### Archive API
 
@@ -267,7 +264,7 @@ Purpose: allows end-users and operators to see what backups have been performed,
 Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations (name and summary) for an archive.
 
 | | | |
-|----|
+|----|----|----|
 | GET | /v1/archives | ?target=:uuid <br>?store=:uuid <br>?after=:timespec <br>?before=:timespec |
 | GET | /v1/archive/:uuid | |
 | POST | /v1/archive/:uuid/restore | { target: $target_uuid } |
@@ -279,7 +276,7 @@ Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations 
 Purpose: allows the Web UI and the CLI to show running tasks, query a specific task, submit new tasks, cancel tasks, etc.
 
 | | | |
-|----|
+|----|----|----|
 | GET | /v1/tasks | ?status=:status <br>?debug |
 | POST | /v1/tasks | |
 | PUT | /v1/task/:uuid | |
