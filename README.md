@@ -210,7 +210,7 @@ Purpose: allows the Web UI and CLI to find out what schedules are defined, and p
 
 ### Retention Policies API
 
-Purpose: allows the Web UI and CLI to find out what retention policies are defined, and provides CRUD operations for policy management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show retention policies that can be deleted safely.
+Purpose: allows the Web UI and CLI to find out what retention policies are defined, and provides CRUD operations for policy management.  Allowing queries to filter to unused=t or unused=f enables the front ends to show retention policies that can be deleted safely.
 
 | | | |
 |----|----|----|
@@ -376,4 +376,3 @@ Next, we extend the proof-of-concept implementation to test out the Agent Target
 * Implement the Agent Daemon (in general)
 * Extend the Agent Daemon to handle Redis’ BGSAVE command
 * Implement the Agent Target Plugin
-
