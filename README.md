@@ -85,14 +85,14 @@ CREATE TABLE targets (
 );
 ```
 
-STORES stores the destination of backup data, i.e. an S3 bucket, local file system directory, etc.  Each record identifies a destination, the method by which to store and retrieve backup data to/from it (`plugin') and specific connection information required (`endpoint')
+STORES stores the destination of backup data, i.e. an S3 bucket, local file system directory, etc.  Each record identifies a destination, the method by which to store and retrieve backup data to/from it ('plugin') and specific connection information required ('endpoint')
 
 ```sql
 CREATE TABLE stores (
-  uuid    UUID PRIMARY KEY,
-  name    TEXT,  -- a human-friendly name for this store
+  uuid      UUID PRIMARY KEY,
+  name      TEXT,  -- a human-friendly name for this store
   summary   TEXT,  -- annotation for operator use, to describe the store
-  plugin  TEST,  -- short name of the storage plugin, like 's3' or 'fs'
+  plugin    TEXT,  -- short name of the storage plugin, like 's3' or 'fs'
   endpoint  TEXT,  -- opaque blob used by storage plugin to connect to
                    -- the storage backend.  Could be JSON, YAML, etc.
 );
@@ -102,8 +102,8 @@ SCHEDULES contains the timing information that informs the core daemon when it s
 
 ```sql
 CREATE TABLE schedules (
-  uuid    UUID PRIMARY KEY,
-  name    TEXT, -- a human-friendly name for this schedule
+  uuid      UUID PRIMARY KEY,
+  name      TEXT, -- a human-friendly name for this schedule
   summary   TEXT, -- annotation for operator use, to describe schedule
   timespec  TEXT, -- code in a DSL for specifying when to run backups,
                   --   i.e. 'sundays 8am' or 'daily 1am'
@@ -111,7 +111,7 @@ CREATE TABLE schedules (
 );
 ```
 
-RETENTION policies govern how long data is kept.  For now, this is just a simple expiration time, with `name' and `summary' fields for annotation.
+RETENTION policies govern how long data is kept.  For now, this is just a simple expiration time, with 'name' and 'summary' fields for annotation.
 
 All backups taken MUST have a retention policy; no backups are kept indefinitely.
 
@@ -130,15 +130,15 @@ JOBS can be annotated by operators to provide context and justification for each
 
 ```sql
 CREATE TABLE jobs (
-  uuid          UUID PRIMARY KEY,
+  uuid            UUID PRIMARY KEY,
   target_uuid     UUID,    -- the target
-  store_uuid  UUID,    -- the store
+  store_uuid      UUID,    -- the store
   schedule_uuid   UUID,    -- what schedule to use
   retention_uuid  UUID,    -- what retention policy to use
-  paused        BOOLEAN, -- if true, this job is not run when scheduled.
-  name          TEXT,    -- a human-friendly name for this schedule
+  paused          BOOLEAN, -- if true, this job is not run when scheduled.
+  name            TEXT,    -- a human-friendly name for this schedule
   summary         TEXT,    -- annotation for operator use, to describe
-                           --   the purpose of the job (‘weekly orders db’)
+                           --   the purpose of the job ('weekly orders db')
 );
 ```
 
@@ -163,14 +163,14 @@ CREATE TABLE archives (
 
 TASKS keep track of non-custodial jobs being performed by the system.  This includes scheduled backups, ad-hoc backups, data restoration and downloads, etc.
 
-The core daemon interprets the `op' field, and calls on the appropriate plugins, based on the associated JOB or ARCHIVE entry. Additional arguments will be passed via the `args' field, which should be JSON.
+The core daemon interprets the 'op' field, and calls on the appropriate plugins, based on the associated JOB or ARCHIVE entry. Additional arguments will be passed via the 'args' field, which should be JSON.
 
 Each TASK should be associated with either a JOB or an ARCHIVE.
 
 Here are the defined operations:
 
-|||
-|---------------------------------------------------------------------------------------------------------------|
+| Operation | Description |
+| :-------- | :---------- |
 | backup | Perform a backup of the associated JOB. The target and store are pulled directly from the JOB entry. <br>Note: the `backup` operation is used for both ad hoc and scheduled backups. |
 | restore | Perform a restore of the associated ARCHIVE.  The storage channel is pulled directly from the ARCHIVE. The target can be specified in the `args` JSON.  If it is not, the values from the ARCHIVE will be used.  This allows restores to go to a different host (for migration / scale-out purposes). |
 
@@ -182,7 +182,7 @@ CREATE TABLE tasks (
   op        TEXT, -- name of the operation to run, i.e. 'backup' or 'restore'
   args      TEXT, -- a JSON blob of arguments for the operation.
 
-  JOB_uuid   UUID,
+  job_uuid      UUID,
   archive_uuid  UUID,
 
   status      status, -- current status of the task
@@ -200,61 +200,61 @@ CREATE TABLE tasks (
 
 Purpose: allows the Web UI and CLI to find out what schedules are defined, and provides CRUD operations for schedule management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show schedules that can be deleted safely.
 
-| | | |
-|----|----|----|
+| Method | Path | Arguments |
+| :----- | :---- | :------- |
 | GET | /v1/schedules | ?unused=[tf] |
-| POST | /v1/schedules | |
-| DELETE | /v1/schedule/:uuid | |
-| PUT | /v1/schedule/:uuid | |
+| POST | /v1/schedules | - |
+| DELETE | /v1/schedule/:uuid | - |
+| PUT | /v1/schedule/:uuid | - |
 
 
 ### Retention Policies API
 
 Purpose: allows the Web UI and CLI to find out what retention policies are defined, and provides CRUD operations for policy management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show retention policies that can be deleted safely.
 
-| | | |
-|----|----|----|
+| Method | Path | Arguments |
+| :----- | :---- | :------- |
 | GET | /v1/retention/policies | ?unused=[tf] |
-| POST | /v1/retention/policies | |
-| DELETE | /v1/retention/policy/:uuid | |
-| PUT | /v1/retention/policy/:uuid | |
+| POST | /v1/retention/policies | - |
+| DELETE | /v1/retention/policy/:uuid | - |
+| PUT | /v1/retention/policy/:uuid | - |
 
 
 ### Targets API
 
 Purpose: allows the Web UI and CLI to review what targets have been defined, and allows updates to existing targets (to change endpoints or plugins, for example) and remove unused targets (i.e. retired / decommissioned services).
 
-| | | |
-|----|----|----|
+| Method | Path | Arguments |
+| :----- | :---- | :------- |
 | GET | /v1/targets | ?plugin=:name <br> ?unused=[tf] |
-| POST | /v1/targets | |
-| DELETE | /v1/target/:uuid | |
-| PUT | /v1/target/:uuid | |
+| POST | /v1/targets | - |
+| DELETE | /v1/target/:uuid | - |
+| PUT | /v1/target/:uuid | - |
 
 
 ### Stores API
 
 Purpose: allows operators (via the Web UI and CLI components) to view what storage systems are available for configuring backups, provision new ones, update existing ones and delete unused ones.
 
-| | | |
-|----|----|----|
+| Method | Path | Arguments |
+| :----- | :---- | :------- |
 | GET | /v1/stores | ?plugin=:name <br>?unused=[tf] |
-| POST | /v1/stores | |
-| DELETE | /v1/store/:uuid | |
-| PUT | /v1/store/:uuid | |
+| POST | /v1/stores | - |
+| DELETE | /v1/store/:uuid | - |
+| PUT | /v1/store/:uuid | - |
 
 
 ### Jobs API
 Purpose: allows end-users and operators to see what jobs have been configured, and the details of those configurations.  The filtering on the main listing / search endpoint (/v1/jobs) allows the frontends to show only jobs for specific schedules (what weekly backups are we running?), retention policies (what backups are we keeping for 90d or more?), and specific targets / stores.
 
-| | | |
-|----|----|----|
+| Method | Path | Arguments |
+| :----- | :---- | :------- |
 | GET | /v1/jobs | ?target=:uuid<br>?store=:uuid<br>?schedule=:uuid<br>?retention=:uuid<br>?paused=[tf] |
-| POST | /v1/jobs | |
-| DELETE | /v1/job/:uuid | |
-| PUT | /v1/job/:uuid | |
-| POST | /v1/job/:uuid/pause | |
-| POST | /v1/job/:uuid/unpause | |
+| POST | /v1/jobs | - |
+| DELETE | /v1/job/:uuid | - |
+| PUT | /v1/job/:uuid | - |
+| POST | /v1/job/:uuid/pause | - |
+| POST | /v1/job/:uuid/unpause | - |
 
 
 ### Archive API
@@ -263,24 +263,24 @@ Purpose: allows end-users and operators to see what backups have been performed,
 
 Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations (name and summary) for an archive.
 
-| | | |
-|----|----|----|
+| Method | Path | Arguments |
+| :----- | :---- | :------- |
 | GET | /v1/archives | ?target=:uuid <br>?store=:uuid <br>?after=:timespec <br>?before=:timespec |
-| GET | /v1/archive/:uuid | |
+| GET | /v1/archive/:uuid | - |
 | POST | /v1/archive/:uuid/restore | { target: $target_uuid } |
-| DELETE | /v1/archive/:uuid | |
-| PUT | /v1/archive/:uuid | |
+| DELETE | /v1/archive/:uuid | - |
+| PUT | /v1/archive/:uuid | - |
 
 
 ### Tasks API
 Purpose: allows the Web UI and the CLI to show running tasks, query a specific task, submit new tasks, cancel tasks, etc.
 
-| | | |
-|----|----|----|
+| Method | Path | Arguments |
+| :----- | :---- | :------- |
 | GET | /v1/tasks | ?status=:status <br>?debug |
-| POST | /v1/tasks | |
-| PUT | /v1/task/:uuid | |
-| DELETE | /v1/task/:uuid | |
+| POST | /v1/tasks | - |
+| PUT | /v1/task/:uuid | - |
+| DELETE | /v1/task/:uuid | - |
 
 ## Plugin Calling Protocol
 
@@ -292,26 +292,44 @@ program to perform what functions.
 
 ```bash
 $ redis-plugin info
-{"name":"My Redis Plugin","author":"Joe Random Hacker","version":"1.0.0","features":{"target":"yes","store":"no"}}
+{
+  "name": "My Redis Plugin",
+  "author": "Joe Random Hacker",
+  "version": "1.0.0",
+  "features": {
+    "target": "yes",
+    "store": "no"
+  }
+}
 
 $ s3-plugin info
-{"name":"My S3 Storage Plugin","author":"Joe Random Hacker","version":"2.1.4","features":{"target":"no","store":"yes"}}
+{
+  "name": "My S3 Storage Plugin",
+  "author": "Joe Random Hacker",
+  "version": "2.1.4",
+  "features": {
+    "target": "no",
+    "store": "yes"
+  }
+}
 
 $ redis-plugin backup -c $REDIS_ENDPOINT | s3-plugin store -c $S3_ENDPOINT
-{"key":"BA670360-DE9D-46D0-AEAB-55E72BD416C4"}
+{
+  "key": "BA670360-DE9D-46D0-AEAB-55E72BD416C4"
+}
 
-$ s3-plugin retrieve -c $S3_ENDPOINT -k BA670360-DE9D-46D0-AEAB-55E72BD416C4 | redis-plugin restore -c $REDIS_ENDPOINT
+$ s3-plugin retrieve -c $S3_ENDPOINT -k $KEY | redis-plugin restore -c $REDIS_ENDPOINT
 ```
 
 Each plugin program must implement the following actions, which will be passed as the first argument:
 
-- *info* Dump a JSON-encoded map containing the following keys, to standard output:
+- **info** - Dump a JSON-encoded map containing the following keys, to standard output:
 
-  1. *name* - The name of the plugin (human-readable)
-  2. *author* - The name of the person or team who maintains the plugin.
+  1. `name` - The name of the plugin (human-readable)
+  2. `author` - The name of the person or team who maintains the plugin.
      May include email, at author discretion.
-  3. *version* - The version of the plugin
-  4. *features* - A map of the features of this plugin.  Currently supports two boolean keys
+  3. `version` - The version of the plugin
+  4. `features` - A map of the features of this plugin.  Currently supports two boolean keys
      ("yes" for true, "no" for false, both lower case) named "target" and "store", that indicate
      whether or not the plugin can support target and/or store operations.
 
@@ -321,7 +339,7 @@ Each plugin program must implement the following actions, which will be passed a
   Always exits 0 to signify success.  Exits non-zero to signify an error, and prints
   diagnostic information to standard error.
 
-- *backup* Stream a backup blob of arbitrary binary data (per plugin semantics) to standard
+- **backup** - Stream a backup blob of arbitrary binary data (per plugin semantics) to standard
   output, based on the endpoint given via the `-c` argument.  For example, a database target
   plugin may require the DSN and username/password in a JSON structure to be given via `-c`,
   and will run a platform-specific backup tool, hooking its output to standard output (like
@@ -331,14 +349,14 @@ Each plugin program must implement the following actions, which will be passed a
 
   Exits 0 on success, or non-zero on failure.
 
-- *restore* Read a backup blob of arbitrary binary data (per plugin semantics) from standard
+- **restore** - Read a backup blob of arbitrary binary data (per plugin semantics) from standard
   input, and perform a restore based on the endpoint given via the `-c` argument.
 
   Error messages and diagnostics should be printed to standard error.
 
   Exits 0 on success, or non-zero on failure.
 
-- *store* Read a backup blob of arbitrary binary data from standard input, and store it in
+- **store** - Read a backup blob of arbitrary binary data from standard input, and store it in
   the remote storage system, based on the endpoint given via the `-c` argument.  For example,
   an S3 plugin might require keys and a bucket name to perform storage operations.
 
@@ -349,12 +367,15 @@ Each plugin program must implement the following actions, which will be passed a
   On success, write the JSON representation of a map containing a summary of the stored object,
   including the following keys:
 
-  - *key* - An opaque identifier that means something to the plugin for purposes of restore.
-    This will be logged in the database by shield.
+  1. `key` - An opaque identifier that means something to the plugin for purposes of restore.
+     This will be logged in the database by shield.
 
-- *retrieve* Stream a backup blob of arbitrary binary data to standard output, based on the
+  Other keys are allowed, but ignored, and all keys are reserved for future expansion.  Keys starting
+  with an underscore ('\_') will never be used by shield, and is free for your own use.
+
+- **retrieve** Stream a backup blob of arbitrary binary data to standard output, based on the
   endpoint configuration given as the `-c` argument, and a key, as given by the `-k` argument.
-  (This will be the key that was returned from the *store* operation)
+  (This will be the key that was returned from the **store** operation)
 
   Error messages and diagnostics should be printed to standard error.
 
@@ -364,7 +385,7 @@ Each plugin program must implement the following actions, which will be passed a
 
 This section is exploratory.
 
-```bash
+```
 # schedule management
 $ bkp list schedules [--[un]used]
 $ bkp show schedule $UUID
@@ -377,7 +398,7 @@ $ bkp show retention policy $UUID
 $ bkp delete retention policy $UUID
 $ bkp update retention policy $UUID
 
-# “managing” plugins
+# "managing" plugins
 $ bkp list plugins
 $ bkp show plugin $NAME
 
@@ -395,7 +416,7 @@ $ bkp delete store $UUID
 
 # jobs
 $ bkp list jobs [--[un]paused] [--target $UUID] [--store $UUID]
-                 [--schedule $UUID] [--retention-policy $UUID]
+                [--schedule $UUID] [--retention-policy $UUID]
 $ bkp show job $UUID
 $ bkp pause job $UUID
 $ bkp unpause job $UUID
@@ -453,4 +474,3 @@ Next, we extend the proof-of-concept implementation to test out the Agent Target
 * Implement the Agent Daemon (in general)
 * Extend the Agent Daemon to handle Redis’ BGSAVE command
 * Implement the Agent Target Plugin
-
