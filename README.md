@@ -282,6 +282,83 @@ Purpose: allows the Web UI and the CLI to show running tasks, query a specific t
 | PUT | /v1/task/:uuid | |
 | DELETE | /v1/task/:uuid | |
 
+## Plugin Calling Protocol
+
+Store and Target Plugins are implemented as external programs,
+either scripts or compiled binaries, that follow the Plugin
+Calling Protocol, which stipulates how file descriptors are to be
+used, and what arguments are going to be passed to the external
+program to perform what functions.
+
+```bash
+$ redis-plugin info
+{"name":"My Redis Plugin","author":"Joe Random Hacker","version":"1.0.0","features":{"target":"yes","store":"no"}}
+
+$ s3-plugin info
+{"name":"My S3 Storage Plugin","author":"Joe Random Hacker","version":"2.1.4","features":{"target":"no","store":"yes"}}
+
+$ redis-plugin backup -c $REDIS_ENDPOINT | s3-plugin store -c $S3_ENDPOINT
+{"key":"BA670360-DE9D-46D0-AEAB-55E72BD416C4"}
+
+$ s3-plugin retrieve -c $S3_ENDPOINT -k BA670360-DE9D-46D0-AEAB-55E72BD416C4 | redis-plugin restore -c $REDIS_ENDPOINT
+```
+
+Each plugin program must implement the following actions, which will be passed as the first argument:
+
+- *info* Dump a JSON-encoded map containing the following keys, to standard output:
+
+  1. *name* - The name of the plugin (human-readable)
+  2. *author* - The name of the person or team who maintains the plugin.
+     May include email, at author discretion.
+  3. *version* - The version of the plugin
+  4. *features* - A map of the features of this plugin.  Currently supports two boolean keys
+     ("yes" for true, "no" for false, both lower case) named "target" and "store", that indicate
+     whether or not the plugin can support target and/or store operations.
+
+  Other keys are allowed, but ignored, and all keys are reserved for future expansion.  Keys starting
+  with an underscore ('\_') will never be used by shield, and is free for your own use.
+
+  Always exits 0 to signify success.  Exits non-zero to signify an error, and prints
+  diagnostic information to standard error.
+
+- *backup* Stream a backup blob of arbitrary binary data (per plugin semantics) to standard
+  output, based on the endpoint given via the `-c` argument.  For example, a database target
+  plugin may require the DSN and username/password in a JSON structure to be given via `-c`,
+  and will run a platform-specific backup tool, hooking its output to standard output (like
+  pgdump or mysqldump).
+
+  Error messages and diagnostics should be printed to standard error.
+
+  Exits 0 on success, or non-zero on failure.
+
+- *restore* Read a backup blob of arbitrary binary data (per plugin semantics) from standard
+  input, and perform a restore based on the endpoint given via the `-c` argument.
+
+  Error messages and diagnostics should be printed to standard error.
+
+  Exits 0 on success, or non-zero on failure.
+
+- *store* Read a backup blob of arbitrary binary data from standard input, and store it in
+  the remote storage system, based on the endpoint given via the `-c` argument.  For example,
+  an S3 plugin might require keys and a bucket name to perform storage operations.
+
+  Error messages and diagnostics should be printed to standard error.
+
+  Exits 0 on success, or non-zero on failure.
+
+  On success, write the JSON representation of a map containing a summary of the stored object,
+  including the following keys:
+
+  - *key* - An opaque identifier that means something to the plugin for purposes of restore.
+    This will be logged in the database by shield.
+
+- *retrieve* Stream a backup blob of arbitrary binary data to standard output, based on the
+  endpoint configuration given as the `-c` argument, and a key, as given by the `-k` argument.
+  (This will be the key that was returned from the *store* operation)
+
+  Error messages and diagnostics should be printed to standard error.
+
+  Exits 0 on success, or non-zero on failure.
 
 ## CLI Usage Examples
 
