@@ -10,7 +10,7 @@ Engineers should be able to integrate support for new data systems and storage s
 
 ## Architecture
 
-![Architecture Image](https://raw.githubusercontent.com/starkandwayne/shield/master/images/image00.png)
+![Architecture Image](https://raw.githubusercontent.com/starkandwayne/shield/master/docs/images/image00.png)
 
 ## Target Plugins
 
