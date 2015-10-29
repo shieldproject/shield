@@ -9,6 +9,7 @@ func main() {
 	fmt.Printf("starting up...\n")
 	s := supervisor.NewSupervisor()
 
+	s.SpawnScheduler()
 	s.SpawnWorker()
 	s.SpawnWorker()
 	s.SpawnWorker()
