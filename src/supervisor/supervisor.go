@@ -1,0 +1,170 @@
+package supervisor
+
+import (
+	"fmt"
+	"github.com/pborman/uuid"
+	"time"
+)
+
+type Operation int
+
+const (
+	BACKUP Operation = iota
+	RESTORE
+)
+
+type Status int
+
+const (
+	PENDING Status = iota
+	RUNNING
+	CANCELED
+	DONE
+)
+
+type Task struct {
+	uuid uuid.UUID
+
+	op     Operation
+	status Status
+
+	startedAt time.Time
+	stoppedAt time.Time
+
+	output []string
+}
+
+type UpdateOp int
+
+const (
+	STOPPED UpdateOp = iota
+	OUTPUT
+)
+
+// A structure passed back to the supervisor, by the workers
+// to indicate a change in task state
+type WorkerUpdate struct {
+	task      uuid.UUID
+	op        UpdateOp
+	stoppedAt time.Time
+	output    string
+}
+
+type Supervisor struct {
+	tick    chan int
+	workers chan Task
+	updates chan WorkerUpdate
+
+	tasks map[*uuid.UUID]*Task
+	runq  []*Task
+	// schedule map[uuid.UUID]*Job
+}
+
+func NewSupervisor() *Supervisor {
+	s := &Supervisor{
+		tick:    make(chan int),
+		workers: make(chan Task),
+		updates: make(chan WorkerUpdate),
+		tasks:   make(map[*uuid.UUID]*Task),
+		runq:    make([]*Task, 0),
+	}
+
+	s.runq = append(s.runq, &Task{
+		uuid:   uuid.NewRandom(),
+		op:     BACKUP,
+		status: PENDING,
+		output: make([]string, 0),
+	})
+	s.runq = append(s.runq, &Task{
+		uuid:   uuid.NewRandom(),
+		op:     BACKUP,
+		status: PENDING,
+		output: make([]string, 0),
+	})
+	s.runq = append(s.runq, &Task{
+		uuid:   uuid.NewRandom(),
+		op:     BACKUP,
+		status: PENDING,
+		output: make([]string, 0),
+	})
+	s.runq = append(s.runq, &Task{
+		uuid:   uuid.NewRandom(),
+		op:     BACKUP,
+		status: PENDING,
+		output: make([]string, 0),
+	})
+
+	return s
+}
+
+func (s *Supervisor) Run() {
+	// multiplex between workers and supervisor
+	for {
+		select {
+		case <-s.tick:
+			fmt.Printf("recieved a TICK from the scheduler\n")
+
+		case u := <-s.updates:
+			fmt.Printf("received an update from a worker\n")
+			if u.op == STOPPED {
+				fmt.Printf("  job %s stopped at %s\n", u.task.String(), u.stoppedAt.String())
+			} else if u.op == OUTPUT {
+				fmt.Printf("  `%s`\n", u.output)
+			} else {
+				fmt.Printf("  unrecognized op type\n")
+			}
+
+		default:
+			if len(s.runq) > 0 {
+				select {
+				case s.workers <- *s.runq[0]:
+					fmt.Printf("sent a task to a worker\n")
+					s.runq = s.runq[1:]
+				default:
+				}
+			}
+		}
+	}
+}
+
+func worker(work chan Task, updates chan WorkerUpdate) {
+	for t := range work {
+		fmt.Printf("received Task %v (by the worker)\n", t.uuid.String())
+
+		time.Sleep(time.Second)
+		updates <- WorkerUpdate{
+			task:   t.uuid,
+			op:     OUTPUT,
+			output: "some output, line 1\n",
+		}
+
+		time.Sleep(time.Second * 2)
+		updates <- WorkerUpdate{
+			task:   t.uuid,
+			op:     OUTPUT,
+			output: "some more output (another line)\n",
+		}
+
+		time.Sleep(time.Second)
+		updates <- WorkerUpdate{
+			task:      t.uuid,
+			op:        STOPPED,
+			stoppedAt: time.Now(),
+		}
+	}
+}
+
+func (s *Supervisor) SpawnWorker() {
+	go worker(s.workers, s.updates)
+}
+
+func scheduler(c chan int) {
+	for {
+		time.Sleep(time.Second * 5)
+		c <- 1
+	}
+}
+
+func (s *Supervisor) SpawnScheduler() {
+	go scheduler(s.tick)
+}
