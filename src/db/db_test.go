@@ -146,6 +146,15 @@ var _ = Describe("Database", func() {
 				Ω(r).Should(BeNil())
 				Ω(err).Should(HaveOccurred())
 			})
+
+			It("can run arbitrary SQL", func() {
+				Ω(db.ExecOnce("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
+					ShouldNot(HaveOccurred())
+
+				r, err := db.Query("how-many?", "lion")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(numberOfThingsIn(r)).Should(Equal(3))
+			})
 		})
 
 		Context("With malformed SQL queries", func() {

@@ -67,6 +67,17 @@ func (db *DB) Cached(name string) bool {
 	return ok
 }
 
+// Execute a one-off, non-data query (CREATE TABLE, DROP TABLE, etc.)
+func (db *DB) ExecOnce(sql string, args ...interface{}) error {
+	s, err := db.connection.Prepare(sql)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.Exec(args...)
+	return err
+}
+
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
 func (db *DB) Exec(name string, args ...interface{}) error {
 	s, err := db.statement(name)
