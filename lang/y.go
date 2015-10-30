@@ -5,8 +5,11 @@ import __yyfmt__ "fmt"
 
 //line spec.y:2
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"regexp"
+	"strconv"
 )
 
 type TimeInHHMM struct {
@@ -14,7 +17,7 @@ type TimeInHHMM struct {
 	minutes uint8
 }
 
-//line spec.y:18
+//line spec.y:21
 type yySymType struct {
 	yys    int
 	time   *TimeInHHMM
@@ -28,14 +31,16 @@ const WEEKLY = 57349
 const MONTHLY = 57350
 const AT = 57351
 const ON = 57352
-const EVERYDAY = 57353
-const SUNDAY = 57354
-const MONDAY = 57355
-const TUESDAY = 57356
-const WEDNESDAY = 57357
-const THURSDAY = 57358
-const FRIDAY = 57359
-const SATURDAY = 57360
+const AM = 57353
+const PM = 57354
+const EVERYDAY = 57355
+const SUNDAY = 57356
+const MONDAY = 57357
+const TUESDAY = 57358
+const WEDNESDAY = 57359
+const THURSDAY = 57360
+const FRIDAY = 57361
+const SATURDAY = 57362
 
 var yyToknames = [...]string{
 	"$end",
@@ -48,6 +53,8 @@ var yyToknames = [...]string{
 	"MONTHLY",
 	"AT",
 	"ON",
+	"AM",
+	"PM",
 	"EVERYDAY",
 	"SUNDAY",
 	"MONDAY",
@@ -64,14 +71,117 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line spec.y:79
+//line spec.y:91
+
+type Tokens struct {
+	whitespace *regexp.Regexp
+	number     *regexp.Regexp
+	ordinal    *regexp.Regexp
+}
+
+type KeywordMatcher struct {
+	token int
+	match *regexp.Regexp
+}
 
 type yyLex struct {
-	buf []byte
+	tokens   Tokens
+	keywords []KeywordMatcher
+	buf      []byte
+}
+
+func LexerForFile(filename string) *yyLex {
+	s, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fmt.Printf("ERROR! %s\n", err)
+		return nil
+	}
+	l := &yyLex{buf: s}
+
+	l.keywords = append(l.keywords, KeywordMatcher{token: DAILY, match: regexp.MustCompile(`^daily`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: WEEKLY, match: regexp.MustCompile(`^weekly`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: MONTHLY, match: regexp.MustCompile(`^monthly`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: AT, match: regexp.MustCompile(`^at`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: ON, match: regexp.MustCompile(`^on`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: AM, match: regexp.MustCompile(`^am`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: PM, match: regexp.MustCompile(`^pm`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: EVERYDAY, match: regexp.MustCompile(`^every\s+day`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: SUNDAY, match: regexp.MustCompile(`^sun(days?)?`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: MONDAY, match: regexp.MustCompile(`^mon(days?)?`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: TUESDAY, match: regexp.MustCompile(`^tue(s(days?)?)?`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: WEDNESDAY, match: regexp.MustCompile(`^wed(nesdays?)?`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: THURSDAY, match: regexp.MustCompile(`^thu(r(s(days?)?)?)?`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: FRIDAY, match: regexp.MustCompile(`^fri(days?)?`)})
+	l.keywords = append(l.keywords, KeywordMatcher{token: SATURDAY, match: regexp.MustCompile(`^sat(urdays?)?`)})
+
+	l.tokens.whitespace = regexp.MustCompile(`^\s+`)
+	l.tokens.number = regexp.MustCompile(`^\d+`)
+	l.tokens.ordinal = regexp.MustCompile(`^(\d+)(st|rd|nd|th)`)
+
+	return l
+}
+
+func (l *yyLex) eat(m [][]byte) {
+	l.buf = l.buf[len(m[0]):]
+}
+
+func stringify(b []byte) string {
+	n := bytes.IndexByte(b, 0)
+	if n < 0 {
+		n = len(b)
+	}
+
+	return string(b[:n])
+}
+
+func numify(m []byte) uint8 {
+	i, err := strconv.Atoi(stringify(m))
+	if err != nil {
+		panic("yo, stuff's broke")
+	}
+	return uint8(i)
 }
 
 func (l *yyLex) Lex(lval *yySymType) int {
-	return 0
+	var m [][]byte
+
+	// eat whitespace
+	m = l.tokens.whitespace.FindSubmatch(l.buf)
+	if m != nil {
+		l.eat(m)
+	}
+
+	for _, keyword := range l.keywords {
+		m = keyword.match.FindSubmatch(l.buf)
+		if m != nil {
+			l.eat(m)
+			return keyword.token
+		}
+	}
+
+	// number
+	m = l.tokens.number.FindSubmatch(l.buf)
+	if m != nil {
+		l.eat(m)
+		lval.number = numify(m[0])
+		return NUMBER
+	}
+
+	// ordinal
+	m = l.tokens.ordinal.FindSubmatch(l.buf)
+	if m != nil {
+		l.eat(m)
+		lval.number = numify(m[1])
+		return ORDINAL
+	}
+
+	if len(l.buf) == 0 {
+		return 0
+	}
+
+	c := l.buf[0]
+	l.buf = l.buf[1:]
+	return int(c)
 }
 
 func (l *yyLex) Error(e string) {
@@ -79,14 +189,11 @@ func (l *yyLex) Error(e string) {
 }
 
 func main() {
-	s, err := ioutil.ReadFile("hardcoded.timespec")
-	if err != nil {
-		fmt.Printf("ERROR! %s\n", err)
+	fmt.Printf("starting...\n")
+	lexer := LexerForFile("hardcoded.timespec")
+	if lexer == nil {
 		return
 	}
-
-	lexer := &yyLex{buf: s}
-	fmt.Printf("starting...\n")
 	yyParse(lexer)
 	fmt.Printf("DONE\n")
 }
@@ -98,63 +205,66 @@ var yyExca = [...]int{
 	-2, 0,
 }
 
-const yyNprod = 25
+const yyNprod = 29
 const yyPrivate = 57344
 
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 63
+const yyLast = 69
 
 var yyAct = [...]int{
 
-	19, 8, 30, 41, 39, 20, 33, 22, 24, 26,
-	36, 20, 28, 20, 27, 20, 25, 20, 23, 29,
-	21, 38, 31, 44, 32, 20, 34, 4, 35, 37,
-	18, 46, 45, 3, 2, 40, 1, 42, 0, 0,
-	0, 43, 10, 5, 7, 9, 0, 0, 6, 11,
-	12, 13, 14, 15, 16, 17, 11, 12, 13, 14,
-	15, 16, 17,
+	19, 8, 44, 31, 32, 33, 42, 22, 24, 26,
+	32, 33, 28, 20, 30, 36, 20, 27, 39, 29,
+	48, 25, 34, 20, 35, 41, 37, 4, 38, 40,
+	11, 12, 13, 14, 15, 16, 17, 20, 43, 3,
+	45, 2, 23, 1, 47, 46, 10, 5, 7, 9,
+	50, 49, 0, 0, 6, 11, 12, 13, 14, 15,
+	16, 17, 20, 20, 0, 0, 0, 21, 18,
 }
 var yyPact = [...]int{
 
-	37, -1000, -1000, -1000, -1000, 21, 11, 9, 7, 5,
-	44, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 13, -1000,
-	-17, 13, -1000, 13, -4, 13, -1000, 13, 1, -1000,
-	17, -1000, -6, 44, -1000, -7, 13, -1000, -1000, 44,
-	-1000, 27, -1000, -1000, -1000, -1000, -1000,
+	41, -1000, -1000, -1000, -1000, 59, 58, 33, 12, 8,
+	16, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 19, -1000,
+	-7, 19, -1000, 19, 5, 19, -1000, 19, 9, -1000,
+	21, -1000, -1000, -1000, -1000, -4, 16, -1000, -8, 19,
+	-1000, -1, 16, -1000, 46, -1000, -1000, -1000, -1000, -1000,
+	-1000,
 }
 var yyPgo = [...]int{
 
-	0, 0, 36, 34, 33, 27, 1, 23,
+	0, 0, 3, 43, 41, 39, 27, 1, 20,
 }
 var yyR1 = [...]int{
 
-	0, 2, 2, 2, 3, 3, 3, 3, 1, 4,
-	4, 4, 4, 6, 6, 6, 6, 6, 6, 6,
-	5, 5, 5, 7, 7,
+	0, 3, 3, 3, 4, 4, 4, 4, 1, 1,
+	1, 5, 5, 5, 5, 2, 2, 7, 7, 7,
+	7, 7, 7, 7, 6, 6, 6, 8, 8,
 }
 var yyR2 = [...]int{
 
-	0, 1, 1, 1, 3, 2, 3, 2, 3, 5,
-	4, 3, 2, 1, 1, 1, 1, 1, 1, 1,
-	5, 4, 3, 1, 1,
+	0, 1, 1, 1, 3, 2, 3, 2, 3, 4,
+	2, 5, 4, 3, 2, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 5, 4, 3, 1, 1,
 }
 var yyChk = [...]int{
 
-	-1000, -2, -3, -4, -5, 6, 11, 7, -6, 8,
-	5, 12, 13, 14, 15, 16, 17, 18, 9, -1,
-	4, 9, -1, 9, -1, 9, -1, 9, -6, -1,
-	19, -1, -1, 10, -1, -1, 9, -1, 4, 10,
-	-6, 10, -1, -6, -7, 5, 4,
+	-1000, -3, -4, -5, -6, 6, 13, 7, -7, 8,
+	5, 14, 15, 16, 17, 18, 19, 20, 9, -1,
+	4, 9, -1, 9, -1, 9, -1, 9, -7, -1,
+	21, -2, 11, 12, -1, -1, 10, -1, -1, 9,
+	-1, 4, 10, -7, 10, -1, -2, -7, -8, 5,
+	4,
 }
 var yyDef = [...]int{
 
 	0, -2, 1, 2, 3, 0, 0, 0, 0, 0,
-	0, 13, 14, 15, 16, 17, 18, 19, 0, 5,
-	0, 0, 7, 0, 0, 0, 12, 0, 0, 4,
-	0, 6, 0, 0, 11, 0, 0, 22, 8, 0,
-	10, 0, 21, 9, 20, 23, 24,
+	0, 17, 18, 19, 20, 21, 22, 23, 0, 5,
+	0, 0, 7, 0, 0, 0, 14, 0, 0, 4,
+	0, 10, 15, 16, 6, 0, 0, 13, 0, 0,
+	26, 8, 0, 12, 0, 25, 9, 11, 24, 27,
+	28,
 }
 var yyTok1 = [...]int{
 
@@ -163,12 +273,12 @@ var yyTok1 = [...]int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 19,
+	3, 3, 3, 3, 3, 3, 3, 3, 21,
 }
 var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-	12, 13, 14, 15, 16, 17, 18,
+	12, 13, 14, 15, 16, 17, 18, 19, 20,
 }
 var yyTok3 = [...]int{
 	0,
@@ -516,9 +626,33 @@ yydefault:
 
 	case 8:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line spec.y:52
+		//line spec.y:58
 		{
 			yyVAL.time = &TimeInHHMM{hours: yyDollar[1].number, minutes: yyDollar[3].number}
+		}
+	case 9:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line spec.y:59
+		{
+			yyVAL.time = &TimeInHHMM{hours: yyDollar[1].number + yyDollar[4].number, minutes: yyDollar[3].number}
+		}
+	case 10:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line spec.y:60
+		{
+			yyVAL.time = &TimeInHHMM{hours: yyDollar[1].number + yyDollar[2].number, minutes: 0}
+		}
+	case 15:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line spec.y:69
+		{
+			yyVAL.number = 0
+		}
+	case 16:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line spec.y:70
+		{
+			yyVAL.number = 12
 		}
 	}
 	goto yystack /* stack new state and value */
