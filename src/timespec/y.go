@@ -1,27 +1,60 @@
-//line spec.y:2
-package main
+//line lang.y:2
+package timespec
 
 import __yyfmt__ "fmt"
 
-//line spec.y:2
+//line lang.y:2
 import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strconv"
+	"time"
 )
 
-type TimeInHHMM struct {
-	hours   uint8
-	minutes uint8
+func hhmm(hours uint, minutes uint) int {
+	for hours >= 24 {
+		hours -= 12
+	}
+	return int(hours*60 + minutes)
+}
+func daily(minutes int) *Spec {
+	return &Spec{
+		Interval:  Daily,
+		TimeOfDay: minutes,
+	}
+}
+func weekly(minutes int, weekday time.Weekday) *Spec {
+	return &Spec{
+		Interval:  Weekly,
+		TimeOfDay: minutes,
+		DayOfWeek: weekday,
+	}
+}
+func mday(minutes int, day uint) *Spec {
+	return &Spec{
+		Interval:   Monthly,
+		TimeOfDay:  minutes,
+		DayOfMonth: int(day),
+	}
+}
+func mweek(minutes int, weekday time.Weekday, week uint) *Spec {
+	return &Spec{
+		Interval:  Monthly,
+		TimeOfDay: minutes,
+		DayOfWeek: weekday,
+		Week:      int(week),
+	}
 }
 
-//line spec.y:21
+//line lang.y:49
 type yySymType struct {
 	yys    int
-	time   *TimeInHHMM
-	number uint8
+	numval uint
+	time   int
+	wday   time.Weekday
+	spec   *Spec
 }
 
 const NUMBER = 57346
@@ -71,7 +104,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line spec.y:91
+//line lang.y:133
 
 type Tokens struct {
 	whitespace *regexp.Regexp
@@ -88,16 +121,31 @@ type yyLex struct {
 	tokens   Tokens
 	keywords []KeywordMatcher
 	buf      []byte
+	spec     *Spec
 }
 
-func LexerForFile(filename string) *yyLex {
-	s, err := ioutil.ReadFile(filename)
-	if err != nil {
-		fmt.Printf("ERROR! %s\n", err)
-		return nil
-	}
-	l := &yyLex{buf: s}
+func (l *yyLex) eat(m [][]byte) {
+	l.buf = l.buf[len(m[0]):]
+}
 
+func stringify(b []byte) string {
+	n := bytes.IndexByte(b, 0)
+	if n < 0 {
+		n = len(b)
+	}
+
+	return string(b[:n])
+}
+
+func numify(m []byte) uint {
+	i, err := strconv.Atoi(stringify(m))
+	if err != nil {
+		panic("yo, stuff's broke")
+	}
+	return uint(i)
+}
+
+func (l *yyLex) init() {
 	l.keywords = append(l.keywords, KeywordMatcher{token: DAILY, match: regexp.MustCompile(`^daily`)})
 	l.keywords = append(l.keywords, KeywordMatcher{token: WEEKLY, match: regexp.MustCompile(`^weekly`)})
 	l.keywords = append(l.keywords, KeywordMatcher{token: MONTHLY, match: regexp.MustCompile(`^monthly`)})
@@ -117,29 +165,21 @@ func LexerForFile(filename string) *yyLex {
 	l.tokens.whitespace = regexp.MustCompile(`^\s+`)
 	l.tokens.number = regexp.MustCompile(`^\d+`)
 	l.tokens.ordinal = regexp.MustCompile(`^(\d+)(st|rd|nd|th)`)
+}
 
+func LexerForString(s string) *yyLex {
+	l := &yyLex{buf: []byte(s)}
+	l.init()
 	return l
 }
-
-func (l *yyLex) eat(m [][]byte) {
-	l.buf = l.buf[len(m[0]):]
-}
-
-func stringify(b []byte) string {
-	n := bytes.IndexByte(b, 0)
-	if n < 0 {
-		n = len(b)
-	}
-
-	return string(b[:n])
-}
-
-func numify(m []byte) uint8 {
-	i, err := strconv.Atoi(stringify(m))
+func LexerForFile(filename string) *yyLex {
+	s, err := ioutil.ReadFile(filename)
 	if err != nil {
-		panic("yo, stuff's broke")
+		return nil
 	}
-	return uint8(i)
+	l := &yyLex{buf: s}
+	l.init()
+	return l
 }
 
 func (l *yyLex) Lex(lval *yySymType) int {
@@ -159,20 +199,20 @@ func (l *yyLex) Lex(lval *yySymType) int {
 		}
 	}
 
-	// number
-	m = l.tokens.number.FindSubmatch(l.buf)
-	if m != nil {
-		l.eat(m)
-		lval.number = numify(m[0])
-		return NUMBER
-	}
-
 	// ordinal
 	m = l.tokens.ordinal.FindSubmatch(l.buf)
 	if m != nil {
 		l.eat(m)
-		lval.number = numify(m[1])
+		lval.numval = numify(m[1])
 		return ORDINAL
+	}
+
+	// number
+	m = l.tokens.number.FindSubmatch(l.buf)
+	if m != nil {
+		l.eat(m)
+		lval.numval = numify(m[0])
+		return NUMBER
 	}
 
 	if len(l.buf) == 0 {
@@ -188,16 +228,6 @@ func (l *yyLex) Error(e string) {
 	fmt.Printf("ERROR: %s\n", e)
 }
 
-func main() {
-	fmt.Printf("starting...\n")
-	lexer := LexerForFile("hardcoded.timespec")
-	if lexer == nil {
-		return
-	}
-	yyParse(lexer)
-	fmt.Printf("DONE\n")
-}
-
 //line yacctab:1
 var yyExca = [...]int{
 	-1, 1,
@@ -205,66 +235,71 @@ var yyExca = [...]int{
 	-2, 0,
 }
 
-const yyNprod = 29
+const yyNprod = 35
 const yyPrivate = 57344
 
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 69
+const yyLast = 96
 
 var yyAct = [...]int{
 
-	19, 8, 44, 31, 32, 33, 42, 22, 24, 26,
-	32, 33, 28, 20, 30, 36, 20, 27, 39, 29,
-	48, 25, 34, 20, 35, 41, 37, 4, 38, 40,
-	11, 12, 13, 14, 15, 16, 17, 20, 43, 3,
-	45, 2, 23, 1, 47, 46, 10, 5, 7, 9,
-	50, 49, 0, 0, 6, 11, 12, 13, 14, 15,
-	16, 17, 20, 20, 0, 0, 0, 21, 18,
+	20, 43, 9, 21, 33, 34, 35, 48, 23, 25,
+	27, 29, 34, 35, 30, 32, 45, 44, 45, 44,
+	31, 21, 52, 36, 42, 37, 46, 40, 39, 41,
+	1, 47, 12, 13, 14, 15, 16, 17, 18, 5,
+	50, 51, 4, 53, 54, 45, 44, 55, 11, 6,
+	8, 10, 57, 56, 58, 3, 7, 12, 13, 14,
+	15, 16, 17, 18, 49, 2, 0, 0, 12, 13,
+	14, 15, 16, 17, 18, 38, 0, 0, 0, 12,
+	13, 14, 15, 16, 17, 18, 21, 21, 21, 21,
+	21, 28, 26, 24, 22, 19,
 }
 var yyPact = [...]int{
 
-	41, -1000, -1000, -1000, -1000, 59, 58, 33, 12, 8,
-	16, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 19, -1000,
-	-7, 19, -1000, 19, 5, 19, -1000, 19, 9, -1000,
-	21, -1000, -1000, -1000, -1000, -4, 16, -1000, -8, 19,
-	-1000, -1, 16, -1000, 46, -1000, -1000, -1000, -1000, -1000,
-	-1000,
+	43, -1000, -1000, -1000, -1000, -1000, 86, 85, 84, 83,
+	82, 18, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1,
+	-1000, -6, -1, -1000, -1, 65, -1, -1000, -1, 14,
+	17, -1000, 3, -1000, -1000, -1000, -1000, 54, 18, -1000,
+	-1000, 12, 41, -1000, -1000, -1000, -1, -1000, 1, 18,
+	-1000, -1000, 41, -1000, -1000, -1000, -1000, -1000, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 0, 3, 43, 41, 39, 27, 1, 20,
+	0, 0, 4, 1, 2, 65, 55, 42, 39, 30,
 }
 var yyR1 = [...]int{
 
-	0, 3, 3, 3, 4, 4, 4, 4, 1, 1,
-	1, 5, 5, 5, 5, 2, 2, 7, 7, 7,
-	7, 7, 7, 7, 6, 6, 6, 8, 8,
+	0, 9, 5, 5, 5, 6, 6, 6, 6, 1,
+	1, 1, 7, 7, 7, 7, 7, 7, 2, 2,
+	4, 4, 4, 4, 4, 4, 4, 8, 8, 8,
+	8, 8, 8, 3, 3,
 }
 var yyR2 = [...]int{
 
-	0, 1, 1, 1, 3, 2, 3, 2, 3, 4,
-	2, 5, 4, 3, 2, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 5, 4, 3, 1, 1,
+	0, 1, 1, 1, 1, 3, 2, 3, 2, 3,
+	4, 2, 5, 4, 4, 3, 3, 2, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 5, 4, 4,
+	3, 4, 3, 1, 1,
 }
 var yyChk = [...]int{
 
-	-1000, -3, -4, -5, -6, 6, 13, 7, -7, 8,
-	5, 14, 15, 16, 17, 18, 19, 20, 9, -1,
-	4, 9, -1, 9, -1, 9, -1, 9, -7, -1,
-	21, -2, 11, 12, -1, -1, 10, -1, -1, 9,
-	-1, 4, 10, -7, 10, -1, -2, -7, -8, 5,
-	4,
+	-1000, -9, -5, -6, -7, -8, 6, 13, 7, -4,
+	8, 5, 14, 15, 16, 17, 18, 19, 20, 9,
+	-1, 4, 9, -1, 9, -1, 9, -1, 9, -1,
+	-4, -1, 21, -2, 11, 12, -1, -1, 10, -4,
+	-1, -1, 10, -3, 5, 4, 9, -1, 4, 10,
+	-4, -4, 10, -3, -3, -1, -2, -4, -3,
 }
 var yyDef = [...]int{
 
-	0, -2, 1, 2, 3, 0, 0, 0, 0, 0,
-	0, 17, 18, 19, 20, 21, 22, 23, 0, 5,
-	0, 0, 7, 0, 0, 0, 14, 0, 0, 4,
-	0, 10, 15, 16, 6, 0, 0, 13, 0, 0,
-	26, 8, 0, 12, 0, 25, 9, 11, 24, 27,
-	28,
+	0, -2, 1, 2, 3, 4, 0, 0, 0, 0,
+	0, 0, 20, 21, 22, 23, 24, 25, 26, 0,
+	6, 0, 0, 8, 0, 0, 0, 17, 0, 0,
+	0, 5, 0, 11, 18, 19, 7, 0, 0, 15,
+	16, 0, 0, 30, 33, 34, 0, 32, 9, 0,
+	14, 13, 0, 29, 28, 31, 10, 12, 27,
 }
 var yyTok1 = [...]int{
 
@@ -624,35 +659,179 @@ yydefault:
 	// dummy call; replaced with literal code
 	switch yynt {
 
-	case 8:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line spec.y:58
+	case 1:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:81
 		{
-			yyVAL.time = &TimeInHHMM{hours: yyDollar[1].number, minutes: yyDollar[3].number}
+			yylex.(*yyLex).spec = yyDollar[1].spec
+		}
+	case 5:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:89
+		{
+			yyVAL.spec = daily(yyDollar[3].time)
+		}
+	case 6:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line lang.y:90
+		{
+			yyVAL.spec = daily(yyDollar[2].time)
+		}
+	case 7:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:91
+		{
+			yyVAL.spec = daily(yyDollar[3].time)
+		}
+	case 8:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line lang.y:92
+		{
+			yyVAL.spec = daily(yyDollar[2].time)
 		}
 	case 9:
-		yyDollar = yyS[yypt-4 : yypt+1]
-		//line spec.y:59
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:95
 		{
-			yyVAL.time = &TimeInHHMM{hours: yyDollar[1].number + yyDollar[4].number, minutes: yyDollar[3].number}
+			yyVAL.time = hhmm(yyDollar[1].numval, yyDollar[3].numval)
 		}
 	case 10:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line spec.y:60
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:96
 		{
-			yyVAL.time = &TimeInHHMM{hours: yyDollar[1].number + yyDollar[2].number, minutes: 0}
+			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[4].numval, yyDollar[3].numval)
+		}
+	case 11:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line lang.y:97
+		{
+			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[2].numval, 0)
+		}
+	case 12:
+		yyDollar = yyS[yypt-5 : yypt+1]
+		//line lang.y:100
+		{
+			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[5].wday)
+		}
+	case 13:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:101
+		{
+			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[4].wday)
+		}
+	case 14:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:102
+		{
+			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[4].wday)
 		}
 	case 15:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line spec.y:69
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:103
 		{
-			yyVAL.number = 0
+			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[3].wday)
 		}
 	case 16:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line spec.y:70
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:104
 		{
-			yyVAL.number = 12
+			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[1].wday)
+		}
+	case 17:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line lang.y:105
+		{
+			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[1].wday)
+		}
+	case 18:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:108
+		{
+			yyVAL.numval = 0
+		}
+	case 19:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:109
+		{
+			yyVAL.numval = 12
+		}
+	case 20:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:112
+		{
+			yyVAL.wday = time.Sunday
+		}
+	case 21:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:113
+		{
+			yyVAL.wday = time.Monday
+		}
+	case 22:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:114
+		{
+			yyVAL.wday = time.Tuesday
+		}
+	case 23:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:115
+		{
+			yyVAL.wday = time.Wednesday
+		}
+	case 24:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:116
+		{
+			yyVAL.wday = time.Thursday
+		}
+	case 25:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:117
+		{
+			yyVAL.wday = time.Friday
+		}
+	case 26:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:118
+		{
+			yyVAL.wday = time.Saturday
+		}
+	case 27:
+		yyDollar = yyS[yypt-5 : yypt+1]
+		//line lang.y:121
+		{
+			yyVAL.spec = mday(yyDollar[3].time, yyDollar[5].numval)
+		}
+	case 28:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:122
+		{
+			yyVAL.spec = mday(yyDollar[2].time, yyDollar[4].numval)
+		}
+	case 29:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:123
+		{
+			yyVAL.spec = mday(yyDollar[3].time, yyDollar[4].numval)
+		}
+	case 30:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:124
+		{
+			yyVAL.spec = mday(yyDollar[2].time, yyDollar[3].numval)
+		}
+	case 31:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:125
+		{
+			yyVAL.spec = mweek(yyDollar[4].time, yyDollar[2].wday, yyDollar[1].numval)
+		}
+	case 32:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:126
+		{
+			yyVAL.spec = mweek(yyDollar[3].time, yyDollar[2].wday, yyDollar[1].numval)
 		}
 	}
 	goto yystack /* stack new state and value */
