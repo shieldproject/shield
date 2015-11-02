@@ -45,14 +45,14 @@ type Task struct {
 	output []string
 }
 
-func drain(io io.Reader, name string, ch chan []byte) {
+func drain(io io.Reader, name string, ch chan string) {
 	s := bufio.NewScanner(io)
 	for s.Scan() {
-		ch <- s.Bytes()
+		ch <- s.Text()
 	}
 }
 
-func (t *Task) Run(stdout chan []byte, stderr chan []byte) error {
+func (t *Task) Run(stdout chan string, stderr chan string) error {
 	var subcommand string
 	if t.Op == BACKUP {
 		subcommand = fmt.Sprintf("%s backup | %s store", t.Target.Plugin, t.Store.Plugin)

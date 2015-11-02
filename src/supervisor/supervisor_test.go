@@ -25,21 +25,21 @@ var _ = Describe("Supervisor", func() {
 			}
 		})
 
-		drainTo := func(dst *[]byte, ch chan []byte) {
+		drainTo := func(dst *[]string, ch chan string) {
 			for {
-				b, ok := <-ch
+				s, ok := <-ch
 				if !ok {
 					break
 				}
-				*dst = append(*dst, b...)
+				*dst = append(*dst, s)
 			}
 		}
 
 		It("works", func() {
-			var output, errors []byte
+			var output, errors []string
 
-			stdout := make(chan []byte)
-			stderr := make(chan []byte)
+			stdout := make(chan string)
+			stderr := make(chan string)
 
 			go drainTo(&output, stdout)
 			go drainTo(&errors, stderr)
@@ -49,10 +49,10 @@ var _ = Describe("Supervisor", func() {
 		})
 
 		It("collects output from the command pipeline", func() {
-			var output, errors []byte
+			var output, errors []string
 
-			stdout := make(chan []byte)
-			stderr := make(chan []byte)
+			stdout := make(chan string)
+			stderr := make(chan string)
 
 			go drainTo(&output, stdout)
 			go drainTo(&errors, stderr)
