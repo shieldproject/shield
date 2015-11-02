@@ -20,7 +20,7 @@ The system interfaces with data systems that hold the data to back up via Target
 Retrieves data from the data system (via native means like `pg_dump` or the Redis `SAVE` command) and sends it to an Storage Plugin.
 
 #### restore
-Retrieves the data from an Storage Plugin and overwrites the data in the data system accordingly, using native means like `pg_restore’
+Retrieves the data from an Storage Plugin and overwrites the data in the data system accordingly, using native means like `pg_restore`.
 
 For data systems that permit full backups across a network (as most RDBMS do), nothing more is needed.  Some data systems, however, make assumptions about the environment in which they operate.  Redis, for example, always dumps its backups to local disk.  To support these data systems, we can implement the Agent Target Plugin, and a corresponding Agent Daemon that will run on the target system.  The Agent Daemon will be responsible for implementing the backup / restore options, and the Agent Target Plugin will forward the requests to it, and relay responses back to the caller.
 
@@ -126,7 +126,7 @@ CREATE TABLE retention (
 
 JOBS keeps track of desired backup behavior, by marrying a target (the data to backup) with a store (where to send that data), according to a schedule (when to do the backups) and a retention policy (how long to keep the data for).
 
-JOBS can be annotated by operators to provide context and justification for each job.  For example, tickets can be called out in the `notes' field to direct people to more information about when the backup job was requested, and why.
+JOBS can be annotated by operators to provide context and justification for each job.  For example, tickets can be called out in the `notes` field to direct people to more information about when the backup job was requested, and why.
 
 ```sql
 CREATE TABLE jobs (
