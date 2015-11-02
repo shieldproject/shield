@@ -95,4 +95,30 @@ var _ = Describe("ORM", func() {
 			})
 		})
 	})
+	Describe("Retrieving Jobs", func() {
+		var db *DB
+		var orm *ORM
+		BeforeEach(func() {
+			db = &DB{
+				Driver: "sqlite3",
+				DSN:    ":memory:",
+			}
+
+			//Read as "ShouldNot(HaveErrored())"
+			Ω(db.Connect()).ShouldNot(HaveOccurred())
+			Ω(db.Connected()).Should(BeTrue())
+
+			// New ORM for all contexts
+			orm, err := NewORM(db)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(orm).ShouldNot(BeNil())
+			Ω(orm.Setup()).ShouldNot(HaveOccurred())
+		})
+		Context("With an empty database", func() {
+			It("should return an empty list of jobs", func() {
+				jobs, err := orm.GetAllJobs()
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+		})
+	})
 })
