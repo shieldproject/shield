@@ -2,9 +2,10 @@ package db
 
 import (
 	"fmt"
+	"supervisor"
+	"timespec"
 
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/shield/src/supervisor"
 )
 
 type ORM struct {
@@ -190,22 +191,24 @@ func (o *ORM) v1schema() error {
 // func DeleteRetentionPolicy(id uuid.UUID)
 
 func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
-	l := []*supervisor.Job()
+	l := []*supervisor.Job{}
 	result, err := o.db.Query("GetAllJobs")
 	if err != nil {
 		return l, err
 	}
 	for result.Next() {
-		j := supervisor.Job()
-		var juuid, timespec string
+		j := &supervisor.Job{}
+		var id, tspec string
 		var expiry int
 		//var paused bool
-		err = result.Scan(&juuid, &j.Paused,
+		err = result.Scan(&id, &j.Paused,
 			&j.Target.Plugin, &j.Target.Endpoint,
 			&j.Store.Plugin, &j.Store.Endpoint,
-			&timespec, &expiry)
-		j.UUID = uuid.Parse(juuid)
-		j.Spec = timespec.Parse(timespec)
+			&tspec, &expiry)
+		// FIXME: handle err
+		j.UUID = uuid.Parse(id)
+		j.Spec, err = timespec.Parse(tspec)
+		// FIXME: handle err
 	}
 	return l, nil
 }

@@ -10,7 +10,7 @@ type Job struct {
 	UUID   uuid.UUID
 	Store  *PluginConfig
 	Target *PluginConfig
-	Spec   timespec.Spec
+	Spec   *timespec.Spec
 	// FIXME retention policy
 	Paused bool
 }
@@ -19,8 +19,8 @@ type Job struct {
 
 func (j *Job) Task() *Task {
 	return &Task{uuid: uuid.NewRandom(),
-		store:  j.Store,
-		target: j.Target,
+		Store:  j.Store,
+		Target: j.Target,
 		Op:     BACKUP,
 		status: PENDING}
 }

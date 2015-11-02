@@ -118,6 +118,7 @@ var _ = Describe("ORM", func() {
 			It("should return an empty list of jobs", func() {
 				jobs, err := orm.GetAllJobs()
 				Ω(err).ShouldNot(HaveOccurred())
+				Ω(len(jobs)).Should(Equal(0))
 			})
 		})
 	})
