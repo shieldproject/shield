@@ -7,15 +7,6 @@ import (
 	"os/exec"
 )
 
-type Runner struct {
-	task *Task
-}
-
-func (t *Task) Runner() (*Runner, error) {
-	r := &Runner{task: t}
-	return r, nil
-}
-
 func drain(io io.Reader, name string, ch chan []byte) {
 	s := bufio.NewScanner(io)
 	for s.Scan() {
@@ -23,18 +14,18 @@ func drain(io io.Reader, name string, ch chan []byte) {
 	}
 }
 
-func (r *Runner) Exec(c chan []byte) error {
+func (t *Task) Run(c chan []byte) error {
 	var subcommand string
-	if r.task.Op == BACKUP {
-		subcommand = fmt.Sprintf("%s backup | %s store", r.task.Target.Plugin, r.task.Store.Plugin)
+	if t.Op == BACKUP {
+		subcommand = fmt.Sprintf("%s backup | %s store", t.Target.Plugin, t.Store.Plugin)
 	} else {
-		subcommand = fmt.Sprintf("%s retrieve | %s restore", r.task.Store.Plugin, r.task.Target.Plugin)
+		subcommand = fmt.Sprintf("%s retrieve | %s restore", t.Store.Plugin, t.Target.Plugin)
 	}
 
 	cmd := exec.Command("/bin/sh", "-c", subcommand)
 	cmd.Env = []string{
-		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", r.task.Target.Endpoint),
-		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", r.task.Store.Endpoint),
+		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", t.Target.Endpoint),
+		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", t.Store.Endpoint),
 	}
 	// FIXME: SHIELD_RESTORE_KEY ?
 

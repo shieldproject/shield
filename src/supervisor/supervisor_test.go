@@ -8,9 +8,8 @@ import (
 )
 
 var _ = Describe("Supervisor", func() {
-	Describe("Runner", func() {
+	Describe("Task Executor", func() {
 		var t *Task
-		var r *Runner
 
 		BeforeEach(func() {
 			t = &Task{
@@ -24,11 +23,6 @@ var _ = Describe("Supervisor", func() {
 					Endpoint: "{mode:target,endpoint:config}",
 				},
 			}
-
-			var err error
-			r, err = t.Runner()
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(r).ShouldNot(BeNil())
 		})
 
 		drainTo := func(dst *[]byte, ch chan []byte) {
@@ -46,7 +40,7 @@ var _ = Describe("Supervisor", func() {
 
 			ch := make(chan []byte)
 			go drainTo(&all, ch)
-			err := r.Exec(ch)
+			err := t.Run(ch)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
@@ -55,7 +49,7 @@ var _ = Describe("Supervisor", func() {
 
 			ch := make(chan []byte)
 			go drainTo(&all, ch)
-			err := r.Exec(ch)
+			err := t.Run(ch)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(len(all)).Should(BeNumerically(">", 0))
 		})
