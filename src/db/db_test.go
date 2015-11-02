@@ -91,6 +91,8 @@ var _ = Describe("Database", func() {
 				ShouldNot(HaveOccurred())
 			Ω(db.Cache("how-many?", `SELECT number FROM things WHERE type = ?`)).
 				ShouldNot(HaveOccurred())
+			Ω(db.Cache("how-many-monkeys?", `SELECT number FROM things WHERE type = "monkey"`)).
+				ShouldNot(HaveOccurred())
 		})
 
 		AfterEach(func() {
@@ -135,6 +137,15 @@ var _ = Describe("Database", func() {
 				r, err := db.Query("how-many?", "monkey")
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(numberOfThingsIn(r)).Should(Equal(42))
+			})
+
+			It("can handle queries without arguments", func() {
+				Ω(db.Exec("new-thing", "monkey")).ShouldNot(HaveOccurred())
+				Ω(db.Exec("increase", 13, "monkey")).ShouldNot(HaveOccurred())
+
+				r, err := db.Query("how-many-monkeys?")
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(numberOfThingsIn(r)).Should(Equal(13))
 			})
 
 			It("raises an error if an uncached query is requested for Exec()", func() {
