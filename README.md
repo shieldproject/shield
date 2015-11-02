@@ -313,12 +313,15 @@ $ s3-plugin info
   }
 }
 
-$ redis-plugin backup -c $REDIS_ENDPOINT | s3-plugin store -c $S3_ENDPOINT
+$ export SHIELD_TARGET_ENDPOINT='{"username":"redis","password":"secret"}'
+$ export SHIELD_STORE_ENDPOINT='{"bucket":"test","key":"AKI123098123091"}'
+$ redis-plugin backup | s3-plugin store
 {
   "key": "BA670360-DE9D-46D0-AEAB-55E72BD416C4"
 }
 
-$ s3-plugin retrieve -c $S3_ENDPOINT -k $KEY | redis-plugin restore -c $REDIS_ENDPOINT
+$ export SHIELD_RESTORE_KEY="decaf-bad"
+$ s3-plugin retrieve | redis-plugin restore
 ```
 
 Each plugin program must implement the following actions, which will be passed as the first argument:
@@ -339,26 +342,32 @@ Each plugin program must implement the following actions, which will be passed a
   Always exits 0 to signify success.  Exits non-zero to signify an error, and prints
   diagnostic information to standard error.
 
-- **backup** - Stream a backup blob of arbitrary binary data (per plugin semantics) to standard
-  output, based on the endpoint given via the `-c` argument.  For example, a database target
-  plugin may require the DSN and username/password in a JSON structure to be given via `-c`,
-  and will run a platform-specific backup tool, hooking its output to standard output (like
-  pgdump or mysqldump).
+- **backup** - Stream a backup blob of arbitrary binary data (per
+  plugin semantics) to standard output, based on the endpoint
+  given via the `$SHIELD_TARGET_ENDPOINT` environment variable.
+  For example, a database target plugin may require the DSN and
+  username/password in a JSON structure, and will run a
+  platform-specific backup tool, hooking its output to standard
+  output (like pgdump or mysqldump).
 
   Error messages and diagnostics should be printed to standard error.
 
   Exits 0 on success, or non-zero on failure.
 
-- **restore** - Read a backup blob of arbitrary binary data (per plugin semantics) from standard
-  input, and perform a restore based on the endpoint given via the `-c` argument.
+- **restore** - Read a backup blob of arbitrary binary data (per
+  plugin semantics) from standard input, and perform a restore
+  based on the endpoint given via the `$SHIELD_TARGET_ENDPOINT`
+  environment variable.
 
   Error messages and diagnostics should be printed to standard error.
 
   Exits 0 on success, or non-zero on failure.
 
-- **store** - Read a backup blob of arbitrary binary data from standard input, and store it in
-  the remote storage system, based on the endpoint given via the `-c` argument.  For example,
-  an S3 plugin might require keys and a bucket name to perform storage operations.
+- **store** - Read a backup blob of arbitrary binary data from
+  standard input, and store it in the remote storage system, based
+  on the endpoint given via the `$SHIELD_STORE_ENDPOINT`
+  environment variable.  For example, an S3 plugin might require
+  keys and a bucket name to perform storage operations.
 
   Error messages and diagnostics should be printed to standard error.
 
@@ -373,9 +382,11 @@ Each plugin program must implement the following actions, which will be passed a
   Other keys are allowed, but ignored, and all keys are reserved for future expansion.  Keys starting
   with an underscore ('\_') will never be used by shield, and is free for your own use.
 
-- **retrieve** Stream a backup blob of arbitrary binary data to standard output, based on the
-  endpoint configuration given as the `-c` argument, and a key, as given by the `-k` argument.
-  (This will be the key that was returned from the **store** operation)
+- **retrieve** Stream a backup blob of arbitrary binary data to
+  standard output, based on the endpoint configuration given in
+  the `$SHIELD_STORE_ENDPOINT` environment variable, and a key, as
+  given by the `$SHIELD_RESTORE_KEY` environment variable.  (This
+  will be the key that was returned from the **store** operation)
 
   Error messages and diagnostics should be printed to standard error.
 
