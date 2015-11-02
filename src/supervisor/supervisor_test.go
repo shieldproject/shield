@@ -36,22 +36,31 @@ var _ = Describe("Supervisor", func() {
 		}
 
 		It("works", func() {
-			var all []byte
+			var output, errors []byte
 
-			ch := make(chan []byte)
-			go drainTo(&all, ch)
-			err := t.Run(ch)
+			stdout := make(chan []byte)
+			stderr := make(chan []byte)
+
+			go drainTo(&output, stdout)
+			go drainTo(&errors, stderr)
+
+			err := t.Run(stdout, stderr)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		It("collects output from the command pipeline", func() {
-			var all []byte
+			var output, errors []byte
 
-			ch := make(chan []byte)
-			go drainTo(&all, ch)
-			err := t.Run(ch)
+			stdout := make(chan []byte)
+			stderr := make(chan []byte)
+
+			go drainTo(&output, stdout)
+			go drainTo(&errors, stderr)
+
+			err := t.Run(stdout, stderr)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(len(all)).Should(BeNumerically(">", 0))
+			Ω(len(output)).Should(BeNumerically(">", 0))
+			Ω(len(errors)).Should(BeNumerically(">", 0))
 		})
 	})
 })

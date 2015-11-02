@@ -52,7 +52,7 @@ func drain(io io.Reader, name string, ch chan []byte) {
 	}
 }
 
-func (t *Task) Run(c chan []byte) error {
+func (t *Task) Run(stdout chan []byte, stderr chan []byte) error {
 	var subcommand string
 	if t.Op == BACKUP {
 		subcommand = fmt.Sprintf("%s backup | %s store", t.Target.Plugin, t.Store.Plugin)
@@ -67,10 +67,10 @@ func (t *Task) Run(c chan []byte) error {
 	}
 	// FIXME: SHIELD_RESTORE_KEY ?
 
-	stderr, _ := cmd.StderrPipe()
-	stdout, _ := cmd.StdoutPipe()
-	go drain(stderr, "stderr", c)
-	go drain(stdout, "stdout", c)
+	pstderr, _ := cmd.StderrPipe()
+	pstdout, _ := cmd.StdoutPipe()
+	go drain(pstderr, "stderr", stderr)
+	go drain(pstdout, "stdout", stdout)
 
 	err := cmd.Run()
 	return err
