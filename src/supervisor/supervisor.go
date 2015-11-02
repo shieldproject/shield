@@ -7,34 +7,6 @@ import (
 	"time"
 )
 
-type Operation int
-
-const (
-	BACKUP Operation = iota
-	RESTORE
-)
-
-type Status int
-
-const (
-	PENDING Status = iota
-	RUNNING
-	CANCELED
-	DONE
-)
-
-type Task struct {
-	uuid uuid.UUID
-
-	op     Operation
-	status Status
-
-	startedAt time.Time
-	stoppedAt time.Time
-
-	output []string
-}
-
 type UpdateOp int
 
 const (
@@ -74,25 +46,25 @@ func NewSupervisor() *Supervisor {
 
 	s.runq = append(s.runq, &Task{
 		uuid:   uuid.NewRandom(),
-		op:     BACKUP,
+		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
 	})
 	s.runq = append(s.runq, &Task{
 		uuid:   uuid.NewRandom(),
-		op:     BACKUP,
+		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
 	})
 	s.runq = append(s.runq, &Task{
 		uuid:   uuid.NewRandom(),
-		op:     BACKUP,
+		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
 	})
 	s.runq = append(s.runq, &Task{
 		uuid:   uuid.NewRandom(),
-		op:     BACKUP,
+		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
 	})
