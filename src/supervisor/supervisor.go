@@ -3,25 +3,8 @@ package supervisor
 import (
 	"fmt"
 	"github.com/pborman/uuid"
-	"math/rand"
 	"time"
 )
-
-type UpdateOp int
-
-const (
-	STOPPED UpdateOp = iota
-	OUTPUT
-)
-
-// A structure passed back to the supervisor, by the workers
-// to indicate a change in task state
-type WorkerUpdate struct {
-	task      uuid.UUID
-	op        UpdateOp
-	stoppedAt time.Time
-	output    string
-}
 
 type Supervisor struct {
 	tick    chan int
@@ -49,24 +32,56 @@ func NewSupervisor() *Supervisor {
 		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
+		Store: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
+		Target: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
 	})
 	s.runq = append(s.runq, &Task{
 		uuid:   uuid.NewRandom(),
 		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
+		Store: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
+		Target: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
 	})
 	s.runq = append(s.runq, &Task{
 		uuid:   uuid.NewRandom(),
 		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
+		Store: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
+		Target: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
 	})
 	s.runq = append(s.runq, &Task{
 		uuid:   uuid.NewRandom(),
 		Op:     BACKUP,
 		status: PENDING,
 		output: make([]string, 0),
+		Store: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
+		Target: &PluginConfig{
+			Plugin:   "src/supervisor/test/bin/dummy",
+			Endpoint: "(endpoint here)",
+		},
 	})
 
 	return s
@@ -100,42 +115,6 @@ func (s *Supervisor) Run() {
 			}
 		}
 	}
-}
-
-func randomTime(min float32, spread float32) time.Duration {
-	return time.Duration(1000*1000*1000*spread*rand.Float32() + min)
-}
-
-func worker(id uint, work chan Task, updates chan WorkerUpdate) {
-	for t := range work {
-		fmt.Printf("worker %d received task %v\n", id, t.uuid.String())
-
-		time.Sleep(randomTime(0, 1))
-		updates <- WorkerUpdate{
-			task:   t.uuid,
-			op:     OUTPUT,
-			output: "some output, line 1\n",
-		}
-
-		time.Sleep(randomTime(1, 2))
-		updates <- WorkerUpdate{
-			task:   t.uuid,
-			op:     OUTPUT,
-			output: "some more output (another line)\n",
-		}
-
-		time.Sleep(randomTime(0, 1))
-		updates <- WorkerUpdate{
-			task:      t.uuid,
-			op:        STOPPED,
-			stoppedAt: time.Now(),
-		}
-	}
-}
-
-func (s *Supervisor) SpawnWorker() {
-	s.nextWorker += 1
-	go worker(s.nextWorker, s.workers, s.updates)
 }
 
 func scheduler(c chan int) {
