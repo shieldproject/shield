@@ -40,7 +40,7 @@ func setupORM(sqls ...string) (*db.ORM, error) {
 	}
 
 	for _, s := range sqls {
-		err := database.ExecOnce(s)
+		err := database.Exec(s)
 		if err != nil {
 			database.Disconnect()
 			return nil, err

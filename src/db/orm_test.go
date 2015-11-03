@@ -38,7 +38,7 @@ var _ = Describe("ORM", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(orm).ShouldNot(BeNil())
 
-				Ω(db.ExecOnce("SELECT * FROM schema_info")).
+				Ω(db.Exec("SELECT * FROM schema_info")).
 					Should(HaveOccurred())
 			})
 
@@ -49,7 +49,7 @@ var _ = Describe("ORM", func() {
 
 				Ω(orm.Setup()).ShouldNot(HaveOccurred())
 
-				Ω(db.ExecOnce("SELECT * FROM schema_info")).
+				Ω(db.Exec("SELECT * FROM schema_info")).
 					ShouldNot(HaveOccurred())
 			})
 
@@ -60,10 +60,7 @@ var _ = Describe("ORM", func() {
 
 				Ω(orm.Setup()).ShouldNot(HaveOccurred())
 
-				Ω(db.Cache("schema-version", `SELECT version FROM schema_info`)).
-					ShouldNot(HaveOccurred())
-
-				r, err := db.Query("schema-version")
+				r, err := db.Query(`SELECT version FROM schema_info`)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(r).ShouldNot(BeNil())
 				Ω(r.Next()).Should(BeTrue())
@@ -82,7 +79,7 @@ var _ = Describe("ORM", func() {
 
 				tableExists := func(table string) {
 					sql := fmt.Sprintf("SELECT * FROM %s", table)
-					Ω(db.ExecOnce(sql)).ShouldNot(HaveOccurred())
+					Ω(db.Exec(sql)).ShouldNot(HaveOccurred())
 				}
 
 				tableExists("targets")
@@ -125,19 +122,19 @@ var _ = Describe("ORM", func() {
 		})
 		Context("With a non-empty database", func() {
 			BeforeEach(func() {
-				db.Cache("new-job", `
+				db.Alias("new-job", `
 					INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused, name, summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 				`)
-				db.Cache("new-target", `
+				db.Alias("new-target", `
 					INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES (?, ?, ?, ?, ?)
 				`)
-				db.Cache("new-store", `
+				db.Alias("new-store", `
 					INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES (?, ?, ?, ?, ?)
 				`)
-				db.Cache("new-schedule", `
+				db.Alias("new-schedule", `
 					INSERT INTO schedules (uuid, name, summary, timespec) VALUES (?, ?, ?, ?)
 				`)
-				db.Cache("new-retention", `
+				db.Alias("new-retention", `
 					INSERT INTO retention (uuid, name, summary, expiry) VALUES (?, ?, ?, ?)
 				`)
 

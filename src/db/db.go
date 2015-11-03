@@ -5,17 +5,13 @@ import (
 	"fmt"
 )
 
-type Query struct {
-	Raw    string
-	Cooked *sql.Stmt
-}
-
 type DB struct {
 	connection *sql.DB
 	Driver     string
 	DSN        string
 
-	qCache map[string]*Query
+	qCache map[string]*sql.Stmt
+	qAlias map[string]string
 }
 
 // Are we connected?
@@ -35,7 +31,10 @@ func (db *DB) Connect() error {
 
 	db.connection = connection
 	if db.qCache == nil {
-		db.qCache = make(map[string]*Query)
+		db.qCache = make(map[string]*sql.Stmt)
+	}
+	if db.qAlias == nil {
+		db.qAlias = make(map[string]string)
 	}
 	return nil
 }
@@ -47,40 +46,20 @@ func (db *DB) Disconnect() error {
 			return err
 		}
 		db.connection = nil
-
-		for _, q := range db.qCache {
-			q.Cooked = nil
-		}
+		db.qCache = make(map[string]*sql.Stmt)
 	}
 	return nil
 }
 
-// Register a SQL query
-func (db *DB) Cache(name string, sql string) error {
-	db.qCache[name] = &Query{Raw: sql}
+// Register a SQL query alias
+func (db *DB) Alias(name string, sql string) error {
+	db.qAlias[name] = sql
 	return nil
-}
-
-// Is a SQL query cached?
-func (db *DB) Cached(name string) bool {
-	_, ok := db.qCache[name]
-	return ok
-}
-
-// Execute a one-off, non-data query (CREATE TABLE, DROP TABLE, etc.)
-func (db *DB) ExecOnce(sql string, args ...interface{}) error {
-	s, err := db.connection.Prepare(sql)
-	if err != nil {
-		return err
-	}
-
-	_, err = s.Exec(args...)
-	return err
 }
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
-func (db *DB) Exec(name string, args ...interface{}) error {
-	s, err := db.statement(name)
+func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
+	s, err := db.statement(sql_or_name)
 	if err != nil {
 		return err
 	}
@@ -94,8 +73,8 @@ func (db *DB) Exec(name string, args ...interface{}) error {
 }
 
 // Execute a named, data query (SELECT)
-func (db *DB) Query(name string, args ...interface{}) (*sql.Rows, error) {
-	s, err := db.statement(name)
+func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) {
+	s, err := db.statement(sql_or_name)
 	if err != nil {
 		return nil, err
 	}
@@ -108,29 +87,33 @@ func (db *DB) Query(name string, args ...interface{}) (*sql.Rows, error) {
 	return r, nil
 }
 
-// Return the prepared Statement for a named query
-func (db *DB) statement(name string) (*sql.Stmt, error) {
+// Transparently resolve SQL aliases to real SQL query text
+func (db *DB) resolve(sql_or_name string) string {
+	if sql, ok := db.qAlias[sql_or_name]; ok {
+		return sql
+	}
+	return sql_or_name
+}
+
+// Return the prepared Statement for a given SQL query
+func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
+	sql := db.resolve(sql_or_name)
 	if db.connection == nil {
 		return nil, fmt.Errorf("Not connected to database")
 	}
 
-	q, ok := db.qCache[name]
+	q, ok := db.qCache[sql]
 	if !ok {
-		return nil, fmt.Errorf("Unknown query '%s'", name)
-	}
-
-	if q.Cooked == nil {
-		cooked, err := db.connection.Prepare(q.Raw)
+		stmt, err := db.connection.Prepare(sql)
 		if err != nil {
 			return nil, err
 		}
-
-		q.Cooked = cooked
+		db.qCache[sql] = stmt
 	}
 
-	if q.Cooked == nil { // still?
-		return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", name)
+	q, ok = db.qCache[sql]
+	if !ok {
+		return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", sql)
 	}
-
-	return q.Cooked, nil
+	return q, nil
 }

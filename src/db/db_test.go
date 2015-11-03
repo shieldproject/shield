@@ -23,7 +23,7 @@ var _ = Describe("Database", func() {
 
 				Ω(db.Connect()).Should(HaveOccurred())
 				Ω(db.Connected()).Should(BeFalse())
-				Ω(db.Disconnect()).ShouldNot(HaveOccurred())
+				Ω(db.Disconnect()).Should(Succeed())
 			})
 		})
 
@@ -34,40 +34,9 @@ var _ = Describe("Database", func() {
 					DSN:    ":memory:",
 				}
 
-				Ω(db.Connect()).ShouldNot(HaveOccurred())
+				Ω(db.Connect()).Should(Succeed())
 				Ω(db.Connected()).Should(BeTrue())
-				Ω(db.Disconnect()).ShouldNot(HaveOccurred())
-			})
-		})
-	})
-
-	Describe("Registering (cached) SQL queries", func() {
-		var db *DB
-
-		BeforeEach(func() {
-			db = &DB{
-				Driver: "sqlite3",
-				DSN:    ":memory:",
-			}
-
-			Ω(db.Connect()).ShouldNot(HaveOccurred())
-			Ω(db.Connected()).Should(BeTrue())
-		})
-
-		Context("With an empty query cache", func() {
-			It("has nothing registered", func() {
-				Ω(db.Cached("my-query")).Should(BeFalse())
-			})
-
-			It("can register a SQL command", func() {
-				Ω(db.Cache("my-query", "SELECT * FROM table")).ShouldNot(HaveOccurred())
-				Ω(db.Cached("my-query")).Should(BeTrue())
-			})
-
-			It("can register the same name multiple times", func() {
-				Ω(db.Cache("my-query", "SELECT * FROM table")).ShouldNot(HaveOccurred())
-				Ω(db.Cache("my-query", "SELECT * FROM other_table")).ShouldNot(HaveOccurred())
-				Ω(db.Cached("my-query")).Should(BeTrue())
+				Ω(db.Disconnect()).Should(Succeed())
 			})
 		})
 	})
@@ -80,19 +49,7 @@ var _ = Describe("Database", func() {
 				Driver: "sqlite3",
 				DSN:    ":memory:",
 			}
-
-			Ω(db.Connect()).ShouldNot(HaveOccurred())
-
-			Ω(db.Cache("schema", `CREATE TABLE things (type TEXT, number INTEGER)`)).
-				ShouldNot(HaveOccurred())
-			Ω(db.Cache("new-thing", `INSERT INTO things (type, number) VALUES (?, 0)`)).
-				ShouldNot(HaveOccurred())
-			Ω(db.Cache("increase", `UPDATE things SET number = number + ? WHERE type = ?`)).
-				ShouldNot(HaveOccurred())
-			Ω(db.Cache("how-many?", `SELECT number FROM things WHERE type = ?`)).
-				ShouldNot(HaveOccurred())
-			Ω(db.Cache("how-many-monkeys?", `SELECT number FROM things WHERE type = "monkey"`)).
-				ShouldNot(HaveOccurred())
+			Ω(db.Connect()).Should(Succeed())
 		})
 
 		AfterEach(func() {
@@ -101,7 +58,7 @@ var _ = Describe("Database", func() {
 
 		Context("With an empty database", func() {
 			It("can create tables", func() {
-				Ω(db.Exec("schema")).ShouldNot(HaveOccurred())
+				Ω(db.Exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
 			})
 		})
 
@@ -110,72 +67,70 @@ var _ = Describe("Database", func() {
 
 			Ω(r).ShouldNot(BeNil())
 			Ω(r.Next()).Should(BeTrue())
-			Ω(r.Scan(&n)).ShouldNot(HaveOccurred())
+			Ω(r.Scan(&n)).Should(Succeed())
 			return n
 		}
 
 		Context("With an empty table", func() {
 			BeforeEach(func() {
 				db.Disconnect()
-				Ω(db.Connect()).ShouldNot(HaveOccurred())
+				Ω(db.Connect()).Should(Succeed())
 
-				Ω(db.Exec("schema")).ShouldNot(HaveOccurred())
+				Ω(db.Exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
 			})
 
 			It("can insert records", func() {
-				Ω(db.Exec("new-thing", "monkey")).ShouldNot(HaveOccurred())
+				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
 
-				r, err := db.Query("how-many?", "monkey")
-				Ω(err).ShouldNot(HaveOccurred())
+				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "monkey")
+				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(0))
 			})
 
 			It("can update records", func() {
-				Ω(db.Exec("new-thing", "monkey")).ShouldNot(HaveOccurred())
-				Ω(db.Exec("increase", 42, "monkey")).ShouldNot(HaveOccurred())
+				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 42, "monkey")).Should(Succeed())
 
-				r, err := db.Query("how-many?", "monkey")
-				Ω(err).ShouldNot(HaveOccurred())
+				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "monkey")
+				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(42))
 			})
 
 			It("can handle queries without arguments", func() {
-				Ω(db.Exec("new-thing", "monkey")).ShouldNot(HaveOccurred())
-				Ω(db.Exec("increase", 13, "monkey")).ShouldNot(HaveOccurred())
+				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 13, "monkey")).Should(Succeed())
 
-				r, err := db.Query("how-many-monkeys?")
-				Ω(err).ShouldNot(HaveOccurred())
+				r, err := db.Query(`SELECT number FROM things WHERE type = "monkey"`)
+				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(13))
 			})
 
-			It("raises an error if an uncached query is requested for Exec()", func() {
-				Ω(db.Exec("not-a-query")).Should(HaveOccurred())
-			})
+			It("can alias queries", func() {
+				Ω(db.Alias("new-thing", `INSERT INTO things (type, number) VALUES (?, 0)`)).Should(Succeed())
+				Ω(db.Alias("increment", `UPDATE things SET number = number + ? WHERE type = ?`)).Should(Succeed())
+				Ω(db.Alias("how-many?", `SELECT number FROM things WHERE type = "monkey"`)).Should(Succeed())
 
-			It("raises an error if an uncached query is requested for Query()", func() {
-				r, err := db.Query("not-a-query")
-				Ω(r).Should(BeNil())
-				Ω(err).Should(HaveOccurred())
+				Ω(db.Exec("new-thing", "monkey")).Should(Succeed())
+				Ω(db.Exec("increment", 13, "monkey")).Should(Succeed())
+
+				r, err := db.Query("how-many?")
+				Ω(err).Should(Succeed())
+				Ω(numberOfThingsIn(r)).Should(Equal(13))
 			})
 
 			It("can run arbitrary SQL", func() {
-				Ω(db.ExecOnce("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
-					ShouldNot(HaveOccurred())
+				Ω(db.Exec("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
+					Should(Succeed())
 
-				r, err := db.Query("how-many?", "lion")
-				Ω(err).ShouldNot(HaveOccurred())
+				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "lion")
+				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(3))
 			})
 		})
 
 		Context("With malformed SQL queries", func() {
-			BeforeEach(func() {
-				Ω(db.Cache("error", `DO STUFF IN SQL`)).
-					ShouldNot(HaveOccurred())
-			})
-
 			It("propagates errors from sql driver", func() {
-				Ω(db.Exec("errors")).Should(HaveOccurred())
+				Ω(db.Exec(`DO STUFF IN SQL`)).Should(HaveOccurred())
 			})
 		})
 	})

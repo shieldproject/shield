@@ -40,10 +40,10 @@ func (o *ORM) Setup() error {
 		return err
 	}
 
-	/* FIXME: cache all queries we're going to need */
-	o.db.Cache("GetAllAnnotatedSchedules",
+	/* FIXME: need a better (less explicit) way of mising WHERE clauses... */
+	o.db.Alias("GetAllAnnotatedSchedules",
 		`SELECT uuid, name, summary, timespec, 0 AS n FROM schedules ORDER BY name, uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUnusedSchedules",
+	o.db.Alias("GetAllAnnotatedUnusedSchedules",
 		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
 			FROM schedules s
 				LEFT JOIN jobs j
@@ -51,7 +51,7 @@ func (o *ORM) Setup() error {
 			GROUP BY s.uuid
 			HAVING n = 0
 			ORDER BY s.name, s.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUsedSchedules",
+	o.db.Alias("GetAllAnnotatedUsedSchedules",
 		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
 			FROM schedules s
 				LEFT JOIN jobs j
@@ -59,20 +59,10 @@ func (o *ORM) Setup() error {
 			GROUP BY s.uuid
 			HAVING n > 0
 			ORDER BY s.name, s.uuid ASC`)
-	o.db.Cache("CreateSchedule",
-		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`)
-	o.db.Cache("UpdateSchedule",
-		`UPDATE schedules SET timespec = ? WHERE uuid = ?`)
-	o.db.Cache("AnnotateSchedule",
-		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`)
-	o.db.Cache("JobsUsingSchedule",
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`)
-	o.db.Cache("DeleteSchedule",
-		`DELETE FROM schedules WHERE uuid = ?`)
 
-	o.db.Cache("GetAllAnnotatedRetentionPolicies",
+	o.db.Alias("GetAllAnnotatedRetentionPolicies",
 		`SELECT uuid, name, summary, expiry, 0 AS n FROM retention ORDER BY name, uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUnusedRetentionPolicies",
+	o.db.Alias("GetAllAnnotatedUnusedRetentionPolicies",
 		`SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
 			FROM retention r
 				LEFT JOIN jobs j
@@ -80,7 +70,7 @@ func (o *ORM) Setup() error {
 			GROUP BY r.uuid
 			HAVING n = 0
 			ORDER BY r.name, r.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUsedRetentionPolicies",
+	o.db.Alias("GetAllAnnotatedUsedRetentionPolicies",
 		`SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
 			FROM retention r
 				LEFT JOIN jobs j
@@ -88,22 +78,12 @@ func (o *ORM) Setup() error {
 			GROUP BY r.uuid
 			HAVING n > 0
 			ORDER BY r.name, r.uuid ASC`)
-	o.db.Cache("CreateRetentionPolicy",
-		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`)
-	o.db.Cache("UpdateRetentionPolicy",
-		`UPDATE retention SET expiry = ? WHERE uuid = ?`)
-	o.db.Cache("AnnotateRetentionPolicy",
-		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`)
-	o.db.Cache("JobsUsingRetentionPolicy",
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`)
-	o.db.Cache("DeleteRetentionPolicy",
-		`DELETE FROM retention WHERE uuid = ?`)
 
-	o.db.Cache("GetAllAnnotatedTargets",
+	o.db.Alias("GetAllAnnotatedTargets",
 		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
 			FROM targets
 			ORDER BY name, uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUnusedTargets",
+	o.db.Alias("GetAllAnnotatedUnusedTargets",
 		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
 			FROM targets t
 				LEFT JOIN jobs j
@@ -111,7 +91,7 @@ func (o *ORM) Setup() error {
 			GROUP BY t.uuid
 			HAVING n = 0
 			ORDER BY t.name, t.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUsedTargets",
+	o.db.Alias("GetAllAnnotatedUsedTargets",
 		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
 			FROM targets t
 				LEFT JOIN jobs j
@@ -119,12 +99,12 @@ func (o *ORM) Setup() error {
 			GROUP BY t.uuid
 			HAVING n > 0
 			ORDER BY t.name, t.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedTargetsFiltered",
+	o.db.Alias("GetAllAnnotatedTargetsFiltered",
 		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
 			FROM targets
 			WHERE plugin = ?
 			ORDER BY name, uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUnusedTargetsFiltered",
+	o.db.Alias("GetAllAnnotatedUnusedTargetsFiltered",
 		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
 			FROM targets t
 				LEFT JOIN jobs j
@@ -133,7 +113,7 @@ func (o *ORM) Setup() error {
 			GROUP BY t.uuid
 			HAVING n = 0
 			ORDER BY t.name, t.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUsedTargetsFiltered",
+	o.db.Alias("GetAllAnnotatedUsedTargetsFiltered",
 		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
 			FROM targets t
 				LEFT JOIN jobs j
@@ -142,22 +122,12 @@ func (o *ORM) Setup() error {
 			GROUP BY t.uuid
 			HAVING n > 0
 			ORDER BY t.name, t.uuid ASC`)
-	o.db.Cache("CreateTarget",
-		`INSERT INTO targets (uuid, plugin, endpoint) VALUES (?, ?, ?)`)
-	o.db.Cache("UpdateTarget",
-		`UPDATE targets SET plugin = ?, endpoint = ? WHERE uuid = ?`)
-	o.db.Cache("AnnotateTarget",
-		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`)
-	o.db.Cache("JobsUsingTarget",
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`)
-	o.db.Cache("DeleteTarget",
-		`DELETE FROM targets WHERE uuid = ?`)
 
-	o.db.Cache("GetAllAnnotatedStores",
+	o.db.Alias("GetAllAnnotatedStores",
 		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
 			FROM stores
 			ORDER BY name, uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUnusedStores",
+	o.db.Alias("GetAllAnnotatedUnusedStores",
 		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
 			FROM stores s
 				LEFT JOIN jobs j
@@ -165,7 +135,7 @@ func (o *ORM) Setup() error {
 			GROUP BY s.uuid
 			HAVING n = 0
 			ORDER BY s.name, s.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUsedStores",
+	o.db.Alias("GetAllAnnotatedUsedStores",
 		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
 			FROM stores s
 				LEFT JOIN jobs j
@@ -173,12 +143,12 @@ func (o *ORM) Setup() error {
 			GROUP BY s.uuid
 			HAVING n > 0
 			ORDER BY s.name, s.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedStoresFiltered",
+	o.db.Alias("GetAllAnnotatedStoresFiltered",
 		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
 			FROM stores
 			WHERE plugin = ?
 			ORDER BY name, uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUnusedStoresFiltered",
+	o.db.Alias("GetAllAnnotatedUnusedStoresFiltered",
 		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
 			FROM stores s
 				LEFT JOIN jobs j
@@ -187,7 +157,7 @@ func (o *ORM) Setup() error {
 			GROUP BY s.uuid
 			HAVING n = 0
 			ORDER BY s.name, s.uuid ASC`)
-	o.db.Cache("GetAllAnnotatedUsedStoresFiltered",
+	o.db.Alias("GetAllAnnotatedUsedStoresFiltered",
 		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
 			FROM stores s
 				LEFT JOIN jobs j
@@ -196,18 +166,8 @@ func (o *ORM) Setup() error {
 			GROUP BY s.uuid
 			HAVING n > 0
 			ORDER BY s.name, s.uuid ASC`)
-	o.db.Cache("CreateStore",
-		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`)
-	o.db.Cache("UpdateStore",
-		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`)
-	o.db.Cache("AnnotateStore",
-		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`)
-	o.db.Cache("JobsUsingStore",
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`)
-	o.db.Cache("DeleteStore",
-		`DELETE FROM stores WHERE uuid = ?`)
 
-	o.db.Cache("GetAllJobs",
+	o.db.Alias("GetAllJobs",
 		`SELECT jobs.uuid, jobs.paused, targets.plugin, targets.endpoint, stores.plugin, stores.endpoint, schedules.timespec, retention.expiry
 		FROM jobs
 		INNER JOIN targets ON targets.uuid = jobs.target_uuid
@@ -219,12 +179,7 @@ func (o *ORM) Setup() error {
 }
 
 func (o *ORM) schemaVersion() (uint, error) {
-	err := o.db.Cache("schema:version", `SELECT version FROM schema_info LIMIT 1`)
-	if err != nil {
-		return 0, err
-	}
-
-	r, err := o.db.Query("schema:version")
+	r, err := o.db.Query(`SELECT version FROM schema_info LIMIT 1`)
 	// failed query = no schema
 	// FIXME: better error object introspection?
 	if err != nil {
@@ -252,79 +207,79 @@ func (o *ORM) schemaVersion() (uint, error) {
 }
 
 func (o *ORM) v1schema() error {
-	o.db.ExecOnce(`CREATE TABLE schema_info (
-                              version INTEGER
-                  )`)
-	o.db.ExecOnce(`INSERT INTO schema_info VALUES (1)`)
+	o.db.Exec(`CREATE TABLE schema_info (
+                           version INTEGER
+               )`)
+	o.db.Exec(`INSERT INTO schema_info VALUES (1)`)
 
-	o.db.ExecOnce(`CREATE TABLE targets (
-                    uuid      UUID PRIMARY KEY,
-                    name      TEXT,
-                    summary   TEXT,
-                    plugin    TEXT,
-                    endpoint  TEXT
-                  )`)
+	o.db.Exec(`CREATE TABLE targets (
+                 uuid      UUID PRIMARY KEY,
+                 name      TEXT,
+                 summary   TEXT,
+                 plugin    TEXT,
+                 endpoint  TEXT
+               )`)
 
-	o.db.ExecOnce(`CREATE TABLE stores (
-                    uuid      UUID PRIMARY KEY,
-                    name      TEXT,
-                    summary   TEXT,
-                    plugin    TEXT,
-                    endpoint  TEXT
-                  )`)
+	o.db.Exec(`CREATE TABLE stores (
+                 uuid      UUID PRIMARY KEY,
+                 name      TEXT,
+                 summary   TEXT,
+                 plugin    TEXT,
+                 endpoint  TEXT
+               )`)
 
-	o.db.ExecOnce(`CREATE TABLE schedules (
-                    uuid      UUID PRIMARY KEY,
-                    name      TEXT,
-                    summary   TEXT,
-                    timespec  TEXT
-                  )`)
+	o.db.Exec(`CREATE TABLE schedules (
+                 uuid      UUID PRIMARY KEY,
+                 name      TEXT,
+                 summary   TEXT,
+                 timespec  TEXT
+               )`)
 
-	o.db.ExecOnce(`CREATE TABLE retention (
-                    uuid     UUID PRIMARY KEY,
-                    name     TEXT,
-                    summary  TEXT,
-                    expiry   INTEGER
-                  )`)
+	o.db.Exec(`CREATE TABLE retention (
+                 uuid     UUID PRIMARY KEY,
+                 name     TEXT,
+                 summary  TEXT,
+                 expiry   INTEGER
+               )`)
 
-	o.db.ExecOnce(`CREATE TABLE jobs (
-                    uuid            UUID PRIMARY KEY,
-                    target_uuid     UUID,
-                    store_uuid      UUID,
-                    schedule_uuid   UUID,
-                    retention_uuid  UUID,
-                    paused          BOOLEAN,
-                    name            TEXT,
-                    summary         TEXT
-                  )`)
+	o.db.Exec(`CREATE TABLE jobs (
+                 uuid            UUID PRIMARY KEY,
+                 target_uuid     UUID,
+                 store_uuid      UUID,
+                 schedule_uuid   UUID,
+                 retention_uuid  UUID,
+                 paused          BOOLEAN,
+                 name            TEXT,
+                 summary         TEXT
+               )`)
 
-	o.db.ExecOnce(`CREATE TABLE archives (
-                    uuid         UUID PRIMARY KEY,
-                    target_uuid  UUID,
-                    store_uuid   UUID,
-                    store_key    TEXT,
+	o.db.Exec(`CREATE TABLE archives (
+                 uuid         UUID PRIMARY KEY,
+                 target_uuid  UUID,
+                 store_uuid   UUID,
+                 store_key    TEXT,
 
-                    taken_at     timestamp without time zone,
-                    expires_at   timestamp without time zone,
-                    notes        TEXT
-                  )`)
+                 taken_at     timestamp without time zone,
+                 expires_at   timestamp without time zone,
+                 notes        TEXT
+               )`)
 
-	o.db.ExecOnce(`CREATE TABLE tasks (
-                    uuid      UUID PRIMARY KEY,
-                    owner     TEXT,
-                    op        TEXT,
-                    args      TEXT,
+	o.db.Exec(`CREATE TABLE tasks (
+                 uuid      UUID PRIMARY KEY,
+                 owner     TEXT,
+                 op        TEXT,
+                 args      TEXT,
 
-                    job_uuid      UUID,
-                    archive_uuid  UUID,
+                 job_uuid      UUID,
+                 archive_uuid  UUID,
 
-                    status      status,
-                    started_at  timestamp without time zone,
-                    stopped_at  timestamp without time zone,
+                 status      status,
+                 started_at  timestamp without time zone,
+                 stopped_at  timestamp without time zone,
 
-                    log       TEXT,
-                    debug     TEXT
-                  )`)
+                 log       TEXT,
+                 debug     TEXT
+               )`)
 
 	return nil
 }
@@ -335,19 +290,31 @@ func (o *ORM) v1schema() error {
 // func (o *ORM) AnnotateJob(id uuid.UUID, name string, summary string) error
 
 func (o *ORM) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec("AnnotateRetentionPolicy", name, summary, id.String())
+	return o.db.Exec(
+		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`,
+		name, summary, id.String(),
+	)
 }
 
 func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec("AnnotateSchedule", name, summary, id.String())
+	return o.db.Exec(
+		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`,
+		name, summary, id.String(),
+	)
 }
 
 func (o *ORM) AnnotateStore(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec("AnnotateStore", name, summary, id.String())
+	return o.db.Exec(
+		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`,
+		name, summary, id.String(),
+	)
 }
 
 func (o *ORM) AnnotateTarget(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec("AnnotateTarget", name, summary, id.String())
+	return o.db.Exec(
+		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`,
+		name, summary, id.String(),
+	)
 }
 
 // func (o *ORM) AnnotateTask(id uuid.UUID, owner string) error
@@ -467,15 +434,24 @@ func (o *ORM) GetAllAnnotatedTargets(filter1 bool, unused bool, filter2 bool, pl
 
 func (o *ORM) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec("CreateTarget", id.String(), plugin, endpoint)
+	return id, o.db.Exec(
+		`INSERT INTO targets (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
+		id.String(), plugin, endpoint,
+	)
 }
 
 func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error {
-	return o.db.Exec("UpdateTarget", plugin, endpoint, id.String())
+	return o.db.Exec(
+		`UPDATE targets SET plugin = ?, endpoint = ? WHERE uuid = ?`,
+		plugin, endpoint, id.String(),
+	)
 }
 
 func (o *ORM) DeleteTarget(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query("JobsUsingTarget", id.String())
+	r, err := o.db.Query(
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`,
+		id.String(),
+	)
 	if err != nil {
 		return false, err
 	}
@@ -499,7 +475,10 @@ func (o *ORM) DeleteTarget(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec("DeleteTarget", id.String())
+	return true, o.db.Exec(
+		`DELETE FROM targets WHERE uuid = ?`,
+		id.String(),
+	)
 }
 
 type AnnotatedStore struct {
@@ -547,15 +526,24 @@ func (o *ORM) GetAllAnnotatedStores(filter1 bool, unused bool, filter2 bool, plu
 
 func (o *ORM) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec("CreateStore", id.String(), plugin, endpoint)
+	return id, o.db.Exec(
+		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
+		id.String(), plugin, endpoint,
+	)
 }
 
 func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error {
-	return o.db.Exec("UpdateStore", plugin, endpoint, id.String())
+	return o.db.Exec(
+		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`,
+		plugin, endpoint, id.String(),
+	)
 }
 
 func (o *ORM) DeleteStore(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query("JobsUsingStore", id.String())
+	r, err := o.db.Query(
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`,
+		id.String(),
+	)
 	if err != nil {
 		return false, err
 	}
@@ -579,20 +567,32 @@ func (o *ORM) DeleteStore(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec("DeleteStore", id.String())
+	return true, o.db.Exec(
+		`DELETE FROM stores WHERE uuid = ?`,
+		id.String(),
+	)
 }
 
 func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec("CreateSchedule", id.String(), timespec)
+	return id, o.db.Exec(
+		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`,
+		id.String(), timespec,
+	)
 }
 
 func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error {
-	return o.db.Exec("UpdateSchedule", timespec, id.String())
+	return o.db.Exec(
+		`UPDATE schedules SET timespec = ? WHERE uuid = ?`,
+		timespec, id.String(),
+	)
 }
 
 func (o *ORM) DeleteSchedule(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query("JobsUsingSchedule", id.String())
+	r, err := o.db.Query(
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`,
+		id.String(),
+	)
 	if err != nil {
 		return false, err
 	}
@@ -616,20 +616,32 @@ func (o *ORM) DeleteSchedule(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec("DeleteSchedule", id.String())
+	return true, o.db.Exec(
+		`DELETE FROM schedules WHERE uuid = ?`,
+		id.String(),
+	)
 }
 
 func (o *ORM) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec("CreateRetentionPolicy", id.String(), expiry)
+	return id, o.db.Exec(
+		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`,
+		id.String(), expiry,
+	)
 }
 
 func (o *ORM) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
-	return o.db.Exec("UpdateRetentionPolicy", expiry, id.String())
+	return o.db.Exec(
+		`UPDATE retention SET expiry = ? WHERE uuid = ?`,
+		expiry, id.String(),
+	)
 }
 
 func (o *ORM) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query("JobsUsingRetentionPolicy", id.String())
+	r, err := o.db.Query(
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`,
+		id.String(),
+	)
 	if err != nil {
 		return false, err
 	}
@@ -653,7 +665,10 @@ func (o *ORM) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec("DeleteRetentionPolicy", id.String())
+	return true, o.db.Exec(
+		`DELETE FROM retention WHERE uuid = ?`,
+		id.String(),
+	)
 }
 
 func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
