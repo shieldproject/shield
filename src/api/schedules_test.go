@@ -60,6 +60,32 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("should retrieve only unused schedules for ?unused=t", func() {
+		res := GET(API, "/v1/schedules?unused=t")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "647bc775-b07b-4f87-bb67-d84cccac34a7",
+					"name"    : "Daily Backups",
+					"summary" : "Use for daily (11-something-at-night) bosh-blobs",
+					"when"    : "daily at 11:24pm"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should retrieve only used schedules for ?unused=f", func() {
+		res := GET(API, "/v1/schedules?unused=f")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
+					"name"    : "Weekly Backups",
+					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
+					"when"    : "sundays at 3:15am"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
 	It("can create new schedules", func() {
 		res := POST(API, "/v1/schedules", `{
 			"name"    : "My New Schedule",
@@ -143,6 +169,4 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 			NotImplemented(API, "PUT", fmt.Sprintf("/v2/schedule/%s", id), nil)
 		}
 	})
-
-	/* FIXME: handle ?unused=[tf] query string... */
 })

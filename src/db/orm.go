@@ -41,7 +41,23 @@ func (o *ORM) Setup() error {
 
 	/* FIXME: cache all queries we're going to need */
 	o.db.Cache("GetAllAnnotatedSchedules",
-		`SELECT uuid, name, summary, timespec FROM schedules ORDER BY name, uuid ASC`)
+		`SELECT uuid, name, summary, timespec, 0 AS n FROM schedules ORDER BY name, uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUnusedSchedules",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
+			FROM schedules s
+				LEFT JOIN jobs j
+					ON j.schedule_uuid = s.uuid
+			GROUP BY s.uuid
+			HAVING n = 0
+			ORDER BY s.name, s.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUsedSchedules",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
+			FROM schedules s
+				LEFT JOIN jobs j
+					ON j.schedule_uuid = s.uuid
+			GROUP BY s.uuid
+			HAVING n > 0
+			ORDER BY s.name, s.uuid ASC`)
 	o.db.Cache("CreateSchedule",
 		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`)
 	o.db.Cache("UpdateSchedule",
@@ -245,18 +261,25 @@ type AnnotatedSchedule struct {
 	When    string `json:"when"`
 }
 
-func (o *ORM) GetAllAnnotatedSchedules() ([]*AnnotatedSchedule, error) {
+func (o *ORM) GetAllAnnotatedSchedules(subset bool, unused bool) ([]*AnnotatedSchedule, error) {
 	l := []*AnnotatedSchedule{}
+	var q string
+	switch {
+	case subset && unused: q = "GetAllAnnotatedUnusedSchedules"
+	case subset && !unused: q = "GetAllAnnotatedUsedSchedules"
+	default: q = "GetAllAnnotatedSchedules"
+	}
 
-	r, err := o.db.Query("GetAllAnnotatedSchedules")
+	r, err := o.db.Query(q)
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedSchedule{}
+		var n uint
 
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
 			return l, err
 		}
 
