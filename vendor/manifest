@@ -31,6 +31,11 @@
 			"repository": "https://github.com/pborman/uuid",
 			"revision": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/voxelbrain/goptions",
+			"revision": "26cb8b04692384f4dc269de3b5fcf3e2ef78573e",
+			"branch": "master"
 		}
 	]
 }
