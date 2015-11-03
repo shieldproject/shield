@@ -84,6 +84,22 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
 		return
+
+	case match(req, `DELETE /v1/schedule/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile("^/v1/schedule/")
+		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
+		deleted, err := self.Data.DeleteSchedule(id)
+
+		if err != nil {
+			bail(w, err)
+		}
+		if !deleted {
+			w.WriteHeader(403)
+			return
+		}
+
+		w.WriteHeader(200)
+		return
 	}
 
 	w.WriteHeader(415)

@@ -112,6 +112,9 @@ var _ = Describe("HTTP Rest API", func() {
 				"Daily Backups",
 				"Use for daily (11-something-at-night) bosh-blobs",
 				"daily at 11:24pm")
+
+			database.ExecOnce(
+				`INSERT INTO jobs (uuid, schedule_uuid) VALUES ("abc-def", "51e69607-eb48-4679-afd2-bc3b4c92e691")`)
 		})
 
 		It("should retrieve all schedules", func() {
@@ -193,6 +196,40 @@ var _ = Describe("HTTP Rest API", func() {
 			Ω(w.Code).Should(Equal(200))
 		})
 
+		It("can delete unused schedules", func() {
+			handler := ScheduleAPI{Data: orm}
+			req, _ := http.NewRequest("DELETE", "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", nil)
+			w := httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Code).Should(Equal(200))
+			Ω(w.Body.String()).Should(Equal(""))
+
+			req, _ = http.NewRequest("GET", "/v1/schedules", nil)
+			w = httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
+					"name"    : "Weekly Backups",
+					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
+					"when"    : "sundays at 3:15am"
+				}
+			]`))
+			Ω(w.Code).Should(Equal(200))
+		})
+
+		It("refuses to delete a schedule that is in use", func() {
+			handler := ScheduleAPI{Data: orm}
+			req, _ := http.NewRequest("DELETE", "/v1/schedule/51e69607-eb48-4679-afd2-bc3b4c92e691", nil)
+			w := httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Code).Should(Equal(403))
+			Ω(w.Body.String()).Should(Equal(""))
+		})
+
 		It("ignores other HTTP methods", func() {
 			handler := ScheduleAPI{Data: orm}
 			for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
@@ -215,9 +252,6 @@ var _ = Describe("HTTP Rest API", func() {
 		})
 
 		/* FIXME: handle ?unused=[tf] query string... */
-
-		/* FIXME: write tests for DELETE /v1/schedule/:uuid */
-		/*        (incl. test for delete of an in-use schedule) */
 	})
 
 	Describe("/v1/retention API", func() {

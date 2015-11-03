@@ -48,6 +48,10 @@ func (o *ORM) Setup() error {
 		`UPDATE schedules SET timespec = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateSchedule",
 		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`)
+	o.db.Cache("ScheduleExistence",
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`)
+	o.db.Cache("DeleteSchedule",
+		`DELETE FROM schedules WHERE uuid = ?`)
 
 	o.db.Cache("GetAllAnnotatedRetentionPolicies",
 		`SELECT uuid, name, summary, expiry FROM retention ORDER BY name, uuid ASC`)
@@ -315,6 +319,8 @@ func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) er
 	return o.db.Exec("UpdateTarget", plugin, endpoint, id.String())
 }
 
+// func (o *ORM) DeleteTarget(id uuid.UUID) error
+
 type AnnotatedStore struct {
 	UUID     string `json:"uuid"`
 	Name     string `json:"name"`
@@ -352,10 +358,6 @@ func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) err
 	return o.db.Exec("UpdateStore", plugin, endpoint, id.String())
 }
 
-// func (o *ORM) DeleteTarget(id uuid.UUID) error
-
-// func (o *ORM) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error)
-// func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error
 // func (o *ORM) DeleteStore(id uuid.UUID) error
 
 func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error) {
@@ -367,7 +369,33 @@ func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error {
 	return o.db.Exec("UpdateSchedule", timespec, id.String())
 }
 
-// func (o *ORM) DeleteSchedule(id uuid.UUID)
+func (o *ORM) DeleteSchedule(id uuid.UUID) (bool, error) {
+	r, err := o.db.Query("ScheduleExistence", id.String())
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	// already deleted?
+	if !r.Next() {
+		return true, nil
+	}
+
+	var numJobs int
+	if err = r.Scan(&numJobs); err != nil {
+		return false, err
+	}
+
+	if numJobs < 0 {
+		return false, fmt.Errorf("Schedule %s is in used by %d (negative) Jobs", id.String(), numJobs)
+	}
+	if numJobs > 0 {
+		return false, nil
+	}
+
+	r.Close()
+	return true, o.db.Exec("DeleteSchedule", id.String())
+}
 
 func (o *ORM) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
 	id := uuid.NewRandom()
