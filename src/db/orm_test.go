@@ -126,7 +126,6 @@ var _ = Describe("ORM", func() {
 		})
 	})
 	Describe("Retrieving Jobs", func() {
-		//var db *DB
 		var orm *ORM
 
 		BeforeEach(func() {
