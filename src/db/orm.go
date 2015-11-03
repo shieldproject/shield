@@ -41,14 +41,30 @@ func (o *ORM) Setup() error {
 
 	/* FIXME: cache all queries we're going to need */
 	o.db.Cache("GetAllAnnotatedSchedules",
-		`SELECT uuid, name, summary, timespec FROM schedules ORDER BY name, uuid ASC`)
+		`SELECT uuid, name, summary, timespec, 0 AS n FROM schedules ORDER BY name, uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUnusedSchedules",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
+			FROM schedules s
+				LEFT JOIN jobs j
+					ON j.schedule_uuid = s.uuid
+			GROUP BY s.uuid
+			HAVING n = 0
+			ORDER BY s.name, s.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUsedSchedules",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
+			FROM schedules s
+				LEFT JOIN jobs j
+					ON j.schedule_uuid = s.uuid
+			GROUP BY s.uuid
+			HAVING n > 0
+			ORDER BY s.name, s.uuid ASC`)
 	o.db.Cache("CreateSchedule",
 		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`)
 	o.db.Cache("UpdateSchedule",
 		`UPDATE schedules SET timespec = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateSchedule",
 		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`)
-	o.db.Cache("ScheduleExistence",
+	o.db.Cache("JobsUsingSchedule",
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`)
 	o.db.Cache("DeleteSchedule",
 		`DELETE FROM schedules WHERE uuid = ?`)
@@ -61,6 +77,10 @@ func (o *ORM) Setup() error {
 		`UPDATE retention SET expiry = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateRetentionPolicy",
 		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`)
+	o.db.Cache("JobsUsingRetentionPolicy",
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`)
+	o.db.Cache("DeleteRetentionPolicy",
+		`DELETE FROM retention WHERE uuid = ?`)
 
 	o.db.Cache("GetAllAnnotatedTargets",
 		`SELECT uuid, name, summary, plugin, endpoint FROM targets ORDER BY name, uuid ASC`)
@@ -70,6 +90,10 @@ func (o *ORM) Setup() error {
 		`UPDATE targets SET plugin = ?, endpoint = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateTarget",
 		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`)
+	o.db.Cache("JobsUsingTarget",
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`)
+	o.db.Cache("DeleteTarget",
+		`DELETE FROM targets WHERE uuid = ?`)
 
 	o.db.Cache("GetAllAnnotatedStores",
 		`SELECT uuid, name, summary, plugin, endpoint FROM stores ORDER BY name, uuid ASC`)
@@ -79,6 +103,10 @@ func (o *ORM) Setup() error {
 		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateStore",
 		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`)
+	o.db.Cache("JobsUsingStore",
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`)
+	o.db.Cache("DeleteStore",
+		`DELETE FROM stores WHERE uuid = ?`)
 
 	o.db.Cache("GetAllJobs", `SELECT jobs.uuid, jobs.paused,
 														targets.plugin, targets.endpoint,
@@ -233,18 +261,25 @@ type AnnotatedSchedule struct {
 	When    string `json:"when"`
 }
 
-func (o *ORM) GetAllAnnotatedSchedules() ([]*AnnotatedSchedule, error) {
+func (o *ORM) GetAllAnnotatedSchedules(subset bool, unused bool) ([]*AnnotatedSchedule, error) {
 	l := []*AnnotatedSchedule{}
+	var q string
+	switch {
+	case subset && unused: q = "GetAllAnnotatedUnusedSchedules"
+	case subset && !unused: q = "GetAllAnnotatedUsedSchedules"
+	default: q = "GetAllAnnotatedSchedules"
+	}
 
-	r, err := o.db.Query("GetAllAnnotatedSchedules")
+	r, err := o.db.Query(q)
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedSchedule{}
+		var n uint
 
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
 			return l, err
 		}
 
@@ -319,7 +354,33 @@ func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) er
 	return o.db.Exec("UpdateTarget", plugin, endpoint, id.String())
 }
 
-// func (o *ORM) DeleteTarget(id uuid.UUID) error
+func (o *ORM) DeleteTarget(id uuid.UUID) (bool, error) {
+	r, err := o.db.Query("JobsUsingTarget", id.String())
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	// already deleted?
+	if !r.Next() {
+		return true, nil
+	}
+
+	var numJobs int
+	if err = r.Scan(&numJobs); err != nil {
+		return false, err
+	}
+
+	if numJobs < 0 {
+		return false, fmt.Errorf("Target %s is in used by %d (negative) Jobs", id.String(), numJobs)
+	}
+	if numJobs > 0 {
+		return false, nil
+	}
+
+	r.Close()
+	return true, o.db.Exec("DeleteTarget", id.String())
+}
 
 type AnnotatedStore struct {
 	UUID     string `json:"uuid"`
@@ -358,7 +419,33 @@ func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) err
 	return o.db.Exec("UpdateStore", plugin, endpoint, id.String())
 }
 
-// func (o *ORM) DeleteStore(id uuid.UUID) error
+func (o *ORM) DeleteStore(id uuid.UUID) (bool, error) {
+	r, err := o.db.Query("JobsUsingStore", id.String())
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	// already deleted?
+	if !r.Next() {
+		return true, nil
+	}
+
+	var numJobs int
+	if err = r.Scan(&numJobs); err != nil {
+		return false, err
+	}
+
+	if numJobs < 0 {
+		return false, fmt.Errorf("Store %s is in used by %d (negative) Jobs", id.String(), numJobs)
+	}
+	if numJobs > 0 {
+		return false, nil
+	}
+
+	r.Close()
+	return true, o.db.Exec("DeleteStore", id.String())
+}
 
 func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error) {
 	id := uuid.NewRandom()
@@ -370,7 +457,7 @@ func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error {
 }
 
 func (o *ORM) DeleteSchedule(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query("ScheduleExistence", id.String())
+	r, err := o.db.Query("JobsUsingSchedule", id.String())
 	if err != nil {
 		return false, err
 	}
@@ -406,7 +493,33 @@ func (o *ORM) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
 	return o.db.Exec("UpdateRetentionPolicy", expiry, id.String())
 }
 
-// func (o *ORM) DeleteRetentionPolicy(id uuid.UUID)
+func (o *ORM) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
+	r, err := o.db.Query("JobsUsingRetentionPolicy", id.String())
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	// already deleted?
+	if !r.Next() {
+		return true, nil
+	}
+
+	var numJobs int
+	if err = r.Scan(&numJobs); err != nil {
+		return false, err
+	}
+
+	if numJobs < 0 {
+		return false, fmt.Errorf("Retention policy %s is in used by %d (negative) Jobs", id.String(), numJobs)
+	}
+	if numJobs > 0 {
+		return false, nil
+	}
+
+	r.Close()
+	return true, o.db.Exec("DeleteRetentionPolicy", id.String())
+}
 
 func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 	l := []*supervisor.Job{}
