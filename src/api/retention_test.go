@@ -13,12 +13,11 @@ import (
 
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 )
 
 var _ = Describe("HTTP API /v1/retention", func() {
 	var orm *db.ORM
+	var API http.Handler
 
 	BeforeEach(func() {
 		var err error
@@ -40,15 +39,12 @@ var _ = Describe("HTTP API /v1/retention", func() {
 				 "43705750-33b7-4134-a532-ce069abdc08f")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
+		API = RetentionAPI{Data: orm}
 	})
 
 	It("should retrieve all retention policies", func() {
-		handler := RetentionAPI{Data: orm}
-		req, _ := http.NewRequest("GET", "/v1/retention", nil)
-		w := httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-		Ω(w.Body.String()).Should(MatchJSON(`[
+		res := GET(API, "/v1/retention")
+		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
 					"uuid"    : "3e783b71-d595-498d-a739-e01fb335098a",
 					"name"    : "Important Materials",
@@ -62,49 +58,35 @@ var _ = Describe("HTTP API /v1/retention", func() {
 					"expires" : 1209600
 				}
 			]`))
-		Ω(w.Code).Should(Equal(200))
+		Ω(res.Code).Should(Equal(200))
 	})
 
 	It("can create new retention policies", func() {
-		handler := RetentionAPI{Data: orm}
-		req, _ := http.NewRequest("POST", "/v1/retention",
-			strings.NewReader(
-				`{"name" :"New Policy","summary":"A new one","expires":86401}`))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-		Ω(w.Code).Should(Equal(200))
-		Ω(w.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
+		res := POST(API, "/v1/retention", `{
+			"name"    : "New Policy",
+			"summary" : "A new one",
+			"expires" : 86401
+		}`)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
 	})
 
 	It("requires the `name' and `when' keys in POST'ed data", func() {
-		handler := RetentionAPI{Data: orm}
-		req, _ := http.NewRequest("POST", "/v1/retention", strings.NewReader(`{}`))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-		Ω(w.Code).Should(Equal(400))
+		res := POST(API, "/v1/retention", "{}")
+		Ω(res.Code).Should(Equal(400))
 	})
 
 	It("can update existing retention policy", func() {
-		handler := RetentionAPI{Data: orm}
-		req, _ := http.NewRequest("PUT", "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f",
-			strings.NewReader(
-				`{"name" :"Renamed","summary":"UPDATED!","expires":1209000}`))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
+		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", `{
+			"name"    : "Renamed",
+			"summary" : "UPDATED!",
+			"expires" : 1209000
+		}`)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"43705750-33b7-4134-a532-ce069abdc08f"}`))
 
-		handler.ServeHTTP(w, req)
-		Ω(w.Code).Should(Equal(200))
-		Ω(w.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"43705750-33b7-4134-a532-ce069abdc08f"}`))
-
-		req, _ = http.NewRequest("GET", "/v1/retention", nil)
-		w = httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-		Ω(w.Body.String()).Should(MatchJSON(`[
+		res = GET(API, "/v1/retention")
+		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
 					"uuid"    : "3e783b71-d595-498d-a739-e01fb335098a",
 					"name"    : "Important Materials",
@@ -118,23 +100,16 @@ var _ = Describe("HTTP API /v1/retention", func() {
 					"expires" : 1209000
 				}
 			]`))
-		Ω(w.Code).Should(Equal(200))
+		Ω(res.Code).Should(Equal(200))
 	})
 
 	It("can delete unused retention policies", func() {
-		handler := RetentionAPI{Data: orm}
-		req, _ := http.NewRequest("DELETE", "/v1/retention/3e783b71-d595-498d-a739-e01fb335098a", nil)
-		w := httptest.NewRecorder()
+		res := DELETE(API, "/v1/retention/3e783b71-d595-498d-a739-e01fb335098a")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(Equal(""))
 
-		handler.ServeHTTP(w, req)
-		Ω(w.Code).Should(Equal(200))
-		Ω(w.Body.String()).Should(Equal(""))
-
-		req, _ = http.NewRequest("GET", "/v1/retention", nil)
-		w = httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-		Ω(w.Body.String()).Should(MatchJSON(`[
+		res = GET(API, "/v1/retention")
+		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
 					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
 					"name"    : "Short-Term Retention",
@@ -142,37 +117,31 @@ var _ = Describe("HTTP API /v1/retention", func() {
 					"expires" : 1209600
 				}
 			]`))
-		Ω(w.Code).Should(Equal(200))
+		Ω(res.Code).Should(Equal(200))
 	})
 
 	It("refuses to delete a retention policy that is in use", func() {
-		handler := RetentionAPI{Data: orm}
-		req, _ := http.NewRequest("DELETE", "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", nil)
-		w := httptest.NewRecorder()
-
-		handler.ServeHTTP(w, req)
-		Ω(w.Code).Should(Equal(403))
-		Ω(w.Body.String()).Should(Equal(""))
+		res := DELETE(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f")
+		Ω(res.Code).Should(Equal(403))
+		Ω(res.Body.String()).Should(Equal(""))
 	})
 
 	It("ignores other HTTP methods", func() {
-		handler := RetentionAPI{Data: orm}
 		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
-			notImplemented(handler, method, "/v1/retention", nil)
+			NotImplemented(API, method, "/v1/retention", nil)
 		}
 
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
-			notImplemented(handler, method, "/v1/retention/sub/requests", nil)
-			notImplemented(handler, method, "/v1/retention/sub/requests", nil)
-			notImplemented(handler, method, "/v1/retention/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
+			NotImplemented(API, method, "/v1/retention/sub/requests", nil)
+			NotImplemented(API, method, "/v1/retention/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 
 	It("ignores malformed UUIDs", func() {
-		handler := RetentionAPI{Data: orm}
+		API := RetentionAPI{Data: orm}
 		for _, id := range []string{"malformed-uuid-01234", "", "(abcdef-01234-56-789)"} {
-			notImplemented(handler, "GET", fmt.Sprintf("/v1/retention/%s", id), nil)
-			notImplemented(handler, "PUT", fmt.Sprintf("/v1/retention/%s", id), nil)
+			NotImplemented(API, "GET", fmt.Sprintf("/v1/retention/%s", id), nil)
+			NotImplemented(API, "PUT", fmt.Sprintf("/v1/retention/%s", id), nil)
 		}
 	})
 

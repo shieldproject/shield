@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 )
 
 func setupORM(sqls ...string) (*db.ORM, error) {
@@ -49,49 +50,77 @@ func setupORM(sqls ...string) (*db.ORM, error) {
 	return orm, nil
 }
 
-func notImplemented(h http.Handler, method string, uri string, body io.Reader) {
+func NotImplemented(h http.Handler, method string, uri string, body io.Reader) {
 	req, _ := http.NewRequest(method, uri, body)
-	w := httptest.NewRecorder()
+	res := httptest.NewRecorder()
 
-	h.ServeHTTP(w, req)
-	Ω(w.Code).Should(Equal(415),
+	h.ServeHTTP(res, req)
+	Ω(res.Code).Should(Equal(415),
 		fmt.Sprintf("%s %s should elicit HTTP 415 (Not Implemented) response...", method, uri))
-	Ω(w.Body.String()).Should(Equal(""),
+	Ω(res.Body.String()).Should(Equal(""),
 		fmt.Sprintf("%s %s should have no HTTP Response Body...", method, uri))
 }
 
-func notFound(h http.Handler, method string, uri string, body io.Reader) {
+func NotFound(h http.Handler, method string, uri string, body io.Reader) {
 	req, _ := http.NewRequest(method, uri, body)
-	w := httptest.NewRecorder()
+	res := httptest.NewRecorder()
 
-	h.ServeHTTP(w, req)
-	Ω(w.Code).Should(Equal(404))
-	Ω(w.Body.String()).Should(Equal(""))
+	h.ServeHTTP(res, req)
+	Ω(res.Code).Should(Equal(404))
+	Ω(res.Body.String()).Should(Equal(""))
+}
+
+func GET(h http.Handler, uri string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", uri, nil)
+
+	h.ServeHTTP(res, req)
+	return res
+}
+
+func POST(h http.Handler, uri string, body string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", uri, strings.NewReader(body))
+
+	h.ServeHTTP(res, req)
+	return res
+}
+
+func PUT(h http.Handler, uri string, body string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", uri, strings.NewReader(body))
+
+	h.ServeHTTP(res, req)
+	return res
+}
+
+func DELETE(h http.Handler, uri string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", uri, nil)
+
+	h.ServeHTTP(res, req)
+	return res
 }
 
 var _ = Describe("HTTP Rest API", func() {
 	Describe("/v1/ping API", func() {
 		It("handles GET requests", func() {
-			handler := PingAPI{}
-			req, _ := http.NewRequest("GET", "/v1/ping", nil)
-			w := httptest.NewRecorder()
-
-			handler.ServeHTTP(w, req)
-			Ω(w.Code).Should(Equal(200))
-			Ω(w.Body.String()).Should(Equal(`{"ok":"pong"}`))
+			r := GET(PingAPI{}, "/v1/ping")
+			Ω(r.Code).Should(Equal(200))
+			Ω(r.Body.String()).Should(Equal(`{"ok":"pong"}`))
 		})
 
 		It("ignores other HTTP methods", func() {
 			for _, method := range []string{
 				"PUT", "POST", "DELETE", "PATCH", "OPTIONS", "TRACE",
 			} {
-				notImplemented(PingAPI{}, method, "/v1/ping", nil)
+				NotImplemented(PingAPI{}, method, "/v1/ping", nil)
 			}
 		})
 
 		It("ignores requests not to /v1/ping (sub-URIs)", func() {
-			notFound(PingAPI{}, "GET", "/v1/ping/stuff", nil)
-			notFound(PingAPI{}, "OPTIONS", "/v1/ping/OPTIONAL/STUFF", nil)
+			NotFound(PingAPI{}, "GET", "/v1/ping/stuff", nil)
+			NotFound(PingAPI{}, "OPTIONS", "/v1/ping/OPTIONAL/STUFF", nil)
 		})
 	})
 })
