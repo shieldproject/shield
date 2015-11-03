@@ -16,8 +16,7 @@ func (p PingAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	header := w.Header()
-	header["Content-Type"] = []string{"application/json"}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"ok":"pong"}`))
+	JSON(w, struct {
+		OK string `json:"ok"`
+	}{OK: "pong"})
 }

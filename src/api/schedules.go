@@ -22,16 +22,7 @@ func (s ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		b, err := json.Marshal(schedules)
-		if err != nil {
-			w.WriteHeader(500)
-			return
-		}
-
-		header := w.Header()
-		header["Content-Type"] = []string{"application/json"}
-		w.WriteHeader(200)
-		w.Write(b)
+		JSON(w, schedules)
 		return
 
 	case "POST":
@@ -55,15 +46,11 @@ func (s ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		id, err := s.Data.CreateSchedule(params.When)
 		if err != nil {
 			w.WriteHeader(500)
-			w.Write([]byte(err.Error()))
 			return
 		}
 
 		_ = s.Data.AnnotateSchedule(id, params.Name, params.Summary)
-		header := w.Header()
-		header["Content-Type"] = []string{"application/json"}
-		w.WriteHeader(200)
-		w.Write([]byte(fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String())))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 	}
 
