@@ -3,9 +3,12 @@ package api
 import (
 	"db"
 
+	"github.com/pborman/uuid"
+
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 )
 
 type ScheduleAPI struct {
@@ -14,8 +17,8 @@ type ScheduleAPI struct {
 
 func (s ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
-	switch req.Method {
-	case "GET":
+	switch {
+	case match(req, `GET /v1/schedules`):
 		schedules, err := s.Data.GetAllAnnotatedSchedules()
 		if err != nil {
 			w.WriteHeader(500)
@@ -25,7 +28,7 @@ func (s ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSON(w, schedules)
 		return
 
-	case "POST":
+	case match(req, `POST /v1/schedules`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
@@ -51,6 +54,35 @@ func (s ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		_ = s.Data.AnnotateSchedule(id, params.Name, params.Summary)
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+		return
+
+	case match(req, `PUT /v1/schedule/[a-fA-F0-9-]+`):
+		if req.Body == nil {
+			w.WriteHeader(400)
+			return
+		}
+
+		var params struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			When    string `json:"when"`
+		}
+		json.NewDecoder(req.Body).Decode(&params)
+
+		if params.Name == "" || params.Summary == "" || params.When == "" {
+			w.WriteHeader(400)
+			return
+		}
+
+		re := regexp.MustCompile("^/v1/schedule/")
+		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
+		if err := s.Data.UpdateSchedule(id, params.When); err != nil {
+			w.WriteHeader(500)
+			return
+		}
+		_ = s.Data.AnnotateSchedule(id, params.Name, params.Summary)
+
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
 		return
 	}
 

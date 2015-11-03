@@ -45,8 +45,10 @@ func (o *ORM) Setup() error {
 
 	o.db.Cache("CreateSchedule",
 		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`)
+	o.db.Cache("UpdateSchedule",
+		`UPDATE schedules SET timespec = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateSchedule",
-		`UPDATE schedules SET name = ?, summary = ?, WHERE uuid = ?`)
+		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`)
 
 	o.db.Cache("GetAllJobs", `SELECT jobs.uuid, jobs.paused,
 														targets.plugin, targets.endpoint,
@@ -178,7 +180,7 @@ func (o *ORM) v1schema() error {
 // func (o *ORM) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error
 
 func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec("AnnotateSchedule", name, summary, id)
+	return o.db.Exec("AnnotateSchedule", name, summary, id.String())
 }
 
 // func (o *ORM) AnnotateStore(id uuid.UUID, name string, summary string) error
@@ -226,7 +228,10 @@ func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error) {
 	return id, o.db.Exec("CreateSchedule", id.String(), timespec)
 }
 
-// func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error
+func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error {
+	return o.db.Exec("UpdateSchedule", timespec, id.String())
+}
+
 // func (o *ORM) DeleteSchedule(id uuid.UUID)
 
 // func (o *ORM) CreateRetentionPolicy(expiry uint) (uuid.UUID, error)

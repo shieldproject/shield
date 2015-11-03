@@ -11,6 +11,7 @@ import (
 
 	"db"
 
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -47,8 +48,10 @@ var _ = Describe("HTTP Rest API", func() {
 		w := httptest.NewRecorder()
 
 		h.ServeHTTP(w, req)
-		Ω(w.Code).Should(Equal(415))
-		Ω(w.Body.String()).Should(Equal(""))
+		Ω(w.Code).Should(Equal(415),
+			fmt.Sprintf("%s %s should elicit HTTP 415 (Not Implemented) response...", method, uri))
+		Ω(w.Body.String()).Should(Equal(""),
+			fmt.Sprintf("%s %s should have no HTTP Response Body...", method, uri))
 	}
 
 	notFound := func(h http.Handler, method string, uri string, body io.Reader) {
@@ -99,13 +102,13 @@ var _ = Describe("HTTP Rest API", func() {
 			`)
 
 			database.Exec("new-schedule",
-				"schedule-uuid-0001-aa",
+				"51e69607-eb48-4679-afd2-bc3b4c92e691",
 				"Weekly Backups",
 				"A schedule for weekly backups, during normal maintenance windows",
 				"sundays at 3:15am")
 
 			database.Exec("new-schedule",
-				"schedule-uuid-0002-aa",
+				"647bc775-b07b-4f87-bb67-d84cccac34a7",
 				"Daily Backups",
 				"Use for daily (11-something-at-night) backups",
 				"daily at 11:24pm")
@@ -119,18 +122,18 @@ var _ = Describe("HTTP Rest API", func() {
 			handler.ServeHTTP(w, req)
 			Ω(w.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "schedule-uuid-0002-aa",
+					"uuid"    : "647bc775-b07b-4f87-bb67-d84cccac34a7",
 					"name"    : "Daily Backups",
 					"summary" : "Use for daily (11-something-at-night) backups",
 					"when"    : "daily at 11:24pm"
 				},
 				{
-					"uuid"    : "schedule-uuid-0001-aa",
+					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
 					"name"    : "Weekly Backups",
 					"summary" : "A schedule for weekly backups, during normal maintenance windows",
 					"when"    : "sundays at 3:15am"
 				}
-			]`)) //expectedJSON))
+			]`))
 			Ω(w.Code).Should(Equal(200))
 		})
 
@@ -157,18 +160,62 @@ var _ = Describe("HTTP Rest API", func() {
 			Ω(w.Code).Should(Equal(400))
 		})
 
+		It("can update existing schedules", func() {
+			handler := ScheduleAPI{Data: orm}
+			req, _ := http.NewRequest("PUT", "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7",
+				strings.NewReader(
+					`{"name" :"Daily Backup Schedule","summary":"UPDATED!","when":"daily at 2:05pm"}`))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Code).Should(Equal(200))
+			Ω(w.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"647bc775-b07b-4f87-bb67-d84cccac34a7"}`))
+
+			req, _ = http.NewRequest("GET", "/v1/schedules", nil)
+			w = httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "647bc775-b07b-4f87-bb67-d84cccac34a7",
+					"name"    : "Daily Backup Schedule",
+					"summary" : "UPDATED!",
+					"when"    : "daily at 2:05pm"
+				},
+				{
+					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
+					"name"    : "Weekly Backups",
+					"summary" : "A schedule for weekly backups, during normal maintenance windows",
+					"when"    : "sundays at 3:15am"
+				}
+			]`))
+			Ω(w.Code).Should(Equal(200))
+		})
+
 		It("ignores other HTTP methods", func() {
 			handler := ScheduleAPI{Data: orm}
-			for _, method := range []string{
-				"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE",
-			} {
+			for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
 				notImplemented(handler, method, "/v1/schedules", nil)
+			}
+
+			for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
+				notImplemented(handler, method, "/v1/schedules/sub/requests", nil)
+				notImplemented(handler, method, "/v1/schedule/sub/requests", nil)
+				notImplemented(handler, method, "/v1/schedule/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
+			}
+		})
+
+		It("ignores malformed UUIDs", func() {
+			handler := ScheduleAPI{Data: orm}
+			for _, id := range []string{"malformed-uuid-01234", "", "(abcdef-01234-56-789)"} {
+				notImplemented(handler, "GET", fmt.Sprintf("/v1/schedule/%s", id), nil)
+				notImplemented(handler, "PUT", fmt.Sprintf("/v1/schedule/%s", id), nil)
 			}
 		})
 
 		/* FIXME: handle ?unused=[tf] query string... */
 
-		/* FIXME: write tests for GET /v1/schedule/:uuid */
 		/* FIXME: write tests for DELETE /v1/schedule/:uuid */
 		/*        (incl. test for delete of an in-use schedule) */
 	})

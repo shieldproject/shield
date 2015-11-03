@@ -2,8 +2,17 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"regexp"
 )
+
+func match(req *http.Request, pattern string) bool {
+	matched, _ := regexp.MatchString(
+		fmt.Sprintf("^%s$", pattern),
+		fmt.Sprintf("%s %s", req.Method, req.URL.Path))
+	return matched
+}
 
 func JSON(w http.ResponseWriter, thing interface{}) {
 	bytes, err := json.Marshal(thing)
