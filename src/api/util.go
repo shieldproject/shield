@@ -39,3 +39,12 @@ func JSONLiteral(w http.ResponseWriter, thing string) {
 	w.Write([]byte(thing))
 	return
 }
+
+func unusedParam(req *http.Request) (bool, bool) {
+	unused, set := req.URL.Query()["unused"]
+	switch {
+	case set && unused[0] == "t": return true, true
+	case set && unused[0] == "f": return true, false
+	default: return false, false
+	}
+}

@@ -18,15 +18,7 @@ type ScheduleAPI struct {
 func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `GET /v1/schedules`):
-		unused, set := req.URL.Query()["unused"]
-		var filter bool
-		switch {
-		case set && unused[0] == "t": filter = true
-		case set && unused[0] == "f": filter = false
-		default: set = false
-		}
-
-		schedules, err := self.Data.GetAllAnnotatedSchedules(set, filter)
+		schedules, err := self.Data.GetAllAnnotatedSchedules(unusedParam(req))
 		if err != nil {
 			bail(w, err)
 			return

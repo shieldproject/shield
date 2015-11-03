@@ -70,7 +70,23 @@ func (o *ORM) Setup() error {
 		`DELETE FROM schedules WHERE uuid = ?`)
 
 	o.db.Cache("GetAllAnnotatedRetentionPolicies",
-		`SELECT uuid, name, summary, expiry FROM retention ORDER BY name, uuid ASC`)
+		`SELECT uuid, name, summary, expiry, 0 AS n FROM retention ORDER BY name, uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUnusedRetentionPolicies",
+		`SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
+			FROM retention r
+				LEFT JOIN jobs j
+					ON j.retention_uuid = r.uuid
+			GROUP BY r.uuid
+			HAVING n = 0
+			ORDER BY r.name, r.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUsedRetentionPolicies",
+		`SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
+			FROM retention r
+				LEFT JOIN jobs j
+					ON j.retention_uuid = r.uuid
+			GROUP BY r.uuid
+			HAVING n > 0
+			ORDER BY r.name, r.uuid ASC`)
 	o.db.Cache("CreateRetentionPolicy",
 		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`)
 	o.db.Cache("UpdateRetentionPolicy",
@@ -296,18 +312,25 @@ type AnnotatedRetentionPolicy struct {
 	Expires uint   `json:"expires"`
 }
 
-func (o *ORM) GetAllAnnotatedRetentionPolicies() ([]*AnnotatedRetentionPolicy, error) {
+func (o *ORM) GetAllAnnotatedRetentionPolicies(subset bool, unused bool) ([]*AnnotatedRetentionPolicy, error) {
 	l := []*AnnotatedRetentionPolicy{}
+	var q string
+	switch {
+	case subset && unused: q = "GetAllAnnotatedUnusedRetentionPolicies"
+	case subset && !unused: q = "GetAllAnnotatedUsedRetentionPolicies"
+	default: q = "GetAllAnnotatedRetentionPolicies"
+	}
 
-	r, err := o.db.Query("GetAllAnnotatedRetentionPolicies")
+	r, err := o.db.Query(q)
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedRetentionPolicy{}
+		var n uint
 
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
 			return l, err
 		}
 

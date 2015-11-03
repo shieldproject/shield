@@ -61,6 +61,32 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("should retrieve only unused retention policies for ?unused=t", func() {
+		res := GET(API, "/v1/retention?unused=t")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "3e783b71-d595-498d-a739-e01fb335098a",
+					"name"    : "Important Materials",
+					"summary" : "Keep for 90d",
+					"expires" : 7776000
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should retrieve only used schedules for ?unused=f", func() {
+		res := GET(API, "/v1/retention?unused=f")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
+					"name"    : "Short-Term Retention",
+					"summary" : "retain bosh-blobs for two weeks",
+					"expires" : 1209600
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
 	It("can create new retention policies", func() {
 		res := POST(API, "/v1/retention", `{
 			"name"    : "New Policy",
@@ -144,6 +170,4 @@ var _ = Describe("HTTP API /v1/retention", func() {
 			NotImplemented(API, "PUT", fmt.Sprintf("/v1/retention/%s", id), nil)
 		}
 	})
-
-	/* FIXME: handle ?unused=[tf] query string... */
 })
