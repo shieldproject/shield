@@ -12,8 +12,8 @@ func main() {
 			Author:  "Stark & Wane",
 			Version: "1.0.0",
 			Features: plugin.PluginFeatures{
-				Target: true,
-				Store:  false,
+				Target: "yes",
+				Store:  "yes",
 			},
 		},
 	}
@@ -30,17 +30,37 @@ func (p FSPlugin) Meta() plugin.PluginInfo {
 }
 
 func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("'backup' is not supported by the %s", p.meta.Name)
+	data, err := endpoint.StringValue("data")
+	if err != nil {
+		return plugin.PLUGIN_FAILURE, err
+	}
+
+	return plugin.Exec(fmt.Sprintf("/bin/echo %s", data))
 }
 
 func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("'restore' is not supported by the %s", p.meta.Name)
+	file, err := endpoint.StringValue("file")
+	if err != nil {
+		return plugin.PLUGIN_FAILURE, err
+	}
+
+	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
 }
 
 func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("'store' is not supported by the %s", p.meta.Name)
+	file, err := endpoint.StringValue("file")
+	if err != nil {
+		return plugin.PLUGIN_FAILURE, err
+	}
+
+	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
 }
 
 func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("'retrieve' is not supported by the %s", p.meta.Name)
+	file, err := endpoint.StringValue("file")
+	if err != nil {
+		return plugin.PLUGIN_FAILURE, err
+	}
+
+	return plugin.Exec(fmt.Sprintf("/bin/cat %s", file))
 }
