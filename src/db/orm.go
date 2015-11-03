@@ -165,30 +165,30 @@ func (o *ORM) v1schema() error {
 
 /* FIXME: determine what ORM layers we need */
 
-// func annotateNameAndSummary(q string, id uuid.UUID, name string, summary string) error
-// func AnnotateArchive(id uuid.UUID, notes string) error
-// func AnnotateJob(id uuid.UUID, name string, summary string) error
-// func AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error
-// func AnnotateSchedule(id uuid.UUID, name string, summary string) error
-// func AnnotateStore(id uuid.UUID, name string, summary string) error
-// func AnnotateTarget(id uuid.UUID, name string, summary string) error
-// func AnnotateTask(id uuid.UUID, owner string) error
+// func (o *ORM) annotateNameAndSummary(q string, id uuid.UUID, name string, summary string) error
+// func (o *ORM) AnnotateArchive(id uuid.UUID, notes string) error
+// func (o *ORM) AnnotateJob(id uuid.UUID, name string, summary string) error
+// func (o *ORM) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error
+// func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error
+// func (o *ORM) AnnotateStore(id uuid.UUID, name string, summary string) error
+// func (o *ORM) AnnotateTarget(id uuid.UUID, name string, summary string) error
+// func (o *ORM) AnnotateTask(id uuid.UUID, owner string) error
 
-// func CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error)
-// func UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error
-// func DeleteTarget(id uuid.UUID) error
+// func (o *ORM) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error)
+// func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error
+// func (o *ORM) DeleteTarget(id uuid.UUID) error
 
-// func CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error)
-// func UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error
-// func DeleteStore(id uuid.UUID) error
+// func (o *ORM) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error)
+// func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error
+// func (o *ORM) DeleteStore(id uuid.UUID) error
 
-// func CreateSchedule(timespec string) (uuid.UUID, error)
-// func UpdateSchedule(id uuid.UUID, timespec string) error
-// func DeleteSchedule(id uuid.UUID)
+// func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error)
+// func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error
+// func (o *ORM) DeleteSchedule(id uuid.UUID)
 
-// func CreateRetentionPolicy(expiry uint) (uuid.UUID, error)
-// func UpdateRetentionPolicy(id uuid.UUID, expiry uint) error
-// func DeleteRetentionPolicy(id uuid.UUID)
+// func (o *ORM) CreateRetentionPolicy(expiry uint) (uuid.UUID, error)
+// func (o *ORM) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error
+// func (o *ORM) DeleteRetentionPolicy(id uuid.UUID)
 
 func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 	l := []*supervisor.Job{}
@@ -213,15 +213,15 @@ func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 	return l, nil
 }
 
-// func CreateJob(target uuid.UUID, store uuid.UUID, schedule uuid.UUID, retention uuid.UUID) (uuid.UUID, error)
-// func PauseJob(id uuid.UUID) error
-// func UnpauseJob(id uuid.UUID) error
-// func DeleteJob(id uuid.UUID) error
+// func (o *ORM) CreateJob(target uuid.UUID, store uuid.UUID, schedule uuid.UUID, retention uuid.UUID) (uuid.UUID, error)
+// func (o *ORM) PauseJob(id uuid.UUID) error
+// func (o *ORM) UnpauseJob(id uuid.UUID) error
+// func (o *ORM) DeleteJob(id uuid.UUID) error
 
-// func CreateArchive(job uuid.UUID, key string) (id uuid.UUID, error)
-// func DeleteArchive(id uuid.UUID) error
+// func (o *ORM) CreateArchive(job uuid.UUID, key string) (id uuid.UUID, error)
+// func (o *ORM) DeleteArchive(id uuid.UUID) error
 
-// func CreateTask(op string, args string, job uuid.UUID) (uuid.UUID, error)
-// func CompleteTask(id uuid.UUID) error
-// func CancelTask(id uuid.UUID) error
-// func UpdateTaskLog(id uuid.UUID, log string) error
+// func (o *ORM) CreateTask(op string, args string, job uuid.UUID) (uuid.UUID, error)
+// func (o *ORM) CompleteTask(id uuid.UUID) error
+// func (o *ORM) CancelTask(id uuid.UUID) error
+// func (o *ORM) UpdateTaskLog(id uuid.UUID, log string) error
