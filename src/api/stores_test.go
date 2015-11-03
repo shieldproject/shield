@@ -65,6 +65,82 @@ var _ = Describe("/v1/stores API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("should retrieve only unused stores ?unused=t", func() {
+		res := GET(API, "/v1/stores?unused=t")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"name"     : "redis-shared",
+					"summary"  : "Shared Redis services for CF",
+					"plugin"   : "redis",
+					"endpoint" : "<<redis-configuration>>"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should retrieve only used stores for ?unused=f", func() {
+		res := GET(API, "/v1/stores?unused=f")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"name"     : "s3",
+					"summary"  : "Amazon S3 Blobstore",
+					"plugin"   : "s3",
+					"endpoint" : "<<s3-configuration>>"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should filter stores by plugin name", func() {
+		res := GET(API, "/v1/stores?plugin=redis")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"name"     : "redis-shared",
+					"summary"  : "Shared Redis services for CF",
+					"plugin"   : "redis",
+					"endpoint" : "<<redis-configuration>>"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+
+		res = GET(API, "/v1/stores?plugin=s3")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"name"     : "s3",
+					"summary"  : "Amazon S3 Blobstore",
+					"plugin"   : "s3",
+					"endpoint" : "<<s3-configuration>>"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+
+		res = GET(API, "/v1/stores?plugin=enoent")
+		Ω(res.Body.String()).Should(MatchJSON(`[]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should filter by combinations of `plugin' and `unused' parameters", func() {
+		res := GET(API, "/v1/stores?plugin=s3&unused=f")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"name"     : "s3",
+					"summary"  : "Amazon S3 Blobstore",
+					"plugin"   : "s3",
+					"endpoint" : "<<s3-configuration>>"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+
+		res = GET(API, "/v1/stores?plugin=s3&unused=t")
+		Ω(res.Body.String()).Should(MatchJSON(`[]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
 	It("can create new stores", func() {
 		res := POST(API, "/v1/stores", `{
 			"name"     : "New Store",
@@ -153,6 +229,4 @@ var _ = Describe("/v1/stores API", func() {
 			NotImplemented(API, "PUT", fmt.Sprintf("/v1/store/%s", id), nil)
 		}
 	})
-
-	/* FIXME: handle ?unused=[tf] query string... */
 })

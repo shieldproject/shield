@@ -154,7 +154,48 @@ func (o *ORM) Setup() error {
 		`DELETE FROM targets WHERE uuid = ?`)
 
 	o.db.Cache("GetAllAnnotatedStores",
-		`SELECT uuid, name, summary, plugin, endpoint FROM stores ORDER BY name, uuid ASC`)
+		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
+			FROM stores
+			ORDER BY name, uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUnusedStores",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
+			FROM stores s
+				LEFT JOIN jobs j
+					ON j.store_uuid = s.uuid
+			GROUP BY s.uuid
+			HAVING n = 0
+			ORDER BY s.name, s.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUsedStores",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
+			FROM stores s
+				LEFT JOIN jobs j
+					ON j.store_uuid = s.uuid
+			GROUP BY s.uuid
+			HAVING n > 0
+			ORDER BY s.name, s.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedStoresFiltered",
+		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
+			FROM stores
+			WHERE plugin = ?
+			ORDER BY name, uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUnusedStoresFiltered",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
+			FROM stores s
+				LEFT JOIN jobs j
+					ON j.store_uuid = s.uuid
+			WHERE s.plugin = ?
+			GROUP BY s.uuid
+			HAVING n = 0
+			ORDER BY s.name, s.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUsedStoresFiltered",
+		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
+			FROM stores s
+				LEFT JOIN jobs j
+					ON j.store_uuid = s.uuid
+			WHERE s.plugin = ?
+			GROUP BY s.uuid
+			HAVING n > 0
+			ORDER BY s.name, s.uuid ASC`)
 	o.db.Cache("CreateStore",
 		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`)
 	o.db.Cache("UpdateStore",
@@ -469,17 +510,32 @@ type AnnotatedStore struct {
 	Endpoint string `json:"endpoint"`
 }
 
-func (o *ORM) GetAllAnnotatedStores() ([]*AnnotatedStore, error) {
+func (o *ORM) GetAllAnnotatedStores(filter1 bool, unused bool, filter2 bool, plugin string) ([]*AnnotatedStore, error) {
 	l := []*AnnotatedStore{}
+	var q string
+	switch {
+	case filter1 &&  unused: q = "GetAllAnnotatedUnusedStores"
+	case filter1 && !unused: q = "GetAllAnnotatedUsedStores"
+	default: q = "GetAllAnnotatedStores"
+	}
 
-	r, err := o.db.Query("GetAllAnnotatedStores")
+	var r *sql.Rows
+	var err error
+
+	if filter2 {
+		r, err = o.db.Query(q + "Filtered", plugin)
+	} else {
+		r, err = o.db.Query(q)
+	}
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedStore{}
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+		var n uint
+
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
 			return l, err
 		}
 
