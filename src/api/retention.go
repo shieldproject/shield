@@ -11,24 +11,24 @@ import (
 	"regexp"
 )
 
-type ScheduleAPI struct {
+type RetentionAPI struct {
 	Data *db.ORM
 }
 
-func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
-	case match(req, `GET /v1/schedules`):
-		schedules, err := self.Data.GetAllAnnotatedSchedules()
+	case match(req, `GET /v1/retention`):
+		policies, err := self.Data.GetAllAnnotatedRetentionPolicies()
 		if err != nil {
 			w.WriteHeader(500)
 			return
 		}
 
-		JSON(w, schedules)
+		JSON(w, policies)
 		return
 
-	case match(req, `POST /v1/schedules`):
+	case match(req, `POST /v1/retention`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
@@ -37,26 +37,26 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		var params struct {
 			Name    string `json:"name"`
 			Summary string `json:"summary"`
-			When    string `json:"when"`
+			Expires uint   `json:"expires"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.When == "" {
+		if params.Name == "" || params.Expires < 3600 {
 			w.WriteHeader(400)
 			return
 		}
 
-		id, err := self.Data.CreateSchedule(params.When)
+		id, err := self.Data.CreateRetentionPolicy(params.Expires)
 		if err != nil {
 			w.WriteHeader(500)
 			return
 		}
 
-		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
+		_ = self.Data.AnnotateRetentionPolicy(id, params.Name, params.Summary)
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
-	case match(req, `PUT /v1/schedule/[a-fA-F0-9-]+`):
+	case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
@@ -65,23 +65,23 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		var params struct {
 			Name    string `json:"name"`
 			Summary string `json:"summary"`
-			When    string `json:"when"`
+			Expires uint   `json:"expires"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.When == "" {
+		if params.Name == "" || params.Summary == "" || params.Expires < 3600 {
 			w.WriteHeader(400)
 			return
 		}
 
-		re := regexp.MustCompile("^/v1/schedule/")
+		re := regexp.MustCompile("^/v1/retention/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-		if err := self.Data.UpdateSchedule(id, params.When); err != nil {
+		if err := self.Data.UpdateRetentionPolicy(id, params.Expires); err != nil {
 			w.WriteHeader(500)
 			return
 		}
-		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
 
+		_ = self.Data.AnnotateRetentionPolicy(id, params.Name, params.Summary)
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
 		return
 	}

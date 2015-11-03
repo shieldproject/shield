@@ -42,13 +42,21 @@ func (o *ORM) Setup() error {
 	/* FIXME: cache all queries we're going to need */
 	o.db.Cache("GetAllAnnotatedSchedules",
 		`SELECT uuid, name, summary, timespec FROM schedules ORDER BY name, uuid ASC`)
-
 	o.db.Cache("CreateSchedule",
 		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`)
 	o.db.Cache("UpdateSchedule",
 		`UPDATE schedules SET timespec = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateSchedule",
 		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`)
+
+	o.db.Cache("GetAllAnnotatedRetentionPolicies",
+		`SELECT uuid, name, summary, expiry FROM retention ORDER BY name, uuid ASC`)
+	o.db.Cache("CreateRetentionPolicy",
+		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`)
+	o.db.Cache("UpdateRetentionPolicy",
+		`UPDATE retention SET expiry = ? WHERE uuid = ?`)
+	o.db.Cache("AnnotateRetentionPolicy",
+		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`)
 
 	o.db.Cache("GetAllJobs", `SELECT jobs.uuid, jobs.paused,
 														targets.plugin, targets.endpoint,
@@ -177,7 +185,10 @@ func (o *ORM) v1schema() error {
 
 // func (o *ORM) AnnotateArchive(id uuid.UUID, notes string) error
 // func (o *ORM) AnnotateJob(id uuid.UUID, name string, summary string) error
-// func (o *ORM) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error
+
+func (o *ORM) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
+	return o.db.Exec("AnnotateRetentionPolicy", name, summary, id.String())
+}
 
 func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
 	return o.db.Exec("AnnotateSchedule", name, summary, id.String())
@@ -215,6 +226,34 @@ func (o *ORM) GetAllAnnotatedSchedules() ([]*AnnotatedSchedule, error) {
 	return l, nil
 }
 
+type AnnotatedRetentionPolicy struct {
+	UUID    string `json:"uuid"`
+	Name    string `json:"name"`
+	Summary string `json:"summary"`
+	Expires uint   `json:"expires"`
+}
+
+func (o *ORM) GetAllAnnotatedRetentionPolicies() ([]*AnnotatedRetentionPolicy, error) {
+	l := []*AnnotatedRetentionPolicy{}
+
+	r, err := o.db.Query("GetAllAnnotatedRetentionPolicies")
+	if err != nil {
+		return l, err
+	}
+
+	for r.Next() {
+		ann := &AnnotatedRetentionPolicy{}
+
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
+			return l, err
+		}
+
+		l = append(l, ann)
+	}
+
+	return l, nil
+}
+
 // func (o *ORM) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error)
 // func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error
 // func (o *ORM) DeleteTarget(id uuid.UUID) error
@@ -234,8 +273,15 @@ func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error {
 
 // func (o *ORM) DeleteSchedule(id uuid.UUID)
 
-// func (o *ORM) CreateRetentionPolicy(expiry uint) (uuid.UUID, error)
-// func (o *ORM) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error
+func (o *ORM) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
+	id := uuid.NewRandom()
+	return id, o.db.Exec("CreateRetentionPolicy", id.String(), expiry)
+}
+
+func (o *ORM) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
+	return o.db.Exec("UpdateRetentionPolicy", expiry, id.String())
+}
+
 // func (o *ORM) DeleteRetentionPolicy(id uuid.UUID)
 
 func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
