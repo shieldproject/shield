@@ -104,13 +104,13 @@ var _ = Describe("HTTP Rest API", func() {
 			database.Exec("new-schedule",
 				"51e69607-eb48-4679-afd2-bc3b4c92e691",
 				"Weekly Backups",
-				"A schedule for weekly backups, during normal maintenance windows",
+				"A schedule for weekly bosh-blobs, during normal maintenance windows",
 				"sundays at 3:15am")
 
 			database.Exec("new-schedule",
 				"647bc775-b07b-4f87-bb67-d84cccac34a7",
 				"Daily Backups",
-				"Use for daily (11-something-at-night) backups",
+				"Use for daily (11-something-at-night) bosh-blobs",
 				"daily at 11:24pm")
 		})
 
@@ -124,13 +124,13 @@ var _ = Describe("HTTP Rest API", func() {
 				{
 					"uuid"    : "647bc775-b07b-4f87-bb67-d84cccac34a7",
 					"name"    : "Daily Backups",
-					"summary" : "Use for daily (11-something-at-night) backups",
+					"summary" : "Use for daily (11-something-at-night) bosh-blobs",
 					"when"    : "daily at 11:24pm"
 				},
 				{
 					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
 					"name"    : "Weekly Backups",
-					"summary" : "A schedule for weekly backups, during normal maintenance windows",
+					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
 					"when"    : "sundays at 3:15am"
 				}
 			]`))
@@ -186,7 +186,7 @@ var _ = Describe("HTTP Rest API", func() {
 				{
 					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
 					"name"    : "Weekly Backups",
-					"summary" : "A schedule for weekly backups, during normal maintenance windows",
+					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
 					"when"    : "sundays at 3:15am"
 				}
 			]`))
@@ -236,7 +236,7 @@ var _ = Describe("HTTP Rest API", func() {
 			database.Exec("new-policy",
 				"43705750-33b7-4134-a532-ce069abdc08f",
 				"Short-Term Retention",
-				"retain backups for two weeks",
+				"retain bosh-blobs for two weeks",
 				86400*14)
 
 			database.Exec("new-policy",
@@ -262,7 +262,7 @@ var _ = Describe("HTTP Rest API", func() {
 				{
 					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
 					"name"    : "Short-Term Retention",
-					"summary" : "retain backups for two weeks",
+					"summary" : "retain bosh-blobs for two weeks",
 					"expires" : 1209600
 				}
 			]`))
