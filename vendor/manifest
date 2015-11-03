@@ -36,6 +36,11 @@
 			"importpath": "github.com/voxelbrain/goptions",
 			"revision": "26cb8b04692384f4dc269de3b5fcf3e2ef78573e",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/mattn/go-shellwords",
+			"revision": "f4e566c536cf69158e808ec28ef4182a37fdc981",
+			"branch": "master"
 		}
 	]
 }

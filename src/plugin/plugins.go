@@ -3,8 +3,10 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/mattn/go-shellwords"
 	"github.com/voxelbrain/goptions"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -35,8 +37,8 @@ type PluginInfo struct {
 }
 
 type PluginFeatures struct {
-	Target bool
-	Store  bool
+	Target string
+	Store  string
 }
 
 var debug bool
@@ -78,13 +80,30 @@ func Run(p Plugin) {
 	os.Exit(code)
 }
 
+func Exec(cmdString string) (int, error) {
+	cmdArgs, err := shellwords.Parse(cmdString)
+	if err != nil {
+		return EXEC_FAILURE, fmt.Errorf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error)
+	}
+	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
+
+	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	err = cmd.Run()
+	if err != nil {
+		return EXEC_FAILURE, fmt.Errorf("Unable to exec '%s': %s", cmdArgs[0], err.Error())
+	}
+	return SUCCESS, nil
+}
+
 func pluginInfo(p Plugin) (int, error) {
 	json, err := json.Marshal(p.Meta())
 	if err != nil {
 		return JSON_FAILURE, fmt.Errorf("Could not create plugin metadata output: %s", err.Error())
 	}
 	fmt.Printf("%s\n", json)
-	return 0, nil
+	return SUCCESS, nil
 }
 
 func getPluginOptions() PluginOpts {
@@ -106,23 +125,6 @@ func getPluginOptions() PluginOpts {
 	return opts
 }
 
-type ShieldEndpoint map[string]interface{}
-
-func getEndpoint(env string) (ShieldEndpoint, error) {
-	t := os.Getenv(env)
-	if t == "" {
-		return nil, fmt.Errorf("No %s variable was set", env)
-	}
-
-	endpoint := make(ShieldEndpoint)
-	err := json.Unmarshal([]byte(t), &endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	return endpoint, nil
-}
-
 func dispatch(p Plugin, mode string, envVar string) (int, error) {
 	var code int
 	var err error
@@ -131,7 +133,7 @@ func dispatch(p Plugin, mode string, envVar string) (int, error) {
 	if err != nil {
 		return ENDPOINT_REQUIRED, fmt.Errorf("Error trying to %s: %s", mode, err.Error())
 	}
-	DEBUG("'%s' action requested agains endpoint %#v", mode, endpoint)
+	DEBUG("'%s' action requested against %#v", mode, endpoint)
 
 	switch mode {
 	case "backup":
@@ -146,6 +148,6 @@ func dispatch(p Plugin, mode string, envVar string) (int, error) {
 		return UNSUPPORTED_ACTION, fmt.Errorf("Sorry, '%s' is not a supported action for S.H.I.E.L.D plugins", mode)
 	}
 
-	DEBUG("'%s' returned %d", mode, code)
+	DEBUG("'%s' action returned %d", mode, code)
 	return code, err
 }
