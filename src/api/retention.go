@@ -21,7 +21,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case match(req, `GET /v1/retention`):
 		policies, err := self.Data.GetAllAnnotatedRetentionPolicies()
 		if err != nil {
-			w.WriteHeader(500)
+			bail(w, err)
 			return
 		}
 
@@ -48,7 +48,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		id, err := self.Data.CreateRetentionPolicy(params.Expires)
 		if err != nil {
-			w.WriteHeader(500)
+			bail(w, err)
 			return
 		}
 
@@ -77,7 +77,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile("^/v1/retention/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
 		if err := self.Data.UpdateRetentionPolicy(id, params.Expires); err != nil {
-			w.WriteHeader(500)
+			bail(w, err)
 			return
 		}
 

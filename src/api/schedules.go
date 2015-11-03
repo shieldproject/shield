@@ -21,7 +21,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case match(req, `GET /v1/schedules`):
 		schedules, err := self.Data.GetAllAnnotatedSchedules()
 		if err != nil {
-			w.WriteHeader(500)
+			bail(w, err)
 			return
 		}
 
@@ -48,7 +48,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		id, err := self.Data.CreateSchedule(params.When)
 		if err != nil {
-			w.WriteHeader(500)
+			bail(w, err)
 			return
 		}
 
@@ -77,7 +77,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile("^/v1/schedule/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
 		if err := self.Data.UpdateSchedule(id, params.When); err != nil {
-			w.WriteHeader(500)
+			bail(w, err)
 			return
 		}
 		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
