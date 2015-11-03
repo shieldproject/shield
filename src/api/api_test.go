@@ -278,6 +278,10 @@ var _ = Describe("HTTP Rest API", func() {
 				"Important Materials",
 				"Keep for 90d",
 				86400*90)
+
+			database.ExecOnce(
+				`INSERT INTO jobs (uuid, retention_uuid) VALUES ("abc-def", "43705750-33b7-4134-a532-ce069abdc08f")`)
+				
 		})
 
 		It("should retrieve all retention policies", func() {
@@ -359,6 +363,40 @@ var _ = Describe("HTTP Rest API", func() {
 			Ω(w.Code).Should(Equal(200))
 		})
 
+		It("can delete unused retention policies", func() {
+			handler := RetentionAPI{Data: orm}
+			req, _ := http.NewRequest("DELETE", "/v1/retention/3e783b71-d595-498d-a739-e01fb335098a", nil)
+			w := httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Code).Should(Equal(200))
+			Ω(w.Body.String()).Should(Equal(""))
+
+			req, _ = http.NewRequest("GET", "/v1/retention", nil)
+			w = httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
+					"name"    : "Short-Term Retention",
+					"summary" : "retain bosh-blobs for two weeks",
+					"expires" : 1209600
+				}
+			]`))
+			Ω(w.Code).Should(Equal(200))
+		})
+
+		It("refuses to delete a retention policy that is in use", func() {
+			handler := RetentionAPI{Data: orm}
+			req, _ := http.NewRequest("DELETE", "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", nil)
+			w := httptest.NewRecorder()
+
+			handler.ServeHTTP(w, req)
+			Ω(w.Code).Should(Equal(403))
+			Ω(w.Body.String()).Should(Equal(""))
+		})
+
 		It("ignores other HTTP methods", func() {
 			handler := RetentionAPI{Data: orm}
 			for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
@@ -381,9 +419,6 @@ var _ = Describe("HTTP Rest API", func() {
 		})
 
 		/* FIXME: handle ?unused=[tf] query string... */
-
-		/* FIXME: write tests for DELETE /v1/retention/:uuid */
-		/*        (incl. test for delete of an in-use retention policy) */
 	})
 
 	Describe("/v1/targets API", func() {

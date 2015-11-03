@@ -48,7 +48,7 @@ func (o *ORM) Setup() error {
 		`UPDATE schedules SET timespec = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateSchedule",
 		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`)
-	o.db.Cache("ScheduleExistence",
+	o.db.Cache("JobsUsingSchedule",
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`)
 	o.db.Cache("DeleteSchedule",
 		`DELETE FROM schedules WHERE uuid = ?`)
@@ -61,6 +61,10 @@ func (o *ORM) Setup() error {
 		`UPDATE retention SET expiry = ? WHERE uuid = ?`)
 	o.db.Cache("AnnotateRetentionPolicy",
 		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`)
+	o.db.Cache("JobsUsingRetentionPolicy",
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`)
+	o.db.Cache("DeleteRetentionPolicy",
+		`DELETE FROM retention WHERE uuid = ?`)
 
 	o.db.Cache("GetAllAnnotatedTargets",
 		`SELECT uuid, name, summary, plugin, endpoint FROM targets ORDER BY name, uuid ASC`)
@@ -370,7 +374,7 @@ func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error {
 }
 
 func (o *ORM) DeleteSchedule(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query("ScheduleExistence", id.String())
+	r, err := o.db.Query("JobsUsingSchedule", id.String())
 	if err != nil {
 		return false, err
 	}
@@ -407,6 +411,33 @@ func (o *ORM) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
 }
 
 // func (o *ORM) DeleteRetentionPolicy(id uuid.UUID)
+func (o *ORM) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
+	r, err := o.db.Query("JobsUsingRetentionPolicy", id.String())
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	// already deleted?
+	if !r.Next() {
+		return true, nil
+	}
+
+	var numJobs int
+	if err = r.Scan(&numJobs); err != nil {
+		return false, err
+	}
+
+	if numJobs < 0 {
+		return false, fmt.Errorf("Retention policy %s is in used by %d (negative) Jobs", id.String(), numJobs)
+	}
+	if numJobs > 0 {
+		return false, nil
+	}
+
+	r.Close()
+	return true, o.db.Exec("DeleteRetentionPolicy", id.String())
+}
 
 func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 	l := []*supervisor.Job{}
