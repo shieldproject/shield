@@ -123,32 +123,111 @@ var _ = Describe("ORM", func() {
 				Ω(len(jobs)).Should(Equal(0))
 			})
 		})
-		BeforeEach(func() {
-			db.Cache("new-job", `
-				INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused, name, summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-			`)
-
-			db.Exec("new-job",
-				"6809c55a-8250-11e5-8bcf-feff819cdc9f",
-				"c957554e-6fe0-4ae9-816d-307e20f155cb",
-				"32d810b6-073b-4296-8c68-6544a91760f9",
-				"b36eeea3-9f5c-46f2-a337-6de5344e8d0f",
-				"52c6f512-5c90-4364-998c-f849fa416243",
-				true,
-				"job 1",
-				"First test job in queue")
-
-			db.Exec("new-job",
-				"b20ca8b6-8250-11e5-8bcf-feff819cdc9f",
-				"cf65a73e-79c1-48e8-b706-23ec7644c721",
-				"9eb022c4-227f-44f1-b11b-b6d8bcfc3c4f",
-				"4b8432b9-b5e9-46d5-b23e-ba70983a2acc",
-				"f7dee6c2-59c4-439d-9d92-04046b8beb68",
-				false,
-				"job 2",
-				"Second test job in queue")
-		})
 		Context("With a non-empty database", func() {
+			BeforeEach(func() {
+				db.Cache("new-job", `
+					INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused, name, summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				`)
+				db.Cache("new-target", `
+					INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES (?, ?, ?, ?, ?)
+				`)
+				db.Cache("new-store", `
+					INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES (?, ?, ?, ?, ?)
+				`)
+				db.Cache("new-schedule", `
+					INSERT INTO schedules (uuid, name, summary, timespec) VALUES (?, ?, ?, ?)
+				`)
+				db.Cache("new-retention", `
+					INSERT INTO retention (uuid, name, summary, expiry) VALUES (?, ?, ?, ?)
+				`)
+
+				// Jobs
+				err := db.Exec("new-job",
+					"6809c55a-8250-11e5-8bcf-feff819cdc9f", // job UUID
+					"c957554e-6fe0-4ae9-816d-307e20f155cb", // target_uuid
+					"32d810b6-073b-4296-8c68-6544a91760f9", // store_uuid
+					"b36eeea3-9f5c-46f2-a337-6de5344e8d0f", // schedule_uuid
+					"52c6f512-5c90-4364-998c-f849fa416243", // retention_uuid
+					true,
+					"job 1",
+					"First test job in queue")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.Exec("new-job",
+					"b20ca8b6-8250-11e5-8bcf-feff819cdc9f", // job UUID
+					"cf65a73e-79c1-48e8-b706-23ec7644c721", // target_uuid
+					"9eb022c4-227f-44f1-b11b-b6d8bcfc3c4f", // store_uuid
+					"4b8432b9-b5e9-46d5-b23e-ba70983a2acc", // schedule_uuid
+					"f7dee6c2-59c4-439d-9d92-04046b8beb68", // retention_uuid
+					false,
+					"job 2",
+					"Second test job in queue")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// Targets
+				err = db.Exec("new-target",
+					"c957554e-6fe0-4ae9-816d-307e20f155cb",
+					"redis-shared",
+					"Shared Redis services for CF",
+					"redis",
+					`{"host":"10.9.0.23","port":"6379"}`)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.Exec("new-target",
+					"cf65a73e-79c1-48e8-b706-23ec7644c721",
+					"s3",
+					"Amazon S3 Blobstore",
+					"s3",
+					`{"url":"amazonaws.com","bucket":"bosh-blobs"}`)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// Stores
+				err = db.Exec("new-store",
+					"32d810b6-073b-4296-8c68-6544a91760f9",
+					"redis-shared",
+					"Shared Redis services for CF",
+					"redis",
+					`{"host":"10.9.0.23","port":"6379"}`)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.Exec("new-store",
+					"9eb022c4-227f-44f1-b11b-b6d8bcfc3c4f",
+					"s3",
+					"Amazon S3 Blobstore",
+					"s3",
+					`{"url":"amazonaws.com","bucket":"bosh-blobs"}`)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// Schedules
+				err = db.Exec("new-schedule",
+					"b36eeea3-9f5c-46f2-a337-6de5344e8d0f",
+					"Weekly Backups",
+					"A schedule for weekly bosh-blobs, during normal maintenance windows",
+					"sundays at 3:15am")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.Exec("new-schedule",
+					"4b8432b9-b5e9-46d5-b23e-ba70983a2acc",
+					"Daily Backups",
+					"Use for daily (11-something-at-night) bosh-blobs",
+					"daily at 11:24pm")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				// Retention
+				err = db.Exec("new-retention",
+					"52c6f512-5c90-4364-998c-f849fa416243",
+					"Hourly Retention",
+					"Keep backups for 1 hour",
+					3600)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = db.Exec("new-retention",
+					"f7dee6c2-59c4-439d-9d92-04046b8beb68",
+					"Yearly Retention",
+					"Keep backups for 1 year",
+					31536000)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
 			It("should return a complete list of jobs", func() {
 				jobs, err := orm.GetAllJobs()
 				Ω(err).ShouldNot(HaveOccurred())

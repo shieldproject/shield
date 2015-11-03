@@ -124,14 +124,13 @@ func (o *ORM) Setup() error {
 	o.db.Cache("DeleteStore",
 		`DELETE FROM stores WHERE uuid = ?`)
 
-	o.db.Cache("GetAllJobs", `SELECT jobs.uuid, jobs.paused,
-														targets.plugin, targets.endpoint,
-														stores.plugin, stores.endpoint,
-														schedules.timespec, retention.expiry
-														FROM jobs INNER JOIN targets ON targets.uuid = jobs.target_uuid
-														INNER JOIN stores ON stores.uuid = jobs.store_uuid
-														INNER JOIN schedules ON schedules.uuid = jobs.schedule_uuid
-														INNER JOIN retention ON retention.uuid = jobs.retention_uuid`)
+	o.db.Cache("GetAllJobs",
+		`SELECT jobs.uuid, jobs.paused, targets.plugin, targets.endpoint, stores.plugin, stores.endpoint, schedules.timespec, retention.expiry
+		FROM jobs
+		INNER JOIN targets ON targets.uuid = jobs.target_uuid
+		INNER JOIN stores ON stores.uuid = jobs.store_uuid
+		INNER JOIN schedules ON schedules.uuid = jobs.schedule_uuid
+		INNER JOIN retention ON retention.uuid = jobs.retention_uuid`)
 
 	return nil
 }
@@ -551,7 +550,8 @@ func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 		return l, err
 	}
 	for result.Next() {
-		j := &supervisor.Job{}
+		j := &supervisor.Job{Target: &supervisor.PluginConfig{}, Store: &supervisor.PluginConfig{}}
+
 		var id, tspec string
 		var expiry int
 		//var paused bool
@@ -563,6 +563,7 @@ func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 		j.UUID = uuid.Parse(id)
 		j.Spec, err = timespec.Parse(tspec)
 		// FIXME: handle err
+		l = append(l, j)
 	}
 	return l, nil
 }
