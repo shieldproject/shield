@@ -5,6 +5,7 @@ import (
 	"supervisor"
 	"timespec"
 
+	"database/sql"
 	"github.com/pborman/uuid"
 )
 
@@ -99,7 +100,48 @@ func (o *ORM) Setup() error {
 		`DELETE FROM retention WHERE uuid = ?`)
 
 	o.db.Cache("GetAllAnnotatedTargets",
-		`SELECT uuid, name, summary, plugin, endpoint FROM targets ORDER BY name, uuid ASC`)
+		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
+			FROM targets
+			ORDER BY name, uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUnusedTargets",
+		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
+			FROM targets t
+				LEFT JOIN jobs j
+					ON j.target_uuid = t.uuid
+			GROUP BY t.uuid
+			HAVING n = 0
+			ORDER BY t.name, t.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUsedTargets",
+		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
+			FROM targets t
+				LEFT JOIN jobs j
+					ON j.target_uuid = t.uuid
+			GROUP BY t.uuid
+			HAVING n > 0
+			ORDER BY t.name, t.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedTargetsFiltered",
+		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
+			FROM targets
+			WHERE plugin = ?
+			ORDER BY name, uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUnusedTargetsFiltered",
+		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
+			FROM targets t
+				LEFT JOIN jobs j
+					ON j.target_uuid = t.uuid
+			WHERE t.plugin = ?
+			GROUP BY t.uuid
+			HAVING n = 0
+			ORDER BY t.name, t.uuid ASC`)
+	o.db.Cache("GetAllAnnotatedUsedTargetsFiltered",
+		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
+			FROM targets t
+				LEFT JOIN jobs j
+					ON j.target_uuid = t.uuid
+			WHERE t.plugin = ?
+			GROUP BY t.uuid
+			HAVING n > 0
+			ORDER BY t.name, t.uuid ASC`)
 	o.db.Cache("CreateTarget",
 		`INSERT INTO targets (uuid, plugin, endpoint) VALUES (?, ?, ?)`)
 	o.db.Cache("UpdateTarget",
@@ -347,17 +389,32 @@ type AnnotatedTarget struct {
 	Endpoint string `json:"endpoint"`
 }
 
-func (o *ORM) GetAllAnnotatedTargets() ([]*AnnotatedTarget, error) {
+func (o *ORM) GetAllAnnotatedTargets(filter1 bool, unused bool, filter2 bool, plugin string) ([]*AnnotatedTarget, error) {
 	l := []*AnnotatedTarget{}
+	var q string
+	switch {
+	case filter1 &&  unused: q = "GetAllAnnotatedUnusedTargets"
+	case filter1 && !unused: q = "GetAllAnnotatedUsedTargets"
+	default: q = "GetAllAnnotatedTargets"
+	}
 
-	r, err := o.db.Query("GetAllAnnotatedTargets")
+	var r *sql.Rows
+	var err error
+
+	if filter2 {
+		r, err = o.db.Query(q + "Filtered", plugin)
+	} else {
+		r, err = o.db.Query(q)
+	}
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedTarget{}
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+		var n uint
+
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
 			return l, err
 		}
 

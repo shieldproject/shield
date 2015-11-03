@@ -48,3 +48,11 @@ func unusedParam(req *http.Request) (bool, bool) {
 	default: return false, false
 	}
 }
+
+func pluginParam(req *http.Request) (bool, string) {
+	plugin, set := req.URL.Query()["plugin"]
+	if set {
+		return true, plugin[0]
+	}
+	return false, ""
+}
