@@ -109,13 +109,15 @@ var _ = Describe("ORM", func() {
 			Ω(db.Connected()).Should(BeTrue())
 
 			// New ORM for all contexts
-			orm, err := NewORM(db)
+			var err error
+			orm, err = NewORM(db)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(orm).ShouldNot(BeNil())
 			Ω(orm.Setup()).ShouldNot(HaveOccurred())
 		})
 		Context("With an empty database", func() {
 			It("should return an empty list of jobs", func() {
+				Ω(orm).ShouldNot(BeNil())
 				jobs, err := orm.GetAllJobs()
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(len(jobs)).Should(Equal(0))
