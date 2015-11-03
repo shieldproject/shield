@@ -14,6 +14,12 @@ func match(req *http.Request, pattern string) bool {
 	return matched
 }
 
+func bail(w http.ResponseWriter, e error) {
+	w.WriteHeader(500)
+	fmt.Printf("ERROR: <%s>\n", e)
+	return
+}
+
 func JSON(w http.ResponseWriter, thing interface{}) {
 	bytes, err := json.Marshal(thing)
 	if err != nil {
