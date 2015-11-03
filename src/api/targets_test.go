@@ -35,6 +35,10 @@ var _ = Describe("/v1/targets API", func() {
 				 "Amazon S3 Blobstore",
 				 "s3",
 				 "<<s3-configuration>>")`,
+
+			`INSERT INTO jobs (uuid, target_uuid) VALUES
+				("abc-def",
+				 "05c3d005-f968-452f-bd59-bee8e79ab982")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		API = &TargetAPI{Data: orm}
@@ -107,6 +111,30 @@ var _ = Describe("/v1/targets API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("can delete unused targets", func() {
+		res := DELETE(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(Equal(""))
+
+		res = GET(API, "/v1/targets")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"name"     : "s3",
+					"summary"  : "Amazon S3 Blobstore",
+					"plugin"   : "s3",
+					"endpoint" : "<<s3-configuration>>"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("refuses to delete a target that is in use", func() {
+		res := DELETE(API, "/v1/target/05c3d005-f968-452f-bd59-bee8e79ab982")
+		Ω(res.Code).Should(Equal(403))
+		Ω(res.Body.String()).Should(Equal(""))
+	})
+
 	It("ignores other HTTP methods", func() {
 		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/targets", nil)
@@ -127,7 +155,4 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	/* FIXME: handle ?unused=[tf] query string... */
-
-	/* FIXME: write tests for DELETE /v1/target/:uuid */
-	/*        (incl. test for delete of an in-use target) */
 })
