@@ -58,6 +58,24 @@ func (o *ORM) Setup() error {
 	o.db.Cache("AnnotateRetentionPolicy",
 		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`)
 
+	o.db.Cache("GetAllAnnotatedTargets",
+		`SELECT uuid, name, summary, plugin, endpoint FROM targets ORDER BY name, uuid ASC`)
+	o.db.Cache("CreateTarget",
+		`INSERT INTO targets (uuid, plugin, endpoint) VALUES (?, ?, ?)`)
+	o.db.Cache("UpdateTarget",
+		`UPDATE targets SET plugin = ?, endpoint = ? WHERE uuid = ?`)
+	o.db.Cache("AnnotateTarget",
+		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`)
+
+	o.db.Cache("GetAllAnnotatedStores",
+		`SELECT uuid, name, summary, plugin, endpoint FROM stores ORDER BY name, uuid ASC`)
+	o.db.Cache("CreateStore",
+		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`)
+	o.db.Cache("UpdateStore",
+		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`)
+	o.db.Cache("AnnotateStore",
+		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`)
+
 	o.db.Cache("GetAllJobs", `SELECT jobs.uuid, jobs.paused,
 														targets.plugin, targets.endpoint,
 														stores.plugin, stores.endpoint,
@@ -194,8 +212,14 @@ func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error 
 	return o.db.Exec("AnnotateSchedule", name, summary, id.String())
 }
 
-// func (o *ORM) AnnotateStore(id uuid.UUID, name string, summary string) error
-// func (o *ORM) AnnotateTarget(id uuid.UUID, name string, summary string) error
+func (o *ORM) AnnotateStore(id uuid.UUID, name string, summary string) error {
+	return o.db.Exec("AnnotateStore", name, summary, id.String())
+}
+
+func (o *ORM) AnnotateTarget(id uuid.UUID, name string, summary string) error {
+	return o.db.Exec("AnnotateTarget", name, summary, id.String())
+}
+
 // func (o *ORM) AnnotateTask(id uuid.UUID, owner string) error
 
 type AnnotatedSchedule struct {
@@ -254,8 +278,80 @@ func (o *ORM) GetAllAnnotatedRetentionPolicies() ([]*AnnotatedRetentionPolicy, e
 	return l, nil
 }
 
-// func (o *ORM) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error)
-// func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error
+type AnnotatedTarget struct {
+	UUID     string `json:"uuid"`
+	Name     string `json:"name"`
+	Summary  string `json:"summary"`
+	Plugin   string `json:"plugin"`
+	Endpoint string `json:"endpoint"`
+}
+
+func (o *ORM) GetAllAnnotatedTargets() ([]*AnnotatedTarget, error) {
+	l := []*AnnotatedTarget{}
+
+	r, err := o.db.Query("GetAllAnnotatedTargets")
+	if err != nil {
+		return l, err
+	}
+
+	for r.Next() {
+		ann := &AnnotatedTarget{}
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+			return l, err
+		}
+
+		l = append(l, ann)
+	}
+
+	return l, nil
+}
+
+func (o *ORM) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error) {
+	id := uuid.NewRandom()
+	return id, o.db.Exec("CreateTarget", id.String(), plugin, endpoint)
+}
+
+func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error {
+	return o.db.Exec("UpdateTarget", plugin, endpoint, id.String())
+}
+
+type AnnotatedStore struct {
+	UUID     string `json:"uuid"`
+	Name     string `json:"name"`
+	Summary  string `json:"summary"`
+	Plugin   string `json:"plugin"`
+	Endpoint string `json:"endpoint"`
+}
+
+func (o *ORM) GetAllAnnotatedStores() ([]*AnnotatedStore, error) {
+	l := []*AnnotatedStore{}
+
+	r, err := o.db.Query("GetAllAnnotatedStores")
+	if err != nil {
+		return l, err
+	}
+
+	for r.Next() {
+		ann := &AnnotatedStore{}
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+			return l, err
+		}
+
+		l = append(l, ann)
+	}
+
+	return l, nil
+}
+
+func (o *ORM) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error) {
+	id := uuid.NewRandom()
+	return id, o.db.Exec("CreateStore", id.String(), plugin, endpoint)
+}
+
+func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error {
+	return o.db.Exec("UpdateStore", plugin, endpoint, id.String())
+}
+
 // func (o *ORM) DeleteTarget(id uuid.UUID) error
 
 // func (o *ORM) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error)
