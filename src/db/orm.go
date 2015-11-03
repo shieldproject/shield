@@ -40,6 +40,14 @@ func (o *ORM) Setup() error {
 	}
 
 	/* FIXME: cache all queries we're going to need */
+	o.db.Cache("GetAllAnnotatedSchedules",
+		`SELECT uuid, name, summary, timespec FROM schedules ORDER BY name, uuid ASC`)
+
+	o.db.Cache("CreateSchedule",
+		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`)
+	o.db.Cache("AnnotateSchedule",
+		`UPDATE schedules SET name = ?, summary = ?, WHERE uuid = ?`)
+
 	o.db.Cache("GetAllJobs", `SELECT jobs.uuid, jobs.paused,
 														targets.plugin, targets.endpoint,
 														stores.plugin, stores.endpoint,
@@ -165,14 +173,45 @@ func (o *ORM) v1schema() error {
 
 /* FIXME: determine what ORM layers we need */
 
-// func (o *ORM) annotateNameAndSummary(q string, id uuid.UUID, name string, summary string) error
 // func (o *ORM) AnnotateArchive(id uuid.UUID, notes string) error
 // func (o *ORM) AnnotateJob(id uuid.UUID, name string, summary string) error
 // func (o *ORM) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error
-// func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error
+
+func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
+	return o.db.Exec("AnnotateSchedule", name, summary, id)
+}
+
 // func (o *ORM) AnnotateStore(id uuid.UUID, name string, summary string) error
 // func (o *ORM) AnnotateTarget(id uuid.UUID, name string, summary string) error
 // func (o *ORM) AnnotateTask(id uuid.UUID, owner string) error
+
+type AnnotatedSchedule struct {
+	UUID    string `json:"uuid"`
+	Name    string `json:"name"`
+	Summary string `json:"summary"`
+	When    string `json:"when"`
+}
+
+func (o *ORM) GetAllAnnotatedSchedules() ([]*AnnotatedSchedule, error) {
+	l := []*AnnotatedSchedule{}
+
+	r, err := o.db.Query("GetAllAnnotatedSchedules")
+	if err != nil {
+		return l, err
+	}
+
+	for r.Next() {
+		ann := &AnnotatedSchedule{}
+
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
+			return l, err
+		}
+
+		l = append(l, ann)
+	}
+
+	return l, nil
+}
 
 // func (o *ORM) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error)
 // func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error
@@ -182,7 +221,11 @@ func (o *ORM) v1schema() error {
 // func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error
 // func (o *ORM) DeleteStore(id uuid.UUID) error
 
-// func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error)
+func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error) {
+	id := uuid.NewRandom()
+	return id, o.db.Exec("CreateSchedule", id.String(), timespec)
+}
+
 // func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error
 // func (o *ORM) DeleteSchedule(id uuid.UUID)
 
