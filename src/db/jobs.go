@@ -9,12 +9,21 @@ import (
 	"github.com/pborman/uuid"
 )
 
+type JobRepresentation struct {
+	UUID uuid.UUID
+	Tspec string
+	Error error
+}
 type JobFailedError struct {
-	FailedJobs []string
+	FailedJobs []JobRepresentation
 }
 
 func (e JobFailedError) Error() string {
-	return fmt.Sprintf("the following jobs failed: %s", strings.Join(e.FailedJobs, ", "))
+	var jobList []string
+	for _, j := range e.FailedJobs {
+		jobList = append(jobList, string(j.UUID))
+	}
+	return fmt.Sprintf("the following job(s) failed: %s", strings.Join(jobList, ", "))
 }
 
 type AnnotatedJob struct {
@@ -155,13 +164,13 @@ func (db *DB) GetAllJobs() ([]*supervisor.Job, error) {
 			&j.Target.Plugin, &j.Target.Endpoint,
 			&j.Store.Plugin, &j.Store.Endpoint,
 			&tspec, &expiry)
-		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, string(j.UUID))
-		}
 		j.UUID = uuid.Parse(id)
+		if err != nil {
+			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
+		}
 		j.Spec, err = timespec.Parse(tspec)
 		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, string(j.UUID))
+			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
 		}
 		l = append(l, j)
 	}
