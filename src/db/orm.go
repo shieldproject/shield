@@ -38,16 +38,6 @@ func (o *ORM) Setup() error {
 	if err != nil {
 		return err
 	}
-
-	/* FIXME: move this into GetAllJobs() */
-	o.db.Alias("GetAllJobs",
-		`SELECT jobs.uuid, jobs.paused, targets.plugin, targets.endpoint, stores.plugin, stores.endpoint, schedules.timespec, retention.expiry
-		FROM jobs
-		INNER JOIN targets ON targets.uuid = jobs.target_uuid
-		INNER JOIN stores ON stores.uuid = jobs.store_uuid
-		INNER JOIN schedules ON schedules.uuid = jobs.schedule_uuid
-		INNER JOIN retention ON retention.uuid = jobs.retention_uuid`)
-
 	return nil
 }
 
@@ -660,7 +650,17 @@ func (o *ORM) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 
 func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 	l := []*supervisor.Job{}
-	result, err := o.db.Query("GetAllJobs")
+	result, err := o.db.Query(`
+		SELECT j.uuid, j.paused,
+		       t.plugin, t.endpoint,
+		       s.plugin, s.endpoint,
+		       sc.timespec, r.expiry
+		FROM jobs j
+			INNER JOIN targets   t    ON  t.uuid = j.target_uuid
+			INNER JOIN stores    s    ON  s.uuid = j.store_uuid
+			INNER JOIN schedules sc   ON sc.uuid = j.schedule_uuid
+			INNER JOIN retention r    ON  r.uuid = j.retention_uuid
+	`)
 	if err != nil {
 		return l, err
 	}
