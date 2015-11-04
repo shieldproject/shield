@@ -1,5 +1,18 @@
 package plugin
 
+/*
+
+Here are a bunch of frameworky-helper functions for use when creating a new backup/restore plugin. Important things to remember:
+
+Use plugin.Run()  for starting your plugin execution.
+
+Use plugin.PluginInfo to fill out the info for your plugin.
+Make your plugin conform to the Plugin interface, by implementing Backup(), Restore(), Retrieve(), and Store(). If they don't make sense, just return plugin.UNSUPPORTED_ACTION, and a helpful errorm essage
+
+plugin.Exec() can be used to easily run external commands sending their stdin/stdout to that of the plugin command. Keep in mind the commands don't get run in a shell, so things like '>', '<', '|' won't work the way you want them to, but you can just run /bin/bash -c <command> to solve that, right?
+
+*/
+
 import (
 	"encoding/json"
 	"fmt"
