@@ -1,5 +1,11 @@
 package plugin
 
+/*
+
+Hi Jaime! Here's where we define exit codes that the plugins will use, so that all plugins can behave in a consistent manner
+
+*/
+
 const SUCCESS = 0
 const USAGE = 1
 const UNSUPPORTED_ACTION = 2

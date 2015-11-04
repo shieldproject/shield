@@ -1,5 +1,11 @@
 package plugin
 
+/*
+
+ShieldEndpoints are used for store + targets. This code genericizes them and makes it easy for you to pull out arbitrary values from them. The plugin framework will feed your action methods with the appropriate endpoint, and you can pull whatever data out that you need.
+
+*/
+
 import (
 	"encoding/json"
 	"fmt"

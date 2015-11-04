@@ -1,12 +1,21 @@
 package main
 
+/*
+
+This is a generic and not terribly helpful plugin. However, it shows the basics
+of what is needed in a backup plugin, and how they execute.
+
+*/
+
 import (
 	"fmt"
 	"plugin"
 )
 
 func main() {
-	fs := FSPlugin{
+	// Create an object representing this plugin, which is a type conforming to the Plugin interface
+	dummy := DummyPlugin{
+		// give it some authorship info
 		meta: plugin.PluginInfo{
 			Name:    "Dummy Plugin",
 			Author:  "Stark & Wane",
@@ -18,18 +27,22 @@ func main() {
 		},
 	}
 
-	plugin.Run(fs)
+	// Run the plugin - the plugin framework handles all arg parsing, exit handling, error/debug formatting for you
+	plugin.Run(dummy)
 }
 
-type FSPlugin struct {
-	meta plugin.PluginInfo
+// Define my DummyPlugin type
+type DummyPlugin struct {
+	meta plugin.PluginInfo // needs a place to store metadata
 }
 
-func (p FSPlugin) Meta() plugin.PluginInfo {
+// This function should be used to return the plugin's PluginInfo, however you decide to implement it
+func (p DummyPlugin) Meta() plugin.PluginInfo {
 	return p.meta
 }
 
-func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
+// Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly
+func (p DummyPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
 	data, err := endpoint.StringValue("data")
 	if err != nil {
 		return plugin.PLUGIN_FAILURE, err
@@ -38,7 +51,8 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
 	return plugin.Exec(fmt.Sprintf("/bin/echo %s", data))
 }
 
-func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
+// Called when you want to restore data Examine the ShieldEndpoint passed in, and perform actions accordingly
+func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
 	file, err := endpoint.StringValue("file")
 	if err != nil {
 		return plugin.PLUGIN_FAILURE, err
@@ -47,7 +61,8 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
 	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
 }
 
-func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (int, error) {
+// Called when you want to store backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
+func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (int, error) {
 	file, err := endpoint.StringValue("file")
 	if err != nil {
 		return plugin.PLUGIN_FAILURE, err
@@ -56,7 +71,8 @@ func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (int, error) {
 	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
 }
 
-func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint) (int, error) {
+// Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
+func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint) (int, error) {
 	file, err := endpoint.StringValue("file")
 	if err != nil {
 		return plugin.PLUGIN_FAILURE, err
@@ -64,3 +80,6 @@ func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint) (int, error) {
 
 	return plugin.Exec(fmt.Sprintf("/bin/cat %s", file))
 }
+
+//That's all there is to writing a plugin. If your plugin doesn't need to implement Store/Retireve, or Backup/Restore,
+// Define the functions, and have them return plugin.UNSUPPORTED_ACTION and a useful error message.
