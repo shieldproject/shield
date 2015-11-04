@@ -2,6 +2,7 @@ package api_test
 
 import (
 	. "api"
+	"db"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,7 +27,7 @@ func Database(sqls ...string) (*db.DB, error) {
 		return nil, err
 	}
 
-	if err := db.Setup(); err != nil {
+	if err := database.Setup(); err != nil {
 		database.Disconnect()
 		return nil, err
 	}
