@@ -1,12 +1,21 @@
 package db
 
 import (
+	"fmt"
 	"strings"
 	"supervisor"
 	"timespec"
 
 	"github.com/pborman/uuid"
 )
+
+type JobFailedError struct {
+	FailedJobs []string
+}
+
+func (e JobFailedError) Error() string {
+	return fmt.Sprintf("the following jobs failed: %s", strings.Join(e.FailedJobs, ", "))
+}
 
 type AnnotatedJob struct {
 	UUID           string `json:"uuid"`
@@ -136,9 +145,9 @@ func (db *DB) GetAllJobs() ([]*supervisor.Job, error) {
 	if err != nil {
 		return l, err
 	}
+	e := JobFailedError{}
 	for result.Next() {
 		j := &supervisor.Job{Target: &supervisor.PluginConfig{}, Store: &supervisor.PluginConfig{}}
-
 		var id, tspec string
 		var expiry int
 		//var paused bool
@@ -146,11 +155,18 @@ func (db *DB) GetAllJobs() ([]*supervisor.Job, error) {
 			&j.Target.Plugin, &j.Target.Endpoint,
 			&j.Store.Plugin, &j.Store.Endpoint,
 			&tspec, &expiry)
-		// FIXME: handle err
+		if err != nil {
+			e.FailedJobs = append(e.FailedJobs, string(j.UUID))
+		}
 		j.UUID = uuid.Parse(id)
 		j.Spec, err = timespec.Parse(tspec)
-		// FIXME: handle err
+		if err != nil {
+			e.FailedJobs = append(e.FailedJobs, string(j.UUID))
+		}
 		l = append(l, j)
 	}
-	return l, nil
+	if len(e.FailedJobs) == 0 {
+		return l, nil
+	}
+	return l, e
 }
