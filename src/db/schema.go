@@ -4,6 +4,24 @@ import (
 	"fmt"
 )
 
+func (db *DB) Setup() error {
+	v, err := db.schemaVersion()
+	if err != nil {
+		return err
+	}
+
+	if v == 0 {
+		err = db.v1schema()
+	} else {
+		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD", v)
+	}
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (db *DB) schemaVersion() (uint, error) {
 	r, err := db.Query(`SELECT version FROM schema_info LIMIT 1`)
 	// failed query = no schema
