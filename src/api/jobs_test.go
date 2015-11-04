@@ -15,13 +15,13 @@ import (
 var _ = Describe("/v1/jobs API", func() {
 	var API http.Handler
 
-	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982:= `
-	TARGET_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e:= `
-	TARGET_PG := `fab00c82-aac3-4e5f-8a2f-c534f81cdee3:= `
-	SCHED_DAILY := `590eddbd-426f-408c-981b-9cf1faf2669e:= `
-	SCHED_WEEKLY := `fce33a96-d352-480f-b04a-db7f2c14e98f:= `
-	RETAIN_SHORT := `848ff67e-f857-47bd-9692-ae5f2be85674:= `
-	RETAIN_LONG := `c5fca8e0-7d40-4cff-8dec-5f0df36ecee9:= `
+	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
+	TARGET_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
+	TARGET_PG := `fab00c82-aac3-4e5f-8a2f-c534f81cdee3`
+	SCHED_DAILY := `590eddbd-426f-408c-981b-9cf1faf2669e`
+	SCHED_WEEKLY := `fce33a96-d352-480f-b04a-db7f2c14e98f`
+	RETAIN_SHORT := `848ff67e-f857-47bd-9692-ae5f2be85674`
+	RETAIN_LONG := `c5fca8e0-7d40-4cff-8dec-5f0df36ecee9`
 
 	BeforeEach(func() {
 		data, err := Database(
