@@ -12,7 +12,7 @@ import (
 )
 
 type StoreAPI struct {
-	Data *db.ORM
+	Data *db.DB
 }
 
 func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {

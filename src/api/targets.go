@@ -12,7 +12,7 @@ import (
 )
 
 type TargetAPI struct {
-	Data *db.ORM
+	Data *db.DB
 }
 
 func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {

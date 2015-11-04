@@ -45,9 +45,9 @@ func (f *RetentionFilter) Query() string {
 	`
 }
 
-func (o *ORM) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*AnnotatedRetentionPolicy, error) {
+func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*AnnotatedRetentionPolicy, error) {
 	l := []*AnnotatedRetentionPolicy{}
-	r, err := o.db.Query(filter.Query())
+	r, err := db.Query(filter.Query())
 	if err != nil {
 		return l, err
 	}
@@ -66,30 +66,30 @@ func (o *ORM) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 	return l, nil
 }
 
-func (o *ORM) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec(
+func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
+	return db.Exec(
 		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
 
-func (o *ORM) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
+func (db *DB) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec(
+	return id, db.Exec(
 		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`,
 		id.String(), expiry,
 	)
 }
 
-func (o *ORM) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
-	return o.db.Exec(
+func (db *DB) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
+	return db.Exec(
 		`UPDATE retention SET expiry = ? WHERE uuid = ?`,
 		expiry, id.String(),
 	)
 }
 
-func (o *ORM) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query(
+func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
+	r, err := db.Query(
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`,
 		id.String(),
 	)
@@ -116,7 +116,7 @@ func (o *ORM) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec(
+	return true, db.Exec(
 		`DELETE FROM retention WHERE uuid = ?`,
 		id.String(),
 	)

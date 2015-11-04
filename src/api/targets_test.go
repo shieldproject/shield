@@ -9,19 +9,15 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	"db"
-
 	"fmt"
 	"net/http"
 )
 
 var _ = Describe("/v1/targets API", func() {
-	var orm *db.ORM
 	var API http.Handler
 
 	BeforeEach(func() {
-		var err error
-		orm, err = setupORM(
+		data, err := Database(
 			`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
 				("66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
 				 "redis-shared",
@@ -41,7 +37,7 @@ var _ = Describe("/v1/targets API", func() {
 				 "05c3d005-f968-452f-bd59-bee8e79ab982")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		API = &TargetAPI{Data: orm}
+		API = &TargetAPI{Data: data}
 	})
 
 	It("should retrieve all targets", func() {

@@ -8,29 +8,14 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type ORM struct {
-	db *DB
-}
-
-func NewORM(db *DB) (*ORM, error) {
-	if db == nil {
-		return nil, fmt.Errorf("No database given to NewORM()")
-	}
-	if !db.Connected() {
-		return nil, fmt.Errorf("Not connected to database yet")
-	}
-
-	return &ORM{db: db}, nil
-}
-
-func (o *ORM) Setup() error {
-	v, err := o.schemaVersion()
+func (db *DB) Setup() error {
+	v, err := db.schemaVersion()
 	if err != nil {
 		return err
 	}
 
 	if v == 0 {
-		err = o.v1schema()
+		err = db.v1schema()
 	} else {
 		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD", v)
 	}
@@ -41,11 +26,9 @@ func (o *ORM) Setup() error {
 	return nil
 }
 
-/* FIXME: determine what ORM layers we need */
-
-func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
+func (db *DB) GetAllJobs() ([]*supervisor.Job, error) {
 	l := []*supervisor.Job{}
-	result, err := o.db.Query(`
+	result, err := db.Query(`
 		SELECT j.uuid, j.paused,
 		       t.plugin, t.endpoint,
 		       s.plugin, s.endpoint,
@@ -78,19 +61,19 @@ func (o *ORM) GetAllJobs() ([]*supervisor.Job, error) {
 	return l, nil
 }
 
-// func (o *ORM) AnnotateArchive(id uuid.UUID, notes string) error
-// func (o *ORM) AnnotateJob(id uuid.UUID, name string, summary string) error
-// func (o *ORM) AnnotateTask(id uuid.UUID, owner string) error
+// func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error
+// func (db *DB) AnnotateJob(id uuid.UUID, name string, summary string) error
+// func (db *DB) AnnotateTask(id uuid.UUID, owner string) error
 
-// func (o *ORM) CreateJob(target uuid.UUID, store uuid.UUID, schedule uuid.UUID, retention uuid.UUID) (uuid.UUID, error)
-// func (o *ORM) PauseJob(id uuid.UUID) error
-// func (o *ORM) UnpauseJob(id uuid.UUID) error
-// func (o *ORM) DeleteJob(id uuid.UUID) error
+// func (db *DB) CreateJob(target uuid.UUID, store uuid.UUID, schedule uuid.UUID, retention uuid.UUID) (uuid.UUID, error)
+// func (db *DB) PauseJob(id uuid.UUID) error
+// func (db *DB) UnpauseJob(id uuid.UUID) error
+// func (db *DB) DeleteJob(id uuid.UUID) error
 
-// func (o *ORM) CreateArchive(job uuid.UUID, key string) (id uuid.UUID, error)
-// func (o *ORM) DeleteArchive(id uuid.UUID) error
+// func (db *DB) CreateArchive(job uuid.UUID, key string) (id uuid.UUID, error)
+// func (db *DB) DeleteArchive(id uuid.UUID) error
 
-// func (o *ORM) CreateTask(op string, args string, job uuid.UUID) (uuid.UUID, error)
-// func (o *ORM) CompleteTask(id uuid.UUID) error
-// func (o *ORM) CancelTask(id uuid.UUID) error
-// func (o *ORM) UpdateTaskLog(id uuid.UUID, log string) error
+// func (db *DB) CreateTask(op string, args string, job uuid.UUID) (uuid.UUID, error)
+// func (db *DB) CompleteTask(id uuid.UUID) error
+// func (db *DB) CancelTask(id uuid.UUID) error
+// func (db *DB) UpdateTaskLog(id uuid.UUID, log string) error

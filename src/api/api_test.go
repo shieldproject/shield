@@ -9,8 +9,6 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	"db"
-
 	"fmt"
 	"io"
 	"net/http"
@@ -18,7 +16,7 @@ import (
 	"strings"
 )
 
-func setupORM(sqls ...string) (*db.ORM, error) {
+func Database(sqls ...string) (*db.DB, error) {
 	database := &db.DB{
 		Driver: "sqlite3",
 		DSN:    ":memory:",
@@ -28,13 +26,7 @@ func setupORM(sqls ...string) (*db.ORM, error) {
 		return nil, err
 	}
 
-	orm, err := db.NewORM(database)
-	if err != nil {
-		database.Disconnect()
-		return nil, err
-	}
-
-	if err := orm.Setup(); err != nil {
+	if err := db.Setup(); err != nil {
 		database.Disconnect()
 		return nil, err
 	}
@@ -47,7 +39,7 @@ func setupORM(sqls ...string) (*db.ORM, error) {
 		}
 	}
 
-	return orm, nil
+	return database, nil
 }
 
 func NotImplemented(h http.Handler, method string, uri string, body io.Reader) {

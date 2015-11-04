@@ -45,9 +45,9 @@ func (f *ScheduleFilter) Query() string {
 	`
 }
 
-func (o *ORM) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSchedule, error) {
+func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSchedule, error) {
 	l := []*AnnotatedSchedule{}
-	r, err := o.db.Query(filter.Query())
+	r, err := db.Query(filter.Query())
 	if err != nil {
 		return l, err
 	}
@@ -66,30 +66,30 @@ func (o *ORM) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSche
 	return l, nil
 }
 
-func (o *ORM) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec(
+func (db *DB) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
+	return db.Exec(
 		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
 
-func (o *ORM) CreateSchedule(timespec string) (uuid.UUID, error) {
+func (db *DB) CreateSchedule(timespec string) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec(
+	return id, db.Exec(
 		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`,
 		id.String(), timespec,
 	)
 }
 
-func (o *ORM) UpdateSchedule(id uuid.UUID, timespec string) error {
-	return o.db.Exec(
+func (db *DB) UpdateSchedule(id uuid.UUID, timespec string) error {
+	return db.Exec(
 		`UPDATE schedules SET timespec = ? WHERE uuid = ?`,
 		timespec, id.String(),
 	)
 }
 
-func (o *ORM) DeleteSchedule(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query(
+func (db *DB) DeleteSchedule(id uuid.UUID) (bool, error) {
+	r, err := db.Query(
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`,
 		id.String(),
 	)
@@ -116,7 +116,7 @@ func (o *ORM) DeleteSchedule(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec(
+	return true, db.Exec(
 		`DELETE FROM schedules WHERE uuid = ?`,
 		id.String(),
 	)

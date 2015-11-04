@@ -12,7 +12,7 @@ import (
 )
 
 type ScheduleAPI struct {
-	Data *db.ORM
+	Data *db.DB
 }
 
 func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {

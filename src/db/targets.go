@@ -60,9 +60,9 @@ func (f *TargetFilter) Query() string {
 	`
 }
 
-func (o *ORM) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, error) {
+func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, error) {
 	l := []*AnnotatedTarget{}
-	r, err := o.db.Query(filter.Query(), filter.Args()...)
+	r, err := db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err
 	}
@@ -81,30 +81,30 @@ func (o *ORM) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, 
 	return l, nil
 }
 
-func (o *ORM) AnnotateTarget(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec(
+func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
+	return db.Exec(
 		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
 
-func (o *ORM) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error) {
+func (db *DB) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec(
+	return id, db.Exec(
 		`INSERT INTO targets (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
 		id.String(), plugin, endpoint,
 	)
 }
 
-func (o *ORM) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error {
-	return o.db.Exec(
+func (db *DB) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error {
+	return db.Exec(
 		`UPDATE targets SET plugin = ?, endpoint = ? WHERE uuid = ?`,
 		plugin, endpoint, id.String(),
 	)
 }
 
-func (o *ORM) DeleteTarget(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query(
+func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
+	r, err := db.Query(
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`,
 		id.String(),
 	)
@@ -131,7 +131,7 @@ func (o *ORM) DeleteTarget(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec(
+	return true, db.Exec(
 		`DELETE FROM targets WHERE uuid = ?`,
 		id.String(),
 	)

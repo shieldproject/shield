@@ -60,9 +60,9 @@ func (f *StoreFilter) Query() string {
 	`
 }
 
-func (o *ORM) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, error) {
+func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, error) {
 	l := []*AnnotatedStore{}
-	r, err := o.db.Query(filter.Query(), filter.Args()...)
+	r, err := db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err
 	}
@@ -81,30 +81,30 @@ func (o *ORM) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, err
 	return l, nil
 }
 
-func (o *ORM) AnnotateStore(id uuid.UUID, name string, summary string) error {
-	return o.db.Exec(
+func (db *DB) AnnotateStore(id uuid.UUID, name string, summary string) error {
+	return db.Exec(
 		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
 
-func (o *ORM) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error) {
+func (db *DB) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error) {
 	id := uuid.NewRandom()
-	return id, o.db.Exec(
+	return id, db.Exec(
 		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
 		id.String(), plugin, endpoint,
 	)
 }
 
-func (o *ORM) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error {
-	return o.db.Exec(
+func (db *DB) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error {
+	return db.Exec(
 		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`,
 		plugin, endpoint, id.String(),
 	)
 }
 
-func (o *ORM) DeleteStore(id uuid.UUID) (bool, error) {
-	r, err := o.db.Query(
+func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
+	r, err := db.Query(
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`,
 		id.String(),
 	)
@@ -131,7 +131,7 @@ func (o *ORM) DeleteStore(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, o.db.Exec(
+	return true, db.Exec(
 		`DELETE FROM stores WHERE uuid = ?`,
 		id.String(),
 	)

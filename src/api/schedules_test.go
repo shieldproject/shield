@@ -9,19 +9,15 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	"db"
-
 	"fmt"
 	"net/http"
 )
 
 var _ = Describe("HTTP API /v1/schedule", func() {
-	var orm *db.ORM
 	var API http.Handler
 
 	BeforeEach(func() {
-		var err error
-		orm, err = setupORM(
+		data, err := Database(
 			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
 				("51e69607-eb48-4679-afd2-bc3b4c92e691",
 				 "Weekly Backups",
@@ -38,7 +34,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		API = ScheduleAPI{Data: orm}
+		API = ScheduleAPI{Data: data}
 	})
 
 	It("should retrieve all schedules", func() {

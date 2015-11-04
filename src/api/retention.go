@@ -12,7 +12,7 @@ import (
 )
 
 type RetentionAPI struct {
-	Data *db.ORM
+	Data *db.DB
 }
 
 func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {

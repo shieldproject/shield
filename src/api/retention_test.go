@@ -9,19 +9,15 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	"db"
-
 	"fmt"
 	"net/http"
 )
 
 var _ = Describe("HTTP API /v1/retention", func() {
-	var orm *db.ORM
 	var API http.Handler
 
 	BeforeEach(func() {
-		var err error
-		orm, err = setupORM(
+		data, err := Database(
 			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
 				("43705750-33b7-4134-a532-ce069abdc08f",
 				 "Short-Term Retention",
@@ -39,7 +35,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 				 "43705750-33b7-4134-a532-ce069abdc08f")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		API = RetentionAPI{Data: orm}
+		API = RetentionAPI{Data: data}
 	})
 
 	It("should retrieve all retention policies", func() {
@@ -164,7 +160,6 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("ignores malformed UUIDs", func() {
-		API := RetentionAPI{Data: orm}
 		for _, id := range []string{"malformed-uuid-01234", "", "(abcdef-01234-56-789)"} {
 			NotImplemented(API, "GET", fmt.Sprintf("/v1/retention/%s", id), nil)
 			NotImplemented(API, "PUT", fmt.Sprintf("/v1/retention/%s", id), nil)
