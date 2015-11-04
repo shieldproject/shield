@@ -52,20 +52,3 @@ func paramValue(req *http.Request, name string, defval string) string {
 	}
 	return defval
 }
-
-func unusedParam(req *http.Request) (bool, bool) {
-	unused, set := req.URL.Query()["unused"]
-	switch {
-	case set && unused[0] == "t": return true, true
-	case set && unused[0] == "f": return true, false
-	default: return false, false
-	}
-}
-
-func pluginParam(req *http.Request) (bool, string) {
-	plugin, set := req.URL.Query()["plugin"]
-	if set {
-		return true, plugin[0]
-	}
-	return false, ""
-}
