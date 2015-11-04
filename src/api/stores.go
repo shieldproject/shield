@@ -19,9 +19,13 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
 	case match(req, `GET /v1/stores`):
-		_a, _b := unusedParam(req)
-		_c, _d := pluginParam(req)
-		stores, err := self.Data.GetAllAnnotatedStores(_a, _b, _c, _d)
+		stores, err := self.Data.GetAllAnnotatedStores(
+			&db.StoreFilter{
+				SkipUsed:   paramEquals(req, "unused", "t"),
+				SkipUnused: paramEquals(req, "unused", "f"),
+				ForPlugin:  paramValue(req, "plugin", ""),
+			},
+		)
 		if err != nil {
 			bail(w, err)
 			return

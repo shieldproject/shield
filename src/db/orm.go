@@ -5,7 +5,6 @@ import (
 	"supervisor"
 	"timespec"
 
-	"database/sql"
 	"github.com/pborman/uuid"
 )
 
@@ -40,133 +39,7 @@ func (o *ORM) Setup() error {
 		return err
 	}
 
-	/* FIXME: need a better (less explicit) way of mising WHERE clauses... */
-	o.db.Alias("GetAllAnnotatedSchedules",
-		`SELECT uuid, name, summary, timespec, 0 AS n FROM schedules ORDER BY name, uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUnusedSchedules",
-		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
-			FROM schedules s
-				LEFT JOIN jobs j
-					ON j.schedule_uuid = s.uuid
-			GROUP BY s.uuid
-			HAVING n = 0
-			ORDER BY s.name, s.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUsedSchedules",
-		`SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
-			FROM schedules s
-				LEFT JOIN jobs j
-					ON j.schedule_uuid = s.uuid
-			GROUP BY s.uuid
-			HAVING n > 0
-			ORDER BY s.name, s.uuid ASC`)
-
-	o.db.Alias("GetAllAnnotatedRetentionPolicies",
-		`SELECT uuid, name, summary, expiry, 0 AS n FROM retention ORDER BY name, uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUnusedRetentionPolicies",
-		`SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
-			FROM retention r
-				LEFT JOIN jobs j
-					ON j.retention_uuid = r.uuid
-			GROUP BY r.uuid
-			HAVING n = 0
-			ORDER BY r.name, r.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUsedRetentionPolicies",
-		`SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
-			FROM retention r
-				LEFT JOIN jobs j
-					ON j.retention_uuid = r.uuid
-			GROUP BY r.uuid
-			HAVING n > 0
-			ORDER BY r.name, r.uuid ASC`)
-
-	o.db.Alias("GetAllAnnotatedTargets",
-		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
-			FROM targets
-			ORDER BY name, uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUnusedTargets",
-		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
-			FROM targets t
-				LEFT JOIN jobs j
-					ON j.target_uuid = t.uuid
-			GROUP BY t.uuid
-			HAVING n = 0
-			ORDER BY t.name, t.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUsedTargets",
-		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
-			FROM targets t
-				LEFT JOIN jobs j
-					ON j.target_uuid = t.uuid
-			GROUP BY t.uuid
-			HAVING n > 0
-			ORDER BY t.name, t.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedTargetsFiltered",
-		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
-			FROM targets
-			WHERE plugin = ?
-			ORDER BY name, uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUnusedTargetsFiltered",
-		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
-			FROM targets t
-				LEFT JOIN jobs j
-					ON j.target_uuid = t.uuid
-			WHERE t.plugin = ?
-			GROUP BY t.uuid
-			HAVING n = 0
-			ORDER BY t.name, t.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUsedTargetsFiltered",
-		`SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
-			FROM targets t
-				LEFT JOIN jobs j
-					ON j.target_uuid = t.uuid
-			WHERE t.plugin = ?
-			GROUP BY t.uuid
-			HAVING n > 0
-			ORDER BY t.name, t.uuid ASC`)
-
-	o.db.Alias("GetAllAnnotatedStores",
-		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
-			FROM stores
-			ORDER BY name, uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUnusedStores",
-		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
-			FROM stores s
-				LEFT JOIN jobs j
-					ON j.store_uuid = s.uuid
-			GROUP BY s.uuid
-			HAVING n = 0
-			ORDER BY s.name, s.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUsedStores",
-		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
-			FROM stores s
-				LEFT JOIN jobs j
-					ON j.store_uuid = s.uuid
-			GROUP BY s.uuid
-			HAVING n > 0
-			ORDER BY s.name, s.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedStoresFiltered",
-		`SELECT uuid, name, summary, plugin, endpoint, 0 AS n
-			FROM stores
-			WHERE plugin = ?
-			ORDER BY name, uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUnusedStoresFiltered",
-		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
-			FROM stores s
-				LEFT JOIN jobs j
-					ON j.store_uuid = s.uuid
-			WHERE s.plugin = ?
-			GROUP BY s.uuid
-			HAVING n = 0
-			ORDER BY s.name, s.uuid ASC`)
-	o.db.Alias("GetAllAnnotatedUsedStoresFiltered",
-		`SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
-			FROM stores s
-				LEFT JOIN jobs j
-					ON j.store_uuid = s.uuid
-			WHERE s.plugin = ?
-			GROUP BY s.uuid
-			HAVING n > 0
-			ORDER BY s.name, s.uuid ASC`)
-
+	/* FIXME: move this into GetAllJobs() */
 	o.db.Alias("GetAllJobs",
 		`SELECT jobs.uuid, jobs.paused, targets.plugin, targets.endpoint, stores.plugin, stores.endpoint, schedules.timespec, retention.expiry
 		FROM jobs
@@ -326,23 +199,48 @@ type AnnotatedSchedule struct {
 	When    string `json:"when"`
 }
 
-func (o *ORM) GetAllAnnotatedSchedules(subset bool, unused bool) ([]*AnnotatedSchedule, error) {
-	l := []*AnnotatedSchedule{}
-	var q string
-	switch {
-	case subset && unused: q = "GetAllAnnotatedUnusedSchedules"
-	case subset && !unused: q = "GetAllAnnotatedUsedSchedules"
-	default: q = "GetAllAnnotatedSchedules"
+type ScheduleFilter struct {
+	SkipUsed   bool
+	SkipUnused bool
+}
+
+func (f *ScheduleFilter) Query() string {
+	if !f.SkipUsed && !f.SkipUnused {
+		return `
+			SELECT uuid, name, summary, timespec, -1 AS n
+				FROM schedules
+				ORDER BY name, uuid ASC
+		`
 	}
 
-	r, err := o.db.Query(q)
+	// by default, show schedules with no attached jobs (unused)
+	having := `HAVING n = 0`
+	if f.SkipUnused {
+		// otherwise, only show schedules that have attached jobs
+		having = `HAVING n > 0`
+	}
+
+	return `
+		SELECT DISTINCT s.uuid, s.name, s.summary, s.timespec, COUNT(j.uuid) AS n
+			FROM schedules s
+				LEFT JOIN jobs j
+					ON j.schedule_uuid = s.uuid
+			GROUP BY s.uuid
+			` + having + `
+			ORDER BY s.name, s.uuid ASC
+	`
+}
+
+func (o *ORM) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSchedule, error) {
+	l := []*AnnotatedSchedule{}
+	r, err := o.db.Query(filter.Query())
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedSchedule{}
-		var n uint
+		var n int
 
 		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
 			return l, err
@@ -361,23 +259,48 @@ type AnnotatedRetentionPolicy struct {
 	Expires uint   `json:"expires"`
 }
 
-func (o *ORM) GetAllAnnotatedRetentionPolicies(subset bool, unused bool) ([]*AnnotatedRetentionPolicy, error) {
-	l := []*AnnotatedRetentionPolicy{}
-	var q string
-	switch {
-	case subset && unused: q = "GetAllAnnotatedUnusedRetentionPolicies"
-	case subset && !unused: q = "GetAllAnnotatedUsedRetentionPolicies"
-	default: q = "GetAllAnnotatedRetentionPolicies"
+type RetentionFilter struct {
+	SkipUsed bool
+	SkipUnused bool
+}
+
+func (f *RetentionFilter) Query() string {
+	if !f.SkipUsed && !f.SkipUnused {
+		return `
+			SELECT uuid, name, summary, expiry, -1 AS n
+				FROM retention
+				ORDER BY name, uuid ASC
+		`
 	}
 
-	r, err := o.db.Query(q)
+	// by default, show retention policies with no attached jobs (unused)
+	having := `HAVING n = 0`
+	if f.SkipUnused {
+		// otherwise, only show retention policies that have attached jobs
+		having = `HAVING n > 0`
+	}
+
+	return `
+		SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
+			FROM retention r
+				LEFT JOIN jobs j
+					ON j.retention_uuid = r.uuid
+			GROUP BY r.uuid
+			` + having + `
+			ORDER BY r.name, r.uuid ASC
+	`
+}
+
+func (o *ORM) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*AnnotatedRetentionPolicy, error) {
+	l := []*AnnotatedRetentionPolicy{}
+	r, err := o.db.Query(filter.Query())
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedRetentionPolicy{}
-		var n uint
+		var n int
 
 		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
 			return l, err
@@ -397,30 +320,62 @@ type AnnotatedTarget struct {
 	Endpoint string `json:"endpoint"`
 }
 
-func (o *ORM) GetAllAnnotatedTargets(filter1 bool, unused bool, filter2 bool, plugin string) ([]*AnnotatedTarget, error) {
+type TargetFilter struct {
+	SkipUsed bool
+	SkipUnused bool
+	ForPlugin string
+}
+
+func (f *TargetFilter) Args() []interface{} {
+	args := []interface{}{}
+	if f.ForPlugin != "" {
+		args = append(args, f.ForPlugin)
+	}
+	return args
+}
+
+func (f *TargetFilter) Query() string {
+	where := ""
+	if f.ForPlugin != "" {
+		where = "WHERE plugin = ?"
+	}
+
+	if !f.SkipUsed && !f.SkipUnused {
+		return `
+			SELECT uuid, name, summary, plugin, endpoint, -1 AS n
+				FROM targets ` + where + `
+				ORDER BY name, uuid ASC
+		`
+	}
+
+	// by default, show targets with no attached jobs (unused)
+	having := `HAVING n = 0`
+	if f.SkipUnused {
+		// otherwise, only show targets that have attached jobs
+		having = `HAVING n > 0`
+	}
+
+	return `
+		SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
+			FROM targets t
+				LEFT JOIN jobs j
+					ON j.target_uuid = t.uuid
+			` + where + ` GROUP BY t.uuid
+			` + having + `
+			ORDER BY t.name, t.uuid ASC
+	`
+}
+
+func (o *ORM) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, error) {
 	l := []*AnnotatedTarget{}
-	var q string
-	switch {
-	case filter1 &&  unused: q = "GetAllAnnotatedUnusedTargets"
-	case filter1 && !unused: q = "GetAllAnnotatedUsedTargets"
-	default: q = "GetAllAnnotatedTargets"
-	}
-
-	var r *sql.Rows
-	var err error
-
-	if filter2 {
-		r, err = o.db.Query(q + "Filtered", plugin)
-	} else {
-		r, err = o.db.Query(q)
-	}
+	r, err := o.db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedTarget{}
-		var n uint
+		var n int
 
 		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
 			return l, err
@@ -489,30 +444,62 @@ type AnnotatedStore struct {
 	Endpoint string `json:"endpoint"`
 }
 
-func (o *ORM) GetAllAnnotatedStores(filter1 bool, unused bool, filter2 bool, plugin string) ([]*AnnotatedStore, error) {
+type StoreFilter struct {
+	SkipUsed bool
+	SkipUnused bool
+	ForPlugin string
+}
+
+func (f *StoreFilter) Args() []interface{} {
+	args := []interface{}{}
+	if f.ForPlugin != "" {
+		args = append(args, f.ForPlugin)
+	}
+	return args
+}
+
+func (f *StoreFilter) Query() string {
+	where := ""
+	if f.ForPlugin != "" {
+		where = "WHERE plugin = ?"
+	}
+
+	if !f.SkipUsed && !f.SkipUnused {
+		return `
+			SELECT uuid, name, summary, plugin, endpoint, -1 AS n
+				FROM stores ` + where + `
+				ORDER BY name, uuid ASC
+		`
+	}
+
+	// by default, show stores with no attached jobs (unused)
+	having := `HAVING n = 0`
+	if f.SkipUnused {
+		// otherwise, only show stores that have attached jobs
+		having = `HAVING n > 0`
+	}
+
+	return `
+		SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
+			FROM stores s
+				LEFT JOIN jobs j
+					ON j.store_uuid = s.uuid
+			` + where + ` GROUP BY s.uuid
+			` + having + `
+			ORDER BY s.name, s.uuid ASC
+	`
+}
+
+func (o *ORM) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, error) {
 	l := []*AnnotatedStore{}
-	var q string
-	switch {
-	case filter1 &&  unused: q = "GetAllAnnotatedUnusedStores"
-	case filter1 && !unused: q = "GetAllAnnotatedUsedStores"
-	default: q = "GetAllAnnotatedStores"
-	}
-
-	var r *sql.Rows
-	var err error
-
-	if filter2 {
-		r, err = o.db.Query(q + "Filtered", plugin)
-	} else {
-		r, err = o.db.Query(q)
-	}
+	r, err := o.db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err
 	}
 
 	for r.Next() {
 		ann := &AnnotatedStore{}
-		var n uint
+		var n int
 
 		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
 			return l, err

@@ -40,6 +40,19 @@ func JSONLiteral(w http.ResponseWriter, thing string) {
 	return
 }
 
+func paramEquals(req *http.Request, name string, value string) bool {
+	actual, set := req.URL.Query()[name]
+	return set && actual[0] == value
+}
+
+func paramValue(req *http.Request, name string, defval string) string {
+	value, set := req.URL.Query()[name]
+	if set {
+		return value[0]
+	}
+	return defval
+}
+
 func unusedParam(req *http.Request) (bool, bool) {
 	unused, set := req.URL.Query()["unused"]
 	switch {

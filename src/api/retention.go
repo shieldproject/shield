@@ -19,7 +19,12 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
 	case match(req, `GET /v1/retention`):
-		policies, err := self.Data.GetAllAnnotatedRetentionPolicies(unusedParam(req))
+		policies, err := self.Data.GetAllAnnotatedRetentionPolicies(
+			&db.RetentionFilter{
+				SkipUsed:   paramEquals(req, "unused", "t"),
+				SkipUnused: paramEquals(req, "unused", "f"),
+			},
+		)
 		if err != nil {
 			bail(w, err)
 			return

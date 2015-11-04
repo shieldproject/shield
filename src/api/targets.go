@@ -19,9 +19,13 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
 	case match(req, `GET /v1/targets`):
-		_a, _b := unusedParam(req)
-		_c, _d := pluginParam(req)
-		targets, err := self.Data.GetAllAnnotatedTargets(_a, _b, _c, _d)
+		targets, err := self.Data.GetAllAnnotatedTargets(
+			&db.TargetFilter{
+				SkipUsed:   paramEquals(req, "unused", "t"),
+				SkipUnused: paramEquals(req, "unused", "f"),
+				ForPlugin:  paramValue(req, "plugin", ""),
+			},
+		)
 		if err != nil {
 			bail(w, err)
 			return
