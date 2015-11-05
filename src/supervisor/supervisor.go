@@ -29,7 +29,7 @@ func (e JobFailedError) Error() string {
 
 func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 	l := []*Job{}
-	result, err := s.database.Query(`
+	result, err := s.Database.Query(`
 		SELECT j.uuid, j.paused,
 		       t.plugin, t.endpoint,
 		       s.plugin, s.endpoint,
@@ -76,7 +76,7 @@ type Supervisor struct {
 	updates chan WorkerUpdate
 	jobs chan Job
 
-	database *db.DB
+	Database *db.DB
 
 	tasks map[*uuid.UUID]*Task
 	runq  []*Task
@@ -166,10 +166,13 @@ func (s *Supervisor) Run() {
 			fmt.Printf("recieved a TICK from the scheduler\n")
 			//read in from GetAllJobs
 			//see if time for j is in the past, if so put in runq
-			//note that this is mostly pseudocode to get thoughts down...
-			/*
-			alljobs, err := GetAllJobs()
+			alljobs, err := s.GetAllJobs()
+			if err != nil {
+				//FIXME error handling!
+			}
 			for _, j := range alljobs {
+				fmt.Printf(string(j.UUID))
+				/*
 			  if ( j.Spec.Next(time.Now()) < time.Now() ) {
   				s.runq = append(s.runq, &Task{
   					uuid:   j.UUID,
@@ -185,9 +188,8 @@ func (s *Supervisor) Run() {
   						Endpoint: j.Target.Endpoint,
   					},
   				})
-			  }
+			  }*/
 		  }
-			*/
 
 		case u := <-s.updates:
 			fmt.Printf("received an update for %s from a worker\n", u.task.String())
