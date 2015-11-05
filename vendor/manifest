@@ -2,11 +2,24 @@
 	"version": 0,
 	"dependencies": [
 		{
+			"importpath": "code.google.com/p/go-uuid/uuid",
+			"repository": "https://code.google.com/p/go-uuid",
+			"revision": "35bc42037350",
+			"branch": "default",
+			"path": "/uuid"
+		},
+		{
 			"importpath": "github.com/golang/protobuf/proto",
 			"repository": "https://github.com/golang/protobuf",
 			"revision": "efcaa340c1a788c79e1ca31217d66aa41c405a51",
 			"branch": "master",
 			"path": "/proto"
+		},
+		{
+			"importpath": "github.com/mattn/go-shellwords",
+			"repository": "",
+			"revision": "f4e566c536cf69158e808ec28ef4182a37fdc981",
+			"branch": "master"
 		},
 		{
 			"importpath": "github.com/mattn/go-sqlite3",
@@ -34,12 +47,8 @@
 		},
 		{
 			"importpath": "github.com/voxelbrain/goptions",
+			"repository": "",
 			"revision": "26cb8b04692384f4dc269de3b5fcf3e2ef78573e",
-			"branch": "master"
-		},
-		{
-			"importpath": "github.com/mattn/go-shellwords",
-			"revision": "f4e566c536cf69158e808ec28ef4182a37fdc981",
 			"branch": "master"
 		}
 	]

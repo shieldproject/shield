@@ -14,6 +14,7 @@ plugin.Exec() can be used to easily run external commands sending their stdin/st
 */
 
 import (
+	"code.google.com/p/go-uuid/uuid"
 	"encoding/json"
 	"fmt"
 	"github.com/mattn/go-shellwords"
@@ -37,8 +38,9 @@ type PluginOpts struct {
 type Plugin interface {
 	Backup(ShieldEndpoint) (int, error)
 	Restore(ShieldEndpoint) (int, error)
-	Store(ShieldEndpoint) (int, error)
-	Retrieve(ShieldEndpoint) (int, error)
+	Store(ShieldEndpoint) (string, int, error)
+	Retrieve(ShieldEndpoint, string) (int, error)
+	Purge(ShieldEndpoint, string) (int, error)
 	Meta() PluginInfo
 }
 
@@ -93,7 +95,10 @@ func Run(p Plugin) {
 	os.Exit(code)
 }
 
-func Exec(cmdString string) (int, error) {
+const STDIN = 1
+const STDOUT = 2
+
+func Exec(flags int, cmdString string) (int, error) {
 	cmdArgs, err := shellwords.Parse(cmdString)
 	if err != nil {
 		return EXEC_FAILURE, fmt.Errorf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error)
@@ -101,8 +106,12 @@ func Exec(cmdString string) (int, error) {
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
 
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
+	if flags&STDOUT == STDOUT {
+		cmd.Stdout = os.Stdout
+	}
+	if flags&STDIN == STDIN {
+		cmd.Stdin = os.Stdin
+	}
 	err = cmd.Run()
 	if err != nil {
 		return EXEC_FAILURE, fmt.Errorf("Unable to exec '%s': %s", cmdArgs[0], err.Error())
@@ -141,6 +150,7 @@ func getPluginOptions() PluginOpts {
 func dispatch(p Plugin, mode string, envVar string) (int, error) {
 	var code int
 	var err error
+	var key string
 
 	endpoint, err := getEndpoint(envVar)
 	if err != nil {
@@ -154,13 +164,32 @@ func dispatch(p Plugin, mode string, envVar string) (int, error) {
 	case "restore":
 		code, err = p.Restore(endpoint)
 	case "store":
-		code, err = p.Store(endpoint)
+		key, code, err = p.Store(endpoint)
+		output, err := json.Marshal(struct{ key string }{key: key})
+		if err != nil {
+			return JSON_FAILURE, err
+		}
+		fmt.Printf("%s\n", string(output))
 	case "retrieve":
-		code, err = p.Retrieve(endpoint)
+		key = os.Getenv("SHIELD_RESTORE_KEY")
+		if key == "" {
+			return RESTORE_KEY_REQUIRED, fmt.Errorf("A SHIELD_RESTORE_KEY is required, but was not provided")
+		}
+		code, err = p.Retrieve(endpoint, key)
+	case "purge":
+		key = os.Getenv("SHIELD_RESTORE_KEY")
+		if key == "" {
+			return RESTORE_KEY_REQUIRED, fmt.Errorf("A SHIELD_RESTORE_KEY is required, but was not provided")
+		}
+		code, err = p.Purge(endpoint, key)
 	default:
 		return UNSUPPORTED_ACTION, fmt.Errorf("Sorry, '%s' is not a supported action for S.H.I.E.L.D plugins", mode)
 	}
 
 	DEBUG("'%s' action returned %d", mode, code)
 	return code, err
+}
+
+func GenUUID() string {
+	return uuid.New()
 }

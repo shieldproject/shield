@@ -392,6 +392,14 @@ Each plugin program must implement the following actions, which will be passed a
 
   Exits 0 on success, or non-zero on failure.
 
+- **purge** Remove a backup blob of arbitrary data from the remote
+  storage system, based on the endpoint configuration given in
+  the `$SHIELD_STORE_ENDPOINT` environment variable.
+
+  Error messages and diagnostics should be printed to standard error.
+
+  Exits 0 on success, or non-zero on failure.
+
 ## CLI Usage Examples
 
 This section is exploratory.

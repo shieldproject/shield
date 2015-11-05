@@ -48,7 +48,7 @@ func (p DummyPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
 		return plugin.PLUGIN_FAILURE, err
 	}
 
-	return plugin.Exec(fmt.Sprintf("/bin/echo %s", data))
+	return plugin.Exec(plugin.STDOUT, fmt.Sprintf("/bin/echo %s", data))
 }
 
 // Called when you want to restore data Examine the ShieldEndpoint passed in, and perform actions accordingly
@@ -58,27 +58,35 @@ func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
 		return plugin.PLUGIN_FAILURE, err
 	}
 
-	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
+	return plugin.Exec(plugin.STDIN, fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
 }
 
 // Called when you want to store backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (int, error) {
-	file, err := endpoint.StringValue("file")
+func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int, error) {
+	directory, err := endpoint.StringValue("directory")
 	if err != nil {
-		return plugin.PLUGIN_FAILURE, err
+		return "", plugin.PLUGIN_FAILURE, err
 	}
 
-	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
+	file := plugin.GenUUID()
+
+	success, err := plugin.Exec(plugin.STDIN, fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file))
+	return file, success, err
 }
 
 // Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint) (int, error) {
-	file, err := endpoint.StringValue("file")
+func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (int, error) {
+	directory, err := endpoint.StringValue("directory")
 	if err != nil {
+		if
 		return plugin.PLUGIN_FAILURE, err
 	}
 
-	return plugin.Exec(fmt.Sprintf("/bin/cat %s", file))
+	return plugin.Exec(plugin.STDOUT, fmt.Sprintf("/bin/cat %s/%s", directory, file))
+}
+
+func (p DummyPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) (int, error) {
+	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("I'm just a dummy plugin. I don't know how to purge")
 }
 
 //That's all there is to writing a plugin. If your plugin doesn't need to implement Store/Retireve, or Backup/Restore,
