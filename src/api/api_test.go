@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"encoding/json"
 )
 
 func Database(sqls ...string) (*db.DB, error) {
@@ -69,6 +70,13 @@ func GET(h http.Handler, uri string) *httptest.ResponseRecorder {
 
 	h.ServeHTTP(res, req)
 	return res
+}
+
+func WithJSON(s string) string {
+	var data interface{}
+	Ω(json.Unmarshal([]byte(s), &data)).Should(Succeed(),
+		fmt.Sprintf("this is not JSON:\n%s\n", s))
+	return s
 }
 
 func POST(h http.Handler, uri string, body string) *httptest.ResponseRecorder {

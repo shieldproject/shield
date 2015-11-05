@@ -89,6 +89,20 @@ func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) 
 	return r, nil
 }
 
+// Execute a data query (SELECT) and return how many rows were returned
+func (db *DB) Count(sql_or_name string, args ...interface{}) (uint, error) {
+	r, err := db.Query(sql_or_name, args...)
+	if err != nil {
+		return 0, err
+	}
+
+	var n uint = 0
+	for r.Next() {
+		n++
+	}
+	return n, nil
+}
+
 // Transparently resolve SQL aliases to real SQL query text
 func (db *DB) resolve(sql_or_name string) string {
 	if sql, ok := db.qAlias[sql_or_name]; ok {

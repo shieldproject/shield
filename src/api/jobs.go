@@ -3,10 +3,11 @@ package api
 import (
 	"db"
 
-	//"github.com/pborman/uuid"
+	"github.com/pborman/uuid"
 
-	//"regexp"
-	//"encoding/json"
+	"fmt"
+	"regexp"
+	"encoding/json"
 	"net/http"
 )
 
@@ -34,6 +35,123 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		JSON(w, jobs)
+		return
+
+	case match(req, `POST /v1/jobs`):
+		if req.Body == nil {
+			w.WriteHeader(400)
+			return
+		}
+
+		var params struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+
+			Store     string `json:"store"`
+			Target    string `json:"target"`
+			Schedule  string `json:"schedule"`
+			Retention string `json:"retention"`
+		}
+		json.NewDecoder(req.Body).Decode(&params)
+
+		if params.Name == "" || params.Store == "" || params.Target == "" || params.Schedule == "" || params.Retention == "" {
+			w.WriteHeader(400)
+			return
+		}
+
+		id, err := self.Data.CreateJob(params.Target, params.Store, params.Schedule, params.Retention)
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		_ = self.Data.AnnotateJob(id, params.Name, params.Summary)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+		return
+
+	case match(req, `POST /v1/job/[a-zA-Z0-9-]+/pause`):
+		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)/pause`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		found, err := self.Data.PauseJob(id)
+		if !found {
+			w.WriteHeader(404)
+			return
+		}
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		w.WriteHeader(200)
+		return
+
+	case match(req, `POST /v1/job/[a-zA-Z0-9-]+/unpause`):
+		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)/unpause`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		found, err := self.Data.UnpauseJob(id)
+		if !found {
+			w.WriteHeader(404)
+			return
+		}
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		w.WriteHeader(200)
+		return
+
+	case match(req, `PUT /v1/job/[a-zA-Z0-9-]+`):
+		if req.Body == nil {
+			w.WriteHeader(400)
+			return
+		}
+
+		var params struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+
+			Store     string `json:"store"`
+			Target    string `json:"target"`
+			Schedule  string `json:"schedule"`
+			Retention string `json:"retention"`
+		}
+		json.NewDecoder(req.Body).Decode(&params)
+
+		if params.Name == "" || params.Summary == "" || params.Store == "" || params.Target == "" || params.Schedule == "" || params.Retention == "" {
+			w.WriteHeader(400)
+			return
+		}
+
+		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		if err := self.Data.UpdateJob(id, params.Target, params.Store, params.Schedule, params.Retention); err != nil {
+			bail(w, err)
+			return
+		}
+		_ = self.Data.AnnotateJob(id, params.Name, params.Summary)
+
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
+		return
+
+	case match(req, `DELETE /v1/job/[a-zA-Z0-9-]+`):
+		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		deleted, err := self.Data.DeleteJob(id)
+
+		if err != nil {
+			bail(w, err)
+		}
+		if !deleted {
+			w.WriteHeader(403)
+			return
+		}
+
+		w.WriteHeader(200)
 		return
 	}
 

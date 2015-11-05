@@ -179,3 +179,54 @@ func (db *DB) GetAllJobs() ([]*supervisor.Job, error) {
 	}
 	return l, e
 }
+
+func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
+	n, err := db.Count(
+		`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`,
+		id.String(), !pause)
+	if n == 0 || err != nil {
+		return false, err
+	}
+
+	return true, db.Exec(
+		`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`,
+		pause, id.String(), !pause)
+}
+
+func (db *DB) PauseJob(id uuid.UUID) (bool, error) {
+	return db.PauseOrUnpauseJob(id, true)
+}
+
+func (db *DB) UnpauseJob(id uuid.UUID) (bool, error) {
+	return db.PauseOrUnpauseJob(id, false)
+}
+
+func (db *DB) AnnotateJob(id uuid.UUID, name string, summary string) error {
+	return db.Exec(
+		`UPDATE jobs SET name = ?, summary = ? WHERE uuid = ?`,
+		name, summary, id.String(),
+	)
+}
+
+func (db *DB) CreateJob(target, store, schedule, retention string) (uuid.UUID, error) {
+	id := uuid.NewRandom()
+	return id, db.Exec(
+		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid)
+			VALUES (?, ?, ?, ?, ?)`,
+		id.String(), target, store, schedule, retention,
+	)
+}
+
+func (db *DB) UpdateJob(id uuid.UUID, target, store, schedule, retention string) error {
+	return db.Exec(
+		`UPDATE jobs SET target_uuid = ?, store_uuid = ?, schedule_uuid = ?, retention_uuid = ? WHERE uuid = ?`,
+		target, store, schedule, retention, id.String(),
+	)
+}
+
+func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
+	return true, db.Exec(
+		`DELETE FROM jobs WHERE uuid = ?`,
+		id.String(),
+	)
+}
