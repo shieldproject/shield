@@ -162,7 +162,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	It("ignores malformed UUIDs", func() {
 		for _, id := range []string{"malformed-uuid-01234", "", "(abcdef-01234-56-789)"} {
 			NotImplemented(API, "GET", fmt.Sprintf("/v1/schedule/%s", id), nil)
-			NotImplemented(API, "PUT", fmt.Sprintf("/v2/schedule/%s", id), nil)
+			NotImplemented(API, "PUT", fmt.Sprintf("/v1/schedule/%s", id), nil)
 		}
 	})
 })
