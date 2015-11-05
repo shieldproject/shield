@@ -82,8 +82,11 @@ func Run(p Plugin) {
 		var envVar string
 		if action == "backup" || action == "restore" {
 			envVar = "SHIELD_TARGET_ENDPOINT"
-		} else if action == "store" || action == "retrieve" {
+		} else if action == "store" || action == "retrieve" || action == "purge" {
 			envVar = "SHIELD_STORE_ENDPOINT"
+		} else {
+			fmt.Fprintf(os.Stderr, "Uh oh. We defined a valid '%s' action, but never decided what environment variables it needs")
+			os.Exit(UNSUPPORTED_ACTION)
 		}
 
 		code, err = dispatch(p, action, envVar)
