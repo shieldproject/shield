@@ -78,7 +78,6 @@ func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int, error) 
 func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (int, error) {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {
-		if
 		return plugin.PLUGIN_FAILURE, err
 	}
 
