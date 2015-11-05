@@ -1,30 +1,10 @@
 package db
 
 import (
-	"fmt"
 	"strings"
-	"supervisor"
-	"timespec"
 
 	"github.com/pborman/uuid"
 )
-
-type JobRepresentation struct {
-	UUID uuid.UUID
-	Tspec string
-	Error error
-}
-type JobFailedError struct {
-	FailedJobs []JobRepresentation
-}
-
-func (e JobFailedError) Error() string {
-	var jobList []string
-	for _, j := range e.FailedJobs {
-		jobList = append(jobList, string(j.UUID))
-	}
-	return fmt.Sprintf("the following job(s) failed: %s", strings.Join(jobList, ", "))
-}
 
 type AnnotatedJob struct {
 	UUID           string `json:"uuid"`
@@ -136,48 +116,6 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	}
 
 	return l, nil
-}
-
-func (db *DB) GetAllJobs() ([]*supervisor.Job, error) {
-	l := []*supervisor.Job{}
-	result, err := db.Query(`
-		SELECT j.uuid, j.paused,
-		       t.plugin, t.endpoint,
-		       s.plugin, s.endpoint,
-		       sc.timespec, r.expiry
-		FROM jobs j
-			INNER JOIN targets   t    ON  t.uuid = j.target_uuid
-			INNER JOIN stores    s    ON  s.uuid = j.store_uuid
-			INNER JOIN schedules sc   ON sc.uuid = j.schedule_uuid
-			INNER JOIN retention r    ON  r.uuid = j.retention_uuid
-	`)
-	if err != nil {
-		return l, err
-	}
-	e := JobFailedError{}
-	for result.Next() {
-		j := &supervisor.Job{Target: &supervisor.PluginConfig{}, Store: &supervisor.PluginConfig{}}
-		var id, tspec string
-		var expiry int
-		//var paused bool
-		err = result.Scan(&id, &j.Paused,
-			&j.Target.Plugin, &j.Target.Endpoint,
-			&j.Store.Plugin, &j.Store.Endpoint,
-			&tspec, &expiry)
-		j.UUID = uuid.Parse(id)
-		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
-		}
-		j.Spec, err = timespec.Parse(tspec)
-		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
-		}
-		l = append(l, j)
-	}
-	if len(e.FailedJobs) == 0 {
-		return l, nil
-	}
-	return l, e
 }
 
 func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
