@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pborman/uuid"
 	"io"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -53,25 +54,65 @@ func drain(io io.Reader, name string, ch chan string) {
 }
 
 func (t *Task) Run(stdout chan string, stderr chan string) error {
-	var subcommand string
+	var targetCommand string
+	var storeCommand string
 	if t.Op == BACKUP {
-		subcommand = fmt.Sprintf("%s backup | %s store", t.Target.Plugin, t.Store.Plugin)
+		targetCommand = "backup"
+		storeCommand = "store"
+
 	} else {
-		subcommand = fmt.Sprintf("%s retrieve | %s restore", t.Store.Plugin, t.Target.Plugin)
+		targetCommand = "restore"
+		storeCommand = "retrieve"
 	}
 
-	cmd := exec.Command("/bin/sh", "-c", subcommand)
-	cmd.Env = []string{
+	targetCmd := exec.Command(t.Target.Plugin, targetCommand)
+	targetCmd.Env = []string{
 		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", t.Target.Endpoint),
+	}
+	storeCmd := exec.Command(t.Store.Plugin, storeCommand)
+	storeCmd.Env = []string{
 		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", t.Store.Endpoint),
 	}
 	// FIXME: SHIELD_RESTORE_KEY ?
 
-	pstderr, _ := cmd.StderrPipe()
-	pstdout, _ := cmd.StdoutPipe()
-	go drain(pstderr, "stderr", stderr)
+	var pstdout io.Reader
+	input, output, err := os.Pipe()
+	if err != nil {
+		return err
+	}
+	if t.Op == BACKUP {
+		targetCmd.Stdout = input
+		storeCmd.Stdin = output
+		pstdout, _ = storeCmd.StdoutPipe()
+	} else {
+		storeCmd.Stdout = input
+		targetCmd.Stdin = output
+		pstdout, _ = targetCmd.StdoutPipe()
+	}
+
+	pTargetStderr, _ := targetCmd.StderrPipe()
+	pStoreStderr, _ := storeCmd.StderrPipe()
+
+	go drain(pTargetStderr, "stderr", stderr)
+	go drain(pStoreStderr, "stderr", stderr)
 	go drain(pstdout, "stdout", stdout)
 
-	err := cmd.Run()
-	return err
+	err = targetCmd.Start()
+	if err != nil {
+		return err
+	}
+	err = storeCmd.Start()
+	if err != nil {
+		return err
+	}
+
+	err = storeCmd.Wait()
+	if err != nil {
+		return err
+	}
+	err = targetCmd.Wait()
+	if err != nil {
+		return err
+	}
+	return nil
 }
