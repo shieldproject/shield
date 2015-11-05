@@ -2,6 +2,7 @@ package supervisor_test
 
 import (
 	"db"
+	"strings"
 	. "supervisor"
 
 	. "github.com/onsi/ginkgo"
@@ -91,6 +92,40 @@ var _ = Describe("Supervisor", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(len(output)).Should(BeNumerically(">", 0))
 			Ω(len(errors)).Should(BeNumerically(">", 0))
+			Expect(strings.Join(output, "\n")).Should(MatchJSON(`{"key":"eeaf9d4b2c64f55e977983b307cecb824d6f9ba5"}`)) // hand-crafted and verified sha1 for correct backup output
+			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) store:  starting up...\E`))
+			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) backup:  starting up...\E`))
+			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) backup:  shutting down...\E`))
+			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) store:  shutting down...\E`))
+		})
+		It("Backup ops work with large output", func() {
+			var output, errors []string
+
+			stdout := make(chan string)
+			stderr := make(chan string)
+			go drainTo(&output, stdout)
+			go drainTo(&errors, stderr)
+
+			// big_dummy outputs > 16384 bytes of data
+			t.Target.Plugin = "test/bin/big_dummy"
+			err := t.Run(stdout, stderr)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(strings.Join(output, "\n")).Should(MatchJSON(`{"key":"146e0c0e4488be356e122279ffdba4edc69664c5"}`)) // hand-crafted and verified sha1 for correct backup output
+		})
+		It("Restore ops work with large output", func() {
+			var output, errors []string
+
+			stdout := make(chan string)
+			stderr := make(chan string)
+			go drainTo(&output, stdout)
+			go drainTo(&errors, stderr)
+
+			t.Op = RESTORE
+			// big_dummy outputs > 16384 bytes of data
+			t.Store.Plugin = "test/bin/big_dummy"
+			err := t.Run(stdout, stderr)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(strings.Join(output, "\n")).Should(Equal(`SHA1SUM of restored data: 27b7a6508a602ac5e34da34bfa9ef322377b3fbb`)) // hand-crafted and verified sha1 for correct backup output
 		})
 	})
 })
