@@ -69,8 +69,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
-	case match(req, `POST /v1/job/[a-zA-Z0-9-]+/pause`):
-		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)/pause`)
+	case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
+		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)/pause`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		found, err := self.Data.PauseJob(id)
@@ -86,8 +86,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(200)
 		return
 
-	case match(req, `POST /v1/job/[a-zA-Z0-9-]+/unpause`):
-		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)/unpause`)
+	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
+		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)/unpause`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		found, err := self.Data.UnpauseJob(id)
@@ -103,7 +103,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(200)
 		return
 
-	case match(req, `PUT /v1/job/[a-zA-Z0-9-]+`):
+	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
@@ -125,7 +125,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)`)
+		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		if err := self.Data.UpdateJob(id, params.Target, params.Store, params.Schedule, params.Retention); err != nil {
@@ -137,8 +137,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
 		return
 
-	case match(req, `DELETE /v1/job/[a-zA-Z0-9-]+`):
-		re := regexp.MustCompile(`^/v1/job/([a-zA-Z0-9-]+)`)
+	case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		deleted, err := self.Data.DeleteJob(id)
