@@ -83,11 +83,11 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("can create new schedules", func() {
-		res := POST(API, "/v1/schedules", `{
+		res := POST(API, "/v1/schedules", WithJSON(`{
 			"name"    : "My New Schedule",
 			"summary" : "A new schedule",
 			"when"    : "daily 2pm"
-		}`)
+		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
 	})
@@ -98,11 +98,11 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("can update existing schedules", func() {
-		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", `{
+		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
 			"name"    : "Daily Backup Schedule",
 			"summary" : "UPDATED!",
 			"when"    : "daily at 2:05pm"
-		}`)
+		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"647bc775-b07b-4f87-bb67-d84cccac34a7"}`))
 

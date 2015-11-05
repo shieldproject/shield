@@ -138,12 +138,12 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("can create new stores", func() {
-		res := POST(API, "/v1/stores", `{
+		res := POST(API, "/v1/stores", WithJSON(`{
 			"name"     : "New Store",
 			"summary"  : "A new one",
 			"plugin"   : "s3",
 			"endpoint" : "[ENDPOINT]"
-		}`)
+		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
 	})
@@ -154,12 +154,12 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("can update existing store", func() {
-		res := PUT(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", `{
+		res := PUT(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis",
 			"endpoint" : "{NEW-ENDPOINT}"
-		}`)
+		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"66be7c43-6c57-4391-8ea9-e770d6ab5e9e"}`))
 

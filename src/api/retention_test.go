@@ -84,11 +84,11 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("can create new retention policies", func() {
-		res := POST(API, "/v1/retention", `{
+		res := POST(API, "/v1/retention", WithJSON(`{
 			"name"    : "New Policy",
 			"summary" : "A new one",
 			"expires" : 86401
-		}`)
+		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
 	})
@@ -99,11 +99,11 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("can update existing retention policy", func() {
-		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", `{
+		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
 			"name"    : "Renamed",
 			"summary" : "UPDATED!",
 			"expires" : 1209000
-		}`)
+		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"43705750-33b7-4134-a532-ce069abdc08f"}`))
 

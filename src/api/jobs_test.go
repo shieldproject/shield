@@ -454,7 +454,7 @@ var _ = Describe("/v1/jobs API", func() {
 				}
 			]`))
 
-		res = PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, `{
+		res = PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
 			"name"      : "Redis WEEKLY backups",
 			"summary"   : "...",
 			"target"    : "`+TARGET_REDIS+`",
@@ -462,7 +462,7 @@ var _ = Describe("/v1/jobs API", func() {
 			"retention" : "`+RETAIN_SHORT+`",
 			"schedule"  : "`+SCHED_WEEKLY+`",
 			"paused"    : true
-		}`)
+		}`))
 		Ω(res.Code).Should(Equal(200))
 
 		res = GET(API, "/v1/jobs?paused=t")
