@@ -1,0 +1,105 @@
+#!/bin/bash
+# dummy - a Dummy store/target plugin for testing and development
+
+bail() {
+	echo >&2 $*
+	exit 1
+}
+
+MODE="UNKNOWN"
+diag() {
+	echo >&2 "(dummy) ${MODE}: " $*
+}
+
+target_plugin_options() {
+	[[ -z "${SHIELD_TARGET_ENDPOINT}" ]] && bail "missing required SHIELD_TARGET_ENDPOINT environment variable"
+}
+
+store_plugin_options() {
+	[[ -z "${SHIELD_STORE_ENDPOINT}" ]] && bail "missing required SHIELD_STORE_ENDPOINT environment variable"
+}
+
+fake_data() {
+	for i in $(seq 1 1000); do
+	cat << 'EOF'
+	 thequickbrownfoxjumpedoverthelazydog`1234567890-=~!@#$%^&*()_+[]\{}|;':",./<>?
+EOF
+	done
+}
+
+MODE=${1}
+diag "starting up..."
+
+SHA1SUM=$(which sha1sum)
+if [[ -z ${SHA1SUM} ]]; then
+	SHA1SUM=$(which shasum)
+	SHA1SUM="${SHA1SUM} -a 1"
+fi
+
+case "${MODE}" in
+(info)
+	cat << JSON
+{
+  "name": "Dummy Plugin",
+  "author": "James Hunt <jhunt@starkandwayne.com>",
+  "version": "1",
+  "features": {
+    "target": "yes",
+    "store":  "yes"
+  }
+}
+JSON
+	diag "shutting down..."
+	exit 0
+	;;
+
+(backup)
+	shift
+	target_plugin_options "$@"
+	# our fake "data"
+	diag "streaming data to standard output"
+	echo "((( ${SHIELD_TARGET_ENDPOINT} )))"
+	echo $(fake_data)
+	diag "shutting down..."
+	exit 0
+	;;
+
+(restore)
+	shift
+	target_plugin_options "$@"
+	CHECKSUM=$(${SHA1SUM})
+	echo "SHA1SUM of restored data: ${CHECKSUM%%[ -]*}"
+	diag "nothing to do, shutting down..."
+	exit 0
+	;;
+
+(store)
+	shift
+	store_plugin_options "$@"
+	diag "generating new restore key, based on checksum of input"
+	RESTORE_KEY=$(${SHA1SUM})
+	diag "restore key is [$RESTORE_KEY]"
+	cat <<JSON
+{
+  "key": "${RESTORE_KEY%%[ -]*}"
+}
+JSON
+	diag "shutting down..."
+	exit 0
+	;;
+
+(retrieve)
+	shift
+	store_plugin_options "$@"
+	[[ -z "${SHIELD_RESTORE_KEY}" ]] && bail "restore operation requires the SHIELD_RESTORE_KEY environment variable"
+	diag "restoring data for key [$SHIELD_RESTORE_KEY]"
+	echo "data for ${SHIELD_RESTORE_KEY}"
+	echo $(fake_data)
+	diag "shutting down..."
+	exit 0
+	;;
+
+(*)
+	bail "unrecognized command '${MODE}'"
+	;;
+esac
