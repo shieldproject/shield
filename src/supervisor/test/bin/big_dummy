@@ -19,6 +19,14 @@ store_plugin_options() {
 	[[ -z "${SHIELD_STORE_ENDPOINT}" ]] && bail "missing required SHIELD_STORE_ENDPOINT environment variable"
 }
 
+fake_data() {
+	for i in $(seq 1 1000); do
+	cat << 'EOF'
+	 thequickbrownfoxjumpedoverthelazydog`1234567890-=~!@#$%^&*()_+[]\{}|;':",./<>?
+EOF
+	done
+}
+
 MODE=${1}
 diag "starting up..."
 
@@ -51,6 +59,7 @@ JSON
 	# our fake "data"
 	diag "streaming data to standard output"
 	echo "((( ${SHIELD_TARGET_ENDPOINT} )))"
+	echo $(fake_data)
 	diag "shutting down..."
 	exit 0
 	;;
@@ -85,6 +94,7 @@ JSON
 	[[ -z "${SHIELD_RESTORE_KEY}" ]] && bail "restore operation requires the SHIELD_RESTORE_KEY environment variable"
 	diag "restoring data for key [$SHIELD_RESTORE_KEY]"
 	echo "data for ${SHIELD_RESTORE_KEY}"
+	echo $(fake_data)
 	diag "shutting down..."
 	exit 0
 	;;

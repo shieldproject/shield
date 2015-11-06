@@ -66,27 +66,28 @@ func (t *Task) Run(stdout chan string, stderr chan string) error {
 	}
 
 	targetCmd := exec.Command(t.Target.Plugin, targetCommand)
+	//FIXME: either give this proper environment vaariables, or remove env variables altogether
 	targetCmd.Env = []string{
 		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", t.Target.Endpoint),
+		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
 	}
 	storeCmd := exec.Command(t.Store.Plugin, storeCommand)
+	//FIXME: either give this proper environment vaariables, or remove env variables altogether
 	storeCmd.Env = []string{
 		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", t.Store.Endpoint),
+		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
+		// FIXME  - implement this properly
+		fmt.Sprintf("SHIELD_RESTORE_KEY=FIXME"),
 	}
-	// FIXME: SHIELD_RESTORE_KEY ?
 
 	var pstdout io.Reader
-	input, output, err := os.Pipe()
-	if err != nil {
-		return err
-	}
+	//	pipe := bytes.NewBufferString("")
 	if t.Op == BACKUP {
-		targetCmd.Stdout = input
-		storeCmd.Stdin = output
+		//		targetCmd.Stdout = pipe
+		storeCmd.Stdin, _ = targetCmd.StdoutPipe()
 		pstdout, _ = storeCmd.StdoutPipe()
 	} else {
-		storeCmd.Stdout = input
-		targetCmd.Stdin = output
+		targetCmd.Stdin, _ = storeCmd.StdoutPipe()
 		pstdout, _ = targetCmd.StdoutPipe()
 	}
 
@@ -97,7 +98,7 @@ func (t *Task) Run(stdout chan string, stderr chan string) error {
 	go drain(pStoreStderr, "stderr", stderr)
 	go drain(pstdout, "stdout", stdout)
 
-	err = targetCmd.Start()
+	err := targetCmd.Start()
 	if err != nil {
 		return err
 	}

@@ -1,3 +1,2 @@
-bin/
-!test/bin
-pkg/
+/bin/
+/pkg/
