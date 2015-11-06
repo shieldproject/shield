@@ -45,8 +45,8 @@ var _ = Describe("Supervisor", func() {
 			t = &Task{
 				Op: BACKUP,
 				Store: &PluginConfig{
-					Plugin:   "test/bin/dummy",
-					Endpoint: "{ode:store,endpoint:config}",
+					Plugin:   "tdest/bin/dummy",
+					Endpoint: "{mode:store,endpoint:config}",
 				},
 				Target: &PluginConfig{
 					Plugin:   "test/bin/dummy",
