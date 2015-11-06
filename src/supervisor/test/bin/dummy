@@ -11,15 +11,16 @@ diag() {
 	echo >&2 "(dummy) ${MODE}: " $*
 }
 
-target_plugin_options() {
-	[[ -z "${SHIELD_TARGET_ENDPOINT}" ]] && bail "missing required SHIELD_TARGET_ENDPOINT environment variable"
+plugin_options() {
+	[[ -z "${SHIELD_ENDPOINT}" ]] && bail "missing required --endpoint argument"
 }
 
-store_plugin_options() {
-	[[ -z "${SHIELD_STORE_ENDPOINT}" ]] && bail "missing required SHIELD_STORE_ENDPOINT environment variable"
-}
 
+# dummy <mode> --endpoint <endpoint_JSON> --key <KEY_ID>
 MODE=${1}
+SHIELD_ENDPOINT=${3}
+KEY=${5}
+
 diag "starting up..."
 
 SHA1SUM=$(which sha1sum)
@@ -47,17 +48,17 @@ JSON
 
 (backup)
 	shift
-	target_plugin_options "$@"
+	plugin_options "$@"
 	# our fake "data"
 	diag "streaming data to standard output"
-	echo "((( ${SHIELD_TARGET_ENDPOINT} )))"
+	echo "((( ${SHIELD_ENDPOINT} )))"
 	diag "shutting down..."
 	exit 0
 	;;
 
 (restore)
 	shift
-	target_plugin_options "$@"
+	plugin_options "$@"
 	CHECKSUM=$(${SHA1SUM})
 	echo "SHA1SUM of restored data: ${CHECKSUM%%[ -]*}"
 	diag "nothing to do, shutting down..."
@@ -66,13 +67,13 @@ JSON
 
 (store)
 	shift
-	store_plugin_options "$@"
+	plugin_options "$@"
 	diag "generating new restore key, based on checksum of input"
-	RESTORE_KEY=$(${SHA1SUM})
-	diag "restore key is [$RESTORE_KEY]"
+	KEY=$(${SHA1SUM})
+	diag "restore key is [$KEY]"
 	cat <<JSON
 {
-  "key": "${RESTORE_KEY%%[ -]*}"
+  "key": "${KEY%%[ -]*}"
 }
 JSON
 	diag "shutting down..."
@@ -81,10 +82,11 @@ JSON
 
 (retrieve)
 	shift
-	store_plugin_options "$@"
-	[[ -z "${SHIELD_RESTORE_KEY}" ]] && bail "restore operation requires the SHIELD_RESTORE_KEY environment variable"
-	diag "restoring data for key [$SHIELD_RESTORE_KEY]"
-	echo "data for ${SHIELD_RESTORE_KEY}"
+	plugin_options "$@"
+	[[ -z "${KEY}" ]] && bail "restore operation requires the --key argument"
+	diag "restoring data for key [$KEY]"
+	# different fake data...
+	echo "data for ${KEY}"
 	diag "shutting down..."
 	exit 0
 	;;

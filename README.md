@@ -313,15 +313,12 @@ $ s3-plugin info
   }
 }
 
-$ export SHIELD_TARGET_ENDPOINT='{"username":"redis","password":"secret"}'
-$ export SHIELD_STORE_ENDPOINT='{"bucket":"test","key":"AKI123098123091"}'
-$ redis-plugin backup | s3-plugin store
+$ redis-plugin backup --endpoint '{"username":"redis","password":"secret"}' | s3-plugin store --endpoint '{"bucket":"test","key":"AKI123098123091"}'
 {
   "key": "BA670360-DE9D-46D0-AEAB-55E72BD416C4"
 }
 
-$ export SHIELD_RESTORE_KEY="decaf-bad"
-$ s3-plugin retrieve | redis-plugin restore
+$ s3-plugin retrieve --key decaf-bad --endpoint '{"bucket":"test","key":"AKI123098123091"}' | redis-plugin restore --endpoint '{"username":"redis","password":"secret"}'
 ```
 
 Each plugin program must implement the following actions, which will be passed as the first argument:
@@ -344,7 +341,7 @@ Each plugin program must implement the following actions, which will be passed a
 
 - **backup** - Stream a backup blob of arbitrary binary data (per
   plugin semantics) to standard output, based on the endpoint
-  given via the `$SHIELD_TARGET_ENDPOINT` environment variable.
+  given via the `--endpoint` command line argument.
   For example, a database target plugin may require the DSN and
   username/password in a JSON structure, and will run a
   platform-specific backup tool, hooking its output to standard
@@ -356,8 +353,7 @@ Each plugin program must implement the following actions, which will be passed a
 
 - **restore** - Read a backup blob of arbitrary binary data (per
   plugin semantics) from standard input, and perform a restore
-  based on the endpoint given via the `$SHIELD_TARGET_ENDPOINT`
-  environment variable.
+  based on the endpoint given via the `--endpoint` command line argument.
 
   Error messages and diagnostics should be printed to standard error.
 
@@ -365,9 +361,9 @@ Each plugin program must implement the following actions, which will be passed a
 
 - **store** - Read a backup blob of arbitrary binary data from
   standard input, and store it in the remote storage system, based
-  on the endpoint given via the `$SHIELD_STORE_ENDPOINT`
-  environment variable.  For example, an S3 plugin might require
-  keys and a bucket name to perform storage operations.
+  on the endpoint given via the `--endpoint` command line argument.
+  For example, an S3 plugin might require keys and a bucket name to
+  perform storage operations.
 
   Error messages and diagnostics should be printed to standard error.
 
@@ -384,8 +380,8 @@ Each plugin program must implement the following actions, which will be passed a
 
 - **retrieve** Stream a backup blob of arbitrary binary data to
   standard output, based on the endpoint configuration given in
-  the `$SHIELD_STORE_ENDPOINT` environment variable, and a key, as
-  given by the `$SHIELD_RESTORE_KEY` environment variable.  (This
+  the `--endpoint` command line argument, and a key, as
+  given by the `--key` command line argument.  (This
   will be the key that was returned from the **store** operation)
 
   Error messages and diagnostics should be printed to standard error.
@@ -394,7 +390,8 @@ Each plugin program must implement the following actions, which will be passed a
 
 - **purge** Remove a backup blob of arbitrary data from the remote
   storage system, based on the endpoint configuration given in
-  the `$SHIELD_STORE_ENDPOINT` environment variable.
+  the `--endpoint` command line argument. The blob to be removed is
+  identified via the `--key` command line argument.
 
   Error messages and diagnostics should be printed to standard error.
 

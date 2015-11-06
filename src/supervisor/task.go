@@ -2,10 +2,8 @@ package supervisor
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/pborman/uuid"
 	"io"
-	"os"
 	"os/exec"
 	"time"
 )
@@ -65,20 +63,21 @@ func (t *Task) Run(stdout chan string, stderr chan string) error {
 		storeCommand = "retrieve"
 	}
 
-	targetCmd := exec.Command(t.Target.Plugin, targetCommand)
-	//FIXME: either give this proper environment vaariables, or remove env variables altogether
-	targetCmd.Env = []string{
-		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", t.Target.Endpoint),
-		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
+	targetArgs := []string{
+		targetCommand,
+		"--endpoint",
+		t.Target.Endpoint,
 	}
-	storeCmd := exec.Command(t.Store.Plugin, storeCommand)
-	//FIXME: either give this proper environment vaariables, or remove env variables altogether
-	storeCmd.Env = []string{
-		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", t.Store.Endpoint),
-		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
-		// FIXME  - implement this properly
-		fmt.Sprintf("SHIELD_RESTORE_KEY=FIXME"),
+	targetCmd := exec.Command(t.Target.Plugin, targetArgs...)
+	storeArgs := []string{
+		storeCommand,
+		"--endpoint",
+		t.Store.Endpoint,
 	}
+	if t.Op != BACKUP {
+		storeArgs = append(storeArgs, "--key", "FIXME")
+	}
+	storeCmd := exec.Command(t.Store.Plugin, storeArgs...)
 
 	var pstdout io.Reader
 	//	pipe := bytes.NewBufferString("")
