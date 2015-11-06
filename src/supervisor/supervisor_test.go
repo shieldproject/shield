@@ -46,7 +46,7 @@ var _ = Describe("Supervisor", func() {
 				Op: BACKUP,
 				Store: &PluginConfig{
 					Plugin:   "test/bin/dummy",
-					Endpoint: "{mode:store,endpoint:config}",
+					Endpoint: "{ode:store,endpoint:config}",
 				},
 				Target: &PluginConfig{
 					Plugin:   "test/bin/dummy",
