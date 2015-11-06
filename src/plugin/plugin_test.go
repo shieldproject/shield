@@ -59,10 +59,10 @@ var _ = Describe("Plugin Framework", func() {
 			})
 		})
 		Describe("backup", func() {
-			It("Exits non-zero and errors when the SHIELD_TARGET_ENDPOINT to be set", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not set", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
-			It("Exits non-zero and errors the SHIELD_TARGET_ENDPOINT to be valid json", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not valid json", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
 			It("Exits zero and outputs backup data on success", func() {
@@ -73,10 +73,10 @@ var _ = Describe("Plugin Framework", func() {
 			})
 		})
 		Describe("restore", func() {
-			It("Exits non-zero and errors when the SHIELD_TARGET_ENDPOINT to be set", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not set", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
-			It("Exits non-zero and errors when the SHIELD_TARGET_ENDPOINT to be valid json", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not valid json", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
 			It("Dispatches and performs a restore, exiting 0", func() {
@@ -87,10 +87,10 @@ var _ = Describe("Plugin Framework", func() {
 			})
 		})
 		Describe("store", func() {
-			It("Exits non-zero and errors when the SHIELD_STORE_ENDPOINT to be set", func() {
+			It("Exits non-zero and errors when the --endoint arg is not set", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
-			It("Exits non-zero and errors when the SHIELD_STORE_ENDPOINT to be valid json", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not valid json", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
 			It("Exits zero and outputs JSON of the key the backup was stored under", func() {
@@ -104,13 +104,13 @@ var _ = Describe("Plugin Framework", func() {
 			})
 		})
 		Describe("retrieve", func() {
-			It("Exits non-zero and errors when the SHIELD_STORE_ENDPOINT to be set", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not set", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
-			It("Exits non-zero and errors when the SHIELD_STORE_ENDPOINT to be valid json", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not valid json", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
-			It("Exits non-zero and errors when the SHIELD_RESTORE_KEY is not set", func() {
+			It("Exits non-zero and errors when the --key arg is not set", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
 			It("Exits zero and outputs data from successful retrieval", func() {
@@ -121,13 +121,13 @@ var _ = Describe("Plugin Framework", func() {
 			})
 		})
 		Describe("purge", func() {
-			It("Exits non-zero and errors when the SHIELD_STORE_ENDPOINT to be set", func() {
+			It("Exits non-zero and errors when the --endpoint arg is not set", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
-			It("Exits non-zero and errors when the SHIELD_STORE_ENDPOINT to be valid json", func() {
+			It("Exits non-zero and errors when the --endpiont arg is not valid json", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
-			It("Exits non-zero and errors when the SHIELD_RESTORE_KEY is not set", func() {
+			It("Exits non-zero and errors when the --key arg is not set", func() {
 				Skip("Test not implemented yet :( PRs welcome ;)")
 			})
 			It("Exits zero on successful purge", func() {

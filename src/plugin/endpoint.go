@@ -9,20 +9,14 @@ ShieldEndpoints are used for store + targets. This code genericizes them and mak
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 )
 
 type ShieldEndpoint map[string]interface{}
 
-func getEndpoint(env string) (ShieldEndpoint, error) {
-	t := os.Getenv(env)
-	if t == "" {
-		return nil, fmt.Errorf("No %s variable was set", env)
-	}
-
+func getEndpoint(j string) (ShieldEndpoint, error) {
 	endpoint := make(ShieldEndpoint)
-	err := json.Unmarshal([]byte(t), &endpoint)
+	err := json.Unmarshal([]byte(j), &endpoint)
 	if err != nil {
 		return nil, err
 	}

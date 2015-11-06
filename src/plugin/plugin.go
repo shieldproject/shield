@@ -25,14 +25,28 @@ import (
 )
 
 type PluginOpts struct {
-	Debug    bool `goptions:"-D, --debug, description='Enable debugging'"`
-	Version  bool `goptions:"-v, --version, description='Display version information'"`
-	Action   goptions.Verbs
-	Info     struct{} `goptions:"info"`
-	Backup   struct{} `goptions:"backup"`
-	Restore  struct{} `goptions:"restore"`
-	Store    struct{} `goptions:"store"`
-	Retrieve struct{} `goptions:"retrieve"`
+	Debug   bool `goptions:"-D, --debug, description='Enable debugging'"`
+	Version bool `goptions:"-v, --version, description='Display version information'"`
+	Action  goptions.Verbs
+	Info    struct {
+	} `goptions:"info"`
+	Backup struct {
+		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing backup target'"`
+	} `goptions:"backup"`
+	Restore struct {
+		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing backup target'"`
+	} `goptions:"restore"`
+	Store struct {
+		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing store endpoint'"`
+	} `goptions:"store"`
+	Retrieve struct {
+		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing retrieve endpoint'"`
+		Key      string `goptions:"-k, --key, obligatory, description='Key of blob to retrieve from storage'"`
+	} `goptions:"retrieve"`
+	Purge struct {
+		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing purge endpoint'"`
+		Key      string `goptions:"-k, --key, obligatory, description='Key of blob to purge from storage'"`
+	} `goptions:"purge"`
 }
 
 type Plugin interface {
@@ -76,20 +90,13 @@ func Run(p Plugin) {
 
 	var code int
 	var err error
+
 	if action == "info" {
 		code, err = pluginInfo(p)
+	} else if action != "" {
+		code, err = dispatch(p, action, opts)
 	} else {
-		var envVar string
-		if action == "backup" || action == "restore" {
-			envVar = "SHIELD_TARGET_ENDPOINT"
-		} else if action == "store" || action == "retrieve" || action == "purge" {
-			envVar = "SHIELD_STORE_ENDPOINT"
-		} else {
-			fmt.Fprintf(os.Stderr, "Uh oh. We defined a valid '%s' action, but never decided what environment variables it needs")
-			os.Exit(UNSUPPORTED_ACTION)
-		}
-
-		code, err = dispatch(p, action, envVar)
+		goptions.PrintHelp()
 	}
 
 	if err != nil {
@@ -150,23 +157,31 @@ func getPluginOptions() PluginOpts {
 	return opts
 }
 
-func dispatch(p Plugin, mode string, envVar string) (int, error) {
+func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 	var code int
 	var err error
 	var key string
 
-	endpoint, err := getEndpoint(envVar)
-	if err != nil {
-		return ENDPOINT_REQUIRED, fmt.Errorf("Error trying to %s: %s", mode, err.Error())
-	}
-	DEBUG("'%s' action requested against %#v", mode, endpoint)
+	DEBUG("'%s' action requested with options %#v", mode, opts)
 
 	switch mode {
 	case "backup":
+		endpoint, err := getEndpoint(opts.Backup.Endpoint)
+		if err != nil {
+			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
+		}
 		code, err = p.Backup(endpoint)
 	case "restore":
+		endpoint, err := getEndpoint(opts.Restore.Endpoint)
+		if err != nil {
+			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
+		}
 		code, err = p.Restore(endpoint)
 	case "store":
+		endpoint, err := getEndpoint(opts.Store.Endpoint)
+		if err != nil {
+			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
+		}
 		key, code, err = p.Store(endpoint)
 		output, err := json.Marshal(struct{ key string }{key: key})
 		if err != nil {
@@ -174,17 +189,23 @@ func dispatch(p Plugin, mode string, envVar string) (int, error) {
 		}
 		fmt.Printf("%s\n", string(output))
 	case "retrieve":
-		key = os.Getenv("SHIELD_RESTORE_KEY")
-		if key == "" {
-			return RESTORE_KEY_REQUIRED, fmt.Errorf("A SHIELD_RESTORE_KEY is required, but was not provided")
+		endpoint, err := getEndpoint(opts.Retrieve.Endpoint)
+		if err != nil {
+			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
 		}
-		code, err = p.Retrieve(endpoint, key)
+		if opts.Retrieve.Key == "" {
+			return RESTORE_KEY_REQUIRED, fmt.Errorf("retrieving requires --key, but it was not provided")
+		}
+		code, err = p.Retrieve(endpoint, opts.Retrieve.Key)
 	case "purge":
-		key = os.Getenv("SHIELD_RESTORE_KEY")
-		if key == "" {
-			return RESTORE_KEY_REQUIRED, fmt.Errorf("A SHIELD_RESTORE_KEY is required, but was not provided")
+		endpoint, err := getEndpoint(opts.Purge.Endpoint)
+		if err != nil {
+			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
 		}
-		code, err = p.Purge(endpoint, key)
+		if opts.Purge.Key == "" {
+			return RESTORE_KEY_REQUIRED, fmt.Errorf("purging requires --key, but it was not provided")
+		}
+		code, err = p.Purge(endpoint, opts.Purge.Key)
 	default:
 		return UNSUPPORTED_ACTION, fmt.Errorf("Sorry, '%s' is not a supported action for S.H.I.E.L.D plugins", mode)
 	}
