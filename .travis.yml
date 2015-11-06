@@ -5,9 +5,10 @@ go:
 - 1.5
 
 before_install:
-- go get golang.org/x/tools/cmd/vet
-- go get golang.org/x/tools/cmd/cover
-- go get github.com/golang/lint/golint
+# Disabled until gb supports them, to save precious seconds
+#- go get golang.org/x/tools/cmd/vet
+#- go get golang.org/x/tools/cmd/cover
+#- go get github.com/golang/lint/golint
 - go get github.com/constabulary/gb/...
 
 install: []
