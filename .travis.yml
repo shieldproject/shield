@@ -11,11 +11,10 @@ before_install:
 - go get github.com/golang/lint/golint
 - go get github.com/constabulary/gb/...
 
-install:
-- go get github.com/starkandwayne/shield
+install: []
 
 script:
-- gb test -v ./...
+- gb test -v
 # GB doesn't work with these tools :\
 #- go vet -x ./...
 #- $HOME/gopath/bin/golint ./...
