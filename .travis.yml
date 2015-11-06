@@ -18,3 +18,8 @@ script:
 # GB doesn't work with these tools :\
 #- go vet -x ./...
 #- $HOME/gopath/bin/golint ./...
+
+notifications:
+  email:
+    on_success: never
+    on_failure: never
