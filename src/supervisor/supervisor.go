@@ -22,7 +22,7 @@ type JobFailedError struct {
 func (e JobFailedError) Error() string {
 	var jobList []string
 	for _, j := range e.FailedJobs {
-		jobList = append(jobList, string(j.UUID))
+		jobList = append(jobList, j.UUID.String())
 	}
 	return fmt.Sprintf("the following job(s) failed: %s", strings.Join(jobList, ", "))
 }
@@ -164,17 +164,19 @@ func (s *Supervisor) Run() {
 		select {
 		case <-s.tick:
 			fmt.Printf("recieved a TICK from the scheduler\n")
-			//read in from GetAllJobs
-			//see if time for j is in the past, if so put in runq
+
 			alljobs, err := s.GetAllJobs()
 			if err != nil {
-				//FIXME error handling!
+				fmt.Printf("%v", err)
 			}
 			for _, j := range alljobs {
 				fmt.Printf(string(j.UUID))
-				/*
-			  if ( j.Spec.Next(time.Now()) < time.Now() ) {
-  				s.runq = append(s.runq, &Task{
+				//fmt.Printf("The spec is: %v\n",j.Spec)
+				//j.Spec.Next(time.Now())
+				next_run := time.Now()
+			  if ( next_run.Equal(time.Now()) ) {
+					fmt.Printf("I am in the if loop!\n")
+  				/*s.runq = append(s.runq, &Task{
   					uuid:   j.UUID,
   					Op:     BACKUP,
   					status: PENDING,
@@ -187,8 +189,8 @@ func (s *Supervisor) Run() {
   						Plugin:   j.Target.Plugin,
   						Endpoint: j.Target.Endpoint,
   					},
-  				})
-			  }*/
+  				})*/
+			  }
 		  }
 
 		case u := <-s.updates:

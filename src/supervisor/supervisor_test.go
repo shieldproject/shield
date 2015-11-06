@@ -228,5 +228,49 @@ var _ = Describe("Retrieving Jobs", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(len(jobs)).Should(Equal(2))
 		})
+		It("should return failed job in error list", func() {
+			var err error
+			JOB_ERR_UUID := `36bbb985-9d1a-4086-b154-c66f70501522`
+			TARGET_ERR_UUID := `40f73cb2-1f81-4203-bb50-0eea2da3fb47`
+			STORE_ERR_UUID := `c0db87f2-629f-4fe6-ab8f-29e7f2831fbb`
+			SCHED_ERR_UUID := `29d381b8-021e-4049-82c0-52a5d3e52794`
+			RETEN_ERR_UUID := `01c0b2e2-8e4e-4039-a0b1-74f429180c4c`
+			s.Database, err = Database(
+				`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused, name, summary) VALUES
+					("`+JOB_ERR_UUID+`",
+					 "`+TARGET_ERR_UUID+`",
+					 "`+STORE_ERR_UUID+`",
+					 "`+SCHED_ERR_UUID+`",
+					 "`+RETEN_ERR_UUID+`",
+					 "t",
+					 "job err",
+					 "Job with malformed sched")`,
+				`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+					 ("`+TARGET_ERR_UUID+`",
+					 "redis-shared",
+					 "Shared Redis services for CF",
+					 "redis",
+					 "<<redis-configuration>>")`,
+				`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
+					("`+STORE_ERR_UUID+`",
+					 "redis-shared",
+					 "Shared Redis services for CF",
+					 "redis",
+					 "<<redis-configuration>>")`,
+				`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
+					("`+SCHED_ERR_UUID+`",
+					 "Weekly Backups",
+					 "A schedule for weekly bosh-blobs, during normal maintenance windows",
+					 "yearly at 3:15am")`,
+				`INSERT INTO retention (uuid, name, summary, expiry) VALUES
+					("`+RETEN_ERR_UUID+`",
+					 "Hourly Retention",
+					 "Keep backups for 1 hour",
+					 3600)`,
+			)
+			_, err = s.GetAllJobs()
+			Ω(err.Error()).Should(MatchRegexp(`the following job\(s\) failed: ` + JOB_ERR_UUID))
+			Ω(err).Should(HaveOccurred())
+		})
 	})
 })

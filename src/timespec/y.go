@@ -6,7 +6,7 @@ import __yyfmt__ "fmt"
 //line lang.y:2
 import (
 	"bytes"
-	"fmt"
+	//	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strconv"
@@ -225,7 +225,6 @@ func (l *yyLex) Lex(lval *yySymType) int {
 }
 
 func (l *yyLex) Error(e string) {
-	fmt.Printf("ERROR: %s\n", e)
 }
 
 //line yacctab:1

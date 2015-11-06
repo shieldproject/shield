@@ -3,7 +3,7 @@ package timespec
 
 import (
 	"bytes"
-	"fmt"
+//	"fmt"
 	"io/ioutil"
 	"time"
 	"regexp"
@@ -251,5 +251,4 @@ func (l *yyLex) Lex(lval *yySymType) int {
 }
 
 func (l *yyLex) Error(e string) {
-	fmt.Printf("ERROR: %s\n", e)
 }
