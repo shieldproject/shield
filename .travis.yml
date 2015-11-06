@@ -1,14 +1,21 @@
 language: go
 sudo: false
+go:
+- 1.4
+- 1.5
+- tip
 
 before_install:
-    - go get golang.org/x/tools/cmd/vet
-    - go get golang.org/x/tools/cmd/cover
-    - go get github.com/golang/lint/golint
-    - go get github.com/constabulary/gb/...
+- go get golang.org/x/tools/cmd/vet
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/golang/lint/golint
+- go get github.com/constabulary/gb/...
+
+install:
+- go get github.com/starkandwayne/shield
 
 script:
+- gb test -v ./...
 # GB doesn't work with these tools :\
-#    - go vet -x ./...
-#    - $HOME/gopath/bin/golint ./...
-    - gb test -v ./...
+#- go vet -x ./...
+#- $HOME/gopath/bin/golint ./...
