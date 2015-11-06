@@ -17,32 +17,6 @@ var _ = Describe("Plugin Framework", func() {
 			Expect(uuid).ShouldNot(Equal(uuid2))
 		})
 	})
-	Describe("Plugin Commands", func() {
-		It("Executes commands successfully", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-		It("Returns errors when the command fails", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-		It("Hooks up stderr to the caller's stderr", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-		It("Hooks up stdin to the callers stdin when requested", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-		It("Hooks up stdout to the callers stdout when requested", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-		It("Does not hook up stdout to the callers stdout when not requested", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-		It("Does not hook up stdin to the callers stdin when not requested", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-		It("Returns an error for commands that cannot be parsed", func() {
-			Skip("Test not implemented yet :( PRs welcome ;)")
-		})
-	})
 	Describe("Pugin Execution", func() {
 		It("Provides usage when bad commands/flags are given", func() {
 			Skip("Test not implemented yet :( PRs welcome ;)")

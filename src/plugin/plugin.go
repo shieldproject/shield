@@ -17,10 +17,8 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"encoding/json"
 	"fmt"
-	"github.com/mattn/go-shellwords"
 	"github.com/voxelbrain/goptions"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -105,58 +103,6 @@ func Run(p Plugin) {
 	os.Exit(code)
 }
 
-const STDIN = 1
-const STDOUT = 2
-
-func Exec(flags int, cmdString string) (int, error) {
-	cmdArgs, err := shellwords.Parse(cmdString)
-	if err != nil {
-		return EXEC_FAILURE, fmt.Errorf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error)
-	}
-	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
-
-	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-	if flags&STDOUT == STDOUT {
-		cmd.Stdout = os.Stdout
-	}
-	if flags&STDIN == STDIN {
-		cmd.Stdin = os.Stdin
-	}
-	err = cmd.Run()
-	if err != nil {
-		return EXEC_FAILURE, fmt.Errorf("Unable to exec '%s': %s", cmdArgs[0], err.Error())
-	}
-	return SUCCESS, nil
-}
-
-func pluginInfo(p Plugin) (int, error) {
-	json, err := json.Marshal(p.Meta())
-	if err != nil {
-		return JSON_FAILURE, fmt.Errorf("Could not create plugin metadata output: %s", err.Error())
-	}
-	fmt.Printf("%s\n", json)
-	return SUCCESS, nil
-}
-
-func getPluginOptions() PluginOpts {
-	var opts PluginOpts
-	err := goptions.Parse(&opts)
-	if err != nil {
-		goptions.PrintHelp()
-		os.Exit(USAGE)
-	}
-
-	if os.Getenv("DEBUG") != "" && strings.ToLower(os.Getenv("DEBUG")) != "false" && os.Getenv("DEBUG") != "0" {
-		debug = true
-	}
-
-	if opts.Debug {
-		debug = true
-	}
-
-	return opts
-}
-
 func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 	var code int
 	var err error
@@ -212,6 +158,34 @@ func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 
 	DEBUG("'%s' action returned %d", mode, code)
 	return code, err
+}
+
+func getPluginOptions() PluginOpts {
+	var opts PluginOpts
+	err := goptions.Parse(&opts)
+	if err != nil {
+		goptions.PrintHelp()
+		os.Exit(USAGE)
+	}
+
+	if os.Getenv("DEBUG") != "" && strings.ToLower(os.Getenv("DEBUG")) != "false" && os.Getenv("DEBUG") != "0" {
+		debug = true
+	}
+
+	if opts.Debug {
+		debug = true
+	}
+
+	return opts
+}
+
+func pluginInfo(p Plugin) (int, error) {
+	json, err := json.Marshal(p.Meta())
+	if err != nil {
+		return JSON_FAILURE, fmt.Errorf("Could not create plugin metadata output: %s", err.Error())
+	}
+	fmt.Printf("%s\n", json)
+	return SUCCESS, nil
 }
 
 func GenUUID() string {
