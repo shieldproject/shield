@@ -1,0 +1,25 @@
+language: go
+sudo: false
+go:
+- 1.4
+- 1.5
+
+before_install:
+# Disabled until gb supports them, to save precious seconds
+#- go get golang.org/x/tools/cmd/vet
+#- go get golang.org/x/tools/cmd/cover
+#- go get github.com/golang/lint/golint
+- go get github.com/constabulary/gb/...
+
+install: []
+
+script:
+- gb test -v
+# GB doesn't work with these tools :\
+#- go vet -x ./...
+#- $HOME/gopath/bin/golint ./...
+
+notifications:
+  email:
+    on_success: never
+    on_failure: never
