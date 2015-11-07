@@ -146,12 +146,12 @@ func (db *DB) AnnotateJob(id uuid.UUID, name string, summary string) error {
 	)
 }
 
-func (db *DB) CreateJob(target, store, schedule, retention string) (uuid.UUID, error) {
+func (db *DB) CreateJob(target, store, schedule, retention string, paused bool) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid)
-			VALUES (?, ?, ?, ?, ?)`,
-		id.String(), target, store, schedule, retention,
+		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused)
+			VALUES (?, ?, ?, ?, ?, ?)`,
+		id.String(), target, store, schedule, retention, paused,
 	)
 }
 

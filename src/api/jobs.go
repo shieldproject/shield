@@ -51,6 +51,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Target    string `json:"target"`
 			Schedule  string `json:"schedule"`
 			Retention string `json:"retention"`
+
+			Paused bool `json:"paused"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
@@ -59,7 +61,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		id, err := self.Data.CreateJob(params.Target, params.Store, params.Schedule, params.Retention)
+		id, err := self.Data.CreateJob(params.Target, params.Store, params.Schedule, params.Retention, params.Paused)
 		if err != nil {
 			bail(w, err)
 			return
