@@ -16,6 +16,13 @@ type DB struct {
 	qAlias map[string]string
 }
 
+func (db *DB) Copy() *DB {
+	return &DB{
+		Driver: db.Driver,
+		DSN: db.DSN,
+	}
+}
+
 // Are we connected?
 func (db *DB) Connected() bool {
 	if db.connection == nil {
