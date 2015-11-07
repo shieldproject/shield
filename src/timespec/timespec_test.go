@@ -192,24 +192,24 @@ var _ = Describe("Timespec", func() {
 					time.Date(1991, 9, 3, 10, 05, 00, 00, tz)))
 			})
 
-			It("throws errors for month days that are inconceivable large", func() {
+			It("throws errors for week offsets that are inconceivable large", func() {
 				spec := &Spec{
-					Interval:   Monthly,
-					DayOfWeek:  time.Tuesday,
-					DayOfMonth: 32,
-					TimeOfDay:  inMinutes(17, 55),
+					Interval:  Monthly,
+					DayOfWeek: time.Tuesday,
+					Week:      6,
+					TimeOfDay: inMinutes(17, 55),
 				}
 
 				_, err := spec.Next(now)
 				Ω(err).Should(HaveOccurred())
 			})
 
-			It("throws errors for month days that are negative", func() {
+			It("throws errors for week offsets that are negative", func() {
 				spec := &Spec{
-					Interval:   Monthly,
-					DayOfWeek:  time.Tuesday,
-					DayOfMonth: -1,
-					TimeOfDay:  inMinutes(17, 55),
+					Interval:  Monthly,
+					DayOfWeek: time.Tuesday,
+					Week:      -1,
+					TimeOfDay: inMinutes(17, 55),
 				}
 
 				_, err := spec.Next(now)
@@ -275,24 +275,24 @@ var _ = Describe("Timespec", func() {
 					time.Date(1991, 9, 6, 10, 05, 00, 00, tz)))
 			})
 
-			It("throws errors for week offsets that are inconceivable large", func() {
+			It("throws errors for month days that are inconceivable large", func() {
 				spec := &Spec{
-					Interval:  Monthly,
-					DayOfWeek: time.Tuesday,
-					Week:      6,
-					TimeOfDay: inMinutes(17, 55),
+					Interval:   Monthly,
+					DayOfWeek:  time.Tuesday,
+					DayOfMonth: 32,
+					TimeOfDay:  inMinutes(17, 55),
 				}
 
 				_, err := spec.Next(now)
 				Ω(err).Should(HaveOccurred())
 			})
 
-			It("throws errors for week offsets that are negative", func() {
+			It("throws errors for month days that are negative", func() {
 				spec := &Spec{
-					Interval:  Monthly,
-					DayOfWeek: time.Tuesday,
-					Week:      -1,
-					TimeOfDay: inMinutes(17, 55),
+					Interval:   Monthly,
+					DayOfWeek:  time.Tuesday,
+					DayOfMonth: -1,
+					TimeOfDay:  inMinutes(17, 55),
 				}
 
 				_, err := spec.Next(now)
