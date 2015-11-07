@@ -12,7 +12,7 @@ func (db *DB) Setup() error {
 
 	if v == 0 {
 		err = db.v1schema()
-	} else {
+	} else if v > 1 {
 		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD", v)
 	}
 
