@@ -33,6 +33,60 @@ func nthWeek(t time.Time) int {
 	return int(t.Day()/7) + 1
 }
 
+func ord(n int) string {
+	switch {
+	case n%100 >= 11 && n%100 <= 13:
+		return "th"
+	case n%10 == 1:
+		return "st"
+	case n%10 == 2:
+		return "nd"
+	case n%10 == 3:
+		return "rd"
+	}
+	return "th"
+}
+
+func weekday(d time.Weekday) string {
+	switch d {
+	case time.Sunday:
+		return "sunday"
+	case time.Monday:
+		return "monday"
+	case time.Tuesday:
+		return "tuesday"
+	case time.Wednesday:
+		return "wednesday"
+	case time.Thursday:
+		return "thursday"
+	case time.Friday:
+		return "friday"
+	case time.Saturday:
+		return "saturday"
+	}
+
+	return "unknown-weekday"
+}
+
+func (s *Spec) String() string {
+	t := fmt.Sprintf("%d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
+
+	if s.Interval == Daily {
+		return fmt.Sprintf("daily at %s", t)
+
+	} else if s.Interval == Weekly {
+		return fmt.Sprintf("%ss at %s", weekday(s.DayOfWeek), t)
+
+	} else if s.Interval == Monthly && s.Week != 0 {
+		return fmt.Sprintf("%d%s %s at %s", s.Week, ord(s.Week), weekday(s.DayOfWeek), t)
+
+	} else if s.Interval == Monthly && s.DayOfMonth != 0 {
+		return fmt.Sprintf("monthly at %s on %d%s", t, s.DayOfMonth, ord(s.DayOfMonth))
+	}
+
+	return "<unknown interval>"
+}
+
 func (s *Spec) Next(t time.Time) (time.Time, error) {
 	t = roundM(t)
 	midnight := offsetM(t, -1*(t.Hour()*60+t.Minute()))

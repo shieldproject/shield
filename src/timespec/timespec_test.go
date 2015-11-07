@@ -14,6 +14,48 @@ var _ = Describe("Timespec", func() {
 		return int(hours*60 + minutes)
 	}
 
+	Describe("Stringification", func() {
+		It("can stringify daily specs", func() {
+			spec := &Spec{
+				Interval:  Daily,
+				TimeOfDay: inMinutes(16, 00),
+			}
+
+			Ω(spec.String()).Should(Equal("daily at 16:00"))
+		})
+
+		It("can stringify weekly specs", func() {
+			spec := &Spec{
+				Interval:  Weekly,
+				DayOfWeek: time.Thursday,
+				TimeOfDay: inMinutes(23, 35),
+			}
+
+			Ω(spec.String()).Should(Equal("thursdays at 23:35"))
+		})
+
+		It("can stringify monthly (nth week) specs", func() {
+			spec := &Spec{
+				Interval:  Monthly,
+				DayOfWeek: time.Tuesday,
+				Week:      3,
+				TimeOfDay: inMinutes(02, 05),
+			}
+
+			Ω(spec.String()).Should(Equal("3rd tuesday at 2:05"))
+		})
+
+		It("can stringify monthly (day of month) specs", func() {
+			spec := &Spec{
+				Interval:   Monthly,
+				DayOfMonth: 14,
+				TimeOfDay:  inMinutes(02, 05),
+			}
+
+			Ω(spec.String()).Should(Equal("monthly at 2:05 on 14th"))
+		})
+	})
+
 	Describe("Determining the next timestamp from a spec object", func() {
 		// August 6th, 1991, at about 11:15 in the morning: start up Internet thing
 		tz := time.Now().Location()
