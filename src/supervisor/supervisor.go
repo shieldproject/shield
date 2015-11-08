@@ -9,9 +9,8 @@ import (
 	"timespec"
 )
 
-
 type JobRepresentation struct {
-	UUID uuid.UUID
+	UUID  uuid.UUID
 	Tspec string
 	Error error
 }
@@ -69,129 +68,99 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 	return l, e
 }
 
-
 type Supervisor struct {
-	tick    chan int
-	workers chan Task
-	updates chan WorkerUpdate
-	jobs chan Job
+	tick    chan int          /* scheduler will send a message at regular intervals */
+	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
+	workers chan Task         /* workers read from this channel to get tasks */
+	updates chan WorkerUpdate /* workers write updates to this channel */
 
 	Database *db.DB
 
-	tasks map[*uuid.UUID]*Task
-	runq  []*Task
-
-	//schedule map[uuid.UUID]*Job
-	jobq	[]*Job
+	runq []*Task
+	jobq []*Job
 
 	nextWorker uint
 }
 
-func NewSupervisor() *Supervisor {
+func NewSupervisor(database *db.DB) *Supervisor {
 	s := &Supervisor{
 		tick:    make(chan int),
+		resync:  make(chan int),
 		workers: make(chan Task),
 		updates: make(chan WorkerUpdate),
-		jobs:		 make(chan Job),
-		tasks:   make(map[*uuid.UUID]*Task),
 		runq:    make([]*Task, 0),
-		jobq:		 make([]*Job, 0),
+		jobq:    make([]*Job, 0),
+
+		Database: database,
 	}
 
-	s.runq = append(s.runq, &Task{
-		uuid:   uuid.NewRandom(),
-		Op:     BACKUP,
-		status: PENDING,
-		output: make([]string, 0),
-		Store: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-		Target: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-	})
-	s.runq = append(s.runq, &Task{
-		uuid:   uuid.NewRandom(),
-		Op:     BACKUP,
-		status: PENDING,
-		output: make([]string, 0),
-		Store: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-		Target: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-	})
-	s.runq = append(s.runq, &Task{
-		uuid:   uuid.NewRandom(),
-		Op:     BACKUP,
-		status: PENDING,
-		output: make([]string, 0),
-		Store: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-		Target: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-	})
-	s.runq = append(s.runq, &Task{
-		uuid:   uuid.NewRandom(),
-		Op:     BACKUP,
-		status: PENDING,
-		output: make([]string, 0),
-		Store: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-		Target: &PluginConfig{
-			Plugin:   "src/supervisor/test/bin/dummy",
-			Endpoint: "(endpoint here)",
-		},
-	})
-
+	if err := s.Resync(); err != nil {
+		fmt.Printf("errors encountered while retrieving initial jobs list from database\n")
+		if e, ok := err.(JobFailedError); ok {
+			for _, fail := range e.FailedJobs {
+				fmt.Printf("  - job %s (%s) failed: %s\n", fail.UUID, fail.Tspec, fail.Error)
+			}
+		} else {
+			fmt.Printf("general error: %s\n", err)
+		}
+		return nil
+	}
 	return s
+}
+
+func (s *Supervisor) Resync() error {
+	jobq, err := s.GetAllJobs()
+	if err != nil {
+		return err
+	}
+
+	// calculate the initial run of each job
+	for _, job := range jobq {
+		err := job.Reschedule()
+		if err != nil {
+			fmt.Printf("error encountered while determining next run of %s (%s): %s\n",
+				job.UUID.String(), job.Spec.String(), err)
+		} else {
+			fmt.Printf("initial run of %s (%s) is at %s\n",
+				job.UUID.String(), job.Spec.String(), job.NextRun)
+		}
+	}
+
+	s.jobq = jobq
+	return nil
+}
+
+func (s *Supervisor) CheckSchedule() {
+	for _, job := range s.jobq {
+		if !job.Runnable() {
+			continue
+		}
+
+		fmt.Printf("scheduling execution of job %s\n", job.UUID.String())
+		s.runq = append(s.runq, job.Task())
+
+		err := job.Reschedule()
+		if err != nil {
+			fmt.Printf("error encountered while determining next run of %s (%s): %s\n",
+				job.UUID.String(), job.Spec.String(), err)
+		} else {
+			fmt.Printf("next run of %s (%s) is at %s\n",
+				job.UUID.String(), job.Spec.String(), job.NextRun)
+		}
+	}
 }
 
 func (s *Supervisor) Run() {
 	// multiplex between workers and supervisor
 	for {
 		select {
-		case <-s.tick:
-			fmt.Printf("recieved a TICK from the scheduler\n")
-
-			alljobs, err := s.GetAllJobs()
-			if err != nil {
-				fmt.Printf("%v", err)
+		case <-s.resync:
+			if err := s.Resync(); err != nil {
+				fmt.Printf("resync error: %s\n", err)
 			}
-			for _, j := range alljobs {
-				fmt.Printf(string(j.UUID))
-				//fmt.Printf("The spec is: %v\n",j.Spec)
-				//j.Spec.Next(time.Now())
-				next_run := time.Now()
-			  if ( next_run.Equal(time.Now()) ) {
-					fmt.Printf("I am in the if loop!\n")
-  				/*s.runq = append(s.runq, &Task{
-  					uuid:   j.UUID,
-  					Op:     BACKUP,
-  					status: PENDING,
-  					output: make([]string, 0),
-  					Store: &PluginConfig{
-  						Plugin:   j.Store.Plugin,
-  						Endpoint: j.Store.Endpoint,
-  					},
-  					Target: &PluginConfig{
-  						Plugin:   j.Target.Plugin,
-  						Endpoint: j.Target.Endpoint,
-  					},
-  				})*/
-			  }
-		  }
+
+		case <-s.tick:
+			s.CheckSchedule()
 
 		case u := <-s.updates:
 			fmt.Printf("received an update for %s from a worker\n", u.task.String())

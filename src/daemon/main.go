@@ -3,13 +3,42 @@
 package main
 
 import (
-	"fmt"
+	"api"
+	"db"
 	"supervisor"
+
+	"fmt"
+	"os"
+
+	// sql drivers
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
 	fmt.Printf("starting up...\n")
-	s := supervisor.NewSupervisor()
+
+	db := &db.DB{
+		Driver: "sqlite3",
+		DSN:    "/tmp/db.sqlite3", // FIXME: need configuration
+	}
+
+	/* FIXME: move this into a separate schema tool ...
+	if err := db.Setup(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to set up schema in %s database at %s: %s\n",
+			db.Driver, db.DSN, err)
+		return
+	}
+	*/
+
+	go api.Run(":8080", db)
+
+	// connect in main goroutine
+	if err := db.Connect(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
+			db.Driver, db.DSN, err)
+		return
+	}
+	s := supervisor.NewSupervisor(db)
 
 	s.SpawnScheduler()
 	s.SpawnWorker()
