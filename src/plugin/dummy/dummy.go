@@ -18,7 +18,7 @@ func main() {
 		// give it some authorship info
 		meta: plugin.PluginInfo{
 			Name:    "Dummy Plugin",
-			Author:  "Stark & Wane",
+			Author:  "Stark & Wayne",
 			Version: "1.0.0",
 			Features: plugin.PluginFeatures{
 				Target: "yes",
@@ -88,5 +88,5 @@ func (p DummyPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) (int, err
 	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("I'm just a dummy plugin. I don't know how to purge")
 }
 
-//That's all there is to writing a plugin. If your plugin doesn't need to implement Store/Retireve, or Backup/Restore,
+//That's all there is to writing a plugin. If your plugin doesn't need to implement Store/Retrieve, or Backup/Restore,
 // Define the functions, and have them return plugin.UNSUPPORTED_ACTION and a useful error message.

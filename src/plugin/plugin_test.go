@@ -213,7 +213,7 @@ var _ = Describe("Plugin Framework", func() {
 		})
 		Describe("retrieve", func() {
 			It("Exits non-zero and errors when the --endpoint arg is not set", func() {
-				os.Args = append(os.Args, "retrieve", "--endpoint", "{fdsa")
+				os.Args = append(os.Args, "retrieve")
 				Run(p)
 				Expect(p.LastOp()).Should(Equal("unoperated"))
 				Expect(rc).Should(Equal(USAGE))
@@ -246,7 +246,7 @@ var _ = Describe("Plugin Framework", func() {
 		})
 		Describe("purge", func() {
 			It("Exits non-zero and errors when the --endpoint arg is not set", func() {
-				os.Args = append(os.Args, "purge", "--endpoint", "{fdsa")
+				os.Args = append(os.Args, "purge")
 				Run(p)
 				Expect(p.LastOp()).Should(Equal("unoperated"))
 				Expect(rc).Should(Equal(USAGE))
@@ -274,6 +274,7 @@ var _ = Describe("Plugin Framework", func() {
 				p.FailMode(true)
 				Run(p)
 				Expect(p.LastOp()).Should(Equal("purge abcdefg"))
+				Expect(rc).Should(Equal(PLUGIN_FAILURE))
 			})
 		})
 	})
