@@ -80,9 +80,7 @@ func (t *Task) Run(stdout chan string, stderr chan string) error {
 	storeCmd := exec.Command(t.Store.Plugin, storeArgs...)
 
 	var pstdout io.Reader
-	//	pipe := bytes.NewBufferString("")
 	if t.Op == BACKUP {
-		//		targetCmd.Stdout = pipe
 		storeCmd.Stdin, _ = targetCmd.StdoutPipe()
 		pstdout, _ = storeCmd.StdoutPipe()
 	} else {
