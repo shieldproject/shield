@@ -48,7 +48,7 @@ func (p DummyPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
 		return plugin.PLUGIN_FAILURE, err
 	}
 
-	return plugin.Exec(plugin.STDOUT, fmt.Sprintf("/bin/echo %s", data))
+	return plugin.Exec(fmt.Sprintf("/bin/echo %s", data), plugin.STDOUT)
 }
 
 // Called when you want to restore data Examine the ShieldEndpoint passed in, and perform actions accordingly
@@ -58,7 +58,7 @@ func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
 		return plugin.PLUGIN_FAILURE, err
 	}
 
-	return plugin.Exec(plugin.STDIN, fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file))
+	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file), plugin.STDIN)
 }
 
 // Called when you want to store backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
@@ -70,7 +70,7 @@ func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int, error) 
 
 	file := plugin.GenUUID()
 
-	success, err := plugin.Exec(plugin.STDIN, fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file))
+	success, err := plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), plugin.STDIN)
 	return file, success, err
 }
 
@@ -81,7 +81,7 @@ func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (int,
 		return plugin.PLUGIN_FAILURE, err
 	}
 
-	return plugin.Exec(plugin.STDOUT, fmt.Sprintf("/bin/cat %s/%s", directory, file))
+	return plugin.Exec(fmt.Sprintf("/bin/cat %s/%s", directory, file), plugin.STDOUT)
 }
 
 func (p DummyPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) (int, error) {

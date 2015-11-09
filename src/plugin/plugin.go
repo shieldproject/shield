@@ -57,15 +57,15 @@ type Plugin interface {
 }
 
 type PluginInfo struct {
-	Name     string
-	Author   string
-	Version  string
-	Features PluginFeatures
+	Name     string         `json:"name"`
+	Author   string         `json:"author"`
+	Version  string         `json:"version"`
+	Features PluginFeatures `json:"features"`
 }
 
 type PluginFeatures struct {
-	Target string
-	Store  string
+	Target string `json:"target"`
+	Store  string `json:"store"`
 }
 
 var debug bool
@@ -78,29 +78,46 @@ func DEBUG(format string, args ...interface{}) {
 			lines[i] = "DEBUG> " + line
 		}
 		content = strings.Join(lines, "\n")
-		fmt.Fprintf(os.Stderr, "%s\n", content)
+		fmt.Fprintf(stderr, "%s\n", content)
 	}
 }
 
-func Run(p Plugin) {
-	opts := getPluginOptions()
-	action := string(opts.Action)
+var stdout = os.Stdout
+var stderr = os.Stderr
 
-	var code int
-	var err error
-
-	if action == "info" {
-		code, err = pluginInfo(p)
-	} else if action != "" {
-		code, err = dispatch(p, action, opts)
-	} else {
-		goptions.PrintHelp()
-	}
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
-	}
+var usage = func(err error) {
+	fmt.Fprintf(stderr, "%s\n", err.Error())
+	goptions.PrintHelp()
+}
+var exit = func(code int) {
 	os.Exit(code)
+}
+
+func Run(p Plugin) {
+	var code int
+	var action string
+
+	opts, err := getPluginOptions()
+	if err != nil {
+		usage(err)
+		code = USAGE
+	} else {
+		action = string(opts.Action)
+
+		if action == "info" {
+			code, err = pluginInfo(p)
+		} else if action != "" {
+			code, err = dispatch(p, action, opts)
+		} else {
+			code = USAGE
+			usage(fmt.Errorf("No plugin action was provided"))
+		}
+
+		if err != nil {
+			fmt.Fprintf(stderr, "%s\n", err.Error())
+		}
+	}
+	exit(code)
 }
 
 func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
@@ -114,30 +131,32 @@ func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 	case "backup":
 		endpoint, err := getEndpoint(opts.Backup.Endpoint)
 		if err != nil {
-			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
+			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		code, err = p.Backup(endpoint)
 	case "restore":
 		endpoint, err := getEndpoint(opts.Restore.Endpoint)
 		if err != nil {
-			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
+			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		code, err = p.Restore(endpoint)
 	case "store":
 		endpoint, err := getEndpoint(opts.Store.Endpoint)
 		if err != nil {
-			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
+			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		key, code, err = p.Store(endpoint)
-		output, err := json.Marshal(struct{ key string }{key: key})
+		output, err := json.Marshal(struct {
+			Key string `json:"key"`
+		}{Key: key})
 		if err != nil {
 			return JSON_FAILURE, err
 		}
-		fmt.Printf("%s\n", string(output))
+		fmt.Fprintf(stdout, "%s\n", string(output))
 	case "retrieve":
 		endpoint, err := getEndpoint(opts.Retrieve.Endpoint)
 		if err != nil {
-			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
+			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		if opts.Retrieve.Key == "" {
 			return RESTORE_KEY_REQUIRED, fmt.Errorf("retrieving requires --key, but it was not provided")
@@ -146,7 +165,7 @@ func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 	case "purge":
 		endpoint, err := getEndpoint(opts.Purge.Endpoint)
 		if err != nil {
-			return ENDPOINT_REQUIRED, fmt.Errorf("Error trying parse --endpoint value: %s", err.Error())
+			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		if opts.Purge.Key == "" {
 			return RESTORE_KEY_REQUIRED, fmt.Errorf("purging requires --key, but it was not provided")
@@ -160,12 +179,11 @@ func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 	return code, err
 }
 
-func getPluginOptions() PluginOpts {
+func getPluginOptions() (PluginOpts, error) {
 	var opts PluginOpts
 	err := goptions.Parse(&opts)
 	if err != nil {
-		goptions.PrintHelp()
-		os.Exit(USAGE)
+		return opts, err
 	}
 
 	if os.Getenv("DEBUG") != "" && strings.ToLower(os.Getenv("DEBUG")) != "false" && os.Getenv("DEBUG") != "0" {
@@ -176,7 +194,7 @@ func getPluginOptions() PluginOpts {
 		debug = true
 	}
 
-	return opts
+	return opts, err
 }
 
 func pluginInfo(p Plugin) (int, error) {
@@ -184,7 +202,7 @@ func pluginInfo(p Plugin) (int, error) {
 	if err != nil {
 		return JSON_FAILURE, fmt.Errorf("Could not create plugin metadata output: %s", err.Error())
 	}
-	fmt.Printf("%s\n", json)
+	fmt.Fprintf(stdout, "%s\n", json)
 	return SUCCESS, nil
 }
 

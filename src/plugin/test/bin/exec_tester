@@ -1,5 +1,5 @@
 #!/bin/bash
 
 echo "This goes to stderr" >&2
-echo "This goes to stdout"
+cat
 exit $1
