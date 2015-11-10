@@ -22,22 +22,22 @@ func main() {
 		DSN:    "/tmp/db.sqlite3", // FIXME: need configuration
 	}
 
-	/* FIXME: move this into a separate schema tool ...
-	if err := db.Setup(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to set up schema in %s database at %s: %s\n",
-			db.Driver, db.DSN, err)
-		return
-	}
-	*/
-
-	go api.Run(":8080", db)
-
 	// connect in main goroutine
 	if err := db.Connect(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
 			db.Driver, db.DSN, err)
 		return
 	}
+
+	// FIXME: move this into a separate schema tool ...
+	if err := db.Setup(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to set up schema in %s database at %s: %s\n",
+			db.Driver, db.DSN, err)
+		return
+	}
+
+	go api.Run(":8080", db)
+
 	s := supervisor.NewSupervisor(db)
 
 	s.SpawnScheduler()
