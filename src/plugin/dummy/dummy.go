@@ -42,51 +42,51 @@ func (p DummyPlugin) Meta() plugin.PluginInfo {
 }
 
 // Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
+func (p DummyPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	data, err := endpoint.StringValue("data")
 	if err != nil {
-		return plugin.PLUGIN_FAILURE, err
+		return err
 	}
 
 	return plugin.Exec(fmt.Sprintf("/bin/echo %s", data), plugin.STDOUT)
 }
 
 // Called when you want to restore data Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
+func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	file, err := endpoint.StringValue("file")
 	if err != nil {
-		return plugin.PLUGIN_FAILURE, err
+		return err
 	}
 
 	return plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s\"", file), plugin.STDIN)
 }
 
 // Called when you want to store backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int, error) {
+func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {
-		return "", plugin.PLUGIN_FAILURE, err
+		return "", err
 	}
 
 	file := plugin.GenUUID()
 
-	success, err := plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), plugin.STDIN)
-	return file, success, err
+	err = plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), plugin.STDIN)
+	return file, err
 }
 
 // Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (int, error) {
+func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {
-		return plugin.PLUGIN_FAILURE, err
+		return err
 	}
 
 	return plugin.Exec(fmt.Sprintf("/bin/cat %s/%s", directory, file), plugin.STDOUT)
 }
 
-func (p DummyPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("I'm just a dummy plugin. I don't know how to purge")
+func (p DummyPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
+	return plugin.UNIMPLEMENTED
 }
 
 //That's all there is to writing a plugin. If your plugin doesn't need to implement Store/Retrieve, or Backup/Restore,
-// Define the functions, and have them return plugin.UNSUPPORTED_ACTION and a useful error message.
+// Define the functions, and have them return plugin.UNIMPLEMENTED

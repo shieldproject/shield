@@ -11,10 +11,10 @@ const NOPIPE = 0
 const STDIN = 1
 const STDOUT = 2
 
-func ExecWithPipes(cmdString string, stdout *os.File, stderr *os.File, stdin *os.File) (int, error) {
+func ExecWithPipes(cmdString string, stdout *os.File, stderr *os.File, stdin *os.File) error {
 	cmdArgs, err := shellwords.Parse(cmdString)
 	if err != nil {
-		return EXEC_FAILURE, fmt.Errorf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error)
+		return ExecFailure{err: fmt.Sprintf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error)}
 	}
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
 
@@ -30,12 +30,12 @@ func ExecWithPipes(cmdString string, stdout *os.File, stderr *os.File, stdin *os
 	}
 	err = cmd.Run()
 	if err != nil {
-		return EXEC_FAILURE, fmt.Errorf("Unable to exec '%s': %s", cmdArgs[0], err.Error())
+		return ExecFailure{err: fmt.Sprintf("Unable to exec '%s': %s", cmdArgs[0], err.Error())}
 	}
-	return SUCCESS, nil
+	return nil
 }
 
-func Exec(cmdString string, flags int) (int, error) {
+func Exec(cmdString string, flags int) error {
 	var stdout *os.File
 	var stdin *os.File
 	if flags&STDOUT == STDOUT {

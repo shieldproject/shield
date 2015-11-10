@@ -20,13 +20,11 @@ var _ = Describe("Plugin Commands", func() {
 	}
 
 	It("Executes commands successfully", func() {
-		rc, err := plugin.ExecWithPipes("test/bin/exec_tester 0", nil, nil, nil)
-		Expect(rc).Should(Equal(plugin.SUCCESS))
+		err := plugin.ExecWithPipes("test/bin/exec_tester 0", nil, nil, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 	It("Returns errors when the command fails", func() {
-		rc, err := plugin.ExecWithPipes("test/bin/exec_tester 1", nil, nil, nil)
-		Expect(rc).Should(Equal(plugin.EXEC_FAILURE))
+		err := plugin.ExecWithPipes("test/bin/exec_tester 1", nil, nil, nil)
 		Expect(err).Should(HaveOccurred())
 	})
 	It("Gets stderr/stdout and uses stdin", func() {
@@ -47,7 +45,7 @@ var _ = Describe("Plugin Commands", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		wStdin.Close()
 
-		rc, err := plugin.ExecWithPipes("test/bin/exec_tester 0", wStdout, wStderr, rStdin)
+		err = plugin.ExecWithPipes("test/bin/exec_tester 0", wStdout, wStderr, rStdin)
 		wStderr.Close() // simulate command exiting + its pipe being closed
 		wStdout.Close() // simulate command exiting + its pipe being closed
 
@@ -55,12 +53,11 @@ var _ = Describe("Plugin Commands", func() {
 		stdout := <-stdoutC
 
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(rc).Should(Equal(plugin.SUCCESS))
 		Expect(stdout).Should(Equal("This should go to stdout"))
 		Expect(stderr).Should(Equal("This goes to stderr\n"))
 	})
 	It("Returns an error for commands that cannot be parsed", func() {
-		_, err := plugin.Exec("this '\"cannot be parsed", plugin.NOPIPE)
+		err := plugin.Exec("this '\"cannot be parsed", plugin.NOPIPE)
 		Expect(err).Should(HaveOccurred())
 
 	})

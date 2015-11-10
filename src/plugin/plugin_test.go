@@ -25,27 +25,27 @@ func (p *MockPlugin) Meta() PluginInfo {
 		},
 	}
 }
-func (p *MockPlugin) op(op string) (int, error) {
+func (p *MockPlugin) op(op string) error {
 	p.lastOp = op
 	if p.shouldFail {
-		return PLUGIN_FAILURE, fmt.Errorf("Mock Plugin Failure")
+		return fmt.Errorf("Mock Plugin Failure")
 	}
-	return SUCCESS, nil
+	return nil
 }
-func (p *MockPlugin) Backup(endpoint ShieldEndpoint) (int, error) {
+func (p *MockPlugin) Backup(endpoint ShieldEndpoint) error {
 	return p.op("backup")
 }
-func (p *MockPlugin) Restore(endpoint ShieldEndpoint) (int, error) {
+func (p *MockPlugin) Restore(endpoint ShieldEndpoint) error {
 	return p.op("restore")
 }
-func (p *MockPlugin) Store(endpoint ShieldEndpoint) (string, int, error) {
-	rc, err := p.op("store")
-	return "mockfile", rc, err
+func (p *MockPlugin) Store(endpoint ShieldEndpoint) (string, error) {
+	err := p.op("store")
+	return "mockfile", err
 }
-func (p *MockPlugin) Retrieve(endpoint ShieldEndpoint, file string) (int, error) {
+func (p *MockPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
 	return p.op(fmt.Sprintf("retrieve %s", file))
 }
-func (p *MockPlugin) Purge(endpoint ShieldEndpoint, file string) (int, error) {
+func (p *MockPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 	return p.op(fmt.Sprintf("purge %s", file))
 }
 func (p *MockPlugin) Reset() {
