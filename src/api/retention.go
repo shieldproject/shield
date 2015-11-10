@@ -15,6 +15,7 @@ import (
 
 type RetentionAPI struct {
 	Data *db.DB
+	SuperChan chan int
 }
 
 func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -60,6 +61,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		_ = self.Data.AnnotateRetentionPolicy(id, params.Name, params.Summary)
+		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
@@ -89,6 +91,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		_ = self.Data.AnnotateRetentionPolicy(id, params.Name, params.Summary)
+		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
 		return
 
@@ -105,6 +108,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		self.SuperChan <- 1
 		w.WriteHeader(200)
 		return
 	}

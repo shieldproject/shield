@@ -15,6 +15,7 @@ import (
 
 var _ = Describe("HTTP API /v1/retention", func() {
 	var API http.Handler
+	var channel chan int
 
 	BeforeEach(func() {
 		data, err := Database(
@@ -35,7 +36,24 @@ var _ = Describe("HTTP API /v1/retention", func() {
 				 "43705750-33b7-4134-a532-ce069abdc08f")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		API = RetentionAPI{Data: data}
+		channel = make(chan int)
+		API = RetentionAPI{Data: data, SuperChan: channel}
+		go func () {
+			for {
+				select {
+				case <- channel:
+				default:
+					if channel == nil {
+						return
+					}
+				}
+			}
+		}()
+	})
+
+	AfterEach(func() {
+		close(channel)
+		channel = nil
 	})
 
 	It("should retrieve all retention policies", func() {

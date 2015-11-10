@@ -15,6 +15,7 @@ import (
 
 var _ = Describe("/v1/stores API", func() {
 	var API http.Handler
+	var channel chan int
 
 	BeforeEach(func() {
 		data, err := Database(
@@ -37,7 +38,24 @@ var _ = Describe("/v1/stores API", func() {
 				 "05c3d005-f968-452f-bd59-bee8e79ab982")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		API = StoreAPI{Data: data}
+		channel = make(chan int)
+		API = StoreAPI{Data: data, SuperChan: channel}
+		go func () {
+			for {
+			  select {
+		  	case <- channel:
+				default:
+					if channel == nil {
+						return
+					}
+			  }
+			}
+		}()
+	})
+
+	AfterEach(func() {
+		close(channel)
+		channel = nil
 	})
 
 	It("should retrieve all stores", func() {

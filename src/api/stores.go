@@ -15,6 +15,7 @@ import (
 
 type StoreAPI struct {
 	Data *db.DB
+	SuperChan chan int
 }
 
 func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -62,6 +63,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		_ = self.Data.AnnotateStore(id, params.Name, params.Summary)
+		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
@@ -91,7 +93,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		_ = self.Data.AnnotateStore(id, params.Name, params.Summary)
-
+		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
 		return
 
@@ -108,6 +110,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		self.SuperChan <- 1
 		w.WriteHeader(200)
 		return
 	}

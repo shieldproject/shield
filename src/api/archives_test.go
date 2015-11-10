@@ -15,6 +15,7 @@ import (
 
 var _ = Describe("/v1/archives API", func() {
 	var API http.Handler
+	var channel chan int
 
 	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
 
@@ -85,7 +86,24 @@ var _ = Describe("/v1/archives API", func() {
 				 "Good Redis Backup")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		API = ArchiveAPI{Data: data}
+		channel = make(chan int)
+		API = ArchiveAPI{Data: data, SuperChan: channel}
+		go func () {
+			for {
+			  select {
+		  	case <- channel:
+				default:
+					if channel == nil {
+						return
+					}
+			  }
+			}
+		}()
+	})
+
+	AfterEach(func() {
+		close(channel)
+		channel = nil
 	})
 
 	It("should retrieve all archives, sorted reverse chronological", func() {

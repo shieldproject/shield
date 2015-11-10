@@ -36,9 +36,10 @@ func main() {
 		return
 	}
 
-	go api.Run(":8080", db)
+	c := make(chan int)
+	go api.Run(":8080", db, c)
 
-	s := supervisor.NewSupervisor(db)
+	s := supervisor.NewSupervisor(db, c)
 
 	s.SpawnScheduler()
 	s.SpawnWorker()

@@ -13,6 +13,7 @@ import (
 
 type ArchiveAPI struct {
 	Data *db.DB
+	SuperChan chan int
 }
 
 func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -57,7 +58,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		_ = self.Data.AnnotateArchive(id, params.Notes)
-
+		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
 		return
 

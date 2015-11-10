@@ -82,10 +82,10 @@ type Supervisor struct {
 	nextWorker uint
 }
 
-func NewSupervisor(database *db.DB) *Supervisor {
+func NewSupervisor(database *db.DB, resyncc chan int) *Supervisor {
 	s := &Supervisor{
 		tick:    make(chan int),
-		resync:  make(chan int),
+		resync:  resyncc,
 		workers: make(chan Task),
 		updates: make(chan WorkerUpdate),
 		runq:    make([]*Task, 0),
