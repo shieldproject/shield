@@ -106,15 +106,17 @@ func Run(p Plugin) {
 
 		if action == "info" {
 			code, err = pluginInfo(p)
+			if err != nil {
+				fmt.Fprintf(stderr, "%s\n", err.Error())
+			}
 		} else if action != "" {
 			code, err = dispatch(p, action, opts)
+			if err != nil {
+				fmt.Fprintf(stderr, "%s\n", err.Error())
+			}
 		} else {
 			code = USAGE
 			usage(fmt.Errorf("No plugin action was provided"))
-		}
-
-		if err != nil {
-			fmt.Fprintf(stderr, "%s\n", err.Error())
 		}
 	}
 	exit(code)
@@ -124,37 +126,39 @@ func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 	var code int
 	var err error
 	var key string
+	var endpoint ShieldEndpoint
 
 	DEBUG("'%s' action requested with options %#v", mode, opts)
 
 	switch mode {
 	case "backup":
-		endpoint, err := getEndpoint(opts.Backup.Endpoint)
+		endpoint, err = getEndpoint(opts.Backup.Endpoint)
 		if err != nil {
 			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		code, err = p.Backup(endpoint)
 	case "restore":
-		endpoint, err := getEndpoint(opts.Restore.Endpoint)
+		endpoint, err = getEndpoint(opts.Restore.Endpoint)
 		if err != nil {
 			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		code, err = p.Restore(endpoint)
 	case "store":
-		endpoint, err := getEndpoint(opts.Store.Endpoint)
+		endpoint, err = getEndpoint(opts.Store.Endpoint)
 		if err != nil {
 			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
 		key, code, err = p.Store(endpoint)
-		output, err := json.Marshal(struct {
+		var output []byte
+		output, err = json.MarshalIndent(struct {
 			Key string `json:"key"`
-		}{Key: key})
+		}{Key: key}, "", "    ")
 		if err != nil {
 			return JSON_FAILURE, err
 		}
 		fmt.Fprintf(stdout, "%s\n", string(output))
 	case "retrieve":
-		endpoint, err := getEndpoint(opts.Retrieve.Endpoint)
+		endpoint, err = getEndpoint(opts.Retrieve.Endpoint)
 		if err != nil {
 			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
@@ -163,7 +167,7 @@ func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 		}
 		code, err = p.Retrieve(endpoint, opts.Retrieve.Key)
 	case "purge":
-		endpoint, err := getEndpoint(opts.Purge.Endpoint)
+		endpoint, err = getEndpoint(opts.Purge.Endpoint)
 		if err != nil {
 			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
 		}
@@ -198,7 +202,7 @@ func getPluginOptions() (PluginOpts, error) {
 }
 
 func pluginInfo(p Plugin) (int, error) {
-	json, err := json.Marshal(p.Meta())
+	json, err := json.MarshalIndent(p.Meta(), "", "    ")
 	if err != nil {
 		return JSON_FAILURE, fmt.Errorf("Could not create plugin metadata output: %s", err.Error())
 	}
