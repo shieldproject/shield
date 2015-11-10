@@ -27,10 +27,6 @@ func (p PostgresPlugin) Meta() plugin.PluginInfo {
 }
 
 func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	//pgdumpbin
-	//pgdumpargs
-	//db
-
 	pgUser, err := endpoint.StringValue("pg_user")
 	if err != nil {
 		return err
@@ -70,11 +66,45 @@ func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	return plugin.Exec(fmt.Sprintf("%s -c --no-password %s %s", pgDumpBin, pgDumpArgs, pgDB), plugin.STDOUT)
+	return plugin.Exec(fmt.Sprintf("%s %s -cC --format p --no-password %s", pgDumpBin, pgDumpArgs, pgDB), plugin.STDOUT)
 }
 
 func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
-	return plugin.UNIMPLEMENTED
+	pgUser, err := endpoint.StringValue("pg_user")
+	if err != nil {
+		return err
+	}
+	os.Setenv("PGUSER", pgUser)
+
+	pgPass, err := endpoint.StringValue("pg_password")
+	if err != nil {
+		return err
+	}
+	os.Setenv("PGPASSWORD", pgPass)
+
+	pgHost, err := endpoint.StringValue("pg_host")
+	if err != nil {
+		return err
+	}
+	os.Setenv("PGHOST", pgHost)
+
+	pgPort, err := endpoint.StringValue("pg_port")
+	if err != nil {
+		return err
+	}
+	os.Setenv("PGPORT", pgPort)
+
+	pgDB, err := endpoint.StringValue("pg_database")
+	if err != nil {
+		return err
+	}
+
+	pgBin, err := endpoint.StringValue("pg_psql")
+	if err != nil {
+		return err
+	}
+
+	return plugin.Exec(fmt.Sprintf("%s -d %s", pgBin, pgDB), plugin.STDIN)
 }
 
 func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
