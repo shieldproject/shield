@@ -18,7 +18,7 @@ func getEndpoint(j string) (ShieldEndpoint, error) {
 	endpoint := make(ShieldEndpoint)
 	err := json.Unmarshal([]byte(j), &endpoint)
 	if err != nil {
-		return nil, err
+		return nil, JSONError{err: fmt.Sprintf("Error trying parse --endpoint value as JSON: %s", err.Error())}
 	}
 
 	return endpoint, nil
@@ -27,11 +27,11 @@ func getEndpoint(j string) (ShieldEndpoint, error) {
 func (endpoint ShieldEndpoint) StringValue(key string) (string, error) {
 	_, ok := endpoint[key]
 	if !ok {
-		return "", fmt.Errorf("No '%s' key specified in the endpoint json", key)
+		return "", EndpointMissingRequiredDataError{Key: key}
 	}
 
 	if reflect.TypeOf(endpoint[key]).Kind() != reflect.String {
-		return "", fmt.Errorf("'%s' key in endpoint json is a %s, not a string", key, reflect.TypeOf(endpoint[key]).Name())
+		return "", EndpointDataTypeMismatchError{Key: key, DesiredType: "string"}
 	}
 
 	return endpoint[key].(string), nil
@@ -40,11 +40,11 @@ func (endpoint ShieldEndpoint) StringValue(key string) (string, error) {
 func (endpoint ShieldEndpoint) FloatValue(key string) (float64, error) {
 	_, ok := endpoint[key]
 	if !ok {
-		return 0, fmt.Errorf("No '%s' key specified in the endpoint json", key)
+		return 0, EndpointMissingRequiredDataError{Key: key}
 	}
 
 	if reflect.TypeOf(endpoint[key]).Kind() != reflect.Float64 {
-		return 0, fmt.Errorf("'%s' key in endpoint json is a %s, not a numeric", key, reflect.TypeOf(endpoint[key]).Name())
+		return 0, EndpointDataTypeMismatchError{Key: key, DesiredType: "numeric"}
 	}
 
 	return endpoint[key].(float64), nil
@@ -53,11 +53,11 @@ func (endpoint ShieldEndpoint) FloatValue(key string) (float64, error) {
 func (endpoint ShieldEndpoint) BooleanValue(key string) (bool, error) {
 	_, ok := endpoint[key]
 	if !ok {
-		return false, fmt.Errorf("No '%s' key specified in the endpoint json", key)
+		return false, EndpointMissingRequiredDataError{Key: key}
 	}
 
 	if reflect.TypeOf(endpoint[key]).Kind() != reflect.Bool {
-		return false, fmt.Errorf("'%s' key in endpoint json is a %s, not a boolean", key, reflect.TypeOf(endpoint[key]).Name())
+		return false, EndpointDataTypeMismatchError{Key: key, DesiredType: "boolean"}
 	}
 
 	return endpoint[key].(bool), nil
@@ -66,11 +66,11 @@ func (endpoint ShieldEndpoint) BooleanValue(key string) (bool, error) {
 func (endpoint ShieldEndpoint) ArrayValue(key string) ([]interface{}, error) {
 	_, ok := endpoint[key]
 	if !ok {
-		return nil, fmt.Errorf("No '%s' key specified in the endpoint json", key)
+		return nil, EndpointMissingRequiredDataError{Key: key}
 	}
 
 	if reflect.TypeOf(endpoint[key]).Kind() != reflect.Slice {
-		return nil, fmt.Errorf("'%s' key in endpoint json is a %s, not an array", key, reflect.TypeOf(endpoint[key]).Name())
+		return nil, EndpointDataTypeMismatchError{Key: key, DesiredType: "array"}
 	}
 
 	return endpoint[key].([]interface{}), nil
@@ -79,11 +79,11 @@ func (endpoint ShieldEndpoint) ArrayValue(key string) ([]interface{}, error) {
 func (endpoint ShieldEndpoint) MapValue(key string) (map[string]interface{}, error) {
 	_, ok := endpoint[key]
 	if !ok {
-		return nil, fmt.Errorf("No '%s' key specified in the endpoint json", key)
+		return nil, EndpointMissingRequiredDataError{Key: key}
 	}
 
 	if reflect.TypeOf(endpoint[key]).Kind() != reflect.Map {
-		return nil, fmt.Errorf("'%s' key in endpoint json is a %s, not a map", key, reflect.TypeOf(endpoint[key]).Name())
+		return nil, EndpointDataTypeMismatchError{Key: key, DesiredType: "map"}
 	}
 
 	return endpoint[key].(map[string]interface{}), nil

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"plugin"
 )
 
@@ -25,22 +24,22 @@ func (p ElasticSearchPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p ElasticSearchPlugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("Not yet implemented")
+func (p ElasticSearchPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p ElasticSearchPlugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("Not yet implemented")
+func (p ElasticSearchPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p ElasticSearchPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int, error) {
-	return "", plugin.UNSUPPORTED_ACTION, fmt.Errorf("The ElasticSearch plugin does not store data")
+func (p ElasticSearchPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+	return "", plugin.UNIMPLEMENTED
 }
 
-func (p ElasticSearchPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("The ElasticSearch plugin does not store data, and does not know how to retrieve it")
+func (p ElasticSearchPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p ElasticSearchPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("The ElasticSearch plugin does not store data, and does not know how to purge it")
+func (p ElasticSearchPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }

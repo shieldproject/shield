@@ -48,11 +48,11 @@ type PluginOpts struct {
 }
 
 type Plugin interface {
-	Backup(ShieldEndpoint) (int, error)
-	Restore(ShieldEndpoint) (int, error)
-	Store(ShieldEndpoint) (string, int, error)
-	Retrieve(ShieldEndpoint, string) (int, error)
-	Purge(ShieldEndpoint, string) (int, error)
+	Backup(ShieldEndpoint) error
+	Restore(ShieldEndpoint) error
+	Store(ShieldEndpoint) (string, error)
+	Retrieve(ShieldEndpoint, string) error
+	Purge(ShieldEndpoint, string) error
 	Meta() PluginInfo
 }
 
@@ -105,14 +105,16 @@ func Run(p Plugin) {
 		action = string(opts.Action)
 
 		if action == "info" {
-			code, err = pluginInfo(p)
+			err = pluginInfo(p)
 			if err != nil {
 				fmt.Fprintf(stderr, "%s\n", err.Error())
+				code = codeForError(err)
 			}
 		} else if action != "" {
-			code, err = dispatch(p, action, opts)
+			err = dispatch(p, action, opts)
 			if err != nil {
 				fmt.Fprintf(stderr, "%s\n", err.Error())
+				code = codeForError(err)
 			}
 		} else {
 			code = USAGE
@@ -122,8 +124,7 @@ func Run(p Plugin) {
 	exit(code)
 }
 
-func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
-	var code int
+func dispatch(p Plugin, mode string, opts PluginOpts) error {
 	var err error
 	var key string
 	var endpoint ShieldEndpoint
@@ -134,53 +135,53 @@ func dispatch(p Plugin, mode string, opts PluginOpts) (int, error) {
 	case "backup":
 		endpoint, err = getEndpoint(opts.Backup.Endpoint)
 		if err != nil {
-			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
+			return err
 		}
-		code, err = p.Backup(endpoint)
+		err = p.Backup(endpoint)
 	case "restore":
 		endpoint, err = getEndpoint(opts.Restore.Endpoint)
 		if err != nil {
-			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
+			return err
 		}
-		code, err = p.Restore(endpoint)
+		err = p.Restore(endpoint)
 	case "store":
 		endpoint, err = getEndpoint(opts.Store.Endpoint)
 		if err != nil {
-			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
+			return err
 		}
-		key, code, err = p.Store(endpoint)
-		var output []byte
-		output, err = json.MarshalIndent(struct {
+		key, err = p.Store(endpoint)
+		output, jsonErr := json.MarshalIndent(struct {
 			Key string `json:"key"`
 		}{Key: key}, "", "    ")
-		if err != nil {
-			return JSON_FAILURE, err
+		if jsonErr != nil {
+			return JSONError{err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
 		}
 		fmt.Fprintf(stdout, "%s\n", string(output))
 	case "retrieve":
 		endpoint, err = getEndpoint(opts.Retrieve.Endpoint)
 		if err != nil {
-			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
+			return err
 		}
 		if opts.Retrieve.Key == "" {
-			return RESTORE_KEY_REQUIRED, fmt.Errorf("retrieving requires --key, but it was not provided")
+			return MissingRestoreKeyError{}
 		}
-		code, err = p.Retrieve(endpoint, opts.Retrieve.Key)
+		err = p.Retrieve(endpoint, opts.Retrieve.Key)
 	case "purge":
 		endpoint, err = getEndpoint(opts.Purge.Endpoint)
 		if err != nil {
-			return JSON_FAILURE, fmt.Errorf("Error trying parse --endpoint value as JSON: %s", err.Error())
+			return err
 		}
 		if opts.Purge.Key == "" {
-			return RESTORE_KEY_REQUIRED, fmt.Errorf("purging requires --key, but it was not provided")
+			return MissingRestoreKeyError{}
 		}
-		code, err = p.Purge(endpoint, opts.Purge.Key)
+		err = p.Purge(endpoint, opts.Purge.Key)
 	default:
-		return UNSUPPORTED_ACTION, fmt.Errorf("Sorry, '%s' is not a supported action for S.H.I.E.L.D plugins", mode)
+		return UnsupportedActionError{Action: mode}
 	}
 
-	DEBUG("'%s' action returned %d", mode, code)
-	return code, err
+	//FIXME: detect if err is unsupportedaction, and set the action to mode
+	DEBUG("'%s' action returned %#v", err)
+	return err
 }
 
 func getPluginOptions() (PluginOpts, error) {
@@ -201,15 +202,41 @@ func getPluginOptions() (PluginOpts, error) {
 	return opts, err
 }
 
-func pluginInfo(p Plugin) (int, error) {
+func pluginInfo(p Plugin) error {
 	json, err := json.MarshalIndent(p.Meta(), "", "    ")
 	if err != nil {
-		return JSON_FAILURE, fmt.Errorf("Could not create plugin metadata output: %s", err.Error())
+		return JSONError{err: fmt.Sprintf("Could not create plugin metadata output: %s", err.Error())}
 	}
 	fmt.Fprintf(stdout, "%s\n", json)
-	return SUCCESS, nil
+	return nil
 }
 
 func GenUUID() string {
 	return uuid.New()
+}
+
+func codeForError(e error) int {
+	var code int
+	if e != nil {
+		switch e.(type) {
+		case UnsupportedActionError:
+			code = UNSUPPORTED_ACTION
+		case EndpointMissingRequiredDataError:
+			code = ENDPOINT_MISSING_KEY
+		case EndpointDataTypeMismatchError:
+			code = ENDPOINT_BAD_DATA
+		case ExecFailure:
+			code = EXEC_FAILURE
+		case JSONError:
+			code = JSON_FAILURE
+		case MissingRestoreKeyError:
+			code = RESTORE_KEY_REQUIRED
+		default:
+			code = PLUGIN_FAILURE
+		}
+	} else {
+		code = SUCCESS
+	}
+
+	return code
 }

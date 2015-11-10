@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"plugin"
 )
 
@@ -25,22 +24,22 @@ func (p S3Plugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p S3Plugin) Backup(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("Not yet implemented")
+func (p S3Plugin) Backup(endpoint plugin.ShieldEndpoint) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p S3Plugin) Restore(endpoint plugin.ShieldEndpoint) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("Not yet implemented")
+func (p S3Plugin) Restore(endpoint plugin.ShieldEndpoint) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int, error) {
-	return "", plugin.UNSUPPORTED_ACTION, fmt.Errorf("Not yet implemented")
+func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+	return "", plugin.UNIMPLEMENTED
 }
 
-func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("Not yet implemented")
+func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) (int, error) {
-	return plugin.UNSUPPORTED_ACTION, fmt.Errorf("Not yet implemented")
+func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
