@@ -88,7 +88,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"paused"`))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"paused"}`))
 		return
 
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
@@ -106,7 +106,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"unpaused"`))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"unpaused"}`))
 		return
 
 	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
