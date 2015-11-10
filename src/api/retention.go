@@ -92,7 +92,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		_ = self.Data.AnnotateRetentionPolicy(id, params.Name, params.Summary)
 		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
 	case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
@@ -109,7 +109,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}
 

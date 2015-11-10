@@ -123,7 +123,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 			"expires" : 1209000
 		}`))
 		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"43705750-33b7-4134-a532-ce069abdc08f"}`))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
 
 		res = GET(API, "/v1/retention")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -146,7 +146,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	It("can delete unused retention policies", func() {
 		res := DELETE(API, "/v1/retention/3e783b71-d595-498d-a739-e01fb335098a")
 		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(Equal(""))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 
 		res = GET(API, "/v1/retention")
 		Ω(res.Body.String()).Should(MatchJSON(`[

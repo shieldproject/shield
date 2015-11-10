@@ -90,7 +90,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
 		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
 	case match(req, `DELETE /v1/schedule/[a-fA-F0-9-]+`):
@@ -107,7 +107,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}
 

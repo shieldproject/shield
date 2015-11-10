@@ -530,6 +530,7 @@ var _ = Describe("/v1/jobs API", func() {
 
 		res = DELETE(API, "/v1/job/"+REDIS_S3_WEEKLY)
 		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))

@@ -59,7 +59,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		_ = self.Data.AnnotateArchive(id, params.Notes)
 		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
 	case match(req, `DELETE /v1/archive/[a-fA-F0-9-]+`):
@@ -76,7 +76,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}
 

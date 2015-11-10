@@ -122,7 +122,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 			"when"    : "daily at 2:05pm"
 		}`))
 		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"647bc775-b07b-4f87-bb67-d84cccac34a7"}`))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
 
 		res = GET(API, "/v1/schedules")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -145,7 +145,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	It("can delete unused schedules", func() {
 		res := DELETE(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7")
 		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(Equal(""))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 
 		res = GET(API, "/v1/schedules")
 		Ω(res.Body.String()).Should(MatchJSON(`[

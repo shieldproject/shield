@@ -240,6 +240,7 @@ var _ = Describe("/v1/archives API", func() {
 
 		res = DELETE(API, "/v1/archive/"+REDIS_ARCHIVE_1)
 		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 
 		res = GET(API, "/v1/archives?target=" + TARGET_REDIS)
 		Ω(res.Code).Should(Equal(200))

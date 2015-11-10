@@ -88,7 +88,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"paused"`))
 		return
 
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
@@ -106,7 +106,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"unpaused"`))
 		return
 
 	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
@@ -140,7 +140,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		_ = self.Data.AnnotateJob(id, params.Name, params.Summary)
 		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
 	case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
@@ -158,7 +158,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}
 

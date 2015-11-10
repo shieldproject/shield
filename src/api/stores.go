@@ -94,7 +94,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		_ = self.Data.AnnotateStore(id, params.Name, params.Summary)
 		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated","uuid":"%s"}`, id.String()))
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
 	case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
@@ -111,7 +111,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		self.SuperChan <- 1
-		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}
 

@@ -179,7 +179,7 @@ var _ = Describe("/v1/stores API", func() {
 			"endpoint" : "{NEW-ENDPOINT}"
 		}`))
 		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated","uuid":"66be7c43-6c57-4391-8ea9-e770d6ab5e9e"}`))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
 
 		res = GET(API, "/v1/stores")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -204,7 +204,7 @@ var _ = Describe("/v1/stores API", func() {
 	It("can delete unused stores", func() {
 		res := DELETE(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e")
 		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(Equal(""))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 
 		res = GET(API, "/v1/stores")
 		Ω(res.Body.String()).Should(MatchJSON(`[
