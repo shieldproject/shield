@@ -4,8 +4,10 @@ import (
 	"fmt"
 )
 
+var CurrentSchema uint = 1
+
 func (db *DB) Setup() error {
-	v, err := db.schemaVersion()
+	v, err := db.SchemaVersion()
 	if err != nil {
 		return err
 	}
@@ -22,7 +24,7 @@ func (db *DB) Setup() error {
 	return nil
 }
 
-func (db *DB) schemaVersion() (uint, error) {
+func (db *DB) SchemaVersion() (uint, error) {
 	r, err := db.Query(`SELECT version FROM schema_info LIMIT 1`)
 	// failed query = no schema
 	// FIXME: better error object introspection?
@@ -50,11 +52,22 @@ func (db *DB) schemaVersion() (uint, error) {
 	return uint(v), nil
 }
 
+func (db *DB) CheckCurrentSchema() error {
+	v, err := db.SchemaVersion()
+	if err != nil {
+		return err
+	}
+	if v != CurrentSchema {
+		return fmt.Errorf("wrong schema version (%d, but want to be at %d)", v, CurrentSchema)
+	}
+	return nil
+}
+
 func (db *DB) v1schema() error {
 	db.Exec(`CREATE TABLE schema_info (
                version INTEGER
              )`)
-	db.Exec(`INSERT INTO schema_info VALUES (1)`)
+	db.Exec(`INSERT INTO schema_info VALUES (?)`, CurrentSchema)
 
 	db.Exec(`CREATE TABLE targets (
                uuid      UUID PRIMARY KEY,
