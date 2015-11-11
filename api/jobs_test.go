@@ -129,19 +129,8 @@ var _ = Describe("/v1/jobs API", func() {
 				 "`+RETAIN_LONG+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		channel = make(chan int)
+		channel = make(chan int, 1)
 		API = JobAPI{Data: data, SuperChan: channel}
-		go func() {
-			for {
-				select {
-				case <-channel:
-				default:
-					if channel == nil {
-						return
-					}
-				}
-			}
-		}()
 	})
 
 	AfterEach(func() {
@@ -442,6 +431,7 @@ var _ = Describe("/v1/jobs API", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
+		Eventually(channel).Should(Receive())
 	})
 
 	It("requires specific keys in POST'ed data", func() {
@@ -481,6 +471,8 @@ var _ = Describe("/v1/jobs API", func() {
 			"paused"    : true
 		}`))
 		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
@@ -529,6 +521,7 @@ var _ = Describe("/v1/jobs API", func() {
 		res = DELETE(API, "/v1/job/"+REDIS_S3_WEEKLY)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
@@ -559,6 +552,8 @@ var _ = Describe("/v1/jobs API", func() {
 
 		res = POST(API, "/v1/job/"+PG_S3_WEEKLY+"/pause", "")
 		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"paused"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=f&schedule="+SCHED_WEEKLY)
 		Ω(res.Code).Should(Equal(200))
@@ -589,6 +584,8 @@ var _ = Describe("/v1/jobs API", func() {
 
 		res = POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/unpause", "")
 		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"unpaused"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))

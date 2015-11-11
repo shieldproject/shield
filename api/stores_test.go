@@ -36,19 +36,8 @@ var _ = Describe("/v1/stores API", func() {
 				 "05c3d005-f968-452f-bd59-bee8e79ab982")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		channel = make(chan int)
+		channel = make(chan int, 1)
 		API = StoreAPI{Data: data, SuperChan: channel}
-		go func() {
-			for {
-				select {
-				case <-channel:
-				default:
-					if channel == nil {
-						return
-					}
-				}
-			}
-		}()
 	})
 
 	AfterEach(func() {
@@ -162,6 +151,7 @@ var _ = Describe("/v1/stores API", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
+		Eventually(channel).Should(Receive())
 	})
 
 	It("requires the `name' and `when' keys in POST'ed data", func() {
@@ -178,6 +168,7 @@ var _ = Describe("/v1/stores API", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/stores")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -203,6 +194,7 @@ var _ = Describe("/v1/stores API", func() {
 		res := DELETE(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/stores")
 		Ω(res.Body.String()).Should(MatchJSON(`[

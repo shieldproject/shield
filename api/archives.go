@@ -74,6 +74,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}

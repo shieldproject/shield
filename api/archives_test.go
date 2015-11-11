@@ -84,19 +84,8 @@ var _ = Describe("/v1/archives API", func() {
 				 "Good Redis Backup")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		channel = make(chan int)
+		channel = make(chan int, 1)
 		API = ArchiveAPI{Data: data, SuperChan: channel}
-		go func() {
-			for {
-				select {
-				case <-channel:
-				default:
-					if channel == nil {
-						return
-					}
-				}
-			}
-		}()
 	})
 
 	AfterEach(func() {
@@ -201,6 +190,8 @@ var _ = Describe("/v1/archives API", func() {
 			"notes" : "These are my updated notes on this archive"
 		}`))
 		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/archives?target="+TARGET_REDIS)
 		Ω(res.Code).Should(Equal(200))
@@ -239,6 +230,7 @@ var _ = Describe("/v1/archives API", func() {
 		res = DELETE(API, "/v1/archive/"+REDIS_ARCHIVE_1)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
+		Eventually(channel).Should(Receive())
 
 		res = GET(API, "/v1/archives?target="+TARGET_REDIS)
 		Ω(res.Code).Should(Equal(200))
