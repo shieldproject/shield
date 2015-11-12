@@ -1,7 +1,6 @@
 language: go
 sudo: false
 go:
-- 1.4
 - 1.5
 
 before_install:
@@ -9,9 +8,8 @@ before_install:
 - go get golang.org/x/tools/cmd/cover
 
 script:
-- go vet -x ./...
-# FIXME: enable go race condition testing
-- go test -v ./...
+- go vet -x github.com/starkandwayne/shield/...
+- go test -v github.com/starkandwayne/shield/...
 
 notifications:
   email:
