@@ -397,6 +397,12 @@ Each plugin program must implement the following actions, which will be passed a
 
   Exits 0 on success, or non-zero on failure.
 
+## Notes on Development
+
+Setting the environment variable `SHIELD_MODE` to the value `DEV`
+will cause all scheduling information to revert to "every minute"
+regardless of the actual schedule.  This is to assist developers.
+
 ## CLI Usage Examples
 
 This section is exploratory.

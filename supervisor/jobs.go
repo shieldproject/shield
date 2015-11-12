@@ -4,7 +4,15 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/timespec"
 	"time"
+	"os"
 )
+
+var DEV_MODE_SCHEDULING bool = false
+func init() {
+	if os.Getenv("SHIELD_MODE") == "DEV" {
+		DEV_MODE_SCHEDULING = true
+	}
+}
 
 type Job struct {
 	UUID   uuid.UUID
@@ -37,6 +45,11 @@ func (j *Job) Task() *Task {
 }
 
 func (j *Job) Reschedule() error {
+	if DEV_MODE_SCHEDULING {
+		j.NextRun = time.Now().Add(time.Minute)
+		return nil
+	}
+
 	next, err := j.Spec.Next(time.Now())
 	if err != nil {
 		return err
