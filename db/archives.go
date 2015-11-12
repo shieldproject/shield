@@ -64,6 +64,7 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 	if err != nil {
 		return l, err
 	}
+	defer r.Close()
 
 	for r.Next() {
 		ann := &AnnotatedArchive{}

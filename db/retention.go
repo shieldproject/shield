@@ -50,6 +50,7 @@ func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 	if err != nil {
 		return l, err
 	}
+	defer r.Close()
 
 	for r.Next() {
 		ann := &AnnotatedRetentionPolicy{}

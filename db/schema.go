@@ -31,6 +31,7 @@ func (db *DB) SchemaVersion() (uint, error) {
 	if err != nil {
 		return 0, nil
 	}
+	defer r.Close()
 
 	// no records = no schema
 	if !r.Next() {

@@ -65,6 +65,7 @@ func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, 
 	if err != nil {
 		return l, err
 	}
+	defer r.Close()
 
 	for r.Next() {
 		ann := &AnnotatedTarget{}

@@ -107,6 +107,7 @@ func (db *DB) Count(sql_or_name string, args ...interface{}) (uint, error) {
 	for r.Next() {
 		n++
 	}
+	r.Close()
 	return n, nil
 }
 

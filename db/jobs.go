@@ -98,6 +98,7 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	if err != nil {
 		return l, err
 	}
+	defer r.Close()
 
 	for r.Next() {
 		ann := &AnnotatedJob{}
