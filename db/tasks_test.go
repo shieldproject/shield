@@ -133,13 +133,10 @@ var _ = Describe("Task Management", func() {
 
 		Ω(db.StartTask(id, time.Now())).Should(Succeed())
 		Ω(db.CompleteTask(id, time.Now())).Should(Succeed())
-
-		archive_id, err := db.CreateTaskArchive(id, "SOME-KEY", time.Now())
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(archive_id).ShouldNot(BeNil())
+		Ω(db.CreateTaskArchive(id, "SOME-KEY", time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = ?`, archive_id.String())
+		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NOT NULL`)
 
 		shouldExist(`SELECT * FROM archives`)
 		shouldExist(`SELECT * FROM archives WHERE target_uuid = ?`, TARGET_UUID.String())

@@ -44,7 +44,7 @@ func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	)
 }
 
-func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (uuid.UUID, error) {
+func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) error {
 	// determine how long we need to keep this specific archive for
 	r, err := db.Query(
 		`SELECT r.expiry
@@ -55,17 +55,17 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 		id.String(),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer r.Close()
 
 	if !r.Next() {
-		return nil, fmt.Errorf("failed to determine expiration for task %s", id)
+		return fmt.Errorf("failed to determine expiration for task %s", id)
 	}
 
 	var expiry int
 	if err := r.Scan(&expiry); err != nil {
-		return nil, err
+		return err
 	}
 	r.Close()
 
@@ -83,11 +83,11 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 		archive_id.String(), key, effective, effective.Add(time.Duration(expiry) * time.Second), id.String(),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// and finally, associate task -> archive
-	return archive_id, db.Exec(
+	return db.Exec(
 		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
 		archive_id.String(), id.String(),
 	)

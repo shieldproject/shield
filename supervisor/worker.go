@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/pborman/uuid"
 	"time"
+	"bytes"
+	"strings"
+	"encoding/json"
 )
 
 type UpdateOp int
@@ -11,6 +14,7 @@ type UpdateOp int
 const (
 	STOPPED UpdateOp = iota
 	OUTPUT
+	RESTORE_KEY
 )
 
 type WorkerUpdate struct {
@@ -59,6 +63,33 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 		err := t.Run(stdout, stderr)
 		if err != nil {
 			fmt.Printf("oops: %s\n", err)
+		}
+
+		if t.Op == BACKUP {
+			// parse JSON from standard output and get the restore key
+			// (this might fail, we might not get a key, etc.)
+
+			// FIXME: stop the drain goroutine for stdout.
+			// FIXME: (geoff noticed some data races here, so that may just happen
+			//         when he fixes those)
+			v := struct {
+				Key string
+			}{}
+
+			buf := bytes.NewBufferString(strings.Join(output, ""))
+			dec := json.NewDecoder(buf)
+			err := dec.Decode(&v)
+
+			if err != nil {
+				fmt.Printf("uh-oh: %s\n", err)
+
+			} else {
+				updates <- WorkerUpdate{
+					task:   t.uuid,
+					op:     RESTORE_KEY,
+					output: v.Key,
+				}
+			}
 		}
 
 		// signal to the supervisor that we finished

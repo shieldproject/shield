@@ -194,6 +194,12 @@ func (s *Supervisor) Run() {
 					fmt.Printf("  %s: !! failed to update database - %s\n", u.task, err)
 				}
 
+			} else if u.op == RESTORE_KEY {
+				fmt.Printf("  %s: restore key is %s\n", u.task, u.output)
+				if err := s.Database.CreateTaskArchive(u.task, u.output, time.Now()); err != nil {
+					fmt.Printf("  %s: !! failed to update database - %s\n", u.task, err)
+				}
+
 			} else {
 				fmt.Printf("  %s: !! unrecognized op type\n", u.task)
 			}
