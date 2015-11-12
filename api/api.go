@@ -17,24 +17,31 @@ func Run(bind string, template *db.DB, c chan int) {
 		return
 	}
 
-	http.Handle("/v1/ping", &PingAPI{})
+	ping := &PingAPI{}
+	http.Handle("/v1/ping", ping)
 
-	http.Handle("/v1/jobs", &JobAPI{Data: db, SuperChan: c})
-	http.Handle("/v1/job", &JobAPI{Data: db})
+	jobs := &JobAPI{Data: db, SuperChan: c}
+	http.Handle("/v1/jobs", jobs)
+	http.Handle("/v1/job", jobs)
 
-	http.Handle("/v1/retention", &RetentionAPI{Data: db, SuperChan: c})
+	retention := &RetentionAPI{Data: db, SuperChan: c}
+	http.Handle("/v1/retention", retention)
 
-	http.Handle("/v1/archives", &ArchiveAPI{Data: db})
-	http.Handle("/v1/archive", &ArchiveAPI{Data: db, SuperChan: c})
+	archives := &ArchiveAPI{Data: db, SuperChan: c}
+	http.Handle("/v1/archives", archives)
+	http.Handle("/v1/archive", archives)
 
-	http.Handle("/v1/schedules", &ScheduleAPI{Data: db})
-	http.Handle("/v1/schedule", &ScheduleAPI{Data: db, SuperChan: c})
+	schedules := &ScheduleAPI{Data: db, SuperChan: c}
+	http.Handle("/v1/schedules", schedules)
+	http.Handle("/v1/schedule", schedules)
 
-	http.Handle("/v1/stores", &StoreAPI{Data: db})
-	http.Handle("/v1/store", &StoreAPI{Data: db, SuperChan: c})
+	stores := &StoreAPI{Data: db, SuperChan: c}
+	http.Handle("/v1/stores", stores)
+	http.Handle("/v1/store", stores)
 
-	http.Handle("/v1/targets", &TargetAPI{Data: db})
-	http.Handle("/v1/target", &TargetAPI{Data: db, SuperChan: c})
+	targets := &TargetAPI{Data: db, SuperChan: c}
+	http.Handle("/v1/targets", targets)
+	http.Handle("/v1/target", targets)
 
 	http.ListenAndServe(bind, nil)
 }
