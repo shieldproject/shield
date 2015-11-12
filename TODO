@@ -14,3 +14,4 @@ Small Tasks / Fixes / Enhancement
  - Handle timeframe handling for archives API
  - Only resync supervisor for *material* db changes, not all db changes
  - Passing restoration key during restore operations
+ - Fix capitalization / export status on all struct types.  (uuid vs. UUID)
