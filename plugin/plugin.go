@@ -112,7 +112,16 @@ func Run(p Plugin) {
 			}
 		} else if action != "" {
 			err = dispatch(p, action, opts)
+			DEBUG("'%s' action returned %#v", action, err)
 			if err != nil {
+				switch err.(type) {
+				case UnsupportedActionError:
+					if err.(UnsupportedActionError).Action == "" {
+						e := err.(UnsupportedActionError)
+						e.Action = action
+						err = e
+					}
+				}
 				fmt.Fprintf(stderr, "%s\n", err.Error())
 				code = codeForError(err)
 			}
@@ -179,8 +188,6 @@ func dispatch(p Plugin, mode string, opts PluginOpts) error {
 		return UnsupportedActionError{Action: mode}
 	}
 
-	//FIXME: detect if err is unsupportedaction, and set the action to mode
-	DEBUG("'%s' action returned %#v", err)
 	return err
 }
 
