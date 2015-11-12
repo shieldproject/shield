@@ -105,6 +105,12 @@ func NewSupervisor(database *db.DB, resyncc chan int) *Supervisor {
 		}
 		return nil
 	}
+	if DEV_MODE_SCHEDULING {
+		for _, job := range s.jobq {
+			job.NextRun = time.Now()
+		}
+	}
+
 	return s
 }
 
