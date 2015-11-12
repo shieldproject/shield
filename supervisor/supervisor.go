@@ -149,7 +149,6 @@ func (s *Supervisor) CheckSchedule() {
 			"backup",
 			"ARGS", // FIXME: need real args
 			job.UUID,
-			uuid.NewRandom(), // FIXME: need a real archive UUID?
 		)
 		if err != nil {
 			fmt.Printf("job -> task conversion / database update failed: %s\n", err)
