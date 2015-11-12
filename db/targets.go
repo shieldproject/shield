@@ -117,6 +117,7 @@ func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
 
 func (db *DB) CreateTarget(plugin string, endpoint interface{}, agent string) (uuid.UUID, error) {
 	id := uuid.NewRandom()
+
 	return id, db.Exec(
 		`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES (?, ?, ?, ?)`,
 		id.String(), plugin, endpoint, agent,

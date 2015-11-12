@@ -1063,55 +1063,92 @@ go tool cover -html=coverage/db.cov
 This section is exploratory.
 
 ```
+# targets
+$ shield create target
+$ shield list targets [--[un]used] [--plugin $NAME]
+$ shield show target $UUID
+$ shield edit target $UUID
+$ shield delete target $UUID
+
 # schedule management
-$ bkp list schedules [--[un]used]
-$ bkp show schedule $UUID
-$ bkp delete schedule $UUID
-$ bkp update schedule $UUID
+$ shield list schedules [--[un]used]
+$ shield show schedule $UUID
+$ shield delete schedule $UUID
+$ shield update schedule $UUID
 
 # retention policies
-$ bkp list retention policies [--[un]used]
-$ bkp show retention policy $UUID
-$ bkp delete retention policy $UUID
-$ bkp update retention policy $UUID
+$ shield list retention policies [--[un]used]
+$ shield show retention policy $UUID
+$ shield delete retention policy $UUID
+$ shield update retention policy $UUID
 
 # "managing" plugins
-$ bkp list plugins
-$ bkp show plugin $NAME
-
-# targets
-$ bkp list targets [--[un]used] [--plugin $NAME]
-$ bkp show target $UUID
-$ bkp edit target $UUID
-$ bkp delete target $UUID
+$ shield list plugins
+$ shield show plugin $NAME
 
 # stores
-$ bkp list stores [--[un]used] [--plugin $NAME]
-$ bkp show store $UUID
-$ bkp edit store $UUID
-$ bkp delete store $UUID
+$ shield list stores [--[un]used] [--plugin $NAME]
+$ shield show store $UUID
+$ shield edit store $UUID
+$ shield delete store $UUID
 
 # jobs
-$ bkp list jobs [--[un]paused] [--target $UUID] [--store $UUID]
+$ shield list jobs [--[un]paused] [--target $UUID] [--store $UUID]
                 [--schedule $UUID] [--retention-policy $UUID]
-$ bkp show job $UUID
-$ bkp pause job $UUID
-$ bkp unpause job $UUID
-$ bkp paused job $UUID
-$ bkp run job $UUID
-$ bkp edit job $UUID
-$ bkp delete job $UUID
+$ shield show job $UUID
+$ shield pause job $UUID
+$ shield unpause job $UUID
+$ shield paused job $UUID
+$ shield run job $UUID
+$ shield edit job $UUID
+$ shield delete job $UUID
 
 # archives
-$ bkp list archives [--target $UUID] [--store $UUID]
+$ shield list archives [--target $UUID] [--store $UUID]
                     [--after YYYYMMDD] [--before YYYYMMDD]
-$ bkp show archive $UUID
-$ bkp edit archive $UUID
-$ bkp delete archive $UUID
-$ bkp restore archive $UUID [--to $TARGET_UUID]
+$ shield show archive $UUID
+$ shield edit archive $UUID
+$ shield delete archive $UUID
+$ shield restore archive $UUID [--to $TARGET_UUID]
 
 # task management
-$ bkp list tasks [--all]
-$ bkp show task $UUID
-$ bkp cancel task $UUID
+$ shield list tasks [--all]
+$ shield show task $UUID
+$ shield cancel task $UUID
 ```
+
+## Proof of Concept (Where Do We Go From Here?)
+
+### Research
+
+We need to identify all of the data systems we wish to support with this system.  For each system, we need to identify any problematic systems that will not fit into one of the two collection / restore models designed:
+
+* Direct over-the-network backup/restore a la pg_dump / pg_restore
+* Instrumentation of local backup/restore + file shipping via Agent Daemon / Plugin
+
+### Stage 1 Proof-of-Concept
+
+To get this project off the ground, I think we need to do some research and experimental implementation into the following areas:
+
+* Implement the postgres target plugin using pg_dump / pg_restore tools
+* Implement the fs storage plugin to store blobs in the local file system
+* Implement the Core Daemon with limited functionality:
+    * Task execution
+    * backup operation
+    * restore operation
+* Implement the HTTP API with limited functionality:
+    * /v1/jobs/*
+    * /v1/archive/*
+* Implement the CLI with limited functionality:
+    * shield * job
+    * shield * backup
+    * shield * task
+
+This will let us test flush out any inconsistencies in the architecture, and find any problematic aspects of the problem domain not presently considered.
+
+### Stage 2 Proof-of-Concept
+Next, we extend the proof-of-concept implementation to test out the Agent Target Plugin design, using Redis as the data system.  This entails the following:
+
+* Implement the Agent Daemon (in general)
+* Extend the Agent Daemon to handle Redis’ BGSAVE command
+* Implement the Agent Target Plugin

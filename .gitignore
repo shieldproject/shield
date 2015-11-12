@@ -1,4 +1,5 @@
 /shieldd
+/shield
 /shield-agent
 /shield-schema
 /dummy
@@ -6,6 +7,9 @@
 /postgres
 /redis
 /s3
+
+# ignore vim buffers
+.*.sw?
 
 # where we keep coverage reports...
 /coverage
