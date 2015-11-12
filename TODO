@@ -5,7 +5,7 @@ Large Tasks / Features
  - Ad hoc jobs through API
  - Archive creation when backup tasks run
  - -Enable shorter timespec intervals for testing only (minutely backups?)-
-      FIXED: use `SHIELD_MODE=DEV ./sheildd` to run jobs every minute
+      FIXED: use `SHIELD_MODE=DEV ./shieldd` to run jobs every minute
  - Agent architecture, API, calling protocol
  - CLI implementation
  - Investigate Docker/Garden implementation for plugins
