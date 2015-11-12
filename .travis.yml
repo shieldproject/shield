@@ -8,9 +8,11 @@ before_install:
 - go get golang.org/x/tools/cmd/vet
 - go get golang.org/x/tools/cmd/cover
 
+install:
+- godep restore
+
 script:
 - go vet -x ./...
-# FIXME: enable go race condition testing
 - go test -v ./...
 
 notifications:
