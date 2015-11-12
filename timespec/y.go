@@ -5,49 +5,10 @@ import __yyfmt__ "fmt"
 
 //line lang.y:2
 import (
-	"bytes"
-	"io/ioutil"
-	"regexp"
-	"strconv"
 	"time"
 )
 
-func hhmm(hours uint, minutes uint) int {
-	for hours >= 24 {
-		hours -= 12
-	}
-	return int(hours*60 + minutes)
-}
-func daily(minutes int) *Spec {
-	return &Spec{
-		Interval:  Daily,
-		TimeOfDay: minutes,
-	}
-}
-func weekly(minutes int, weekday time.Weekday) *Spec {
-	return &Spec{
-		Interval:  Weekly,
-		TimeOfDay: minutes,
-		DayOfWeek: weekday,
-	}
-}
-func mday(minutes int, day uint) *Spec {
-	return &Spec{
-		Interval:   Monthly,
-		TimeOfDay:  minutes,
-		DayOfMonth: int(day),
-	}
-}
-func mweek(minutes int, weekday time.Weekday, week uint) *Spec {
-	return &Spec{
-		Interval:  Monthly,
-		TimeOfDay: minutes,
-		DayOfWeek: weekday,
-		Week:      int(week),
-	}
-}
-
-//line lang.y:48
+//line lang.y:9
 type yySymType struct {
 	yys    int
 	numval uint
@@ -103,127 +64,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line lang.y:132
-type Tokens struct {
-	whitespace *regexp.Regexp
-	number     *regexp.Regexp
-	ordinal    *regexp.Regexp
-}
-
-type KeywordMatcher struct {
-	token int
-	match *regexp.Regexp
-}
-
-type yyLex struct {
-	tokens   Tokens
-	keywords []KeywordMatcher
-	buf      []byte
-	spec     *Spec
-}
-
-func (l *yyLex) eat(m [][]byte) {
-	l.buf = l.buf[len(m[0]):]
-}
-
-func stringify(b []byte) string {
-	n := bytes.IndexByte(b, 0)
-	if n < 0 {
-		n = len(b)
-	}
-
-	return string(b[:n])
-}
-
-func numify(m []byte) uint {
-	i, err := strconv.Atoi(stringify(m))
-	if err != nil {
-		panic("yo, stuff's broke")
-	}
-	return uint(i)
-}
-
-func (l *yyLex) init() {
-	l.keywords = append(l.keywords, KeywordMatcher{token: DAILY, match: regexp.MustCompile(`^daily`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: WEEKLY, match: regexp.MustCompile(`^weekly`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: MONTHLY, match: regexp.MustCompile(`^monthly`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: AT, match: regexp.MustCompile(`^at`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: ON, match: regexp.MustCompile(`^on`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: AM, match: regexp.MustCompile(`^am`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: PM, match: regexp.MustCompile(`^pm`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: EVERYDAY, match: regexp.MustCompile(`^every\s+day`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: SUNDAY, match: regexp.MustCompile(`^sun(days?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: MONDAY, match: regexp.MustCompile(`^mon(days?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: TUESDAY, match: regexp.MustCompile(`^tue(s(days?)?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: WEDNESDAY, match: regexp.MustCompile(`^wed(nesdays?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: THURSDAY, match: regexp.MustCompile(`^thu(r(s(days?)?)?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: FRIDAY, match: regexp.MustCompile(`^fri(days?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: SATURDAY, match: regexp.MustCompile(`^sat(urdays?)?`)})
-
-	l.tokens.whitespace = regexp.MustCompile(`^\s+`)
-	l.tokens.number = regexp.MustCompile(`^\d+`)
-	l.tokens.ordinal = regexp.MustCompile(`^(\d+)(st|rd|nd|th)`)
-}
-
-func LexerForString(s string) *yyLex {
-	l := &yyLex{buf: []byte(s)}
-	l.init()
-	return l
-}
-func LexerForFile(filename string) *yyLex {
-	s, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil
-	}
-	l := &yyLex{buf: s}
-	l.init()
-	return l
-}
-
-func (l *yyLex) Lex(lval *yySymType) int {
-	var m [][]byte
-
-	// eat whitespace
-	m = l.tokens.whitespace.FindSubmatch(l.buf)
-	if m != nil {
-		l.eat(m)
-	}
-
-	for _, keyword := range l.keywords {
-		m = keyword.match.FindSubmatch(l.buf)
-		if m != nil {
-			l.eat(m)
-			return keyword.token
-		}
-	}
-
-	// ordinal
-	m = l.tokens.ordinal.FindSubmatch(l.buf)
-	if m != nil {
-		l.eat(m)
-		lval.numval = numify(m[1])
-		return ORDINAL
-	}
-
-	// number
-	m = l.tokens.number.FindSubmatch(l.buf)
-	if m != nil {
-		l.eat(m)
-		lval.numval = numify(m[0])
-		return NUMBER
-	}
-
-	if len(l.buf) == 0 {
-		return 0
-	}
-
-	c := l.buf[0]
-	l.buf = l.buf[1:]
-	return int(c)
-}
-
-func (l *yyLex) Error(e string) {
-}
+//line lang.y:93
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -658,175 +499,175 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:80
+		//line lang.y:41
 		{
 			yylex.(*yyLex).spec = yyDollar[1].spec
 		}
 	case 5:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:88
+		//line lang.y:49
 		{
 			yyVAL.spec = daily(yyDollar[3].time)
 		}
 	case 6:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line lang.y:89
+		//line lang.y:50
 		{
 			yyVAL.spec = daily(yyDollar[2].time)
 		}
 	case 7:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:90
+		//line lang.y:51
 		{
 			yyVAL.spec = daily(yyDollar[3].time)
 		}
 	case 8:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line lang.y:91
+		//line lang.y:52
 		{
 			yyVAL.spec = daily(yyDollar[2].time)
 		}
 	case 9:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:94
+		//line lang.y:55
 		{
 			yyVAL.time = hhmm(yyDollar[1].numval, yyDollar[3].numval)
 		}
 	case 10:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line lang.y:95
+		//line lang.y:56
 		{
 			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[4].numval, yyDollar[3].numval)
 		}
 	case 11:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line lang.y:96
+		//line lang.y:57
 		{
 			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[2].numval, 0)
 		}
 	case 12:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line lang.y:99
+		//line lang.y:60
 		{
 			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[5].wday)
 		}
 	case 13:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line lang.y:100
+		//line lang.y:61
 		{
 			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[4].wday)
 		}
 	case 14:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line lang.y:101
+		//line lang.y:62
 		{
 			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[4].wday)
 		}
 	case 15:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:102
+		//line lang.y:63
 		{
 			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[3].wday)
 		}
 	case 16:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:103
+		//line lang.y:64
 		{
 			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[1].wday)
 		}
 	case 17:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line lang.y:104
+		//line lang.y:65
 		{
 			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[1].wday)
 		}
 	case 18:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:107
+		//line lang.y:68
 		{
 			yyVAL.numval = 0
 		}
 	case 19:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:108
+		//line lang.y:69
 		{
 			yyVAL.numval = 12
 		}
 	case 20:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:111
+		//line lang.y:72
 		{
 			yyVAL.wday = time.Sunday
 		}
 	case 21:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:112
+		//line lang.y:73
 		{
 			yyVAL.wday = time.Monday
 		}
 	case 22:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:113
+		//line lang.y:74
 		{
 			yyVAL.wday = time.Tuesday
 		}
 	case 23:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:114
+		//line lang.y:75
 		{
 			yyVAL.wday = time.Wednesday
 		}
 	case 24:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:115
+		//line lang.y:76
 		{
 			yyVAL.wday = time.Thursday
 		}
 	case 25:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:116
+		//line lang.y:77
 		{
 			yyVAL.wday = time.Friday
 		}
 	case 26:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:117
+		//line lang.y:78
 		{
 			yyVAL.wday = time.Saturday
 		}
 	case 27:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line lang.y:120
+		//line lang.y:81
 		{
 			yyVAL.spec = mday(yyDollar[3].time, yyDollar[5].numval)
 		}
 	case 28:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line lang.y:121
+		//line lang.y:82
 		{
 			yyVAL.spec = mday(yyDollar[2].time, yyDollar[4].numval)
 		}
 	case 29:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line lang.y:122
+		//line lang.y:83
 		{
 			yyVAL.spec = mday(yyDollar[3].time, yyDollar[4].numval)
 		}
 	case 30:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:123
+		//line lang.y:84
 		{
 			yyVAL.spec = mday(yyDollar[2].time, yyDollar[3].numval)
 		}
 	case 31:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line lang.y:124
+		//line lang.y:85
 		{
 			yyVAL.spec = mweek(yyDollar[4].time, yyDollar[2].wday, yyDollar[1].numval)
 		}
 	case 32:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:125
+		//line lang.y:86
 		{
 			yyVAL.spec = mweek(yyDollar[3].time, yyDollar[2].wday, yyDollar[1].numval)
 		}

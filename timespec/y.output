@@ -33,25 +33,25 @@ state 1
 state 2
 	timespec:  spec.    (1)
 
-	.  reduce 1 (src line 80)
+	.  reduce 1 (src line 41)
 
 
 state 3
 	spec:  daily_spec.    (2)
 
-	.  reduce 2 (src line 85)
+	.  reduce 2 (src line 46)
 
 
 state 4
 	spec:  weekly_spec.    (3)
 
-	.  reduce 3 (src line 85)
+	.  reduce 3 (src line 46)
 
 
 state 5
 	spec:  monthly_spec.    (4)
 
-	.  reduce 4 (src line 85)
+	.  reduce 4 (src line 46)
 
 
 state 6
@@ -126,43 +126,43 @@ state 11
 state 12
 	day_name:  SUNDAY.    (20)
 
-	.  reduce 20 (src line 111)
+	.  reduce 20 (src line 72)
 
 
 state 13
 	day_name:  MONDAY.    (21)
 
-	.  reduce 21 (src line 112)
+	.  reduce 21 (src line 73)
 
 
 state 14
 	day_name:  TUESDAY.    (22)
 
-	.  reduce 22 (src line 113)
+	.  reduce 22 (src line 74)
 
 
 state 15
 	day_name:  WEDNESDAY.    (23)
 
-	.  reduce 23 (src line 114)
+	.  reduce 23 (src line 75)
 
 
 state 16
 	day_name:  THURSDAY.    (24)
 
-	.  reduce 24 (src line 115)
+	.  reduce 24 (src line 76)
 
 
 state 17
 	day_name:  FRIDAY.    (25)
 
-	.  reduce 25 (src line 116)
+	.  reduce 25 (src line 77)
 
 
 state 18
 	day_name:  SATURDAY.    (26)
 
-	.  reduce 26 (src line 117)
+	.  reduce 26 (src line 78)
 
 
 state 19
@@ -176,7 +176,7 @@ state 19
 state 20
 	daily_spec:  DAILY time_in_HHMM.    (6)
 
-	.  reduce 6 (src line 89)
+	.  reduce 6 (src line 50)
 
 
 state 21
@@ -202,7 +202,7 @@ state 22
 state 23
 	daily_spec:  EVERYDAY time_in_HHMM.    (8)
 
-	.  reduce 8 (src line 91)
+	.  reduce 8 (src line 52)
 
 
 state 24
@@ -241,7 +241,7 @@ state 26
 state 27
 	weekly_spec:  day_name time_in_HHMM.    (17)
 
-	.  reduce 17 (src line 104)
+	.  reduce 17 (src line 65)
 
 
 state 28
@@ -277,7 +277,7 @@ state 30
 state 31
 	daily_spec:  DAILY AT time_in_HHMM.    (5)
 
-	.  reduce 5 (src line 88)
+	.  reduce 5 (src line 49)
 
 
 state 32
@@ -291,25 +291,25 @@ state 32
 state 33
 	time_in_HHMM:  NUMBER am_or_pm.    (11)
 
-	.  reduce 11 (src line 96)
+	.  reduce 11 (src line 57)
 
 
 state 34
 	am_or_pm:  AM.    (18)
 
-	.  reduce 18 (src line 107)
+	.  reduce 18 (src line 68)
 
 
 state 35
 	am_or_pm:  PM.    (19)
 
-	.  reduce 19 (src line 108)
+	.  reduce 19 (src line 69)
 
 
 state 36
 	daily_spec:  EVERYDAY AT time_in_HHMM.    (7)
 
-	.  reduce 7 (src line 90)
+	.  reduce 7 (src line 51)
 
 
 state 37
@@ -345,13 +345,13 @@ state 38
 state 39
 	weekly_spec:  WEEKLY time_in_HHMM day_name.    (15)
 
-	.  reduce 15 (src line 102)
+	.  reduce 15 (src line 63)
 
 
 state 40
 	weekly_spec:  day_name AT time_in_HHMM.    (16)
 
-	.  reduce 16 (src line 103)
+	.  reduce 16 (src line 64)
 
 
 state 41
@@ -377,19 +377,19 @@ state 42
 state 43
 	monthly_spec:  MONTHLY time_in_HHMM month_day.    (30)
 
-	.  reduce 30 (src line 123)
+	.  reduce 30 (src line 84)
 
 
 state 44
 	month_day:  ORDINAL.    (33)
 
-	.  reduce 33 (src line 128)
+	.  reduce 33 (src line 89)
 
 
 state 45
 	month_day:  NUMBER.    (34)
 
-	.  reduce 34 (src line 129)
+	.  reduce 34 (src line 90)
 
 
 state 46
@@ -403,7 +403,7 @@ state 46
 state 47
 	monthly_spec:  ORDINAL day_name time_in_HHMM.    (32)
 
-	.  reduce 32 (src line 125)
+	.  reduce 32 (src line 86)
 
 
 state 48
@@ -412,7 +412,7 @@ state 48
 
 	AM  shift 34
 	PM  shift 35
-	.  reduce 9 (src line 94)
+	.  reduce 9 (src line 55)
 
 	am_or_pm  goto 56
 
@@ -433,13 +433,13 @@ state 49
 state 50
 	weekly_spec:  WEEKLY AT time_in_HHMM day_name.    (14)
 
-	.  reduce 14 (src line 101)
+	.  reduce 14 (src line 62)
 
 
 state 51
 	weekly_spec:  WEEKLY time_in_HHMM ON day_name.    (13)
 
-	.  reduce 13 (src line 100)
+	.  reduce 13 (src line 61)
 
 
 state 52
@@ -454,37 +454,37 @@ state 52
 state 53
 	monthly_spec:  MONTHLY AT time_in_HHMM month_day.    (29)
 
-	.  reduce 29 (src line 122)
+	.  reduce 29 (src line 83)
 
 
 state 54
 	monthly_spec:  MONTHLY time_in_HHMM ON month_day.    (28)
 
-	.  reduce 28 (src line 121)
+	.  reduce 28 (src line 82)
 
 
 state 55
 	monthly_spec:  ORDINAL day_name AT time_in_HHMM.    (31)
 
-	.  reduce 31 (src line 124)
+	.  reduce 31 (src line 85)
 
 
 state 56
 	time_in_HHMM:  NUMBER ':' NUMBER am_or_pm.    (10)
 
-	.  reduce 10 (src line 95)
+	.  reduce 10 (src line 56)
 
 
 state 57
 	weekly_spec:  WEEKLY AT time_in_HHMM ON day_name.    (12)
 
-	.  reduce 12 (src line 99)
+	.  reduce 12 (src line 60)
 
 
 state 58
 	monthly_spec:  MONTHLY AT time_in_HHMM ON month_day.    (27)
 
-	.  reduce 27 (src line 120)
+	.  reduce 27 (src line 81)
 
 
 21 terminals, 10 nonterminals
