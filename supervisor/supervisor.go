@@ -143,9 +143,23 @@ func (s *Supervisor) CheckSchedule() {
 		}
 
 		fmt.Printf("scheduling execution of job %s\n", job.UUID.String())
-		s.runq = append(s.runq, job.Task())
+		task := job.Task()
+		id, err := s.Database.CreateTask(
+			"system", // owner
+			"backup",
+			"ARGS", // FIXME: need real args
+			job.UUID,
+			uuid.NewRandom(), // FIXME: need a real archive UUID?
+		)
+		if err != nil {
+			fmt.Printf("job -> task conversion / database update failed: %s\n", err)
+			continue
+		}
 
-		err := job.Reschedule()
+		task.uuid = id
+		s.runq = append(s.runq, task)
+
+		err = job.Reschedule()
 		if err != nil {
 			fmt.Printf("error encountered while determining next run of %s (%s): %s\n",
 				job.UUID.String(), job.Spec.String(), err)
@@ -169,19 +183,27 @@ func (s *Supervisor) Run() {
 			s.CheckSchedule()
 
 		case u := <-s.updates:
-			fmt.Printf("received an update for %s from a worker\n", u.task.String())
 			if u.op == STOPPED {
-				fmt.Printf("  job stopped at %s\n", u.stoppedAt.String())
+				fmt.Printf("  %s: job stopped at %s\n", u.task, u.stoppedAt.String())
+				if err := s.Database.CompleteTask(u.task, u.stoppedAt); err != nil {
+					fmt.Printf("  %s: !! failed to update database - %s\n", u.task, err)
+				}
+
 			} else if u.op == OUTPUT {
-				fmt.Printf("  OUTPUT: `%s`\n", u.output)
+				fmt.Printf("  %s> %s\n", u.task, u.output)
+				if err := s.Database.UpdateTaskLog(u.task, u.output); err != nil {
+					fmt.Printf("  %s: !! failed to update database - %s\n", u.task, err)
+				}
+
 			} else {
-				fmt.Printf("  unrecognized op type\n")
+				fmt.Printf("  %s: !! unrecognized op type\n", u.task)
 			}
 
 		default:
 			if len(s.runq) > 0 {
 				select {
 				case s.workers <- *s.runq[0]:
+					s.Database.StartTask(s.runq[0].uuid, time.Now())
 					fmt.Printf("sent a task to a worker\n")
 					s.runq = s.runq[1:]
 				default:

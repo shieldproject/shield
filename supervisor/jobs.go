@@ -29,7 +29,6 @@ type Job struct {
 
 func (j *Job) Task() *Task {
 	return &Task{
-		uuid: uuid.NewRandom(),
 		Store: &PluginConfig{
 			Plugin:   j.Store.Plugin,
 			Endpoint: j.Store.Endpoint,
