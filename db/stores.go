@@ -65,6 +65,7 @@ func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, err
 	if err != nil {
 		return l, err
 	}
+	defer r.Close()
 
 	for r.Next() {
 		ann := &AnnotatedStore{}

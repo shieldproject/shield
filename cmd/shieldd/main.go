@@ -16,29 +16,28 @@ import (
 func main() {
 	fmt.Printf("starting up...\n")
 
-	db := &db.DB{
+	database := &db.DB{
 		Driver: "sqlite3",
 		DSN:    "/tmp/db.sqlite3", // FIXME: need configuration
 	}
 
-	// connect in main goroutine
-	if err := db.Connect(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
-			db.Driver, db.DSN, err)
-		return
-	}
-
-	// FIXME: move this into a separate schema tool ...
-	if err := db.Setup(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to set up schema in %s database at %s: %s\n",
-			db.Driver, db.DSN, err)
-		return
-	}
-
+	// spin up the HTTP API
 	c := make(chan int)
-	go api.Run(":8080", db, c)
+	go api.Run(":8080", database, c)
 
-	s := supervisor.NewSupervisor(db, c)
+	// connect in main goroutine
+	if err := database.Connect(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
+			database.Driver, database.DSN, err)
+		return
+	}
+
+	if err := database.CheckCurrentSchema(); err != nil {
+		fmt.Fprintf(os.Stderr, "database failed schema version check: %s\n", err)
+		return
+	}
+
+	s := supervisor.NewSupervisor(database, c)
 
 	s.SpawnScheduler()
 	s.SpawnWorker()
