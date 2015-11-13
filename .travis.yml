@@ -10,8 +10,10 @@ before_install:
 script:
 - go vet -x github.com/starkandwayne/shield/...
 - go test -v github.com/starkandwayne/shield/...
+- go test -race github.com/starkandwayne/shield/...
 
 notifications:
   email:
     on_success: never
-    on_failure: never
+    on_failure:
+    - jhunt@starkandwayne.com
