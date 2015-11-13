@@ -3,7 +3,8 @@ SHIELD TODO
 
 Large Tasks / Features
  - Ad hoc jobs through API
- - Archive creation when backup tasks run
+ - -Archive creation when backup tasks run-
+      FIXED: done!
  - -Enable shorter timespec intervals for testing only (minutely backups?)-
       FIXED: use `SHIELD_MODE=DEV ./shieldd` to run jobs every minute
  - Agent architecture, API, calling protocol
