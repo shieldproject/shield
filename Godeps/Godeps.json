@@ -37,6 +37,10 @@
 			"ImportPath": "github.com/voxelbrain/goptions",
 			"Comment": "2.5.10",
 			"Rev": "68583de33d9209ba795a0a334dad27418e4c18f5"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
 		}
 	]
 }
