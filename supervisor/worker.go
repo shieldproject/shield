@@ -28,26 +28,30 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 	for t := range work {
 		fmt.Printf("worker %d received task %v\n", id, t.UUID.String())
 
-		var output []string
+		output := make(chan string)
 		stderr := make(chan string)
 		stdout := make(chan string)
 
 		// drain stdout to the output[] array
-		go func() {
+		go func(out chan string, in chan string) {
+			var b []string
 			for {
-				s, ok := <-stdout
+				s, ok := <-in
 				if !ok {
 					break
 				}
-				output = append(output, s)
+				b = append(b, s)
 			}
-		}()
+
+			out <- strings.Join(b, "")
+			close(out)
+		}(output, stdout)
 
 		// relay messages on stderr to the updates
 		// channel, wrapped in a WorkerUpdate struct
-		go func() {
+		go func(t Task, in chan string) {
 			for {
-				s, ok := <-stderr
+				s, ok := <-in
 				if !ok {
 					break
 				}
@@ -57,7 +61,7 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 					Output: s,
 				}
 			}
-		}()
+		}(t, stderr)
 
 		// run the task...
 		err := t.Run(stdout, stderr)
@@ -76,7 +80,7 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 				Key string
 			}{}
 
-			buf := bytes.NewBufferString(strings.Join(output, ""))
+			buf := bytes.NewBufferString(<-output)
 			dec := json.NewDecoder(buf)
 			err := dec.Decode(&v)
 
