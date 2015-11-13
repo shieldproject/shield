@@ -1,2 +1,7 @@
 /shieldd
 /shield-schema
+/dummy
+/elasticsearch
+/postgres
+/redis
+/s3

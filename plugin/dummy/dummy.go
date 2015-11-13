@@ -33,12 +33,12 @@ func main() {
 
 // Define my DummyPlugin type
 type DummyPlugin struct {
-	Meta plugin.PluginInfo // needs a place to store metadata
+	meta plugin.PluginInfo // needs a place to store metadata
 }
 
 // This function should be used to return the plugin's PluginInfo, however you decide to implement it
 func (p DummyPlugin) Meta() plugin.PluginInfo {
-	return p.Meta
+	return p.meta
 }
 
 // Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly
