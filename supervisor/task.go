@@ -6,6 +6,9 @@ import (
 	"io"
 	"os/exec"
 	"time"
+	"os"
+	"fmt"
+	"sync"
 )
 
 type Operation int
@@ -14,6 +17,17 @@ const (
 	BACKUP Operation = iota
 	RESTORE
 )
+
+func (o Operation) String() string {
+	switch o {
+	case BACKUP:
+		return "backup"
+	case RESTORE:
+		return "restore"
+	default:
+		return "UNKNOWN"
+	}
+}
 
 type Status int
 
@@ -44,73 +58,56 @@ type Task struct {
 	Output []string
 }
 
-func drain(io io.Reader, name string, ch chan string) {
-	s := bufio.NewScanner(io)
-	for s.Scan() {
-		ch <- s.Text()
-	}
-}
+func (t *Task) Run(output chan string, errors chan string) error {
+	cmd := exec.Command("shield-pipe")
+	cmd.Env = []string{
+		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
+		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
+		fmt.Sprintf("USER=%s", os.Getenv("USER")),
+		fmt.Sprintf("LANG=%s", os.Getenv("LANG")),
 
-func (t *Task) Run(stdout chan string, stderr chan string) error {
-	var targetCommand string
-	var storeCommand string
-	if t.Op == BACKUP {
-		targetCommand = "backup"
-		storeCommand = "store"
-
-	} else {
-		targetCommand = "restore"
-		storeCommand = "retrieve"
+		fmt.Sprintf("SHIELD_OP=%s", t.Op),
+		fmt.Sprintf("SHIELD_STORE_PLUGIN=%s", t.Store.Plugin),
+		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", t.Store.Endpoint),
+		fmt.Sprintf("SHIELD_TARGET_PLUGIN=%s", t.Target.Plugin),
+		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", t.Target.Endpoint),
+		fmt.Sprintf("SHIELD_RESTORE_KEY=%s", "FIXME"), // FIXME
 	}
 
-	targetArgs := []string{
-		targetCommand,
-		"--endpoint",
-		t.Target.Endpoint,
-	}
-	targetCmd := exec.Command(t.Target.Plugin, targetArgs...)
-	storeArgs := []string{
-		storeCommand,
-		"--endpoint",
-		t.Store.Endpoint,
-	}
-	if t.Op != BACKUP {
-		storeArgs = append(storeArgs, "--key", "FIXME")
-	}
-	storeCmd := exec.Command(t.Store.Plugin, storeArgs...)
-
-	var pstdout io.Reader
-	if t.Op == BACKUP {
-		storeCmd.Stdin, _ = targetCmd.StdoutPipe()
-		pstdout, _ = storeCmd.StdoutPipe()
-	} else {
-		targetCmd.Stdin, _ = storeCmd.StdoutPipe()
-		pstdout, _ = targetCmd.StdoutPipe()
-	}
-
-	pTargetStderr, _ := targetCmd.StderrPipe()
-	pStoreStderr, _ := storeCmd.StderrPipe()
-
-	go drain(pTargetStderr, "stderr", stderr)
-	go drain(pStoreStderr, "stderr", stderr)
-	go drain(pstdout, "stdout", stdout)
-
-	err := targetCmd.Start()
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
 	}
-	err = storeCmd.Start()
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return err
 	}
 
-	err = storeCmd.Wait()
+	var wg sync.WaitGroup
+	drain := func(rd io.Reader, c chan string) {
+		defer wg.Done()
+		s := bufio.NewScanner(rd)
+		for s.Scan() {
+			c <- s.Text()
+		}
+		close(c)
+	}
+
+	wg.Add(2)
+	go drain(stdout, output)
+	go drain(stderr, errors)
+
+	err = cmd.Start()
 	if err != nil {
 		return err
 	}
-	err = targetCmd.Wait()
+
+	wg.Wait()
+
+	err = cmd.Wait()
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
