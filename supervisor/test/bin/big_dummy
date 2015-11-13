@@ -25,8 +25,26 @@ EOF
 
 # dummy <mode> --endpoint <endpoint_JSON> --key <KEY_ID>
 MODE=${1}
-SHIELD_ENDPOINT=${3}
-KEY=${5}
+shift
+
+while [[ $# -gt 0 ]]; do
+	case $1 in
+	(-k|--key)
+		shift
+		KEY=$1
+		shift
+		;;
+	(-e|--endpoint)
+		shift
+		SHIELD_ENDPOINT=$1
+		shift
+		;;
+	(*)
+		echo >&2 "Unrecognized option / value: '$1'"
+		exit 1
+		;;
+	esac
+done
 
 diag "starting up..."
 
