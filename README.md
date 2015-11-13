@@ -403,6 +403,35 @@ Setting the environment variable `SHIELD_MODE` to the value `DEV`
 will cause all scheduling information to revert to "every minute"
 regardless of the actual schedule.  This is to assist developers.
 
+## The Makefile
+
+The Makefile is used to assist with development. The available targets are:
+* `test` | `tests` : runs all the tests
+* `plugin` | `plugins` : builds all the plugin binaries
+* `shield` : builds the `shieldd` and `shield-schema` binaries
+* `all-the-things` : runs all the tests and builds all the binaries.
+
+`all-the-things` is also the default behavior, so running `make` with no targets is the same as `make all-the-things`.
+
+Examples:
+
+```
+$ make shield
+go build ./cmd/shieldd
+go build ./cmd/shield-schema
+
+$ make tests
+ginkgo *
+[1447388660] HTTP REST API Test Suite - 69/69 specs ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 84.112022ms PASS
+[1447388660] Database Layer Test Suite - 19/19 specs ••••••••••••••••••• SUCCESS! 12.447835ms PASS
+[1447388660] Plugin Framework Test Suite - 45/45 specs ••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 22.374368ms PASS
+[1447388660] Supervisor Test Suite - 14/14 specs •••••••••••••• SUCCESS! 3.922723257s PASS
+[1447388660] Timespec Test Suite - 34/34 specs •••••••••••••••••••••••••••••••••• SUCCESS! 21.766349ms PASS
+
+Ginkgo ran 5 suites in 6.900078754s
+Test Suite Passed
+```
+
 ## CLI Usage Examples
 
 This section is exploratory.
