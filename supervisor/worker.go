@@ -18,15 +18,15 @@ const (
 )
 
 type WorkerUpdate struct {
-	task      uuid.UUID
-	op        UpdateOp
-	stoppedAt time.Time
-	output    string
+	Task      uuid.UUID
+	Op        UpdateOp
+	StoppedAt time.Time
+	Output    string
 }
 
 func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 	for t := range work {
-		fmt.Printf("worker %d received task %v\n", id, t.uuid.String())
+		fmt.Printf("worker %d received task %v\n", id, t.UUID.String())
 
 		var output []string
 		stderr := make(chan string)
@@ -52,7 +52,7 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 					break
 				}
 				updates <- WorkerUpdate{
-					task:   t.uuid,
+					task:   t.UUID,
 					op:     OUTPUT,
 					output: s,
 				}
@@ -85,7 +85,7 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 
 			} else {
 				updates <- WorkerUpdate{
-					task:   t.uuid,
+					task:   t.UUID,
 					op:     RESTORE_KEY,
 					output: v.Key,
 				}
@@ -94,7 +94,7 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 
 		// signal to the supervisor that we finished
 		updates <- WorkerUpdate{
-			task:      t.uuid,
+			task:      t.UUID,
 			op:        STOPPED,
 			stoppedAt: time.Now(),
 		}

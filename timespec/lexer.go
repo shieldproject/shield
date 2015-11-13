@@ -7,20 +7,20 @@ import (
 	"strconv"
 )
 
-type Tokens struct {
+type tokens struct {
 	whitespace *regexp.Regexp
 	number     *regexp.Regexp
 	ordinal    *regexp.Regexp
 }
 
-type KeywordMatcher struct {
+type keywordMatcher struct {
 	token int
 	match *regexp.Regexp
 }
 
 type yyLex struct {
-	tokens   Tokens
-	keywords []KeywordMatcher
+	tokens   tokens
+	keywords []keywordMatcher
 	buf      []byte
 	spec     *Spec
 }
@@ -47,21 +47,21 @@ func numify(m []byte) uint {
 }
 
 func (l *yyLex) init() {
-	l.keywords = append(l.keywords, KeywordMatcher{token: DAILY, match: regexp.MustCompile(`^daily`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: WEEKLY, match: regexp.MustCompile(`^weekly`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: MONTHLY, match: regexp.MustCompile(`^monthly`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: AT, match: regexp.MustCompile(`^at`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: ON, match: regexp.MustCompile(`^on`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: AM, match: regexp.MustCompile(`^am`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: PM, match: regexp.MustCompile(`^pm`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: EVERYDAY, match: regexp.MustCompile(`^every\s+day`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: SUNDAY, match: regexp.MustCompile(`^sun(days?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: MONDAY, match: regexp.MustCompile(`^mon(days?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: TUESDAY, match: regexp.MustCompile(`^tue(s(days?)?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: WEDNESDAY, match: regexp.MustCompile(`^wed(nesdays?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: THURSDAY, match: regexp.MustCompile(`^thu(r(s(days?)?)?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: FRIDAY, match: regexp.MustCompile(`^fri(days?)?`)})
-	l.keywords = append(l.keywords, KeywordMatcher{token: SATURDAY, match: regexp.MustCompile(`^sat(urdays?)?`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: DAILY, match: regexp.MustCompile(`^daily`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: WEEKLY, match: regexp.MustCompile(`^weekly`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: MONTHLY, match: regexp.MustCompile(`^monthly`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: AT, match: regexp.MustCompile(`^at`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: ON, match: regexp.MustCompile(`^on`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: AM, match: regexp.MustCompile(`^am`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: PM, match: regexp.MustCompile(`^pm`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: EVERYDAY, match: regexp.MustCompile(`^every\s+day`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: SUNDAY, match: regexp.MustCompile(`^sun(days?)?`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: MONDAY, match: regexp.MustCompile(`^mon(days?)?`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: TUESDAY, match: regexp.MustCompile(`^tue(s(days?)?)?`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: WEDNESDAY, match: regexp.MustCompile(`^wed(nesdays?)?`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: THURSDAY, match: regexp.MustCompile(`^thu(r(s(days?)?)?)?`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: FRIDAY, match: regexp.MustCompile(`^fri(days?)?`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: SATURDAY, match: regexp.MustCompile(`^sat(urdays?)?`)})
 
 	l.tokens.whitespace = regexp.MustCompile(`^\s+`)
 	l.tokens.number = regexp.MustCompile(`^\d+`)

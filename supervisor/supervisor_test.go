@@ -133,7 +133,7 @@ var _ = Describe("Retrieving Jobs", func() {
 	var s Supervisor
 	BeforeEach(func() {
 		var err error
-		s.Database, err = Database()
+		s.database, err = Database()
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 	Context("With an empty database", func() {
@@ -156,7 +156,7 @@ var _ = Describe("Retrieving Jobs", func() {
 			STORE_TWO_UUID := `9eb022c4-227f-44f1-b11b-b6d8bcfc3c4f`
 			SCHED_TWO_UUID := `4b8432b9-b5e9-46d5-b23e-ba70983a2acc`
 			RETEN_TWO_UUID := `f7dee6c2-59c4-439d-9d92-04046b8beb68`
-			s.Database, err = Database(
+			s.database, err = Database(
 				`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused, name, summary) VALUES
 					("`+JOB_ONE_UUID+`",
 					 "`+TARGET_ONE_UUID+`",
@@ -234,7 +234,7 @@ var _ = Describe("Retrieving Jobs", func() {
 			STORE_ERR_UUID := `c0db87f2-629f-4fe6-ab8f-29e7f2831fbb`
 			SCHED_ERR_UUID := `29d381b8-021e-4049-82c0-52a5d3e52794`
 			RETEN_ERR_UUID := `01c0b2e2-8e4e-4039-a0b1-74f429180c4c`
-			s.Database, err = Database(
+			s.database, err = Database(
 				`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused, name, summary) VALUES
 					("`+JOB_ERR_UUID+`",
 					 "`+TARGET_ERR_UUID+`",

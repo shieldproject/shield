@@ -48,19 +48,19 @@ func (e EndpointDataTypeMismatchError) Error() string {
 }
 
 type ExecFailure struct {
-	err string
+	Err string
 }
 
 func (e ExecFailure) Error() string {
-	return e.err
+	return e.Err
 }
 
 type JSONError struct {
-	err string
+	Err string
 }
 
 func (e JSONError) Error() string {
-	return e.err
+	return e.Err
 }
 
 type MissingRestoreKeyError struct{}

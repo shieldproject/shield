@@ -30,18 +30,18 @@ type PluginConfig struct {
 }
 
 type Task struct {
-	uuid uuid.UUID
+	UUID uuid.UUID
 
 	Store  *PluginConfig
 	Target *PluginConfig
 
 	Op     Operation
-	status Status
+	Status Status
 
-	startedAt time.Time
-	stoppedAt time.Time
+	StartedAt time.Time
+	StoppedAt time.Time
 
-	output []string
+	Output []string
 }
 
 func drain(io io.Reader, name string, ch chan string) {
