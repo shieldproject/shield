@@ -53,14 +53,14 @@ needenv SHIELD_OP \
 
 case ${SHIELD_OP} in
 (backup)
-	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | \
+	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | bzip2 | \
 		${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
 	exit $?
 	;;
 
 (restore)
 	needenv SHIELD_RESTORE_KEY
-	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
+	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | bunzip2 | \
 		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
 	exit $?
 	;;

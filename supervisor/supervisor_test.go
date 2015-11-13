@@ -101,7 +101,7 @@ var _ = Describe("Supervisor", func() {
 
 			var s string
 			Eventually(output).Should(Receive(&s))
-			Expect(s).Should(MatchJSON(`{"key":"eeaf9d4b2c64f55e977983b307cecb824d6f9ba5"}`)) // hand-crafted and verified sha1 for correct backup output
+			Expect(s).Should(MatchJSON(`{"key":"9ea61fef3024caadf35dd65d466a41fb51a3c152"}`)) // depends on bzip2 compression
 
 			Eventually(errors).Should(Receive(&s))
 			Expect(s).Should(MatchRegexp(`\Q(dummy) store:  starting up...\E`))
@@ -126,7 +126,7 @@ var _ = Describe("Supervisor", func() {
 
 			var s string
 			Eventually(output).Should(Receive(&s))
-			Expect(s).Should(MatchJSON(`{"key":"146e0c0e4488be356e122279ffdba4edc69664c5"}`)) // hand-crafted and verified sha1 for correct backup output
+			Expect(s).Should(MatchJSON(`{"key":"acfd124b56584c471d7e03572fe62222ee4862e9"}`)) // depends on bzip2 compression
 		})
 
 		It("Restore ops work with large output", func() {
@@ -146,7 +146,7 @@ var _ = Describe("Supervisor", func() {
 			var s string
 			Eventually(output).Should(Receive(&s))
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(s).Should(Equal(`SHA1SUM of restored data: 27b7a6508a602ac5e34da34bfa9ef322377b3fbb`)) // hand-crafted and verified sha1 for correct backup output
+			Expect(s).Should(Equal(`SHA1SUM of restored data: da39a3ee5e6b4b0d3255bfef95601890afd80709`)) // depends on bzip2 compression
 		})
 	})
 })
