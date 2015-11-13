@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# shield-pipe - Command Pipelining for Shield Plugins
+#
+# This script inspects its environments and then orchestrates two
+# processes (the store and target plugins) in the correct order,
+# with the correct arguments.
+#
+# Environment Variables
+# ---------------------
+#
+#   SHIELD_OP                 Operation: either 'backup' or 'restore'
+#   SHIELD_TARGET_PLUGIN      Path to the target plugin to use
+#   SHIELD_TARGET_ENDPOINT    The target endpoint config (probably JSON)
+#   SHIELD_STORE_PLUGIN       Path to the store plugin to use
+#   SHIELD_STORE_ENDPOINT     The store endpoint config (probably JSON)
+#   SHIELD_RESTORE_KEY        Archive key for 'restore' operations
+#
+# Exit Codes
+# ----------
+#
+#      0    Success
+#    144    Missing a required environment variable
+#    145    Invalid $SHIELD_OP (not 'backup' or 'restore')
+#
+# Justification
+# -------------
+#
+# This script exists because the Go runtime is unable to handle the
+# complicated pipe/exec scenario Shield requires, due to a bug in the
+# runtime and/or standard library
+#
+# See https://github.com/golang/go/issues/9307
+#     https://github.com/golang/go/issues/9382
+#     https://code.google.com/p/go/issues/detail?id=2266
+#
+
+needenv() {
+	for var in "$@"; do
+		eval v=\$$var
+		if [[ -z ${v} ]]; then
+			echo >&2 "Missing required $var environment variable; bailing out"
+			exit 144
+		fi
+	done
+}
+
+needenv SHIELD_OP \
+        SHIELD_STORE_PLUGIN \
+        SHIELD_STORE_ENDPOINT \
+        SHIELD_TARGET_PLUGIN \
+        SHIELD_TARGET_ENDPOINT
+
+case ${SHIELD_OP} in
+(backup)
+	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | \
+		${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
+	exit $?
+	;;
+
+(restore)
+	needenv SHIELD_RESTORE_KEY
+	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
+		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+	exit $?
+	;;
+
+(*)
+	echo >&2 "Invalid SHIELD_OP '${SHIELD_OP}'; bailing out"
+	exit 145
+esac
