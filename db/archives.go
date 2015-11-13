@@ -7,7 +7,6 @@ import (
 
 type AnnotatedArchive struct {
 	UUID string `json:"uuid"`
-	/* FIXME: need other fields for target / store / key */
 	StoreKey  string `json:"key"`
 	TakenAt   string `json:"taken_at"`
 	ExpiresAt string `json:"expires_at"`

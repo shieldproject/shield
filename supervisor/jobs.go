@@ -19,7 +19,6 @@ type Job struct {
 	Store  *PluginConfig
 	Target *PluginConfig
 	Spec   *timespec.Spec
-	// FIXME retention policy
 	Paused bool
 
 	NextRun time.Time
