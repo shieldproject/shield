@@ -52,9 +52,9 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 					break
 				}
 				updates <- WorkerUpdate{
-					task:   t.UUID,
-					op:     OUTPUT,
-					output: s,
+					Task:   t.UUID,
+					Op:     OUTPUT,
+					Output: s,
 				}
 			}
 		}()
@@ -85,18 +85,18 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 
 			} else {
 				updates <- WorkerUpdate{
-					task:   t.UUID,
-					op:     RESTORE_KEY,
-					output: v.Key,
+					Task:   t.UUID,
+					Op:     RESTORE_KEY,
+					Output: v.Key,
 				}
 			}
 		}
 
 		// signal to the supervisor that we finished
 		updates <- WorkerUpdate{
-			task:      t.UUID,
-			op:        STOPPED,
-			stoppedAt: time.Now(),
+			Task:      t.UUID,
+			Op:        STOPPED,
+			StoppedAt: time.Now(),
 		}
 	}
 }

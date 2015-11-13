@@ -28,7 +28,7 @@ func (e JobFailedError) Error() string {
 
 func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 	l := []*Job{}
-	result, err := s.database.Query(`
+	result, err := s.Database.Query(`
 		SELECT j.uuid, j.paused,
 		       t.plugin, t.endpoint,
 		       s.plugin, s.endpoint,
@@ -74,7 +74,7 @@ type Supervisor struct {
 	workers chan Task         /* workers read from this channel to get tasks */
 	updates chan WorkerUpdate /* workers write updates to this channel */
 
-	database *db.DB
+	Database *db.DB
 
 	runq []*Task
 	jobq []*Job
@@ -91,7 +91,7 @@ func NewSupervisor(database *db.DB, resyncc chan int) *Supervisor {
 		runq:    make([]*Task, 0),
 		jobq:    make([]*Job, 0),
 
-		database: database,
+		Database: database,
 	}
 
 	if err := s.Resync(); err != nil {
@@ -144,7 +144,7 @@ func (s *Supervisor) CheckSchedule() {
 
 		fmt.Printf("scheduling execution of job %s\n", job.UUID.String())
 		task := job.Task()
-		id, err := s.database.CreateTask(
+		id, err := s.Database.CreateTask(
 			"system", // owner
 			"backup",
 			"ARGS", // FIXME: need real args
@@ -184,19 +184,19 @@ func (s *Supervisor) Run() {
 		case u := <-s.updates:
 			if u.Op == STOPPED {
 				fmt.Printf("  %s: job stopped at %s\n", u.Task, u.StoppedAt.String())
-				if err := s.database.CompleteTask(u.Task, u.StoppedAt); err != nil {
+				if err := s.Database.CompleteTask(u.Task, u.StoppedAt); err != nil {
 					fmt.Printf("  %s: !! failed to update database - %s\n", u.Task, err)
 				}
 
 			} else if u.Op == OUTPUT {
 				fmt.Printf("  %s> %s\n", u.Task, u.Output)
-				if err := s.database.UpdateTaskLog(u.Task, u.Output); err != nil {
+				if err := s.Database.UpdateTaskLog(u.Task, u.Output); err != nil {
 					fmt.Printf("  %s: !! failed to update database - %s\n", u.Task, err)
 				}
 
 			} else if u.Op == RESTORE_KEY {
 				fmt.Printf("  %s: restore key is %s\n", u.Task, u.Output)
-				if err := s.database.CreateTaskArchive(u.Task, u.Output, time.Now()); err != nil {
+				if err := s.Database.CreateTaskArchive(u.Task, u.Output, time.Now()); err != nil {
 					fmt.Printf("  %s: !! failed to update database - %s\n", u.Task, err)
 				}
 
@@ -208,7 +208,7 @@ func (s *Supervisor) Run() {
 			if len(s.runq) > 0 {
 				select {
 				case s.workers <- *s.runq[0]:
-					s.database.StartTask(s.runq[0].UUID, time.Now())
+					s.Database.StartTask(s.runq[0].UUID, time.Now())
 					fmt.Printf("sent a task to a worker\n")
 					s.runq = s.runq[1:]
 				default:

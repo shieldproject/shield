@@ -163,7 +163,7 @@ func dispatch(p Plugin, mode string, opts PluginOpts) error {
 			Key string `json:"key"`
 		}{Key: key}, "", "    ")
 		if jsonErr != nil {
-			return JSONError{err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
+			return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
 		}
 		fmt.Fprintf(stdout, "%s\n", string(output))
 	case "retrieve":
@@ -212,7 +212,7 @@ func getPluginOptions() (PluginOpts, error) {
 func pluginInfo(p Plugin) error {
 	json, err := json.MarshalIndent(p.Meta(), "", "    ")
 	if err != nil {
-		return JSONError{err: fmt.Sprintf("Could not create plugin metadata output: %s", err.Error())}
+		return JSONError{Err: fmt.Sprintf("Could not create plugin metadata output: %s", err.Error())}
 	}
 	fmt.Fprintf(stdout, "%s\n", json)
 	return nil

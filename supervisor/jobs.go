@@ -38,8 +38,8 @@ func (j *Job) Task() *Task {
 			Endpoint: j.Target.Endpoint,
 		},
 		Op:     BACKUP,
-		status: PENDING,
-		output: make([]string, 0),
+		Status: PENDING,
+		Output: make([]string, 0),
 	}
 }
 

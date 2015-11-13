@@ -18,7 +18,7 @@ func getEndpoint(j string) (ShieldEndpoint, error) {
 	endpoint := make(ShieldEndpoint)
 	err := json.Unmarshal([]byte(j), &endpoint)
 	if err != nil {
-		return nil, JSONError{err: fmt.Sprintf("Error trying parse --endpoint value as JSON: %s", err.Error())}
+		return nil, JSONError{Err: fmt.Sprintf("Error trying parse --endpoint value as JSON: %s", err.Error())}
 	}
 
 	return endpoint, nil

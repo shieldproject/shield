@@ -14,7 +14,7 @@ const STDOUT = 2
 func ExecWithPipes(cmdString string, stdout *os.File, stderr *os.File, stdin *os.File) error {
 	cmdArgs, err := shellwords.Parse(cmdString)
 	if err != nil {
-		return ExecFailure{err: fmt.Sprintf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error())}
+		return ExecFailure{Err: fmt.Sprintf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error())}
 	}
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
 
@@ -30,7 +30,7 @@ func ExecWithPipes(cmdString string, stdout *os.File, stderr *os.File, stdin *os
 	}
 	err = cmd.Run()
 	if err != nil {
-		return ExecFailure{err: fmt.Sprintf("Unable to exec '%s': %s", cmdArgs[0], err.Error())}
+		return ExecFailure{Err: fmt.Sprintf("Unable to exec '%s': %s", cmdArgs[0], err.Error())}
 	}
 	return nil
 }
