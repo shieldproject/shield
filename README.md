@@ -406,10 +406,11 @@ regardless of the actual schedule.  This is to assist developers.
 ## The Makefile
 
 The Makefile is used to assist with development. The available targets are:
-* `test` | `tests` : runs all the tests
+* `test` | `tests` : runs all the tests with no additional parameters
+* `race` : runs `ginkgo -race *` to test for race conditions
 * `plugin` | `plugins` : builds all the plugin binaries
 * `shield` : builds the `shieldd` and `shield-schema` binaries
-* `all-the-things` : runs all the tests and builds all the binaries.
+* `all-the-things` : runs all the tests (except the race test) and builds all the binaries.
 
 `all-the-things` is also the default behavior, so running `make` with no targets is the same as `make all-the-things`.
 

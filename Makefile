@@ -9,6 +9,9 @@ test:
 	ginkgo *
 tests: test
 
+# Running Tests for race conditions
+race:
+	ginkgo -race *
 # Building Shield
 shield:
 	go build ./cmd/shieldd
