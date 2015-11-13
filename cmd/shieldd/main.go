@@ -4,46 +4,49 @@ package main
 
 import (
 	"fmt"
-	"github.com/starkandwayne/shield/api"
-	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/supervisor"
-	"os"
+	"github.com/voxelbrain/goptions"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type ShielddOpts struct {
+	ConfigFile string `goptions:"-c, --config, obligatory, description='Path to the shieldd configuration file'"`
+}
+
 func main() {
 	fmt.Printf("starting up...\n")
 
-	database := &db.DB{
-		Driver: "sqlite3",
-		DSN:    "/tmp/db.sqlite3", // FIXME: need configuration
-	}
-
-	// spin up the HTTP API
-	c := make(chan int)
-	go api.Run(":8080", database, c)
-
-	// connect in main goroutine
-	if err := database.Connect(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
-			database.Driver, database.DSN, err)
+	var opts ShielddOpts
+	if err := goptions.Parse(&opts); err != nil {
+		fmt.Printf("%s\n", err)
+		goptions.PrintHelp()
 		return
 	}
 
-	if err := database.CheckCurrentSchema(); err != nil {
-		fmt.Fprintf(os.Stderr, "database failed schema version check: %s\n", err)
+	s := supervisor.NewSupervisor()
+	if err := s.ReadConfig(opts.ConfigFile); err != nil {
+		fmt.Printf("configuraiton failed: %s\n", err)
 		return
 	}
 
-	s := supervisor.NewSupervisor(database, c)
-
+	s.SpawnAPI()
 	s.SpawnScheduler()
 	s.SpawnWorker()
 	s.SpawnWorker()
 	s.SpawnWorker()
 
-	s.Run()
+	err := s.Run()
+	if err != nil {
+		if e, ok := err.(supervisor.JobFailedError); ok {
+			fmt.Printf("errors encountered while retrieving initial jobs list from database\n")
+			for _, fail := range e.FailedJobs {
+				fmt.Printf("  - job %s (%s) failed: %s\n", fail.UUID, fail.Tspec, fail.Error)
+			}
+		} else {
+			fmt.Printf("shield daemon failed: %s\n", err)
+		}
+	}
 	fmt.Printf("shutting down...\n")
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
+	"github.com/starkandwayne/shield/api"
 	"strings"
 	"time"
 )
@@ -82,36 +83,17 @@ type Supervisor struct {
 	nextWorker uint
 }
 
-func NewSupervisor(database *db.DB, resyncc chan int) *Supervisor {
-	s := &Supervisor{
+func NewSupervisor() *Supervisor {
+	return &Supervisor{
 		tick:    make(chan int),
-		resync:  resyncc,
+		resync:  make(chan int),
 		workers: make(chan Task),
 		updates: make(chan WorkerUpdate),
 		runq:    make([]*Task, 0),
 		jobq:    make([]*Job, 0),
 
-		Database: database,
+		Database: &db.DB{},
 	}
-
-	if err := s.Resync(); err != nil {
-		fmt.Printf("errors encountered while retrieving initial jobs list from database\n")
-		if e, ok := err.(JobFailedError); ok {
-			for _, fail := range e.FailedJobs {
-				fmt.Printf("  - job %s (%s) failed: %s\n", fail.UUID, fail.Tspec, fail.Error)
-			}
-		} else {
-			fmt.Printf("general error: %s\n", err)
-		}
-		return nil
-	}
-	if DEV_MODE_SCHEDULING {
-		for _, job := range s.jobq {
-			job.NextRun = time.Now()
-		}
-	}
-
-	return s
 }
 
 func (s *Supervisor) Resync() error {
@@ -169,8 +151,25 @@ func (s *Supervisor) CheckSchedule() {
 	}
 }
 
-func (s *Supervisor) Run() {
-	// multiplex between workers and supervisor
+func (s *Supervisor) Run() error {
+	if err := s.Database.Connect(); err != nil {
+		return fmt.Errorf("failed to connect to %s database at %s: %s\n",
+			s.Database.Driver, s.Database.DSN, err)
+	}
+
+	if err := s.Database.CheckCurrentSchema(); err != nil {
+		return fmt.Errorf("database failed schema version check: %s\n", err)
+	}
+
+	if err := s.Resync(); err != nil {
+		return err
+	}
+	if DEV_MODE_SCHEDULING {
+		for _, job := range s.jobq {
+			job.NextRun = time.Now()
+		}
+	}
+
 	for {
 		select {
 		case <-s.resync:
@@ -216,6 +215,12 @@ func (s *Supervisor) Run() {
 			}
 		}
 	}
+
+	return nil
+}
+
+func (s *Supervisor) SpawnAPI() {
+	go api.Run(":8080", s.Database, s.resync)
 }
 
 func scheduler(c chan int) {
