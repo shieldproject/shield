@@ -9,7 +9,8 @@ Large Tasks / Features
       FIXED: use `SHIELD_MODE=DEV ./shieldd` to run jobs every minute
  - Agent architecture, API, calling protocol
  - CLI implementation
- - Investigate Docker/Garden implementation for plugins
+ - -Investigate Docker/Garden implementation for plugins-
+      WONTFIX: not happending for current iteration
 
 Small Tasks / Fixes / Enhancement
  - Handle timeframe handling for archives API
