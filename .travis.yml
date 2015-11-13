@@ -17,3 +17,4 @@ notifications:
     on_success: never
     on_failure:
     - jhunt@starkandwayne.com
+    - qanx@starkandwayne.com
