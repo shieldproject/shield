@@ -72,10 +72,6 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 		if t.Op == BACKUP {
 			// parse JSON from standard output and get the restore key
 			// (this might fail, we might not get a key, etc.)
-
-			// FIXME: stop the drain goroutine for stdout.
-			// FIXME: (geoff noticed some data races here, so that may just happen
-			//         when he fixes those)
 			v := struct {
 				Key string
 			}{}
