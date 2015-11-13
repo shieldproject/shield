@@ -55,76 +55,98 @@ var _ = Describe("Supervisor", func() {
 			}
 		})
 
-		drainTo := func(dst *[]string, ch chan string) {
+		drain := func(in chan string) {
 			for {
-				s, ok := <-ch
+				if _, ok := <-in; !ok {
+					break
+				}
+			}
+		}
+		collect := func(out chan string, in chan string) {
+			var buf []string
+			for {
+				s, ok := <-in;
 				if !ok {
 					break
 				}
-				*dst = append(*dst, s)
+				buf = append(buf, s)
 			}
+			out <- strings.Join(buf, "")
+			close(out)
 		}
 
 		It("works", func() {
-			var output, errors []string
-
 			stdout := make(chan string)
 			stderr := make(chan string)
 
-			go drainTo(&output, stdout)
-			go drainTo(&errors, stderr)
+			go drain(stdout)
+			go drain(stderr)
 
 			err := t.Run(stdout, stderr)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		It("collects output from the command pipeline", func() {
-			var output, errors []string
+			output := make(chan string)
+			errors := make(chan string)
 
 			stdout := make(chan string)
 			stderr := make(chan string)
 
-			go drainTo(&output, stdout)
-			go drainTo(&errors, stderr)
+			go collect(output, stdout)
+			go collect(errors, stderr)
 
 			err := t.Run(stdout, stderr)
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(len(output)).Should(BeNumerically(">", 0))
-			Ω(len(errors)).Should(BeNumerically(">", 0))
-			Expect(strings.Join(output, "\n")).Should(MatchJSON(`{"key":"eeaf9d4b2c64f55e977983b307cecb824d6f9ba5"}`)) // hand-crafted and verified sha1 for correct backup output
-			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) store:  starting up...\E`))
-			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) backup:  starting up...\E`))
-			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) backup:  shutting down...\E`))
-			Expect(strings.Join(errors, "\n")).Should(MatchRegexp(`\Q(dummy) store:  shutting down...\E`))
+
+			var s string
+			Eventually(output).Should(Receive(&s))
+			Expect(s).Should(MatchJSON(`{"key":"eeaf9d4b2c64f55e977983b307cecb824d6f9ba5"}`)) // hand-crafted and verified sha1 for correct backup output
+
+			Eventually(errors).Should(Receive(&s))
+			Expect(s).Should(MatchRegexp(`\Q(dummy) store:  starting up...\E`))
+			Expect(s).Should(MatchRegexp(`\Q(dummy) backup:  starting up...\E`))
+			Expect(s).Should(MatchRegexp(`\Q(dummy) backup:  shutting down...\E`))
+			Expect(s).Should(MatchRegexp(`\Q(dummy) store:  shutting down...\E`))
 		})
+
 		It("Backup ops work with large output", func() {
-			var output, errors []string
+			output := make(chan string)
 
 			stdout := make(chan string)
 			stderr := make(chan string)
-			go drainTo(&output, stdout)
-			go drainTo(&errors, stderr)
+
+			go collect(output, stdout)
+			go drain(stderr)
 
 			// big_dummy outputs > 16384 bytes of data
 			t.Target.Plugin = "test/bin/big_dummy"
 			err := t.Run(stdout, stderr)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(strings.Join(output, "\n")).Should(MatchJSON(`{"key":"146e0c0e4488be356e122279ffdba4edc69664c5"}`)) // hand-crafted and verified sha1 for correct backup output
+
+			var s string
+			Eventually(output).Should(Receive(&s))
+			Expect(s).Should(MatchJSON(`{"key":"146e0c0e4488be356e122279ffdba4edc69664c5"}`)) // hand-crafted and verified sha1 for correct backup output
 		})
+
 		It("Restore ops work with large output", func() {
-			var output, errors []string
+			output := make(chan string)
 
 			stdout := make(chan string)
 			stderr := make(chan string)
-			go drainTo(&output, stdout)
-			go drainTo(&errors, stderr)
+
+			go collect(output, stdout)
+			go drain(stderr)
 
 			t.Op = RESTORE
 			// big_dummy outputs > 16384 bytes of data
 			t.Store.Plugin = "test/bin/big_dummy"
 			err := t.Run(stdout, stderr)
+
+			var s string
+			Eventually(output).Should(Receive(&s))
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(strings.Join(output, "\n")).Should(Equal(`SHA1SUM of restored data: 27b7a6508a602ac5e34da34bfa9ef322377b3fbb`)) // hand-crafted and verified sha1 for correct backup output
+			Expect(s).Should(Equal(`SHA1SUM of restored data: 27b7a6508a602ac5e34da34bfa9ef322377b3fbb`)) // hand-crafted and verified sha1 for correct backup output
 		})
 	})
 })

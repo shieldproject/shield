@@ -215,8 +215,6 @@ func (s *Supervisor) Run() error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func (s *Supervisor) SpawnAPI() {
