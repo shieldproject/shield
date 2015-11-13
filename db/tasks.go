@@ -1,10 +1,87 @@
 package db
 
 import (
+	"fmt"
 	"github.com/pborman/uuid"
 	"time"
-	"fmt"
+	"strings"
 )
+
+type AnnotatedTask struct {
+	UUID        string `json:"uuid"`
+	Owner       string `json:"owner"`
+	Op          string `json:"type"`
+	JobUUID     string `json:"job_uuid"`
+	ArchiveUUID string `json:"archive_uuid"`
+	Status      string `json:"status"`
+	StartedAt   string `json:"started_at"`
+	StoppedAt   string `json:"stopped_at"`
+	Log         string `json:"log"`
+}
+
+type TaskFilter struct {
+	ForStatus string
+}
+
+func (f *TaskFilter) Args() []interface{} {
+	var args []interface{}
+	if f.ForStatus != "" {
+		args = append(args, f.ForStatus)
+	}
+	return args
+}
+
+func (f *TaskFilter) Query() string {
+	wheres := []string{"1"}
+	if f.ForStatus != "" {
+		wheres = append(wheres, "status = ?")
+	}
+	return `
+		SELECT t.uuid, t.owner, t.op, j.uuid, a.uuid,
+		       t.status, t.started_at, t.stopped_at, t.log
+
+		FROM tasks t
+			INNER JOIN jobs     j    ON j.uuid = t.job_uuid
+			LEFT  JOIN archives a    ON a.uuid = t.archive_uuid
+
+		WHERE ` + strings.Join(wheres, " AND ") + `
+		ORDER BY t.started_at DESC, t.uuid ASC
+	`
+}
+
+func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error) {
+	l := []*AnnotatedTask{}
+	r, err := db.Query(filter.Query(), filter.Args()...)
+	if err != nil {
+		return l, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		ann := &AnnotatedTask{}
+
+		var archive, started, stopped []byte
+		if err = r.Scan(
+			&ann.UUID, &ann.Owner, &ann.Op, &ann.JobUUID, &archive,
+			&ann.Status, &started, &stopped, &ann.Log); err != nil {
+			return l, err
+		}
+
+		if archive != nil {
+			ann.ArchiveUUID = string(archive)
+		}
+		if started != nil {
+			ann.StartedAt = string(started)
+		}
+		if stopped != nil {
+			ann.StoppedAt = string(stopped)
+		}
+
+		l = append(l, ann)
+	}
+
+	return l, nil
+}
 
 func (db *DB) CreateTask(owner, op, args string, job uuid.UUID) (uuid.UUID, error) {
 	id := uuid.NewRandom()
@@ -80,7 +157,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = ?`,
-		archive_id.String(), key, effective, effective.Add(time.Duration(expiry) * time.Second), id.String(),
+		archive_id.String(), key, effective, effective.Add(time.Duration(expiry)*time.Second), id.String(),
 	)
 	if err != nil {
 		return err

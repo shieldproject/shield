@@ -43,5 +43,9 @@ func Run(bind string, template *db.DB, c chan int) {
 	http.Handle("/v1/targets", targets)
 	http.Handle("/v1/target", targets)
 
+	tasks := &TaskAPI{Data: db}
+	http.Handle("/v1/tasks", tasks)
+	http.Handle("/v1/task", tasks)
+
 	http.ListenAndServe(bind, nil)
 }

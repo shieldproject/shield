@@ -279,7 +279,6 @@ Purpose: allows the Web UI and the CLI to show running tasks, query a specific t
 | :----- | :---- | :------- |
 | GET | /v1/tasks | ?status=:status <br>?debug |
 | POST | /v1/tasks | - |
-| PUT | /v1/task/:uuid | - |
 | DELETE | /v1/task/:uuid | - |
 
 ## Plugin Calling Protocol
