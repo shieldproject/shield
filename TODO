@@ -2,6 +2,7 @@ SHIELD TODO
 -----------
 
 Large Tasks / Features
+ - Move API into Supervisor package?
  - Ad hoc jobs through API
  - -Archive creation when backup tasks run-
       FIXED: done!

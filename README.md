@@ -255,6 +255,7 @@ Purpose: allows end-users and operators to see what jobs have been configured, a
 | PUT | /v1/job/:uuid | - |
 | POST | /v1/job/:uuid/pause | - |
 | POST | /v1/job/:uuid/unpause | - |
+| POST | /v1/job/:uuid/run | - |
 
 
 ### Archive API
@@ -278,7 +279,6 @@ Purpose: allows the Web UI and the CLI to show running tasks, query a specific t
 | Method | Path | Arguments |
 | :----- | :---- | :------- |
 | GET | /v1/tasks | ?status=:status <br>?debug |
-| POST | /v1/tasks | - |
 | DELETE | /v1/task/:uuid | - |
 
 ## Plugin Calling Protocol

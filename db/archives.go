@@ -3,6 +3,7 @@ package db
 import (
 	"github.com/pborman/uuid"
 	"strings"
+	"fmt"
 )
 
 type AnnotatedArchive struct {
@@ -12,10 +13,13 @@ type AnnotatedArchive struct {
 	ExpiresAt string `json:"expires_at"`
 	Notes     string `json:"notes"`
 
+	TargetUUID  string `json:"target_uuid"`
 	TargetPlugin   string `json:"target_plugin"`
 	TargetEndpoint string `json:"target_endpoint"`
+	StoreUUID   string `json:"store_uuid"`
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
+
 }
 
 type ArchiveFilter struct {
@@ -34,8 +38,8 @@ func (f *ArchiveFilter) Query() string {
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
-		       t.plugin, t.endpoint,
-		       s.plugin, s.endpoint
+		       t.uuid, t.plugin, t.endpoint,
+		       s.uuid, s.plugin, s.endpoint
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -70,8 +74,8 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 
 		if err = r.Scan(
 			&ann.UUID, &ann.StoreKey, &ann.TakenAt, &ann.ExpiresAt, &ann.Notes,
-			&ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.StorePlugin, &ann.StoreEndpoint); err != nil {
+			&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint); err != nil {
 
 			return l, err
 		}
@@ -83,7 +87,37 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 }
 
 func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
-	return nil, nil
+	r, err := db.Query(`
+		SELECT a.uuid, a.store_key,
+		       a.taken_at, a.expires_at, a.notes,
+		       t.plugin, t.endpoint,
+		       s.plugin, s.endpoint
+
+		FROM archives a
+			INNER JOIN targets t   ON t.uuid = a.target_uuid
+			INNER JOIN stores  s   ON s.uuid = a.store_uuid
+
+		WHERE a.uuid == ?
+	`, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, fmt.Errorf("archive not found")
+	}
+	ann := &AnnotatedArchive{}
+
+	if err = r.Scan(
+		&ann.UUID, &ann.StoreKey, &ann.TakenAt, &ann.ExpiresAt, &ann.Notes,
+		&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint); err != nil {
+
+		return nil, err
+	}
+
+	return ann, nil
 }
 
 func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {

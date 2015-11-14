@@ -9,9 +9,16 @@ import (
 	"regexp"
 )
 
+type AdhocTask struct {
+	TargetUUID  uuid.UUID
+	ArchiveUUID uuid.UUID
+	JobUUID     uuid.UUID
+}
+
 type ArchiveAPI struct {
 	Data      *db.DB
 	SuperChan chan int
+	AdhocChan chan AdhocTask
 }
 
 func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -33,7 +40,46 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 
 	case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
-		w.WriteHeader(420)
+		if req.Body == nil {
+			w.WriteHeader(400)
+			return
+		}
+
+		var params struct {
+			Target string `json:"target"`
+		}
+		json.NewDecoder(req.Body).Decode(&params)
+
+		re := regexp.MustCompile(`^/v1/archive([a-fA-F0-9-]+)/restore`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		// find the archive
+		archive, err := self.Data.GetAnnotatedArchive(id)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+
+		if params.Target == "" {
+			params.Target = archive.TargetUUID
+		}
+
+		tid := uuid.Parse(params.Target)
+		// find the target
+		_, err = self.Data.GetAnnotatedTarget(id)
+		if err != nil {
+			w.WriteHeader(501)
+			return
+		}
+
+		// tell the supervisor to schedule a task
+		self.AdhocChan <- AdhocTask{
+			TargetUUID: tid,
+			ArchiveUUID: id,
+		}
+
+		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled"}`))
 		return
 
 	case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):

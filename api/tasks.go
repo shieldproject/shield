@@ -29,11 +29,6 @@ func (self TaskAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSON(w, tasks)
 		return
 
-	case match(req, `POST /v1/task`):
-		// create a new task (ad hoc run)
-		w.WriteHeader(420)
-		return
-
 	case match(req, `DELETE /v1/task/[a-fA-F0-9-]+`):
 		// cancel
 		re := regexp.MustCompile(`^/v1/task/([a-fA-F0-9-]+)`)

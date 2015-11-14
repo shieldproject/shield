@@ -3,9 +3,9 @@ package supervisor
 import (
 	"fmt"
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
-	"github.com/starkandwayne/shield/api"
 	"strings"
 	"time"
 )
@@ -74,6 +74,7 @@ type Supervisor struct {
 	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
 	workers chan Task         /* workers read from this channel to get tasks */
 	updates chan WorkerUpdate /* workers write updates to this channel */
+	adhoc   chan api.AdhocTask /* for submission of new adhoc tasks */
 
 	Database *db.DB
 
@@ -151,6 +152,9 @@ func (s *Supervisor) CheckSchedule() {
 	}
 }
 
+func (s *Supervisor) ScheduleAdhoc(a api.AdhocTask) {
+}
+
 func (s *Supervisor) Run() error {
 	if err := s.Database.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to %s database at %s: %s\n",
@@ -179,6 +183,9 @@ func (s *Supervisor) Run() error {
 
 		case <-s.tick:
 			s.CheckSchedule()
+
+		case adhoc := <-s.adhoc:
+			s.ScheduleAdhoc(adhoc)
 
 		case u := <-s.updates:
 			if u.Op == STOPPED {

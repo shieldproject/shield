@@ -81,6 +81,32 @@ func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, 
 	return l, nil
 }
 
+func (db *DB) GetAnnotatedTarget(id uuid.UUID) (*AnnotatedTarget, error) {
+	r, err := db.Query(`
+		SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint
+			FROM targets t
+				LEFT JOIN jobs j
+					ON j.target_uuid = t.uuid
+			WHERE t.uuid = ?
+	`, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, fmt.Errorf("target not found")
+	}
+
+	ann := &AnnotatedTarget{}
+
+	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+		return nil, err
+	}
+
+	return ann, nil
+}
+
 func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
 		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`,

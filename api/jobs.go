@@ -12,6 +12,7 @@ import (
 type JobAPI struct {
 	Data      *db.DB
 	SuperChan chan int
+	AdhocChan chan AdhocTask
 }
 
 func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -105,6 +106,18 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"unpaused"}`))
+		return
+
+	case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
+		re := regexp.MustCompile(`^/v1/job([a-fA-F0-9-]+)/run`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		self.AdhocChan <- AdhocTask{
+			JobUUID: id,
+		}
+
+		w.WriteHeader(200)
+		JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled"}`))
 		return
 
 	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):

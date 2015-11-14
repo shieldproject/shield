@@ -103,8 +103,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "pg-archive-2-key",
 					"taken_at"        : "2015-04-28 03:00:01",
 					"expires_at"      : "2015-06-25 03:00:01",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_PG + `",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
 				},
@@ -114,8 +116,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "redis-archive-1-key",
 					"taken_at"        : "2015-04-23 14:35:22",
 					"expires_at"      : "2015-04-25 14:35:22",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_REDIS + `",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				},
@@ -125,8 +129,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "pg-archive-1-key",
 					"taken_at"        : "2015-04-21 03:00:01",
 					"expires_at"      : "2015-06-18 03:00:01",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_PG + `",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
 				}
@@ -144,8 +150,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "pg-archive-2-key",
 					"taken_at"        : "2015-04-28 03:00:01",
 					"expires_at"      : "2015-06-25 03:00:01",
+					"target_uuid"     : "` + TARGET_PG + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
 				},
@@ -155,8 +163,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "pg-archive-1-key",
 					"taken_at"        : "2015-04-21 03:00:01",
 					"expires_at"      : "2015-06-18 03:00:01",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_PG + `",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
 				}
@@ -179,8 +189,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "redis-archive-1-key",
 					"taken_at"        : "2015-04-23 14:35:22",
 					"expires_at"      : "2015-04-25 14:35:22",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_REDIS + `",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				}
@@ -202,8 +214,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "redis-archive-1-key",
 					"taken_at"        : "2015-04-23 14:35:22",
 					"expires_at"      : "2015-04-25 14:35:22",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_REDIS + `",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				}
@@ -220,8 +234,10 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "redis-archive-1-key",
 					"taken_at"        : "2015-04-23 14:35:22",
 					"expires_at"      : "2015-04-25 14:35:22",
+					"store_uuid"      : "` + STORE_S3 + `",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_REDIS + `",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				}
