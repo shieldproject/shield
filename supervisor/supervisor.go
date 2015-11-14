@@ -49,7 +49,6 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 		j := &Job{Target: &PluginConfig{}, Store: &PluginConfig{}}
 		var id, tspec string
 		var expiry int
-		//var paused bool
 		err = result.Scan(&id, &j.Paused,
 			&j.Target.Plugin, &j.Target.Endpoint,
 			&j.Store.Plugin, &j.Store.Endpoint,
