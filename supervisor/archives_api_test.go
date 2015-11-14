@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("/v1/archives API", func() {
 	var API http.Handler
-	var channel chan int
+	var resyncChan chan int
 
 	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
 
@@ -84,13 +84,16 @@ var _ = Describe("/v1/archives API", func() {
 				 "Good Redis Backup")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		channel = make(chan int, 1)
-		API = ArchiveAPI{Data: data, SuperChan: channel}
+		resyncChan = make(chan int, 1)
+		API = ArchiveAPI{
+			Data:       data,
+			ResyncChan: resyncChan,
+		}
 	})
 
 	AfterEach(func() {
-		close(channel)
-		channel = nil
+		close(resyncChan)
+		resyncChan = nil
 	})
 
 	It("should retrieve all archives, sorted reverse chronological", func() {
@@ -203,7 +206,7 @@ var _ = Describe("/v1/archives API", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/archives?target="+TARGET_REDIS)
 		Ω(res.Code).Should(Equal(200))
@@ -246,7 +249,7 @@ var _ = Describe("/v1/archives API", func() {
 		res = DELETE(API, "/v1/archive/"+REDIS_ARCHIVE_1)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/archives?target="+TARGET_REDIS)
 		Ω(res.Code).Should(Equal(200))

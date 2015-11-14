@@ -69,6 +69,13 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 	return l, e
 }
 
+type AdhocTask struct {
+	Op          Operation
+	TargetUUID  uuid.UUID
+	ArchiveUUID uuid.UUID
+	JobUUID     uuid.UUID
+}
+
 type Supervisor struct {
 	tick    chan int          /* scheduler will send a message at regular intervals */
 	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
@@ -89,6 +96,7 @@ func NewSupervisor() *Supervisor {
 		tick:    make(chan int),
 		resync:  make(chan int),
 		workers: make(chan Task),
+		adhoc:   make(chan AdhocTask),
 		updates: make(chan WorkerUpdate),
 		runq:    make([]*Task, 0),
 		jobq:    make([]*Job, 0),
@@ -153,6 +161,35 @@ func (s *Supervisor) CheckSchedule() {
 }
 
 func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
+	fmt.Printf("schedule adhoc %s job\n", a.Op)
+
+	switch a.Op {
+	case BACKUP:
+		// expect a JobUUID to move to the runq Immediately
+		for _, job := range s.jobq {
+			if !uuid.Equal(job.UUID, a.JobUUID) {
+				continue
+			}
+
+			fmt.Printf("scheduling immediate (ad hoc) execution of job %s\n", job.UUID.String())
+			task := job.Task()
+			id, err := s.Database.CreateTask(
+				"adhoc", // FIXME: need a better owner
+				"backup",
+				"ARGS", // FIXME: need real args
+				job.UUID,
+			)
+			if err != nil {
+				fmt.Printf("job -> task conversion / database update failed: %s\n", err)
+				continue
+			}
+
+			task.UUID = id
+			s.runq = append(s.runq, task)
+		}
+
+	case RESTORE:
+	}
 }
 
 func (s *Supervisor) Run() error {
@@ -236,32 +273,55 @@ func (s *Supervisor) SpawnAPI() {
 		ping := &PingAPI{}
 		http.Handle("/v1/ping", ping)
 
-		jobs := &JobAPI{Data: db, SuperChan: s.resync}
+		jobs := &JobAPI{
+			Data:       db,
+			ResyncChan: s.resync,
+			AdhocChan:  s.adhoc,
+		}
 		http.Handle("/v1/jobs", jobs)
-		http.Handle("/v1/job", jobs)
+		http.Handle("/v1/job/", jobs)
 
-		retention := &RetentionAPI{Data: db, SuperChan: s.resync}
+		retention := &RetentionAPI{
+			Data:       db,
+			ResyncChan: s.resync,
+		}
 		http.Handle("/v1/retention", retention)
+		http.Handle("/v1/retention/", retention)
 
-		archives := &ArchiveAPI{Data: db, SuperChan: s.resync}
+		archives := &ArchiveAPI{
+			Data:       db,
+			ResyncChan: s.resync,
+			AdhocChan:  s.adhoc,
+		}
 		http.Handle("/v1/archives", archives)
-		http.Handle("/v1/archive", archives)
+		http.Handle("/v1/archive/", archives)
 
-		schedules := &ScheduleAPI{Data: db, SuperChan: s.resync}
+		schedules := &ScheduleAPI{
+			Data:       db,
+			ResyncChan: s.resync,
+		}
 		http.Handle("/v1/schedules", schedules)
-		http.Handle("/v1/schedule", schedules)
+		http.Handle("/v1/schedule/", schedules)
 
-		stores := &StoreAPI{Data: db, SuperChan: s.resync}
+		stores := &StoreAPI{
+			Data:       db,
+			ResyncChan: s.resync,
+		}
 		http.Handle("/v1/stores", stores)
-		http.Handle("/v1/store", stores)
+		http.Handle("/v1/store/", stores)
 
-		targets := &TargetAPI{Data: db, SuperChan: s.resync}
+		targets := &TargetAPI{
+			Data:       db,
+			ResyncChan: s.resync,
+		}
 		http.Handle("/v1/targets", targets)
-		http.Handle("/v1/target", targets)
+		http.Handle("/v1/target/", targets)
 
-		tasks := &TaskAPI{Data: db}
+		tasks := &TaskAPI{
+			Data: db,
+		}
 		http.Handle("/v1/tasks", tasks)
-		http.Handle("/v1/task", tasks)
+		http.Handle("/v1/task/", tasks)
 
 		http.ListenAndServe(":8080", nil) // FIXME: make this configurable
 	}(s)

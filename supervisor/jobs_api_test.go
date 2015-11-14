@@ -13,7 +13,8 @@ import (
 
 var _ = Describe("/v1/jobs API", func() {
 	var API http.Handler
-	var channel chan int
+	var resyncChan chan int
+	var adhocChan chan AdhocTask
 
 	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
 
@@ -129,13 +130,21 @@ var _ = Describe("/v1/jobs API", func() {
 				 "`+RETAIN_LONG+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		channel = make(chan int, 1)
-		API = JobAPI{Data: data, SuperChan: channel}
+		resyncChan = make(chan int, 1)
+		adhocChan = make(chan AdhocTask, 1)
+		API = JobAPI{
+			Data:       data,
+			ResyncChan: resyncChan,
+			AdhocChan:  adhocChan,
+		}
 	})
 
 	AfterEach(func() {
-		close(channel)
-		channel = nil
+		close(resyncChan)
+		resyncChan = nil
+
+		close(adhocChan)
+		adhocChan = nil
 	})
 
 	It("should retrieve all jobs", func() {
@@ -431,7 +440,7 @@ var _ = Describe("/v1/jobs API", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 	})
 
 	It("requires specific keys in POST'ed data", func() {
@@ -472,7 +481,7 @@ var _ = Describe("/v1/jobs API", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
@@ -521,7 +530,7 @@ var _ = Describe("/v1/jobs API", func() {
 		res = DELETE(API, "/v1/job/"+REDIS_S3_WEEKLY)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
@@ -553,7 +562,7 @@ var _ = Describe("/v1/jobs API", func() {
 		res = POST(API, "/v1/job/"+PG_S3_WEEKLY+"/pause", "")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"paused"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=f&schedule="+SCHED_WEEKLY)
 		Ω(res.Code).Should(Equal(200))
@@ -585,11 +594,25 @@ var _ = Describe("/v1/jobs API", func() {
 		res = POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/unpause", "")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"unpaused"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
+	})
+
+	It("can rerun unpaused jobs", func() {
+		res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"scheduled"}`))
+		Eventually(adhocChan).Should(Receive())
+	})
+
+	It("can rerun paused jobs", func() {
+		res := POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/run", "")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"scheduled"}`))
+		Eventually(adhocChan).Should(Receive())
 	})
 
 	It("ignores other HTTP methods", func() {

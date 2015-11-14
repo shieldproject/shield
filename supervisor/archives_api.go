@@ -9,16 +9,10 @@ import (
 	"regexp"
 )
 
-type AdhocTask struct {
-	TargetUUID  uuid.UUID
-	ArchiveUUID uuid.UUID
-	JobUUID     uuid.UUID
-}
-
 type ArchiveAPI struct {
-	Data      *db.DB
-	SuperChan chan int
-	AdhocChan chan AdhocTask
+	Data       *db.DB
+	ResyncChan chan int
+	AdhocChan  chan AdhocTask
 }
 
 func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -74,6 +68,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		// tell the supervisor to schedule a task
 		self.AdhocChan <- AdhocTask{
+			Op:          RESTORE,
 			TargetUUID:  tid,
 			ArchiveUUID: id,
 		}
@@ -102,7 +97,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		_ = self.Data.AnnotateArchive(id, params.Notes)
-		self.SuperChan <- 1
+		self.ResyncChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
@@ -120,7 +115,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		self.SuperChan <- 1
+		self.ResyncChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}

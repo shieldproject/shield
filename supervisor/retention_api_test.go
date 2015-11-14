@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("HTTP API /v1/retention", func() {
 	var API http.Handler
-	var channel chan int
+	var resyncChan chan int
 
 	BeforeEach(func() {
 		data, err := Database(
@@ -34,13 +34,16 @@ var _ = Describe("HTTP API /v1/retention", func() {
 				 "43705750-33b7-4134-a532-ce069abdc08f")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
-		channel = make(chan int, 1)
-		API = RetentionAPI{Data: data, SuperChan: channel}
+		resyncChan = make(chan int, 1)
+		API = RetentionAPI{
+			Data:       data,
+			ResyncChan: resyncChan,
+		}
 	})
 
 	AfterEach(func() {
-		close(channel)
-		channel = nil
+		close(resyncChan)
+		resyncChan = nil
 	})
 
 	It("should retrieve all retention policies", func() {
@@ -96,7 +99,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 	})
 
 	It("requires the `name' and `when' keys in POST'ed data", func() {
@@ -112,7 +115,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/retention")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -136,7 +139,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		res := DELETE(API, "/v1/retention/3e783b71-d595-498d-a739-e01fb335098a")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/retention")
 		Ω(res.Body.String()).Should(MatchJSON(`[

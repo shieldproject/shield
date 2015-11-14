@@ -10,9 +10,9 @@ import (
 )
 
 type JobAPI struct {
-	Data      *db.DB
-	SuperChan chan int
-	AdhocChan chan AdhocTask
+	Data       *db.DB
+	ResyncChan chan int
+	AdhocChan  chan AdhocTask
 }
 
 func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -68,7 +68,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		_ = self.Data.AnnotateJob(id, params.Name, params.Summary)
-		self.SuperChan <- 1
+		self.ResyncChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
@@ -86,8 +86,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"paused"}`))
+		self.ResyncChan <- 1
+		JSONLiteral(w, `{"ok":"paused"}`)
 		return
 
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
@@ -104,20 +104,19 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"unpaused"}`))
+		self.ResyncChan <- 1
+		JSONLiteral(w, `{"ok":"unpaused"}`)
 		return
 
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
-		re := regexp.MustCompile(`^/v1/job([a-fA-F0-9-]+)/run`)
+		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)/run`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		self.AdhocChan <- AdhocTask{
+			Op:      BACKUP,
 			JobUUID: id,
 		}
-
-		w.WriteHeader(200)
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled"}`))
+		JSONLiteral(w, `{"ok":"scheduled"}`)
 		return
 
 	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
@@ -150,8 +149,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		_ = self.Data.AnnotateJob(id, params.Name, params.Summary)
-		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
+		self.ResyncChan <- 1
+		JSONLiteral(w, `{"ok":"updated"}`)
 		return
 
 	case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
@@ -168,8 +167,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		self.SuperChan <- 1
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
+		self.ResyncChan <- 1
+		JSONLiteral(w, `{"ok":"deleted"}`)
 		return
 	}
 

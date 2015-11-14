@@ -37,7 +37,10 @@ var _ = Describe("/v1/targets API", func() {
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		channel = make(chan int, 1)
-		API = &TargetAPI{Data: data, SuperChan: channel}
+		API = &TargetAPI{
+			Data:       data,
+			ResyncChan: channel,
+		}
 	})
 
 	AfterEach(func() {

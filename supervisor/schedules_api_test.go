@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("HTTP API /v1/schedule", func() {
 	var API http.Handler
-	var channel chan int
+	var resyncChan chan int
 
 	BeforeEach(func() {
 		data, err := Database(
@@ -33,13 +33,16 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
-		channel = make(chan int, 1)
-		API = ScheduleAPI{Data: data, SuperChan: channel}
+		resyncChan = make(chan int, 1)
+		API = ScheduleAPI{
+			Data:       data,
+			ResyncChan: resyncChan,
+		}
 	})
 
 	AfterEach(func() {
-		close(channel)
-		channel = nil
+		close(resyncChan)
+		resyncChan = nil
 	})
 
 	It("should retrieve all schedules", func() {
@@ -95,7 +98,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchRegexp(`{"ok":"created","uuid":"[a-z0-9-]+"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 	})
 
 	It("requires the `name' and `when' keys in POST'ed data", func() {
@@ -111,7 +114,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		}`))
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/schedules")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -135,7 +138,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		res := DELETE(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
-		Eventually(channel).Should(Receive())
+		Eventually(resyncChan).Should(Receive())
 
 		res = GET(API, "/v1/schedules")
 		Ω(res.Body.String()).Should(MatchJSON(`[

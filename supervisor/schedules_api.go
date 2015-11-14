@@ -12,8 +12,8 @@ import (
 )
 
 type ScheduleAPI struct {
-	Data      *db.DB
-	SuperChan chan int
+	Data       *db.DB
+	ResyncChan chan int
 }
 
 func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -58,7 +58,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
-		self.SuperChan <- 1
+		self.ResyncChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
@@ -87,7 +87,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
-		self.SuperChan <- 1
+		self.ResyncChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
@@ -104,7 +104,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		self.SuperChan <- 1
+		self.ResyncChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return
 	}
