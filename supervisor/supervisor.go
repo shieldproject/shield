@@ -189,6 +189,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 		}
 
 	case RESTORE:
+		// FIXME: support for RESTORE tasks
 	}
 }
 

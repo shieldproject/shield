@@ -44,7 +44,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		re := regexp.MustCompile(`^/v1/archive([a-fA-F0-9-]+)/restore`)
+		re := regexp.MustCompile(`^/v1/archive/([a-fA-F0-9-]+)/restore`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		// find the archive
