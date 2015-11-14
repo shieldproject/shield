@@ -2,13 +2,13 @@ package supervisor
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/pborman/uuid"
 	"io"
-	"os/exec"
-	"time"
 	"os"
-	"fmt"
+	"os/exec"
 	"sync"
+	"time"
 )
 
 type Operation int

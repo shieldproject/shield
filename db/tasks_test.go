@@ -1,10 +1,10 @@
 package db_test
 
 import (
-	. "github.com/starkandwayne/shield/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
+	. "github.com/starkandwayne/shield/db"
 	"time"
 
 	// sql drivers
@@ -29,19 +29,18 @@ var _ = Describe("Task Management", func() {
 		var err error
 		db, err = Database(
 			// need a target
-			`INSERT INTO targets (uuid) VALUES ("` + TARGET_UUID.String() +`")`,
+			`INSERT INTO targets (uuid) VALUES ("`+TARGET_UUID.String()+`")`,
 
 			// need a store
-			`INSERT INTO stores (uuid) VALUES ("` + STORE_UUID.String() +`")`,
+			`INSERT INTO stores (uuid) VALUES ("`+STORE_UUID.String()+`")`,
 
 			// need a retention policy
-			`INSERT INTO retention (uuid, expiry) VALUES ("` + RETENTION_UUID.String() +`", 3600)`,
+			`INSERT INTO retention (uuid, expiry) VALUES ("`+RETENTION_UUID.String()+`", 3600)`,
 
 			// need a job
 			`INSERT INTO jobs (uuid, target_uuid, store_uuid, retention_uuid)
-				VALUES ("` + JOB_UUID.String() + `", "` + TARGET_UUID.String() + `",
-				        "` + STORE_UUID.String() + `", "` + RETENTION_UUID.String() + `")`,
-
+				VALUES ("`+JOB_UUID.String()+`", "`+TARGET_UUID.String()+`",
+				        "`+STORE_UUID.String()+`", "`+RETENTION_UUID.String()+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())

@@ -1,6 +1,6 @@
 // Jamie: This contains the go source code that will become shield.
 
-package api
+package supervisor
 
 import (
 	"encoding/json"
@@ -11,17 +11,17 @@ import (
 	"regexp"
 )
 
-type TargetAPI struct {
+type StoreAPI struct {
 	Data      *db.DB
 	SuperChan chan int
 }
 
-func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
-	case match(req, `GET /v1/targets`):
-		targets, err := self.Data.GetAllAnnotatedTargets(
-			&db.TargetFilter{
+	case match(req, `GET /v1/stores`):
+		stores, err := self.Data.GetAllAnnotatedStores(
+			&db.StoreFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
 				ForPlugin:  paramValue(req, "plugin", ""),
@@ -32,10 +32,10 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		JSON(w, targets)
+		JSON(w, stores)
 		return
 
-	case match(req, `POST /v1/targets`):
+	case match(req, `POST /v1/stores`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
@@ -54,18 +54,18 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		id, err := self.Data.CreateTarget(params.Plugin, params.Endpoint)
+		id, err := self.Data.CreateStore(params.Plugin, params.Endpoint)
 		if err != nil {
 			bail(w, err)
 			return
 		}
 
-		_ = self.Data.AnnotateTarget(id, params.Name, params.Summary)
+		_ = self.Data.AnnotateStore(id, params.Name, params.Summary)
 		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
-	case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
+	case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
@@ -84,21 +84,21 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		re := regexp.MustCompile("^/v1/target/")
+		re := regexp.MustCompile("^/v1/store/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-		if err := self.Data.UpdateTarget(id, params.Plugin, params.Endpoint); err != nil {
+		if err := self.Data.UpdateStore(id, params.Plugin, params.Endpoint); err != nil {
 			bail(w, err)
 			return
 		}
-		_ = self.Data.AnnotateTarget(id, params.Name, params.Summary)
+		_ = self.Data.AnnotateStore(id, params.Name, params.Summary)
 		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
-	case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
-		re := regexp.MustCompile("^/v1/target/")
+	case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile("^/v1/store/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-		deleted, err := self.Data.DeleteTarget(id)
+		deleted, err := self.Data.DeleteStore(id)
 
 		if err != nil {
 			bail(w, err)

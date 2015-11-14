@@ -1,16 +1,16 @@
-package api
+package supervisor
 
 import (
 	"fmt"
-	"time"
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/db"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 type TaskAPI struct {
-	Data      *db.DB
+	Data *db.DB
 }
 
 func (self TaskAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {

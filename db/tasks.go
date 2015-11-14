@@ -3,8 +3,8 @@ package db
 import (
 	"fmt"
 	"github.com/pborman/uuid"
-	"time"
 	"strings"
+	"time"
 )
 
 type AnnotatedTask struct {

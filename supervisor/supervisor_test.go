@@ -1,10 +1,15 @@
 package supervisor_test
 
 import (
+	"encoding/json"
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/shield/supervisor"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 
 	// sql drivers
@@ -37,6 +42,65 @@ func Database(sqls ...string) (*db.DB, error) {
 	return database, nil
 }
 
+func NotImplemented(h http.Handler, method string, uri string, body io.Reader) {
+	req, _ := http.NewRequest(method, uri, body)
+	res := httptest.NewRecorder()
+
+	h.ServeHTTP(res, req)
+	Ω(res.Code).Should(Equal(415),
+		fmt.Sprintf("%s %s should elicit HTTP 415 (Not Implemented) response...", method, uri))
+	Ω(res.Body.String()).Should(Equal(""),
+		fmt.Sprintf("%s %s should have no HTTP Response Body...", method, uri))
+}
+
+func NotFound(h http.Handler, method string, uri string, body io.Reader) {
+	req, _ := http.NewRequest(method, uri, body)
+	res := httptest.NewRecorder()
+
+	h.ServeHTTP(res, req)
+	Ω(res.Code).Should(Equal(404))
+	Ω(res.Body.String()).Should(Equal(""))
+}
+
+func GET(h http.Handler, uri string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", uri, nil)
+
+	h.ServeHTTP(res, req)
+	return res
+}
+
+func WithJSON(s string) string {
+	var data interface{}
+	Ω(json.Unmarshal([]byte(s), &data)).Should(Succeed(),
+		fmt.Sprintf("this is not JSON:\n%s\n", s))
+	return s
+}
+
+func POST(h http.Handler, uri string, body string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", uri, strings.NewReader(body))
+
+	h.ServeHTTP(res, req)
+	return res
+}
+
+func PUT(h http.Handler, uri string, body string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", uri, strings.NewReader(body))
+
+	h.ServeHTTP(res, req)
+	return res
+}
+
+func DELETE(h http.Handler, uri string) *httptest.ResponseRecorder {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", uri, nil)
+
+	h.ServeHTTP(res, req)
+	return res
+}
+
 var _ = Describe("Supervisor", func() {
 	Describe("Task Executor", func() {
 		var t *Task
@@ -65,7 +129,7 @@ var _ = Describe("Supervisor", func() {
 		collect := func(out chan string, in chan string) {
 			var buf []string
 			for {
-				s, ok := <-in;
+				s, ok := <-in
 				if !ok {
 					break
 				}

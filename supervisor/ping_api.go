@@ -1,6 +1,6 @@
 // Jamie: This contains the go source code that will become shield.
 
-package api
+package supervisor
 
 import (
 	"net/http"

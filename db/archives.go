@@ -1,25 +1,24 @@
 package db
 
 import (
+	"fmt"
 	"github.com/pborman/uuid"
 	"strings"
-	"fmt"
 )
 
 type AnnotatedArchive struct {
-	UUID string `json:"uuid"`
+	UUID      string `json:"uuid"`
 	StoreKey  string `json:"key"`
 	TakenAt   string `json:"taken_at"`
 	ExpiresAt string `json:"expires_at"`
 	Notes     string `json:"notes"`
 
-	TargetUUID  string `json:"target_uuid"`
+	TargetUUID     string `json:"target_uuid"`
 	TargetPlugin   string `json:"target_plugin"`
 	TargetEndpoint string `json:"target_endpoint"`
-	StoreUUID   string `json:"store_uuid"`
+	StoreUUID      string `json:"store_uuid"`
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
-
 }
 
 type ArchiveFilter struct {

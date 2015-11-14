@@ -18,8 +18,8 @@ func main() {
 	options := struct {
 		Driver string `goptions:"-t,--type, obligatory, description='Type of database backend'"`
 		DSN    string `goptions:"-d,--database, obligatory, description='DSN of the database backend'"`
-	} {
-		// No defaults
+	}{
+	// No defaults
 	}
 	goptions.ParseAndFail(&options)
 

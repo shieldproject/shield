@@ -1,11 +1,11 @@
 package supervisor_test
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 	"os"
-	"fmt"
+	"testing"
 )
 
 func TestSupervisor(t *testing.T) {

@@ -1,12 +1,12 @@
 package supervisor
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/pborman/uuid"
-	"time"
-	"bytes"
 	"strings"
-	"encoding/json"
+	"time"
 )
 
 type UpdateOp int

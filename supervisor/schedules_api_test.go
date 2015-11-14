@@ -1,10 +1,10 @@
-package api_test
+package supervisor_test
 
 import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/starkandwayne/shield/api"
+	. "github.com/starkandwayne/shield/supervisor"
 	"net/http"
 
 	// sql drivers

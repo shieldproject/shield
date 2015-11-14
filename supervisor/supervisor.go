@@ -3,9 +3,10 @@ package supervisor
 import (
 	"fmt"
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -74,7 +75,7 @@ type Supervisor struct {
 	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
 	workers chan Task         /* workers read from this channel to get tasks */
 	updates chan WorkerUpdate /* workers write updates to this channel */
-	adhoc   chan api.AdhocTask /* for submission of new adhoc tasks */
+	adhoc   chan AdhocTask    /* for submission of new adhoc tasks */
 
 	Database *db.DB
 
@@ -152,7 +153,7 @@ func (s *Supervisor) CheckSchedule() {
 	}
 }
 
-func (s *Supervisor) ScheduleAdhoc(a api.AdhocTask) {
+func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 }
 
 func (s *Supervisor) Run() error {
@@ -225,7 +226,46 @@ func (s *Supervisor) Run() error {
 }
 
 func (s *Supervisor) SpawnAPI() {
-	go api.Run(":8080", s.Database, s.resync)
+	go func(s *Supervisor) {
+		db := s.Database.Copy()
+		if err := db.Connect(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
+				db.Driver, db.DSN, err)
+			return
+		}
+
+		ping := &PingAPI{}
+		http.Handle("/v1/ping", ping)
+
+		jobs := &JobAPI{Data: db, SuperChan: s.resync}
+		http.Handle("/v1/jobs", jobs)
+		http.Handle("/v1/job", jobs)
+
+		retention := &RetentionAPI{Data: db, SuperChan: s.resync}
+		http.Handle("/v1/retention", retention)
+
+		archives := &ArchiveAPI{Data: db, SuperChan: s.resync}
+		http.Handle("/v1/archives", archives)
+		http.Handle("/v1/archive", archives)
+
+		schedules := &ScheduleAPI{Data: db, SuperChan: s.resync}
+		http.Handle("/v1/schedules", schedules)
+		http.Handle("/v1/schedule", schedules)
+
+		stores := &StoreAPI{Data: db, SuperChan: s.resync}
+		http.Handle("/v1/stores", stores)
+		http.Handle("/v1/store", stores)
+
+		targets := &TargetAPI{Data: db, SuperChan: s.resync}
+		http.Handle("/v1/targets", targets)
+		http.Handle("/v1/target", targets)
+
+		tasks := &TaskAPI{Data: db}
+		http.Handle("/v1/tasks", tasks)
+		http.Handle("/v1/task", tasks)
+
+		http.ListenAndServe(":8080", nil) // FIXME: make this configurable
+	}(s)
 }
 
 func scheduler(c chan int) {

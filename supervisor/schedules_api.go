@@ -1,6 +1,6 @@
 // Jamie: This contains the go source code that will become shield.
 
-package api
+package supervisor
 
 import (
 	"encoding/json"
@@ -11,20 +11,18 @@ import (
 	"regexp"
 )
 
-type StoreAPI struct {
+type ScheduleAPI struct {
 	Data      *db.DB
 	SuperChan chan int
 }
 
-func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-
+func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
-	case match(req, `GET /v1/stores`):
-		stores, err := self.Data.GetAllAnnotatedStores(
-			&db.StoreFilter{
+	case match(req, `GET /v1/schedules`):
+		schedules, err := self.Data.GetAllAnnotatedSchedules(
+			&db.ScheduleFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
-				ForPlugin:  paramValue(req, "plugin", ""),
 			},
 		)
 		if err != nil {
@@ -32,73 +30,71 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		JSON(w, stores)
+		JSON(w, schedules)
 		return
 
-	case match(req, `POST /v1/stores`):
+	case match(req, `POST /v1/schedules`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
 		}
 
 		var params struct {
-			Name     string `json:"name"`
-			Summary  string `json:"summary"`
-			Plugin   string `json:"plugin"`
-			Endpoint string `json:"endpoint"`
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			When    string `json:"when"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Plugin == "" || params.Endpoint == "" {
+		if params.Name == "" || params.When == "" {
 			w.WriteHeader(400)
 			return
 		}
 
-		id, err := self.Data.CreateStore(params.Plugin, params.Endpoint)
+		id, err := self.Data.CreateSchedule(params.When)
 		if err != nil {
 			bail(w, err)
 			return
 		}
 
-		_ = self.Data.AnnotateStore(id, params.Name, params.Summary)
+		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
 		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
-	case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
+	case match(req, `PUT /v1/schedule/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)
 			return
 		}
 
 		var params struct {
-			Name     string `json:"name"`
-			Summary  string `json:"summary"`
-			Plugin   string `json:"plugin"`
-			Endpoint string `json:"endpoint"`
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			When    string `json:"when"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.Plugin == "" || params.Endpoint == "" {
+		if params.Name == "" || params.Summary == "" || params.When == "" {
 			w.WriteHeader(400)
 			return
 		}
 
-		re := regexp.MustCompile("^/v1/store/")
+		re := regexp.MustCompile("^/v1/schedule/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-		if err := self.Data.UpdateStore(id, params.Plugin, params.Endpoint); err != nil {
+		if err := self.Data.UpdateSchedule(id, params.When); err != nil {
 			bail(w, err)
 			return
 		}
-		_ = self.Data.AnnotateStore(id, params.Name, params.Summary)
+		_ = self.Data.AnnotateSchedule(id, params.Name, params.Summary)
 		self.SuperChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 		return
 
-	case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
-		re := regexp.MustCompile("^/v1/store/")
+	case match(req, `DELETE /v1/schedule/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile("^/v1/schedule/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-		deleted, err := self.Data.DeleteStore(id)
+		deleted, err := self.Data.DeleteSchedule(id)
 
 		if err != nil {
 			bail(w, err)

@@ -1,4 +1,4 @@
-package api
+package supervisor
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package api
+package supervisor
 
 import (
 	"encoding/json"
@@ -74,7 +74,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		// tell the supervisor to schedule a task
 		self.AdhocChan <- AdhocTask{
-			TargetUUID: tid,
+			TargetUUID:  tid,
 			ArchiveUUID: id,
 		}
 

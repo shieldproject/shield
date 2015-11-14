@@ -3,11 +3,12 @@ package supervisor
 import (
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/timespec"
-	"time"
 	"os"
+	"time"
 )
 
 var DEV_MODE_SCHEDULING bool = false
+
 func init() {
 	if os.Getenv("SHIELD_MODE") == "DEV" {
 		DEV_MODE_SCHEDULING = true
