@@ -150,8 +150,8 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 	archive_id := uuid.NewRandom()
 	err = db.Exec(
 		`INSERT INTO archives
-			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at)
-			SELECT ?, t.uuid, s.uuid, ?, ?, ?
+			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes)
+			SELECT ?, t.uuid, s.uuid, ?, ?, ?, ""
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid

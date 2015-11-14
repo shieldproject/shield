@@ -155,9 +155,9 @@ CREATE TABLE archives (
                      --   for use in restore ops / download / etc.
   taken_at     timestamp without time zone,
   expires_at   timestamp without time zone, -- based on retention policy
-  notes        TEXT, -- annotation for operator use, to describe this
-                     --   specific backup, i.e. 'before change #422 backup'
-                     --   (mostly, this will be empty)
+  notes        TEXT DEFAULT "", -- annotation for operator use, to describe this
+                                --   specific backup, i.e. 'before change #422 backup'
+                                --   (mostly, this will be empty)
 );
 ```
 
