@@ -1,10 +1,14 @@
 package main
 
 import (
-	"time"
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
+	"os/exec"
+	"sync"
+	"io"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -67,10 +71,28 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 
 			fmt.Printf("got an agent-request [%s]\n", request.JSON)
 			req.Reply(true, nil)
-			fmt.Fprintf(channel, "acceptable.\n")
-			time.Sleep(5)
-			fmt.Fprintf(channel, "done.\n")
 
+			// drain output to the SSH channel stream
+			output := make(chan string)
+			done   := make(chan int)
+			go func(out io.Writer, in chan string, done chan int) {
+				for {
+					s, ok := <-in
+					if !ok {
+						break
+					}
+					fmt.Fprintf(out, "%s", s)
+				}
+				close(done)
+			}(channel, output, done)
+
+			// run the agent request
+			err = request.Run(output)
+			<-done
+			if err != nil {
+				fmt.Printf("failed: %s\n", err)
+				fmt.Fprintf(channel, "%s\n", err)
+			}
 			conn.Close()
 		}
 	}
@@ -123,4 +145,58 @@ func ParseAgentRequest(req *ssh.Request) (*AgentRequest, error) {
 		return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
 	}
 	return request, nil
+}
+
+func (req *AgentRequest) Run(output chan string) error {
+	cmd := exec.Command("shield-pipe")
+	cmd.Env = []string{
+		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
+		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
+		fmt.Sprintf("USER=%s", os.Getenv("USER")),
+		fmt.Sprintf("LANG=%s", os.Getenv("LANG")),
+
+		fmt.Sprintf("SHIELD_OP=%s", req.Operation),
+		fmt.Sprintf("SHIELD_STORE_PLUGIN=%s", req.StorePlugin),
+		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", req.StoreEndpoint),
+		fmt.Sprintf("SHIELD_TARGET_PLUGIN=%s", req.TargetPlugin),
+		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", req.TargetEndpoint),
+		fmt.Sprintf("SHIELD_RESTORE_KEY=%s", req.RestoreKey),
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	drain := func(prefix string, out chan string, in io.Reader) {
+		defer wg.Done()
+		s := bufio.NewScanner(in)
+		for s.Scan() {
+			out <- fmt.Sprintf("%s:%s\n", prefix, s.Text())
+		}
+	}
+
+	wg.Add(2)
+	go drain("E", output, stderr)
+	go drain("O", output, stdout)
+
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	wg.Wait()
+	close(output)
+
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

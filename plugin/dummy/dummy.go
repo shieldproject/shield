@@ -8,6 +8,7 @@ of what is needed in a backup plugin, and how they execute.
 */
 
 import (
+	"os"
 	"fmt"
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -27,6 +28,7 @@ func main() {
 		},
 	}
 
+	fmt.Fprintf(os.Stderr, "dummy plugin starting up...\n")
 	// Run the plugin - the plugin framework handles all arg parsing, exit handling, error/debug formatting for you
 	plugin.Run(dummy)
 }
