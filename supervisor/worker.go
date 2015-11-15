@@ -44,14 +44,13 @@ func loadUserKey(path string) ssh.AuthMethod {
 	return ssh.PublicKeys(signer)
 }
 
-func worker(id uint, work chan Task, updates chan WorkerUpdate) {
+func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
 	for t := range work {
 		fmt.Printf("worker %d received task %v\n", id, t.UUID.String())
 
 		config := &ssh.ClientConfig{
-			User: "coulson", // FIXME
 			Auth: []ssh.AuthMethod{
-				loadUserKey("share/id_rsa"), // FIXME
+				loadUserKey(privateKeyFile),
 			},
 		}
 
@@ -149,5 +148,5 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 
 func (s *Supervisor) SpawnWorker() {
 	s.nextWorker += 1
-	go worker(s.nextWorker, s.workers, s.updates)
+	go worker(s.nextWorker, s.privateKeyFile, s.workers, s.updates)
 }

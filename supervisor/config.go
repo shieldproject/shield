@@ -10,7 +10,10 @@ import (
 type Config struct {
 	DatabaseType string `yaml:"database_type"`
 	DatabaseDSN  string `yaml:"database_dsn"`
+
 	Listen string `yaml:"listen"`
+
+	PrivateKeyFile string `yaml:"private_key"`
 }
 
 func (s *Supervisor) ReadConfig(path string) error {
@@ -32,5 +35,6 @@ func (s *Supervisor) ReadConfig(path string) error {
 	s.Database.Driver = config.DatabaseType
 	s.Database.DSN = config.DatabaseDSN
 	s.listen = config.Listen
+	s.privateKeyFile = config.PrivateKeyFile
 	return nil
 }
