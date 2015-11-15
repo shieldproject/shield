@@ -85,6 +85,8 @@ type Supervisor struct {
 
 	Database *db.DB
 
+	listen string /* addr/interface(s) and port to bind */
+
 	runq []*Task
 	jobq []*Job
 
@@ -324,7 +326,7 @@ func (s *Supervisor) SpawnAPI() {
 		http.Handle("/v1/tasks", tasks)
 		http.Handle("/v1/task/", tasks)
 
-		http.ListenAndServe(":8080", nil) // FIXME: make this configurable
+		http.ListenAndServe(s.listen, nil)
 	}(s)
 }
 
