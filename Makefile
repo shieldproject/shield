@@ -15,6 +15,7 @@ race:
 # Building Shield
 shield:
 	go build ./cmd/shieldd
+	go build ./cmd/shield-agent
 	go build ./cmd/shield-schema
 
 # Building Plugins
