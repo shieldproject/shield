@@ -4,9 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/pborman/uuid"
 	"strings"
 	"time"
+	"os"
+	"io"
+	"io/ioutil"
+	"bufio"
+
+	"github.com/pborman/uuid"
+	"golang.org/x/crypto/ssh"
 )
 
 type UpdateOp int
@@ -24,51 +30,91 @@ type WorkerUpdate struct {
 	Output    string
 }
 
+func loadUserKey(path string) ssh.AuthMethod {
+	raw, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic("loadUserKey: " + err.Error())
+	}
+
+	signer, err := ssh.ParsePrivateKey(raw)
+	if err != nil {
+		panic("loadUserKey: " + err.Error())
+	}
+
+	return ssh.PublicKeys(signer)
+}
+
 func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 	for t := range work {
 		fmt.Printf("worker %d received task %v\n", id, t.UUID.String())
 
-		output := make(chan string)
-		stderr := make(chan string)
-		stdout := make(chan string)
-
-		// drain stdout to the output[] array
-		go func(out chan string, in chan string) {
-			var b []string
-			for {
-				s, ok := <-in
-				if !ok {
-					break
-				}
-				b = append(b, s)
-			}
-
-			out <- strings.Join(b, "")
-			close(out)
-		}(output, stdout)
-
-		// relay messages on stderr to the updates
-		// channel, wrapped in a WorkerUpdate struct
-		go func(t Task, in chan string) {
-			for {
-				s, ok := <-in
-				if !ok {
-					break
-				}
-				updates <- WorkerUpdate{
-					Task:   t.UUID,
-					Op:     OUTPUT,
-					Output: s,
-				}
-			}
-		}(t, stderr)
-
-		// run the task...
-		err := t.Run(stdout, stderr)
-		if err != nil {
-			fmt.Printf("oops: %s\n", err)
+		config := &ssh.ClientConfig{
+			User: "coulson", // FIXME
+			Auth: []ssh.AuthMethod{
+				loadUserKey("share/id_rsa"), // FIXME
+			},
 		}
 
+		client, err := ssh.Dial("tcp", "127.0.0.1:2022", config) // FIXME
+		if err != nil {
+			panic("connection failed: " + err.Error()) // FIXME
+		}
+
+		session, err := client.NewSession()
+		if err != nil {
+			panic("Failed to create session: " + err.Error()) // FIXME
+		}
+		defer session.Close()
+
+		// start a command and stream output
+		rd, wr, err := os.Pipe()
+		if err != nil {
+			fmt.Printf("worker %d: error: %s\n", id, err)
+			continue
+		}
+
+		session.Stdout = wr
+
+		output := make(chan string)
+		go func(out chan string, up chan WorkerUpdate, t Task, rd io.Reader) {
+			var buffer []string
+			b := bufio.NewScanner(rd)
+			for b.Scan() {
+				s := b.Text()
+				switch s[0:2] {
+				case "O:":
+					buffer = append(buffer, s[2:])
+				case "E:":
+					up <- WorkerUpdate{
+						Task:   t.UUID,
+						Op:     OUTPUT,
+						Output: s[2:],
+					}
+				default:
+					fmt.Printf("Unhandled output `%s`\n", s)
+				}
+			}
+			out <- strings.Join(buffer, "")
+			close(out)
+		}(output, updates, t, rd)
+
+		// exec the command
+		err = session.Start(fmt.Sprintf(`
+{"operation":"%s",
+ "target_plugin":"%s", "target_endpoint":"%s",
+ "store_plugin":"%s", "store_endpoint":"%s"}`,
+			t.Op,
+			t.Target.Plugin, t.Target.Endpoint,
+			t.Store.Plugin, t.Store.Endpoint))
+		if err != nil {
+			panic("Failed to run: " + err.Error()) // FIXME
+		}
+
+		session.Wait()
+		session.Close()
+
+		final := <-output
+		// run the task...
 		if t.Op == BACKUP {
 			// parse JSON from standard output and get the restore key
 			// (this might fail, we might not get a key, etc.)
@@ -76,7 +122,7 @@ func worker(id uint, work chan Task, updates chan WorkerUpdate) {
 				Key string
 			}{}
 
-			buf := bytes.NewBufferString(<-output)
+			buf := bytes.NewBufferString(final)
 			dec := json.NewDecoder(buf)
 			err := dec.Decode(&v)
 

@@ -81,6 +81,7 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 					if !ok {
 						break
 					}
+					fmt.Printf("sent: %s", s)
 					fmt.Fprintf(out, "%s", s)
 				}
 				close(done)
@@ -93,8 +94,11 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 				fmt.Printf("failed: %s\n", err)
 				fmt.Fprintf(channel, "%s\n", err)
 			}
-			conn.Close()
+			channel.SendRequest("exit-status", false, []byte{ 0, 0, 0, 0 })
+			channel.Close()
+			fmt.Printf("closed channel\n")
 		}
+		fmt.Printf("out of requests\n")
 	}
 }
 
@@ -197,6 +201,9 @@ func (req *AgentRequest) Run(output chan string) error {
 	if err != nil {
 		return err
 	}
+
+	// FIXME: need to pass the command exit status back to the SSH client
+	//        via `exit-status` SendRequest() [i think]
 
 	return nil
 }
