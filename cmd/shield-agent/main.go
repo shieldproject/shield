@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/voxelbrain/goptions"
+	"github.com/starkandwayne/shield/agent"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -46,10 +47,7 @@ func main() {
 
 	fmt.Printf("listening on %s\n", opts.ListenAddress)
 
-	agent := &Agent{
-		config: config,
-	}
-
+	agent := agent.NewAgent(config)
 	agent.Serve(listener)
 }
 

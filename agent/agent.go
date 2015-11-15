@@ -1,4 +1,4 @@
-package main
+package agent
 
 import (
 	"bufio"
@@ -15,6 +15,12 @@ import (
 
 type Agent struct {
 	config *ssh.ServerConfig
+}
+
+func NewAgent(config *ssh.ServerConfig) *Agent {
+	return &Agent{
+		config: config,
+	}
 }
 
 func (agent *Agent) Serve(l net.Listener) {
@@ -62,7 +68,7 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 				continue
 			}
 
-			request, err := ParseAgentRequest(req)
+			request, err := ParseRequest(req)
 			if err != nil {
 				fmt.Printf("%s\n", err)
 				req.Reply(false, nil)
@@ -104,7 +110,7 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 	}
 }
 
-type AgentRequest struct {
+type Request struct {
 	JSON           string
 	Operation      string `json:"operation"`
 	TargetPlugin   string `json:"target_plugin"`
@@ -114,7 +120,7 @@ type AgentRequest struct {
 	RestoreKey     string `json:"restore_key"`
 }
 
-func ParseAgentRequest(req *ssh.Request) (*AgentRequest, error) {
+func ParseRequest(req *ssh.Request) (*Request, error) {
 	var raw struct {
 		Value []byte
 	}
@@ -123,7 +129,7 @@ func ParseAgentRequest(req *ssh.Request) (*AgentRequest, error) {
 		return nil, err
 	}
 
-	request := &AgentRequest{JSON: string(raw.Value)}
+	request := &Request{JSON: string(raw.Value)}
 	err = json.Unmarshal(raw.Value, &request)
 	if err != nil {
 		return nil, fmt.Errorf("malformed agent-request %v: %s\n", req.Payload, err)
@@ -153,7 +159,7 @@ func ParseAgentRequest(req *ssh.Request) (*AgentRequest, error) {
 	return request, nil
 }
 
-func (req *AgentRequest) Run(output chan string) error {
+func (req *Request) Run(output chan string) error {
 	cmd := exec.Command("shield-pipe")
 	cmd.Env = []string{
 		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
