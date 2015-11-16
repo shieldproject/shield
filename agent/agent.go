@@ -13,12 +13,12 @@ type Agent struct {
 	PluginPaths []string
 
 	config *ssh.ServerConfig
+
+	Listen net.Listener
 }
 
-func NewAgent(config *ssh.ServerConfig) *Agent {
-	return &Agent{
-		config: config,
-	}
+func NewAgent() *Agent {
+	return &Agent{}
 }
 
 func (agent *Agent) ResolveBinary(name string) (string, error) {
@@ -42,9 +42,9 @@ func (agent *Agent) ResolveBinary(name string) (string, error) {
 	return "", fmt.Errorf("plugin %s not found in path", name)
 }
 
-func (agent *Agent) Serve(l net.Listener) {
+func (agent *Agent) Run() {
 	for {
-		agent.ServeOne(l, true)
+		agent.ServeOne(agent.Listen, true)
 	}
 }
 

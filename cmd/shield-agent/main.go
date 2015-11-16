@@ -2,17 +2,13 @@ package main
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/starkandwayne/shield/agent"
 	"github.com/voxelbrain/goptions"
 )
 
 type ShieldAgentOpts struct {
-	AuthorizedKeysFile string   `goptions:"-A, --authorized-keys, obligatory, description='Path to the authorized (public) keys file, for authenticating clients'"`
-	HostKeyFile        string   `goptions:"-k, --key, obligatory, description='Path to the server host key file'"`
-	ListenAddress      string   `goptions:"-l, --listen, obligatory, description='Network address and port to listen on'"`
-	PluginPaths        []string `goptions:"-p, --path, obligatory, description='Path(s) to the plugins; may be set more than once'"`
+	ConfigFile string `goptions:"-c, --config, obligatory, description='Path to the shield-agent configuration file'"`
 }
 
 func main() {
@@ -25,27 +21,10 @@ func main() {
 		return
 	}
 
-	authorizedKeys, err := agent.LoadAuthorizedKeys(opts.AuthorizedKeysFile)
-	if err != nil {
-		fmt.Printf("failed to load authorized keys: %s\n", err)
+	ag := agent.NewAgent()
+	if err := ag.ReadConfig(opts.ConfigFile); err != nil {
+		fmt.Printf("configuration failed: %s\n", err)
 		return
 	}
-
-	config, err := agent.ConfigureSSHServer(opts.HostKeyFile, authorizedKeys)
-	if err != nil {
-		fmt.Printf("failed to configure SSH server: %s\n", err)
-		return
-	}
-
-	listener, err := net.Listen("tcp", opts.ListenAddress)
-	if err != nil {
-		fmt.Printf("failed to bind %s: %s", opts.ListenAddress, err)
-		return
-	}
-
-	fmt.Printf("listening on %s\n", opts.ListenAddress)
-
-	agent := agent.NewAgent(config)
-	agent.PluginPaths = opts.PluginPaths
-	agent.Serve(listener)
+	ag.Run()
 }

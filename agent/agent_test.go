@@ -1,7 +1,6 @@
 package agent_test
 
 import (
-	"net"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -442,31 +441,23 @@ var _ = Describe("Agent", func() {
 
 	Describe("SSH Server", func() {
 		Endpoint := "127.0.0.1:9122"
-		var agent *Agent
+		var ag *Agent
 		var client *Client
 
 		BeforeEach(func() {
 			var err error
 
-			keys, err := LoadAuthorizedKeys("test/authorized_keys")
+			ag = NewAgent()
+			err = ag.ReadConfig("test/test.conf")
 			Ω(err).ShouldNot(HaveOccurred())
-
-			sconfig, err := ConfigureSSHServer("test/identities/server/id_rsa", keys)
-			Ω(err).ShouldNot(HaveOccurred())
-			agent = NewAgent(sconfig)
-			agent.PluginPaths = []string{ "test/bin" }
-			Ω(agent).ShouldNot(BeNil())
-
-			listener, err := net.Listen("tcp", Endpoint)
-			Ω(err).ShouldNot(HaveOccurred())
-
+			//---STAWP
 			cconfig, err := ConfigureSSHClient("test/identities/a/id_rsa")
 			Ω(err).Should(BeNil())
 			Ω(cconfig).ShouldNot(BeNil())
 			client = NewClient(cconfig)
 			Ω(client).ShouldNot(BeNil())
 
-			go agent.ServeOne(listener, false)
+			go ag.ServeOne(ag.Listen, false)
 		})
 
 		collect := func(out chan string, in chan string) {
