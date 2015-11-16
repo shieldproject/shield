@@ -46,15 +46,16 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Summary  string `json:"summary"`
 			Plugin   string `json:"plugin"`
 			Endpoint string `json:"endpoint"`
+			Agent    string `json:"agent"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Plugin == "" || params.Endpoint == "" {
+		if params.Name == "" || params.Plugin == "" || params.Endpoint == "" || params.Agent == "" {
 			w.WriteHeader(400)
 			return
 		}
 
-		id, err := self.Data.CreateTarget(params.Plugin, params.Endpoint)
+		id, err := self.Data.CreateTarget(params.Plugin, params.Endpoint, params.Agent)
 		if err != nil {
 			bail(w, err)
 			return
@@ -76,17 +77,18 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Summary  string `json:"summary"`
 			Plugin   string `json:"plugin"`
 			Endpoint string `json:"endpoint"`
+			Agent    string `json:"agent"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.Plugin == "" || params.Endpoint == "" {
+		if params.Name == "" || params.Summary == "" || params.Plugin == "" || params.Endpoint == "" || params.Agent == "" {
 			w.WriteHeader(400)
 			return
 		}
 
 		re := regexp.MustCompile("^/v1/target/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-		if err := self.Data.UpdateTarget(id, params.Plugin, params.Endpoint); err != nil {
+		if err := self.Data.UpdateTarget(id, params.Plugin, params.Endpoint, params.Agent); err != nil {
 			bail(w, err)
 			return
 		}

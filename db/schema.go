@@ -79,7 +79,8 @@ func (db *DB) v1schema() error {
                name      TEXT,
                summary   TEXT,
                plugin    TEXT,
-               endpoint  TEXT
+               endpoint  TEXT,
+               agent     TEXT
              )`)
 
 	db.Exec(`CREATE TABLE stores (

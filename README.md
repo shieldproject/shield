@@ -82,6 +82,8 @@ CREATE TABLE targets (
   plugin    TEXT,  -- short name of the target plugin, like 'postgres'
   endpoint  TEXT,  -- opaque blob used by target plugin to connect to
                    --   the remote data system.  Could be JSON, YAML, etc.
+  agent     TEXT,  -- IP address and port (in ip:port format) of the
+                   -- Shield agent that can backup/restore this target
 );
 ```
 
@@ -206,7 +208,7 @@ Purpose: allows the Web UI and CLI to find out what schedules are defined, and p
 | POST | /v1/schedules | - | see below |
 | DELETE | /v1/schedule/:uuid | - | - |
 | PUT | /v1/schedule/:uuid | - | see below |
-|
+
 #### GET /v1/schedules
 
 Response Body:
@@ -402,7 +404,8 @@ Purpose: allows the Web UI and CLI to review what targets have been defined, and
     "name"     : "Target Name",
     "summary"  : "a short description",
     "plugin"   : "plugin-name",
-    "endpoint" : "{\"encoded\":\"json\"}"
+    "endpoint" : "{\"encoded\":\"json\"}",
+    "agent"    : "10.17.66.54:5544"
   },
 
   "..."
@@ -418,7 +421,8 @@ Request Body:
   "name"     : "Target Name",
   "summary"  : "a short description",
   "plugin"   : "plugin-name",
-  "endpoint" : "{\"encoded\":\"json\"}"
+  "endpoint" : "{\"encoded\":\"json\"}",
+  "agent"    : "10.17.66.54:5544"
 }
 ```
 
@@ -428,6 +432,7 @@ Request Body:
 | summary | N | A short description of the target
 | plugin | Y | The name of the plugin to use when backing up this target
 | endpoint | Y | The endpoint configuration required to access this target's data
+| agent | Y | The host:port of a Shield agent that can backup/resetore this target
 
 Response Body:
 
@@ -452,7 +457,8 @@ Request Body:
   "name"     : "Target Name",
   "summary"  : "a short description",
   "plugin"   : "plugin-name",
-  "endpoint" : "{\"encoded\":\"json\"}"
+  "endpoint" : "{\"encoded\":\"json\"}",
+  "agent"    : "10.17.66.54:5544"
 }
 ```
 
@@ -462,7 +468,8 @@ Request Body:
 | summary | Y | A short description of the target
 | plugin | Y | The name of the plugin to use when backing up this target
 | endpoint | Y | The endpoint configuration required to access this target's data
-|
+| agent | Y | The host:port of a Shield agent that can backup/resetore this target
+
 **NOTE:** `summary` is required for update requests, whereas it is optional on creation.
 
 Response Body:
@@ -559,7 +566,7 @@ Request Body:
 | summary | Y | A short description of the store
 | plugin | Y | The name of the plugin to use when backing up this store
 | endpoint | Y | The endpoint configuration required to access this store's data
-|
+
 **NOTE:** `summary` is required for update requests, whereas it is optional on creation.
 
 Response Body:

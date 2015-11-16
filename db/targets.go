@@ -11,6 +11,7 @@ type AnnotatedTarget struct {
 	Summary  string `json:"summary"`
 	Plugin   string `json:"plugin"`
 	Endpoint string `json:"endpoint"`
+	Agent    string `json:"agent"`
 }
 
 type TargetFilter struct {
@@ -35,7 +36,7 @@ func (f *TargetFilter) Query() string {
 
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT uuid, name, summary, plugin, endpoint, -1 AS n
+			SELECT uuid, name, summary, plugin, endpoint, agent, -1 AS n
 				FROM targets ` + where + `
 				ORDER BY name, uuid ASC
 		`
@@ -49,7 +50,7 @@ func (f *TargetFilter) Query() string {
 	}
 
 	return `
-		SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, COUNT(j.uuid) AS n
+		SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, t.agent, COUNT(j.uuid) AS n
 			FROM targets t
 				LEFT JOIN jobs j
 					ON j.target_uuid = t.uuid
@@ -71,7 +72,7 @@ func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, 
 		ann := &AnnotatedTarget{}
 		var n int
 
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
+		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent, &n); err != nil {
 			return l, err
 		}
 
@@ -114,18 +115,18 @@ func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
 	)
 }
 
-func (db *DB) CreateTarget(plugin string, endpoint interface{}) (uuid.UUID, error) {
+func (db *DB) CreateTarget(plugin string, endpoint interface{}, agent string) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO targets (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
-		id.String(), plugin, endpoint,
+		`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES (?, ?, ?, ?)`,
+		id.String(), plugin, endpoint, agent,
 	)
 }
 
-func (db *DB) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}) error {
+func (db *DB) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}, agent string) error {
 	return db.Exec(
-		`UPDATE targets SET plugin = ?, endpoint = ? WHERE uuid = ?`,
-		plugin, endpoint, id.String(),
+		`UPDATE targets SET plugin = ?, endpoint = ?, agent = ? WHERE uuid = ?`,
+		plugin, endpoint, agent, id.String(),
 	)
 }
 
