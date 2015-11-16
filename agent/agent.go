@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 
 	"golang.org/x/crypto/ssh"
 )
 
 type Agent struct {
+	PluginPaths []string
+
 	config *ssh.ServerConfig
 }
 
@@ -16,6 +19,27 @@ func NewAgent(config *ssh.ServerConfig) *Agent {
 	return &Agent{
 		config: config,
 	}
+}
+
+func (agent *Agent) ResolveBinary(name string) (string, error) {
+	for _, path := range agent.PluginPaths {
+		candidate := fmt.Sprintf("%s/%s", path,name)
+		if stat, err := os.Stat(candidate); err == nil {
+			// skip if not executable by someone
+			if stat.Mode() & 0111 == 0 {
+				continue
+			}
+
+			// skip if not a regular file
+			if stat.Mode() & os.ModeType != 0 {
+				continue
+			}
+
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("plugin %s not found in path", name)
 }
 
 func (agent *Agent) Serve(l net.Listener) {
@@ -71,6 +95,12 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 
 			request, err := ParseRequest(req)
 			if err != nil {
+				fmt.Printf("%s\n", err)
+				req.Reply(false, nil)
+				continue
+			}
+
+			if err = request.ResolvePaths(agent); err != nil {
 				fmt.Printf("%s\n", err)
 				req.Reply(false, nil)
 				continue

@@ -9,9 +9,10 @@ import (
 )
 
 type ShieldAgentOpts struct {
-	AuthorizedKeysFile string `goptions:"-A, --authorized-keys, obligatory, description='Path to the authorized (public) keys file, for authenticating clients'"`
-	HostKeyFile        string `goptions:"-k, --key, obligatory, description='Path to the server host key file'"`
-	ListenAddress      string `goptions:"-l, --listen, obligatory, description='Network address and port to listen on'"`
+	AuthorizedKeysFile string   `goptions:"-A, --authorized-keys, obligatory, description='Path to the authorized (public) keys file, for authenticating clients'"`
+	HostKeyFile        string   `goptions:"-k, --key, obligatory, description='Path to the server host key file'"`
+	ListenAddress      string   `goptions:"-l, --listen, obligatory, description='Network address and port to listen on'"`
+	PluginPaths        []string `goptions:"-p, --path, obligatory, description='Path(s) to the plugins; may be set more than once'"`
 }
 
 func main() {
@@ -45,5 +46,6 @@ func main() {
 	fmt.Printf("listening on %s\n", opts.ListenAddress)
 
 	agent := agent.NewAgent(config)
+	agent.PluginPaths = opts.PluginPaths
 	agent.Serve(listener)
 }

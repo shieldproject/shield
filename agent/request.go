@@ -67,6 +67,7 @@ func ParseRequest(req *ssh.Request) (*Request, error) {
 
 func (req *Request) Run(output chan string) error {
 	cmd := exec.Command("shield-pipe")
+
 	cmd.Env = []string{
 		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
 		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
@@ -115,6 +116,22 @@ func (req *Request) Run(output chan string) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (r *Request) ResolvePaths(agent *Agent) error {
+	bin, err := agent.ResolveBinary(r.TargetPlugin)
+	if err != nil {
+		return err
+	}
+	r.TargetPlugin = bin
+
+	bin, err = agent.ResolveBinary(r.StorePlugin)
+	if err != nil {
+		return err
+	}
+	r.StorePlugin = bin
 
 	return nil
 }

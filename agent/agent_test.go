@@ -13,6 +13,43 @@ import (
 )
 
 var _ = Describe("Agent", func() {
+	Describe("Plugin Loader", func() {
+		var a *Agent
+
+		BeforeEach(func() {
+			a = &Agent{
+				PluginPaths: []string{ "test/plugins/dir", "test/plugins" },
+			}
+		})
+
+		It("throws an error if the plugin is not found", func() {
+			_, err := a.ResolveBinary("enoent")
+			Ω(err).Should(HaveOccurred())
+		})
+
+		It("skips directories implicitly", func() {
+			_, err := a.ResolveBinary("dir")
+			Ω(err).Should(HaveOccurred())
+		})
+
+		It("skips non-executable files implicitly", func() {
+			_, err := a.ResolveBinary("regular")
+			Ω(err).Should(HaveOccurred())
+		})
+
+		It("finds the executable script", func() {
+			path, err := a.ResolveBinary("executable")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(path).Should(Equal("test/plugins/executable"))
+		})
+
+		It("finds the first executable script, if there are multiple", func() {
+			path, err := a.ResolveBinary("common")
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(path).Should(Equal("test/plugins/dir/common"))
+		})
+	})
+
 	Describe("Authorized Keys Loader", func() {
 		It("throws an error when loading authorized keys from a non-existent file", func() {
 			_, err := LoadAuthorizedKeys("test/enoent")
@@ -417,6 +454,7 @@ var _ = Describe("Agent", func() {
 			sconfig, err := ConfigureSSHServer("test/identities/server/id_rsa", keys)
 			Ω(err).ShouldNot(HaveOccurred())
 			agent = NewAgent(sconfig)
+			agent.PluginPaths = []string{ "test/bin" }
 			Ω(agent).ShouldNot(BeNil())
 
 			listener, err := net.Listen("tcp", Endpoint)
@@ -455,9 +493,9 @@ var _ = Describe("Agent", func() {
 			go collect(final, partial)
 			err = client.Run(partial, `{
 				"operation"       : "backup",
-				"target_plugin"   : "test/bin/dummy",
+				"target_plugin"   : "dummy",
 				"target_endpoint" : "TARGET-ENDPOINT",
-				"store_plugin"    : "test/bin/dummy",
+				"store_plugin"    : "dummy",
 				"store_endpoint"  : "STORE-ENDPOINT"
 			}`)
 			Ω(err).ShouldNot(HaveOccurred())
