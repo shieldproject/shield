@@ -177,6 +177,79 @@ var _ = Describe("/v1/archives API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("should retrieve archives taken before a given timestamp", func() {
+		res := GET(API, "/v1/archives?before=20150424")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"            : "` + REDIS_ARCHIVE_1 + `",
+					"notes"           : "Good Redis Backup",
+					"key"             : "redis-archive-1-key",
+					"taken_at"        : "2015-04-23 14:35:22",
+					"expires_at"      : "2015-04-25 14:35:22",
+					"store_uuid"      : "` + STORE_S3 + `",
+					"store_plugin"    : "s3",
+					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_plugin"   : "redis",
+					"target_endpoint" : "<<redis-configuration>>"
+				},
+				{
+					"uuid"            : "` + PG_ARCHIVE_1 + `",
+					"notes"           : "test backup",
+					"key"             : "pg-archive-1-key",
+					"taken_at"        : "2015-04-21 03:00:01",
+					"expires_at"      : "2015-06-18 03:00:01",
+					"store_uuid"      : "` + STORE_S3 + `",
+					"store_plugin"    : "s3",
+					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_PG + `",
+					"target_plugin"   : "pg",
+					"target_endpoint" : "<<pg-configuration>>"
+				}
+			]`))
+	})
+
+	It("should retrieve archives taken after a given timestamp", func() {
+		res := GET(API, "/v1/archives?after=20150424")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"            : "` + PG_ARCHIVE_2 + `",
+					"notes"           : "",
+					"key"             : "pg-archive-2-key",
+					"taken_at"        : "2015-04-28 03:00:01",
+					"expires_at"      : "2015-06-25 03:00:01",
+					"target_uuid"     : "` + TARGET_PG + `",
+					"store_plugin"    : "s3",
+					"store_endpoint"  : "<<s3-configuration>>",
+					"store_uuid"      : "` + STORE_S3 + `",
+					"target_plugin"   : "pg",
+					"target_endpoint" : "<<pg-configuration>>"
+				}
+			]`))
+	})
+
+	It("should retrieve archives taken between two timestamps", func() {
+		res := GET(API, "/v1/archives?after=20150422&before=20150424")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"            : "` + REDIS_ARCHIVE_1 + `",
+					"notes"           : "Good Redis Backup",
+					"key"             : "redis-archive-1-key",
+					"taken_at"        : "2015-04-23 14:35:22",
+					"expires_at"      : "2015-04-25 14:35:22",
+					"store_uuid"      : "` + STORE_S3 + `",
+					"store_plugin"    : "s3",
+					"store_endpoint"  : "<<s3-configuration>>",
+					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_plugin"   : "redis",
+					"target_endpoint" : "<<redis-configuration>>"
+				}
+			]`))
+	})
+
 	It("cannot create new archives", func() {
 		res := POST(API, "/v1/archives", WithJSON(`{}`))
 		Ω(res.Code).Should(Equal(415))

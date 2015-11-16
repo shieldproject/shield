@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/pborman/uuid"
 	"strings"
+	"time"
 )
 
 type AnnotatedArchive struct {
@@ -24,6 +25,8 @@ type AnnotatedArchive struct {
 type ArchiveFilter struct {
 	ForTarget string
 	ForStore  string
+	Before    *time.Time
+	After     *time.Time
 }
 
 func (f *ArchiveFilter) Query() string {
@@ -33,6 +36,12 @@ func (f *ArchiveFilter) Query() string {
 	}
 	if f.ForStore != "" {
 		wheres = append(wheres, "store_uuid = ?")
+	}
+	if f.Before != nil {
+		wheres = append(wheres, "taken_at <= ?")
+	}
+	if f.After != nil {
+		wheres = append(wheres, "taken_at >= ?")
 	}
 	return `
 		SELECT a.uuid, a.store_key,
@@ -56,6 +65,12 @@ func (f *ArchiveFilter) Args() []interface{} {
 	}
 	if f.ForStore != "" {
 		args = append(args, f.ForStore)
+	}
+	if f.Before != nil {
+		args = append(args, f.Before)
+	}
+	if f.After != nil {
+		args = append(args, f.After)
 	}
 	return args
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 func match(req *http.Request, pattern string) bool {
@@ -53,4 +54,19 @@ func paramValue(req *http.Request, name string, defval string) string {
 		return value[0]
 	}
 	return defval
+}
+
+func paramDate(req *http.Request, name string) *time.Time {
+	//utc, _ := time.LoadLocation("UTC")
+
+	value, set := req.URL.Query()[name]
+	if !set {
+		return nil
+	}
+
+	t, err := time.Parse("20060102", value[0])
+	if err != nil {
+		return nil
+	}
+	return &t
 }

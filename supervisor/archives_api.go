@@ -22,7 +22,8 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			&db.ArchiveFilter{
 				ForTarget: paramValue(req, "target", ""),
 				ForStore:  paramValue(req, "store", ""),
-				/* FIXME: before/after stuff */
+				Before:    paramDate(req, "before"),
+				After:     paramDate(req, "after"),
 			},
 		)
 		if err != nil {

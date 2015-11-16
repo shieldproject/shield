@@ -18,6 +18,5 @@ Large Tasks / Features
       WONTFIX: not happending for current iteration
 
 Small Tasks / Fixes / Enhancement
- - Handle timeframe handling for archives API
  - Only resync supervisor for *material* db changes, not all db changes
  - Passing restoration key during restore operations

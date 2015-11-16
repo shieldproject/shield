@@ -739,7 +739,7 @@ Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations 
 
 | Method | Path | Arguments | Request Body |
 | :----- | :---- | :------- | :----------- |
-| GET | /v1/archives | ?target=:uuid <br>?store=:uuid <br>?after=:timespec <br>?before=:timespec | - |
+| GET | /v1/archives | ?target=:uuid <br>?store=:uuid <br>?after=YYYYMMDD <br>?before=YYYYMMDD | - |
 | GET | /v1/archive/:uuid | - | - |
 | POST | /v1/archive/:uuid/restore | { target: $target_uuid } | see below |
 | DELETE | /v1/archive/:uuid | - | - |
