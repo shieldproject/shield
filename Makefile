@@ -8,6 +8,7 @@ all-the-things: tests shield plugins
 tests: test
 test:
 	ginkgo *
+	go vet ./...
 
 # Running Tests for race conditions
 race:
