@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"sync"
 	"io"
+	"io/ioutil"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -21,6 +22,28 @@ func NewAgent(config *ssh.ServerConfig) *Agent {
 	return &Agent{
 		config: config,
 	}
+}
+
+func LoadAuthorizedKeys(path string) ([]ssh.PublicKey, error) {
+	authorizedKeysBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var authorizedKeys []ssh.PublicKey
+
+	for {
+		key, _, _, rest, err := ssh.ParseAuthorizedKey(authorizedKeysBytes)
+		if err != nil {
+			break
+		}
+
+		authorizedKeys = append(authorizedKeys, key)
+
+		authorizedKeysBytes = rest
+	}
+
+	return authorizedKeys, nil
 }
 
 func (agent *Agent) Serve(l net.Listener) {
@@ -120,19 +143,11 @@ type Request struct {
 	RestoreKey     string `json:"restore_key"`
 }
 
-func ParseRequest(req *ssh.Request) (*Request, error) {
-	var raw struct {
-		Value []byte
-	}
-	err := ssh.Unmarshal(req.Payload, &raw)
+func ParseRequestValue(value []byte) (*Request, error) {
+	request := &Request{JSON: string(value)}
+	err := json.Unmarshal(value, &request)
 	if err != nil {
-		return nil, err
-	}
-
-	request := &Request{JSON: string(raw.Value)}
-	err = json.Unmarshal(raw.Value, &request)
-	if err != nil {
-		return nil, fmt.Errorf("malformed agent-request %v: %s\n", req.Payload, err)
+		return nil, fmt.Errorf("malformed agent-request %v: %s\n", value, err)
 	}
 
 	if request.Operation == "" {
@@ -157,6 +172,18 @@ func ParseRequest(req *ssh.Request) (*Request, error) {
 		return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
 	}
 	return request, nil
+}
+
+func ParseRequest(req *ssh.Request) (*Request, error) {
+	var raw struct {
+		Value []byte
+	}
+	err := ssh.Unmarshal(req.Payload, &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseRequestValue(raw.Value)
 }
 
 func (req *Request) Run(output chan string) error {

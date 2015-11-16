@@ -27,7 +27,7 @@ func main() {
 		return
 	}
 
-	authorizedKeys, err := loadAuthorizedKeys(opts.AuthorizedKeysFile)
+	authorizedKeys, err := agent.LoadAuthorizedKeys(opts.AuthorizedKeysFile)
 	if err != nil {
 		fmt.Printf("failed to load authorized keys: %s\n", err)
 		return
@@ -51,27 +51,6 @@ func main() {
 	agent.Serve(listener)
 }
 
-func loadAuthorizedKeys(path string) ([]ssh.PublicKey, error) {
-	authorizedKeysBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var authorizedKeys []ssh.PublicKey
-
-	for {
-		key, _, _, rest, err := ssh.ParseAuthorizedKey(authorizedKeysBytes)
-		if err != nil {
-			break
-		}
-
-		authorizedKeys = append(authorizedKeys, key)
-
-		authorizedKeysBytes = rest
-	}
-
-	return authorizedKeys, nil
-}
 
 func configureSSHServer(hostKeyPath string, authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {
 	certChecker := &ssh.CertChecker{

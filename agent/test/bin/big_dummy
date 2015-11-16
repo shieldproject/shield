@@ -17,10 +17,9 @@ plugin_options() {
 
 fake_data() {
 	for i in $(seq 1 1000); do
-	cat << 'EOF'
-	 thequickbrownfoxjumpedoverthelazydog`1234567890-=~!@#$%^&*()_+[]\{}|;':",./<>?
-EOF
+		echo -n "thequickbrownfoxjumpedoverthelazydog\`1234567890-=~!@#\$%^&*()_+[]\{}|;':\",./<>? "
 	done
+	echo
 }
 
 # dummy <mode> --endpoint <endpoint_JSON> --key <KEY_ID>
