@@ -753,8 +753,8 @@ Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations 
     "uuid"            : "9ee4b579-19ba-4fa5-94e1-e5b2a4d8e85a",
     "store_key"       : "BKP-1234-56789",
 
-    "taken_at",       : "2015-10-25 11:32:00",
-    "expires_at",     : "2015-12-25 11:32:00",
+    "taken_at"        : "2015-10-25 11:32:00",
+    "expires_at"      : "2015-12-25 11:32:00",
     "notes"           : "a few notes about this archive",
 
     "store_uuid"      : "b7b5743f-adfa-4ceb-abde-2c2085149b12",
