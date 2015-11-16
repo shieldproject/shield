@@ -72,7 +72,7 @@ func (db *DB) v1schema() error {
 	db.Exec(`CREATE TABLE schema_info (
                version INTEGER
              )`)
-	db.Exec(`INSERT INTO schema_info VALUES (?)`, CurrentSchema)
+	db.Exec(`INSERT INTO schema_info VALUES (1)`)
 
 	db.Exec(`CREATE TABLE targets (
                uuid      UUID PRIMARY KEY,
