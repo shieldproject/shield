@@ -9,7 +9,8 @@ Large Tasks / Features
       FIXED: done!
  - -Enable shorter timespec intervals for testing only (minutely backups?)-
       FIXED: use `SHIELD_MODE=DEV ./shieldd` to run jobs every minute
- - Agent architecture, API, calling protocol
+ - -Agent architecture, API, calling protocol-
+      DONE: SSH
  - CLI implementation
  - -Investigate Docker/Garden implementation for plugins-
       WONTFIX: not happending for current iteration
