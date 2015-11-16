@@ -81,8 +81,8 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
  "target_plugin":"%s", "target_endpoint":"%s",
  "store_plugin":"%s", "store_endpoint":"%s"}`,
 			t.Op,
-			t.Target.Plugin, t.Target.Endpoint,
-			t.Store.Plugin, t.Store.Endpoint))
+			t.TargetPlugin, t.TargetEndpoint,
+			t.StorePlugin, t.StoreEndpoint))
 		if err != nil {
 			fmt.Printf("worker %d (on %s): run failed: %s\n", id, remote, err)
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}

@@ -32,16 +32,13 @@ const (
 	DONE
 )
 
-type PluginConfig struct {
-	Plugin   string
-	Endpoint string
-}
-
 type Task struct {
 	UUID uuid.UUID
 
-	Store  *PluginConfig
-	Target *PluginConfig
+	StorePlugin string
+	StoreEndpoint string
+	TargetPlugin string
+	TargetEndpoint string
 
 	Op     Operation
 	Status Status

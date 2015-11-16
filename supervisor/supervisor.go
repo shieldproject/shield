@@ -46,12 +46,12 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 	}
 	e := JobFailedError{}
 	for result.Next() {
-		j := &Job{Target: &PluginConfig{}, Store: &PluginConfig{}}
+		j := &Job{}
 		var id, tspec string
 		var expiry int
 		err = result.Scan(&id, &j.Paused,
-			&j.Target.Plugin, &j.Target.Endpoint,
-			&j.Store.Plugin, &j.Store.Endpoint,
+			&j.TargetPlugin, &j.TargetEndpoint,
+			&j.StorePlugin, &j.StoreEndpoint,
 			&tspec, &expiry)
 		j.UUID = uuid.Parse(id)
 		if err != nil {
@@ -71,8 +71,11 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 
 type AdhocTask struct {
 	Op          Operation
+
 	TargetUUID  uuid.UUID
 	ArchiveUUID uuid.UUID
+	RestoreKey  string
+
 	JobUUID     uuid.UUID
 }
 
