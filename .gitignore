@@ -7,4 +7,5 @@
 /redis
 /s3
 
-*.coverprofile
+# where we keep coverage reports...
+/coverage

@@ -5,13 +5,14 @@
 all-the-things: tests shield plugins
 
 # Running Tests
+tests: test
 test:
 	ginkgo *
-tests: test
 
 # Running Tests for race conditions
 race:
 	ginkgo -race *
+
 # Building Shield
 shield:
 	go build ./cmd/shieldd
@@ -19,6 +20,7 @@ shield:
 	go build ./cmd/shield-schema
 
 # Building Plugins
+plugin: plugins
 plugins:
 	go build ./plugin/dummy
 	go build ./plugin/elasticsearch
@@ -26,6 +28,14 @@ plugins:
 	go build ./plugin/redis
 	go build ./plugin/s3
 
+# Run tests with coverage tracking, writing output to coverage/
+coverage: agent.cov db.cov plugin.cov supervisor.cov timespec.cov
+%.cov:
+	@mkdir -p coverage
+	@go test -coverprofile coverage/$@ ./$*
+
+report:
+	go tool cover -html=coverage/$(FOR).cov
+
 # Deferred: Naming plugins individually, e.g. make plugin dummy
 # Deferred: Looping through plugins instead of listing them
-plugin: plugins
