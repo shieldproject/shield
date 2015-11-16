@@ -661,7 +661,7 @@ Response Body:
 | ok    | The new job was created
 | uuid  | The UUID of the newly-created job
 
-#### PUT /v1/store/:uuid
+#### PUT /v1/job/:uuid
 
 Request Body:
 
