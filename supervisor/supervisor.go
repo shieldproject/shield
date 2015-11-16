@@ -2,13 +2,14 @@ package supervisor
 
 import (
 	"fmt"
-	"github.com/pborman/uuid"
-	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/timespec"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pborman/uuid"
+	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/timespec"
 )
 
 type JobRepresentation struct {
@@ -88,7 +89,7 @@ type Supervisor struct {
 
 	Database *db.DB
 
-	Listen         string /* addr/interface(s) and port to bind */
+	Port           string /* addr/interface(s) and port to bind */
 	PrivateKeyFile string /* path to the SSH private key for talking to remote agents */
 
 	runq []*Task
@@ -337,7 +338,7 @@ func (s *Supervisor) SpawnAPI() {
 		http.Handle("/v1/tasks", tasks)
 		http.Handle("/v1/task/", tasks)
 
-		http.ListenAndServe(s.Listen, nil)
+		http.ListenAndServe(":"+s.Port, nil)
 	}(s)
 }
 

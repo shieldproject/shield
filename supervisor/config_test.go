@@ -28,7 +28,7 @@ var _ = Describe("Supervisor Configuration", func() {
 			Ω(s.ReadConfig("test/etc/empty.yml")).Should(Succeed())
 			Ω(s.Database.Driver).Should(Equal(""))
 			Ω(s.Database.DSN).Should(Equal(""))
-			Ω(s.Listen).Should(Equal(":8888"))
+			Ω(s.Port).Should(Equal("8888"))
 			Ω(s.PrivateKeyFile).Should(Equal("/etc/shield/ssh/server.key"))
 		})
 
@@ -36,7 +36,7 @@ var _ = Describe("Supervisor Configuration", func() {
 			Ω(s.ReadConfig("test/etc/valid.yml")).Should(Succeed())
 			Ω(s.Database.Driver).Should(Equal("my-driver"))
 			Ω(s.Database.DSN).Should(Equal("my:dsn=database"))
-			Ω(s.Listen).Should(Equal(":8988"))
+			Ω(s.Port).Should(Equal("8988"))
 			Ω(s.PrivateKeyFile).Should(Equal("/etc/priv.key"))
 		})
 

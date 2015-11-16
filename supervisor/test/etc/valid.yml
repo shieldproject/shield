@@ -1,5 +1,5 @@
 ---
 database_type: my-driver
 database_dsn:  my:dsn=database
-listen: :8988
+port: 8988
 private_key: /etc/priv.key
