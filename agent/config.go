@@ -63,8 +63,6 @@ func (agent *Agent) ReadConfig(path string) error {
 	}
 	agent.Listen = listener
 
-	fmt.Printf("listening on %s\n", config.ListenAddress)
-
 	agent.PluginPaths = config.PluginPaths
 
 	return nil
