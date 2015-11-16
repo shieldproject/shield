@@ -19,6 +19,7 @@ type UpdateOp int
 
 const (
 	STOPPED UpdateOp = iota
+	FAILED
 	OUTPUT
 	RESTORE_KEY
 )
@@ -30,45 +31,55 @@ type WorkerUpdate struct {
 	Output    string
 }
 
-func loadUserKey(path string) ssh.AuthMethod {
+func loadUserKey(path string) (ssh.AuthMethod, error) {
 	raw, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic("loadUserKey: " + err.Error())
+		return nil, err
 	}
 
 	signer, err := ssh.ParsePrivateKey(raw)
 	if err != nil {
-		panic("loadUserKey: " + err.Error())
+		return nil, err
 	}
 
-	return ssh.PublicKeys(signer)
+	return ssh.PublicKeys(signer), nil
 }
 
 func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
-	for t := range work {
-		fmt.Printf("worker %d received task %v\n", id, t.UUID.String())
+	auth, err := loadUserKey(privateKeyFile)
+	if err != nil {
+		fmt.Printf("worker %d unable to read user key %s: %s; bailing out.\n",
+			id, privateKeyFile, err)
+		return
+	}
 
+	for t := range work {
 		config := &ssh.ClientConfig{
-			Auth: []ssh.AuthMethod{
-				loadUserKey(privateKeyFile),
-			},
+			Auth: []ssh.AuthMethod{ auth },
 		}
 
-		client, err := ssh.Dial("tcp", "127.0.0.1:2022", config) // FIXME
+		remote := "127.0.0.1:2022" // eIXME: hard-coded value
+		client, err := ssh.Dial("tcp", remote, config)
 		if err != nil {
-			panic("connection failed: " + err.Error()) // FIXME
+			fmt.Printf("worker %d unable to connect to %s: %s; ignoring this task.\n", id, remote, err)
+			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
+			continue
 		}
 
 		session, err := client.NewSession()
 		if err != nil {
-			panic("Failed to create session: " + err.Error()) // FIXME
+			fmt.Printf("worker %d (on %s): unable to create remote session: %s; ignoring this task.\n", id, remote, err)
+			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
+			continue
 		}
 		defer session.Close()
 
 		// start a command and stream output
 		rd, wr, err := os.Pipe()
 		if err != nil {
-			fmt.Printf("worker %d: error: %s\n", id, err)
+			fmt.Printf("worker %d (on %s): general error: %s\n", id, remote, err)
+			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
+			session.Close()
 			continue
 		}
 
@@ -105,8 +116,10 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			t.Op,
 			t.Target.Plugin, t.Target.Endpoint,
 			t.Store.Plugin, t.Store.Endpoint))
+
 		if err != nil {
-			panic("Failed to run: " + err.Error()) // FIXME
+			fmt.Printf("worker %d (on %s): run failed: %s\n", id, remote, err)
+			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
 		}
 
 		session.Wait()
@@ -126,7 +139,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			err := dec.Decode(&v)
 
 			if err != nil {
-				fmt.Printf("uh-oh: %s\n", err)
+				fmt.Printf("worker %d (on %s): %s\n", id, remote, err)
 
 			} else {
 				updates <- WorkerUpdate{

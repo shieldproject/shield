@@ -229,25 +229,32 @@ func (s *Supervisor) Run() error {
 			s.ScheduleAdhoc(adhoc)
 
 		case u := <-s.updates:
-			if u.Op == STOPPED {
+			switch u.Op {
+			case STOPPED:
 				fmt.Printf("  %s: job stopped at %s\n", u.Task, u.StoppedAt.String())
 				if err := s.Database.CompleteTask(u.Task, u.StoppedAt); err != nil {
 					fmt.Printf("  %s: !! failed to update database - %s\n", u.Task, err)
 				}
 
-			} else if u.Op == OUTPUT {
+			case FAILED:
+				fmt.Printf("  %s: task failed!\n", u.Task)
+				if err := s.Database.FailTask(u.Task, time.Now()); err != nil {
+					fmt.Printf("  %s: !! failed to update database - %s\n", u.Task, err)
+				}
+
+			case OUTPUT:
 				fmt.Printf("  %s> %s\n", u.Task, u.Output)
 				if err := s.Database.UpdateTaskLog(u.Task, u.Output); err != nil {
 					fmt.Printf("  %s: !! failed to update database - %s\n", u.Task, err)
 				}
 
-			} else if u.Op == RESTORE_KEY {
+			case RESTORE_KEY:
 				fmt.Printf("  %s: restore key is %s\n", u.Task, u.Output)
 				if err := s.Database.CreateTaskArchive(u.Task, u.Output, time.Now()); err != nil {
 					fmt.Printf("  %s: !! failed to update database - %s\n", u.Task, err)
 				}
 
-			} else {
+			default:
 				fmt.Printf("  %s: !! unrecognized op type\n", u.Task)
 			}
 

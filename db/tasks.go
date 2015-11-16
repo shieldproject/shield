@@ -100,18 +100,22 @@ func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	)
 }
 
-func (db *DB) CancelTask(id uuid.UUID, effective time.Time) error {
+func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective time.Time) error {
 	return db.Exec(
 		`UPDATE tasks SET status = ?, stopped_at = ? WHERE uuid = ?`,
-		"canceled", effective, id.String(),
+		status, effective, id.String(),
 	)
+}
+func (db *DB) CancelTask(id uuid.UUID, effective time.Time) error {
+	return db.updateTaskStatus(id, "canceled", effective)
+}
+
+func (db *DB) FailTask(id uuid.UUID, effective time.Time) error {
+	return db.updateTaskStatus(id, "failed", effective)
 }
 
 func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
-	return db.Exec(
-		`UPDATE tasks SET status = ?, stopped_at = ? WHERE uuid = ?`,
-		"done", effective, id.String(),
-	)
+	return db.updateTaskStatus(id, "done", effective)
 }
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {

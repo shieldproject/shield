@@ -175,7 +175,7 @@ Here are the defined operations:
 | restore | Perform a restore of the associated ARCHIVE.  The storage channel is pulled directly from the ARCHIVE. The target can be specified in the `args` JSON.  If it is not, the values from the ARCHIVE will be used.  This allows restores to go to a different host (for migration / scale-out purposes). |
 
 ```sql
-CREATE TYPE status AS ENUM ('pending', 'running', 'canceled', 'done');
+CREATE TYPE status AS ENUM ('pending', 'running', 'canceled', 'failed', 'done');
 CREATE TABLE tasks (
   uuid      UUID PRIMARY KEY,
   owner     TEXT, -- who owns / started this task?

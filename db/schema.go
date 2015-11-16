@@ -131,7 +131,7 @@ func (db *DB) v1schema() error {
                job_uuid      UUID,
                archive_uuid  UUID,
 
-               status      status,
+               status      TEXT,
                started_at  timestamp without time zone,
                stopped_at  timestamp without time zone,
 
