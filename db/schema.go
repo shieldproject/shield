@@ -30,6 +30,9 @@ func (db *DB) SchemaVersion() (uint, error) {
 		if err.Error() == "no such table: schema_info" {
 			return 0, nil
 		}
+		if err.Error() == `pq: relation "schema_info" does not exist` {
+			return 0, nil
+		}
 		return 0, err
 	}
 	defer r.Close()
