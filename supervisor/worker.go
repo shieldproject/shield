@@ -1,15 +1,14 @@
 package supervisor
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 	"time"
+
+	"github.com/starkandwayne/shield/agent"
 
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/ssh"
@@ -46,7 +45,7 @@ func loadUserKey(path string) (ssh.AuthMethod, error) {
 }
 
 func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
-	auth, err := loadUserKey(privateKeyFile)
+	config, err := agent.ConfigureSSHClient(privateKeyFile)
 	if err != nil {
 		fmt.Printf("worker %d unable to read user key %s: %s; bailing out.\n",
 			id, privateKeyFile, err)
@@ -54,43 +53,29 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 	}
 
 	for t := range work {
-		config := &ssh.ClientConfig{
-			Auth: []ssh.AuthMethod{auth},
-		}
+		client := agent.NewClient(config)
 
-		remote := "127.0.0.1:2022" // eIXME: hard-coded value
-		client, err := ssh.Dial("tcp", remote, config)
+		remote := "127.0.0.1:2022" // FIXME: hard-coded value
+		err = client.Dial(remote)
 		if err != nil {
 			fmt.Printf("worker %d unable to connect to %s: %s; ignoring this task.\n", id, remote, err)
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 			continue
 		}
-
-		session, err := client.NewSession()
-		if err != nil {
-			fmt.Printf("worker %d (on %s): unable to create remote session: %s; ignoring this task.\n", id, remote, err)
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
-			continue
-		}
-		defer session.Close()
+		defer client.Close()
 
 		// start a command and stream output
-		rd, wr, err := os.Pipe()
-		if err != nil {
-			fmt.Printf("worker %d (on %s): general error: %s\n", id, remote, err)
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
-			session.Close()
-			continue
-		}
+		final   := make(chan string)
+		partial := make(chan string)
 
-		session.Stdout = wr
-
-		output := make(chan string)
-		go func(out chan string, up chan WorkerUpdate, t Task, rd io.Reader) {
+		go func(out chan string, up chan WorkerUpdate, t Task, in chan string) {
 			var buffer []string
-			b := bufio.NewScanner(rd)
-			for b.Scan() {
-				s := b.Text()
+			for {
+				s, ok := <-in
+				if !ok {
+					break
+				}
+
 				switch s[0:2] {
 				case "O:":
 					buffer = append(buffer, s[2:])
@@ -100,33 +85,26 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 						Op:     OUTPUT,
 						Output: s[2:],
 					}
-				default:
-					fmt.Printf("Unhandled output `%s`\n", s)
 				}
 			}
 			out <- strings.Join(buffer, "")
 			close(out)
-		}(output, updates, t, rd)
+		}(final, updates, t, partial)
 
 		// exec the command
-		err = session.Start(fmt.Sprintf(`
+		err = client.Run(partial, fmt.Sprintf(`
 {"operation":"%s",
  "target_plugin":"%s", "target_endpoint":"%s",
  "store_plugin":"%s", "store_endpoint":"%s"}`,
 			t.Op,
 			t.Target.Plugin, t.Target.Endpoint,
 			t.Store.Plugin, t.Store.Endpoint))
-
 		if err != nil {
 			fmt.Printf("worker %d (on %s): run failed: %s\n", id, remote, err)
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 		}
 
-		session.Wait()
-		session.Close()
-
-		final := <-output
-		// run the task...
+		out := <-final
 		if t.Op == BACKUP {
 			// parse JSON from standard output and get the restore key
 			// (this might fail, we might not get a key, etc.)
@@ -134,7 +112,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 				Key string
 			}{}
 
-			buf := bytes.NewBufferString(final)
+			buf := bytes.NewBufferString(out)
 			dec := json.NewDecoder(buf)
 			err := dec.Decode(&v)
 

@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
 
 	"github.com/voxelbrain/goptions"
 	"github.com/starkandwayne/shield/agent"
-	"golang.org/x/crypto/ssh"
 )
 
 type ShieldAgentOpts struct {
@@ -33,7 +30,7 @@ func main() {
 		return
 	}
 
-	config, err := configureSSHServer(opts.HostKeyFile, authorizedKeys)
+	config, err := agent.ConfigureSSHServer(opts.HostKeyFile, authorizedKeys)
 	if err != nil {
 		fmt.Printf("failed to configure SSH server: %s\n", err)
 		return
@@ -49,43 +46,4 @@ func main() {
 
 	agent := agent.NewAgent(config)
 	agent.Serve(listener)
-}
-
-
-func configureSSHServer(hostKeyPath string, authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {
-	certChecker := &ssh.CertChecker{
-		IsAuthority: func(key ssh.PublicKey) bool {
-			return false
-		},
-
-		UserKeyFallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			for _, k := range authorizedKeys {
-				if bytes.Equal(k.Marshal(), key.Marshal()) {
-					return nil, nil
-				}
-			}
-
-			return nil, fmt.Errorf("unknown public key")
-		},
-	}
-
-	config := &ssh.ServerConfig{
-		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			return certChecker.Authenticate(conn, key)
-		},
-	}
-
-	privateBytes, err := ioutil.ReadFile(hostKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	private, err := ssh.ParsePrivateKey(privateBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	config.AddHostKey(private)
-
-	return config, nil
 }

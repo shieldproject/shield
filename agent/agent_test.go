@@ -1,12 +1,15 @@
 package agent_test
 
 import (
+	"net"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	. "github.com/starkandwayne/shield/agent"
+
+	"golang.org/x/crypto/ssh"
 )
 
 var _ = Describe("Agent", func() {
@@ -26,6 +29,24 @@ var _ = Describe("Agent", func() {
 			keys, err := LoadAuthorizedKeys("test/authorized_keys.malformed")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(len(keys)).Should(Equal(2))
+		})
+	})
+
+	Describe("SSH Configurator", func() {
+		It("throws an error when given a bad host key path", func() {
+			_, err := ConfigureSSHServer("test/enoent", []ssh.PublicKey{})
+			Ω(err).Should(HaveOccurred())
+		})
+
+		It("throws an error when given a malformed host key", func() {
+			_, err := ConfigureSSHServer("test/identities/bad/malformed", []ssh.PublicKey{})
+			Ω(err).Should(HaveOccurred())
+		})
+
+		It("returns a ServerConfig when given a valid host key", func() {
+			config, err := ConfigureSSHServer("test/identities/server/id_rsa", []ssh.PublicKey{})
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(config).ShouldNot(BeNil())
 		})
 	})
 
@@ -196,7 +217,7 @@ var _ = Describe("Agent", func() {
 		collect := func(out chan string, in chan string) {
 			var stdout []string
 			var stderr []string
-			var other  []string
+			var other []string
 
 			for {
 				s, ok := <-in
@@ -220,7 +241,7 @@ var _ = Describe("Agent", func() {
 
 		It("works", func() {
 			out := make(chan string)
-			c   := make(chan string)
+			c := make(chan string)
 
 			go collect(out, c)
 			err := req.Run(c)
@@ -234,7 +255,7 @@ var _ = Describe("Agent", func() {
 
 		It("collects output from the command pipeline", func() {
 			out := make(chan string)
-			c   := make(chan string)
+			c := make(chan string)
 
 			go collect(out, c)
 			err := req.Run(c)
@@ -257,7 +278,7 @@ var _ = Describe("Agent", func() {
 
 		It("handles backup operations with large output", func() {
 			out := make(chan string)
-			c   := make(chan string)
+			c := make(chan string)
 
 			go collect(out, c)
 
@@ -279,7 +300,7 @@ var _ = Describe("Agent", func() {
 
 		It("handles restore operations with large output", func() {
 			out := make(chan string)
-			c   := make(chan string)
+			c := make(chan string)
 
 			go collect(out, c)
 
@@ -303,7 +324,7 @@ var _ = Describe("Agent", func() {
 
 		It("handles non-existent plugin commands for both target and store", func() {
 			out := make(chan string)
-			c   := make(chan string)
+			c := make(chan string)
 
 			go collect(out, c)
 
@@ -324,7 +345,7 @@ var _ = Describe("Agent", func() {
 
 		It("handles non-existent plugin commands for just store", func() {
 			out := make(chan string)
-			c   := make(chan string)
+			c := make(chan string)
 
 			go collect(out, c)
 
@@ -345,7 +366,7 @@ var _ = Describe("Agent", func() {
 		It("handles non-existent plugin commands for just target", func() {
 			Skip("bin/shield-pipe needs some more work before the source command (target plugin, in this case) as ENOENT triggers a non-zero exit status")
 			out := make(chan string)
-			c   := make(chan string)
+			c := make(chan string)
 
 			go collect(out, c)
 
@@ -361,6 +382,71 @@ var _ = Describe("Agent", func() {
 			Ω(s).ShouldNot(Equal(""))
 			Eventually(out).Should(Receive(&s)) // misc
 			Ω(s).Should(Equal(""))
+		})
+	})
+
+	Describe("SSH Server", func() {
+		Endpoint := "127.0.0.1:9122"
+		var agent *Agent
+		var client *Client
+
+		BeforeEach(func() {
+			var err error
+
+			keys, err := LoadAuthorizedKeys("test/authorized_keys")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			sconfig, err := ConfigureSSHServer("test/identities/server/id_rsa", keys)
+			Ω(err).ShouldNot(HaveOccurred())
+			agent = NewAgent(sconfig)
+			Ω(agent).ShouldNot(BeNil())
+
+			listener, err := net.Listen("tcp", Endpoint)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			cconfig, err := ConfigureSSHClient("test/identities/a/id_rsa")
+			Ω(err).Should(BeNil())
+			Ω(cconfig).ShouldNot(BeNil())
+			client = NewClient(cconfig)
+			Ω(client).ShouldNot(BeNil())
+
+			go agent.ServeOne(listener, false)
+		})
+
+		collect := func(out chan string, in chan string) {
+			var buf []string
+			for {
+				s, ok := <-in
+				if !ok {
+					break
+				}
+				buf = append(buf, s)
+			}
+			out <- strings.Join(buf, "")
+			close(out)
+		}
+
+		It("handles valid agent-request messages across the session channel", func() {
+			err := client.Dial(Endpoint)
+			Ω(err).ShouldNot(HaveOccurred())
+			defer client.Close()
+
+			final   := make(chan string)
+			partial := make(chan string)
+
+			go collect(final, partial)
+			err = client.Run(partial, `{
+				"operation"       : "backup",
+				"target_plugin"   : "test/bin/dummy",
+				"target_endpoint" : "TARGET-ENDPOINT",
+				"store_plugin"    : "test/bin/dummy",
+				"store_endpoint"  : "STORE-ENDPOINT"
+			}`)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			var s string
+			Eventually(final).Should(Receive(&s))
+			Ω(s).ShouldNot(Equal(""))
 		})
 	})
 })
