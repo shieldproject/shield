@@ -1014,39 +1014,3 @@ $ bkp list tasks [--all]
 $ bkp show task $UUID [--debug]
 $ bkp cancel task $UUID
 ```
-
-## Proof of Concept (Where Do We Go From Here?)
-
-### Research
-
-We need to identify all of the data systems we wish to support with this system.  For each system, we need to identify any problematic systems that will not fit into one of the two collection / restore models designed:
-
-* Direct over-the-network backup/restore a la pg_dump / pg_restore
-* Instrumentation of local backup/restore + file shipping via Agent Daemon / Plugin
-
-### Stage 1 Proof-of-Concept
-
-To get this project off the ground, I think we need to do some research and experimental implementation into the following areas:
-
-* Implement the postgres target plugin using pg_dump / pg_restore tools
-* Implement the fs storage plugin to store blobs in the local file system
-* Implement the Core Daemon with limited functionality:
-    * Task execution
-    * backup operation
-    * restore operation
-* Implement the HTTP API with limited functionality:
-    * /v1/jobs/*
-    * /v1/archive/*
-* Implement the CLI with limited functionality:
-    * bkp * job
-    * bkp * backup
-    * bkp * task
-
-This will let us test flush out any inconsistencies in the architecture, and find any problematic aspects of the problem domain not presently considered.
-
-### Stage 2 Proof-of-Concept
-Next, we extend the proof-of-concept implementation to test out the Agent Target Plugin design, using Redis as the data system.  This entails the following:
-
-* Implement the Agent Daemon (in general)
-* Extend the Agent Daemon to handle Redis’ BGSAVE command
-* Implement the Agent Target Plugin
