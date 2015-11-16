@@ -137,6 +137,7 @@ CREATE TABLE jobs (
   store_uuid      UUID,    -- the store
   schedule_uuid   UUID,    -- what schedule to use
   retention_uuid  UUID,    -- what retention policy to use
+  priority        INTEGER DEFAULT 50, -- priority, scale from 0 to 100 (0 = highest)
   paused          BOOLEAN, -- if true, this job is not run when scheduled.
   name            TEXT,    -- a human-friendly name for this schedule
   summary         TEXT,    -- annotation for operator use, to describe
