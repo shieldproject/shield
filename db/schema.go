@@ -124,7 +124,7 @@ func (db *DB) v1schema() error {
 
                taken_at     timestamp without time zone,
                expires_at   timestamp without time zone,
-               notes        TEXT DEFAULT ""
+               notes        TEXT DEFAULT ''
              )`)
 
 	db.Exec(`CREATE TABLE tasks (
