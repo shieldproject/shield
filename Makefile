@@ -1,6 +1,8 @@
 # Run me to verify that all tests pass and all binaries are buildable before pushing!
 # If you do not, then Travis will be sad.
 
+BUILD_TYPE?=build
+
 # Everything; this is the default behavior
 all-the-things: tests shield plugins
 
@@ -16,18 +18,18 @@ race:
 
 # Building Shield
 shield:
-	go build ./cmd/shieldd
-	go build ./cmd/shield-agent
-	go build ./cmd/shield-schema
+	go $(BUILD_TYPE) ./cmd/shieldd
+	go $(BUILD_TYPE) ./cmd/shield-agent
+	go $(BUILD_TYPE) ./cmd/shield-schema
 
 # Building Plugins
 plugin: plugins
 plugins:
-	go build ./plugin/dummy
-	go build ./plugin/elasticsearch
-	go build ./plugin/postgres
-	go build ./plugin/redis
-	go build ./plugin/s3
+	go $(BUILD_TYPE) ./plugin/dummy
+	go $(BUILD_TYPE) ./plugin/elasticsearch
+	go $(BUILD_TYPE) ./plugin/postgres
+	go $(BUILD_TYPE) ./plugin/redis
+	go $(BUILD_TYPE) ./plugin/s3
 
 # Run tests with coverage tracking, writing output to coverage/
 coverage: agent.cov db.cov plugin.cov supervisor.cov timespec.cov
