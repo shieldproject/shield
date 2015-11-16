@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/voxelbrain/goptions"
 	"github.com/starkandwayne/shield/agent"
+	"github.com/voxelbrain/goptions"
 )
 
 type ShieldAgentOpts struct {

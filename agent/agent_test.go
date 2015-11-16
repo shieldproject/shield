@@ -449,7 +449,7 @@ var _ = Describe("Agent", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			defer client.Close()
 
-			final   := make(chan string)
+			final := make(chan string)
 			partial := make(chan string)
 
 			go collect(final, partial)

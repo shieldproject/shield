@@ -70,13 +70,13 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 }
 
 type AdhocTask struct {
-	Op          Operation
+	Op Operation
 
 	TargetUUID  uuid.UUID
 	ArchiveUUID uuid.UUID
 	RestoreKey  string
 
-	JobUUID     uuid.UUID
+	JobUUID uuid.UUID
 }
 
 type Supervisor struct {

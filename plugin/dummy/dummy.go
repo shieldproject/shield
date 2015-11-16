@@ -8,9 +8,9 @@ of what is needed in a backup plugin, and how they execute.
 */
 
 import (
-	"os"
 	"fmt"
 	"github.com/starkandwayne/shield/plugin"
+	"os"
 )
 
 func main() {

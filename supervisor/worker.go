@@ -49,7 +49,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		defer client.Close()
 
 		// start a command and stream output
-		final   := make(chan string)
+		final := make(chan string)
 		partial := make(chan string)
 
 		go func(out chan string, up chan WorkerUpdate, t Task, in chan string) {

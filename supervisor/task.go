@@ -35,9 +35,9 @@ const (
 type Task struct {
 	UUID uuid.UUID
 
-	StorePlugin string
-	StoreEndpoint string
-	TargetPlugin string
+	StorePlugin    string
+	StoreEndpoint  string
+	TargetPlugin   string
 	TargetEndpoint string
 
 	Op     Operation

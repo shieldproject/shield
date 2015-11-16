@@ -16,11 +16,11 @@ func init() {
 }
 
 type Job struct {
-	UUID   uuid.UUID
+	UUID uuid.UUID
 
-	StorePlugin string
-	StoreEndpoint string
-	TargetPlugin string
+	StorePlugin    string
+	StoreEndpoint  string
+	TargetPlugin   string
 	TargetEndpoint string
 
 	Spec   *timespec.Spec
@@ -33,13 +33,13 @@ type Job struct {
 
 func (j *Job) Task() *Task {
 	return &Task{
-		Op:     BACKUP,
-		StorePlugin:   j.StorePlugin,
-		StoreEndpoint: j.StoreEndpoint,
+		Op:             BACKUP,
+		StorePlugin:    j.StorePlugin,
+		StoreEndpoint:  j.StoreEndpoint,
 		TargetPlugin:   j.TargetPlugin,
 		TargetEndpoint: j.TargetEndpoint,
-		Status: PENDING,
-		Output: make([]string, 0),
+		Status:         PENDING,
+		Output:         make([]string, 0),
 	}
 }
 

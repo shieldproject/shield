@@ -1,14 +1,14 @@
 package agent
 
 import (
-	"io"
 	"bufio"
+	"io"
 
 	"golang.org/x/crypto/ssh"
 )
 
 type Client struct {
-	config *ssh.ClientConfig
+	config  *ssh.ClientConfig
 	session *ssh.Session
 }
 
