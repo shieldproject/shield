@@ -39,7 +39,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 	for t := range work {
 		client := agent.NewClient(config)
 
-		remote := "127.0.0.1:2022" // FIXME: hard-coded value
+		remote := t.Agent
 		err = client.Dial(remote)
 		if err != nil {
 			fmt.Printf("worker %d unable to connect to %s: %s; ignoring this task.\n", id, remote, err)

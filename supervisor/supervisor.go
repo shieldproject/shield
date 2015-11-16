@@ -190,9 +190,8 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 		task := NewPendingTask(RESTORE)
 		err := s.Database.GetRestoreTaskDetails(
 			a.ArchiveUUID, a.TargetUUID,
-			&task.StorePlugin, &task.StoreEndpoint,
-			&task.TargetPlugin, &task.TargetEndpoint,
-			&task.RestoreKey)
+			&task.StorePlugin, &task.StoreEndpoint, &task.RestoreKey,
+			&task.TargetPlugin, &task.TargetEndpoint, &task.Agent)
 
 		id, err := s.Database.CreateRestoreTask(a.Owner, a.ArchiveUUID, a.TargetUUID)
 		if err != nil {

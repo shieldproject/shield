@@ -22,6 +22,7 @@ type Job struct {
 	StoreEndpoint  string
 	TargetPlugin   string
 	TargetEndpoint string
+	Agent          string
 
 	Spec   *timespec.Spec
 	Paused bool
@@ -37,6 +38,7 @@ func (j *Job) Task() *Task {
 	t.StoreEndpoint =  j.StoreEndpoint
 	t.TargetPlugin = j.TargetPlugin
 	t.TargetEndpoint = j.TargetEndpoint
+	t.Agent = j.Agent
 	return t
 }
 

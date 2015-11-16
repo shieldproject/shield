@@ -40,6 +40,7 @@ type Task struct {
 	TargetPlugin   string
 	TargetEndpoint string
 	RestoreKey     string
+	Agent          string
 
 	Op     Operation
 	Status Status

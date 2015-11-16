@@ -6,7 +6,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-func (db *DB) GetRestoreTaskDetails(archive, target uuid.UUID, storePlugin, storeEndpoint, targetPlugin, targetEndpoint, storeKey *string) error {
+func (db *DB) GetRestoreTaskDetails(archive, target uuid.UUID, storePlugin, storeEndpoint, storeKey, targetPlugin, targetEndpoint, agent *string) error {
 	// retrieve store plugin / endpoint / key
 	r, err := db.Query(`
 		SELECT s.plugin, s.endpoint, a.store_key
@@ -29,7 +29,7 @@ func (db *DB) GetRestoreTaskDetails(archive, target uuid.UUID, storePlugin, stor
 
 	// retrieve target plugin / endpoint
 	r, err = db.Query(`
-		SELECT t.plugin, t.endpoint
+		SELECT t.plugin, t.endpoint, t.agent
 			FROM targets t
 		WHERE t.uuid == ?
 	`, target.String())
@@ -42,7 +42,7 @@ func (db *DB) GetRestoreTaskDetails(archive, target uuid.UUID, storePlugin, stor
 		return fmt.Errorf("failed to determine task details for archive %s -> target %s", archive, target)
 	}
 
-	if err := r.Scan(targetPlugin, targetEndpoint); err != nil {
+	if err := r.Scan(targetPlugin, targetEndpoint, agent); err != nil {
 		return err
 	}
 	r.Close()

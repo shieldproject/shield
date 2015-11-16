@@ -20,6 +20,7 @@ type AnnotatedJob struct {
 	StoreEndpoint  string `json:"store_endpoint"`
 	TargetPlugin   string `json:"target_plugin"`
 	TargetEndpoint string `json:"target_endpoint"`
+	Agent          string `json:"agent"`
 }
 
 type JobFilter struct {
@@ -79,7 +80,7 @@ func (f *JobFilter) Query() string {
 		       r.name, r.uuid, r.expiry,
 		       sc.name, sc.uuid, sc.timespec,
 		       s.plugin, s.endpoint,
-		       t.plugin, t.endpoint
+		       t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
@@ -108,7 +109,7 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 			&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
 			&ann.ScheduleName, &ann.ScheduleUUID, &ann.Schedule,
 			&ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.TargetPlugin, &ann.TargetEndpoint); err != nil {
+			&ann.TargetPlugin, &ann.TargetEndpoint, &ann.Agent); err != nil {
 			return l, err
 		}
 

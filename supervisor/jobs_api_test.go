@@ -38,16 +38,18 @@ var _ = Describe("/v1/jobs API", func() {
 		data, err := Database(
 
 			// TARGETS
-			`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
 				("`+TARGET_REDIS+`",
 				 "redis-shared",
 				 "Shared Redis services for CF",
+				 "10.11.22.33:4455",
 				 "redis",
 				 "<<redis-configuration>>")`,
-			`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
 				("`+TARGET_PG+`",
 				 "pg1",
 				 "Test Postgres Service",
+				 "10.11.22.33:4455",
 				 "pg",
 				 "<<pg-configuration>>")`,
 
@@ -167,7 +169,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				},
 				{
 					"uuid"            : "` + PG_S3_DAILY + `",
@@ -183,7 +186,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				},
 				{
 					"uuid"            : "` + REDIS_S3_DAILY + `",
@@ -199,7 +203,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				},
 				{
 					"uuid"            : "` + REDIS_S3_WEEKLY + `",
@@ -215,7 +220,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
@@ -239,7 +245,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				},
 				{
 					"uuid"            : "` + REDIS_S3_WEEKLY + `",
@@ -255,7 +262,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
@@ -279,7 +287,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
@@ -303,7 +312,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				},
 				{
 					"uuid"            : "` + PG_S3_DAILY + `",
@@ -319,7 +329,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
@@ -343,7 +354,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				},
 				{
 					"uuid"            : "` + PG_S3_DAILY + `",
@@ -359,7 +371,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				},
 				{
 					"uuid"            : "` + REDIS_S3_DAILY + `",
@@ -375,7 +388,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
@@ -399,7 +413,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 	})
@@ -421,7 +436,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
@@ -468,7 +484,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 
@@ -502,7 +519,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 	})
@@ -585,7 +603,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 
@@ -617,7 +636,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
+					"target_endpoint" : "<<pg-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 
@@ -654,7 +674,8 @@ var _ = Describe("/v1/jobs API", func() {
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
 
