@@ -87,18 +87,18 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-		id.String(), owner, "backup", job.String(), "pending", "",
+		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log, requested_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		id.String(), owner, "backup", job.String(), "pending", "", time.Now(),
 	)
 }
 
 func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log)
-			VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id.String(), owner, "restore", archive.String(), target.String(), "pending", "",
+		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log, requested_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		id.String(), owner, "restore", archive.String(), target.String(), "pending", "", time.Now(),
 	)
 }
 

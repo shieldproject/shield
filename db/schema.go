@@ -137,9 +137,10 @@ func (db *DB) v1schema() error {
                archive_uuid  UUID,
                target_uuid   UUID,
 
-               status      TEXT,
-               started_at  timestamp without time zone,
-               stopped_at  timestamp without time zone,
+               status       TEXT,
+               requested_at timestamp without time zone,
+               started_at   timestamp without time zone,
+               stopped_at   timestamp without time zone,
 
                log       TEXT,
                debug     TEXT

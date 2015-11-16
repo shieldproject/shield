@@ -188,9 +188,10 @@ CREATE TABLE tasks (
   archive_uuid  UUID,
   target_uuid   UUID,
 
-  status      status, -- current status of the task
-  started_at  timestamp without time zone,
-  stopped_at  timestamp without time zone,
+  status       status, -- current status of the task
+  requested_at timestamp without time zone, -- when the task was _created_
+  started_at   timestamp without time zone, -- when the task actually started
+  stopped_at   timestamp without time zone, -- when the task completed (or was cancelled)
 
   log       TEXT, -- log of task activity
   debug     TEXT, -- more verbose logs, for troubleshooting ex post facto.
