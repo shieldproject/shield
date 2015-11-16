@@ -6,3 +6,5 @@
 /postgres
 /redis
 /s3
+
+*.coverprofile

@@ -1,15 +1,15 @@
 package supervisor
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
-	"os"
 	"io"
 	"io/ioutil"
-	"bufio"
+	"os"
+	"strings"
+	"time"
 
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/ssh"
@@ -55,21 +55,21 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 
 	for t := range work {
 		config := &ssh.ClientConfig{
-			Auth: []ssh.AuthMethod{ auth },
+			Auth: []ssh.AuthMethod{auth},
 		}
 
 		remote := "127.0.0.1:2022" // eIXME: hard-coded value
 		client, err := ssh.Dial("tcp", remote, config)
 		if err != nil {
 			fmt.Printf("worker %d unable to connect to %s: %s; ignoring this task.\n", id, remote, err)
-			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 			continue
 		}
 
 		session, err := client.NewSession()
 		if err != nil {
 			fmt.Printf("worker %d (on %s): unable to create remote session: %s; ignoring this task.\n", id, remote, err)
-			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 			continue
 		}
 		defer session.Close()
@@ -78,7 +78,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		rd, wr, err := os.Pipe()
 		if err != nil {
 			fmt.Printf("worker %d (on %s): general error: %s\n", id, remote, err)
-			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 			session.Close()
 			continue
 		}
@@ -119,7 +119,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 
 		if err != nil {
 			fmt.Printf("worker %d (on %s): run failed: %s\n", id, remote, err)
-			updates <- WorkerUpdate{ Task: t.UUID, Op: FAILED }
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 		}
 
 		session.Wait()
@@ -161,5 +161,5 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 
 func (s *Supervisor) SpawnWorker() {
 	s.nextWorker += 1
-	go worker(s.nextWorker, s.privateKeyFile, s.workers, s.updates)
+	go worker(s.nextWorker, s.PrivateKeyFile, s.workers, s.updates)
 }

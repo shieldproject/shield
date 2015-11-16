@@ -85,8 +85,8 @@ type Supervisor struct {
 
 	Database *db.DB
 
-	listen string /* addr/interface(s) and port to bind */
-	privateKeyFile string /* path to the SSH private key for talking to remote agents */
+	Listen         string /* addr/interface(s) and port to bind */
+	PrivateKeyFile string /* path to the SSH private key for talking to remote agents */
 
 	runq []*Task
 	jobq []*Job
@@ -334,7 +334,7 @@ func (s *Supervisor) SpawnAPI() {
 		http.Handle("/v1/tasks", tasks)
 		http.Handle("/v1/task/", tasks)
 
-		http.ListenAndServe(s.listen, nil)
+		http.ListenAndServe(s.Listen, nil)
 	}(s)
 }
 

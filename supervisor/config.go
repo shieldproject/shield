@@ -28,13 +28,20 @@ func (s *Supervisor) ReadConfig(path string) error {
 		return err
 	}
 
+	if config.Listen == "" {
+		config.Listen = ":8888"
+	}
+	if config.PrivateKeyFile == "" {
+		config.PrivateKeyFile = "/etc/shield/ssh/server.key"
+	}
+
 	if s.Database == nil {
 		s.Database = &db.DB{}
 	}
 
 	s.Database.Driver = config.DatabaseType
 	s.Database.DSN = config.DatabaseDSN
-	s.listen = config.Listen
-	s.privateKeyFile = config.PrivateKeyFile
+	s.Listen = config.Listen
+	s.PrivateKeyFile = config.PrivateKeyFile
 	return nil
 }

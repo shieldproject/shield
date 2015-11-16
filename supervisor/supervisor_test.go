@@ -3,14 +3,16 @@ package supervisor_test
 import (
 	"encoding/json"
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/starkandwayne/shield/db"
-	. "github.com/starkandwayne/shield/supervisor"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	. "github.com/starkandwayne/shield/supervisor"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
