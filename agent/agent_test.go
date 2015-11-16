@@ -32,7 +32,7 @@ var _ = Describe("Agent", func() {
 		})
 	})
 
-	Describe("SSH Configurator", func() {
+	Describe("SSH Server Configurator", func() {
 		It("throws an error when given a bad host key path", func() {
 			_, err := ConfigureSSHServer("test/enoent", []ssh.PublicKey{})
 			Ω(err).Should(HaveOccurred())
@@ -45,6 +45,24 @@ var _ = Describe("Agent", func() {
 
 		It("returns a ServerConfig when given a valid host key", func() {
 			config, err := ConfigureSSHServer("test/identities/server/id_rsa", []ssh.PublicKey{})
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(config).ShouldNot(BeNil())
+		})
+	})
+
+	Describe("SSH Client Configurator", func() {
+		It("throws an error when given a badprivate host key path", func() {
+			_, err := ConfigureSSHClient("test/enoent")
+			Ω(err).Should(HaveOccurred())
+		})
+
+		It("throws an error when given a malformed host key", func() {
+			_, err := ConfigureSSHClient("test/identities/bad/malformed")
+			Ω(err).Should(HaveOccurred())
+		})
+
+		It("returns a ClientConfig when given a valid host key", func() {
+			config, err := ConfigureSSHClient("test/identities/a/id_rsa")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(config).ShouldNot(BeNil())
 		})
