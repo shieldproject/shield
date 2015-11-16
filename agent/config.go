@@ -30,6 +30,19 @@ func (agent *Agent) ReadConfig(path string) error {
 		return err
 	}
 
+	if config.AuthorizedKeysFile == "" {
+		return fmt.Errorf("No authorized keys file supplied.")
+	}
+	if config.HostKeyFile == "" {
+		return fmt.Errorf("No host key file supplied.")
+	}
+	if config.ListenAddress == "" {
+		return fmt.Errorf("No listen address and/or port supplied.")
+	}
+	if len(config.PluginPaths) == 0 {
+		return fmt.Errorf("No plugin path supplied.")
+	}
+
 	authorizedKeys, err := LoadAuthorizedKeys(config.AuthorizedKeysFile)
 	if err != nil {
 		fmt.Printf("failed to load authorized keys: %s\n", err)

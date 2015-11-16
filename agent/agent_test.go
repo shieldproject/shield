@@ -439,6 +439,44 @@ var _ = Describe("Agent", func() {
 		})
 	})
 
+	Describe("Agent configuration file", func(){
+		It("Requires an authorized_keys_file", func() {
+			ag := NewAgent()
+			err := ag.ReadConfig("test/auth_key_test.conf")
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(Equal("No authorized keys file supplied."))
+		})
+		It("Requires a host_key_file", func() {
+			ag := NewAgent()
+			err := ag.ReadConfig("test/host_key_test.conf")
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(Equal("No host key file supplied."))
+		})
+		It("Requires a listen_address", func() {
+			ag := NewAgent()
+			err := ag.ReadConfig("test/listen_test.conf")
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(Equal("No listen address and/or port supplied."))
+		})
+		It("Requires a plugin_paths", func() {
+			ag := NewAgent()
+			err := ag.ReadConfig("test/plugin_path_test.conf")
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(Equal("No plugin path supplied."))
+		})
+		It("Requires a non-empty plugin path", func(){
+			ag := NewAgent()
+			err := ag.ReadConfig("test/plugin_empty_test.conf")
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(Equal("No plugin path supplied."))
+		})
+		It("Requires a list, not a scalar, of plugin paths", func(){
+			ag := NewAgent()
+			err := ag.ReadConfig("test/plugin_scalar_test.conf")
+			Ω(err).Should(HaveOccurred())
+		})
+	})
+
 	Describe("SSH Server", func() {
 		Endpoint := "127.0.0.1:9122"
 		var ag *Agent
