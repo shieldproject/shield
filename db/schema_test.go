@@ -8,6 +8,7 @@ import (
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 func Database(sqls ...string) (*DB, error) {
@@ -92,6 +93,19 @@ var _ = Describe("Database Schema", func() {
 				tableExists("archives")
 				tableExists("tasks")
 			})
+		})
+	})
+
+	Describe("Schema Version Interrogation", func() {
+		It("should return an error for a bad database connection", func() {
+			db := &DB{
+				Driver: "postgres",
+				DSN:    "host=127.86.86.86, port=8686",
+			}
+
+			db.Connect()
+			_, err := db.SchemaVersion()
+			Ω(err).Should(HaveOccurred())
 		})
 	})
 })

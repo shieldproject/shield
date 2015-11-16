@@ -26,10 +26,11 @@ func (db *DB) Setup() error {
 
 func (db *DB) SchemaVersion() (uint, error) {
 	r, err := db.Query(`SELECT version FROM schema_info LIMIT 1`)
-	// failed query = no schema
-	// FIXME: better error object introspection?
 	if err != nil {
-		return 0, nil
+		if err.Error() == "no such table: schema_info" {
+			return 0, nil
+		}
+		return 0, err
 	}
 	defer r.Close()
 
