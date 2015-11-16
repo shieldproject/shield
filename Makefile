@@ -38,5 +38,9 @@ coverage: agent.cov db.cov plugin.cov supervisor.cov timespec.cov
 report:
 	go tool cover -html=coverage/$(FOR).cov
 
+fixmes: fixme
+fixme:
+	@grep -rn FIXME * | grep -v Godeps/ | grep --color FIXME
+
 # Deferred: Naming plugins individually, e.g. make plugin dummy
 # Deferred: Looping through plugins instead of listing them
