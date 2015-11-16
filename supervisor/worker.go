@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"time"
 
 	"github.com/starkandwayne/shield/agent"
 
 	"github.com/pborman/uuid"
-	"golang.org/x/crypto/ssh"
 )
 
 type UpdateOp int
@@ -28,20 +26,6 @@ type WorkerUpdate struct {
 	Op        UpdateOp
 	StoppedAt time.Time
 	Output    string
-}
-
-func loadUserKey(path string) (ssh.AuthMethod, error) {
-	raw, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	signer, err := ssh.ParsePrivateKey(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	return ssh.PublicKeys(signer), nil
 }
 
 func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {

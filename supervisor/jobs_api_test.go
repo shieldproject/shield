@@ -7,6 +7,8 @@ import (
 	. "github.com/starkandwayne/shield/supervisor"
 	"net/http"
 
+	"github.com/pborman/uuid"
+
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -505,6 +507,66 @@ var _ = Describe("/v1/jobs API", func() {
 			]`))
 	})
 
+	It("requires the `name' field to update an existing job", func() {
+		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
+			"summary"   : "...",
+			"target"    : "`+TARGET_REDIS+`",
+			"store"     : "`+STORE_S3+`",
+			"retention" : "`+RETAIN_SHORT+`",
+			"schedule"  : "`+SCHED_WEEKLY+`",
+			"paused"    : true
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `store' field to update an existing job", func() {
+		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
+			"name"      : "Redis WEEKLY backups",
+			"summary"   : "...",
+			"target"    : "`+TARGET_REDIS+`",
+			"retention" : "`+RETAIN_SHORT+`",
+			"schedule"  : "`+SCHED_WEEKLY+`",
+			"paused"    : true
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `target' field to update an existing job", func() {
+		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
+			"name"      : "Redis WEEKLY backups",
+			"summary"   : "...",
+			"store"     : "`+STORE_S3+`",
+			"retention" : "`+RETAIN_SHORT+`",
+			"schedule"  : "`+SCHED_WEEKLY+`",
+			"paused"    : true
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `schedule' field to update an existing job", func() {
+		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
+			"name"      : "Redis WEEKLY backups",
+			"summary"   : "...",
+			"target"    : "`+TARGET_REDIS+`",
+			"store"     : "`+STORE_S3+`",
+			"retention" : "`+RETAIN_SHORT+`",
+			"paused"    : true
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `retention' field to update an existing job", func() {
+		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
+			"name"      : "Redis WEEKLY backups",
+			"summary"   : "...",
+			"target"    : "`+TARGET_REDIS+`",
+			"store"     : "`+STORE_S3+`",
+			"schedule"  : "`+SCHED_WEEKLY+`",
+			"paused"    : true
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
 	It("can delete jobs", func() {
 		res := GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
@@ -569,6 +631,11 @@ var _ = Describe("/v1/jobs API", func() {
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 	})
 
+	It("fails to pause non-existent jobs", func() {
+		res := POST(API, "/v1/job/"+uuid.NewRandom().String()+"/pause", "")
+		Ω(res.Code).Should(Equal(404))
+	})
+
 	It("can unpause jobs", func() {
 		res := GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
@@ -599,6 +666,11 @@ var _ = Describe("/v1/jobs API", func() {
 		res = GET(API, "/v1/jobs?paused=t")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
+	})
+
+	It("fails to unpause non-existent jobs", func() {
+		res := POST(API, "/v1/job/"+uuid.NewRandom().String()+"/unpause", "")
+		Ω(res.Code).Should(Equal(404))
 	})
 
 	It("can rerun unpaused jobs", func() {

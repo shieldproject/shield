@@ -227,6 +227,11 @@ var _ = Describe("/v1/archives API", func() {
 			]`))
 	})
 
+	It("requires the `notes' key when updating archives", func() {
+		res := PUT(API, "/v1/archive/"+REDIS_ARCHIVE_1, WithJSON("{}"))
+		Ω(res.Code).Should(Equal(400))
+	})
+
 	It("can delete archives", func() {
 		res := GET(API, "/v1/archives?target="+TARGET_REDIS)
 		Ω(res.Code).Should(Equal(200))

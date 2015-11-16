@@ -134,6 +134,30 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("requires the `name' field to update an existing schedule", func() {
+		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
+			"summary" : "UPDATED!",
+			"when"    : "daily at 2:05pm"
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `summary' field to update an existing schedule", func() {
+		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
+			"name"    : "Daily Backup Schedule",
+			"when"    : "daily at 2:05pm"
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `when' field to update an existing schedule", func() {
+		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
+			"name"    : "Daily Backup Schedule",
+			"summary" : "UPDATED!"
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
 	It("can delete unused schedules", func() {
 		res := DELETE(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7")
 		Ω(res.Code).Should(Equal(200))

@@ -135,6 +135,31 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("requires the `name' field to update an existing retention policy", func() {
+		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
+			"summary" : "UPDATED!",
+			"expires" : 1209000
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `summary' field to update an existing retention policy", func() {
+		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
+			"name"    : "Renamed",
+			"expires" : 1209000
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires a valid `expiry' field of > 3600 to update an existing retention policy", func() {
+		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
+			"name"    : "Renamed",
+			"summary" : "UPDATED!",
+			"expires" : 3599
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
 	It("can delete unused retention policies", func() {
 		res := DELETE(API, "/v1/retention/3e783b71-d595-498d-a739-e01fb335098a")
 		Ω(res.Code).Should(Equal(200))

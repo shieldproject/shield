@@ -157,8 +157,30 @@ var _ = Describe("/v1/targets API", func() {
 		Eventually(channel).Should(Receive())
 	})
 
-	It("requires the `name' and `when' keys in POST'ed data", func() {
-		res := POST(API, "/v1/targets", "{}")
+	It("requires the `name' key to create a new store", func() {
+		res := POST(API, "/v1/targets", WithJSON(`{
+			"summary"  : "A new one",
+			"plugin"   : "s3",
+			"endpoint" : "[ENDPOINT]"
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `plugin' key to create a new store", func() {
+		res := POST(API, "/v1/targets", WithJSON(`{
+			"name"     : "New Target",
+			"summary"  : "A new one",
+			"endpoint" : "[ENDPOINT]"
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `endpoint' key to create a new store", func() {
+		res := POST(API, "/v1/targets", WithJSON(`{
+			"name"     : "New Target",
+			"summary"  : "A new one",
+			"plugin"   : "s3"
+		}`))
 		Ω(res.Code).Should(Equal(400))
 	})
 
@@ -191,6 +213,33 @@ var _ = Describe("/v1/targets API", func() {
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("requires the `name' key to update an existing target", func() {
+		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+			"summary"  : "UPDATED!",
+			"plugin"   : "redis",
+			"endpoint" : "{NEW-ENDPOINT}"
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `plugin' key to update an existing target", func() {
+		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+			"name"     : "Renamed",
+			"summary"  : "UPDATED!",
+			"endpoint" : "{NEW-ENDPOINT}"
+		}`))
+		Ω(res.Code).Should(Equal(400))
+	})
+
+	It("requires the `endpoint' key to update an existing target", func() {
+		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+			"name"     : "Renamed",
+			"summary"  : "UPDATED!",
+			"plugin"   : "redis"
+		}`))
+		Ω(res.Code).Should(Equal(400))
 	})
 
 	It("can delete unused targets", func() {
