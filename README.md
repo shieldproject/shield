@@ -587,7 +587,7 @@ Purpose: allows end-users and operators to see what jobs have been configured, a
 | PUT | /v1/job/:uuid | - | see below |
 | POST | /v1/job/:uuid/pause | - | - |
 | POST | /v1/job/:uuid/unpause | - | - |
-| POST | /v1/job/:uuid/run | - | - |
+| POST | /v1/job/:uuid/run | - | see below |
 
 #### GET /v1/jobs
 
@@ -704,6 +704,31 @@ Response Body:
 | :---- | :------ |
 | ok    | The job was updated
 
+#### POST /v1/job/:uuid/run
+
+Request Body:
+
+```json
+{
+  "owner" : "Username"
+}
+```
+
+| Field | Required? | Meaning |
+| :---- | :-------: | :------ |
+| owner | N | Name of the user requesting the job re-run; defaults to "anon"
+
+Response Body:
+
+```json
+{
+  "ok" : "scheduled"
+}
+```
+
+| Field | Meaning |
+| :---- | :------ |
+| ok    | The task was scheduled
 
 
 ### Archive API
@@ -716,7 +741,7 @@ Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations 
 | :----- | :---- | :------- | :----------- |
 | GET | /v1/archives | ?target=:uuid <br>?store=:uuid <br>?after=:timespec <br>?before=:timespec | - |
 | GET | /v1/archive/:uuid | - | - |
-| POST | /v1/archive/:uuid/restore | { target: $target_uuid } | - |
+| POST | /v1/archive/:uuid/restore | { target: $target_uuid } | see below |
 | DELETE | /v1/archive/:uuid | - | - |
 | PUT | /v1/archive/:uuid | - | see below |
 
@@ -748,6 +773,33 @@ Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations 
 #### GET /v1/archive/:uuid
 
 _not yet implemented, apparently_
+
+#### POST /v1/archive/:uuid/restore
+
+Request Body
+
+```json
+{
+  "target" : "dd322f14-763d-4659-bc49-c2f1f2352341",
+  "owner"  : "Username"
+}
+
+| Field | Required? | Meaning |
+| :---- | :-------: | :------ |
+| target | N | UUID of the target to restore this archive to.  Defaults to the target from the original backup job
+| owner | N | Username of the user requesting the restoration.  Defaults to "anon"
+
+Response Body:
+
+```json
+{
+  "ok" : "scheduled"
+}
+```
+
+| Field | Meaning |
+| :---- | :------ |
+| ok    | The restore task was scheduled
 
 #### PUT /v1/archive/:uuid
 

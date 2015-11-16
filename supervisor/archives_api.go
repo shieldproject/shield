@@ -41,8 +41,13 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		var params struct {
 			Target string `json:"target"`
+			Owner  string `json:"owner"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
+
+		if params.Owner == "" {
+			params.Owner = "anon"
+		}
 
 		re := regexp.MustCompile(`^/v1/archive/([a-fA-F0-9-]+)/restore`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
@@ -69,6 +74,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// tell the supervisor to schedule a task
 		self.AdhocChan <- AdhocTask{
 			Op:          RESTORE,
+			Owner:       params.Owner,
 			TargetUUID:  tid,
 			ArchiveUUID: id,
 		}

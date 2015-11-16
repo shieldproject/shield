@@ -109,11 +109,26 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
+		if req.Body == nil {
+			w.WriteHeader(400)
+			return
+		}
+
+		var params struct {
+			Owner  string `json:"owner"`
+		}
+		json.NewDecoder(req.Body).Decode(&params)
+
+		if params.Owner == "" {
+			params.Owner = "anon"
+		}
+
 		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)/run`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		self.AdhocChan <- AdhocTask{
 			Op:      BACKUP,
+			Owner:   params.Owner,
 			JobUUID: id,
 		}
 		JSONLiteral(w, `{"ok":"scheduled"}`)

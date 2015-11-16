@@ -71,7 +71,8 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 }
 
 type AdhocTask struct {
-	Op Operation
+	Op    Operation
+	Owner string
 
 	TargetUUID  uuid.UUID
 	ArchiveUUID uuid.UUID
@@ -181,7 +182,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 			fmt.Printf("scheduling immediate (ad hoc) execution of job %s\n", job.UUID.String())
 			task := job.Task()
 			id, err := s.Database.CreateTask(
-				"adhoc", // FIXME: need a better owner
+				a.Owner,
 				"backup",
 				"ARGS", // FIXME: need real args
 				job.UUID,
