@@ -32,15 +32,12 @@ type Job struct {
 // job -> task -> run queue
 
 func (j *Job) Task() *Task {
-	return &Task{
-		Op:             BACKUP,
-		StorePlugin:    j.StorePlugin,
-		StoreEndpoint:  j.StoreEndpoint,
-		TargetPlugin:   j.TargetPlugin,
-		TargetEndpoint: j.TargetEndpoint,
-		Status:         PENDING,
-		Output:         make([]string, 0),
-	}
+	t := NewPendingTask(BACKUP)
+	t.StorePlugin = j.StorePlugin
+	t.StoreEndpoint =  j.StoreEndpoint
+	t.TargetPlugin = j.TargetPlugin
+	t.TargetEndpoint = j.TargetEndpoint
+	return t
 }
 
 func (j *Job) Reschedule() error {

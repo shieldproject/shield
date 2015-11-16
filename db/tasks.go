@@ -2,9 +2,10 @@ package db
 
 import (
 	"fmt"
-	"github.com/pborman/uuid"
 	"strings"
 	"time"
+
+	"github.com/pborman/uuid"
 )
 
 type AnnotatedTask struct {
@@ -83,13 +84,21 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 	return l, nil
 }
 
-func (db *DB) CreateTask(owner, op, args string, job uuid.UUID) (uuid.UUID, error) {
+func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO tasks (uuid, owner, op, args, job_uuid, status, log)
+		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log)
+			VALUES (?, ?, ?, ?, ?, ?)`,
+		id.String(), owner, "backup", job.String(), "pending", "",
+	)
+}
+
+func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.UUID, error) {
+	id := uuid.NewRandom()
+	return id, db.Exec(
+		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log)
 			VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id.String(), owner, op, args, job.String(),
-		"pending", "",
+		id.String(), owner, "restore", archive.String(), target.String(), "pending", "",
 	)
 }
 

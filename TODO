@@ -4,7 +4,8 @@ SHIELD TODO
 Large Tasks / Features
  - -Move API into Supervisor package?-
       DONE
- - Ad hoc jobs through API
+ - -Ad hoc jobs through API-
+      DONE
  - Figure out how to target agents - gfranks had some ideas...
  - -Archive creation when backup tasks run-
       FIXED: done!

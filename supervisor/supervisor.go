@@ -143,12 +143,7 @@ func (s *Supervisor) CheckSchedule() {
 
 		fmt.Printf("scheduling execution of job %s\n", job.UUID.String())
 		task := job.Task()
-		id, err := s.Database.CreateTask(
-			"system", // owner
-			"backup",
-			"ARGS", // FIXME: need real args
-			job.UUID,
-		)
+		id, err := s.Database.CreateBackupTask("system", job.UUID)
 		if err != nil {
 			fmt.Printf("job -> task conversion / database update failed: %s\n", err)
 			continue
@@ -181,12 +176,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 
 			fmt.Printf("scheduling immediate (ad hoc) execution of job %s\n", job.UUID.String())
 			task := job.Task()
-			id, err := s.Database.CreateTask(
-				a.Owner,
-				"backup",
-				"ARGS", // FIXME: need real args
-				job.UUID,
-			)
+			id, err := s.Database.CreateBackupTask(a.Owner, job.UUID)
 			if err != nil {
 				fmt.Printf("job -> task conversion / database update failed: %s\n", err)
 				continue
@@ -197,7 +187,21 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 		}
 
 	case RESTORE:
-		// FIXME: support for RESTORE tasks
+		task := NewPendingTask(RESTORE)
+		err := s.Database.GetRestoreTaskDetails(
+			a.ArchiveUUID, a.TargetUUID,
+			&task.StorePlugin, &task.StoreEndpoint,
+			&task.TargetPlugin, &task.TargetEndpoint,
+			&task.RestoreKey)
+
+		id, err := s.Database.CreateRestoreTask(a.Owner, a.ArchiveUUID, a.TargetUUID)
+		if err != nil {
+			fmt.Printf("restore task database creation failed: %s\n", err)
+			return
+		}
+
+		task.UUID = id
+		s.runq = append(s.runq, task)
 	}
 }
 

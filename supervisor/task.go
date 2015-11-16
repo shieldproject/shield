@@ -39,6 +39,7 @@ type Task struct {
 	StoreEndpoint  string
 	TargetPlugin   string
 	TargetEndpoint string
+	RestoreKey     string
 
 	Op     Operation
 	Status Status
@@ -47,4 +48,12 @@ type Task struct {
 	StoppedAt time.Time
 
 	Output []string
+}
+
+func NewPendingTask(Op Operation) *Task {
+	return &Task{
+		Op: Op,
+		Status: PENDING,
+		Output: make([]string, 0),
+	}
 }

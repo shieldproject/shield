@@ -16,6 +16,7 @@ var _ = Describe("Task Management", func() {
 	TARGET_UUID := uuid.NewRandom()
 	STORE_UUID := uuid.NewRandom()
 	RETENTION_UUID := uuid.NewRandom()
+	ARCHIVE_UUID := uuid.NewRandom()
 
 	var db *DB
 
@@ -46,8 +47,8 @@ var _ = Describe("Task Management", func() {
 		Ω(db).ShouldNot(BeNil())
 	})
 
-	It("Can create a new task", func() {
-		id, err := db.CreateTask("owner-name", "backup", `{"args":"test"}`, JOB_UUID)
+	It("Can create a new backup task", func() {
+		id, err := db.CreateBackupTask("owner-name", JOB_UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -55,16 +56,33 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, id.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = ?`, "backup")
-		shouldExist(`SELECT * FROM tasks WHERE args = ?`, `{"args":"test"}`)
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid = ?`, JOB_UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE target_uuid IS NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE status = ?`, "pending")
+		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
+	})
+
+	It("Can create a new restore task", func() {
+		id, err := db.CreateRestoreTask("owner-name", ARCHIVE_UUID, TARGET_UUID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(id).ShouldNot(BeNil())
+
+		shouldExist(`SELECT * FROM tasks`)
+		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, id.String())
+		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
+		shouldExist(`SELECT * FROM tasks WHERE op = ?`, "restore")
+		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = ?`, ARCHIVE_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE target_uuid = ?`, TARGET_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE status = ?`, "pending")
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
 	})
 
 	It("Can start an existing task", func() {
-		id, err := db.CreateTask("bob", "backup", `ARGS`, JOB_UUID)
+		id, err := db.CreateBackupTask("bob", JOB_UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -77,7 +95,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can cancel a running task", func() {
-		id, err := db.CreateTask("bob", "backup", `ARGS`, JOB_UUID)
+		id, err := db.CreateBackupTask("bob", JOB_UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -91,7 +109,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can complete a running task", func() {
-		id, err := db.CreateTask("bob", "backup", `ARGS`, JOB_UUID)
+		id, err := db.CreateBackupTask("bob", JOB_UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -105,7 +123,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can update the task log piecemeal", func() {
-		id, err := db.CreateTask("bob", "backup", `ARGS`, JOB_UUID)
+		id, err := db.CreateBackupTask("bob", JOB_UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -126,7 +144,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can associate archives with the task", func() {
-		id, err := db.CreateTask("bob", "backup", `ARGS`, JOB_UUID)
+		id, err := db.CreateBackupTask("bob", JOB_UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 

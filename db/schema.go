@@ -126,10 +126,10 @@ func (db *DB) v1schema() error {
                uuid      UUID PRIMARY KEY,
                owner     TEXT,
                op        TEXT,
-               args      TEXT,
 
                job_uuid      UUID,
                archive_uuid  UUID,
+               target_uuid   UUID,
 
                status      TEXT,
                started_at  timestamp without time zone,

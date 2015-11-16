@@ -163,7 +163,7 @@ CREATE TABLE archives (
 
 TASKS keep track of non-custodial jobs being performed by the system.  This includes scheduled backups, ad-hoc backups, data restoration and downloads, etc.
 
-The core daemon interprets the 'op' field, and calls on the appropriate plugins, based on the associated JOB or ARCHIVE entry. Additional arguments will be passed via the 'args' field, which should be JSON.
+The core daemon interprets the 'op' field, and calls on the appropriate plugins, based on the associated JOB or ARCHIVE / TARGET entry.
 
 Each TASK should be associated with either a JOB or an ARCHIVE.
 
@@ -172,7 +172,7 @@ Here are the defined operations:
 | Operation | Description |
 | :-------- | :---------- |
 | backup | Perform a backup of the associated JOB. The target and store are pulled directly from the JOB entry. <br>Note: the `backup` operation is used for both ad hoc and scheduled backups. |
-| restore | Perform a restore of the associated ARCHIVE.  The storage channel is pulled directly from the ARCHIVE. The target can be specified in the `args` JSON.  If it is not, the values from the ARCHIVE will be used.  This allows restores to go to a different host (for migration / scale-out purposes). |
+| restore | Perform a restore of the associated ARCHIVE.  The storage channel is pulled directly from the ARCHIVE. The target can be specified explicitly.  If it is not, the values from the ARCHIVE will be used.  This allows restores to go to a different host (for migration / scale-out purposes). |
 
 ```sql
 CREATE TYPE status AS ENUM ('pending', 'running', 'canceled', 'failed', 'done');
@@ -180,10 +180,10 @@ CREATE TABLE tasks (
   uuid      UUID PRIMARY KEY,
   owner     TEXT, -- who owns / started this task?
   op        TEXT, -- name of the operation to run, i.e. 'backup' or 'restore'
-  args      TEXT, -- a JSON blob of arguments for the operation.
 
   job_uuid      UUID,
   archive_uuid  UUID,
+  target_uuid   UUID,
 
   status      status, -- current status of the task
   started_at  timestamp without time zone,
