@@ -5,6 +5,7 @@ Large Tasks / Features
  - -Move API into Supervisor package?-
       DONE
  - Ad hoc jobs through API
+ - Figure out how to target agents - gfranks had some ideas...
  - -Archive creation when backup tasks run-
       FIXED: done!
  - -Enable shorter timespec intervals for testing only (minutely backups?)-
