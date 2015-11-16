@@ -2,20 +2,7 @@ SHIELD TODO
 -----------
 
 Large Tasks / Features
- - -Move API into Supervisor package?-
-      DONE
- - -Ad hoc jobs through API-
-      DONE
- - Figure out how to target agents - gfranks had some ideas...
- - -Archive creation when backup tasks run-
-      FIXED: done!
- - -Enable shorter timespec intervals for testing only (minutely backups?)-
-      FIXED: use `SHIELD_MODE=DEV ./shieldd` to run jobs every minute
- - -Agent architecture, API, calling protocol-
-      DONE: SSH
  - CLI implementation
- - -Investigate Docker/Garden implementation for plugins-
-      WONTFIX: not happending for current iteration
 
 Small Tasks / Fixes / Enhancement
  - Only resync supervisor for *material* db changes, not all db changes
