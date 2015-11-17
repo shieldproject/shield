@@ -328,7 +328,7 @@ Request Body:
 {
   "name"    : "Policy Name",
   "summary" : "a short description",
-  "when"    : 86400
+  "expires" : 86400
 }
 ```
 
@@ -360,7 +360,7 @@ Request Body:
 {
   "name"    : "Policy Name",
   "summary" : "a short description",
-  "when"    : 86400
+  "expires" : 86400
 }
 ```
 
