@@ -844,6 +844,7 @@ Response Body:
 
 
 ### Tasks API
+
 Purpose: allows the Web UI and the CLI to show running tasks, query a specific task, submit new tasks, cancel tasks, etc.
 
 | Method | Path | Arguments | Request Body |
@@ -872,6 +873,31 @@ Purpose: allows the Web UI and the CLI to show running tasks, query a specific t
   "..."
 ]
 ```
+
+
+
+### Meta API
+
+Purpose: provides public (non-sensitive) information about the
+Shield daemon.
+
+| Method | Path | Arguments | Request Body |
+| :----- | :---- | :------- | :----------- |
+| GET | /v1/meta/pubkey | - | - |
+
+#### GET /v1/meta/pubkey
+
+```txt
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC5X75B52xHxfDeujUiKNk9t2jZTR6FIb02t9pUcE6yfwItKGEM8wEad5TVtAqrqdiOaZoosYzcXzzcM2JXsGaCqhVyf2oNaQHiPuyLufPdPW3ZE6omKfHlwL32PkdK4XtZQIwwLEK4NScp1Gvi8GMF90JSaPOQuKgpXCiDXQWFuQkPUzu6yIQIkhPCthtLRn31Td/zF92vBdr5VXyjQ1j8lFTO0jrw9nqwnrW3SA6b1FToSaLvXJJvV8De1Vlkl030tzVdYA4KPIZFX7IPPueVBJcqCaXxEMSzceknGTXP7r64oJDJw4vE39pYqCYtllhzOKKYVaDTHoUUBsZQu+e5 core@shield
+```
+
+This can be used by agents to auto-authorize the core daemon for
+remote operations, rather than having to specify the key
+out-of-band.  There are security risks involved in using this
+feature, so be consider the potential for MitM attacks and act
+accordingly.
+
+
 
 ## Plugin Calling Protocol
 
