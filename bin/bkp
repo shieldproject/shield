@@ -8,6 +8,14 @@ cleanup() {
 }
 trap cleanup INT TERM QUIT EXIT
 
+qs() {
+	local IFS="&"
+	q=$(echo "$*")
+	if [[ -n ${q} ]]; then
+		q="?${q}"
+	fi
+	echo ${q}
+}
 fail() {
 	echo >&2 $*
 }
@@ -76,7 +84,15 @@ DELETE() {
 
 list_schedules() {
 	need_target
-	GET /v1/schedules
+	q=()
+	while (( "$#" )); do
+		case ${1} in
+		(--unused) shift ; q+=( "unused=t"  ) ;;
+		(--used)   shift ; q+=( "unused=f"  ) ;;
+		(*) shift ;;
+		esac
+	done
+	GET /v1/schedules$(qs $q)
 	exit $?
 }
 
@@ -126,7 +142,16 @@ EOF
 
 list_stores() {
 	need_target
-	GET /v1/stores
+	q=()
+	while (( "$#" )); do
+		case ${1} in
+		(--unused) shift ; q+=( "unused=t"  )         ;;
+		(--used)   shift ; q+=( "unused=f"  )         ;;
+		(--plugin) shift ; q+=( "plugin=$1" ) ; shift ;;
+		(*) shift ;;
+		esac
+	done
+	GET /v1/stores$(qs $q)
 	exit $?
 }
 
@@ -176,7 +201,16 @@ EOF
 
 list_targets() {
 	need_target
-	GET /v1/targets
+	q=()
+	while (( "$#" )); do
+		case ${1} in
+		(--unused) shift ; q+=( "unused=t"  )         ;;
+		(--used)   shift ; q+=( "unused=f"  )         ;;
+		(--plugin) shift ; q+=( "plugin=$1" ) ; shift ;;
+		(*) shift ;;
+		esac
+	done
+	GET /v1/targets$(qs $q)
 	exit $?
 }
 
@@ -228,7 +262,20 @@ EOF
 
 list_jobs() {
 	need_target
-	GET /v1/jobs
+	q=()
+	while (( $# )); do
+		case ${1} in
+		(--paused)     shift;  q+=( "paused=t"     )         ;;
+		(--unpaused)   shift;  q+=( "paused=f"     )         ;;
+		(--target)     shift;  q+=( "target=$1"    ) ; shift ;;
+		(--store)      shift;  q+=( "store=$1"     ) ; shift ;;
+		(--schedule)   shift;  q+=( "schedule=$1"  ) ; shift ;;
+		(--retention|--retention-policy)
+		               shift;  q+=( "retention=$1" ) ; shift ;;
+		(*) shift ;;
+		esac
+	done
+	GET /v1/jobs$(qs $q)
 	exit $?
 }
 
@@ -240,14 +287,16 @@ show_job() {
 
 pause_job() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "job UUID" $1
+	POST /v1/job/${1}/pause
+	exit $?
 }
 
 unpause_job() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "job UUID" $1
+	POST /v1/job/${1}/unpause
+	exit $?
 }
 
 is_job_paused() {
@@ -258,8 +307,9 @@ is_job_paused() {
 
 run_job() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "job UUID" $1
+	POST /v1/job/${1}/run
+	exit $?
 }
 
 create_job() {
@@ -312,7 +362,17 @@ EOF
 
 list_archives() {
 	need_target
-	GET /v1/archives
+	q=()
+	while (( $# )); do
+		case ${1} in
+		(--target)  shift;  q+=( "target=$1" ) ; shift ;;
+		(--store)   shift;  q+=( "store=$1"  ) ; shift ;;
+		(--before)  shift;  q+=( "before=$1" ) ; shift ;;
+		(--after)   shift;  q+=( "adter=$1"  ) ; shift ;;
+		(*) shift ;;
+		esac
+	done
+	GET /v1/archives$(qs $q)
 	exit $?
 }
 
@@ -324,8 +384,9 @@ show_archive() {
 
 restore_archive() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "archive UUID" $1
+	POST /v1/archives/${1}/restore
+	exit $?
 }
 
 delete_archive() {
@@ -363,15 +424,24 @@ show_task() {
 
 cancel_task() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "task UUID" $1
+	DELETE /v1/tasks/$1
+	exit $?
 }
 
 ##############################################################################
 
 list_retention() {
 	need_target
-	GET /v1/retention
+	q=()
+	while (( "$#" )); do
+		case ${1} in
+		(--unused) shift ; q+=( "unused=t" ) ;;
+		(--used)   shift ; q+=( "unused=f" ) ;;
+		(*) shift ;;
+		esac
+	done
+	GET /v1/retention$(qs $q)
 	exit $?
 }
 
@@ -439,21 +509,9 @@ while (( "$#" )); do
 		exit 0
 		;;
 
-	(-t|--target)
-		shift
-		shield_target=${1}
-		shift
-		;;
-
-	(-r|--raw)
-		shift
-		jq_opts="-r"
-		;;
-
-	(-v|--verbose)
-		shift
-		curl_opts="-v"
-		;;
+	(-t|--target)  shift ; shield_target=${1} ; shift ;;
+	(-r|--raw)     shift ; jq_opts="-r"               ;;
+	(-v|--verbose) shift ; curl_opts="-v"             ;;
 
 	(curl)
 		shift
