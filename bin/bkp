@@ -112,8 +112,9 @@ EOF
 
 show_schedule() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "schedule UUID" $1
+	GET /v1/schedule/$1
+	exit $?
 }
 
 delete_schedule() {
@@ -157,8 +158,9 @@ list_stores() {
 
 show_store() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "store UUID" $1
+	GET /v1/store/$1
+	exit $?
 }
 
 create_store() {
@@ -216,8 +218,9 @@ list_targets() {
 
 show_target() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "target UUID" $1
+	GET /v1/target/$1
+	exit $?
 }
 
 create_target() {
@@ -281,8 +284,9 @@ list_jobs() {
 
 show_job() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "job UUID" $1
+	GET /v1/job/$1
+	exit $?
 }
 
 pause_job() {
@@ -378,8 +382,9 @@ list_archives() {
 
 show_archive() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "archive UUID" $1
+	GET /v1/archive/$1
+	exit $?
 }
 
 restore_archive() {
@@ -418,8 +423,9 @@ list_tasks() {
 
 show_task() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "task UUID" $1
+	GET /v1/task/$1
+	exit $?
 }
 
 cancel_task() {
@@ -447,8 +453,9 @@ list_retention() {
 
 show_retention() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "retention policy UUID" $1
+	GET /v1/retention/$1
+	exit $?
 }
 
 create_retention() {
