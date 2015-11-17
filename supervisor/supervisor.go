@@ -349,7 +349,10 @@ func (s *Supervisor) SpawnAPI() {
 		http.Handle("/v1/tasks", tasks)
 		http.Handle("/v1/task/", tasks)
 
-		http.ListenAndServe(":"+s.Port, nil)
+		err := http.ListenAndServe(":"+s.Port, nil)
+		if err != nil {
+			panic("HTTP API failed: " + err.Error())
+		}
 	}(s)
 }
 
