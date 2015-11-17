@@ -16,7 +16,7 @@ curly() {
 DATAROOT="/tmp/shield/dummy"
 mkdir -p "${DATAROOT}"
 
-curly /v1/targets -X POST --data-binary '{"name":"Dummy Target","summary":"Target System for testing","plugin":"dummy","endpoint":"{\"data\":\"XYZZY\"}"}'
+curly /v1/targets -X POST --data-binary '{"name":"Dummy Target","summary":"Target System for testing","plugin":"dummy","endpoint":"{\"data\":\"XYZZY\"}","agent":"127.0.0.1:9090"}'
 DUMMY_TARGET_UUID=$UUID
 
 curly /v1/stores -X POST --data-binary '{"name":"Dummy Store","summary":"Store System for testing","plugin":"dummy","endpoint":"{\"directory\":\"'${DATAROOT}'\"}"}'
