@@ -1,0 +1,662 @@
+#!/bin/bash
+
+tempfiles=()
+cleanup() {
+	for f in $tempfiles; do
+		rm -f ${f}
+	done
+}
+trap cleanup INT TERM QUIT EXIT
+
+fail() {
+	echo >&2 $*
+}
+usage() {
+  echo >&2 "USAGE: $0 <command> <options>"
+}
+
+need() {
+	if [[ -z ${2} ]]; then
+		fail "missing required ${1}"
+		exit 1
+	fi
+}
+
+need_target() {
+	need "--target option" ${shield_target}
+}
+
+tempfile() {
+	f=$(mktemp -t shield.XXXXXXXX)
+	tempfiles+=( ${f} )
+	echo $f
+}
+
+editor() {
+	${EDITOR} ${1}
+	if [[ $? != 0 ]]; then
+		echo "editor exited abnormally; skipping create operation."
+		exit 3
+	fi
+}
+
+GET() {
+	url=${1}
+	curl -Ls ${curl_opts} -X GET ${shield_target}${url} | jq ${jq_opts} .
+}
+
+POST() {
+	url=${1}
+	file=${2}
+
+	if [[ -z ${file} ]]; then
+		curl -Ls ${curl_opts} -X POST ${shield_target}${url} | jq ${jq_opts} .
+	else
+		curl -Ls ${curl_opts} -X POST ${shield_target}${url} \
+		             --data-binary "$(cat ${file} | yaml2json)" | jq ${jq_opts} .
+	fi
+}
+
+PUT() {
+	url=${1}
+	file=${2}
+
+	if [[ -z ${file} ]]; then
+		curl -Ls ${curl_opts} -X PUT ${shield_target}${url} | jq ${jq_opts} .
+	else
+		curl -Ls ${curl_opts} -X PUT ${shield_target}${url} \
+		         --data-binary "$(cat ${file} | yaml2json)" | jq ${jq_opts} .
+	fi
+}
+
+DELETE() {
+	url=${1}
+	curl -Ls ${curl_opts} -X DELETE ${shield_target}${url} | jq ${jq_opts} .
+}
+
+list_schedules() {
+	need_target
+	GET /v1/schedules
+	exit $?
+}
+
+create_schedule() {
+	need_target
+	file=$(tempfile)
+	cat >${file} <<EOF
+# Edit your schedule details below
+name: Name Your Schedule
+summary: My New Schedule
+when: daily at 4am
+EOF
+	editor ${file}
+	POST /v1/schedules ${file}
+	exit $?
+}
+
+show_schedule() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+delete_schedule() {
+	need_target
+	need "schedule UUID" $1
+	DELETE /v1/schedules/$1
+	exit $?
+}
+
+update_schedule() {
+	need_target
+	need "schedule UUID" $1
+	file=$(tempfile)
+	cat >${file} <<EOF
+# Edit your schedule details below
+name: Name Your Schedule
+summary: My New Schedule
+when: daily at 4am
+EOF
+	editor ${file}
+	PUT /v1/schedule/$1 ${file}
+	exit $?
+}
+
+##############################################################################
+
+list_stores() {
+	need_target
+	GET /v1/stores
+	exit $?
+}
+
+show_store() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+create_store() {
+	need_target
+	file=$(tempfile)
+	cat >${file} <<EOF
+name: Store Name
+summary: a short description
+plugin: plugin-name
+endpoint: endpoint-config
+EOF
+	editor ${file}
+	POST /v1/stores ${file}
+	exit $?
+}
+
+delete_store() {
+	need_target
+	need "store UUID" $1
+	DELETE /v1/stores/$1
+	exit $?
+}
+
+update_store() {
+	need_target
+	need "store UUID" $1
+	file=$(tempfile)
+	cat >${file} <<EOF
+name: Store Name
+summary: a short description
+plugin: plugin-name
+endpoint: endpoint-config
+EOF
+	editor ${file}
+	PUT /v1/store/$1 ${file}
+	exit $?
+}
+
+##############################################################################
+
+list_targets() {
+	need_target
+	GET /v1/targets
+	exit $?
+}
+
+show_target() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+create_target() {
+	need_target
+	file=$(tempfile)
+	cat >${file} <<EOF
+name:     Target Name
+summary:  a short description
+plugin:   plugin-name
+endpoint: endpoint-config
+agent:    host:ip
+EOF
+	editor ${file}
+	POST /v1/targets ${file}
+	exit $?
+}
+
+delete_target() {
+	need_target
+	need "target UUID" $1
+	DELETE /v1/targets/$1
+	exit $?
+}
+
+update_target() {
+	need_target
+	need "target UUID" $1
+	file=$(tempfile)
+	cat >${file} <<EOF
+name:     Target Name
+summary:  a short description
+plugin:   plugin-name
+endpoint: endpoint-config
+agent:    host:ip
+EOF
+	editor ${file}
+	PUT /v1/target/$1 ${file}
+	exit $?
+}
+
+##############################################################################
+
+list_jobs() {
+	need_target
+	GET /v1/jobs
+	exit $?
+}
+
+show_job() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+pause_job() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+unpause_job() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+is_job_paused() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+run_job() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+create_job() {
+	need_target
+	file=$(tempfile)
+	cat >${file} <<EOF
+name:     Job Name
+summary:  a short description
+
+store:     Store UUID
+target:    Target UUID
+retention: Retention Policy UUID
+schedule:  Schedule UUID
+
+paused:    false
+EOF
+	editor ${file}
+	POST /v1/jobs ${file}
+	exit $?
+}
+
+delete_job() {
+	need_target
+	need "job UUID" $1
+	DELETE /v1/jobs/$1
+	exit $?
+}
+
+create_job() {
+	need_target
+	need "job UUID" $1
+	file=$(tempfile)
+	cat >${file} <<EOF
+name:     Job Name
+summary:  a short description
+
+store:     Store UUID
+target:    Target UUID
+retention: Retention Policy UUID
+schedule:  Schedule UUID
+
+paused:    false
+EOF
+	editor ${file}
+	PUT /v1/job/$1 ${file}
+	exit $?
+}
+
+##############################################################################
+
+list_archives() {
+	need_target
+	GET /v1/archives
+	exit $?
+}
+
+show_archive() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+restore_archive() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+delete_archive() {
+	need_target
+	need "archive UUID" $1
+	DELETE /v1/archives/$1
+	exit $?
+}
+
+update_archive() {
+	need_target
+	need "archive UUID" $1
+	file=$(tempfile)
+	cat >${file} <<EOF
+notes: | your notes here
+EOF
+	editor ${file}
+	PUT /v1/archive/$1 ${file}
+	exit $?
+}
+
+##############################################################################
+
+list_tasks() {
+	need_target
+	GET /v1/tasks
+	exit $?
+}
+
+show_task() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+cancel_task() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+##############################################################################
+
+list_retention() {
+	need_target
+	GET /v1/retention
+	exit $?
+}
+
+show_retention() {
+	need_target
+	echo "NOT IMPLEMENTED"
+	exit 6
+}
+
+create_retention() {
+	need_target
+	file=$(tempfile)
+	cat >${file} <<EOF
+name:     Retention Policy Name
+summary:  a short description
+
+# note: must be at least 3600!
+expires:  86400
+EOF
+	editor ${file}
+	POST /v1/retention ${file}
+	exit $?
+}
+
+delete_retention() {
+	need_target
+	need "retention policy UUID" $1
+	DELETE /v1/retention/$1
+	exit $?
+}
+
+create_retention() {
+	need_target
+	need "retention policy UUID" $1
+	file=$(tempfile)
+	cat >${file} <<EOF
+name:     Retention Policy Name
+summary:  a short description
+
+# note: must be at least 3600!
+expires:  86400
+EOF
+	editor ${file}
+	PUT /v1/retention/$1 ${file}
+	exit $?
+}
+
+##############################################################################
+
+for command in curl jq yaml2json; do
+	if [[ -z "$(command -v ${command})" ]]; then
+		fail "missing \`${command}' command"
+		exit 2
+	fi
+done
+
+##############################################################################
+
+shield_target=${SHIELD_CORE}
+
+while (( "$#" )); do
+	case ${1} in
+	(-h|--help)
+		usage
+		exit 0
+		;;
+
+	(-t|--target)
+		shift
+		shield_target=${1}
+		shift
+		;;
+
+	(-r|--raw)
+		shift
+		jq_opts="-r"
+		;;
+
+	(-v|--verbose)
+		shift
+		curl_opts="-v"
+		;;
+
+	(curl)
+		shift
+		GET ${1}
+		exit $?
+		;;
+
+	(list)
+		shift
+		case ${1} in
+		(schedules) shift ; list_schedules "$@" ; exit 0 ;;
+		(stores)    shift ; list_stores    "$@" ; exit 0 ;;
+		(targets)   shift ; list_targets   "$@" ; exit 0 ;;
+		(jobs)      shift ; list_jobs      "$@" ; exit 0 ;;
+		(archives)  shift ; list_archives  "$@" ; exit 0 ;;
+		(tasks)     shift ; list_tasks     "$@" ; exit 0 ;;
+		(retention)
+			shift
+			case ${1} in
+			(policies) shift ;list_retention "$@" ; exit 0 ;;
+			(*)
+				fail "unrecognized data type 'retention ${1}'"
+				exit 1
+				;;
+			esac
+			;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(show)
+		shift
+		case ${1} in
+		(schedule) shift ; show_schedule "$@" ; exit 0 ;;
+		(store)    shift ; show_store    "$@" ; exit 0 ;;
+		(target)   shift ; show_target   "$@" ; exit 0 ;;
+		(job)      shift ; show_job      "$@" ; exit 0 ;;
+		(archive)  shift ; show_archive  "$@" ; exit 0 ;;
+		(task)     shift ; show_task     "$@" ; exit 0 ;;
+		(retention)
+			shift
+			case ${1} in
+			(policy) shift ;show_retention "$@" ; exit 0 ;;
+			(*)
+				fail "unrecognized data type 'retention ${1}'"
+				exit 1
+				;;
+			esac
+			;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(create)
+		shift
+		case ${1} in
+		(schedule)  shift ; create_schedule  "$@" ; exit 0 ;;
+		(store)     shift ; create_store     "$@" ; exit 0 ;;
+		(target)    shift ; create_target    "$@" ; exit 0 ;;
+		(job)       shift ; create_job       "$@" ; exit 0 ;;
+		(retention)
+			shift
+			case ${1} in
+			(policy) shift ; create_retention "$@" ; exit 0 ;;
+			(*)
+				fail "unrecognized data type 'retention ${1}'"
+				exit 1
+				;;
+			esac
+			;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(delete)
+		shift
+		case ${1} in
+		(schedule)  shift ; delete_schedule  "$@" ; exit 0 ;;
+		(store)     shift ; delete_store     "$@" ; exit 0 ;;
+		(target)    shift ; delete_target    "$@" ; exit 0 ;;
+		(archive)   shift ; delete_archive   "$@" ; exit 0 ;;
+		(job)       shift ; delete_job       "$@" ; exit 0 ;;
+		(retention)
+			shift
+			case ${1} in
+			(policy) shift ; delete_retention "$@" ; exit 0 ;;
+			(*)
+				fail "unrecognized data type 'retention ${1}'"
+				exit 1
+				;;
+			esac
+			;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(update|edit)
+		shift
+		case ${1} in
+		(schedule)  shift ; update_schedule  "$@" ; exit 0 ;;
+		(store)     shift ; update_store     "$@" ; exit 0 ;;
+		(target)    shift ; update_target    "$@" ; exit 0 ;;
+		(archive)   shift ; update_archive   "$@" ; exit 0 ;;
+		(job)       shift ; update_job       "$@" ; exit 0 ;;
+		(retention)
+			shift
+			case ${1} in
+			(policy) shift ; update_retention "$@" ; exit 0 ;;
+			(*)
+				fail "unrecognized data type 'retention ${1}'"
+				exit 1
+				;;
+			esac
+			;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(restore)
+		shift
+		case ${1} in
+		(archive) shift ; restore_archive "$@" ; exit 0 ;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(pause)
+		shift
+		case ${1} in
+		(job) shift ; pause_job "$@" ; exit 0 ;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(paused)
+		shift
+		case ${1} in
+		(job) shift ; is_job_paused "$@" ; exit 0 ;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(unpause)
+		shift
+		case ${1} in
+		(job) shift ; unpause_job "$@" ; exit 0 ;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(run)
+		shift
+		case ${1} in
+		(job) shift ; run_job "$@" ; exit 0 ;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(cancel)
+		shift
+		case ${1} in
+		(task) shift ; cancel_task "$@" ; exit 0 ;;
+		(*)
+			fail "unrecognized data type '${1}'"
+			exit 1
+			;;
+		esac
+		;;
+
+	(*)
+		fail "unrecognized command '${1}'"
+		usage
+		exit 1
+		;;
+	esac
+done
