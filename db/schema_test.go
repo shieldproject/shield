@@ -7,8 +7,8 @@ import (
 	. "github.com/starkandwayne/shield/db"
 
 	// sql drivers
-	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func Database(sqls ...string) (*DB, error) {

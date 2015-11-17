@@ -234,17 +234,17 @@ func (s *Supervisor) Run() error {
 			s.CheckSchedule()
 
 			// see if we have anything in the run queue
-			RunQueue:
-				for len(s.runq) > 0 {
-					select {
-					case s.workers <- *s.runq[0]:
-						s.Database.StartTask(s.runq[0].UUID, time.Now())
-						fmt.Printf("sent a task to a worker\n")
-						s.runq = s.runq[1:]
-					default:
-						break RunQueue
-					}
+		RunQueue:
+			for len(s.runq) > 0 {
+				select {
+				case s.workers <- *s.runq[0]:
+					s.Database.StartTask(s.runq[0].UUID, time.Now())
+					fmt.Printf("sent a task to a worker\n")
+					s.runq = s.runq[1:]
+				default:
+					break RunQueue
 				}
+			}
 
 		case adhoc := <-s.adhoc:
 			s.ScheduleAdhoc(adhoc)

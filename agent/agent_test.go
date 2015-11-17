@@ -17,7 +17,7 @@ var _ = Describe("Agent", func() {
 
 		BeforeEach(func() {
 			a = &Agent{
-				PluginPaths: []string{ "test/plugins/dir", "test/plugins" },
+				PluginPaths: []string{"test/plugins/dir", "test/plugins"},
 			}
 		})
 
@@ -439,7 +439,7 @@ var _ = Describe("Agent", func() {
 		})
 	})
 
-	Describe("Agent configuration file", func(){
+	Describe("Agent configuration file", func() {
 		It("Requires an authorized_keys_file", func() {
 			ag := NewAgent()
 			err := ag.ReadConfig("test/auth_key_test.conf")
@@ -464,13 +464,13 @@ var _ = Describe("Agent", func() {
 			Ω(err).Should(HaveOccurred())
 			Ω(err.Error()).Should(Equal("No plugin path supplied."))
 		})
-		It("Requires a non-empty plugin path", func(){
+		It("Requires a non-empty plugin path", func() {
 			ag := NewAgent()
 			err := ag.ReadConfig("test/plugin_empty_test.conf")
 			Ω(err).Should(HaveOccurred())
 			Ω(err.Error()).Should(Equal("No plugin path supplied."))
 		})
-		It("Requires a list, not a scalar, of plugin paths", func(){
+		It("Requires a list, not a scalar, of plugin paths", func() {
 			ag := NewAgent()
 			err := ag.ReadConfig("test/plugin_scalar_test.conf")
 			Ω(err).Should(HaveOccurred())

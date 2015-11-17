@@ -23,15 +23,15 @@ func NewAgent() *Agent {
 
 func (agent *Agent) ResolveBinary(name string) (string, error) {
 	for _, path := range agent.PluginPaths {
-		candidate := fmt.Sprintf("%s/%s", path,name)
+		candidate := fmt.Sprintf("%s/%s", path, name)
 		if stat, err := os.Stat(candidate); err == nil {
 			// skip if not executable by someone
-			if stat.Mode() & 0111 == 0 {
+			if stat.Mode()&0111 == 0 {
 				continue
 			}
 
 			// skip if not a regular file
-			if stat.Mode() & os.ModeType != 0 {
+			if stat.Mode()&os.ModeType != 0 {
 				continue
 			}
 

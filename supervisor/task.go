@@ -53,7 +53,7 @@ type Task struct {
 
 func NewPendingTask(Op Operation) *Task {
 	return &Task{
-		Op: Op,
+		Op:     Op,
 		Status: PENDING,
 		Output: make([]string, 0),
 	}

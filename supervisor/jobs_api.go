@@ -115,7 +115,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		var params struct {
-			Owner  string `json:"owner"`
+			Owner string `json:"owner"`
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 

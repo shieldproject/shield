@@ -35,7 +35,7 @@ type Job struct {
 func (j *Job) Task() *Task {
 	t := NewPendingTask(BACKUP)
 	t.StorePlugin = j.StorePlugin
-	t.StoreEndpoint =  j.StoreEndpoint
+	t.StoreEndpoint = j.StoreEndpoint
 	t.TargetPlugin = j.TargetPlugin
 	t.TargetEndpoint = j.TargetEndpoint
 	t.Agent = j.Agent

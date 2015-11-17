@@ -11,10 +11,10 @@ import (
 )
 
 type Config struct {
-	AuthorizedKeysFile string `yaml:"authorized_keys_file"`
-	HostKeyFile string `yaml:"host_key_file"`
-	ListenAddress string `yaml:"listen_address"`
-	PluginPaths []string `yaml:"plugin_paths"`
+	AuthorizedKeysFile string   `yaml:"authorized_keys_file"`
+	HostKeyFile        string   `yaml:"host_key_file"`
+	ListenAddress      string   `yaml:"listen_address"`
+	PluginPaths        []string `yaml:"plugin_paths"`
 }
 
 func (agent *Agent) ReadConfig(path string) error {
