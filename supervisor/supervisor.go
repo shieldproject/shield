@@ -233,6 +233,19 @@ func (s *Supervisor) Run() error {
 		case <-s.tick:
 			s.CheckSchedule()
 
+			// see if we have anything in the run queue
+			RunQueue:
+				for len(s.runq) > 0 {
+					select {
+					case s.workers <- *s.runq[0]:
+						s.Database.StartTask(s.runq[0].UUID, time.Now())
+						fmt.Printf("sent a task to a worker\n")
+						s.runq = s.runq[1:]
+					default:
+						break RunQueue
+					}
+				}
+
 		case adhoc := <-s.adhoc:
 			s.ScheduleAdhoc(adhoc)
 
@@ -264,17 +277,6 @@ func (s *Supervisor) Run() error {
 
 			default:
 				fmt.Printf("  %s: !! unrecognized op type\n", u.Task)
-			}
-
-		default:
-			if len(s.runq) > 0 {
-				select {
-				case s.workers <- *s.runq[0]:
-					s.Database.StartTask(s.runq[0].UUID, time.Now())
-					fmt.Printf("sent a task to a worker\n")
-					s.runq = s.runq[1:]
-				default:
-				}
 			}
 		}
 	}
@@ -348,7 +350,7 @@ func (s *Supervisor) SpawnAPI() {
 
 func scheduler(c chan int) {
 	for {
-		time.Sleep(time.Millisecond * 200)
+		time.Sleep(time.Second)
 		c <- 1
 	}
 }
