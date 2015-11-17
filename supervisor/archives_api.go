@@ -84,6 +84,24 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled"}`))
 		return
 
+	case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile(`^/v1/archive/([a-fA-F0-9-]+)`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		archive, err := self.Data.GetAnnotatedArchive(id)
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		if archive == nil {
+			w.WriteHeader(404)
+			return
+		}
+
+		JSON(w, archive)
+		return
+
 	case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)

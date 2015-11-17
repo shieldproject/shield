@@ -15,10 +15,13 @@ var _ = Describe("/v1/targets API", func() {
 	var API http.Handler
 	var channel chan int
 
+	TARGET_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
+	TARGET_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
-				("66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+				("`+TARGET_REDIS+`",
 				 "redis-shared",
 				 "Shared Redis services for CF",
 				 "127.0.0.1:5544",
@@ -26,7 +29,7 @@ var _ = Describe("/v1/targets API", func() {
 				 "<<redis-configuration>>")`,
 
 			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
-				("05c3d005-f968-452f-bd59-bee8e79ab982",
+				("`+TARGET_S3+`",
 				 "s3",
 				 "Amazon S3 Blobstore",
 				 "127.0.0.1:5544",
@@ -35,7 +38,7 @@ var _ = Describe("/v1/targets API", func() {
 
 			`INSERT INTO jobs (uuid, target_uuid) VALUES
 				("abc-def",
-				 "05c3d005-f968-452f-bd59-bee8e79ab982")`,
+				 "`+TARGET_S3+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		channel = make(chan int, 1)
@@ -54,7 +57,7 @@ var _ = Describe("/v1/targets API", func() {
 		res := GET(API, "/v1/targets")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + TARGET_REDIS + `",
 					"name"     : "redis-shared",
 					"summary"  : "Shared Redis services for CF",
 					"agent"    : "127.0.0.1:5544",
@@ -62,7 +65,7 @@ var _ = Describe("/v1/targets API", func() {
 					"endpoint" : "<<redis-configuration>>"
 				},
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + TARGET_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"agent"    : "127.0.0.1:5544",
@@ -77,7 +80,7 @@ var _ = Describe("/v1/targets API", func() {
 		res := GET(API, "/v1/targets?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + TARGET_REDIS + `",
 					"name"     : "redis-shared",
 					"summary"  : "Shared Redis services for CF",
 					"agent"    : "127.0.0.1:5544",
@@ -92,7 +95,7 @@ var _ = Describe("/v1/targets API", func() {
 		res := GET(API, "/v1/targets?unused=f")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + TARGET_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"agent"    : "127.0.0.1:5544",
@@ -107,7 +110,7 @@ var _ = Describe("/v1/targets API", func() {
 		res := GET(API, "/v1/targets?plugin=redis")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + TARGET_REDIS + `",
 					"name"     : "redis-shared",
 					"summary"  : "Shared Redis services for CF",
 					"agent"    : "127.0.0.1:5544",
@@ -120,7 +123,7 @@ var _ = Describe("/v1/targets API", func() {
 		res = GET(API, "/v1/targets?plugin=s3")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + TARGET_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"agent"    : "127.0.0.1:5544",
@@ -139,7 +142,7 @@ var _ = Describe("/v1/targets API", func() {
 		res := GET(API, "/v1/targets?plugin=s3&unused=f")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + TARGET_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"agent"    : "127.0.0.1:5544",
@@ -152,6 +155,24 @@ var _ = Describe("/v1/targets API", func() {
 		res = GET(API, "/v1/targets?plugin=s3&unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("can retrieve a single target by UUID", func() {
+		res := GET(API, "/v1/target/"+TARGET_S3)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{
+					"uuid"     : "` + TARGET_S3 + `",
+					"name"     : "s3",
+					"summary"  : "Amazon S3 Blobstore",
+					"agent"    : "127.0.0.1:5544",
+					"plugin"   : "s3",
+					"endpoint" : "<<s3-configuration>>"
+			}`))
+	})
+
+	It("returns a 404 for unknown UUIDs", func() {
+		res := GET(API, "/v1/target/14a0865d-81e7-4cfe-b733-6170a368eecd")
+		Ω(res.Code).Should(Equal(404))
 	})
 
 	It("can create new targets", func() {
@@ -208,7 +229,7 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	It("can update existing target", func() {
-		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis",
@@ -222,7 +243,7 @@ var _ = Describe("/v1/targets API", func() {
 		res = GET(API, "/v1/targets")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + TARGET_REDIS + `",
 					"name"     : "Renamed",
 					"summary"  : "UPDATED!",
 					"agent"    : "127.0.0.1:1660",
@@ -230,7 +251,7 @@ var _ = Describe("/v1/targets API", func() {
 					"endpoint" : "{NEW-ENDPOINT}"
 				},
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + TARGET_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"agent"    : "127.0.0.1:5544",
@@ -242,7 +263,7 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	It("requires the `name' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis",
 			"endpoint" : "{NEW-ENDPOINT}",
@@ -252,7 +273,7 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	It("requires the `plugin' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"endpoint" : "{NEW-ENDPOINT}",
@@ -262,7 +283,7 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	It("requires the `endpoint' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis",
@@ -272,7 +293,7 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	It("requires the `agent' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis",
@@ -282,7 +303,7 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	It("can delete unused targets", func() {
-		res := DELETE(API, "/v1/target/66be7c43-6c57-4391-8ea9-e770d6ab5e9e")
+		res := DELETE(API, "/v1/target/"+TARGET_REDIS)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 		Eventually(channel).Should(Receive())
@@ -290,7 +311,7 @@ var _ = Describe("/v1/targets API", func() {
 		res = GET(API, "/v1/targets")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + TARGET_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"agent"    : "127.0.0.1:5544",
@@ -302,7 +323,7 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	It("refuses to delete a target that is in use", func() {
-		res := DELETE(API, "/v1/target/05c3d005-f968-452f-bd59-bee8e79ab982")
+		res := DELETE(API, "/v1/target/"+TARGET_S3)
 		Ω(res.Code).Should(Equal(403))
 		Ω(res.Body.String()).Should(Equal(""))
 	})
@@ -315,7 +336,6 @@ var _ = Describe("/v1/targets API", func() {
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/targets/sub/requests", nil)
 			NotImplemented(API, method, "/v1/target/sub/requests", nil)
-			NotImplemented(API, method, "/v1/target/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 

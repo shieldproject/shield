@@ -15,23 +15,26 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	var API http.Handler
 	var resyncChan chan int
 
+	SHORT := `43705750-33b7-4134-a532-ce069abdc08f`
+	LONG := `3e783b71-d595-498d-a739-e01fb335098a`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
-				("43705750-33b7-4134-a532-ce069abdc08f",
+				("`+SHORT+`",
 				 "Short-Term Retention",
 				 "retain bosh-blobs for two weeks",
 				 1209600)`, // 14 days
 
 			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
-				("3e783b71-d595-498d-a739-e01fb335098a",
+				("`+LONG+`",
 				 "Important Materials",
 				 "Keep for 90d",
 				 7776000)`, // 90 days
 
 			`INSERT INTO jobs (uuid, retention_uuid) VALUES
 				("abc-def",
-				 "43705750-33b7-4134-a532-ce069abdc08f")`,
+				 "`+SHORT+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
@@ -50,13 +53,13 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		res := GET(API, "/v1/retention")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "3e783b71-d595-498d-a739-e01fb335098a",
+					"uuid"    : "` + LONG + `",
 					"name"    : "Important Materials",
 					"summary" : "Keep for 90d",
 					"expires" : 7776000
 				},
 				{
-					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
+					"uuid"    : "` + SHORT + `",
 					"name"    : "Short-Term Retention",
 					"summary" : "retain bosh-blobs for two weeks",
 					"expires" : 1209600
@@ -69,7 +72,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		res := GET(API, "/v1/retention?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "3e783b71-d595-498d-a739-e01fb335098a",
+					"uuid"    : "` + LONG + `",
 					"name"    : "Important Materials",
 					"summary" : "Keep for 90d",
 					"expires" : 7776000
@@ -78,17 +81,33 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
-	It("should retrieve only used schedules for ?unused=f", func() {
+	It("should retrieve only used retention policies for ?unused=f", func() {
 		res := GET(API, "/v1/retention?unused=f")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
+					"uuid"    : "` + SHORT + `",
 					"name"    : "Short-Term Retention",
 					"summary" : "retain bosh-blobs for two weeks",
 					"expires" : 1209600
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("can retrieve a single retention policy by UUID", func() {
+		res := GET(API, "/v1/retention/"+SHORT)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{
+					"uuid"    : "` + SHORT + `",
+					"name"    : "Short-Term Retention",
+					"summary" : "retain bosh-blobs for two weeks",
+					"expires" : 1209600
+			}`))
+	})
+
+	It("returns a 404 for unknown UUIDs", func() {
+		res := GET(API, "/v1/retention/85612f54-74fa-4897-aafc-01c1f0d3ae2e")
+		Ω(res.Code).Should(Equal(404))
 	})
 
 	It("can create new retention policies", func() {
@@ -108,7 +127,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("can update existing retention policy", func() {
-		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
+		res := PUT(API, "/v1/retention/"+SHORT, WithJSON(`{
 			"name"    : "Renamed",
 			"summary" : "UPDATED!",
 			"expires" : 1209000
@@ -120,13 +139,13 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		res = GET(API, "/v1/retention")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "3e783b71-d595-498d-a739-e01fb335098a",
+					"uuid"    : "` + LONG + `",
 					"name"    : "Important Materials",
 					"summary" : "Keep for 90d",
 					"expires" : 7776000
 				},
 				{
-					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
+					"uuid"    : "` + SHORT + `",
 					"name"    : "Renamed",
 					"summary" : "UPDATED!",
 					"expires" : 1209000
@@ -136,7 +155,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("requires the `name' field to update an existing retention policy", func() {
-		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
+		res := PUT(API, "/v1/retention/"+SHORT, WithJSON(`{
 			"summary" : "UPDATED!",
 			"expires" : 1209000
 		}`))
@@ -144,7 +163,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("requires the `summary' field to update an existing retention policy", func() {
-		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
+		res := PUT(API, "/v1/retention/"+SHORT, WithJSON(`{
 			"name"    : "Renamed",
 			"expires" : 1209000
 		}`))
@@ -152,7 +171,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("requires a valid `expiry' field of > 3600 to update an existing retention policy", func() {
-		res := PUT(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f", WithJSON(`{
+		res := PUT(API, "/v1/retention/"+SHORT, WithJSON(`{
 			"name"    : "Renamed",
 			"summary" : "UPDATED!",
 			"expires" : 3599
@@ -161,7 +180,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("can delete unused retention policies", func() {
-		res := DELETE(API, "/v1/retention/3e783b71-d595-498d-a739-e01fb335098a")
+		res := DELETE(API, "/v1/retention/"+LONG)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 		Eventually(resyncChan).Should(Receive())
@@ -169,7 +188,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		res = GET(API, "/v1/retention")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "43705750-33b7-4134-a532-ce069abdc08f",
+					"uuid"    : "` + SHORT + `",
 					"name"    : "Short-Term Retention",
 					"summary" : "retain bosh-blobs for two weeks",
 					"expires" : 1209600
@@ -179,7 +198,7 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	It("refuses to delete a retention policy that is in use", func() {
-		res := DELETE(API, "/v1/retention/43705750-33b7-4134-a532-ce069abdc08f")
+		res := DELETE(API, "/v1/retention/"+SHORT)
 		Ω(res.Code).Should(Equal(403))
 		Ω(res.Body.String()).Should(Equal(""))
 	})
@@ -191,7 +210,6 @@ var _ = Describe("HTTP API /v1/retention", func() {
 
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/retention/sub/requests", nil)
-			NotImplemented(API, method, "/v1/retention/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 

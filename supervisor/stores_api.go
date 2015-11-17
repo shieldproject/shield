@@ -65,6 +65,24 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
+	case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile(`^/v1/store/([a-fA-F0-9-]+)`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		store, err := self.Data.GetAnnotatedStore(id)
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		if store == nil {
+			w.WriteHeader(404)
+			return
+		}
+
+		JSON(w, store)
+		return
+
 	case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)

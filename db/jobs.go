@@ -119,6 +119,44 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	return l, nil
 }
 
+func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
+	r, err := db.Query(`
+		SELECT j.uuid, j.name, j.summary, j.paused,
+		       r.name, r.uuid, r.expiry,
+		       sc.name, sc.uuid, sc.timespec,
+		       s.plugin, s.endpoint,
+		       t.plugin, t.endpoint, t.agent
+
+			FROM jobs j
+				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
+				INNER JOIN schedules sc  ON sc.uuid = j.schedule_uuid
+				INNER JOIN stores     s  ON  s.uuid = j.store_uuid
+				INNER JOIN targets    t  ON  t.uuid = j.target_uuid
+
+			WHERE j.uuid = ?`, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, nil
+	}
+
+	ann := &AnnotatedJob{}
+
+	if err = r.Scan(
+		&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
+		&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
+		&ann.ScheduleName, &ann.ScheduleUUID, &ann.Schedule,
+		&ann.StorePlugin, &ann.StoreEndpoint,
+		&ann.TargetPlugin, &ann.TargetEndpoint, &ann.Agent); err != nil {
+		return nil, err
+	}
+
+	return ann, nil
+}
+
 func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
 	n, err := db.Count(
 		`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`,

@@ -63,6 +63,24 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
+	case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile("^/v1/retention/")
+		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
+
+		policy, err := self.Data.GetAnnotatedRetentionPolicy(id)
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		if policy == nil {
+			w.WriteHeader(404)
+			return
+		}
+
+		JSON(w, policy)
+		return
+
 	case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)

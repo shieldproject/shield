@@ -447,6 +447,33 @@ var _ = Describe("/v1/jobs API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("can retrieve a single job by UUID", func() {
+		res := GET(API, "/v1/job/"+PG_S3_WEEKLY)
+		Ω(res.Body.String()).Should(MatchJSON(`{
+				"uuid"            : "` + PG_S3_WEEKLY + `",
+				"name"            : "Main DB weekly backup (long-term)",
+				"summary"         : "For long-term storage requirements",
+				"retention_name"  : "Long-Term Retention",
+				"retention_uuid"  : "` + RETAIN_LONG + `",
+				"expiry"          : 7776000,
+				"paused"          : false,
+				"schedule_name"   : "Weekly",
+				"schedule_uuid"   : "` + SCHED_WEEKLY + `",
+				"schedule"        : "sundays at 10pm",
+				"store_plugin"    : "s3",
+				"store_endpoint"  : "<<s3-configuration>>",
+				"target_plugin"   : "pg",
+				"target_endpoint" : "<<pg-configuration>>",
+				"agent"           : "10.11.22.33:4455"
+			}`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("returns a 404 for unknown UUIDs", func() {
+		res := GET(API, "/v1/job/"+SCHED_WEEKLY) // it's a schedule...
+		Ω(res.Code).Should(Equal(404))
+	})
+
 	It("can create new jobs", func() {
 		res := POST(API, "/v1/jobs", WithJSON(`{
 			"name"      : "My New Job",
@@ -716,7 +743,6 @@ var _ = Describe("/v1/jobs API", func() {
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/jobs/sub/requests", nil)
 			NotImplemented(API, method, "/v1/job/sub/requests", nil)
-			NotImplemented(API, method, "/v1/job/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 

@@ -15,21 +15,24 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	var API http.Handler
 	var resyncChan chan int
 
+	WEEKLY := `51e69607-eb48-4679-afd2-bc3b4c92e691`
+	DAILY := `647bc775-b07b-4f87-bb67-d84cccac34a7`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("51e69607-eb48-4679-afd2-bc3b4c92e691",
+				("`+WEEKLY+`",
 				 "Weekly Backups",
 				 "A schedule for weekly bosh-blobs, during normal maintenance windows",
 				 "sundays at 3:15am")`,
 
 			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("647bc775-b07b-4f87-bb67-d84cccac34a7",
+				("`+DAILY+`",
 				 "Daily Backups",
 				 "Use for daily (11-something-at-night) bosh-blobs",
 				 "daily at 11:24pm")`,
 
-			`INSERT INTO jobs (uuid, schedule_uuid) VALUES ("abc-def", "51e69607-eb48-4679-afd2-bc3b4c92e691")`,
+			`INSERT INTO jobs (uuid, schedule_uuid) VALUES ("abc-def", "`+WEEKLY+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 
@@ -49,13 +52,13 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		res := GET(API, "/v1/schedules")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "647bc775-b07b-4f87-bb67-d84cccac34a7",
+					"uuid"    : "` + DAILY + `",
 					"name"    : "Daily Backups",
 					"summary" : "Use for daily (11-something-at-night) bosh-blobs",
 					"when"    : "daily at 11:24pm"
 				},
 				{
-					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
+					"uuid"    : "` + WEEKLY + `",
 					"name"    : "Weekly Backups",
 					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
 					"when"    : "sundays at 3:15am"
@@ -68,7 +71,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		res := GET(API, "/v1/schedules?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "647bc775-b07b-4f87-bb67-d84cccac34a7",
+					"uuid"    : "` + DAILY + `",
 					"name"    : "Daily Backups",
 					"summary" : "Use for daily (11-something-at-night) bosh-blobs",
 					"when"    : "daily at 11:24pm"
@@ -81,13 +84,29 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		res := GET(API, "/v1/schedules?unused=f")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
+					"uuid"    : "` + WEEKLY + `",
 					"name"    : "Weekly Backups",
 					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
 					"when"    : "sundays at 3:15am"
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("can retrieve a single schedule by UUID", func() {
+		res := GET(API, "/v1/schedule/"+WEEKLY)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{
+				"uuid"    : "` + WEEKLY + `",
+				"name"    : "Weekly Backups",
+				"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
+				"when"    : "sundays at 3:15am"
+			}`))
+	})
+
+	It("returns a 404 for unknown UUIDs", func() {
+		res := GET(API, "/v1/schedule/3d650864-0578-42c6-b9c8-883c8a2b1887")
+		Ω(res.Code).Should(Equal(404))
 	})
 
 	It("can create new schedules", func() {
@@ -107,7 +126,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("can update existing schedules", func() {
-		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
+		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
 			"name"    : "Daily Backup Schedule",
 			"summary" : "UPDATED!",
 			"when"    : "daily at 2:05pm"
@@ -119,13 +138,13 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		res = GET(API, "/v1/schedules")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "647bc775-b07b-4f87-bb67-d84cccac34a7",
+					"uuid"    : "` + DAILY + `",
 					"name"    : "Daily Backup Schedule",
 					"summary" : "UPDATED!",
 					"when"    : "daily at 2:05pm"
 				},
 				{
-					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
+					"uuid"    : "` + WEEKLY + `",
 					"name"    : "Weekly Backups",
 					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
 					"when"    : "sundays at 3:15am"
@@ -135,7 +154,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("requires the `name' field to update an existing schedule", func() {
-		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
+		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
 			"summary" : "UPDATED!",
 			"when"    : "daily at 2:05pm"
 		}`))
@@ -143,7 +162,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("requires the `summary' field to update an existing schedule", func() {
-		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
+		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
 			"name"    : "Daily Backup Schedule",
 			"when"    : "daily at 2:05pm"
 		}`))
@@ -151,7 +170,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("requires the `when' field to update an existing schedule", func() {
-		res := PUT(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7", WithJSON(`{
+		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
 			"name"    : "Daily Backup Schedule",
 			"summary" : "UPDATED!"
 		}`))
@@ -159,7 +178,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("can delete unused schedules", func() {
-		res := DELETE(API, "/v1/schedule/647bc775-b07b-4f87-bb67-d84cccac34a7")
+		res := DELETE(API, "/v1/schedule/"+DAILY)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 		Eventually(resyncChan).Should(Receive())
@@ -167,7 +186,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		res = GET(API, "/v1/schedules")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"    : "51e69607-eb48-4679-afd2-bc3b4c92e691",
+					"uuid"    : "` + WEEKLY + `",
 					"name"    : "Weekly Backups",
 					"summary" : "A schedule for weekly bosh-blobs, during normal maintenance windows",
 					"when"    : "sundays at 3:15am"
@@ -177,7 +196,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	It("refuses to delete a schedule that is in use", func() {
-		res := DELETE(API, "/v1/schedule/51e69607-eb48-4679-afd2-bc3b4c92e691")
+		res := DELETE(API, "/v1/schedule/"+WEEKLY)
 		Ω(res.Code).Should(Equal(403))
 		Ω(res.Body.String()).Should(Equal(""))
 	})
@@ -190,7 +209,6 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/schedules/sub/requests", nil)
 			NotImplemented(API, method, "/v1/schedule/sub/requests", nil)
-			NotImplemented(API, method, "/v1/schedule/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 

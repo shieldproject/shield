@@ -84,6 +84,45 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 	return l, nil
 }
 
+func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
+	r, err := db.Query(`
+		SELECT t.uuid, t.owner, t.op, j.uuid, a.uuid,
+		       t.status, t.started_at, t.stopped_at, t.log
+
+		FROM tasks t
+			INNER JOIN jobs     j    ON j.uuid = t.job_uuid
+			LEFT  JOIN archives a    ON a.uuid = t.archive_uuid
+
+		WHERE t.uuid = ?`, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, nil
+	}
+
+	ann := &AnnotatedTask{}
+	var archive, started, stopped []byte
+	if err = r.Scan(
+		&ann.UUID, &ann.Owner, &ann.Op, &ann.JobUUID, &archive,
+		&ann.Status, &started, &stopped, &ann.Log); err != nil {
+		return nil, err
+	}
+	if archive != nil {
+		ann.ArchiveUUID = string(archive)
+	}
+	if started != nil {
+		ann.StartedAt = string(started)
+	}
+	if stopped != nil {
+		ann.StoppedAt = string(stopped)
+	}
+
+	return ann, nil
+}
+
 func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(

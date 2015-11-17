@@ -15,17 +15,20 @@ var _ = Describe("/v1/stores API", func() {
 	var API http.Handler
 	var resyncChan chan int
 
+	STORE_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
+	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
-				("66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+				("`+STORE_REDIS+`",
 				 "redis-shared",
 				 "Shared Redis services for CF",
 				 "redis",
 				 "<<redis-configuration>>")`,
 
 			`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
-				("05c3d005-f968-452f-bd59-bee8e79ab982",
+				("`+STORE_S3+`",
 				 "s3",
 				 "Amazon S3 Blobstore",
 				 "s3",
@@ -33,7 +36,7 @@ var _ = Describe("/v1/stores API", func() {
 
 			`INSERT INTO jobs (uuid, store_uuid) VALUES
 				("abc-def",
-				 "05c3d005-f968-452f-bd59-bee8e79ab982")`,
+				 "`+STORE_S3+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
@@ -52,14 +55,14 @@ var _ = Describe("/v1/stores API", func() {
 		res := GET(API, "/v1/stores")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + STORE_REDIS + `",
 					"name"     : "redis-shared",
 					"summary"  : "Shared Redis services for CF",
 					"plugin"   : "redis",
 					"endpoint" : "<<redis-configuration>>"
 				},
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + STORE_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"plugin"   : "s3",
@@ -73,7 +76,7 @@ var _ = Describe("/v1/stores API", func() {
 		res := GET(API, "/v1/stores?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + STORE_REDIS + `",
 					"name"     : "redis-shared",
 					"summary"  : "Shared Redis services for CF",
 					"plugin"   : "redis",
@@ -87,7 +90,7 @@ var _ = Describe("/v1/stores API", func() {
 		res := GET(API, "/v1/stores?unused=f")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + STORE_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"plugin"   : "s3",
@@ -101,7 +104,7 @@ var _ = Describe("/v1/stores API", func() {
 		res := GET(API, "/v1/stores?plugin=redis")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + STORE_REDIS + `",
 					"name"     : "redis-shared",
 					"summary"  : "Shared Redis services for CF",
 					"plugin"   : "redis",
@@ -113,7 +116,7 @@ var _ = Describe("/v1/stores API", func() {
 		res = GET(API, "/v1/stores?plugin=s3")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + STORE_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"plugin"   : "s3",
@@ -131,7 +134,7 @@ var _ = Describe("/v1/stores API", func() {
 		res := GET(API, "/v1/stores?plugin=s3&unused=f")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + STORE_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"plugin"   : "s3",
@@ -143,6 +146,23 @@ var _ = Describe("/v1/stores API", func() {
 		res = GET(API, "/v1/stores?plugin=s3&unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("can retrieve a single store by UUID", func() {
+		res := GET(API, "/v1/store/"+STORE_S3)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{
+				"uuid"     : "` + STORE_S3 + `",
+				"name"     : "s3",
+				"summary"  : "Amazon S3 Blobstore",
+				"plugin"   : "s3",
+				"endpoint" : "<<s3-configuration>>"
+			}`))
+	})
+
+	It("returns a 404 for unknown UUIDs", func() {
+		res := GET(API, "/v1/store/de33cdc2-2502-457b-97d8-1bed423b85ac")
+		Ω(res.Code).Should(Equal(404))
 	})
 
 	It("can create new stores", func() {
@@ -185,7 +205,7 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("can update existing store", func() {
-		res := PUT(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/store/"+STORE_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis",
@@ -198,14 +218,14 @@ var _ = Describe("/v1/stores API", func() {
 		res = GET(API, "/v1/stores")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "66be7c43-6c57-4391-8ea9-e770d6ab5e9e",
+					"uuid"     : "` + STORE_REDIS + `",
 					"name"     : "Renamed",
 					"summary"  : "UPDATED!",
 					"plugin"   : "redis",
 					"endpoint" : "{NEW-ENDPOINT}"
 				},
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + STORE_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"plugin"   : "s3",
@@ -216,7 +236,7 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("requires the `name' field to update an existing store", func() {
-		res := PUT(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/store/"+STORE_REDIS, WithJSON(`{
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis",
 			"endpoint" : "{NEW-ENDPOINT}"
@@ -225,7 +245,7 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("requires the `summary' field to update an existing store", func() {
-		res := PUT(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/store/"+STORE_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"plugin"   : "redis",
 			"endpoint" : "{NEW-ENDPOINT}"
@@ -234,7 +254,7 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("requires the `plugin' field to update an existing store", func() {
-		res := PUT(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/store/"+STORE_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"endpoint" : "{NEW-ENDPOINT}"
@@ -243,7 +263,7 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("requires the `endpoint' field to update an existing store", func() {
-		res := PUT(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e", WithJSON(`{
+		res := PUT(API, "/v1/store/"+STORE_REDIS, WithJSON(`{
 			"name"     : "Renamed",
 			"summary"  : "UPDATED!",
 			"plugin"   : "redis"
@@ -252,7 +272,7 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("can delete unused stores", func() {
-		res := DELETE(API, "/v1/store/66be7c43-6c57-4391-8ea9-e770d6ab5e9e")
+		res := DELETE(API, "/v1/store/"+STORE_REDIS)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 		Eventually(resyncChan).Should(Receive())
@@ -260,7 +280,7 @@ var _ = Describe("/v1/stores API", func() {
 		res = GET(API, "/v1/stores")
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid"     : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"uuid"     : "` + STORE_S3 + `",
 					"name"     : "s3",
 					"summary"  : "Amazon S3 Blobstore",
 					"plugin"   : "s3",
@@ -271,7 +291,7 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	It("refuses to delete a store that is in use", func() {
-		res := DELETE(API, "/v1/store/05c3d005-f968-452f-bd59-bee8e79ab982")
+		res := DELETE(API, "/v1/store/"+STORE_S3)
 		Ω(res.Code).Should(Equal(403))
 		Ω(res.Body.String()).Should(Equal(""))
 	})
@@ -284,7 +304,6 @@ var _ = Describe("/v1/stores API", func() {
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/stores/sub/requests", nil)
 			NotImplemented(API, method, "/v1/store/sub/requests", nil)
-			NotImplemented(API, method, "/v1/store/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 

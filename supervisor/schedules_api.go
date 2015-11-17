@@ -62,6 +62,24 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
 		return
 
+	case match(req, `GET /v1/schedule/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile(`^/v1/schedule/([a-fA-F0-9-]+)`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		schedule, err := self.Data.GetAnnotatedSchedule(id)
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		if schedule == nil {
+			w.WriteHeader(404)
+			return
+		}
+
+		JSON(w, schedule)
+		return
+
 	case match(req, `PUT /v1/schedule/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)

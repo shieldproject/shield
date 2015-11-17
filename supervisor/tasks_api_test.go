@@ -18,11 +18,12 @@ var _ = Describe("/v1/tasks API", func() {
 	TASK1 := `9211dc07-6c39-4028-997c-fdc4bbf7c5de`
 	JOB1 := `07d8475d-0d62-4b59-9f05-8d2173226ad1`
 
-	//
+	// completed
 	TASK2 := `b7c35c17-b61b-4541-abea-d93d1837f971`
 	ARCHIVE2 := `df4625db-52be-4b55-9ea8-f10214a041bf`
 	JOB2 := `0f61e2e1-9293-438f-b2f7-c69a382010ec`
 
+	// canceled
 	TASK3 := `524753f0-4f24-4b63-929c-026d20cf07b1`
 	JOB3 := `5f04aef7-69cc-40e1-9736-4b3ee4caef50`
 
@@ -124,6 +125,27 @@ var _ = Describe("/v1/tasks API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("can retrieve a single task by UUID", func() {
+		res := GET(API, "/v1/task/"+TASK2)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{
+				"uuid": "` + TASK2 + `",
+				"owner": "joe",
+				"type": "restore",
+				"job_uuid": "` + JOB2 + `",
+				"archive_uuid": "` + ARCHIVE2 + `",
+				"status": "done",
+				"started_at": "2015-04-10 17:35:01",
+				"stopped_at": "2015-04-10 18:19:45",
+				"log": "restore complete"
+			}`))
+	})
+
+	It("returns a 404 for unknown UUIDs", func() {
+		res := GET(API, "/v1/task/"+ARCHIVE2) // it's an archive...
+		Ω(res.Code).Should(Equal(404))
+	})
+
 	It("can cancel tasks", func() {
 		res := GET(API, "/v1/tasks?status=running")
 		Ω(res.Code).Should(Equal(200))
@@ -157,7 +179,6 @@ var _ = Describe("/v1/tasks API", func() {
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/tasks/sub/requests", nil)
 			NotImplemented(API, method, "/v1/task/sub/requests", nil)
-			NotImplemented(API, method, "/v1/task/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 

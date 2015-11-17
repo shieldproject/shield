@@ -250,6 +250,29 @@ var _ = Describe("/v1/archives API", func() {
 			]`))
 	})
 
+	It("can retrieve a single archive by UUID", func() {
+		res := GET(API, "/v1/archive/"+REDIS_ARCHIVE_1)
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`{
+				"uuid"            : "` + REDIS_ARCHIVE_1 + `",
+				"notes"           : "Good Redis Backup",
+				"key"             : "redis-archive-1-key",
+				"taken_at"        : "2015-04-23 14:35:22",
+				"expires_at"      : "2015-04-25 14:35:22",
+				"store_uuid"      : "` + STORE_S3 + `",
+				"store_plugin"    : "s3",
+				"store_endpoint"  : "<<s3-configuration>>",
+				"target_uuid"     : "` + TARGET_REDIS + `",
+				"target_plugin"   : "redis",
+				"target_endpoint" : "<<redis-configuration>>"
+			}`))
+	})
+
+	It("returns a 404 for unknown UUIDs", func() {
+		res := GET(API, "/v1/archive/"+TARGET_REDIS) // it's a target...
+		Ω(res.Code).Should(Equal(404))
+	})
+
 	It("cannot create new archives", func() {
 		res := POST(API, "/v1/archives", WithJSON(`{}`))
 		Ω(res.Code).Should(Equal(415))
@@ -342,7 +365,6 @@ var _ = Describe("/v1/archives API", func() {
 		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/archives/sub/requests", nil)
 			NotImplemented(API, method, "/v1/archive/sub/requests", nil)
-			NotImplemented(API, method, "/v1/archive/5981f34c-ef58-4e3b-a91e-428480c68100", nil)
 		}
 	})
 

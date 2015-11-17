@@ -81,6 +81,32 @@ func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, err
 	return l, nil
 }
 
+func (db *DB) GetAnnotatedStore(id uuid.UUID) (*AnnotatedStore, error) {
+	r, err := db.Query(`
+		SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint
+			FROM stores s
+				LEFT JOIN jobs j
+					ON j.store_uuid = s.uuid
+			WHERE s.uuid = ?
+	`, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, nil
+	}
+
+	ann := &AnnotatedStore{}
+
+	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+		return nil, err
+	}
+
+	return ann, nil
+}
+
 func (db *DB) AnnotateStore(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
 		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`,

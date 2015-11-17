@@ -66,6 +66,28 @@ func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSche
 	return l, nil
 }
 
+func (db *DB) GetAnnotatedSchedule(id uuid.UUID) (*AnnotatedSchedule, error) {
+	r, err := db.Query(`
+		SELECT uuid, name, summary, timespec
+			FROM schedules WHERE uuid = ?`, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, nil
+	}
+
+	ann := &AnnotatedSchedule{}
+
+	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
+		return nil, err
+	}
+
+	return ann, nil
+}
+
 func (db *DB) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
 		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`,

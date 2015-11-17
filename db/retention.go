@@ -66,6 +66,26 @@ func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 	return l, nil
 }
 
+func (db *DB) GetAnnotatedRetentionPolicy(id uuid.UUID) (*AnnotatedRetentionPolicy, error) {
+	r, err := db.Query(`
+		SELECT uuid, name, summary, expiry
+			FROM retention WHERE uuid = ?`, id.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, nil
+	}
+	ann := &AnnotatedRetentionPolicy{}
+	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
+		return nil, err
+	}
+
+	return ann, nil
+}
+
 func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
 		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`,

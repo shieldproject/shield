@@ -29,6 +29,24 @@ func (self TaskAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSON(w, tasks)
 		return
 
+	case match(req, `GET /v1/task/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile(`^/v1/task/([a-fA-F0-9-]+)`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		task, err := self.Data.GetAnnotatedTask(id)
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		if task == nil {
+			w.WriteHeader(404)
+			return
+		}
+
+		JSON(w, task)
+		return
+
 	case match(req, `DELETE /v1/task/[a-fA-F0-9-]+`):
 		// cancel
 		re := regexp.MustCompile(`^/v1/task/([a-fA-F0-9-]+)`)

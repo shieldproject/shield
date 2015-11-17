@@ -134,6 +134,24 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		JSONLiteral(w, `{"ok":"scheduled"}`)
 		return
 
+	case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
+		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)`)
+		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+
+		job, err := self.Data.GetAnnotatedJob(id)
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		if job == nil {
+			w.WriteHeader(404)
+			return
+		}
+
+		JSON(w, job)
+		return
+
 	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
 		if req.Body == nil {
 			w.WriteHeader(400)

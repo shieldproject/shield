@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"github.com/pborman/uuid"
 	"strings"
 	"time"
@@ -104,22 +103,21 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 	r, err := db.Query(`
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
-		       t.plugin, t.endpoint,
-		       s.plugin, s.endpoint
+		       t.uuid, t.plugin, t.endpoint,
+		       s.uuid, s.plugin, s.endpoint
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
 			INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
-		WHERE a.uuid == ?
-	`, id.String())
+		WHERE a.uuid == ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
 
 	if !r.Next() {
-		return nil, fmt.Errorf("archive not found")
+		return nil, nil
 	}
 	ann := &AnnotatedArchive{}
 

@@ -84,7 +84,7 @@ func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, 
 
 func (db *DB) GetAnnotatedTarget(id uuid.UUID) (*AnnotatedTarget, error) {
 	r, err := db.Query(`
-		SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint
+		SELECT t.uuid, t.name, t.summary, t.plugin, t.endpoint, t.agent
 			FROM targets t
 				LEFT JOIN jobs j
 					ON j.target_uuid = t.uuid
@@ -96,12 +96,12 @@ func (db *DB) GetAnnotatedTarget(id uuid.UUID) (*AnnotatedTarget, error) {
 	defer r.Close()
 
 	if !r.Next() {
-		return nil, fmt.Errorf("target not found")
+		return nil, nil
 	}
 
 	ann := &AnnotatedTarget{}
 
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent); err != nil {
 		return nil, err
 	}
 
