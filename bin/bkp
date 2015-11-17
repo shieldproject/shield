@@ -718,6 +718,11 @@ while (( "$#" )); do
 		esac
 		;;
 
+	(ping)
+		need_target
+		GET /v1/ping
+		exit $?
+
 	(*)
 		fail "unrecognized command '${1}'"
 		usage
