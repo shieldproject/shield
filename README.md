@@ -1063,8 +1063,8 @@ $ bkp edit job $UUID
 $ bkp delete job $UUID
 
 # archives
-$ bkp list archives [--[un]paused] [--target $UUID] [--store $UUID]
-                    [--after $TIMESPEC] [--before $TIMESPEC]
+$ bkp list archives [--target $UUID] [--store $UUID]
+                    [--after YYYYMMDD] [--before YYYYMMDD]
 $ bkp show archive $UUID
 $ bkp edit archive $UUID
 $ bkp delete archive $UUID
