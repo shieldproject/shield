@@ -209,6 +209,7 @@ Purpose: allows the Web UI and CLI to find out what schedules are defined, and p
 | GET | /v1/schedules | ?unused=[tf] | - |
 | POST | /v1/schedules | - | see below |
 | DELETE | /v1/schedule/:uuid | - | - |
+| GET | /v1/schedule/:uuid | - | - |
 | PUT | /v1/schedule/:uuid | - | see below |
 
 #### GET /v1/schedules
@@ -303,6 +304,7 @@ Purpose: allows the Web UI and CLI to find out what retention policies are defin
 | GET | /v1/retention | ?unused=[tf] | - |
 | POST | /v1/retention | - | see below |
 | DELETE | /v1/retention/:uuid | - | - |
+| GET | /v1/retention/:uuid | - | - |
 | PUT | /v1/retention/:uuid | - | see below |
 
 #### GET /v1/retention
@@ -395,6 +397,7 @@ Purpose: allows the Web UI and CLI to review what targets have been defined, and
 | GET | /v1/targets | ?plugin=:name <br> ?unused=[tf] | - |
 | POST | /v1/targets | - | see below |
 | DELETE | /v1/target/:uuid | - | - |
+| GET | /v1/target/:uuid | - | - |
 | PUT | /v1/target/:uuid | - | see below |
 
 #### GET /v1/targets
@@ -497,6 +500,7 @@ Purpose: allows operators (via the Web UI and CLI components) to view what stora
 | GET | /v1/stores | ?plugin=:name <br>?unused=[tf] | - |
 | POST | /v1/stores | - | see below |
 | DELETE | /v1/store/:uuid | - | - |
+| GET | /v1/store/:uuid | - | - |
 | PUT | /v1/store/:uuid | - | see below |
 
 #### GET /v1/stores
@@ -593,6 +597,7 @@ Purpose: allows end-users and operators to see what jobs have been configured, a
 | GET | /v1/jobs | ?target=:uuid<br>?store=:uuid<br>?schedule=:uuid<br>?retention=:uuid<br>?paused=[tf] | - |
 | POST | /v1/jobs | - | see below |
 | DELETE | /v1/job/:uuid | - | - |
+| GET | /v1/job/:uuid | - | - |
 | PUT | /v1/job/:uuid | - | see below |
 | POST | /v1/job/:uuid/pause | - | - |
 | POST | /v1/job/:uuid/unpause | - | - |
@@ -749,9 +754,9 @@ Note: the PUT /v1/archive/:uuid endpoint is only able to update the annotations 
 | Method | Path | Arguments | Request Body |
 | :----- | :---- | :------- | :----------- |
 | GET | /v1/archives | ?target=:uuid <br>?store=:uuid <br>?after=YYYYMMDD <br>?before=YYYYMMDD | - |
-| GET | /v1/archive/:uuid | - | - |
 | POST | /v1/archive/:uuid/restore | { target: $target_uuid } | see below |
 | DELETE | /v1/archive/:uuid | - | - |
+| GET | /v1/archive/:uuid | - | - |
 | PUT | /v1/archive/:uuid | - | see below |
 
 #### GET /v1/archives
@@ -844,6 +849,7 @@ Purpose: allows the Web UI and the CLI to show running tasks, query a specific t
 | Method | Path | Arguments | Request Body |
 | :----- | :---- | :------- | :----------- |
 | GET | /v1/tasks | ?status=:status <br>?debug | - |
+| GET | | /v1/task/:uuid | - | - |
 | DELETE | /v1/task/:uuid | - | - |
 
 #### GET /v1/tasks
@@ -1072,6 +1078,6 @@ $ bkp restore archive $UUID [--to $TARGET_UUID]
 
 # task management
 $ bkp list tasks [--all]
-$ bkp show task $UUID [--debug]
+$ bkp show task $UUID
 $ bkp cancel task $UUID
 ```
