@@ -42,7 +42,7 @@ report:
 
 fixmes: fixme
 fixme:
-	@grep -rn FIXME * | grep -v Godeps/ | grep --color FIXME || echo "No FIXMES!  YAY!"
+	@grep -rn FIXME * | grep -v Godeps/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
 # Deferred: Looping through plugins instead of listing them
