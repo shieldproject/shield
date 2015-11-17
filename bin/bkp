@@ -20,7 +20,46 @@ fail() {
 	echo >&2 $*
 }
 usage() {
-  echo >&2 "USAGE: $0 <command> <options>"
+  cat >&2 <<EOF
+USAGE: $0 <global options> <command> <options>
+
+Global Options:
+
+  -t, --target ...   What Shield API endpoint to target.
+      --shield ...   (specified as http://host:port)
+
+  -r, --raw      Turn off jq pretty-printing / colorizer mode
+  -v, --verbose  Turn on HTTP debugging of API requests (via curl -v)
+
+
+Commands:
+  list schedules [--[un]used]
+  list stores    [--[un]used]
+  list targets   [--[un]used]
+  list jobs      [--[un]paused] [--store UUID] [--target UUID]
+                 [--schedule UUID] [--retention-policy UUID]
+  list archives  [--store UUID] [--target UUID]
+                 [--before YYYYMMDD] [--after YYYYMMDD]
+  list retention policies [--[un]used]
+
+  create <type>
+  show   <type> UUID
+  edit   <type> UUID
+  delete <type> UUID
+
+  restore archive UUID
+
+  pause   job UUID
+  unpause job UUID
+  run     job UUID
+
+  cancel task UUID
+
+  ping
+  key
+  help
+
+EOF
 }
 
 need() {
@@ -31,7 +70,7 @@ need() {
 }
 
 need_target() {
-	need "--target option" ${shield_target}
+	need "--shield http://address.of.your.shield:8080 option" ${SHIELD_TARGET}
 }
 
 tempfile() {
@@ -50,7 +89,7 @@ editor() {
 
 GET() {
 	url=${1}
-	curl -Ls ${curl_opts} -X GET ${shield_target}${url} | jq ${jq_opts} .
+	curl -Ls ${curl_opts} -X GET ${SHIELD_TARGET}${url} | jq ${jq_opts} .
 }
 
 POST() {
@@ -58,9 +97,9 @@ POST() {
 	file=${2}
 
 	if [[ -z ${file} ]]; then
-		curl -Ls ${curl_opts} -X POST ${shield_target}${url} | jq ${jq_opts} .
+		curl -Ls ${curl_opts} -X POST ${SHIELD_TARGET}${url} | jq ${jq_opts} .
 	else
-		curl -Ls ${curl_opts} -X POST ${shield_target}${url} \
+		curl -Ls ${curl_opts} -X POST ${SHIELD_TARGET}${url} \
 		             --data-binary "$(cat ${file} | yaml2json)" | jq ${jq_opts} .
 	fi
 }
@@ -70,16 +109,16 @@ PUT() {
 	file=${2}
 
 	if [[ -z ${file} ]]; then
-		curl -Ls ${curl_opts} -X PUT ${shield_target}${url} | jq ${jq_opts} .
+		curl -Ls ${curl_opts} -X PUT ${SHIELD_TARGET}${url} | jq ${jq_opts} .
 	else
-		curl -Ls ${curl_opts} -X PUT ${shield_target}${url} \
+		curl -Ls ${curl_opts} -X PUT ${SHIELD_TARGET}${url} \
 		         --data-binary "$(cat ${file} | yaml2json)" | jq ${jq_opts} .
 	fi
 }
 
 DELETE() {
 	url=${1}
-	curl -Ls ${curl_opts} -X DELETE ${shield_target}${url} | jq ${jq_opts} .
+	curl -Ls ${curl_opts} -X DELETE ${SHIELD_TARGET}${url} | jq ${jq_opts} .
 }
 
 list_schedules() {
@@ -372,7 +411,7 @@ list_archives() {
 		(--target)  shift;  q+=( "target=$1" ) ; shift ;;
 		(--store)   shift;  q+=( "store=$1"  ) ; shift ;;
 		(--before)  shift;  q+=( "before=$1" ) ; shift ;;
-		(--after)   shift;  q+=( "adter=$1"  ) ; shift ;;
+		(--after)   shift;  q+=( "after=$1"  ) ; shift ;;
 		(*) shift ;;
 		esac
 	done
@@ -507,16 +546,15 @@ done
 
 ##############################################################################
 
-shield_target=${SHIELD_CORE}
-
 while (( "$#" )); do
 	case ${1} in
-	(-h|--help)
+	(-h|--help|help)
 		usage
 		exit 0
 		;;
 
-	(-t|--target)  shift ; shield_target=${1} ; shift ;;
+	(-t|--target)  shift ; SHIELD_TARGET=${1} ; shift ;;
+	(--shield)     shift ; SHIELD_TARGET=${1} ; shift ;;
 	(-r|--raw)     shift ; jq_opts="-r"               ;;
 	(-v|--verbose) shift ; curl_opts="-v"             ;;
 
@@ -726,7 +764,7 @@ while (( "$#" )); do
 
 	(key)
 		need_target
-		curl -Ls ${curl_opts} -X GET ${shield_target}/v1/meta/pubkey
+		curl -Ls ${curl_opts} -X GET ${SHIELD_TARGET}/v1/meta/pubkey
 		exit $?
 		;;
 
