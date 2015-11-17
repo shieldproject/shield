@@ -294,6 +294,11 @@ func (s *Supervisor) SpawnAPI() {
 		ping := &PingAPI{}
 		http.Handle("/v1/ping", ping)
 
+		meta := &MetaAPI{
+			PrivateKeyFile: s.PrivateKeyFile,
+		}
+		http.Handle("/v1/meta/", meta)
+
 		jobs := &JobAPI{
 			Data:       db,
 			ResyncChan: s.resync,

@@ -722,6 +722,13 @@ while (( "$#" )); do
 		need_target
 		GET /v1/ping
 		exit $?
+		;;
+
+	(key)
+		need_target
+		curl -Ls ${curl_opts} -X GET ${shield_target}/v1/meta/pubkey
+		exit $?
+		;;
 
 	(*)
 		fail "unrecognized command '${1}'"
