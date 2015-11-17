@@ -6,4 +6,3 @@ Large Tasks / Features
 
 Small Tasks / Fixes / Enhancement
  - Only resync supervisor for *material* db changes, not all db changes
- - Passing restoration key during restore operations
