@@ -998,10 +998,13 @@ regardless of the actual schedule.  This is to assist developers.
 
 The Makefile is used to assist with development. The available targets are:
 * `test` | `tests` : runs all the tests with no additional parameters
+ * `coverage` : runs tests with coverage information
+ * `report` : makes report in (temporary) HTML page for a particular package, e.g. `db`. See examples.
 * `race` : runs `ginkgo -race *` to test for race conditions
 * `plugin` | `plugins` : builds all the plugin binaries
 * `shield` : builds the `shieldd` and `shield-schema` binaries
 * `all-the-things` : runs all the tests (except the race test) and builds all the binaries.
+* `fixme` | `fixmes` : finds all FIXMEs in the project
 
 `all-the-things` is also the default behavior, so running `make` with no targets is the same as `make all-the-things`.
 
@@ -1010,18 +1013,23 @@ Examples:
 ```
 $ make shield
 go build ./cmd/shieldd
+go build ./cmd/shield-agent
 go build ./cmd/shield-schema
 
 $ make tests
 ginkgo *
-[1447388660] HTTP REST API Test Suite - 69/69 specs ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 84.112022ms PASS
-[1447388660] Database Layer Test Suite - 19/19 specs ••••••••••••••••••• SUCCESS! 12.447835ms PASS
-[1447388660] Plugin Framework Test Suite - 45/45 specs ••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 22.374368ms PASS
-[1447388660] Supervisor Test Suite - 14/14 specs •••••••••••••• SUCCESS! 3.922723257s PASS
-[1447388660] Timespec Test Suite - 34/34 specs •••••••••••••••••••••••••••••••••• SUCCESS! 21.766349ms PASS
+[1447777189] Agent Test Suite - 39/39 specs •••••••••••••••••••••••••••••••••••••• SUCCESS! 354.651397ms PASS
+[1447777189] Database Layer Test Suite - 21/21 specs ••••••••••••••••••••• SUCCESS! 2.115501107s PASS
+[1447777189] Plugin Framework Test Suite - 45/45 specs ••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 19.791121ms PASS
+[1447777189] Supervisor Test Suite - 121/121 specs ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 135.689325ms PASS
+[1447777189] Timespec Test Suite - 34/34 specs •••••••••••••••••••••••••••••••••• SUCCESS! 20.880477ms PASS
 
-Ginkgo ran 5 suites in 6.900078754s
+Ginkgo ran 5 suites in 5.373477117s
 Test Suite Passed
+go vet ./...
+
+$ make report FOR=db
+go tool cover -html=coverage/db.cov
 ```
 
 ## CLI Usage Examples
