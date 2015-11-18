@@ -30,7 +30,7 @@ func (f *StoreFilter) Args() []interface{} {
 func (f *StoreFilter) Query() string {
 	where := ""
 	if f.ForPlugin != "" {
-		where = "WHERE plugin = ?"
+		where = "WHERE plugin = $1"
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
@@ -87,8 +87,7 @@ func (db *DB) GetAnnotatedStore(id uuid.UUID) (*AnnotatedStore, error) {
 			FROM stores s
 				LEFT JOIN jobs j
 					ON j.store_uuid = s.uuid
-			WHERE s.uuid = ?
-	`, id.String())
+			WHERE s.uuid = $1`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +108,7 @@ func (db *DB) GetAnnotatedStore(id uuid.UUID) (*AnnotatedStore, error) {
 
 func (db *DB) AnnotateStore(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`,
+		`UPDATE stores SET name = $1, summary = $2 WHERE uuid = $3`,
 		name, summary, id.String(),
 	)
 }
@@ -117,21 +116,21 @@ func (db *DB) AnnotateStore(id uuid.UUID, name string, summary string) error {
 func (db *DB) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
+		`INSERT INTO stores (uuid, plugin, endpoint) VALUES ($1, $2, $3)`,
 		id.String(), plugin, endpoint,
 	)
 }
 
 func (db *DB) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error {
 	return db.Exec(
-		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`,
+		`UPDATE stores SET plugin = $1, endpoint = $2 WHERE uuid = $3`,
 		plugin, endpoint, id.String(),
 	)
 }
 
 func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = $1`,
 		id.String(),
 	)
 	if err != nil {
@@ -139,7 +138,7 @@ func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 	}
 	defer r.Close()
 
-	// already deleted?
+	// already deleted
 	if !r.Next() {
 		return true, nil
 	}
@@ -158,7 +157,7 @@ func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM stores WHERE uuid = ?`,
+		`DELETE FROM stores WHERE uuid = $1`,
 		id.String(),
 	)
 }

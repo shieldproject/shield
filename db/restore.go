@@ -11,7 +11,7 @@ func (db *DB) GetRestoreTaskDetails(archive, target uuid.UUID, storePlugin, stor
 	r, err := db.Query(`
 		SELECT s.plugin, s.endpoint, a.store_key
 			FROM stores s INNER JOIN archives a  ON s.uuid = a.store_uuid
-		WHERE a.uuid = ?
+		WHERE a.uuid = $1
 	`, archive.String())
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (db *DB) GetRestoreTaskDetails(archive, target uuid.UUID, storePlugin, stor
 	r, err = db.Query(`
 		SELECT t.plugin, t.endpoint, t.agent
 			FROM targets t
-		WHERE t.uuid == ?
+		WHERE t.uuid == $1
 	`, target.String())
 	if err != nil {
 		return err

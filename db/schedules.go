@@ -69,7 +69,7 @@ func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSche
 func (db *DB) GetAnnotatedSchedule(id uuid.UUID) (*AnnotatedSchedule, error) {
 	r, err := db.Query(`
 		SELECT uuid, name, summary, timespec
-			FROM schedules WHERE uuid = ?`, id.String())
+			FROM schedules WHERE uuid = $1`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (db *DB) GetAnnotatedSchedule(id uuid.UUID) (*AnnotatedSchedule, error) {
 
 func (db *DB) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`,
+		`UPDATE schedules SET name = $1, summary = $2 WHERE uuid = $3`,
 		name, summary, id.String(),
 	)
 }
@@ -98,21 +98,21 @@ func (db *DB) AnnotateSchedule(id uuid.UUID, name string, summary string) error 
 func (db *DB) CreateSchedule(timespec string) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`,
+		`INSERT INTO schedules (uuid, timespec) VALUES ($1, $2)`,
 		id.String(), timespec,
 	)
 }
 
 func (db *DB) UpdateSchedule(id uuid.UUID, timespec string) error {
 	return db.Exec(
-		`UPDATE schedules SET timespec = ? WHERE uuid = ?`,
+		`UPDATE schedules SET timespec = $1 WHERE uuid = $2`,
 		timespec, id.String(),
 	)
 }
 
 func (db *DB) DeleteSchedule(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = $1`,
 		id.String(),
 	)
 	if err != nil {
@@ -120,7 +120,7 @@ func (db *DB) DeleteSchedule(id uuid.UUID) (bool, error) {
 	}
 	defer r.Close()
 
-	// already deleted?
+	// already deleted
 	if !r.Next() {
 		return true, nil
 	}
@@ -139,7 +139,7 @@ func (db *DB) DeleteSchedule(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM schedules WHERE uuid = ?`,
+		`DELETE FROM schedules WHERE uuid = $1`,
 		id.String(),
 	)
 }

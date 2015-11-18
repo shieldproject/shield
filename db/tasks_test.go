@@ -53,13 +53,13 @@ var _ = Describe("Task Management", func() {
 		Ω(id).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, id.String())
-		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
-		shouldExist(`SELECT * FROM tasks WHERE op = ?`, "backup")
-		shouldExist(`SELECT * FROM tasks WHERE job_uuid = ?`, JOB_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
+		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
+		shouldExist(`SELECT * FROM tasks WHERE op = $1`, "backup")
+		shouldExist(`SELECT * FROM tasks WHERE job_uuid = $1`, JOB_UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE target_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE status = ?`, "pending")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "pending")
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
@@ -71,13 +71,13 @@ var _ = Describe("Task Management", func() {
 		Ω(id).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, id.String())
-		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
-		shouldExist(`SELECT * FROM tasks WHERE op = ?`, "restore")
-		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = ?`, ARCHIVE_UUID.String())
-		shouldExist(`SELECT * FROM tasks WHERE target_uuid = ?`, TARGET_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
+		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
+		shouldExist(`SELECT * FROM tasks WHERE op = $1`, "restore")
+		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, ARCHIVE_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE target_uuid = $1`, TARGET_UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE status = ?`, "pending")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "pending")
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
@@ -91,7 +91,7 @@ var _ = Describe("Task Management", func() {
 		Ω(db.StartTask(id, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE status = ?`, "running")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "running")
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
 	})
@@ -105,7 +105,7 @@ var _ = Describe("Task Management", func() {
 		Ω(db.CancelTask(id, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE status = ?`, "canceled")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "canceled")
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NOT NULL`)
 	})
@@ -119,7 +119,7 @@ var _ = Describe("Task Management", func() {
 		Ω(db.CompleteTask(id, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE status = ?`, "done")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "done")
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NOT NULL`)
 	})
@@ -130,19 +130,19 @@ var _ = Describe("Task Management", func() {
 		Ω(id).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE log = ?`, "")
+		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "")
 
 		Ω(db.UpdateTaskLog(id, "line 1\n")).Should(Succeed())
-		shouldExist(`SELECT * FROM tasks WHERE log = ?`, "line 1\n")
+		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n")
 
 		Ω(db.UpdateTaskLog(id, "\n")).Should(Succeed())
-		shouldExist(`SELECT * FROM tasks WHERE log = ?`, "line 1\n\n")
+		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n\n")
 
 		Ω(db.UpdateTaskLog(id, "line ")).Should(Succeed())
-		shouldExist(`SELECT * FROM tasks WHERE log = ?`, "line 1\n\nline ")
+		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n\nline ")
 
 		Ω(db.UpdateTaskLog(id, "2\n")).Should(Succeed())
-		shouldExist(`SELECT * FROM tasks WHERE log = ?`, "line 1\n\nline 2\n")
+		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n\nline 2\n")
 	})
 
 	It("Can associate archives with the task", func() {
@@ -158,9 +158,9 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NOT NULL`)
 
 		shouldExist(`SELECT * FROM archives`)
-		shouldExist(`SELECT * FROM archives WHERE target_uuid = ?`, TARGET_UUID.String())
-		shouldExist(`SELECT * FROM archives WHERE store_uuid = ?`, STORE_UUID.String())
-		shouldExist(`SELECT * FROM archives WHERE store_key = ?`, "SOME-KEY")
+		shouldExist(`SELECT * FROM archives WHERE target_uuid = $1`, TARGET_UUID.String())
+		shouldExist(`SELECT * FROM archives WHERE store_uuid = $1`, STORE_UUID.String())
+		shouldExist(`SELECT * FROM archives WHERE store_key = $1`, "SOME-KEY")
 		shouldExist(`SELECT * FROM archives WHERE taken_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM archives WHERE expires_at IS NOT NULL`)
 	})

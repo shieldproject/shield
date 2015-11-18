@@ -31,7 +31,7 @@ func (f *TargetFilter) Args() []interface{} {
 func (f *TargetFilter) Query() string {
 	where := ""
 	if f.ForPlugin != "" {
-		where = "WHERE plugin = ?"
+		where = "WHERE plugin = $1"
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
@@ -88,8 +88,7 @@ func (db *DB) GetAnnotatedTarget(id uuid.UUID) (*AnnotatedTarget, error) {
 			FROM targets t
 				LEFT JOIN jobs j
 					ON j.target_uuid = t.uuid
-			WHERE t.uuid = ?
-	`, id.String())
+			WHERE t.uuid = $1`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +109,7 @@ func (db *DB) GetAnnotatedTarget(id uuid.UUID) (*AnnotatedTarget, error) {
 
 func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`,
+		`UPDATE targets SET name = $1, summary = $2 WHERE uuid = $3`,
 		name, summary, id.String(),
 	)
 }
@@ -119,21 +118,21 @@ func (db *DB) CreateTarget(plugin string, endpoint interface{}, agent string) (u
 	id := uuid.NewRandom()
 
 	return id, db.Exec(
-		`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES ($1, $2, $3, $4)`,
 		id.String(), plugin, endpoint, agent,
 	)
 }
 
 func (db *DB) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}, agent string) error {
 	return db.Exec(
-		`UPDATE targets SET plugin = ?, endpoint = ?, agent = ? WHERE uuid = ?`,
+		`UPDATE targets SET plugin = $1, endpoint = $2, agent = $3 WHERE uuid = $4`,
 		plugin, endpoint, agent, id.String(),
 	)
 }
 
 func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = $1`,
 		id.String(),
 	)
 	if err != nil {
@@ -141,7 +140,7 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 	}
 	defer r.Close()
 
-	// already deleted?
+	// already deleted
 	if !r.Next() {
 		return true, nil
 	}
@@ -160,7 +159,7 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM targets WHERE uuid = ?`,
+		`DELETE FROM targets WHERE uuid = $1`,
 		id.String(),
 	)
 }

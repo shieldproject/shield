@@ -35,7 +35,7 @@ func (f *TaskFilter) Args() []interface{} {
 func (f *TaskFilter) Query() string {
 	wheres := []string{"1"}
 	if f.ForStatus != "" {
-		wheres = append(wheres, "status = ?")
+		wheres = append(wheres, "status = $1")
 	}
 	return `
 		SELECT t.uuid, t.owner, t.op, j.uuid, a.uuid,
@@ -93,7 +93,7 @@ func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
 			INNER JOIN jobs     j    ON j.uuid = t.job_uuid
 			LEFT  JOIN archives a    ON a.uuid = t.archive_uuid
 
-		WHERE t.uuid = ?`, id.String())
+		WHERE t.uuid = $1`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log, requested_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		id.String(), owner, "backup", job.String(), "pending", "", time.Now(),
 	)
 }
@@ -136,21 +136,21 @@ func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.U
 	id := uuid.NewRandom()
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log, requested_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
 		id.String(), owner, "restore", archive.String(), target.String(), "pending", "", time.Now(),
 	)
 }
 
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	return db.Exec(
-		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
+		`UPDATE tasks SET status = $1, started_at = $2 WHERE uuid = $3`,
 		"running", effective, id.String(),
 	)
 }
 
 func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective time.Time) error {
 	return db.Exec(
-		`UPDATE tasks SET status = ?, stopped_at = ? WHERE uuid = ?`,
+		`UPDATE tasks SET status = $1, stopped_at = $2 WHERE uuid = $3`,
 		status, effective, id.String(),
 	)
 }
@@ -168,7 +168,7 @@ func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	return db.Exec(
-		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
+		`UPDATE tasks SET log = log || $1 WHERE uuid = $2`,
 		more, id.String(),
 	)
 }
@@ -180,7 +180,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 			FROM retention r
 				INNER JOIN jobs  j    ON r.uuid = j.retention_uuid
 				INNER JOIN tasks t    ON j.uuid = t.job_uuid
-			WHERE t.uuid = ?`,
+			WHERE t.uuid = $1`,
 		id.String(),
 	)
 	if err != nil {
@@ -203,12 +203,12 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 	err = db.Exec(
 		`INSERT INTO archives
 			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes)
-			SELECT ?, t.uuid, s.uuid, ?, ?, ?, ""
+			SELECT $1, t.uuid, s.uuid, $2, $3, $4, ""
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
-				WHERE tasks.uuid = ?`,
+				WHERE tasks.uuid = $5`,
 		archive_id.String(), key, effective, effective.Add(time.Duration(expiry)*time.Second), id.String(),
 	)
 	if err != nil {
@@ -217,7 +217,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 
 	// and finally, associate task -> archive
 	return db.Exec(
-		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
+		`UPDATE tasks SET archive_uuid = $1 WHERE uuid = $2`,
 		archive_id.String(), id.String(),
 	)
 }

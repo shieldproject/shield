@@ -1,9 +1,11 @@
 package db
 
 import (
-	"github.com/pborman/uuid"
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/pborman/uuid"
 )
 
 type AnnotatedArchive struct {
@@ -30,17 +32,22 @@ type ArchiveFilter struct {
 
 func (f *ArchiveFilter) Query() string {
 	var wheres []string = []string{"1"}
+	n := 1
 	if f.ForTarget != "" {
-		wheres = append(wheres, "target_uuid = ?")
+		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
+		n++
 	}
 	if f.ForStore != "" {
-		wheres = append(wheres, "store_uuid = ?")
+		wheres = append(wheres, fmt.Sprintf("store_uuid = $%d", n))
+		n++
 	}
 	if f.Before != nil {
-		wheres = append(wheres, "taken_at <= ?")
+		wheres = append(wheres, fmt.Sprintf("taken_at <= $%d", n))
+		n++
 	}
 	if f.After != nil {
-		wheres = append(wheres, "taken_at >= ?")
+		wheres = append(wheres, fmt.Sprintf("taken_at >= $%d", n))
+		n++
 	}
 	return `
 		SELECT a.uuid, a.store_key,
@@ -110,7 +117,7 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
 			INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
-		WHERE a.uuid == ?`, id.String())
+		WHERE a.uuid == $1`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -134,14 +141,14 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 
 func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
 	return db.Exec(
-		`UPDATE archives SET notes = ? WHERE uuid = ?`,
+		`UPDATE archives SET notes = $1 WHERE uuid = $2`,
 		notes, id.String(),
 	)
 }
 
 func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
 	return true, db.Exec(
-		`DELETE FROM archives WHERE uuid = ?`,
+		`DELETE FROM archives WHERE uuid = $1`,
 		id.String(),
 	)
 }

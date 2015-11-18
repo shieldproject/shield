@@ -69,7 +69,7 @@ func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 func (db *DB) GetAnnotatedRetentionPolicy(id uuid.UUID) (*AnnotatedRetentionPolicy, error) {
 	r, err := db.Query(`
 		SELECT uuid, name, summary, expiry
-			FROM retention WHERE uuid = ?`, id.String())
+			FROM retention WHERE uuid = $1`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (db *DB) GetAnnotatedRetentionPolicy(id uuid.UUID) (*AnnotatedRetentionPoli
 
 func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`,
+		`UPDATE retention SET name = $1, summary = $2 WHERE uuid = $3`,
 		name, summary, id.String(),
 	)
 }
@@ -96,21 +96,21 @@ func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string)
 func (db *DB) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`,
+		`INSERT INTO retention (uuid, expiry) VALUES ($1, $2)`,
 		id.String(), expiry,
 	)
 }
 
 func (db *DB) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
 	return db.Exec(
-		`UPDATE retention SET expiry = ? WHERE uuid = ?`,
+		`UPDATE retention SET expiry = $1 WHERE uuid = $2`,
 		expiry, id.String(),
 	)
 }
 
 func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = $1`,
 		id.String(),
 	)
 	if err != nil {
@@ -118,7 +118,7 @@ func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 	}
 	defer r.Close()
 
-	// already deleted?
+	// already deleted
 	if !r.Next() {
 		return true, nil
 	}
@@ -137,7 +137,7 @@ func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM retention WHERE uuid = ?`,
+		`DELETE FROM retention WHERE uuid = $1`,
 		id.String(),
 	)
 }
