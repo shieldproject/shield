@@ -168,7 +168,7 @@ show_schedule() {
 delete_schedule() {
 	need_target
 	need "schedule UUID" $1
-	DELETE /v1/schedules/$1
+	DELETE /v1/schedule/$1
 	exit $?
 }
 
@@ -231,7 +231,7 @@ EOF
 delete_store() {
 	need_target
 	need "store UUID" $1
-	DELETE /v1/stores/$1
+	DELETE /v1/store/$1
 	exit $?
 }
 
@@ -295,7 +295,7 @@ EOF
 delete_target() {
 	need_target
 	need "target UUID" $1
-	DELETE /v1/targets/$1
+	DELETE /v1/target/$1
 	exit $?
 }
 
@@ -399,7 +399,7 @@ EOF
 delete_job() {
 	need_target
 	need "job UUID" $1
-	DELETE /v1/jobs/$1
+	DELETE /v1/job/$1
 	exit $?
 }
 
@@ -451,14 +451,14 @@ show_archive() {
 restore_archive() {
 	need_target
 	need "archive UUID" $1
-	POST /v1/archives/${1}/restore
+	POST /v1/archive/${1}/restore
 	exit $?
 }
 
 delete_archive() {
 	need_target
 	need "archive UUID" $1
-	DELETE /v1/archives/$1
+	DELETE /v1/archive/$1
 	exit $?
 }
 
@@ -496,7 +496,7 @@ show_task() {
 cancel_task() {
 	need_target
 	need "task UUID" $1
-	DELETE /v1/tasks/$1
+	DELETE /v1/task/$1
 	exit $?
 }
 
