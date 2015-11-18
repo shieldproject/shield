@@ -795,7 +795,13 @@ while (( "$#" )); do
 		;;
 
 	(*)
-		fail "unrecognized command '${1}'"
+		cmd=$1 ; shift
+		if [[ -n "$(command -v bkp-$cmd)" ]]; then
+			exec bkp-$cmd "$@"
+			exit 42
+		fi
+
+		fail "unrecognized command '${cmd}'"
 		usage
 		exit 1
 		;;
