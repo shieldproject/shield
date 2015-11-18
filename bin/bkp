@@ -80,10 +80,22 @@ tempfile() {
 }
 
 editor() {
-	${EDITOR} ${1}
-	if [[ $? != 0 ]]; then
-		echo "editor exited abnormally; skipping create operation."
-		exit 3
+	file=$1
+	if [[ -t 0 ]]; then
+		if [[ -z ${EDITOR} ]]; then
+			EDITOR=vi
+		elif [[ "$(command -v ${EDITOR})" == "" ]]; then
+			echo "EDITOR not set, or set to an invalid value ('${EDITOR}')"
+			exit 1
+		fi
+
+		${EDITOR} ${file}
+		if [[ $? != 0 ]]; then
+			echo "editor exited abnormally; skipping create operation."
+			exit 3
+		fi
+	else
+		cat >${file}
 	fi
 }
 
