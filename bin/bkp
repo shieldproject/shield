@@ -403,7 +403,7 @@ delete_job() {
 	exit $?
 }
 
-create_job() {
+update_job() {
 	need_target
 	need "job UUID" $1
 	file=$(tempfile)
@@ -545,7 +545,7 @@ delete_retention() {
 	exit $?
 }
 
-create_retention() {
+update_retention() {
 	need_target
 	need "retention policy UUID" $1
 	file=$(tempfile)
