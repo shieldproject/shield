@@ -6,18 +6,14 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
-func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
+func FetchRetentionPoliciesList(unused string) (*[]db.AnnotatedRetentionPolicy, error) {
 
 	// Data to be returned of proper type
-	data := &[]db.AnnotatedTarget{}
+	data := &[]db.AnnotatedRetentionPolicy{}
 
 	// Make uri based on options
-	uri := fmt.Sprintf("v1/targets")
+	uri := fmt.Sprintf("v1/retention")
 	joiner := "?"
-	if plugin != "" {
-		uri = fmt.Sprintf("%s%splugin=%s", uri, joiner, plugin)
-		joiner = "&"
-	}
 	if unused != "" {
 		uri = fmt.Sprintf("%s%sunused=%s", uri, joiner, unused)
 		joiner = "&"
@@ -28,20 +24,20 @@ func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
 	return data, err
 }
 
-func GetTarget(uuid string) (*db.AnnotatedTarget, error) {
+func GetRetentionPolicy(uuid string) (*db.AnnotatedRetentionPolicy, error) {
 
 	// Data to be returned of proper type
-	data := &db.AnnotatedTarget{}
+	data := &db.AnnotatedRetentionPolicy{}
 
 	// Make uri based on options
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/retention/%s", uuid)
 
 	// Call generic API request
 	err := makeApiCall(data, `GET`, uri, nil)
 	return data, err
 }
 
-func CreateTarget(content string) (*db.AnnotatedTarget, error) {
+func CreateRetentionPolicy(content string) (*db.AnnotatedRetentionPolicy, error) {
 
 	data := struct {
 		Status string `json:"ok"`
@@ -50,15 +46,15 @@ func CreateTarget(content string) (*db.AnnotatedTarget, error) {
 
 	buf := bytes.NewBufferString(content)
 
-	err := makeApiCall(&data, `POST`, `v1/targets`, buf)
+	err := makeApiCall(&data, `POST`, `v1/retention`, buf)
 
 	if err == nil {
-		return GetTarget(data.UUID)
+		return GetRetentionPolicy(data.UUID)
 	}
 	return nil, err
 }
 
-func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
+func UpdateRetentionPolicy(uuid string, content string) (*db.AnnotatedRetentionPolicy, error) {
 
 	data := struct {
 		Status string `json:"ok"`
@@ -66,19 +62,19 @@ func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
 
 	buf := bytes.NewBufferString(content)
 
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/retention/%s", uuid)
 
 	err := makeApiCall(&data, `PUT`, uri, buf)
 
 	if err == nil {
-		return GetTarget(uuid)
+		return GetRetentionPolicy(uuid)
 	}
 	return nil, err
 }
 
-func DeleteTarget(uuid string) error {
+func DeleteRetentionPolicy(uuid string) error {
 
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/retention/%s", uuid)
 
 	data := struct {
 		Status string `json:"ok"`

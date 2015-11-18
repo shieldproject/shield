@@ -6,18 +6,14 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
-func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
+func FetchListSchedules(unused string) (*[]db.AnnotatedSchedule, error) {
 
 	// Data to be returned of proper type
-	data := &[]db.AnnotatedTarget{}
+	data := &[]db.AnnotatedSchedule{}
 
 	// Make uri based on options
-	uri := fmt.Sprintf("v1/targets")
+	uri := fmt.Sprintf("v1/schedules")
 	joiner := "?"
-	if plugin != "" {
-		uri = fmt.Sprintf("%s%splugin=%s", uri, joiner, plugin)
-		joiner = "&"
-	}
 	if unused != "" {
 		uri = fmt.Sprintf("%s%sunused=%s", uri, joiner, unused)
 		joiner = "&"
@@ -28,20 +24,20 @@ func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
 	return data, err
 }
 
-func GetTarget(uuid string) (*db.AnnotatedTarget, error) {
+func GetSchedule(uuid string) (*db.AnnotatedSchedule, error) {
 
 	// Data to be returned of proper type
-	data := &db.AnnotatedTarget{}
+	data := &db.AnnotatedSchedule{}
 
 	// Make uri based on options
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/schedule/%s", uuid)
 
 	// Call generic API request
 	err := makeApiCall(data, `GET`, uri, nil)
 	return data, err
 }
 
-func CreateTarget(content string) (*db.AnnotatedTarget, error) {
+func CreateSchedule(content string) (*db.AnnotatedSchedule, error) {
 
 	data := struct {
 		Status string `json:"ok"`
@@ -50,15 +46,15 @@ func CreateTarget(content string) (*db.AnnotatedTarget, error) {
 
 	buf := bytes.NewBufferString(content)
 
-	err := makeApiCall(&data, `POST`, `v1/targets`, buf)
+	err := makeApiCall(&data, `POST`, `v1/schedules`, buf)
 
 	if err == nil {
-		return GetTarget(data.UUID)
+		return GetSchedule(data.UUID)
 	}
 	return nil, err
 }
 
-func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
+func UpdateSchedule(uuid string, content string) (*db.AnnotatedSchedule, error) {
 
 	data := struct {
 		Status string `json:"ok"`
@@ -66,19 +62,19 @@ func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
 
 	buf := bytes.NewBufferString(content)
 
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/schedule/%s", uuid)
 
 	err := makeApiCall(&data, `PUT`, uri, buf)
 
 	if err == nil {
-		return GetTarget(uuid)
+		return GetSchedule(uuid)
 	}
 	return nil, err
 }
 
-func DeleteTarget(uuid string) error {
+func DeleteSchedule(uuid string) error {
 
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/schedule/%s", uuid)
 
 	data := struct {
 		Status string `json:"ok"`

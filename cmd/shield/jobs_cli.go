@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/spf13/cobra"
-	//"github.com/spf13/viper"
+	"github.com/starkandwayne/shield/api_agent"
+	"os"
 )
 
 var (
@@ -12,62 +15,65 @@ var (
 	listJobCmd = &cobra.Command{
 		Use:   "jobs",
 		Short: "Lists all the jobs",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 
 	showJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Shows information about the specified job",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 
 	deleteJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Deletes the specified job",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 
 	pauseJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Pauses the specified job",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 
 	unpauseJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Unpauses the specified job",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 
 	pausedJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Returns \"true\" with exit code 0 if specified job is paused, \"false\"/1 otherwise",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 
 	runJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Runs the specified job",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 
 	editJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Edit the specified job",
-		Long:  "This is a Long Jaun (TBD)",
 	}
 )
 
 func init() {
-	listJobCmd.Run = debug
-	showJobCmd.Run = debug
-	deleteJobCmd.Run = debug
-	pauseJobCmd.Run = debug
-	unpauseJobCmd.Run = debug
-	pausedJobCmd.Run = debug
-	runJobCmd.Run = debug
-	editJobCmd.Run = debug
 
+	// Set options for the subcommands
+	listJobCmd.Flags().Bool("paused", false, "Show only paused jobs")
+	listJobCmd.Flags().Bool("unpaused", false, "Show only unpaused jobs")
+	listJobCmd.Flags().String("store", "", "Filter by store UUID")
+	listJobCmd.Flags().String("target", "", "Filter by store UUID")
+	listJobCmd.Flags().String("schedule", "", "Filter by schedule UUID")
+	listJobCmd.Flags().String("retention", "", "Filter by retention policy UUID")
+
+	// Hookup functions to the subcommands
+	listJobCmd.Run = processListJobsRequest
+	showJobCmd.Run = processShowJobRequest
+	deleteJobCmd.Run = processDeleteJobRequest
+	pauseJobCmd.Run = processPauseJobRequest
+	unpauseJobCmd.Run = processUnpauseJobRequest
+	pausedJobCmd.Run = processPausedJobRequest
+	runJobCmd.Run = processRunJobRequest
+	editJobCmd.Run = processEditJobRequest
+
+	// Add the subcommands to the base actions
 	listCmd.AddCommand(listJobCmd)
 	showCmd.AddCommand(showJobCmd)
 	deleteCmd.AddCommand(deleteJobCmd)
@@ -76,4 +82,238 @@ func init() {
 	pausedCmd.AddCommand(pausedJobCmd)
 	runCmd.AddCommand(runJobCmd)
 	editCmd.AddCommand(editJobCmd)
+}
+
+func processListJobsRequest(cmd *cobra.Command, args []string) {
+
+	// Validate Request
+	pausedFilter := parseTristateOptions(cmd, "paused", "unpaused")
+	storeUUID, _ := cmd.Flags().GetString("store")
+	targetUUID, _ := cmd.Flags().GetString("target")
+	scheduleUUID, _ := cmd.Flags().GetString("schedule")
+	retentionUUID, _ := cmd.Flags().GetString("retention")
+
+	if len(args) > 0 {
+		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	// Fetch
+	data, err := api_agent.FetchListJobs(targetUUID, storeUUID, scheduleUUID, retentionUUID, pausedFilter)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of jobs:\n", err)
+	}
+
+	// Print
+	output, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of jobs:\n", err)
+	}
+
+	fmt.Println(string(output[:]))
+
+	return
+}
+
+func processShowJobRequest(cmd *cobra.Command, args []string) {
+
+	if len(args) != 1 {
+		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n")
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	//FIXME validate args is a valid UUID
+	requested_UUID := args[0]
+
+	// Fetch
+	data, err := api_agent.GetJob(requested_UUID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not show job:\n", err)
+		os.Exit(1)
+	}
+
+	// Print
+	output, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not render job:\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(output[:]))
+
+	return
+}
+
+func processEditJobRequest(cmd *cobra.Command, args []string) {
+
+	if len(args) != 1 {
+		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	//FIXME validate args is a valid UUID
+	requested_UUID := args[0]
+
+	// Fetch
+	original_data, err := api_agent.GetJob(requested_UUID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not show job:\n", err)
+		os.Exit(1)
+	}
+
+	data, err := json.MarshalIndent(original_data, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not render job:\n", err)
+	}
+
+	fmt.Println("Got the following original job:\n\n", string(data))
+
+	// Invoke editor
+	content := invokeEditor(string(data))
+
+	fmt.Println("Got the following edited job:\n\n", content)
+
+	// Fetch
+	update_data, err := api_agent.UpdateJob(requested_UUID, content)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not update jobs:\n", err)
+		os.Exit(1)
+	}
+	// Print
+	output, err := json.MarshalIndent(update_data, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not render job:\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(output[:]))
+
+	return
+}
+
+func processDeleteJobRequest(cmd *cobra.Command, args []string) {
+
+	if len(args) != 1 {
+		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	//FIXME validate args is a valid UUID
+	requested_UUID := args[0]
+
+	// Fetch
+	err := api_agent.DeleteJob(requested_UUID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete job:\n", err)
+		os.Exit(1)
+	}
+
+	// Print
+	fmt.Println(requested_UUID, "deleted")
+
+	return
+}
+
+func processRunJobRequest(cmd *cobra.Command, args []string) {
+
+	if len(args) != 1 {
+		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	//FIXME validate args is a valid UUID
+	requested_UUID := args[0]
+
+	// FIXME when owner can be passed in or otherwise fetched
+	content := "{\"owner\":\"anon\"}"
+
+	// Fetch
+	err := api_agent.RunJob(requested_UUID, content)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not run job:\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(requested_UUID, "scheduled")
+
+	return
+}
+
+func processPauseJobRequest(cmd *cobra.Command, args []string) {
+
+	if len(args) != 1 {
+		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	//FIXME validate args is a valid UUID
+	requested_UUID := args[0]
+
+	// Fetch
+	err := api_agent.PauseJob(requested_UUID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not pause job:\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(requested_UUID, "pause")
+
+	return
+}
+
+func processUnpauseJobRequest(cmd *cobra.Command, args []string) {
+
+	if len(args) != 1 {
+		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	//FIXME validate args is a valid UUID
+	requested_UUID := args[0]
+
+	// Fetch
+	err := api_agent.UnpauseJob(requested_UUID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not run jobs:\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(requested_UUID, "unpaused")
+
+	return
+}
+
+func processPausedJobRequest(cmd *cobra.Command, args []string) {
+
+	if len(args) != 1 {
+		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	//FIXME validate args is a valid UUID
+	requested_UUID := args[0]
+
+	// Fetch
+	paused, err := api_agent.IsPausedJob(requested_UUID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not pause job:\n", err)
+		os.Exit(1)
+	}
+
+	if paused == true {
+		fmt.Println("Job", requested_UUID, "is paused")
+		os.Exit(0)
+	} else {
+		fmt.Println("Job", requested_UUID, "is not paused")
+		os.Exit(1)
+	}
+	return
 }

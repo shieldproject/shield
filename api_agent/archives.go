@@ -6,13 +6,13 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
-func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
+func FetchListArchives(plugin, unused string) (*[]db.AnnotatedArchive, error) {
 
 	// Data to be returned of proper type
-	data := &[]db.AnnotatedTarget{}
+	data := &[]db.AnnotatedArchive{}
 
 	// Make uri based on options
-	uri := fmt.Sprintf("v1/targets")
+	uri := fmt.Sprintf("v1/archives")
 	joiner := "?"
 	if plugin != "" {
 		uri = fmt.Sprintf("%s%splugin=%s", uri, joiner, plugin)
@@ -28,37 +28,35 @@ func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
 	return data, err
 }
 
-func GetTarget(uuid string) (*db.AnnotatedTarget, error) {
+func GetArchive(uuid string) (*db.AnnotatedArchive, error) {
 
 	// Data to be returned of proper type
-	data := &db.AnnotatedTarget{}
+	data := &db.AnnotatedArchive{}
 
 	// Make uri based on options
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/archive/%s", uuid)
 
 	// Call generic API request
 	err := makeApiCall(data, `GET`, uri, nil)
 	return data, err
 }
 
-func CreateTarget(content string) (*db.AnnotatedTarget, error) {
+func RestoreArchive(uuid, target string) error {
 
 	data := struct {
 		Status string `json:"ok"`
-		UUID   string `json:"uuid"`
 	}{}
 
-	buf := bytes.NewBufferString(content)
+	buf := bytes.NewBufferString(target)
 
-	err := makeApiCall(&data, `POST`, `v1/targets`, buf)
+	uri := fmt.Sprintf("v1/archive/%s/restore", uuid)
 
-	if err == nil {
-		return GetTarget(data.UUID)
-	}
-	return nil, err
+	err := makeApiCall(&data, `POST`, uri, buf)
+
+	return err
 }
 
-func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
+func UpdateArchive(uuid string, content string) (*db.AnnotatedArchive, error) {
 
 	data := struct {
 		Status string `json:"ok"`
@@ -66,19 +64,19 @@ func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
 
 	buf := bytes.NewBufferString(content)
 
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/archive/%s", uuid)
 
 	err := makeApiCall(&data, `PUT`, uri, buf)
 
 	if err == nil {
-		return GetTarget(uuid)
+		return GetArchive(uuid)
 	}
 	return nil, err
 }
 
-func DeleteTarget(uuid string) error {
+func DeleteArchive(uuid string) error {
 
-	uri := fmt.Sprintf("v1/target/%s", uuid)
+	uri := fmt.Sprintf("v1/archive/%s", uuid)
 
 	data := struct {
 		Status string `json:"ok"`
