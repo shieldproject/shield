@@ -92,6 +92,15 @@ GET() {
 	curl -Ls ${curl_opts} -X GET ${SHIELD_TARGET}${url} | jq ${jq_opts} .
 }
 
+evalGET() {
+	url=${1}
+	prefix=${2}
+
+	eval $(curl -Lvs ${SHIELD_TARGET}${url} | \
+		jq -rM 'to_entries | map("'$prefix'_\(.key)=\"\(.value)\"") | .[]' | \
+		grep "^${prefix}_.*=")
+}
+
 POST() {
 	url=${1}
 	file=${2}
@@ -167,12 +176,15 @@ update_schedule() {
 	need_target
 	need "schedule UUID" $1
 	file=$(tempfile)
-	cat >${file} <<EOF
+	(
+		evalGET /v1/schedule/$1 schedule
+		cat >${file} <<EOF
 # Edit your schedule details below
-name: Name Your Schedule
-summary: My New Schedule
-when: daily at 4am
+name:    ${schedule_name}
+summary: ${schedule_summary}
+when:    ${schedule_when}
 EOF
+	)
 	editor ${file}
 	PUT /v1/schedule/$1 ${file}
 	exit $?
@@ -227,12 +239,15 @@ update_store() {
 	need_target
 	need "store UUID" $1
 	file=$(tempfile)
-	cat >${file} <<EOF
-name: Store Name
-summary: a short description
-plugin: plugin-name
-endpoint: endpoint-config
+	(
+		evalGET /v1/store/$1 store
+		cat >${file} <<EOF
+name:     ${store_name}
+summary:  ${store_summary}
+plugin:   ${store_plugin}
+endpoint: ${store_endpoint}
 EOF
+	)
 	editor ${file}
 	PUT /v1/store/$1 ${file}
 	exit $?
@@ -288,13 +303,16 @@ update_target() {
 	need_target
 	need "target UUID" $1
 	file=$(tempfile)
-	cat >${file} <<EOF
-name:     Target Name
-summary:  a short description
-plugin:   plugin-name
-endpoint: endpoint-config
-agent:    host:ip
+	(
+		evalGET /v1/target/$1 target
+		cat >${file} <<EOF
+name:     ${target_name}
+summary:  ${target_summary}
+plugin:   ${target_plugin}
+endpoint: ${target_endpoint}
+agent:    ${target_agent}
 EOF
+	)
 	editor ${file}
 	PUT /v1/target/$1 ${file}
 	exit $?
@@ -444,9 +462,13 @@ update_archive() {
 	need_target
 	need "archive UUID" $1
 	file=$(tempfile)
-	cat >${file} <<EOF
-notes: | your notes here
+	(
+		evalGET /v1/archive/$1 archive
+		cat >${file} <<EOF
+notes: |
+${archive_notes}
 EOF
+	)
 	editor ${file}
 	PUT /v1/archive/$1 ${file}
 	exit $?
@@ -555,7 +577,7 @@ while (( "$#" )); do
 
 	(-t|--target)  shift ; SHIELD_TARGET=${1} ; shift ;;
 	(--shield)     shift ; SHIELD_TARGET=${1} ; shift ;;
-	(-r|--raw)     shift ; jq_opts="-r"               ;;
+	(-r|--raw)     shift ; jq_opts="-rM"              ;;
 	(-v|--verbose) shift ; curl_opts="-v"             ;;
 
 	(curl)
