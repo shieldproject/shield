@@ -117,7 +117,7 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
 			INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
-		WHERE a.uuid == $1`, id.String())
+		WHERE a.uuid = $1`, id.String())
 	if err != nil {
 		return nil, err
 	}

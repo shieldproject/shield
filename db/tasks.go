@@ -33,7 +33,7 @@ func (f *TaskFilter) Args() []interface{} {
 }
 
 func (f *TaskFilter) Query() string {
-	wheres := []string{"t.uuid == t.uuid"}
+	wheres := []string{"t.uuid = t.uuid"}
 	if f.ForStatus != "" {
 		wheres = append(wheres, "status = $1")
 	}
