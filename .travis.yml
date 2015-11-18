@@ -18,3 +18,5 @@ notifications:
     on_failure:
     - jhunt@starkandwayne.com
     - qanx@starkandwayne.com
+    - krutten@starkandwayne.com
+    - dbell@starkandwayne.com
