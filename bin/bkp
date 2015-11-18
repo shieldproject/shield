@@ -96,7 +96,7 @@ evalGET() {
 	url=${1}
 	prefix=${2}
 
-	eval $(curl -Lvs ${SHIELD_TARGET}${url} | \
+	eval $(curl -Ls ${SHIELD_TARGET}${url} | \
 		jq -rM 'to_entries | map("'$prefix'_\(.key)=\"\(.value)\"") | .[]' | \
 		grep "^${prefix}_.*=")
 }
@@ -362,8 +362,12 @@ unpause_job() {
 
 is_job_paused() {
 	need_target
-	echo "NOT IMPLEMENTED"
-	exit 6
+	need "job UUID" $1
+	evalGET /v1/job/$1 job
+	if [[ ${job_paused} == "true" ]]; then
+		exit 0
+	fi
+	exit 1
 }
 
 run_job() {
