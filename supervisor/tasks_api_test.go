@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/starkandwayne/shield/supervisor"
 	"net/http"
+	"time"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
@@ -28,6 +29,15 @@ var _ = Describe("/v1/tasks API", func() {
 	JOB3 := `5f04aef7-69cc-40e1-9736-4b3ee4caef50`
 
 	BeforeEach(func() {
+
+		unixtime := func (t string) string {
+			utc, err := time.LoadLocation("UTC")
+			Ω(err).ShouldNot(HaveOccurred())
+			tempt, err := time.ParseInLocation("2006-01-02 15:04:05", t, utc)
+			Ω(err).ShouldNot(HaveOccurred())
+			return fmt.Sprintf("%d",tempt.Unix())
+		}
+
 		data, err := Database(
 			// need a job
 			`INSERT INTO jobs (uuid) VALUES ("`+JOB1+`")`,
@@ -42,7 +52,7 @@ var _ = Describe("/v1/tasks API", func() {
 				status, started_at, log)
 				VALUES (
 					"`+TASK1+`", "system", "backup", "`+JOB1+`",
-					"running", "2015-04-15 06:00:01", "this is the log"
+					"running", ` + unixtime("2015-04-15 06:00:01") + `, "this is the log"
 				)`,
 
 			// need a completed task
@@ -50,7 +60,7 @@ var _ = Describe("/v1/tasks API", func() {
 				status, started_at, stopped_at, log)
 				VALUES (
 					"`+TASK2+`", "joe", "restore", "`+JOB2+`", "`+ARCHIVE2+`",
-					"done", "2015-04-10 17:35:01", "2015-04-10 18:19:45", "restore complete"
+					"done", ` + unixtime("2015-04-10 17:35:01") + `, ` + unixtime("2015-04-10 18:19:45") + `, "restore complete"
 				)`,
 
 			// need a canceled task
@@ -58,7 +68,7 @@ var _ = Describe("/v1/tasks API", func() {
 				status, started_at, stopped_at, log)
 				VALUES (
 					"`+TASK3+`", "joe", "backup", "`+JOB3+`",
-					"canceled", "2015-04-18 19:12:05", "2015-04-18 19:13:55", "cancel!"
+					"canceled", ` + unixtime("2015-04-18 19:12:05") + `, ` + unixtime("2015-04-18 19:13:55") + `, "cancel!"
 				)`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())

@@ -11,8 +11,8 @@ import (
 type AnnotatedArchive struct {
 	UUID      string `json:"uuid"`
 	StoreKey  string `json:"key"`
-	TakenAt   string `json:"taken_at"`
-	ExpiresAt string `json:"expires_at"`
+	TakenAt   Timestamp `json:"taken_at"`
+	ExpiresAt Timestamp `json:"expires_at"`
 	Notes     string `json:"notes"`
 
 	TargetUUID     string `json:"target_uuid"`
@@ -73,10 +73,10 @@ func (f *ArchiveFilter) Args() []interface{} {
 		args = append(args, f.ForStore)
 	}
 	if f.Before != nil {
-		args = append(args, f.Before)
+		args = append(args, f.Before.Unix())
 	}
 	if f.After != nil {
-		args = append(args, f.After)
+		args = append(args, f.After.Unix())
 	}
 	return args
 }
@@ -92,12 +92,21 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 	for r.Next() {
 		ann := &AnnotatedArchive{}
 
+		var takenAt, expiresAt *int64
 		if err = r.Scan(
-			&ann.UUID, &ann.StoreKey, &ann.TakenAt, &ann.ExpiresAt, &ann.Notes,
+			&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 			&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint); err != nil {
 
 			return l, err
+		}
+
+		if takenAt != nil {
+			ann.TakenAt = Timestamp(time.Unix(*takenAt, 0).UTC())
+		}
+
+		if expiresAt != nil {
+			ann.ExpiresAt = Timestamp(time.Unix(*expiresAt, 0).UTC())
 		}
 
 		l = append(l, ann)
@@ -128,12 +137,21 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 	}
 	ann := &AnnotatedArchive{}
 
+	var takenAt, expiresAt *int64
 	if err = r.Scan(
-		&ann.UUID, &ann.StoreKey, &ann.TakenAt, &ann.ExpiresAt, &ann.Notes,
+		&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 		&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint); err != nil {
 
 		return nil, err
+	}
+
+	if takenAt != nil {
+		ann.TakenAt = Timestamp(time.Unix(*takenAt, 0).UTC())
+	}
+
+	if expiresAt != nil {
+		ann.ExpiresAt = Timestamp(time.Unix(*expiresAt, 0).UTC())
 	}
 
 	return ann, nil

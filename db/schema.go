@@ -123,8 +123,8 @@ func (db *DB) v1schema() error {
                store_uuid   UUID,
                store_key    TEXT,
 
-               taken_at     timestamp without time zone,
-               expires_at   timestamp without time zone,
+               taken_at     INTEGER,
+               expires_at   INTEGER,
                notes        TEXT DEFAULT ''
              )`)
 
@@ -138,9 +138,9 @@ func (db *DB) v1schema() error {
                target_uuid   UUID,
 
                status       TEXT,
-               requested_at timestamp without time zone,
-               started_at   timestamp without time zone,
-               stopped_at   timestamp without time zone,
+               requested_at INTEGER,
+               started_at   INTEGER,
+               stopped_at   INTEGER,
 
                log       TEXT,
                debug     TEXT

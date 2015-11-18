@@ -15,8 +15,8 @@ type AnnotatedTask struct {
 	JobUUID     string `json:"job_uuid"`
 	ArchiveUUID string `json:"archive_uuid"`
 	Status      string `json:"status"`
-	StartedAt   string `json:"started_at"`
-	StoppedAt   string `json:"stopped_at"`
+	StartedAt   Timestamp `json:"started_at"`
+	StoppedAt   Timestamp `json:"stopped_at"`
 	Log         string `json:"log"`
 }
 
@@ -61,7 +61,8 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 	for r.Next() {
 		ann := &AnnotatedTask{}
 
-		var archive, started, stopped []byte
+		var archive []byte
+		var started, stopped *int64
 		if err = r.Scan(
 			&ann.UUID, &ann.Owner, &ann.Op, &ann.JobUUID, &archive,
 			&ann.Status, &started, &stopped, &ann.Log); err != nil {
@@ -72,10 +73,10 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 			ann.ArchiveUUID = string(archive)
 		}
 		if started != nil {
-			ann.StartedAt = string(started)
+			ann.StartedAt = Timestamp(time.Unix(*started, 0).UTC())
 		}
 		if stopped != nil {
-			ann.StoppedAt = string(stopped)
+			ann.StoppedAt = Timestamp(time.Unix(*stopped, 0).UTC())
 		}
 
 		l = append(l, ann)
@@ -104,7 +105,8 @@ func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
 	}
 
 	ann := &AnnotatedTask{}
-	var archive, started, stopped []byte
+	var archive []byte
+	var started, stopped *int64
 	if err = r.Scan(
 		&ann.UUID, &ann.Owner, &ann.Op, &ann.JobUUID, &archive,
 		&ann.Status, &started, &stopped, &ann.Log); err != nil {
@@ -114,10 +116,10 @@ func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
 		ann.ArchiveUUID = string(archive)
 	}
 	if started != nil {
-		ann.StartedAt = string(started)
+		ann.StartedAt = Timestamp(time.Unix(*started, 0).UTC())
 	}
 	if stopped != nil {
-		ann.StoppedAt = string(stopped)
+		ann.StoppedAt = Timestamp(time.Unix(*stopped, 0).UTC())
 	}
 
 	return ann, nil
@@ -128,7 +130,7 @@ func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		id.String(), owner, "backup", job.String(), "pending", "", time.Now(),
+		id.String(), owner, "backup", job.String(), "pending", "", time.Now().Unix(),
 	)
 }
 
@@ -137,33 +139,33 @@ func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.U
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, "restore", archive.String(), target.String(), "pending", "", time.Now(),
+		id.String(), owner, "restore", archive.String(), target.String(), "pending", "", time.Now().Unix(),
 	)
 }
 
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	return db.Exec(
 		`UPDATE tasks SET status = $1, started_at = $2 WHERE uuid = $3`,
-		"running", effective, id.String(),
+		"running", effective.Unix(), id.String(),
 	)
 }
 
-func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective time.Time) error {
+func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64) error {
 	return db.Exec(
 		`UPDATE tasks SET status = $1, stopped_at = $2 WHERE uuid = $3`,
 		status, effective, id.String(),
 	)
 }
 func (db *DB) CancelTask(id uuid.UUID, effective time.Time) error {
-	return db.updateTaskStatus(id, "canceled", effective)
+	return db.updateTaskStatus(id, "canceled", effective.Unix())
 }
 
 func (db *DB) FailTask(id uuid.UUID, effective time.Time) error {
-	return db.updateTaskStatus(id, "failed", effective)
+	return db.updateTaskStatus(id, "failed", effective.Unix())
 }
 
 func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
-	return db.updateTaskStatus(id, "done", effective)
+	return db.updateTaskStatus(id, "done", effective.Unix())
 }
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
@@ -209,7 +211,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = $5`,
-		archive_id.String(), key, effective, effective.Add(time.Duration(expiry)*time.Second), id.String(),
+		archive_id.String(), key, effective.Unix(), effective.Add(time.Duration(expiry)*time.Second).Unix(), id.String(),
 	)
 	if err != nil {
 		return err
