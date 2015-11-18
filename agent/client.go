@@ -19,7 +19,7 @@ func NewClient(config *ssh.ClientConfig) *Client {
 }
 
 func (c *Client) Dial(endpoint string) error {
-	conn, err := ssh.Dial("tcp", endpoint, c.config)
+	conn, err := ssh.Dial("tcp4", endpoint, c.config)
 	if err != nil {
 		return err
 	}

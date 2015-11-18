@@ -56,7 +56,7 @@ func (agent *Agent) ReadConfig(path string) error {
 	}
 	agent.config = server
 
-	listener, err := net.Listen("tcp", config.ListenAddress)
+	listener, err := net.Listen("tcp4", config.ListenAddress)
 	if err != nil {
 		fmt.Printf("failed to bind %s: %s", config.ListenAddress, err)
 		return err
