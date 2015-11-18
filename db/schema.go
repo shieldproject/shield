@@ -111,7 +111,7 @@ func (db *DB) v1schema() error {
                store_uuid      UUID,
                schedule_uuid   UUID,
                retention_uuid  UUID,
-               priority        INTGER DEFAULT 50,
+               priority        INTEGER DEFAULT 50,
                paused          BOOLEAN,
                name            TEXT,
                summary         TEXT
