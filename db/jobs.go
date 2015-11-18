@@ -60,7 +60,7 @@ func (f *JobFilter) Args() []interface{} {
 }
 
 func (f *JobFilter) Query() string {
-	var wheres []string = []string{"1"}
+	var wheres []string = []string{"j.uuid = j.uuid"}
 	n := 1
 	if f.ForTarget != "" {
 		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))

@@ -31,7 +31,7 @@ type ArchiveFilter struct {
 }
 
 func (f *ArchiveFilter) Query() string {
-	var wheres []string = []string{"1"}
+	var wheres []string = []string{"a.uuid = a.uuid"}
 	n := 1
 	if f.ForTarget != "" {
 		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
