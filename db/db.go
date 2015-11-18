@@ -18,6 +18,10 @@ func (t Timestamp) MarshalJSON() ([]byte, error)  {
 	return []byte(stamp), nil
 }
 
+func parseEpochTime(et int64) Timestamp {
+	return Timestamp(time.Unix(et,0).UTC())
+}
+
 type DB struct {
 	connection *sql.DB
 	Driver     string

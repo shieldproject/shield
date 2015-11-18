@@ -102,11 +102,11 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 		}
 
 		if takenAt != nil {
-			ann.TakenAt = Timestamp(time.Unix(*takenAt, 0).UTC())
+			ann.TakenAt = parseEpochTime(*takenAt)
 		}
 
 		if expiresAt != nil {
-			ann.ExpiresAt = Timestamp(time.Unix(*expiresAt, 0).UTC())
+			ann.ExpiresAt = parseEpochTime(*expiresAt)
 		}
 
 		l = append(l, ann)
@@ -147,11 +147,11 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 	}
 
 	if takenAt != nil {
-		ann.TakenAt = Timestamp(time.Unix(*takenAt, 0).UTC())
+		ann.TakenAt = parseEpochTime(*takenAt)
 	}
 
 	if expiresAt != nil {
-		ann.ExpiresAt = Timestamp(time.Unix(*expiresAt, 0).UTC())
+		ann.ExpiresAt = parseEpochTime(*expiresAt)
 	}
 
 	return ann, nil

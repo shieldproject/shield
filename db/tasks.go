@@ -73,10 +73,10 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 			ann.ArchiveUUID = string(archive)
 		}
 		if started != nil {
-			ann.StartedAt = Timestamp(time.Unix(*started, 0).UTC())
+			ann.StartedAt = parseEpochTime(*started)
 		}
 		if stopped != nil {
-			ann.StoppedAt = Timestamp(time.Unix(*stopped, 0).UTC())
+			ann.StoppedAt = parseEpochTime(*stopped)
 		}
 
 		l = append(l, ann)
@@ -116,10 +116,10 @@ func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
 		ann.ArchiveUUID = string(archive)
 	}
 	if started != nil {
-		ann.StartedAt = Timestamp(time.Unix(*started, 0).UTC())
+		ann.StartedAt = parseEpochTime(*started)
 	}
 	if stopped != nil {
-		ann.StoppedAt = Timestamp(time.Unix(*stopped, 0).UTC())
+		ann.StoppedAt = parseEpochTime(*stopped)
 	}
 
 	return ann, nil
