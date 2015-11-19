@@ -18,8 +18,10 @@ type AnnotatedJob struct {
 	ScheduleUUID   string `json:"schedule_uuid"`
 	Schedule       string `json:"schedule"`
 	Paused         bool   `json:"paused"`
+	StoreUUID      string `json:"store_uuid"`
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
+	TargetUUID     string `json:"target_uuid"`
 	TargetPlugin   string `json:"target_plugin"`
 	TargetEndpoint string `json:"target_endpoint"`
 	Agent          string `json:"agent"`
@@ -87,8 +89,8 @@ func (f *JobFilter) Query() string {
 		SELECT j.uuid, j.name, j.summary, j.paused,
 		       r.name, r.uuid, r.expiry,
 		       sc.name, sc.uuid, sc.timespec,
-		       s.plugin, s.endpoint,
-		       t.plugin, t.endpoint, t.agent
+		       s.uuid, s.plugin, s.endpoint,
+		       t.uuid, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
@@ -116,8 +118,9 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 			&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
 			&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
 			&ann.ScheduleName, &ann.ScheduleUUID, &ann.Schedule,
-			&ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.TargetPlugin, &ann.TargetEndpoint, &ann.Agent); err != nil {
+			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+			&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&ann.Agent); err != nil {
 			return l, err
 		}
 
@@ -132,8 +135,8 @@ func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
 		SELECT j.uuid, j.name, j.summary, j.paused,
 		       r.name, r.uuid, r.expiry,
 		       sc.name, sc.uuid, sc.timespec,
-		       s.plugin, s.endpoint,
-		       t.plugin, t.endpoint, t.agent
+		       s.uuid, s.plugin, s.endpoint,
+		       t.uuid, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
@@ -157,8 +160,9 @@ func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
 		&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
 		&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
 		&ann.ScheduleName, &ann.ScheduleUUID, &ann.Schedule,
-		&ann.StorePlugin, &ann.StoreEndpoint,
-		&ann.TargetPlugin, &ann.TargetEndpoint, &ann.Agent); err != nil {
+		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+		&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&ann.Agent); err != nil {
 		return nil, err
 	}
 
