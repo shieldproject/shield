@@ -40,9 +40,17 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		client := agent.NewClient(config)
 
 		remote := t.Agent
+		if remote == "" {
+			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
+				Output: fmt.Sprintf("TASK FAILED!!  no remote agent specified for task %s\n", t.UUID)}
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
+			continue
+		}
+
 		err = client.Dial(remote)
 		if err != nil {
-			fmt.Printf("worker %d unable to connect to %s: %s; ignoring this task.\n", id, remote, err)
+			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
+				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d unable to connect to %s (%s)\n", id, remote, err)}
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 			continue
 		}
@@ -84,7 +92,8 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			t.TargetPlugin, t.TargetEndpoint,
 			t.StorePlugin, t.StoreEndpoint))
 		if err != nil {
-			fmt.Printf("worker %d (on %s): run failed: %s\n", id, remote, err)
+			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
+				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d failed to execute the command against the remote agent %s (%s)\n", id, remote, err)}
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 		}
 
@@ -101,7 +110,8 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			err := dec.Decode(&v)
 
 			if err != nil {
-				fmt.Printf("worker %d (on %s): %s\n", id, remote, err)
+				updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
+					Output: fmt.Sprintf("WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, remote, err)}
 
 			} else {
 				updates <- WorkerUpdate{
