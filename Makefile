@@ -46,3 +46,5 @@ fixme:
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
 # Deferred: Looping through plugins instead of listing them
+
+.PHONY: shield
