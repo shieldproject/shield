@@ -78,39 +78,39 @@ func (db *DB) v1schema() error {
                uuid      UUID PRIMARY KEY,
                name      TEXT,
                summary   TEXT,
-               plugin    TEXT,
-               endpoint  TEXT,
-               agent     TEXT
+               plugin    TEXT NOT NULL,
+               endpoint  TEXT NOT NULL,
+               agent     TEXT NOT NULL
              )`)
 
 	db.Exec(`CREATE TABLE stores (
                uuid      UUID PRIMARY KEY,
                name      TEXT,
                summary   TEXT,
-               plugin    TEXT,
-               endpoint  TEXT
+               plugin    TEXT NOT NULL,
+               endpoint  TEXT NOT NULL
              )`)
 
 	db.Exec(`CREATE TABLE schedules (
                uuid      UUID PRIMARY KEY,
                name      TEXT,
                summary   TEXT,
-               timespec  TEXT
+               timespec  TEXT NOT NULL
              )`)
 
 	db.Exec(`CREATE TABLE retention (
                uuid     UUID PRIMARY KEY,
                name     TEXT,
                summary  TEXT,
-               expiry   INTEGER
+               expiry   INTEGER NOT NULL
              )`)
 
 	db.Exec(`CREATE TABLE jobs (
                uuid            UUID PRIMARY KEY,
-               target_uuid     UUID,
-               store_uuid      UUID,
-               schedule_uuid   UUID,
-               retention_uuid  UUID,
+               target_uuid     UUID NOT NULL,
+               store_uuid      UUID NOT NULL,
+               schedule_uuid   UUID NOT NULL,
+               retention_uuid  UUID NOT NULL,
                priority        INTEGER DEFAULT 50,
                paused          BOOLEAN,
                name            TEXT,
@@ -119,31 +119,30 @@ func (db *DB) v1schema() error {
 
 	db.Exec(`CREATE TABLE archives (
                uuid         UUID PRIMARY KEY,
-               target_uuid  UUID,
-               store_uuid   UUID,
-               store_key    TEXT,
+               target_uuid  UUID NOT NULL,
+               store_uuid   UUID NOT NULL,
+               store_key    TEXT NOT NULL,
 
-               taken_at     INTEGER,
-               expires_at   INTEGER,
+               taken_at     INTEGER NOT NULL,
+               expires_at   INTEGER NOT NULL,
                notes        TEXT DEFAULT ''
              )`)
 
 	db.Exec(`CREATE TABLE tasks (
                uuid      UUID PRIMARY KEY,
                owner     TEXT,
-               op        TEXT,
+               op        TEXT NOT NULL,
 
                job_uuid      UUID,
                archive_uuid  UUID,
                target_uuid   UUID,
 
-               status       TEXT,
-               requested_at INTEGER,
+               status       TEXT NOT NULL,
+               requested_at INTEGER NOT NULL,
                started_at   INTEGER,
                stopped_at   INTEGER,
 
-               log       TEXT,
-               debug     TEXT
+               log       TEXT
              )`)
 
 	return nil

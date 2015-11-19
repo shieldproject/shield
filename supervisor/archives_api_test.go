@@ -28,29 +28,31 @@ var _ = Describe("/v1/archives API", func() {
 
 	BeforeEach(func() {
 
-		unixtime := func (t string) string {
+		unixtime := func(t string) string {
 			utc, err := time.LoadLocation("UTC")
 			Ω(err).ShouldNot(HaveOccurred())
 			tempt, err := time.ParseInLocation("2006-01-02 15:04:05", t, utc)
 			Ω(err).ShouldNot(HaveOccurred())
-			return fmt.Sprintf("%d",tempt.Unix())
+			return fmt.Sprintf("%d", tempt.Unix())
 		}
 
 		data, err := Database(
 
 			// TARGETS
-			`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+			`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent) VALUES
 				("`+TARGET_REDIS+`",
 				 "redis-shared",
 				 "Shared Redis services for CF",
 				 "redis",
-				 "<<redis-configuration>>")`,
-			`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+				 "<<redis-configuration>>",
+				"127.0.0.1:5444")`,
+			`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent) VALUES
 				("`+TARGET_PG+`",
 				 "pg1",
 				 "Test Postgres Service",
 				 "pg",
-				 "<<pg-configuration>>")`,
+				 "<<pg-configuration>>",
+				"127.0.0.1:5444")`,
 
 			// STORES
 			`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
@@ -67,8 +69,8 @@ var _ = Describe("/v1/archives API", func() {
 				 "`+TARGET_PG+`",
 				 "`+STORE_S3+`",
 				 "pg-archive-1-key",
-				 ` + unixtime("2015-04-21 03:00:01") + `,
-				 ` + unixtime("2015-06-18 03:00:01") + `,
+				 `+unixtime("2015-04-21 03:00:01")+`,
+				 `+unixtime("2015-06-18 03:00:01")+`,
 				 "test backup")`,
 
 			// archive #2 for pg -> s3
@@ -78,8 +80,8 @@ var _ = Describe("/v1/archives API", func() {
 				 "`+TARGET_PG+`",
 				 "`+STORE_S3+`",
 				 "pg-archive-2-key",
-				 ` + unixtime("2015-04-28 03:00:01") + `,
-				 ` + unixtime("2015-06-25 03:00:01") + `,
+				 `+unixtime("2015-04-28 03:00:01")+`,
+				 `+unixtime("2015-06-25 03:00:01")+`,
 				 "")`,
 
 			// archive #1 for redis -> s3
@@ -89,8 +91,8 @@ var _ = Describe("/v1/archives API", func() {
 				 "`+TARGET_REDIS+`",
 				 "`+STORE_S3+`",
 				 "redis-archive-1-key",
-				 ` + unixtime("2015-04-23 14:35:22") + `,
-				 ` + unixtime("2015-04-25 14:35:22") + `,
+				 `+unixtime("2015-04-23 14:35:22")+`,
+				 `+unixtime("2015-04-25 14:35:22")+`,
 				 "Good Redis Backup")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())

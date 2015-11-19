@@ -18,6 +18,8 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	WEEKLY := `51e69607-eb48-4679-afd2-bc3b4c92e691`
 	DAILY := `647bc775-b07b-4f87-bb67-d84cccac34a7`
 
+	NIL := `00000000-0000-0000-0000-000000000000`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
@@ -32,7 +34,8 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 				 "Use for daily (11-something-at-night) bosh-blobs",
 				 "daily at 11:24pm")`,
 
-			`INSERT INTO jobs (uuid, schedule_uuid) VALUES ("abc-def", "`+WEEKLY+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
+				VALUES ("abc-def", "`+NIL+`", "`+NIL+`", "`+WEEKLY+`", "`+NIL+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 

@@ -38,9 +38,7 @@ func main() {
 
 	s.SpawnAPI()
 	s.SpawnScheduler()
-	s.SpawnWorker()
-	s.SpawnWorker()
-	s.SpawnWorker()
+	s.SpawnWorkers()
 
 	err := s.Run()
 	if err != nil {

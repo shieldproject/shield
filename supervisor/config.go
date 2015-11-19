@@ -15,6 +15,8 @@ type Config struct {
 	Port string `yaml:"port"`
 
 	PrivateKeyFile string `yaml:"private_key"`
+
+	Workers uint `yaml:"workers"`
 }
 
 func (s *Supervisor) ReadConfig(path string) error {
@@ -35,6 +37,9 @@ func (s *Supervisor) ReadConfig(path string) error {
 	if config.PrivateKeyFile == "" {
 		config.PrivateKeyFile = "/etc/shield/ssh/server.key"
 	}
+	if config.Workers == 0 {
+		config.Workers = 5
+	}
 
 	if s.Database == nil {
 		s.Database = &db.DB{}
@@ -44,5 +49,6 @@ func (s *Supervisor) ReadConfig(path string) error {
 	s.Database.DSN = config.DatabaseDSN
 	s.Port = config.Port
 	s.PrivateKeyFile = config.PrivateKeyFile
+	s.Workers = config.Workers
 	return nil
 }

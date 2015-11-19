@@ -18,6 +18,8 @@ var _ = Describe("/v1/stores API", func() {
 	STORE_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
 	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
 
+	NIL := `00000000-0000-0000-0000-000000000000`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
@@ -34,9 +36,9 @@ var _ = Describe("/v1/stores API", func() {
 				 "s3",
 				 "<<s3-configuration>>")`,
 
-			`INSERT INTO jobs (uuid, store_uuid) VALUES
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid) VALUES
 				("abc-def",
-				 "`+STORE_S3+`")`,
+				 "`+STORE_S3+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)

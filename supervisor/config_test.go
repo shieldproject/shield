@@ -30,6 +30,7 @@ var _ = Describe("Supervisor Configuration", func() {
 			Ω(s.Database.DSN).Should(Equal(""))
 			Ω(s.Port).Should(Equal("8888"))
 			Ω(s.PrivateKeyFile).Should(Equal("/etc/shield/ssh/server.key"))
+			Ω(s.Workers).Should(Equal(uint(5)))
 		})
 
 		It("handles YAML files with all the directives", func() {

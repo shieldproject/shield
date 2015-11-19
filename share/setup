@@ -1,36 +1,57 @@
 #!/bin/bash
 
-curly() {
-	local url=$1 ; shift
-	echo ${url} "$@"
-	curl -Lsk http://localhost:8080${url} "$@" | tee tmp.out | jq .
-	UUID=$(cat tmp.out | jq -r .uuid)
-	rm tmp.out
+rootdir=$(cd $(dirname $BASH_SOURCE[0])/.. ; pwd)
 
-	if [[ -z $UUID ]]; then
-		echo "${url}: failed (no UUID)"
-		exit 1
-	fi
-}
+if [[ -z ${SHIELD_TARGET} ]]; then
+	echo "Missing SHIELD_TARGET=http://... environment variable\!"
+	exit 2
+fi
+PATH=$PATH:${rootdir}/bin
 
-DATAROOT="/tmp/shield/dummy"
-mkdir -p "${DATAROOT}"
+# clear stuff out
+for type in target store schedule job; do
+	for uuid in $(bkp -r list ${type}s | jq -r '.[].uuid'); do
+		echo "Deleting ${type} $uuid"
+		bkp delete ${type} $uuid
+	done
+done
+for uuid in $(bkp -r list retention policies | jq -r '.[].uuid'); do
+	echo "Deleting retention policy $uuid"
+	bkp delete retention policy $uuid
+done
 
-curly /v1/targets -X POST --data-binary '{"name":"Dummy Target 1","summary":"Target System for testing","plugin":"dummy","endpoint":"{\"data\":\"ABCBAC\"}","agent":"127.0.0.1:9090"}'
-curly /v1/targets -X POST --data-binary '{"name":"Dummy Target 2","summary":"Target System for testing","plugin":"dummy","endpoint":"{\"data\":\"XYZZY\"}","agent":"127.0.0.1:9090"}'
-DUMMY_TARGET_UUID=$UUID
+cat <<EOF | bkp create schedule
+name: Daily Backups
+when: daily 3am
+EOF
+SCHEDULE=$(bkp -r list schedules | jq -r .[].uuid)
 
-curly /v1/stores -X POST --data-binary '{"name":"Dummy Store","summary":"Store System for testing","plugin":"dummy","endpoint":"{\"directory\":\"'${DATAROOT}'\"}"}'
-DUMMY_STORE_UUID=$UUID
+cat <<EOF | bkp create retention policy
+name:    Default Retention
+expires: 8640000
+EOF
+RETENTION=$(bkp -r list retention policies | jq -r .[].uuid)
 
-curly /v1/schedules -X POST --data-binary '{"name":"Daily Backups","summary":"Daily Backups","when":"daily 3am"}'
-DAILY_UUID=$UUID
-curly /v1/schedules -X POST --data-binary '{"name":"Weekly Backups","summary":"Weekly Backups","when":"sundays at 11:30pm"}'
-WEEKLY_UUID=$UUID
+cat <<EOF | bkp create store
+name:     Dummy Store
+plugin:   dummy
+endpoint: '{"directory":"/tmp/shield/dummy"}'
+EOF
+STORE=$(bkp -r list stores | jq -r .[].uuid)
 
-curly /v1/retention -X POST --data-binary '{"name":"Short-Term","summary":"Retention Policy for daily backups","expires":'$(( 86400 * 8 ))'}'
-SHORT_UUID=$UUID
-curly /v1/retention -X POST --data-binary '{"name":"Long-Term","summary":"Retention Policy for weekly backups","expires":'$(( 86400 * 90 ))'}'
-LONG_UUID=$UUID
+cat <<EOF | bkp create target
+name:     Shield DB Backups
+plugin:   postgres
+endpoint: '{"pg_host":"localhost","pg_port":"5224","pg_user":"shieldadmin","pg_password":"admin","pg_database":"shielddb"}'
+agent:    10.244.2.11:5444
+EOF
+TARGET=$(bkp -r list targets | jq -r .[].uuid)
 
-curly /v1/jobs -X POST --data-binary '{"name":"Test Backup","summary":"","target":"'$DUMMY_TARGET_UUID'","store":"'$DUMMY_STORE_UUID'","schedule":"'$DAILY_UUID'","retention":"'$SHORT_UUID'"}'
+cat <<EOF | bkp create job
+name:      Shield DB Backups
+target:    "${TARGET}"
+store:     "${STORE}"
+schedule:  "${SCHEDULE}"
+retention: "${RETENTION}"
+paused:    false
+EOF
