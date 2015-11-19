@@ -621,9 +621,11 @@ Purpose: allows end-users and operators to see what jobs have been configured, a
 
     "paused"          : false,
 
+    "store_uuid"      : "994e991f-112d-496d-a1df-bbdc67c79332",
     "store_plugin"    : "store-plugin",
     "store_endpoint"  : "{\"encoded\":\"json\"}",
 
+    "target_uuid"     : "443e2ce1-de2e-4369-a497-add3dd970d4d",
     "target_plugin"   : "target-plugin",
     "target_endpoint" : "{\"encoded\":\"json\"}"
   },
@@ -673,6 +675,35 @@ Response Body:
 | :---- | :------ |
 | ok    | The new job was created
 | uuid  | The UUID of the newly-created job
+
+#### GET /v1/job/:uuid
+
+```json
+{
+  "uuid"            : "af0b40b2-8f7b-46e4-b425-9730c677e625",
+  "name"            : "A Backup Job",
+  "summary"         : "a short description",
+
+  "retention_name"  : "100d Retention Policy",
+  "retention_uuid"  : "7eb2131c-c2ad-40b1-916f-7e162be89465",
+  "expiry"          : 8640000,
+
+  "schedule_name"   : "Daily Backups Schedule",
+  "schedule_uuid"   : "e390934b-fc43-4343-a51b-22bd69a8894f",
+  "schedule"        : "daily at 4am",
+
+  "paused"          : false,
+
+  "store_uuid"      : "994e991f-112d-496d-a1df-bbdc67c79332",
+  "store_plugin"    : "store-plugin",
+  "store_endpoint"  : "{\"encoded\":\"json\"}",
+
+  "target_uuid"     : "443e2ce1-de2e-4369-a497-add3dd970d4d",
+  "target_plugin"   : "target-plugin",
+  "target_endpoint" : "{\"encoded\":\"json\"}"
+}
+
+```
 
 #### PUT /v1/job/:uuid
 
