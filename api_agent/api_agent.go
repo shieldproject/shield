@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	log "gopkg.in/inconshreveable/log15.v2"
+	"github.com/geofffranks/bmad/log"
 )
 
 func getServerDetails() (string, string, string) {
@@ -26,20 +26,19 @@ func makeApiCall(data interface{}, action, uri string, postbody io.Reader) error
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		fmt.Println("ERROR: Failed to successfully communicate with host", err)
-		log.Error("Failed to successfully communicate with host: ", err) 
+		log.Error("failed to successfully communicate with host: %s", err)
 		return err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ERROR: Failed to read body", err)
+		log.Error("failed to read body: %s", err)
 		return err
 	}
 
 	if err := json.Unmarshal(body, data); err != nil {
-		fmt.Println("ERROR: Error unmarshalling json from response:\n\n", err)
+		log.Error("failed to unmarshal JSON from response: %s", err)
 		return err
 	}
 

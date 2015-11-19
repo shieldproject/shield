@@ -16,6 +16,10 @@
 			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
 		},
 		{
+			"ImportPath": "github.com/geofffranks/bmad/log",
+			"Rev": "a3671218c38ac6fa0757c2ab6e90efc9de2402d9"
+		},
+		{
 			"ImportPath": "github.com/inconshreveable/mousetrap",
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 		},
@@ -37,10 +41,6 @@
 			"ImportPath": "github.com/magiconair/properties",
 			"Comment": "v1.5.4-10-g6ac0b95",
 			"Rev": "6ac0b95f449268951dd5c100682ea687a9866ea1"
-		},
-		{
-			"ImportPath": "github.com/mattn/go-colorable",
-			"Rev": "51a7e7a8b1665b25ca173debdc8d52d493348f15"
 		},
 		{
 			"ImportPath": "github.com/mattn/go-shellwords",
@@ -120,11 +120,6 @@
 			"ImportPath": "gopkg.in/fsnotify.v1",
 			"Comment": "v1.2.1",
 			"Rev": "7be54206639f256967dd82fa767397ba5f8f48f5"
-		},
-		{
-			"ImportPath": "gopkg.in/inconshreveable/log15.v2",
-			"Comment": "v2.11",
-			"Rev": "b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

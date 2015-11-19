@@ -3,12 +3,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/starkandwayne/shield/db"
-	"github.com/voxelbrain/goptions"
-	"os"
 
-	log "gopkg.in/inconshreveable/log15.v2"
+	"github.com/voxelbrain/goptions"
+	"github.com/geofffranks/bmad/log"
 
 	// sql drivers
 	_ "github.com/lib/pq"
@@ -16,8 +14,7 @@ import (
 )
 
 func main() {
-	fmt.Printf("starting up...\n")
-	log.Info("staring schema...")
+	log.Info("starting schema...")
 
 	options := struct {
 		Driver string `goptions:"-t,--type, obligatory, description='Type of database backend'"`
@@ -32,20 +29,17 @@ func main() {
 		DSN:    options.DSN,
 	}
 
-	fmt.Fprintf(os.Stderr, "connecting to %s database at %s\n", database.Driver, database.DSN)
+	log.Debug("connecting to %s database at %s", database.Driver, database.DSN)
 	if err := database.Connect(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
+		log.Error("failed to connect to %s database at %s: %s",
 			database.Driver, database.DSN, err)
-		log.Error("failed to connect to database with ", "driver", database.Driver, "DSN", database.DSN, "error", err)
 	}
 
 	if err := database.Setup(); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to set up schema in %s database at %s: %s\n",
+		log.Error("failed to set up schema in %s database at %s: %s",
 			database.Driver, database.DSN, err)
-		log.Error("failed to set up schema in database with ", "driver", database.Driver, "DSN", database.DSN, "error", err)
 		return
 	}
 
-	log.Info("deployed schema with ", "version", db.CurrentSchema) 
-	fmt.Printf("deployed schema version %d\n", db.CurrentSchema)
+	log.Info("deployed schema version %d", db.CurrentSchema)
 }
