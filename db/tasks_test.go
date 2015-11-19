@@ -30,18 +30,18 @@ var _ = Describe("Task Management", func() {
 		var err error
 		db, err = Database(
 			// need a target
-			`INSERT INTO targets (uuid) VALUES ("`+TARGET_UUID.String()+`")`,
+			`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES ("`+TARGET_UUID.String()+`", "plugin", "endpoint", "127.0.0.1:5444")`,
 
 			// need a store
-			`INSERT INTO stores (uuid) VALUES ("`+STORE_UUID.String()+`")`,
+			`INSERT INTO stores (uuid, plugin, endpoint) VALUES ("`+STORE_UUID.String()+`", "plugin", "endpoint")`,
 
 			// need a retention policy
 			`INSERT INTO retention (uuid, expiry) VALUES ("`+RETENTION_UUID.String()+`", 3600)`,
 
 			// need a job
-			`INSERT INTO jobs (uuid, target_uuid, store_uuid, retention_uuid)
+			`INSERT INTO jobs (uuid, target_uuid, store_uuid, retention_uuid, schedule_uuid)
 				VALUES ("`+JOB_UUID.String()+`", "`+TARGET_UUID.String()+`",
-				        "`+STORE_UUID.String()+`", "`+RETENTION_UUID.String()+`")`,
+				        "`+STORE_UUID.String()+`", "`+RETENTION_UUID.String()+`", "ec3e4fe4-99b4-411a-a91e-4887b5929399")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())

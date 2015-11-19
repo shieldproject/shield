@@ -140,12 +140,13 @@ var _ = Describe("Retrieving Jobs", func() {
 					 "t",
 					 "job 1",
 					 "First test job in queue")`,
-				`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+				`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent) VALUES
 					 ("`+TARGET_ONE_UUID+`",
 					 "redis-shared",
 					 "Shared Redis services for CF",
 					 "redis",
-					 "<<redis-configuration>>")`,
+					 "<<redis-configuration>>",
+					 "127.0.0.1:5444")`,
 				`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
 					("`+STORE_ONE_UUID+`",
 					 "redis-shared",
@@ -171,12 +172,13 @@ var _ = Describe("Retrieving Jobs", func() {
 					 "f",
 					 "job 2",
 					 "Second test job in queue")`,
-				`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+				`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent) VALUES
 					("`+TARGET_TWO_UUID+`",
 					 "s3",
 					 "Amazon S3 Blobstore",
 					 "s3",
-					 "<<s3-configuration>>")`,
+					 "<<s3-configuration>>",
+					 "127.0.0.1:5444")`,
 				`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
 					("`+STORE_TWO_UUID+`",
 					 "s3",
@@ -218,12 +220,13 @@ var _ = Describe("Retrieving Jobs", func() {
 					 "t",
 					 "job err",
 					 "Job with malformed sched")`,
-				`INSERT INTO targets (uuid, name, summary, plugin, endpoint) VALUES
+				`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent) VALUES
 					 ("`+TARGET_ERR_UUID+`",
 					 "redis-shared",
 					 "Shared Redis services for CF",
 					 "redis",
-					 "<<redis-configuration>>")`,
+					 "<<redis-configuration>>",
+					 "127.0.0.1:5444")`,
 				`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
 					("`+STORE_ERR_UUID+`",
 					 "redis-shared",

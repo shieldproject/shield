@@ -18,6 +18,8 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	SHORT := `43705750-33b7-4134-a532-ce069abdc08f`
 	LONG := `3e783b71-d595-498d-a739-e01fb335098a`
 
+	NIL := `00000000-0000-0000-0000-000000000000`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
@@ -32,9 +34,9 @@ var _ = Describe("HTTP API /v1/retention", func() {
 				 "Keep for 90d",
 				 7776000)`, // 90 days
 
-			`INSERT INTO jobs (uuid, retention_uuid) VALUES
+			`INSERT INTO jobs (uuid, retention_uuid, schedule_uuid, target_uuid, store_uuid) VALUES
 				("abc-def",
-				 "`+SHORT+`")`,
+				 "`+SHORT+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)

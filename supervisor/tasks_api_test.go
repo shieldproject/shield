@@ -28,47 +28,61 @@ var _ = Describe("/v1/tasks API", func() {
 	TASK3 := `524753f0-4f24-4b63-929c-026d20cf07b1`
 	JOB3 := `5f04aef7-69cc-40e1-9736-4b3ee4caef50`
 
+	NIL := `00000000-0000-0000-0000-000000000000`
+
 	BeforeEach(func() {
 
-		unixtime := func (t string) string {
+		unixtime := func(t string) string {
 			utc, err := time.LoadLocation("UTC")
 			Ω(err).ShouldNot(HaveOccurred())
 			tempt, err := time.ParseInLocation("2006-01-02 15:04:05", t, utc)
 			Ω(err).ShouldNot(HaveOccurred())
-			return fmt.Sprintf("%d",tempt.Unix())
+			return fmt.Sprintf("%d", tempt.Unix())
 		}
 
 		data, err := Database(
 			// need a job
-			`INSERT INTO jobs (uuid) VALUES ("`+JOB1+`")`,
-			`INSERT INTO jobs (uuid) VALUES ("`+JOB2+`")`,
-			`INSERT INTO jobs (uuid) VALUES ("`+JOB3+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
+				VALUES ("`+JOB1+`", "`+NIL+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
+				VALUES ("`+JOB2+`", "`+NIL+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
+				VALUES ("`+JOB3+`", "`+NIL+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
 
 			// need an archive
-			`INSERT INTO archives (uuid) VALUES ("`+ARCHIVE2+`")`,
+			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at)
+				VALUES ("`+ARCHIVE2+`", "`+NIL+`", "`+NIL+`", "re-st-ore", 1447900000, 1448000000)`,
 
 			// need a running task
 			`INSERT INTO tasks (uuid, owner, op, job_uuid,
-				status, started_at, log)
+				status, requested_at, started_at, log)
 				VALUES (
-					"`+TASK1+`", "system", "backup", "`+JOB1+`",
-					"running", ` + unixtime("2015-04-15 06:00:01") + `, "this is the log"
+					"`+TASK1+`", "system", "backup", "`+JOB1+`", "running",
+					`+unixtime("2015-04-15 06:00:00")+`,
+					`+unixtime("2015-04-15 06:00:01")+`,
+					"this is the log"
 				)`,
 
 			// need a completed task
 			`INSERT INTO tasks (uuid, owner, op, job_uuid, archive_uuid,
-				status, started_at, stopped_at, log)
+				status, requested_at, started_at, stopped_at, log)
 				VALUES (
-					"`+TASK2+`", "joe", "restore", "`+JOB2+`", "`+ARCHIVE2+`",
-					"done", ` + unixtime("2015-04-10 17:35:01") + `, ` + unixtime("2015-04-10 18:19:45") + `, "restore complete"
+					"`+TASK2+`", "joe", "restore", "`+JOB2+`", "`+ARCHIVE2+`", "done",
+					`+unixtime("2015-04-10 17:35:00")+`,
+					`+unixtime("2015-04-10 17:35:01")+`,
+					`+unixtime("2015-04-10 18:19:45")+`,
+					"restore complete"
 				)`,
 
 			// need a canceled task
 			`INSERT INTO tasks (uuid, owner, op, job_uuid,
-				status, started_at, stopped_at, log)
+				status, requested_at, started_at, stopped_at, log)
 				VALUES (
-					"`+TASK3+`", "joe", "backup", "`+JOB3+`",
-					"canceled", ` + unixtime("2015-04-18 19:12:05") + `, ` + unixtime("2015-04-18 19:13:55") + `, "cancel!"
+					"`+TASK3+`", "joe", "backup", "`+JOB3+`", "canceled",
+					`+unixtime("2015-04-18 19:12:03")+`,
+					`+unixtime("2015-04-18 19:12:05")+`,
+					`+unixtime("2015-04-18 19:13:55")+`,
+					"cancel!"
 				)`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())

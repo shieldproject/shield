@@ -79,11 +79,11 @@ CREATE TABLE targets (
   name      TEXT,  -- a human-friendly name for this target
   summary   TEXT,  -- annotation for operator use, to describe the target
                    --   i.e.: "Production PostgreSQL database"
-  plugin    TEXT,  -- short name of the target plugin, like 'postgres'
-  endpoint  TEXT,  -- opaque blob used by target plugin to connect to
-                   --   the remote data system.  Could be JSON, YAML, etc.
-  agent     TEXT,  -- IP address and port (in ip:port format) of the
-                   -- Shield agent that can backup/restore this target
+  plugin    TEXT NOT NULL,  -- short name of the target plugin, like 'postgres'
+  endpoint  TEXT NOT NULL,  -- opaque blob used by target plugin to connect to
+                            --   the remote data system.  Could be JSON, YAML, etc.
+  agent     TEXT NOT NULL,  -- IP address and port (in ip:port format) of the
+                            -- Shield agent that can backup/restore this target
 );
 ```
 
@@ -94,9 +94,9 @@ CREATE TABLE stores (
   uuid      UUID PRIMARY KEY,
   name      TEXT,  -- a human-friendly name for this store
   summary   TEXT,  -- annotation for operator use, to describe the store
-  plugin    TEXT,  -- short name of the storage plugin, like 's3' or 'fs'
-  endpoint  TEXT,  -- opaque blob used by storage plugin to connect to
-                   -- the storage backend.  Could be JSON, YAML, etc.
+  plugin    TEXT NOT NULL,  -- short name of the storage plugin, like 's3' or 'fs'
+  endpoint  TEXT NOT NULL,  -- opaque blob used by storage plugin to connect to
+                            -- the storage backend.  Could be JSON, YAML, etc.
 );
 ```
 
@@ -107,9 +107,9 @@ CREATE TABLE schedules (
   uuid      UUID PRIMARY KEY,
   name      TEXT, -- a human-friendly name for this schedule
   summary   TEXT, -- annotation for operator use, to describe schedule
-  timespec  TEXT, -- code in a DSL for specifying when to run backups,
-                  --   i.e. 'sundays 8am' or 'daily 1am'
-                  --   (note: may want to eval use of cron here)
+  timespec  TEXT NOT NULL, -- code in a DSL for specifying when to run backups,
+                           --   i.e. 'sundays 8am' or 'daily 1am'
+                           --   (note: may want to eval use of cron here)
 );
 ```
 
@@ -120,9 +120,9 @@ All backups taken MUST have a retention policy; no backups are kept indefinitely
 ```sql
 CREATE TABLE retention (
   uuid     UUID PRIMARY KEY,
-  name     TEXT,    -- a human-friendly name for this retention policy
-  summary  TEXT,    -- annotation for operator use, to describe policy
-  expiry   INTEGER, -- how long (in seconds) before a given backup expires
+  name     TEXT, -- a human-friendly name for this retention policy
+  summary  TEXT, -- annotation for operator use, to describe policy
+  expiry   INTEGER NOT NULL, -- how long (in seconds) before a given backup expires
 );
 ```
 
@@ -133,10 +133,10 @@ JOBS can be annotated by operators to provide context and justification for each
 ```sql
 CREATE TABLE jobs (
   uuid            UUID PRIMARY KEY,
-  target_uuid     UUID,    -- the target
-  store_uuid      UUID,    -- the store
-  schedule_uuid   UUID,    -- what schedule to use
-  retention_uuid  UUID,    -- what retention policy to use
+  target_uuid     UUID NOT NULL, -- the target
+  store_uuid      UUID NOT NULL, -- the store
+  schedule_uuid   UUID NOT NULL, -- what schedule to use
+  retention_uuid  UUID NOT NULL, -- what retention policy to use
   priority        INTEGER DEFAULT 50, -- priority, scale from 0 to 100 (0 = highest)
   paused          BOOLEAN, -- if true, this job is not run when scheduled.
   name            TEXT,    -- a human-friendly name for this schedule
@@ -152,13 +152,13 @@ ARCHIVES can be annotated by operators, so that they can keep track of specifica
 ```sql
 CREATE TABLE archives (
   uuid         UUID PRIMARY KEY,
-  target_uuid  UUID, -- the target (from jobs)
-  store_uuid   UUID, -- the store (from jobs)
-  store_key    TEXT, -- opaque data returned from the storage plugin,
-                     --   for use in restore ops / download / etc.
-  taken_at     timestamp without time zone,
-  expires_at   timestamp without time zone, -- based on retention policy
-  notes        TEXT DEFAULT "", -- annotation for operator use, to describe this
+  target_uuid  UUID NOT NULL, -- the target (from jobs)
+  store_uuid   UUID NOT NULL, -- the store (from jobs)
+  store_key    TEXT NOT NULL, -- opaque data returned from the storage plugin,
+                              --   for use in restore ops / download / etc.
+  taken_at     INTEGER NOT NULL,
+  expires_at   INTEGER NOT NULL, -- based on retention policy
+  notes        TEXT DEFAULT '', -- annotation for operator use, to describe this
                                 --   specific backup, i.e. 'before change #422 backup'
                                 --   (mostly, this will be empty)
 );
@@ -182,19 +182,18 @@ CREATE TYPE status AS ENUM ('pending', 'running', 'canceled', 'failed', 'done');
 CREATE TABLE tasks (
   uuid      UUID PRIMARY KEY,
   owner     TEXT, -- who owns / started this task?
-  op        TEXT, -- name of the operation to run, i.e. 'backup' or 'restore'
+  op        TEXT NOT NULL, -- name of the operation to run, i.e. 'backup' or 'restore'
 
   job_uuid      UUID,
   archive_uuid  UUID,
   target_uuid   UUID,
 
   status       status, -- current status of the task
-  requested_at timestamp without time zone, -- when the task was _created_
-  started_at   timestamp without time zone, -- when the task actually started
-  stopped_at   timestamp without time zone, -- when the task completed (or was cancelled)
+  requested_at INTEGER NOT NULL, -- when the task was _created_
+  started_at   INTEGER, -- when the task actually started
+  stopped_at   INTEGER, -- when the task completed (or was cancelled)
 
-  log       TEXT, -- log of task activity
-  debug     TEXT, -- more verbose logs, for troubleshooting ex post facto.
+  log       TEXT -- log of task activity
 );
 ```
 

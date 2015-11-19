@@ -18,6 +18,8 @@ var _ = Describe("/v1/targets API", func() {
 	TARGET_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
 	TARGET_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
 
+	NIL := `00000000-0000-0000-0000-000000000000`
+
 	BeforeEach(func() {
 		data, err := Database(
 			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
@@ -36,9 +38,8 @@ var _ = Describe("/v1/targets API", func() {
 				 "s3",
 				 "<<s3-configuration>>")`,
 
-			`INSERT INTO jobs (uuid, target_uuid) VALUES
-				("abc-def",
-				 "`+TARGET_S3+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
+				VALUES ("abc-def", "`+NIL+`", "`+TARGET_S3+`", "`+NIL+`", "`+NIL+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		channel = make(chan int, 1)
