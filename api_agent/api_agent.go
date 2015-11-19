@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	log "gopkg.in/inconshreveable/log15.v2"
 )
 
 func getServerDetails() (string, string, string) {
@@ -25,6 +27,7 @@ func makeApiCall(data interface{}, action, uri string, postbody io.Reader) error
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		fmt.Println("ERROR: Failed to successfully communicate with host", err)
+		log.Error("Failed to successfully communicate with host: ", err) 
 		return err
 	}
 	defer resp.Body.Close()

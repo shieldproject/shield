@@ -39,6 +39,10 @@
 			"Rev": "6ac0b95f449268951dd5c100682ea687a9866ea1"
 		},
 		{
+			"ImportPath": "github.com/mattn/go-colorable",
+			"Rev": "51a7e7a8b1665b25ca173debdc8d52d493348f15"
+		},
+		{
 			"ImportPath": "github.com/mattn/go-shellwords",
 			"Rev": "f4e566c536cf69158e808ec28ef4182a37fdc981"
 		},
@@ -116,6 +120,11 @@
 			"ImportPath": "gopkg.in/fsnotify.v1",
 			"Comment": "v1.2.1",
 			"Rev": "7be54206639f256967dd82fa767397ba5f8f48f5"
+		},
+		{
+			"ImportPath": "gopkg.in/inconshreveable/log15.v2",
+			"Comment": "v2.11",
+			"Rev": "b105bd37f74e5d9dc7b6ad7806715c7a2b83fd3f"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

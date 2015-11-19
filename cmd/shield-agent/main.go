@@ -5,6 +5,8 @@ import (
 
 	"github.com/starkandwayne/shield/agent"
 	"github.com/voxelbrain/goptions"
+
+	log "gopkg.in/inconshreveable/log15.v2"
 )
 
 type ShieldAgentOpts struct {
@@ -13,7 +15,7 @@ type ShieldAgentOpts struct {
 
 func main() {
 	fmt.Printf("starting up...\n")
-
+	log.Info("starting agent...") 
 	var opts ShieldAgentOpts
 	if err := goptions.Parse(&opts); err != nil {
 		fmt.Printf("%s\n", err)
@@ -24,6 +26,7 @@ func main() {
 	ag := agent.NewAgent()
 	if err := ag.ReadConfig(opts.ConfigFile); err != nil {
 		fmt.Printf("configuration failed: %s\n", err)
+		log.Error("configuration failed: ", err) 
 		return
 	}
 	ag.Run()

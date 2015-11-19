@@ -8,6 +8,8 @@ import (
 	"github.com/voxelbrain/goptions"
 	"os"
 
+	log "gopkg.in/inconshreveable/log15.v2"
+
 	// sql drivers
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -15,6 +17,7 @@ import (
 
 func main() {
 	fmt.Printf("starting up...\n")
+	log.Info("staring schema...")
 
 	options := struct {
 		Driver string `goptions:"-t,--type, obligatory, description='Type of database backend'"`
@@ -33,13 +36,16 @@ func main() {
 	if err := database.Connect(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
 			database.Driver, database.DSN, err)
+		log.Error("failed to connect to database with ", "driver", database.Driver, "DSN", database.DSN, "error", err)
 	}
 
 	if err := database.Setup(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to set up schema in %s database at %s: %s\n",
 			database.Driver, database.DSN, err)
+		log.Error("failed to set up schema in database with ", "driver", database.Driver, "DSN", database.DSN, "error", err)
 		return
 	}
 
+	log.Info("deployed schema with ", "version", db.CurrentSchema) 
 	fmt.Printf("deployed schema version %d\n", db.CurrentSchema)
 }

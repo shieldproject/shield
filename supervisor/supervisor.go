@@ -10,6 +10,8 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
+
+	log "gopkg.in/inconshreveable/log15.v2"
 )
 
 type JobRepresentation struct {
@@ -125,9 +127,11 @@ func (s *Supervisor) Resync() error {
 		if err != nil {
 			fmt.Printf("error encountered while determining next run of %s (%s): %s\n",
 				job.UUID.String(), job.Spec.String(), err)
+			log.Error("error encountered while determining next run of job", "UUID", job.UUID.String(), "spec", job.Spec.String(), "error", err )
 		} else {
 			fmt.Printf("initial run of %s (%s) is at %s\n",
 				job.UUID.String(), job.Spec.String(), job.NextRun)
+			log.Info("initial run of job", "UUID", job.UUID.String(), "spec", job.Spec.String(), "next run is at", job.NextRun)
 		}
 	}
 
@@ -142,10 +146,12 @@ func (s *Supervisor) CheckSchedule() {
 		}
 
 		fmt.Printf("scheduling execution of job %s\n", job.UUID.String())
+		log.Info("scheduling execution of job", "UUID", job.UUID.String())
 		task := job.Task()
 		id, err := s.Database.CreateBackupTask("system", job.UUID)
 		if err != nil {
 			fmt.Printf("job -> task conversion / database update failed: %s\n", err)
+			log.Error("job -> task conversion / database update failed", "error", err)
 			continue
 		}
 
@@ -156,9 +162,11 @@ func (s *Supervisor) CheckSchedule() {
 		if err != nil {
 			fmt.Printf("error encountered while determining next run of %s (%s): %s\n",
 				job.UUID.String(), job.Spec.String(), err)
+			log.Error("error encountered while determining next run of job", "UUID", job.UUID.String(), "spec", job.Spec.String(), "error", err)
 		} else {
 			fmt.Printf("next run of %s (%s) is at %s\n",
 				job.UUID.String(), job.Spec.String(), job.NextRun)
+			log.Info("next run of job is", "UUID", job.UUID.String(), "spec", job.Spec.String(), "next run", job.NextRun)
 		}
 	}
 }
@@ -175,10 +183,12 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 			}
 
 			fmt.Printf("scheduling immediate (ad hoc) execution of job %s\n", job.UUID.String())
+			log.Info("scheduling immediate (ad hoc) execution of job", "UUID", job.UUID.String())
 			task := job.Task()
 			id, err := s.Database.CreateBackupTask(a.Owner, job.UUID)
 			if err != nil {
 				fmt.Printf("job -> task conversion / database update failed: %s\n", err)
+				log.Error("job -> task conversion / database update failed", "error", err)
 				continue
 			}
 
@@ -196,6 +206,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 		id, err := s.Database.CreateRestoreTask(a.Owner, a.ArchiveUUID, a.TargetUUID)
 		if err != nil {
 			fmt.Printf("restore task database creation failed: %s\n", err)
+			log.Error("restore task database creation failed", "error", err)
 			return
 		}
 
@@ -288,6 +299,7 @@ func (s *Supervisor) SpawnAPI() {
 		if err := db.Connect(); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to connect to %s database at %s: %s\n",
 				db.Driver, db.DSN, err)
+			log.Error("failed to connect to database", "driver", db.Driver, "DSN", db.DSN, "error", err)
 			return
 		}
 
@@ -351,6 +363,7 @@ func (s *Supervisor) SpawnAPI() {
 
 		err := http.ListenAndServe(":"+s.Port, nil)
 		if err != nil {
+			log.Crit("HTTP API failed", "error", err.Error())
 			panic("HTTP API failed: " + err.Error())
 		}
 	}(s)
