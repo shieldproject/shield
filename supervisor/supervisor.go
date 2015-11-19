@@ -22,6 +22,7 @@ type Supervisor struct {
 
 	Port           string /* addr/interface(s) and port to bind */
 	PrivateKeyFile string /* path to the SSH private key for talking to remote agents */
+	Workers        uint   /* how many workers to spin up */
 
 	runq []*Task
 	jobq []*Job
@@ -295,4 +296,11 @@ func scheduler(c chan int) {
 
 func (s *Supervisor) SpawnScheduler() {
 	go scheduler(s.tick)
+}
+
+func (s *Supervisor) SpawnWorkers() {
+	var i uint
+	for i = 0; i < s.Workers; i++ {
+		s.SpawnWorker()
+	}
 }
