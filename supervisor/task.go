@@ -32,6 +32,17 @@ const (
 	DONE
 )
 
+type AdhocTask struct {
+	Op    Operation
+	Owner string
+
+	TargetUUID  uuid.UUID
+	ArchiveUUID uuid.UUID
+	RestoreKey  string
+
+	JobUUID uuid.UUID
+}
+
 type Task struct {
 	UUID uuid.UUID
 

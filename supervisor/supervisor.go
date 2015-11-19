@@ -4,82 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/timespec"
+
+	"github.com/pborman/uuid"
 )
-
-type JobRepresentation struct {
-	UUID  uuid.UUID
-	Tspec string
-	Error error
-}
-type JobFailedError struct {
-	FailedJobs []JobRepresentation
-}
-
-func (e JobFailedError) Error() string {
-	var jobList []string
-	for _, j := range e.FailedJobs {
-		jobList = append(jobList, j.UUID.String())
-	}
-	return fmt.Sprintf("the following job(s) failed: %s", strings.Join(jobList, ", "))
-}
-
-func (s *Supervisor) GetAllJobs() ([]*Job, error) {
-	l := []*Job{}
-	result, err := s.Database.Query(`
-		SELECT j.uuid, j.paused,
-		       t.plugin, t.endpoint,
-		       s.plugin, s.endpoint,
-		       sc.timespec, r.expiry
-		FROM jobs j
-			INNER JOIN targets   t    ON  t.uuid = j.target_uuid
-			INNER JOIN stores    s    ON  s.uuid = j.store_uuid
-			INNER JOIN schedules sc   ON sc.uuid = j.schedule_uuid
-			INNER JOIN retention r    ON  r.uuid = j.retention_uuid
-	`)
-	if err != nil {
-		return l, err
-	}
-	e := JobFailedError{}
-	for result.Next() {
-		j := &Job{}
-		var id, tspec string
-		var expiry int
-		err = result.Scan(&id, &j.Paused,
-			&j.TargetPlugin, &j.TargetEndpoint,
-			&j.StorePlugin, &j.StoreEndpoint,
-			&tspec, &expiry)
-		j.UUID = uuid.Parse(id)
-		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
-		}
-		j.Spec, err = timespec.Parse(tspec)
-		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
-		}
-		l = append(l, j)
-	}
-	if len(e.FailedJobs) == 0 {
-		return l, nil
-	}
-	return l, e
-}
-
-type AdhocTask struct {
-	Op    Operation
-	Owner string
-
-	TargetUUID  uuid.UUID
-	ArchiveUUID uuid.UUID
-	RestoreKey  string
-
-	JobUUID uuid.UUID
-}
 
 type Supervisor struct {
 	tick    chan int          /* scheduler will send a message at regular intervals */
