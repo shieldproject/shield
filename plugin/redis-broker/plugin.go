@@ -6,8 +6,8 @@ import (
 )
 
 func main() {
-	p := RedisPlugin{
-		Name:    "Redis Backup Plugin",
+	p := RedisBrokerPlugin{
+		Name:    "Pivotal Redis Broker Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -19,13 +19,13 @@ func main() {
 	plugin.Run(p)
 }
 
-type RedisPlugin plugin.PluginInfo
+type RedisBrokerPlugin plugin.PluginInfo
 
-func (p RedisPlugin) Meta() plugin.PluginInfo {
+func (p RedisBrokerPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p RedisPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p RedisBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	err := plugin.Exec("tar -c -C /var/vcap/store .", plugin.STDOUT)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func (p RedisPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p RedisPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	err := plugin.Exec("/var/vcap/bosh/bin/monit stop all", plugin.STDOUT)
 	if err != nil {
 		return err
@@ -76,14 +76,14 @@ func (p RedisPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p RedisPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p RedisBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	return "", plugin.UNIMPLEMENTED
 }
 
-func (p RedisPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p RedisBrokerPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p RedisPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p RedisBrokerPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
