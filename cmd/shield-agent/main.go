@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/shield/agent"
+	
 	"github.com/voxelbrain/goptions"
-
-	"github.com/geofffranks/bmad/log"
 )
 
 type ShieldAgentOpts struct {
@@ -14,7 +14,7 @@ type ShieldAgentOpts struct {
 }
 
 func main() {
-	log.Info("starting agent...")
+	log.Infof("starting agent...")
 	var opts ShieldAgentOpts
 	if err := goptions.Parse(&opts); err != nil {
 		fmt.Printf("%s\n", err)
@@ -24,7 +24,7 @@ func main() {
 
 	ag := agent.NewAgent()
 	if err := ag.ReadConfig(opts.ConfigFile); err != nil {
-		log.Error("configuration failed: %s", err)
+		log.Errorf("configuration failed: %s", err)
 		return
 	}
 	ag.Run()

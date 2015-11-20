@@ -220,3 +220,4 @@ func get_facility (facility string) (syslog.Priority) {
 
 	return priority
 }
+

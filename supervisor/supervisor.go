@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/shield/db"
 
-	"github.com/geofffranks/bmad/log"
 	"github.com/pborman/uuid"
 )
 
@@ -54,10 +54,10 @@ func (s *Supervisor) Resync() error {
 	for _, job := range jobq {
 		err := job.Reschedule()
 		if err != nil {
-			log.Error("error encountered while determining next run of %s (%s): %s",
+			log.Errorf("error encountered while determining next run of %s (%s): %s",
 				job.UUID.String(), job.Spec.String(), err)
 		} else {
-			log.Error("initial run of %s (%s) is at %s",
+			log.Errorf("initial run of %s (%s) is at %s",
 				job.UUID.String(), job.Spec.String(), job.NextRun)
 		}
 	}
@@ -72,11 +72,11 @@ func (s *Supervisor) CheckSchedule() {
 			continue
 		}
 
-		log.Info("scheduling execution of job %s", job.UUID.String())
+		log.Infof("scheduling execution of job %s", job.UUID.String())
 		task := job.Task()
 		id, err := s.Database.CreateBackupTask("system", job.UUID)
 		if err != nil {
-			log.Error("job -> task conversion / database update failed: %s", err)
+			log.Errorf("job -> task conversion / database update failed: %s", err)
 			continue
 		}
 
@@ -85,17 +85,17 @@ func (s *Supervisor) CheckSchedule() {
 
 		err = job.Reschedule()
 		if err != nil {
-			log.Error("error encountered while determining next run of %s (%s): %s",
+			log.Errorf("error encountered while determining next run of %s (%s): %s",
 				job.UUID.String(), job.Spec.String(), err)
 		} else {
-			log.Info("next run of %s (%s) is at %s",
+			log.Infof("next run of %s (%s) is at %s",
 				job.UUID.String(), job.Spec.String(), job.NextRun)
 		}
 	}
 }
 
 func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
-	log.Info("schedule adhoc %s job", a.Op)
+	log.Infof("schedule adhoc %s job", a.Op)
 
 	switch a.Op {
 	case BACKUP:
@@ -105,11 +105,11 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 				continue
 			}
 
-			log.Info("scheduling immediate (ad hoc) execution of job %s", job.UUID.String())
+			log.Infof("scheduling immediate (ad hoc) execution of job %s", job.UUID.String())
 			task := job.Task()
 			id, err := s.Database.CreateBackupTask(a.Owner, job.UUID)
 			if err != nil {
-				log.Error("job -> task conversion / database update failed: %s", err)
+				log.Errorf("job -> task conversion / database update failed: %s", err)
 				continue
 			}
 
@@ -126,7 +126,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 
 		id, err := s.Database.CreateRestoreTask(a.Owner, a.ArchiveUUID, a.TargetUUID)
 		if err != nil {
-			log.Error("restore task database creation failed: %s", err)
+			log.Errorf("restore task database creation failed: %s", err)
 			return
 		}
 
@@ -158,7 +158,7 @@ func (s *Supervisor) Run() error {
 		select {
 		case <-s.resync:
 			if err := s.Resync(); err != nil {
-				log.Error("resync error: %s", err)
+				log.Errorf("resync error: %s", err)
 			}
 
 		case <-s.tick:
@@ -170,7 +170,7 @@ func (s *Supervisor) Run() error {
 				select {
 				case s.workers <- *s.runq[0]:
 					s.Database.StartTask(s.runq[0].UUID, time.Now())
-					log.Info("sent a task to a worker")
+					log.Infof("sent a task to a worker")
 					s.runq = s.runq[1:]
 				default:
 					break RunQueue
@@ -183,31 +183,31 @@ func (s *Supervisor) Run() error {
 		case u := <-s.updates:
 			switch u.Op {
 			case STOPPED:
-				log.Info("  %s: job stopped at %s", u.Task, u.StoppedAt.String())
+				log.Infof("  %s: job stopped at %s", u.Task, u.StoppedAt.String())
 				if err := s.Database.CompleteTask(u.Task, u.StoppedAt); err != nil {
-					log.Error("  %s: !! failed to update database - %s", u.Task, err)
+					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
 
 			case FAILED:
-				log.Warn("  %s: task failed!", u.Task)
+				log.Warnf("  %s: task failed!", u.Task)
 				if err := s.Database.FailTask(u.Task, time.Now()); err != nil {
-					log.Error("  %s: !! failed to update database - %s", u.Task, err)
+					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
 
 			case OUTPUT:
-				log.Info("  %s> %s", u.Task, u.Output)
+				log.Infof("  %s> %s", u.Task, u.Output)
 				if err := s.Database.UpdateTaskLog(u.Task, u.Output); err != nil {
-					log.Error("  %s: !! failed to update database - %s", u.Task, err)
+					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
 
 			case RESTORE_KEY:
-				log.Info("  %s: restore key is %s", u.Task, u.Output)
+				log.Infof("  %s: restore key is %s", u.Task, u.Output)
 				if err := s.Database.CreateTaskArchive(u.Task, u.Output, time.Now()); err != nil {
-					log.Error("  %s: !! failed to update database - %s", u.Task, err)
+					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
 
 			default:
-				log.Error("  %s: !! unrecognized op type", u.Task)
+				log.Errorf("  %s: !! unrecognized op type", u.Task)
 			}
 		}
 	}
@@ -217,7 +217,7 @@ func (s *Supervisor) SpawnAPI() {
 	go func(s *Supervisor) {
 		db := s.Database.Copy()
 		if err := db.Connect(); err != nil {
-			log.Error("failed to connect to %s database at %s: %s", db.Driver, db.DSN, err)
+			log.Errorf("failed to connect to %s database at %s: %s", db.Driver, db.DSN, err)
 			return
 		}
 
@@ -281,7 +281,7 @@ func (s *Supervisor) SpawnAPI() {
 
 		err := http.ListenAndServe(":"+s.Port, nil)
 		if err != nil {
-			log.Crit("HTTP API failed %s", err.Error())
+			log.Critf("HTTP API failed %s", err.Error())
 			panic("HTTP API failed: " + err.Error())
 		}
 	}(s)
@@ -301,7 +301,7 @@ func (s *Supervisor) SpawnScheduler() {
 func (s *Supervisor) SpawnWorkers() {
 	var i uint
 	for i = 0; i < s.Workers; i++ {
-		log.Debug("spawning worker %d", i)
+		log.Debugf("spawning worker %d", i)
 		s.SpawnWorker()
 	}
 }
