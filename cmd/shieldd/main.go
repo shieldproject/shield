@@ -5,10 +5,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/shield/supervisor"
 
 	"github.com/voxelbrain/goptions"
-	"github.com/geofffranks/bmad/log"
 
 	// sql drivers
 	_ "github.com/lib/pq"
@@ -20,7 +20,7 @@ type ShielddOpts struct {
 }
 
 func main() {
-	log.Info("starting shield daemon")
+	log.Infof("starting shield daemon")
 
 	var opts ShielddOpts
 	if err := goptions.Parse(&opts); err != nil {
@@ -31,7 +31,7 @@ func main() {
 
 	s := supervisor.NewSupervisor()
 	if err := s.ReadConfig(opts.ConfigFile); err != nil {
-		log.Error("configuraiton failed: %s", err)
+		log.Errorf("configuraiton failed: %s", err)
 		return
 	}
 
@@ -42,14 +42,14 @@ func main() {
 	err := s.Run()
 	if err != nil {
 		if e, ok := err.(supervisor.JobFailedError); ok {
-			log.Error("errors encountered while retrieving initial jobs list from database")
+			log.Errorf("errors encountered while retrieving initial jobs list from database")
 			for _, fail := range e.FailedJobs {
 
-				log.Error("  - job %s (%s) failed: %s", fail.UUID, fail.Tspec, fail.Error)
+				log.Errorf("  - job %s (%s) failed: %s", fail.UUID, fail.Tspec, fail.Error)
 			}
 		} else {
-			log.Error("shield daemon failed: %s", err)
+			log.Errorf("shield daemon failed: %s", err)
 		}
 	}
-	log.Info("stopping daemon")
+	log.Infof("stopping daemon")
 }

@@ -16,10 +16,6 @@
 			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
 		},
 		{
-			"ImportPath": "github.com/geofffranks/bmad/log",
-			"Rev": "a3671218c38ac6fa0757c2ab6e90efc9de2402d9"
-		},
-		{
 			"ImportPath": "github.com/inconshreveable/mousetrap",
 			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
 		},
@@ -102,6 +98,10 @@
 		{
 			"ImportPath": "github.com/spf13/viper",
 			"Rev": "e37b56e207dda4d79b9defe0548e960658ee8b6b"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/log",
+			"Rev": "2dbf7e579c3362ddaa36f465e66238b6db12753e"
 		},
 		{
 			"ImportPath": "github.com/voxelbrain/goptions",
