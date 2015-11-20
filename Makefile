@@ -28,7 +28,7 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/dummy
 	go $(BUILD_TYPE) ./plugin/elasticsearch
 	go $(BUILD_TYPE) ./plugin/postgres
-	go $(BUILD_TYPE) ./plugin/redis
+	go $(BUILD_TYPE) ./plugin/redis-broker
 	go $(BUILD_TYPE) ./plugin/s3
 
 # Run tests with coverage tracking, writing output to coverage/
