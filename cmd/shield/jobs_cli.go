@@ -11,6 +11,12 @@ import (
 var (
 
 	//== Applicable actions for Jobs
+	createJobCmd = &cobra.Command{
+		Use:   "job",
+		Short: "Creates a new job",
+		Long:  "Create a new job with ...",
+	} // FIXME
+	
 
 	listJobCmd = &cobra.Command{
 		Use:   "jobs",
@@ -64,6 +70,7 @@ func init() {
 	listJobCmd.Flags().String("retention", "", "Filter by retention policy UUID")
 
 	// Hookup functions to the subcommands
+	createJobCmd.Run = processCreateJobRequest
 	listJobCmd.Run = processListJobsRequest
 	showJobCmd.Run = processShowJobRequest
 	deleteJobCmd.Run = processDeleteJobRequest
@@ -74,6 +81,7 @@ func init() {
 	editJobCmd.Run = processEditJobRequest
 
 	// Add the subcommands to the base actions
+	createCmd.AddCommand(createJobCmd)
 	listCmd.AddCommand(listJobCmd)
 	showCmd.AddCommand(showJobCmd)
 	deleteCmd.AddCommand(deleteJobCmd)
@@ -82,6 +90,49 @@ func init() {
 	pausedCmd.AddCommand(pausedJobCmd)
 	runCmd.AddCommand(runJobCmd)
 	editCmd.AddCommand(editJobCmd)
+}
+
+func processCreateJobRequest(cmd *cobra.Command, args []string) {
+
+	// Validate Request
+	if len(args) > 0 {
+		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
+		//FIXME  show help
+		os.Exit(1)
+	}
+
+	// Invoke editor
+	content := invokeEditor(`{
+  "name"      : "Job Name",
+  "summary"   : "a short description",
+
+  "store"     : "uuid_of_store_to_use",
+  "target"    : "uuid_of_target_to_use",
+  "retention" : "uuid_of_retention_policy_to_use",
+  "schedule"  : "uuid_of_schedule_to_use",
+
+  "paused"    : false
+}`)
+
+	fmt.Println("Got the following content:\n\n", content)
+
+	// Fetch
+	data, err := api_agent.CreateJob(content)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
+		os.Exit(1)
+	}
+
+	// Print
+	output, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of targets:\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(output[:]))
+
+	return
 }
 
 func processListJobsRequest(cmd *cobra.Command, args []string) {
