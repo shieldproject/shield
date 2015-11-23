@@ -17,17 +17,20 @@ import (
 
 type ShielddOpts struct {
 	ConfigFile string `goptions:"-c, --config, obligatory, description='Path to the shieldd configuration file'"`
+	Log string `goptions:"-l, --log-level, description='Set logging level to debug, info, notice, warn, error, crit, alert, or emerg'"`
 }
 
 func main() {
-	log.Infof("starting shield daemon")
-
 	var opts ShielddOpts
+	opts.Log = "Info"
 	if err := goptions.Parse(&opts); err != nil {
 		fmt.Printf("%s\n", err)
 		goptions.PrintHelp()
 		return
 	}
+	
+	log.SetupLogging(log.LogConfig{ Type: "console", Level: opts.Log })
+	log.Infof("starting shield daemon")
 
 	s := supervisor.NewSupervisor()
 	if err := s.ReadConfig(opts.ConfigFile); err != nil {
