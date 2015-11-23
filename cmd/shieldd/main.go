@@ -31,7 +31,7 @@ func main() {
 
 	s := supervisor.NewSupervisor()
 	if err := s.ReadConfig(opts.ConfigFile); err != nil {
-		log.Errorf("configuraiton failed: %s", err)
+		log.Errorf("configuration failed: %s", err)
 		return
 	}
 
