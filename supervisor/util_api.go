@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"regexp"
 	"time"
+
+	"github.com/starkandwayne/goutils/log"
 )
 
 func match(req *http.Request, pattern string) bool {
@@ -19,14 +21,14 @@ func match(req *http.Request, pattern string) bool {
 
 func bail(w http.ResponseWriter, e error) {
 	w.WriteHeader(500)
-	fmt.Printf("ERROR: <%s>\n", e)
+	log.Errorf("Request bailed: <%s>\n", e)
 	return
 }
 
 func JSON(w http.ResponseWriter, thing interface{}) {
 	bytes, err := json.Marshal(thing)
 	if err != nil {
-		fmt.Printf("ERROR: <%s>\n", err)
+		log.Errorf("Cannot marshal JSON: <%s>\n", err)
 		w.WriteHeader(500)
 		return
 	}
