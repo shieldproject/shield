@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/shield/timespec"
 )
 
 type AnnotatedSchedule struct {
@@ -95,18 +96,27 @@ func (db *DB) AnnotateSchedule(id uuid.UUID, name string, summary string) error 
 	)
 }
 
-func (db *DB) CreateSchedule(timespec string) (uuid.UUID, error) {
+func (db *DB) CreateSchedule(ts string) (uuid.UUID, error) {
 	id := uuid.NewRandom()
+
+	_, err := timespec.Parse(ts)
+	if err != nil {
+		return id, err
+	}
 	return id, db.Exec(
 		`INSERT INTO schedules (uuid, timespec) VALUES ($1, $2)`,
-		id.String(), timespec,
+		id.String(), ts,
 	)
 }
 
-func (db *DB) UpdateSchedule(id uuid.UUID, timespec string) error {
+func (db *DB) UpdateSchedule(id uuid.UUID, ts string) error {
+	_, err := timespec.Parse(ts)
+	if err != nil {
+		return err
+	}
 	return db.Exec(
 		`UPDATE schedules SET timespec = $1 WHERE uuid = $2`,
-		timespec, id.String(),
+		ts, id.String(),
 	)
 }
 

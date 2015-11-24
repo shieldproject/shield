@@ -4,6 +4,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/starkandwayne/goutils/log"
 	. "github.com/starkandwayne/shield/supervisor"
 	"net/http"
 
@@ -21,6 +22,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	NIL := `00000000-0000-0000-0000-000000000000`
 
 	BeforeEach(func() {
+		log.SetupLogging(log.LogConfig{Type: "file", Level: "EMERG", File: "/dev/null"})
 		data, err := Database(
 			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
 				("`+WEEKLY+`",
@@ -123,6 +125,16 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		Eventually(resyncChan).Should(Receive())
 	})
 
+	It("Fails to create invalid timespec schedules", func() {
+		res := POST(API, "/v1/schedules", WithJSON(`{
+			"name"    : "My New Schedule",
+			"summary" : "A new schedule",
+			"when"    : "this should fail"
+		}`))
+		Expect(res.Code).Should(Equal(500))
+		Expect(res.Body.String()).Should(Equal(""))
+	})
+
 	It("requires the `name' and `when' keys in POST'ed data", func() {
 		res := POST(API, "/v1/schedules", "{}")
 		Ω(res.Code).Should(Equal(400))
@@ -154,6 +166,15 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
+	})
+	It("Fails to update schedules with bad timespecs", func() {
+		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
+			"name"    : "Daily Backup Schedule",
+			"summary" : "UPDATED?",
+			"when"    : "this should fail"
+		}`))
+		Expect(res.Code).Should(Equal(500))
+		Expect(res.Body.String()).Should(Equal(""))
 	})
 
 	It("requires the `name' field to update an existing schedule", func() {
