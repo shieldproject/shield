@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"golang.org/x/crypto/ssh"
@@ -86,6 +87,8 @@ func (req *Request) Run(output chan string) error {
 		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", req.TargetEndpoint),
 		fmt.Sprintf("SHIELD_RESTORE_KEY=%s", req.RestoreKey),
 	}
+
+	log.Debugf("ENV: %s", strings.Join(cmd.Env, ","))
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
