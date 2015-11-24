@@ -57,7 +57,7 @@ func (s *Supervisor) Resync() error {
 			log.Errorf("error encountered while determining next run of %s (%s): %s",
 				job.UUID.String(), job.Spec.String(), err)
 		} else {
-			log.Errorf("initial run of %s (%s) is at %s",
+			log.Infof("initial run of %s (%s) is at %s",
 				job.UUID.String(), job.Spec.String(), job.NextRun)
 		}
 	}

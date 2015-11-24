@@ -163,7 +163,7 @@ create_schedule() {
 # Edit your schedule details below
 name: Name Your Schedule
 summary: My New Schedule
-when: daily at 4am
+when: daily at 16:00
 EOF
 	editor ${file}
 	POST /v1/schedules ${file}
