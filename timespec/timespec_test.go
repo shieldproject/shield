@@ -362,6 +362,18 @@ var _ = Describe("Timespec", func() {
 				specOK("daily at 14am", 14, 00)
 			})
 
+			It("is case insensitive", func() {
+				specOK("Daily at 2:30", 2, 30)
+				specOK("daIly At 2:30PM", 14, 30)
+				specOK("Thursday at 2:30", 2, 30)
+				specOK("Every Day at 2:30", 2, 30)
+			})
+
+			It("Allows spaces between hour + am/pm", func() {
+				specOK("daily at 2:30 pm", 14, 30)
+				specOK("daily at 2 pm", 14, 00)
+			})
+
 			It("handles a missing 'at' keyword", func() {
 				specOK("daily 4am", 4, 00)
 			})

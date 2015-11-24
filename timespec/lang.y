@@ -52,9 +52,11 @@ daily_spec : DAILY    AT time_in_HHMM  { $$ = daily($3) }
            | EVERYDAY    time_in_HHMM  { $$ = daily($2) }
            ;
 
-time_in_HHMM : NUMBER ':' NUMBER          { $$ = hhmm($1,      $3) }
-             | NUMBER ':' NUMBER am_or_pm { $$ = hhmm($1 + $4, $3) }
-             | NUMBER am_or_pm            { $$ = hhmm($1 + $2, 0)  }
+time_in_HHMM : NUMBER ':' NUMBER              { $$ = hhmm($1,      $3) }
+             | NUMBER ':' NUMBER am_or_pm     { $$ = hhmm($1 + $4, $3) }
+             | NUMBER ':' NUMBER ' ' am_or_pm { $$ = hhmm($1 + $5, $3) }
+             | NUMBER am_or_pm                { $$ = hhmm($1 + $2, 0)  }
+             | NUMBER ' ' am_or_pm            { $$ = hhmm($1 + $3, 0)  }
              ;
 
 weekly_spec : WEEKLY AT time_in_HHMM ON day_name { $$ = weekly($3, $5) }
