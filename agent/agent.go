@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"github.com/starkandwayne/goutils/log"
 	"io"
 	"net"
 	"os"
@@ -62,6 +63,7 @@ func (agent *Agent) ServeOne(l net.Listener, async bool) {
 	}
 
 	if async {
+
 		go agent.handleConn(conn, chans, reqs)
 	} else {
 		agent.handleConn(conn, chans, reqs)
@@ -119,6 +121,7 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 						break
 					}
 					fmt.Fprintf(out, "%s", s)
+					log.Debugf("%s", s)
 				}
 				close(done)
 			}(channel, output, done)
@@ -130,6 +133,7 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 			if err != nil {
 				rc[0] = 1
 			}
+			log.Infof("Task completed with rc=%d", rc[0])
 			channel.SendRequest("exit-status", false, rc)
 			channel.Close()
 		}

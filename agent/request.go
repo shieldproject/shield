@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/starkandwayne/goutils/log"
 	"io"
 	"os"
 	"os/exec"
@@ -67,6 +68,10 @@ func ParseRequest(req *ssh.Request) (*Request, error) {
 
 func (req *Request) Run(output chan string) error {
 	cmd := exec.Command("shield-pipe")
+
+	log.Infof("Executing %s request using target %s and store %s via shield-pipe", req.Operation, req.TargetPlugin, req.StorePlugin)
+	log.Debugf("Target Endpoint config: %s", req.TargetEndpoint)
+	log.Debugf("Store Endpoint config: %s", req.StoreEndpoint)
 
 	cmd.Env = []string{
 		fmt.Sprintf("HOME=%s", os.Getenv("HOME")),
