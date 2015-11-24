@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/shield/agent"
 
 	"github.com/pborman/uuid"
@@ -31,7 +32,7 @@ type WorkerUpdate struct {
 func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
 	config, err := agent.ConfigureSSHClient(privateKeyFile)
 	if err != nil {
-		fmt.Printf("worker %d unable to read user key %s: %s; bailing out.\n",
+		log.Errorf("worker %d unable to read user key %s: %s; bailing out.\n",
 			id, privateKeyFile, err)
 		return
 	}

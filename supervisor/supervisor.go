@@ -195,7 +195,7 @@ func (s *Supervisor) Run() error {
 				}
 
 			case OUTPUT:
-				log.Infof("  %s> %s", u.Task, u.Output)
+				log.Errorf("  %s> %s", u.Task, u.Output) // There is only OUTPUT in this case if there is an error
 				if err := s.Database.UpdateTaskLog(u.Task, u.Output); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
