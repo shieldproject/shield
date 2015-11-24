@@ -19,14 +19,14 @@ import "strings"
 import "time"
 
 type LogConfig struct {
-	Type     string    // logging mode to use - file, syslog, console
-	Level    string    // Syslog level to log at (debug, info, notice, error, etc)
-	Facility string    // Syslog facility to log to (daemon, misc, etc)
-	File     string    // Path that will be logged to if in file mode
+	Type     string // logging mode to use - file, syslog, console
+	Level    string // Syslog level to log at (debug, info, notice, error, etc)
+	Facility string // Syslog facility to log to (daemon, misc, etc)
+	File     string // Path that will be logged to if in file mode
 }
 
 type logger struct {
-	out io.Writer
+	out   io.Writer
 	level syslog.Priority
 	ltype string
 }
@@ -34,10 +34,11 @@ type logger struct {
 var log *logger
 
 func init() {
-	SetupLogging(LogConfig{ Type: "console", Level: "warning" })
+	SetupLogging(LogConfig{Type: "console", Level: "warning"})
 }
+
 // Does the needful to set up the logging subsystem based on the passed configuration data.
-func SetupLogging (cfg LogConfig) {
+func SetupLogging(cfg LogConfig) {
 	var l logger
 
 	if cfg.Type == "syslog" {
@@ -63,10 +64,10 @@ func SetupLogging (cfg LogConfig) {
 	log = &l
 }
 
-func write (msg string, args ...interface{}) {
+func write(msg string, args ...interface{}) {
 	msg = fmt.Sprintf(msg, args...)
 	if log.ltype != "syslog" {
-		msg = fmt.Sprintf("%s bmad: %s\n", time.Now().String(), msg)
+		msg = fmt.Sprintf("%s %s: %s\n", time.Now().String(), os.Args[0], msg)
 	}
 	if log != nil && log.out != nil {
 		log.out.Write([]byte(msg))
@@ -77,70 +78,70 @@ func write (msg string, args ...interface{}) {
 
 // Logs a formatted Debug message.
 // Supports fmt.Sprintf style arguments.
-func Debugf (msg string, args ...interface{}) {
+func Debugf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_DEBUG {
-		write("DEBUG: " + msg, args...)
+		write("DEBUG: "+msg, args...)
 	}
 }
 
 // Logs a formatted Info message.
 // Supports fmt.Sprintf style arguments.
-func Infof (msg string, args ...interface{}) {
+func Infof(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_INFO {
-		write("INFO: " + msg, args...)
+		write("INFO: "+msg, args...)
 	}
 }
 
 // Logs a formatted Notice message.
 // Supports fmt.Sprintf style arguments.
-func Noticef (msg string, args ...interface{}) {
+func Noticef(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_NOTICE {
-		write("NOTICE: " + msg, args...)
+		write("NOTICE: "+msg, args...)
 	}
 }
 
 // Logs a formatted Warning message.
 // Supports fmt.Sprintf style arguments.
-func Warnf (msg string, args ...interface{}) {
+func Warnf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_WARNING {
-		write("WARNING: " + msg, args...)
+		write("WARNING: "+msg, args...)
 	}
 }
 
 // Logs a formatted Error message.
 // Supports fmt.Sprintf style arguments.
-func Errorf (msg string, args ...interface{}) {
+func Errorf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_ERR {
-		write("ERROR: " + msg, args...)
+		write("ERROR: "+msg, args...)
 	}
 }
 
 // Logs a formatted Crit message.
 // Supports fmt.Sprintf style arguments.
-func Critf (msg string, args ...interface{}) {
+func Critf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_CRIT {
-		write("CRITICAL: " + msg, args...)
+		write("CRITICAL: "+msg, args...)
 	}
 }
 
 // Logs a formatted Alert message.
 // Supports fmt.Sprintf style arguments.
-func Alertf (msg string, args ...interface{}) {
+func Alertf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_ALERT {
-		write("ALERT: " + msg, args...)
+		write("ALERT: "+msg, args...)
 	}
 }
 
 // Logs a formatted Emerg message.
 // Supports fmt.Sprintf style arguments.
-func Emergf (msg string, args ...interface{}) {
+func Emergf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_EMERG {
-		write("EMERGENCY: " + msg, args...)
+		write("EMERGENCY: "+msg, args...)
 	}
 }
 
 // Validates the log level based on config strings
-func get_level (level string) (syslog.Priority) {
+func get_level(level string) syslog.Priority {
 	var priority syslog.Priority
 	switch strings.ToLower(level) {
 	case "debug":
@@ -171,7 +172,7 @@ func get_level (level string) (syslog.Priority) {
 }
 
 // Validates the syslog priority, based on config strings
-func get_facility (facility string) (syslog.Priority) {
+func get_facility(facility string) syslog.Priority {
 	var priority syslog.Priority
 	switch strings.ToLower(facility) {
 	case "kern":
@@ -220,4 +221,3 @@ func get_facility (facility string) (syslog.Priority) {
 
 	return priority
 }
-
