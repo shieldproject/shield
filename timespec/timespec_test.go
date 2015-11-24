@@ -365,7 +365,6 @@ var _ = Describe("Timespec", func() {
 			It("is case insensitive", func() {
 				specOK("Daily at 2:30", 2, 30)
 				specOK("daIly At 2:30PM", 14, 30)
-				specOK("Thursday at 2:30", 2, 30)
 				specOK("Every Day at 2:30", 2, 30)
 			})
 
@@ -472,6 +471,30 @@ var _ = Describe("Timespec", func() {
 				specOK("sat at 5:35pm", time.Saturday, 17, 35)
 				specOK("saturday at 5:35pm", time.Saturday, 17, 35)
 				specOK("saturdays at 5:35pm", time.Saturday, 17, 35)
+			})
+
+			It("Is case insensitive", func() {
+				specOK("Weekly at 2:30 on Sat", time.Saturday, 2, 30)
+				specOK("Weekly at 2:30 on Sunday", time.Sunday, 2, 30)
+				specOK("Weekly at 2:30 on Mon", time.Monday, 2, 30)
+				specOK("Weekly at 2:30 on Tuesdays", time.Tuesday, 2, 30)
+				specOK("Weekly at 2:30 on Wed", time.Wednesday, 2, 30)
+				specOK("Weekly at 2:30 on thu", time.Thursday, 2, 30)
+				specOK("Weekly at 2:30 on Friday", time.Friday, 2, 30)
+				specOK("Sat at 2:30", time.Saturday, 2, 30)
+				specOK("Sun at 2:30", time.Sunday, 2, 30)
+				specOK("Mon at 2:30", time.Monday, 2, 30)
+				specOK("Tue at 2:30", time.Tuesday, 2, 30)
+				specOK("Wed at 2:30", time.Wednesday, 2, 30)
+				specOK("Thu at 2:30", time.Thursday, 2, 30)
+				specOK("Fri at 2:30", time.Friday, 2, 30)
+				specOK("Saturday at 2:30", time.Saturday, 2, 30)
+				specOK("Sunday at 2:30", time.Sunday, 2, 30)
+				specOK("Monday at 2:30", time.Monday, 2, 30)
+				specOK("TuesDay at 2:30", time.Tuesday, 2, 30)
+				specOK("Wednesday at 2:30", time.Wednesday, 2, 30)
+				specOK("Thursday at 2:30", time.Thursday, 2, 30)
+				specOK("Friday at 2:30", time.Friday, 2, 30)
 			})
 
 			It("can skip the  'at' and 'on' keywords", func() {
