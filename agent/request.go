@@ -26,7 +26,7 @@ func ParseRequestValue(value []byte) (*Request, error) {
 	request := &Request{JSON: string(value)}
 	err := json.Unmarshal(value, &request)
 	if err != nil {
-		return nil, fmt.Errorf("malformed agent-request %v: %s\n", value, err)
+		return nil, fmt.Errorf("malformed agent-request %s: %s\n", value, err)
 	}
 
 	if request.Operation == "" {

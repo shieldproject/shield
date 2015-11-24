@@ -29,6 +29,14 @@ type WorkerUpdate struct {
 	Output    string
 }
 
+type WorkerRequest struct {
+	Operation      string `json:"operation"`
+	TargetPlugin   string `json:"target_plugin"`
+	TargetEndpoint string `json:"target_endpoint"`
+	StorePlugin    string `json:"store_plugin"`
+	StoreEndpoint  string `json:"store_endpoint"`
+}
+
 func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
 	config, err := agent.ConfigureSSHClient(privateKeyFile)
 	if err != nil {
@@ -84,14 +92,22 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			close(out)
 		}(final, updates, t, partial)
 
+		command, err := json.Marshal(WorkerRequest{
+			Operation:      t.Op.String(),
+			TargetPlugin:   t.TargetPlugin,
+			TargetEndpoint: t.TargetEndpoint,
+			StorePlugin:    t.StorePlugin,
+			StoreEndpoint:  t.StoreEndpoint,
+		})
+		if err != nil {
+			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
+				Output: fmt.Sprintf("TASK FAILED!! shield worker %d was unable to json encode the request bound for remote agent %s (%s)", id, remote, err),
+			}
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
+			continue
+		}
 		// exec the command
-		err = client.Run(partial, fmt.Sprintf(`
-{"operation":"%s",
- "target_plugin":"%s", "target_endpoint":"%s",
- "store_plugin":"%s", "store_endpoint":"%s"}`,
-			t.Op,
-			t.TargetPlugin, t.TargetEndpoint,
-			t.StorePlugin, t.StoreEndpoint))
+		err = client.Run(partial, string(command))
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d failed to execute the command against the remote agent %s (%s)\n", id, remote, err)}
