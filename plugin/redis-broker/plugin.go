@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/starkandwayne/shield/plugin"
 	"time"
 )
@@ -21,6 +22,10 @@ func main() {
 
 type RedisBrokerPlugin plugin.PluginInfo
 
+type RedisEndpoint struct {
+	Mode string
+}
+
 func (p RedisBrokerPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
@@ -35,7 +40,17 @@ func (p RedisBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
-	err := plugin.Exec("/var/vcap/bosh/bin/monit stop cf-redis-broker redis redis-agent", plugin.STDOUT)
+	redis, err := getRedisEndpoint(endpoint)
+	if err != nil {
+		return err
+	}
+
+	var service = "cf-redis-broker"
+	if redis.Mode == "dedicated" {
+		service = "redis redis-agent"
+	}
+
+	err = plugin.Exec(fmt.Sprintf("/var/vcap/bosh/bin/monit stop %s", service), plugin.STDOUT)
 	if err != nil {
 		return err
 	}
@@ -63,7 +78,7 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	err = plugin.Exec("/var/vcap/bosh/bin/monit start cf-redis-broker redis redis-agent", plugin.STDOUT)
+	err = plugin.Exec(fmt.Sprintf("/var/vcap/bosh/bin/monit start %s", service), plugin.STDOUT)
 	if err != nil {
 		return err
 	}
@@ -80,4 +95,12 @@ func (p RedisBrokerPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string)
 
 func (p RedisBrokerPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
+}
+
+func getRedisEndpoint(endpoint plugin.ShieldEndpoint) (RedisEndpoint, error) {
+	mode, err := endpoint.StringValue("redis_type")
+	if err != nil {
+		return RedisEndpoint{}, err
+	}
+	return RedisEndpoint{Mode: mode}, nil
 }
