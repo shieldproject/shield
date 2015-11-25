@@ -164,7 +164,7 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 	year, mon, day := t.Date()
 	hour, min, sec := t.Clock()
 	uuid := plugin.GenUUID()
-	return fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d:%02d:%02d-%s-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, s3.Name, uuid)
+	return fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, s3.Name, uuid)
 }
 
 func (s3 S3ConnectionInfo) GetBucket() *s3gof3r.Bucket {
