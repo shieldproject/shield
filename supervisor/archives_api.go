@@ -78,6 +78,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Owner:       params.Owner,
 			TargetUUID:  tid,
 			ArchiveUUID: id,
+			RestoreKey:  archive.StoreKey,
 		}
 
 		w.WriteHeader(200)
