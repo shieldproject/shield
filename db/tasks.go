@@ -9,15 +9,15 @@ import (
 )
 
 type AnnotatedTask struct {
-	UUID        string `json:"uuid"`
-	Owner       string `json:"owner"`
-	Op          string `json:"type"`
-	JobUUID     string `json:"job_uuid"`
-	ArchiveUUID string `json:"archive_uuid"`
-	Status      string `json:"status"`
+	UUID        string    `json:"uuid"`
+	Owner       string    `json:"owner"`
+	Op          string    `json:"type"`
+	JobUUID     string    `json:"job_uuid"`
+	ArchiveUUID string    `json:"archive_uuid"`
+	Status      string    `json:"status"`
 	StartedAt   Timestamp `json:"started_at"`
 	StoppedAt   Timestamp `json:"stopped_at"`
-	Log         string `json:"log"`
+	Log         string    `json:"log"`
 }
 
 type TaskFilter struct {
@@ -205,7 +205,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 	err = db.Exec(
 		`INSERT INTO archives
 			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes)
-			SELECT $1, t.uuid, s.uuid, $2, $3, $4, ""
+			SELECT $1, t.uuid, s.uuid, $2, $3, $4, ''
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
