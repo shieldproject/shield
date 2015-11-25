@@ -5,7 +5,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"github.com/starkandwayne/goutils/log"
 	"time"
 )
 
