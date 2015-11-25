@@ -45,18 +45,12 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	err = plugin.Exec("pkill redis-server", plugin.STDOUT)
-	if err != nil {
-		return err
-	}
-
+	// Don't look for errors here, because pkill will return non-zero if there
+	// were no processes to kill in the first place.
+	// FIXME: handle this better, so we know we're pkilling properly
+	plugin.Exec("pkill redis-server", plugin.STDOUT)
 	time.Sleep(2 * time.Second)
-
-	err = plugin.Exec("pkill -9 redis-server", plugin.STDOUT)
-	if err != nil {
-		return err
-	}
-
+	plugin.Exec("pkill -9 redis-server", plugin.STDOUT)
 	time.Sleep(1 * time.Second)
 
 	err = plugin.Exec("tar -x -C /var/vcap/store . ", plugin.STDIN)
