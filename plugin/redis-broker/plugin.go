@@ -57,11 +57,9 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		}
 	}
 
-	for _, svc := range services {
-		err = plugin.Exec(fmt.Sprintf("bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary %s | grep running) ]]; do sleep 1; done\"", svc), plugin.STDOUT)
-		if err != nil {
-			return err
-		}
+	err = plugin.Exec(fmt.Sprintf("bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary | grep redis | grep running) ]]; do sleep 1; done\"", svc), plugin.STDOUT)
+	if err != nil {
+		return err
 	}
 
 	// Don't look for errors here, because pkill will return non-zero if there
