@@ -5,12 +5,13 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 )
 
 type Timestamp time.Time
 
-func (t Timestamp) MarshalJSON() ([]byte, error)  {
+func (t Timestamp) MarshalJSON() ([]byte, error) {
 	if time.Time(t).IsZero() {
 		return []byte("\"\""), nil
 	}
@@ -19,7 +20,7 @@ func (t Timestamp) MarshalJSON() ([]byte, error)  {
 }
 
 func parseEpochTime(et int64) Timestamp {
-	return Timestamp(time.Unix(et,0).UTC())
+	return Timestamp(time.Unix(et, 0).UTC())
 }
 
 type DB struct {
@@ -140,6 +141,8 @@ func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
 	if db.connection == nil {
 		return nil, fmt.Errorf("Not connected to database")
 	}
+
+	log.Debugf("Executing SQL: %s", sql)
 
 	q, ok := db.qCache[sql]
 	if !ok {
