@@ -35,7 +35,7 @@ func (p RedisBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
-	err := plugin.Exec("/var/vcap/bosh/bin/monit stop all", plugin.STDOUT)
+	err := plugin.Exec("/var/vcap/bosh/bin/monit stop cf-redis-broker redis redis-agent", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	err = plugin.Exec("/var/vcap/bosh/bin/monit start all", plugin.STDOUT)
+	err = plugin.Exec("/var/vcap/bosh/bin/monit start cf-redis-broker redis redis-agent", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
