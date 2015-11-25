@@ -40,7 +40,7 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	err = plugin.Exec("/bin/bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary | /bin/grep running) ]]; do /bin/sleep 1; done\"", plugin.STDOUT)
+	err = plugin.Exec("/bin/bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary | /bin/grep redis | /bin/grep running) ]]; do /bin/sleep 1; done\"", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
