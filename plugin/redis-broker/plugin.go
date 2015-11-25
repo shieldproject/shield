@@ -45,19 +45,23 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	var service = "cf-redis-broker"
+	var services = []string{"cf-redis-broker"}
 	if redis.Mode == "dedicated" {
-		service = "redis redis-agent"
+		services = []string{"redis", "redis-agent"}
 	}
 
-	err = plugin.Exec(fmt.Sprintf("/var/vcap/bosh/bin/monit stop %s", service), plugin.STDOUT)
-	if err != nil {
-		return err
+	for _, svc := range services {
+		err = plugin.Exec(fmt.Sprintf("/var/vcap/bosh/bin/monit stop %s", svc), plugin.STDOUT)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = plugin.Exec("bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary | grep redis | grep running) ]]; do sleep 1; done\"", plugin.STDOUT)
-	if err != nil {
-		return err
+	for _, svc := range services {
+		err = plugin.Exec(fmt.Sprintf("bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary %s | grep running) ]]; do sleep 1; done\"", svc), plugin.STDOUT)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Don't look for errors here, because pkill will return non-zero if there
@@ -78,9 +82,11 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	err = plugin.Exec(fmt.Sprintf("/var/vcap/bosh/bin/monit start %s", service), plugin.STDOUT)
-	if err != nil {
-		return err
+	for _, svc := range services {
+		err = plugin.Exec(fmt.Sprintf("/var/vcap/bosh/bin/monit start %s", svc), plugin.STDOUT)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
