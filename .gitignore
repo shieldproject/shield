@@ -5,7 +5,7 @@
 /dummy
 /elasticsearch
 /postgres
-/redis
+/redis-broker
 /s3
 
 # ignore vim buffers
