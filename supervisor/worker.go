@@ -35,6 +35,7 @@ type WorkerRequest struct {
 	TargetEndpoint string `json:"target_endpoint"`
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
+	RestoreKey     string `json:"restore_key"`
 }
 
 func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
@@ -98,6 +99,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			TargetEndpoint: t.TargetEndpoint,
 			StorePlugin:    t.StorePlugin,
 			StoreEndpoint:  t.StoreEndpoint,
+			RestoreKey:     t.RestoreKey,
 		})
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
