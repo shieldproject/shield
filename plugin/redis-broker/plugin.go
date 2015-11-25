@@ -40,19 +40,19 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	err = plugin.Exec("/bin/bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary | /bin/grep redis | /bin/grep running) ]]; do /bin/sleep 1; done\"", plugin.STDOUT)
+	err = plugin.Exec("bash -c \"while [[ $(/var/vcap/bosh/bin/monit summary | grep redis | grep running) ]]; do sleep 1; done\"", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
 
-	err = plugin.Exec("/bin/pkill redis-server", plugin.STDOUT)
+	err = plugin.Exec("pkill redis-server", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
 
 	time.Sleep(2 * time.Second)
 
-	err = plugin.Exec("/bin/pkill -9 redis-server", plugin.STDOUT)
+	err = plugin.Exec("pkill -9 redis-server", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	err = plugin.Exec("/bin/bash -c '/usr/bin/yes | /usr/bin/find /var/vcap/store -name appendonly.aof -exec /var/vcap/packages/redis/bin/redis-check-aof --fix {} \\;'", plugin.STDOUT)
+	err = plugin.Exec("bash -c 'yes | find /var/vcap/store -name appendonly.aof -exec /var/vcap/packages/redis/bin/redis-check-aof --fix {} \\;'", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
