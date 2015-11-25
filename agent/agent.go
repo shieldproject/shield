@@ -52,13 +52,13 @@ func (agent *Agent) Run() {
 func (agent *Agent) ServeOne(l net.Listener, async bool) {
 	c, err := l.Accept()
 	if err != nil {
-		fmt.Printf("failed to accept: %s\n", err)
+		log.Errorf("failed to accept: %s\n", err)
 		return
 	}
 
 	conn, chans, reqs, err := ssh.NewServerConn(c, agent.config)
 	if err != nil {
-		fmt.Printf("handshake failed: %s\n", err)
+		log.Errorf("handshake failed: %s\n", err)
 		return
 	}
 
@@ -75,14 +75,14 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 
 	for newChannel := range chans {
 		if newChannel.ChannelType() != "session" {
-			fmt.Printf("rejecting unknown channel type: %s\n", newChannel.ChannelType())
+			log.Errorf("rejecting unknown channel type: %s\n", newChannel.ChannelType())
 			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
 			continue
 		}
 
 		channel, requests, err := newChannel.Accept()
 		if err != nil {
-			fmt.Printf("failed to accept channel: %s\n", err)
+			log.Errorf("failed to accept channel: %s\n", err)
 			return
 		}
 
@@ -90,25 +90,25 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 
 		for req := range requests {
 			if req.Type != "exec" {
-				fmt.Printf("rejecting non-exec channel request (type=%s)\n", req.Type)
+				log.Errorf("rejecting non-exec channel request (type=%s)\n", req.Type)
 				req.Reply(false, nil)
 				continue
 			}
 
 			request, err := ParseRequest(req)
 			if err != nil {
-				fmt.Printf("%s\n", err)
+				log.Errorf("%s\n", err)
 				req.Reply(false, nil)
 				continue
 			}
 
 			if err = request.ResolvePaths(agent); err != nil {
-				fmt.Printf("%s\n", err)
+				log.Errorf("%s\n", err)
 				req.Reply(false, nil)
 				continue
 			}
 
-			//fmt.Printf("got an agent-request [%s]\n", request.JSON)
+			//log.Errorf("got an agent-request [%s]\n", request.JSON)
 			req.Reply(true, nil)
 
 			// drain output to the SSH channel stream

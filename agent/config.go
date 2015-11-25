@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"fmt"
+	"github.com/starkandwayne/goutils/log"
 	"io/ioutil"
 	"net"
 
@@ -45,20 +46,20 @@ func (agent *Agent) ReadConfig(path string) error {
 
 	authorizedKeys, err := LoadAuthorizedKeys(config.AuthorizedKeysFile)
 	if err != nil {
-		fmt.Printf("failed to load authorized keys: %s\n", err)
+		log.Errorf("failed to load authorized keys: %s\n", err)
 		return err
 	}
 
 	server, err := ConfigureSSHServer(config.HostKeyFile, authorizedKeys)
 	if err != nil {
-		fmt.Printf("failed to configure SSH server: %s\n", err)
+		log.Errorf("failed to configure SSH server: %s\n", err)
 		return err
 	}
 	agent.config = server
 
 	listener, err := net.Listen("tcp4", config.ListenAddress)
 	if err != nil {
-		fmt.Printf("failed to bind %s: %s", config.ListenAddress, err)
+		log.Errorf("failed to bind %s: %s", config.ListenAddress, err)
 		return err
 	}
 	agent.Listen = listener
