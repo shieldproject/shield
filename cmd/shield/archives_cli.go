@@ -237,7 +237,7 @@ func processRestoreArchiveRequest(cmd *cobra.Command, args []string) {
 	}
 
 	// Print
-	fmt.Println(requested_UUID, " Deleted")
+	fmt.Println(requested_UUID, " Restore requested")
 
 	return
 }
