@@ -101,7 +101,7 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 		return nil, err
 	}
 
-	bin, err := endpoint.StringValue("pg_dump")
+	bin, err := endpoint.StringValue("pg_bindir")
 	if err != nil {
 		return nil, err
 	}
