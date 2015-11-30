@@ -34,7 +34,6 @@ type S3ConnectionInfo struct {
 	SecretKey         string
 	Bucket            string
 	PathPrefix        string
-	Name              string
 }
 
 func (p S3Plugin) Meta() plugin.PluginInfo {
@@ -143,11 +142,6 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		return S3ConnectionInfo{}, err
 	}
 
-	name, err := e.StringValue("name")
-	if err != nil {
-		return S3ConnectionInfo{}, err
-	}
-
 	return S3ConnectionInfo{
 		Host:              host,
 		SkipSSLValidation: insecure_ssl,
@@ -155,7 +149,6 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		SecretKey:         secret,
 		Bucket:            bucket,
 		PathPrefix:        prefix,
-		Name:              name,
 	}, nil
 }
 
@@ -164,7 +157,7 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 	year, mon, day := t.Date()
 	hour, min, sec := t.Clock()
 	uuid := plugin.GenUUID()
-	return fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, s3.Name, uuid)
+	return fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
 }
 
 func (s3 S3ConnectionInfo) GetBucket() *s3gof3r.Bucket {
