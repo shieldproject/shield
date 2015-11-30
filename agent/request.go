@@ -114,6 +114,7 @@ func (req *Request) Run(output chan string) error {
 
 	err = cmd.Start()
 	if err != nil {
+		close(output)
 		return err
 	}
 
