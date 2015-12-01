@@ -26,6 +26,7 @@ shield:
 # Building Plugins
 plugin: plugins
 plugins:
+	go $(BUILD_TYPE) ./plugin/docker-postgres
 	go $(BUILD_TYPE) ./plugin/dummy
 	go $(BUILD_TYPE) ./plugin/elasticsearch
 	go $(BUILD_TYPE) ./plugin/postgres

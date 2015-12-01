@@ -2,6 +2,7 @@
 /shield
 /shield-agent
 /shield-schema
+/docker-postgres*
 /dummy
 /elasticsearch
 /postgres
