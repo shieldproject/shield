@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
-	"GoVersion": "go1.5.1",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"./..."
 	],
@@ -14,6 +14,10 @@
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
 			"Comment": "v1.0.4",
 			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
+		},
+		{
+			"ImportPath": "github.com/fsouza/go-dockerclient",
+			"Rev": "d750ee8aff39bca4ccf0b362db4f04510145d678"
 		},
 		{
 			"ImportPath": "github.com/inconshreveable/mousetrap",
