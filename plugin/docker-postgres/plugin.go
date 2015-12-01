@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 	"time"
 
 	. "github.com/starkandwayne/shield/plugin"
@@ -132,7 +133,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 
 		// destroy any existing containers with the same name
 		if existing, ok := registry[info.Name]; ok {
-			DEBUG("[%s] %s: already exists (as [%s]); removing existing container first", info.ID, info.Name, existing.ID)
+			DEBUG("[%s] removing existing container %s", info.Name, existing.ID)
 			err = c.RemoveContainer(docker.RemoveContainerOptions{
 				ID:            existing.ID,
 				RemoveVolumes: true,
@@ -142,6 +143,19 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 				DEBUG("[%s] error removing existing container [%s]: %s", info.Name, existing.ID, err)
 				continue
 			}
+		}
+
+		// recreate volume directories if they exist
+		for _, bind := range info.HostConfig.Binds {
+			parts := strings.Split(bind, ":")
+			if len(parts) != 2 {
+				DEBUG("[%s] volume %s seems malformed...", info.Name, bind)
+				continue
+			}
+
+			DEBUG("[%s] removing volume %s (mapped to %s in-container)", info.Name, parts[0], parts[1])
+			os.RemoveAll(parts[0])
+			os.Mkdir(parts[0], os.FileMode(0755))
 		}
 
 		// deploy a new container with the correct image / ip / creds
