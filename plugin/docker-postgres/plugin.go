@@ -70,19 +70,19 @@ func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	i := 0
 	for _, info := range registry {
 		i++
-		DEBUG("[%s] %s: attempting to backup container", info.ID, info.Name)
+		DEBUG("[%s] attempting to backup container", info.Name)
 		// extract the Postgres URI from the container environment and network settings
 		uri, err := pgURI(info)
 		if err != nil {
-			DEBUG("[%s] %s: failed to generate pg URI: %s", info.ID, info.Name, err)
+			DEBUG("[%s] failed to generate pg URI: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] %s: connecting to %s", info.ID, info.Name, uri)
+		DEBUG("[%s] connecting to %s", info.Name, uri)
 
 		// dump the Postgres database to a temporary file
 		data, err := pgdump(uri)
 		if err != nil {
-			DEBUG("[%s] %s: failed to dump the database: %s", info.ID, info.Name, err)
+			DEBUG("[%s] failed to dump the database: %s", info.Name, err)
 			continue
 		}
 
@@ -90,11 +90,11 @@ func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 		err = archive.Write(info.Name, info, data)
 		data.Close()
 		if err != nil {
-			DEBUG("[%s] %s: failed to write backup #%d to archive: %s", info.ID, info.Name, i, err)
+			DEBUG("[%s] failed to write backup #%d to archive: %s", info.Name, i, err)
 			continue
 		}
 
-		DEBUG("[%s] %s: wrote backup #%d to archive", info.ID, info.Name, i)
+		DEBUG("[%s] wrote backup #%d to archive", info.Name, i)
 	}
 	archive.Close()
 	DEBUG("DONE")
@@ -113,7 +113,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	if err != nil {
 		return err
 	}
-	DEBUG("found %d running containers to backup", len(registry))
+	DEBUG("found %d running containers", len(registry))
 
 	// treat stdin as a tar stream
 	//archive := tar.NewReader(os.Stdin)
@@ -126,7 +126,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			break
 		}
 		if err != nil {
-			DEBUG("[%s] %s: failed to retrieve backup from archive: %s", info.ID, info.Name, err)
+			DEBUG("[%s] failed to retrieve backup from archive: %s", info.Name, err)
 			break
 		}
 
@@ -139,43 +139,43 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 				Force:         true,
 			})
 			if err != nil {
-				DEBUG("[%s] %s: error removing existing container [%s]: %s", info.ID, info.Name, existing.ID, err)
+				DEBUG("[%s] error removing existing container [%s]: %s", info.Name, existing.ID, err)
 				continue
 			}
 		}
 
 		// deploy a new container with the correct image / ip / creds
-		DEBUG("[%s] %s: deploying new container", info.ID, info.Name)
+		DEBUG("[%s] deploying new container", info.Name)
 		newContainer, err := c.CreateContainer(docker.CreateContainerOptions{
 			Name:       info.Name,
 			Config:     info.Config,
 			HostConfig: info.HostConfig,
 		})
 		if err != nil {
-			DEBUG("[%s] %s: deploy failed: %s", info.ID, info.Name, err)
+			DEBUG("[%s] deploy failed: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] %s: starting container", info.ID, info.Name)
+		DEBUG("[%s] starting container", info.Name)
 		err = c.StartContainer(newContainer.ID, info.HostConfig)
 		if err != nil {
-			DEBUG("[%s] %s: start failed: %s", info.ID, info.Name, err)
+			DEBUG("[%s] start failed: %s", info.Name, err)
 			continue
 		}
 
 		// read backup data, piping to pgrestore process
 		uri, err := pgURI(&info)
 		if err != nil {
-			DEBUG("[%s] %s: failed to generate pg URI: %s", info.ID, info.Name, err)
+			DEBUG("[%s] failed to generate pg URI: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] %s: connecting to %s", info.ID, info.Name, uri)
+		DEBUG("[%s] connecting to %s", info.Name, uri)
 		waitForPostgres(uri, 60)
 		err = pgrestore(uri, data)
 		if err != nil {
-			DEBUG("[%s] %s: restore failed: %s", info.ID, info.Name, err)
+			DEBUG("[%s] restore failed: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] %s: successfully restored", info.ID, info.Name)
+		DEBUG("[%s] successfully restored", info.Name)
 	}
 	DEBUG("DONE")
 	return nil
