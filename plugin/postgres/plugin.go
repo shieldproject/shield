@@ -27,7 +27,8 @@ type PostgresConnectionInfo struct {
 	Port     string
 	User     string
 	Password string
-	DB       string
+	BDB      string
+	RDB      string
 	DumpArgs string
 	Bin      string
 }
@@ -43,7 +44,7 @@ func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	setupEnvironmentVariables(pg)
-	return plugin.Exec(fmt.Sprintf("%s/pg_dump %s -cC --format p --no-password %s", pg.Bin, pg.DumpArgs, pg.DB), plugin.STDOUT)
+	return plugin.Exec(fmt.Sprintf("%s/pg_dump %s -cC --format p --no-password %s", pg.Bin, pg.DumpArgs, pg.BDB), plugin.STDOUT)
 }
 
 func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
@@ -53,7 +54,7 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	setupEnvironmentVariables(pg)
-	return plugin.Exec(fmt.Sprintf("%s/psql -d %s", pg.Bin, pg.DB), plugin.STDIN)
+	return plugin.Exec(fmt.Sprintf("%s/psql -d %s", pg.Bin, pg.RDB), plugin.STDIN)
 }
 
 func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
@@ -96,10 +97,15 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 		return nil, err
 	}
 
-	db, err := endpoint.StringValue("pg_database")
-	if err != nil {
-		return nil, err
-	}
+  bdb, err := endpoint.StringValue("pg_db_tobkp")
+  if err != nil {
+  	return nil, err
+  }
+
+	rdb, err := endpoint.StringValue("pg_db_tores")
+  if err != nil {
+  	return nil, err
+  }
 
 	bin, err := endpoint.StringValue("pg_bindir")
 	if err != nil {
@@ -116,7 +122,8 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 		Port:     port,
 		User:     user,
 		Password: password,
-		DB:       db,
+		BDB:      bdb,
+		RDB:      rdb,
 		DumpArgs: dumpArgs,
 		Bin:      bin,
 	}, nil
