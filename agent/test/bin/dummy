@@ -86,7 +86,7 @@ JSON
 	[[ -z "${KEY}" ]] && bail "restore operation requires the --key argument"
 	diag "restoring data for key [$KEY]"
 	# different fake data...
-	echo "data for ${KEY}"
+	echo "data for ${KEY}" | bzip2
 	diag "shutting down..."
 	exit 0
 	;;

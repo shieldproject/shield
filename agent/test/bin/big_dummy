@@ -110,8 +110,7 @@ JSON
 	plugin_options "$@"
 	[[ -z "${KEY}" ]] && bail "restore operation requires the --key argument"
 	diag "restoring data for key [$KEY]"
-	echo "data for ${KEY}"
-	echo $(fake_data)
+	echo "data for ${KEY}\n$(fake_data)\n" | bzip2
 	diag "shutting down..."
 	exit 0
 	;;

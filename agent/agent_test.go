@@ -369,7 +369,7 @@ var _ = Describe("Agent", func() {
 			var s string
 			Eventually(out).Should(Receive(&s)) // stdout
 			// sha1sum value depends on bzip2 compression
-			Ω(s).Should(Equal("SHA1SUM of restored data: da39a3ee5e6b4b0d3255bfef95601890afd80709\n"))
+			Ω(s).Should(Equal("SHA1SUM of restored data: 5736538c1c1fcae2a7aac709e195c709735b90a7\n"))
 
 			Eventually(out).Should(Receive(&s)) // stderr
 			Eventually(out).Should(Receive(&s)) // misc
@@ -418,7 +418,6 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("handles non-existent plugin commands for just target", func() {
-			Skip("bin/shield-pipe needs some more work before the source command (target plugin, in this case) as ENOENT triggers a non-zero exit status")
 			out := make(chan string)
 			c := make(chan string)
 
@@ -431,6 +430,7 @@ var _ = Describe("Agent", func() {
 
 			var s string
 			Eventually(out).Should(Receive(&s)) // stdout
+			Skip("bin/shield-pipe/Run() needs some more work to suppress output in case of failure?")
 			Ω(s).Should(Equal(""))
 			Eventually(out).Should(Receive(&s)) // stderr
 			Ω(s).ShouldNot(Equal(""))
