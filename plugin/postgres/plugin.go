@@ -32,9 +32,6 @@ type PostgresConnectionInfo struct {
 	Port     string
 	User     string
 	Password string
-	BDB      string
-	RDB      string
-	DumpArgs string
 	Bin      string
 }
 
@@ -49,7 +46,7 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	}
 
 	setupEnvironmentVariables(pg)
-	cmd := fmt.Sprintf("%s/pg_dump %s -cC --format p --no-password %s", pg.Bin, pg.DumpArgs, pg.BDB)
+	cmd := fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
 	DEBUG("Executing: `%s`", cmd)
 	return Exec(cmd, STDOUT)
 }
@@ -75,7 +72,7 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 		for b.Scan() {
 			m := reg.FindStringSubmatch(b.Text())
 			if len(m) > 0 {
-				DEBUG("Match found: %s", m[1])
+				DEBUG("Found dropped database: %s", m[1])
 				out.Write([]byte(fmt.Sprintf("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '%s';\n", m[1])))
 				out.Write([]byte(fmt.Sprintf("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';\n", m[1])))
 			}
@@ -102,6 +99,7 @@ func (p PostgresPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 }
 
 func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
+	DEBUG("Setting up env:\n   PGUSER=%s, PGPASSWORD=%s, PGHOST=%s, PGPORT=%s", pg.User, pg.Password, pg.Host, pg.Port)
 	os.Setenv("PGUSER", pg.User)
 	os.Setenv("PGPASSWORD", pg.Password)
 	os.Setenv("PGHOST", pg.Host)
@@ -113,50 +111,37 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	if err != nil {
 		return nil, err
 	}
+	DEBUG("PGUSER: '%s'", user)
 
 	password, err := endpoint.StringValue("pg_password")
 	if err != nil {
 		return nil, err
 	}
+	DEBUG("PGPASSWORD: '%s'", password)
 
 	host, err := endpoint.StringValue("pg_host")
 	if err != nil {
 		return nil, err
 	}
+	DEBUG("PGHOST: '%s'", host)
 
 	port, err := endpoint.StringValue("pg_port")
 	if err != nil {
 		return nil, err
 	}
-
-	bdb, err := endpoint.StringValue("pg_db_tobkp")
-	if err != nil {
-		return nil, err
-	}
-
-	rdb, err := endpoint.StringValue("pg_db_tores")
-	if err != nil {
-		return nil, err
-	}
+	DEBUG("PGPORT: '%s'", port)
 
 	bin, err := endpoint.StringValue("pg_bindir")
 	if err != nil {
 		return nil, err
 	}
-
-	dumpArgs, err := endpoint.StringValue("pg_dump_args")
-	if err != nil {
-		return nil, err
-	}
+	DEBUG("PGBINDIR: '%s'", bin)
 
 	return &PostgresConnectionInfo{
 		Host:     host,
 		Port:     port,
 		User:     user,
 		Password: password,
-		BDB:      bdb,
-		RDB:      rdb,
-		DumpArgs: dumpArgs,
 		Bin:      bin,
 	}, nil
 }
