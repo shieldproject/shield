@@ -60,6 +60,8 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	setupEnvironmentVariables(pg)
 
 	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres")
+	DEBUG("Exec: %s/psql -d postgres", pg.Bin)
+	DEBUG("Redirecting stdout and stderr to stderr")
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	stdin, err := cmd.StdinPipe()
@@ -69,10 +71,11 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	go func(out io.WriteCloser, in io.Reader) {
 		b := bufio.NewScanner(in)
 		reg := regexp.MustCompile("^DROP DATABASE (.*);$")
+		i := 1
 		for b.Scan() {
 			m := reg.FindStringSubmatch(b.Text())
 			if len(m) > 0 {
-				DEBUG("Found dropped database: %s", m[1])
+				DEBUG("Found dropped database '%s' on line %d", m[1], i)
 				out.Write([]byte(fmt.Sprintf("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '%s';\n", m[1])))
 				out.Write([]byte(fmt.Sprintf("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';\n", m[1])))
 			}
@@ -80,6 +83,7 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			if err != nil {
 				DEBUG("Scanner had an error: %s", err)
 			}
+			i++
 		}
 		out.Close()
 	}(stdin, os.Stdin)
