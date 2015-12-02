@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"github.com/starkandwayne/shield/plugin"
+	"io"
 	"os"
+	"os/exec"
+	"regexp"
+
+	"github.com/starkandwayne/shield/plugin"
 )
 
 func main() {
@@ -56,7 +61,32 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	setupEnvironmentVariables(pg)
-	return plugin.Exec(fmt.Sprintf("%s/psql -d %s", pg.Bin, pg.RDB), plugin.STDIN)
+
+	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres")
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+	go func(out io.WriteCloser, in io.Reader) {
+		b := bufio.NewScanner(in)
+		reg := regexp.MustCompile("^DROP DATABASE (.*);$")
+		for b.Scan() {
+			m := reg.FindStringSubmatch(b.Text())
+			if len(m) > 0 {
+				plugin.DEBUG("Match found: %s", m[1])
+				out.Write([]byte(fmt.Sprintf("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '%s';\n", m[1])))
+				out.Write([]byte(fmt.Sprintf("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';\n", m[1])))
+			}
+			_, err = out.Write([]byte(b.Text() + "\n"))
+			if err != nil {
+				plugin.DEBUG("Scanner had an error: %s", err)
+			}
+		}
+		out.Close()
+	}(stdin, os.Stdin)
+	return cmd.Run()
 }
 
 func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
