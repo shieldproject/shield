@@ -1,5 +1,5 @@
 # S.H.I.E.L.D. Backup Solution
-
+[![Build Status](https://travis-ci.org/starkandwayne/shield.svg)](https://travis-ci.org/starkandwayne/shield)
 
 ## Project Goal
 The goal of this project is to build a standalone system that can perform backup and restore functions for a wide variety of pluggable data systems (like Redis, PostgreSQL, MySQL, RabbitMQ, etc.), storing backup data in pluggable storage solutions (i.e. local files, S3 blobstore, etc.).
