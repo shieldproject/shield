@@ -68,6 +68,14 @@ func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	// start a tar stream
 	archive := NewArchiveWriter(os.Stdout)
 
+	// determine our working dir for backup buffer files
+	tmpdir, err := endpoint.StringValue("/tmp")
+	if err != nil {
+		tmpdir = "/var/vcap/store/tmp"
+	}
+	os.Mkdir(tmpdir, 0755)
+
+	fail := MultiError{Message: fmt.Sprintf("failed to backup all %d postgres containers", len(registry))}
 	i := 0
 	for _, info := range registry {
 		i++
@@ -75,30 +83,49 @@ func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 		// extract the Postgres URI from the container environment and network settings
 		uri, err := pgURI(info)
 		if err != nil {
-			DEBUG("[%s] failed to generate pg URI: %s", info.Name, err)
+			fail.Appendf("[%s] failed to generate postgres URI: %s", info.Name, err)
 			continue
 		}
 		DEBUG("[%s] connecting to %s", info.Name, uri)
 
 		// dump the Postgres database to a temporary file
-		data, err := pgdump(uri)
+		data, err := ioutil.TempFile(tmpdir, "pgdump")
 		if err != nil {
-			DEBUG("[%s] failed to dump the database: %s", info.Name, err)
+			fail.Appendf("[%s] failed to create a temporary file: %s", info.Name, err)
+			continue
+		}
+		err = pgdump(uri, data)
+		if err != nil {
+			fail.Appendf("[%s] failed to dump the database: %s", info.Name, err)
+
+			// remove the temp file
+			data.Close()
+			os.Remove(data.Name())
 			continue
 		}
 
 		// write the metadata and the backup data to the archive
 		err = archive.Write(info.Name, info, data)
-		data.Close()
 		if err != nil {
-			DEBUG("[%s] failed to write backup #%d to archive: %s", info.Name, i, err)
+			fail.Appendf("[%s] failed to write backup #%d to archive: %s", info.Name, i, err)
+
+			// remove the temp file
+			data.Close()
+			os.Remove(data.Name())
 			continue
 		}
+
+		// remove the temp file
+		data.Close()
+		os.Remove(data.Name())
 
 		DEBUG("[%s] wrote backup #%d to archive", info.Name, i)
 	}
 	archive.Close()
 	DEBUG("DONE")
+	if fail.Valid() {
+		return fail
+	}
 	return nil
 }
 
@@ -116,8 +143,9 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	}
 	DEBUG("found %d running containers", len(registry))
 
+	fail := MultiError{Message: "failed to restore all postgres containers"}
+
 	// treat stdin as a tar stream
-	//archive := tar.NewReader(os.Stdin)
 	archive := NewArchiveReader(os.Stdin)
 	for {
 		var info docker.Container
@@ -127,7 +155,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			break
 		}
 		if err != nil {
-			DEBUG("[%s] failed to retrieve backup from archive: %s", info.Name, err)
+			fail.Appendf("[%s] failed to retrieve backup from archive: %s", info.Name, err)
 			break
 		}
 
@@ -140,7 +168,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 				Force:         true,
 			})
 			if err != nil {
-				DEBUG("[%s] error removing existing container [%s]: %s", info.Name, existing.ID, err)
+				fail.Appendf("[%s] error removing existing container [%s]: %s", info.Name, existing.ID, err)
 				continue
 			}
 		}
@@ -149,7 +177,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 		for _, bind := range info.HostConfig.Binds {
 			parts := strings.Split(bind, ":")
 			if len(parts) != 2 {
-				DEBUG("[%s] volume %s seems malformed...", info.Name, bind)
+				fail.Appendf("[%s] volume %s seems malformed...", info.Name, bind)
 				continue
 			}
 
@@ -166,32 +194,35 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			HostConfig: info.HostConfig,
 		})
 		if err != nil {
-			DEBUG("[%s] deploy failed: %s", info.Name, err)
+			fail.Appendf("[%s] deploy failed: %s", info.Name, err)
 			continue
 		}
 		DEBUG("[%s] starting container", info.Name)
 		err = c.StartContainer(newContainer.ID, info.HostConfig)
 		if err != nil {
-			DEBUG("[%s] start failed: %s", info.Name, err)
+			fail.Appendf("[%s] start failed: %s", info.Name, err)
 			continue
 		}
 
 		// read backup data, piping to pgrestore process
 		uri, err := pgURI(&info)
 		if err != nil {
-			DEBUG("[%s] failed to generate pg URI: %s", info.Name, err)
+			fail.Appendf("[%s] failed to generate pg URI: %s", info.Name, err)
 			continue
 		}
 		DEBUG("[%s] connecting to %s", info.Name, uri)
 		waitForPostgres(uri, 60)
 		err = pgrestore(uri, data)
 		if err != nil {
-			DEBUG("[%s] restore failed: %s", info.Name, err)
+			fail.Appendf("[%s] restore failed: %s", info.Name, err)
 			continue
 		}
 		DEBUG("[%s] successfully restored", info.Name)
 	}
 	DEBUG("DONE")
+	if fail.Valid() {
+		return fail
+	}
 	return nil
 }
 
@@ -255,6 +286,7 @@ func pgURI(container *docker.Container) (string, error) {
 
 func waitForPostgres(uri string, seconds int) {
 	DEBUG("waiting up to %d seconds for connection to %s to succeed", seconds, uri)
+	DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/psql %s`)", uri)
 	for seconds > 0 {
 		cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/psql", uri)
 		err := cmd.Run()
@@ -268,22 +300,18 @@ func waitForPostgres(uri string, seconds int) {
 	DEBUG("connection to %s ultimately failed", uri)
 }
 
-func pgdump(uri string) (*os.File, error) {
-	file, err := ioutil.TempFile("", "pgdump")
-	if err != nil {
-		return nil, err
-	}
-
+func pgdump(uri string, file *os.File) error {
 	// FIXME: make it possible to select what version of postgres (9.x, 8.x, etc.)
+	DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/pg_dump -cC --format p -d %s`)", uri)
 	cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/pg_dump", "-cC", "--format", "p", "-d", uri)
 	cmd.Stdout = file
 
-	err = cmd.Run()
-	return file, err
+	return cmd.Run()
 }
 
 func pgrestore(uri string, in io.Reader) error {
 	// FIXME: make it possible to select what version of postgres (9.x, 8.x, etc.)
+	DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/psql %s`)", uri)
 	cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/psql", uri)
 	cmd.Stdin = in // what about the call to Close()?
 
