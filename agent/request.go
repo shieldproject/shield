@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/starkandwayne/goutils/log"
 	"io"
+	"log/syslog"
 	"os"
 	"os/exec"
 	"strings"
@@ -86,6 +87,10 @@ func (req *Request) Run(output chan string) error {
 		fmt.Sprintf("SHIELD_TARGET_PLUGIN=%s", req.TargetPlugin),
 		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", req.TargetEndpoint),
 		fmt.Sprintf("SHIELD_RESTORE_KEY=%s", req.RestoreKey),
+	}
+
+	if log.LogLevel() == syslog.LOG_DEBUG {
+		cmd.Env = append(cmd.Env, "DEBUG=true")
 	}
 
 	log.Debugf("ENV: %s", strings.Join(cmd.Env, ","))

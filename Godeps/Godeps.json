@@ -105,7 +105,7 @@
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/log",
-			"Rev": "f044002dcb9142af0a510d3d88e06af529c489e2"
+			"Rev": "2ed57be1d34986a6c3fb4c7c6b94d8fe75ea8cdd"
 		},
 		{
 			"ImportPath": "github.com/voxelbrain/goptions",

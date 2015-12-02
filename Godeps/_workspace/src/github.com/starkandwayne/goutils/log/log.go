@@ -140,6 +140,11 @@ func Emergf(msg string, args ...interface{}) {
 	}
 }
 
+// Retreives the currently configured log level
+func LogLevel() syslog.Priority {
+	return log.level
+}
+
 // Validates the log level based on config strings
 func get_level(level string) syslog.Priority {
 	var priority syslog.Priority

@@ -44,7 +44,9 @@ func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	setupEnvironmentVariables(pg)
-	return plugin.Exec(fmt.Sprintf("%s/pg_dump %s -cC --format p --no-password %s", pg.Bin, pg.DumpArgs, pg.BDB), plugin.STDOUT)
+	cmd := fmt.Sprintf("%s/pg_dump %s -cC --format p --no-password %s", pg.Bin, pg.DumpArgs, pg.BDB)
+	plugin.DEBUG("Executing: `%s`", cmd)
+	return plugin.Exec(cmd, plugin.STDOUT)
 }
 
 func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
@@ -97,15 +99,15 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 		return nil, err
 	}
 
-  bdb, err := endpoint.StringValue("pg_db_tobkp")
-  if err != nil {
-  	return nil, err
-  }
+	bdb, err := endpoint.StringValue("pg_db_tobkp")
+	if err != nil {
+		return nil, err
+	}
 
 	rdb, err := endpoint.StringValue("pg_db_tores")
-  if err != nil {
-  	return nil, err
-  }
+	if err != nil {
+		return nil, err
+	}
 
 	bin, err := endpoint.StringValue("pg_bindir")
 	if err != nil {
