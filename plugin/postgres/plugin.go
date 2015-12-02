@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"regexp"
 
-	"github.com/starkandwayne/shield/plugin"
+	. "github.com/starkandwayne/shield/plugin"
 )
 
 func main() {
@@ -16,16 +16,16 @@ func main() {
 		Name:    "PostgreSQL Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
-		Features: plugin.PluginFeatures{
+		Features: PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
 	}
 
-	plugin.Run(p)
+	Run(p)
 }
 
-type PostgresPlugin plugin.PluginInfo
+type PostgresPlugin PluginInfo
 
 type PostgresConnectionInfo struct {
 	Host     string
@@ -38,11 +38,11 @@ type PostgresConnectionInfo struct {
 	Bin      string
 }
 
-func (p PostgresPlugin) Meta() plugin.PluginInfo {
-	return plugin.PluginInfo(p)
+func (p PostgresPlugin) Meta() PluginInfo {
+	return PluginInfo(p)
 }
 
-func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	pg, err := pgConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -50,11 +50,11 @@ func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	setupEnvironmentVariables(pg)
 	cmd := fmt.Sprintf("%s/pg_dump %s -cC --format p --no-password %s", pg.Bin, pg.DumpArgs, pg.BDB)
-	plugin.DEBUG("Executing: `%s`", cmd)
-	return plugin.Exec(cmd, plugin.STDOUT)
+	DEBUG("Executing: `%s`", cmd)
+	return Exec(cmd, STDOUT)
 }
 
-func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	pg, err := pgConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -75,13 +75,13 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		for b.Scan() {
 			m := reg.FindStringSubmatch(b.Text())
 			if len(m) > 0 {
-				plugin.DEBUG("Match found: %s", m[1])
+				DEBUG("Match found: %s", m[1])
 				out.Write([]byte(fmt.Sprintf("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '%s';\n", m[1])))
 				out.Write([]byte(fmt.Sprintf("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';\n", m[1])))
 			}
 			_, err = out.Write([]byte(b.Text() + "\n"))
 			if err != nil {
-				plugin.DEBUG("Scanner had an error: %s", err)
+				DEBUG("Scanner had an error: %s", err)
 			}
 		}
 		out.Close()
@@ -89,16 +89,16 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return cmd.Run()
 }
 
-func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p PostgresPlugin) Store(endpoint ShieldEndpoint) (string, error) {
+	return "", UNIMPLEMENTED
 }
 
-func (p PostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
+func (p PostgresPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
+	return UNIMPLEMENTED
 }
 
-func (p PostgresPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
+func (p PostgresPlugin) Purge(endpoint ShieldEndpoint, file string) error {
+	return UNIMPLEMENTED
 }
 
 func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
@@ -108,7 +108,7 @@ func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
 	os.Setenv("PGPORT", pg.Port)
 }
 
-func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, error) {
+func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) {
 	user, err := endpoint.StringValue("pg_user")
 	if err != nil {
 		return nil, err
