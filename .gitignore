@@ -8,6 +8,7 @@
 /postgres
 /redis-broker
 /s3
+/directory-tree
 
 # ignore vim buffers
 .*.sw?
