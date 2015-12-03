@@ -26,13 +26,6 @@ type Archive struct {
 	StoreEndpoint  string `json:"store_endpoint"`
 }
 
-func FetchListArchives(plugin, unused string) ([]Archive, error) {
-	return GetArchives(ArchiveFilter{
-		Plugin: plugin,
-		Unused: MaybeString(unused),
-	})
-}
-
 func GetArchives(filter ArchiveFilter) ([]Archive, error) {
 	uri := ShieldURI("/v1/archives")
 	uri.MaybeAddParameter("plugin", filter.Plugin)

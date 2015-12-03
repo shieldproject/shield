@@ -15,12 +15,6 @@ type ScheduleFilter struct {
 	Unused YesNo
 }
 
-func FetchListSchedules(unused string) ([]Schedule, error) {
-	return GetSchedules(ScheduleFilter{
-		Unused: MaybeString(unused),
-	})
-}
-
 func GetSchedules(filter ScheduleFilter) ([]Schedule, error) {
 	uri := ShieldURI("/v1/schedules")
 	uri.MaybeAddParameter("unused", filter.Unused)

@@ -18,13 +18,6 @@ type TargetFilter struct {
 	Unused YesNo
 }
 
-func FetchTargetsList(plugin, unused string) ([]Target, error) {
-	return GetTargets(TargetFilter{
-		Plugin: plugin,
-		Unused: MaybeString(unused),
-	})
-}
-
 func GetTargets(filter TargetFilter) ([]Target, error) {
 	uri := ShieldURI("/v1/targets")
 	uri.MaybeAddParameter("plugin", filter.Plugin)

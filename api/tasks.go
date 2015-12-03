@@ -23,14 +23,6 @@ type TaskFilter struct {
 	Debug  YesNo
 }
 
-func FetchListTasks(status string, debugFlag bool) ([]Task, error) {
-	// FIXME: legacy
-	return GetTasks(TaskFilter{
-		Status: status,
-		Debug:  Maybe(debugFlag),
-	})
-}
-
 func GetTasks(filter TaskFilter) ([]Task, error) {
 	uri := ShieldURI("/v1/tasks")
 	uri.MaybeAddParameter("status", filter.Status)

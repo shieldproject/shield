@@ -57,24 +57,22 @@ func init() {
 }
 
 func processListStoresRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	unused := parseTristateOptions(cmd, "unused", "used")
-
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
 		//FIXME  show help
 		os.Exit(1)
 	}
 
-	// Fetch
-	data, err := FetchStoresList(pluginFilter, unused)
+	stores, err := GetStores(StoreFilter{
+		Plugin: pluginFilter,
+		Unused: MaybeString(parseTristateOptions(cmd, "unused", "used")),
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of stores:\n", err)
 	}
 
 	t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
-	for _, store := range data {
+	for _, store := range stores {
 		t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 	}
 	t.Output(os.Stdout)
@@ -99,7 +97,6 @@ func processCreateStoreRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following content:\n\n", content)
 
-	// Fetch
 	data, err := CreateStore(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of stores:\n", err)
@@ -128,7 +125,6 @@ func processShowStoreRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	data, err := GetStore(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show store:\n", err)
@@ -157,7 +153,6 @@ func processEditStoreRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	original_data, err := GetStore(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show store:\n", err)
@@ -176,7 +171,6 @@ func processEditStoreRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following edited store:\n\n", content)
 
-	// Fetch
 	update_data, err := UpdateStore(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update stores:\n", err)
@@ -204,7 +198,6 @@ func processDeleteStoreRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := DeleteStore(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete store:\n", err)

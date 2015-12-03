@@ -98,8 +98,10 @@ func processListArchivesRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Fetch
-	data, err := FetchListArchives(pluginFilter, unused)
+	archives, err := GetArchives(ArchiveFilter{
+		Plugin: pluginFilter,
+		Unused: MaybeString(unused),
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of archives:\n", err)
 	}
@@ -110,7 +112,7 @@ func processListArchivesRequest(cmd *cobra.Command, args []string) {
 	for _, t := range targets {
 		target[t.UUID] = t
 	}
-	for _, archive := range data {
+	for _, archive := range archives {
 		t.Row(archive.UUID, archive.TargetPlugin, target[archive.TargetUUID].Name, archive.StorePlugin,
 			archive.TakenAt.Format(time.RFC1123Z),
 			archive.ExpiresAt.Format(time.RFC1123Z),
@@ -157,7 +159,6 @@ func processEditArchiveRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	original_data, err := GetArchive(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show archive:\n", err)
@@ -176,7 +177,6 @@ func processEditArchiveRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following edited archive:\n\n", content)
 
-	// Fetch
 	update_data, err := UpdateArchive(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update archives:\n", err)
@@ -204,7 +204,6 @@ func processDeleteArchiveRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := DeleteArchive(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete archive:\n", err)
@@ -233,7 +232,6 @@ func processRestoreArchiveRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := RestoreArchive(requested_UUID, archiveRestoreTo)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not restore archive:\n", err)

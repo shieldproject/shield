@@ -65,24 +65,22 @@ func init() {
 }
 
 func processListTargetsRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	unused := parseTristateOptions(cmd, "unused", "used")
-
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
 		//FIXME  show help
 		os.Exit(1)
 	}
 
-	// Fetch
-	data, err := FetchTargetsList(pluginFilter, unused)
+	targets, err := GetTargets(TargetFilter{
+		Plugin: pluginFilter,
+		Unused: MaybeString(parseTristateOptions(cmd, "unused", "used")),
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
 	}
 
 	t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
-	for _, target := range data {
+	for _, target := range targets {
 		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
 	}
 	t.Output(os.Stdout)
@@ -109,7 +107,6 @@ func processCreateTargetRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following content:\n\n", content)
 
-	// Fetch
 	data, err := CreateTarget(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
@@ -138,7 +135,6 @@ func processShowTargetRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	data, err := GetTarget(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show target:\n", err)
@@ -167,7 +163,6 @@ func processEditTargetRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	original_data, err := GetTarget(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show target:\n", err)
@@ -186,7 +181,6 @@ func processEditTargetRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following edited target:\n\n", content)
 
-	// Fetch
 	update_data, err := UpdateTarget(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update targets:\n", err)
@@ -214,7 +208,6 @@ func processDeleteTargetRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := DeleteTarget(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete target:\n", err)

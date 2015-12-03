@@ -119,7 +119,6 @@ func processCreateJobRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following content:\n\n", content)
 
-	// Fetch
 	data, err := CreateJob(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
@@ -139,28 +138,29 @@ func processCreateJobRequest(cmd *cobra.Command, args []string) {
 }
 
 func processListJobsRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	pausedFilter := parseTristateOptions(cmd, "paused", "unpaused")
-	storeUUID, _ := cmd.Flags().GetString("store")
-	targetUUID, _ := cmd.Flags().GetString("target")
-	scheduleUUID, _ := cmd.Flags().GetString("schedule")
-	retentionUUID, _ := cmd.Flags().GetString("retention")
-
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
 		//FIXME  show help
 		os.Exit(1)
 	}
 
-	// Fetch
-	data, err := FetchListJobs(targetUUID, storeUUID, scheduleUUID, retentionUUID, pausedFilter)
+	storeUUID, _ := cmd.Flags().GetString("store")
+	targetUUID, _ := cmd.Flags().GetString("target")
+	scheduleUUID, _ := cmd.Flags().GetString("schedule")
+	retentionUUID, _ := cmd.Flags().GetString("retention")
+	jobs, err := GetJobs(JobFilter{
+		Target:    targetUUID,
+		Store:     storeUUID,
+		Schedule:  scheduleUUID,
+		Retention: retentionUUID,
+		Paused:    MaybeString(parseTristateOptions(cmd, "paused", "unpaused")),
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of jobs:\n", err)
 	}
 
 	t := tui.NewTable("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
-	for _, job := range data {
+	for _, job := range jobs {
 		paused := "-"
 		if job.Paused {
 			paused = "Y"
@@ -182,7 +182,6 @@ func processShowJobRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	data, err := GetJob(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show job:\n", err)
@@ -211,7 +210,6 @@ func processEditJobRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	original_data, err := GetJob(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show job:\n", err)
@@ -230,7 +228,6 @@ func processEditJobRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following edited job:\n\n", content)
 
-	// Fetch
 	update_data, err := UpdateJob(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update jobs:\n", err)
@@ -258,7 +255,6 @@ func processDeleteJobRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := DeleteJob(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete job:\n", err)
@@ -284,7 +280,6 @@ func processRunJobRequest(cmd *cobra.Command, args []string) {
 	// FIXME when owner can be passed in or otherwise fetched
 	content := "{\"owner\":\"anon\"}"
 
-	// Fetch
 	err := RunJob(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not run job:\n", err)
@@ -306,7 +301,6 @@ func processPauseJobRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := PauseJob(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not pause job:\n", err)
@@ -328,7 +322,6 @@ func processUnpauseJobRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := UnpauseJob(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not run jobs:\n", err)
@@ -350,7 +343,6 @@ func processPausedJobRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	paused, err := IsPausedJob(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not pause job:\n", err)

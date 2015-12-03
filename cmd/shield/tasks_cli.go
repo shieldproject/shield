@@ -50,25 +50,24 @@ func init() {
 }
 
 func processListTasksRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	debug, _ := cmd.Flags().GetBool("debug")
-	status, _ := cmd.Flags().GetString("status")
-
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
 		//FIXME  show help
 		os.Exit(1)
 	}
 
-	// Fetch
-	data, err := FetchListTasks(status, debug)
+	debug, _ := cmd.Flags().GetBool("debug")
+	status, _ := cmd.Flags().GetString("status")
+	tasks, err := GetTasks(TaskFilter{
+		Status: status,
+		Debug:  Maybe(debug),
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of tasks:\n", err)
 	}
 
 	t := tui.NewTable("UUID", "Owner", "Type", "Status", "Started", "Stopped")
-	for _, task := range data {
+	for _, task := range tasks {
 		started := "(pending)"
 		if !task.StartedAt.IsZero() {
 			started = task.StartedAt.Format(time.RFC1123Z)
@@ -94,7 +93,6 @@ func processShowTaskRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	data, err := GetTask(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show task:\n", err)
@@ -123,7 +121,6 @@ func processCancelTaskRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := CancelTask(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not cancel task:\n", err)

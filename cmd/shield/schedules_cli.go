@@ -64,24 +64,21 @@ func init() {
 }
 
 func processListSchedulesRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	unused := parseTristateOptions(cmd, "unused", "used")
-
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
 		//FIXME  show help
 		os.Exit(1)
 	}
 
-	// Fetch
-	data, err := FetchListSchedules(unused)
+	schedules, err := GetSchedules(ScheduleFilter{
+		Unused: MaybeString(parseTristateOptions(cmd, "unused", "used")),
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
 	}
 
 	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval")
-	for _, schedule := range data {
+	for _, schedule := range schedules {
 		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 	}
 	t.Output(os.Stdout)
@@ -105,7 +102,6 @@ func processCreateScheduleRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following content:\n\n", content)
 
-	// Fetch
 	data, err := CreateSchedule(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
@@ -134,7 +130,6 @@ func processShowScheduleRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	data, err := GetSchedule(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show schedule:\n", err)
@@ -163,7 +158,6 @@ func processUpdateScheduleRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	original_data, err := GetSchedule(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show schedule:\n", err)
@@ -182,7 +176,6 @@ func processUpdateScheduleRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following edited schedule:\n\n", content)
 
-	// Fetch
 	update_data, err := UpdateSchedule(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update schedules:\n", err)
@@ -210,7 +203,6 @@ func processDeleteScheduleRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := DeleteSchedule(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete schedule:\n", err)

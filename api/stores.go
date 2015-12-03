@@ -17,13 +17,6 @@ type StoreFilter struct {
 	Unused YesNo
 }
 
-func FetchStoresList(plugin, unused string) ([]Store, error) {
-	return GetStores(StoreFilter{
-		Plugin: plugin,
-		Unused: MaybeString(unused),
-	})
-}
-
 func GetStores(filter StoreFilter) ([]Store, error) {
 	uri := ShieldURI("/v1/stores")
 	uri.MaybeAddParameter("plugin", filter.Plugin)

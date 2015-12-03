@@ -96,8 +96,7 @@ func processListRetentionsRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Fetch
-	data, err := GetRetentionPolicies(RetentionPoliciesFilter{
+	policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
 		Unused: MaybeString(parseTristateOptions(cmd, "unused", "used")),
 	})
 	if err != nil {
@@ -105,7 +104,7 @@ func processListRetentionsRequest(cmd *cobra.Command, args []string) {
 	}
 
 	t := tui.NewTable("UUID", "Name", "Description", "Expires in")
-	for _, policy := range data {
+	for _, policy := range policies {
 		t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 	}
 	t.Output(os.Stdout)
@@ -129,7 +128,6 @@ func processCreateRetentionRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following content:\n\n", content)
 
-	// Fetch
 	data, err := CreateRetentionPolicy(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of retentions:\n", err)
@@ -158,7 +156,6 @@ func processShowRetentionRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	data, err := GetRetentionPolicy(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show retention:\n", err)
@@ -187,7 +184,6 @@ func processUpdateRetentionRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	original_data, err := GetRetentionPolicy(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show retention:\n", err)
@@ -206,7 +202,6 @@ func processUpdateRetentionRequest(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Got the following edited retention:\n\n", content)
 
-	// Fetch
 	update_data, err := UpdateRetentionPolicy(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update retentions:\n", err)
@@ -234,7 +229,6 @@ func processDeleteRetentionRequest(cmd *cobra.Command, args []string) {
 
 	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	err := DeleteRetentionPolicy(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete retention:\n", err)

@@ -32,16 +32,6 @@ type JobFilter struct {
 	Paused    YesNo
 }
 
-func FetchListJobs(target, store, schedule, retention, paused string) ([]Job, error) {
-	return GetJobs(JobFilter{
-		Target:    target,
-		Store:     store,
-		Schedule:  schedule,
-		Retention: retention,
-		Paused:    MaybeString(paused),
-	})
-}
-
 func GetJobs(filter JobFilter) ([]Job, error) {
 	uri := ShieldURI("/v1/jobs")
 	uri.MaybeAddParameter("target", filter.Target)
