@@ -1,35 +1,39 @@
 package api
 
-import (
-	"github.com/starkandwayne/shield/db"
-)
+type Store struct {
+	UUID     string `json:"uuid"`
+	Name     string `json:"name"`
+	Summary  string `json:"summary"`
+	Plugin   string `json:"plugin"`
+	Endpoint string `json:"endpoint"`
+}
 
 type StoreFilter struct {
 	Plugin string
 	Unused YesNo
 }
 
-func FetchStoresList(plugin, unused string) (*[]db.AnnotatedStore, error) {
+func FetchStoresList(plugin, unused string) ([]Store, error) {
 	return GetStores(StoreFilter{
 		Plugin: plugin,
 		Unused: MaybeString(unused),
 	})
 }
 
-func GetStores(filter StoreFilter) (*[]db.AnnotatedStore, error) {
+func GetStores(filter StoreFilter) ([]Store, error) {
 	uri := ShieldURI("/v1/stores")
 	uri.MaybeAddParameter("plugin", filter.Plugin)
 	uri.MaybeAddParameter("unused", filter.Unused)
-	data := &[]db.AnnotatedStore{}
+	var data []Store
 	return data, uri.Get(&data)
 }
 
-func GetStore(uuid string) (*db.AnnotatedStore, error) {
-	data := &db.AnnotatedStore{}
+func GetStore(uuid string) (Store, error) {
+	var data Store
 	return data, ShieldURI("/v1/store/%s", uuid).Get(&data)
 }
 
-func CreateStore(contentJSON string) (*db.AnnotatedStore, error) {
+func CreateStore(contentJSON string) (Store, error) {
 	data := struct {
 		UUID string `json:"uuid"`
 	}{}
@@ -37,15 +41,15 @@ func CreateStore(contentJSON string) (*db.AnnotatedStore, error) {
 	if err == nil {
 		return GetStore(data.UUID)
 	}
-	return nil, err
+	return Store{}, err
 }
 
-func UpdateStore(uuid string, contentJSON string) (*db.AnnotatedStore, error) {
+func UpdateStore(uuid string, contentJSON string) (Store, error) {
 	err := ShieldURI("/v1/store/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetStore(uuid)
 	}
-	return nil, err
+	return Store{}, err
 }
 
 func DeleteStore(uuid string) error {

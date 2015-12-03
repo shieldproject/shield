@@ -1,36 +1,41 @@
 package api
 
-import (
-	"github.com/starkandwayne/shield/db"
-)
+type Target struct {
+	UUID     string `json:"uuid"`
+	Name     string `json:"name"`
+	Summary  string `json:"summary"`
+	Plugin   string `json:"plugin"`
+	Endpoint string `json:"endpoint"`
+	Agent    string `json:"agent"`
+}
 
 type TargetFilter struct {
 	Plugin string
 	Unused YesNo
 }
 
-func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
+func FetchTargetsList(plugin, unused string) ([]Target, error) {
 	return GetTargets(TargetFilter{
 		Plugin: plugin,
 		Unused: MaybeString(unused),
 	})
 }
 
-func GetTargets(filter TargetFilter) (*[]db.AnnotatedTarget, error) {
+func GetTargets(filter TargetFilter) ([]Target, error) {
 	uri := ShieldURI("/v1/targets")
 	uri.MaybeAddParameter("plugin", filter.Plugin)
 	uri.MaybeAddParameter("unused", filter.Unused)
 
-	data := &[]db.AnnotatedTarget{}
+	var data []Target
 	return data, uri.Get(&data)
 }
 
-func GetTarget(uuid string) (*db.AnnotatedTarget, error) {
-	data := &db.AnnotatedTarget{}
+func GetTarget(uuid string) (Target, error) {
+	var data Target
 	return data, ShieldURI("/v1/targets/%s", uuid).Get(&data)
 }
 
-func CreateTarget(contentJSON string) (*db.AnnotatedTarget, error) {
+func CreateTarget(contentJSON string) (Target, error) {
 	data := struct {
 		UUID string `json:"uuid"`
 	}{}
@@ -38,15 +43,15 @@ func CreateTarget(contentJSON string) (*db.AnnotatedTarget, error) {
 	if err == nil {
 		return GetTarget(data.UUID)
 	}
-	return nil, err
+	return Target{}, err
 }
 
-func UpdateTarget(uuid string, contentJSON string) (*db.AnnotatedTarget, error) {
+func UpdateTarget(uuid string, contentJSON string) (Target, error) {
 	err := ShieldURI("/v1/target/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetTarget(uuid)
 	}
-	return nil, err
+	return Target{}, err
 }
 
 func DeleteTarget(uuid string) error {

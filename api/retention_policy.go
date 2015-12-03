@@ -1,27 +1,30 @@
 package api
 
-import (
-	"github.com/starkandwayne/shield/db"
-)
-
 type RetentionPoliciesFilter struct {
 	Unused YesNo
 }
 
-func GetRetentionPolicies(filter RetentionPoliciesFilter) (*[]db.AnnotatedRetentionPolicy, error) {
+type RetentionPolicy struct {
+	UUID    string `json:"uuid"`
+	Name    string `json:"name"`
+	Summary string `json:"summary"`
+	Expires uint   `json:"expires"`
+}
+
+func GetRetentionPolicies(filter RetentionPoliciesFilter) ([]RetentionPolicy, error) {
 	uri := ShieldURI("/v1/retention")
 	uri.MaybeAddParameter("unused", filter.Unused)
 
-	data := &[]db.AnnotatedRetentionPolicy{}
+	var data []RetentionPolicy
 	return data, uri.Get(&data)
 }
 
-func GetRetentionPolicy(uuid string) (*db.AnnotatedRetentionPolicy, error) {
-	data := &db.AnnotatedRetentionPolicy{}
+func GetRetentionPolicy(uuid string) (RetentionPolicy, error) {
+	var data RetentionPolicy
 	return data, ShieldURI("v1/retention/%s", uuid).Get(&data)
 }
 
-func CreateRetentionPolicy(contentJSON string) (*db.AnnotatedRetentionPolicy, error) {
+func CreateRetentionPolicy(contentJSON string) (RetentionPolicy, error) {
 	data := struct {
 		UUID string `json:"uuid"`
 	}{}
@@ -29,15 +32,15 @@ func CreateRetentionPolicy(contentJSON string) (*db.AnnotatedRetentionPolicy, er
 	if err == nil {
 		return GetRetentionPolicy(data.UUID)
 	}
-	return nil, err
+	return RetentionPolicy{}, err
 }
 
-func UpdateRetentionPolicy(uuid string, contentJSON string) (*db.AnnotatedRetentionPolicy, error) {
+func UpdateRetentionPolicy(uuid string, contentJSON string) (RetentionPolicy, error) {
 	err := ShieldURI("/v1/retention/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetRetentionPolicy(uuid)
 	}
-	return nil, err
+	return RetentionPolicy{}, err
 }
 
 func DeleteRetentionPolicy(uuid string) error {

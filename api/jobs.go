@@ -1,8 +1,24 @@
 package api
 
-import (
-	"github.com/starkandwayne/shield/db"
-)
+type Job struct {
+	UUID           string `json:"uuid"`
+	Name           string `json:"name"`
+	Summary        string `json:"summary"`
+	RetentionName  string `json:"retention_name"`
+	RetentionUUID  string `json:"retention_uuid"`
+	Expiry         int    `json:"expiry"`
+	ScheduleName   string `json:"schedule_name"`
+	ScheduleUUID   string `json:"schedule_uuid"`
+	Schedule       string `json:"schedule"`
+	Paused         bool   `json:"paused"`
+	StoreUUID      string `json:"store_uuid"`
+	StorePlugin    string `json:"store_plugin"`
+	StoreEndpoint  string `json:"store_endpoint"`
+	TargetUUID     string `json:"target_uuid"`
+	TargetPlugin   string `json:"target_plugin"`
+	TargetEndpoint string `json:"target_endpoint"`
+	Agent          string `json:"agent"`
+}
 
 type JobFilter struct {
 	Target    string
@@ -12,7 +28,7 @@ type JobFilter struct {
 	Paused    YesNo
 }
 
-func FetchListJobs(target, store, schedule, retention, paused string) (*[]db.AnnotatedJob, error) {
+func FetchListJobs(target, store, schedule, retention, paused string) ([]Job, error) {
 	return GetJobs(JobFilter{
 		Target:    target,
 		Store:     store,
@@ -22,7 +38,7 @@ func FetchListJobs(target, store, schedule, retention, paused string) (*[]db.Ann
 	})
 }
 
-func GetJobs(filter JobFilter) (*[]db.AnnotatedJob, error) {
+func GetJobs(filter JobFilter) ([]Job, error) {
 	uri := ShieldURI("/v1/jobs")
 	uri.MaybeAddParameter("target", filter.Target)
 	uri.MaybeAddParameter("store", filter.Store)
@@ -30,12 +46,12 @@ func GetJobs(filter JobFilter) (*[]db.AnnotatedJob, error) {
 	uri.MaybeAddParameter("retention", filter.Retention)
 	uri.MaybeAddParameter("paused", filter.Paused)
 
-	data := &[]db.AnnotatedJob{}
+	var data []Job
 	return data, uri.Get(&data)
 }
 
-func GetJob(uuid string) (*db.AnnotatedJob, error) {
-	data := &db.AnnotatedJob{}
+func GetJob(uuid string) (Job, error) {
+	var data Job
 	return data, ShieldURI("/v1/job/%s", uuid).Get(&data)
 }
 
@@ -49,7 +65,7 @@ func IsPausedJob(uuid string) (bool, error) {
 	return data.Paused, err
 }
 
-func CreateJob(contentJSON string) (*db.AnnotatedJob, error) {
+func CreateJob(contentJSON string) (Job, error) {
 	data := struct {
 		Status string `json:"ok"`
 		UUID   string `json:"uuid"`
@@ -58,15 +74,15 @@ func CreateJob(contentJSON string) (*db.AnnotatedJob, error) {
 	if err == nil {
 		return GetJob(data.UUID)
 	}
-	return nil, err
+	return Job{}, err
 }
 
-func UpdateJob(uuid string, contentJSON string) (*db.AnnotatedJob, error) {
+func UpdateJob(uuid string, contentJSON string) (Job, error) {
 	err := ShieldURI("/v1/job/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetJob(uuid)
 	}
-	return nil, err
+	return Job{}, err
 }
 
 func DeleteJob(uuid string) error {
