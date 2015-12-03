@@ -1,5 +1,9 @@
 package api
 
+import (
+	. "github.com/starkandwayne/shield/timestamp"
+)
+
 type ArchiveFilter struct {
 	Plugin string
 	Unused YesNo

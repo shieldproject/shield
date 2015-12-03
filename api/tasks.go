@@ -1,5 +1,9 @@
 package api
 
+import (
+	. "github.com/starkandwayne/shield/timestamp"
+)
+
 type Task struct {
 	UUID        string    `json:"uuid"`
 	Owner       string    `json:"owner"`

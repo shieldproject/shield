@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
+
+	. "github.com/starkandwayne/shield/timestamp"
 )
 
 type AnnotatedTask struct {

@@ -3,18 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"time"
 )
-
-type Timestamp time.Time
-
-func (t Timestamp) MarshalJSON() ([]byte, error) {
-	if time.Time(t).IsZero() {
-		return []byte("\"\""), nil
-	}
-	stamp := fmt.Sprintf("\"%s\"", time.Time(t).Format("2006-01-02 15:04:05"))
-	return []byte(stamp), nil
-}
 
 type YesNo struct {
 	On  bool

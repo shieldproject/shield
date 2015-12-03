@@ -6,14 +6,16 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
+
+	. "github.com/starkandwayne/shield/timestamp"
 )
 
 type AnnotatedArchive struct {
-	UUID      string `json:"uuid"`
-	StoreKey  string `json:"key"`
+	UUID      string    `json:"uuid"`
+	StoreKey  string    `json:"key"`
 	TakenAt   Timestamp `json:"taken_at"`
 	ExpiresAt Timestamp `json:"expires_at"`
-	Notes     string `json:"notes"`
+	Notes     string    `json:"notes"`
 
 	TargetUUID     string `json:"target_uuid"`
 	TargetPlugin   string `json:"target_plugin"`
