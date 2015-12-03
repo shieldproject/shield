@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 
-	. "github.com/starkandwayne/shield/api_agent"
+	. "github.com/starkandwayne/shield/api"
 )
 
 var (

@@ -1,9 +1,9 @@
-package api_agent_test
+package api_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/starkandwayne/shield/api_agent"
+	. "github.com/starkandwayne/shield/api"
 )
 
 var _ = Describe("URL creation", func() {

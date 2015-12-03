@@ -1,4 +1,4 @@
-package api_agent_test
+package api_test
 
 import (
 	. "github.com/onsi/ginkgo"

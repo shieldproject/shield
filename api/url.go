@@ -1,4 +1,4 @@
-package api_agent
+package api
 
 import (
 	"bytes"
