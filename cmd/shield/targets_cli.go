@@ -82,7 +82,7 @@ func processListTargetsRequest(cmd *cobra.Command, args []string) {
 
 	t := tui.NewTable(6)
 	t.Header("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
-	for _, target := range *data {
+	for _, target := range data {
 		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
 	}
 	t.Output(os.Stdout)

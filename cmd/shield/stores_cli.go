@@ -73,7 +73,7 @@ func processListStoresRequest(cmd *cobra.Command, args []string) {
 
 	t := tui.NewTable(5)
 	t.Header("UUID", "Name", "Description", "Plugin", "Endpoint")
-	for _, store := range *data {
+	for _, store := range data {
 		t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 	}
 	t.Output(os.Stdout)

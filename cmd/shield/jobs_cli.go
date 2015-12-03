@@ -159,7 +159,7 @@ func processListJobsRequest(cmd *cobra.Command, args []string) {
 
 	t := tui.NewTable(7)
 	t.Header("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
-	for _, job := range *data {
+	for _, job := range data {
 		paused := "-"
 		if job.Paused {
 			paused = "Y"

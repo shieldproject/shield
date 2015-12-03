@@ -104,7 +104,7 @@ func processListRetentionsRequest(cmd *cobra.Command, args []string) {
 
 	t := tui.NewTable(4)
 	t.Header("UUID", "Name", "Description", "Expires in")
-	for _, policy := range *data {
+	for _, policy := range data {
 		t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 	}
 	t.Output(os.Stdout)

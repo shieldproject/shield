@@ -80,7 +80,7 @@ func processListSchedulesRequest(cmd *cobra.Command, args []string) {
 
 	t := tui.NewTable(4)
 	t.Header("UUID", "Name", "Description", "Frequency / Interval")
-	for _, schedule := range *data {
+	for _, schedule := range data {
 		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 	}
 	t.Output(os.Stdout)
