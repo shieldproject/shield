@@ -7,6 +7,7 @@ import (
 	"os"
 
 	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
 var (
@@ -77,15 +78,12 @@ func processListSchedulesRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of schedules:\n", err)
+	t := tui.NewTable(4)
+	t.Header("UUID", "Name", "Description", "Frequency / Interval")
+	for _, schedule := range *data {
+		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t.Output(os.Stdout)
 }
 
 func processCreateScheduleRequest(cmd *cobra.Command, args []string) {

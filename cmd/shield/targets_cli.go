@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
 var (
@@ -78,14 +80,12 @@ func processListTargetsRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of targets:\n", err)
+	t := tui.NewTable(6)
+	t.Header("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
+	for _, target := range *data {
+		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
 	}
-
-	fmt.Println(string(output[:]))
-
+	t.Output(os.Stdout)
 	return
 }
 

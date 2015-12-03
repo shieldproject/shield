@@ -7,6 +7,7 @@ import (
 	"os"
 
 	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
 var (
@@ -101,15 +102,12 @@ func processListRetentionsRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of retentions:\n", err)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of retentions:\n", err)
+	t := tui.NewTable(4)
+	t.Header("UUID", "Name", "Description", "Expires in")
+	for _, policy := range *data {
+		t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t.Output(os.Stdout)
 }
 
 func processCreateRetentionRequest(cmd *cobra.Command, args []string) {

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
 var (
@@ -156,15 +157,18 @@ func processListJobsRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of jobs:\n", err)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of jobs:\n", err)
+	t := tui.NewTable(7)
+	t.Header("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
+	for _, job := range *data {
+		paused := "-"
+		if job.Paused {
+			paused = "Y"
+		}
+
+		t.Row(job.UUID, paused, job.Name, job.Summary,
+			job.RetentionName, job.ScheduleName, job.TargetEndpoint, job.Agent)
 	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t.Output(os.Stdout)
 }
 
 func processShowJobRequest(cmd *cobra.Command, args []string) {

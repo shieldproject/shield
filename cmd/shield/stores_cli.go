@@ -7,6 +7,7 @@ import (
 	"os"
 
 	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
 var (
@@ -70,15 +71,12 @@ func processListStoresRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of stores:\n", err)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of stores:\n", err)
+	t := tui.NewTable(5)
+	t.Header("UUID", "Name", "Description", "Plugin", "Endpoint")
+	for _, store := range *data {
+		t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t.Output(os.Stdout)
 }
 
 func processCreateStoreRequest(cmd *cobra.Command, args []string) {

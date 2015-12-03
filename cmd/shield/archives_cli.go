@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
+	"time"
 
 	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
 var (
@@ -100,15 +102,15 @@ func processListArchivesRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of archives:\n", err)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of archives:\n", err)
+	t := tui.NewTable(6)
+	t.Header("UUID", "Target", "Store", "Taken at", "Expires at", "Notes")
+	for _, archive := range *data {
+		t.Row(archive.UUID, archive.TargetPlugin, archive.StorePlugin,
+			archive.TakenAt.Format(time.RFC1123Z),
+			archive.ExpiresAt.Format(time.RFC1123Z),
+			archive.Notes)
 	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t.Output(os.Stdout)
 }
 
 func processShowArchiveRequest(cmd *cobra.Command, args []string) {

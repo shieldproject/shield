@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
+	"time"
 
 	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
 var (
@@ -63,15 +65,14 @@ func processListTasksRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of tasks:\n", err)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of tasks:\n", err)
+	t := tui.NewTable(6)
+	t.Header("UUID", "Owner", "Type", "Status", "Started", "Stopped")
+	for _, task := range *data {
+		t.Row(task.UUID, task.Owner, task.Op, task.Status,
+			task.StartedAt.Format(time.RFC1123Z),
+			task.StoppedAt.Format(time.RFC1123Z))
 	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t.Output(os.Stdout)
 }
 
 func processShowTaskRequest(cmd *cobra.Command, args []string) {
