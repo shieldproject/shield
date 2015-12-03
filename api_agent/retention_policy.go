@@ -6,35 +6,34 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
-func FetchRetentionPoliciesList(unused string) (*[]db.AnnotatedRetentionPolicy, error) {
+type RetentionPoliciesFilter struct {
+	All    bool
+	Unused bool
+}
 
-	// Data to be returned of proper type
-	data := &[]db.AnnotatedRetentionPolicy{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/retention")
-	joiner := "?"
-	if unused != "" {
-		uri = fmt.Sprintf("%s%sunused=%s", uri, joiner, unused)
-		joiner = "&"
+func GetRetentionPolicies(filter RetentionPoliciesFilter) (*[]db.AnnotatedRetentionPolicy, error) {
+	uri := ShieldURI("/v1/retention")
+	if !filter.All {
+		uri.AddParameter("unused", filter.Unused)
 	}
 
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	data := &[]db.AnnotatedRetentionPolicy{}
+	return data, uri.Get(&data)
+}
+
+func GetAllRetentionPolicies() (*[]db.AnnotatedRetentionPolicy, error) {
+	return GetRetentionPolicies(RetentionPoliciesFilter{All: true})
+}
+func GetUnusedRetentionPolicies() (*[]db.AnnotatedRetentionPolicy, error) {
+	return GetRetentionPolicies(RetentionPoliciesFilter{Unused: true})
+}
+func GetUsedRetentionPolicies() (*[]db.AnnotatedRetentionPolicy, error) {
+	return GetRetentionPolicies(RetentionPoliciesFilter{Unused: false})
 }
 
 func GetRetentionPolicy(uuid string) (*db.AnnotatedRetentionPolicy, error) {
-
-	// Data to be returned of proper type
 	data := &db.AnnotatedRetentionPolicy{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/retention/%s", uuid)
-
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	return data, ShieldURI("v1/retention/%s", uuid).Get(&data)
 }
 
 func CreateRetentionPolicy(content string) (*db.AnnotatedRetentionPolicy, error) {
