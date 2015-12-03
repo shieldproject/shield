@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/starkandwayne/shield/api_agent"
 	"os"
+
+	. "github.com/starkandwayne/shield/api_agent"
 )
 
 var (
@@ -57,7 +58,7 @@ func processListTasksRequest(cmd *cobra.Command, args []string) {
 	}
 
 	// Fetch
-	data, err := api_agent.FetchListTasks(status, debug)
+	data, err := FetchListTasks(status, debug)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of tasks:\n", err)
 	}
@@ -85,7 +86,7 @@ func processShowTaskRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	data, err := api_agent.GetTask(requested_UUID)
+	data, err := GetTask(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show task:\n", err)
 		os.Exit(1)
@@ -115,7 +116,7 @@ func processCancelTaskRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	err := api_agent.CancelTask(requested_UUID)
+	err := CancelTask(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not cancel task:\n", err)
 		os.Exit(1)

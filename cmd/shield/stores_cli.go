@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/starkandwayne/shield/api_agent"
 	"os"
+
+	. "github.com/starkandwayne/shield/api_agent"
 )
 
 var (
@@ -64,7 +65,7 @@ func processListStoresRequest(cmd *cobra.Command, args []string) {
 	}
 
 	// Fetch
-	data, err := api_agent.FetchStoresList(pluginFilter, unused)
+	data, err := FetchStoresList(pluginFilter, unused)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of stores:\n", err)
 	}
@@ -100,7 +101,7 @@ func processCreateStoreRequest(cmd *cobra.Command, args []string) {
 	fmt.Println("Got the following content:\n\n", content)
 
 	// Fetch
-	data, err := api_agent.CreateStore(content)
+	data, err := CreateStore(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of stores:\n", err)
 		os.Exit(1)
@@ -130,7 +131,7 @@ func processShowStoreRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	data, err := api_agent.GetStore(requested_UUID)
+	data, err := GetStore(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show store:\n", err)
 		os.Exit(1)
@@ -160,7 +161,7 @@ func processEditStoreRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	original_data, err := api_agent.GetStore(requested_UUID)
+	original_data, err := GetStore(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show store:\n", err)
 		os.Exit(1)
@@ -179,7 +180,7 @@ func processEditStoreRequest(cmd *cobra.Command, args []string) {
 	fmt.Println("Got the following edited store:\n\n", content)
 
 	// Fetch
-	update_data, err := api_agent.UpdateStore(requested_UUID, content)
+	update_data, err := UpdateStore(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update stores:\n", err)
 		os.Exit(1)
@@ -208,7 +209,7 @@ func processDeleteStoreRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	err := api_agent.DeleteStore(requested_UUID)
+	err := DeleteStore(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete store:\n", err)
 		os.Exit(1)

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/starkandwayne/shield/api_agent"
 	"os"
+
+	. "github.com/starkandwayne/shield/api_agent"
 )
 
 var (
@@ -71,7 +72,7 @@ func processListSchedulesRequest(cmd *cobra.Command, args []string) {
 	}
 
 	// Fetch
-	data, err := api_agent.FetchListSchedules(unused)
+	data, err := FetchListSchedules(unused)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
 	}
@@ -106,7 +107,7 @@ func processCreateScheduleRequest(cmd *cobra.Command, args []string) {
 	fmt.Println("Got the following content:\n\n", content)
 
 	// Fetch
-	data, err := api_agent.CreateSchedule(content)
+	data, err := CreateSchedule(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
 		os.Exit(1)
@@ -136,7 +137,7 @@ func processShowScheduleRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	data, err := api_agent.GetSchedule(requested_UUID)
+	data, err := GetSchedule(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show schedule:\n", err)
 		os.Exit(1)
@@ -166,7 +167,7 @@ func processUpdateScheduleRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	original_data, err := api_agent.GetSchedule(requested_UUID)
+	original_data, err := GetSchedule(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show schedule:\n", err)
 		os.Exit(1)
@@ -185,7 +186,7 @@ func processUpdateScheduleRequest(cmd *cobra.Command, args []string) {
 	fmt.Println("Got the following edited schedule:\n\n", content)
 
 	// Fetch
-	update_data, err := api_agent.UpdateSchedule(requested_UUID, content)
+	update_data, err := UpdateSchedule(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update schedules:\n", err)
 		os.Exit(1)
@@ -214,7 +215,7 @@ func processDeleteScheduleRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	err := api_agent.DeleteSchedule(requested_UUID)
+	err := DeleteSchedule(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete schedule:\n", err)
 		os.Exit(1)

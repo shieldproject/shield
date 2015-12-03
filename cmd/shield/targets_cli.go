@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/starkandwayne/shield/api_agent"
 	"os"
+
+	. "github.com/starkandwayne/shield/api_agent"
 )
 
 var (
@@ -72,7 +73,7 @@ func processListTargetsRequest(cmd *cobra.Command, args []string) {
 	}
 
 	// Fetch
-	data, err := api_agent.FetchTargetsList(pluginFilter, unused)
+	data, err := FetchTargetsList(pluginFilter, unused)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
 	}
@@ -109,7 +110,7 @@ func processCreateTargetRequest(cmd *cobra.Command, args []string) {
 	fmt.Println("Got the following content:\n\n", content)
 
 	// Fetch
-	data, err := api_agent.CreateTarget(content)
+	data, err := CreateTarget(content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
 		os.Exit(1)
@@ -139,7 +140,7 @@ func processShowTargetRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	data, err := api_agent.GetTarget(requested_UUID)
+	data, err := GetTarget(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show target:\n", err)
 		os.Exit(1)
@@ -169,7 +170,7 @@ func processEditTargetRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	original_data, err := api_agent.GetTarget(requested_UUID)
+	original_data, err := GetTarget(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show target:\n", err)
 		os.Exit(1)
@@ -188,7 +189,7 @@ func processEditTargetRequest(cmd *cobra.Command, args []string) {
 	fmt.Println("Got the following edited target:\n\n", content)
 
 	// Fetch
-	update_data, err := api_agent.UpdateTarget(requested_UUID, content)
+	update_data, err := UpdateTarget(requested_UUID, content)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not update targets:\n", err)
 		os.Exit(1)
@@ -217,7 +218,7 @@ func processDeleteTargetRequest(cmd *cobra.Command, args []string) {
 	requested_UUID := args[0]
 
 	// Fetch
-	err := api_agent.DeleteTarget(requested_UUID)
+	err := DeleteTarget(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete target:\n", err)
 		os.Exit(1)
