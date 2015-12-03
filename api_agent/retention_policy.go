@@ -1,8 +1,6 @@
 package api_agent
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -36,35 +34,19 @@ func GetRetentionPolicy(uuid string) (*db.AnnotatedRetentionPolicy, error) {
 	return data, ShieldURI("v1/retention/%s", uuid).Get(&data)
 }
 
-func CreateRetentionPolicy(content string) (*db.AnnotatedRetentionPolicy, error) {
-
+func CreateRetentionPolicy(contentJSON string) (*db.AnnotatedRetentionPolicy, error) {
 	data := struct {
-		Status string `json:"ok"`
-		UUID   string `json:"uuid"`
+		UUID string `json:"uuid"`
 	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	err := makeApiCall(&data, `POST`, `v1/retention`, buf)
-
+	err := ShieldURI("/v2/retention").Post(&data, contentJSON)
 	if err == nil {
 		return GetRetentionPolicy(data.UUID)
 	}
 	return nil, err
 }
 
-func UpdateRetentionPolicy(uuid string, content string) (*db.AnnotatedRetentionPolicy, error) {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	uri := fmt.Sprintf("v1/retention/%s", uuid)
-
-	err := makeApiCall(&data, `PUT`, uri, buf)
-
+func UpdateRetentionPolicy(uuid string, contentJSON string) (*db.AnnotatedRetentionPolicy, error) {
+	err := ShieldURI("/v1/retention/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetRetentionPolicy(uuid)
 	}
@@ -72,14 +54,5 @@ func UpdateRetentionPolicy(uuid string, content string) (*db.AnnotatedRetentionP
 }
 
 func DeleteRetentionPolicy(uuid string) error {
-
-	uri := fmt.Sprintf("v1/retention/%s", uuid)
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	err := makeApiCall(&data, `DELETE`, uri, nil)
-
-	return err
+	return ShieldURI("/v1/retention/%s", uuid).Delete(nil)
 }

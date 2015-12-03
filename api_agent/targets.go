@@ -1,8 +1,6 @@
 package api_agent
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -24,35 +22,19 @@ func GetTarget(uuid string) (*db.AnnotatedTarget, error) {
 	return data, ShieldURI("/v1/targets/%s", uuid).Get(&data)
 }
 
-func CreateTarget(content string) (*db.AnnotatedTarget, error) {
-
+func CreateTarget(contentJSON string) (*db.AnnotatedTarget, error) {
 	data := struct {
-		Status string `json:"ok"`
-		UUID   string `json:"uuid"`
+		UUID string `json:"uuid"`
 	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	err := makeApiCall(&data, `POST`, `v1/targets`, buf)
-
+	err := ShieldURI("/v1/targets").Post(&data, contentJSON)
 	if err == nil {
 		return GetTarget(data.UUID)
 	}
 	return nil, err
 }
 
-func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	uri := fmt.Sprintf("v1/target/%s", uuid)
-
-	err := makeApiCall(&data, `PUT`, uri, buf)
-
+func UpdateTarget(uuid string, contentJSON string) (*db.AnnotatedTarget, error) {
+	err := ShieldURI("/v1/target/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetTarget(uuid)
 	}
@@ -60,14 +42,5 @@ func UpdateTarget(uuid string, content string) (*db.AnnotatedTarget, error) {
 }
 
 func DeleteTarget(uuid string) error {
-
-	uri := fmt.Sprintf("v1/target/%s", uuid)
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	err := makeApiCall(&data, `DELETE`, uri, nil)
-
-	return err
+	return ShieldURI("/v1/target/%s", uuid).Delete(nil)
 }

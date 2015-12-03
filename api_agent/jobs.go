@@ -1,8 +1,6 @@
 package api_agent
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -43,35 +41,20 @@ func IsPausedJob(uuid string) (bool, error) {
 	return data.Paused, err
 }
 
-func CreateJob(content string) (*db.AnnotatedJob, error) {
-
+func CreateJob(contentJSON string) (*db.AnnotatedJob, error) {
 	data := struct {
 		Status string `json:"ok"`
 		UUID   string `json:"uuid"`
 	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	err := makeApiCall(&data, `POST`, `v1/jobs`, buf)
-
+	err := ShieldURI("/v1/jobs").Post(&data, contentJSON)
 	if err == nil {
 		return GetJob(data.UUID)
 	}
 	return nil, err
 }
 
-func UpdateJob(uuid string, content string) (*db.AnnotatedJob, error) {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	uri := fmt.Sprintf("v1/job/%s", uuid)
-
-	err := makeApiCall(&data, `PUT`, uri, buf)
-
+func UpdateJob(uuid string, contentJSON string) (*db.AnnotatedJob, error) {
+	err := ShieldURI("/v1/job/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetJob(uuid)
 	}
@@ -79,59 +62,17 @@ func UpdateJob(uuid string, content string) (*db.AnnotatedJob, error) {
 }
 
 func DeleteJob(uuid string) error {
-
-	uri := fmt.Sprintf("v1/job/%s", uuid)
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	err := makeApiCall(&data, `DELETE`, uri, nil)
-
-	return err
+	return ShieldURI("/v1/job/%s", uuid).Delete(nil)
 }
 
 func PauseJob(uuid string) error {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString("")
-
-	uri := fmt.Sprintf("v1/job/%s/pause", uuid)
-
-	err := makeApiCall(&data, `POST`, uri, buf)
-
-	return err
+	return ShieldURI("/v1/job/%s/pause", uuid).Post(nil, "")
 }
 
 func UnpauseJob(uuid string) error {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString("")
-
-	uri := fmt.Sprintf("v1/job/%s/unpause", uuid)
-
-	err := makeApiCall(&data, `POST`, uri, buf)
-
-	return err
+	return ShieldURI("/v1/job/%s/unpause", uuid).Post(nil, "")
 }
 
-func RunJob(uuid, owner string) error {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(owner)
-
-	uri := fmt.Sprintf("v1/job/%s/run", uuid)
-
-	err := makeApiCall(&data, `POST`, uri, buf)
-
-	return err
+func RunJob(uuid string, ownerJSON string) error {
+	return ShieldURI("/v1/job/%s/run", uuid).Post(nil, ownerJSON)
 }

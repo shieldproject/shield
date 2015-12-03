@@ -1,8 +1,6 @@
 package api_agent
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -24,33 +22,12 @@ func GetArchive(uuid string) (*db.AnnotatedArchive, error) {
 	return data, ShieldURI("/v1/archive/%s", uuid).Get(&data)
 }
 
-func RestoreArchive(uuid, target string) error {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(target)
-
-	uri := fmt.Sprintf("v1/archive/%s/restore", uuid)
-
-	err := makeApiCall(&data, `POST`, uri, buf)
-
-	return err
+func RestoreArchive(uuid, targetJSON string) error {
+	return ShieldURI("/v1/archive/%s/restore", uuid).Post(nil, targetJSON)
 }
 
-func UpdateArchive(uuid string, content string) (*db.AnnotatedArchive, error) {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	uri := fmt.Sprintf("v1/archive/%s", uuid)
-
-	err := makeApiCall(&data, `PUT`, uri, buf)
-
+func UpdateArchive(uuid string, contentJSON string) (*db.AnnotatedArchive, error) {
+	err := ShieldURI("/v1/archive/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetArchive(uuid)
 	}
@@ -58,14 +35,5 @@ func UpdateArchive(uuid string, content string) (*db.AnnotatedArchive, error) {
 }
 
 func DeleteArchive(uuid string) error {
-
-	uri := fmt.Sprintf("v1/archive/%s", uuid)
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	err := makeApiCall(&data, `DELETE`, uri, nil)
-
-	return err
+	return ShieldURI("/v1/archive/%s", uuid).Delete(nil)
 }

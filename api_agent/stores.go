@@ -1,8 +1,6 @@
 package api_agent
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -23,35 +21,19 @@ func GetStore(uuid string) (*db.AnnotatedStore, error) {
 	return data, ShieldURI("/v1/store/%s", uuid).Get(&data)
 }
 
-func CreateStore(content string) (*db.AnnotatedStore, error) {
-
+func CreateStore(contentJSON string) (*db.AnnotatedStore, error) {
 	data := struct {
-		Status string `json:"ok"`
-		UUID   string `json:"uuid"`
+		UUID string `json:"uuid"`
 	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	err := makeApiCall(&data, `POST`, `v1/stores`, buf)
-
+	err := ShieldURI("/v1/stores").Post(&data, contentJSON)
 	if err == nil {
 		return GetStore(data.UUID)
 	}
 	return nil, err
 }
 
-func UpdateStore(uuid string, content string) (*db.AnnotatedStore, error) {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	uri := fmt.Sprintf("v1/store/%s", uuid)
-
-	err := makeApiCall(&data, `PUT`, uri, buf)
-
+func UpdateStore(uuid string, contentJSON string) (*db.AnnotatedStore, error) {
+	err := ShieldURI("/v1/store/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetStore(uuid)
 	}
@@ -59,14 +41,5 @@ func UpdateStore(uuid string, content string) (*db.AnnotatedStore, error) {
 }
 
 func DeleteStore(uuid string) error {
-
-	uri := fmt.Sprintf("v1/store/%s", uuid)
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	err := makeApiCall(&data, `DELETE`, uri, nil)
-
-	return err
+	return ShieldURI("/v1/store/%s", uuid).Delete(nil)
 }

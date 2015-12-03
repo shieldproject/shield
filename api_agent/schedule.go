@@ -1,8 +1,6 @@
 package api_agent
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -21,35 +19,19 @@ func GetSchedule(uuid string) (*db.AnnotatedSchedule, error) {
 	return data, ShieldURI("/v1/schedule/%s", uuid).Get(&data)
 }
 
-func CreateSchedule(content string) (*db.AnnotatedSchedule, error) {
-
+func CreateSchedule(contentJSON string) (*db.AnnotatedSchedule, error) {
 	data := struct {
-		Status string `json:"ok"`
-		UUID   string `json:"uuid"`
+		UUID string `json:"uuid"`
 	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	err := makeApiCall(&data, `POST`, `v1/schedules`, buf)
-
+	err := ShieldURI("/v1/schedules").Post(&data, contentJSON)
 	if err == nil {
 		return GetSchedule(data.UUID)
 	}
 	return nil, err
 }
 
-func UpdateSchedule(uuid string, content string) (*db.AnnotatedSchedule, error) {
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	buf := bytes.NewBufferString(content)
-
-	uri := fmt.Sprintf("v1/schedule/%s", uuid)
-
-	err := makeApiCall(&data, `PUT`, uri, buf)
-
+func UpdateSchedule(uuid string, contentJSON string) (*db.AnnotatedSchedule, error) {
+	err := ShieldURI("/v1/schedule/%s", uuid).Put(nil, contentJSON)
 	if err == nil {
 		return GetSchedule(uuid)
 	}
@@ -57,14 +39,5 @@ func UpdateSchedule(uuid string, content string) (*db.AnnotatedSchedule, error) 
 }
 
 func DeleteSchedule(uuid string) error {
-
-	uri := fmt.Sprintf("v1/schedule/%s", uuid)
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	err := makeApiCall(&data, `DELETE`, uri, nil)
-
-	return err
+	return ShieldURI("/v1/schedule/%s", uuid).Delete(nil)
 }

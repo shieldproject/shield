@@ -1,7 +1,6 @@
 package api_agent
 
 import (
-	"fmt"
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -24,14 +23,5 @@ func GetTask(uuid string) (*db.AnnotatedTask, error) {
 }
 
 func CancelTask(uuid string) error {
-
-	uri := fmt.Sprintf("v1/task/%s", uuid)
-
-	data := struct {
-		Status string `json:"ok"`
-	}{}
-
-	err := makeApiCall(&data, `DELETE`, uri, nil)
-
-	return err
+	return ShieldURI("/v1/task/%s", uuid).Delete(nil)
 }
