@@ -1,6 +1,8 @@
 package api
 
 import (
+	"github.com/pborman/uuid"
+
 	. "github.com/starkandwayne/shield/timestamp"
 )
 
@@ -40,23 +42,23 @@ func GetArchives(filter ArchiveFilter) ([]Archive, error) {
 	return data, uri.Get(&data)
 }
 
-func GetArchive(uuid string) (Archive, error) {
+func GetArchive(id uuid.UUID) (Archive, error) {
 	var data Archive
-	return data, ShieldURI("/v1/archive/%s", uuid).Get(&data)
+	return data, ShieldURI("/v1/archive/%s", id).Get(&data)
 }
 
-func RestoreArchive(uuid, targetJSON string) error {
-	return ShieldURI("/v1/archive/%s/restore", uuid).Post(nil, targetJSON)
+func RestoreArchive(id uuid.UUID, targetJSON string) error {
+	return ShieldURI("/v1/archive/%s/restore", id).Post(nil, targetJSON)
 }
 
-func UpdateArchive(uuid string, contentJSON string) (Archive, error) {
-	err := ShieldURI("/v1/archive/%s", uuid).Put(nil, contentJSON)
+func UpdateArchive(id uuid.UUID, contentJSON string) (Archive, error) {
+	err := ShieldURI("/v1/archive/%s", id).Put(nil, contentJSON)
 	if err == nil {
-		return GetArchive(uuid)
+		return GetArchive(id)
 	}
 	return Archive{}, err
 }
 
-func DeleteArchive(uuid string) error {
-	return ShieldURI("/v1/archive/%s", uuid).Delete(nil)
+func DeleteArchive(id uuid.UUID) error {
+	return ShieldURI("/v1/archive/%s", id).Delete(nil)
 }

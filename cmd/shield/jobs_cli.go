@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/pborman/uuid"
+	"github.com/spf13/cobra"
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
@@ -178,8 +180,7 @@ func processShowJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	data, err := GetJob(requested_UUID)
@@ -208,8 +209,7 @@ func processEditJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	original_data, err := GetJob(requested_UUID)
@@ -256,8 +256,7 @@ func processDeleteJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := DeleteJob(requested_UUID)
@@ -280,8 +279,7 @@ func processRunJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// FIXME when owner can be passed in or otherwise fetched
 	content := "{\"owner\":\"anon\"}"
@@ -306,8 +304,7 @@ func processPauseJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := PauseJob(requested_UUID)
@@ -329,8 +326,7 @@ func processUnpauseJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := UnpauseJob(requested_UUID)
@@ -352,8 +348,7 @@ func processPausedJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	paused, err := IsPausedJob(requested_UUID)

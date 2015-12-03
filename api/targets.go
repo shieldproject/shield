@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/pborman/uuid"
+)
+
 type Target struct {
 	UUID     string `json:"uuid"`
 	Name     string `json:"name"`
@@ -30,9 +34,9 @@ func GetTargets(filter TargetFilter) ([]Target, error) {
 	return data, uri.Get(&data)
 }
 
-func GetTarget(uuid string) (Target, error) {
+func GetTarget(id uuid.UUID) (Target, error) {
 	var data Target
-	return data, ShieldURI("/v1/targets/%s", uuid).Get(&data)
+	return data, ShieldURI("/v1/targets/%s", id).Get(&data)
 }
 
 func CreateTarget(contentJSON string) (Target, error) {
@@ -41,19 +45,19 @@ func CreateTarget(contentJSON string) (Target, error) {
 	}{}
 	err := ShieldURI("/v1/targets").Post(&data, contentJSON)
 	if err == nil {
-		return GetTarget(data.UUID)
+		return GetTarget(uuid.Parse(data.UUID))
 	}
 	return Target{}, err
 }
 
-func UpdateTarget(uuid string, contentJSON string) (Target, error) {
-	err := ShieldURI("/v1/target/%s", uuid).Put(nil, contentJSON)
+func UpdateTarget(id uuid.UUID, contentJSON string) (Target, error) {
+	err := ShieldURI("/v1/target/%s", id).Put(nil, contentJSON)
 	if err == nil {
-		return GetTarget(uuid)
+		return GetTarget(id)
 	}
 	return Target{}, err
 }
 
-func DeleteTarget(uuid string) error {
-	return ShieldURI("/v1/target/%s", uuid).Delete(nil)
+func DeleteTarget(id uuid.UUID) error {
+	return ShieldURI("/v1/target/%s", id).Delete(nil)
 }

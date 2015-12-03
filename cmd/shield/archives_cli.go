@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/pborman/uuid"
+
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
 )
@@ -125,10 +127,8 @@ func processShowArchiveRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
-	// Fetch
 	data, err := GetArchive(requested_UUID)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show archive:\n", err)
@@ -155,8 +155,7 @@ func processEditArchiveRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	original_data, err := GetArchive(requested_UUID)
@@ -203,8 +202,7 @@ func processDeleteArchiveRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := DeleteArchive(requested_UUID)
@@ -233,8 +231,7 @@ func processRestoreArchiveRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := RestoreArchive(requested_UUID, archiveRestoreTo)

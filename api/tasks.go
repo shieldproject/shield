@@ -1,6 +1,8 @@
 package api
 
 import (
+	"github.com/pborman/uuid"
+
 	. "github.com/starkandwayne/shield/timestamp"
 )
 
@@ -38,11 +40,11 @@ func GetTasks(filter TaskFilter) ([]Task, error) {
 	return data, uri.Get(&data)
 }
 
-func GetTask(uuid string) (Task, error) {
+func GetTask(id uuid.UUID) (Task, error) {
 	var data Task
-	return data, ShieldURI("v1/task/%s", uuid).Get(&data)
+	return data, ShieldURI("v1/task/%s", id).Get(&data)
 }
 
-func CancelTask(uuid string) error {
-	return ShieldURI("/v1/task/%s", uuid).Delete(nil)
+func CancelTask(id uuid.UUID) error {
+	return ShieldURI("/v1/task/%s", id).Delete(nil)
 }

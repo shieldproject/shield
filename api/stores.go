@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/pborman/uuid"
+)
+
 type Store struct {
 	UUID     string `json:"uuid"`
 	Name     string `json:"name"`
@@ -28,9 +32,9 @@ func GetStores(filter StoreFilter) ([]Store, error) {
 	return data, uri.Get(&data)
 }
 
-func GetStore(uuid string) (Store, error) {
+func GetStore(id uuid.UUID) (Store, error) {
 	var data Store
-	return data, ShieldURI("/v1/store/%s", uuid).Get(&data)
+	return data, ShieldURI("/v1/store/%s", id).Get(&data)
 }
 
 func CreateStore(contentJSON string) (Store, error) {
@@ -39,19 +43,19 @@ func CreateStore(contentJSON string) (Store, error) {
 	}{}
 	err := ShieldURI("/v1/stores").Post(&data, contentJSON)
 	if err == nil {
-		return GetStore(data.UUID)
+		return GetStore(uuid.Parse(data.UUID))
 	}
 	return Store{}, err
 }
 
-func UpdateStore(uuid string, contentJSON string) (Store, error) {
-	err := ShieldURI("/v1/store/%s", uuid).Put(nil, contentJSON)
+func UpdateStore(id uuid.UUID, contentJSON string) (Store, error) {
+	err := ShieldURI("/v1/store/%s", id).Put(nil, contentJSON)
 	if err == nil {
-		return GetStore(uuid)
+		return GetStore(id)
 	}
 	return Store{}, err
 }
 
-func DeleteStore(uuid string) error {
-	return ShieldURI("/v1/store/%s", uuid).Delete(nil)
+func DeleteStore(id uuid.UUID) error {
+	return ShieldURI("/v1/store/%s", id).Delete(nil)
 }

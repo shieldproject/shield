@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/pborman/uuid"
+	"github.com/spf13/cobra"
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
@@ -124,8 +126,7 @@ func processShowStoreRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	data, err := GetStore(requested_UUID)
@@ -154,8 +155,7 @@ func processEditStoreRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	original_data, err := GetStore(requested_UUID)
@@ -202,8 +202,7 @@ func processDeleteStoreRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := DeleteStore(requested_UUID)

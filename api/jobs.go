@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/pborman/uuid"
+)
+
 type Job struct {
 	UUID           string `json:"uuid"`
 	Name           string `json:"name"`
@@ -50,14 +54,13 @@ func GetJobs(filter JobFilter) ([]Job, error) {
 	return data, uri.Get(&data)
 }
 
-func GetJob(uuid string) (Job, error) {
+func GetJob(id uuid.UUID) (Job, error) {
 	var data Job
-	return data, ShieldURI("/v1/job/%s", uuid).Get(&data)
+	return data, ShieldURI("/v1/job/%s", id).Get(&data)
 }
 
-func IsPausedJob(uuid string) (bool, error) {
-	// UUID validation can be handled by GetJob
-	data, err := GetJob(uuid)
+func IsPausedJob(id uuid.UUID) (bool, error) {
+	data, err := GetJob(id)
 	if err != nil {
 		return false, err
 	}
@@ -72,31 +75,31 @@ func CreateJob(contentJSON string) (Job, error) {
 	}{}
 	err := ShieldURI("/v1/jobs").Post(&data, contentJSON)
 	if err == nil {
-		return GetJob(data.UUID)
+		return GetJob(uuid.Parse(data.UUID))
 	}
 	return Job{}, err
 }
 
-func UpdateJob(uuid string, contentJSON string) (Job, error) {
-	err := ShieldURI("/v1/job/%s", uuid).Put(nil, contentJSON)
+func UpdateJob(id uuid.UUID, contentJSON string) (Job, error) {
+	err := ShieldURI("/v1/job/%s", id).Put(nil, contentJSON)
 	if err == nil {
-		return GetJob(uuid)
+		return GetJob(id)
 	}
 	return Job{}, err
 }
 
-func DeleteJob(uuid string) error {
-	return ShieldURI("/v1/job/%s", uuid).Delete(nil)
+func DeleteJob(id uuid.UUID) error {
+	return ShieldURI("/v1/job/%s", id).Delete(nil)
 }
 
-func PauseJob(uuid string) error {
-	return ShieldURI("/v1/job/%s/pause", uuid).Post(nil, "")
+func PauseJob(id uuid.UUID) error {
+	return ShieldURI("/v1/job/%s/pause", id).Post(nil, "")
 }
 
-func UnpauseJob(uuid string) error {
-	return ShieldURI("/v1/job/%s/unpause", uuid).Post(nil, "")
+func UnpauseJob(id uuid.UUID) error {
+	return ShieldURI("/v1/job/%s/unpause", id).Post(nil, "")
 }
 
-func RunJob(uuid string, ownerJSON string) error {
-	return ShieldURI("/v1/job/%s/run", uuid).Post(nil, ownerJSON)
+func RunJob(id uuid.UUID, ownerJSON string) error {
+	return ShieldURI("/v1/job/%s/run", id).Post(nil, ownerJSON)
 }

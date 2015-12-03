@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/pborman/uuid"
+)
+
 type RetentionPoliciesFilter struct {
 	Unused YesNo
 }
@@ -19,9 +23,9 @@ func GetRetentionPolicies(filter RetentionPoliciesFilter) ([]RetentionPolicy, er
 	return data, uri.Get(&data)
 }
 
-func GetRetentionPolicy(uuid string) (RetentionPolicy, error) {
+func GetRetentionPolicy(id uuid.UUID) (RetentionPolicy, error) {
 	var data RetentionPolicy
-	return data, ShieldURI("v1/retention/%s", uuid).Get(&data)
+	return data, ShieldURI("v1/retention/%s", id).Get(&data)
 }
 
 func CreateRetentionPolicy(contentJSON string) (RetentionPolicy, error) {
@@ -30,19 +34,19 @@ func CreateRetentionPolicy(contentJSON string) (RetentionPolicy, error) {
 	}{}
 	err := ShieldURI("/v2/retention").Post(&data, contentJSON)
 	if err == nil {
-		return GetRetentionPolicy(data.UUID)
+		return GetRetentionPolicy(uuid.Parse(data.UUID))
 	}
 	return RetentionPolicy{}, err
 }
 
-func UpdateRetentionPolicy(uuid string, contentJSON string) (RetentionPolicy, error) {
-	err := ShieldURI("/v1/retention/%s", uuid).Put(nil, contentJSON)
+func UpdateRetentionPolicy(id uuid.UUID, contentJSON string) (RetentionPolicy, error) {
+	err := ShieldURI("/v1/retention/%s", id).Put(nil, contentJSON)
 	if err == nil {
-		return GetRetentionPolicy(uuid)
+		return GetRetentionPolicy(id)
 	}
 	return RetentionPolicy{}, err
 }
 
-func DeleteRetentionPolicy(uuid string) error {
-	return ShieldURI("/v1/retention/%s", uuid).Delete(nil)
+func DeleteRetentionPolicy(id uuid.UUID) error {
+	return ShieldURI("/v1/retention/%s", id).Delete(nil)
 }

@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"time"
+
+	"github.com/pborman/uuid"
+	"github.com/spf13/cobra"
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
@@ -90,8 +92,7 @@ func processShowTaskRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	data, err := GetTask(requested_UUID)
@@ -120,8 +121,7 @@ func processCancelTaskRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := CancelTask(requested_UUID)

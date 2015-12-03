@@ -1,5 +1,9 @@
 package api
 
+import (
+	"github.com/pborman/uuid"
+)
+
 type Schedule struct {
 	UUID    string `json:"uuid"`
 	Name    string `json:"name"`
@@ -25,9 +29,9 @@ func GetSchedules(filter ScheduleFilter) ([]Schedule, error) {
 	return data, uri.Get(&data)
 }
 
-func GetSchedule(uuid string) (Schedule, error) {
+func GetSchedule(id uuid.UUID) (Schedule, error) {
 	var data Schedule
-	return data, ShieldURI("/v1/schedule/%s", uuid).Get(&data)
+	return data, ShieldURI("/v1/schedule/%s", id).Get(&data)
 }
 
 func CreateSchedule(contentJSON string) (Schedule, error) {
@@ -36,19 +40,19 @@ func CreateSchedule(contentJSON string) (Schedule, error) {
 	}{}
 	err := ShieldURI("/v1/schedules").Post(&data, contentJSON)
 	if err == nil {
-		return GetSchedule(data.UUID)
+		return GetSchedule(uuid.Parse(data.UUID))
 	}
 	return Schedule{}, err
 }
 
-func UpdateSchedule(uuid string, contentJSON string) (Schedule, error) {
-	err := ShieldURI("/v1/schedule/%s", uuid).Put(nil, contentJSON)
+func UpdateSchedule(id uuid.UUID, contentJSON string) (Schedule, error) {
+	err := ShieldURI("/v1/schedule/%s", id).Put(nil, contentJSON)
 	if err == nil {
-		return GetSchedule(uuid)
+		return GetSchedule(id)
 	}
 	return Schedule{}, err
 }
 
-func DeleteSchedule(uuid string) error {
-	return ShieldURI("/v1/schedule/%s", uuid).Delete(nil)
+func DeleteSchedule(id uuid.UUID) error {
+	return ShieldURI("/v1/schedule/%s", id).Delete(nil)
 }

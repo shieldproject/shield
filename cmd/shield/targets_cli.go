@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pborman/uuid"
 	"github.com/spf13/cobra"
 
 	. "github.com/starkandwayne/shield/api"
@@ -135,8 +136,7 @@ func processShowTargetRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	data, err := GetTarget(requested_UUID)
@@ -165,8 +165,7 @@ func processEditTargetRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	original_data, err := GetTarget(requested_UUID)
@@ -213,8 +212,7 @@ func processDeleteTargetRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	//FIXME validate args is a valid UUID
-	requested_UUID := args[0]
+	requested_UUID := uuid.Parse(args[0])
 
 	// Fetch
 	err := DeleteTarget(requested_UUID)
