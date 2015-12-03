@@ -4,14 +4,23 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+type TaskFilter struct {
+	Status string
+	Debug  YesNo
+}
+
 func FetchListTasks(status string, debugFlag bool) (*[]db.AnnotatedTask, error) {
+	// FIXME: legacy
+	return GetTasks(TaskFilter{
+		Status: status,
+		Debug:  Maybe(debugFlag),
+	})
+}
+
+func GetTasks(filter TaskFilter) (*[]db.AnnotatedTask, error) {
 	uri := ShieldURI("/v1/tasks")
-	if status != "" {
-		uri.AddParameter("status", status)
-	}
-	if debugFlag != false {
-		uri.AddParameter("debug", true)
-	}
+	uri.MaybeAddParameter("status", filter.Status)
+	uri.MaybeAddParameter("debug", filter.Debug)
 
 	data := &[]db.AnnotatedTask{}
 	return data, uri.Get(&data)

@@ -4,23 +4,31 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+type JobFilter struct {
+	Target    string
+	Store     string
+	Schedule  string
+	Retention string
+	Paused    YesNo
+}
+
 func FetchListJobs(target, store, schedule, retention, paused string) (*[]db.AnnotatedJob, error) {
+	return GetJobs(JobFilter{
+		Target:    target,
+		Store:     store,
+		Schedule:  schedule,
+		Retention: retention,
+		Paused:    MaybeString(paused),
+	})
+}
+
+func GetJobs(filter JobFilter) (*[]db.AnnotatedJob, error) {
 	uri := ShieldURI("/v1/jobs")
-	if target != "" {
-		uri.AddParameter("target", target)
-	}
-	if store != "" {
-		uri.AddParameter("store", store)
-	}
-	if schedule != "" {
-		uri.AddParameter("schedule", schedule)
-	}
-	if retention != "" {
-		uri.AddParameter("retention", retention)
-	}
-	if paused != "" {
-		uri.AddParameter("paused", paused)
-	}
+	uri.MaybeAddParameter("target", filter.Target)
+	uri.MaybeAddParameter("store", filter.Store)
+	uri.MaybeAddParameter("schedule", filter.Schedule)
+	uri.MaybeAddParameter("retention", filter.Retention)
+	uri.MaybeAddParameter("paused", filter.Paused)
 
 	data := &[]db.AnnotatedJob{}
 	return data, uri.Get(&data)

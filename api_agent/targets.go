@@ -4,14 +4,22 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+type TargetFilter struct {
+	Plugin string
+	Unused YesNo
+}
+
 func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
+	return GetTargets(TargetFilter{
+		Plugin: plugin,
+		Unused: MaybeString(unused),
+	})
+}
+
+func GetTargets(filter TargetFilter) (*[]db.AnnotatedTarget, error) {
 	uri := ShieldURI("/v1/targets")
-	if plugin != "" {
-		uri.AddParameter("plugin", plugin)
-	}
-	if unused != "" {
-		uri.AddParameter("unused", unused)
-	}
+	uri.MaybeAddParameter("plugin", filter.Plugin)
+	uri.MaybeAddParameter("unused", filter.Unused)
 
 	data := &[]db.AnnotatedTarget{}
 	return data, uri.Get(&data)

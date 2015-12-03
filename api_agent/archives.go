@@ -4,14 +4,22 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+type ArchiveFilter struct {
+	Plugin string
+	Unused YesNo
+}
+
 func FetchListArchives(plugin, unused string) (*[]db.AnnotatedArchive, error) {
+	return GetArchives(ArchiveFilter{
+		Plugin: plugin,
+		Unused: MaybeString(unused),
+	})
+}
+
+func GetArchives(filter ArchiveFilter) (*[]db.AnnotatedArchive, error) {
 	uri := ShieldURI("/v1/archives")
-	if plugin != "" {
-		uri.AddParameter("plugin", plugin)
-	}
-	if unused != "" {
-		uri.AddParameter("unused", unused)
-	}
+	uri.MaybeAddParameter("plugin", filter.Plugin)
+	uri.MaybeAddParameter("unused", filter.Unused)
 
 	data := &[]db.AnnotatedArchive{}
 	return data, uri.Get(&data)

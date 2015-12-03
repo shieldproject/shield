@@ -4,14 +4,22 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+type StoreFilter struct {
+	Plugin string
+	Unused YesNo
+}
+
 func FetchStoresList(plugin, unused string) (*[]db.AnnotatedStore, error) {
+	return GetStores(StoreFilter{
+		Plugin: plugin,
+		Unused: MaybeString(unused),
+	})
+}
+
+func GetStores(filter StoreFilter) (*[]db.AnnotatedStore, error) {
 	uri := ShieldURI("/v1/stores")
-	if plugin != "" {
-		uri.AddParameter("plugin", plugin)
-	}
-	if unused != "" {
-		uri.AddParameter("unused", unused)
-	}
+	uri.MaybeAddParameter("plugin", filter.Plugin)
+	uri.MaybeAddParameter("unused", filter.Unused)
 	data := &[]db.AnnotatedStore{}
 	return data, uri.Get(&data)
 }

@@ -40,6 +40,24 @@ func (u *URL) AddParameter(key string, value interface{}) error {
 	return nil
 }
 
+func (u *URL) MaybeAddParameter(key string, value interface{}) error {
+	if s, ok := value.(string); ok {
+		if s != "" {
+			return u.AddParameter(key, value)
+		}
+		return nil
+	}
+
+	if yn, ok := value.(YesNo); ok {
+		if yn.On {
+			return u.AddParameter(key, yn.Yes)
+		}
+		return nil
+	}
+
+	return u.AddParameter(key, value)
+}
+
 func (u *URL) String() string {
 	return u.base.String()
 }

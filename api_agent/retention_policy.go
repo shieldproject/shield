@@ -5,28 +5,15 @@ import (
 )
 
 type RetentionPoliciesFilter struct {
-	All    bool
-	Unused bool
+	Unused YesNo
 }
 
 func GetRetentionPolicies(filter RetentionPoliciesFilter) (*[]db.AnnotatedRetentionPolicy, error) {
 	uri := ShieldURI("/v1/retention")
-	if !filter.All {
-		uri.AddParameter("unused", filter.Unused)
-	}
+	uri.MaybeAddParameter("unused", filter.Unused)
 
 	data := &[]db.AnnotatedRetentionPolicy{}
 	return data, uri.Get(&data)
-}
-
-func GetAllRetentionPolicies() (*[]db.AnnotatedRetentionPolicy, error) {
-	return GetRetentionPolicies(RetentionPoliciesFilter{All: true})
-}
-func GetUnusedRetentionPolicies() (*[]db.AnnotatedRetentionPolicy, error) {
-	return GetRetentionPolicies(RetentionPoliciesFilter{Unused: true})
-}
-func GetUsedRetentionPolicies() (*[]db.AnnotatedRetentionPolicy, error) {
-	return GetRetentionPolicies(RetentionPoliciesFilter{Unused: false})
 }
 
 func GetRetentionPolicy(uuid string) (*db.AnnotatedRetentionPolicy, error) {

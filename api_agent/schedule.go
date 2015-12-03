@@ -4,11 +4,19 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+type ScheduleFilter struct {
+	Unused YesNo
+}
+
 func FetchListSchedules(unused string) (*[]db.AnnotatedSchedule, error) {
+	return GetSchedules(ScheduleFilter{
+		Unused: MaybeString(unused),
+	})
+}
+
+func GetSchedules(filter ScheduleFilter) (*[]db.AnnotatedSchedule, error) {
 	uri := ShieldURI("/v1/schedules")
-	if unused != "" {
-		uri.AddParameter("unused", unused)
-	}
+	uri.MaybeAddParameter("unused", filter.Unused)
 
 	data := &[]db.AnnotatedSchedule{}
 	return data, uri.Get(&data)

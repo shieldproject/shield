@@ -86,16 +86,6 @@ func init() {
 func processListRetentionsRequest(cmd *cobra.Command, args []string) {
 
 	// Validate Request
-	filter := api_agent.RetentionPoliciesFilter{}
-	switch parseTristateOptions(cmd, "unused", "used") {
-	case "":
-		filter.All = true
-	case "t":
-		filter.Unused = true
-	case "f":
-		filter.Unused = false
-	}
-
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
 		//FIXME  show help
@@ -103,7 +93,9 @@ func processListRetentionsRequest(cmd *cobra.Command, args []string) {
 	}
 
 	// Fetch
-	data, err := api_agent.GetRetentionPolicies(filter)
+	data, err := api_agent.GetRetentionPolicies(api_agent.RetentionPoliciesFilter{
+		Unused: api_agent.MaybeString(parseTristateOptions(cmd, "unused", "used")),
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of retentions:\n", err)
 	}
