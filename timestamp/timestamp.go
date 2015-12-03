@@ -33,3 +33,7 @@ func (t *Timestamp) UnmarshalJSON(b []byte) error {
 func (t Timestamp) Format(layout string) string {
 	return t.t.Format(layout)
 }
+
+func (t Timestamp) IsZero() bool {
+	return t.t.IsZero()
+}

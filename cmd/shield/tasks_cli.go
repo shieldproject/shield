@@ -67,9 +67,17 @@ func processListTasksRequest(cmd *cobra.Command, args []string) {
 
 	t := tui.NewTable("UUID", "Owner", "Type", "Status", "Started", "Stopped")
 	for _, task := range data {
-		t.Row(task.UUID, task.Owner, task.Op, task.Status,
-			task.StartedAt.Format(time.RFC1123Z),
-			task.StoppedAt.Format(time.RFC1123Z))
+		started := "(pending)"
+		if !task.StartedAt.IsZero() {
+			started = task.StartedAt.Format(time.RFC1123Z)
+		}
+
+		stopped := "(running)"
+		if !task.StoppedAt.IsZero() {
+			stopped = task.StoppedAt.Format(time.RFC1123Z)
+		}
+
+		t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
 	}
 	t.Output(os.Stdout)
 }
