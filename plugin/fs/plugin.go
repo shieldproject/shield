@@ -77,7 +77,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	cmd := fmt.Sprintf("/var/vcap/packages/bsdtar/bin/bsdtar -x -C %s .", cfg.BasePath)
+	cmd := fmt.Sprintf("/var/vcap/packages/bsdtar/bin/bsdtar -x -C %s", cfg.BasePath)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
