@@ -80,8 +80,7 @@ func processListTargetsRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
 	}
 
-	t := tui.NewTable(6)
-	t.Header("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
+	t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
 	for _, target := range data {
 		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
 	}

@@ -15,31 +15,21 @@ type Table struct {
 	cells  [][]interface{}
 }
 
-func NewTable(width int) Table {
-	return Table{
-		Width: width,
-		Max:   make([]int, width),
-	}
-}
+func NewTable(header ...string) Table {
+	t := Table{
+		Width: len(header),
+		Max:   make([]int, len(header)),
 
-func (t *Table) Header(cells ...string) {
-	if len(cells) > t.Width {
-		cells = cells[0:t.Width]
+		header: make([]interface{}, len(header)),
+		line:   make([]interface{}, len(header)),
 	}
-
-	t.header = make([]interface{}, t.Width)
-	t.line = make([]interface{}, t.Width)
-	for i, v := range cells {
-		s := fmt.Sprintf("%v", v)
+	for i, s := range header {
 		t.header[i] = s
 		t.line[i] = strings.Repeat("=", len(s))
 		t.Max[i] = len(s)
 	}
 
-	for i := len(cells); i < t.Width; i++ {
-		t.header[i] = ""
-		t.line[i] = ""
-	}
+	return t
 }
 
 func (t *Table) Row(cells ...interface{}) {

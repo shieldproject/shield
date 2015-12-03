@@ -157,8 +157,7 @@ func processListJobsRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of jobs:\n", err)
 	}
 
-	t := tui.NewTable(7)
-	t.Header("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
+	t := tui.NewTable("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
 	for _, job := range data {
 		paused := "-"
 		if job.Paused {

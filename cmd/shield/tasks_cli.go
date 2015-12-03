@@ -65,8 +65,7 @@ func processListTasksRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of tasks:\n", err)
 	}
 
-	t := tui.NewTable(6)
-	t.Header("UUID", "Owner", "Type", "Status", "Started", "Stopped")
+	t := tui.NewTable("UUID", "Owner", "Type", "Status", "Started", "Stopped")
 	for _, task := range data {
 		t.Row(task.UUID, task.Owner, task.Op, task.Status,
 			task.StartedAt.Format(time.RFC1123Z),

@@ -78,8 +78,7 @@ func processListSchedulesRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
 	}
 
-	t := tui.NewTable(4)
-	t.Header("UUID", "Name", "Description", "Frequency / Interval")
+	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval")
 	for _, schedule := range data {
 		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 	}

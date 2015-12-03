@@ -71,8 +71,7 @@ func processListStoresRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of stores:\n", err)
 	}
 
-	t := tui.NewTable(5)
-	t.Header("UUID", "Name", "Description", "Plugin", "Endpoint")
+	t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
 	for _, store := range data {
 		t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 	}
