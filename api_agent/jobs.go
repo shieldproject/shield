@@ -7,50 +7,30 @@ import (
 )
 
 func FetchListJobs(target, store, schedule, retention, paused string) (*[]db.AnnotatedJob, error) {
-
-	// Data to be returned of proper type
-	data := &[]db.AnnotatedJob{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/jobs")
-	joiner := "?"
+	uri := ShieldURI("/v1/jobs")
 	if target != "" {
-		uri = fmt.Sprintf("%s%starget=%s", uri, joiner, target)
-		joiner = "&"
+		uri.AddParameter("target", target)
 	}
 	if store != "" {
-		uri = fmt.Sprintf("%s%sstore=%s", uri, joiner, store)
-		joiner = "&"
+		uri.AddParameter("store", store)
 	}
 	if schedule != "" {
-		uri = fmt.Sprintf("%s%sschedule=%s", uri, joiner, schedule)
-		joiner = "&"
+		uri.AddParameter("schedule", schedule)
 	}
 	if retention != "" {
-		uri = fmt.Sprintf("%s%sretention=%s", uri, joiner, retention)
-		joiner = "&"
+		uri.AddParameter("retention", retention)
 	}
 	if paused != "" {
-		uri = fmt.Sprintf("%s%spaused=%s", uri, joiner, paused)
-		joiner = "&"
+		uri.AddParameter("paused", paused)
 	}
 
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	data := &[]db.AnnotatedJob{}
+	return data, uri.Get(&data)
 }
 
 func GetJob(uuid string) (*db.AnnotatedJob, error) {
-
-	// Data to be returned of proper type
 	data := &db.AnnotatedJob{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/job/%s", uuid)
-
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	return data, ShieldURI("/v1/job/%s", uuid).Get(&data)
 }
 
 func IsPausedJob(uuid string) (bool, error) {

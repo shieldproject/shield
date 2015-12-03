@@ -6,38 +6,21 @@ import (
 )
 
 func FetchListTasks(status string, debugFlag bool) (*[]db.AnnotatedTask, error) {
-
-	// Data to be returned of proper type
-	data := &[]db.AnnotatedTask{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/tasks")
-	joiner := "?"
+	uri := ShieldURI("/v1/tasks")
 	if status != "" {
-		uri = fmt.Sprintf("%s%sstatus=%s", uri, joiner, status)
-		joiner = "&"
+		uri.AddParameter("status", status)
 	}
 	if debugFlag != false {
-		uri = fmt.Sprintf("%s%sdebug", uri, joiner)
-		joiner = "&"
+		uri.AddParameter("debug", true)
 	}
 
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	data := &[]db.AnnotatedTask{}
+	return data, uri.Get(&data)
 }
 
 func GetTask(uuid string) (*db.AnnotatedTask, error) {
-
-	// Data to be returned of proper type
 	data := &db.AnnotatedTask{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/task/%s", uuid)
-
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	return data, ShieldURI("v1/task/%s", uuid).Get(&data)
 }
 
 func CancelTask(uuid string) error {

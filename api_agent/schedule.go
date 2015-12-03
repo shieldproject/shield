@@ -7,34 +7,18 @@ import (
 )
 
 func FetchListSchedules(unused string) (*[]db.AnnotatedSchedule, error) {
-
-	// Data to be returned of proper type
-	data := &[]db.AnnotatedSchedule{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/schedules")
-	joiner := "?"
+	uri := ShieldURI("/v1/schedules")
 	if unused != "" {
-		uri = fmt.Sprintf("%s%sunused=%s", uri, joiner, unused)
-		joiner = "&"
+		uri.AddParameter("unused", unused)
 	}
 
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	data := &[]db.AnnotatedSchedule{}
+	return data, uri.Get(&data)
 }
 
 func GetSchedule(uuid string) (*db.AnnotatedSchedule, error) {
-
-	// Data to be returned of proper type
 	data := &db.AnnotatedSchedule{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/schedule/%s", uuid)
-
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	return data, ShieldURI("/v1/schedule/%s", uuid).Get(&data)
 }
 
 func CreateSchedule(content string) (*db.AnnotatedSchedule, error) {

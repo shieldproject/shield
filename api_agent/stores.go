@@ -7,38 +7,20 @@ import (
 )
 
 func FetchStoresList(plugin, unused string) (*[]db.AnnotatedStore, error) {
-
-	// Data to be returned of proper type
-	data := &[]db.AnnotatedStore{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/stores")
-	joiner := "?"
+	uri := ShieldURI("/v1/stores")
 	if plugin != "" {
-		uri = fmt.Sprintf("%s%splugin=%s", uri, joiner, plugin)
-		joiner = "&"
+		uri.AddParameter("plugin", plugin)
 	}
 	if unused != "" {
-		uri = fmt.Sprintf("%s%sunused=%s", uri, joiner, unused)
-		joiner = "&"
+		uri.AddParameter("unused", unused)
 	}
-
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	data := &[]db.AnnotatedStore{}
+	return data, uri.Get(&data)
 }
 
 func GetStore(uuid string) (*db.AnnotatedStore, error) {
-
-	// Data to be returned of proper type
 	data := &db.AnnotatedStore{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/store/%s", uuid)
-
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	return data, ShieldURI("/v1/store/%s", uuid).Get(&data)
 }
 
 func CreateStore(content string) (*db.AnnotatedStore, error) {

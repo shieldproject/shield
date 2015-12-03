@@ -7,38 +7,21 @@ import (
 )
 
 func FetchTargetsList(plugin, unused string) (*[]db.AnnotatedTarget, error) {
-
-	// Data to be returned of proper type
-	data := &[]db.AnnotatedTarget{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/targets")
-	joiner := "?"
+	uri := ShieldURI("/v1/targets")
 	if plugin != "" {
-		uri = fmt.Sprintf("%s%splugin=%s", uri, joiner, plugin)
-		joiner = "&"
+		uri.AddParameter("plugin", plugin)
 	}
 	if unused != "" {
-		uri = fmt.Sprintf("%s%sunused=%s", uri, joiner, unused)
-		joiner = "&"
+		uri.AddParameter("unused", unused)
 	}
 
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	data := &[]db.AnnotatedTarget{}
+	return data, uri.Get(&data)
 }
 
 func GetTarget(uuid string) (*db.AnnotatedTarget, error) {
-
-	// Data to be returned of proper type
 	data := &db.AnnotatedTarget{}
-
-	// Make uri based on options
-	uri := fmt.Sprintf("v1/target/%s", uuid)
-
-	// Call generic API request
-	err := makeApiCall(data, `GET`, uri, nil)
-	return data, err
+	return data, ShieldURI("/v1/targets/%s", uuid).Get(&data)
 }
 
 func CreateTarget(content string) (*db.AnnotatedTarget, error) {
