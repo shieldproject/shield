@@ -102,9 +102,22 @@ func processListArchivesRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of archives:\n", err)
 	}
 
-	t := tui.NewTable("UUID", "Target", "Store", "Taken at", "Expires at", "Notes")
+	t := tui.NewTable("UUID", "Target Type", "Target Name", "Store Type", "Taken at", "Expires at", "Notes")
+	var targets []Target
+	var targetName string
 	for _, archive := range data {
-		t.Row(archive.UUID, archive.TargetPlugin, archive.StorePlugin,
+		targets, _ = FetchTargetsList(archive.TargetPlugin, "")
+		for _, target := range targets {
+			if target.UUID == archive.TargetUUID {
+				//FIXME: Make this a DEBUG statement?
+				//fmt.Printf("Target Name for UUID %s is: %s\n", archive.TargetUUID, target.Name)
+				targetName = target.Name
+			} else {
+				//FIXME: Make this a DEBUG statement?
+				//fmt.Printf("No target name found for UUID %s.\n", archive.TargetUUID)
+			}
+		}
+		t.Row(archive.UUID, archive.TargetPlugin, targetName, archive.StorePlugin,
 			archive.TakenAt.Format(time.RFC1123Z),
 			archive.ExpiresAt.Format(time.RFC1123Z),
 			archive.Notes)
