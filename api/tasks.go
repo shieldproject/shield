@@ -34,7 +34,7 @@ func GetTasks(filter TaskFilter) ([]Task, error) {
 
 func GetTask(id uuid.UUID) (Task, error) {
 	var data Task
-	return data, ShieldURI("v1/task/%s", id).Get(&data)
+	return data, ShieldURI("/v1/task/%s", id).Get(&data)
 }
 
 func CancelTask(id uuid.UUID) error {

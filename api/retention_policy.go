@@ -25,7 +25,7 @@ func GetRetentionPolicies(filter RetentionPoliciesFilter) ([]RetentionPolicy, er
 
 func GetRetentionPolicy(id uuid.UUID) (RetentionPolicy, error) {
 	var data RetentionPolicy
-	return data, ShieldURI("v1/retention/%s", id).Get(&data)
+	return data, ShieldURI("/v1/retention/%s", id).Get(&data)
 }
 
 func CreateRetentionPolicy(contentJSON string) (RetentionPolicy, error) {
