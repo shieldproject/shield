@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/pborman/getopt"
 )
 
 var (
@@ -52,6 +54,104 @@ the need arise.`,
 //--------------------------
 
 func main() {
+	var options = struct {
+		Shield *string
+
+		Used   *bool
+		Unused *bool
+		All    *bool
+
+		Debug *bool
+
+		Status *string
+
+		Target    *string
+		Store     *string
+		Schedule  *string
+		Retention *string
+
+		Plugin *string
+
+		After  *string
+		Before *string
+
+		To *string
+	}{
+		Shield: getopt.StringLong("shield", 'H', "SHIELD target to run command against, i.e. http://shield.my.domain:8080"),
+		Used:   getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
+		Unused: getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
+		All:    getopt.BoolLong("all", 'a', "Show all the things"),
+
+		Debug: getopt.BoolLong("debug", 'D', "Enable debugging"),
+
+		Status:    getopt.StringLong("status", 'S', "", "Only show tasks with the given status (one of 'pending', 'running', 'canceled' or 'done')"),
+		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
+		Store:     getopt.StringLong("store", 's', "", "Only show things for the store with this UUID"),
+		Schedule:  getopt.StringLong("schedule", 'w', "", "Only show things for the schedule with this UUID"),
+		Retention: getopt.StringLong("policy", 'p', "", "Only show things for the retention policy with this UUID"),
+		Plugin:    getopt.StringLong("plugin", 'P', "", "Only show things for the given target or store plugin"),
+		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
+		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
+		To:        getopt.StringLong("to", 'T', "", "Restore the archive in question to a different target, specified by UUID"),
+	}
+
+	var command []string
+	var opts = getopt.CommandLine
+	args := os.Args
+	for {
+		opts.Parse(args)
+		if opts.NArgs() == 0 {
+			break
+		}
+		command = append(command, opts.Arg(0))
+		args = opts.Args()
+	}
+
+	if *options.Shield != "" {
+		os.Setenv("SHIELD_TARGET", *options.Shield)
+	}
+
+	var err error
+	switch command[0] {
+	case "list":
+		switch command[1] {
+		case "targets":
+			err = ListTargets(ListTargetOptions{
+				Unused: *options.Unused,
+				Used:   *options.Used,
+				Plugin: *options.Plugin,
+			})
+
+		case "schedules":
+		case "retention":
+			switch command[2] {
+			case "policies":
+
+			}
+		case "stores":
+		case "jobs":
+		case "tasks":
+		case "archives":
+		}
+	case "show":
+	case "edit":
+	case "update": // alias for 'edit'
+	case "delete":
+
+	case "restore":
+	case "cancel":
+	case "pause":
+	case "unpause":
+
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
+	os.Exit(0)
+
+	// legacy
 	viper.SetConfigType("yaml") // To support lnguyen development
 
 	//ShieldCmd.PersistentFlags().StringVar(&CfgFile, "shield_config", "shield_config.yml", "config file (default is shield_config.yaml)")

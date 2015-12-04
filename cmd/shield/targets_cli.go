@@ -64,6 +64,29 @@ func init() {
 	deleteCmd.AddCommand(deleteTargetCmd)
 }
 
+type ListTargetOptions struct {
+	Unused bool
+	Used   bool
+	Plugin string
+}
+
+func ListTargets(opts ListTargetOptions) error {
+	targets, err := GetTargets(TargetFilter{
+		Plugin: opts.Plugin,
+		Unused: MaybeBools(opts.Unused, opts.Used),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to retrieve targets from SHIELD: %s", err)
+	}
+
+	t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
+	for _, target := range targets {
+		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
+	}
+	t.Output(os.Stdout)
+	return nil
+}
+
 func processListTargetsRequest(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)

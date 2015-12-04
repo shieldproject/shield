@@ -21,6 +21,16 @@ func Maybe(tf bool) YesNo {
 	return YesNo{On: true, Yes: tf}
 }
 
+func MaybeBools(yes bool, no bool) YesNo {
+	if yes {
+		return Maybe(true)
+	}
+	if no {
+		return Maybe(false)
+	}
+	return YesNo{} // unspecified
+}
+
 func No() YesNo {
 	return Maybe(false)
 }
