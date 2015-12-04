@@ -66,6 +66,10 @@
 			"Rev": "a2ab8644e0b6a33df2cbe44673bd0f6ebba9abc3"
 		},
 		{
+			"ImportPath": "github.com/pborman/getopt",
+			"Rev": "2211c0f1daa1d165eb31026fc509c007a7fa067b"
+		},
+		{
 			"ImportPath": "github.com/pborman/uuid",
 			"Rev": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655"
 		},
