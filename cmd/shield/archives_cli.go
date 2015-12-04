@@ -103,16 +103,13 @@ func processListArchivesRequest(cmd *cobra.Command, args []string) {
 	}
 
 	t := tui.NewTable("UUID", "Target Type", "Target Name", "Store Type", "Taken at", "Expires at", "Notes")
-	var targets []Target
-	var targetName string
+	target := map[string]Target{}
+	targets, _ := GetTargets(TargetFilter{})
+	for _, t := range targets {
+		target[t.UUID] = t
+	}
 	for _, archive := range data {
-		targets, _ = FetchTargetsList(archive.TargetPlugin, "")
-		for _, target := range targets {
-			if target.UUID == archive.TargetUUID {
-				targetName = target.Name
-			}
-		}
-		t.Row(archive.UUID, archive.TargetPlugin, targetName, archive.StorePlugin,
+		t.Row(archive.UUID, archive.TargetPlugin, target[archive.TargetUUID].Name, archive.StorePlugin,
 			archive.TakenAt.Format(time.RFC1123Z),
 			archive.ExpiresAt.Format(time.RFC1123Z),
 			archive.Notes)
