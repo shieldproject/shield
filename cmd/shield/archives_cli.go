@@ -109,12 +109,7 @@ func processListArchivesRequest(cmd *cobra.Command, args []string) {
 		targets, _ = FetchTargetsList(archive.TargetPlugin, "")
 		for _, target := range targets {
 			if target.UUID == archive.TargetUUID {
-				//FIXME: Make this a DEBUG statement?
-				//fmt.Printf("Target Name for UUID %s is: %s\n", archive.TargetUUID, target.Name)
 				targetName = target.Name
-			} else {
-				//FIXME: Make this a DEBUG statement?
-				//fmt.Printf("No target name found for UUID %s.\n", archive.TargetUUID)
 			}
 		}
 		t.Row(archive.UUID, archive.TargetPlugin, targetName, archive.StorePlugin,
