@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
+	"os"
 )
 
 type YesNo struct {
@@ -37,17 +37,13 @@ func (yn *YesNo) Given() bool {
 }
 
 func ShieldURI(p string, args ...interface{}) *URL {
-	path := fmt.Sprintf(p, args...)
-	scheme := "http"
-	if viper.GetBool("ShieldSSL") {
-		scheme = "https"
+	endpoint := os.Getenv("SHIELD_TARGET")
+	if endpoint == "" {
+		endpoint = "https://shield"
 	}
 
-	u, err := ParseURL(fmt.Sprintf("%s://%s:%s%s",
-		scheme,
-		viper.GetString("ShieldServer"),
-		viper.GetString("ShieldPort"),
-		path))
+	path := fmt.Sprintf(p, args...)
+	u, err := ParseURL(fmt.Sprintf("%s%s", endpoint, path))
 	if err != nil {
 		panic(err)
 	}

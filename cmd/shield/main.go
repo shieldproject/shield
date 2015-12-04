@@ -22,6 +22,12 @@ var (
 Shield allows you to schedule backups of all your data sources, set retention
 policies, monitor and control your backup tasks, and restore that data should
 the need arise.`,
+
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if t := viper.GetString("ShieldTarget"); t != "" {
+				os.Setenv("SHIELD_TARGET", t)
+			}
+		},
 	}
 
 	//== Base Verbs
@@ -39,9 +45,8 @@ the need arise.`,
 	cancelCmd  = &cobra.Command{Use: "cancel", Short: "Cancel the specified running {{children}}"}
 	restoreCmd = &cobra.Command{Use: "restore", Short: "Restore the specified {{children}}"}
 
-	CfgFile, ShieldServer string
-	Verbose, ShieldSSL    bool
-	ShieldPort            int
+	CfgFile, ShieldTarget string
+	Verbose               bool
 )
 
 //--------------------------
@@ -51,21 +56,17 @@ func main() {
 
 	//ShieldCmd.PersistentFlags().StringVar(&CfgFile, "shield_config", "shield_config.yml", "config file (default is shield_config.yaml)")
 	ShieldCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
-
-	ShieldCmd.PersistentFlags().StringVar(&ShieldServer, "host", "localhost", "hostname of Shield server (default: localhost)")
-	ShieldCmd.PersistentFlags().IntVar(&ShieldPort, "port", 8080, "port of Shield server (default: 8080)")
-	ShieldCmd.PersistentFlags().BoolVar(&ShieldSSL, "ssl", false, "enable SSL")
+	ShieldCmd.PersistentFlags().StringVar(&ShieldTarget, "target", "", "Full URI of the SHIELD backup system, i.e. http://shield:8080")
 
 	viper.BindPFlag("Verbose", ShieldCmd.PersistentFlags().Lookup("verbose"))
-	viper.BindPFlag("ShieldServer", ShieldCmd.PersistentFlags().Lookup("host"))
-	viper.BindPFlag("ShieldPort", ShieldCmd.PersistentFlags().Lookup("port"))
-	viper.BindPFlag("ShieldSSL", ShieldCmd.PersistentFlags().Lookup("ssl"))
+	viper.BindPFlag("ShieldTarget", ShieldCmd.PersistentFlags().Lookup("target"))
 
 	addSubCommandWithHelp(ShieldCmd, createCmd, listCmd, showCmd, deleteCmd, updateCmd, editCmd, pauseCmd, unpauseCmd, pausedCmd, runCmd, cancelCmd, restoreCmd)
+
 	ShieldCmd.Execute()
 
 	if Verbose {
-		fmt.Println("Config: ", CfgFile, "SSL:", ShieldSSL, "Host:", ShieldServer, "Port:", ShieldPort)
+		fmt.Printf("config: %s\ntarget: %s\n", CfgFile, ShieldTarget)
 	}
 }
 
