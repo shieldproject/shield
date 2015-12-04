@@ -128,24 +128,18 @@ func processShowScheduleRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	requested_UUID := uuid.Parse(args[0])
-
-	data, err := GetSchedule(requested_UUID)
+	schedule, err := GetSchedule(uuid.Parse(args[0]))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show schedule:\n", err)
 		os.Exit(1)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render schedule:\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t := tui.NewReport()
+	t.Add("UUID", schedule.UUID)
+	t.Add("Name", schedule.Name)
+	t.Add("Summary", schedule.Summary)
+	t.Add("Timespec", schedule.When)
+	t.Output(os.Stdout)
 }
 
 func processUpdateScheduleRequest(cmd *cobra.Command, args []string) {

@@ -122,31 +122,38 @@ func processListArchivesRequest(cmd *cobra.Command, args []string) {
 }
 
 func processShowArchiveRequest(cmd *cobra.Command, args []string) {
-
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
 		//FIXME  show help
 		os.Exit(1)
 	}
 
-	requested_UUID := uuid.Parse(args[0])
-
-	data, err := GetArchive(requested_UUID)
+	archive, err := GetArchive(uuid.Parse(args[0]))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show archive:\n", err)
 		os.Exit(1)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render archive:\n", err)
-		os.Exit(1)
-	}
+	t := tui.NewReport()
+	t.Add("UUID", archive.UUID)
+	t.Add("Backup Key", archive.StoreKey)
+	t.Break()
 
-	fmt.Println(string(output[:]))
+	t.Add("Target", archive.TargetPlugin)
+	t.Add("Target UUID", archive.TargetUUID)
+	t.Add("Target Endpoint", archive.TargetEndpoint)
+	t.Break()
 
-	return
+	t.Add("Store", archive.StorePlugin)
+	t.Add("Store UUID", archive.StoreUUID)
+	t.Add("Store Endpoint", archive.StoreEndpoint)
+	t.Break()
+
+	t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))
+	t.Add("Expires at", archive.ExpiresAt.Format(time.RFC1123Z))
+	t.Add("Notes", archive.Notes)
+
+	t.Output(os.Stdout)
 }
 
 func processEditArchiveRequest(cmd *cobra.Command, args []string) {

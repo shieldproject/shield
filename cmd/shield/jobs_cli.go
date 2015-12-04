@@ -180,24 +180,45 @@ func processShowJobRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	requested_UUID := uuid.Parse(args[0])
-
-	data, err := GetJob(requested_UUID)
+	job, err := GetJob(uuid.Parse(args[0]))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show job:\n", err)
 		os.Exit(1)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render job:\n", err)
-		os.Exit(1)
-	}
+	t := tui.NewReport()
+	t.Add("UUID", job.UUID)
+	t.Add("Name", job.Name)
+	t.Add("Paused", BoolString(job.Paused))
+	t.Break()
 
-	fmt.Println(string(output[:]))
+	t.Add("Retention Policy", job.RetentionName)
+	t.Add("Retention UUID", job.RetentionUUID)
+	t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
+	t.Break()
 
-	return
+	t.Add("Schedule Policy", job.ScheduleName)
+	t.Add("Schedule UUID", job.ScheduleUUID)
+	t.Break()
+
+	t.Add("Target", job.TargetPlugin)
+	t.Add("Target UUID", job.TargetUUID)
+	t.Add("Target Endpoint", job.TargetEndpoint)
+	t.Add("SHIELD Agent", job.Agent)
+	t.Break()
+
+	t.Add("Store", job.StorePlugin)
+	t.Add("Store UUID", job.StoreUUID)
+	t.Add("Store Endpoint", job.StoreEndpoint)
+	t.Break()
+
+	t.Add("Store", job.StorePlugin)
+	t.Add("Store UUID", job.StoreUUID)
+	t.Add("Store Endpoint", job.StoreEndpoint)
+
+	t.Add("Notes", job.Summary)
+
+	t.Output(os.Stdout)
 }
 
 func processEditJobRequest(cmd *cobra.Command, args []string) {

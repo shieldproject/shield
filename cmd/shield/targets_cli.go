@@ -133,24 +133,22 @@ func processShowTargetRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	requested_UUID := uuid.Parse(args[0])
-
-	data, err := GetTarget(requested_UUID)
+	target, err := GetTarget(uuid.Parse(args[0]))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show target:\n", err)
 		os.Exit(1)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render target:\n", err)
-		os.Exit(1)
-	}
+	t := tui.NewReport()
+	t.Add("UUID", target.UUID)
+	t.Add("Name", target.Name)
+	t.Add("Summary", target.Summary)
+	t.Break()
 
-	fmt.Println(string(output[:]))
-
-	return
+	t.Add("Plugin", target.Plugin)
+	t.Add("Endpoint", target.Endpoint)
+	t.Add("SHIELD Agent", target.Agent)
+	t.Output(os.Stdout)
 }
 
 func processEditTargetRequest(cmd *cobra.Command, args []string) {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -91,24 +90,37 @@ func processShowTaskRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	requested_UUID := uuid.Parse(args[0])
-
-	data, err := GetTask(requested_UUID)
+	task, err := GetTask(uuid.Parse(args[0]))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show task:\n", err)
 		os.Exit(1)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render task:\n", err)
-		os.Exit(1)
+	t := tui.NewReport()
+	t.Add("UUID", task.UUID)
+	t.Add("Owner", task.Owner)
+	t.Add("Type", task.Op)
+	t.Add("Status", task.Status)
+	t.Break()
+
+	started := "(pending)"
+	if !task.StartedAt.IsZero() {
+		started = task.StartedAt.Format(time.RFC1123Z)
 	}
+	stopped := "(running)"
+	if !task.StoppedAt.IsZero() {
+		stopped = task.StoppedAt.Format(time.RFC1123Z)
+	}
+	t.Add("Started at", started)
+	t.Add("Stopped at", stopped)
+	t.Break()
 
-	fmt.Println(string(output[:]))
+	t.Add("Job UUID", task.JobUUID)
+	t.Add("Archive UUID", task.ArchiveUUID)
+	t.Break()
 
-	return
+	t.Add("Log", task.Log)
+	t.Output(os.Stdout)
 }
 
 func processCancelTaskRequest(cmd *cobra.Command, args []string) {

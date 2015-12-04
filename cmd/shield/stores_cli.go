@@ -123,24 +123,21 @@ func processShowStoreRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	requested_UUID := uuid.Parse(args[0])
-
-	data, err := GetStore(requested_UUID)
+	store, err := GetStore(uuid.Parse(args[0]))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show store:\n", err)
 		os.Exit(1)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render store:\n", err)
-		os.Exit(1)
-	}
+	t := tui.NewReport()
+	t.Add("UUID", store.UUID)
+	t.Add("Name", store.Name)
+	t.Add("Summary", store.Summary)
+	t.Break()
 
-	fmt.Println(string(output[:]))
-
-	return
+	t.Add("Plugin", store.Plugin)
+	t.Add("Endpoint", store.Endpoint)
+	t.Output(os.Stdout)
 }
 
 func processEditStoreRequest(cmd *cobra.Command, args []string) {

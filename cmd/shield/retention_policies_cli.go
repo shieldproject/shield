@@ -154,24 +154,18 @@ func processShowRetentionRequest(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	requested_UUID := uuid.Parse(args[0])
-
-	data, err := GetRetentionPolicy(requested_UUID)
+	policy, err := GetRetentionPolicy(uuid.Parse(args[0]))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not show retention:\n", err)
 		os.Exit(1)
 	}
 
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render retention:\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(output[:]))
-
-	return
+	t := tui.NewReport()
+	t.Add("UUID", policy.UUID)
+	t.Add("Name", policy.Name)
+	t.Add("Summary", policy.Summary)
+	t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
+	t.Output(os.Stdout)
 }
 
 func processUpdateRetentionRequest(cmd *cobra.Command, args []string) {
