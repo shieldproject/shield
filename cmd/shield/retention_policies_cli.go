@@ -87,6 +87,26 @@ func init() {
 	deleteRetentionCmd.AddCommand(deleteRetentionPolicyCmd)
 }
 
+type ListRetentionOptions struct {
+	Unused bool
+	Used   bool
+}
+
+func ListRetentionPolicies(opts ListRetentionOptions) error {
+	policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+		Unused: MaybeBools(opts.Unused, opts.Used),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to retrieve retention policies from SHIELD: %s", err)
+	}
+	t := tui.NewTable("UUID", "Name", "Description", "Expires in")
+	for _, policy := range policies {
+		t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+	}
+	t.Output(os.Stdout)
+	return nil
+}
+
 func processListRetentionsRequest(cmd *cobra.Command, args []string) {
 
 	// Validate Request
@@ -123,7 +143,7 @@ func processCreateRetentionRequest(cmd *cobra.Command, args []string) {
 	content := invokeEditor(`{
 	"name":     "",
 	"summary":  "",
-	"expires": 
+	"expires":
 }`)
 
 	fmt.Println("Got the following content:\n\n", content)

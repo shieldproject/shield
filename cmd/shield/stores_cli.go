@@ -56,6 +56,28 @@ func init() {
 	deleteCmd.AddCommand(deleteStoreCmd)
 }
 
+type ListStoreOptions struct {
+	Unused bool
+	Used   bool
+	Plugin string
+}
+
+func ListStores(opts ListStoreOptions) error {
+	stores, err := GetStores(StoreFilter{
+		Plugin: opts.Plugin,
+		Unused: MaybeBools(opts.Unused, opts.Used),
+	})
+	if err != nil {
+		return fmt.Errorf("\nERROR: Could not fetch list of stores:\n", err)
+	}
+	t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
+	for _, store := range stores {
+		t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
+	}
+	t.Output(os.Stdout)
+	return nil
+}
+
 func processListStoresRequest(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)

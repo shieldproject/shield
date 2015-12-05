@@ -95,6 +95,40 @@ func init() {
 	editCmd.AddCommand(editJobCmd)
 }
 
+type ListJobOptions struct {
+	Unpaused  bool
+	Paused    bool
+	Target    string
+	Store     string
+	Schedule  string
+	Retention string
+}
+
+func ListJobs(opts ListJobOptions) error {
+	jobs, err := GetJobs(JobFilter{
+		Paused:    MaybeBools(opts.Unpaused, opts.Paused),
+		Target:    opts.Target,
+		Store:     opts.Store,
+		Schedule:  opts.Schedule,
+		Retention: opts.Retention,
+	})
+	if err != nil {
+		return fmt.Errorf("\nERROR: Unexpected arguments following command: %v\n", err)
+	}
+	t := tui.NewTable("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
+	for _, job := range jobs {
+		paused := "-"
+		if job.Paused {
+			paused = "Y"
+		}
+
+		t.Row(job.UUID, paused, job.Name, job.Summary,
+			job.RetentionName, job.ScheduleName, job.TargetEndpoint, job.Agent)
+	}
+	t.Output(os.Stdout)
+	return nil
+}
+
 func processCreateJobRequest(cmd *cobra.Command, args []string) {
 
 	// Validate Request

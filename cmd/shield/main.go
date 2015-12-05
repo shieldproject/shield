@@ -57,9 +57,11 @@ func main() {
 	var options = struct {
 		Shield *string
 
-		Used   *bool
-		Unused *bool
-		All    *bool
+		Used     *bool
+		Unused   *bool
+		Paused   *bool
+		Unpaused *bool
+		All      *bool
 
 		Debug *bool
 
@@ -77,10 +79,12 @@ func main() {
 
 		To *string
 	}{
-		Shield: getopt.StringLong("shield", 'H', "SHIELD target to run command against, i.e. http://shield.my.domain:8080"),
-		Used:   getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
-		Unused: getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
-		All:    getopt.BoolLong("all", 'a', "Show all the things"),
+		Shield:   getopt.StringLong("shield", 'H', "SHIELD target to run command against, i.e. http://shield.my.domain:8080"),
+		Used:     getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
+		Unused:   getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
+		Paused:   getopt.BoolLong("paused", 0, "Only show jobs that are paused"),
+		Unpaused: getopt.BoolLong("unpaused", 0, "Only show jobs that are unpaused"),
+		All:      getopt.BoolLong("all", 'a', "Show all the things"),
 
 		Debug: getopt.BoolLong("debug", 'D', "Enable debugging"),
 
@@ -123,15 +127,46 @@ func main() {
 			})
 
 		case "schedules":
+			err = ListSchedules(ListScheduleOptions{
+				Unused: *options.Unused,
+				Used:   *options.Used,
+			})
+
 		case "retention":
 			switch command[2] {
 			case "policies":
-
+				err = ListRetentionPolicies(ListRetentionOptions{
+					Unused: *options.Unused,
+					Used:   *options.Used,
+				})
 			}
 		case "stores":
+			err = ListStores(ListStoreOptions{
+				Unused: *options.Unused,
+				Used:   *options.Used,
+				Plugin: *options.Plugin,
+			})
 		case "jobs":
+			err = ListJobs(ListJobOptions{
+				Unpaused:  *options.Unpaused,
+				Paused:    *options.Paused,
+				Target:    *options.Target,
+				Store:     *options.Store,
+				Schedule:  *options.Schedule,
+				Retention: *options.Retention,
+			})
 		case "tasks":
+			err = ListTasks(ListTaskOptions{
+				All:   *options.All,
+				Debug: *options.Debug,
+			})
 		case "archives":
+			err = ListArchives(ListArchiveOptions{
+				Target: *options.Target,
+				Store:  *options.Store,
+				Before: *options.Before,
+				After:  *options.After,
+			})
 		}
 	case "show":
 	case "edit":

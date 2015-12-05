@@ -48,6 +48,42 @@ func init() {
 	cancelCmd.AddCommand(cancelTaskCmd)
 }
 
+type ListTaskOptions struct {
+	All   bool
+	Debug bool
+}
+
+func ListTasks(opts ListTaskOptions) error {
+	tasks, err := GetTasks(TaskFilter{
+		Debug: Maybe(opts.Debug),
+	})
+	if err != nil {
+		return fmt.Errorf("\nERROR: Could not fetch list of tasks:\n", err)
+	}
+	t := tui.NewTable("UUID", "Owner", "Type", "Status", "Started", "Stopped")
+	for _, task := range tasks {
+
+		started := "(pending)"
+		if !task.StartedAt.IsZero() {
+			started = task.StartedAt.Format(time.RFC1123Z)
+		}
+
+		stopped := "(running)"
+		if !task.StoppedAt.IsZero() {
+			stopped = task.StoppedAt.Format(time.RFC1123Z)
+		}
+
+		if task.Status != "done" {
+			t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
+		} else if Maybe(opts.All).Yes {
+			t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
+		}
+
+	}
+	t.Output(os.Stdout)
+	return nil
+}
+
 func processListTasksRequest(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)

@@ -63,6 +63,26 @@ func init() {
 	deleteCmd.AddCommand(deleteScheduleCmd)
 }
 
+type ListScheduleOptions struct {
+	Unused bool
+	Used   bool
+}
+
+func ListSchedules(opts ListScheduleOptions) error {
+	schedules, err := GetSchedules(ScheduleFilter{
+		Unused: MaybeBools(opts.Unused, opts.Used),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to retrieve schedules from SHIELD: %s", err)
+	}
+	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval")
+	for _, schedule := range schedules {
+		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
+	}
+	t.Output(os.Stdout)
+	return nil
+}
+
 func processListSchedulesRequest(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
