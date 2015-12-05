@@ -58,7 +58,7 @@ func ListTasks(opts ListTaskOptions) error {
 		Debug: Maybe(opts.Debug),
 	})
 	if err != nil {
-		return fmt.Errorf("\nERROR: Could not fetch list of tasks:\n", err)
+		return fmt.Errorf("\nERROR: Could not fetch list of tasks: %s\n", err)
 	}
 	t := tui.NewTable("UUID", "Owner", "Type", "Status", "Started", "Stopped")
 	for _, task := range tasks {

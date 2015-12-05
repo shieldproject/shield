@@ -68,7 +68,7 @@ func ListStores(opts ListStoreOptions) error {
 		Unused: MaybeBools(opts.Unused, opts.Used),
 	})
 	if err != nil {
-		return fmt.Errorf("\nERROR: Could not fetch list of stores:\n", err)
+		return fmt.Errorf("\nERROR: Could not fetch list of stores: %s\n", err)
 	}
 	t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
 	for _, store := range stores {

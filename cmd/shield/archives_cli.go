@@ -86,7 +86,7 @@ type ListArchiveOptions struct {
 func ListArchives(opts ListArchiveOptions) error {
 	archives, err := GetArchives(ArchiveFilter{})
 	if err != nil {
-		return fmt.Errorf("\nERROR: Could not fetch list of archives:\n", err)
+		return fmt.Errorf("\nERROR: Could not fetch list of archives: %s\n", err)
 	}
 
 	//Getting the target and store names into the output
