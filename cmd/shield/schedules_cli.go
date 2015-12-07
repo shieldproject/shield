@@ -76,7 +76,7 @@ func ListSchedules(opts ListScheduleOptions) error {
 	if err != nil {
 		return fmt.Errorf("failed to retrieve schedules from SHIELD: %s", err)
 	}
-	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval")
+	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval (UTC)")
 	for _, schedule := range schedules {
 		if len(opts.UUID) > 0 && opts.UUID == schedule.UUID {
 			t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
@@ -104,7 +104,7 @@ func processListSchedulesRequest(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
 	}
 
-	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval")
+	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval (UTC)")
 	for _, schedule := range schedules {
 		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 	}
