@@ -22,16 +22,6 @@ var (
 		Long:  "Create a new schedule with ...",
 	} // FIXME
 
-	listScheduleCmd = &cobra.Command{
-		Use:   "schedules",
-		Short: "List all the Schedules",
-	}
-
-	showScheduleCmd = &cobra.Command{
-		Use:   "schedule",
-		Short: "Show all the Schedules",
-	}
-
 	deleteScheduleCmd = &cobra.Command{
 		Use:   "schedule",
 		Short: "Delete all the Schedules",
@@ -44,21 +34,14 @@ var (
 )
 
 func init() {
-	// Set options for the subcommands
-	listScheduleCmd.Flags().BoolVar(&unusedFilter, "unused", false, "Show only unused schedules")
-	listScheduleCmd.Flags().BoolVar(&usedFilter, "used", false, "Show only used schedules")
 
 	// Hookup functions to the subcommands
 	createScheduleCmd.Run = processCreateScheduleRequest
-	listScheduleCmd.Run = processListSchedulesRequest
-	showScheduleCmd.Run = processShowScheduleRequest
 	updateScheduleCmd.Run = processUpdateScheduleRequest
 	deleteScheduleCmd.Run = processDeleteScheduleRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createScheduleCmd)
-	listCmd.AddCommand(listScheduleCmd)
-	showCmd.AddCommand(showScheduleCmd)
 	updateCmd.AddCommand(updateScheduleCmd)
 	deleteCmd.AddCommand(deleteScheduleCmd)
 }
@@ -70,6 +53,7 @@ type ListScheduleOptions struct {
 }
 
 func ListSchedules(opts ListScheduleOptions) error {
+	//FIXME: --(un)used not working?
 	schedules, err := GetSchedules(ScheduleFilter{
 		Unused: MaybeBools(opts.Unused, opts.Used),
 	})
@@ -88,27 +72,6 @@ func ListSchedules(opts ListScheduleOptions) error {
 	}
 	t.Output(os.Stdout)
 	return nil
-}
-
-func processListSchedulesRequest(cmd *cobra.Command, args []string) {
-	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	schedules, err := GetSchedules(ScheduleFilter{
-		Unused: MaybeString(parseTristateOptions(cmd, "unused", "used")),
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of schedules:\n", err)
-	}
-
-	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval (UTC)")
-	for _, schedule := range schedules {
-		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
-	}
-	t.Output(os.Stdout)
 }
 
 func processCreateScheduleRequest(cmd *cobra.Command, args []string) {
@@ -145,28 +108,6 @@ func processCreateScheduleRequest(cmd *cobra.Command, args []string) {
 	fmt.Println(string(output[:]))
 
 	return
-}
-
-func processShowScheduleRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	schedule, err := GetSchedule(uuid.Parse(args[0]))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not show schedule:\n", err)
-		os.Exit(1)
-	}
-
-	t := tui.NewReport()
-	t.Add("UUID", schedule.UUID)
-	t.Add("Name", schedule.Name)
-	t.Add("Summary", schedule.Summary)
-	t.Add("Timespec", schedule.When)
-	t.Output(os.Stdout)
 }
 
 func processUpdateScheduleRequest(cmd *cobra.Command, args []string) {

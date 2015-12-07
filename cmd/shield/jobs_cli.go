@@ -26,11 +26,6 @@ var (
 		Short: "Lists all the jobs",
 	}
 
-	showJobCmd = &cobra.Command{
-		Use:   "job",
-		Short: "Shows information about the specified job",
-	}
-
 	deleteJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Deletes the specified job",
@@ -39,16 +34,6 @@ var (
 	pauseJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Pauses the specified job",
-	}
-
-	unpauseJobCmd = &cobra.Command{
-		Use:   "job",
-		Short: "Unpauses the specified job",
-	}
-
-	pausedJobCmd = &cobra.Command{
-		Use:   "job",
-		Short: "Returns \"true\" with exit code 0 if specified job is paused, \"false\"/1 otherwise",
 	}
 
 	runJobCmd = &cobra.Command{
@@ -64,33 +49,15 @@ var (
 
 func init() {
 
-	// Set options for the subcommands
-	listJobCmd.Flags().Bool("paused", false, "Show only paused jobs")
-	listJobCmd.Flags().Bool("unpaused", false, "Show only unpaused jobs")
-	listJobCmd.Flags().String("store", "", "Filter by store UUID")
-	listJobCmd.Flags().String("target", "", "Filter by store UUID")
-	listJobCmd.Flags().String("schedule", "", "Filter by schedule UUID")
-	listJobCmd.Flags().String("retention", "", "Filter by retention policy UUID")
-
 	// Hookup functions to the subcommands
 	createJobCmd.Run = processCreateJobRequest
-	listJobCmd.Run = processListJobsRequest
-	showJobCmd.Run = processShowJobRequest
 	deleteJobCmd.Run = processDeleteJobRequest
-	pauseJobCmd.Run = processPauseJobRequest
-	unpauseJobCmd.Run = processUnpauseJobRequest
-	pausedJobCmd.Run = processPausedJobRequest
 	runJobCmd.Run = processRunJobRequest
 	editJobCmd.Run = processEditJobRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createJobCmd)
-	listCmd.AddCommand(listJobCmd)
-	showCmd.AddCommand(showJobCmd)
 	deleteCmd.AddCommand(deleteJobCmd)
-	pauseCmd.AddCommand(pauseJobCmd)
-	unpauseCmd.AddCommand(unpauseJobCmd)
-	pausedCmd.AddCommand(pausedJobCmd)
 	runCmd.AddCommand(runJobCmd)
 	editCmd.AddCommand(editJobCmd)
 }
@@ -194,90 +161,6 @@ func processCreateJobRequest(cmd *cobra.Command, args []string) {
 	return
 }
 
-func processListJobsRequest(cmd *cobra.Command, args []string) {
-	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	storeUUID, _ := cmd.Flags().GetString("store")
-	targetUUID, _ := cmd.Flags().GetString("target")
-	scheduleUUID, _ := cmd.Flags().GetString("schedule")
-	retentionUUID, _ := cmd.Flags().GetString("retention")
-	jobs, err := GetJobs(JobFilter{
-		Target:    targetUUID,
-		Store:     storeUUID,
-		Schedule:  scheduleUUID,
-		Retention: retentionUUID,
-		Paused:    MaybeString(parseTristateOptions(cmd, "paused", "unpaused")),
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of jobs:\n", err)
-	}
-
-	t := tui.NewTable("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
-	for _, job := range jobs {
-		paused := "-"
-		if job.Paused {
-			paused = "Y"
-		}
-
-		t.Row(job.UUID, paused, job.Name, job.Summary,
-			job.RetentionName, job.ScheduleName, job.TargetEndpoint, job.Agent)
-	}
-	t.Output(os.Stdout)
-}
-
-func processShowJobRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	job, err := GetJob(uuid.Parse(args[0]))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not show job:\n", err)
-		os.Exit(1)
-	}
-
-	t := tui.NewReport()
-	t.Add("UUID", job.UUID)
-	t.Add("Name", job.Name)
-	t.Add("Paused", BoolString(job.Paused))
-	t.Break()
-
-	t.Add("Retention Policy", job.RetentionName)
-	t.Add("Retention UUID", job.RetentionUUID)
-	t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
-	t.Break()
-
-	t.Add("Schedule Policy", job.ScheduleName)
-	t.Add("Schedule UUID", job.ScheduleUUID)
-	t.Break()
-
-	t.Add("Target", job.TargetPlugin)
-	t.Add("Target UUID", job.TargetUUID)
-	t.Add("Target Endpoint", job.TargetEndpoint)
-	t.Add("SHIELD Agent", job.Agent)
-	t.Break()
-
-	t.Add("Store", job.StorePlugin)
-	t.Add("Store UUID", job.StoreUUID)
-	t.Add("Store Endpoint", job.StoreEndpoint)
-	t.Break()
-
-	t.Add("Store", job.StorePlugin)
-	t.Add("Store UUID", job.StoreUUID)
-	t.Add("Store Endpoint", job.StoreEndpoint)
-
-	t.Add("Notes", job.Summary)
-
-	t.Output(os.Stdout)
-}
-
 func processEditJobRequest(cmd *cobra.Command, args []string) {
 
 	if len(args) != 1 {
@@ -365,48 +248,6 @@ func processRunJobRequest(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(requested_UUID, "scheduled")
-
-	return
-}
-
-func processPauseJobRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := PauseJob(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not pause job:\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(requested_UUID, "pause")
-
-	return
-}
-
-func processUnpauseJobRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := UnpauseJob(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not run jobs:\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(requested_UUID, "unpaused")
 
 	return
 }

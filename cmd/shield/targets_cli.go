@@ -22,16 +22,6 @@ var (
 		Long:  "Create a new target with ...",
 	} // FIXME
 
-	listTargetCmd = &cobra.Command{
-		Use:   "targets",
-		Short: "Lists the available targets",
-	}
-
-	showTargetCmd = &cobra.Command{
-		Use:   "target",
-		Short: "Show all the Targets",
-	}
-
 	deleteTargetCmd = &cobra.Command{
 		Use:   "target",
 		Short: "Delete all the Targets",
@@ -44,22 +34,14 @@ var (
 )
 
 func init() {
-	// Set options for the subcommands
-	listTargetCmd.Flags().StringVarP(&pluginFilter, "plugin", "p", "", "Filter by plugin name")
-	listTargetCmd.Flags().BoolVar(&unusedFilter, "unused", false, "Show only unused targets")
-	listTargetCmd.Flags().BoolVar(&usedFilter, "used", false, "Show only used targets")
 
 	// Hookup functions to the subcommands
 	createTargetCmd.Run = processCreateTargetRequest
-	listTargetCmd.Run = processListTargetsRequest
-	showTargetCmd.Run = processShowTargetRequest
 	editTargetCmd.Run = processEditTargetRequest
 	deleteTargetCmd.Run = processDeleteTargetRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createTargetCmd)
-	listCmd.AddCommand(listTargetCmd)
-	showCmd.AddCommand(showTargetCmd)
 	editCmd.AddCommand(editTargetCmd)
 	deleteCmd.AddCommand(deleteTargetCmd)
 }
@@ -72,6 +54,7 @@ type ListTargetOptions struct {
 }
 
 func ListTargets(opts ListTargetOptions) error {
+	//FIXME (un?)used flags do not work; --plugin name works fine.
 	targets, err := GetTargets(TargetFilter{
 		Plugin: opts.Plugin,
 		Unused: MaybeBools(opts.Unused, opts.Used),
@@ -93,29 +76,6 @@ func ListTargets(opts ListTargetOptions) error {
 	}
 	t.Output(os.Stdout)
 	return nil
-}
-
-func processListTargetsRequest(cmd *cobra.Command, args []string) {
-	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	targets, err := GetTargets(TargetFilter{
-		Plugin: pluginFilter,
-		Unused: MaybeString(parseTristateOptions(cmd, "unused", "used")),
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
-	}
-
-	t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
-	for _, target := range targets {
-		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
-	}
-	t.Output(os.Stdout)
-	return
 }
 
 func processCreateTargetRequest(cmd *cobra.Command, args []string) {
@@ -154,32 +114,6 @@ func processCreateTargetRequest(cmd *cobra.Command, args []string) {
 	fmt.Println(string(output[:]))
 
 	return
-}
-
-func processShowTargetRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	target, err := GetTarget(uuid.Parse(args[0]))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not show target:\n", err)
-		os.Exit(1)
-	}
-
-	t := tui.NewReport()
-	t.Add("UUID", target.UUID)
-	t.Add("Name", target.Name)
-	t.Add("Summary", target.Summary)
-	t.Break()
-
-	t.Add("Plugin", target.Plugin)
-	t.Add("Endpoint", target.Endpoint)
-	t.Add("SHIELD Agent", target.Agent)
-	t.Output(os.Stdout)
 }
 
 func processEditTargetRequest(cmd *cobra.Command, args []string) {

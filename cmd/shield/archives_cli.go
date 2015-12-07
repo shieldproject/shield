@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
@@ -16,16 +16,6 @@ import (
 var (
 
 	//== Applicable actions for Archives
-
-	listArchiveCmd = &cobra.Command{
-		Use:   "archives",
-		Short: "Lists all the archives",
-	}
-
-	showArchiveCmd = &cobra.Command{
-		Use:   "archive",
-		Short: "Shows information about the specified archive",
-	}
 
 	deleteArchiveCmd = &cobra.Command{
 		Use:   "archive",
@@ -51,27 +41,14 @@ var (
 )
 
 func init() {
-	// Set options for the subcommands
-	listArchiveCmd.Flags().StringVarP(&archiveTargetFilter, "target", "", "", "Filter by target")
-	listArchiveCmd.Flags().StringVarP(&archiveStoreFilter, "store", "", "", "Filter by store")
-	listArchiveCmd.Flags().StringVarP(&archiveAfterFilter, "after", "", "", "Filter by after date")
-	listArchiveCmd.Flags().StringVarP(&archiveBeforeFilter, "before", "", "", "Filter by before date")
 
 	restoreArchiveCmd.Flags().StringVarP(&archiveRestoreTo, "to", "", "", "Filter by plugin name")
 
 	// Hookup functions to the subcommands
-	//createArchiveCmd.Run = processCreateArchiveRequest
-	listArchiveCmd.Run = processListArchivesRequest
-	showArchiveCmd.Run = processShowArchiveRequest
-	editArchiveCmd.Run = processEditArchiveRequest
 	deleteArchiveCmd.Run = processDeleteArchiveRequest
 	restoreArchiveCmd.Run = processRestoreArchiveRequest
 
 	// Add the subcommands to the base actions
-	//createCmd.AddCommand(createArchiveCmd)
-	listCmd.AddCommand(listArchiveCmd)
-	showCmd.AddCommand(showArchiveCmd)
-	editCmd.AddCommand(editArchiveCmd)
 	deleteCmd.AddCommand(deleteArchiveCmd)
 	restoreCmd.AddCommand(restoreArchiveCmd)
 }
@@ -141,131 +118,6 @@ func ListArchives(opts ListArchiveOptions) error {
 	}
 	t.Output(os.Stdout)
 	return nil
-}
-
-func processListArchivesRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	unused := ""
-	if unusedFilter {
-		unused = "t"
-	}
-	if usedFilter {
-		if unused == "" {
-			unused = "f"
-		} else {
-			fmt.Fprintf(os.Stderr, "\nERROR: Cannot specify --used and --unused at the same time\n\n")
-			os.Exit(1)
-		}
-	}
-
-	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	archives, err := GetArchives(ArchiveFilter{
-		Plugin: pluginFilter,
-		Unused: MaybeString(unused),
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of archives:\n", err)
-	}
-
-	t := tui.NewTable("UUID", "Target Type", "Target Name", "Store Type", "Taken at", "Expires at", "Notes")
-	target := map[string]Target{}
-	targets, _ := GetTargets(TargetFilter{})
-	for _, t := range targets {
-		target[t.UUID] = t
-	}
-	for _, archive := range archives {
-		t.Row(archive.UUID, archive.TargetPlugin, target[archive.TargetUUID].Name, archive.StorePlugin,
-			archive.TakenAt.Format(time.RFC1123Z),
-			archive.ExpiresAt.Format(time.RFC1123Z),
-			archive.Notes)
-	}
-	t.Output(os.Stdout)
-}
-
-func processShowArchiveRequest(cmd *cobra.Command, args []string) {
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	archive, err := GetArchive(uuid.Parse(args[0]))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not show archive:\n", err)
-		os.Exit(1)
-	}
-
-	t := tui.NewReport()
-	t.Add("UUID", archive.UUID)
-	t.Add("Backup Key", archive.StoreKey)
-	t.Break()
-
-	t.Add("Target", archive.TargetPlugin)
-	t.Add("Target UUID", archive.TargetUUID)
-	t.Add("Target Endpoint", archive.TargetEndpoint)
-	t.Break()
-
-	t.Add("Store", archive.StorePlugin)
-	t.Add("Store UUID", archive.StoreUUID)
-	t.Add("Store Endpoint", archive.StoreEndpoint)
-	t.Break()
-
-	t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))
-	t.Add("Expires at", archive.ExpiresAt.Format(time.RFC1123Z))
-	t.Add("Notes", archive.Notes)
-
-	t.Output(os.Stdout)
-}
-
-func processEditArchiveRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	original_data, err := GetArchive(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not show archive:\n", err)
-		os.Exit(1)
-	}
-
-	data, err := json.MarshalIndent(original_data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render archive:\n", err)
-	}
-
-	fmt.Println("Got the following original archive:\n\n", string(data))
-
-	// Invoke editor
-	content := invokeEditor(string(data))
-
-	fmt.Println("Got the following edited archive:\n\n", content)
-
-	update_data, err := UpdateArchive(requested_UUID, content)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not update archives:\n", err)
-		os.Exit(1)
-	}
-	// Print
-	output, err := json.MarshalIndent(update_data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render archive:\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(output[:]))
-
-	return
 }
 
 func processDeleteArchiveRequest(cmd *cobra.Command, args []string) {

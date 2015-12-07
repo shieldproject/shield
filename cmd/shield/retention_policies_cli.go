@@ -25,24 +25,6 @@ var (
 		Short: "Create all the Retention Policies",
 	}
 
-	listRetentionCmd = &cobra.Command{
-		Use:   "retention",
-		Short: "List all the Retentions",
-	}
-	listRetentionPoliciesCmd = &cobra.Command{
-		Use:   "policies",
-		Short: "List all the Retention Policies",
-	}
-
-	showRetentionCmd = &cobra.Command{
-		Use:   "retention",
-		Short: "List all the Retentions",
-	}
-	showRetentionPolicyCmd = &cobra.Command{
-		Use:   "policy",
-		Short: "Show details for the given retention policy",
-	}
-
 	deleteRetentionCmd = &cobra.Command{
 		Use:   "retention",
 		Short: "List all the Retentions",
@@ -63,26 +45,17 @@ var (
 )
 
 func init() {
-	// Set options for the subcommands
-	listRetentionPoliciesCmd.Flags().BoolVar(&unusedFilter, "unused", false, "Show only unused retentions")
-	listRetentionPoliciesCmd.Flags().BoolVar(&usedFilter, "used", false, "Show only used retentions")
 
 	// Hookup functions to the subcommands
 	createRetentionPoliciesCmd.Run = processCreateRetentionRequest
-	listRetentionPoliciesCmd.Run = processListRetentionsRequest
-	showRetentionPolicyCmd.Run = processShowRetentionRequest
 	updateRetentionPolicyCmd.Run = processUpdateRetentionRequest
 	deleteRetentionPolicyCmd.Run = processDeleteRetentionRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createRetentionCmd)
-	listCmd.AddCommand(listRetentionCmd)
-	showCmd.AddCommand(showRetentionCmd)
 	updateCmd.AddCommand(updateRetentionCmd)
 	deleteCmd.AddCommand(deleteRetentionCmd)
 	createRetentionCmd.AddCommand(createRetentionPoliciesCmd)
-	listRetentionCmd.AddCommand(listRetentionPoliciesCmd)
-	showRetentionCmd.AddCommand(showRetentionPolicyCmd)
 	updateRetentionCmd.AddCommand(updateRetentionPolicyCmd)
 	deleteRetentionCmd.AddCommand(deleteRetentionPolicyCmd)
 }
@@ -112,29 +85,6 @@ func ListRetentionPolicies(opts ListRetentionOptions) error {
 	}
 	t.Output(os.Stdout)
 	return nil
-}
-
-func processListRetentionsRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
-		Unused: MaybeString(parseTristateOptions(cmd, "unused", "used")),
-	})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of retentions:\n", err)
-	}
-
-	t := tui.NewTable("UUID", "Name", "Description", "Expires in")
-	for _, policy := range policies {
-		t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
-	}
-	t.Output(os.Stdout)
 }
 
 func processCreateRetentionRequest(cmd *cobra.Command, args []string) {
@@ -171,28 +121,6 @@ func processCreateRetentionRequest(cmd *cobra.Command, args []string) {
 	fmt.Println(string(output[:]))
 
 	return
-}
-
-func processShowRetentionRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	policy, err := GetRetentionPolicy(uuid.Parse(args[0]))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not show retention:\n", err)
-		os.Exit(1)
-	}
-
-	t := tui.NewReport()
-	t.Add("UUID", policy.UUID)
-	t.Add("Name", policy.Name)
-	t.Add("Summary", policy.Summary)
-	t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
-	t.Output(os.Stdout)
 }
 
 func processUpdateRetentionRequest(cmd *cobra.Command, args []string) {
