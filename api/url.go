@@ -70,14 +70,16 @@ func (u *URL) Request(out interface{}, req *http.Request) error {
 	}
 	defer r.Body.Close()
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
+	if out != nil {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
 
-	err = json.Unmarshal(body, out)
-	if err != nil {
-		return err
+		err = json.Unmarshal(body, out)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

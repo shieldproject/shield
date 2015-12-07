@@ -137,6 +137,21 @@ func ListJobs(opts ListJobOptions) error {
 	return nil
 }
 
+func PauseUnpauseJob(p bool, u string) error {
+	if p {
+		err := PauseJob(uuid.Parse(u))
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not pause job '%s': %s", u, err)
+		}
+	} else {
+		err := UnpauseJob(uuid.Parse(u))
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not unpause job '%s': %s", u, err)
+		}
+	}
+	return nil
+}
+
 func processCreateJobRequest(cmd *cobra.Command, args []string) {
 
 	// Validate Request

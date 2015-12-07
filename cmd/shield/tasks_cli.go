@@ -80,7 +80,7 @@ func ListTasks(opts ListTaskOptions) error {
 		} else if len(opts.UUID) > 0 && opts.UUID != task.UUID {
 			continue
 		}
-		
+
 		if task.Status != "done" {
 			t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
 		} else if Maybe(opts.All).Yes {

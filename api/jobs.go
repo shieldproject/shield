@@ -83,11 +83,11 @@ func DeleteJob(id uuid.UUID) error {
 }
 
 func PauseJob(id uuid.UUID) error {
-	return ShieldURI("/v1/job/%s/pause", id).Post(nil, "")
+	return ShieldURI("/v1/job/%s/pause", id).Post(nil, "{}")
 }
 
 func UnpauseJob(id uuid.UUID) error {
-	return ShieldURI("/v1/job/%s/unpause", id).Post(nil, "")
+	return ShieldURI("/v1/job/%s/unpause", id).Post(nil, "{}")
 }
 
 func RunJob(id uuid.UUID, ownerJSON string) error {

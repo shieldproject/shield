@@ -204,55 +204,59 @@ func main() {
 			})
 		}
 
-/*
-	case "edit", "update":
-		switch command[1] {
-		case "target":
-		case "schedule":
-		case "retention":
-			switch command[2] {
-			case "policy":
-			}
-		case "store":
-		case "job":
-		case "task":
-		case "archive":
-		}
+		/*
+			case "edit", "update":
+				switch command[1] {
+				case "target":
+				case "schedule":
+				case "retention":
+					switch command[2] {
+					case "policy":
+					}
+				case "store":
+				case "job":
+				case "task":
+				case "archive":
+				}
 
-	case "delete":
-		switch command[1] {
-		case "target":
-		case "schedule":
-		case "retention":
-			switch command[2] {
-			case "policy":
-			}
-		case "store":
-		case "job":
-		case "archive":
-		}
+			case "delete":
+				switch command[1] {
+				case "target":
+				case "schedule":
+				case "retention":
+					switch command[2] {
+					case "policy":
+					}
+				case "store":
+				case "job":
+				case "archive":
+				}
 
-	case "restore":
-		switch command[1] {
-		case archive:
+			case "restore":
+				switch command[1] {
+				case archive:
 
-		}
-	case "cancel":
-		switch command[1] {
-		case task:
-
-		}
+				}
+			case "cancel":
+				switch command[1] {
+				case task:
+				}*/
 	case "pause":
 		switch command[1] {
-		case job:
-
+		case "job":
+			err = PauseUnpauseJob(true, command[2])
+			if err == nil {
+				fmt.Fprintf(os.Stdout, "Successfully paused job '%s'\n", command[2])
+			}
 		}
 	case "unpause":
 		switch command[1] {
-		case job:
-
+		case "job":
+			err = PauseUnpauseJob(false, command[2])
+			if err == nil {
+				fmt.Fprintf(os.Stdout, "Successfully unpaused job '%s'\n", command[2])
+			}
 		}
-		*/
 	}
 
 	if err != nil {
