@@ -68,6 +68,7 @@ type ListTargetOptions struct {
 	Unused bool
 	Used   bool
 	Plugin string
+	UUID   string
 }
 
 func ListTargets(opts ListTargetOptions) error {
@@ -75,12 +76,19 @@ func ListTargets(opts ListTargetOptions) error {
 		Plugin: opts.Plugin,
 		Unused: MaybeBools(opts.Unused, opts.Used),
 	})
+
 	if err != nil {
 		return fmt.Errorf("failed to retrieve targets from SHIELD: %s", err)
 	}
 
 	t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
 	for _, target := range targets {
+		if len(opts.UUID) > 0 && opts.UUID == target.UUID {
+			t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
+			break
+		} else if len(opts.UUID) > 0 && opts.UUID != target.UUID {
+			continue
+		}
 		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
 	}
 	t.Output(os.Stdout)

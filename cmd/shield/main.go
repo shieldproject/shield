@@ -168,16 +168,91 @@ func main() {
 				After:  *options.After,
 			})
 		}
+
 	case "show":
-	case "edit":
-	case "update": // alias for 'edit'
+		switch command[1] {
+		case "target":
+			err = ListTargets(ListTargetOptions{
+				UUID: command[2],
+			})
+		case "schedule":
+			err = ListSchedules(ListScheduleOptions{
+				UUID: command[2],
+			})
+		case "retention":
+			switch command[2] {
+			case "policy":
+				err = ListRetentionPolicies(ListRetentionOptions{
+					UUID: command[3],
+				})
+			}
+		case "store":
+			err = ListStores(ListStoreOptions{
+				UUID: command[2],
+			})
+		case "job":
+			err = ListJobs(ListJobOptions{
+				UUID: command[2],
+			})
+		case "task":
+			err = ListTasks(ListTaskOptions{
+				UUID: command[2],
+			})
+		case "archive":
+			err = ListArchives(ListArchiveOptions{
+				UUID: command[2],
+			})
+		}
+
+/*
+	case "edit", "update":
+		switch command[1] {
+		case "target":
+		case "schedule":
+		case "retention":
+			switch command[2] {
+			case "policy":
+			}
+		case "store":
+		case "job":
+		case "task":
+		case "archive":
+		}
+
 	case "delete":
+		switch command[1] {
+		case "target":
+		case "schedule":
+		case "retention":
+			switch command[2] {
+			case "policy":
+			}
+		case "store":
+		case "job":
+		case "archive":
+		}
 
 	case "restore":
-	case "cancel":
-	case "pause":
-	case "unpause":
+		switch command[1] {
+		case archive:
 
+		}
+	case "cancel":
+		switch command[1] {
+		case task:
+
+		}
+	case "pause":
+		switch command[1] {
+		case job:
+
+		}
+	case "unpause":
+		switch command[1] {
+		case job:
+
+		}
+		*/
 	}
 
 	if err != nil {

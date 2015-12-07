@@ -102,6 +102,7 @@ type ListJobOptions struct {
 	Store     string
 	Schedule  string
 	Retention string
+	UUID      string
 }
 
 func ListJobs(opts ListJobOptions) error {
@@ -122,6 +123,13 @@ func ListJobs(opts ListJobOptions) error {
 			paused = "Y"
 		}
 
+		if len(opts.UUID) > 0 && opts.UUID == job.UUID {
+			t.Row(job.UUID, paused, job.Name, job.Summary,
+				job.RetentionName, job.ScheduleName, job.TargetEndpoint, job.Agent)
+			break
+		} else if len(opts.UUID) > 0 && opts.UUID != job.UUID {
+			continue
+		}
 		t.Row(job.UUID, paused, job.Name, job.Summary,
 			job.RetentionName, job.ScheduleName, job.TargetEndpoint, job.Agent)
 	}

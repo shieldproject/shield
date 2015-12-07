@@ -60,6 +60,7 @@ type ListStoreOptions struct {
 	Unused bool
 	Used   bool
 	Plugin string
+	UUID   string
 }
 
 func ListStores(opts ListStoreOptions) error {
@@ -72,6 +73,12 @@ func ListStores(opts ListStoreOptions) error {
 	}
 	t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
 	for _, store := range stores {
+		if len(opts.UUID) > 0 && opts.UUID == store.UUID {
+			t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
+			break
+		} else if len(opts.UUID) > 0 && opts.UUID != store.UUID {
+			continue
+		}
 		t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 	}
 	t.Output(os.Stdout)

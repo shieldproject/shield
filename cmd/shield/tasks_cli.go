@@ -51,6 +51,7 @@ func init() {
 type ListTaskOptions struct {
 	All   bool
 	Debug bool
+	UUID  string
 }
 
 func ListTasks(opts ListTaskOptions) error {
@@ -73,6 +74,13 @@ func ListTasks(opts ListTaskOptions) error {
 			stopped = task.StoppedAt.Format(time.RFC1123Z)
 		}
 
+		if len(opts.UUID) > 0 && opts.UUID == task.UUID {
+			t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
+			break
+		} else if len(opts.UUID) > 0 && opts.UUID != task.UUID {
+			continue
+		}
+		
 		if task.Status != "done" {
 			t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
 		} else if Maybe(opts.All).Yes {

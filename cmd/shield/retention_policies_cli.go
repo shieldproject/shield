@@ -90,6 +90,7 @@ func init() {
 type ListRetentionOptions struct {
 	Unused bool
 	Used   bool
+	UUID   string
 }
 
 func ListRetentionPolicies(opts ListRetentionOptions) error {
@@ -101,6 +102,12 @@ func ListRetentionPolicies(opts ListRetentionOptions) error {
 	}
 	t := tui.NewTable("UUID", "Name", "Description", "Expires in")
 	for _, policy := range policies {
+		if len(opts.UUID) > 0 && opts.UUID == policy.UUID {
+			t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+			break
+		} else if len(opts.UUID) > 0 && opts.UUID != policy.UUID {
+			continue
+		}
 		t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 	}
 	t.Output(os.Stdout)

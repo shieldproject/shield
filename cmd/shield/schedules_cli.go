@@ -66,6 +66,7 @@ func init() {
 type ListScheduleOptions struct {
 	Unused bool
 	Used   bool
+	UUID   string
 }
 
 func ListSchedules(opts ListScheduleOptions) error {
@@ -77,6 +78,12 @@ func ListSchedules(opts ListScheduleOptions) error {
 	}
 	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval")
 	for _, schedule := range schedules {
+		if len(opts.UUID) > 0 && opts.UUID == schedule.UUID {
+			t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
+			break
+		} else if len(opts.UUID) > 0 && opts.UUID != schedule.UUID {
+			continue
+		}
 		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 	}
 	t.Output(os.Stdout)
