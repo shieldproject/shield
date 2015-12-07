@@ -1,5 +1,3 @@
-// Jamie: This contains the go source code that will become shield.
-
 package main
 
 import (
@@ -236,11 +234,15 @@ func main() {
 				switch command[1] {
 				case archive:
 
-				}
-			case "cancel":
-				switch command[1] {
-				case task:
 				}*/
+	case "cancel":
+		switch command[1] {
+		case "task":
+			err = CancelTaskByUUID(command[2])
+			if err == nil {
+				fmt.Fprintf(os.Stdout, "Successfully cancelled task '%s'\n", command[2])
+			}
+		}
 	case "pause":
 		switch command[1] {
 		case "job":

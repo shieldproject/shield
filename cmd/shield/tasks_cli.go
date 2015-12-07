@@ -6,29 +6,10 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	"github.com/spf13/cobra"
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
 )
-
-var (
-
-	//== Applicable actions for Tasks
-
-	cancelTaskCmd = &cobra.Command{
-		Use:   "task",
-		Short: "Cancels the specified task",
-	}
-)
-
-func init() {
-	// Hookup functions to the subcommands
-	cancelTaskCmd.Run = processCancelTaskRequest
-
-	// Add the subcommands to the base actions
-	cancelCmd.AddCommand(cancelTaskCmd)
-}
 
 type ListTaskOptions struct {
 	All   bool
@@ -75,24 +56,10 @@ func ListTasks(opts ListTaskOptions) error {
 	return nil
 }
 
-func processCancelTaskRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := CancelTask(requested_UUID)
+func CancelTaskByUUID(u string) error {
+	err := CancelTask(uuid.Parse(u))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not cancel task:\n", err)
-		os.Exit(1)
+		return fmt.Errorf("ERROR: could not cancel task '%s'", u)
 	}
-
-	// Print
-	fmt.Println(requested_UUID, " Canceled")
-
-	return
+	return nil
 }
