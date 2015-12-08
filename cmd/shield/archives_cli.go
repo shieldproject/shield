@@ -116,7 +116,7 @@ func RestoreArchiveByUUID(opts ListArchiveOptions) error {
 	if err != nil {
 		return fmt.Errorf("ERROR: Cannot restore archive '%s': '%s'", opts.UUID, err)
 	}
-	fmt.Fprintf(os.Stdout, "Restoring archive '%s' %s", opts.UUID, toTargetJSONmsg)
+	fmt.Fprintf(os.Stdout, "Restoring archive '%s' %s\n", opts.UUID, toTargetJSONmsg)
 	return nil
 }
 

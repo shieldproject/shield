@@ -241,25 +241,16 @@ func main() {
 		switch command[1] {
 		case "task":
 			err = CancelTaskByUUID(command[2])
-			if err == nil {
-				fmt.Fprintf(os.Stdout, "Successfully cancelled task '%s'\n", command[2])
-			}
 		}
 	case "pause":
 		switch command[1] {
 		case "job":
 			err = PauseUnpauseJob(true, command[2])
-			if err == nil {
-				fmt.Fprintf(os.Stdout, "Successfully paused job '%s'\n", command[2])
-			}
 		}
 	case "unpause":
 		switch command[1] {
 		case "job":
 			err = PauseUnpauseJob(false, command[2])
-			if err == nil {
-				fmt.Fprintf(os.Stdout, "Successfully unpaused job '%s'\n", command[2])
-			}
 		}
 	}
 

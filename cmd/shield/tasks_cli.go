@@ -61,5 +61,6 @@ func CancelTaskByUUID(u string) error {
 	if err != nil {
 		return fmt.Errorf("ERROR: could not cancel task '%s'", u)
 	}
+	fmt.Fprintf(os.Stdout, "Successfully cancelled task '%s'\n", u)
 	return nil
 }

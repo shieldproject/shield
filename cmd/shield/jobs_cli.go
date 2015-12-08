@@ -110,11 +110,13 @@ func PauseUnpauseJob(p bool, u string) error {
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not pause job '%s': %s", u, err)
 		}
+		fmt.Fprintf(os.Stdout, "Successfully paused job '%s'\n", u)
 	} else {
 		err := UnpauseJob(uuid.Parse(u))
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not unpause job '%s': %s", u, err)
 		}
+		fmt.Fprintf(os.Stdout, "Successfully unpaused job '%s'\n", u)
 	}
 	return nil
 }
