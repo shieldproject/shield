@@ -1101,12 +1101,14 @@ $ shield edit target $UUID
 $ shield delete target $UUID
 
 # schedule management
+$ shield create schedule
 $ shield list schedules [--[un]used]
 $ shield show schedule $UUID
 $ shield delete schedule $UUID
 $ shield update schedule $UUID
 
 # retention policies
+$ shield create retention policy
 $ shield list retention policies [--[un]used]
 $ shield show retention policy $UUID
 $ shield delete retention policy $UUID
@@ -1117,12 +1119,14 @@ $ shield list plugins
 $ shield show plugin $NAME
 
 # stores
+$ shield create store
 $ shield list stores [--[un]used] [--plugin $NAME]
 $ shield show store $UUID
 $ shield edit store $UUID
 $ shield delete store $UUID
 
 # jobs
+$ shield create job
 $ shield list jobs [--[un]paused] [--target $UUID] [--store $UUID]
                 [--schedule $UUID] [--retention-policy $UUID]
 $ shield show job $UUID

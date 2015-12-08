@@ -201,8 +201,19 @@ func main() {
 				UUID: command[2],
 			})
 		}
-
-		/*
+	/*
+	    case "create":
+      	switch command[1] {
+      	case "target":
+      	case "schedule":
+      	case "retention":
+      		switch command[2] {
+      		case "policy":
+      		}
+      	case "store":
+      	case "job":
+      	case "task":
+      	}
 			case "edit", "update":
 				switch command[1] {
 				case "target":
