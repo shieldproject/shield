@@ -103,7 +103,7 @@ func CreateNewJob() error {
 func EditExstingJob(u string) error {
 	j, err := GetJob(uuid.Parse(u))
 	if err != nil {
-		return fmt.Errorf("ERROR: Could not retrieve job '%s': %s", j, err)
+		return fmt.Errorf("ERROR: Could not retrieve job '%s': %s", u, err)
 	}
 	paused := "false"
 	if j.Paused {
@@ -123,7 +123,7 @@ func EditExstingJob(u string) error {
 
 	j, err = UpdateJob(uuid.Parse(u), content)
 	if err != nil {
-		fmt.Errorf("ERROR: Could not update job '%s': %s", j, err)
+		return fmt.Errorf("ERROR: Could not update job '%s': %s", u, err)
 	}
 
 	fmt.Fprintf(os.Stdout, "Updated job.\n")
