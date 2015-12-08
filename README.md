@@ -1094,54 +1094,53 @@ This section is exploratory.
 
 ```
 # targets
-$ shield create target
 $ shield list targets [--[un]used] [--plugin $NAME]
 $ shield show target $UUID
+$ shield create target
 $ shield edit target $UUID
 $ shield delete target $UUID
 
 # schedule management
-$ shield create schedule
 $ shield list schedules [--[un]used]
 $ shield show schedule $UUID
-$ shield delete schedule $UUID
+$ shield create schedule
 $ shield update schedule $UUID
+$ shield delete schedule $UUID
 
 # retention policies
-$ shield create retention policy
 $ shield list retention policies [--[un]used]
 $ shield show retention policy $UUID
-$ shield delete retention policy $UUID
+$ shield create retention policy
 $ shield update retention policy $UUID
+$ shield delete retention policy $UUID
 
 # "managing" plugins
 $ shield list plugins
 $ shield show plugin $NAME
 
 # stores
-$ shield create store
 $ shield list stores [--[un]used] [--plugin $NAME]
 $ shield show store $UUID
+$ shield create store
 $ shield edit store $UUID
 $ shield delete store $UUID
 
 # jobs
-$ shield create job
 $ shield list jobs [--[un]paused] [--target $UUID] [--store $UUID]
                 [--schedule $UUID] [--retention-policy $UUID]
 $ shield show job $UUID
+$ shield create job
+$ shield edit job $UUID
+$ shield delete job $UUID
 $ shield pause job $UUID
 $ shield unpause job $UUID
 $ shield paused job $UUID
 $ shield run job $UUID
-$ shield edit job $UUID
-$ shield delete job $UUID
 
 # archives
 $ shield list archives [--target $UUID] [--store $UUID]
                     [--after YYYYMMDD] [--before YYYYMMDD]
 $ shield show archive $UUID
-$ shield edit archive $UUID
 $ shield delete archive $UUID
 $ shield restore archive $UUID [--to $TARGET_UUID]
 
