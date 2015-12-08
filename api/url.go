@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
+	"os"
 )
 
 type URL struct {
@@ -62,9 +64,28 @@ func (u *URL) String() string {
 	return u.base.String()
 }
 
+func httpTracingEnabled() bool {
+	shieldTrace := os.Getenv("SHIELD_TRACE")
+	return shieldTrace != "" && shieldTrace != "0" && shieldTrace != "false" && shieldTrace != "no"
+}
+func debugRequest(req *http.Request) {
+	if httpTracingEnabled() {
+		r, _ := httputil.DumpRequest(req, true)
+		fmt.Fprintf(os.Stderr, "%s\n", r)
+	}
+}
+func debugResponse(res *http.Response) {
+	if httpTracingEnabled() {
+		r, _ := httputil.DumpResponse(res, true)
+		fmt.Fprintf(os.Stderr, "Response:\n%s\n---------------------------\n", r)
+	}
+}
+
 func (u *URL) Request(out interface{}, req *http.Request) error {
+	debugRequest(req)
 	client := &http.Client{}
 	r, err := client.Do(req)
+	debugResponse(r)
 	if err != nil {
 		return err
 	}
