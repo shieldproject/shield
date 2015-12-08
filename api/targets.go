@@ -29,7 +29,7 @@ func GetTargets(filter TargetFilter) ([]Target, error) {
 
 func GetTarget(id uuid.UUID) (Target, error) {
 	var data Target
-	return data, ShieldURI("/v1/targets/%s", id).Get(&data)
+	return data, ShieldURI("/v1/target/%s", id).Get(&data)
 }
 
 func CreateTarget(contentJSON string) (Target, error) {

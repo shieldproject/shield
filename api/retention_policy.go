@@ -32,7 +32,7 @@ func CreateRetentionPolicy(contentJSON string) (RetentionPolicy, error) {
 	data := struct {
 		UUID string `json:"uuid"`
 	}{}
-	err := ShieldURI("/v2/retention").Post(&data, contentJSON)
+	err := ShieldURI("/v1/retention").Post(&data, contentJSON)
 	if err == nil {
 		return GetRetentionPolicy(uuid.Parse(data.UUID))
 	}

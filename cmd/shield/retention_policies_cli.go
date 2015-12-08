@@ -75,6 +75,24 @@ func ListRetentionPolicies(opts ListRetentionOptions) error {
 	return nil
 }
 
+func CreateNewRetentionPolicy() error {
+	content := invokeEditor(`{
+		"name":     "Empty Retention Policy",
+		"summary":  "Should probably tell me how long I should keep this",
+		"expires":  86400
+		}`)
+	newPolicy, err := CreateRetentionPolicy(content)
+	fmt.Printf("The new policy is: %v\n", newPolicy)
+	if err != nil {
+		return fmt.Errorf("ERROR: Could not create new retention policy: %s", err)
+	}
+	fmt.Fprintf(os.Stdout, "Created new retention policy.\n")
+	t := tui.NewTable("UUID", "Name", "Description", "Expires in")
+	t.Row(newPolicy.UUID, newPolicy.Name, newPolicy.Summary, fmt.Sprintf("%d days", newPolicy.Expires/86400))
+	t.Output(os.Stdout)
+	return nil
+}
+
 func DeleteRetentionPolicyByUUID(u string) error {
 	err := DeleteRetentionPolicy(uuid.Parse(u))
 	if err != nil {

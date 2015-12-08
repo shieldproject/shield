@@ -16,12 +16,6 @@ var (
 
 	//== Applicable actions for Targets
 
-	createTargetCmd = &cobra.Command{
-		Use:   "target",
-		Short: "Creates a new target",
-		Long:  "Create a new target with ...",
-	} // FIXME
-
 	editTargetCmd = &cobra.Command{
 		Use:   "target",
 		Short: "Edit all the Targets",
@@ -31,11 +25,9 @@ var (
 func init() {
 
 	// Hookup functions to the subcommands
-	createTargetCmd.Run = processCreateTargetRequest
 	editTargetCmd.Run = processEditTargetRequest
 
 	// Add the subcommands to the base actions
-	createCmd.AddCommand(createTargetCmd)
 	editCmd.AddCommand(editTargetCmd)
 }
 
@@ -59,6 +51,7 @@ func ListTargets(opts ListTargetOptions) error {
 
 	t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
 	for _, target := range targets {
+		//FIXME implement with GetTarget(UUID)
 		if len(opts.UUID) > 0 && opts.UUID == target.UUID {
 			t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
 			break
@@ -71,6 +64,27 @@ func ListTargets(opts ListTargetOptions) error {
 	return nil
 }
 
+func CreateNewTarget() error {
+	content := invokeEditor(`{
+	"name":     "Empty Target",
+	"summary":  "How many licks does it take to reach the center",
+	"plugin":   "of a tootsie pop",
+	"endpoint": "{\"the world\":\"may never know\"}",
+	"agent":    "blackwidow"
+  }`)
+
+	newTarget, err := CreateTarget(content)
+	if err != nil {
+		return fmt.Errorf("ERROR: Could not create new target: %s", err)
+	}
+
+	fmt.Fprintf(os.Stdout, "Created new target.\n")
+	t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
+	t.Row(newTarget.UUID, newTarget.Name, newTarget.Summary, newTarget.Plugin, newTarget.Endpoint, newTarget.Agent)
+	t.Output(os.Stdout)
+	return nil
+}
+
 func DeleteTargetByUUID(u string) error {
 	err := DeleteTarget(uuid.Parse(u))
 	if err != nil {
@@ -78,44 +92,6 @@ func DeleteTargetByUUID(u string) error {
 	}
 	fmt.Fprintf(os.Stdout, "Deleted target '%s'\n", u)
 	return nil
-}
-
-func processCreateTargetRequest(cmd *cobra.Command, args []string) {
-
-	// Validate Request
-	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Unexpected arguments following command: %v\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	// Invoke editor
-	content := invokeEditor(`{
-	"name":     "",
-	"summary":  "",
-	"plugin":   "",
-	"endpoint": "{\"\":\"\"}",
-	"agent":    ""
-}`)
-
-	fmt.Println("Got the following content:\n\n", content)
-
-	data, err := CreateTarget(content)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not fetch list of targets:\n", err)
-		os.Exit(1)
-	}
-
-	// Print
-	output, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not render list of targets:\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(output[:]))
-
-	return
 }
 
 func processEditTargetRequest(cmd *cobra.Command, args []string) {

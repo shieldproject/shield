@@ -67,6 +67,25 @@ func ListSchedules(opts ListScheduleOptions) error {
 	return nil
 }
 
+func CreateNewSchedule() error {
+	content := invokeEditor(`{
+		"name":     "Empty Schedule",
+		"summary":  "Late for a very important date",
+		"when":    "daily at 4:00"
+		}`)
+
+	newSchedule, err := CreateSchedule(content)
+	if err != nil {
+		return fmt.Errorf("ERROR: Could not create new schedule: %s", err)
+	}
+	fmt.Fprintf(os.Stdout, "Created new schedule.\n")
+	t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval (UTC)")
+	t.Row(newSchedule.UUID, newSchedule.Name, newSchedule.Summary, newSchedule.When)
+	t.Output(os.Stdout)
+
+	return nil
+}
+
 func DeleteScheduleByUUID(u string) error {
 	err := DeleteSchedule(uuid.Parse(u))
 	if err != nil {

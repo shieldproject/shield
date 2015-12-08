@@ -15,11 +15,6 @@ import (
 var (
 
 	//== Applicable actions for Jobs
-	createJobCmd = &cobra.Command{
-		Use:   "job",
-		Short: "Creates a new job",
-		Long:  "Create a new job with ...",
-	} // FIXME
 
 	runJobCmd = &cobra.Command{
 		Use:   "job",
@@ -35,12 +30,10 @@ var (
 func init() {
 
 	// Hookup functions to the subcommands
-	createJobCmd.Run = processCreateJobRequest
 	runJobCmd.Run = processRunJobRequest
 	editJobCmd.Run = processEditJobRequest
 
 	// Add the subcommands to the base actions
-	createCmd.AddCommand(createJobCmd)
 	runCmd.AddCommand(runJobCmd)
 	editCmd.AddCommand(editJobCmd)
 }
@@ -101,6 +94,36 @@ func PauseUnpauseJob(p bool, u string) error {
 		}
 		fmt.Fprintf(os.Stdout, "Successfully unpaused job '%s'\n", u)
 	}
+	return nil
+}
+
+func CreateNewJob() error {
+	content := invokeEditor(`{
+	"name"      : "Empty Job",
+	"summary"   : "a short description",
+
+	"store"     : "StoreUUID",
+	"target"    : "TargetUUID",
+	"retention" : "PolicyUUID",
+	"schedule"  : "ScheduleUUID",
+	"paused"    : false
+	}`)
+
+	newJob, err := CreateJob(content)
+	fmt.Printf("newJob: %v\n", newJob)
+	if err != nil {
+		return fmt.Errorf("ERROR: Could not create new job: %s", err)
+	}
+
+	fmt.Fprintf(os.Stdout, "Created new job.\n")
+	t := tui.NewTable("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
+	paused := "-"
+	if newJob.Paused {
+		paused = "Y"
+	}
+	t.Row(newJob.UUID, paused, newJob.Name, newJob.Summary, newJob.RetentionName,
+		newJob.ScheduleName, newJob.TargetEndpoint, newJob.Agent)
+	t.Output(os.Stdout)
 	return nil
 }
 

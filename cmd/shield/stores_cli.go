@@ -60,6 +60,24 @@ func ListStores(opts ListStoreOptions) error {
 	return nil
 }
 
+func CreateNewStore() error {
+	content := invokeEditor(`{
+		"name":     "Empty Store",
+		"summary":  "It would be fun to open my own shop",
+		"plugin":   "seriously",
+		"endpoint": "{\"items\":\"unknown\"}"
+		}`)
+	newStore, err := CreateStore(content)
+	if err != nil {
+		return fmt.Errorf("ERROR: Could not create new store: %s", err)
+	}
+	fmt.Fprintf(os.Stdout, "Created new store.\n")
+	t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
+	t.Row(newStore.UUID, newStore.Name, newStore.Summary, newStore.Plugin, newStore.Endpoint)
+	t.Output(os.Stdout)
+	return nil
+}
+
 func DeleteStoreByUUID(u string) error {
 	err := DeleteStore(uuid.Parse(u))
 	if err != nil {
