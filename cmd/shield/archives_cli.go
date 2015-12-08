@@ -21,16 +21,6 @@ var (
 		Short: "Deletes the specified archive",
 	}
 
-	editArchiveCmd = &cobra.Command{
-		Use:   "archive",
-		Short: "Edit the specified archive",
-	}
-
-	restoreArchiveCmd = &cobra.Command{
-		Use:   "archive",
-		Short: "Restores the specified archive",
-	}
-
 	// Options
 	archiveTargetFilter string
 	archiveStoreFilter  string
@@ -41,15 +31,11 @@ var (
 
 func init() {
 
-	restoreArchiveCmd.Flags().StringVarP(&archiveRestoreTo, "to", "", "", "Filter by plugin name")
-
 	// Hookup functions to the subcommands
 	deleteArchiveCmd.Run = processDeleteArchiveRequest
-	restoreArchiveCmd.Run = processRestoreArchiveRequest
 
 	// Add the subcommands to the base actions
 	deleteCmd.AddCommand(deleteArchiveCmd)
-	restoreCmd.AddCommand(restoreArchiveCmd)
 }
 
 type ListArchiveOptions struct {
@@ -63,7 +49,7 @@ type ListArchiveOptions struct {
 func ListArchives(opts ListArchiveOptions) error {
 	archives, err := GetArchives(ArchiveFilter{})
 	if err != nil {
-		return fmt.Errorf("\nERROR: Could not fetch list of archives: %s\n", err)
+		return fmt.Errorf("ERROR: Could not fetch list of archives: %s", err)
 	}
 
 	//Getting the target and store names into the output
@@ -119,6 +105,25 @@ func ListArchives(opts ListArchiveOptions) error {
 	return nil
 }
 
+func RestoreArchiveByUUID(opts ListArchiveOptions) error {
+	targetJSON := "{}"
+	toTargetJSONmsg := ""
+	if len(opts.Target) > 0 {
+		targetJSON = opts.Target
+		toTargetJSONmsg = fmt.Sprintf("to target '%s'", targetJSON)
+	}
+	err := RestoreArchive(uuid.Parse(opts.UUID), targetJSON)
+	if err != nil {
+		return fmt.Errorf("ERROR: Cannot restore archive '%s': '%s'", opts.UUID, err)
+	}
+	fmt.Fprintf(os.Stdout, "Restoring archive '%s' %s", opts.UUID, toTargetJSONmsg)
+	return nil
+}
+
+func DeleteArchiveByUUID(u string) error {
+	return nil
+}
+
 func processDeleteArchiveRequest(cmd *cobra.Command, args []string) {
 
 	if len(args) != 1 {
@@ -137,34 +142,6 @@ func processDeleteArchiveRequest(cmd *cobra.Command, args []string) {
 
 	// Print
 	fmt.Println(requested_UUID, " Deleted")
-
-	return
-}
-
-func processRestoreArchiveRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	if archiveRestoreTo == "" {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a target\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := RestoreArchive(requested_UUID, archiveRestoreTo)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not restore archive:\n", err)
-		os.Exit(1)
-	}
-
-	// Print
-	fmt.Println(requested_UUID, " Restore requested")
 
 	return
 }

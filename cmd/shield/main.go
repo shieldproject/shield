@@ -228,13 +228,15 @@ func main() {
 				case "store":
 				case "job":
 				case "archive":
-				}
-
-			case "restore":
-				switch command[1] {
-				case archive:
-
 				}*/
+	case "restore":
+		switch command[1] {
+		case "archive":
+			err = RestoreArchiveByUUID(ListArchiveOptions{
+				Target: *options.To,
+				UUID:   command[2],
+			})
+		}
 	case "cancel":
 		switch command[1] {
 		case "task":
