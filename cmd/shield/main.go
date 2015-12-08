@@ -201,6 +201,7 @@ func main() {
 				UUID: command[2],
 			})
 		}
+
 	case "create":
 		switch command[1] {
 		case "target":
@@ -216,20 +217,25 @@ func main() {
 			err = CreateNewStore()
 		case "job":
 			err = CreateNewJob()
-		} /*
-			case "edit", "update":
-				switch command[1] {
-				case "target":
-				case "schedule":
-				case "retention":
-					switch command[2] {
-					case "policy":
-					}
-				case "store":
-				case "job":
-				case "task":
-				case "archive":
-				}*/
+		}
+
+	case "edit", "update":
+		switch command[1] {
+		case "target":
+			err = EditExstingTarget(command[2])
+		case "schedule":
+			err = EditExstingSchedule(command[2])
+		case "retention":
+			switch command[2] {
+			case "policy":
+				err = EditExstingPolicy(command[3])
+			}
+		case "store":
+			err = EditExstingStore(command[2])
+		case "job":
+			err = EditExstingJob(command[2])
+		}
+
 	case "delete":
 		switch command[1] {
 		case "target":
@@ -248,6 +254,7 @@ func main() {
 		case "archive":
 			err = DeleteArchiveByUUID(command[2])
 		}
+
 	case "restore":
 		switch command[1] {
 		case "archive":
@@ -256,11 +263,13 @@ func main() {
 				UUID:   command[2],
 			})
 		}
+
 	case "cancel":
 		switch command[1] {
 		case "task":
 			err = CancelTaskByUUID(command[2])
 		}
+
 	case "pause":
 		switch command[1] {
 		case "job":
@@ -270,7 +279,12 @@ func main() {
 		switch command[1] {
 		case "job":
 			err = PauseUnpauseJob(false, command[2])
-		}
+		} /*
+			case "run":
+				switch command[1] {
+				case "job":
+					err = Run(command[2])
+				}*/
 	}
 
 	if err != nil {
