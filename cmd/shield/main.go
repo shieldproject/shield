@@ -201,45 +201,49 @@ func main() {
 				UUID: command[2],
 			})
 		}
-	/*
-	    case "create":
-      	switch command[1] {
-      	case "target":
-      	case "schedule":
-      	case "retention":
-      		switch command[2] {
-      		case "policy":
-      		}
-      	case "store":
-      	case "job":
-      	case "task":
-      	}
-			case "edit", "update":
-				switch command[1] {
-				case "target":
-				case "schedule":
-				case "retention":
-					switch command[2] {
-					case "policy":
-					}
-				case "store":
-				case "job":
-				case "task":
-				case "archive":
-				}
-
-			case "delete":
-				switch command[1] {
-				case "target":
-				case "schedule":
-				case "retention":
-					switch command[2] {
-					case "policy":
-					}
-				case "store":
-				case "job":
-				case "archive":
-				}*/
+		/*case "create":
+		      	switch command[1] {
+		      	case "target":
+		      	case "schedule":
+		      	case "retention":
+		      		switch command[2] {
+		      		case "policy":
+		      		}
+		      	case "store":
+		      	case "job":
+		      	case "task":
+		      	}
+					case "edit", "update":
+						switch command[1] {
+						case "target":
+						case "schedule":
+						case "retention":
+							switch command[2] {
+							case "policy":
+							}
+						case "store":
+						case "job":
+						case "task":
+						case "archive":
+						}*/
+	case "delete":
+		switch command[1] {
+		case "target":
+			err = DeleteTargetByUUID(command[2])
+		case "schedule":
+			err = DeleteScheduleByUUID(command[2])
+		case "retention":
+			switch command[2] {
+			case "policy":
+				err = DeleteRetentionPolicyByUUID(command[3])
+			}
+		case "store":
+			err = DeleteStoreByUUID(command[2])
+		case "job":
+			err = DeleteJobByUUID(command[2])
+		case "archive":
+			err = DeleteArchiveByUUID(command[2])
+		}
 	case "restore":
 		switch command[1] {
 		case "archive":

@@ -25,15 +25,6 @@ var (
 		Short: "Create all the Retention Policies",
 	}
 
-	deleteRetentionCmd = &cobra.Command{
-		Use:   "retention",
-		Short: "List all the Retentions",
-	}
-	deleteRetentionPolicyCmd = &cobra.Command{
-		Use:   "policy",
-		Short: "Delete details for the given retention policy",
-	}
-
 	updateRetentionCmd = &cobra.Command{
 		Use:   "retention",
 		Short: "List all the Retentions",
@@ -49,15 +40,12 @@ func init() {
 	// Hookup functions to the subcommands
 	createRetentionPoliciesCmd.Run = processCreateRetentionRequest
 	updateRetentionPolicyCmd.Run = processUpdateRetentionRequest
-	deleteRetentionPolicyCmd.Run = processDeleteRetentionRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createRetentionCmd)
 	updateCmd.AddCommand(updateRetentionCmd)
-	deleteCmd.AddCommand(deleteRetentionCmd)
 	createRetentionCmd.AddCommand(createRetentionPoliciesCmd)
 	updateRetentionCmd.AddCommand(updateRetentionPolicyCmd)
-	deleteRetentionCmd.AddCommand(deleteRetentionPolicyCmd)
 }
 
 type ListRetentionOptions struct {
@@ -84,6 +72,15 @@ func ListRetentionPolicies(opts ListRetentionOptions) error {
 		t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 	}
 	t.Output(os.Stdout)
+	return nil
+}
+
+func DeleteRetentionPolicyByUUID(u string) error {
+	err := DeleteRetentionPolicy(uuid.Parse(u))
+	if err != nil {
+		return fmt.Errorf("ERROR: Cannot delete retention policy '%s': %s", u, err)
+	}
+	fmt.Fprintf(os.Stdout, "Deleted retention policy '%s'\n", u)
 	return nil
 }
 
@@ -164,28 +161,6 @@ func processUpdateRetentionRequest(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(output[:]))
-
-	return
-}
-
-func processDeleteRetentionRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := DeleteRetentionPolicy(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete retention:\n", err)
-		os.Exit(1)
-	}
-
-	// Print
-	fmt.Println(requested_UUID, " Deleted")
 
 	return
 }

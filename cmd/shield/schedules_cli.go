@@ -22,11 +22,6 @@ var (
 		Long:  "Create a new schedule with ...",
 	} // FIXME
 
-	deleteScheduleCmd = &cobra.Command{
-		Use:   "schedule",
-		Short: "Delete all the Schedules",
-	}
-
 	updateScheduleCmd = &cobra.Command{
 		Use:   "schedule",
 		Short: "Update the Schedules",
@@ -38,12 +33,10 @@ func init() {
 	// Hookup functions to the subcommands
 	createScheduleCmd.Run = processCreateScheduleRequest
 	updateScheduleCmd.Run = processUpdateScheduleRequest
-	deleteScheduleCmd.Run = processDeleteScheduleRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createScheduleCmd)
 	updateCmd.AddCommand(updateScheduleCmd)
-	deleteCmd.AddCommand(deleteScheduleCmd)
 }
 
 type ListScheduleOptions struct {
@@ -71,6 +64,15 @@ func ListSchedules(opts ListScheduleOptions) error {
 		t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 	}
 	t.Output(os.Stdout)
+	return nil
+}
+
+func DeleteScheduleByUUID(u string) error {
+	err := DeleteSchedule(uuid.Parse(u))
+	if err != nil {
+		return fmt.Errorf("ERROR: Cannot delete schedule '%s': %s", u, err)
+	}
+	fmt.Fprintf(os.Stdout, "Deleted schedule '%s'\n", u)
 	return nil
 }
 
@@ -151,28 +153,6 @@ func processUpdateScheduleRequest(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(output[:]))
-
-	return
-}
-
-func processDeleteScheduleRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := DeleteSchedule(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete schedule:\n", err)
-		os.Exit(1)
-	}
-
-	// Print
-	fmt.Println(requested_UUID, " Deleted")
 
 	return
 }

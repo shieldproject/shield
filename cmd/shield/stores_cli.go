@@ -16,11 +16,6 @@ var (
 
 	//== Applicable actions for Stores
 
-	deleteStoreCmd = &cobra.Command{
-		Use:   "store",
-		Short: "Delete all the Stores",
-	}
-
 	editStoreCmd = &cobra.Command{
 		Use:   "store",
 		Short: "Edit all the Stores",
@@ -30,11 +25,9 @@ var (
 func init() {
 	// Hookup functions to the subcommands
 	editStoreCmd.Run = processEditStoreRequest
-	deleteStoreCmd.Run = processDeleteStoreRequest
 
 	// Add the subcommands to the base actions
 	editCmd.AddCommand(editStoreCmd)
-	deleteCmd.AddCommand(deleteStoreCmd)
 }
 
 type ListStoreOptions struct {
@@ -64,6 +57,15 @@ func ListStores(opts ListStoreOptions) error {
 		t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 	}
 	t.Output(os.Stdout)
+	return nil
+}
+
+func DeleteStoreByUUID(u string) error {
+	err := DeleteStore(uuid.Parse(u))
+	if err != nil {
+		return fmt.Errorf("ERROR: Cannot delete store '%s': %s", u, err)
+	}
+	fmt.Fprintf(os.Stdout, "Deleted store '%s'\n", u)
 	return nil
 }
 
@@ -145,28 +147,6 @@ func processEditStoreRequest(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(output[:]))
-
-	return
-}
-
-func processDeleteStoreRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := DeleteStore(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete store:\n", err)
-		os.Exit(1)
-	}
-
-	// Print
-	fmt.Println(requested_UUID, " Deleted")
 
 	return
 }

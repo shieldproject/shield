@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"time"
 
@@ -11,32 +10,6 @@ import (
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
 )
-
-var (
-
-	//== Applicable actions for Archives
-
-	deleteArchiveCmd = &cobra.Command{
-		Use:   "archive",
-		Short: "Deletes the specified archive",
-	}
-
-	// Options
-	archiveTargetFilter string
-	archiveStoreFilter  string
-	archiveAfterFilter  string
-	archiveBeforeFilter string
-	archiveRestoreTo    string
-)
-
-func init() {
-
-	// Hookup functions to the subcommands
-	deleteArchiveCmd.Run = processDeleteArchiveRequest
-
-	// Add the subcommands to the base actions
-	deleteCmd.AddCommand(deleteArchiveCmd)
-}
 
 type ListArchiveOptions struct {
 	Target string
@@ -121,27 +94,10 @@ func RestoreArchiveByUUID(opts ListArchiveOptions) error {
 }
 
 func DeleteArchiveByUUID(u string) error {
-	return nil
-}
-
-func processDeleteArchiveRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := DeleteArchive(requested_UUID)
+	err := DeleteArchive(uuid.Parse(u))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete archive:\n", err)
-		os.Exit(1)
+		return fmt.Errorf("ERROR: Cannot delete archive '%s': %s", u, err)
 	}
-
-	// Print
-	fmt.Println(requested_UUID, " Deleted")
-
-	return
+	fmt.Fprintf(os.Stdout, "Deleted archive '%s'\n", u)
+	return nil
 }

@@ -22,11 +22,6 @@ var (
 		Long:  "Create a new target with ...",
 	} // FIXME
 
-	deleteTargetCmd = &cobra.Command{
-		Use:   "target",
-		Short: "Delete all the Targets",
-	}
-
 	editTargetCmd = &cobra.Command{
 		Use:   "target",
 		Short: "Edit all the Targets",
@@ -38,12 +33,10 @@ func init() {
 	// Hookup functions to the subcommands
 	createTargetCmd.Run = processCreateTargetRequest
 	editTargetCmd.Run = processEditTargetRequest
-	deleteTargetCmd.Run = processDeleteTargetRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createTargetCmd)
 	editCmd.AddCommand(editTargetCmd)
-	deleteCmd.AddCommand(deleteTargetCmd)
 }
 
 type ListTargetOptions struct {
@@ -75,6 +68,15 @@ func ListTargets(opts ListTargetOptions) error {
 		t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
 	}
 	t.Output(os.Stdout)
+	return nil
+}
+
+func DeleteTargetByUUID(u string) error {
+	err := DeleteTarget(uuid.Parse(u))
+	if err != nil {
+		return fmt.Errorf("ERROR: Could not delete target '%s': %s", u, err)
+	}
+	fmt.Fprintf(os.Stdout, "Deleted target '%s'\n", u)
 	return nil
 }
 
@@ -157,28 +159,6 @@ func processEditTargetRequest(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(output[:]))
-
-	return
-}
-
-func processDeleteTargetRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "\nERROR: Requires a single UUID\n")
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := DeleteTarget(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete target:\n", err)
-		os.Exit(1)
-	}
-
-	// Print
-	fmt.Println(requested_UUID, " Deleted")
 
 	return
 }

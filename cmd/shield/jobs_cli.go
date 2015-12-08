@@ -21,21 +21,6 @@ var (
 		Long:  "Create a new job with ...",
 	} // FIXME
 
-	listJobCmd = &cobra.Command{
-		Use:   "jobs",
-		Short: "Lists all the jobs",
-	}
-
-	deleteJobCmd = &cobra.Command{
-		Use:   "job",
-		Short: "Deletes the specified job",
-	}
-
-	pauseJobCmd = &cobra.Command{
-		Use:   "job",
-		Short: "Pauses the specified job",
-	}
-
 	runJobCmd = &cobra.Command{
 		Use:   "job",
 		Short: "Runs the specified job",
@@ -51,13 +36,11 @@ func init() {
 
 	// Hookup functions to the subcommands
 	createJobCmd.Run = processCreateJobRequest
-	deleteJobCmd.Run = processDeleteJobRequest
 	runJobCmd.Run = processRunJobRequest
 	editJobCmd.Run = processEditJobRequest
 
 	// Add the subcommands to the base actions
 	createCmd.AddCommand(createJobCmd)
-	deleteCmd.AddCommand(deleteJobCmd)
 	runCmd.AddCommand(runJobCmd)
 	editCmd.AddCommand(editJobCmd)
 }
@@ -118,6 +101,15 @@ func PauseUnpauseJob(p bool, u string) error {
 		}
 		fmt.Fprintf(os.Stdout, "Successfully unpaused job '%s'\n", u)
 	}
+	return nil
+}
+
+func DeleteJobByUUID(u string) error {
+	err := DeleteJob(uuid.Parse(u))
+	if err != nil {
+		return fmt.Errorf("ERROR: Cannot delete job '%s': %s", u, err)
+	}
+	fmt.Fprintf(os.Stdout, "Deleted job '%s'\n", u)
 	return nil
 }
 
@@ -204,28 +196,6 @@ func processEditJobRequest(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(output[:]))
-
-	return
-}
-
-func processDeleteJobRequest(cmd *cobra.Command, args []string) {
-
-	if len(args) != 1 {
-		fmt.Fprint(os.Stderr, "\nERROR: Requires a single UUID\n", args)
-		//FIXME  show help
-		os.Exit(1)
-	}
-
-	requested_UUID := uuid.Parse(args[0])
-
-	err := DeleteJob(requested_UUID)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "\nERROR: Could not delete job:\n", err)
-		os.Exit(1)
-	}
-
-	// Print
-	fmt.Println(requested_UUID, "deleted")
 
 	return
 }
