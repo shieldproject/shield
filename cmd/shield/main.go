@@ -72,7 +72,6 @@ func main() {
 	*/
 
 	c.Dispatch("list targets", func(opts Options, args []string) error {
-		//FIXME (un?)used flags do not work; --plugin name works fine.
 		targets, err := GetTargets(TargetFilter{
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
@@ -175,7 +174,6 @@ func main() {
 	*/
 
 	c.Dispatch("list schedules", func(opts Options, args []string) error {
-		//FIXME: --(un)used not working?
 		schedules, err := GetSchedules(ScheduleFilter{
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -356,7 +354,6 @@ func main() {
 	*/
 
 	c.Dispatch("list stores", func(opts Options, args []string) error {
-		//FIXME: (un)?used flags not working; --plugin works.
 		stores, err := GetStores(StoreFilter{
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
