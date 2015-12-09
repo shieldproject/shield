@@ -28,10 +28,10 @@ func (f *ScheduleFilter) Query() string {
 	}
 
 	// by default, show schedules with no attached jobs (unused)
-	having := `HAVING n = 0`
+	having := `HAVING COUNT(j.uuid) = 0`
 	if f.SkipUnused {
 		// otherwise, only show schedules that have attached jobs
-		having = `HAVING n > 0`
+		having = `HAVING COUNT(j.uuid) > 0`
 	}
 
 	return `

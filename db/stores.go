@@ -42,10 +42,10 @@ func (f *StoreFilter) Query() string {
 	}
 
 	// by default, show stores with no attached jobs (unused)
-	having := `HAVING n = 0`
+	having := `HAVING COUNT(j.uuid) = 0`
 	if f.SkipUnused {
 		// otherwise, only show stores that have attached jobs
-		having = `HAVING n > 0`
+		having = `HAVING COUNT(j.uuid) > 0`
 	}
 
 	return `

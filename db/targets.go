@@ -43,10 +43,10 @@ func (f *TargetFilter) Query() string {
 	}
 
 	// by default, show targets with no attached jobs (unused)
-	having := `HAVING n = 0`
+	having := `HAVING COUNT(j.uuid) = 0`
 	if f.SkipUnused {
 		// otherwise, only show targets that have attached jobs
-		having = `HAVING n > 0`
+		having = `HAVING COUNT(j.uuid) > 0`
 	}
 
 	return `
