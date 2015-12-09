@@ -32,7 +32,7 @@ func main() {
 
 		Debug: getopt.BoolLong("debug", 'D', "Enable debugging"),
 
-		Status:    getopt.StringLong("status", 'S', "", "Only show tasks with the given status (one of 'pending', 'running', 'canceled' or 'done')"),
+		Status:    getopt.StringLong("status", 'S', "running", "Only show tasks with the given status (one of 'pending', 'running', 'canceled', 'done' or 'failed')"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
 		Store:     getopt.StringLong("store", 's', "", "Only show things for the store with this UUID"),
 		Schedule:  getopt.StringLong("schedule", 'w', "", "Only show things for the schedule with this UUID"),
@@ -629,8 +629,12 @@ func main() {
 	*/
 
 	c.Dispatch("list tasks", func(opts Options, args []string) error {
-		// FIXME: need to handle `--status` flag...
-		tasks, err := GetTasks(TaskFilter{})
+		if *options.Status == "all" {
+			*options.Status = ""
+		}
+		tasks, err := GetTasks(TaskFilter{
+			Status: *options.Status,
+		})
 		if err != nil {
 			return fmt.Errorf("\nERROR: Could not fetch list of tasks: %s\n", err)
 		}
