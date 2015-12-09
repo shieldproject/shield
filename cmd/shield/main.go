@@ -88,6 +88,7 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("ls targets", "list targets")
 
 	c.Dispatch("show target", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield show target <UUID>")
@@ -110,6 +111,10 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("view target", "show target")
+	c.Alias("display target", "show target")
+	c.Alias("list target", "show target")
+	c.Alias("ls target", "show target")
 
 	c.Dispatch("create target", func(opts Options, args []string) error {
 		t, err := CreateTarget(invokeEditor(`{
@@ -127,6 +132,8 @@ func main() {
 		return c.Invoke("show", "target", t.UUID)
 	})
 	c.Alias("new target", "create target")
+	c.Alias("create new target", "create target")
+	c.Alias("make target", "create target")
 
 	c.Dispatch("edit target", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit target <UUID>")
@@ -162,6 +169,8 @@ func main() {
 		fmt.Printf("Deleted target '%s'\n", id)
 		return nil
 	})
+	c.Alias("remove target", "delete target")
+	c.Alias("rm target", "delete target")
 
 	/*
 	    ######   ######  ##     ## ######## ########  ##     ## ##       ########
@@ -187,6 +196,7 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("ls schedules", "list schedules")
 
 	c.Dispatch("show schedule", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield show schedule <UUID>")
@@ -205,6 +215,10 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("view schedule", "show schedule")
+	c.Alias("display schedule", "show schedule")
+	c.Alias("list schedule", "show schedule")
+	c.Alias("ls schedule", "show schedule")
 
 	c.Dispatch("create schedule", func(opts Options, args []string) error {
 		schedule, err := CreateSchedule(invokeEditor(`{
@@ -218,6 +232,9 @@ func main() {
 		fmt.Printf("Created new schedule.\n")
 		return c.Invoke("show", "schedule", schedule.UUID)
 	})
+	c.Alias("new schedule", "create schedule")
+	c.Alias("create new schedule", "create schedule")
+	c.Alias("make schedule", "create schedule")
 
 	c.Dispatch("edit schedule", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit schedule <UUID>")
@@ -252,6 +269,8 @@ func main() {
 		fmt.Printf("Deleted schedule '%s'\n", id)
 		return nil
 	})
+	c.Alias("remove schedule", "delete schedule")
+	c.Alias("rm schedule", "delete schedule")
 
 	/*
 	   ########  ######## ######## ######## ##    ## ######## ####  #######  ##    ##
@@ -277,6 +296,9 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("ls retention policies", "list retention policies")
+	c.Alias("list policies", "list retention policies")
+	c.Alias("ls policies", "list policies")
 
 	c.Dispatch("show retention policy", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield show retention policy <UUID>")
@@ -295,6 +317,13 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("view retention policy", "show retention policy")
+	c.Alias("display retention policy", "show retention policy")
+	c.Alias("list retention policy", "show retention policy")
+	c.Alias("show policy", "show retention policy")
+	c.Alias("view policy", "show policy")
+	c.Alias("display policy", "show policy")
+	c.Alias("list policy", "show policy")
 
 	c.Dispatch("create retention policy", func(opts Options, args []string) error {
 		policy, err := CreateRetentionPolicy(invokeEditor(`{
@@ -309,6 +338,13 @@ func main() {
 		fmt.Printf("Created new retention policy.\n")
 		return c.Invoke("show", "retention", "policy", policy.UUID)
 	})
+	c.Alias("new retention policy", "create retention policy")
+	c.Alias("create new retention policy", "create retention policy")
+	c.Alias("make retention policy", "create retention policy")
+	c.Alias("create policy", "create retention policy")
+	c.Alias("new policy", "create policy")
+	c.Alias("create new policy", "create policy")
+	c.Alias("make policy", "create policy")
 
 	c.Dispatch("edit retention policy", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit retention policy <UUID>")
@@ -330,6 +366,8 @@ func main() {
 		return c.Invoke("show", "retention", "policy", p.UUID)
 	})
 	c.Alias("update retention policy", "edit retention policy")
+	c.Alias("edit policy", "edit retention policy")
+	c.Alias("update policy", "edit policy")
 
 	c.Dispatch("delete retention policy", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield delete retention policy <UUID>")
@@ -342,6 +380,11 @@ func main() {
 		fmt.Printf("Deleted retention policy '%s'\n", id)
 		return nil
 	})
+	c.Alias("remove retention policy", "delete retention policy")
+	c.Alias("rm retention policy", "delete retention policy")
+	c.Alias("delete policy", "delete retention policy")
+	c.Alias("remove policy", "delete policy")
+	c.Alias("rm policy", "delete policy")
 
 	/*
 	    ######  ########  #######  ########  ########
@@ -368,6 +411,7 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("ls stores", "list stores")
 
 	c.Dispatch("show store", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield show store <UUID>")
@@ -389,6 +433,10 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("view store", "show store")
+	c.Alias("display store", "show store")
+	c.Alias("list store", "show store")
+	c.Alias("ls store", "show store")
 
 	c.Dispatch("create store", func(opts Options, args []string) error {
 		store, err := CreateStore(invokeEditor(`{
@@ -405,6 +453,8 @@ func main() {
 		return c.Invoke("show", "store", store.UUID)
 	})
 	c.Alias("new store", "create store")
+	c.Alias("create new store", "create store")
+	c.Alias("make store", "create store")
 
 	c.Dispatch("edit store", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield delete store <UUID>")
@@ -441,6 +491,8 @@ func main() {
 		fmt.Printf("Deleted store '%s'\n", id)
 		return nil
 	})
+	c.Alias("remove store", "delete store")
+	c.Alias("rm store", "delete store")
 
 	/*
 	         ##  #######  ########
@@ -516,6 +568,10 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("view job", "show job")
+	c.Alias("display job", "show job")
+	c.Alias("list job", "show job")
+	c.Alias("ls job", "show job")
 
 	c.Dispatch("create job", func(opts Options, args []string) error {
 		job, err := CreateJob(invokeEditor(`{
@@ -535,6 +591,9 @@ func main() {
 
 		return c.Invoke("get", "job", job.UUID)
 	})
+	c.Alias("new job", "create job")
+	c.Alias("create new job", "create job")
+	c.Alias("make job", "create job")
 
 	c.Dispatch("edit job", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit job <UUID>")
@@ -581,6 +640,8 @@ func main() {
 		fmt.Printf("Deleted job '%s'\n", id)
 		return nil
 	})
+	c.Alias("remove job", "delete job")
+	c.Alias("rm job", "delete job")
 
 	c.Dispatch("pause job", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield pause job <UUID>")
@@ -655,6 +716,7 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("ls tasks", "list tasks")
 
 	c.Dispatch("show task", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield show task <UUID>")
@@ -692,6 +754,10 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("view task", "show task")
+	c.Alias("display task", "show task")
+	c.Alias("list task", "show task")
+	c.Alias("ls task", "show task")
 
 	c.Dispatch("cancel task", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield cancel task <UUID>")
@@ -704,6 +770,7 @@ func main() {
 		fmt.Printf("Successfully cancelled task '%s'\n", id)
 		return nil
 	})
+	c.Alias("stop task", "cancel task")
 
 	/*
 	      ###    ########   ######  ##     ## #### ##     ## ########
@@ -759,6 +826,7 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("ls archives", "list archives")
 
 	c.Dispatch("show archive", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield show archive <UUID>")
@@ -791,6 +859,10 @@ func main() {
 		t.Output(os.Stdout)
 		return nil
 	})
+	c.Alias("view archive", "show archive")
+	c.Alias("display archive", "show archive")
+	c.Alias("list archive", "show archive")
+	c.Alias("ls archive", "show archive")
 
 	c.Dispatch("restore archive", func(opts Options, args []string) error {
 		require(len(args) == 1, "USAGE: shield restore archive <UUID>")
@@ -822,6 +894,8 @@ func main() {
 		fmt.Printf("Deleted archive '%s'\n", id)
 		return nil
 	})
+	c.Alias("remove archive", "delete archive")
+	c.Alias("rm archive", "delete archive")
 
 	/**************************************************************************/
 
