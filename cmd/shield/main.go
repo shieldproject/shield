@@ -716,7 +716,12 @@ func main() {
 	*/
 
 	c.Dispatch("list archives", func(opts Options, args []string) error {
-		archives, err := GetArchives(ArchiveFilter{})
+		archives, err := GetArchives(ArchiveFilter{
+			Target: *options.Target,
+			Store:  *options.Store,
+			Before: *options.Before,
+			After:  *options.After,
+		})
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not fetch list of archives: %s", err)
 		}
@@ -741,10 +746,10 @@ func main() {
 		// Since date is YYYYMMDD make sure the HHMMSS is 23:59:59
 		t := tui.NewTable("UUID", "Target Type", "Target Name", "Store Type", "Store Name", "Taken at", "Expires at", "Notes")
 		for _, archive := range archives {
-			if opts.Target != nil && archive.TargetUUID != *opts.Target {
+			if *opts.Target != "" && archive.TargetUUID != *opts.Target {
 				continue
 			}
-			if opts.Store != nil && archive.StoreUUID != *opts.Store {
+			if *opts.Store != "" && archive.StoreUUID != *opts.Store {
 				continue
 			}
 

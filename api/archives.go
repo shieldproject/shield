@@ -7,8 +7,10 @@ import (
 )
 
 type ArchiveFilter struct {
-	Plugin string
-	Unused YesNo
+	Target string
+	Store  string
+	Before string
+	After  string
 }
 
 type Archive struct {
@@ -28,8 +30,10 @@ type Archive struct {
 
 func GetArchives(filter ArchiveFilter) ([]Archive, error) {
 	uri := ShieldURI("/v1/archives")
-	uri.MaybeAddParameter("plugin", filter.Plugin)
-	uri.MaybeAddParameter("unused", filter.Unused)
+	uri.MaybeAddParameter("target", filter.Target)
+	uri.MaybeAddParameter("store", filter.Store)
+	uri.MaybeAddParameter("before", filter.Before)
+	uri.MaybeAddParameter("after", filter.After)
 
 	var data []Archive
 	return data, uri.Get(&data)
