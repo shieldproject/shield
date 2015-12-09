@@ -2,82 +2,28 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strings"
+	"time"
 
 	"github.com/pborman/getopt"
+	"github.com/pborman/uuid"
+
+	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/tui"
 )
 
-var (
-	//== Root Command for Shield
-
-	ShieldCmd = &cobra.Command{
-		Use: "shield",
-		Long: `Shield - Protect your data with confidence
-
-Shield allows you to schedule backups of all your data sources, set retention
-policies, monitor and control your backup tasks, and restore that data should
-the need arise.`,
-
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if t := viper.GetString("ShieldTarget"); t != "" {
-				os.Setenv("SHIELD_TARGET", t)
-			}
-		},
+func require(good bool, msg string) {
+	if !good {
+		fmt.Fprintf(os.Stderr, "USAGE: %s ...\n", msg)
+		os.Exit(1)
 	}
-
-	//== Base Verbs
-
-	createCmd  = &cobra.Command{Use: "create", Short: "Create a new {{children}}"}
-	listCmd    = &cobra.Command{Use: "list", Short: "List all the {{children}}"}
-	showCmd    = &cobra.Command{Use: "show", Short: "Show details for the specified {{children}}"}
-	deleteCmd  = &cobra.Command{Use: "delete", Short: "Delete the specified {{children}}"}
-	updateCmd  = &cobra.Command{Use: "update", Short: "Update the specified {{children}}"}
-	editCmd    = &cobra.Command{Use: "edit", Short: "Edit the specified {{children}}"}
-	pauseCmd   = &cobra.Command{Use: "pause", Short: "Pause the specified {{children}}"}
-	unpauseCmd = &cobra.Command{Use: "unpause", Short: "Continue the specified paused {{children}}"}
-	pausedCmd  = &cobra.Command{Use: "paused", Short: "Check if the specified {{children}} is paused"}
-	runCmd     = &cobra.Command{Use: "run", Short: "Run the specified {{children}}"}
-	cancelCmd  = &cobra.Command{Use: "cancel", Short: "Cancel the specified running {{children}}"}
-	restoreCmd = &cobra.Command{Use: "restore", Short: "Restore the specified {{children}}"}
-
-	CfgFile, ShieldTarget string
-	Verbose               bool
-)
-
-//--------------------------
+}
 
 func main() {
-	var options = struct {
-		Shield *string
-
-		Used     *bool
-		Unused   *bool
-		Paused   *bool
-		Unpaused *bool
-		All      *bool
-
-		Debug *bool
-
-		Status *string
-
-		Target    *string
-		Store     *string
-		Schedule  *string
-		Retention *string
-
-		Plugin *string
-
-		After  *string
-		Before *string
-
-		To *string
-	}{
-		Shield:   getopt.StringLong("shield", 'H', "SHIELD target to run command against, i.e. http://shield.my.domain:8080"),
+	options := Options{
+		Shield:   getopt.StringLong("shield", 'H', "", "SHIELD target to run command against, i.e. http://shield.my.domain:8080"),
 		Used:     getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
 		Unused:   getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
 		Paused:   getopt.BoolLong("paused", 0, "Only show jobs that are paused"),
@@ -113,249 +59,780 @@ func main() {
 		os.Setenv("SHIELD_TARGET", *options.Shield)
 	}
 
-	var err error
-	switch command[0] {
-	case "list":
-		switch command[1] {
-		case "targets":
-			err = ListTargets(ListTargetOptions{
-				Unused: *options.Unused,
-				Used:   *options.Used,
-				Plugin: *options.Plugin,
-			})
+	c := NewCommand().With(options)
 
-		case "schedules":
-			err = ListSchedules(ListScheduleOptions{
-				Unused: *options.Unused,
-				Used:   *options.Used,
-			})
+	/*
+	   ########    ###    ########   ######   ######## ########
+	      ##      ## ##   ##     ## ##    ##  ##          ##
+	      ##     ##   ##  ##     ## ##        ##          ##
+	      ##    ##     ## ########  ##   #### ######      ##
+	      ##    ######### ##   ##   ##    ##  ##          ##
+	      ##    ##     ## ##    ##  ##    ##  ##          ##
+	      ##    ##     ## ##     ##  ######   ########    ##
+	*/
 
-		case "retention":
-			switch command[2] {
-			case "policies":
-				err = ListRetentionPolicies(ListRetentionOptions{
-					Unused: *options.Unused,
-					Used:   *options.Used,
-				})
+	c.Dispatch("list targets", func(opts Options, args []string) error {
+		//FIXME (un?)used flags do not work; --plugin name works fine.
+		targets, err := GetTargets(TargetFilter{
+			Plugin: *opts.Plugin,
+			Unused: MaybeBools(*opts.Unused, *opts.Used),
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to retrieve targets from SHIELD: %s", err)
+		}
+
+		t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
+		for _, target := range targets {
+			t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
+		}
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("show target", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield show target <UUID>")
+		id := uuid.Parse(args[0])
+
+		target, err := GetTarget(id)
+		if err != nil {
+			return err
+		}
+
+		t := tui.NewReport()
+		t.Add("UUID", target.UUID)
+		t.Add("Name", target.Name)
+		t.Add("Summary", target.Summary)
+		t.Break()
+
+		t.Add("Plugin", target.Plugin)
+		t.Add("Endpoint", target.Endpoint)
+		t.Add("SHIELD Agent", target.Agent)
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("create target", func(opts Options, args []string) error {
+		t, err := CreateTarget(invokeEditor(`{
+  "name":     "Empty Target",
+  "summary":  "How many licks does it take to reach the center",
+  "plugin":   "of a tootsie pop",
+  "endpoint": "{\"the world\":\"may never know\"}",
+  "agent":    "blackwidow"
+}`))
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not create new target: %s", err)
+		}
+
+		fmt.Printf("Created new target.\n")
+		return c.Invoke("show", "target", t.UUID)
+	})
+	c.Alias("new target", "create target")
+
+	c.Dispatch("edit target", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield edit target <UUID>")
+		id := uuid.Parse(args[0])
+
+		t, err := GetTarget(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not retrieve target '%s': %s", id, err)
+		}
+		t, err = UpdateTarget(id, invokeEditor(`{
+  "name":     "`+t.Name+`",
+  "summary":  "`+t.Summary+`",
+  "plugin":   "`+t.Plugin+`",
+  "endpoint": "`+t.Endpoint+`",
+  "agent":    "`+t.Agent+`"
+}`))
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not update target '%s': %s", id, err)
+		}
+		fmt.Printf("Updated target.\n")
+		return c.Invoke("show", "target", t.UUID)
+	})
+	c.Alias("update target", "edit target")
+
+	c.Dispatch("delete target", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield delete target <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := DeleteTarget(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not delete target '%s': %s", id, err)
+		}
+		fmt.Printf("Deleted target '%s'\n", id)
+		return nil
+	})
+
+	/*
+	    ######   ######  ##     ## ######## ########  ##     ## ##       ########
+	   ##    ## ##    ## ##     ## ##       ##     ## ##     ## ##       ##
+	   ##       ##       ##     ## ##       ##     ## ##     ## ##       ##
+	    ######  ##       ######### ######   ##     ## ##     ## ##       ######
+	         ## ##       ##     ## ##       ##     ## ##     ## ##       ##
+	   ##    ## ##    ## ##     ## ##       ##     ## ##     ## ##       ##
+	    ######   ######  ##     ## ######## ########   #######  ######## ########
+	*/
+
+	c.Dispatch("list schedules", func(opts Options, args []string) error {
+		//FIXME: --(un)used not working?
+		schedules, err := GetSchedules(ScheduleFilter{
+			Unused: MaybeBools(*opts.Unused, *opts.Used),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to retrieve schedules from SHIELD: %s", err)
+		}
+		t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval (UTC)")
+		for _, schedule := range schedules {
+			t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
+		}
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("show schedule", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield show schedule <UUID>")
+		id := uuid.Parse(args[0])
+
+		schedule, err := GetSchedule(id)
+		if err != nil {
+			return err
+		}
+
+		t := tui.NewReport()
+		t.Add("UUID", schedule.UUID)
+		t.Add("Name", schedule.Name)
+		t.Add("Summary", schedule.Summary)
+		t.Add("Timespec", schedule.When)
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("create schedule", func(opts Options, args []string) error {
+		schedule, err := CreateSchedule(invokeEditor(`{
+  "name":    "Empty Schedule",
+  "summary": "Late for a very important date",
+  "when":    "daily at 4:00"
+}`))
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not create new schedule: %s", err)
+		}
+		fmt.Printf("Created new schedule.\n")
+		return c.Invoke("show", "schedule", schedule.UUID)
+	})
+
+	c.Dispatch("edit schedule", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield edit schedule <UUID>")
+		id := uuid.Parse(args[0])
+
+		s, err := GetSchedule(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not retrieve schedule '%s': %s", id, err)
+		}
+
+		s, err = UpdateSchedule(id, invokeEditor(`{
+  "name":    "`+s.Name+`",
+  "summary": "`+s.Summary+`",
+  "when":    "`+s.When+`"
+}`))
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not update schedule '%s': %s", id, err)
+		}
+		fmt.Printf("Updated schedule.\n")
+		return c.Invoke("show", "schedule", s.UUID)
+	})
+	c.Alias("update schedule", "edit schedule")
+
+	c.Dispatch("delete schedule", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield delete schedule <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := DeleteSchedule(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot delete schedule '%s': %s", id, err)
+		}
+		fmt.Printf("Deleted schedule '%s'\n", id)
+		return nil
+	})
+
+	/*
+	   ########  ######## ######## ######## ##    ## ######## ####  #######  ##    ##
+	   ##     ## ##          ##    ##       ###   ##    ##     ##  ##     ## ###   ##
+	   ##     ## ##          ##    ##       ####  ##    ##     ##  ##     ## ####  ##
+	   ########  ######      ##    ######   ## ## ##    ##     ##  ##     ## ## ## ##
+	   ##   ##   ##          ##    ##       ##  ####    ##     ##  ##     ## ##  ####
+	   ##    ##  ##          ##    ##       ##   ###    ##     ##  ##     ## ##   ###
+	   ##     ## ########    ##    ######## ##    ##    ##    ####  #######  ##    ##
+	*/
+
+	c.Dispatch("list retention policies", func(opts Options, args []string) error {
+		policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+			Unused: MaybeBools(*opts.Unused, *opts.Used),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to retrieve retention policies from SHIELD: %s", err)
+		}
+		t := tui.NewTable("UUID", "Name", "Description", "Expires in")
+		for _, policy := range policies {
+			t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+		}
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("show retention policy", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield show retention policy <UUID>")
+		id := uuid.Parse(args[0])
+
+		policy, err := GetRetentionPolicy(id)
+		if err != nil {
+			return err
+		}
+
+		t := tui.NewReport()
+		t.Add("UUID", policy.UUID)
+		t.Add("Name", policy.Name)
+		t.Add("Summary", policy.Summary)
+		t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("create retention policy", func(opts Options, args []string) error {
+		policy, err := CreateRetentionPolicy(invokeEditor(`{
+  "name":     "Empty Retention Policy",
+  "summary":  "Should probably tell me how long I should keep this",
+  "expires":  86400
+}`))
+		fmt.Printf("The new policy is: %v\n", policy)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not create new retention policy: %s", err)
+		}
+		fmt.Printf("Created new retention policy.\n")
+		return c.Invoke("show", "retention", "policy", policy.UUID)
+	})
+
+	c.Dispatch("edit retention policy", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield edit retention policy <UUID>")
+		id := uuid.Parse(args[0])
+
+		p, err := GetRetentionPolicy(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot retrieve policy '%s': %s", id, err)
+		}
+		p, err = UpdateRetentionPolicy(id, invokeEditor(`{
+  "name":     "`+p.Name+`",
+  "summary":  "`+p.Summary+`",
+  "expires":  `+fmt.Sprintf("%d", p.Expires)+`
+}`))
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot update policy '%s': %s", id, err)
+		}
+		fmt.Printf("Updated policy.\n")
+		return c.Invoke("show", "retention", "policy", p.UUID)
+	})
+	c.Alias("update retention policy", "edit retention policy")
+
+	c.Dispatch("delete retention policy", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield delete retention policy <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := DeleteRetentionPolicy(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot delete retention policy '%s': %s", id, err)
+		}
+		fmt.Printf("Deleted retention policy '%s'\n", id)
+		return nil
+	})
+
+	/*
+	    ######  ########  #######  ########  ########
+	   ##    ##    ##    ##     ## ##     ## ##
+	   ##          ##    ##     ## ##     ## ##
+	    ######     ##    ##     ## ########  ######
+	         ##    ##    ##     ## ##   ##   ##
+	   ##    ##    ##    ##     ## ##    ##  ##
+	    ######     ##     #######  ##     ## ########
+	*/
+
+	c.Dispatch("list stores", func(opts Options, args []string) error {
+		//FIXME: (un)?used flags not working; --plugin works.
+		stores, err := GetStores(StoreFilter{
+			Plugin: *opts.Plugin,
+			Unused: MaybeBools(*opts.Unused, *opts.Used),
+		})
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not fetch list of stores: %s", err)
+		}
+		t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
+		for _, store := range stores {
+			t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
+		}
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("show store", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield show store <UUID>")
+		id := uuid.Parse(args[0])
+
+		store, err := GetStore(id)
+		if err != nil {
+			return err
+		}
+
+		t := tui.NewReport()
+		t.Add("UUID", store.UUID)
+		t.Add("Name", store.Name)
+		t.Add("Summary", store.Summary)
+		t.Break()
+
+		t.Add("Plugin", store.Plugin)
+		t.Add("Endpoint", store.Endpoint)
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("create store", func(opts Options, args []string) error {
+		store, err := CreateStore(invokeEditor(`{
+  "name":     "Empty Store",
+  "summary":  "It would be fun to open my own shop",
+  "plugin":   "seriously",
+  "endpoint": "{\"items\":\"unknown\"}"
+}`))
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not create new store: %s", err)
+		}
+		fmt.Printf("Created new store.\n")
+
+		return c.Invoke("show", "store", store.UUID)
+	})
+	c.Alias("new store", "create store")
+
+	c.Dispatch("edit store", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield delete store <UUID>")
+		id := uuid.Parse(args[0])
+
+		s, err := GetStore(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot retrieve store '%s': %s", id, err)
+		}
+
+		s, err = UpdateStore(id, invokeEditor(`{
+  "name":     "`+s.Name+`",
+  "summary":  "`+s.Summary+`",
+  "plugin":   "`+s.Plugin+`",
+  "endpoint": "`+s.Endpoint+`"
+}`))
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot update store '%s': %s", id, err)
+		}
+
+		fmt.Printf("Updated store.\n")
+		return c.Invoke("show", "store", s.UUID)
+	})
+	c.Alias("update store", "edit store")
+
+	c.Dispatch("delete store", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield delete store <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := DeleteStore(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot delete store '%s': %s", id, err)
+		}
+		fmt.Printf("Deleted store '%s'\n", id)
+		return nil
+	})
+
+	/*
+	         ##  #######  ########
+	         ## ##     ## ##     ##
+	         ## ##     ## ##     ##
+	         ## ##     ## ########
+	   ##    ## ##     ## ##     ##
+	   ##    ## ##     ## ##     ##
+	    ######   #######  ########
+	*/
+
+	c.Dispatch("list jobs", func(opts Options, args []string) error {
+		jobs, err := GetJobs(JobFilter{
+			Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
+			Target:    *opts.Target,
+			Store:     *opts.Store,
+			Schedule:  *opts.Schedule,
+			Retention: *opts.Retention,
+		})
+		if err != nil {
+			return fmt.Errorf("\nERROR: Unexpected arguments following command: %v\n", err)
+		}
+		t := tui.NewTable("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
+		for _, job := range jobs {
+			t.Row(job.UUID, BoolString(job.Paused), job.Name, job.Summary,
+				job.RetentionName, job.ScheduleName, job.TargetEndpoint, job.Agent)
+		}
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("show job", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield show job <UUID>")
+		id := uuid.Parse(args[0])
+
+		job, err := GetJob(id)
+		if err != nil {
+			return nil
+		}
+
+		t := tui.NewReport()
+		t.Add("UUID", job.UUID)
+		t.Add("Name", job.Name)
+		t.Add("Paused", BoolString(job.Paused))
+		t.Break()
+
+		t.Add("Retention Policy", job.RetentionName)
+		t.Add("Retention UUID", job.RetentionUUID)
+		t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
+		t.Break()
+
+		t.Add("Schedule Policy", job.ScheduleName)
+		t.Add("Schedule UUID", job.ScheduleUUID)
+		t.Break()
+
+		t.Add("Target", job.TargetPlugin)
+		t.Add("Target UUID", job.TargetUUID)
+		t.Add("Target Endpoint", job.TargetEndpoint)
+		t.Add("SHIELD Agent", job.Agent)
+		t.Break()
+
+		t.Add("Store", job.StorePlugin)
+		t.Add("Store UUID", job.StoreUUID)
+		t.Add("Store Endpoint", job.StoreEndpoint)
+		t.Break()
+
+		t.Add("Store", job.StorePlugin)
+		t.Add("Store UUID", job.StoreUUID)
+		t.Add("Store Endpoint", job.StoreEndpoint)
+
+		t.Add("Notes", job.Summary)
+
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("create job", func(opts Options, args []string) error {
+		job, err := CreateJob(invokeEditor(`{
+  "name"      : "Empty Job",
+  "summary"   : "a short description",
+
+  "store"     : "StoreUUID",
+  "target"    : "TargetUUID",
+  "retention" : "PolicyUUID",
+  "schedule"  : "ScheduleUUID",
+  "paused"    : false
+}`))
+		fmt.Printf("job: %v\n", job)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not create new job: %s", err)
+		}
+
+		return c.Invoke("get", "job", job.UUID)
+	})
+
+	c.Dispatch("edit job", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield edit job <UUID>")
+		id := uuid.Parse(args[0])
+
+		j, err := GetJob(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not retrieve job '%s': %s", id, err)
+		}
+		paused := "false"
+		if j.Paused {
+			paused = "true"
+		}
+
+		content := invokeEditor(`{
+  "name"      : "` + j.Name + `",
+  "summary"   : "` + j.Summary + `",
+
+  "store"     : "` + j.StoreUUID + `",
+  "target"    : "` + j.TargetUUID + `",
+  "retention" : "` + j.RetentionUUID + `",
+  "schedule"  : "` + j.ScheduleUUID + `",
+  "paused"    : ` + paused + `
+}`)
+
+		j, err = UpdateJob(id, content)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not update job '%s': %s", id, err)
+		}
+
+		fmt.Printf("Updated job.\n")
+		return c.Invoke("show", "job", j.UUID)
+	})
+	c.Alias("update job", "edit job")
+
+	c.Dispatch("delete job", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield delete job <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := DeleteJob(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot delete job '%s': %s", id, err)
+		}
+		fmt.Printf("Deleted job '%s'\n", id)
+		return nil
+	})
+
+	c.Dispatch("pause job", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield pause job <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := PauseJob(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not pause job '%s': %s", id, err)
+		}
+		fmt.Printf("Successfully paused job '%s'\n", id)
+		return nil
+	})
+
+	c.Dispatch("unpause job", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield unpause job <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := UnpauseJob(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not unpause job '%s': %s", id, err)
+		}
+		fmt.Printf("Successfully unpaused job '%s'\n", id)
+		return nil
+	})
+
+	c.Dispatch("run job", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield run job <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := RunJob(id, fmt.Sprintf(`{"owner":"%s@%s"}`, os.Getenv("USER"), os.Getenv("HOSTNAME")))
+		if err != nil {
+			return err
+		}
+		fmt.Printf("scheduled immediate run of job %s\n", id)
+		return nil
+	})
+
+	/*
+	   ########    ###     ######  ##    ##
+	      ##      ## ##   ##    ## ##   ##
+	      ##     ##   ##  ##       ##  ##
+	      ##    ##     ##  ######  #####
+	      ##    #########       ## ##  ##
+	      ##    ##     ## ##    ## ##   ##
+	      ##    ##     ##  ######  ##    ##
+	*/
+
+	c.Dispatch("list tasks", func(opts Options, args []string) error {
+		// FIXME: need to handle `--status` flag...
+		tasks, err := GetTasks(TaskFilter{})
+		if err != nil {
+			return fmt.Errorf("\nERROR: Could not fetch list of tasks: %s\n", err)
+		}
+		t := tui.NewTable("UUID", "Owner", "Type", "Status", "Started", "Stopped")
+		for _, task := range tasks {
+			started := "(pending)"
+			if !task.StartedAt.IsZero() {
+				started = task.StartedAt.Format(time.RFC1123Z)
 			}
-		case "stores":
-			err = ListStores(ListStoreOptions{
-				Unused: *options.Unused,
-				Used:   *options.Used,
-				Plugin: *options.Plugin,
-			})
-		case "jobs":
-			err = ListJobs(ListJobOptions{
-				Unpaused:  *options.Unpaused,
-				Paused:    *options.Paused,
-				Target:    *options.Target,
-				Store:     *options.Store,
-				Schedule:  *options.Schedule,
-				Retention: *options.Retention,
-			})
-		case "tasks":
-			err = ListTasks(ListTaskOptions{
-				All:   *options.All,
-				Debug: *options.Debug,
-			})
-		case "archives":
-			err = ListArchives(ListArchiveOptions{
-				Target: *options.Target,
-				Store:  *options.Store,
-				Before: *options.Before,
-				After:  *options.After,
-			})
-		}
 
-	case "show":
-		switch command[1] {
-		case "target":
-			err = ListTargets(ListTargetOptions{
-				UUID: command[2],
-			})
-		case "schedule":
-			err = ListSchedules(ListScheduleOptions{
-				UUID: command[2],
-			})
-		case "retention":
-			switch command[2] {
-			case "policy":
-				err = ListRetentionPolicies(ListRetentionOptions{
-					UUID: command[3],
-				})
+			stopped := "(running)"
+			if !task.StoppedAt.IsZero() {
+				stopped = task.StoppedAt.Format(time.RFC1123Z)
 			}
-		case "store":
-			err = ListStores(ListStoreOptions{
-				UUID: command[2],
-			})
-		case "job":
-			err = ListJobs(ListJobOptions{
-				UUID: command[2],
-			})
-		case "task":
-			err = ListTasks(ListTaskOptions{
-				UUID: command[2],
-			})
-		case "archive":
-			err = ListArchives(ListArchiveOptions{
-				UUID: command[2],
-			})
+
+			t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
+		}
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("show task", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield show task <UUID>")
+		id := uuid.Parse(args[0])
+
+		task, err := GetTask(id)
+		if err != nil {
+			return err
 		}
 
-	case "create":
-		switch command[1] {
-		case "target":
-			err = CreateNewTarget()
-		case "schedule":
-			err = CreateNewSchedule()
-		case "retention":
-			switch command[2] {
-			case "policy":
-				err = CreateNewRetentionPolicy()
+		t := tui.NewReport()
+		t.Add("UUID", task.UUID)
+		t.Add("Owner", task.Owner)
+		t.Add("Type", task.Op)
+		t.Add("Status", task.Status)
+		t.Break()
+
+		started := "(pending)"
+		if !task.StartedAt.IsZero() {
+			started = task.StartedAt.Format(time.RFC1123Z)
+		}
+		stopped := "(running)"
+		if !task.StoppedAt.IsZero() {
+			stopped = task.StoppedAt.Format(time.RFC1123Z)
+		}
+		t.Add("Started at", started)
+		t.Add("Stopped at", stopped)
+		t.Break()
+
+		t.Add("Job UUID", task.JobUUID)
+		t.Add("Archive UUID", task.ArchiveUUID)
+		t.Break()
+
+		t.Add("Log", task.Log)
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("cancel task", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield cancel task <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := CancelTask(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: could not cancel task '%s'", id)
+		}
+		fmt.Printf("Successfully cancelled task '%s'\n", id)
+		return nil
+	})
+
+	/*
+	      ###    ########   ######  ##     ## #### ##     ## ########
+	     ## ##   ##     ## ##    ## ##     ##  ##  ##     ## ##
+	    ##   ##  ##     ## ##       ##     ##  ##  ##     ## ##
+	   ##     ## ########  ##       #########  ##  ##     ## ######
+	   ######### ##   ##   ##       ##     ##  ##   ##   ##  ##
+	   ##     ## ##    ##  ##    ## ##     ##  ##    ## ##   ##
+	   ##     ## ##     ##  ######  ##     ## ####    ###    ########
+	*/
+
+	c.Dispatch("list archives", func(opts Options, args []string) error {
+		archives, err := GetArchives(ArchiveFilter{})
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not fetch list of archives: %s", err)
+		}
+
+		// Map out the target names, for prettier output
+		target := map[string]Target{}
+		targets, _ := GetTargets(TargetFilter{})
+		for _, t := range targets {
+			target[t.UUID] = t
+		}
+
+		// Map out the store names, for prettier output
+		store := map[string]Store{}
+		stores, _ := GetStores(StoreFilter{})
+		for _, s := range stores {
+			store[s.UUID] = s
+		}
+
+		//FIXME:
+		// Set beforeTime default to 0 and afterTime to Now()
+		// Then update if a value is actually passed by the usedFilter
+		// Since date is YYYYMMDD make sure the HHMMSS is 23:59:59
+		t := tui.NewTable("UUID", "Target Type", "Target Name", "Store Type", "Store Name", "Taken at", "Expires at", "Notes")
+		for _, archive := range archives {
+			if opts.Target != nil && archive.TargetUUID != *opts.Target {
+				continue
 			}
-		case "store":
-			err = CreateNewStore()
-		case "job":
-			err = CreateNewJob()
-		}
-
-	case "edit", "update":
-		switch command[1] {
-		case "target":
-			err = EditExstingTarget(command[2])
-		case "schedule":
-			err = EditExstingSchedule(command[2])
-		case "retention":
-			switch command[2] {
-			case "policy":
-				err = EditExstingPolicy(command[3])
+			if opts.Store != nil && archive.StoreUUID != *opts.Store {
+				continue
 			}
-		case "store":
-			err = EditExstingStore(command[2])
-		case "job":
-			err = EditExstingJob(command[2])
+
+			t.Row(archive.UUID,
+				archive.TargetPlugin, target[archive.TargetUUID].Name,
+				archive.StorePlugin, store[archive.StoreUUID].Name,
+				archive.TakenAt.Format(time.RFC1123Z),
+				archive.ExpiresAt.Format(time.RFC1123Z),
+				archive.Notes)
+		}
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("show archive", func(opts Options, args []string) error {
+		require(len(args) == 1, "shield show archive <UUID>")
+		id := uuid.Parse(args[0])
+
+		archive, err := GetArchive(id)
+		if err != nil {
+			return err
 		}
 
-	case "delete":
-		switch command[1] {
-		case "target":
-			err = DeleteTargetByUUID(command[2])
-		case "schedule":
-			err = DeleteScheduleByUUID(command[2])
-		case "retention":
-			switch command[2] {
-			case "policy":
-				err = DeleteRetentionPolicyByUUID(command[3])
-			}
-		case "store":
-			err = DeleteStoreByUUID(command[2])
-		case "job":
-			err = DeleteJobByUUID(command[2])
-		case "archive":
-			err = DeleteArchiveByUUID(command[2])
+		t := tui.NewReport()
+		t.Add("UUID", archive.UUID)
+		t.Add("Backup Key", archive.StoreKey)
+		t.Break()
+
+		t.Add("Target", archive.TargetPlugin)
+		t.Add("Target UUID", archive.TargetUUID)
+		t.Add("Target Endpoint", archive.TargetEndpoint)
+		t.Break()
+
+		t.Add("Store", archive.StorePlugin)
+		t.Add("Store UUID", archive.StoreUUID)
+		t.Add("Store Endpoint", archive.StoreEndpoint)
+		t.Break()
+
+		t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))
+		t.Add("Expires at", archive.ExpiresAt.Format(time.RFC1123Z))
+		t.Add("Notes", archive.Notes)
+
+		t.Output(os.Stdout)
+		return nil
+	})
+
+	c.Dispatch("restore archive", func(opts Options, args []string) error {
+		require(len(args) == 1, "USAGE: shield restore archive <UUID>")
+		id := uuid.Parse(args[0])
+
+		targetJSON := "{}"
+		toTargetJSONmsg := ""
+		if opts.Target != nil {
+			targetJSON = *opts.Target
+			toTargetJSONmsg = fmt.Sprintf("to target '%s'", targetJSON)
 		}
 
-	case "restore":
-		switch command[1] {
-		case "archive":
-			err = RestoreArchiveByUUID(ListArchiveOptions{
-				Target: *options.To,
-				UUID:   command[2],
-			})
+		err := RestoreArchive(id, targetJSON)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot restore archive '%s': '%s'", id, err)
 		}
+		fmt.Printf("Restoring archive '%s' %s\n", id, toTargetJSONmsg)
+		return nil
+	})
 
-	case "cancel":
-		switch command[1] {
-		case "task":
-			err = CancelTaskByUUID(command[2])
+	c.Dispatch("delete archive", func(opts Options, args []string) error {
+		require(len(args) == 1, "USAGE: shield delete archive <UUID>")
+		id := uuid.Parse(args[0])
+
+		err := DeleteArchive(id)
+		if err != nil {
+			return fmt.Errorf("ERROR: Cannot delete archive '%s': %s", id, err)
 		}
+		fmt.Printf("Deleted archive '%s'\n", id)
+		return nil
+	})
 
-	case "pause":
-		switch command[1] {
-		case "job":
-			err = PauseUnpauseJob(true, command[2])
+	/**************************************************************************/
+
+	if err, ok := c.Execute(command...); ok {
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			os.Exit(1)
 		}
-	case "unpause":
-		switch command[1] {
-		case "job":
-			err = PauseUnpauseJob(false, command[2])
-		} /*
-			case "run":
-				switch command[1] {
-				case "job":
-					err = Run(command[2])
-				}*/
-	}
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
-	}
-	os.Exit(0)
-
-	// legacy
-	viper.SetConfigType("yaml") // To support lnguyen development
-
-	//ShieldCmd.PersistentFlags().StringVar(&CfgFile, "shield_config", "shield_config.yml", "config file (default is shield_config.yaml)")
-	ShieldCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
-	ShieldCmd.PersistentFlags().StringVar(&ShieldTarget, "target", "", "Full URI of the SHIELD backup system, i.e. http://shield:8080")
-
-	viper.BindPFlag("Verbose", ShieldCmd.PersistentFlags().Lookup("verbose"))
-	viper.BindPFlag("ShieldTarget", ShieldCmd.PersistentFlags().Lookup("target"))
-
-	addSubCommandWithHelp(ShieldCmd, createCmd, listCmd, showCmd, deleteCmd, updateCmd, editCmd, pauseCmd, unpauseCmd, pausedCmd, runCmd, cancelCmd, restoreCmd)
-
-	ShieldCmd.Execute()
-
-	if Verbose {
-		fmt.Printf("config: %s\ntarget: %s\n", CfgFile, ShieldTarget)
-	}
-}
-
-func debug(cmd *cobra.Command, args []string) {
-
-	// Trace back through the cmd chain to assemble the full command
-	var cmd_list = make([]string, 0)
-	ptr := cmd
-	for {
-		cmd_list = append([]string{ptr.Use}, cmd_list...)
-		if ptr.Parent() != nil {
-			ptr = ptr.Parent()
-		} else {
-			break
-		}
-	}
-
-	fmt.Print("Command: ")
-	fmt.Print(strings.Join(cmd_list, " "))
-	fmt.Printf(" Argv [%s]\n", args)
-}
-
-func addSubCommandWithHelp(tgtCmd *cobra.Command, subCmds ...*cobra.Command) {
-	tgtCmd.AddCommand(subCmds...)
-
-	for _, subCmd := range subCmds {
-		var children = make([]string, 0)
-		var sentence string
-
-		for _, childCmd := range subCmd.Commands() {
-			// TODO: if subCommand children have further children, assume compound command and add it
-			children = append(children, childCmd.Use)
-		}
-
-		if len(children) > 0 {
-			if len(children) == 1 {
-				sentence = children[0]
-			} else {
-				sentence = strings.Join(children[0:(len(children)-1)], ", ") + " or " + children[len(children)-1]
-			}
-			subCmd.Short = strings.Replace(subCmd.Short, "{{children}}", sentence, -1)
-		}
+		os.Exit(0)
 	}
 }
 
 func invokeEditor(content string) string {
-
 	editor := os.Getenv("EDITOR")
 	if editor == "" {
 		editor = "vim"
@@ -399,24 +876,4 @@ func invokeEditor(content string) string {
 	new_content, err := ioutil.ReadFile(tmpFile.Name())
 
 	return string(new_content)
-}
-
-func parseTristateOptions(cmd *cobra.Command, trueFlag, falseFlag string) string {
-
-	trueFlagSet, _ := cmd.Flags().GetBool(trueFlag)
-	falseFlagSet, _ := cmd.Flags().GetBool(falseFlag)
-
-	// Validate Request
-	tristate := ""
-	if trueFlagSet {
-		if falseFlagSet {
-			fmt.Fprintf(os.Stderr, "\nERROR: Cannot specify --%s and --%s at the same time\n\n", trueFlag, falseFlag)
-			os.Exit(1)
-		}
-		tristate = "t"
-	}
-	if falseFlagSet {
-		tristate = "f"
-	}
-	return tristate
 }
