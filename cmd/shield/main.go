@@ -740,10 +740,6 @@ func main() {
 			store[s.UUID] = s
 		}
 
-		//FIXME:
-		// Set beforeTime default to 0 and afterTime to Now()
-		// Then update if a value is actually passed by the usedFilter
-		// Since date is YYYYMMDD make sure the HHMMSS is 23:59:59
 		t := tui.NewTable("UUID", "Target Type", "Target Name", "Store Type", "Store Name", "Taken at", "Expires at", "Notes")
 		for _, archive := range archives {
 			if *opts.Target != "" && archive.TargetUUID != *opts.Target {
