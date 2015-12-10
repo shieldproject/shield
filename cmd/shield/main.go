@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/pborman/getopt"
@@ -117,13 +120,49 @@ func main() {
 	c.Alias("ls target", "show target")
 
 	c.Dispatch("create target", func(opts Options, args []string) error {
-		t, err := CreateTarget(invokeEditor(`{
-  "name":     "Empty Target",
-  "summary":  "How many licks does it take to reach the center",
-  "plugin":   "of a tootsie pop",
-  "endpoint": "{\"the world\":\"may never know\"}",
-  "agent":    "blackwidow"
-}`))
+		userInput := bufio.NewReader(os.Stdin)
+		u := make(map[string]string)
+
+		fmt.Println("Target name")
+		name, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", name, err)
+		}
+		u["name"] = strings.TrimSpace(name)
+
+		fmt.Println("Target summary")
+		summary, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", summary, err)
+		}
+		u["summary"] = strings.TrimSpace(summary)
+
+		fmt.Println("Target plugin")
+		plugin, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", plugin, err)
+		}
+		u["plugin"] = strings.TrimSpace(plugin)
+
+		fmt.Println("Target endpoint")
+		endpoint, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", endpoint, err)
+		}
+		u["endpoint"] = strings.TrimSpace(endpoint)
+
+		fmt.Println("Target agent")
+		agent, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", agent, err)
+		}
+		u["agent"] = strings.TrimSpace(agent)
+
+		content, err := json.Marshal(u)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+		}
+		t, err := CreateTarget(string(content))
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new target: %s", err)
 		}
@@ -134,6 +173,7 @@ func main() {
 	c.Alias("new target", "create target")
 	c.Alias("create new target", "create target")
 	c.Alias("make target", "create target")
+	c.Alias("c tar", "create target")
 
 	c.Dispatch("edit target", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit target <UUID>")
@@ -221,20 +261,46 @@ func main() {
 	c.Alias("ls schedule", "show schedule")
 
 	c.Dispatch("create schedule", func(opts Options, args []string) error {
-		schedule, err := CreateSchedule(invokeEditor(`{
-  "name":    "Empty Schedule",
-  "summary": "Late for a very important date",
-  "when":    "daily at 4:00"
-}`))
+		userInput := bufio.NewReader(os.Stdin)
+		u := make(map[string]string)
+
+		fmt.Println("Schedule name")
+		name, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", name, err)
+		}
+		u["name"] = strings.TrimSpace(name)
+
+		fmt.Println("Schedule summary")
+		summary, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", summary, err)
+		}
+		u["summary"] = strings.TrimSpace(summary)
+
+		fmt.Println("When to run schedule (eg daily at 4:00)")
+		when, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", when, err)
+		}
+		u["when"] = strings.TrimSpace(when)
+
+		content, err := json.Marshal(u)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+		}
+		s, err := CreateSchedule(string(content))
+
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new schedule: %s", err)
 		}
 		fmt.Printf("Created new schedule.\n")
-		return c.Invoke("show", "schedule", schedule.UUID)
+		return c.Invoke("show", "schedule", s.UUID)
 	})
 	c.Alias("new schedule", "create schedule")
 	c.Alias("create new schedule", "create schedule")
 	c.Alias("make schedule", "create schedule")
+	c.Alias("c s", "create schedule")
 
 	c.Dispatch("edit schedule", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit schedule <UUID>")
@@ -326,17 +392,46 @@ func main() {
 	c.Alias("list policy", "show policy")
 
 	c.Dispatch("create retention policy", func(opts Options, args []string) error {
-		policy, err := CreateRetentionPolicy(invokeEditor(`{
-  "name":     "Empty Retention Policy",
-  "summary":  "Should probably tell me how long I should keep this",
-  "expires":  86400
-}`))
-		fmt.Printf("The new policy is: %v\n", policy)
+		userInput := bufio.NewReader(os.Stdin)
+		u := make(map[string]string)
+
+		fmt.Println("Policy name")
+		name, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", name, err)
+		}
+		u["name"] = strings.TrimSpace(name)
+
+		fmt.Println("Policy summary")
+		summary, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", summary, err)
+		}
+		u["summary"] = strings.TrimSpace(summary)
+
+		fmt.Println("Policy expiration in seconds (protip: there are 86400 sec per day)")
+		expires, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", expires, err)
+		}
+		u["expires"] = strings.TrimSpace(expires)
+
+		//FIXME: The problem is the expires is a string and needs not to be.
+		//Non-trivial as the map is a m[string][string] map...maybe a second map but that'll
+		//complicate matters with the JSON (un)marshalling...
+		fmt.Printf("the mapped content: %v\n", u)
+		content, err := json.Marshal(u)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+		}
+		fmt.Printf("the marshalled content: %v\n", string(content))
+		p, err := CreateRetentionPolicy(string(content))
+
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new retention policy: %s", err)
 		}
 		fmt.Printf("Created new retention policy.\n")
-		return c.Invoke("show", "retention", "policy", policy.UUID)
+		return c.Invoke("show", "retention", "policy", p.UUID)
 	})
 	c.Alias("new retention policy", "create retention policy")
 	c.Alias("create new retention policy", "create retention policy")
@@ -345,6 +440,7 @@ func main() {
 	c.Alias("new policy", "create policy")
 	c.Alias("create new policy", "create policy")
 	c.Alias("make policy", "create policy")
+	c.Alias("c p", "create policy")
 
 	c.Dispatch("edit retention policy", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit retention policy <UUID>")
@@ -439,22 +535,54 @@ func main() {
 	c.Alias("ls store", "show store")
 
 	c.Dispatch("create store", func(opts Options, args []string) error {
-		store, err := CreateStore(invokeEditor(`{
-  "name":     "Empty Store",
-  "summary":  "It would be fun to open my own shop",
-  "plugin":   "seriously",
-  "endpoint": "{\"items\":\"unknown\"}"
-}`))
+		userInput := bufio.NewReader(os.Stdin)
+		u := make(map[string]string)
+
+		fmt.Println("Store name")
+		name, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", name, err)
+		}
+		u["name"] = strings.TrimSpace(name)
+
+		fmt.Println("Store summary")
+		summary, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", summary, err)
+		}
+		u["summary"] = strings.TrimSpace(summary)
+
+		fmt.Println("Plugin name")
+		plugin, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", plugin, err)
+		}
+		u["plugin"] = strings.TrimSpace(plugin)
+
+		fmt.Println("Endpoint JSON")
+		endpoint, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", endpoint, err)
+		}
+		u["endpoint"] = strings.TrimSpace(endpoint)
+
+		content, err := json.Marshal(u)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+		}
+		s, err := CreateStore(string(content))
+
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new store: %s", err)
 		}
 		fmt.Printf("Created new store.\n")
 
-		return c.Invoke("show", "store", store.UUID)
+		return c.Invoke("show", "store", s.UUID)
 	})
 	c.Alias("new store", "create store")
 	c.Alias("create new store", "create store")
 	c.Alias("make store", "create store")
+	c.Alias("c st", "create store")
 
 	c.Dispatch("edit store", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield delete store <UUID>")
@@ -574,16 +702,65 @@ func main() {
 	c.Alias("ls job", "show job")
 
 	c.Dispatch("create job", func(opts Options, args []string) error {
-		job, err := CreateJob(invokeEditor(`{
-  "name"      : "Empty Job",
-  "summary"   : "a short description",
+		userInput := bufio.NewReader(os.Stdin)
+		u := make(map[string]string)
 
-  "store"     : "StoreUUID",
-  "target"    : "TargetUUID",
-  "retention" : "PolicyUUID",
-  "schedule"  : "ScheduleUUID",
-  "paused"    : false
-}`))
+		fmt.Println("Job name")
+		name, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", name, err)
+		}
+		u["name"] = strings.TrimSpace(name)
+
+		fmt.Println("Job summary")
+		summary, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", summary, err)
+		}
+		u["summary"] = strings.TrimSpace(summary)
+
+		fmt.Println("Store UUID")
+		stuuid, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", stuuid, err)
+		}
+		u["store"] = strings.TrimSpace(stuuid)
+
+		fmt.Println("Target UUID")
+		tuuid, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", tuuid, err)
+		}
+		u["target"] = strings.TrimSpace(tuuid)
+
+		fmt.Println("Policy UUID")
+		puuid, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", puuid, err)
+		}
+		u["retention"] = strings.TrimSpace(puuid)
+
+		fmt.Println("Schedule UUID")
+		scuuid, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", scuuid, err)
+		}
+		u["schedule"] = strings.TrimSpace(scuuid)
+
+		fmt.Println("Should the job be paused on creation? (Y/n)")
+		paused, err := userInput.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not read input '%s': %s", paused, err)
+		}
+		u["paused"] = strings.TrimSpace(paused)
+
+		content, err := json.Marshal(u)
+		if err != nil {
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+		}
+		fmt.Printf("The marshalled content: %v", string(content))
+		job, err := CreateJob(string(content))
+
 		fmt.Printf("job: %v\n", job)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new job: %s", err)
@@ -594,6 +771,7 @@ func main() {
 	c.Alias("new job", "create job")
 	c.Alias("create new job", "create job")
 	c.Alias("make job", "create job")
+	c.Alias("c j", "create job")
 
 	c.Dispatch("edit job", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit job <UUID>")
