@@ -127,7 +127,7 @@ func main() {
 		fmt.Println("Target name")
 		name, err := userInput.ReadString('\n')
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", name, err)
+			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
 		u["name"] = strings.TrimSpace(name)
 
