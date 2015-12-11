@@ -85,7 +85,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 					up <- WorkerUpdate{
 						Task:   t.UUID,
 						Op:     OUTPUT,
-						Output: s[2:],
+						Output: s[2:] + "\n",
 					}
 				}
 			}
