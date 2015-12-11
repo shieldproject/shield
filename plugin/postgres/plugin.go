@@ -69,6 +69,7 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 		return err
 	}
 	go func(out io.WriteCloser, in io.Reader) {
+		DEBUG("Starting to read SQL statements from stdin...")
 		b := bufio.NewScanner(in)
 		reg := regexp.MustCompile("^DROP DATABASE (.*);$")
 		i := 1
@@ -85,6 +86,7 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			}
 			i++
 		}
+		DEBUG("Completed restore with %d lines of SQL", i)
 		out.Close()
 	}(stdin, os.Stdin)
 	return cmd.Run()
