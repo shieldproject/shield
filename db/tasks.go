@@ -40,12 +40,10 @@ func (f *TaskFilter) Query() string {
 		wheres = append(wheres, "status = $1")
 	}
 	return `
-		SELECT t.uuid, t.owner, t.op, j.uuid, a.uuid,
+		SELECT t.uuid, t.owner, t.op, t.job_uuid, t.archive_uuid,
 		       t.status, t.started_at, t.stopped_at, t.log
 
 		FROM tasks t
-			INNER JOIN jobs     j    ON j.uuid = t.job_uuid
-			LEFT  JOIN archives a    ON a.uuid = t.archive_uuid
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY t.started_at DESC, t.uuid ASC
