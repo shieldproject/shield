@@ -874,7 +874,7 @@ func main() {
 	*/
 
 	c.Dispatch("list tasks", func(opts Options, args []string) error {
-		if *options.Status == "all" {
+		if *options.Status == "all" || *options.All {
 			*options.Status = ""
 		}
 		tasks, err := GetTasks(TaskFilter{
