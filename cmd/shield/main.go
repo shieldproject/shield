@@ -122,7 +122,7 @@ func main() {
 
 	c.Dispatch("create target", func(opts Options, args []string) error {
 		userInput := bufio.NewReader(os.Stdin)
-		u := make(map[string]interface{})
+		in := tui.NewForm()
 
 		fmt.Println("Target name")
 		name, err := userInput.ReadString('\n')
