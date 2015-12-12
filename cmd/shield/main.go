@@ -129,39 +129,39 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
-		u["name"] = strings.TrimSpace(name)
+		in.Add("name", name)
 
 		fmt.Println("Target summary")
 		summary, err := userInput.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
-		u["summary"] = strings.TrimSpace(summary)
+		in.Add("summary", summary)
 
 		fmt.Println("Target plugin")
 		plugin, err := userInput.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
-		u["plugin"] = strings.TrimSpace(plugin)
+		in.Add("plugin", plugin)
 
 		fmt.Println("Target endpoint")
 		endpoint, err := userInput.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
-		u["endpoint"] = strings.TrimSpace(endpoint)
+		in.Add("endpoint", endpoint)
 
 		fmt.Println("Target agent")
 		agent, err := userInput.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
-		u["agent"] = strings.TrimSpace(agent)
+		in.Add("agent", agent)
 
-		content, err := json.Marshal(u)
+		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+			return fmt.Errorf("%s", err)
 		}
 		t, err := CreateTarget(string(content))
 		if err != nil {

@@ -1,10 +1,10 @@
 package tui
 
 import (
-	"fmt"
-	"strings"
-	"strconv"
 	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
 type Form struct {
@@ -31,14 +31,14 @@ func (f *Form) Add(k string, v string) {
 	f.Input[k] = strings.TrimSpace(v)
 }
 
-func (f *Form) AddAsBool(k string, v string)  {
+func (f *Form) AddAsBool(k string, v string) {
 	f.Input[k] = false
 	if Yes(v) {
 		f.Input[k] = true
 	}
 }
 
-func (f *Form) AddAsInt(k string, v string)  {
+func (f *Form) AddAsInt(k string, v string) {
 	v = strings.TrimSpace(v)
 	i, _ := strconv.Atoi(v)
 	f.Input[k] = i
