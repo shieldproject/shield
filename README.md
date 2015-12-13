@@ -1058,11 +1058,11 @@ The Makefile is used to assist with development. The available targets are:
  * `report` : makes report in (temporary) HTML page for a particular package, e.g. `db`. See examples.
 * `race` : runs `ginkgo -race *` to test for race conditions
 * `plugin` | `plugins` : builds all the plugin binaries
-* `shield` : builds the `shieldd` and `shield-schema` binaries
-* `all-the-things` : runs all the tests (except the race test) and builds all the binaries.
+* `shield` : builds the `shieldd`, `shield-schema`, `shield-agent`, and `shield` (CLI) binaries
+* `all` : runs all the tests (except the race test) and builds all the binaries.
 * `fixme` | `fixmes` : finds all FIXMEs in the project
 
-`all-the-things` is also the default behavior, so running `make` with no targets is the same as `make all-the-things`.
+`all` is also the default behavior, so running `make` with no targets is the same as `make all`.
 
 Examples:
 
@@ -1071,16 +1071,18 @@ $ make shield
 go build ./cmd/shieldd
 go build ./cmd/shield-agent
 go build ./cmd/shield-schema
+go build ./cmd/shield
 
 $ make tests
 ginkgo *
-[1447777189] Agent Test Suite - 39/39 specs •••••••••••••••••••••••••••••••••••••• SUCCESS! 354.651397ms PASS
-[1447777189] Database Layer Test Suite - 21/21 specs ••••••••••••••••••••• SUCCESS! 2.115501107s PASS
-[1447777189] Plugin Framework Test Suite - 45/45 specs ••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 19.791121ms PASS
-[1447777189] Supervisor Test Suite - 121/121 specs ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 135.689325ms PASS
-[1447777189] Timespec Test Suite - 34/34 specs •••••••••••••••••••••••••••••••••• SUCCESS! 20.880477ms PASS
+[1450032890] Agent Test Suite - 39/39 specs •••••••••••••••••••••••••••••••••••••• SUCCESS! 387.609253ms PASS
+[1450032890] API Client Library Test Suite - 3/3 specs ••• SUCCESS! 185.602µs PASS
+[1450032890] Database Layer Test Suite - 21/21 specs ••••••••••••••••••••• SUCCESS! 15.888175ms PASS
+[1450032890] Plugin Framework Test Suite - 45/45 specs ••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 20.695859ms PASS
+[1450032890] Supervisor Test Suite - 139/139 specs ••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••• SUCCESS! 155.843391ms PASS
+[1450032890] Timespec Test Suite - 37/37 specs ••••••••••••••••••••••••••••••••••••• SUCCESS! 26.84143ms PASS
 
-Ginkgo ran 5 suites in 5.373477117s
+Ginkgo ran 6 suites in 4.001600857s
 Test Suite Passed
 go vet ./...
 

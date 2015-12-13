@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all-the-things: tests shield plugins
+all: tests shield plugins
 
 # Running Tests
 tests: test
@@ -21,6 +21,10 @@ shield:
 	go $(BUILD_TYPE) ./cmd/shieldd
 	go $(BUILD_TYPE) ./cmd/shield-agent
 	go $(BUILD_TYPE) ./cmd/shield-schema
+	go $(BUILD_TYPE) ./cmd/shield
+
+# Building the Shield CLI *only*
+shield-cli:
 	go $(BUILD_TYPE) ./cmd/shield
 
 # Building Plugins
