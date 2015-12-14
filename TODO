@@ -1,8 +1,7 @@
 SHIELD TODO
 -----------
 
-Large Tasks / Features
- - CLI implementation
-
 Small Tasks / Fixes / Enhancement
  - Only resync supervisor for *material* db changes, not all db changes
+ - Implement --debug support in CLI
+ - Don't create archive records in DB if backup fails
