@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/pborman/getopt"
@@ -121,48 +119,18 @@ func main() {
 	c.Alias("ls target", "show target")
 
 	c.Dispatch("create target", func(opts Options, args []string) error {
-		userInput := bufio.NewReader(os.Stdin)
 		in := tui.NewForm()
-
-		fmt.Println("Target name")
-		name, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		in.Add("name", name)
-
-		fmt.Println("Target summary")
-		summary, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		in.Add("summary", summary)
-
-		fmt.Println("Target plugin")
-		plugin, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		in.Add("plugin", plugin)
-
-		fmt.Println("Target endpoint")
-		endpoint, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		in.Add("endpoint", endpoint)
-
-		fmt.Println("Target agent")
-		agent, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		in.Add("agent", agent)
+		in.NewField("Target name", "name")
+		in.NewField("Target summary", "summary")
+		in.NewField("Target plugin", "plugin")
+		in.NewField("Target endpoint", "endpoint")
+		in.NewField("Target agent", "agent")
 
 		content, err := in.BuildContent()
 		if err != nil {
 			return fmt.Errorf("%s", err)
 		}
+
 		t, err := CreateTarget(string(content))
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new target: %s", err)
@@ -262,33 +230,14 @@ func main() {
 	c.Alias("ls schedule", "show schedule")
 
 	c.Dispatch("create schedule", func(opts Options, args []string) error {
-		userInput := bufio.NewReader(os.Stdin)
-		u := make(map[string]interface{})
+		in := tui.NewForm()
+		in.NewField("Schedule name", "name")
+		in.NewField("Schedule summary", "summary")
+		in.NewField("When to run schedule (eg daily at 4:00)", "when")
 
-		fmt.Println("Schedule name")
-		name, err := userInput.ReadString('\n')
+		content, err := json.Marshal(in)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["name"] = strings.TrimSpace(name)
-
-		fmt.Println("Schedule summary")
-		summary, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["summary"] = strings.TrimSpace(summary)
-
-		fmt.Println("When to run schedule (eg daily at 4:00)")
-		when, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["when"] = strings.TrimSpace(when)
-
-		content, err := json.Marshal(u)
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
 		s, err := CreateSchedule(string(content))
 
@@ -393,38 +342,25 @@ func main() {
 	c.Alias("list policy", "show policy")
 
 	c.Dispatch("create retention policy", func(opts Options, args []string) error {
+		in := tui.NewForm()
+		in.NewField("Policy name", "name")
+		in.NewField("Policy summary", "summary")
+		//FIXME:
+		//in.NewField("Policy summary", "summary", FieldIsOptional())
+		//FIXME:
+		//in.Field("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", ResultAsInteger())
+		//FIXME: Remove once the above is added/fixed
 		userInput := bufio.NewReader(os.Stdin)
-		u := make(map[string]interface{})
-
-		fmt.Println("Policy name")
-		name, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["name"] = strings.TrimSpace(name)
-
-		fmt.Println("Policy summary")
-		summary, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["summary"] = strings.TrimSpace(summary)
-
 		fmt.Println("Policy expiration in seconds (protip: there are 86400 sec per day)")
 		expire_string, err := userInput.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
-		expire_string = strings.TrimSpace(expire_string)
-		expires, err := strconv.Atoi(expire_string)
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not convert input '%s' to integer.", expire_string)
-		}
-		u["expires"] = expires
+		in.AddAsInt("expires", expire_string)
 
-		content, err := json.Marshal(u)
+		content, err := json.Marshal(in)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
 		p, err := CreateRetentionPolicy(string(content))
 
@@ -536,40 +472,15 @@ func main() {
 	c.Alias("ls store", "show store")
 
 	c.Dispatch("create store", func(opts Options, args []string) error {
-		userInput := bufio.NewReader(os.Stdin)
-		u := make(map[string]interface{})
+		in := tui.NewForm()
+		in.NewField("Store name", "name")
+		in.NewField("Store summary", "summary")
+		in.NewField("Plugin name", "plugin")
+		in.NewField("Endpoing JSON", "endpoint")
 
-		fmt.Println("Store name")
-		name, err := userInput.ReadString('\n')
+		content, err := json.Marshal(in)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["name"] = strings.TrimSpace(name)
-
-		fmt.Println("Store summary")
-		summary, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["summary"] = strings.TrimSpace(summary)
-
-		fmt.Println("Plugin name")
-		plugin, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["plugin"] = strings.TrimSpace(plugin)
-
-		fmt.Println("Endpoint JSON")
-		endpoint, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["endpoint"] = strings.TrimSpace(endpoint)
-
-		content, err := json.Marshal(u)
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
 		s, err := CreateStore(string(content))
 
@@ -705,66 +616,30 @@ func main() {
 	c.Alias("ls job", "show job")
 
 	c.Dispatch("create job", func(opts Options, args []string) error {
+		in := tui.NewForm()
+		in.NewField("Job name", "name")
+		in.NewField("Job summary", "summary")
+		//FIXME:
+		//in.NewField("Job summary", "summary", FieldIsOptional(true))
+		in.NewField("Store UUID", "store")
+		in.NewField("Target UUID", "target")
+		in.NewField("Policy UUID", "retention")
+		in.NewField("Schedule UUID", "schedule")
+		//FIXME:
+		//in.NewField("Should the job be paused on creation? (Y/n)", "paused", ResultAsBool())
+
+		//FIXME: Remove once above added/fixed
 		userInput := bufio.NewReader(os.Stdin)
-		u := make(map[string]interface{})
-
-		fmt.Println("Job name")
-		name, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["name"] = strings.TrimSpace(name)
-
-		fmt.Println("Job summary")
-		summary, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["summary"] = strings.TrimSpace(summary)
-
-		fmt.Println("Store UUID")
-		store, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["store"] = strings.TrimSpace(store)
-
-		fmt.Println("Target UUID")
-		target, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["target"] = strings.TrimSpace(target)
-
-		fmt.Println("Policy UUID")
-		policy, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["retention"] = strings.TrimSpace(policy)
-
-		fmt.Println("Schedule UUID")
-		schedule, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		u["schedule"] = strings.TrimSpace(schedule)
-
 		fmt.Println("Should the job be paused on creation? (Y/n)")
 		paused, err := userInput.ReadString('\n')
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not read input: %s", err)
 		}
-		paused = strings.TrimSpace(paused)
-		pause := false
-		if paused == "Y" || paused == "yes" || paused == "y" {
-			pause = true
-		}
-		u["paused"] = pause
+		in.AddAsBool("paused", paused)
 
-		content, err := json.Marshal(u)
+		content, err := json.Marshal(in)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", u, err)
+			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
 
 		job, err := CreateJob(string(content))
