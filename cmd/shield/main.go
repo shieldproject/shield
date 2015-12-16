@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -120,18 +118,22 @@ func main() {
 
 	c.Dispatch("create target", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Target name", "name")
-		in.NewField("Target summary", "summary")
-		in.NewField("Target plugin", "plugin")
-		in.NewField("Target endpoint", "endpoint")
-		in.NewField("Target agent", "agent")
+		in.NewField("Target name", "name", tui.FieldIsRequired)
+		in.NewField("Target summary", "summary", tui.FieldIsOptional)
+		in.NewField("Target plugin", "plugin", tui.FieldIsRequired)
+		in.NewField("Target endpoint", "endpoint", tui.FieldIsRequired)
+		in.NewField("Target agent", "agent", tui.FieldIsRequired)
+		err := in.Show()
+		if err != nil {
+			return fmt.Errorf("%s", err)
+		}
 
 		content, err := in.BuildContent()
 		if err != nil {
 			return fmt.Errorf("%s", err)
 		}
 
-		t, err := CreateTarget(string(content))
+		t, err := CreateTarget(content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new target: %s", err)
 		}
@@ -231,15 +233,19 @@ func main() {
 
 	c.Dispatch("create schedule", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Schedule name", "name")
-		in.NewField("Schedule summary", "summary")
-		in.NewField("When to run schedule (eg daily at 4:00)", "when")
+		in.NewField("Schedule name", "name", tui.FieldIsRequired)
+		in.NewField("Schedule summary", "summary", tui.FieldIsOptional)
+		in.NewField("When to run schedule (eg daily at 4:00)", "when", tui.FieldIsRequired)
+		err := in.Show()
+		if err != nil {
+			return fmt.Errorf("%s", err)
+		}
 
-		content, err := json.Marshal(in)
+		content, err := in.BuildContent()
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
-		s, err := CreateSchedule(string(content))
+		s, err := CreateSchedule(content)
 
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new schedule: %s", err)
@@ -343,26 +349,21 @@ func main() {
 
 	c.Dispatch("create retention policy", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Policy name", "name")
-		in.NewField("Policy summary", "summary")
-		//FIXME:
-		//in.NewField("Policy summary", "summary", FieldIsOptional())
-		//FIXME:
-		//in.Field("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", ResultAsInteger())
-		//FIXME: Remove once the above is added/fixed
-		userInput := bufio.NewReader(os.Stdin)
-		fmt.Println("Policy expiration in seconds (protip: there are 86400 sec per day)")
-		expire_string, err := userInput.ReadString('\n')
+		in.NewField("Policy name", "name", tui.FieldIsRequired)
+		in.NewField("Policy summary", "summary", tui.FieldIsOptional)
+		in.NewField("Policy expiration in seconds, must be greater than 1 hr:\n(protip: there are 86400 sec per day)", "expires", tui.InputIsInteger)
+		err := in.Show()
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
+			return fmt.Errorf("%s", err)
 		}
-		in.AddAsInt("expires", expire_string)
+		in.ConvertFieldValueToInteger("expires")
 
-		content, err := json.Marshal(in)
+		content, err := in.BuildContent()
+		fmt.Printf("content: %s\n", content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
-		p, err := CreateRetentionPolicy(string(content))
+		p, err := CreateRetentionPolicy(content)
 
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new retention policy: %s", err)
@@ -473,16 +474,20 @@ func main() {
 
 	c.Dispatch("create store", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Store name", "name")
-		in.NewField("Store summary", "summary")
-		in.NewField("Plugin name", "plugin")
-		in.NewField("Endpoing JSON", "endpoint")
+		in.NewField("Store name", "name", tui.FieldIsRequired)
+		in.NewField("Store summary", "summary", tui.FieldIsOptional)
+		in.NewField("Plugin name", "plugin", tui.FieldIsRequired)
+		in.NewField("Endpoint (JSON)", "endpoint", tui.FieldIsRequired)
+		err := in.Show()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
 
-		content, err := json.Marshal(in)
+		content, err := in.BuildContent()
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
-		s, err := CreateStore(string(content))
+		s, err := CreateStore(content)
 
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new store: %s", err)
@@ -617,32 +622,23 @@ func main() {
 
 	c.Dispatch("create job", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Job name", "name")
-		in.NewField("Job summary", "summary")
-		//FIXME:
-		//in.NewField("Job summary", "summary", FieldIsOptional(true))
-		in.NewField("Store UUID", "store")
-		in.NewField("Target UUID", "target")
-		in.NewField("Policy UUID", "retention")
-		in.NewField("Schedule UUID", "schedule")
-		//FIXME:
-		//in.NewField("Should the job be paused on creation? (Y/n)", "paused", ResultAsBool())
+		in.NewField("Job name", "name", tui.FieldIsRequired)
+		in.NewField("Job summary", "summary", tui.FieldIsOptional)
+		in.NewField("Store UUID", "store", tui.FieldIsRequired)
+		in.NewField("Target UUID", "target", tui.FieldIsRequired)
+		in.NewField("Policy UUID", "retention", tui.FieldIsRequired)
+		in.NewField("Schedule UUID", "schedule", tui.FieldIsRequired)
+		in.NewField("Should the job be paused on creation? (Y/n)\n(Default is unpaused)", "paused", tui.InputCanBeBool)
+		in.Show()
+		in.ConvertFieldValueToBool("paused")
 
-		//FIXME: Remove once above added/fixed
-		userInput := bufio.NewReader(os.Stdin)
-		fmt.Println("Should the job be paused on creation? (Y/n)")
-		paused, err := userInput.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("ERROR: Could not read input: %s", err)
-		}
-		in.AddAsBool("paused", paused)
-
-		content, err := json.Marshal(in)
+		content, err := in.BuildContent()
+		fmt.Printf("content: %v\n", content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
 		}
 
-		job, err := CreateJob(string(content))
+		job, err := CreateJob(content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new job: %s", err)
 		}
