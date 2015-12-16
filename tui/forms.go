@@ -82,9 +82,12 @@ func FieldIsOptional(name string, value string) error {
 }
 
 func InputIsInteger(name string, value string) error {
-	_, err := strconv.Atoi(value)
+	i, err := strconv.Atoi(value)
 	if err != nil {
 		return fmt.Errorf("input value cannot be converted to an integer: %s\n", err)
+	}
+	if i < 3600 {
+		return fmt.Errorf("input value must be greater than 1 hour (3600 seconds)\n")
 	}
 	return nil
 }
@@ -137,7 +140,7 @@ func (f *Form) BuildContent() (string, error) {
 	}
 	j, err := json.Marshal(c)
 	if err != nil {
-		return "", fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", c, err)
+		return "", fmt.Errorf("Could not marshal into JSON\nmapped input:%v\nerror:%s", c, err)
 	}
 	return string(j), nil
 }

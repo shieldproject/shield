@@ -125,12 +125,12 @@ func main() {
 		in.NewField("Target agent", "agent", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
-			return fmt.Errorf("%s", err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("%s", err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 
 		t, err := CreateTarget(content)
@@ -238,12 +238,12 @@ func main() {
 		in.NewField("When to run schedule (eg daily at 4:00)", "when", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
-			return fmt.Errorf("%s", err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 		s, err := CreateSchedule(content)
 
@@ -351,17 +351,16 @@ func main() {
 		in := tui.NewForm()
 		in.NewField("Policy name", "name", tui.FieldIsRequired)
 		in.NewField("Policy summary", "summary", tui.FieldIsOptional)
-		in.NewField("Policy expiration in seconds, must be greater than 1 hr:\n(protip: there are 86400 sec per day)", "expires", tui.InputIsInteger)
+		in.NewField("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", tui.InputIsInteger)
 		err := in.Show()
 		if err != nil {
-			return fmt.Errorf("%s", err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 		in.ConvertFieldValueToInteger("expires")
 
 		content, err := in.BuildContent()
-		fmt.Printf("content: %s\n", content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 		p, err := CreateRetentionPolicy(content)
 
@@ -485,7 +484,7 @@ func main() {
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 		s, err := CreateStore(content)
 
@@ -629,13 +628,15 @@ func main() {
 		in.NewField("Policy UUID", "retention", tui.FieldIsRequired)
 		in.NewField("Schedule UUID", "schedule", tui.FieldIsRequired)
 		in.NewField("Should the job be paused on creation? (Y/n)\n(Default is unpaused)", "paused", tui.InputCanBeBool)
-		in.Show()
+		err := in.Show()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
 		in.ConvertFieldValueToBool("paused")
 
 		content, err := in.BuildContent()
-		fmt.Printf("content: %v\n", content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not marshal into JSON\nmapped input:%v\nerror:%s", in, err)
+			return fmt.Errorf("ERROR: %s", err)
 		}
 
 		job, err := CreateJob(content)
