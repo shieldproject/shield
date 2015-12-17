@@ -27,36 +27,41 @@ func NewForm() *Form {
 	return &f
 }
 
-func (f *Form) NewField(label string, name string, fcn FieldValidator) error {
-	f.Fields = append(f.Fields, &Field{Label: label, Name: name, Value: "", Validator: fcn})
+func (f *Form) NewField(label string, name string, value interface{}, fcn FieldValidator) error {
+	f.Fields = append(f.Fields, &Field{Label: label, Name: name, Value: value, Validator: fcn})
 	return nil
 }
 
 func (field *Field) Prompt() error {
 	in := bufio.NewReader(os.Stdin)
 	fmt.Printf("%s:\n", field.Label)
+	if len(field.Value.(string)) > 0 {
+		fmt.Printf("(if no value supplied existing value will not be changed)\n")
+	}
 	v, err := in.ReadString('\n')
 	if err != nil {
 		fmt.Printf("Could not read input: %s", err)
 	}
 	v = strings.TrimSpace(v)
-	max := 3
-	for i := 0; i < max; i++ {
-		err = field.Validator(field.Name, v)
-		if err != nil && i < (max-1) {
-			fmt.Printf("Invalid input '%s' resulted in error: %s", v, err)
-			fmt.Printf("%s:\n", field.Label)
-			v, err = in.ReadString('\n')
-			if err != nil {
-				fmt.Printf("Could not read input: %s", err)
+	if len(field.Value.(string)) > 0 && len(v) > 1 {
+		max := 3
+		for i := 0; i < max; i++ {
+			err = field.Validator(field.Name, v)
+			if err != nil && i < (max-1) {
+				fmt.Printf("Invalid input '%s' resulted in error: %s", v, err)
+				fmt.Printf("%s:\n", field.Label)
+				v, err = in.ReadString('\n')
+				if err != nil {
+					fmt.Printf("Could not read input: %s", err)
+				}
+				v = strings.TrimSpace(v)
 			}
-			v = strings.TrimSpace(v)
+			if err != nil && i == (max-1) {
+				return fmt.Errorf("Valid value not provided in %d attempts. Cancelling request.\n", max)
+			}
 		}
-		if err != nil && i == (max-1) {
-			return fmt.Errorf("Valid value not provided in %d attempts. Cancelling request.\n", max)
-		}
+		field.Value = strings.TrimSpace(v)
 	}
-	field.Value = strings.TrimSpace(v)
 	return nil
 }
 

@@ -118,11 +118,11 @@ func main() {
 
 	c.Dispatch("create target", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Target name", "name", tui.FieldIsRequired)
-		in.NewField("Target summary", "summary", tui.FieldIsOptional)
-		in.NewField("Target plugin", "plugin", tui.FieldIsRequired)
-		in.NewField("Target endpoint", "endpoint", tui.FieldIsRequired)
-		in.NewField("Target agent", "agent", tui.FieldIsRequired)
+		in.NewField("Target name", "name", "", tui.FieldIsRequired)
+		in.NewField("Target summary", "summary", "", tui.FieldIsOptional)
+		in.NewField("Target plugin", "plugin", "", tui.FieldIsRequired)
+		in.NewField("Target endpoint", "endpoint", "", tui.FieldIsRequired)
+		in.NewField("Target agent", "agent", "", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -149,18 +149,27 @@ func main() {
 	c.Dispatch("edit target", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit target <UUID>")
 		id := uuid.Parse(args[0])
-
 		t, err := GetTarget(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not retrieve target '%s': %s", id, err)
 		}
-		t, err = UpdateTarget(id, invokeEditor(`{
-  "name":     "`+t.Name+`",
-  "summary":  "`+t.Summary+`",
-  "plugin":   "`+t.Plugin+`",
-  "endpoint": "`+t.Endpoint+`",
-  "agent":    "`+t.Agent+`"
-}`))
+
+		in := tui.NewForm()
+		in.NewField("Target name", "name", t.Name, tui.FieldIsRequired)
+		in.NewField("Target summary", "summary", t.Summary, tui.FieldIsOptional)
+		in.NewField("Target plugin", "plugin", t.Plugin, tui.FieldIsRequired)
+		in.NewField("Target endpoint", "endpoint", t.Endpoint, tui.FieldIsRequired)
+		in.NewField("Target agent", "agent", t.Agent, tui.FieldIsRequired)
+		err = in.Show()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		content, err := in.BuildContent()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+		t, err = UpdateTarget(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not update target '%s': %s", id, err)
 		}
@@ -233,9 +242,9 @@ func main() {
 
 	c.Dispatch("create schedule", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Schedule name", "name", tui.FieldIsRequired)
-		in.NewField("Schedule summary", "summary", tui.FieldIsOptional)
-		in.NewField("When to run schedule (eg daily at 4:00)", "when", tui.FieldIsRequired)
+		in.NewField("Schedule name", "name", "", tui.FieldIsRequired)
+		in.NewField("Schedule summary", "summary", "", tui.FieldIsOptional)
+		in.NewField("When to run schedule (eg daily at 4:00)", "when", "", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -261,17 +270,25 @@ func main() {
 	c.Dispatch("edit schedule", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit schedule <UUID>")
 		id := uuid.Parse(args[0])
-
 		s, err := GetSchedule(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not retrieve schedule '%s': %s", id, err)
 		}
 
-		s, err = UpdateSchedule(id, invokeEditor(`{
-  "name":    "`+s.Name+`",
-  "summary": "`+s.Summary+`",
-  "when":    "`+s.When+`"
-}`))
+		in := tui.NewForm()
+		in.NewField("Schedule name", "name", s.Name, tui.FieldIsRequired)
+		in.NewField("Schedule summary", "summary", s.Summary, tui.FieldIsOptional)
+		in.NewField("When to run schedule (eg daily at 4:00)", "when", s.When, tui.FieldIsRequired)
+		err = in.Show()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		content, err := in.BuildContent()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+		s, err = UpdateSchedule(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not update schedule '%s': %s", id, err)
 		}
@@ -349,9 +366,9 @@ func main() {
 
 	c.Dispatch("create retention policy", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Policy name", "name", tui.FieldIsRequired)
-		in.NewField("Policy summary", "summary", tui.FieldIsOptional)
-		in.NewField("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", tui.InputIsInteger)
+		in.NewField("Policy name", "name", "", tui.FieldIsRequired)
+		in.NewField("Policy summary", "summary", "", tui.FieldIsOptional)
+		in.NewField("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", "", tui.InputIsInteger)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -382,16 +399,27 @@ func main() {
 	c.Dispatch("edit retention policy", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit retention policy <UUID>")
 		id := uuid.Parse(args[0])
-
 		p, err := GetRetentionPolicy(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot retrieve policy '%s': %s", id, err)
 		}
-		p, err = UpdateRetentionPolicy(id, invokeEditor(`{
-  "name":     "`+p.Name+`",
-  "summary":  "`+p.Summary+`",
-  "expires":  `+fmt.Sprintf("%d", p.Expires)+`
-}`))
+
+		expires := fmt.Sprintf("%d", p.Expires)
+		in := tui.NewForm()
+		in.NewField("Policy name", "name", p.Name, tui.FieldIsRequired)
+		in.NewField("Policy summary", "summary", p.Summary, tui.FieldIsOptional)
+		in.NewField("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", expires, tui.InputIsInteger)
+		err = in.Show()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+		in.ConvertFieldValueToInteger("expires")
+
+		content, err := in.BuildContent()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+		p, err = UpdateRetentionPolicy(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot update policy '%s': %s", id, err)
 		}
@@ -473,10 +501,10 @@ func main() {
 
 	c.Dispatch("create store", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Store name", "name", tui.FieldIsRequired)
-		in.NewField("Store summary", "summary", tui.FieldIsOptional)
-		in.NewField("Plugin name", "plugin", tui.FieldIsRequired)
-		in.NewField("Endpoint (JSON)", "endpoint", tui.FieldIsRequired)
+		in.NewField("Store name", "name", "", tui.FieldIsRequired)
+		in.NewField("Store summary", "summary", "", tui.FieldIsOptional)
+		in.NewField("Plugin name", "plugin", "", tui.FieldIsRequired)
+		in.NewField("Endpoint (JSON)", "endpoint", "", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -503,22 +531,27 @@ func main() {
 	c.Dispatch("edit store", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield delete store <UUID>")
 		id := uuid.Parse(args[0])
-
 		s, err := GetStore(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot retrieve store '%s': %s", id, err)
 		}
 
-		s, err = UpdateStore(id, invokeEditor(`{
-  "name":     "`+s.Name+`",
-  "summary":  "`+s.Summary+`",
-  "plugin":   "`+s.Plugin+`",
-  "endpoint": "`+s.Endpoint+`"
-}`))
+		in := tui.NewForm()
+		in.NewField("Store name", "name", s.Name, tui.FieldIsRequired)
+		in.NewField("Store summary", "summary", s.Summary, tui.FieldIsOptional)
+		in.NewField("Plugin name", "plugin", s.Plugin, tui.FieldIsRequired)
+		in.NewField("Endpoint (JSON)", "endpoint", s.Endpoint, tui.FieldIsRequired)
+		in.Show()
+		err = in.Show()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		content, err := in.BuildContent()
+		s, err = UpdateStore(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot update store '%s': %s", id, err)
 		}
-
 		fmt.Printf("Updated store.\n")
 		return c.Invoke("show", "store", s.UUID)
 	})
@@ -621,13 +654,13 @@ func main() {
 
 	c.Dispatch("create job", func(opts Options, args []string) error {
 		in := tui.NewForm()
-		in.NewField("Job name", "name", tui.FieldIsRequired)
-		in.NewField("Job summary", "summary", tui.FieldIsOptional)
-		in.NewField("Store UUID", "store", tui.FieldIsRequired)
-		in.NewField("Target UUID", "target", tui.FieldIsRequired)
-		in.NewField("Policy UUID", "retention", tui.FieldIsRequired)
-		in.NewField("Schedule UUID", "schedule", tui.FieldIsRequired)
-		in.NewField("Should the job be paused on creation? (Y/n)\n(Default is unpaused)", "paused", tui.InputCanBeBool)
+		in.NewField("Job name", "name", "", tui.FieldIsRequired)
+		in.NewField("Job summary", "summary", "", tui.FieldIsOptional)
+		in.NewField("Store UUID", "store", "", tui.FieldIsRequired)
+		in.NewField("Target UUID", "target", "", tui.FieldIsRequired)
+		in.NewField("Policy UUID", "retention", "", tui.FieldIsRequired)
+		in.NewField("Schedule UUID", "schedule", "", tui.FieldIsRequired)
+		in.NewField("Should the job be paused on creation? (Y/n)\n(Default is unpaused)", "paused", "", tui.InputCanBeBool)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -654,27 +687,33 @@ func main() {
 	c.Dispatch("edit job", func(opts Options, args []string) error {
 		require(len(args) == 1, "shield edit job <UUID>")
 		id := uuid.Parse(args[0])
-
 		j, err := GetJob(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not retrieve job '%s': %s", id, err)
 		}
-		paused := "false"
+		paused := "no"
 		if j.Paused {
-			paused = "true"
+			paused = "yes"
 		}
 
-		content := invokeEditor(`{
-  "name"      : "` + j.Name + `",
-  "summary"   : "` + j.Summary + `",
+		in := tui.NewForm()
+		in.NewField("Job name", "name", j.Name, tui.FieldIsRequired)
+		in.NewField("Job summary", "summary", j.Summary, tui.FieldIsOptional)
+		in.NewField("Store UUID", "store", j.StoreUUID, tui.FieldIsRequired)
+		in.NewField("Target UUID", "target", j.TargetUUID, tui.FieldIsRequired)
+		in.NewField("Policy UUID", "retention", j.RetentionUUID, tui.FieldIsRequired)
+		in.NewField("Schedule UUID", "schedule", j.ScheduleUUID, tui.FieldIsRequired)
+		in.NewField("Should the job be paused? (Y/n)", "paused", paused, tui.InputCanBeBool)
+		err = in.Show()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+		in.ConvertFieldValueToBool("paused")
 
-  "store"     : "` + j.StoreUUID + `",
-  "target"    : "` + j.TargetUUID + `",
-  "retention" : "` + j.RetentionUUID + `",
-  "schedule"  : "` + j.ScheduleUUID + `",
-  "paused"    : ` + paused + `
-}`)
-
+		content, err := in.BuildContent()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
 		j, err = UpdateJob(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not update job '%s': %s", id, err)

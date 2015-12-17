@@ -99,7 +99,7 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.Plugin == "" || params.Endpoint == "" || params.Agent == "" {
+		if params.Name == "" || params.Plugin == "" || params.Endpoint == "" || params.Agent == "" {
 			w.WriteHeader(400)
 			return
 		}
