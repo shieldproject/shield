@@ -25,6 +25,13 @@ func bail(w http.ResponseWriter, e error) {
 	return
 }
 
+func bailWithError(w http.ResponseWriter, err JSONError) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	w.Write([]byte(err.JSON()))
+	return
+}
+
 func JSON(w http.ResponseWriter, thing interface{}) {
 	bytes, err := json.Marshal(thing)
 	if err != nil {
