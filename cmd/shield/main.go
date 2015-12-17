@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"time"
 
 	"github.com/pborman/getopt"
@@ -31,6 +29,7 @@ func main() {
 		All:      getopt.BoolLong("all", 'a', "Show all the things"),
 
 		Debug: getopt.BoolLong("debug", 'D', "Enable debugging"),
+		Trace: getopt.BoolLong("trace", 'T', "Enable trace mode"),
 
 		Status:    getopt.StringLong("status", 'S', "running", "Only show tasks with the given status (one of 'pending', 'running', 'canceled', 'done' or 'failed')"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
@@ -40,7 +39,7 @@ func main() {
 		Plugin:    getopt.StringLong("plugin", 'P', "", "Only show things for the given target or store plugin"),
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
 		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
-		To:        getopt.StringLong("to", 'T', "", "Restore the archive in question to a different target, specified by UUID"),
+		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
 	}
 
 	var command []string
@@ -57,6 +56,10 @@ func main() {
 
 	if *options.Shield != "" {
 		os.Setenv("SHIELD_TARGET", *options.Shield)
+	}
+
+	if *options.Trace {
+		os.Setenv("SHIELD_TRACE", "1")
 	}
 
 	c := NewCommand().With(options)
@@ -1001,50 +1004,4 @@ func main() {
 		}
 		os.Exit(0)
 	}
-}
-
-func invokeEditor(content string) string {
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vim"
-	}
-
-	tmpDir := os.TempDir()
-	tmpFile, tmpFileErr := ioutil.TempFile(tmpDir, "tempFilePrefix")
-	if tmpFileErr != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: Could not create temporary editor file:\n", tmpFileErr)
-	}
-	if content != "" {
-		err := ioutil.WriteFile(tmpFile.Name(), []byte(content), 600)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "ERROR: Could not write initial content to editor file:\n", err)
-			os.Exit(1)
-		}
-	}
-
-	path, err := exec.LookPath(editor)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: Could not find editor `%s` in path:\n%s", editor, err)
-		os.Exit(1)
-	}
-	fmt.Printf("%s is available at %s\nCalling it with file %s \n", editor, path, tmpFile.Name())
-
-	cmd := exec.Command(path, tmpFile.Name())
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Start()
-	if err != nil {
-		fmt.Printf("Start failed: %s", err)
-	}
-	fmt.Printf("Waiting for editor to finish.\n")
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ERROR: Editor `%s` exited with error:\n%s", editor, err)
-		os.Exit(1)
-	}
-
-	new_content, err := ioutil.ReadFile(tmpFile.Name())
-
-	return string(new_content)
 }

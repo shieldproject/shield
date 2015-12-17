@@ -15,6 +15,7 @@ type Options struct {
 	All      *bool
 
 	Debug *bool
+	Trace *bool
 
 	Status *string
 
