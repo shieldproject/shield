@@ -138,6 +138,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	It("requires the `name' and `when' keys in POST'ed data", func() {
 		res := POST(API, "/v1/schedules", "{}")
 		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","when"]}`))
 	})
 
 	It("can update existing schedules", func() {
@@ -183,6 +184,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 			"when"    : "daily at 2:05pm"
 		}`))
 		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name"]}`))
 	})
 
 	It("requires the `summary' field to update an existing schedule", func() {
@@ -191,6 +193,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 			"when"    : "daily at 2:05pm"
 		}`))
 		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["summary"]}`))
 	})
 
 	It("requires the `when' field to update an existing schedule", func() {
@@ -199,6 +202,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 			"summary" : "UPDATED!"
 		}`))
 		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["when"]}`))
 	})
 
 	It("can delete unused schedules", func() {

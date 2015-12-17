@@ -44,8 +44,11 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.When == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("when", params.When)
+		if e.Valid() {
+			bailWithError(w, e)
 			return
 		}
 
@@ -91,8 +94,12 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.When == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("summary", params.Summary)
+		e.Check("when", params.When)
+		if e.Valid() {
+			bailWithError(w, e)
 			return
 		}
 
