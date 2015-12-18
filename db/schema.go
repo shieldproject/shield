@@ -2,29 +2,61 @@ package db
 
 import (
 	"fmt"
+	"sort"
 )
 
-var CurrentSchema uint = 1
+var CurrentSchema int = currentSchema()
+
+var Schemas = map[int]Schema{
+	1: v1Schema{},
+}
+
+type Schema interface {
+	Deploy(*DB) error
+}
 
 func (db *DB) Setup() error {
-	v, err := db.SchemaVersion()
+	current, err := db.SchemaVersion()
 	if err != nil {
 		return err
 	}
 
-	if v == 0 {
-		err = db.v1schema()
-	} else if v > 1 {
-		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD", v)
+	if current > CurrentSchema {
+		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD (%d)", current, CurrentSchema)
+		if err != nil {
+			return err
+		}
 	}
 
-	if err != nil {
-		return err
+	versions := schemaVersions()
+
+	for _, version := range versions {
+		if current < version {
+			err = Schemas[version].Deploy(db)
+			if err != nil {
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 
-func (db *DB) SchemaVersion() (uint, error) {
+func schemaVersions() []int {
+	var versions []int
+	for k, _ := range Schemas {
+		versions = append(versions, k)
+	}
+	sort.Ints(versions)
+	return versions
+}
+
+func currentSchema() int {
+	versions := schemaVersions()
+	return int(versions[len(versions)-1:][0])
+}
+
+func (db *DB) SchemaVersion() (int, error) {
 	r, err := db.Query(`SELECT version FROM schema_info LIMIT 1`)
 	if err != nil {
 		if err.Error() == "no such table: schema_info" {
@@ -54,7 +86,7 @@ func (db *DB) SchemaVersion() (uint, error) {
 		return 0, fmt.Errorf("Invalid schema version %d found", v)
 	}
 
-	return uint(v), nil
+	return int(v), nil
 }
 
 func (db *DB) CheckCurrentSchema() error {
@@ -65,85 +97,5 @@ func (db *DB) CheckCurrentSchema() error {
 	if v != CurrentSchema {
 		return fmt.Errorf("wrong schema version (%d, but want to be at %d)", v, CurrentSchema)
 	}
-	return nil
-}
-
-func (db *DB) v1schema() error {
-	db.Exec(`CREATE TABLE schema_info (
-               version INTEGER
-             )`)
-	db.Exec(`INSERT INTO schema_info VALUES (1)`)
-
-	db.Exec(`CREATE TABLE targets (
-               uuid      UUID PRIMARY KEY,
-               name      TEXT,
-               summary   TEXT,
-               plugin    TEXT NOT NULL,
-               endpoint  TEXT NOT NULL,
-               agent     TEXT NOT NULL
-             )`)
-
-	db.Exec(`CREATE TABLE stores (
-               uuid      UUID PRIMARY KEY,
-               name      TEXT,
-               summary   TEXT,
-               plugin    TEXT NOT NULL,
-               endpoint  TEXT NOT NULL
-             )`)
-
-	db.Exec(`CREATE TABLE schedules (
-               uuid      UUID PRIMARY KEY,
-               name      TEXT,
-               summary   TEXT,
-               timespec  TEXT NOT NULL
-             )`)
-
-	db.Exec(`CREATE TABLE retention (
-               uuid     UUID PRIMARY KEY,
-               name     TEXT,
-               summary  TEXT,
-               expiry   INTEGER NOT NULL
-             )`)
-
-	db.Exec(`CREATE TABLE jobs (
-               uuid            UUID PRIMARY KEY,
-               target_uuid     UUID NOT NULL,
-               store_uuid      UUID NOT NULL,
-               schedule_uuid   UUID NOT NULL,
-               retention_uuid  UUID NOT NULL,
-               priority        INTEGER DEFAULT 50,
-               paused          BOOLEAN,
-               name            TEXT,
-               summary         TEXT
-             )`)
-
-	db.Exec(`CREATE TABLE archives (
-               uuid         UUID PRIMARY KEY,
-               target_uuid  UUID NOT NULL,
-               store_uuid   UUID NOT NULL,
-               store_key    TEXT NOT NULL,
-
-               taken_at     INTEGER NOT NULL,
-               expires_at   INTEGER NOT NULL,
-               notes        TEXT DEFAULT ''
-             )`)
-
-	db.Exec(`CREATE TABLE tasks (
-               uuid      UUID PRIMARY KEY,
-               owner     TEXT,
-               op        TEXT NOT NULL,
-
-               job_uuid      UUID,
-               archive_uuid  UUID,
-               target_uuid   UUID,
-
-               status       TEXT NOT NULL,
-               requested_at INTEGER NOT NULL,
-               started_at   INTEGER,
-               stopped_at   INTEGER,
-
-               log       TEXT
-             )`)
-
 	return nil
 }
