@@ -10,6 +10,7 @@ type Operation int
 const (
 	BACKUP Operation = iota
 	RESTORE
+	PURGE
 )
 
 func (o Operation) String() string {
@@ -48,6 +49,7 @@ type Task struct {
 
 	StorePlugin    string
 	StoreEndpoint  string
+	ArchiveUUID    uuid.UUID
 	TargetPlugin   string
 	TargetEndpoint string
 	RestoreKey     string

@@ -50,7 +50,7 @@ func ParseRequestValue(value []byte) (*Request, error) {
 	if request.StoreEndpoint == "" {
 		return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 	}
-	if request.Operation == "restore" && request.RestoreKey == "" {
+	if (request.Operation == "restore" || request.Operation == "purge") && request.RestoreKey == "" {
 		return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
 	}
 	return request, nil

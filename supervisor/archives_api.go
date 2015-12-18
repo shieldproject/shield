@@ -18,12 +18,18 @@ type ArchiveAPI struct {
 func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `GET /v1/archives`):
+		var desiredStatus []string
+		status := paramValue(req, "status", "")
+		if status != "" {
+			desiredStatus = []string{status}
+		}
 		archives, err := self.Data.GetAllAnnotatedArchives(
 			&db.ArchiveFilter{
-				ForTarget: paramValue(req, "target", ""),
-				ForStore:  paramValue(req, "store", ""),
-				Before:    paramDate(req, "before"),
-				After:     paramDate(req, "after"),
+				ForTarget:  paramValue(req, "target", ""),
+				ForStore:   paramValue(req, "store", ""),
+				Before:     paramDate(req, "before"),
+				After:      paramDate(req, "after"),
+				WithStatus: desiredStatus,
 			},
 		)
 		if err != nil {

@@ -191,6 +191,9 @@ var _ = Describe("/v1/tasks API", func() {
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"canceled"}`))
 
+		//FIXME: this should change to status=running, and have tests added to make
+		// sure what it got back was expected, since it's not failing, despite 'state'
+		// not being the right parameter
 		res = GET(API, "/v1/tasks?state=running")
 		Ω(res.Code).Should(Equal(200))
 	})

@@ -9,6 +9,7 @@ var CurrentSchema int = currentSchema()
 
 var Schemas = map[int]Schema{
 	1: v1Schema{},
+	2: v2Schema{},
 }
 
 type Schema interface {

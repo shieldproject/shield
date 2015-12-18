@@ -20,13 +20,16 @@ const (
 	FAILED
 	OUTPUT
 	RESTORE_KEY
+	PURGE_ARCHIVE
 )
 
 type WorkerUpdate struct {
-	Task      uuid.UUID
-	Op        UpdateOp
-	StoppedAt time.Time
-	Output    string
+	Task        uuid.UUID
+	Archive     uuid.UUID
+	TaskSuccess bool
+	Op          UpdateOp
+	StoppedAt   time.Time
+	Output      string
 }
 
 type WorkerRequest struct {
@@ -109,11 +112,13 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			continue
 		}
 		// exec the command
+		var jobFailed bool
 		err = client.Run(partial, string(command))
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d failed to execute the command against the remote agent %s (%s)\n", id, remote, err)}
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
+			jobFailed = true
 		}
 
 		out := <-final
@@ -134,10 +139,19 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 
 			} else {
 				updates <- WorkerUpdate{
-					Task:   t.UUID,
-					Op:     RESTORE_KEY,
-					Output: v.Key,
+					Task:        t.UUID,
+					Op:          RESTORE_KEY,
+					TaskSuccess: !jobFailed,
+					Output:      v.Key,
 				}
+			}
+		}
+
+		if t.Op == PURGE && !jobFailed {
+			updates <- WorkerUpdate{
+				Task:    t.UUID,
+				Op:      PURGE_ARCHIVE,
+				Archive: t.ArchiveUUID,
 			}
 		}
 

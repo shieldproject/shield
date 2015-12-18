@@ -11,11 +11,13 @@ import (
 )
 
 type AnnotatedArchive struct {
-	UUID      string    `json:"uuid"`
-	StoreKey  string    `json:"key"`
-	TakenAt   Timestamp `json:"taken_at"`
-	ExpiresAt Timestamp `json:"expires_at"`
-	Notes     string    `json:"notes"`
+	UUID        string    `json:"uuid"`
+	StoreKey    string    `json:"key"`
+	TakenAt     Timestamp `json:"taken_at"`
+	ExpiresAt   Timestamp `json:"expires_at"`
+	Notes       string    `json:"notes"`
+	Status      string    `json:"status"`
+	PurgeReason string    `json:"purge_reason"`
 
 	TargetUUID     string `json:"target_uuid"`
 	TargetPlugin   string `json:"target_plugin"`
@@ -26,10 +28,13 @@ type AnnotatedArchive struct {
 }
 
 type ArchiveFilter struct {
-	ForTarget string
-	ForStore  string
-	Before    *time.Time
-	After     *time.Time
+	ForTarget     string
+	ForStore      string
+	Before        *time.Time
+	After         *time.Time
+	ExpiresBefore *time.Time
+	WithStatus    []string
+	WithOutStatus []string
 }
 
 func (f *ArchiveFilter) Query() string {
@@ -51,11 +56,32 @@ func (f *ArchiveFilter) Query() string {
 		wheres = append(wheres, fmt.Sprintf("taken_at >= $%d", n))
 		n++
 	}
+	if len(f.WithStatus) > 0 {
+		var params []string
+		for range f.WithStatus {
+			params = append(params, fmt.Sprintf("$%d", n))
+			n++
+		}
+		wheres = append(wheres, fmt.Sprintf("status IN (%s)", strings.Join(params, ", ")))
+	}
+	if len(f.WithOutStatus) > 0 {
+		var params []string
+		for range f.WithOutStatus {
+			params = append(params, fmt.Sprintf("$%d", n))
+			n++
+		}
+		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
+	}
+	if f.ExpiresBefore != nil {
+		wheres = append(wheres, fmt.Sprintf("expires_at <= $%d", n))
+		n++
+	}
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.plugin, t.endpoint,
-		       s.uuid, s.plugin, s.endpoint
+		       s.uuid, s.plugin, s.endpoint,
+			   a.status, a.purge_reason
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -80,6 +106,19 @@ func (f *ArchiveFilter) Args() []interface{} {
 	if f.After != nil {
 		args = append(args, f.After.Unix())
 	}
+	if len(f.WithStatus) > 0 {
+		for _, e := range f.WithStatus {
+			args = append(args, e)
+		}
+	}
+	if len(f.WithOutStatus) > 0 {
+		for _, e := range f.WithOutStatus {
+			args = append(args, e)
+		}
+	}
+	if f.ExpiresBefore != nil {
+		args = append(args, f.ExpiresBefore.Unix())
+	}
 	return args
 }
 
@@ -98,7 +137,8 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 		if err = r.Scan(
 			&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 			&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint); err != nil {
+			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+			&ann.Status, &ann.PurgeReason); err != nil {
 
 			return l, err
 		}
@@ -122,7 +162,7 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.plugin, t.endpoint,
-		       s.uuid, s.plugin, s.endpoint
+		       s.uuid, s.plugin, s.endpoint, a.status, a.purge_reason
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -143,7 +183,8 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 	if err = r.Scan(
 		&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 		&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint); err != nil {
+		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+		&ann.Status, &ann.PurgeReason); err != nil {
 
 		return nil, err
 	}
@@ -164,6 +205,50 @@ func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
 		`UPDATE archives SET notes = $1 WHERE uuid = $2`,
 		notes, id.String(),
 	)
+}
+
+func (db *DB) GetArchivesNeedingPurge() ([]*AnnotatedArchive, error) {
+	filter := &ArchiveFilter{
+		WithOutStatus: []string{"purged", "valid"},
+	}
+	return db.GetAllAnnotatedArchives(filter)
+}
+
+func (db *DB) GetExpiredArchives() ([]*AnnotatedArchive, error) {
+	now := time.Now()
+	filter := &ArchiveFilter{
+		ExpiresBefore: &now,
+	}
+	return db.GetAllAnnotatedArchives(filter)
+}
+
+func (db *DB) InvalidateArchive(id uuid.UUID) error {
+	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = $1`, id.String())
+}
+
+func (db *DB) PurgeArchive(id uuid.UUID) error {
+	a, err := db.GetAnnotatedArchive(id)
+	if err != nil {
+		return err
+	}
+
+	if a.Status == "valid" {
+		return fmt.Errorf("Invalid attempt to purge a 'valid' archive detected")
+	}
+
+	err = db.Exec(`UPDATE archives SET purge_reason =
+                       (SELECT status FROM archives WHERE uuid = $1)
+                       WHERE uuid = $1
+                  `, id.String())
+	if err != nil {
+		return err
+	}
+
+	return db.Exec(`UPDATE archives SET status = 'purged' WHERE uuid = $1`, id.String())
+}
+
+func (db *DB) ExpireArchive(id uuid.UUID) error {
+	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid = $1`, id.String())
 }
 
 func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {

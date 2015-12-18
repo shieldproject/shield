@@ -45,11 +45,15 @@ needenv() {
 	done
 }
 
+
 needenv SHIELD_OP \
         SHIELD_STORE_PLUGIN \
-        SHIELD_STORE_ENDPOINT \
-        SHIELD_TARGET_PLUGIN \
-        SHIELD_TARGET_ENDPOINT
+        SHIELD_STORE_ENDPOINT
+
+if [[ ${SHIELD_OP} == "backup" || ${SHIELD_OP} == "restore" ]]; then
+	needenv  SHIELD_TARGET_PLUGIN \
+	         SHIELD_TARGET_ENDPOINT
+fi
 
 case ${SHIELD_OP} in
 (backup)
@@ -66,6 +70,13 @@ case ${SHIELD_OP} in
 	set -o pipefail
 	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | bunzip2 | \
 		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+	exit $?
+	;;
+
+(purge)
+	neednv SHIELD_RESTORE_KEY
+	set -e
+	${SHIELD_STORE_PLUGIN} purge -k "${SHELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}"
 	exit $?
 	;;
 

@@ -143,6 +143,15 @@ func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.U
 	)
 }
 
+func (db *DB) CreatePurgeTask(owner string, archive *AnnotatedArchive) (uuid.UUID, error) {
+	id := uuid.NewRandom()
+	return id, db.Exec(
+		`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+		id.String(), owner, "purge", archive.UUID, archive.StoreUUID, "pending", "", time.Now().Unix(),
+	)
+}
+
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	return db.Exec(
 		`UPDATE tasks SET status = $1, started_at = $2 WHERE uuid = $3`,
@@ -175,7 +184,7 @@ func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	)
 }
 
-func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) error {
+func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (uuid.UUID, error) {
 	// determine how long we need to keep this specific archive for
 	r, err := db.Query(
 		`SELECT r.expiry
@@ -186,17 +195,17 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 		id.String(),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer r.Close()
 
 	if !r.Next() {
-		return fmt.Errorf("failed to determine expiration for task %s", id)
+		return nil, fmt.Errorf("failed to determine expiration for task %s", id)
 	}
 
 	var expiry int
 	if err := r.Scan(&expiry); err != nil {
-		return err
+		return nil, err
 	}
 	r.Close()
 
@@ -214,11 +223,11 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) e
 		archive_id.String(), key, effective.Unix(), effective.Add(time.Duration(expiry)*time.Second).Unix(), id.String(),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// and finally, associate task -> archive
-	return db.Exec(
+	return archive_id, db.Exec(
 		`UPDATE tasks SET archive_uuid = $1 WHERE uuid = $2`,
 		archive_id.String(), id.String(),
 	)
