@@ -135,7 +135,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		Expect(res.Body.String()).Should(Equal(""))
 	})
 
-	It("requires the `name' and `when' keys in POST'ed data", func() {
+	It("requires the `name' and `when' keys to create a new schedule", func() {
 		res := POST(API, "/v1/schedules", "{}")
 		Ω(res.Code).Should(Equal(400))
 		Ω(res.Body.String()).Should(Equal(`{"missing":["name","when"]}`))
@@ -178,31 +178,10 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		Expect(res.Body.String()).Should(Equal(""))
 	})
 
-	It("requires the `name' field to update an existing schedule", func() {
-		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
-			"summary" : "UPDATED!",
-			"when"    : "daily at 2:05pm"
-		}`))
+	It("requires the `name' and `when' keys to update an existing schedule", func() {
+		res := PUT(API, "/v1/schedule/"+DAILY, "{}")
 		Ω(res.Code).Should(Equal(400))
-		Ω(res.Body.String()).Should(Equal(`{"missing":["name"]}`))
-	})
-
-	It("requires the `summary' field to update an existing schedule", func() {
-		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
-			"name"    : "Daily Backup Schedule",
-			"when"    : "daily at 2:05pm"
-		}`))
-		Ω(res.Code).Should(Equal(400))
-		Ω(res.Body.String()).Should(Equal(`{"missing":["summary"]}`))
-	})
-
-	It("requires the `when' field to update an existing schedule", func() {
-		res := PUT(API, "/v1/schedule/"+DAILY, WithJSON(`{
-			"name"    : "Daily Backup Schedule",
-			"summary" : "UPDATED!"
-		}`))
-		Ω(res.Code).Should(Equal(400))
-		Ω(res.Body.String()).Should(Equal(`{"missing":["when"]}`))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","when"]}`))
 	})
 
 	It("can delete unused schedules", func() {

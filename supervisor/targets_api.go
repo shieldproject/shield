@@ -50,8 +50,13 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Plugin == "" || params.Endpoint == "" || params.Agent == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("plugin", params.Plugin)
+		e.Check("endpoint", params.Endpoint)
+		e.Check("agent", params.Agent)
+		if e.IsNotValid() {
+			bailWithError(w, e)
 			return
 		}
 
@@ -99,8 +104,13 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Plugin == "" || params.Endpoint == "" || params.Agent == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("plugin", params.Plugin)
+		e.Check("endpoint", params.Endpoint)
+		e.Check("agent", params.Agent)
+		if e.IsNotValid() {
+			bailWithError(w, e)
 			return
 		}
 

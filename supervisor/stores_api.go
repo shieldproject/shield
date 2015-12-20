@@ -1,5 +1,3 @@
-// Jamie: This contains the go source code that will become shield.
-
 package supervisor
 
 import (
@@ -49,8 +47,12 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Plugin == "" || params.Endpoint == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("plugin", params.Plugin)
+		e.Check("endpoint", params.Endpoint)
+		if e.IsNotValid() {
+			bailWithError(w, e)
 			return
 		}
 
@@ -97,8 +99,12 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.Plugin == "" || params.Endpoint == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("plugin", params.Plugin)
+		e.Check("endpoint", params.Endpoint)
+		if e.IsNotValid() {
+			bailWithError(w, e)
 			return
 		}
 

@@ -518,9 +518,10 @@ var _ = Describe("/v1/jobs API", func() {
 		Eventually(resyncChan).Should(Receive())
 	})
 
-	It("requires specific keys in POST'ed data", func() {
+	It("requires the `name', `store', `target', `schedule', and `retention' keys to create a new job", func() {
 		res := POST(API, "/v1/jobs", "{}")
 		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","store","target","schedule","retention"]}`))
 	})
 
 	It("can update existing jobs", func() {
@@ -586,64 +587,10 @@ var _ = Describe("/v1/jobs API", func() {
 			]`))
 	})
 
-	It("requires the `name' field to update an existing job", func() {
-		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
-			"summary"   : "...",
-			"target"    : "`+TARGET_REDIS+`",
-			"store"     : "`+STORE_S3+`",
-			"retention" : "`+RETAIN_SHORT+`",
-			"schedule"  : "`+SCHED_WEEKLY+`",
-			"paused"    : true
-		}`))
+	It("requires the `name', `store', `target', `schedule', and `retention' keys to update an existing job", func() {
+		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, "{}")
 		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `store' field to update an existing job", func() {
-		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
-			"name"      : "Redis WEEKLY backups",
-			"summary"   : "...",
-			"target"    : "`+TARGET_REDIS+`",
-			"retention" : "`+RETAIN_SHORT+`",
-			"schedule"  : "`+SCHED_WEEKLY+`",
-			"paused"    : true
-		}`))
-		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `target' field to update an existing job", func() {
-		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
-			"name"      : "Redis WEEKLY backups",
-			"summary"   : "...",
-			"store"     : "`+STORE_S3+`",
-			"retention" : "`+RETAIN_SHORT+`",
-			"schedule"  : "`+SCHED_WEEKLY+`",
-			"paused"    : true
-		}`))
-		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `schedule' field to update an existing job", func() {
-		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
-			"name"      : "Redis WEEKLY backups",
-			"summary"   : "...",
-			"target"    : "`+TARGET_REDIS+`",
-			"store"     : "`+STORE_S3+`",
-			"retention" : "`+RETAIN_SHORT+`",
-			"paused"    : true
-		}`))
-		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `retention' field to update an existing job", func() {
-		res := PUT(API, "/v1/job/"+REDIS_S3_WEEKLY, WithJSON(`{
-			"name"      : "Redis WEEKLY backups",
-			"summary"   : "...",
-			"target"    : "`+TARGET_REDIS+`",
-			"store"     : "`+STORE_S3+`",
-			"schedule"  : "`+SCHED_WEEKLY+`",
-			"paused"    : true
-		}`))
-		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","store","target","schedule","retention"]}`))
 	})
 
 	It("can delete jobs", func() {

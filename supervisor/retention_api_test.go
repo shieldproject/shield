@@ -123,9 +123,20 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Eventually(resyncChan).Should(Receive())
 	})
 
-	It("requires the `name' and `when' keys in POST'ed data", func() {
+	It("requires the `name' and `expires' keys to create a new policy", func() {
 		res := POST(API, "/v1/retention", "{}")
 		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","expires"]}`))
+	})
+
+	It("requires a valid `expires' that is > 3600 to create a new retention policy", func() {
+		res := POST(API, "/v1/retention", WithJSON(`{
+			"name"    : "New Policy",
+			"summary" : "Expires way too fast",
+			"expires" : 60
+		}`))
+		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"Errors":{"expires":"60 is less than 3600"}}`))
 	})
 
 	It("can update existing retention policy", func() {
@@ -156,29 +167,20 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
-	It("requires the `name' field to update an existing retention policy", func() {
-		res := PUT(API, "/v1/retention/"+SHORT, WithJSON(`{
-			"summary" : "UPDATED!",
-			"expires" : 1209000
-		}`))
+	It("requires the `name' and `expires' field to update an existing retention policy", func() {
+		res := PUT(API, "/v1/retention/"+SHORT, "{}")
 		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","expires"]}`))
 	})
 
-	It("requires the `summary' field to update an existing retention policy", func() {
+	It("requires a valid `expires' that is > 3600 to update an existing retention policy", func() {
 		res := PUT(API, "/v1/retention/"+SHORT, WithJSON(`{
-			"name"    : "Renamed",
-			"expires" : 1209000
-		}`))
+				"name"    : "Policy",
+				"summary" : "Expires way too fast",
+				"expires" : 60
+			}`))
 		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires a valid `expiry' field of > 3600 to update an existing retention policy", func() {
-		res := PUT(API, "/v1/retention/"+SHORT, WithJSON(`{
-			"name"    : "Renamed",
-			"summary" : "UPDATED!",
-			"expires" : 3599
-		}`))
-		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"Errors":{"expires":"60 is less than 3600"}}`))
 	})
 
 	It("can delete unused retention policies", func() {

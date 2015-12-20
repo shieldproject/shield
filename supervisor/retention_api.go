@@ -47,8 +47,25 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Expires < 3600 {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		if params.Expires == 0 {
+			e.Check("expires", "")
+		}
+		if e.IsNotValid() {
+			bailWithError(w, e)
+			return
+		}
+
+		v := InvalidParameters()
+		v.Validate("expires", params.Expires, func(n string, v interface{}) error {
+			if v.(uint) < 3600 {
+				return fmt.Errorf("%d is less than 3600", v.(uint))
+			}
+			return nil
+		})
+		if v.IsNotValid() {
+			bailWithError(w, v)
 			return
 		}
 
@@ -94,8 +111,25 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.Expires < 3600 {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		if params.Expires == 0 {
+			e.Check("expires", "")
+		}
+		if e.IsNotValid() {
+			bailWithError(w, e)
+			return
+		}
+
+		v := InvalidParameters()
+		v.Validate("expires", params.Expires, func(n string, v interface{}) error {
+			if v.(uint) < 3600 {
+				return fmt.Errorf("%d is less than 3600", v.(uint))
+			}
+			return nil
+		})
+		if v.IsNotValid() {
+			bailWithError(w, v)
 			return
 		}
 

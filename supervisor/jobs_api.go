@@ -56,8 +56,14 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Store == "" || params.Target == "" || params.Schedule == "" || params.Retention == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("store", params.Store)
+		e.Check("target", params.Target)
+		e.Check("schedule", params.Schedule)
+		e.Check("retention", params.Retention)
+		if e.IsNotValid() {
+			bailWithError(w, e)
 			return
 		}
 
@@ -169,8 +175,14 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		json.NewDecoder(req.Body).Decode(&params)
 
-		if params.Name == "" || params.Summary == "" || params.Store == "" || params.Target == "" || params.Schedule == "" || params.Retention == "" {
-			w.WriteHeader(400)
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("store", params.Store)
+		e.Check("target", params.Target)
+		e.Check("schedule", params.Schedule)
+		e.Check("retention", params.Retention)
+		if e.IsNotValid() {
+			bailWithError(w, e)
 			return
 		}
 

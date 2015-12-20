@@ -189,44 +189,10 @@ var _ = Describe("/v1/targets API", func() {
 		Eventually(channel).Should(Receive())
 	})
 
-	It("requires the `name' key to create a new store", func() {
-		res := POST(API, "/v1/targets", WithJSON(`{
-			"summary"  : "A new one",
-			"plugin"   : "s3",
-			"endpoint" : "[ENDPOINT]",
-			"agent"    : "127.0.0.1:5544"
-		}`))
+	It("requires the `name', `plugin', `endpoint', `agent' keys to create a new target", func() {
+		res := POST(API, "/v1/targets", "{}")
 		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `plugin' key to create a new store", func() {
-		res := POST(API, "/v1/targets", WithJSON(`{
-			"name"     : "New Target",
-			"summary"  : "A new one",
-			"endpoint" : "[ENDPOINT]",
-			"agent"    : "127.0.0.1:5544"
-		}`))
-		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `endpoint' key to create a new store", func() {
-		res := POST(API, "/v1/targets", WithJSON(`{
-			"name"     : "New Target",
-			"summary"  : "A new one",
-			"plugin"   : "s3",
-			"agent"    : "127.0.0.1:5544"
-		}`))
-		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `agent' key to create a new store", func() {
-		res := POST(API, "/v1/targets", WithJSON(`{
-			"name"     : "New Target",
-			"summary"  : "A new one",
-			"plugin"   : "s3",
-			"endpoint" : "[ENDPOINT]"
-		}`))
-		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","plugin","endpoint","agent"]}`))
 	})
 
 	It("can update existing target", func() {
@@ -263,44 +229,10 @@ var _ = Describe("/v1/targets API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
-	It("requires the `name' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
-			"summary"  : "UPDATED!",
-			"plugin"   : "redis",
-			"endpoint" : "{NEW-ENDPOINT}",
-			"agent"    : "127.0.0.1:1660"
-		}`))
+	It("requires the `name', `plugin', `endpoint', `agent' key to update an existing target", func() {
+		res := PUT(API, "/v1/target/"+TARGET_REDIS, "{}")
 		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `plugin' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
-			"name"     : "Renamed",
-			"summary"  : "UPDATED!",
-			"endpoint" : "{NEW-ENDPOINT}",
-			"agent"    : "127.0.0.1:1660"
-		}`))
-		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `endpoint' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
-			"name"     : "Renamed",
-			"summary"  : "UPDATED!",
-			"plugin"   : "redis",
-			"agent"    : "127.0.0.1:1660"
-		}`))
-		Ω(res.Code).Should(Equal(400))
-	})
-
-	It("requires the `agent' key to update an existing target", func() {
-		res := PUT(API, "/v1/target/"+TARGET_REDIS, WithJSON(`{
-			"name"     : "Renamed",
-			"summary"  : "UPDATED!",
-			"plugin"   : "redis",
-			"endpoint" : "{NEW-ENDPOINT}"
-		}`))
-		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(Equal(`{"missing":["name","plugin","endpoint","agent"]}`))
 	})
 
 	It("can delete unused targets", func() {

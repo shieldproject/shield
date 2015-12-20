@@ -1,9 +1,9 @@
 package supervisor
 
 import (
-	"strings"
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 func Sentencify(words []string) string {
@@ -13,13 +13,52 @@ func Sentencify(words []string) string {
 	case 1:
 		return words[0]
 	default:
-		head := words[0:len(words)-1]
+		head := words[0 : len(words)-1]
 		return strings.Join(head, ", ") + " and " + words[len(words)-1]
 	}
 }
 
 type JSONError interface {
 	JSON() string
+}
+
+type Validator func(name string, value interface{}) error
+
+type InvalidParametersError struct {
+	Errors map[string]string
+}
+
+func InvalidParameters(names ...string) InvalidParametersError {
+	return InvalidParametersError{
+		Errors: make(map[string]string),
+	}
+}
+
+func (e *InvalidParametersError) Validate(name string, value interface{}, fn Validator) {
+	err := fn(name, value)
+	if err != nil {
+		e.Errors[name] = err.Error()
+	}
+}
+
+func (e *InvalidParametersError) IsNotValid() bool {
+	return len(e.Errors) > 0
+}
+
+func (e InvalidParametersError) Error() string {
+	keys := make([]string, len(e.Errors))
+	for k, _ := range e.Errors {
+		keys = append(keys, k)
+	}
+	return fmt.Sprintf("%s are invaid parameters", Sentencify(keys))
+}
+
+func (e InvalidParametersError) JSON() string {
+	b, err := json.Marshal(e)
+	if err != nil {
+		return fmt.Sprintf(`{"error":"failed to unmarshal JSON: %s"}`, err)
+	}
+	return string(b)
 }
 
 type MissingParametersError struct {
@@ -38,7 +77,7 @@ func (e *MissingParametersError) Check(name string, value string) {
 	}
 }
 
-func (e MissingParametersError) Valid() bool {
+func (e MissingParametersError) IsNotValid() bool {
 	return len(e.Missing) > 0
 }
 
