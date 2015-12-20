@@ -62,7 +62,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e.Check("target", params.Target)
 		e.Check("schedule", params.Schedule)
 		e.Check("retention", params.Retention)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}
@@ -181,7 +181,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e.Check("target", params.Target)
 		e.Check("schedule", params.Schedule)
 		e.Check("retention", params.Retention)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}

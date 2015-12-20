@@ -52,7 +52,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if params.Expires == 0 {
 			e.Check("expires", "")
 		}
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}
@@ -64,7 +64,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 			return nil
 		})
-		if v.IsNotValid() {
+		if v.IsValid() {
 			bailWithError(w, v)
 			return
 		}
@@ -116,7 +116,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if params.Expires == 0 {
 			e.Check("expires", "")
 		}
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}
@@ -128,7 +128,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 			return nil
 		})
-		if v.IsNotValid() {
+		if v.IsValid() {
 			bailWithError(w, v)
 			return
 		}

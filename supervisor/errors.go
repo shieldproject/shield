@@ -41,7 +41,7 @@ func (e *InvalidParametersError) Validate(name string, value interface{}, fn Val
 	}
 }
 
-func (e *InvalidParametersError) IsNotValid() bool {
+func (e *InvalidParametersError) IsValid() bool {
 	return len(e.Errors) > 0
 }
 
@@ -77,7 +77,7 @@ func (e *MissingParametersError) Check(name string, value string) {
 	}
 }
 
-func (e MissingParametersError) IsNotValid() bool {
+func (e MissingParametersError) IsValid() bool {
 	return len(e.Missing) > 0
 }
 

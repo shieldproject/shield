@@ -55,7 +55,7 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e.Check("plugin", params.Plugin)
 		e.Check("endpoint", params.Endpoint)
 		e.Check("agent", params.Agent)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}
@@ -109,7 +109,7 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e.Check("plugin", params.Plugin)
 		e.Check("endpoint", params.Endpoint)
 		e.Check("agent", params.Agent)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}

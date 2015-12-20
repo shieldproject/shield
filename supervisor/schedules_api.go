@@ -47,7 +47,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e := MissingParameters()
 		e.Check("name", params.Name)
 		e.Check("when", params.When)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}
@@ -97,7 +97,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e := MissingParameters()
 		e.Check("name", params.Name)
 		e.Check("when", params.When)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}

@@ -51,7 +51,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e.Check("name", params.Name)
 		e.Check("plugin", params.Plugin)
 		e.Check("endpoint", params.Endpoint)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}
@@ -103,7 +103,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		e.Check("name", params.Name)
 		e.Check("plugin", params.Plugin)
 		e.Check("endpoint", params.Endpoint)
-		if e.IsNotValid() {
+		if e.IsValid() {
 			bailWithError(w, e)
 			return
 		}
