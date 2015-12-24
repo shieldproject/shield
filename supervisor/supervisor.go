@@ -321,7 +321,6 @@ func (s *Supervisor) SpawnWorkers() {
 	}
 }
 
-//FIXME: Testing
 func (s *Supervisor) PurgeArchives() {
 	log.Debugf("scanning for archives needing to be expired")
 
@@ -355,7 +354,6 @@ func (s *Supervisor) PurgeArchives() {
 	}
 }
 
-// FIXME: testing
 func (s *Supervisor) SchedulePurgeTask(archive *db.AnnotatedArchive) error {
 	task := NewPendingTask(PURGE)
 	id, err := s.Database.CreatePurgeTask("system", archive)

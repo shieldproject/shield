@@ -37,3 +37,7 @@ func (t Timestamp) Format(layout string) string {
 func (t Timestamp) IsZero() bool {
 	return t.t.IsZero()
 }
+
+func (t Timestamp) Time() time.Time {
+	return t.t
+}

@@ -264,5 +264,31 @@ var _ = Describe("Archive Management", func() {
 				Expect(len(archives)).Should(Equal(expectedArchiveCount), "returns the correct number of archives")
 			})
 		})
+
+		Describe("GetExpiredArchives()", func() {
+			UNEXPIRED_ARCHIVE := uuid.NewRandom()
+			var expectedArchiveCount int
+			BeforeEach(func() {
+				// insert archive expiring in a day
+				err := db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
+					UNEXPIRED_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
+					`", "key", 20, $1, "invalid")`, time.Now().Unix())
+				Expect(err).ShouldNot(HaveOccurred())
+				// get expeted count of expired archives
+				all, err := db.GetAllAnnotatedArchives(&ArchiveFilter{})
+				Expect(err).ShouldNot(HaveOccurred())
+
+				expectedArchiveCount = len(all) - 1 // Expect only one non-expired archive to be inserted, since most expires in  the test are 0
+			})
+			It("returns all jobs who have expired", func() {
+				archives, err := db.GetExpiredArchives()
+				Expect(err).ShouldNot(HaveOccurred(), "does not error")
+				for _, archive := range archives {
+					Expect(archive.ExpiresAt.Time()).Should(BeTemporally("<", time.Now()), "does not return archives that have not expired yet")
+				}
+				Expect(len(archives)).Should(Equal(expectedArchiveCount), "returns the correct number of archives")
+			})
+
+		})
 	})
 })

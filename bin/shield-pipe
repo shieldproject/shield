@@ -74,9 +74,9 @@ case ${SHIELD_OP} in
 	;;
 
 (purge)
-	neednv SHIELD_RESTORE_KEY
+	needenv SHIELD_RESTORE_KEY
 	set -e
-	${SHIELD_STORE_PLUGIN} purge -k "${SHELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}"
+	${SHIELD_STORE_PLUGIN} purge -e "${SHIELD_STORE_ENDPOINT}" -k "${SHIELD_RESTORE_KEY}"
 	exit $?
 	;;
 

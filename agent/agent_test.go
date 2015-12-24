@@ -179,12 +179,24 @@ var _ = Describe("Agent", func() {
 			Ω(err.Error()).Should(MatchRegexp(`missing required 'store_endpoint' `))
 		})
 
-		It("errors for a payload missing required 'restore_key' field", func() {
+		It("errors for a restore payload missing required 'restore_key' field", func() {
 			_, err := ParseRequestValue([]byte(`
 				{
 					"operation":"restore",
 					"target_plugin":"plugin",
 					"target_endpoint":"endpoint",
+					"store_plugin":"plugin",
+					"store_endpoint":"endpoint"
+				}
+			`))
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(MatchRegexp(`missing required 'restore_key'`))
+		})
+
+		It("errors for a purge payload missing required 'restore_key' field", func() {
+			_, err := ParseRequestValue([]byte(`
+				{
+					"operation":"purge",
 					"store_plugin":"plugin",
 					"store_endpoint":"endpoint"
 				}
@@ -305,6 +317,31 @@ var _ = Describe("Agent", func() {
 			Eventually(out).Should(Receive(&s)) // stdout
 			Eventually(out).Should(Receive(&s)) // stderr
 			Eventually(out).Should(Receive(&s)) // misc
+		})
+
+		It("works with purge commands", func() {
+			req.Operation = "purge"
+			req.RestoreKey = "fakeKey"
+
+			out := make(chan string)
+			c := make(chan string)
+
+			go collect(out, c)
+
+			err := req.Run(c)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			var s string
+			Eventually(out).Should(Receive(&s)) // stdout
+			Expect(s).Should(Equal(""))
+
+			Eventually(out).Should(Receive(&s)) // stderr
+			Expect(s).Should(MatchRegexp(`\Q(dummy) purge:  starting up...\E`))
+			Expect(s).Should(MatchRegexp(`\Q(dummy) purge:  purging data at key [fakeKey]\E`))
+			Expect(s).Should(MatchRegexp(`\Q(dummy) purge:  shutting down...\E`))
+
+			Eventually(out).Should(Receive(&s)) //misc
+			Expect(s).Should(Equal(""))
 		})
 
 		It("collects output from the command pipeline", func() {

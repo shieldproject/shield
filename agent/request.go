@@ -35,14 +35,16 @@ func ParseRequestValue(value []byte) (*Request, error) {
 	if request.Operation == "" {
 		return nil, fmt.Errorf("missing required 'operation' value in payload")
 	}
-	if request.Operation != "backup" && request.Operation != "restore" {
+	if request.Operation != "backup" && request.Operation != "restore" && request.Operation != "purge" {
 		return nil, fmt.Errorf("unsupported operation: '%s'", request.Operation)
 	}
-	if request.TargetPlugin == "" {
-		return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
-	}
-	if request.TargetEndpoint == "" {
-		return nil, fmt.Errorf("missing required 'target_endpoint' value in payload")
+	if request.Operation != "purge" {
+		if request.TargetPlugin == "" {
+			return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
+		}
+		if request.TargetEndpoint == "" {
+			return nil, fmt.Errorf("missing required 'target_endpoint' value in payload")
+		}
 	}
 	if request.StorePlugin == "" {
 		return nil, fmt.Errorf("missing required 'store_plugin' value in payload")

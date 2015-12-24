@@ -73,7 +73,7 @@ func (f *ArchiveFilter) Query() string {
 		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
 	}
 	if f.ExpiresBefore != nil {
-		wheres = append(wheres, fmt.Sprintf("expires_at <= $%d", n))
+		wheres = append(wheres, fmt.Sprintf("expires_at < $%d", n))
 		n++
 	}
 	return `
