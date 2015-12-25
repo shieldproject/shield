@@ -3,4 +3,4 @@ database_type: my-driver
 database_dsn:  my:dsn=database
 port: 8988
 private_key: /etc/priv.key
-purge_agent: localhost:5444
+purge_agent: remotehost:5444

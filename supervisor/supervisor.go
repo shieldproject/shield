@@ -36,6 +36,7 @@ func NewSupervisor() *Supervisor {
 	return &Supervisor{
 		tick:    make(chan int),
 		resync:  make(chan int),
+		purge:   make(chan int),
 		workers: make(chan Task),
 		adhoc:   make(chan AdhocTask),
 		updates: make(chan WorkerUpdate),

@@ -62,13 +62,17 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 		ann := &AnnotatedTask{}
 
 		var archive []byte
+		var job []byte
 		var started, stopped *int64
 		if err = r.Scan(
-			&ann.UUID, &ann.Owner, &ann.Op, &ann.JobUUID, &archive,
+			&ann.UUID, &ann.Owner, &ann.Op, &job, &archive,
 			&ann.Status, &started, &stopped, &ann.Log); err != nil {
 			return l, err
 		}
 
+		if job != nil {
+			ann.JobUUID = string(job)
+		}
 		if archive != nil {
 			ann.ArchiveUUID = string(archive)
 		}

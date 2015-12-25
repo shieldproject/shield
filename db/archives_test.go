@@ -267,24 +267,33 @@ var _ = Describe("Archive Management", func() {
 
 		Describe("GetExpiredArchives()", func() {
 			UNEXPIRED_ARCHIVE := uuid.NewRandom()
+			UNEXPIRED_ARCHIVE2 := uuid.NewRandom()
 			var expectedArchiveCount int
 			BeforeEach(func() {
 				// insert archive expiring in a day
 				err := db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
 					UNEXPIRED_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
-					`", "key", 20, $1, "invalid")`, time.Now().Unix())
+					`", "key", 20, $1, "valid")`, time.Now().Unix())
+
+				Expect(err).ShouldNot(HaveOccurred())
+				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
+					UNEXPIRED_ARCHIVE2.String() + `","` + TARGET_UUID.String() + `", "` + STORE2_UUID.String() +
+					`", "key", 20, 20, "invalid")`)
 				Expect(err).ShouldNot(HaveOccurred())
 				// get expeted count of expired archives
 				all, err := db.GetAllAnnotatedArchives(&ArchiveFilter{})
 				Expect(err).ShouldNot(HaveOccurred())
 
-				expectedArchiveCount = len(all) - 1 // Expect only one non-expired archive to be inserted, since most expires in  the test are 0
+				expectedArchiveCount = len(all) - 6 // There are 2 directly above, and at last checked 4 non-valid but expirable archives in the BeforeEach calls
 			})
 			It("returns all jobs who have expired", func() {
 				archives, err := db.GetExpiredArchives()
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				for _, archive := range archives {
+					Expect(archive.UUID).ShouldNot(Equal(UNEXPIRED_ARCHIVE), "does not return the unexpired archive")
+					Expect(archive.UUID).ShouldNot(Equal(UNEXPIRED_ARCHIVE2), "does not return the expired but not 'valid' archive")
 					Expect(archive.ExpiresAt.Time()).Should(BeTemporally("<", time.Now()), "does not return archives that have not expired yet")
+					Expect(archive.Status).Should(Equal("valid"), "does not return archives that aren't valid")
 				}
 				Expect(len(archives)).Should(Equal(expectedArchiveCount), "returns the correct number of archives")
 			})

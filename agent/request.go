@@ -137,13 +137,15 @@ func (req *Request) Run(output chan string) error {
 }
 
 func (r *Request) ResolvePaths(agent *Agent) error {
-	bin, err := agent.ResolveBinary(r.TargetPlugin)
-	if err != nil {
-		return err
+	if r.Operation != "purge" {
+		bin, err := agent.ResolveBinary(r.TargetPlugin)
+		if err != nil {
+			return err
+		}
+		r.TargetPlugin = bin
 	}
-	r.TargetPlugin = bin
 
-	bin, err = agent.ResolveBinary(r.StorePlugin)
+	bin, err := agent.ResolveBinary(r.StorePlugin)
 	if err != nil {
 		return err
 	}

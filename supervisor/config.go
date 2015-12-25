@@ -43,6 +43,10 @@ func (s *Supervisor) ReadConfig(path string) error {
 		config.Workers = 5
 	}
 
+	if config.PurgeAgent == "" {
+		config.PurgeAgent = "localhost:5444"
+	}
+
 	if s.Database == nil {
 		s.Database = &db.DB{}
 	}

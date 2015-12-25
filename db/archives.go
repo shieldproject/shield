@@ -218,6 +218,7 @@ func (db *DB) GetExpiredArchives() ([]*AnnotatedArchive, error) {
 	now := time.Now()
 	filter := &ArchiveFilter{
 		ExpiresBefore: &now,
+		WithStatus:    []string{"valid"},
 	}
 	return db.GetAllAnnotatedArchives(filter)
 }

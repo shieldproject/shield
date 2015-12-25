@@ -31,7 +31,7 @@ var _ = Describe("Supervisor Configuration", func() {
 			Ω(s.Port).Should(Equal("8888"))
 			Ω(s.PrivateKeyFile).Should(Equal("/etc/shield/ssh/server.key"))
 			Ω(s.Workers).Should(Equal(uint(5)))
-			Expect(s.PurgeAgent).Should(Equal(""))
+			Expect(s.PurgeAgent).Should(Equal("localhost:5444"))
 		})
 
 		It("handles YAML files with all the directives", func() {
@@ -40,7 +40,7 @@ var _ = Describe("Supervisor Configuration", func() {
 			Ω(s.Database.DSN).Should(Equal("my:dsn=database"))
 			Ω(s.Port).Should(Equal("8988"))
 			Ω(s.PrivateKeyFile).Should(Equal("/etc/priv.key"))
-			Expect(s.PurgeAgent).Should(Equal("localhost:5444"))
+			Expect(s.PurgeAgent).Should(Equal("remotehost:5444"))
 		})
 
 		It("autovivifies the supervisor database object", func() {
