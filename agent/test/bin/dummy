@@ -91,6 +91,15 @@ JSON
 	exit 0
 	;;
 
+(purge)
+	shift
+	plugin_options "$@"
+	[[ -z ${KEY} ]] && bail "purge operation requires the --key argument"
+	diag "purging data at key [$KEY]"
+	diag "shutting down..."
+	exit 0
+	;;
+
 (*)
 	bail "unrecognized command '${MODE}'"
 	;;

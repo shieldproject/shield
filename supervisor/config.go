@@ -17,6 +17,8 @@ type Config struct {
 	PrivateKeyFile string `yaml:"private_key"`
 
 	Workers uint `yaml:"workers"`
+
+	PurgeAgent string `yaml:"purge_agent"`
 }
 
 func (s *Supervisor) ReadConfig(path string) error {
@@ -41,6 +43,10 @@ func (s *Supervisor) ReadConfig(path string) error {
 		config.Workers = 5
 	}
 
+	if config.PurgeAgent == "" {
+		config.PurgeAgent = "localhost:5444"
+	}
+
 	if s.Database == nil {
 		s.Database = &db.DB{}
 	}
@@ -50,5 +56,6 @@ func (s *Supervisor) ReadConfig(path string) error {
 	s.Port = config.Port
 	s.PrivateKeyFile = config.PrivateKeyFile
 	s.Workers = config.Workers
+	s.PurgeAgent = config.PurgeAgent
 	return nil
 }

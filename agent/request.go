@@ -35,14 +35,16 @@ func ParseRequestValue(value []byte) (*Request, error) {
 	if request.Operation == "" {
 		return nil, fmt.Errorf("missing required 'operation' value in payload")
 	}
-	if request.Operation != "backup" && request.Operation != "restore" {
+	if request.Operation != "backup" && request.Operation != "restore" && request.Operation != "purge" {
 		return nil, fmt.Errorf("unsupported operation: '%s'", request.Operation)
 	}
-	if request.TargetPlugin == "" {
-		return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
-	}
-	if request.TargetEndpoint == "" {
-		return nil, fmt.Errorf("missing required 'target_endpoint' value in payload")
+	if request.Operation != "purge" {
+		if request.TargetPlugin == "" {
+			return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
+		}
+		if request.TargetEndpoint == "" {
+			return nil, fmt.Errorf("missing required 'target_endpoint' value in payload")
+		}
 	}
 	if request.StorePlugin == "" {
 		return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
@@ -50,7 +52,7 @@ func ParseRequestValue(value []byte) (*Request, error) {
 	if request.StoreEndpoint == "" {
 		return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 	}
-	if request.Operation == "restore" && request.RestoreKey == "" {
+	if (request.Operation == "restore" || request.Operation == "purge") && request.RestoreKey == "" {
 		return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
 	}
 	return request, nil
@@ -135,13 +137,15 @@ func (req *Request) Run(output chan string) error {
 }
 
 func (r *Request) ResolvePaths(agent *Agent) error {
-	bin, err := agent.ResolveBinary(r.TargetPlugin)
-	if err != nil {
-		return err
+	if r.Operation != "purge" {
+		bin, err := agent.ResolveBinary(r.TargetPlugin)
+		if err != nil {
+			return err
+		}
+		r.TargetPlugin = bin
 	}
-	r.TargetPlugin = bin
 
-	bin, err = agent.ResolveBinary(r.StorePlugin)
+	bin, err := agent.ResolveBinary(r.StorePlugin)
 	if err != nil {
 		return err
 	}

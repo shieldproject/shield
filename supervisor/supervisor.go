@@ -13,6 +13,7 @@ import (
 
 type Supervisor struct {
 	tick    chan int          /* scheduler will send a message at regular intervals */
+	purge   chan int          /* scheduler for purging archive jobs sends a message at regular intervals */
 	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
 	workers chan Task         /* workers read from this channel to get tasks */
 	updates chan WorkerUpdate /* workers write updates to this channel */
@@ -23,6 +24,7 @@ type Supervisor struct {
 	Port           string /* addr/interface(s) and port to bind */
 	PrivateKeyFile string /* path to the SSH private key for talking to remote agents */
 	Workers        uint   /* how many workers to spin up */
+	PurgeAgent     string /* What agent to use for purge jobs */
 
 	runq []*Task
 	jobq []*Job
@@ -34,6 +36,7 @@ func NewSupervisor() *Supervisor {
 	return &Supervisor{
 		tick:    make(chan int),
 		resync:  make(chan int),
+		purge:   make(chan int),
 		workers: make(chan Task),
 		adhoc:   make(chan AdhocTask),
 		updates: make(chan WorkerUpdate),
@@ -161,6 +164,9 @@ func (s *Supervisor) Run() error {
 				log.Errorf("resync error: %s", err)
 			}
 
+		case <-s.purge:
+			s.PurgeArchives()
+
 		case <-s.tick:
 			s.CheckSchedule()
 
@@ -202,7 +208,16 @@ func (s *Supervisor) Run() error {
 
 			case RESTORE_KEY:
 				log.Infof("  %s: restore key is %s", u.Task, u.Output)
-				if err := s.Database.CreateTaskArchive(u.Task, u.Output, time.Now()); err != nil {
+				if id, err := s.Database.CreateTaskArchive(u.Task, u.Output, time.Now()); err != nil {
+					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
+					if !u.TaskSuccess {
+						s.Database.InvalidateArchive(id)
+					}
+				}
+
+			case PURGE_ARCHIVE:
+				log.Infof("  %s: archive %s purged from storage", u.Task, u.Archive)
+				if err := s.Database.PurgeArchive(u.Archive); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
 
@@ -287,15 +302,16 @@ func (s *Supervisor) SpawnAPI() {
 	}(s)
 }
 
-func scheduler(c chan int) {
+func scheduler(c chan int, interval time.Duration) {
 	for {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * interval)
 		c <- 1
 	}
 }
 
 func (s *Supervisor) SpawnScheduler() {
-	go scheduler(s.tick)
+	go scheduler(s.tick, 1)
+	go scheduler(s.purge, 1800)
 }
 
 func (s *Supervisor) SpawnWorkers() {
@@ -304,4 +320,54 @@ func (s *Supervisor) SpawnWorkers() {
 		log.Debugf("spawning worker %d", i)
 		s.SpawnWorker()
 	}
+}
+
+func (s *Supervisor) PurgeArchives() {
+	log.Debugf("scanning for archives needing to be expired")
+
+	// mark archives past their retention policy as expired
+	toExpire, err := s.Database.GetExpiredArchives()
+	if err != nil {
+		log.Errorf("error retrieving archives needing to be expired: %s", err.Error())
+	}
+	for _, archive := range toExpire {
+		log.Infof("marking archive %s has expiration date %s, marking as expired", archive.UUID, archive.ExpiresAt)
+		err := s.Database.ExpireArchive(uuid.Parse(archive.UUID))
+		if err != nil {
+			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
+			continue
+		}
+	}
+
+	// get archives that are not valid or purged
+	toPurge, err := s.Database.GetArchivesNeedingPurge()
+	if err != nil {
+		log.Errorf("error retrieving archives to purge: %s", err.Error())
+	}
+
+	for _, archive := range toPurge {
+		log.Infof("requesting purge of archive %s due to status '%s'", archive.UUID, archive.Status)
+		err := s.SchedulePurgeTask(archive)
+		if err != nil {
+			log.Errorf("error scheduling purge of archive %s: %s", archive.UUID, err)
+			continue
+		}
+	}
+}
+
+func (s *Supervisor) SchedulePurgeTask(archive *db.AnnotatedArchive) error {
+	task := NewPendingTask(PURGE)
+	id, err := s.Database.CreatePurgeTask("system", archive)
+	if err != nil {
+		return err
+	}
+
+	task.UUID = id
+	task.StorePlugin = archive.StorePlugin
+	task.StoreEndpoint = archive.StoreEndpoint
+	task.Agent = s.PurgeAgent
+	task.RestoreKey = archive.StoreKey
+	task.ArchiveUUID = uuid.Parse(archive.UUID)
+	s.runq = append(s.runq, task)
+	return nil
 }

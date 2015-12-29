@@ -4,6 +4,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 	. "github.com/starkandwayne/shield/supervisor"
 	"net/http"
 	"time"
@@ -27,6 +28,8 @@ var _ = Describe("/v1/tasks API", func() {
 	// canceled
 	TASK3 := `524753f0-4f24-4b63-929c-026d20cf07b1`
 	JOB3 := `5f04aef7-69cc-40e1-9736-4b3ee4caef50`
+
+	PURGE1 := uuid.NewRandom().String()
 
 	NIL := `00000000-0000-0000-0000-000000000000`
 
@@ -84,6 +87,9 @@ var _ = Describe("/v1/tasks API", func() {
 					`+unixtime("2015-04-18 19:13:55")+`,
 					"cancel!"
 				)`,
+
+			`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at, "job_uuid")
+				VALUES ("`+PURGE1+`", "system", "purge", "`+NIL+`", "`+NIL+`", "valid", "", 0, "")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		API = TaskAPI{Data: data}
@@ -125,6 +131,17 @@ var _ = Describe("/v1/tasks API", func() {
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
 					"log": "restore complete"
+				},
+				{
+					"uuid": "` + PURGE1 + `",
+					"owner": "system",
+					"type": "purge",
+					"job_uuid": "",
+					"archive_uuid": "` + NIL + `",
+					"status": "valid",
+					"started_at": "",
+					"stopped_at": "",
+					"log": ""
 				}
 			]`))
 		Ω(res.Code).Should(Equal(200))
@@ -191,6 +208,9 @@ var _ = Describe("/v1/tasks API", func() {
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"canceled"}`))
 
+		//FIXME: this should change to status=running, and have tests added to make
+		// sure what it got back was expected, since it's not failing, despite 'state'
+		// not being the right parameter
 		res = GET(API, "/v1/tasks?state=running")
 		Ω(res.Code).Should(Equal(200))
 	})
