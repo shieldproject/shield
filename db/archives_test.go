@@ -268,14 +268,28 @@ var _ = Describe("Archive Management", func() {
 		Describe("GetExpiredArchives()", func() {
 			UNEXPIRED_ARCHIVE := uuid.NewRandom()
 			UNEXPIRED_ARCHIVE2 := uuid.NewRandom()
+			EXPIRABLE_ARCHIVE := uuid.NewRandom()
+
 			var expectedArchiveCount int
 			BeforeEach(func() {
+				// get us a clean slate for these tests
+				err := db.Exec(`DELETE FROM archives`)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// insert an archive that should be expired
+				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
+					EXPIRABLE_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
+					`", "key", 20, $1, "valid")`, time.Now().Add(-30*time.Second).Unix())
+				Expect(err).ShouldNot(HaveOccurred())
+
 				// insert archive expiring in a day
-				err := db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
+				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
 					UNEXPIRED_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
 					`", "key", 20, $1, "valid")`, time.Now().Unix())
 
 				Expect(err).ShouldNot(HaveOccurred())
+
+				// insert an expired but invalid archive
 				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 					UNEXPIRED_ARCHIVE2.String() + `","` + TARGET_UUID.String() + `", "` + STORE2_UUID.String() +
 					`", "key", 20, 20, "invalid")`)
@@ -284,7 +298,7 @@ var _ = Describe("Archive Management", func() {
 				all, err := db.GetAllAnnotatedArchives(&ArchiveFilter{})
 				Expect(err).ShouldNot(HaveOccurred())
 
-				expectedArchiveCount = len(all) - 6 // There are 2 directly above, and at last checked 4 non-valid but expirable archives in the BeforeEach calls
+				expectedArchiveCount = len(all) - 2 // two un-expirable results in the db currently
 			})
 			It("returns all jobs who have expired", func() {
 				archives, err := db.GetExpiredArchives()
