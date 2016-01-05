@@ -43,7 +43,7 @@ func (field *Field) Prompt() error {
 		fmt.Printf("Could not read input: %s", err)
 	}
 	v = strings.TrimSpace(v)
-	if len(field.Value.(string)) > 0 && len(v) > 1 {
+	if len(field.Value.(string)) == 0 || (len(field.Value.(string)) > 0 && len(v) > 1) {
 		max := 3
 		for i := 0; i < max; i++ {
 			err = field.Validator(field.Name, v)
