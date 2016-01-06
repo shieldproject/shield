@@ -62,6 +62,7 @@ type Task struct {
 
 	StartedAt time.Time
 	StoppedAt time.Time
+	TimeoutAt time.Time
 
 	Output []string
 }

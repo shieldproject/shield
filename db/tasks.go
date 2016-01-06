@@ -19,8 +19,11 @@ type AnnotatedTask struct {
 	Status      string    `json:"status"`
 	StartedAt   Timestamp `json:"started_at"`
 	StoppedAt   Timestamp `json:"stopped_at"`
+	TimeoutAt   Timestamp `json:"timeout_at"`
 	Log         string    `json:"log"`
 }
+
+const max_timeout time.Duration = 12 * time.Hour // Tasks time out after 12 hours = 43200 seconds
 
 type TaskFilter struct {
 	ForStatus string
@@ -79,6 +82,9 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 		if started != nil {
 			ann.StartedAt = parseEpochTime(*started)
 		}
+
+		ann.TimeoutAt = ann.StartedAt.Add(max_timeout)
+
 		if stopped != nil {
 			ann.StoppedAt = parseEpochTime(*stopped)
 		}
@@ -122,6 +128,9 @@ func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
 	if started != nil {
 		ann.StartedAt = parseEpochTime(*started)
 	}
+
+	ann.TimeoutAt = ann.StartedAt.Add(max_timeout)
+
 	if stopped != nil {
 		ann.StoppedAt = parseEpochTime(*stopped)
 	}

@@ -9,6 +9,10 @@ type Timestamp struct {
 	t time.Time
 }
 
+func (orig Timestamp) Add(d time.Duration) Timestamp {
+	return Timestamp{t: orig.t.Add(d)}
+}
+
 func NewTimestamp(t time.Time) Timestamp {
 	return Timestamp{t: t}
 }

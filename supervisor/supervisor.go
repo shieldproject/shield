@@ -26,8 +26,9 @@ type Supervisor struct {
 	Workers        uint   /* how many workers to spin up */
 	PurgeAgent     string /* What agent to use for purge jobs */
 
-	runq []*Task
-	jobq []*Job
+	schedq []*Task
+	runq   []Task
+	jobq   []*Job
 
 	nextWorker uint
 }
@@ -40,7 +41,8 @@ func NewSupervisor() *Supervisor {
 		workers: make(chan Task),
 		adhoc:   make(chan AdhocTask),
 		updates: make(chan WorkerUpdate),
-		runq:    make([]*Task, 0),
+		schedq:  make([]*Task, 0),
+		runq:    make([]Task, 0),
 		jobq:    make([]*Job, 0),
 
 		Database: &db.DB{},
@@ -84,7 +86,7 @@ func (s *Supervisor) CheckSchedule() {
 		}
 
 		task.UUID = id
-		s.runq = append(s.runq, task)
+		s.schedq = append(s.schedq, task)
 
 		err = job.Reschedule()
 		if err != nil {
@@ -102,7 +104,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 
 	switch a.Op {
 	case BACKUP:
-		// expect a JobUUID to move to the runq Immediately
+		// expect a JobUUID to move to the schedq Immediately
 		for _, job := range s.jobq {
 			if !uuid.Equal(job.UUID, a.JobUUID) {
 				continue
@@ -117,7 +119,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 			}
 
 			task.UUID = id
-			s.runq = append(s.runq, task)
+			s.schedq = append(s.schedq, task)
 		}
 
 	case RESTORE:
@@ -134,7 +136,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 		}
 
 		task.UUID = id
-		s.runq = append(s.runq, task)
+		s.schedq = append(s.schedq, task)
 	}
 }
 
@@ -170,16 +172,28 @@ func (s *Supervisor) Run() error {
 		case <-s.tick:
 			s.CheckSchedule()
 
-			// see if we have anything in the run queue
-		RunQueue:
-			for len(s.runq) > 0 {
+			// see if any tasks have been running for longer than 12 hr
+			if len(s.runq) > 0 {
+				now := time.Now()
+				for _, runtask := range s.runq {
+					if now.After(runtask.TimeoutAt) {
+						log.Errorf("timed out task '%s' after 12 hrs", runtask.UUID)
+					}
+				}
+			}
+
+		// see if we have anything in the schedule queue
+		SchedQueue:
+			for len(s.schedq) > 0 {
 				select {
-				case s.workers <- *s.runq[0]:
-					s.Database.StartTask(s.runq[0].UUID, time.Now())
+				case s.workers <- *s.schedq[0]:
+					s.Database.StartTask(s.schedq[0].UUID, time.Now())
 					log.Infof("sent a task to a worker")
-					s.runq = s.runq[1:]
+					s.runq = append(s.runq, *s.schedq[0])
+					log.Debugf("added task to the runq")
+					s.schedq = s.schedq[1:]
 				default:
-					break RunQueue
+					break SchedQueue
 				}
 			}
 
@@ -368,6 +382,6 @@ func (s *Supervisor) SchedulePurgeTask(archive *db.AnnotatedArchive) error {
 	task.Agent = s.PurgeAgent
 	task.RestoreKey = archive.StoreKey
 	task.ArchiveUUID = uuid.Parse(archive.UUID)
-	s.runq = append(s.runq, task)
+	s.schedq = append(s.schedq, task)
 	return nil
 }

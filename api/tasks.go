@@ -15,6 +15,7 @@ type Task struct {
 	Status      string    `json:"status"`
 	StartedAt   Timestamp `json:"started_at"`
 	StoppedAt   Timestamp `json:"stopped_at"`
+	TimeoutAt   Timestamp `json:"timeout_at"`
 	Log         string    `json:"log"`
 }
 
