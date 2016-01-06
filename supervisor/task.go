@@ -57,8 +57,9 @@ type Task struct {
 	RestoreKey     string
 	Agent          string
 
-	Op     Operation
-	Status Status
+	Op       Operation
+	Status   Status
+	Attempts int
 
 	StartedAt time.Time
 	StoppedAt time.Time

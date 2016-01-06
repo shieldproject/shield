@@ -177,17 +177,30 @@ func (s *Supervisor) Run() error {
 				now := time.Now()
 				for _, runtask := range s.runq {
 					if now.After(runtask.TimeoutAt) {
+						s.Database.CancelTask(runtask.UUID, now)
 						log.Errorf("timed out task '%s' after 12 hrs", runtask.UUID)
+						if runtask.Attempts < 6 {
+							s.Database.StartTask(runtask.UUID, now)
+							log.Warnf("restarting task '%s' after timeout", runtask.UUID)
+							runtask.Attempts++
+							log.Warnf("Attempt %d of 5", runtask.Attempts)
+							s.Database.StartTask(runtask.UUID, now)
+						}
+						if runtask.Attempts == 6 {
+							log.Errorf("task '%s' could not be completed after 5 attempts", runtask.UUID)
+							s.Database.CancelTask(runtask.UUID, now)
+						}
 					}
 				}
 			}
 
-		// see if we have anything in the schedule queue
+			// see if we have anything in the schedule queue
 		SchedQueue:
 			for len(s.schedq) > 0 {
 				select {
 				case s.workers <- *s.schedq[0]:
 					s.Database.StartTask(s.schedq[0].UUID, time.Now())
+					s.schedq[0].Attempts++
 					log.Infof("sent a task to a worker")
 					s.runq = append(s.runq, *s.schedq[0])
 					log.Debugf("added task to the runq")
