@@ -31,20 +31,21 @@ type Supervisor struct {
 	jobq   []*Job
 
 	nextWorker uint
+	Timeout    time.Duration
 }
 
 func NewSupervisor() *Supervisor {
 	return &Supervisor{
-		tick:    make(chan int),
-		resync:  make(chan int),
-		purge:   make(chan int),
-		workers: make(chan Task),
-		adhoc:   make(chan AdhocTask),
-		updates: make(chan WorkerUpdate),
-		schedq:  make([]*Task, 0),
-		runq:    make([]Task, 0),
-		jobq:    make([]*Job, 0),
-
+		tick:     make(chan int),
+		resync:   make(chan int),
+		purge:    make(chan int),
+		workers:  make(chan Task),
+		adhoc:    make(chan AdhocTask),
+		updates:  make(chan WorkerUpdate),
+		schedq:   make([]*Task, 0),
+		runq:     make([]Task, 0),
+		jobq:     make([]*Job, 0),
+		Timeout:  12 * time.Hour,
 		Database: &db.DB{},
 	}
 }
@@ -172,24 +173,13 @@ func (s *Supervisor) Run() error {
 		case <-s.tick:
 			s.CheckSchedule()
 
-			// see if any tasks have been running for longer than 12 hr
+			// see if any tasks have been running past the timeout period
 			if len(s.runq) > 0 {
 				now := time.Now()
 				for _, runtask := range s.runq {
 					if now.After(runtask.TimeoutAt) {
 						s.Database.CancelTask(runtask.UUID, now)
-						log.Errorf("timed out task '%s' after 12 hrs", runtask.UUID)
-						if runtask.Attempts < 6 {
-							s.Database.StartTask(runtask.UUID, now)
-							log.Warnf("restarting task '%s' after timeout", runtask.UUID)
-							runtask.Attempts++
-							log.Warnf("Attempt %d of 5", runtask.Attempts)
-							s.Database.StartTask(runtask.UUID, now)
-						}
-						if runtask.Attempts == 6 {
-							log.Errorf("task '%s' could not be completed after 5 attempts", runtask.UUID)
-							s.Database.CancelTask(runtask.UUID, now)
-						}
+						log.Errorf("shield timed out task '%s' after running for %v", runtask.UUID, s.Timeout)
 					}
 				}
 			}

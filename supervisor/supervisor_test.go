@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -109,6 +110,7 @@ var _ = Describe("Retrieving Jobs", func() {
 		var err error
 		s.Database, err = Database()
 		Ω(err).ShouldNot(HaveOccurred())
+		s.Timeout = 1 * time.Second
 	})
 	Context("With an empty database", func() {
 		It("should return an empty list of jobs", func() {

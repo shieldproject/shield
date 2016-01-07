@@ -4,6 +4,7 @@ import (
 	"github.com/starkandwayne/shield/db"
 
 	"io/ioutil"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -19,6 +20,8 @@ type Config struct {
 	Workers uint `yaml:"workers"`
 
 	PurgeAgent string `yaml:"purge_agent"`
+
+	MaxTimeout uint `yaml:"max_timeout"`
 }
 
 func (s *Supervisor) ReadConfig(path string) error {
@@ -47,6 +50,10 @@ func (s *Supervisor) ReadConfig(path string) error {
 		config.PurgeAgent = "localhost:5444"
 	}
 
+	if config.MaxTimeout == 0 {
+		config.MaxTimeout = 12
+	}
+
 	if s.Database == nil {
 		s.Database = &db.DB{}
 	}
@@ -57,5 +64,6 @@ func (s *Supervisor) ReadConfig(path string) error {
 	s.PrivateKeyFile = config.PrivateKeyFile
 	s.Workers = config.Workers
 	s.PurgeAgent = config.PurgeAgent
+	s.Timeout = time.Duration(config.MaxTimeout) * time.Hour
 	return nil
 }

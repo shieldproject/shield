@@ -108,7 +108,6 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "canceled",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
-					"timeout_at": "2015-04-19 07:12:05",
 					"log": "cancel!"
 				},
 				{
@@ -120,7 +119,6 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "running",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
-					"timeout_at": "2015-04-15 18:00:01",
 					"log": "this is the log"
 				},
 				{
@@ -132,7 +130,6 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "done",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
-					"timeout_at": "2015-04-11 05:35:01",
 					"log": "restore complete"
 				},
 				{
@@ -144,7 +141,6 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "valid",
 					"started_at": "",
 					"stopped_at": "",
-					"timeout_at": "0001-01-01 12:00:00",
 					"log": ""
 				}
 			]`))
@@ -164,7 +160,6 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "done",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
-					"timeout_at": "2015-04-11 05:35:01",
 					"log": "restore complete"
 				}
 			]`))
@@ -183,7 +178,6 @@ var _ = Describe("/v1/tasks API", func() {
 				"status": "done",
 				"started_at": "2015-04-10 17:35:01",
 				"stopped_at": "2015-04-10 18:19:45",
-				"timeout_at": "2015-04-11 05:35:01",
 				"log": "restore complete"
 			}`))
 	})
@@ -206,7 +200,6 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "running",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
-					"timeout_at": "2015-04-15 18:00:01",
 					"log": "this is the log"
 				}
 			]`))

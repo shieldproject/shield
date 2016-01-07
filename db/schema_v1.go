@@ -100,7 +100,6 @@ func (s v1Schema) Deploy(db *DB) error {
                requested_at INTEGER NOT NULL,
                started_at   INTEGER,
                stopped_at   INTEGER,
-							 timeout			INTEGER,
 
                log       TEXT
              )`)
