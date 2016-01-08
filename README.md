@@ -14,7 +14,7 @@ Engineers should be able to integrate support for new data systems and storage s
 
 ## Task Lifecycle
 
-![Task Lifecyle Image](https://raw.githubusercontent.com/starkandwayne.shield/master/docs/images/task-lifecycle.png)
+![Task Lifecyle Image](https://raw.githubusercontent.com/starkandwayne/shield/master/docs/images/task-lifecycle.png)
 
 ## Target Plugins
 
