@@ -800,7 +800,14 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("\nERROR: Could not fetch list of tasks: %s\n", err)
 		}
-		t := tui.NewTable("UUID", "Owner", "Type", "Status", "Started", "Stopped")
+
+		job := map[string]Job{}
+		jobs, _ := GetJobs(JobFilter{})
+		for _, j := range jobs {
+			job[j.UUID] = j
+		}
+
+		t := tui.NewTable("UUID", "Owner", "Type", "Target Agent IP", "Status", "Started", "Stopped")
 		for _, task := range tasks {
 			started := "(pending)"
 			if !task.StartedAt.IsZero() {
@@ -812,7 +819,7 @@ func main() {
 				stopped = task.StoppedAt.Format(time.RFC1123Z)
 			}
 
-			t.Row(task.UUID, task.Owner, task.Op, task.Status, started, stopped)
+			t.Row(task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
 		}
 		t.Output(os.Stdout)
 		return nil
