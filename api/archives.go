@@ -19,6 +19,7 @@ type Archive struct {
 	StoreKey  string    `json:"key"`
 	TakenAt   Timestamp `json:"taken_at"`
 	ExpiresAt Timestamp `json:"expires_at"`
+	Status    string		`json:"status"`
 	Notes     string    `json:"notes"`
 
 	TargetUUID     string `json:"target_uuid"`

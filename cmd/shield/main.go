@@ -84,9 +84,9 @@ func main() {
 			return fmt.Errorf("failed to retrieve targets from SHIELD: %s", err)
 		}
 
-		t := tui.NewTable("UUID", "Target Name", "Description", "Plugin", "Endpoint", "SHIELD Agent")
+		t := tui.NewTable("UUID", "Target Name", "Summary", "Plugin", "Target Agent IP", "Endpoint")
 		for _, target := range targets {
-			t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Endpoint, target.Agent)
+			t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -212,7 +212,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("failed to retrieve schedules from SHIELD: %s", err)
 		}
-		t := tui.NewTable("UUID", "Name", "Description", "Frequency / Interval (UTC)")
+		t := tui.NewTable("UUID", "Name", "Summary", "Frequency / Interval (UTC)")
 		for _, schedule := range schedules {
 			t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 		}
@@ -331,7 +331,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("failed to retrieve retention policies from SHIELD: %s", err)
 		}
-		t := tui.NewTable("UUID", "Name", "Description", "Expires in")
+		t := tui.NewTable("UUID", "Name", "Summary", "Expires in")
 		for _, policy := range policies {
 			t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 		}
@@ -468,7 +468,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not fetch list of stores: %s", err)
 		}
-		t := tui.NewTable("UUID", "Name", "Description", "Plugin", "Endpoint")
+		t := tui.NewTable("UUID", "Name", "Summary", "Plugin", "Endpoint")
 		for _, store := range stores {
 			t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 		}
@@ -595,10 +595,10 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("\nERROR: Unexpected arguments following command: %v\n", err)
 		}
-		t := tui.NewTable("UUID", "P?", "Name", "Description", "Retention Policy", "Schedule", "Target", "Agent")
+		t := tui.NewTable("UUID", "P?", "Name", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
 		for _, job := range jobs {
 			t.Row(job.UUID, BoolString(job.Paused), job.Name, job.Summary,
-				job.RetentionName, job.ScheduleName, job.TargetEndpoint, job.Agent)
+				job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -915,7 +915,7 @@ func main() {
 			store[s.UUID] = s
 		}
 
-		t := tui.NewTable("UUID", "Target Type", "Target Name", "Store Type", "Store Name", "Taken at", "Expires at", "Notes")
+		t := tui.NewTable("UUID", "Target Type", "Target Name", "Target Agent IP", "Store Type", "Store Name", "Taken at", "Expires at", "Status", "Notes")
 		for _, archive := range archives {
 			if *opts.Target != "" && archive.TargetUUID != *opts.Target {
 				continue
@@ -925,11 +925,11 @@ func main() {
 			}
 
 			t.Row(archive.UUID,
-				archive.TargetPlugin, target[archive.TargetUUID].Name,
+				archive.TargetPlugin, target[archive.TargetUUID].Name, target[archive.TargetUUID].Agent,
 				archive.StorePlugin, store[archive.StoreUUID].Name,
 				archive.TakenAt.Format(time.RFC1123Z),
 				archive.ExpiresAt.Format(time.RFC1123Z),
-				archive.Notes)
+				archive.Status, archive.Notes)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -978,7 +978,7 @@ func main() {
 
 		targetJSON := "{}"
 		toTargetJSONmsg := ""
-		if opts.Target != nil {
+		if opts.Target != nil && *opts.Target != "" {
 			targetJSON = *opts.Target
 			toTargetJSONmsg = fmt.Sprintf("to target '%s'", targetJSON)
 		}
