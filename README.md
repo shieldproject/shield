@@ -12,6 +12,10 @@ Engineers should be able to integrate support for new data systems and storage s
 
 ![Architecture Image](https://raw.githubusercontent.com/starkandwayne/shield/master/docs/images/image00.png)
 
+## Task Lifecycle
+
+![Task Lifecyle Image[(https://raw.githubusercontent.com/starkandwayne.shield/master/docs/images/task-lifecycle.png)
+
 ## Target Plugins
 
 The system interfaces with data systems that hold the data to back up via Target Plugins.  These plugins are bits of code that are compiled and linked into the Core Daemon, and implement a standard interface for the following operations:
