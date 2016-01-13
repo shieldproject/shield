@@ -641,10 +641,6 @@ func main() {
 		t.Add("Store Endpoint", job.StoreEndpoint)
 		t.Break()
 
-		t.Add("Store", job.StorePlugin)
-		t.Add("Store UUID", job.StoreUUID)
-		t.Add("Store Endpoint", job.StoreEndpoint)
-
 		t.Add("Notes", job.Summary)
 
 		t.Output(os.Stdout)
