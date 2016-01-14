@@ -256,6 +256,9 @@ func (s *Supervisor) SpawnAPI() {
 		ping := &PingAPI{}
 		http.Handle("/v1/ping", ping)
 
+		status := &StatusAPI{}
+		http.Handle("/v1/status", status)
+
 		meta := &MetaAPI{
 			PrivateKeyFile: s.PrivateKeyFile,
 		}
