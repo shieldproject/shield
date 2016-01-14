@@ -1011,10 +1011,9 @@ func main() {
 	/**************************************************************************/
 
 	if err, ok := c.Execute(command...); ok {
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
-			os.Exit(1)
-		}
 		os.Exit(0)
+	} else {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 }
