@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 type YesNo struct {
@@ -47,7 +48,7 @@ func (yn *YesNo) Given() bool {
 }
 
 func ShieldURI(p string, args ...interface{}) *URL {
-	endpoint := os.Getenv("SHIELD_TARGET")
+	endpoint := strings.TrimSuffix(os.Getenv("SHIELD_TARGET"), "/")
 	if endpoint == "" {
 		endpoint = "https://shield"
 	}
