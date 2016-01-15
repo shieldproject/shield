@@ -187,7 +187,7 @@ func main() {
 		}
 
 		fmt.Printf("Created new target.\n")
-		return c.Invoke("show", "target", t.UUID)
+		return c.Execute("show", "target", t.UUID)
 	})
 	c.Alias("new target", "create target")
 	c.Alias("create new target", "create target")
@@ -228,7 +228,7 @@ func main() {
 			return fmt.Errorf("ERROR: Could not update target '%s': %s", id, err)
 		}
 		fmt.Printf("Updated target.\n")
-		return c.Invoke("show", "target", t.UUID)
+		return c.Execute("show", "target", t.UUID)
 	})
 	c.Alias("update target", "edit target")
 
@@ -328,7 +328,7 @@ func main() {
 			return fmt.Errorf("ERROR: Could not create new schedule: %s", err)
 		}
 		fmt.Printf("Created new schedule.\n")
-		return c.Invoke("show", "schedule", s.UUID)
+		return c.Execute("show", "schedule", s.UUID)
 	})
 	c.Alias("new schedule", "create schedule")
 	c.Alias("create new schedule", "create schedule")
@@ -367,7 +367,7 @@ func main() {
 			return fmt.Errorf("ERROR: Could not update schedule '%s': %s", id, err)
 		}
 		fmt.Printf("Updated schedule.\n")
-		return c.Invoke("show", "schedule", s.UUID)
+		return c.Execute("show", "schedule", s.UUID)
 	})
 	c.Alias("update schedule", "edit schedule")
 
@@ -473,7 +473,7 @@ func main() {
 			return fmt.Errorf("ERROR: Could not create new retention policy: %s", err)
 		}
 		fmt.Printf("Created new retention policy.\n")
-		return c.Invoke("show", "retention", "policy", p.UUID)
+		return c.Execute("show", "retention", "policy", p.UUID)
 	})
 	c.Alias("new retention policy", "create retention policy")
 	c.Alias("create new retention policy", "create retention policy")
@@ -518,7 +518,7 @@ func main() {
 			return fmt.Errorf("ERROR: Cannot update policy '%s': %s", id, err)
 		}
 		fmt.Printf("Updated policy.\n")
-		return c.Invoke("show", "retention", "policy", p.UUID)
+		return c.Execute("show", "retention", "policy", p.UUID)
 	})
 	c.Alias("update retention policy", "edit retention policy")
 	c.Alias("edit policy", "edit retention policy")
@@ -630,7 +630,7 @@ func main() {
 		}
 		fmt.Printf("Created new store.\n")
 
-		return c.Invoke("show", "store", s.UUID)
+		return c.Execute("show", "store", s.UUID)
 	})
 	c.Alias("new store", "create store")
 	c.Alias("create new store", "create store")
@@ -671,7 +671,7 @@ func main() {
 			return fmt.Errorf("ERROR: Cannot update store '%s': %s", id, err)
 		}
 		fmt.Printf("Updated store.\n")
-		return c.Invoke("show", "store", s.UUID)
+		return c.Execute("show", "store", s.UUID)
 	})
 	c.Alias("update store", "edit store")
 
@@ -808,7 +808,7 @@ func main() {
 			return fmt.Errorf("ERROR: Could not create new job: %s", err)
 		}
 
-		return c.Invoke("show", "job", job.UUID)
+		return c.Execute("show", "job", job.UUID)
 	})
 	c.Alias("new job", "create job")
 	c.Alias("create new job", "create job")
@@ -857,7 +857,7 @@ func main() {
 		}
 
 		fmt.Printf("Updated job.\n")
-		return c.Invoke("show", "job", j.UUID)
+		return c.Execute("show", "job", j.UUID)
 	})
 	c.Alias("update job", "edit job")
 
@@ -1183,10 +1183,10 @@ func main() {
 
 	/**************************************************************************/
 
-	if err, ok := c.Execute(command...); ok {
-		os.Exit(0)
-	} else {
+	if err := c.Execute(command...); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
+	} else {
+		os.Exit(0)
 	}
 }
