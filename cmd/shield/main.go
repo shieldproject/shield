@@ -19,6 +19,10 @@ func require(good bool, msg string) {
 	}
 }
 
+var (
+	debug = false
+)
+
 func main() {
 	options := Options{
 		Shield:   getopt.StringLong("shield", 'H', "", "SHIELD target to run command against, i.e. http://shield.my.domain:8080"),
@@ -54,11 +58,17 @@ func main() {
 		args = opts.Args()
 	}
 
+	debug = *options.Debug
+	DEBUG("shield cli starting up")
 	if *options.Shield != "" {
+		DEBUG("setting SHIELD_TARGET to '%s'", *options.Shield)
 		os.Setenv("SHIELD_TARGET", *options.Shield)
+	} else {
+		DEBUG("SHIELD_TARGET is currently set to '%s'", *options.Shield)
 	}
 
 	if *options.Trace {
+		DEBUG("enabling TRACE output")
 		os.Setenv("SHIELD_TRACE", "1")
 	}
 
@@ -75,6 +85,11 @@ func main() {
 	*/
 
 	c.Dispatch("list targets", func(opts Options, args []string) error {
+		DEBUG("running 'list targets' command")
+		DEBUG("  for plugin: '%s'", *opts.Plugin)
+		DEBUG("  show unused? %s", *opts.Unused)
+		DEBUG("  show in-use? %s", *opts.Used)
+
 		targets, err := GetTargets(TargetFilter{
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
@@ -94,8 +109,11 @@ func main() {
 	c.Alias("ls targets", "list targets")
 
 	c.Dispatch("show target", func(opts Options, args []string) error {
+		DEBUG("running 'show target' command")
+
 		require(len(args) == 1, "shield show target <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  target UUID = '%s'", id)
 
 		target, err := GetTarget(id)
 		if err != nil {
@@ -120,6 +138,8 @@ func main() {
 	c.Alias("ls target", "show target")
 
 	c.Dispatch("create target", func(opts Options, args []string) error {
+		DEBUG("running 'create target' command")
+
 		in := tui.NewForm()
 		in.NewField("Target name", "name", "", tui.FieldIsRequired)
 		in.NewField("Target summary", "summary", "", tui.FieldIsOptional)
@@ -136,6 +156,7 @@ func main() {
 			return fmt.Errorf("ERROR: %s", err)
 		}
 
+		DEBUG("JSON:\n  %s\n", content)
 		t, err := CreateTarget(content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new target: %s", err)
@@ -150,8 +171,12 @@ func main() {
 	c.Alias("c t", "create target")
 
 	c.Dispatch("edit target", func(opts Options, args []string) error {
+		DEBUG("running 'edit target' command")
+
 		require(len(args) == 1, "shield edit target <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  target UUID = '%s'", id)
+
 		t, err := GetTarget(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not retrieve target '%s': %s", id, err)
@@ -172,6 +197,8 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		t, err = UpdateTarget(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not update target '%s': %s", id, err)
@@ -182,8 +209,11 @@ func main() {
 	c.Alias("update target", "edit target")
 
 	c.Dispatch("delete target", func(opts Options, args []string) error {
+		DEBUG("running 'delete target' command")
+
 		require(len(args) == 1, "shield delete target <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  target UUID = '%s'", id)
 
 		err := DeleteTarget(id)
 		if err != nil {
@@ -206,6 +236,10 @@ func main() {
 	*/
 
 	c.Dispatch("list schedules", func(opts Options, args []string) error {
+		DEBUG("running 'list schedules' command")
+		DEBUG("  show unused? %s", *opts.Unused)
+		DEBUG("  show in-use? %s", *opts.Used)
+
 		schedules, err := GetSchedules(ScheduleFilter{
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -222,8 +256,11 @@ func main() {
 	c.Alias("ls schedules", "list schedules")
 
 	c.Dispatch("show schedule", func(opts Options, args []string) error {
+		DEBUG("running 'show schedule' command")
+
 		require(len(args) == 1, "shield show schedule <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  schedule UUID = '%s'", id)
 
 		schedule, err := GetSchedule(id)
 		if err != nil {
@@ -244,6 +281,8 @@ func main() {
 	c.Alias("ls schedule", "show schedule")
 
 	c.Dispatch("create schedule", func(opts Options, args []string) error {
+		DEBUG("running 'create schedule' command")
+
 		in := tui.NewForm()
 		in.NewField("Schedule name", "name", "", tui.FieldIsRequired)
 		in.NewField("Schedule summary", "summary", "", tui.FieldIsOptional)
@@ -257,6 +296,8 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		s, err := CreateSchedule(content)
 
 		if err != nil {
@@ -271,8 +312,12 @@ func main() {
 	c.Alias("c s", "create schedule")
 
 	c.Dispatch("edit schedule", func(opts Options, args []string) error {
+		DEBUG("running 'edit schedule' command")
+
 		require(len(args) == 1, "shield edit schedule <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  schedule UUID = '%s'", id)
+
 		s, err := GetSchedule(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not retrieve schedule '%s': %s", id, err)
@@ -291,6 +336,8 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		s, err = UpdateSchedule(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not update schedule '%s': %s", id, err)
@@ -301,8 +348,11 @@ func main() {
 	c.Alias("update schedule", "edit schedule")
 
 	c.Dispatch("delete schedule", func(opts Options, args []string) error {
+		DEBUG("running 'delete schedule' command")
+
 		require(len(args) == 1, "shield delete schedule <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  schedule UUID = '%s'", id)
 
 		err := DeleteSchedule(id)
 		if err != nil {
@@ -325,6 +375,10 @@ func main() {
 	*/
 
 	c.Dispatch("list retention policies", func(opts Options, args []string) error {
+		DEBUG("running 'list retention policies' command")
+		DEBUG("  show unused? %s", *opts.Unused)
+		DEBUG("  show in-use? %s", *opts.Used)
+
 		policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -343,8 +397,11 @@ func main() {
 	c.Alias("ls policies", "list policies")
 
 	c.Dispatch("show retention policy", func(opts Options, args []string) error {
+		DEBUG("running 'show retention policy' command")
+
 		require(len(args) == 1, "shield show retention policy <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  retention policy UUID = '%s'", id)
 
 		policy, err := GetRetentionPolicy(id)
 		if err != nil {
@@ -368,6 +425,8 @@ func main() {
 	c.Alias("list policy", "show policy")
 
 	c.Dispatch("create retention policy", func(opts Options, args []string) error {
+		DEBUG("running 'create retention policy' command")
+
 		in := tui.NewForm()
 		in.NewField("Policy name", "name", "", tui.FieldIsRequired)
 		in.NewField("Policy summary", "summary", "", tui.FieldIsOptional)
@@ -382,6 +441,8 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		p, err := CreateRetentionPolicy(content)
 
 		if err != nil {
@@ -400,8 +461,12 @@ func main() {
 	c.Alias("c p", "create policy")
 
 	c.Dispatch("edit retention policy", func(opts Options, args []string) error {
+		DEBUG("running 'edit retention policy' command")
+
 		require(len(args) == 1, "shield edit retention policy <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  retention policy UUID = '%s'", id)
+
 		p, err := GetRetentionPolicy(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot retrieve policy '%s': %s", id, err)
@@ -422,6 +487,8 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		p, err = UpdateRetentionPolicy(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot update policy '%s': %s", id, err)
@@ -434,8 +501,11 @@ func main() {
 	c.Alias("update policy", "edit policy")
 
 	c.Dispatch("delete retention policy", func(opts Options, args []string) error {
+		DEBUG("running 'delete retention policy' command")
+
 		require(len(args) == 1, "shield delete retention policy <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  retention policy UUID = '%s'", id)
 
 		err := DeleteRetentionPolicy(id)
 		if err != nil {
@@ -461,6 +531,11 @@ func main() {
 	*/
 
 	c.Dispatch("list stores", func(opts Options, args []string) error {
+		DEBUG("running 'list stores' command")
+		DEBUG("  for plugin: '%s'", *opts.Plugin)
+		DEBUG("  show unused? %s", *opts.Unused)
+		DEBUG("  show in-use? %s", *opts.Used)
+
 		stores, err := GetStores(StoreFilter{
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
@@ -478,8 +553,11 @@ func main() {
 	c.Alias("ls stores", "list stores")
 
 	c.Dispatch("show store", func(opts Options, args []string) error {
+		DEBUG("running 'show store' command")
+
 		require(len(args) == 1, "shield show store <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  store UUID = '%s'", id)
 
 		store, err := GetStore(id)
 		if err != nil {
@@ -503,6 +581,8 @@ func main() {
 	c.Alias("ls store", "show store")
 
 	c.Dispatch("create store", func(opts Options, args []string) error {
+		DEBUG("running 'create store' command")
+
 		in := tui.NewForm()
 		in.NewField("Store name", "name", "", tui.FieldIsRequired)
 		in.NewField("Store summary", "summary", "", tui.FieldIsOptional)
@@ -517,6 +597,8 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		s, err := CreateStore(content)
 
 		if err != nil {
@@ -532,8 +614,12 @@ func main() {
 	c.Alias("c st", "create store")
 
 	c.Dispatch("edit store", func(opts Options, args []string) error {
+		DEBUG("running 'edit store' command")
+
 		require(len(args) == 1, "shield delete store <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  store UUID = '%s'", id)
+
 		s, err := GetStore(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot retrieve store '%s': %s", id, err)
@@ -551,6 +637,11 @@ func main() {
 		}
 
 		content, err := in.BuildContent()
+		if err != nil {
+			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		s, err = UpdateStore(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Cannot update store '%s': %s", id, err)
@@ -561,8 +652,11 @@ func main() {
 	c.Alias("update store", "edit store")
 
 	c.Dispatch("delete store", func(opts Options, args []string) error {
+		DEBUG("running 'delete store' command")
+
 		require(len(args) == 1, "shield delete store <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  store UUID = '%s'", id)
 
 		err := DeleteStore(id)
 		if err != nil {
@@ -585,6 +679,14 @@ func main() {
 	*/
 
 	c.Dispatch("list jobs", func(opts Options, args []string) error {
+		DEBUG("running 'list jobs' command")
+		DEBUG("  for target:      '%s'", *opts.Target)
+		DEBUG("  for store:       '%s'", *opts.Store)
+		DEBUG("  for schedule:    '%s'", *opts.Schedule)
+		DEBUG("  for ret. policy: '%s'", *opts.Retention)
+		DEBUG("  show paused?      %s", *opts.Paused)
+		DEBUG("  show unpaused?    %s", *opts.Unpaused)
+
 		jobs, err := GetJobs(JobFilter{
 			Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
 			Target:    *opts.Target,
@@ -607,8 +709,11 @@ func main() {
 	c.Alias("ls j", "list jobs")
 
 	c.Dispatch("show job", func(opts Options, args []string) error {
+		DEBUG("running 'show job' command")
+
 		require(len(args) == 1, "shield show job <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  job UUID = '%s'", id)
 
 		job, err := GetJob(id)
 		if err != nil {
@@ -652,6 +757,8 @@ func main() {
 	c.Alias("ls job", "show job")
 
 	c.Dispatch("create job", func(opts Options, args []string) error {
+		DEBUG("running 'create job' command")
+
 		in := tui.NewForm()
 		in.NewField("Job name", "name", "", tui.FieldIsRequired)
 		in.NewField("Job summary", "summary", "", tui.FieldIsOptional)
@@ -671,6 +778,7 @@ func main() {
 			return fmt.Errorf("ERROR: %s", err)
 		}
 
+		DEBUG("JSON:\n  %s\n", content)
 		job, err := CreateJob(content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not create new job: %s", err)
@@ -684,8 +792,12 @@ func main() {
 	c.Alias("c j", "create job")
 
 	c.Dispatch("edit job", func(opts Options, args []string) error {
+		DEBUG("running 'edit job' command")
+
 		require(len(args) == 1, "shield edit job <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  job UUID = '%s'", id)
+
 		j, err := GetJob(id)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not retrieve job '%s': %s", id, err)
@@ -713,6 +825,8 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
+
+		DEBUG("JSON:\n  %s\n", content)
 		j, err = UpdateJob(id, content)
 		if err != nil {
 			return fmt.Errorf("ERROR: Could not update job '%s': %s", id, err)
@@ -724,8 +838,11 @@ func main() {
 	c.Alias("update job", "edit job")
 
 	c.Dispatch("delete job", func(opts Options, args []string) error {
+		DEBUG("running 'delete job' command")
+
 		require(len(args) == 1, "shield delete job <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  job UUID = '%s'", id)
 
 		err := DeleteJob(id)
 		if err != nil {
@@ -738,8 +855,11 @@ func main() {
 	c.Alias("rm job", "delete job")
 
 	c.Dispatch("pause job", func(opts Options, args []string) error {
+		DEBUG("running 'pause job' command")
+
 		require(len(args) == 1, "shield pause job <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  job UUID = '%s'", id)
 
 		err := PauseJob(id)
 		if err != nil {
@@ -750,8 +870,11 @@ func main() {
 	})
 
 	c.Dispatch("unpause job", func(opts Options, args []string) error {
+		DEBUG("running 'unpause job' command")
+
 		require(len(args) == 1, "shield unpause job <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  job UUID = '%s'", id)
 
 		err := UnpauseJob(id)
 		if err != nil {
@@ -762,8 +885,11 @@ func main() {
 	})
 
 	c.Dispatch("run job", func(opts Options, args []string) error {
+		DEBUG("running 'run job' command")
+
 		require(len(args) == 1, "shield run job <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  job UUID = '%s'", id)
 
 		err := RunJob(id, fmt.Sprintf(`{"owner":"%s@%s"}`, os.Getenv("USER"), os.Getenv("HOSTNAME")))
 		if err != nil {
@@ -784,12 +910,16 @@ func main() {
 	*/
 
 	c.Dispatch("list tasks", func(opts Options, args []string) error {
+		DEBUG("running 'list tasks' command")
+
 		if *options.Status == "" {
 			*options.Status = "running"
 		}
 		if *options.Status == "all" || *options.All {
 			*options.Status = ""
 		}
+		DEBUG("  for status: '%s'", *opts.Status)
+
 		tasks, err := GetTasks(TaskFilter{
 			Status: *options.Status,
 		})
@@ -823,8 +953,11 @@ func main() {
 	c.Alias("ls tasks", "list tasks")
 
 	c.Dispatch("show task", func(opts Options, args []string) error {
+		DEBUG("running 'show task' command")
+
 		require(len(args) == 1, "shield show task <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  task UUID = '%s'", id)
 
 		task, err := GetTask(id)
 		if err != nil {
@@ -864,8 +997,11 @@ func main() {
 	c.Alias("ls task", "show task")
 
 	c.Dispatch("cancel task", func(opts Options, args []string) error {
+		DEBUG("running 'cancel task' command")
+
 		require(len(args) == 1, "shield cancel task <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  task UUID = '%s'", id)
 
 		err := CancelTask(id)
 		if err != nil {
@@ -887,12 +1023,16 @@ func main() {
 	*/
 
 	c.Dispatch("list archives", func(opts Options, args []string) error {
+		DEBUG("running 'list archives' command")
+
 		if *options.Status == "" {
 			*options.Status = "valid"
 		}
 		if *options.Status == "all" || *options.All {
 			*options.Status = ""
 		}
+		DEBUG("  for status: '%s'", *opts.Status)
+
 		archives, err := GetArchives(ArchiveFilter{
 			Target: *options.Target,
 			Store:  *options.Store,
@@ -940,8 +1080,11 @@ func main() {
 	c.Alias("ls archives", "list archives")
 
 	c.Dispatch("show archive", func(opts Options, args []string) error {
+		DEBUG("running 'show archive' command")
+
 		require(len(args) == 1, "shield show archive <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  archive UUID = '%s'", id)
 
 		archive, err := GetArchive(id)
 		if err != nil {
@@ -976,8 +1119,11 @@ func main() {
 	c.Alias("ls archive", "show archive")
 
 	c.Dispatch("restore archive", func(opts Options, args []string) error {
+		DEBUG("running 'restore archive' command")
+
 		require(len(args) == 1, "USAGE: shield restore archive <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  archive UUID = '%s'", id)
 
 		targetJSON := "{}"
 		toTargetJSONmsg := ""
@@ -995,8 +1141,11 @@ func main() {
 	})
 
 	c.Dispatch("delete archive", func(opts Options, args []string) error {
+		DEBUG("running 'delete archive' command")
+
 		require(len(args) == 1, "USAGE: shield delete archive <UUID>")
 		id := uuid.Parse(args[0])
+		DEBUG("  archive UUID = '%s'", id)
 
 		err := DeleteArchive(id)
 		if err != nil {
