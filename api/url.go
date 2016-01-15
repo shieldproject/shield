@@ -91,6 +91,11 @@ func (u *URL) Request(out interface{}, req *http.Request) error {
 	}
 	defer r.Body.Close()
 
+	var final error = nil
+	if r.StatusCode != 200 {
+		final = fmt.Errorf("Error %s", r.Status)
+	}
+
 	if out != nil {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -98,12 +103,12 @@ func (u *URL) Request(out interface{}, req *http.Request) error {
 		}
 
 		err = json.Unmarshal(body, out)
-		if err != nil {
+		if err != nil && final == nil {
 			return err
 		}
 	}
 
-	return nil
+	return final
 }
 
 func (u *URL) Get(out interface{}) error {

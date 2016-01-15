@@ -66,17 +66,12 @@ func (c *Command) With(opts Options) *Command {
 	return c
 }
 
-func (c *Command) Invoke(cmd ...string) error {
-	err, _ := c.Execute(cmd...)
-	return err
-}
-
-func (c *Command) Execute(cmd ...string) (error, bool) {
+func (c *Command) Execute(cmd ...string) error {
 	for i := 1; i <= len(cmd); i++ {
 		command := strings.Join(cmd[0:i], " ")
 		if fn, ok := c.commands[command]; ok {
-			return fn(c.options, cmd[i:]), true
+			return fn(c.options, cmd[i:])
 		}
 	}
-	return fmt.Errorf("unrecognized command %s\n", strings.Join(cmd, " ")), false
+	return fmt.Errorf("unrecognized command %s\n", strings.Join(cmd, " "))
 }
