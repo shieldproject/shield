@@ -141,6 +141,40 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 	}
 }
 
+func (s *Supervisor) Sweep() error {
+	tasks, err := s.Database.GetAllAnnotatedTasks(
+		&db.TaskFilter{
+			ForStatus: "running",
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("Failed to sweep database of running tasks: %s", err)
+	}
+
+	now := time.Now()
+	for _, task := range tasks {
+		log.Warnf("Found task %s in 'running' state at startup; setting to 'failed'", task.UUID)
+		if err := s.Database.FailTask(uuid.Parse(task.UUID), now); err != nil {
+			return fmt.Errorf("Failed to sweep database of running tasks [%s]: %s", task.UUID, err)
+		}
+		if task.Op == "backup" && task.ArchiveUUID != "" {
+			archive, err := s.Database.GetAnnotatedArchive(uuid.Parse(task.ArchiveUUID))
+			if err != nil {
+				log.Warnf("Unable to retrieve archive %s (for task %s) from the database: %s",
+					task.UUID, task.ArchiveUUID)
+				continue
+			}
+			log.Warnf("Found archive %s for task %s, purging", task.ArchiveUUID, task.UUID)
+			if _, err := s.Database.CreatePurgeTask("", archive); err != nil {
+				log.Errorf("Failed to purge archive %s (for task %s, which was running at boot): %s",
+					archive.UUID, task.UUID, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *Supervisor) Run() error {
 	if err := s.Database.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to %s database at %s: %s\n",
@@ -149,6 +183,10 @@ func (s *Supervisor) Run() error {
 
 	if err := s.Database.CheckCurrentSchema(); err != nil {
 		return fmt.Errorf("database failed schema version check: %s\n", err)
+	}
+
+	if err := s.Sweep(); err != nil {
+		return err
 	}
 
 	if err := s.Resync(); err != nil {
