@@ -65,6 +65,30 @@ func main() {
 	c := NewCommand().With(options)
 
 	/*
+	    ######  ########    ###    ######## ##     ##  ######
+	   ##    ##    ##      ## ##      ##    ##     ## ##    ##
+	   ##          ##     ##   ##     ##    ##     ## ##
+	    ######     ##    ##     ##    ##    ##     ##  ######
+	         ##    ##    #########    ##    ##     ##       ##
+	   ##    ##    ##    ##     ##    ##    ##     ## ##    ##
+	    ######     ##    ##     ##    ##     #######   ######
+	 */
+
+	c.Dispatch("status", func(opts Options, args []string) error {
+		status, err := GetStatus()
+		if err != nil {
+			return fmt.Errorf("failed to get status from SHIELD: %s", err)
+		}
+
+		t := tui.NewReport()
+		t.Add("Name", status.Name)
+		t.Add("Version", status.Version)
+		t.Output(os.Stdout)
+		return nil
+	})
+	c.Alias("stat", "status")
+
+	/*
 	   ########    ###    ########   ######   ######## ########
 	      ##      ## ##   ##     ## ##    ##  ##          ##
 	      ##     ##   ##  ##     ## ##        ##          ##
