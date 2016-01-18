@@ -13,6 +13,8 @@ type Table struct {
 	header []interface{}
 	line   []interface{}
 	cells  [][]interface{}
+
+	objects []interface{}
 }
 
 func NewTable(header ...string) Table {
@@ -32,7 +34,20 @@ func NewTable(header ...string) Table {
 	return t
 }
 
-func (t *Table) Row(cells ...interface{}) {
+func (t *Table) Rows() int {
+	return len(t.objects)
+}
+
+func (t *Table) Object(i int) interface{} {
+	if i < 0 || i >= len(t.objects) {
+		return nil
+	}
+	return t.objects[i]
+}
+
+func (t *Table) Row(object interface{}, cells ...interface{}) {
+	t.objects = append(t.objects, object)
+
 	if len(cells) > t.Width {
 		cells = cells[0:t.Width]
 	}
@@ -62,6 +77,24 @@ func (t *Table) Output(out io.Writer) {
 	fmt.Fprintf(out, format, t.header...)
 	fmt.Fprintf(out, format, t.line...)
 	for _, row := range t.cells {
+		fmt.Fprintf(out, format, row...)
+	}
+}
+
+func (t *Table) OutputWithIndices(out io.Writer) {
+	formats := make([]string, t.Width)
+	for i, width := range t.Max {
+		formats[i] = fmt.Sprintf("%%-%ds", width)
+	}
+	format := strings.Join(formats, "   ") + "\n"
+
+	fmt.Fprintf(out, "      ")
+	fmt.Fprintf(out, format, t.header...)
+	fmt.Fprintf(out, "      ")
+	fmt.Fprintf(out, format, t.line...)
+
+	for i, row := range t.cells {
+		fmt.Fprintf(out, "% 4d) ", i+1)
 		fmt.Fprintf(out, format, row...)
 	}
 }

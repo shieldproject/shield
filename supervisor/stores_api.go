@@ -22,6 +22,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			&db.StoreFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
+				SearchName: paramValue(req, "name", ""),
 				ForPlugin:  paramValue(req, "plugin", ""),
 			},
 		)

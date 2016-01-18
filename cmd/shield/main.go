@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pborman/getopt"
@@ -82,7 +83,7 @@ func main() {
 	         ##    ##    #########    ##    ##     ##       ##
 	   ##    ##    ##    ##     ##    ##    ##     ## ##    ##
 	    ######     ##    ##     ##    ##     #######   ######
-	 */
+	*/
 
 	c.Dispatch("status", func(opts Options, args []string) error {
 		status, err := GetStatus()
@@ -114,7 +115,12 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
 		targets, err := GetTargets(TargetFilter{
+			Name:   name,
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -125,7 +131,7 @@ func main() {
 
 		t := tui.NewTable("UUID", "Target Name", "Summary", "Plugin", "Target Agent IP", "Endpoint")
 		for _, target := range targets {
-			t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
+			t.Row(target, target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -135,8 +141,41 @@ func main() {
 	c.Dispatch("show target", func(opts Options, args []string) error {
 		DEBUG("running 'show target' command")
 
-		require(len(args) == 1, "shield show target <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			targets, err := GetTargets(TargetFilter{
+				Name:   name,
+				Plugin: *opts.Plugin,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(targets) {
+			case 0:
+				fmt.Printf("no matching target found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(targets[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Plugin", "Remote IP", "Configuration")
+				for _, target := range targets {
+					t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
+				}
+
+				want := tui.Menu("More than one target matched your search query", &t,
+					"Which target do you want?")
+				id = uuid.Parse(want.(Target).UUID)
+			}
+		}
 		DEBUG("  target UUID = '%s'", id)
 
 		target, err := GetTarget(id)
@@ -165,14 +204,18 @@ func main() {
 		DEBUG("running 'create target' command")
 
 		in := tui.NewForm()
-		in.NewField("Target name", "name", "", tui.FieldIsRequired)
-		in.NewField("Target summary", "summary", "", tui.FieldIsOptional)
-		in.NewField("Target plugin", "plugin", "", tui.FieldIsRequired)
-		in.NewField("Target endpoint", "endpoint", "", tui.FieldIsRequired)
-		in.NewField("Target agent", "agent", "", tui.FieldIsRequired)
+		in.NewField("Target name", "name", "", "", tui.FieldIsRequired)
+		in.NewField("Target summary", "summary", "", "", tui.FieldIsOptional)
+		in.NewField("Target plugin", "plugin", "", "", tui.FieldIsRequired)
+		in.NewField("Target endpoint", "endpoint", "", "", tui.FieldIsRequired)
+		in.NewField("Target agent", "agent", "", "", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		if !tui.Confirm("Really create this target?") {
+			return fmt.Errorf("Canceling...")
 		}
 
 		content, err := in.BuildContent()
@@ -207,11 +250,11 @@ func main() {
 		}
 
 		in := tui.NewForm()
-		in.NewField("Target name", "name", t.Name, tui.FieldIsRequired)
-		in.NewField("Target summary", "summary", t.Summary, tui.FieldIsOptional)
-		in.NewField("Target plugin", "plugin", t.Plugin, tui.FieldIsRequired)
-		in.NewField("Target endpoint", "endpoint", t.Endpoint, tui.FieldIsRequired)
-		in.NewField("Target agent", "agent", t.Agent, tui.FieldIsRequired)
+		in.NewField("Target name", "name", t.Name, "", tui.FieldIsRequired)
+		in.NewField("Target summary", "summary", t.Summary, "", tui.FieldIsOptional)
+		in.NewField("Target plugin", "plugin", t.Plugin, "", tui.FieldIsRequired)
+		in.NewField("Target endpoint", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
+		in.NewField("Target agent", "agent", t.Agent, "", tui.FieldIsRequired)
 		err = in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -264,7 +307,14 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		schedules, err := GetSchedules(ScheduleFilter{
+			Name:   name,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 		if err != nil {
@@ -272,7 +322,7 @@ func main() {
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Frequency / Interval (UTC)")
 		for _, schedule := range schedules {
-			t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
+			t.Row(schedule, schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -282,8 +332,40 @@ func main() {
 	c.Dispatch("show schedule", func(opts Options, args []string) error {
 		DEBUG("running 'show schedule' command")
 
-		require(len(args) == 1, "shield show schedule <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			schedules, err := GetSchedules(ScheduleFilter{
+				Name:   name,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(schedules) {
+			case 0:
+				fmt.Printf("no matching schedule found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(schedules[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
+				for _, schedule := range schedules {
+					t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
+				}
+
+				want := tui.Menu("More than one schedule matched your search query", &t,
+					"Which schedule do you want?")
+				id = uuid.Parse(want.(Schedule).UUID)
+			}
+		}
 		DEBUG("  schedule UUID = '%s'", id)
 
 		schedule, err := GetSchedule(id)
@@ -292,7 +374,6 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", schedule.UUID)
 		t.Add("Name", schedule.Name)
 		t.Add("Summary", schedule.Summary)
 		t.Add("Timespec", schedule.When)
@@ -308,12 +389,16 @@ func main() {
 		DEBUG("running 'create schedule' command")
 
 		in := tui.NewForm()
-		in.NewField("Schedule name", "name", "", tui.FieldIsRequired)
-		in.NewField("Schedule summary", "summary", "", tui.FieldIsOptional)
-		in.NewField("When to run schedule (eg daily at 4:00)", "when", "", tui.FieldIsRequired)
+		in.NewField("Schedule name", "name", "", "", tui.FieldIsRequired)
+		in.NewField("Schedule summary", "summary", "", "", tui.FieldIsOptional)
+		in.NewField("When to run schedule (eg daily at 4:00)", "when", "", "", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		if !tui.Confirm("Really create this schedule?") {
+			return fmt.Errorf("Canceling...")
 		}
 
 		content, err := in.BuildContent()
@@ -348,9 +433,9 @@ func main() {
 		}
 
 		in := tui.NewForm()
-		in.NewField("Schedule name", "name", s.Name, tui.FieldIsRequired)
-		in.NewField("Schedule summary", "summary", s.Summary, tui.FieldIsOptional)
-		in.NewField("When to run schedule (eg daily at 4:00)", "when", s.When, tui.FieldIsRequired)
+		in.NewField("Schedule name", "name", s.Name, "", tui.FieldIsRequired)
+		in.NewField("Schedule summary", "summary", s.Summary, "", tui.FieldIsOptional)
+		in.NewField("When to run schedule (eg daily at 4:00)", "when", s.When, "", tui.FieldIsRequired)
 		err = in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -403,7 +488,13 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+			Name:   name,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 		if err != nil {
@@ -411,7 +502,7 @@ func main() {
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Expires in")
 		for _, policy := range policies {
-			t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+			t.Row(policy, policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -423,8 +514,40 @@ func main() {
 	c.Dispatch("show retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'show retention policy' command")
 
-		require(len(args) == 1, "shield show retention policy <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+				Name:   name,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(policies) {
+			case 0:
+				fmt.Printf("no matching policy found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(policies[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Expires in")
+				for _, policy := range policies {
+					t.Row(policy, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+				}
+
+				want := tui.Menu("More than one policy matched your search query", &t,
+					"Which policy do you want?")
+				id = uuid.Parse(want.(RetentionPolicy).UUID)
+			}
+		}
 		DEBUG("  retention policy UUID = '%s'", id)
 
 		policy, err := GetRetentionPolicy(id)
@@ -433,7 +556,6 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", policy.UUID)
 		t.Add("Name", policy.Name)
 		t.Add("Summary", policy.Summary)
 		t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
@@ -452,14 +574,18 @@ func main() {
 		DEBUG("running 'create retention policy' command")
 
 		in := tui.NewForm()
-		in.NewField("Policy name", "name", "", tui.FieldIsRequired)
-		in.NewField("Policy summary", "summary", "", tui.FieldIsOptional)
-		in.NewField("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", "", tui.InputIsInteger)
+		in.NewField("Policy name", "name", "", "", tui.FieldIsRequired)
+		in.NewField("Policy summary", "summary", "", "", tui.FieldIsOptional)
+		// FIXME: make retention time frame in days, not seconds.
+		in.NewField("Retention timeframe in seconds (protip: there are 86400 sec per day)", "expires", "", "", tui.FieldIsRetentionTimeframe)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
-		in.ConvertFieldValueToInteger("expires")
+
+		if !tui.Confirm("Really create this retention policy?") {
+			return fmt.Errorf("Canceling...")
+		}
 
 		content, err := in.BuildContent()
 		if err != nil {
@@ -498,14 +624,14 @@ func main() {
 
 		expires := fmt.Sprintf("%d", p.Expires)
 		in := tui.NewForm()
-		in.NewField("Policy name", "name", p.Name, tui.FieldIsRequired)
-		in.NewField("Policy summary", "summary", p.Summary, tui.FieldIsOptional)
-		in.NewField("Policy expiration in seconds (protip: there are 86400 sec per day)", "expires", expires, tui.InputIsInteger)
+		in.NewField("Policy name", "name", p.Name, "", tui.FieldIsRequired)
+		in.NewField("Policy summary", "summary", p.Summary, "", tui.FieldIsOptional)
+		// FIXME: make retention time frame in days, not seconds.
+		in.NewField("Retention timeframe in seconds (protip: there are 86400 sec per day)", "expires", expires, "", tui.FieldIsRetentionTimeframe)
 		err = in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
-		in.ConvertFieldValueToInteger("expires")
 
 		content, err := in.BuildContent()
 		if err != nil {
@@ -560,7 +686,14 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		stores, err := GetStores(StoreFilter{
+			Name:   name,
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -569,7 +702,7 @@ func main() {
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Plugin", "Endpoint")
 		for _, store := range stores {
-			t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
+			t.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -579,8 +712,42 @@ func main() {
 	c.Dispatch("show store", func(opts Options, args []string) error {
 		DEBUG("running 'show store' command")
 
-		require(len(args) == 1, "shield show store <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			stores, err := GetStores(StoreFilter{
+				Name:   name,
+				Plugin: *opts.Plugin,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(stores) {
+			case 0:
+				fmt.Printf("no matching store found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(stores[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Plugin", "Endpoint")
+				for _, store := range stores {
+					t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
+				}
+
+				want := tui.Menu("More than one store matched your search query", &t,
+					"Which store do you want?")
+				id = uuid.Parse(want.(Store).UUID)
+			}
+		}
+
 		DEBUG("  store UUID = '%s'", id)
 
 		store, err := GetStore(id)
@@ -589,7 +756,6 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", store.UUID)
 		t.Add("Name", store.Name)
 		t.Add("Summary", store.Summary)
 		t.Break()
@@ -608,13 +774,17 @@ func main() {
 		DEBUG("running 'create store' command")
 
 		in := tui.NewForm()
-		in.NewField("Store name", "name", "", tui.FieldIsRequired)
-		in.NewField("Store summary", "summary", "", tui.FieldIsOptional)
-		in.NewField("Plugin name", "plugin", "", tui.FieldIsRequired)
-		in.NewField("Endpoint (JSON)", "endpoint", "", tui.FieldIsRequired)
+		in.NewField("Store name", "name", "", "", tui.FieldIsRequired)
+		in.NewField("Store summary", "summary", "", "", tui.FieldIsOptional)
+		in.NewField("Plugin name", "plugin", "", "", tui.FieldIsRequired)
+		in.NewField("Endpoint (JSON)", "endpoint", "", "", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		if !tui.Confirm("Really create this archive store?") {
+			return fmt.Errorf("Canceling...")
 		}
 
 		content, err := in.BuildContent()
@@ -650,10 +820,10 @@ func main() {
 		}
 
 		in := tui.NewForm()
-		in.NewField("Store name", "name", s.Name, tui.FieldIsRequired)
-		in.NewField("Store summary", "summary", s.Summary, tui.FieldIsOptional)
-		in.NewField("Plugin name", "plugin", s.Plugin, tui.FieldIsRequired)
-		in.NewField("Endpoint (JSON)", "endpoint", s.Endpoint, tui.FieldIsRequired)
+		in.NewField("Store name", "name", s.Name, "", tui.FieldIsRequired)
+		in.NewField("Store summary", "summary", s.Summary, "", tui.FieldIsOptional)
+		in.NewField("Plugin name", "plugin", s.Plugin, "", tui.FieldIsRequired)
+		in.NewField("Endpoint (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
 		in.Show()
 		err = in.Show()
 		if err != nil {
@@ -711,7 +881,13 @@ func main() {
 		DEBUG("  show paused?      %s", *opts.Paused)
 		DEBUG("  show unpaused?    %s", *opts.Unpaused)
 
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		jobs, err := GetJobs(JobFilter{
+			Name:      name,
 			Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
 			Target:    *opts.Target,
 			Store:     *opts.Store,
@@ -721,9 +897,9 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("\nERROR: Unexpected arguments following command: %v\n", err)
 		}
-		t := tui.NewTable("UUID", "P?", "Name", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
+		t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
 		for _, job := range jobs {
-			t.Row(job.UUID, BoolString(job.Paused), job.Name, job.Summary,
+			t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
 				job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
 		}
 		t.Output(os.Stdout)
@@ -735,8 +911,45 @@ func main() {
 	c.Dispatch("show job", func(opts Options, args []string) error {
 		DEBUG("running 'show job' command")
 
-		require(len(args) == 1, "shield show job <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			jobs, err := GetJobs(JobFilter{
+				Name:      name,
+				Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
+				Target:    *opts.Target,
+				Store:     *opts.Store,
+				Schedule:  *opts.Schedule,
+				Retention: *opts.Retention,
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(jobs) {
+			case 0:
+				fmt.Printf("no matching job found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(jobs[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
+				for _, job := range jobs {
+					t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
+						job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
+				}
+
+				want := tui.Menu("More than one job matched your search query", &t,
+					"Which job do you want?")
+				id = uuid.Parse(want.(Job).UUID)
+			}
+		}
 		DEBUG("  job UUID = '%s'", id)
 
 		job, err := GetJob(id)
@@ -745,28 +958,23 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", job.UUID)
 		t.Add("Name", job.Name)
 		t.Add("Paused", BoolString(job.Paused))
 		t.Break()
 
 		t.Add("Retention Policy", job.RetentionName)
-		t.Add("Retention UUID", job.RetentionUUID)
 		t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
 		t.Break()
 
 		t.Add("Schedule Policy", job.ScheduleName)
-		t.Add("Schedule UUID", job.ScheduleUUID)
 		t.Break()
 
 		t.Add("Target", job.TargetPlugin)
-		t.Add("Target UUID", job.TargetUUID)
 		t.Add("Target Endpoint", job.TargetEndpoint)
 		t.Add("SHIELD Agent", job.Agent)
 		t.Break()
 
 		t.Add("Store", job.StorePlugin)
-		t.Add("Store UUID", job.StoreUUID)
 		t.Add("Store Endpoint", job.StoreEndpoint)
 		t.Break()
 
@@ -784,18 +992,23 @@ func main() {
 		DEBUG("running 'create job' command")
 
 		in := tui.NewForm()
-		in.NewField("Job name", "name", "", tui.FieldIsRequired)
-		in.NewField("Job summary", "summary", "", tui.FieldIsOptional)
-		in.NewField("Store UUID", "store", "", tui.FieldIsRequired)
-		in.NewField("Target UUID", "target", "", tui.FieldIsRequired)
-		in.NewField("Policy UUID", "retention", "", tui.FieldIsRequired)
-		in.NewField("Schedule UUID", "schedule", "", tui.FieldIsRequired)
-		in.NewField("Should the job be paused on creation? (Y/n)\n(Default is unpaused)", "paused", "", tui.InputCanBeBool)
+		in.NewField("Job name", "name", "", "", tui.FieldIsRequired)
+		in.NewField("Job summary", "summary", "", "", tui.FieldIsOptional)
+
+		in.NewField("Store", "store", "", "", FieldIsStoreUUID)
+		in.NewField("Target", "target", "", "", FieldIsTargetUUID)
+		in.NewField("Retention Policy", "retention", "", "", FieldIsRetentionPolicyUUID)
+		in.NewField("Schedule", "schedule", "", "", FieldIsScheduleUUID)
+
+		in.NewField("Paused? [Y/n]", "paused", "yes", "", tui.FieldIsBoolean)
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
-		in.ConvertFieldValueToBool("paused")
+
+		if !tui.Confirm("Really create this backup job?") {
+			return fmt.Errorf("Canceling...")
+		}
 
 		content, err := in.BuildContent()
 		if err != nil {
@@ -818,8 +1031,45 @@ func main() {
 	c.Dispatch("edit job", func(opts Options, args []string) error {
 		DEBUG("running 'edit job' command")
 
-		require(len(args) == 1, "shield edit job <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			jobs, err := GetJobs(JobFilter{
+				Name:      name,
+				Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
+				Target:    *opts.Target,
+				Store:     *opts.Store,
+				Schedule:  *opts.Schedule,
+				Retention: *opts.Retention,
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(jobs) {
+			case 0:
+				fmt.Printf("no matching job found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(jobs[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
+				for _, job := range jobs {
+					t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
+						job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
+				}
+
+				want := tui.Menu("More than one job matched your search query", &t,
+					"Which job do you want?")
+				id = uuid.Parse(want.(Job).UUID)
+			}
+		}
 		DEBUG("  job UUID = '%s'", id)
 
 		j, err := GetJob(id)
@@ -832,18 +1082,18 @@ func main() {
 		}
 
 		in := tui.NewForm()
-		in.NewField("Job name", "name", j.Name, tui.FieldIsRequired)
-		in.NewField("Job summary", "summary", j.Summary, tui.FieldIsOptional)
-		in.NewField("Store UUID", "store", j.StoreUUID, tui.FieldIsRequired)
-		in.NewField("Target UUID", "target", j.TargetUUID, tui.FieldIsRequired)
-		in.NewField("Policy UUID", "retention", j.RetentionUUID, tui.FieldIsRequired)
-		in.NewField("Schedule UUID", "schedule", j.ScheduleUUID, tui.FieldIsRequired)
-		in.NewField("Should the job be paused? (Y/n)", "paused", paused, tui.InputCanBeBool)
+		in.NewField("Job name", "name", j.Name, "", tui.FieldIsRequired)
+		in.NewField("Job summary", "summary", j.Summary, "", tui.FieldIsOptional)
+		in.NewField("Store", "store", j.StoreUUID, j.StoreName, FieldIsStoreUUID)
+		in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
+		in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry / 86400), FieldIsRetentionPolicyUUID)
+		in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
+
+		in.NewField("Should the job be paused? (Y/n)", "paused", paused, "", tui.FieldIsBoolean)
 		err = in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
 		}
-		in.ConvertFieldValueToBool("paused")
 
 		content, err := in.BuildContent()
 		if err != nil {
@@ -969,7 +1219,7 @@ func main() {
 				stopped = task.StoppedAt.Format(time.RFC1123Z)
 			}
 
-			t.Row(task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
+			t.Row(task, task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -1091,7 +1341,7 @@ func main() {
 				continue
 			}
 
-			t.Row(archive.UUID,
+			t.Row(archive, archive.UUID,
 				archive.TargetPlugin, target[archive.TargetUUID].Name, target[archive.TargetUUID].Agent,
 				archive.StorePlugin, store[archive.StoreUUID].Name,
 				archive.TakenAt.Format(time.RFC1123Z),

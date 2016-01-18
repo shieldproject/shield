@@ -13,12 +13,14 @@ type Store struct {
 }
 
 type StoreFilter struct {
+	Name   string
 	Plugin string
 	Unused YesNo
 }
 
 func GetStores(filter StoreFilter) ([]Store, error) {
 	uri := ShieldURI("/v1/stores")
+	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("plugin", filter.Plugin)
 	uri.MaybeAddParameter("unused", filter.Unused)
 	var data []Store

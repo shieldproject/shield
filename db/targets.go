@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/pborman/uuid"
 )
 
@@ -17,11 +19,15 @@ type AnnotatedTarget struct {
 type TargetFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
+	SearchName string
 	ForPlugin  string
 }
 
 func (f *TargetFilter) Args() []interface{} {
 	args := []interface{}{}
+	if f.SearchName != "" {
+		args = append(args, Pattern(f.SearchName))
+	}
 	if f.ForPlugin != "" {
 		args = append(args, f.ForPlugin)
 	}
@@ -29,16 +35,24 @@ func (f *TargetFilter) Args() []interface{} {
 }
 
 func (f *TargetFilter) Query() string {
-	where := ""
+	var wheres []string = []string{"t.uuid = t.uuid"}
+	n := 1
+
+	if f.SearchName != "" {
+		wheres = append(wheres, fmt.Sprintf("t.name LIKE $%d", n))
+		n++
+	}
 	if f.ForPlugin != "" {
-		where = "WHERE plugin = $1"
+		wheres = append(wheres, fmt.Sprintf("t.plugin LIKE $%d", n))
+		n++
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT uuid, name, summary, plugin, endpoint, agent, -1 AS n
-				FROM targets ` + where + `
-				ORDER BY name, uuid ASC
+			SELECT t.uuid, t.name, t.summary, t.plugin, t.endpoint, t.agent, -1 AS n
+				FROM targets t
+				WHERE ` + strings.Join(wheres, " AND ") + `
+				ORDER BY t.name, t.uuid ASC
 		`
 	}
 
@@ -54,7 +68,8 @@ func (f *TargetFilter) Query() string {
 			FROM targets t
 				LEFT JOIN jobs j
 					ON j.target_uuid = t.uuid
-			` + where + ` GROUP BY t.uuid
+			WHERE ` + strings.Join(wheres, " AND ") + `
+			GROUP BY t.uuid
 			` + having + `
 			ORDER BY t.name, t.uuid ASC
 	`

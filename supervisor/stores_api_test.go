@@ -74,6 +74,20 @@ var _ = Describe("/v1/stores API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("should retrieve all stores named 'redis'", func() {
+		res := GET(API, "/v1/stores?name=redis")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "` + STORE_REDIS + `",
+					"name"     : "redis-shared",
+					"summary"  : "Shared Redis services for CF",
+					"plugin"   : "redis",
+					"endpoint" : "<<redis-configuration>>"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
 	It("should retrieve only unused stores ?unused=t", func() {
 		res := GET(API, "/v1/stores?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -85,6 +99,12 @@ var _ = Describe("/v1/stores API", func() {
 					"endpoint" : "<<redis-configuration>>"
 				}
 			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should retrieve only unused stores named s3 for ?unused=t and ?name=s3", func() {
+		res := GET(API, "/v1/stores?unused=t&name=s3")
+		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 		Ω(res.Code).Should(Equal(200))
 	})
 

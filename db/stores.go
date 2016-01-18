@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/pborman/uuid"
 )
 
@@ -16,11 +18,15 @@ type AnnotatedStore struct {
 type StoreFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
+	SearchName string
 	ForPlugin  string
 }
 
 func (f *StoreFilter) Args() []interface{} {
 	args := []interface{}{}
+	if f.SearchName != "" {
+		args = append(args, Pattern(f.SearchName))
+	}
 	if f.ForPlugin != "" {
 		args = append(args, f.ForPlugin)
 	}
@@ -28,16 +34,23 @@ func (f *StoreFilter) Args() []interface{} {
 }
 
 func (f *StoreFilter) Query() string {
-	where := ""
+	var wheres []string = []string{"s.uuid = s.uuid"}
+	n := 1
+	if f.SearchName != "" {
+		wheres = append(wheres, fmt.Sprintf("s.name LIKE $%d", n))
+		n++
+	}
 	if f.ForPlugin != "" {
-		where = "WHERE plugin = $1"
+		wheres = append(wheres, fmt.Sprintf("s.plugin = $%d", n))
+		n++
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT uuid, name, summary, plugin, endpoint, -1 AS n
-				FROM stores ` + where + `
-				ORDER BY name, uuid ASC
+			SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint, -1 AS n
+				FROM stores s
+				WHERE ` + strings.Join(wheres, " AND ") + `
+				ORDER BY s.name, s.uuid ASC
 		`
 	}
 
@@ -53,7 +66,8 @@ func (f *StoreFilter) Query() string {
 			FROM stores s
 				LEFT JOIN jobs j
 					ON j.store_uuid = s.uuid
-			` + where + ` GROUP BY s.uuid
+			WHERE ` + strings.Join(wheres, " AND ") + `
+			GROUP BY s.uuid
 			` + having + `
 			ORDER BY s.name, s.uuid ASC
 	`

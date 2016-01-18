@@ -21,6 +21,8 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			&db.ScheduleFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
+
+				SearchName: paramValue(req, "name", ""),
 			},
 		)
 		if err != nil {

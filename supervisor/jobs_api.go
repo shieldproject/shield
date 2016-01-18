@@ -23,6 +23,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				SkipPaused:   paramEquals(req, "paused", "f"),
 				SkipUnpaused: paramEquals(req, "paused", "t"),
 
+				SearchName: paramValue(req, "name", ""),
+
 				ForTarget:    paramValue(req, "target", ""),
 				ForStore:     paramValue(req, "store", ""),
 				ForSchedule:  paramValue(req, "schedule", ""),

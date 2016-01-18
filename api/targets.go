@@ -14,12 +14,14 @@ type Target struct {
 }
 
 type TargetFilter struct {
+	Name   string
 	Plugin string
 	Unused YesNo
 }
 
 func GetTargets(filter TargetFilter) ([]Target, error) {
 	uri := ShieldURI("/v1/targets")
+	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("plugin", filter.Plugin)
 	uri.MaybeAddParameter("unused", filter.Unused)
 

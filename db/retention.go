@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/pborman/uuid"
 )
 
@@ -15,14 +17,31 @@ type AnnotatedRetentionPolicy struct {
 type RetentionFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
+
+	SearchName string
 }
 
+func (f *RetentionFilter) Args() []interface{} {
+	var args []interface{}
+	if f.SearchName != "" {
+		args = append(args, Pattern(f.SearchName))
+	}
+	return args
+}
 func (f *RetentionFilter) Query() string {
+	var wheres []string = []string{"r.uuid = r.uuid"}
+	n := 1
+
+	if f.SearchName != "" {
+		wheres = append(wheres, fmt.Sprintf("r.name LIKE $%d", n))
+		n++
+	}
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT uuid, name, summary, expiry, -1 AS n
-				FROM retention
-				ORDER BY name, uuid ASC
+			SELECT r.uuid, r.name, r.summary, r.expiry, -1 AS n
+				FROM retention r
+				WHERE ` + strings.Join(wheres, " AND ") + `
+				ORDER BY r.name, r.uuid ASC
 		`
 	}
 
@@ -38,6 +57,7 @@ func (f *RetentionFilter) Query() string {
 			FROM retention r
 				LEFT JOIN jobs j
 					ON j.retention_uuid = r.uuid
+			WHERE ` + strings.Join(wheres, " AND ") + `
 			GROUP BY r.uuid
 			` + having + `
 			ORDER BY r.name, r.uuid ASC
@@ -46,7 +66,7 @@ func (f *RetentionFilter) Query() string {
 
 func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*AnnotatedRetentionPolicy, error) {
 	l := []*AnnotatedRetentionPolicy{}
-	r, err := db.Query(filter.Query())
+	r, err := db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err
 	}
