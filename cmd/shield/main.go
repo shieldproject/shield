@@ -488,7 +488,13 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+			Name:   name,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 		if err != nil {
@@ -508,8 +514,40 @@ func main() {
 	c.Dispatch("show retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'show retention policy' command")
 
-		require(len(args) == 1, "shield show retention policy <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+				Name:   name,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(policies) {
+			case 0:
+				fmt.Printf("no matching policy found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(policies[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Expires in")
+				for _, policy := range policies {
+					t.Row(policy, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+				}
+
+				want := tui.Menu("More than one policy matched your search query", &t,
+					"Which policy do you want?")
+				id = uuid.Parse(want.(RetentionPolicy).UUID)
+			}
+		}
 		DEBUG("  retention policy UUID = '%s'", id)
 
 		policy, err := GetRetentionPolicy(id)
@@ -518,7 +556,6 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", policy.UUID)
 		t.Add("Name", policy.Name)
 		t.Add("Summary", policy.Summary)
 		t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
@@ -705,8 +742,8 @@ func main() {
 					t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
 				}
 
-				want := tui.Menu("More than one target matched your search query", &t,
-					"Which target do you want?")
+				want := tui.Menu("More than one store matched your search query", &t,
+					"Which store do you want?")
 				id = uuid.Parse(want.(Store).UUID)
 			}
 		}
