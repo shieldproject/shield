@@ -25,6 +25,7 @@ type Job struct {
 }
 
 type JobFilter struct {
+	Name      string
 	Target    string
 	Store     string
 	Schedule  string
@@ -34,6 +35,7 @@ type JobFilter struct {
 
 func GetJobs(filter JobFilter) ([]Job, error) {
 	uri := ShieldURI("/v1/jobs")
+	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("target", filter.Target)
 	uri.MaybeAddParameter("store", filter.Store)
 	uri.MaybeAddParameter("schedule", filter.Schedule)

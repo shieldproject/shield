@@ -6,6 +6,7 @@ import (
 
 type RetentionPoliciesFilter struct {
 	Unused YesNo
+	Name   string
 }
 
 type RetentionPolicy struct {
@@ -17,6 +18,7 @@ type RetentionPolicy struct {
 
 func GetRetentionPolicies(filter RetentionPoliciesFilter) ([]RetentionPolicy, error) {
 	uri := ShieldURI("/v1/retention")
+	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("unused", filter.Unused)
 
 	var data []RetentionPolicy

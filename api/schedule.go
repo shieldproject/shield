@@ -13,10 +13,12 @@ type Schedule struct {
 
 type ScheduleFilter struct {
 	Unused YesNo
+	Name   string
 }
 
 func GetSchedules(filter ScheduleFilter) ([]Schedule, error) {
 	uri := ShieldURI("/v1/schedules")
+	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("unused", filter.Unused)
 
 	var data []Schedule
