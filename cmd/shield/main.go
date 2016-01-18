@@ -576,8 +576,8 @@ func main() {
 		in := tui.NewForm()
 		in.NewField("Policy name", "name", "", "", tui.FieldIsRequired)
 		in.NewField("Policy summary", "summary", "", "", tui.FieldIsOptional)
-		// FIXME: make retention time frame in days, not seconds.
-		in.NewField("Retention timeframe in seconds (protip: there are 86400 sec per day)", "expires", "", "", tui.FieldIsRetentionTimeframe)
+		in.NewField("Retention Timeframe (in days)", "expires", "", "", FieldIsRetentionTimeframe)
+
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -622,12 +622,10 @@ func main() {
 			return fmt.Errorf("ERROR: Cannot retrieve policy '%s': %s", id, err)
 		}
 
-		expires := fmt.Sprintf("%d", p.Expires)
 		in := tui.NewForm()
 		in.NewField("Policy name", "name", p.Name, "", tui.FieldIsRequired)
 		in.NewField("Policy summary", "summary", p.Summary, "", tui.FieldIsOptional)
-		// FIXME: make retention time frame in days, not seconds.
-		in.NewField("Retention timeframe in seconds (protip: there are 86400 sec per day)", "expires", expires, "", tui.FieldIsRetentionTimeframe)
+		in.NewField("Retention Timeframe", "expires", p.Expires, fmt.Sprintf("%dd", p.Expires / 86400), FieldIsRetentionTimeframe)
 		err = in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)

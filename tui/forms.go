@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -44,7 +43,9 @@ func (field *Field) PromptString() string {
 		return fmt.Sprintf("%s (%s)", field.Label, field.ShowAs)
 	}
 	if field.Value != nil {
-		return fmt.Sprintf("%s (%v)", field.Label, field.Value)
+		if s, ok := field.Value.(string); !ok || s != "" {
+			return fmt.Sprintf("%s (%v)", field.Label, field.Value)
+		}
 	}
 	return field.Label
 }
@@ -96,17 +97,6 @@ func FieldIsRequired(name string, value string) (interface{}, error) {
 
 func FieldIsOptional(name string, value string) (interface{}, error) {
 	return value, nil
-}
-
-func FieldIsRetentionTimeframe(name string, value string) (interface{}, error) {
-	i, err := strconv.Atoi(value)
-	if err != nil {
-		return value, fmt.Errorf("'%s' is not an integer: %s", value, err)
-	}
-	if i < 3600 {
-		return value, fmt.Errorf("retention timeframe must be greater than 1h (3600)")
-	}
-	return i, nil
 }
 
 func FieldIsBoolean(name string, value string) (interface{}, error) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/pborman/uuid"
 
@@ -137,4 +138,15 @@ func FieldIsScheduleUUID(name string, value string) (interface{}, error) {
 			&t, "Which backup schedule do you want to use for this backup job?")
 		return want.(Schedule).UUID, nil
 	}
+}
+
+func FieldIsRetentionTimeframe(name string, value string) (interface{}, error) {
+	i, err := strconv.Atoi(value)
+	if err != nil {
+		return value, fmt.Errorf("'%s' is not an integer: %s", value, err)
+	}
+	if i < 0 {
+		return value, fmt.Errorf("retention timeframe must be at least 1 day")
+	}
+	return i * 86400, nil
 }
