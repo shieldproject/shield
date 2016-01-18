@@ -493,7 +493,7 @@ func main() {
 			name = strings.Join(args, " ")
 		}
 
-		policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+		policies, err := GetRetentionPolicies(RetentionPolicyFilter{
 			Name:   name,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -522,7 +522,7 @@ func main() {
 		id := uuid.Parse(name)
 		if id == nil {
 			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
-			policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+			policies, err := GetRetentionPolicies(RetentionPolicyFilter{
 				Name:   name,
 				Unused: MaybeBools(*opts.Unused, *opts.Used),
 			})

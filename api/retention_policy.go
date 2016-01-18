@@ -4,8 +4,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// FIXME: make this singular!
-type RetentionPoliciesFilter struct {
+type RetentionPolicyFilter struct {
 	Unused YesNo
 	Name   string
 }
@@ -17,7 +16,7 @@ type RetentionPolicy struct {
 	Expires uint   `json:"expires"`
 }
 
-func GetRetentionPolicies(filter RetentionPoliciesFilter) ([]RetentionPolicy, error) {
+func GetRetentionPolicies(filter RetentionPolicyFilter) ([]RetentionPolicy, error) {
 	uri := ShieldURI("/v1/retention")
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("unused", filter.Unused)

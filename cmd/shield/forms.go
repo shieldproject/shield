@@ -86,7 +86,7 @@ func FieldIsRetentionPolicyUUID(name string, value string) (interface{}, error) 
 		return want.UUID, nil
 	}
 
-	policies, err := GetRetentionPolicies(RetentionPoliciesFilter{
+	policies, err := GetRetentionPolicies(RetentionPolicyFilter{
 		Name: value,
 	})
 	if err != nil {
