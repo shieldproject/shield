@@ -13,12 +13,14 @@ type Job struct {
 	Expiry         int    `json:"expiry"`
 	ScheduleName   string `json:"schedule_name"`
 	ScheduleUUID   string `json:"schedule_uuid"`
-	Schedule       string `json:"schedule"`
+	ScheduleWhen   string `json:"schedule_when"`
 	Paused         bool   `json:"paused"`
 	StoreUUID      string `json:"store_uuid"`
+	StoreName      string `json:"store_name"`
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
 	TargetUUID     string `json:"target_uuid"`
+	TargetName     string `json:"target_name"`
 	TargetPlugin   string `json:"target_plugin"`
 	TargetEndpoint string `json:"target_endpoint"`
 	Agent          string `json:"agent"`

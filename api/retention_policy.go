@@ -4,6 +4,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
+// FIXME: make this singular!
 type RetentionPoliciesFilter struct {
 	Unused YesNo
 	Name   string

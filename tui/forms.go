@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type FieldValidator func(name string, value string) error
+type FieldProcessor func(name string, value string) (interface{}, error)
 
 type Form struct {
 	Fields []*Field
@@ -18,8 +18,9 @@ type Form struct {
 type Field struct {
 	Label     string
 	Name      string
+	ShowAs    string
 	Value     interface{}
-	Validator FieldValidator
+	Processor FieldProcessor
 }
 
 func NewForm() *Form {
@@ -27,42 +28,53 @@ func NewForm() *Form {
 	return &f
 }
 
-func (f *Form) NewField(label string, name string, value interface{}, fcn FieldValidator) error {
-	f.Fields = append(f.Fields, &Field{Label: label, Name: name, Value: value, Validator: fcn})
+func (f *Form) NewField(label string, name string, value interface{}, showas string, fn FieldProcessor) error {
+	f.Fields = append(f.Fields, &Field{
+		Label: label,
+		Name: name,
+		ShowAs: showas,
+		Value: value,
+		Processor: fn,
+	})
 	return nil
+}
+
+func (field *Field) PromptString() string {
+	if field.ShowAs != "" {
+		return fmt.Sprintf("%s (%s)", field.Label, field.ShowAs)
+	}
+	if field.Value != nil {
+		return fmt.Sprintf("%s (%v)", field.Label, field.Value)
+	}
+	return field.Label
 }
 
 func (field *Field) Prompt() error {
 	in := bufio.NewReader(os.Stdin)
-	fmt.Printf("%s:\n", field.Label)
-	if len(field.Value.(string)) > 0 {
-		fmt.Printf("(if no value supplied existing value will not be changed)\n")
-	}
-	v, err := in.ReadString('\n')
-	if err != nil {
-		fmt.Printf("Could not read input: %s", err)
-	}
-	v = strings.TrimSpace(v)
-	if len(field.Value.(string)) == 0 || (len(field.Value.(string)) > 0 && len(v) > 1) {
-		max := 3
-		for i := 0; i < max; i++ {
-			err = field.Validator(field.Name, v)
-			if err != nil && i < (max-1) {
-				fmt.Printf("Invalid input '%s' resulted in error: %s", v, err)
-				fmt.Printf("%s:\n", field.Label)
-				v, err = in.ReadString('\n')
-				if err != nil {
-					fmt.Printf("Could not read input: %s", err)
-				}
-				v = strings.TrimSpace(v)
-			}
-			if err != nil && i == (max-1) {
-				return fmt.Errorf("Valid value not provided in %d attempts. Cancelling request.\n", max)
-			}
+	for {
+		fmt.Printf("%s: ", field.PromptString())
+		v, err := in.ReadString('\n')
+		if err != nil {
+			return err
 		}
-		field.Value = strings.TrimSpace(v)
+
+		v = field.OrDefault(strings.TrimSpace(v))
+		final, err := field.Processor(field.Name, v)
+		if err != nil {
+			fmt.Printf("!! %s\n", err)
+			continue
+		}
+
+		field.Value = final
+		return nil
 	}
-	return nil
+}
+
+func (field *Field) OrDefault(v string) string {
+	if v == "" {
+		return fmt.Sprintf("%v", field.Value)
+	}
+	return v
 }
 
 func (f *Form) Show() error {
@@ -75,66 +87,38 @@ func (f *Form) Show() error {
 	return nil
 }
 
-func FieldIsRequired(name string, value string) error {
+func FieldIsRequired(name string, value string) (interface{}, error) {
 	if len(value) < 1 {
-		return fmt.Errorf("Field %s is a required field.\n", name)
+		return value, fmt.Errorf("Field %s is a required field.\n", name)
 	}
-	return nil
+	return value, nil
 }
 
-func FieldIsOptional(name string, value string) error {
-	return nil
+func FieldIsOptional(name string, value string) (interface{}, error) {
+	return value, nil
 }
 
-func InputIsInteger(name string, value string) error {
+func FieldIsRetentionTimeframe(name string, value string) (interface{}, error) {
 	i, err := strconv.Atoi(value)
 	if err != nil {
-		return fmt.Errorf("input value cannot be converted to an integer: %s\n", err)
+		return value, fmt.Errorf("'%s' is not an integer: %s", value, err)
 	}
 	if i < 3600 {
-		return fmt.Errorf("input value must be greater than 1 hour (3600 seconds)\n")
+		return value, fmt.Errorf("retention timeframe must be greater than 1h (3600)")
 	}
-	return nil
+	return i, nil
 }
 
-func (f *Form) ConvertFieldValueToInteger(fname string) {
-	for _, field := range f.Fields {
-		if field.Name == fname {
-			tmp, _ := field.Value.(string)
-			field.Value, _ = strconv.Atoi(tmp)
-		}
-	}
-}
+func FieldIsBoolean(name string, value string) (interface{}, error) {
+	switch strings.ToLower(value) {
+	case "y": fallthrough
+	case "yes": return true, nil
 
-func YesOrNo(v string) (string, error) {
-	v = strings.TrimSpace(v)
-	v = strings.ToLower(v)
-	if v == "y" || v == "yes" {
-		return "y", nil
-	} else if v == "n" || v == "no" || v == "" {
-		return "n", nil
+	case "n":
+	case "no": return false, nil
 	}
-	return "", fmt.Errorf("Input '%s' cannot be converted to bool. Accepted responses are (y)es or (n)o.\n", v)
-}
 
-func InputCanBeBool(name string, value string) error {
-	_, err := YesOrNo(value)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (f *Form) ConvertFieldValueToBool(fname string) {
-	for _, field := range f.Fields {
-		if field.Name == fname {
-			tmp, _ := YesOrNo(field.Value.(string))
-			field.Value = false
-			if tmp == "y" {
-				field.Value = true
-			}
-		}
-	}
+	return "", fmt.Errorf("'%s' is not a boolean value.  Acceptable values are (y)es or (n)o.", value)
 }
 
 func (f *Form) BuildContent() (string, error) {

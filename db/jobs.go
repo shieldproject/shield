@@ -16,12 +16,14 @@ type AnnotatedJob struct {
 	Expiry         int    `json:"expiry"`
 	ScheduleName   string `json:"schedule_name"`
 	ScheduleUUID   string `json:"schedule_uuid"`
-	Schedule       string `json:"schedule"`
+	ScheduleWhen   string `json:"schedule_when"`
 	Paused         bool   `json:"paused"`
 	StoreUUID      string `json:"store_uuid"`
+	StoreName      string `json:"store_name"`
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
 	TargetUUID     string `json:"target_uuid"`
+	TargetName     string `json:"target_name"`
 	TargetPlugin   string `json:"target_plugin"`
 	TargetEndpoint string `json:"target_endpoint"`
 	Agent          string `json:"agent"`
@@ -98,8 +100,8 @@ func (f *JobFilter) Query() string {
 		SELECT j.uuid, j.name, j.summary, j.paused,
 		       r.name, r.uuid, r.expiry,
 		       sc.name, sc.uuid, sc.timespec,
-		       s.uuid, s.plugin, s.endpoint,
-		       t.uuid, t.plugin, t.endpoint, t.agent
+		       s.uuid, s.name, s.plugin, s.endpoint,
+		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
@@ -126,9 +128,9 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 		if err = r.Scan(
 			&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
 			&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
-			&ann.ScheduleName, &ann.ScheduleUUID, &ann.Schedule,
-			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&ann.ScheduleName, &ann.ScheduleUUID, &ann.ScheduleWhen,
+			&ann.StoreUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+			&ann.TargetUUID, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Agent); err != nil {
 			return l, err
 		}
@@ -144,8 +146,8 @@ func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
 		SELECT j.uuid, j.name, j.summary, j.paused,
 		       r.name, r.uuid, r.expiry,
 		       sc.name, sc.uuid, sc.timespec,
-		       s.uuid, s.plugin, s.endpoint,
-		       t.uuid, t.plugin, t.endpoint, t.agent
+		       s.uuid, s.name, s.plugin, s.endpoint,
+		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
@@ -168,9 +170,9 @@ func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
 	if err = r.Scan(
 		&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
 		&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
-		&ann.ScheduleName, &ann.ScheduleUUID, &ann.Schedule,
-		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
-		&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&ann.ScheduleName, &ann.ScheduleUUID, &ann.ScheduleWhen,
+		&ann.StoreUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+		&ann.TargetUUID, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&ann.Agent); err != nil {
 		return nil, err
 	}
