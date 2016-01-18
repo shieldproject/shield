@@ -881,7 +881,13 @@ func main() {
 		DEBUG("  show paused?      %s", *opts.Paused)
 		DEBUG("  show unpaused?    %s", *opts.Unpaused)
 
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		jobs, err := GetJobs(JobFilter{
+			Name:      name,
 			Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
 			Target:    *opts.Target,
 			Store:     *opts.Store,
@@ -891,9 +897,9 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("\nERROR: Unexpected arguments following command: %v\n", err)
 		}
-		t := tui.NewTable("UUID", "P?", "Name", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
+		t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
 		for _, job := range jobs {
-			t.Row(job, job.UUID, BoolString(job.Paused), job.Name, job.Summary,
+			t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
 				job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
 		}
 		t.Output(os.Stdout)
@@ -905,8 +911,45 @@ func main() {
 	c.Dispatch("show job", func(opts Options, args []string) error {
 		DEBUG("running 'show job' command")
 
-		require(len(args) == 1, "shield show job <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			jobs, err := GetJobs(JobFilter{
+				Name:      name,
+				Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
+				Target:    *opts.Target,
+				Store:     *opts.Store,
+				Schedule:  *opts.Schedule,
+				Retention: *opts.Retention,
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(jobs) {
+			case 0:
+				fmt.Printf("no matching job found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(jobs[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
+				for _, job := range jobs {
+					t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
+						job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
+				}
+
+				want := tui.Menu("More than one job matched your search query", &t,
+					"Which job do you want?")
+				id = uuid.Parse(want.(Job).UUID)
+			}
+		}
 		DEBUG("  job UUID = '%s'", id)
 
 		job, err := GetJob(id)
@@ -915,28 +958,23 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", job.UUID)
 		t.Add("Name", job.Name)
 		t.Add("Paused", BoolString(job.Paused))
 		t.Break()
 
 		t.Add("Retention Policy", job.RetentionName)
-		t.Add("Retention UUID", job.RetentionUUID)
 		t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
 		t.Break()
 
 		t.Add("Schedule Policy", job.ScheduleName)
-		t.Add("Schedule UUID", job.ScheduleUUID)
 		t.Break()
 
 		t.Add("Target", job.TargetPlugin)
-		t.Add("Target UUID", job.TargetUUID)
 		t.Add("Target Endpoint", job.TargetEndpoint)
 		t.Add("SHIELD Agent", job.Agent)
 		t.Break()
 
 		t.Add("Store", job.StorePlugin)
-		t.Add("Store UUID", job.StoreUUID)
 		t.Add("Store Endpoint", job.StoreEndpoint)
 		t.Break()
 
