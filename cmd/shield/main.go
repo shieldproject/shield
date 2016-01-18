@@ -175,6 +175,10 @@ func main() {
 			return fmt.Errorf("ERROR: %s", err)
 		}
 
+		if !tui.Confirm("Really create this target?") {
+			return fmt.Errorf("Canceling...")
+		}
+
 		content, err := in.BuildContent()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
@@ -314,6 +318,10 @@ func main() {
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		if !tui.Confirm("Really create this schedule?") {
+			return fmt.Errorf("Canceling...")
 		}
 
 		content, err := in.BuildContent()
@@ -460,6 +468,10 @@ func main() {
 			return fmt.Errorf("ERROR: %s", err)
 		}
 		in.ConvertFieldValueToInteger("expires")
+
+		if !tui.Confirm("Really create this retention policy?") {
+			return fmt.Errorf("Canceling...")
+		}
 
 		content, err := in.BuildContent()
 		if err != nil {
@@ -615,6 +627,10 @@ func main() {
 		err := in.Show()
 		if err != nil {
 			return fmt.Errorf("ERROR: %s", err)
+		}
+
+		if !tui.Confirm("Really create this archive store?") {
+			return fmt.Errorf("Canceling...")
 		}
 
 		content, err := in.BuildContent()
@@ -796,6 +812,10 @@ func main() {
 			return fmt.Errorf("ERROR: %s", err)
 		}
 		in.ConvertFieldValueToBool("paused")
+
+		if !tui.Confirm("Really create this backup job?") {
+			return fmt.Errorf("Canceling...")
+		}
 
 		content, err := in.BuildContent()
 		if err != nil {
