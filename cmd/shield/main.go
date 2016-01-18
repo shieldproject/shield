@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pborman/getopt"
@@ -114,7 +115,12 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
 		targets, err := GetTargets(TargetFilter{
+			Name: name,
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -135,8 +141,41 @@ func main() {
 	c.Dispatch("show target", func(opts Options, args []string) error {
 		DEBUG("running 'show target' command")
 
-		require(len(args) == 1, "shield show target <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			targets, err := GetTargets(TargetFilter{
+				Name: name,
+				Plugin: *opts.Plugin,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(targets) {
+			case 0:
+				fmt.Printf("no matching target found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(targets[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Plugin", "Remote IP", "Configuration")
+				for _, target := range targets {
+					t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
+				}
+
+				want := tui.Menu("More than one target matched your search query", &t,
+					"Which target do you want?")
+				id = uuid.Parse(want.(Target).UUID)
+			}
+		}
 		DEBUG("  target UUID = '%s'", id)
 
 		target, err := GetTarget(id)
