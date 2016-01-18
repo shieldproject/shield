@@ -125,7 +125,7 @@ func main() {
 
 		t := tui.NewTable("UUID", "Target Name", "Summary", "Plugin", "Target Agent IP", "Endpoint")
 		for _, target := range targets {
-			t.Row(target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
+			t.Row(target, target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -276,7 +276,7 @@ func main() {
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Frequency / Interval (UTC)")
 		for _, schedule := range schedules {
-			t.Row(schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
+			t.Row(schedule, schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -419,7 +419,7 @@ func main() {
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Expires in")
 		for _, policy := range policies {
-			t.Row(policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+			t.Row(policy, policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -581,7 +581,7 @@ func main() {
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Plugin", "Endpoint")
 		for _, store := range stores {
-			t.Row(store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
+			t.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -739,7 +739,7 @@ func main() {
 		}
 		t := tui.NewTable("UUID", "P?", "Name", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
 		for _, job := range jobs {
-			t.Row(job.UUID, BoolString(job.Paused), job.Name, job.Summary,
+			t.Row(job, job.UUID, BoolString(job.Paused), job.Name, job.Summary,
 				job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
 		}
 		t.Output(os.Stdout)
@@ -989,7 +989,7 @@ func main() {
 				stopped = task.StoppedAt.Format(time.RFC1123Z)
 			}
 
-			t.Row(task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
+			t.Row(task, task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -1111,7 +1111,7 @@ func main() {
 				continue
 			}
 
-			t.Row(archive.UUID,
+			t.Row(archive, archive.UUID,
 				archive.TargetPlugin, target[archive.TargetUUID].Name, target[archive.TargetUUID].Agent,
 				archive.StorePlugin, store[archive.StoreUUID].Name,
 				archive.TakenAt.Format(time.RFC1123Z),
