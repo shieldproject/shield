@@ -138,6 +138,6 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.WriteHeader(415)
+	w.WriteHeader(501)
 	return
 }

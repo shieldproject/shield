@@ -25,8 +25,8 @@ var _ = Describe("HTTP Rest API", func() {
 		})
 
 		It("ignores requests not to /v1/status (sub-URIs)", func() {
-			NotFound(StatusAPI{}, "GET", "/v1/status/stuff", nil)
-			NotFound(StatusAPI{}, "OPTIONS", "/v1/status/OPTIONAL/STUFF", nil)
+			NotImplemented(StatusAPI{}, "GET", "/v1/status/stuff", nil)
+			NotImplemented(StatusAPI{}, "OPTIONS", "/v1/status/OPTIONAL/STUFF", nil)
 		})
 	})
 })

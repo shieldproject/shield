@@ -382,7 +382,7 @@ var _ = Describe("/v1/archives API", func() {
 
 	It("cannot create new archives", func() {
 		res := POST(API, "/v1/archives", WithJSON(`{}`))
-		Ω(res.Code).Should(Equal(415))
+		Ω(res.Code).Should(Equal(501))
 	})
 
 	It("can annotate archives", func() {
