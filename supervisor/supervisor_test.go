@@ -50,8 +50,8 @@ func NotImplemented(h http.Handler, method string, uri string, body io.Reader) {
 	res := httptest.NewRecorder()
 
 	h.ServeHTTP(res, req)
-	Ω(res.Code).Should(Equal(415),
-		fmt.Sprintf("%s %s should elicit HTTP 415 (Not Implemented) response...", method, uri))
+	Ω(res.Code).Should(Equal(501),
+		fmt.Sprintf("%s %s should elicit HTTP 501 (Not Implemented) response...", method, uri))
 	Ω(res.Body.String()).Should(Equal(""),
 		fmt.Sprintf("%s %s should have no HTTP Response Body...", method, uri))
 }

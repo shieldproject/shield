@@ -10,12 +10,8 @@ import (
 type StatusAPI struct{}
 
 func (p StatusAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if req.URL.Path != "/v1/status" {
-		w.WriteHeader(404)
-		return
-	}
-	if req.Method != "GET" {
-		w.WriteHeader(415)
+	if req.Method != "GET" || req.URL.Path != "/v1/status" {
+		w.WriteHeader(501)
 		return
 	}
 

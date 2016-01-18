@@ -26,8 +26,8 @@ var _ = Describe("HTTP Rest API", func() {
 		})
 
 		It("ignores requests not to /v1/ping (sub-URIs)", func() {
-			NotFound(PingAPI{}, "GET", "/v1/ping/stuff", nil)
-			NotFound(PingAPI{}, "OPTIONS", "/v1/ping/OPTIONAL/STUFF", nil)
+			NotImplemented(PingAPI{}, "GET", "/v1/ping/stuff", nil)
+			NotImplemented(PingAPI{}, "OPTIONS", "/v1/ping/OPTIONAL/STUFF", nil)
 		})
 	})
 })
