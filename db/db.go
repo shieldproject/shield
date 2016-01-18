@@ -79,6 +79,7 @@ func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
 		return err
 	}
 
+	log.Debugf("Parameters: %v", args)
 	_, err = s.Exec(args...)
 	if err != nil {
 		return err
@@ -94,6 +95,7 @@ func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) 
 		return nil, err
 	}
 
+	log.Debugf("Parameters: %v", args)
 	r, err := s.Query(args...)
 	if err != nil {
 		return nil, err
