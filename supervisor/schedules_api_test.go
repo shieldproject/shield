@@ -72,6 +72,19 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("should retrieve all schedules with matching names", func() {
+		res := GET(API, "/v1/schedules?name=daily")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "` + DAILY + `",
+					"name"    : "Daily Backups",
+					"summary" : "Use for daily (11-something-at-night) bosh-blobs",
+					"when"    : "daily at 11:24pm"
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
 	It("should retrieve only unused schedules for ?unused=t", func() {
 		res := GET(API, "/v1/schedules?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -95,6 +108,12 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 					"when"    : "sundays at 3:15am"
 				}
 			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should retrieve only unused weekly schedules for ?unused=t and ?name=weekly", func() {
+		res := GET(API, "/v1/schedules?unused=t&name=weekly")
+		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 		Ω(res.Code).Should(Equal(200))
 	})
 

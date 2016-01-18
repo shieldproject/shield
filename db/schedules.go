@@ -2,7 +2,10 @@ package db
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/pborman/uuid"
+
 	"github.com/starkandwayne/shield/timespec"
 )
 
@@ -16,14 +19,33 @@ type AnnotatedSchedule struct {
 type ScheduleFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
+
+	SearchName string
+}
+
+func (f *ScheduleFilter) Args() []interface{} {
+	var args []interface{}
+	if f.SearchName != "" {
+		args = append(args, Pattern(f.SearchName))
+	}
+	return args
 }
 
 func (f *ScheduleFilter) Query() string {
+	var wheres []string = []string{"s.uuid = s.uuid"}
+	n := 1
+
+	if f.SearchName != "" {
+		wheres = append(wheres, fmt.Sprintf("s.name LIKE $%d", n))
+		n++
+	}
+
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT uuid, name, summary, timespec, -1 AS n
-				FROM schedules
-				ORDER BY name, uuid ASC
+			SELECT s.uuid, s.name, s.summary, s.timespec, -1 AS n
+				FROM schedules s
+				WHERE ` + strings.Join(wheres, " AND ") + `
+				ORDER BY s.name, s.uuid ASC
 		`
 	}
 
@@ -39,6 +61,7 @@ func (f *ScheduleFilter) Query() string {
 			FROM schedules s
 				LEFT JOIN jobs j
 					ON j.schedule_uuid = s.uuid
+			WHERE ` + strings.Join(wheres, " AND ") + `
 			GROUP BY s.uuid
 			` + having + `
 			ORDER BY s.name, s.uuid ASC
@@ -47,7 +70,7 @@ func (f *ScheduleFilter) Query() string {
 
 func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSchedule, error) {
 	l := []*AnnotatedSchedule{}
-	r, err := db.Query(filter.Query())
+	r, err := db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err
 	}
