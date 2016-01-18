@@ -307,7 +307,14 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		schedules, err := GetSchedules(ScheduleFilter{
+			Name:   name,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 		if err != nil {
@@ -325,8 +332,40 @@ func main() {
 	c.Dispatch("show schedule", func(opts Options, args []string) error {
 		DEBUG("running 'show schedule' command")
 
-		require(len(args) == 1, "shield show schedule <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			schedules, err := GetSchedules(ScheduleFilter{
+				Name: name,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(schedules) {
+			case 0:
+				fmt.Printf("no matching schedule found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(schedules[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
+				for _, schedule := range schedules {
+					t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
+				}
+
+				want := tui.Menu("More than one schedule matched your search query", &t,
+					"Which schedule do you want?")
+				id = uuid.Parse(want.(Schedule).UUID)
+			}
+		}
 		DEBUG("  schedule UUID = '%s'", id)
 
 		schedule, err := GetSchedule(id)
@@ -335,7 +374,6 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", schedule.UUID)
 		t.Add("Name", schedule.Name)
 		t.Add("Summary", schedule.Summary)
 		t.Add("Timespec", schedule.When)
