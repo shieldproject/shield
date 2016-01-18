@@ -70,6 +70,19 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	It("should retrieve all retention policies matching the name 'short'", func() {
+		res := GET(API, "/v1/retention?name=short")
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "` + SHORT + `",
+					"name"    : "Short-Term Retention",
+					"summary" : "retain bosh-blobs for two weeks",
+					"expires" : 1209600
+				}
+			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
 	It("should retrieve only unused retention policies for ?unused=t", func() {
 		res := GET(API, "/v1/retention?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
@@ -80,6 +93,12 @@ var _ = Describe("HTTP API /v1/retention", func() {
 					"expires" : 7776000
 				}
 			]`))
+		Ω(res.Code).Should(Equal(200))
+	})
+
+	It("should retrieve only unused retention policies named 'short' for ?unused=t and ?name=short", func() {
+		res := GET(API, "/v1/retention?unused=t&name=short")
+		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 		Ω(res.Code).Should(Equal(200))
 	})
 
