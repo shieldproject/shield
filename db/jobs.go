@@ -31,6 +31,8 @@ type JobFilter struct {
 	SkipPaused   bool
 	SkipUnpaused bool
 
+	SearchName string
+
 	ForTarget    string
 	ForStore     string
 	ForSchedule  string
@@ -39,6 +41,9 @@ type JobFilter struct {
 
 func (f *JobFilter) Args() []interface{} {
 	var args []interface{}
+	if f.SearchName != "" {
+		args = append(args, Pattern(f.SearchName))
+	}
 	if f.ForTarget != "" {
 		args = append(args, f.ForTarget)
 	}
@@ -64,6 +69,10 @@ func (f *JobFilter) Args() []interface{} {
 func (f *JobFilter) Query() string {
 	var wheres []string = []string{"j.uuid = j.uuid"}
 	n := 1
+	if f.SearchName != "" {
+		wheres = append(wheres, fmt.Sprintf("j.name LIKE $%d", n))
+		n++
+	}
 	if f.ForTarget != "" {
 		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
 		n++
