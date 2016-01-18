@@ -83,7 +83,7 @@ func main() {
 	         ##    ##    #########    ##    ##     ##       ##
 	   ##    ##    ##    ##     ##    ##    ##     ## ##    ##
 	    ######     ##    ##     ##    ##     #######   ######
-	 */
+	*/
 
 	c.Dispatch("status", func(opts Options, args []string) error {
 		status, err := GetStatus()
@@ -120,7 +120,7 @@ func main() {
 			name = strings.Join(args, " ")
 		}
 		targets, err := GetTargets(TargetFilter{
-			Name: name,
+			Name:   name,
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -150,7 +150,7 @@ func main() {
 		if id == nil {
 			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
 			targets, err := GetTargets(TargetFilter{
-				Name: name,
+				Name:   name,
 				Plugin: *opts.Plugin,
 				Unused: MaybeBools(*opts.Unused, *opts.Used),
 			})
@@ -341,7 +341,7 @@ func main() {
 		if id == nil {
 			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
 			schedules, err := GetSchedules(ScheduleFilter{
-				Name: name,
+				Name:   name,
 				Unused: MaybeBools(*opts.Unused, *opts.Used),
 			})
 			if err != nil {
@@ -649,7 +649,14 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
+		name := ""
+
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
 		stores, err := GetStores(StoreFilter{
+			Name:   name,
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
@@ -668,8 +675,42 @@ func main() {
 	c.Dispatch("show store", func(opts Options, args []string) error {
 		DEBUG("running 'show store' command")
 
-		require(len(args) == 1, "shield show store <UUID>")
-		id := uuid.Parse(args[0])
+		name := ""
+		if len(args) > 0 {
+			name = strings.Join(args, " ")
+		}
+
+		id := uuid.Parse(name)
+		if id == nil {
+			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
+			stores, err := GetStores(StoreFilter{
+				Name:   name,
+				Plugin: *opts.Plugin,
+				Unused: MaybeBools(*opts.Unused, *opts.Used),
+			})
+			if err != nil {
+				return err
+			}
+
+			switch len(stores) {
+			case 0:
+				fmt.Printf("no matching store found\n")
+				return nil
+			case 1:
+				id = uuid.Parse(stores[0].UUID)
+
+			default:
+				t := tui.NewTable("Name", "Summary", "Plugin", "Endpoint")
+				for _, store := range stores {
+					t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
+				}
+
+				want := tui.Menu("More than one target matched your search query", &t,
+					"Which target do you want?")
+				id = uuid.Parse(want.(Store).UUID)
+			}
+		}
+
 		DEBUG("  store UUID = '%s'", id)
 
 		store, err := GetStore(id)
@@ -678,7 +719,6 @@ func main() {
 		}
 
 		t := tui.NewReport()
-		t.Add("UUID", store.UUID)
 		t.Add("Name", store.Name)
 		t.Add("Summary", store.Summary)
 		t.Break()
