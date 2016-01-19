@@ -179,15 +179,7 @@ func main() {
 			return RawJSON(target)
 		}
 
-		t := tui.NewReport()
-		t.Add("Name", target.Name)
-		t.Add("Summary", target.Summary)
-		t.Break()
-
-		t.Add("Plugin", target.Plugin)
-		t.Add("Configuration", target.Endpoint)
-		t.Add("Remote IP", target.Agent)
-		t.Output(os.Stdout)
+		ShowTarget(target)
 		return nil
 	})
 	c.Alias("view target", "show target")
@@ -299,16 +291,7 @@ func main() {
 		}
 
 		if !*opts.Raw {
-			t := tui.NewReport()
-			t.Add("Name", target.Name)
-			t.Add("Summary", target.Summary)
-			t.Break()
-
-			t.Add("Plugin", target.Plugin)
-			t.Add("Configuration", target.Endpoint)
-			t.Add("Remote IP", target.Agent)
-			t.Output(os.Stdout)
-
+			ShowTarget(target)
 			if !tui.Confirm("Really delete this target?") {
 				return fmt.Errorf("Cancelling...")
 			}
@@ -372,11 +355,7 @@ func main() {
 			return RawJSON(schedule)
 		}
 
-		t := tui.NewReport()
-		t.Add("Name", schedule.Name)
-		t.Add("Summary", schedule.Summary)
-		t.Add("Timespec", schedule.When)
-		t.Output(os.Stdout)
+		ShowSchedule(schedule)
 		return nil
 	})
 	c.Alias("view schedule", "show schedule")
@@ -484,12 +463,7 @@ func main() {
 		}
 
 		if !*opts.Raw {
-			t := tui.NewReport()
-			t.Add("Name", schedule.Name)
-			t.Add("Summary", schedule.Summary)
-			t.Add("Timespec", schedule.When)
-			t.Output(os.Stdout)
-
+			ShowSchedule(schedule)
 			if !tui.Confirm("Really delete this schedule?") {
 				return fmt.Errorf("Cancelling...")
 			}
@@ -555,11 +529,7 @@ func main() {
 			return RawJSON(policy)
 		}
 
-		t := tui.NewReport()
-		t.Add("Name", policy.Name)
-		t.Add("Summary", policy.Summary)
-		t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
-		t.Output(os.Stdout)
+		ShowRetentionPolicy(policy)
 		return nil
 	})
 	c.Alias("view retention policy", "show retention policy")
@@ -677,12 +647,7 @@ func main() {
 		}
 
 		if !*opts.Raw {
-			t := tui.NewReport()
-			t.Add("Name", policy.Name)
-			t.Add("Summary", policy.Summary)
-			t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
-			t.Output(os.Stdout)
-
+			ShowRetentionPolicy(policy)
 			if !tui.Confirm("Really delete this retention policy?") {
 				return fmt.Errorf("Cancelling...")
 			}
@@ -751,14 +716,7 @@ func main() {
 			return RawJSON(store)
 		}
 
-		t := tui.NewReport()
-		t.Add("Name", store.Name)
-		t.Add("Summary", store.Summary)
-		t.Break()
-
-		t.Add("Plugin", store.Plugin)
-		t.Add("Configuration", store.Endpoint)
-		t.Output(os.Stdout)
+		ShowStore(store)
 		return nil
 	})
 	c.Alias("view store", "show store")
@@ -870,15 +828,7 @@ func main() {
 		}
 
 		if !*opts.Raw {
-			t := tui.NewReport()
-			t.Add("Name", store.Name)
-			t.Add("Summary", store.Summary)
-			t.Break()
-
-			t.Add("Plugin", store.Plugin)
-			t.Add("Configuration", store.Endpoint)
-			t.Output(os.Stdout)
-
+			ShowStore(store)
 			if !tui.Confirm("Really delete this store?") {
 				return fmt.Errorf("Cancelling...")
 			}
@@ -952,30 +902,7 @@ func main() {
 			return RawJSON(job)
 		}
 
-		t := tui.NewReport()
-		t.Add("Name", job.Name)
-		t.Add("Paused", BoolString(job.Paused))
-		t.Break()
-
-		t.Add("Retention Policy", job.RetentionName)
-		t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
-		t.Break()
-
-		t.Add("Schedule Policy", job.ScheduleName)
-		t.Break()
-
-		t.Add("Target", job.TargetPlugin)
-		t.Add("Target Endpoint", job.TargetEndpoint)
-		t.Add("Remote IP", job.Agent)
-		t.Break()
-
-		t.Add("Store", job.StorePlugin)
-		t.Add("Store Endpoint", job.StoreEndpoint)
-		t.Break()
-
-		t.Add("Notes", job.Summary)
-
-		t.Output(os.Stdout)
+		ShowJob(job)
 		return nil
 	})
 	c.Alias("view job", "show job")
@@ -1098,31 +1025,7 @@ func main() {
 		}
 
 		if !*opts.Raw {
-			t := tui.NewReport()
-			t.Add("Name", job.Name)
-			t.Add("Paused", BoolString(job.Paused))
-			t.Break()
-
-			t.Add("Retention Policy", job.RetentionName)
-			t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
-			t.Break()
-
-			t.Add("Schedule Policy", job.ScheduleName)
-			t.Break()
-
-			t.Add("Target", job.TargetPlugin)
-			t.Add("Target Endpoint", job.TargetEndpoint)
-			t.Add("Remote IP", job.Agent)
-			t.Break()
-
-			t.Add("Store", job.StorePlugin)
-			t.Add("Store Endpoint", job.StoreEndpoint)
-			t.Break()
-
-			t.Add("Notes", job.Summary)
-
-			t.Output(os.Stdout)
-
+			ShowJob(job)
 			if !tui.Confirm("Really delete this backup job?") {
 				return fmt.Errorf("Cancelling...")
 			}
@@ -1256,31 +1159,7 @@ func main() {
 			return RawJSON(task)
 		}
 
-		t := tui.NewReport()
-		t.Add("UUID", task.UUID)
-		t.Add("Owner", task.Owner)
-		t.Add("Type", task.Op)
-		t.Add("Status", task.Status)
-		t.Break()
-
-		started := "(pending)"
-		if !task.StartedAt.IsZero() {
-			started = task.StartedAt.Format(time.RFC1123Z)
-		}
-		stopped := "(running)"
-		if !task.StoppedAt.IsZero() {
-			stopped = task.StoppedAt.Format(time.RFC1123Z)
-		}
-		t.Add("Started at", started)
-		t.Add("Stopped at", stopped)
-		t.Break()
-
-		t.Add("Job UUID", task.JobUUID)
-		t.Add("Archive UUID", task.ArchiveUUID)
-		t.Break()
-
-		t.Add("Log", task.Log)
-		t.Output(os.Stdout)
+		ShowTask(task)
 		return nil
 	})
 	c.Alias("view task", "show task")
@@ -1295,8 +1174,19 @@ func main() {
 		id := uuid.Parse(args[0])
 		DEBUG("  task UUID = '%s'", id)
 
-		err := CancelTask(id)
+		task, err := GetTask(id)
 		if err != nil {
+			return err
+		}
+
+		if !*opts.Raw {
+			ShowTask(task)
+			if !tui.Confirm("Really cancel this task?") {
+				return fmt.Errorf("Cancelling...")
+			}
+		}
+
+		if err := CancelTask(id); err != nil {
 			return err
 		}
 
@@ -1393,18 +1283,7 @@ func main() {
 			return RawJSON(archive)
 		}
 
-		t := tui.NewReport()
-		t.Add("UUID", archive.UUID)
-		t.Add("Backup Key", archive.StoreKey)
-		t.Add("Target", fmt.Sprintf("%s %s", archive.TargetPlugin, archive.TargetEndpoint))
-		t.Add("Store", fmt.Sprintf("%s %s", archive.StorePlugin, archive.StoreEndpoint))
-		t.Break()
-
-		t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))
-		t.Add("Expires at", archive.ExpiresAt.Format(time.RFC1123Z))
-		t.Add("Notes", archive.Notes)
-
-		t.Output(os.Stdout)
+		ShowArchive(archive)
 		return nil
 	})
 	c.Alias("view archive", "show archive")
@@ -1448,19 +1327,7 @@ func main() {
 		}
 
 		if !*opts.Raw {
-			t := tui.NewReport()
-			t.Add("UUID", archive.UUID)
-			t.Add("Backup Key", archive.StoreKey)
-			t.Add("Target", fmt.Sprintf("%s %s", archive.TargetPlugin, archive.TargetEndpoint))
-			t.Add("Store", fmt.Sprintf("%s %s", archive.StorePlugin, archive.StoreEndpoint))
-			t.Break()
-
-			t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))
-			t.Add("Expires at", archive.ExpiresAt.Format(time.RFC1123Z))
-			t.Add("Notes", archive.Notes)
-
-			t.Output(os.Stdout)
-
+			ShowArchive(archive)
 			if !tui.Confirm("Really delete this archive?") {
 				return fmt.Errorf("Cancelling...")
 			}
