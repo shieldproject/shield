@@ -16,3 +16,6 @@
 
 # where we keep coverage reports...
 /coverage
+
+# secrets
+/ci/credentials.yml

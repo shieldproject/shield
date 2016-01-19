@@ -1,0 +1,47 @@
+---
+meta:
+  credentials:
+    github:
+      private_key: (( param "You must specify a private key for accessing the Github repo" ))
+  hooks:
+    slack: (( param "You must specify a web hook URL for Slack integration" ))
+
+jobs:
+  - name: testflight
+    public: true
+    serial: true
+    plan:
+      - do:
+        - aggregate:
+          - { get: shield, resource: shield.git, trigger: true }
+        - task: tests
+          config:
+            platform: linux
+            image:    docker:///starkandwayne/concourse-go#1.5
+            inputs:
+              - { name: shield, path: gopath/src/github.com/starkandwayne/shield }
+            run:
+              path: gopath/src/github.com/starkandwayne/shield/ci/scripts/tests
+              args: []
+          on_failure:
+            put: slack
+            params:
+              text: ":sadpanda: <!here>, looks like the unit tests for SHIELD failed: https://ci.starkandwayne.com/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
+              channel: "#shield"
+              username: concourse
+              icon_url: http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png
+
+
+resources:
+  - name: shield.git
+    type: git
+    source:
+      uri: git@github.com:starkandwayne/shield
+      branch: master
+      private_key: (( grab meta.credentials.github.private_key ))
+
+  - name: slack
+    type: slack-notification
+    source:
+      url: (( grab meta.hooks.slack ))
+

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+TARGET=${TARGET:-sw}
+PIPELINE=${PIPELINE:-shield}
+
+cd $(dirname $BASH_SOURCE[0])
+echo "Working in $(pwd)"
+
+if [[ ! -f credentials.yml ]]; then
+	echo >&2 "credentials.yml not found.  Did you forget to create it?"
+	exit 1
+fi
+
+spruce merge --prune meta \
+	pipeline.yml credentials.yml > .live.yml
+trap "rm -f .live.yml" EXIT TERM QUIT INT
+
+set -e
+fly --target ${TARGET} set-pipeline     --pipeline ${PIPELINE} --config .live.yml
+fly --target ${TARGET} unpause-pipeline --pipeline ${PIPELINE}
