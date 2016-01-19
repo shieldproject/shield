@@ -43,7 +43,7 @@ func FindStore(search string, strict bool) (Store, uuid.UUID, error) {
 		}
 		want := tui.Menu(
 			fmt.Sprintf("More than one archive store matched your search for '%s':", search),
-			&t, "Which archive store do you wanh?")
+			&t, "Which archive store do you want?")
 		return want.(Store), uuid.Parse(want.(Store).UUID), nil
 	}
 }
