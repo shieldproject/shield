@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pborman/uuid"
 
@@ -10,9 +9,7 @@ import (
 	"github.com/starkandwayne/shield/tui"
 )
 
-func FindStore(s ...string) (Store, uuid.UUID, error) {
-	search := strings.Join(s, " ")
-
+func FindStore(search string, strict bool) (Store, uuid.UUID, error) {
 	id := uuid.Parse(search)
 	if id != nil {
 		s, err := GetStore(id)
@@ -26,7 +23,7 @@ func FindStore(s ...string) (Store, uuid.UUID, error) {
 		Name: search,
 	})
 	if err != nil {
-		return Store{}, nil, fmt.Errorf("Failed to retrieve list of archive stores from SHIELD: %s", err)
+		return Store{}, nil, fmt.Errorf("Failed to retrieve list of archive stores: %s", err)
 	}
 
 	switch len(stores) {
@@ -37,6 +34,9 @@ func FindStore(s ...string) (Store, uuid.UUID, error) {
 		return stores[0], uuid.Parse(stores[0].UUID), nil
 
 	default:
+		if strict {
+			return Store{}, nil, fmt.Errorf("more than one matching archive store found")
+		}
 		t := tui.NewTable("Name", "Summary", "Plugin", "Configuration")
 		for _, store := range stores {
 			t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
@@ -48,9 +48,7 @@ func FindStore(s ...string) (Store, uuid.UUID, error) {
 	}
 }
 
-func FindTarget(s ...string) (Target, uuid.UUID, error) {
-	search := strings.Join(s, " ")
-
+func FindTarget(search string, strict bool) (Target, uuid.UUID, error) {
 	id := uuid.Parse(search)
 	if id != nil {
 		want, err := GetTarget(id)
@@ -64,7 +62,7 @@ func FindTarget(s ...string) (Target, uuid.UUID, error) {
 		Name: search,
 	})
 	if err != nil {
-		return Target{}, nil, fmt.Errorf("Failed to retrieve list of backup targets from SHIELD: %s", err)
+		return Target{}, nil, fmt.Errorf("Failed to retrieve list of backup targets: %s", err)
 	}
 	switch len(targets) {
 	case 0:
@@ -74,6 +72,9 @@ func FindTarget(s ...string) (Target, uuid.UUID, error) {
 		return targets[0], uuid.Parse(targets[0].UUID), nil
 
 	default:
+		if strict {
+			return Target{}, nil, fmt.Errorf("more than one matching backup target found")
+		}
 		t := tui.NewTable("Name", "Summary", "Plugin", "Configuration")
 		for _, target := range targets {
 			t.Row(target, target.Name, target.Summary, target.Plugin, target.Endpoint)
@@ -85,9 +86,7 @@ func FindTarget(s ...string) (Target, uuid.UUID, error) {
 	}
 }
 
-func FindRetentionPolicy(s ...string) (RetentionPolicy, uuid.UUID, error) {
-	search := strings.Join(s, " ")
-
+func FindRetentionPolicy(search string, strict bool) (RetentionPolicy, uuid.UUID, error) {
 	id := uuid.Parse(search)
 	if id != nil {
 		want, err := GetRetentionPolicy(id)
@@ -101,7 +100,7 @@ func FindRetentionPolicy(s ...string) (RetentionPolicy, uuid.UUID, error) {
 		Name: search,
 	})
 	if err != nil {
-		return RetentionPolicy{}, nil, fmt.Errorf("Failed to retrieve list of retention policies from SHIELD: %s", err)
+		return RetentionPolicy{}, nil, fmt.Errorf("Failed to retrieve list of retention policies: %s", err)
 	}
 	switch len(policies) {
 	case 0:
@@ -111,6 +110,9 @@ func FindRetentionPolicy(s ...string) (RetentionPolicy, uuid.UUID, error) {
 		return policies[0], uuid.Parse(policies[0].UUID), nil
 
 	default:
+		if strict {
+			return RetentionPolicy{}, nil, fmt.Errorf("more than one matching retention policies found")
+		}
 		t := tui.NewTable("Name", "Summary", "Expires in")
 		for _, policy := range policies {
 			t.Row(policy, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
@@ -122,9 +124,7 @@ func FindRetentionPolicy(s ...string) (RetentionPolicy, uuid.UUID, error) {
 	}
 }
 
-func FindSchedule(s ...string) (Schedule, uuid.UUID, error) {
-	search := strings.Join(s, " ")
-
+func FindSchedule(search string, strict bool) (Schedule, uuid.UUID, error) {
 	id := uuid.Parse(search)
 	if id != nil {
 		want, err := GetSchedule(id)
@@ -138,7 +138,7 @@ func FindSchedule(s ...string) (Schedule, uuid.UUID, error) {
 		Name: search,
 	})
 	if err != nil {
-		return Schedule{}, nil, fmt.Errorf("Failed to retrieve list of backup schedules from SHIELD: %s", err)
+		return Schedule{}, nil, fmt.Errorf("Failed to retrieve list of backup schedules: %s", err)
 	}
 	switch len(schedules) {
 	case 0:
@@ -148,6 +148,9 @@ func FindSchedule(s ...string) (Schedule, uuid.UUID, error) {
 		return schedules[0], uuid.Parse(schedules[0].UUID), nil
 
 	default:
+		if strict {
+			return Schedule{}, nil, fmt.Errorf("more than one matching backup schedule found")
+		}
 		t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
 		for _, schedule := range schedules {
 			t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
@@ -159,9 +162,7 @@ func FindSchedule(s ...string) (Schedule, uuid.UUID, error) {
 	}
 }
 
-func FindJob(s ...string) (Job, uuid.UUID, error) {
-	search := strings.Join(s, " ")
-
+func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 	id := uuid.Parse(search)
 	if id != nil {
 		want, err := GetJob(id)
@@ -175,7 +176,7 @@ func FindJob(s ...string) (Job, uuid.UUID, error) {
 		Name: search,
 	})
 	if err != nil {
-		return Job{}, nil, fmt.Errorf("Failed to retrieve list of jobs from SHIELD: %s", err)
+		return Job{}, nil, fmt.Errorf("Failed to retrieve list of jobs: %s", err)
 	}
 	switch len(jobs) {
 	case 0:
@@ -185,6 +186,9 @@ func FindJob(s ...string) (Job, uuid.UUID, error) {
 		return jobs[0], uuid.Parse(jobs[0].UUID), nil
 
 	default:
+		if strict {
+			return Job{}, nil, fmt.Errorf("more than one matching job found")
+		}
 		t := tui.NewTable("Name", "Summary", "Target", "Store", "Schedule")
 		for _, job := range jobs {
 			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.ScheduleWhen)

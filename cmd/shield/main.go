@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -20,6 +22,11 @@ func require(good bool, msg string) {
 	}
 }
 
+func readall(in io.Reader) (string, error) {
+	b, err := ioutil.ReadAll(in)
+	return string(b), err
+}
+
 var (
 	debug = false
 )
@@ -35,6 +42,7 @@ func main() {
 
 		Debug: getopt.BoolLong("debug", 'D', "Enable debugging"),
 		Trace: getopt.BoolLong("trace", 'T', "Enable trace mode"),
+		Raw:   getopt.BoolLong("raw", 0, "Operate in RAW mode, reading and writing only JSON"),
 
 		Status:    getopt.StringLong("status", 'S', "", "Only show archives/tasks with the given status"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
@@ -45,6 +53,20 @@ func main() {
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
 		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
+	}
+
+	OK := func(f string, l ...interface{}) {
+		if *options.Raw {
+			RawJSON(map[string]string{"ok": fmt.Sprintf(f, l...)})
+			return
+		}
+		fmt.Printf(f+"\n", l...)
+	}
+
+	MSG := func(f string, l ...interface{}) {
+		if !*options.Raw {
+			fmt.Printf("\n"+f+"\n", l...)
+		}
 	}
 
 	var command []string
@@ -91,6 +113,13 @@ func main() {
 			return err
 		}
 
+		if *opts.Raw {
+			return RawJSON(map[string]string{
+				"name":    status.Name,
+				"version": status.Version,
+			})
+		}
+
 		t := tui.NewReport()
 		t.Add("Name", status.Name)
 		t.Add("Version", status.Version)
@@ -125,9 +154,13 @@ func main() {
 			return err
 		}
 
-		t := tui.NewTable("UUID", "Target Name", "Summary", "Plugin", "Target Agent IP", "Endpoint")
+		if *opts.Raw {
+			return RawJSON(targets)
+		}
+
+		t := tui.NewTable("Target Name", "Summary", "Plugin", "Target Agent IP", "Endpoint")
 		for _, target := range targets {
-			t.Row(target, target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
+			t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -137,13 +170,16 @@ func main() {
 	c.Dispatch("show target", func(opts Options, args []string) error {
 		DEBUG("running 'show target' command")
 
-		target, _, err := FindTarget(args...)
+		target, _, err := FindTarget(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 
+		if *opts.Raw {
+			return RawJSON(target)
+		}
+
 		t := tui.NewReport()
-		t.Add("UUID", target.UUID)
 		t.Add("Name", target.Name)
 		t.Add("Summary", target.Summary)
 		t.Break()
@@ -162,24 +198,34 @@ func main() {
 	c.Dispatch("create target", func(opts Options, args []string) error {
 		DEBUG("running 'create target' command")
 
-		in := tui.NewForm()
-		in.NewField("Target name", "name", "", "", tui.FieldIsRequired)
-		in.NewField("Target summary", "summary", "", "", tui.FieldIsOptional)
-		in.NewField("Target plugin", "plugin", "", "", tui.FieldIsRequired)
-		in.NewField("Target endpoint", "endpoint", "", "", tui.FieldIsRequired)
-		in.NewField("Target agent", "agent", "", "", tui.FieldIsRequired)
-		err := in.Show()
-		if err != nil {
-			return err
-		}
+		var err error
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		if !tui.Confirm("Really create this target?") {
-			return fmt.Errorf("Canceling...")
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Target name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Target summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Target plugin", "plugin", "", "", tui.FieldIsRequired)
+			in.NewField("Target endpoint", "endpoint", "", "", tui.FieldIsRequired)
+			in.NewField("Target agent", "agent", "", "", tui.FieldIsRequired)
+			err := in.Show()
+			if err != nil {
+				return err
+			}
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if !tui.Confirm("Really create this target?") {
+				return fmt.Errorf("Canceling...")
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -188,7 +234,7 @@ func main() {
 			return err
 		}
 
-		fmt.Printf("Created new target.\n")
+		MSG("Created new target")
 		return c.Execute("show", "target", t.UUID)
 	})
 	c.Alias("new target", "create target")
@@ -199,25 +245,34 @@ func main() {
 	c.Dispatch("edit target", func(opts Options, args []string) error {
 		DEBUG("running 'edit target' command")
 
-		t, id, err := FindTarget(args...)
+		t, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 
-		in := tui.NewForm()
-		in.NewField("Target name", "name", t.Name, "", tui.FieldIsRequired)
-		in.NewField("Target summary", "summary", t.Summary, "", tui.FieldIsOptional)
-		in.NewField("Target plugin", "plugin", t.Plugin, "", tui.FieldIsRequired)
-		in.NewField("Target endpoint", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
-		in.NewField("Target agent", "agent", t.Agent, "", tui.FieldIsRequired)
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		if err := in.Show(); err != nil {
-			return err
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Target name", "name", t.Name, "", tui.FieldIsRequired)
+			in.NewField("Target summary", "summary", t.Summary, "", tui.FieldIsOptional)
+			in.NewField("Target plugin", "plugin", t.Plugin, "", tui.FieldIsRequired)
+			in.NewField("Target endpoint", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
+			in.NewField("Target agent", "agent", t.Agent, "", tui.FieldIsRequired)
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if err := in.Show(); err != nil {
+				return err
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -225,7 +280,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Updated target.\n")
+
+		MSG("Updated target")
 		return c.Execute("show", "target", t.UUID)
 	})
 	c.Alias("update target", "edit target")
@@ -233,14 +289,15 @@ func main() {
 	c.Dispatch("delete target", func(opts Options, args []string) error {
 		DEBUG("running 'delete target' command")
 
-		_, id, err := FindTarget(args...)
+		_, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 		if err := DeleteTarget(id); err != nil {
 			return err
 		}
-		fmt.Printf("Deleted target '%s'\n", id)
+
+		OK("Deleted target")
 		return nil
 	})
 	c.Alias("remove target", "delete target")
@@ -268,9 +325,14 @@ func main() {
 		if err != nil {
 			return err
 		}
-		t := tui.NewTable("UUID", "Name", "Summary", "Frequency / Interval (UTC)")
+
+		if *opts.Raw {
+			return RawJSON(schedules)
+		}
+
+		t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
 		for _, schedule := range schedules {
-			t.Row(schedule, schedule.UUID, schedule.Name, schedule.Summary, schedule.When)
+			t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -280,9 +342,13 @@ func main() {
 	c.Dispatch("show schedule", func(opts Options, args []string) error {
 		DEBUG("running 'show schedule' command")
 
-		schedule, _, err := FindSchedule(args...)
+		schedule, _, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
+		}
+
+		if *opts.Raw {
+			return RawJSON(schedule)
 		}
 
 		t := tui.NewReport()
@@ -300,22 +366,32 @@ func main() {
 	c.Dispatch("create schedule", func(opts Options, args []string) error {
 		DEBUG("running 'create schedule' command")
 
-		in := tui.NewForm()
-		in.NewField("Schedule name", "name", "", "", tui.FieldIsRequired)
-		in.NewField("Schedule summary", "summary", "", "", tui.FieldIsOptional)
-		in.NewField("When to run schedule (eg daily at 4:00)", "when", "", "", tui.FieldIsRequired)
+		var err error
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		if err := in.Show(); err != nil {
-			return err
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Schedule name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Schedule summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("When to run schedule (eg daily at 4:00)", "when", "", "", tui.FieldIsRequired)
 
-		if !tui.Confirm("Really create this schedule?") {
-			return fmt.Errorf("Canceling...")
-		}
+			if err := in.Show(); err != nil {
+				return err
+			}
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if !tui.Confirm("Really create this schedule?") {
+				return fmt.Errorf("Canceling...")
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -324,7 +400,7 @@ func main() {
 			return err
 		}
 
-		fmt.Printf("Created new schedule.\n")
+		MSG("Created new schedule")
 		return c.Execute("show", "schedule", s.UUID)
 	})
 	c.Alias("new schedule", "create schedule")
@@ -335,23 +411,32 @@ func main() {
 	c.Dispatch("edit schedule", func(opts Options, args []string) error {
 		DEBUG("running 'edit schedule' command")
 
-		s, id, err := FindSchedule(args...)
+		s, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 
-		in := tui.NewForm()
-		in.NewField("Schedule name", "name", s.Name, "", tui.FieldIsRequired)
-		in.NewField("Schedule summary", "summary", s.Summary, "", tui.FieldIsOptional)
-		in.NewField("When to run schedule (eg daily at 4:00)", "when", s.When, "", tui.FieldIsRequired)
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		if err = in.Show(); err != nil {
-			return err
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Schedule name", "name", s.Name, "", tui.FieldIsRequired)
+			in.NewField("Schedule summary", "summary", s.Summary, "", tui.FieldIsOptional)
+			in.NewField("When to run schedule (eg daily at 4:00)", "when", s.When, "", tui.FieldIsRequired)
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if err = in.Show(); err != nil {
+				return err
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -359,7 +444,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Updated schedule.\n")
+
+		MSG("Updated schedule")
 		return c.Execute("show", "schedule", s.UUID)
 	})
 	c.Alias("update schedule", "edit schedule")
@@ -367,7 +453,7 @@ func main() {
 	c.Dispatch("delete schedule", func(opts Options, args []string) error {
 		DEBUG("running 'delete schedule' command")
 
-		_, id, err := FindSchedule(args...)
+		_, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
@@ -376,7 +462,7 @@ func main() {
 			return err
 		}
 
-		fmt.Printf("Deleted schedule '%s'\n", id)
+		OK("Deleted schedule")
 		return nil
 	})
 	c.Alias("remove schedule", "delete schedule")
@@ -404,9 +490,14 @@ func main() {
 		if err != nil {
 			return err
 		}
-		t := tui.NewTable("UUID", "Name", "Summary", "Expires in")
+
+		if *opts.Raw {
+			return RawJSON(policies)
+		}
+
+		t := tui.NewTable("Name", "Summary", "Expires in")
 		for _, policy := range policies {
-			t.Row(policy, policy.UUID, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
+			t.Row(policy, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -418,9 +509,13 @@ func main() {
 	c.Dispatch("show retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'show retention policy' command")
 
-		policy, _, err := FindRetentionPolicy(args...)
+		policy, _, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
+		}
+
+		if *opts.Raw {
+			return RawJSON(policy)
 		}
 
 		t := tui.NewReport()
@@ -441,22 +536,32 @@ func main() {
 	c.Dispatch("create retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'create retention policy' command")
 
-		in := tui.NewForm()
-		in.NewField("Policy name", "name", "", "", tui.FieldIsRequired)
-		in.NewField("Policy summary", "summary", "", "", tui.FieldIsOptional)
-		in.NewField("Retention Timeframe (in days)", "expires", "", "", FieldIsRetentionTimeframe)
+		var err error
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		if err := in.Show(); err != nil {
-			return err
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Policy name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Policy summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Retention Timeframe (in days)", "expires", "", "", FieldIsRetentionTimeframe)
 
-		if !tui.Confirm("Really create this retention policy?") {
-			return fmt.Errorf("Canceling...")
-		}
+			if err := in.Show(); err != nil {
+				return err
+			}
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if !tui.Confirm("Really create this retention policy?") {
+				return fmt.Errorf("Canceling...")
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -465,7 +570,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Created new retention policy.\n")
+
+		MSG("Created new retention policy")
 		return c.Execute("show", "retention", "policy", p.UUID)
 	})
 	c.Alias("new retention policy", "create retention policy")
@@ -480,23 +586,32 @@ func main() {
 	c.Dispatch("edit retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'edit retention policy' command")
 
-		p, id, err := FindRetentionPolicy(args...)
+		p, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 
-		in := tui.NewForm()
-		in.NewField("Policy name", "name", p.Name, "", tui.FieldIsRequired)
-		in.NewField("Policy summary", "summary", p.Summary, "", tui.FieldIsOptional)
-		in.NewField("Retention Timeframe", "expires", p.Expires, fmt.Sprintf("%dd", p.Expires / 86400), FieldIsRetentionTimeframe)
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		if err = in.Show(); err != nil {
-			return err
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Policy name", "name", p.Name, "", tui.FieldIsRequired)
+			in.NewField("Policy summary", "summary", p.Summary, "", tui.FieldIsOptional)
+			in.NewField("Retention Timeframe", "expires", p.Expires, fmt.Sprintf("%dd", p.Expires/86400), FieldIsRetentionTimeframe)
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if err = in.Show(); err != nil {
+				return err
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -504,7 +619,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Updated policy.\n")
+
+		MSG("Updated retention policy")
 		return c.Execute("show", "retention", "policy", p.UUID)
 	})
 	c.Alias("update retention policy", "edit retention policy")
@@ -514,7 +630,7 @@ func main() {
 	c.Dispatch("delete retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'delete retention policy' command")
 
-		_, id, err := FindRetentionPolicy(args...)
+		_, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
@@ -522,7 +638,8 @@ func main() {
 		if err := DeleteRetentionPolicy(id); err != nil {
 			return err
 		}
-		fmt.Printf("Deleted retention policy '%s'\n", id)
+
+		OK("Deleted retention policy")
 		return nil
 	})
 	c.Alias("remove retention policy", "delete retention policy")
@@ -555,9 +672,14 @@ func main() {
 		if err != nil {
 			return err
 		}
-		t := tui.NewTable("UUID", "Name", "Summary", "Plugin", "Endpoint")
+
+		if *opts.Raw {
+			return RawJSON(stores)
+		}
+
+		t := tui.NewTable("Name", "Summary", "Plugin", "Endpoint")
 		for _, store := range stores {
-			t.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Endpoint)
+			t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -567,9 +689,13 @@ func main() {
 	c.Dispatch("show store", func(opts Options, args []string) error {
 		DEBUG("running 'show store' command")
 
-		store, _, err := FindStore(args...)
+		store, _, err := FindStore(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
+		}
+
+		if *opts.Raw {
+			return RawJSON(store)
 		}
 
 		t := tui.NewReport()
@@ -590,23 +716,33 @@ func main() {
 	c.Dispatch("create store", func(opts Options, args []string) error {
 		DEBUG("running 'create store' command")
 
-		in := tui.NewForm()
-		in.NewField("Store name", "name", "", "", tui.FieldIsRequired)
-		in.NewField("Store summary", "summary", "", "", tui.FieldIsOptional)
-		in.NewField("Plugin name", "plugin", "", "", tui.FieldIsRequired)
-		in.NewField("Endpoint (JSON)", "endpoint", "", "", tui.FieldIsRequired)
+		var err error
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		if err := in.Show(); err != nil {
-			return err
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Store name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Store summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Plugin name", "plugin", "", "", tui.FieldIsRequired)
+			in.NewField("Endpoint (JSON)", "endpoint", "", "", tui.FieldIsRequired)
 
-		if !tui.Confirm("Really create this archive store?") {
-			return fmt.Errorf("Canceling...")
-		}
+			if err := in.Show(); err != nil {
+				return err
+			}
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if !tui.Confirm("Really create this archive store?") {
+				return fmt.Errorf("Canceling...")
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -615,8 +751,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Created new store.\n")
 
+		MSG("Created new store")
 		return c.Execute("show", "store", s.UUID)
 	})
 	c.Alias("new store", "create store")
@@ -627,25 +763,34 @@ func main() {
 	c.Dispatch("edit store", func(opts Options, args []string) error {
 		DEBUG("running 'edit store' command")
 
-		s, id, err := FindStore(args...)
+		s, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 
-		in := tui.NewForm()
-		in.NewField("Store name", "name", s.Name, "", tui.FieldIsRequired)
-		in.NewField("Store summary", "summary", s.Summary, "", tui.FieldIsOptional)
-		in.NewField("Plugin name", "plugin", s.Plugin, "", tui.FieldIsRequired)
-		in.NewField("Endpoint (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		err = in.Show()
-		if err != nil {
-			return err
-		}
+		} else {
+			in := tui.NewForm()
+			in.NewField("Store name", "name", s.Name, "", tui.FieldIsRequired)
+			in.NewField("Store summary", "summary", s.Summary, "", tui.FieldIsOptional)
+			in.NewField("Plugin name", "plugin", s.Plugin, "", tui.FieldIsRequired)
+			in.NewField("Endpoint (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			err = in.Show()
+			if err != nil {
+				return err
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -653,7 +798,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Updated store.\n")
+
+		MSG("Updated store")
 		return c.Execute("show", "store", s.UUID)
 	})
 	c.Alias("update store", "edit store")
@@ -661,7 +807,7 @@ func main() {
 	c.Dispatch("delete store", func(opts Options, args []string) error {
 		DEBUG("running 'delete store' command")
 
-		_, id, err := FindStore(args...)
+		_, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
@@ -669,7 +815,8 @@ func main() {
 		if err := DeleteStore(id); err != nil {
 			return err
 		}
-		fmt.Printf("Deleted store '%s'\n", id)
+
+		OK("Deleted store")
 		return nil
 	})
 	c.Alias("remove store", "delete store")
@@ -705,6 +852,11 @@ func main() {
 		if err != nil {
 			return err
 		}
+
+		if *opts.Raw {
+			return RawJSON(jobs)
+		}
+
 		t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
 		for _, job := range jobs {
 			t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
@@ -719,9 +871,13 @@ func main() {
 	c.Dispatch("show job", func(opts Options, args []string) error {
 		DEBUG("running 'show job' command")
 
-		job, _, err := FindJob(args...)
+		job, _, err := FindJob(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return nil
+		}
+
+		if *opts.Raw {
+			return RawJSON(job)
 		}
 
 		t := tui.NewReport()
@@ -758,28 +914,38 @@ func main() {
 	c.Dispatch("create job", func(opts Options, args []string) error {
 		DEBUG("running 'create job' command")
 
-		in := tui.NewForm()
-		in.NewField("Job name", "name", "", "", tui.FieldIsRequired)
-		in.NewField("Job summary", "summary", "", "", tui.FieldIsOptional)
+		var err error
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
 
-		in.NewField("Store", "store", "", "", FieldIsStoreUUID)
-		in.NewField("Target", "target", "", "", FieldIsTargetUUID)
-		in.NewField("Retention Policy", "retention", "", "", FieldIsRetentionPolicyUUID)
-		in.NewField("Schedule", "schedule", "", "", FieldIsScheduleUUID)
+		} else {
+			in := tui.NewForm()
+			in.NewField("Job name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Job summary", "summary", "", "", tui.FieldIsOptional)
 
-		in.NewField("Paused? [Y/n]", "paused", "yes", "", tui.FieldIsBoolean)
-		err := in.Show()
-		if err != nil {
-			return err
-		}
+			in.NewField("Store", "store", "", "", FieldIsStoreUUID)
+			in.NewField("Target", "target", "", "", FieldIsTargetUUID)
+			in.NewField("Retention Policy", "retention", "", "", FieldIsRetentionPolicyUUID)
+			in.NewField("Schedule", "schedule", "", "", FieldIsScheduleUUID)
 
-		if !tui.Confirm("Really create this backup job?") {
-			return fmt.Errorf("Canceling...")
-		}
+			in.NewField("Paused? [Y/n]", "paused", "yes", "", tui.FieldIsBoolean)
+			err := in.Show()
+			if err != nil {
+				return err
+			}
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+			if !tui.Confirm("Really create this backup job?") {
+				return fmt.Errorf("Canceling...")
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -788,6 +954,7 @@ func main() {
 			return err
 		}
 
+		MSG("Created new job")
 		return c.Execute("show", "job", job.UUID)
 	})
 	c.Alias("new job", "create job")
@@ -798,32 +965,42 @@ func main() {
 	c.Dispatch("edit job", func(opts Options, args []string) error {
 		DEBUG("running 'edit job' command")
 
-		j, id, err := FindJob(args...)
-		if err != nil {
-			return err
-		}
-		paused := "no"
-		if j.Paused {
-			paused = "yes"
-		}
-
-		in := tui.NewForm()
-		in.NewField("Job name", "name", j.Name, "", tui.FieldIsRequired)
-		in.NewField("Job summary", "summary", j.Summary, "", tui.FieldIsOptional)
-		in.NewField("Store", "store", j.StoreUUID, j.StoreName, FieldIsStoreUUID)
-		in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
-		in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry / 86400), FieldIsRetentionPolicyUUID)
-		in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
-
-		in.NewField("Should the job be paused? (Y/n)", "paused", paused, "", tui.FieldIsBoolean)
-		err = in.Show()
+		j, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 
-		content, err := in.BuildContent()
-		if err != nil {
-			return err
+		var content string
+		if *opts.Raw {
+			content, err = readall(os.Stdin)
+			if err != nil {
+				return err
+			}
+
+		} else {
+
+			paused := "no"
+			if j.Paused {
+				paused = "yes"
+			}
+			in := tui.NewForm()
+			in.NewField("Job name", "name", j.Name, "", tui.FieldIsRequired)
+			in.NewField("Job summary", "summary", j.Summary, "", tui.FieldIsOptional)
+			in.NewField("Store", "store", j.StoreUUID, j.StoreName, FieldIsStoreUUID)
+			in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
+			in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry/86400), FieldIsRetentionPolicyUUID)
+			in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
+
+			in.NewField("Should the job be paused? (Y/n)", "paused", paused, "", tui.FieldIsBoolean)
+			err = in.Show()
+			if err != nil {
+				return err
+			}
+
+			content, err = in.BuildContent()
+			if err != nil {
+				return err
+			}
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
@@ -832,7 +1009,7 @@ func main() {
 			return err
 		}
 
-		fmt.Printf("Updated job.\n")
+		MSG("Updated job")
 		return c.Execute("show", "job", j.UUID)
 	})
 	c.Alias("update job", "edit job")
@@ -840,14 +1017,15 @@ func main() {
 	c.Dispatch("delete job", func(opts Options, args []string) error {
 		DEBUG("running 'delete job' command")
 
-		_, id, err := FindJob(args...)
+		_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 		if err := DeleteJob(id); err != nil {
 			return err
 		}
-		fmt.Printf("Deleted job '%s'\n", id)
+
+		OK("Deleted job")
 		return nil
 	})
 	c.Alias("remove job", "delete job")
@@ -856,35 +1034,36 @@ func main() {
 	c.Dispatch("pause job", func(opts Options, args []string) error {
 		DEBUG("running 'pause job' command")
 
-		_, id, err := FindJob(args...)
+		_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 		if err := PauseJob(id); err != nil {
 			return err
 		}
-		fmt.Printf("Paused job\n")
+
 		return nil
 	})
 
 	c.Dispatch("unpause job", func(opts Options, args []string) error {
 		DEBUG("running 'unpause job' command")
 
-		_, id, err := FindJob(args...)
+		_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
 		if err := UnpauseJob(id); err != nil {
 			return err
 		}
-		fmt.Printf("Unpaused job\n")
+
+		OK("Unpaused job")
 		return nil
 	})
 
 	c.Dispatch("run job", func(opts Options, args []string) error {
 		DEBUG("running 'run job' command")
 
-		_, id, err := FindJob(args...)
+		_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
@@ -892,7 +1071,8 @@ func main() {
 			os.Getenv("USER"), os.Getenv("HOSTNAME"))); err != nil {
 			return err
 		}
-		fmt.Printf("Scheduled immediate run of job\n")
+
+		OK("Scheduled immediate run of job")
 		return nil
 	})
 
@@ -924,13 +1104,17 @@ func main() {
 			return err
 		}
 
+		if *opts.Raw {
+			return RawJSON(tasks)
+		}
+
 		job := map[string]Job{}
 		jobs, _ := GetJobs(JobFilter{})
 		for _, j := range jobs {
 			job[j.UUID] = j
 		}
 
-		t := tui.NewTable("UUID", "Owner", "Type", "Target Agent IP", "Status", "Started", "Stopped")
+		t := tui.NewTable("Owner", "Type", "Target Agent IP", "Status", "Started", "Stopped")
 		for _, task := range tasks {
 			started := "(pending)"
 			if !task.StartedAt.IsZero() {
@@ -942,7 +1126,7 @@ func main() {
 				stopped = task.StoppedAt.Format(time.RFC1123Z)
 			}
 
-			t.Row(task, task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
+			t.Row(task, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -961,8 +1145,11 @@ func main() {
 			return err
 		}
 
+		if *opts.Raw {
+			return RawJSON(task)
+		}
+
 		t := tui.NewReport()
-		t.Add("UUID", task.UUID)
 		t.Add("Owner", task.Owner)
 		t.Add("Type", task.Op)
 		t.Add("Status", task.Status)
@@ -1004,7 +1191,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Successfully cancelled task '%s'\n", id)
+
+		OK("Cancelled task '%s'\n", id)
 		return nil
 	})
 	c.Alias("stop task", "cancel task")
@@ -1041,6 +1229,10 @@ func main() {
 			return err
 		}
 
+		if *opts.Raw {
+			return RawJSON(archives)
+		}
+
 		// Map out the target names, for prettier output
 		target := map[string]Target{}
 		targets, _ := GetTargets(TargetFilter{})
@@ -1055,7 +1247,7 @@ func main() {
 			store[s.UUID] = s
 		}
 
-		t := tui.NewTable("UUID", "Target Type", "Target Name", "Target Agent IP", "Store Type", "Store Name", "Taken at", "Expires at", "Status", "Notes")
+		t := tui.NewTable("Target Type", "Target Name", "Target Agent IP", "Store Type", "Store Name", "Taken at", "Expires at", "Status", "Notes")
 		for _, archive := range archives {
 			if *opts.Target != "" && archive.TargetUUID != *opts.Target {
 				continue
@@ -1064,7 +1256,7 @@ func main() {
 				continue
 			}
 
-			t.Row(archive, archive.UUID,
+			t.Row(archive,
 				archive.TargetPlugin, target[archive.TargetUUID].Name, target[archive.TargetUUID].Agent,
 				archive.StorePlugin, store[archive.StoreUUID].Name,
 				archive.TakenAt.Format(time.RFC1123Z),
@@ -1088,8 +1280,11 @@ func main() {
 			return err
 		}
 
+		if *opts.Raw {
+			return RawJSON(archive)
+		}
+
 		t := tui.NewReport()
-		t.Add("UUID", archive.UUID)
 		t.Add("Backup Key", archive.StoreKey)
 		t.Break()
 
@@ -1133,7 +1328,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Restoring archive '%s' %s\n", id, toTargetJSONmsg)
+
+		OK("Scheduled immedate restore of archive '%s' %s", id, toTargetJSONmsg)
 		return nil
 	})
 
@@ -1148,7 +1344,8 @@ func main() {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Deleted archive '%s'\n", id)
+
+		OK("Deleted archive")
 		return nil
 	})
 	c.Alias("remove archive", "delete archive")
@@ -1157,7 +1354,11 @@ func main() {
 	/**************************************************************************/
 
 	if err := c.Execute(command...); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		if *options.Raw {
+			_ = RawJSON(map[string]string{"error": err.Error()})
+		} else {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
 		os.Exit(1)
 	} else {
 		os.Exit(0)

@@ -6,7 +6,7 @@ import (
 )
 
 func FieldIsStoreUUID(name string, value string) (interface{}, error) {
-	o, _, err := FindStore(value)
+	o, _, err := FindStore(value, false)
 	if err != nil {
 		return nil, err
 	}
@@ -14,7 +14,7 @@ func FieldIsStoreUUID(name string, value string) (interface{}, error) {
 }
 
 func FieldIsTargetUUID(name string, value string) (interface{}, error) {
-	o, _, err := FindTarget(value)
+	o, _, err := FindTarget(value, false)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func FieldIsTargetUUID(name string, value string) (interface{}, error) {
 }
 
 func FieldIsRetentionPolicyUUID(name string, value string) (interface{}, error) {
-	o, _, err := FindRetentionPolicy(value)
+	o, _, err := FindRetentionPolicy(value, false)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func FieldIsRetentionPolicyUUID(name string, value string) (interface{}, error) 
 }
 
 func FieldIsScheduleUUID(name string, value string) (interface{}, error) {
-	o, _, err := FindSchedule(value)
+	o, _, err := FindSchedule(value, false)
 	if err != nil {
 		return nil, err
 	}
