@@ -80,8 +80,8 @@ func FindTarget(search string, strict bool) (Target, uuid.UUID, error) {
 			t.Row(target, target.Name, target.Summary, target.Plugin, target.Endpoint)
 		}
 		want := tui.Menu(
-			fmt.Sprintf("More than one backup target matched your search query of '%s':", search),
-			&t, "Which backup target do you want to use for this backup job?")
+			fmt.Sprintf("More than one backup target matched your search for '%s':", search),
+			&t, "Which backup target do you want?")
 		return want.(Target), uuid.Parse(want.(Target).UUID), nil
 	}
 }
@@ -118,8 +118,8 @@ func FindRetentionPolicy(search string, strict bool) (RetentionPolicy, uuid.UUID
 			t.Row(policy, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
 		}
 		want := tui.Menu(
-			fmt.Sprintf("More than one retention policy matched your search query of '%s':", search),
-			&t, "Which retention policy do you want to use for this backup job?")
+			fmt.Sprintf("More than one retention policy matched your search for '%s':", search),
+			&t, "Which retention policy do you want?")
 		return want.(RetentionPolicy), uuid.Parse(want.(RetentionPolicy).UUID), nil
 	}
 }
@@ -156,8 +156,8 @@ func FindSchedule(search string, strict bool) (Schedule, uuid.UUID, error) {
 			t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
 		}
 		want := tui.Menu(
-			fmt.Sprintf("More than one backup schedule matched your search query of '%s':", search),
-			&t, "Which backup schedule do you want to use for this backup job?")
+			fmt.Sprintf("More than one backup schedule matched your search for '%s':", search),
+			&t, "Which backup schedule do you want?")
 		return want.(Schedule), uuid.Parse(want.(Schedule).UUID), nil
 	}
 }
@@ -194,8 +194,8 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.ScheduleWhen)
 		}
 		want := tui.Menu(
-			fmt.Sprintf("More than one job matched your search query of '%s':", search),
-			&t, "Which job do you want?")
+			fmt.Sprintf("More than one job matched your search for '%s':", search),
+			&t, "Which backup job do you want?")
 		return want.(Job), uuid.Parse(want.(Job).UUID), nil
 	}
 }
