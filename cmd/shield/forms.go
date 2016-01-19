@@ -11,36 +11,11 @@ import (
 )
 
 func FieldIsStoreUUID(name string, value string) (interface{}, error) {
-	id := uuid.Parse(value)
-	if id != nil {
-		want, err := GetStore(id)
-		if err != nil {
-			return nil, err
-		}
-		return want.UUID, nil
-	}
-
-	stores, err := GetStores(StoreFilter{
-		Name: value,
-	})
+	s, _, err := FindStore(value)
 	if err != nil {
-		return value, fmt.Errorf("Failed to retrieve list of archive stores from SHIELD: %s", err)
+		return nil, err
 	}
-	switch len(stores) {
-	case 0:
-		return value, fmt.Errorf("no matching archive stores found")
-	case 1:
-		return stores[0].UUID, nil
-	default:
-		t := tui.NewTable("Name", "Summary", "Plugin", "Configuration")
-		for _, store := range stores {
-			t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
-		}
-		want := tui.Menu(
-			fmt.Sprintf("More than one archive store matched your search query of '%s':", value),
-			&t, "Which archive store do you want to use for this backup job?")
-		return want.(Store).UUID, nil
-	}
+	return s.UUID, nil
 }
 
 func FieldIsTargetUUID(name string, value string) (interface{}, error) {

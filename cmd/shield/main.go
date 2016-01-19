@@ -684,12 +684,7 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
-		name := ""
-
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
+		name := strings.Join(args, " ")
 		stores, err := GetStores(StoreFilter{
 			Name:   name,
 			Plugin: *opts.Plugin,
@@ -710,45 +705,7 @@ func main() {
 	c.Dispatch("show store", func(opts Options, args []string) error {
 		DEBUG("running 'show store' command")
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
-		id := uuid.Parse(name)
-		if id == nil {
-			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
-			stores, err := GetStores(StoreFilter{
-				Name:   name,
-				Plugin: *opts.Plugin,
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
-			})
-			if err != nil {
-				return err
-			}
-
-			switch len(stores) {
-			case 0:
-				fmt.Printf("no matching store found\n")
-				return nil
-			case 1:
-				id = uuid.Parse(stores[0].UUID)
-
-			default:
-				t := tui.NewTable("Name", "Summary", "Plugin", "Endpoint")
-				for _, store := range stores {
-					t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
-				}
-
-				want := tui.Menu("More than one store matched your search query", &t,
-					"Which store do you want?")
-				id = uuid.Parse(want.(Store).UUID)
-			}
-		}
-
-		DEBUG("  store UUID = '%s'", id)
-
-		store, err := GetStore(id)
+		store, _, err := FindStore(args...)
 		if err != nil {
 			return err
 		}
@@ -808,13 +765,9 @@ func main() {
 	c.Dispatch("edit store", func(opts Options, args []string) error {
 		DEBUG("running 'edit store' command")
 
-		require(len(args) == 1, "shield delete store <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  store UUID = '%s'", id)
-
-		s, err := GetStore(id)
+		s, id, err := FindStore(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot retrieve store '%s': %s", id, err)
+			return err
 		}
 
 		in := tui.NewForm()
@@ -822,21 +775,21 @@ func main() {
 		in.NewField("Store summary", "summary", s.Summary, "", tui.FieldIsOptional)
 		in.NewField("Plugin name", "plugin", s.Plugin, "", tui.FieldIsRequired)
 		in.NewField("Endpoint (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
-		in.Show()
+
 		err = in.Show()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		s, err = UpdateStore(id, content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot update store '%s': %s", id, err)
+			return err
 		}
 		fmt.Printf("Updated store.\n")
 		return c.Execute("show", "store", s.UUID)
@@ -846,12 +799,12 @@ func main() {
 	c.Dispatch("delete store", func(opts Options, args []string) error {
 		DEBUG("running 'delete store' command")
 
-		require(len(args) == 1, "shield delete store <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  store UUID = '%s'", id)
-
-		err := DeleteStore(id)
+		_, id, err := FindStore(args...)
 		if err != nil {
+			return err
+		}
+
+		if err := DeleteStore(id); err != nil {
 			return fmt.Errorf("ERROR: Cannot delete store '%s': %s", id, err)
 		}
 		fmt.Printf("Deleted store '%s'\n", id)
