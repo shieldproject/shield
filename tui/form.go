@@ -88,6 +88,19 @@ func (f *Form) Show() error {
 	return nil
 }
 
+func (f *Form) Confirm(prompt string) bool {
+	r := NewReport()
+	for _, field := range f.Fields {
+		r.Add(field.Label, fmt.Sprintf("%v", field.Value))
+	}
+
+	fmt.Printf("\n\n")
+	r.Output(os.Stdout)
+	fmt.Printf("\n\n")
+
+	return Confirm(prompt)
+}
+
 func FieldIsRequired(name string, value string) (interface{}, error) {
 	if len(value) < 1 {
 		return value, fmt.Errorf("Field %s is a required field.\n", name)

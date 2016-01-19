@@ -218,7 +218,7 @@ func main() {
 				return err
 			}
 
-			if !tui.Confirm("Really create this target?") {
+			if !in.Confirm("Really create this target?") {
 				return fmt.Errorf("Canceling...")
 			}
 
@@ -267,6 +267,10 @@ func main() {
 
 			if err := in.Show(); err != nil {
 				return err
+			}
+
+			if !in.Confirm("Save these changes?") {
+				return fmt.Errorf("Canceling...")
 			}
 
 			content, err = in.BuildContent()
@@ -384,7 +388,7 @@ func main() {
 				return err
 			}
 
-			if !tui.Confirm("Really create this schedule?") {
+			if !in.Confirm("Really create this schedule?") {
 				return fmt.Errorf("Canceling...")
 			}
 
@@ -431,6 +435,10 @@ func main() {
 
 			if err = in.Show(); err != nil {
 				return err
+			}
+
+			if !in.Confirm("Save these changes?") {
+				return fmt.Errorf("Canceling...")
 			}
 
 			content, err = in.BuildContent()
@@ -554,7 +562,7 @@ func main() {
 				return err
 			}
 
-			if !tui.Confirm("Really create this retention policy?") {
+			if !in.Confirm("Really create this retention policy?") {
 				return fmt.Errorf("Canceling...")
 			}
 
@@ -606,6 +614,10 @@ func main() {
 
 			if err = in.Show(); err != nil {
 				return err
+			}
+
+			if !in.Confirm("Save these changes?") {
+				return fmt.Errorf("Canceling...")
 			}
 
 			content, err = in.BuildContent()
@@ -735,7 +747,7 @@ func main() {
 				return err
 			}
 
-			if !tui.Confirm("Really create this archive store?") {
+			if !in.Confirm("Really create this archive store?") {
 				return fmt.Errorf("Canceling...")
 			}
 
@@ -785,6 +797,10 @@ func main() {
 			err = in.Show()
 			if err != nil {
 				return err
+			}
+
+			if !in.Confirm("Save these changes?") {
+				return fmt.Errorf("Canceling...")
 			}
 
 			content, err = in.BuildContent()
@@ -938,7 +954,7 @@ func main() {
 				return err
 			}
 
-			if !tui.Confirm("Really create this backup job?") {
+			if !in.Confirm("Really create this backup job?") {
 				return fmt.Errorf("Canceling...")
 			}
 
@@ -990,11 +1006,14 @@ func main() {
 			in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
 			in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry/86400), FieldIsRetentionPolicyUUID)
 			in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
-
 			in.NewField("Paused?", "paused", paused, "", tui.FieldIsBoolean)
-			err = in.Show()
-			if err != nil {
+
+			if err = in.Show(); err != nil {
 				return err
+			}
+
+			if !in.Confirm("Save these changes?") {
+				return fmt.Errorf("Canceling...")
 			}
 
 			content, err = in.BuildContent()
