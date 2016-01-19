@@ -2,19 +2,20 @@ package tui
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
+
+	"github.com/jhunt/ansi"
 )
 
 func Confirm(prompt string) bool {
 	in := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf("%s", Yellow(fmt.Sprintf("%s [y/n] ", prompt)))
+		ansi.Printf("@Y{%s [y/n]} ", prompt)
 		v, err := in.ReadString('\n')
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed: %s\n", err)
+			ansi.Fprintf(os.Stderr, "failed: @R{%s}\n", err)
 			return false
 		}
 

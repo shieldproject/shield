@@ -6,22 +6,17 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "github.com/fatih/color",
-			"Comment": "v0.1-12-g9aae6aa",
-			"Rev": "9aae6aaa22315390f03959adca2c4d395b02fcef"
-		},
-		{
 			"ImportPath": "github.com/fsouza/go-dockerclient",
 			"Rev": "d750ee8aff39bca4ccf0b362db4f04510145d678"
+		},
+		{
+			"ImportPath": "github.com/jhunt/ansi",
+			"Rev": "9aaf89a789f0b58bef35c13d4e0e4c4c62759364"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
 			"Comment": "go1.0-cutoff-59-gb269bd0",
 			"Rev": "b269bd035a727d6c1081f76e7a239a1b00674c40"
-		},
-		{
-			"ImportPath": "github.com/mattn/go-colorable",
-			"Rev": "3dac7b4f76f6e17fb39b768b89e3783d16e237fe"
 		},
 		{
 			"ImportPath": "github.com/mattn/go-isatty",

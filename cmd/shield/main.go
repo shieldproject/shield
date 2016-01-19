@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhunt/ansi"
 	"github.com/pborman/getopt"
 	"github.com/pborman/uuid"
 
@@ -60,12 +61,12 @@ func main() {
 			RawJSON(map[string]string{"ok": fmt.Sprintf(f, l...)})
 			return
 		}
-		fmt.Printf("%s\n", tui.Green(fmt.Sprintf(f, l...)))
+		ansi.Printf("@G{%s}\n", fmt.Sprintf(f, l...))
 	}
 
 	MSG := func(f string, l ...interface{}) {
 		if !*options.Raw {
-			fmt.Printf("\n%s\n", tui.Green(fmt.Sprintf(f, l...)))
+			ansi.Printf("\n@G{%s}\n", fmt.Sprintf(f, l...))
 		}
 	}
 
@@ -1349,7 +1350,7 @@ func main() {
 		if *options.Raw {
 			_ = RawJSON(map[string]string{"error": err.Error()})
 		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", tui.Red(err))
+			ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
 		}
 		os.Exit(1)
 	} else {
