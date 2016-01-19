@@ -158,7 +158,7 @@ func main() {
 			return RawJSON(targets)
 		}
 
-		t := tui.NewTable("Target Name", "Summary", "Plugin", "Target Agent IP", "Endpoint")
+		t := tui.NewTable("Name", "Summary", "Plugin", "Remote IP", "Configuration")
 		for _, target := range targets {
 			t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
 		}
@@ -185,8 +185,8 @@ func main() {
 		t.Break()
 
 		t.Add("Plugin", target.Plugin)
-		t.Add("Endpoint", target.Endpoint)
-		t.Add("SHIELD Agent", target.Agent)
+		t.Add("Configuration", target.Endpoint)
+		t.Add("Remote IP", target.Agent)
 		t.Output(os.Stdout)
 		return nil
 	})
@@ -208,11 +208,11 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Target name", "name", "", "", tui.FieldIsRequired)
-			in.NewField("Target summary", "summary", "", "", tui.FieldIsOptional)
-			in.NewField("Target plugin", "plugin", "", "", tui.FieldIsRequired)
-			in.NewField("Target endpoint", "endpoint", "", "", tui.FieldIsRequired)
-			in.NewField("Target agent", "agent", "", "", tui.FieldIsRequired)
+			in.NewField("Target Name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Plugin Name", "plugin", "", "", tui.FieldIsRequired)
+			in.NewField("Configuration", "endpoint", "", "", tui.FieldIsRequired)
+			in.NewField("Remote IP:port", "agent", "", "", tui.FieldIsRequired)
 			err := in.Show()
 			if err != nil {
 				return err
@@ -259,11 +259,11 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Target name", "name", t.Name, "", tui.FieldIsRequired)
-			in.NewField("Target summary", "summary", t.Summary, "", tui.FieldIsOptional)
-			in.NewField("Target plugin", "plugin", t.Plugin, "", tui.FieldIsRequired)
-			in.NewField("Target endpoint", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
-			in.NewField("Target agent", "agent", t.Agent, "", tui.FieldIsRequired)
+			in.NewField("Target Name", "name", t.Name, "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", t.Summary, "", tui.FieldIsOptional)
+			in.NewField("Plugin Name", "plugin", t.Plugin, "", tui.FieldIsRequired)
+			in.NewField("Configuration", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
+			in.NewField("Remote IP:port", "agent", t.Agent, "", tui.FieldIsRequired)
 
 			if err := in.Show(); err != nil {
 				return err
@@ -376,9 +376,9 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Schedule name", "name", "", "", tui.FieldIsRequired)
-			in.NewField("Schedule summary", "summary", "", "", tui.FieldIsOptional)
-			in.NewField("When to run schedule (eg daily at 4:00)", "when", "", "", tui.FieldIsRequired)
+			in.NewField("Schedule Name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Time Spec (i.e. 'daily 4am')", "when", "", "", tui.FieldIsRequired)
 
 			if err := in.Show(); err != nil {
 				return err
@@ -425,9 +425,9 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Schedule name", "name", s.Name, "", tui.FieldIsRequired)
-			in.NewField("Schedule summary", "summary", s.Summary, "", tui.FieldIsOptional)
-			in.NewField("When to run schedule (eg daily at 4:00)", "when", s.When, "", tui.FieldIsRequired)
+			in.NewField("Schedule Name", "name", s.Name, "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", s.Summary, "", tui.FieldIsOptional)
+			in.NewField("Time Spec (i.e. 'daily 4am')", "when", s.When, "", tui.FieldIsRequired)
 
 			if err = in.Show(); err != nil {
 				return err
@@ -546,9 +546,9 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Policy name", "name", "", "", tui.FieldIsRequired)
-			in.NewField("Policy summary", "summary", "", "", tui.FieldIsOptional)
-			in.NewField("Retention Timeframe (in days)", "expires", "", "", FieldIsRetentionTimeframe)
+			in.NewField("Policy Name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Retention Timeframe, in days", "expires", "", "", FieldIsRetentionTimeframe)
 
 			if err := in.Show(); err != nil {
 				return err
@@ -600,8 +600,8 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Policy name", "name", p.Name, "", tui.FieldIsRequired)
-			in.NewField("Policy summary", "summary", p.Summary, "", tui.FieldIsOptional)
+			in.NewField("Policy Name", "name", p.Name, "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", p.Summary, "", tui.FieldIsOptional)
 			in.NewField("Retention Timeframe", "expires", p.Expires, fmt.Sprintf("%dd", p.Expires/86400), FieldIsRetentionTimeframe)
 
 			if err = in.Show(); err != nil {
@@ -677,7 +677,7 @@ func main() {
 			return RawJSON(stores)
 		}
 
-		t := tui.NewTable("Name", "Summary", "Plugin", "Endpoint")
+		t := tui.NewTable("Name", "Summary", "Plugin", "Configuration")
 		for _, store := range stores {
 			t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
 		}
@@ -704,7 +704,7 @@ func main() {
 		t.Break()
 
 		t.Add("Plugin", store.Plugin)
-		t.Add("Endpoint", store.Endpoint)
+		t.Add("Configuration", store.Endpoint)
 		t.Output(os.Stdout)
 		return nil
 	})
@@ -726,10 +726,10 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Store name", "name", "", "", tui.FieldIsRequired)
-			in.NewField("Store summary", "summary", "", "", tui.FieldIsOptional)
-			in.NewField("Plugin name", "plugin", "", "", tui.FieldIsRequired)
-			in.NewField("Endpoint (JSON)", "endpoint", "", "", tui.FieldIsRequired)
+			in.NewField("Store Name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Plugin Name", "plugin", "", "", tui.FieldIsRequired)
+			in.NewField("Configuration (JSON)", "endpoint", "", "", tui.FieldIsRequired)
 
 			if err := in.Show(); err != nil {
 				return err
@@ -777,10 +777,10 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Store name", "name", s.Name, "", tui.FieldIsRequired)
-			in.NewField("Store summary", "summary", s.Summary, "", tui.FieldIsOptional)
-			in.NewField("Plugin name", "plugin", s.Plugin, "", tui.FieldIsRequired)
-			in.NewField("Endpoint (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
+			in.NewField("Store Name", "name", s.Name, "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", s.Summary, "", tui.FieldIsOptional)
+			in.NewField("Plugin Name", "plugin", s.Plugin, "", tui.FieldIsRequired)
+			in.NewField("Configuration (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
 
 			err = in.Show()
 			if err != nil {
@@ -857,7 +857,7 @@ func main() {
 			return RawJSON(jobs)
 		}
 
-		t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
+		t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Remote IP", "Target")
 		for _, job := range jobs {
 			t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
 				job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
@@ -894,7 +894,7 @@ func main() {
 
 		t.Add("Target", job.TargetPlugin)
 		t.Add("Target Endpoint", job.TargetEndpoint)
-		t.Add("SHIELD Agent", job.Agent)
+		t.Add("Remote IP", job.Agent)
 		t.Break()
 
 		t.Add("Store", job.StorePlugin)
@@ -924,15 +924,15 @@ func main() {
 
 		} else {
 			in := tui.NewForm()
-			in.NewField("Job name", "name", "", "", tui.FieldIsRequired)
-			in.NewField("Job summary", "summary", "", "", tui.FieldIsOptional)
+			in.NewField("Job Name", "name", "", "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
 
 			in.NewField("Store", "store", "", "", FieldIsStoreUUID)
 			in.NewField("Target", "target", "", "", FieldIsTargetUUID)
 			in.NewField("Retention Policy", "retention", "", "", FieldIsRetentionPolicyUUID)
 			in.NewField("Schedule", "schedule", "", "", FieldIsScheduleUUID)
 
-			in.NewField("Paused? [Y/n]", "paused", "yes", "", tui.FieldIsBoolean)
+			in.NewField("Paused?", "paused", "yes", "", tui.FieldIsBoolean)
 			err := in.Show()
 			if err != nil {
 				return err
@@ -984,14 +984,14 @@ func main() {
 				paused = "yes"
 			}
 			in := tui.NewForm()
-			in.NewField("Job name", "name", j.Name, "", tui.FieldIsRequired)
-			in.NewField("Job summary", "summary", j.Summary, "", tui.FieldIsOptional)
+			in.NewField("Job Name", "name", j.Name, "", tui.FieldIsRequired)
+			in.NewField("Summary", "summary", j.Summary, "", tui.FieldIsOptional)
 			in.NewField("Store", "store", j.StoreUUID, j.StoreName, FieldIsStoreUUID)
 			in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
 			in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry/86400), FieldIsRetentionPolicyUUID)
 			in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
 
-			in.NewField("Should the job be paused? (Y/n)", "paused", paused, "", tui.FieldIsBoolean)
+			in.NewField("Paused?", "paused", paused, "", tui.FieldIsBoolean)
 			err = in.Show()
 			if err != nil {
 				return err
@@ -1114,7 +1114,7 @@ func main() {
 			job[j.UUID] = j
 		}
 
-		t := tui.NewTable("Owner", "Type", "Target Agent IP", "Status", "Started", "Stopped")
+		t := tui.NewTable("UUID", "Owner", "Type", "Remote IP", "Status", "Started", "Stopped")
 		for _, task := range tasks {
 			started := "(pending)"
 			if !task.StartedAt.IsZero() {
@@ -1126,7 +1126,7 @@ func main() {
 				stopped = task.StoppedAt.Format(time.RFC1123Z)
 			}
 
-			t.Row(task, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
+			t.Row(task, task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
 		}
 		t.Output(os.Stdout)
 		return nil
@@ -1150,6 +1150,7 @@ func main() {
 		}
 
 		t := tui.NewReport()
+		t.Add("UUID", task.UUID)
 		t.Add("Owner", task.Owner)
 		t.Add("Type", task.Op)
 		t.Add("Status", task.Status)
@@ -1247,7 +1248,7 @@ func main() {
 			store[s.UUID] = s
 		}
 
-		t := tui.NewTable("Target Type", "Target Name", "Target Agent IP", "Store Type", "Store Name", "Taken at", "Expires at", "Status", "Notes")
+		t := tui.NewTable("UUID", "Target", "Remote IP", "Store", "Taken at", "Expires at", "Status", "Notes")
 		for _, archive := range archives {
 			if *opts.Target != "" && archive.TargetUUID != *opts.Target {
 				continue
@@ -1256,9 +1257,10 @@ func main() {
 				continue
 			}
 
-			t.Row(archive,
-				archive.TargetPlugin, target[archive.TargetUUID].Name, target[archive.TargetUUID].Agent,
-				archive.StorePlugin, store[archive.StoreUUID].Name,
+			t.Row(archive, archive.UUID,
+				fmt.Sprintf("%s (%s)", target[archive.TargetUUID].Name, archive.TargetPlugin),
+				target[archive.TargetUUID].Agent,
+				fmt.Sprintf("%s (%s)", store[archive.StoreUUID].Name, archive.StorePlugin),
 				archive.TakenAt.Format(time.RFC1123Z),
 				archive.ExpiresAt.Format(time.RFC1123Z),
 				archive.Status, archive.Notes)
@@ -1285,17 +1287,10 @@ func main() {
 		}
 
 		t := tui.NewReport()
+		t.Add("UUID", archive.UUID)
 		t.Add("Backup Key", archive.StoreKey)
-		t.Break()
-
-		t.Add("Target", archive.TargetPlugin)
-		t.Add("Target UUID", archive.TargetUUID)
-		t.Add("Target Endpoint", archive.TargetEndpoint)
-		t.Break()
-
-		t.Add("Store", archive.StorePlugin)
-		t.Add("Store UUID", archive.StoreUUID)
-		t.Add("Store Endpoint", archive.StoreEndpoint)
+		t.Add("Target", fmt.Sprintf("%s %s", archive.TargetPlugin, archive.TargetEndpoint))
+		t.Add("Store", fmt.Sprintf("%s %s", archive.StorePlugin, archive.StoreEndpoint))
 		t.Break()
 
 		t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))
