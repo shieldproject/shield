@@ -11,7 +11,7 @@ func Confirm(prompt string) bool {
 	in := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf("%s [y/n] ", prompt)
+		fmt.Printf("%s", Yellow(fmt.Sprintf("%s [y/n] ", prompt)))
 		v, err := in.ReadString('\n')
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed: %s\n", err)

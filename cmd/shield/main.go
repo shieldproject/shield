@@ -60,12 +60,12 @@ func main() {
 			RawJSON(map[string]string{"ok": fmt.Sprintf(f, l...)})
 			return
 		}
-		fmt.Printf(f+"\n", l...)
+		fmt.Printf("%s\n", tui.Green(fmt.Sprintf(f, l...)))
 	}
 
 	MSG := func(f string, l ...interface{}) {
 		if !*options.Raw {
-			fmt.Printf("\n"+f+"\n", l...)
+			fmt.Printf("\n%s\n", tui.Green(fmt.Sprintf(f, l...)))
 		}
 	}
 
@@ -1371,7 +1371,7 @@ func main() {
 		if *options.Raw {
 			_ = RawJSON(map[string]string{"error": err.Error()})
 		} else {
-			fmt.Fprintf(os.Stderr, "%s\n", err)
+			fmt.Fprintf(os.Stderr, "%s\n", tui.Red(err))
 		}
 		os.Exit(1)
 	} else {
