@@ -293,10 +293,27 @@ func main() {
 	c.Dispatch("delete target", func(opts Options, args []string) error {
 		DEBUG("running 'delete target' command")
 
-		_, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
+		target, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
+
+		if !*opts.Raw {
+			t := tui.NewReport()
+			t.Add("Name", target.Name)
+			t.Add("Summary", target.Summary)
+			t.Break()
+
+			t.Add("Plugin", target.Plugin)
+			t.Add("Configuration", target.Endpoint)
+			t.Add("Remote IP", target.Agent)
+			t.Output(os.Stdout)
+
+			if !tui.Confirm("Really delete this target?") {
+				return fmt.Errorf("Cancelling...")
+			}
+		}
+
 		if err := DeleteTarget(id); err != nil {
 			return err
 		}
@@ -461,9 +478,21 @@ func main() {
 	c.Dispatch("delete schedule", func(opts Options, args []string) error {
 		DEBUG("running 'delete schedule' command")
 
-		_, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
+		schedule, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
+		}
+
+		if !*opts.Raw {
+			t := tui.NewReport()
+			t.Add("Name", schedule.Name)
+			t.Add("Summary", schedule.Summary)
+			t.Add("Timespec", schedule.When)
+			t.Output(os.Stdout)
+
+			if !tui.Confirm("Really delete this schedule?") {
+				return fmt.Errorf("Cancelling...")
+			}
 		}
 
 		if err := DeleteSchedule(id); err != nil {
@@ -642,9 +671,21 @@ func main() {
 	c.Dispatch("delete retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'delete retention policy' command")
 
-		_, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
+		policy, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
+		}
+
+		if !*opts.Raw {
+			t := tui.NewReport()
+			t.Add("Name", policy.Name)
+			t.Add("Summary", policy.Summary)
+			t.Add("Expiration", fmt.Sprintf("%d days", policy.Expires/86400))
+			t.Output(os.Stdout)
+
+			if !tui.Confirm("Really delete this retention policy?") {
+				return fmt.Errorf("Cancelling...")
+			}
 		}
 
 		if err := DeleteRetentionPolicy(id); err != nil {
@@ -823,9 +864,24 @@ func main() {
 	c.Dispatch("delete store", func(opts Options, args []string) error {
 		DEBUG("running 'delete store' command")
 
-		_, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
+		store, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
+		}
+
+		if !*opts.Raw {
+			t := tui.NewReport()
+			t.Add("Name", store.Name)
+			t.Add("Summary", store.Summary)
+			t.Break()
+
+			t.Add("Plugin", store.Plugin)
+			t.Add("Configuration", store.Endpoint)
+			t.Output(os.Stdout)
+
+			if !tui.Confirm("Really delete this store?") {
+				return fmt.Errorf("Cancelling...")
+			}
 		}
 
 		if err := DeleteStore(id); err != nil {
@@ -1036,10 +1092,42 @@ func main() {
 	c.Dispatch("delete job", func(opts Options, args []string) error {
 		DEBUG("running 'delete job' command")
 
-		_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
+		job, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
 		if err != nil {
 			return err
 		}
+
+		if !*opts.Raw {
+			t := tui.NewReport()
+			t.Add("Name", job.Name)
+			t.Add("Paused", BoolString(job.Paused))
+			t.Break()
+
+			t.Add("Retention Policy", job.RetentionName)
+			t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
+			t.Break()
+
+			t.Add("Schedule Policy", job.ScheduleName)
+			t.Break()
+
+			t.Add("Target", job.TargetPlugin)
+			t.Add("Target Endpoint", job.TargetEndpoint)
+			t.Add("Remote IP", job.Agent)
+			t.Break()
+
+			t.Add("Store", job.StorePlugin)
+			t.Add("Store Endpoint", job.StoreEndpoint)
+			t.Break()
+
+			t.Add("Notes", job.Summary)
+
+			t.Output(os.Stdout)
+
+			if !tui.Confirm("Really delete this backup job?") {
+				return fmt.Errorf("Cancelling...")
+			}
+		}
+
 		if err := DeleteJob(id); err != nil {
 			return err
 		}
@@ -1354,8 +1442,31 @@ func main() {
 		id := uuid.Parse(args[0])
 		DEBUG("  archive UUID = '%s'", id)
 
-		err := DeleteArchive(id)
+		archive, err := GetArchive(id)
 		if err != nil {
+			return err
+		}
+
+		if !*opts.Raw {
+			t := tui.NewReport()
+			t.Add("UUID", archive.UUID)
+			t.Add("Backup Key", archive.StoreKey)
+			t.Add("Target", fmt.Sprintf("%s %s", archive.TargetPlugin, archive.TargetEndpoint))
+			t.Add("Store", fmt.Sprintf("%s %s", archive.StorePlugin, archive.StoreEndpoint))
+			t.Break()
+
+			t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))
+			t.Add("Expires at", archive.ExpiresAt.Format(time.RFC1123Z))
+			t.Add("Notes", archive.Notes)
+
+			t.Output(os.Stdout)
+
+			if !tui.Confirm("Really delete this archive?") {
+				return fmt.Errorf("Cancelling...")
+			}
+		}
+
+		if err := DeleteArchive(id); err != nil {
 			return err
 		}
 
