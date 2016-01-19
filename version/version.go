@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	Major = 1
-	Minor = 101
+	Major    = 1
+	Minor    = 101
 	Revision = 0
 )
 

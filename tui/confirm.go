@@ -19,13 +19,19 @@ func Confirm(prompt string) bool {
 		}
 
 		switch strings.TrimRight(v, "\n") {
-		case "Y": fallthrough
-		case "y": fallthrough
-		case "yes": return true
+		case "Y":
+			fallthrough
+		case "y":
+			fallthrough
+		case "yes":
+			return true
 
-		case "N": fallthrough
-		case "n": fallthrough
-		case "no": return false
+		case "N":
+			fallthrough
+		case "n":
+			fallthrough
+		case "no":
+			return false
 		}
 	}
 }

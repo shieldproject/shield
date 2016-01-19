@@ -29,10 +29,10 @@ func NewForm() *Form {
 
 func (f *Form) NewField(label string, name string, value interface{}, showas string, fn FieldProcessor) error {
 	f.Fields = append(f.Fields, &Field{
-		Label: label,
-		Name: name,
-		ShowAs: showas,
-		Value: value,
+		Label:     label,
+		Name:      name,
+		ShowAs:    showas,
+		Value:     value,
 		Processor: fn,
 	})
 	return nil
@@ -114,11 +114,14 @@ func FieldIsOptional(name string, value string) (interface{}, error) {
 
 func FieldIsBoolean(name string, value string) (interface{}, error) {
 	switch strings.ToLower(value) {
-	case "y": fallthrough
-	case "yes": return true, nil
+	case "y":
+		fallthrough
+	case "yes":
+		return true, nil
 
 	case "n":
-	case "no": return false, nil
+	case "no":
+		return false, nil
 	}
 
 	return "", fmt.Errorf("'%s' is not a boolean value.  Acceptable values are (y)es or (n)o.", value)

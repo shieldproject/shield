@@ -20,6 +20,6 @@ func (p StatusAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		Name    string `json:"name"`
 	}{
 		Version: version.String(),
-		Name:  os.Getenv("SHIELD_NAME"),
+		Name:    os.Getenv("SHIELD_NAME"),
 	})
 }

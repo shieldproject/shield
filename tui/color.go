@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	Red = color.New(color.FgRed).SprintFunc()
+	Red    = color.New(color.FgRed).SprintFunc()
 	Yellow = color.New(color.FgYellow).SprintFunc()
-	Green = color.New(color.FgGreen).SprintFunc()
-	Cyan = color.New(color.FgCyan).SprintFunc()
+	Green  = color.New(color.FgGreen).SprintFunc()
+	Cyan   = color.New(color.FgCyan).SprintFunc()
 )

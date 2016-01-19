@@ -11,7 +11,7 @@ import (
 
 type ShieldAgentOpts struct {
 	ConfigFile string `goptions:"-c, --config, obligatory, description='Path to the shield-agent configuration file'"`
-	Log string `goptions:"-l, --log-level, description='Set logging level to debug, info, notice, warn, error, crit, alert, or emerg'"`
+	Log        string `goptions:"-l, --log-level, description='Set logging level to debug, info, notice, warn, error, crit, alert, or emerg'"`
 }
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 		return
 	}
 
-	log.SetupLogging(log.LogConfig{ Type: "console", Level: opts.Log })
+	log.SetupLogging(log.LogConfig{Type: "console", Level: opts.Log})
 	log.Infof("starting agent")
 
 	ag := agent.NewAgent()
