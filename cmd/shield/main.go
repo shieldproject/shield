@@ -88,7 +88,7 @@ func main() {
 	c.Dispatch("status", func(opts Options, args []string) error {
 		status, err := GetStatus()
 		if err != nil {
-			return fmt.Errorf("failed to get status from SHIELD: %s", err)
+			return err
 		}
 
 		t := tui.NewReport()
@@ -115,18 +115,14 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
 		targets, err := GetTargets(TargetFilter{
-			Name:   name,
+			Name:   strings.Join(args, " "),
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 
 		if err != nil {
-			return fmt.Errorf("failed to retrieve targets from SHIELD: %s", err)
+			return err
 		}
 
 		t := tui.NewTable("UUID", "Target Name", "Summary", "Plugin", "Target Agent IP", "Endpoint")
@@ -141,44 +137,7 @@ func main() {
 	c.Dispatch("show target", func(opts Options, args []string) error {
 		DEBUG("running 'show target' command")
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
-		id := uuid.Parse(name)
-		if id == nil {
-			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
-			targets, err := GetTargets(TargetFilter{
-				Name:   name,
-				Plugin: *opts.Plugin,
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
-			})
-			if err != nil {
-				return err
-			}
-
-			switch len(targets) {
-			case 0:
-				fmt.Printf("no matching target found\n")
-				return nil
-			case 1:
-				id = uuid.Parse(targets[0].UUID)
-
-			default:
-				t := tui.NewTable("Name", "Summary", "Plugin", "Remote IP", "Configuration")
-				for _, target := range targets {
-					t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
-				}
-
-				want := tui.Menu("More than one target matched your search query", &t,
-					"Which target do you want?")
-				id = uuid.Parse(want.(Target).UUID)
-			}
-		}
-		DEBUG("  target UUID = '%s'", id)
-
-		target, err := GetTarget(id)
+		target, _, err := FindTarget(args...)
 		if err != nil {
 			return err
 		}
@@ -211,7 +170,7 @@ func main() {
 		in.NewField("Target agent", "agent", "", "", tui.FieldIsRequired)
 		err := in.Show()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		if !tui.Confirm("Really create this target?") {
@@ -220,13 +179,13 @@ func main() {
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		t, err := CreateTarget(content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not create new target: %s", err)
+			return err
 		}
 
 		fmt.Printf("Created new target.\n")
@@ -240,13 +199,9 @@ func main() {
 	c.Dispatch("edit target", func(opts Options, args []string) error {
 		DEBUG("running 'edit target' command")
 
-		require(len(args) == 1, "shield edit target <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  target UUID = '%s'", id)
-
-		t, err := GetTarget(id)
+		t, id, err := FindTarget(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not retrieve target '%s': %s", id, err)
+			return err
 		}
 
 		in := tui.NewForm()
@@ -255,20 +210,20 @@ func main() {
 		in.NewField("Target plugin", "plugin", t.Plugin, "", tui.FieldIsRequired)
 		in.NewField("Target endpoint", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
 		in.NewField("Target agent", "agent", t.Agent, "", tui.FieldIsRequired)
-		err = in.Show()
-		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+
+		if err := in.Show(); err != nil {
+			return err
 		}
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		t, err = UpdateTarget(id, content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not update target '%s': %s", id, err)
+			return err
 		}
 		fmt.Printf("Updated target.\n")
 		return c.Execute("show", "target", t.UUID)
@@ -278,13 +233,12 @@ func main() {
 	c.Dispatch("delete target", func(opts Options, args []string) error {
 		DEBUG("running 'delete target' command")
 
-		require(len(args) == 1, "shield delete target <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  target UUID = '%s'", id)
-
-		err := DeleteTarget(id)
+		_, id, err := FindTarget(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not delete target '%s': %s", id, err)
+			return err
+		}
+		if err := DeleteTarget(id); err != nil {
+			return err
 		}
 		fmt.Printf("Deleted target '%s'\n", id)
 		return nil
@@ -307,18 +261,12 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
-		name := ""
-
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
 		schedules, err := GetSchedules(ScheduleFilter{
-			Name:   name,
+			Name:   strings.Join(args, " "),
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 		if err != nil {
-			return fmt.Errorf("failed to retrieve schedules from SHIELD: %s", err)
+			return err
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Frequency / Interval (UTC)")
 		for _, schedule := range schedules {
@@ -332,43 +280,7 @@ func main() {
 	c.Dispatch("show schedule", func(opts Options, args []string) error {
 		DEBUG("running 'show schedule' command")
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
-		id := uuid.Parse(name)
-		if id == nil {
-			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
-			schedules, err := GetSchedules(ScheduleFilter{
-				Name:   name,
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
-			})
-			if err != nil {
-				return err
-			}
-
-			switch len(schedules) {
-			case 0:
-				fmt.Printf("no matching schedule found\n")
-				return nil
-			case 1:
-				id = uuid.Parse(schedules[0].UUID)
-
-			default:
-				t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
-				for _, schedule := range schedules {
-					t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
-				}
-
-				want := tui.Menu("More than one schedule matched your search query", &t,
-					"Which schedule do you want?")
-				id = uuid.Parse(want.(Schedule).UUID)
-			}
-		}
-		DEBUG("  schedule UUID = '%s'", id)
-
-		schedule, err := GetSchedule(id)
+		schedule, _, err := FindSchedule(args...)
 		if err != nil {
 			return err
 		}
@@ -392,9 +304,9 @@ func main() {
 		in.NewField("Schedule name", "name", "", "", tui.FieldIsRequired)
 		in.NewField("Schedule summary", "summary", "", "", tui.FieldIsOptional)
 		in.NewField("When to run schedule (eg daily at 4:00)", "when", "", "", tui.FieldIsRequired)
-		err := in.Show()
-		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+
+		if err := in.Show(); err != nil {
+			return err
 		}
 
 		if !tui.Confirm("Really create this schedule?") {
@@ -403,15 +315,15 @@ func main() {
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		s, err := CreateSchedule(content)
-
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not create new schedule: %s", err)
+			return err
 		}
+
 		fmt.Printf("Created new schedule.\n")
 		return c.Execute("show", "schedule", s.UUID)
 	})
@@ -423,33 +335,29 @@ func main() {
 	c.Dispatch("edit schedule", func(opts Options, args []string) error {
 		DEBUG("running 'edit schedule' command")
 
-		require(len(args) == 1, "shield edit schedule <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  schedule UUID = '%s'", id)
-
-		s, err := GetSchedule(id)
+		s, id, err := FindSchedule(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not retrieve schedule '%s': %s", id, err)
+			return err
 		}
 
 		in := tui.NewForm()
 		in.NewField("Schedule name", "name", s.Name, "", tui.FieldIsRequired)
 		in.NewField("Schedule summary", "summary", s.Summary, "", tui.FieldIsOptional)
 		in.NewField("When to run schedule (eg daily at 4:00)", "when", s.When, "", tui.FieldIsRequired)
-		err = in.Show()
-		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+
+		if err = in.Show(); err != nil {
+			return err
 		}
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		s, err = UpdateSchedule(id, content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not update schedule '%s': %s", id, err)
+			return err
 		}
 		fmt.Printf("Updated schedule.\n")
 		return c.Execute("show", "schedule", s.UUID)
@@ -459,14 +367,15 @@ func main() {
 	c.Dispatch("delete schedule", func(opts Options, args []string) error {
 		DEBUG("running 'delete schedule' command")
 
-		require(len(args) == 1, "shield delete schedule <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  schedule UUID = '%s'", id)
-
-		err := DeleteSchedule(id)
+		_, id, err := FindSchedule(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot delete schedule '%s': %s", id, err)
+			return err
 		}
+
+		if err := DeleteSchedule(id); err != nil {
+			return err
+		}
+
 		fmt.Printf("Deleted schedule '%s'\n", id)
 		return nil
 	})
@@ -488,17 +397,12 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
 		policies, err := GetRetentionPolicies(RetentionPolicyFilter{
-			Name:   name,
+			Name:   strings.Join(args, " "),
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 		if err != nil {
-			return fmt.Errorf("failed to retrieve retention policies from SHIELD: %s", err)
+			return err
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Expires in")
 		for _, policy := range policies {
@@ -514,43 +418,7 @@ func main() {
 	c.Dispatch("show retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'show retention policy' command")
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
-		id := uuid.Parse(name)
-		if id == nil {
-			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
-			policies, err := GetRetentionPolicies(RetentionPolicyFilter{
-				Name:   name,
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
-			})
-			if err != nil {
-				return err
-			}
-
-			switch len(policies) {
-			case 0:
-				fmt.Printf("no matching policy found\n")
-				return nil
-			case 1:
-				id = uuid.Parse(policies[0].UUID)
-
-			default:
-				t := tui.NewTable("Name", "Summary", "Expires in")
-				for _, policy := range policies {
-					t.Row(policy, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
-				}
-
-				want := tui.Menu("More than one policy matched your search query", &t,
-					"Which policy do you want?")
-				id = uuid.Parse(want.(RetentionPolicy).UUID)
-			}
-		}
-		DEBUG("  retention policy UUID = '%s'", id)
-
-		policy, err := GetRetentionPolicy(id)
+		policy, _, err := FindRetentionPolicy(args...)
 		if err != nil {
 			return err
 		}
@@ -578,9 +446,8 @@ func main() {
 		in.NewField("Policy summary", "summary", "", "", tui.FieldIsOptional)
 		in.NewField("Retention Timeframe (in days)", "expires", "", "", FieldIsRetentionTimeframe)
 
-		err := in.Show()
-		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+		if err := in.Show(); err != nil {
+			return err
 		}
 
 		if !tui.Confirm("Really create this retention policy?") {
@@ -589,14 +456,14 @@ func main() {
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		p, err := CreateRetentionPolicy(content)
 
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not create new retention policy: %s", err)
+			return err
 		}
 		fmt.Printf("Created new retention policy.\n")
 		return c.Execute("show", "retention", "policy", p.UUID)
@@ -613,33 +480,29 @@ func main() {
 	c.Dispatch("edit retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'edit retention policy' command")
 
-		require(len(args) == 1, "shield edit retention policy <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  retention policy UUID = '%s'", id)
-
-		p, err := GetRetentionPolicy(id)
+		p, id, err := FindRetentionPolicy(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot retrieve policy '%s': %s", id, err)
+			return err
 		}
 
 		in := tui.NewForm()
 		in.NewField("Policy name", "name", p.Name, "", tui.FieldIsRequired)
 		in.NewField("Policy summary", "summary", p.Summary, "", tui.FieldIsOptional)
 		in.NewField("Retention Timeframe", "expires", p.Expires, fmt.Sprintf("%dd", p.Expires / 86400), FieldIsRetentionTimeframe)
-		err = in.Show()
-		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+
+		if err = in.Show(); err != nil {
+			return err
 		}
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		p, err = UpdateRetentionPolicy(id, content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot update policy '%s': %s", id, err)
+			return err
 		}
 		fmt.Printf("Updated policy.\n")
 		return c.Execute("show", "retention", "policy", p.UUID)
@@ -651,13 +514,13 @@ func main() {
 	c.Dispatch("delete retention policy", func(opts Options, args []string) error {
 		DEBUG("running 'delete retention policy' command")
 
-		require(len(args) == 1, "shield delete retention policy <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  retention policy UUID = '%s'", id)
-
-		err := DeleteRetentionPolicy(id)
+		_, id, err := FindRetentionPolicy(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot delete retention policy '%s': %s", id, err)
+			return err
+		}
+
+		if err := DeleteRetentionPolicy(id); err != nil {
+			return err
 		}
 		fmt.Printf("Deleted retention policy '%s'\n", id)
 		return nil
@@ -684,14 +547,13 @@ func main() {
 		DEBUG("  show unused? %s", *opts.Unused)
 		DEBUG("  show in-use? %s", *opts.Used)
 
-		name := strings.Join(args, " ")
 		stores, err := GetStores(StoreFilter{
-			Name:   name,
+			Name:   strings.Join(args, " "),
 			Plugin: *opts.Plugin,
 			Unused: MaybeBools(*opts.Unused, *opts.Used),
 		})
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not fetch list of stores: %s", err)
+			return err
 		}
 		t := tui.NewTable("UUID", "Name", "Summary", "Plugin", "Endpoint")
 		for _, store := range stores {
@@ -733,9 +595,9 @@ func main() {
 		in.NewField("Store summary", "summary", "", "", tui.FieldIsOptional)
 		in.NewField("Plugin name", "plugin", "", "", tui.FieldIsRequired)
 		in.NewField("Endpoint (JSON)", "endpoint", "", "", tui.FieldIsRequired)
-		err := in.Show()
-		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+
+		if err := in.Show(); err != nil {
+			return err
 		}
 
 		if !tui.Confirm("Really create this archive store?") {
@@ -744,14 +606,14 @@ func main() {
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		s, err := CreateStore(content)
 
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not create new store: %s", err)
+			return err
 		}
 		fmt.Printf("Created new store.\n")
 
@@ -805,7 +667,7 @@ func main() {
 		}
 
 		if err := DeleteStore(id); err != nil {
-			return fmt.Errorf("ERROR: Cannot delete store '%s': %s", id, err)
+			return err
 		}
 		fmt.Printf("Deleted store '%s'\n", id)
 		return nil
@@ -832,13 +694,8 @@ func main() {
 		DEBUG("  show paused?      %s", *opts.Paused)
 		DEBUG("  show unpaused?    %s", *opts.Unpaused)
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
 		jobs, err := GetJobs(JobFilter{
-			Name:      name,
+			Name:      strings.Join(args, " "),
 			Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
 			Target:    *opts.Target,
 			Store:     *opts.Store,
@@ -846,7 +703,7 @@ func main() {
 			Retention: *opts.Retention,
 		})
 		if err != nil {
-			return fmt.Errorf("\nERROR: Unexpected arguments following command: %v\n", err)
+			return err
 		}
 		t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
 		for _, job := range jobs {
@@ -862,48 +719,7 @@ func main() {
 	c.Dispatch("show job", func(opts Options, args []string) error {
 		DEBUG("running 'show job' command")
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
-		id := uuid.Parse(name)
-		if id == nil {
-			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
-			jobs, err := GetJobs(JobFilter{
-				Name:      name,
-				Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
-				Target:    *opts.Target,
-				Store:     *opts.Store,
-				Schedule:  *opts.Schedule,
-				Retention: *opts.Retention,
-			})
-			if err != nil {
-				return err
-			}
-
-			switch len(jobs) {
-			case 0:
-				fmt.Printf("no matching job found\n")
-				return nil
-			case 1:
-				id = uuid.Parse(jobs[0].UUID)
-
-			default:
-				t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
-				for _, job := range jobs {
-					t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
-						job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
-				}
-
-				want := tui.Menu("More than one job matched your search query", &t,
-					"Which job do you want?")
-				id = uuid.Parse(want.(Job).UUID)
-			}
-		}
-		DEBUG("  job UUID = '%s'", id)
-
-		job, err := GetJob(id)
+		job, _, err := FindJob(args...)
 		if err != nil {
 			return nil
 		}
@@ -954,7 +770,7 @@ func main() {
 		in.NewField("Paused? [Y/n]", "paused", "yes", "", tui.FieldIsBoolean)
 		err := in.Show()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		if !tui.Confirm("Really create this backup job?") {
@@ -963,13 +779,13 @@ func main() {
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		job, err := CreateJob(content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not create new job: %s", err)
+			return err
 		}
 
 		return c.Execute("show", "job", job.UUID)
@@ -982,50 +798,9 @@ func main() {
 	c.Dispatch("edit job", func(opts Options, args []string) error {
 		DEBUG("running 'edit job' command")
 
-		name := ""
-		if len(args) > 0 {
-			name = strings.Join(args, " ")
-		}
-
-		id := uuid.Parse(name)
-		if id == nil {
-			DEBUG("  not given a UUID ('%s'); trying a search by name", name)
-			jobs, err := GetJobs(JobFilter{
-				Name:      name,
-				Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
-				Target:    *opts.Target,
-				Store:     *opts.Store,
-				Schedule:  *opts.Schedule,
-				Retention: *opts.Retention,
-			})
-			if err != nil {
-				return err
-			}
-
-			switch len(jobs) {
-			case 0:
-				fmt.Printf("no matching job found\n")
-				return nil
-			case 1:
-				id = uuid.Parse(jobs[0].UUID)
-
-			default:
-				t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Target Agent IP", "Target")
-				for _, job := range jobs {
-					t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
-						job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
-				}
-
-				want := tui.Menu("More than one job matched your search query", &t,
-					"Which job do you want?")
-				id = uuid.Parse(want.(Job).UUID)
-			}
-		}
-		DEBUG("  job UUID = '%s'", id)
-
-		j, err := GetJob(id)
+		j, id, err := FindJob(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not retrieve job '%s': %s", id, err)
+			return err
 		}
 		paused := "no"
 		if j.Paused {
@@ -1043,18 +818,18 @@ func main() {
 		in.NewField("Should the job be paused? (Y/n)", "paused", paused, "", tui.FieldIsBoolean)
 		err = in.Show()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		content, err := in.BuildContent()
 		if err != nil {
-			return fmt.Errorf("ERROR: %s", err)
+			return err
 		}
 
 		DEBUG("JSON:\n  %s\n", content)
 		j, err = UpdateJob(id, content)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not update job '%s': %s", id, err)
+			return err
 		}
 
 		fmt.Printf("Updated job.\n")
@@ -1065,13 +840,12 @@ func main() {
 	c.Dispatch("delete job", func(opts Options, args []string) error {
 		DEBUG("running 'delete job' command")
 
-		require(len(args) == 1, "shield delete job <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  job UUID = '%s'", id)
-
-		err := DeleteJob(id)
+		_, id, err := FindJob(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot delete job '%s': %s", id, err)
+			return err
+		}
+		if err := DeleteJob(id); err != nil {
+			return err
 		}
 		fmt.Printf("Deleted job '%s'\n", id)
 		return nil
@@ -1082,45 +856,43 @@ func main() {
 	c.Dispatch("pause job", func(opts Options, args []string) error {
 		DEBUG("running 'pause job' command")
 
-		require(len(args) == 1, "shield pause job <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  job UUID = '%s'", id)
-
-		err := PauseJob(id)
+		_, id, err := FindJob(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not pause job '%s': %s", id, err)
+			return err
 		}
-		fmt.Printf("Successfully paused job '%s'\n", id)
+		if err := PauseJob(id); err != nil {
+			return err
+		}
+		fmt.Printf("Paused job\n")
 		return nil
 	})
 
 	c.Dispatch("unpause job", func(opts Options, args []string) error {
 		DEBUG("running 'unpause job' command")
 
-		require(len(args) == 1, "shield unpause job <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  job UUID = '%s'", id)
-
-		err := UnpauseJob(id)
+		_, id, err := FindJob(args...)
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not unpause job '%s': %s", id, err)
+			return err
 		}
-		fmt.Printf("Successfully unpaused job '%s'\n", id)
+		if err := UnpauseJob(id); err != nil {
+			return err
+		}
+		fmt.Printf("Unpaused job\n")
 		return nil
 	})
 
 	c.Dispatch("run job", func(opts Options, args []string) error {
 		DEBUG("running 'run job' command")
 
-		require(len(args) == 1, "shield run job <UUID>")
-		id := uuid.Parse(args[0])
-		DEBUG("  job UUID = '%s'", id)
-
-		err := RunJob(id, fmt.Sprintf(`{"owner":"%s@%s"}`, os.Getenv("USER"), os.Getenv("HOSTNAME")))
+		_, id, err := FindJob(args...)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("scheduled immediate run of job %s\n", id)
+		if err := RunJob(id, fmt.Sprintf(`{"owner":"%s@%s"}`,
+			os.Getenv("USER"), os.Getenv("HOSTNAME"))); err != nil {
+			return err
+		}
+		fmt.Printf("Scheduled immediate run of job\n")
 		return nil
 	})
 
@@ -1149,7 +921,7 @@ func main() {
 			Status: *options.Status,
 		})
 		if err != nil {
-			return fmt.Errorf("\nERROR: Could not fetch list of tasks: %s\n", err)
+			return err
 		}
 
 		job := map[string]Job{}
@@ -1230,7 +1002,7 @@ func main() {
 
 		err := CancelTask(id)
 		if err != nil {
-			return fmt.Errorf("ERROR: could not cancel task '%s'", id)
+			return err
 		}
 		fmt.Printf("Successfully cancelled task '%s'\n", id)
 		return nil
@@ -1266,7 +1038,7 @@ func main() {
 			Status: *options.Status,
 		})
 		if err != nil {
-			return fmt.Errorf("ERROR: Could not fetch list of archives: %s", err)
+			return err
 		}
 
 		// Map out the target names, for prettier output
@@ -1359,7 +1131,7 @@ func main() {
 
 		err := RestoreArchive(id, targetJSON)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot restore archive '%s': '%s'", id, err)
+			return err
 		}
 		fmt.Printf("Restoring archive '%s' %s\n", id, toTargetJSONmsg)
 		return nil
@@ -1374,7 +1146,7 @@ func main() {
 
 		err := DeleteArchive(id)
 		if err != nil {
-			return fmt.Errorf("ERROR: Cannot delete archive '%s': %s", id, err)
+			return err
 		}
 		fmt.Printf("Deleted archive '%s'\n", id)
 		return nil
