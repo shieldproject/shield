@@ -81,6 +81,9 @@ func main() {
 		command = append(command, opts.Arg(0))
 		args = opts.Args()
 	}
+	if len(command) == 0 {
+		command = []string{ "help" }
+	}
 
 	debug = *options.Debug
 	DEBUG("shield cli starting up")
@@ -97,6 +100,11 @@ func main() {
 	}
 
 	c := NewCommand().With(options)
+
+	c.Dispatch("help", func(opts Options, args []string) error {
+		getopt.PrintUsage(os.Stderr)
+		return nil
+	})
 
 	/*
 	    ######  ########    ###    ######## ##     ##  ######
