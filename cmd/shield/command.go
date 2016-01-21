@@ -36,6 +36,7 @@ type Options struct {
 type Handler func(opts Options, args []string) error
 
 type Command struct {
+	help     [][]string
 	commands map[string]Handler
 	options  Options
 }
@@ -46,17 +47,40 @@ func NewCommand() *Command {
 	}
 }
 
-func (c *Command) Dispatch(command string, fn Handler) {
+func (c *Command) HelpBreak() {
+		c.help = append(c.help, []string{ "", "" })
+}
+
+func (c *Command) Usage() string {
+	n := 0
+	for _, v := range c.help {
+		if len(v[0]) > n {
+			n = len(v[0])
+		}
+	}
+
+	format := fmt.Sprintf("  %%-%ds   %%s\n", n)
+	l := make([]string, len(c.help))
+	for i, v := range c.help {
+		l[i] = fmt.Sprintf(format, v[0], v[1])
+	}
+	return strings.Join(l, "")
+}
+
+func (c *Command) Dispatch(command string, help string, fn Handler) {
 	if _, ok := c.commands[command]; ok {
 		panic(fmt.Sprintf("command `%s' already registered", command))
 	}
 
+	if help != "" {
+		c.help = append(c.help, []string{ command, help })
+	}
 	c.commands[command] = fn
 }
 
 func (c *Command) Alias(alias string, command string) {
 	if fn, ok := c.commands[command]; ok {
-		c.Dispatch(alias, fn)
+		c.Dispatch(alias, "", fn)
 	} else {
 		panic(fmt.Sprintf("unknown command `%s' for alias `%s'", command, alias))
 	}
