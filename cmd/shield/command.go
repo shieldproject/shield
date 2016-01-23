@@ -48,7 +48,7 @@ func NewCommand() *Command {
 }
 
 func (c *Command) HelpBreak() {
-		c.help = append(c.help, []string{ "", "" })
+	c.help = append(c.help, []string{"", ""})
 }
 
 func (c *Command) Usage() string {
@@ -73,7 +73,7 @@ func (c *Command) Dispatch(command string, help string, fn Handler) {
 	}
 
 	if help != "" {
-		c.help = append(c.help, []string{ command, help })
+		c.help = append(c.help, []string{command, help})
 	}
 	c.commands[command] = fn
 }
