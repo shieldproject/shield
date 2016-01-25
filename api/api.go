@@ -48,7 +48,7 @@ func (yn *YesNo) Given() bool {
 }
 
 func ShieldURI(p string, args ...interface{}) *URL {
-	endpoint := strings.TrimSuffix(os.Getenv("SHIELD_TARGET"), "/")
+	endpoint := strings.TrimSuffix(os.Getenv("SHIELD_API"), "/")
 	if endpoint == "" {
 		endpoint = "https://shield"
 	}

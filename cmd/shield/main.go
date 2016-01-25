@@ -88,14 +88,14 @@ func main() {
 	debug = *options.Debug
 	DEBUG("shield cli starting up")
 	if *options.Shield != "" {
-		DEBUG("setting SHIELD_TARGET to '%s'", *options.Shield)
-		os.Setenv("SHIELD_TARGET", *options.Shield)
+		DEBUG("setting SHIELD_API to '%s'", *options.Shield)
+		os.Setenv("SHIELD_API", *options.Shield)
 	} else {
-		variable_value, variable_set := os.LookupEnv("SHIELD_TARGET")
+		variable_value, variable_set := os.LookupEnv("SHIELD_API")
 		if variable_set && len(variable_value) > 6 {
-			DEBUG("SHIELD_TARGET is currently set to '%s'", *options.Shield)
+			DEBUG("SHIELD_API is currently set to '%s'", *options.Shield)
 		} else {
-			fmt.Fprintf(os.Stderr, "shield IP:port unspecified. Please use either SHIELD_TARGET or `shield -H'.\n")
+			fmt.Fprintf(os.Stderr, "shield IP:port unspecified. Please use either SHIELD_API or `shield -H'.\n")
 		}
 	}
 
@@ -111,7 +111,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "shield\n")
 			fmt.Fprintf(os.Stderr, "USAGE: shield [options] <command>\n\n")
 			fmt.Fprintf(os.Stderr, "Recommended:\n")
-			fmt.Fprintf(os.Stderr, "  Use SHIELD_TARGET environmental variable to store shield's IP:port.\n\n")
+			fmt.Fprintf(os.Stderr, "  Use SHIELD_API environmental variable to store shield's IP:port.\n\n")
 			fmt.Fprintf(os.Stderr, "Commands:\n")
 			fmt.Fprintf(os.Stderr, c.Usage())
 			return nil

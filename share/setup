@@ -2,8 +2,8 @@
 
 rootdir=$(cd $(dirname $BASH_SOURCE[0])/.. ; pwd)
 
-if [[ -z ${SHIELD_TARGET} ]]; then
-	echo "Missing SHIELD_TARGET=http://... environment variable\!"
+if [[ -z ${SHIELD_API} ]]; then
+	echo "Missing SHIELD_API=http://... environment variable\!"
 	exit 2
 fi
 PATH=$PATH:${rootdir}/bin
