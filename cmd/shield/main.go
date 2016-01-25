@@ -18,7 +18,7 @@ import (
 
 func require(good bool, msg string) {
 	if !good {
-		fmt.Fprintf(os.Stderr, "\x1b[1mUSAGE:\x1b[0m\n\t%s ...\n", msg)
+		fmt.Fprintf(os.Stderr, "USAGE: %s ...\n", msg)
 		os.Exit(1)
 	}
 }
@@ -110,16 +110,17 @@ func main() {
 
 	c := NewCommand().With(options)
 
+	c.HelpGroup("INFO:")
 	c.Dispatch("help", "Show the list of available commands",
 		func(opts Options, args []string) error {
-			fmt.Fprintf(os.Stderr, "\n\x1b[1mNAME:\x1b[0m\n  shield\t\tCLI for interacting with the Shield API.\n")
-			fmt.Fprintf(os.Stderr, "\n\x1b[1mUSAGE:\x1b[0m\n  shield [options] <command>\n")
-			fmt.Fprintf(os.Stderr, "\n\x1b[1mENVIRONMENT VARIABLES:\x1b[0m\n")
-			fmt.Fprintf(os.Stderr, "  SHIELD_API\t\tused to specify the shield API's IP:port.\n")
+			ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
+			ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
+			ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
+			fmt.Fprintf(os.Stderr, "  SHIELD_API\t\tset to specify the shield API's IP:port.\n")
 			fmt.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
-			fmt.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n")
-			fmt.Fprintf(os.Stderr, "\n\x1b[1mINFO:\x1b[0m\n")
-			fmt.Fprintf(os.Stderr, c.Usage())
+			fmt.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
+			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
+			ansi.Fprintf(os.Stderr, c.Usage())
 			fmt.Fprintf(os.Stderr, "\n")
 			return nil
 		})
@@ -133,8 +134,7 @@ func main() {
 	   ##    ##    ##    ##     ##    ##    ##     ## ##    ##
 	    ######     ##    ##     ##    ##     #######   ######
 	*/
-
-	c.Dispatch("status", "Query the SHIELD backup server for its status and version info\n",
+	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
 		func(opts Options, args []string) error {
 			status, err := GetStatus()
 			if err != nil {
@@ -167,7 +167,8 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list targets", "List available backup targets\r\x1b[1A\x1b[1mTARGETS:\n\x1b[0m",
+	c.HelpGroup("TARGETS:")
+	c.Dispatch("list targets", "List available backup targets",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list targets' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
@@ -315,7 +316,7 @@ func main() {
 		})
 	c.Alias("update target", "edit target")
 
-	c.Dispatch("delete target", "Delete a backup target\n",
+	c.Dispatch("delete target", "Delete a backup target",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete target' command")
 
@@ -352,7 +353,8 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list schedules", "List available backup schedules\r\x1b[1A\x1b[1mSCHEDULES:\n\x1b[0m",
+	c.HelpGroup("SCHEDULES:")
+	c.Dispatch("list schedules", "List available backup schedules",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list schedules' command")
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -493,7 +495,7 @@ func main() {
 		})
 	c.Alias("update schedule", "edit schedule")
 
-	c.Dispatch("delete schedule", "Delete a backup schedule\n",
+	c.Dispatch("delete schedule", "Delete a backup schedule",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete schedule' command")
 
@@ -530,7 +532,8 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list retention policies", "List available retention policies\r\x1b[1A\x1b[1mPOLICIES:\n\x1b[0m",
+	c.HelpGroup("POLICIES:")
+	c.Dispatch("list retention policies", "List available retention policies",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list retention policies' command")
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -683,7 +686,7 @@ func main() {
 	c.Alias("edit policy", "edit retention policy")
 	c.Alias("update policy", "edit policy")
 
-	c.Dispatch("delete retention policy", "Delete a retention policy\n",
+	c.Dispatch("delete retention policy", "Delete a retention policy",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete retention policy' command")
 
@@ -723,7 +726,8 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list stores", "List available archive stores\r\x1b[1A\x1b[1mSTORES:\n\x1b[0m",
+	c.HelpGroup("STORES:")
+	c.Dispatch("list stores", "List available archive stores",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list stores' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
@@ -870,7 +874,7 @@ func main() {
 		})
 	c.Alias("update store", "edit store")
 
-	c.Dispatch("delete store", "Delete an archive store\n",
+	c.Dispatch("delete store", "Delete an archive store",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete store' command")
 
@@ -907,7 +911,8 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list jobs", "List available backup jobs\r\x1b[1A\x1b[1mJOBS:\n\x1b[0m",
+	c.HelpGroup("JOBS:")
+	c.Dispatch("list jobs", "List available backup jobs",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list jobs' command")
 			DEBUG("  for target:      '%s'", *opts.Target)
@@ -1130,7 +1135,7 @@ func main() {
 			return nil
 		})
 
-	c.Dispatch("run job", "Schedule an immediate run of a backup job\n",
+	c.Dispatch("run job", "Schedule an immediate run of a backup job",
 		func(opts Options, args []string) error {
 			DEBUG("running 'run job' command")
 
@@ -1158,7 +1163,8 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list tasks", "List available tasks\r\x1b[1A\x1b[1mTASKS:\n\x1b[0m",
+	c.HelpGroup("TASKS:")
+	c.Dispatch("list tasks", "List available tasks",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list tasks' command")
 
@@ -1231,7 +1237,7 @@ func main() {
 	c.Alias("list task", "show task")
 	c.Alias("ls task", "show task")
 
-	c.Dispatch("cancel task", "Cancel a running or pending task\n",
+	c.Dispatch("cancel task", "Cancel a running or pending task",
 		func(opts Options, args []string) error {
 			DEBUG("running 'cancel task' command")
 
@@ -1271,7 +1277,8 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list archives", "List available backup archives\r\x1b[1A\x1b[1mARCHIVES:\n\x1b[0m",
+	c.HelpGroup("ARCHIVES:")
+	c.Dispatch("list archives", "List available backup archives",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list archives' command")
 

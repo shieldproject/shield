@@ -51,6 +51,11 @@ func (c *Command) HelpBreak() {
 	c.help = append(c.help, []string{"", ""})
 }
 
+func (c *Command) HelpGroup(groupname string) {
+	groupname = "@M{" + fmt.Sprintf("%s", groupname) + "}"
+	c.help = append(c.help, []string{groupname, ""})
+}
+
 func (c *Command) Usage() string {
 	n := 0
 	for _, v := range c.help {
