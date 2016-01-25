@@ -980,7 +980,7 @@ func main() {
 				in.NewField("Retention Policy", "retention", "", "", FieldIsRetentionPolicyUUID)
 				in.NewField("Schedule", "schedule", "", "", FieldIsScheduleUUID)
 
-				in.NewField("Paused?", "paused", "yes", "", tui.FieldIsBoolean)
+				in.NewField("Paused?", "paused", "no", "", tui.FieldIsBoolean)
 				err := in.Show()
 				if err != nil {
 					return err
