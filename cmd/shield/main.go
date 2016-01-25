@@ -18,7 +18,7 @@ import (
 
 func require(good bool, msg string) {
 	if !good {
-		fmt.Fprintf(os.Stderr, "USAGE: %s ...\n", msg)
+		fmt.Fprintf(os.Stderr, "\x1b[1mUSAGE:\x1b[0m\n\t%s ...\n", msg)
 		os.Exit(1)
 	}
 }
@@ -81,6 +81,7 @@ func main() {
 		command = append(command, opts.Arg(0))
 		args = opts.Args()
 	}
+
 	if len(command) == 0 {
 		command = []string{"help"}
 	}
@@ -88,14 +89,17 @@ func main() {
 	debug = *options.Debug
 	DEBUG("shield cli starting up")
 	if *options.Shield != "" {
-		DEBUG("setting SHIELD_TARGET to '%s'", *options.Shield)
-		os.Setenv("SHIELD_TARGET", *options.Shield)
+		DEBUG("setting SHIELD_API to '%s'", *options.Shield)
+		os.Setenv("SHIELD_API", *options.Shield)
 	} else {
-		variable_value, variable_set := os.LookupEnv("SHIELD_TARGET")
+		variable_value, variable_set := os.LookupEnv("SHIELD_API")
 		if variable_set && len(variable_value) > 6 {
-			DEBUG("SHIELD_TARGET is currently set to '%s'", *options.Shield)
+			DEBUG("SHIELD_API is currently set to '%s'", *options.Shield)
 		} else {
-			fmt.Fprintf(os.Stderr, "shield IP:port unspecified. Please use either SHIELD_TARGET or `shield -H'.\n")
+			if command[0] != "help" {
+				fmt.Fprintf(os.Stderr, "\nShield API IP:Port is unknown, specify the API endpoint using one of:\n\n\texport SHIELD_API=\"127.0.0.1:8080\"; shield "+command[0]+"\n\tSHIELD_API=\"127.0.0.1:8080\" shield "+command[0]+"\n\tshield -H \"127.0.0.1:8080 "+command[0]+"\"\n\n")
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -108,12 +112,15 @@ func main() {
 
 	c.Dispatch("help", "Show the list of available commands",
 		func(opts Options, args []string) error {
-			fmt.Fprintf(os.Stderr, "shield\n")
-			fmt.Fprintf(os.Stderr, "USAGE: shield [options] <command>\n\n")
-			fmt.Fprintf(os.Stderr, "Recommended:\n")
-			fmt.Fprintf(os.Stderr, "  Use SHIELD_TARGET environmental variable to store shield's IP:port.\n\n")
-			fmt.Fprintf(os.Stderr, "Commands:\n")
+			fmt.Fprintf(os.Stderr, "\n\x1b[1mNAME:\x1b[0m\n  shield\t\tCLI for interacting with the Shield API.\n")
+			fmt.Fprintf(os.Stderr, "\n\x1b[1mUSAGE:\x1b[0m\n  shield [options] <command>\n")
+			fmt.Fprintf(os.Stderr, "\n\x1b[1mENVIRONMENT VARIABLES:\x1b[0m\n")
+			fmt.Fprintf(os.Stderr, "  SHIELD_API\t\tused to specify the shield API's IP:port.\n")
+			fmt.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
+			fmt.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n")
+			fmt.Fprintf(os.Stderr, "\n\x1b[1mINFO:\x1b[0m\n")
 			fmt.Fprintf(os.Stderr, c.Usage())
+			fmt.Fprintf(os.Stderr, "\n")
 			return nil
 		})
 
@@ -127,7 +134,7 @@ func main() {
 	    ######     ##    ##     ##    ##     #######   ######
 	*/
 
-	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
+	c.Dispatch("status", "Query the SHIELD backup server for its status and version info\n",
 		func(opts Options, args []string) error {
 			status, err := GetStatus()
 			if err != nil {
@@ -160,7 +167,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list targets", "List available backup targets",
+	c.Dispatch("list targets", "List available backup targets\r\x1b[1A\x1b[1mTARGETS:\n\x1b[0m",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list targets' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
@@ -308,7 +315,7 @@ func main() {
 		})
 	c.Alias("update target", "edit target")
 
-	c.Dispatch("delete target", "Delete a backup target",
+	c.Dispatch("delete target", "Delete a backup target\n",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete target' command")
 
@@ -345,7 +352,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list schedules", "List available backup schedules",
+	c.Dispatch("list schedules", "List available backup schedules\r\x1b[1A\x1b[1mSCHEDULES:\n\x1b[0m",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list schedules' command")
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -486,7 +493,7 @@ func main() {
 		})
 	c.Alias("update schedule", "edit schedule")
 
-	c.Dispatch("delete schedule", "Delete a backup schedule",
+	c.Dispatch("delete schedule", "Delete a backup schedule\n",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete schedule' command")
 
@@ -523,7 +530,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list retention policies", "List available retention policies",
+	c.Dispatch("list retention policies", "List available retention policies\r\x1b[1A\x1b[1mPOLICIES:\n\x1b[0m",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list retention policies' command")
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -676,7 +683,7 @@ func main() {
 	c.Alias("edit policy", "edit retention policy")
 	c.Alias("update policy", "edit policy")
 
-	c.Dispatch("delete retention policy", "Delete a retention policy",
+	c.Dispatch("delete retention policy", "Delete a retention policy\n",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete retention policy' command")
 
@@ -716,7 +723,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list stores", "List available archive stores",
+	c.Dispatch("list stores", "List available archive stores\r\x1b[1A\x1b[1mSTORES:\n\x1b[0m",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list stores' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
@@ -863,7 +870,7 @@ func main() {
 		})
 	c.Alias("update store", "edit store")
 
-	c.Dispatch("delete store", "Delete an archive store",
+	c.Dispatch("delete store", "Delete an archive store\n",
 		func(opts Options, args []string) error {
 			DEBUG("running 'delete store' command")
 
@@ -900,7 +907,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list jobs", "List available backup jobs",
+	c.Dispatch("list jobs", "List available backup jobs\r\x1b[1A\x1b[1mJOBS:\n\x1b[0m",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list jobs' command")
 			DEBUG("  for target:      '%s'", *opts.Target)
@@ -1123,7 +1130,7 @@ func main() {
 			return nil
 		})
 
-	c.Dispatch("run job", "Schedule an immediate run of a backup job",
+	c.Dispatch("run job", "Schedule an immediate run of a backup job\n",
 		func(opts Options, args []string) error {
 			DEBUG("running 'run job' command")
 
@@ -1151,7 +1158,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list tasks", "List available tasks",
+	c.Dispatch("list tasks", "List available tasks\r\x1b[1A\x1b[1mTASKS:\n\x1b[0m",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list tasks' command")
 
@@ -1224,7 +1231,7 @@ func main() {
 	c.Alias("list task", "show task")
 	c.Alias("ls task", "show task")
 
-	c.Dispatch("cancel task", "Cancel a running or pending task",
+	c.Dispatch("cancel task", "Cancel a running or pending task\n",
 		func(opts Options, args []string) error {
 			DEBUG("running 'cancel task' command")
 
@@ -1264,7 +1271,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
-	c.Dispatch("list archives", "List available backup archives",
+	c.Dispatch("list archives", "List available backup archives\r\x1b[1A\x1b[1mARCHIVES:\n\x1b[0m",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list archives' command")
 

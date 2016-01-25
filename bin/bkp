@@ -70,7 +70,7 @@ need() {
 }
 
 need_target() {
-	need "--shield http://address.of.your.shield:8080 option" ${SHIELD_TARGET}
+	need "--shield http://address.of.your.shield:8080 option" ${SHIELD_API}
 }
 
 tempfile() {
@@ -101,14 +101,14 @@ editor() {
 
 GET() {
 	url=${1}
-	curl -Ls ${curl_opts} -X GET ${SHIELD_TARGET}${url} | jq ${jq_opts} .
+	curl -Ls ${curl_opts} -X GET ${SHIELD_API}${url} | jq ${jq_opts} .
 }
 
 evalGET() {
 	url=${1}
 	prefix=${2}
 
-	eval $(curl -Ls ${SHIELD_TARGET}${url} | \
+	eval $(curl -Ls ${SHIELD_API}${url} | \
 		jq -rM 'to_entries | map("'$prefix'_\(.key)=\"\(.value)\"") | .[]' | \
 		grep "^${prefix}_.*=")
 }
@@ -118,9 +118,9 @@ POST() {
 	file=${2}
 
 	if [[ -z ${file} ]]; then
-		curl -Ls ${curl_opts} -X POST ${SHIELD_TARGET}${url} | jq ${jq_opts} .
+		curl -Ls ${curl_opts} -X POST ${SHIELD_API}${url} | jq ${jq_opts} .
 	else
-		curl -Ls ${curl_opts} -X POST ${SHIELD_TARGET}${url} \
+		curl -Ls ${curl_opts} -X POST ${SHIELD_API}${url} \
 		             --data-binary "$(cat ${file} | yaml2json)" | jq ${jq_opts} .
 	fi
 }
@@ -130,16 +130,16 @@ PUT() {
 	file=${2}
 
 	if [[ -z ${file} ]]; then
-		curl -Ls ${curl_opts} -X PUT ${SHIELD_TARGET}${url} | jq ${jq_opts} .
+		curl -Ls ${curl_opts} -X PUT ${SHIELD_API}${url} | jq ${jq_opts} .
 	else
-		curl -Ls ${curl_opts} -X PUT ${SHIELD_TARGET}${url} \
+		curl -Ls ${curl_opts} -X PUT ${SHIELD_API}${url} \
 		         --data-binary "$(cat ${file} | yaml2json)" | jq ${jq_opts} .
 	fi
 }
 
 DELETE() {
 	url=${1}
-	curl -Ls ${curl_opts} -X DELETE ${SHIELD_TARGET}${url} | jq ${jq_opts} .
+	curl -Ls ${curl_opts} -X DELETE ${SHIELD_API}${url} | jq ${jq_opts} .
 }
 
 list_schedules() {
@@ -591,8 +591,8 @@ while (( "$#" )); do
 		exit 0
 		;;
 
-	(-t|--target)  shift ; SHIELD_TARGET=${1} ; shift ;;
-	(--shield)     shift ; SHIELD_TARGET=${1} ; shift ;;
+	(-t|--target)  shift ; SHIELD_API=${1} ; shift ;;
+	(--shield)     shift ; SHIELD_API=${1} ; shift ;;
 	(-r|--raw)     shift ; jq_opts="-rM"              ;;
 	(-v|--verbose) shift ; curl_opts="-v"             ;;
 
@@ -802,7 +802,7 @@ while (( "$#" )); do
 
 	(key)
 		need_target
-		curl -Ls ${curl_opts} -X GET ${SHIELD_TARGET}/v1/meta/pubkey
+		curl -Ls ${curl_opts} -X GET ${SHIELD_API}/v1/meta/pubkey
 		exit $?
 		;;
 
