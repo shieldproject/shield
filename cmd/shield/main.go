@@ -81,6 +81,7 @@ func main() {
 		command = append(command, opts.Arg(0))
 		args = opts.Args()
 	}
+
 	if len(command) == 0 {
 		command = []string{"help"}
 	}
@@ -88,14 +89,17 @@ func main() {
 	debug = *options.Debug
 	DEBUG("shield cli starting up")
 	if *options.Shield != "" {
-		DEBUG("setting SHIELD_TARGET to '%s'", *options.Shield)
-		os.Setenv("SHIELD_TARGET", *options.Shield)
+		DEBUG("setting SHIELD_API to '%s'", *options.Shield)
+		os.Setenv("SHIELD_API", *options.Shield)
 	} else {
-		variable_value, variable_set := os.LookupEnv("SHIELD_TARGET")
+		variable_value, variable_set := os.LookupEnv("SHIELD_API")
 		if variable_set && len(variable_value) > 6 {
-			DEBUG("SHIELD_TARGET is currently set to '%s'", *options.Shield)
+			DEBUG("SHIELD_API is currently set to '%s'", *options.Shield)
 		} else {
-			fmt.Fprintf(os.Stderr, "shield IP:port unspecified. Please use either SHIELD_TARGET or `shield -H'.\n")
+			if command[0] != "help" {
+				fmt.Fprintf(os.Stderr, "\nShield API IP:Port is unknown, specify the API endpoint using one of:\n\n\texport SHIELD_API=\"127.0.0.1:8080\"; shield "+command[0]+"\n\tSHIELD_API=\"127.0.0.1:8080\" shield "+command[0]+"\n\tshield -H \"127.0.0.1:8080 "+command[0]+"\"\n\n")
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -106,14 +110,18 @@ func main() {
 
 	c := NewCommand().With(options)
 
+	c.HelpGroup("INFO:")
 	c.Dispatch("help", "Show the list of available commands",
 		func(opts Options, args []string) error {
-			fmt.Fprintf(os.Stderr, "shield\n")
-			fmt.Fprintf(os.Stderr, "USAGE: shield [options] <command>\n\n")
-			fmt.Fprintf(os.Stderr, "Recommended:\n")
-			fmt.Fprintf(os.Stderr, "  Use SHIELD_TARGET environmental variable to store shield's IP:port.\n\n")
-			fmt.Fprintf(os.Stderr, "Commands:\n")
-			fmt.Fprintf(os.Stderr, c.Usage())
+			ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
+			ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
+			ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
+			fmt.Fprintf(os.Stderr, "  SHIELD_API\t\tset to specify the shield API's IP:port.\n")
+			fmt.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
+			fmt.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
+			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
+			ansi.Fprintf(os.Stderr, c.Usage())
+			fmt.Fprintf(os.Stderr, "\n")
 			return nil
 		})
 
@@ -126,7 +134,6 @@ func main() {
 	   ##    ##    ##    ##     ##    ##    ##     ## ##    ##
 	    ######     ##    ##     ##    ##     #######   ######
 	*/
-
 	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
 		func(opts Options, args []string) error {
 			status, err := GetStatus()
@@ -160,6 +167,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
+	c.HelpGroup("TARGETS:")
 	c.Dispatch("list targets", "List available backup targets",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list targets' command")
@@ -345,6 +353,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
+	c.HelpGroup("SCHEDULES:")
 	c.Dispatch("list schedules", "List available backup schedules",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list schedules' command")
@@ -523,6 +532,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
+	c.HelpGroup("POLICIES:")
 	c.Dispatch("list retention policies", "List available retention policies",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list retention policies' command")
@@ -716,6 +726,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
+	c.HelpGroup("STORES:")
 	c.Dispatch("list stores", "List available archive stores",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list stores' command")
@@ -900,6 +911,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
+	c.HelpGroup("JOBS:")
 	c.Dispatch("list jobs", "List available backup jobs",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list jobs' command")
@@ -1151,6 +1163,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
+	c.HelpGroup("TASKS:")
 	c.Dispatch("list tasks", "List available tasks",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list tasks' command")
@@ -1264,6 +1277,7 @@ func main() {
 	*/
 
 	c.HelpBreak()
+	c.HelpGroup("ARCHIVES:")
 	c.Dispatch("list archives", "List available backup archives",
 		func(opts Options, args []string) error {
 			DEBUG("running 'list archives' command")
