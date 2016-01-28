@@ -13,6 +13,15 @@ var _ = Describe("Timespec", func() {
 	}
 
 	Describe("Stringification", func() {
+		It("can stringify hourly specs", func() {
+			spec := &Spec{
+				Interval:   Hourly,
+				TimeOfHour: 45,
+			}
+
+			Ω(spec.String()).Should(Equal("hourly at 45 after"))
+		})
+
 		It("can stringify daily specs", func() {
 			spec := &Spec{
 				Interval:  Daily,
@@ -58,6 +67,38 @@ var _ = Describe("Timespec", func() {
 		// August 6th, 1991, at about 11:15 in the morning: start up Internet thing
 		tz := time.Now().Location()
 		now := time.Date(1991, 8, 6, 11, 15, 42, 100203, tz)
+
+		Context("with an hourly interval", func() {
+			It("can handle hourly at 30 after", func() {
+				spec := &Spec{
+					Interval:   Hourly,
+					TimeOfHour: 30,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 11, 30, 00, 00, tz)))
+			})
+
+			It("can handle hourly at 7 after (before now)", func() {
+				spec := &Spec{
+					Interval:   Hourly,
+					TimeOfHour: 7,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 12, 7, 00, 00, tz)))
+			})
+
+			It("throws errors for minute offsets that are inconceivable large", func() {
+				spec := &Spec{
+					Interval:   Hourly,
+					TimeOfHour: 900,
+				}
+
+				_, err := spec.Next(now)
+				Ω(err).Should(HaveOccurred())
+			})
+		})
 
 		Context("with a daily interval", func() {
 			It("can handle daily at 4pm", func() {
@@ -342,6 +383,55 @@ var _ = Describe("Timespec", func() {
 	})
 
 	Describe("spec parser", func() {
+		Context("for hourly specs", func() {
+			specOK := func(spec string, m int) {
+				s, err := Parse(spec)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(s).ShouldNot(BeNil())
+				Ω(s.Interval).Should(Equal(Hourly))
+				Ω(s.TimeOfHour).Should(Equal(m))
+			}
+
+			It("handles proper time formats", func() {
+				specOK("hourly at 30", 30)
+				specOK("hourly at :30", 30)
+				specOK("hourly at x:30", 30)
+				specOK("hourly at *:30", 30)
+				specOK("hourly at h:30", 30)
+				specOK("hourly at 15", 15)
+
+				specOK("hourly at quarter after", 15)
+				specOK("hourly at quarter til", 45)
+				specOK("hourly at 23 after", 23)
+				specOK("hourly at 23 past", 23)
+				specOK("hourly at 10 til", 50)
+				specOK("hourly at 10 until", 50)
+				specOK("hourly at half past", 30)
+			})
+
+			It("is case insensitive", func() {
+				specOK("Hourly at :30", 30)
+				specOK("hoUrly At X:30", 30)
+				specOK("Every HOUR at H:30", 30)
+			})
+
+			It("handles a missing 'at' keyword", func() {
+				specOK("hourly 10", 10)
+			})
+
+			It("handles the 'every hour ' variant", func() {
+				specOK("every hour at h:30", 30)
+				specOK("every hour at x:30", 30)
+				specOK("every hour at *:30", 30)
+				specOK("every hour at 30", 30)
+				specOK("every         hour 45", 45)
+			})
+
+			It("handles weird and extraneous whitespace", func() {
+				specOK("     hourly\t\tat\n\n\n  \r\t\r\t16\t\t", 16)
+			})
+		})
+
 		Context("for daily specs", func() {
 			specOK := func(spec string, h int, m int) {
 				s, err := Parse(spec)

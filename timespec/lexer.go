@@ -47,6 +47,7 @@ func numify(m []byte) uint {
 }
 
 func (l *yyLex) init() {
+	l.keywords = append(l.keywords, keywordMatcher{token: HOURLY, match: regexp.MustCompile(`(?i:^hourly)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: DAILY, match: regexp.MustCompile(`(?i:^daily)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: WEEKLY, match: regexp.MustCompile(`(?i:^weekly)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: MONTHLY, match: regexp.MustCompile(`(?i:^monthly)`)})
@@ -54,7 +55,12 @@ func (l *yyLex) init() {
 	l.keywords = append(l.keywords, keywordMatcher{token: ON, match: regexp.MustCompile(`(?i:^on)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: AM, match: regexp.MustCompile(`(?i:^am)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: PM, match: regexp.MustCompile(`(?i:^pm)`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: HALF, match: regexp.MustCompile(`(?i:^half)`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: QUARTER, match: regexp.MustCompile(`(?i:^quarter)`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: AFTER, match: regexp.MustCompile(`(?i:^(past|after))`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: TIL, match: regexp.MustCompile(`(?i:^(un)?til)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: EVERYDAY, match: regexp.MustCompile(`(?i:^every\s+day)`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: EVERYHOUR, match: regexp.MustCompile(`(?i:^every\s+hour)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: SUNDAY, match: regexp.MustCompile(`(?i:^sun(days?)?)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: MONDAY, match: regexp.MustCompile(`(?i:^mon(days?)?)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: TUESDAY, match: regexp.MustCompile(`(?i:^tue(s(days?)?)?)`)})

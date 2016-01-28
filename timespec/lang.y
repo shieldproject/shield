@@ -13,13 +13,15 @@ import (
 	spec   *Spec
 }
 
+%type  <time>   time_in_MM
 %type  <time>   time_in_HHMM
-%type  <numval> am_or_pm month_day
+%type  <numval> am_or_pm month_day minutes
 %type  <wday>   day_name
-%type  <spec>   spec daily_spec weekly_spec monthly_spec
+%type  <spec>   spec hourly_spec daily_spec weekly_spec monthly_spec
 
 %token <numval> NUMBER ORDINAL
 
+%token HOURLY
 %token DAILY
 %token WEEKLY
 %token MONTHLY
@@ -27,7 +29,12 @@ import (
 %token ON
 %token AM
 %token PM
+%token HALF
+%token QUARTER
+%token AFTER
+%token TIL
 %token EVERYDAY
+%token EVERYHOUR
 %token SUNDAY
 %token MONDAY
 %token TUESDAY
@@ -43,14 +50,33 @@ timespec : spec {
                 }
          ;
 
-spec : daily_spec | weekly_spec | monthly_spec
+spec : hourly_spec | daily_spec | weekly_spec | monthly_spec
      ;
+
+hourly_spec : HOURLY    AT time_in_MM { $$ = hourly($3) }
+            | HOURLY       time_in_MM { $$ = hourly($2) }
+            | EVERYHOUR AT time_in_MM { $$ = hourly($3) }
+            | EVERYHOUR    time_in_MM { $$ = hourly($2) }
+            ;
 
 daily_spec : DAILY    AT time_in_HHMM  { $$ = daily($3) }
            | DAILY       time_in_HHMM  { $$ = daily($2) }
            | EVERYDAY AT time_in_HHMM  { $$ = daily($3) }
            | EVERYDAY    time_in_HHMM  { $$ = daily($2) }
            ;
+
+anyhour: | 'h' | 'H' | 'x' | 'X' | '*' ;
+
+minutes: QUARTER { $$ = 15 }
+       | HALF    { $$ = 30 }
+       | NUMBER  { $$ = $1 }
+       ;
+
+time_in_MM: anyhour ':' NUMBER  { $$ = hhmm(0, $3) }
+          |             NUMBER  { $$ = hhmm(0, $1) }
+          |     minutes AFTER   { $$ = hhmm(0, $1) }
+          |     minutes TIL     { $$ = hhmm(0, 60 - $1) }
+          ;
 
 time_in_HHMM : NUMBER ':' NUMBER              { $$ = hhmm($1,      $3) }
              | NUMBER ':' NUMBER am_or_pm     { $$ = hhmm($1 + $4, $3) }

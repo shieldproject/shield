@@ -19,21 +19,27 @@ type yySymType struct {
 
 const NUMBER = 57346
 const ORDINAL = 57347
-const DAILY = 57348
-const WEEKLY = 57349
-const MONTHLY = 57350
-const AT = 57351
-const ON = 57352
-const AM = 57353
-const PM = 57354
-const EVERYDAY = 57355
-const SUNDAY = 57356
-const MONDAY = 57357
-const TUESDAY = 57358
-const WEDNESDAY = 57359
-const THURSDAY = 57360
-const FRIDAY = 57361
-const SATURDAY = 57362
+const HOURLY = 57348
+const DAILY = 57349
+const WEEKLY = 57350
+const MONTHLY = 57351
+const AT = 57352
+const ON = 57353
+const AM = 57354
+const PM = 57355
+const HALF = 57356
+const QUARTER = 57357
+const AFTER = 57358
+const TIL = 57359
+const EVERYDAY = 57360
+const EVERYHOUR = 57361
+const SUNDAY = 57362
+const MONDAY = 57363
+const TUESDAY = 57364
+const WEDNESDAY = 57365
+const THURSDAY = 57366
+const FRIDAY = 57367
+const SATURDAY = 57368
 
 var yyToknames = [...]string{
 	"$end",
@@ -41,6 +47,7 @@ var yyToknames = [...]string{
 	"$unk",
 	"NUMBER",
 	"ORDINAL",
+	"HOURLY",
 	"DAILY",
 	"WEEKLY",
 	"MONTHLY",
@@ -48,7 +55,12 @@ var yyToknames = [...]string{
 	"ON",
 	"AM",
 	"PM",
+	"HALF",
+	"QUARTER",
+	"AFTER",
+	"TIL",
 	"EVERYDAY",
+	"EVERYHOUR",
 	"SUNDAY",
 	"MONDAY",
 	"TUESDAY",
@@ -56,6 +68,11 @@ var yyToknames = [...]string{
 	"THURSDAY",
 	"FRIDAY",
 	"SATURDAY",
+	"'h'",
+	"'H'",
+	"'x'",
+	"'X'",
+	"'*'",
 	"':'",
 	"' '",
 }
@@ -65,98 +82,125 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line lang.y:95
+//line lang.y:121
 
 //line yacctab:1
 var yyExca = [...]int{
 	-1, 1,
 	1, -1,
 	-2, 0,
+	-1, 25,
+	1, 24,
+	-2, 22,
 }
 
-const yyNprod = 37
+const yyNprod = 55
 const yyPrivate = 57344
 
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 106
+const yyLast = 154
 
 var yyAct = [...]int{
 
-	33, 20, 44, 9, 35, 36, 35, 36, 21, 23,
-	25, 27, 29, 46, 45, 30, 32, 34, 49, 54,
-	21, 31, 35, 36, 37, 47, 38, 1, 41, 40,
-	42, 21, 48, 59, 5, 50, 28, 4, 46, 45,
-	46, 45, 52, 53, 43, 55, 56, 21, 21, 57,
-	58, 21, 26, 24, 21, 60, 22, 61, 3, 19,
-	62, 11, 6, 8, 10, 2, 0, 0, 0, 7,
-	12, 13, 14, 15, 16, 17, 18, 51, 0, 0,
-	0, 12, 13, 14, 15, 16, 17, 18, 39, 0,
-	0, 0, 12, 13, 14, 15, 16, 17, 18, 12,
-	13, 14, 15, 16, 17, 18,
+	55, 66, 37, 49, 38, 57, 58, 57, 58, 12,
+	23, 25, 38, 40, 42, 44, 46, 34, 69, 35,
+	72, 33, 32, 24, 47, 54, 56, 71, 82, 50,
+	51, 57, 58, 48, 27, 28, 29, 30, 31, 53,
+	68, 67, 59, 1, 60, 52, 63, 77, 64, 74,
+	70, 6, 62, 68, 67, 5, 4, 73, 15, 16,
+	17, 18, 19, 20, 21, 3, 78, 79, 38, 2,
+	75, 76, 80, 81, 45, 25, 38, 26, 0, 84,
+	0, 22, 43, 85, 83, 33, 32, 0, 68, 67,
+	14, 7, 9, 11, 13, 65, 0, 0, 27, 28,
+	29, 30, 31, 10, 8, 15, 16, 17, 18, 19,
+	20, 21, 25, 38, 38, 61, 0, 0, 0, 41,
+	39, 0, 33, 32, 15, 16, 17, 18, 19, 20,
+	21, 0, 0, 0, 0, 27, 28, 29, 30, 31,
+	15, 16, 17, 18, 19, 20, 21, 38, 0, 0,
+	0, 0, 0, 36,
 }
 var yyPact = [...]int{
 
-	56, -1000, -1000, -1000, -1000, -1000, 50, 47, 44, 43,
-	27, 85, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 4,
-	-1000, -5, 4, -1000, 4, 78, 4, -1000, 4, 34,
-	16, -1000, 14, -1000, -7, -1000, -1000, -1000, 67, 85,
-	-1000, -1000, 9, 36, -1000, -1000, -1000, 4, -1000, 11,
-	-1000, 85, -1000, -1000, 36, -1000, -1000, -1000, -1000, -7,
-	-1000, -1000, -1000,
+	85, -1000, -1000, -1000, -1000, -1000, -1000, 71, 7, 143,
+	110, 109, 72, 64, 120, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, 108, -1000, -29, -1000, 13, -1000, -1000, -1000,
+	-1000, -1000, -1000, -1000, 108, -1000, 0, -1000, -7, 0,
+	-1000, 0, 104, 0, -1000, 0, 84, 8, -1000, 23,
+	-1000, -1000, -1000, -1000, 16, -1000, 19, -1000, -1000, -1000,
+	38, 120, -1000, -1000, 36, 49, -1000, -1000, -1000, 0,
+	-1000, -1000, -5, -1000, 120, -1000, -1000, 49, -1000, -1000,
+	-1000, -1000, 19, -1000, -1000, -1000,
 }
 var yyPgo = [...]int{
 
-	0, 1, 0, 2, 3, 65, 58, 37, 34, 27,
+	0, 10, 2, 0, 1, 77, 9, 69, 65, 56,
+	55, 51, 43, 23,
 }
 var yyR1 = [...]int{
 
-	0, 9, 5, 5, 5, 6, 6, 6, 6, 1,
-	1, 1, 1, 1, 7, 7, 7, 7, 7, 7,
-	2, 2, 4, 4, 4, 4, 4, 4, 4, 8,
-	8, 8, 8, 8, 8, 3, 3,
+	0, 12, 7, 7, 7, 7, 8, 8, 8, 8,
+	9, 9, 9, 9, 13, 13, 13, 13, 13, 13,
+	5, 5, 5, 1, 1, 1, 1, 2, 2, 2,
+	2, 2, 10, 10, 10, 10, 10, 10, 3, 3,
+	6, 6, 6, 6, 6, 6, 6, 11, 11, 11,
+	11, 11, 11, 4, 4,
 }
 var yyR2 = [...]int{
 
-	0, 1, 1, 1, 1, 3, 2, 3, 2, 3,
-	4, 5, 2, 3, 5, 4, 4, 3, 3, 2,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 5,
-	4, 4, 3, 4, 3, 1, 1,
+	0, 1, 1, 1, 1, 1, 3, 2, 3, 2,
+	3, 2, 3, 2, 0, 1, 1, 1, 1, 1,
+	1, 1, 1, 3, 1, 2, 2, 3, 4, 5,
+	2, 3, 5, 4, 4, 3, 3, 2, 1, 1,
+	1, 1, 1, 1, 1, 1, 1, 5, 4, 4,
+	3, 4, 3, 1, 1,
 }
 var yyChk = [...]int{
 
-	-1000, -9, -5, -6, -7, -8, 6, 13, 7, -4,
-	8, 5, 14, 15, 16, 17, 18, 19, 20, 9,
-	-1, 4, 9, -1, 9, -1, 9, -1, 9, -1,
-	-4, -1, 21, -2, 22, 11, 12, -1, -1, 10,
-	-4, -1, -1, 10, -3, 5, 4, 9, -1, 4,
-	-2, 10, -4, -4, 10, -3, -3, -1, -2, 22,
-	-4, -3, -2,
+	-1000, -12, -7, -8, -9, -10, -11, 6, 19, 7,
+	18, 8, -6, 9, 5, 20, 21, 22, 23, 24,
+	25, 26, 10, -1, -13, 4, -5, 27, 28, 29,
+	30, 31, 15, 14, 10, -1, 10, -2, 4, 10,
+	-2, 10, -2, 10, -2, 10, -2, -6, -1, 32,
+	16, 17, -1, -2, 32, -3, 33, 12, 13, -2,
+	-2, 11, -6, -2, -2, 11, -4, 5, 4, 10,
+	-2, 4, 4, -3, 11, -6, -6, 11, -4, -4,
+	-2, -3, 33, -6, -4, -3,
 }
 var yyDef = [...]int{
 
-	0, -2, 1, 2, 3, 4, 0, 0, 0, 0,
-	0, 0, 22, 23, 24, 25, 26, 27, 28, 0,
-	6, 0, 0, 8, 0, 0, 0, 19, 0, 0,
-	0, 5, 0, 12, 0, 20, 21, 7, 0, 0,
-	17, 18, 0, 0, 32, 35, 36, 0, 34, 9,
-	13, 0, 16, 15, 0, 31, 30, 33, 10, 0,
-	14, 29, 11,
+	0, -2, 1, 2, 3, 4, 5, 14, 14, 0,
+	0, 0, 0, 0, 0, 40, 41, 42, 43, 44,
+	45, 46, 14, 7, 0, -2, 0, 15, 16, 17,
+	18, 19, 20, 21, 14, 9, 0, 11, 0, 0,
+	13, 0, 0, 0, 37, 0, 0, 0, 6, 0,
+	25, 26, 8, 10, 0, 30, 0, 38, 39, 12,
+	0, 0, 35, 36, 0, 0, 50, 53, 54, 0,
+	52, 23, 27, 31, 0, 34, 33, 0, 49, 48,
+	51, 28, 0, 32, 47, 29,
 }
 var yyTok1 = [...]int{
 
 	1, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 22, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 33, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 31, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 32, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 21,
+	3, 3, 28, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 30, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 3, 27, 3, 3, 3, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	29,
 }
 var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-	12, 13, 14, 15, 16, 17, 18, 19, 20,
+	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+	22, 23, 24, 25, 26,
 }
 var yyTok3 = [...]int{
 	0,
@@ -504,187 +548,253 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:41
+		//line lang.y:48
 		{
 			yylex.(*yyLex).spec = yyDollar[1].spec
 		}
-	case 5:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:49
-		{
-			yyVAL.spec = daily(yyDollar[3].time)
-		}
 	case 6:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line lang.y:50
-		{
-			yyVAL.spec = daily(yyDollar[2].time)
-		}
-	case 7:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:51
-		{
-			yyVAL.spec = daily(yyDollar[3].time)
-		}
-	case 8:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line lang.y:52
-		{
-			yyVAL.spec = daily(yyDollar[2].time)
-		}
-	case 9:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:55
-		{
-			yyVAL.time = hhmm(yyDollar[1].numval, yyDollar[3].numval)
-		}
-	case 10:
-		yyDollar = yyS[yypt-4 : yypt+1]
 		//line lang.y:56
 		{
-			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[4].numval, yyDollar[3].numval)
+			yyVAL.spec = hourly(yyDollar[3].time)
 		}
-	case 11:
-		yyDollar = yyS[yypt-5 : yypt+1]
+	case 7:
+		yyDollar = yyS[yypt-2 : yypt+1]
 		//line lang.y:57
 		{
-			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[5].numval, yyDollar[3].numval)
+			yyVAL.spec = hourly(yyDollar[2].time)
 		}
-	case 12:
-		yyDollar = yyS[yypt-2 : yypt+1]
+	case 8:
+		yyDollar = yyS[yypt-3 : yypt+1]
 		//line lang.y:58
 		{
-			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[2].numval, 0)
+			yyVAL.spec = hourly(yyDollar[3].time)
 		}
-	case 13:
-		yyDollar = yyS[yypt-3 : yypt+1]
+	case 9:
+		yyDollar = yyS[yypt-2 : yypt+1]
 		//line lang.y:59
 		{
-			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[3].numval, 0)
+			yyVAL.spec = hourly(yyDollar[2].time)
 		}
-	case 14:
-		yyDollar = yyS[yypt-5 : yypt+1]
+	case 10:
+		yyDollar = yyS[yypt-3 : yypt+1]
 		//line lang.y:62
 		{
-			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[5].wday)
+			yyVAL.spec = daily(yyDollar[3].time)
 		}
-	case 15:
-		yyDollar = yyS[yypt-4 : yypt+1]
+	case 11:
+		yyDollar = yyS[yypt-2 : yypt+1]
 		//line lang.y:63
 		{
-			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[4].wday)
+			yyVAL.spec = daily(yyDollar[2].time)
 		}
-	case 16:
-		yyDollar = yyS[yypt-4 : yypt+1]
+	case 12:
+		yyDollar = yyS[yypt-3 : yypt+1]
 		//line lang.y:64
 		{
-			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[4].wday)
+			yyVAL.spec = daily(yyDollar[3].time)
 		}
-	case 17:
-		yyDollar = yyS[yypt-3 : yypt+1]
+	case 13:
+		yyDollar = yyS[yypt-2 : yypt+1]
 		//line lang.y:65
 		{
-			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[3].wday)
-		}
-	case 18:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:66
-		{
-			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[1].wday)
-		}
-	case 19:
-		yyDollar = yyS[yypt-2 : yypt+1]
-		//line lang.y:67
-		{
-			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[1].wday)
+			yyVAL.spec = daily(yyDollar[2].time)
 		}
 	case 20:
 		yyDollar = yyS[yypt-1 : yypt+1]
 		//line lang.y:70
 		{
-			yyVAL.numval = 0
+			yyVAL.numval = 15
 		}
 	case 21:
 		yyDollar = yyS[yypt-1 : yypt+1]
 		//line lang.y:71
 		{
-			yyVAL.numval = 12
+			yyVAL.numval = 30
 		}
 	case 22:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:74
+		//line lang.y:72
 		{
-			yyVAL.wday = time.Sunday
+			yyVAL.numval = yyDollar[1].numval
 		}
 	case 23:
-		yyDollar = yyS[yypt-1 : yypt+1]
+		yyDollar = yyS[yypt-3 : yypt+1]
 		//line lang.y:75
 		{
-			yyVAL.wday = time.Monday
+			yyVAL.time = hhmm(0, yyDollar[3].numval)
 		}
 	case 24:
 		yyDollar = yyS[yypt-1 : yypt+1]
 		//line lang.y:76
 		{
-			yyVAL.wday = time.Tuesday
+			yyVAL.time = hhmm(0, yyDollar[1].numval)
 		}
 	case 25:
-		yyDollar = yyS[yypt-1 : yypt+1]
+		yyDollar = yyS[yypt-2 : yypt+1]
 		//line lang.y:77
 		{
-			yyVAL.wday = time.Wednesday
+			yyVAL.time = hhmm(0, yyDollar[1].numval)
 		}
 	case 26:
-		yyDollar = yyS[yypt-1 : yypt+1]
+		yyDollar = yyS[yypt-2 : yypt+1]
 		//line lang.y:78
 		{
-			yyVAL.wday = time.Thursday
+			yyVAL.time = hhmm(0, 60-yyDollar[1].numval)
 		}
 	case 27:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:79
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:81
 		{
-			yyVAL.wday = time.Friday
+			yyVAL.time = hhmm(yyDollar[1].numval, yyDollar[3].numval)
 		}
 	case 28:
-		yyDollar = yyS[yypt-1 : yypt+1]
-		//line lang.y:80
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:82
 		{
-			yyVAL.wday = time.Saturday
+			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[4].numval, yyDollar[3].numval)
 		}
 	case 29:
 		yyDollar = yyS[yypt-5 : yypt+1]
 		//line lang.y:83
 		{
-			yyVAL.spec = mday(yyDollar[3].time, yyDollar[5].numval)
+			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[5].numval, yyDollar[3].numval)
 		}
 	case 30:
-		yyDollar = yyS[yypt-4 : yypt+1]
+		yyDollar = yyS[yypt-2 : yypt+1]
 		//line lang.y:84
 		{
-			yyVAL.spec = mday(yyDollar[2].time, yyDollar[4].numval)
+			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[2].numval, 0)
 		}
 	case 31:
-		yyDollar = yyS[yypt-4 : yypt+1]
+		yyDollar = yyS[yypt-3 : yypt+1]
 		//line lang.y:85
 		{
-			yyVAL.spec = mday(yyDollar[3].time, yyDollar[4].numval)
+			yyVAL.time = hhmm(yyDollar[1].numval+yyDollar[3].numval, 0)
 		}
 	case 32:
-		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:86
+		yyDollar = yyS[yypt-5 : yypt+1]
+		//line lang.y:88
 		{
-			yyVAL.spec = mday(yyDollar[2].time, yyDollar[3].numval)
+			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[5].wday)
 		}
 	case 33:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line lang.y:87
+		//line lang.y:89
+		{
+			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[4].wday)
+		}
+	case 34:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:90
+		{
+			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[4].wday)
+		}
+	case 35:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:91
+		{
+			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[3].wday)
+		}
+	case 36:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:92
+		{
+			yyVAL.spec = weekly(yyDollar[3].time, yyDollar[1].wday)
+		}
+	case 37:
+		yyDollar = yyS[yypt-2 : yypt+1]
+		//line lang.y:93
+		{
+			yyVAL.spec = weekly(yyDollar[2].time, yyDollar[1].wday)
+		}
+	case 38:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:96
+		{
+			yyVAL.numval = 0
+		}
+	case 39:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:97
+		{
+			yyVAL.numval = 12
+		}
+	case 40:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:100
+		{
+			yyVAL.wday = time.Sunday
+		}
+	case 41:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:101
+		{
+			yyVAL.wday = time.Monday
+		}
+	case 42:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:102
+		{
+			yyVAL.wday = time.Tuesday
+		}
+	case 43:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:103
+		{
+			yyVAL.wday = time.Wednesday
+		}
+	case 44:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:104
+		{
+			yyVAL.wday = time.Thursday
+		}
+	case 45:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:105
+		{
+			yyVAL.wday = time.Friday
+		}
+	case 46:
+		yyDollar = yyS[yypt-1 : yypt+1]
+		//line lang.y:106
+		{
+			yyVAL.wday = time.Saturday
+		}
+	case 47:
+		yyDollar = yyS[yypt-5 : yypt+1]
+		//line lang.y:109
+		{
+			yyVAL.spec = mday(yyDollar[3].time, yyDollar[5].numval)
+		}
+	case 48:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:110
+		{
+			yyVAL.spec = mday(yyDollar[2].time, yyDollar[4].numval)
+		}
+	case 49:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:111
+		{
+			yyVAL.spec = mday(yyDollar[3].time, yyDollar[4].numval)
+		}
+	case 50:
+		yyDollar = yyS[yypt-3 : yypt+1]
+		//line lang.y:112
+		{
+			yyVAL.spec = mday(yyDollar[2].time, yyDollar[3].numval)
+		}
+	case 51:
+		yyDollar = yyS[yypt-4 : yypt+1]
+		//line lang.y:113
 		{
 			yyVAL.spec = mweek(yyDollar[4].time, yyDollar[2].wday, yyDollar[1].numval)
 		}
-	case 34:
+	case 52:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line lang.y:88
+		//line lang.y:114
 		{
 			yyVAL.spec = mweek(yyDollar[3].time, yyDollar[2].wday, yyDollar[1].numval)
 		}
