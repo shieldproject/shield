@@ -227,6 +227,11 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 		Ω(res.Body.String()).Should(Equal(""))
 	})
 
+	It("validates JSON payloads", func() {
+		JSONValidated(API, "POST", "/v1/schedules")
+		JSONValidated(API, "PUT", "/v1/schedule/"+WEEKLY)
+	})
+
 	It("ignores other HTTP methods", func() {
 		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/schedules", nil)

@@ -470,6 +470,11 @@ var _ = Describe("/v1/archives API", func() {
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 	})
 
+	It("validates JSON payloads", func() {
+		JSONValidated(API, "PUT", "/v1/archive/"+REDIS_ARCHIVE_1)
+		JSONValidated(API, "POST", "/v1/archive/"+REDIS_ARCHIVE_1+"/restore")
+	})
+
 	It("ignores other HTTP methods", func() {
 		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/archives", nil)

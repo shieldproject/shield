@@ -267,6 +267,11 @@ var _ = Describe("/v1/stores API", func() {
 		Ω(res.Body.String()).Should(Equal(""))
 	})
 
+	It("validates JSON payloads", func() {
+		JSONValidated(API, "POST", "/v1/stores")
+		JSONValidated(API, "PUT", "/v1/store/"+STORE_S3)
+	})
+
 	It("ignores other HTTP methods", func() {
 		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/stores", nil)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/db"
+	"io"
 	"net/http"
 	"regexp"
 )
@@ -47,7 +48,10 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Endpoint string `json:"endpoint"`
 			Agent    string `json:"agent"`
 		}
-		json.NewDecoder(req.Body).Decode(&params)
+		if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+			bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+			return
+		}
 
 		e := MissingParameters()
 		e.Check("name", params.Name)
@@ -101,7 +105,10 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Endpoint string `json:"endpoint"`
 			Agent    string `json:"agent"`
 		}
-		json.NewDecoder(req.Body).Decode(&params)
+		if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+			bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+			return
+		}
 
 		e := MissingParameters()
 		e.Check("name", params.Name)

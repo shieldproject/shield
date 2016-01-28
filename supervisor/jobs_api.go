@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/db"
+	"io"
 	"net/http"
 	"regexp"
 )
@@ -56,7 +57,10 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			Paused bool `json:"paused"`
 		}
-		json.NewDecoder(req.Body).Decode(&params)
+		if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+			bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+			return
+		}
 
 		e := MissingParameters()
 		e.Check("name", params.Name)
@@ -125,7 +129,10 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		var params struct {
 			Owner string `json:"owner"`
 		}
-		json.NewDecoder(req.Body).Decode(&params)
+		if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+			bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+			return
+		}
 
 		if params.Owner == "" {
 			params.Owner = "anon"
@@ -175,7 +182,10 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Schedule  string `json:"schedule"`
 			Retention string `json:"retention"`
 		}
-		json.NewDecoder(req.Body).Decode(&params)
+		if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+			bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+			return
+		}
 
 		e := MissingParameters()
 		e.Check("name", params.Name)

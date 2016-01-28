@@ -22,6 +22,22 @@ type JSONError interface {
 	JSON() string
 }
 
+type ClientError struct {
+	Error string `json:"error"`
+}
+
+func ClientErrorf(format string, v ...interface{}) ClientError {
+	return ClientError{fmt.Sprintf(format, v...)}
+}
+
+func (e ClientError) JSON() string {
+	b, err := json.Marshal(e)
+	if err != nil {
+		return fmt.Sprintf(`{"error":"failed to unmarshal JSON: %s"}`, err)
+	}
+	return string(b)
+}
+
 type Validator func(name string, value interface{}) error
 
 type InvalidParametersError struct {

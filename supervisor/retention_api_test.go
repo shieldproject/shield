@@ -226,6 +226,11 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Ω(res.Body.String()).Should(Equal(""))
 	})
 
+	It("validates JSON payloads", func() {
+		JSONValidated(API, "POST", "/v1/retention")
+		JSONValidated(API, "PUT", "/v1/retention/"+SHORT)
+	})
+
 	It("ignores other HTTP methods", func() {
 		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/retention", nil)

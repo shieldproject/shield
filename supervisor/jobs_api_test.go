@@ -862,6 +862,12 @@ var _ = Describe("/v1/jobs API", func() {
 		Eventually(adhocChan).Should(Receive())
 	})
 
+	It("validates JSON payloads", func() {
+		JSONValidated(API, "POST", "/v1/jobs")
+		JSONValidated(API, "PUT", "/v1/job/"+REDIS_S3_WEEKLY)
+		JSONValidated(API, "POST", "/v1/job/"+REDIS_S3_WEEKLY+"/run")
+	})
+
 	It("ignores other HTTP methods", func() {
 		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
 			NotImplemented(API, method, "/v1/jobs", nil)
