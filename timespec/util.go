@@ -10,6 +10,12 @@ func hhmm(hours uint, minutes uint) int {
 	}
 	return int(hours*60 + minutes)
 }
+func hourly(minutes int) *Spec {
+	return &Spec{
+		Interval:   Hourly,
+		TimeOfHour: minutes,
+	}
+}
 func daily(minutes int) *Spec {
 	return &Spec{
 		Interval:  Daily,

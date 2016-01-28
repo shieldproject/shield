@@ -8,7 +8,8 @@ import (
 type Interval uint
 
 const (
-	Daily Interval = iota
+	Hourly Interval = iota
+	Daily
 	Weekly
 	Monthly
 )
@@ -18,6 +19,7 @@ const ns = 1000 * 1000 * 1000
 type Spec struct {
 	Interval   Interval
 	TimeOfDay  int
+	TimeOfHour int
 	DayOfWeek  time.Weekday
 	DayOfMonth int
 	Week       int
@@ -71,6 +73,10 @@ func weekday(d time.Weekday) string {
 func (s *Spec) String() string {
 	t := fmt.Sprintf("%d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
 
+	if s.Interval == Hourly && s.TimeOfHour < 60 {
+		return fmt.Sprintf("hourly at %d after", s.TimeOfHour)
+	}
+
 	if s.Interval == Daily {
 		return fmt.Sprintf("daily at %s", t)
 
@@ -90,6 +96,14 @@ func (s *Spec) String() string {
 func (s *Spec) Next(t time.Time) (time.Time, error) {
 	t = roundM(t)
 	midnight := offsetM(t, -1*(t.Hour()*60+t.Minute()))
+
+	if s.Interval == Hourly && s.TimeOfHour < 60 {
+		target := offsetM(t, s.TimeOfHour - t.Minute())
+		if target.After(t) {
+			return target, nil
+		}
+		return offsetM(target, 60), nil
+	}
 
 	if s.Interval == Daily {
 		target := offsetM(midnight, s.TimeOfDay)

@@ -2,25 +2,28 @@
 state 0
 	$accept: .timespec $end 
 
-	ORDINAL  shift 11
-	DAILY  shift 6
-	WEEKLY  shift 8
-	MONTHLY  shift 10
-	EVERYDAY  shift 7
-	SUNDAY  shift 12
-	MONDAY  shift 13
-	TUESDAY  shift 14
-	WEDNESDAY  shift 15
-	THURSDAY  shift 16
-	FRIDAY  shift 17
-	SATURDAY  shift 18
+	ORDINAL  shift 14
+	HOURLY  shift 7
+	DAILY  shift 9
+	WEEKLY  shift 11
+	MONTHLY  shift 13
+	EVERYDAY  shift 10
+	EVERYHOUR  shift 8
+	SUNDAY  shift 15
+	MONDAY  shift 16
+	TUESDAY  shift 17
+	WEDNESDAY  shift 18
+	THURSDAY  shift 19
+	FRIDAY  shift 20
+	SATURDAY  shift 21
 	.  error
 
-	day_name  goto 9
+	day_name  goto 12
 	spec  goto 2
-	daily_spec  goto 3
-	weekly_spec  goto 4
-	monthly_spec  goto 5
+	hourly_spec  goto 3
+	daily_spec  goto 4
+	weekly_spec  goto 5
+	monthly_spec  goto 6
 	timespec  goto 1
 
 state 1
@@ -33,505 +36,702 @@ state 1
 state 2
 	timespec:  spec.    (1)
 
-	.  reduce 1 (src line 41)
+	.  reduce 1 (src line 48)
 
 
 state 3
-	spec:  daily_spec.    (2)
+	spec:  hourly_spec.    (2)
 
-	.  reduce 2 (src line 46)
+	.  reduce 2 (src line 53)
 
 
 state 4
-	spec:  weekly_spec.    (3)
+	spec:  daily_spec.    (3)
 
-	.  reduce 3 (src line 46)
+	.  reduce 3 (src line 53)
 
 
 state 5
-	spec:  monthly_spec.    (4)
+	spec:  weekly_spec.    (4)
 
-	.  reduce 4 (src line 46)
+	.  reduce 4 (src line 53)
 
 
 state 6
+	spec:  monthly_spec.    (5)
+
+	.  reduce 5 (src line 53)
+
+
+state 7
+	hourly_spec:  HOURLY.AT time_in_MM 
+	hourly_spec:  HOURLY.time_in_MM 
+	anyhour: .    (14)
+
+	NUMBER  shift 25
+	AT  shift 22
+	HALF  shift 33
+	QUARTER  shift 32
+	'h'  shift 27
+	'H'  shift 28
+	'x'  shift 29
+	'X'  shift 30
+	'*'  shift 31
+	.  reduce 14 (src line 68)
+
+	time_in_MM  goto 23
+	minutes  goto 26
+	anyhour  goto 24
+
+state 8
+	hourly_spec:  EVERYHOUR.AT time_in_MM 
+	hourly_spec:  EVERYHOUR.time_in_MM 
+	anyhour: .    (14)
+
+	NUMBER  shift 25
+	AT  shift 34
+	HALF  shift 33
+	QUARTER  shift 32
+	'h'  shift 27
+	'H'  shift 28
+	'x'  shift 29
+	'X'  shift 30
+	'*'  shift 31
+	.  reduce 14 (src line 68)
+
+	time_in_MM  goto 35
+	minutes  goto 26
+	anyhour  goto 24
+
+state 9
 	daily_spec:  DAILY.AT time_in_HHMM 
 	daily_spec:  DAILY.time_in_HHMM 
 
-	NUMBER  shift 21
-	AT  shift 19
+	NUMBER  shift 38
+	AT  shift 36
 	.  error
 
-	time_in_HHMM  goto 20
+	time_in_HHMM  goto 37
 
-state 7
+state 10
 	daily_spec:  EVERYDAY.AT time_in_HHMM 
 	daily_spec:  EVERYDAY.time_in_HHMM 
 
-	NUMBER  shift 21
-	AT  shift 22
+	NUMBER  shift 38
+	AT  shift 39
 	.  error
 
-	time_in_HHMM  goto 23
+	time_in_HHMM  goto 40
 
-state 8
+state 11
 	weekly_spec:  WEEKLY.AT time_in_HHMM ON day_name 
 	weekly_spec:  WEEKLY.time_in_HHMM ON day_name 
 	weekly_spec:  WEEKLY.AT time_in_HHMM day_name 
 	weekly_spec:  WEEKLY.time_in_HHMM day_name 
 
-	NUMBER  shift 21
-	AT  shift 24
+	NUMBER  shift 38
+	AT  shift 41
 	.  error
 
-	time_in_HHMM  goto 25
+	time_in_HHMM  goto 42
 
-state 9
+state 12
 	weekly_spec:  day_name.AT time_in_HHMM 
 	weekly_spec:  day_name.time_in_HHMM 
 
-	NUMBER  shift 21
-	AT  shift 26
+	NUMBER  shift 38
+	AT  shift 43
 	.  error
 
-	time_in_HHMM  goto 27
+	time_in_HHMM  goto 44
 
-state 10
+state 13
 	monthly_spec:  MONTHLY.AT time_in_HHMM ON month_day 
 	monthly_spec:  MONTHLY.time_in_HHMM ON month_day 
 	monthly_spec:  MONTHLY.AT time_in_HHMM month_day 
 	monthly_spec:  MONTHLY.time_in_HHMM month_day 
 
-	NUMBER  shift 21
-	AT  shift 28
+	NUMBER  shift 38
+	AT  shift 45
 	.  error
 
-	time_in_HHMM  goto 29
+	time_in_HHMM  goto 46
 
-state 11
+state 14
 	monthly_spec:  ORDINAL.day_name AT time_in_HHMM 
 	monthly_spec:  ORDINAL.day_name time_in_HHMM 
 
-	SUNDAY  shift 12
-	MONDAY  shift 13
-	TUESDAY  shift 14
-	WEDNESDAY  shift 15
-	THURSDAY  shift 16
-	FRIDAY  shift 17
-	SATURDAY  shift 18
+	SUNDAY  shift 15
+	MONDAY  shift 16
+	TUESDAY  shift 17
+	WEDNESDAY  shift 18
+	THURSDAY  shift 19
+	FRIDAY  shift 20
+	SATURDAY  shift 21
 	.  error
 
-	day_name  goto 30
-
-state 12
-	day_name:  SUNDAY.    (22)
-
-	.  reduce 22 (src line 74)
-
-
-state 13
-	day_name:  MONDAY.    (23)
-
-	.  reduce 23 (src line 75)
-
-
-state 14
-	day_name:  TUESDAY.    (24)
-
-	.  reduce 24 (src line 76)
-
+	day_name  goto 47
 
 state 15
-	day_name:  WEDNESDAY.    (25)
+	day_name:  SUNDAY.    (40)
 
-	.  reduce 25 (src line 77)
+	.  reduce 40 (src line 100)
 
 
 state 16
-	day_name:  THURSDAY.    (26)
+	day_name:  MONDAY.    (41)
 
-	.  reduce 26 (src line 78)
+	.  reduce 41 (src line 101)
 
 
 state 17
-	day_name:  FRIDAY.    (27)
+	day_name:  TUESDAY.    (42)
 
-	.  reduce 27 (src line 79)
+	.  reduce 42 (src line 102)
 
 
 state 18
-	day_name:  SATURDAY.    (28)
+	day_name:  WEDNESDAY.    (43)
 
-	.  reduce 28 (src line 80)
+	.  reduce 43 (src line 103)
 
 
 state 19
-	daily_spec:  DAILY AT.time_in_HHMM 
+	day_name:  THURSDAY.    (44)
 
-	NUMBER  shift 21
-	.  error
+	.  reduce 44 (src line 104)
 
-	time_in_HHMM  goto 31
 
 state 20
-	daily_spec:  DAILY time_in_HHMM.    (6)
+	day_name:  FRIDAY.    (45)
 
-	.  reduce 6 (src line 50)
+	.  reduce 45 (src line 105)
 
 
 state 21
+	day_name:  SATURDAY.    (46)
+
+	.  reduce 46 (src line 106)
+
+
+state 22
+	hourly_spec:  HOURLY AT.time_in_MM 
+	anyhour: .    (14)
+
+	NUMBER  shift 25
+	HALF  shift 33
+	QUARTER  shift 32
+	'h'  shift 27
+	'H'  shift 28
+	'x'  shift 29
+	'X'  shift 30
+	'*'  shift 31
+	.  reduce 14 (src line 68)
+
+	time_in_MM  goto 48
+	minutes  goto 26
+	anyhour  goto 24
+
+state 23
+	hourly_spec:  HOURLY time_in_MM.    (7)
+
+	.  reduce 7 (src line 57)
+
+
+state 24
+	time_in_MM:  anyhour.':' NUMBER 
+
+	':'  shift 49
+	.  error
+
+
+state 25
+	minutes:  NUMBER.    (22)
+	time_in_MM:  NUMBER.    (24)
+
+	$end  reduce 24 (src line 76)
+	.  reduce 22 (src line 72)
+
+
+state 26
+	time_in_MM:  minutes.AFTER 
+	time_in_MM:  minutes.TIL 
+
+	AFTER  shift 50
+	TIL  shift 51
+	.  error
+
+
+state 27
+	anyhour:  'h'.    (15)
+
+	.  reduce 15 (src line 68)
+
+
+state 28
+	anyhour:  'H'.    (16)
+
+	.  reduce 16 (src line 68)
+
+
+state 29
+	anyhour:  'x'.    (17)
+
+	.  reduce 17 (src line 68)
+
+
+state 30
+	anyhour:  'X'.    (18)
+
+	.  reduce 18 (src line 68)
+
+
+state 31
+	anyhour:  '*'.    (19)
+
+	.  reduce 19 (src line 68)
+
+
+state 32
+	minutes:  QUARTER.    (20)
+
+	.  reduce 20 (src line 70)
+
+
+state 33
+	minutes:  HALF.    (21)
+
+	.  reduce 21 (src line 71)
+
+
+state 34
+	hourly_spec:  EVERYHOUR AT.time_in_MM 
+	anyhour: .    (14)
+
+	NUMBER  shift 25
+	HALF  shift 33
+	QUARTER  shift 32
+	'h'  shift 27
+	'H'  shift 28
+	'x'  shift 29
+	'X'  shift 30
+	'*'  shift 31
+	.  reduce 14 (src line 68)
+
+	time_in_MM  goto 52
+	minutes  goto 26
+	anyhour  goto 24
+
+state 35
+	hourly_spec:  EVERYHOUR time_in_MM.    (9)
+
+	.  reduce 9 (src line 59)
+
+
+state 36
+	daily_spec:  DAILY AT.time_in_HHMM 
+
+	NUMBER  shift 38
+	.  error
+
+	time_in_HHMM  goto 53
+
+state 37
+	daily_spec:  DAILY time_in_HHMM.    (11)
+
+	.  reduce 11 (src line 63)
+
+
+state 38
 	time_in_HHMM:  NUMBER.':' NUMBER 
 	time_in_HHMM:  NUMBER.':' NUMBER am_or_pm 
 	time_in_HHMM:  NUMBER.':' NUMBER ' ' am_or_pm 
 	time_in_HHMM:  NUMBER.am_or_pm 
 	time_in_HHMM:  NUMBER.' ' am_or_pm 
 
-	AM  shift 35
-	PM  shift 36
-	':'  shift 32
-	' '  shift 34
+	AM  shift 57
+	PM  shift 58
+	':'  shift 54
+	' '  shift 56
 	.  error
 
-	am_or_pm  goto 33
+	am_or_pm  goto 55
 
-state 22
+state 39
 	daily_spec:  EVERYDAY AT.time_in_HHMM 
 
-	NUMBER  shift 21
+	NUMBER  shift 38
 	.  error
 
-	time_in_HHMM  goto 37
+	time_in_HHMM  goto 59
 
-state 23
-	daily_spec:  EVERYDAY time_in_HHMM.    (8)
+state 40
+	daily_spec:  EVERYDAY time_in_HHMM.    (13)
 
-	.  reduce 8 (src line 52)
+	.  reduce 13 (src line 65)
 
 
-state 24
+state 41
 	weekly_spec:  WEEKLY AT.time_in_HHMM ON day_name 
 	weekly_spec:  WEEKLY AT.time_in_HHMM day_name 
 
-	NUMBER  shift 21
+	NUMBER  shift 38
 	.  error
 
-	time_in_HHMM  goto 38
+	time_in_HHMM  goto 60
 
-state 25
+state 42
 	weekly_spec:  WEEKLY time_in_HHMM.ON day_name 
 	weekly_spec:  WEEKLY time_in_HHMM.day_name 
 
-	ON  shift 39
-	SUNDAY  shift 12
-	MONDAY  shift 13
-	TUESDAY  shift 14
-	WEDNESDAY  shift 15
-	THURSDAY  shift 16
-	FRIDAY  shift 17
-	SATURDAY  shift 18
+	ON  shift 61
+	SUNDAY  shift 15
+	MONDAY  shift 16
+	TUESDAY  shift 17
+	WEDNESDAY  shift 18
+	THURSDAY  shift 19
+	FRIDAY  shift 20
+	SATURDAY  shift 21
 	.  error
 
-	day_name  goto 40
+	day_name  goto 62
 
-state 26
+state 43
 	weekly_spec:  day_name AT.time_in_HHMM 
 
-	NUMBER  shift 21
+	NUMBER  shift 38
 	.  error
 
-	time_in_HHMM  goto 41
+	time_in_HHMM  goto 63
 
-state 27
-	weekly_spec:  day_name time_in_HHMM.    (19)
+state 44
+	weekly_spec:  day_name time_in_HHMM.    (37)
 
-	.  reduce 19 (src line 67)
+	.  reduce 37 (src line 93)
 
 
-state 28
+state 45
 	monthly_spec:  MONTHLY AT.time_in_HHMM ON month_day 
 	monthly_spec:  MONTHLY AT.time_in_HHMM month_day 
 
-	NUMBER  shift 21
+	NUMBER  shift 38
 	.  error
 
-	time_in_HHMM  goto 42
+	time_in_HHMM  goto 64
 
-state 29
+state 46
 	monthly_spec:  MONTHLY time_in_HHMM.ON month_day 
 	monthly_spec:  MONTHLY time_in_HHMM.month_day 
 
-	NUMBER  shift 46
-	ORDINAL  shift 45
-	ON  shift 43
+	NUMBER  shift 68
+	ORDINAL  shift 67
+	ON  shift 65
 	.  error
 
-	month_day  goto 44
+	month_day  goto 66
 
-state 30
+state 47
 	monthly_spec:  ORDINAL day_name.AT time_in_HHMM 
 	monthly_spec:  ORDINAL day_name.time_in_HHMM 
 
-	NUMBER  shift 21
-	AT  shift 47
+	NUMBER  shift 38
+	AT  shift 69
 	.  error
 
-	time_in_HHMM  goto 48
+	time_in_HHMM  goto 70
 
-state 31
-	daily_spec:  DAILY AT time_in_HHMM.    (5)
+state 48
+	hourly_spec:  HOURLY AT time_in_MM.    (6)
 
-	.  reduce 5 (src line 49)
+	.  reduce 6 (src line 56)
 
 
-state 32
+state 49
+	time_in_MM:  anyhour ':'.NUMBER 
+
+	NUMBER  shift 71
+	.  error
+
+
+state 50
+	time_in_MM:  minutes AFTER.    (25)
+
+	.  reduce 25 (src line 77)
+
+
+state 51
+	time_in_MM:  minutes TIL.    (26)
+
+	.  reduce 26 (src line 78)
+
+
+state 52
+	hourly_spec:  EVERYHOUR AT time_in_MM.    (8)
+
+	.  reduce 8 (src line 58)
+
+
+state 53
+	daily_spec:  DAILY AT time_in_HHMM.    (10)
+
+	.  reduce 10 (src line 62)
+
+
+state 54
 	time_in_HHMM:  NUMBER ':'.NUMBER 
 	time_in_HHMM:  NUMBER ':'.NUMBER am_or_pm 
 	time_in_HHMM:  NUMBER ':'.NUMBER ' ' am_or_pm 
 
-	NUMBER  shift 49
+	NUMBER  shift 72
 	.  error
 
-
-state 33
-	time_in_HHMM:  NUMBER am_or_pm.    (12)
-
-	.  reduce 12 (src line 58)
-
-
-state 34
-	time_in_HHMM:  NUMBER ' '.am_or_pm 
-
-	AM  shift 35
-	PM  shift 36
-	.  error
-
-	am_or_pm  goto 50
-
-state 35
-	am_or_pm:  AM.    (20)
-
-	.  reduce 20 (src line 70)
-
-
-state 36
-	am_or_pm:  PM.    (21)
-
-	.  reduce 21 (src line 71)
-
-
-state 37
-	daily_spec:  EVERYDAY AT time_in_HHMM.    (7)
-
-	.  reduce 7 (src line 51)
-
-
-state 38
-	weekly_spec:  WEEKLY AT time_in_HHMM.ON day_name 
-	weekly_spec:  WEEKLY AT time_in_HHMM.day_name 
-
-	ON  shift 51
-	SUNDAY  shift 12
-	MONDAY  shift 13
-	TUESDAY  shift 14
-	WEDNESDAY  shift 15
-	THURSDAY  shift 16
-	FRIDAY  shift 17
-	SATURDAY  shift 18
-	.  error
-
-	day_name  goto 52
-
-state 39
-	weekly_spec:  WEEKLY time_in_HHMM ON.day_name 
-
-	SUNDAY  shift 12
-	MONDAY  shift 13
-	TUESDAY  shift 14
-	WEDNESDAY  shift 15
-	THURSDAY  shift 16
-	FRIDAY  shift 17
-	SATURDAY  shift 18
-	.  error
-
-	day_name  goto 53
-
-state 40
-	weekly_spec:  WEEKLY time_in_HHMM day_name.    (17)
-
-	.  reduce 17 (src line 65)
-
-
-state 41
-	weekly_spec:  day_name AT time_in_HHMM.    (18)
-
-	.  reduce 18 (src line 66)
-
-
-state 42
-	monthly_spec:  MONTHLY AT time_in_HHMM.ON month_day 
-	monthly_spec:  MONTHLY AT time_in_HHMM.month_day 
-
-	NUMBER  shift 46
-	ORDINAL  shift 45
-	ON  shift 54
-	.  error
-
-	month_day  goto 55
-
-state 43
-	monthly_spec:  MONTHLY time_in_HHMM ON.month_day 
-
-	NUMBER  shift 46
-	ORDINAL  shift 45
-	.  error
-
-	month_day  goto 56
-
-state 44
-	monthly_spec:  MONTHLY time_in_HHMM month_day.    (32)
-
-	.  reduce 32 (src line 86)
-
-
-state 45
-	month_day:  ORDINAL.    (35)
-
-	.  reduce 35 (src line 91)
-
-
-state 46
-	month_day:  NUMBER.    (36)
-
-	.  reduce 36 (src line 92)
-
-
-state 47
-	monthly_spec:  ORDINAL day_name AT.time_in_HHMM 
-
-	NUMBER  shift 21
-	.  error
-
-	time_in_HHMM  goto 57
-
-state 48
-	monthly_spec:  ORDINAL day_name time_in_HHMM.    (34)
-
-	.  reduce 34 (src line 88)
-
-
-state 49
-	time_in_HHMM:  NUMBER ':' NUMBER.    (9)
-	time_in_HHMM:  NUMBER ':' NUMBER.am_or_pm 
-	time_in_HHMM:  NUMBER ':' NUMBER.' ' am_or_pm 
-
-	AM  shift 35
-	PM  shift 36
-	' '  shift 59
-	.  reduce 9 (src line 55)
-
-	am_or_pm  goto 58
-
-state 50
-	time_in_HHMM:  NUMBER ' ' am_or_pm.    (13)
-
-	.  reduce 13 (src line 59)
-
-
-state 51
-	weekly_spec:  WEEKLY AT time_in_HHMM ON.day_name 
-
-	SUNDAY  shift 12
-	MONDAY  shift 13
-	TUESDAY  shift 14
-	WEDNESDAY  shift 15
-	THURSDAY  shift 16
-	FRIDAY  shift 17
-	SATURDAY  shift 18
-	.  error
-
-	day_name  goto 60
-
-state 52
-	weekly_spec:  WEEKLY AT time_in_HHMM day_name.    (16)
-
-	.  reduce 16 (src line 64)
-
-
-state 53
-	weekly_spec:  WEEKLY time_in_HHMM ON day_name.    (15)
-
-	.  reduce 15 (src line 63)
-
-
-state 54
-	monthly_spec:  MONTHLY AT time_in_HHMM ON.month_day 
-
-	NUMBER  shift 46
-	ORDINAL  shift 45
-	.  error
-
-	month_day  goto 61
 
 state 55
-	monthly_spec:  MONTHLY AT time_in_HHMM month_day.    (31)
-
-	.  reduce 31 (src line 85)
-
-
-state 56
-	monthly_spec:  MONTHLY time_in_HHMM ON month_day.    (30)
+	time_in_HHMM:  NUMBER am_or_pm.    (30)
 
 	.  reduce 30 (src line 84)
 
 
-state 57
-	monthly_spec:  ORDINAL day_name AT time_in_HHMM.    (33)
+state 56
+	time_in_HHMM:  NUMBER ' '.am_or_pm 
 
-	.  reduce 33 (src line 87)
+	AM  shift 57
+	PM  shift 58
+	.  error
+
+	am_or_pm  goto 73
+
+state 57
+	am_or_pm:  AM.    (38)
+
+	.  reduce 38 (src line 96)
 
 
 state 58
-	time_in_HHMM:  NUMBER ':' NUMBER am_or_pm.    (10)
+	am_or_pm:  PM.    (39)
 
-	.  reduce 10 (src line 56)
+	.  reduce 39 (src line 97)
 
 
 state 59
-	time_in_HHMM:  NUMBER ':' NUMBER ' '.am_or_pm 
+	daily_spec:  EVERYDAY AT time_in_HHMM.    (12)
 
-	AM  shift 35
-	PM  shift 36
-	.  error
+	.  reduce 12 (src line 64)
 
-	am_or_pm  goto 62
 
 state 60
-	weekly_spec:  WEEKLY AT time_in_HHMM ON day_name.    (14)
+	weekly_spec:  WEEKLY AT time_in_HHMM.ON day_name 
+	weekly_spec:  WEEKLY AT time_in_HHMM.day_name 
 
-	.  reduce 14 (src line 62)
+	ON  shift 74
+	SUNDAY  shift 15
+	MONDAY  shift 16
+	TUESDAY  shift 17
+	WEDNESDAY  shift 18
+	THURSDAY  shift 19
+	FRIDAY  shift 20
+	SATURDAY  shift 21
+	.  error
 
+	day_name  goto 75
 
 state 61
-	monthly_spec:  MONTHLY AT time_in_HHMM ON month_day.    (29)
+	weekly_spec:  WEEKLY time_in_HHMM ON.day_name 
+
+	SUNDAY  shift 15
+	MONDAY  shift 16
+	TUESDAY  shift 17
+	WEDNESDAY  shift 18
+	THURSDAY  shift 19
+	FRIDAY  shift 20
+	SATURDAY  shift 21
+	.  error
+
+	day_name  goto 76
+
+state 62
+	weekly_spec:  WEEKLY time_in_HHMM day_name.    (35)
+
+	.  reduce 35 (src line 91)
+
+
+state 63
+	weekly_spec:  day_name AT time_in_HHMM.    (36)
+
+	.  reduce 36 (src line 92)
+
+
+state 64
+	monthly_spec:  MONTHLY AT time_in_HHMM.ON month_day 
+	monthly_spec:  MONTHLY AT time_in_HHMM.month_day 
+
+	NUMBER  shift 68
+	ORDINAL  shift 67
+	ON  shift 77
+	.  error
+
+	month_day  goto 78
+
+state 65
+	monthly_spec:  MONTHLY time_in_HHMM ON.month_day 
+
+	NUMBER  shift 68
+	ORDINAL  shift 67
+	.  error
+
+	month_day  goto 79
+
+state 66
+	monthly_spec:  MONTHLY time_in_HHMM month_day.    (50)
+
+	.  reduce 50 (src line 112)
+
+
+state 67
+	month_day:  ORDINAL.    (53)
+
+	.  reduce 53 (src line 117)
+
+
+state 68
+	month_day:  NUMBER.    (54)
+
+	.  reduce 54 (src line 118)
+
+
+state 69
+	monthly_spec:  ORDINAL day_name AT.time_in_HHMM 
+
+	NUMBER  shift 38
+	.  error
+
+	time_in_HHMM  goto 80
+
+state 70
+	monthly_spec:  ORDINAL day_name time_in_HHMM.    (52)
+
+	.  reduce 52 (src line 114)
+
+
+state 71
+	time_in_MM:  anyhour ':' NUMBER.    (23)
+
+	.  reduce 23 (src line 75)
+
+
+state 72
+	time_in_HHMM:  NUMBER ':' NUMBER.    (27)
+	time_in_HHMM:  NUMBER ':' NUMBER.am_or_pm 
+	time_in_HHMM:  NUMBER ':' NUMBER.' ' am_or_pm 
+
+	AM  shift 57
+	PM  shift 58
+	' '  shift 82
+	.  reduce 27 (src line 81)
+
+	am_or_pm  goto 81
+
+state 73
+	time_in_HHMM:  NUMBER ' ' am_or_pm.    (31)
+
+	.  reduce 31 (src line 85)
+
+
+state 74
+	weekly_spec:  WEEKLY AT time_in_HHMM ON.day_name 
+
+	SUNDAY  shift 15
+	MONDAY  shift 16
+	TUESDAY  shift 17
+	WEDNESDAY  shift 18
+	THURSDAY  shift 19
+	FRIDAY  shift 20
+	SATURDAY  shift 21
+	.  error
+
+	day_name  goto 83
+
+state 75
+	weekly_spec:  WEEKLY AT time_in_HHMM day_name.    (34)
+
+	.  reduce 34 (src line 90)
+
+
+state 76
+	weekly_spec:  WEEKLY time_in_HHMM ON day_name.    (33)
+
+	.  reduce 33 (src line 89)
+
+
+state 77
+	monthly_spec:  MONTHLY AT time_in_HHMM ON.month_day 
+
+	NUMBER  shift 68
+	ORDINAL  shift 67
+	.  error
+
+	month_day  goto 84
+
+state 78
+	monthly_spec:  MONTHLY AT time_in_HHMM month_day.    (49)
+
+	.  reduce 49 (src line 111)
+
+
+state 79
+	monthly_spec:  MONTHLY time_in_HHMM ON month_day.    (48)
+
+	.  reduce 48 (src line 110)
+
+
+state 80
+	monthly_spec:  ORDINAL day_name AT time_in_HHMM.    (51)
+
+	.  reduce 51 (src line 113)
+
+
+state 81
+	time_in_HHMM:  NUMBER ':' NUMBER am_or_pm.    (28)
+
+	.  reduce 28 (src line 82)
+
+
+state 82
+	time_in_HHMM:  NUMBER ':' NUMBER ' '.am_or_pm 
+
+	AM  shift 57
+	PM  shift 58
+	.  error
+
+	am_or_pm  goto 85
+
+state 83
+	weekly_spec:  WEEKLY AT time_in_HHMM ON day_name.    (32)
+
+	.  reduce 32 (src line 88)
+
+
+state 84
+	monthly_spec:  MONTHLY AT time_in_HHMM ON month_day.    (47)
+
+	.  reduce 47 (src line 109)
+
+
+state 85
+	time_in_HHMM:  NUMBER ':' NUMBER ' ' am_or_pm.    (29)
 
 	.  reduce 29 (src line 83)
 
 
-state 62
-	time_in_HHMM:  NUMBER ':' NUMBER ' ' am_or_pm.    (11)
-
-	.  reduce 11 (src line 57)
-
-
-22 terminals, 10 nonterminals
-37 grammar rules, 63/2000 states
+33 terminals, 14 nonterminals
+55 grammar rules, 86/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
-59 working sets used
-memory: parser 30/30000
+63 working sets used
+memory: parser 43/30000
 7 extra closures
-89 shift entries, 1 exceptions
-31 goto entries
-0 entries saved by goto default
-Optimizer space used: output 106/30000
-106 table entries, 9 zero
-maximum spread: 22, maximum offset: 59
+129 shift entries, 2 exceptions
+38 goto entries
+6 entries saved by goto default
+Optimizer space used: output 154/30000
+154 table entries, 18 zero
+maximum spread: 33, maximum offset: 82
