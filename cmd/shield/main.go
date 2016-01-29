@@ -955,7 +955,7 @@ func main() {
 
 			job, _, err := FindJob(strings.Join(args, " "), *opts.Raw)
 			if err != nil {
-				return nil
+				return err
 			}
 
 			if *opts.Raw {
