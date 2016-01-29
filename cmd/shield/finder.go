@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pborman/uuid"
 
@@ -198,4 +199,37 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 			&t, "Which backup job do you want?")
 		return want.(Job), uuid.Parse(want.(Job).UUID), nil
 	}
+}
+
+func FindArchivesFor(job Job, show int) (Archive, uuid.UUID, error) {
+	archives, err := GetArchives(ArchiveFilter{
+		Status: "valid",
+		// FIXME: need a way of limiting
+	})
+	if err != nil {
+		return Archive{}, nil, err
+	}
+	if len(archives) == 0 {
+		return Archive{}, nil, fmt.Errorf("no valid backup archives found for %s", job.Name)
+	}
+
+	if show > len(archives) {
+		show = len(archives)
+	} else {
+		archives = archives[:show]
+	}
+
+	t := tui.NewTable("UUID", "Taken at", "Expires at", "Status", "Notes")
+	for _, archive := range archives {
+		t.Row(archive, archive.UUID,
+			archive.TakenAt.Format(time.RFC1123Z),
+			archive.ExpiresAt.Format(time.RFC1123Z),
+			archive.Status, archive.Notes)
+	}
+
+	want := tui.Menu(
+		fmt.Sprintf("Here are the %d most recent backup archives for %s:", show, job.Name),
+		&t, "Which backup archive would you like to restore?")
+
+	return want.(Archive), uuid.Parse(want.(Archive).UUID), nil
 }

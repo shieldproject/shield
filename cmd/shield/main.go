@@ -1377,8 +1377,24 @@ func main() {
 		func(opts Options, args []string) error {
 			DEBUG("running 'restore archive' command")
 
-			require(len(args) == 1, "USAGE: shield restore archive <UUID>")
-			id := uuid.Parse(args[0])
+			var id uuid.UUID
+
+			if *opts.Raw {
+				require(len(args) == 1, "USAGE: shield restore archive <UUID>")
+				id = uuid.Parse(args[0])
+				DEBUG("  trying archive UUID '%s'", args[0])
+
+			} else {
+				job, _, err := FindJob(strings.Join(args, " "), false)
+				if err != nil {
+					return err
+				}
+
+				_, id, err = FindArchivesFor(job, 10)
+				if err != nil {
+					return err
+				}
+			}
 			DEBUG("  archive UUID = '%s'", id)
 
 			var params = struct {
@@ -1405,9 +1421,10 @@ func main() {
 			if params.Target != "" {
 				targetMsg = fmt.Sprintf("to target '%s'", params.Target)
 			}
-			OK("Scheduled immedate restore of archive '%s' %s", id, targetMsg)
+			OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
 			return nil
 		})
+	c.Alias("restore", "restore archive")
 
 	c.Dispatch("delete archive", "Delete a backup archive",
 		func(opts Options, args []string) error {
