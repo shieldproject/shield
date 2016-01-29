@@ -1,10 +1,12 @@
 package supervisor_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	. "github.com/starkandwayne/shield/supervisor"
-	"net/http"
 )
 
 var _ = Describe("/v1/meta API", func() {

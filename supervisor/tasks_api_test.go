@@ -2,15 +2,17 @@ package supervisor_test
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pborman/uuid"
-	. "github.com/starkandwayne/shield/supervisor"
 	"net/http"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
+
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
+
+	. "github.com/starkandwayne/shield/supervisor"
 )
 
 var _ = Describe("/v1/tasks API", func() {

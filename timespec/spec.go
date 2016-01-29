@@ -98,7 +98,7 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 	midnight := offsetM(t, -1*(t.Hour()*60+t.Minute()))
 
 	if s.Interval == Hourly && s.TimeOfHour < 60 {
-		target := offsetM(t, s.TimeOfHour - t.Minute())
+		target := offsetM(t, s.TimeOfHour-t.Minute())
 		if target.After(t) {
 			return target, nil
 		}

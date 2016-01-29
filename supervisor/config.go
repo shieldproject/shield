@@ -1,12 +1,12 @@
 package supervisor
 
 import (
-	"github.com/starkandwayne/shield/db"
-
 	"io/ioutil"
 	"time"
 
 	"gopkg.in/yaml.v2"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 type Config struct {

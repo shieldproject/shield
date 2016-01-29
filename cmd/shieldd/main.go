@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/starkandwayne/goutils/log"
-	"github.com/starkandwayne/shield/supervisor"
-
 	"github.com/voxelbrain/goptions"
 
 	// sql drivers
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+
+	"github.com/starkandwayne/shield/supervisor"
 )
 
 type ShielddOpts struct {

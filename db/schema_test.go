@@ -2,13 +2,15 @@ package db_test
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/starkandwayne/shield/db"
 
 	// sql drivers
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+
+	. "github.com/starkandwayne/shield/db"
 )
 
 func Database(sqls ...string) (*DB, error) {

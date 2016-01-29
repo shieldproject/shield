@@ -1,14 +1,16 @@
 package db_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
-	. "github.com/starkandwayne/shield/db"
-	"time"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
+
+	. "github.com/starkandwayne/shield/db"
 )
 
 var _ = Describe("Task Management", func() {

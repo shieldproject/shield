@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/starkandwayne/goutils/log"
-	"github.com/starkandwayne/shield/agent"
-
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/goutils/log"
+
+	"github.com/starkandwayne/shield/agent"
 )
 
 type UpdateOp int

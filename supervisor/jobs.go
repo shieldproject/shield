@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/starkandwayne/shield/timespec"
-
 	"github.com/pborman/uuid"
+
+	"github.com/starkandwayne/shield/timespec"
 )
 
 var DEV_MODE_SCHEDULING bool = false

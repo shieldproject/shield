@@ -4,7 +4,11 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: tests shield plugins
+all: format tests shield plugins
+
+# go fmt ftw
+format:
+	go fmt ./...
 
 # Running Tests
 tests: test

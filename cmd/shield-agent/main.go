@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/voxelbrain/goptions"
+
 	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/shield/agent"
-
-	"github.com/voxelbrain/goptions"
 )
 
 type ShieldAgentOpts struct {

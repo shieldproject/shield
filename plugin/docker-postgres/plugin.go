@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/starkandwayne/shield/plugin"
-
 	docker "github.com/fsouza/go-dockerclient"
+
+	. "github.com/starkandwayne/shield/plugin"
 )
 
 func main() {

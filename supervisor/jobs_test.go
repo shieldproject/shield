@@ -1,11 +1,13 @@
 package supervisor_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	. "github.com/starkandwayne/shield/supervisor"
 	"github.com/starkandwayne/shield/timespec"
-	"time"
 )
 
 var _ = Describe("Jobs", func() {

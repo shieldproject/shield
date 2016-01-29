@@ -3,8 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"github.com/starkandwayne/goutils/log"
 	"time"
+
+	"github.com/starkandwayne/goutils/log"
 
 	. "github.com/starkandwayne/shield/timestamp"
 )

@@ -3,11 +3,13 @@ package supervisor
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pborman/uuid"
-	"github.com/starkandwayne/shield/db"
 	"io"
 	"net/http"
 	"regexp"
+
+	"github.com/pborman/uuid"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 type ScheduleAPI struct {

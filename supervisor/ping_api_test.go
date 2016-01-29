@@ -3,10 +3,11 @@ package supervisor_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/starkandwayne/shield/supervisor"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
+
+	. "github.com/starkandwayne/shield/supervisor"
 )
 
 var _ = Describe("HTTP Rest API", func() {

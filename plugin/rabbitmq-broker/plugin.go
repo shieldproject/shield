@@ -3,11 +3,12 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/starkandwayne/shield/plugin"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/starkandwayne/shield/plugin"
 )
 
 func main() {

@@ -1,14 +1,18 @@
 package db_test
 
 import (
+	"time"
+
+	"github.com/pborman/uuid"
+
+	// sql drivers
+	_ "github.com/mattn/go-sqlite3"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pborman/uuid"
-	. "github.com/starkandwayne/shield/db"
 
-	_ "github.com/mattn/go-sqlite3"
+	. "github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/shield/timestamp"
-	"time"
 )
 
 var _ = Describe("Archive Management", func() {

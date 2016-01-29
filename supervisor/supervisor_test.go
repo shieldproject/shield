@@ -3,7 +3,6 @@ package supervisor_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/starkandwayne/shield/db"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,10 +12,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/starkandwayne/shield/supervisor"
-
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
+
+	"github.com/starkandwayne/shield/db"
+	. "github.com/starkandwayne/shield/supervisor"
 )
 
 func Database(sqls ...string) (*db.DB, error) {

@@ -2,11 +2,13 @@ package supervisor
 
 import (
 	"fmt"
-	"github.com/pborman/uuid"
-	"github.com/starkandwayne/shield/db"
 	"net/http"
 	"regexp"
 	"time"
+
+	"github.com/pborman/uuid"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 type TaskAPI struct {

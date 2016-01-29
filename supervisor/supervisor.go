@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/starkandwayne/goutils/log"
-	"github.com/starkandwayne/shield/db"
-
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/goutils/log"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 type Supervisor struct {

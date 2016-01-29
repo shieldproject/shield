@@ -2,11 +2,13 @@ package supervisor_test
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/starkandwayne/shield/supervisor"
 	"net/http"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	. "github.com/starkandwayne/shield/supervisor"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"

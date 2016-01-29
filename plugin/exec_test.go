@@ -2,11 +2,13 @@ package plugin_test
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/starkandwayne/shield/plugin"
 	"io/ioutil"
 	"os"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/starkandwayne/shield/plugin"
 )
 
 var _ = Describe("Plugin Commands", func() {

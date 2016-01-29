@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/starkandwayne/shield/plugin"
 	"time"
+
+	"github.com/starkandwayne/shield/plugin"
 )
 
 func main() {
