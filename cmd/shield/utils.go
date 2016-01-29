@@ -10,7 +10,7 @@ func BoolString(tf bool) string {
 	if tf {
 		return "Y"
 	}
-	return "F"
+	return "N"
 }
 
 func CurrentUser() string {
