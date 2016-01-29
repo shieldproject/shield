@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1143,8 +1144,19 @@ func main() {
 			if err != nil {
 				return err
 			}
-			if err := RunJob(id, fmt.Sprintf(`{"owner":"%s@%s"}`,
-				os.Getenv("USER"), os.Getenv("HOSTNAME"))); err != nil {
+
+			var params = struct {
+				Owner string `json:"owner"`
+			}{
+				Owner: CurrentUser(),
+			}
+
+			b, err := json.Marshal(params)
+			if err != nil {
+				return err
+			}
+
+			if err := RunJob(id, string(b)); err != nil {
 				return err
 			}
 
@@ -1374,19 +1386,31 @@ func main() {
 			id := uuid.Parse(args[0])
 			DEBUG("  archive UUID = '%s'", id)
 
-			targetJSON := "{}"
-			toTargetJSONmsg := ""
-			if opts.Target != nil && *opts.Target != "" {
-				targetJSON = *opts.Target
-				toTargetJSONmsg = fmt.Sprintf("to target '%s'", targetJSON)
+			var params = struct {
+				Owner  string `json:"owner,omitempty"`
+				Target string `json:"target,omitempty"`
+			}{
+				Owner: CurrentUser(),
 			}
 
-			err := RestoreArchive(id, targetJSON)
+			if *opts.To != "" {
+				params.Target = *opts.To
+			}
+
+			b, err := json.Marshal(params)
 			if err != nil {
 				return err
 			}
 
-			OK("Scheduled immedate restore of archive '%s' %s", id, toTargetJSONmsg)
+			if err := RestoreArchive(id, string(b)); err != nil {
+				return err
+			}
+
+			targetMsg := ""
+			if params.Target != "" {
+				targetMsg = fmt.Sprintf("to target '%s'", params.Target)
+			}
+			OK("Scheduled immedate restore of archive '%s' %s", id, targetMsg)
 			return nil
 		})
 
