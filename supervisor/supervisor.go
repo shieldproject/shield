@@ -72,6 +72,12 @@ func (s *Supervisor) Resync() error {
 	return nil
 }
 
+func (s *Supervisor) ScheduleTask(t *Task) {
+	t.TimeoutAt = time.Now().Add(s.Timeout)
+	log.Infof("schedule task %s with deadline %v", t.UUID, t.TimeoutAt)
+	s.schedq = append(s.schedq, t)
+}
+
 func (s *Supervisor) CheckSchedule() {
 	for _, job := range s.jobq {
 		if !job.Runnable() {
@@ -87,7 +93,7 @@ func (s *Supervisor) CheckSchedule() {
 		}
 
 		task.UUID = id
-		s.schedq = append(s.schedq, task)
+		s.ScheduleTask(task)
 
 		err = job.Reschedule()
 		if err != nil {
@@ -120,7 +126,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 			}
 
 			task.UUID = id
-			s.schedq = append(s.schedq, task)
+			s.ScheduleTask(task)
 		}
 
 	case RESTORE:
@@ -137,7 +143,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 		}
 
 		task.UUID = id
-		s.schedq = append(s.schedq, task)
+		s.ScheduleTask(task)
 	}
 }
 
@@ -213,12 +219,23 @@ func (s *Supervisor) Run() error {
 
 			// see if any tasks have been running past the timeout period
 			if len(s.runq) > 0 {
+				ok := true
+				lst := make([]Task, 0)
 				now := time.Now()
+
 				for _, runtask := range s.runq {
 					if now.After(runtask.TimeoutAt) {
 						s.Database.CancelTask(runtask.UUID, now)
 						log.Errorf("shield timed out task '%s' after running for %v", runtask.UUID, s.Timeout)
+						ok = false
+
+					} else {
+						lst = append(lst, runtask)
 					}
+				}
+
+				if !ok {
+					s.runq = lst
 				}
 			}
 
@@ -426,6 +443,6 @@ func (s *Supervisor) SchedulePurgeTask(archive *db.AnnotatedArchive) error {
 	task.Agent = s.PurgeAgent
 	task.RestoreKey = archive.StoreKey
 	task.ArchiveUUID = uuid.Parse(archive.UUID)
-	s.schedq = append(s.schedq, task)
+	s.ScheduleTask(task)
 	return nil
 }
