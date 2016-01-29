@@ -97,10 +97,17 @@ func (c *Command) With(opts Options) *Command {
 }
 
 func (c *Command) Execute(cmd ...string) error {
+	var last = 0
 	for i := 1; i <= len(cmd); i++ {
 		command := strings.Join(cmd[0:i], " ")
+		if _, ok := c.commands[command]; ok {
+			last = i
+		}
+	}
+	if last != 0 {
+		command := strings.Join(cmd[0:last], " ")
 		if fn, ok := c.commands[command]; ok {
-			return fn(c.options, cmd[i:])
+			return fn(c.options, cmd[last:])
 		}
 	}
 	return fmt.Errorf("unrecognized command %s\n", strings.Join(cmd, " "))
