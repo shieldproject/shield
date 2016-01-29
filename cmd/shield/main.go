@@ -1040,10 +1040,6 @@ func main() {
 
 			} else {
 
-				paused := "no"
-				if j.Paused {
-					paused = "yes"
-				}
 				in := tui.NewForm()
 				in.NewField("Job Name", "name", j.Name, "", tui.FieldIsRequired)
 				in.NewField("Summary", "summary", j.Summary, "", tui.FieldIsOptional)
@@ -1051,7 +1047,6 @@ func main() {
 				in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
 				in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry/86400), FieldIsRetentionPolicyUUID)
 				in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
-				in.NewField("Paused?", "paused", paused, "", tui.FieldIsBoolean)
 
 				if err = in.Show(); err != nil {
 					return err
