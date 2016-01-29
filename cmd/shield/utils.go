@@ -13,6 +13,10 @@ func BoolString(tf bool) string {
 	return "F"
 }
 
+func CurrentUser() string {
+	return fmt.Sprintf("%s@%s", os.Getenv("USER"), os.Getenv("HOSTNAME"))
+}
+
 func DEBUG(format string, args ...interface{}) {
 	if debug {
 		content := fmt.Sprintf(format, args...)
