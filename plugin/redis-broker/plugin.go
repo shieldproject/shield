@@ -32,7 +32,7 @@ func (p RedisBrokerPlugin) Meta() plugin.PluginInfo {
 }
 
 func (p RedisBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	err := plugin.Exec("tar -c -C /var/vcap/store .", plugin.STDOUT)
+	err := plugin.Exec("tar -c --warning no-file-changed --warning no-file-shrank --warning no-file-removed-C /var/vcap/store .", plugin.STDOUT)
 	if err != nil {
 		return err
 	}
