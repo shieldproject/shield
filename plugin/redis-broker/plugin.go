@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/starkandwayne/shield/plugin"
@@ -32,7 +33,19 @@ func (p RedisBrokerPlugin) Meta() plugin.PluginInfo {
 }
 
 func (p RedisBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	err := plugin.Exec("tar -c -C /var/vcap/store .", plugin.STDOUT)
+	// Use ExecWithOptions here, to allow tar to exit 1 as warning about
+	// files changing/shrinking/disappearing is ok in this specific case
+	// redis-check-aof is used in restore to fix corruption on the last
+	// command in the AOF, and the file is written to every second. At
+	// worst, the restored data appears to have been backed up one second
+	// prior to when it actually was
+
+	opts := plugin.ExecOptions{
+		Cmd:      "tar -c --warning no-file-changed --warning no-file-shrank --warning no-file-removed -C /var/vcap/store .",
+		Stdout:   os.Stdout,
+		ExpectRC: []int{0, 1},
+	}
+	err := plugin.ExecWithOptions(opts)
 	if err != nil {
 		return err
 	}
