@@ -44,13 +44,19 @@ func ExecWithOptions(opts ExecOptions) error {
 
 	err = cmd.Run()
 	if err != nil {
+		// make sure we got an Exit error
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			sys := exitErr.ProcessState.Sys()
+			// os.ProcessState.Sys() may not return syscall.WaitStatus on non-UNIX machines,
+			// so currently this feature only works on UNIX, but shouldn't crash on other OSes
 			if rc, ok := sys.(syscall.WaitStatus); ok {
 				code := rc.ExitStatus()
-				for _, expect := range opts.ExpectRC {
-					if code == expect {
-						return nil
+				// -1 indicates signals, stops, or traps, so force an error
+				if code >= 0 {
+					for _, expect := range opts.ExpectRC {
+						if code == expect {
+							return nil
+						}
 					}
 				}
 			}
