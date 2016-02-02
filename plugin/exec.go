@@ -5,44 +5,73 @@ import (
 	"github.com/mattn/go-shellwords"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 const NOPIPE = 0
 const STDIN = 1
 const STDOUT = 2
 
-func ExecWithPipes(cmdString string, stdout *os.File, stderr *os.File, stdin *os.File) error {
-	cmdArgs, err := shellwords.Parse(cmdString)
+type ExecOptions struct {
+	Stdout   *os.File
+	Stdin    *os.File
+	Stderr   *os.File
+	Cmd      string
+	ExpectRC []int
+}
+
+func ExecWithOptions(opts ExecOptions) error {
+	cmdArgs, err := shellwords.Parse(opts.Cmd)
 	if err != nil {
-		return ExecFailure{Err: fmt.Sprintf("Could not parse '%s' into exec-able command: %s", cmdString, err.Error())}
+		return ExecFailure{Err: fmt.Sprintf("Could not parse '%s' into exec-able command: %s", opts.Cmd, err.Error())}
 	}
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
 
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-	if stdout != nil {
-		cmd.Stdout = stdout
+	if opts.Stdout != nil {
+		cmd.Stdout = opts.Stdout
 	}
-	if stderr != nil {
-		cmd.Stderr = stderr
+	if opts.Stderr != nil {
+		cmd.Stderr = opts.Stderr
 	}
-	if stdin != nil {
-		cmd.Stdin = stdin
+	if opts.Stdin != nil {
+		cmd.Stdin = opts.Stdin
 	}
+
+	if len(opts.ExpectRC) == 0 {
+		opts.ExpectRC = []int{0}
+	}
+
 	err = cmd.Run()
 	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			sys := exitErr.ProcessState.Sys()
+			if rc, ok := sys.(syscall.WaitStatus); ok {
+				code := rc.ExitStatus()
+				for _, expect := range opts.ExpectRC {
+					if code == expect {
+						return nil
+					}
+				}
+			}
+		}
 		return ExecFailure{Err: fmt.Sprintf("Unable to exec '%s': %s", cmdArgs[0], err.Error())}
 	}
 	return nil
 }
 
 func Exec(cmdString string, flags int) error {
-	var stdout *os.File
-	var stdin *os.File
+	opts := ExecOptions{
+		Cmd:    cmdString,
+		Stderr: os.Stderr,
+	}
+
 	if flags&STDOUT == STDOUT {
-		stdout = os.Stdout
+		opts.Stdout = os.Stdout
 	}
 	if flags&STDIN == STDIN {
-		stdin = os.Stdin
+		opts.Stdin = os.Stdin
 	}
-	return ExecWithPipes(cmdString, stdout, os.Stderr, stdin)
+
+	return ExecWithOptions(opts)
 }
