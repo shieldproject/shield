@@ -55,7 +55,7 @@ func (p MySQLPlugin) Restore(endpoint ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s/mysql %s", mysql.Bin, connectionString(mysql))
 	DEBUG("Exec: %s", cmd)
-	return Exec(cmd, STDOUT)
+	return Exec(cmd, STDIN)
 }
 
 // Store mysql - TODO
@@ -102,7 +102,7 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQLPORT: '%s'", port)
 
-	bin := "/var/vcap/packages/mysql/bin"
+	bin := "/var/vcap/packages/shield-mysql/bin"
 	DEBUG("MYSQLBINDIR: '%s'", bin)
 
 	return &MySQLConnectionInfo{
