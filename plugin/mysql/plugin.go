@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	. "github.com/starkandwayne/shield/plugin"
 )
@@ -74,7 +75,10 @@ func (p MySQLPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 }
 
 func connectionString(info *MySQLConnectionInfo) string {
-	return fmt.Sprintf("-h %s -P %s -u %s -p %s", info.Host, info.Port, info.User, info.Password)
+	// use env variable for communicating password, so it's less likely to appear in our logs/ps output
+	os.Setenv("MYSQL_PWD", info.Password)
+
+	return fmt.Sprintf("-h %s -P %s -u %s", info.Host, info.Port, info.User)
 }
 
 func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) {
