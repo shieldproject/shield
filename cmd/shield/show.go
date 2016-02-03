@@ -84,10 +84,11 @@ func ShowTask(task Task) {
 	t.Break()
 
 	started := "(pending)"
+	stopped := "(not yet started)"
 	if !task.StartedAt.IsZero() {
+		stopped = "(running)"
 		started = task.StartedAt.Format(time.RFC1123Z)
 	}
-	stopped := "(running)"
 	if !task.StoppedAt.IsZero() {
 		stopped = task.StoppedAt.Format(time.RFC1123Z)
 	}
