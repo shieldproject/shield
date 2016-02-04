@@ -133,6 +133,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			err := dec.Decode(&v)
 
 			if err != nil {
+				jobFailed = true
 				updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 					Output: fmt.Sprintf("WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, remote, err)}
 
@@ -145,9 +146,9 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 						Output:      v.Key,
 					}
 				} else {
+					jobFailed = true
 					updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 						Output: fmt.Sprintf("TASK FAILED!! No restore key detected in worker %d. Cowardly refusing to create an archive record", id)}
-					jobFailed = true
 				}
 			}
 		}
