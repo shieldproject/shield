@@ -191,6 +191,10 @@ func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 }
 
 func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (uuid.UUID, error) {
+	// fail on empty store_key, as '' seems to satisfy the NOT NULL constraint in postgres
+	if key == "" {
+		return nil, fmt.Errorf("cannot create an archive without a store_key")
+	}
 	// determine how long we need to keep this specific archive for
 	r, err := db.Query(
 		`SELECT r.expiry

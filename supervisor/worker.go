@@ -117,7 +117,6 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d failed to execute the command against the remote agent %s (%s)\n", id, remote, err)}
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 			jobFailed = true
 		}
 
@@ -134,15 +133,22 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			err := dec.Decode(&v)
 
 			if err != nil {
+				jobFailed = true
 				updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 					Output: fmt.Sprintf("WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, remote, err)}
 
 			} else {
-				updates <- WorkerUpdate{
-					Task:        t.UUID,
-					Op:          RESTORE_KEY,
-					TaskSuccess: !jobFailed,
-					Output:      v.Key,
+				if v.Key != "" {
+					updates <- WorkerUpdate{
+						Task:        t.UUID,
+						Op:          RESTORE_KEY,
+						TaskSuccess: !jobFailed,
+						Output:      v.Key,
+					}
+				} else {
+					jobFailed = true
+					updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
+						Output: fmt.Sprintf("TASK FAILED!! No restore key detected in worker %d. Cowardly refusing to create an archive record", id)}
 				}
 			}
 		}
@@ -156,10 +162,14 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		}
 
 		// signal to the supervisor that we finished
-		updates <- WorkerUpdate{
-			Task:      t.UUID,
-			Op:        STOPPED,
-			StoppedAt: time.Now(),
+		if jobFailed {
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
+		} else {
+			updates <- WorkerUpdate{
+				Task:      t.UUID,
+				Op:        STOPPED,
+				StoppedAt: time.Now(),
+			}
 		}
 	}
 }
