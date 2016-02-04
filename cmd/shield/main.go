@@ -98,7 +98,7 @@ func main() {
 			DEBUG("SHIELD_API is currently set to '%s'", *options.Shield)
 		} else {
 			if command[0] != "help" {
-				fmt.Fprintf(os.Stderr, "\nShield API IP:Port is unknown, specify the API endpoint using one of:\n\n\texport SHIELD_API=\"http://127.0.0.1:8080\"; shield "+command[0]+"\n\tSHIELD_API=\"http://127.0.0.1:8080\" shield "+command[0]+"\n\tshield -H \"http://127.0.0.1:8080 "+command[0]+"\"\n\n")
+				fmt.Fprintf(os.Stderr, "\nShield API IP:Port is unknown, specify the API endpoint using one of:\n\n\texport SHIELD_API=\"http://127.0.0.1:8080\"; shield "+command[0]+"\n\tSHIELD_API=\"http://127.0.0.1:8080\" shield "+command[0]+"\n\tshield -H \"http://127.0.0.1:8080\" "+command[0]+"\n\n")
 				os.Exit(1)
 			}
 		}
