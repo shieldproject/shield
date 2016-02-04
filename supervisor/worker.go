@@ -117,7 +117,6 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d failed to execute the command against the remote agent %s (%s)\n", id, remote, err)}
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
 			jobFailed = true
 		}
 
@@ -156,10 +155,14 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		}
 
 		// signal to the supervisor that we finished
-		updates <- WorkerUpdate{
-			Task:      t.UUID,
-			Op:        STOPPED,
-			StoppedAt: time.Now(),
+		if jobFailed {
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
+		} else {
+			updates <- WorkerUpdate{
+				Task:      t.UUID,
+				Op:        STOPPED,
+				StoppedAt: time.Now(),
+			}
 		}
 	}
 }

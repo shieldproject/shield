@@ -268,7 +268,7 @@ func (s *Supervisor) Run() error {
 
 			case FAILED:
 				log.Warnf("  %s: task failed!", u.Task)
-				if err := s.Database.FailTask(u.Task, time.Now()); err != nil {
+				if err := s.Database.FailTask(u.Task, u.StoppedAt); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
 
@@ -282,6 +282,7 @@ func (s *Supervisor) Run() error {
 				log.Infof("  %s: restore key is %s", u.Task, u.Output)
 				if id, err := s.Database.CreateTaskArchive(u.Task, u.Output, time.Now()); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
+				} else {
 					if !u.TaskSuccess {
 						s.Database.InvalidateArchive(id)
 					}
