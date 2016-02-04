@@ -1,11 +1,14 @@
 package agent
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/starkandwayne/goutils/log"
 	"io"
 	"net"
 	"os"
+	"os/exec"
+	"syscall"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -129,13 +132,75 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 			// run the agent request
 			err = request.Run(output)
 			<-done
-			rc := []byte{0, 0, 0, 0}
-			if err != nil {
-				rc[0] = 1
+			var rc int
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				sys := exitErr.ProcessState.Sys()
+				// os.ProcessState.Sys() may not return syscall.WaitStatus on non-UNIX machines,
+				// so currently this feature only works on UNIX, but shouldn't crash on other OSes
+				if ws, ok := sys.(syscall.WaitStatus); ok {
+					if ws.Exited() {
+						rc = ws.ExitStatus()
+					} else {
+						var signal syscall.Signal
+						if ws.Signaled() {
+							signal = ws.Signal()
+						}
+						if ws.Stopped() {
+							signal = ws.StopSignal()
+						}
+						sigStr, ok := SIGSTRING[signal]
+						if !ok {
+							sigStr = "ABRT" // use ABRT as catch-all signal for any that don't translate
+							log.Infof("Task execution terminted due to %s, translating as ABRT for ssh transport", signal)
+						} else {
+							log.Infof("Task execution terminated due to SIG%s", sigStr)
+						}
+						sigMsg := struct {
+							Signal     string
+							CoreDumped bool
+							Error      string
+							Lang       string
+						}{
+							Signal:     sigStr,
+							CoreDumped: false,
+							Error:      fmt.Sprintf("shield-pipe terminated due to SIG%s", sigStr),
+							Lang:       "en-US",
+						}
+						channel.SendRequest("exit-signal", false, ssh.Marshal(&sigMsg))
+						channel.Close()
+						continue
+					}
+				}
+			} else if err != nil {
+				// we got some kind of error that isn't a command execution error,
+				// from a UNIX system, use an magical error code to signal this to
+				// the shield daemon - 16777216
+				log.Infof("Task could not execute: %s", err)
+				rc = 16777216
 			}
-			log.Infof("Task completed with rc=%d", rc[0])
-			channel.SendRequest("exit-status", false, rc)
+
+			log.Infof("Task completed with rc=%d", rc)
+			byteCode := make([]byte, 4)
+			binary.BigEndian.PutUint32(byteCode, uint32(rc)) // SSH protocol is big-endian byte ordering
+			channel.SendRequest("exit-status", false, byteCode)
 			channel.Close()
 		}
 	}
+}
+
+// Based on what's handled in https://github.com/golang/crypto/blob/master/ssh/session.go#L21
+var SIGSTRING = map[syscall.Signal]string{
+	syscall.SIGABRT: "ABRT",
+	syscall.SIGALRM: "ALRM",
+	syscall.SIGFPE:  "FPE",
+	syscall.SIGHUP:  "HUP",
+	syscall.SIGILL:  "ILL",
+	syscall.SIGINT:  "INT",
+	syscall.SIGKILL: "KILL",
+	syscall.SIGPIPE: "PIPE",
+	syscall.SIGQUIT: "QUIT",
+	syscall.SIGSEGV: "SEGV",
+	syscall.SIGTERM: "TERM",
+	syscall.SIGUSR1: "USR1",
+	syscall.SIGUSR2: "USR2",
 }
