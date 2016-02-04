@@ -137,11 +137,17 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 					Output: fmt.Sprintf("WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, remote, err)}
 
 			} else {
-				updates <- WorkerUpdate{
-					Task:        t.UUID,
-					Op:          RESTORE_KEY,
-					TaskSuccess: !jobFailed,
-					Output:      v.Key,
+				if v.Key != "" {
+					updates <- WorkerUpdate{
+						Task:        t.UUID,
+						Op:          RESTORE_KEY,
+						TaskSuccess: !jobFailed,
+						Output:      v.Key,
+					}
+				} else {
+					updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
+						Output: fmt.Sprintf("TASK FAILED!! No restore key detected in worker %d. Cowardly refusing to create an archive record", id)}
+					jobFailed = true
 				}
 			}
 		}

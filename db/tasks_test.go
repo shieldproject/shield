@@ -28,6 +28,12 @@ var _ = Describe("Task Management", func() {
 		Ω(n).Should(BeNumerically(">", 0))
 	}
 
+	shouldNotExist := func(q string, params ...interface{}) {
+		n, err := db.Count(q, params...)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(n).Should(BeNumerically("==", 0))
+	}
+
 	BeforeEach(func() {
 		var err error
 		db, err = Database(
@@ -184,7 +190,7 @@ var _ = Describe("Task Management", func() {
 		Ω(db.CompleteTask(id, time.Now())).Should(Succeed())
 		archive_id, err := db.CreateTaskArchive(id, "SOME-KEY", time.Now())
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(id).ShouldNot(BeNil())
+		Expect(archive_id).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * FROM tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NOT NULL`)
@@ -196,5 +202,18 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM archives WHERE store_key = $1`, "SOME-KEY")
 		shouldExist(`SELECT * FROM archives WHERE taken_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM archives WHERE expires_at IS NOT NULL`)
+	})
+	It("Fails to associate archives with a task, when no restore key is present", func() {
+		id, err := db.CreateBackupTask("bob", JOB_UUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(id).ShouldNot(BeNil())
+
+		Expect(db.StartTask(id, time.Now())).Should(Succeed())
+		Expect(db.CompleteTask(id, time.Now())).Should(Succeed())
+		archive_id, err := db.CreateTaskArchive(id, "", time.Now())
+		Expect(err).Should(HaveOccurred())
+		Expect(archive_id).Should(BeNil())
+
+		shouldNotExist(`SELECT * from archives where store_key = ''`)
 	})
 })
