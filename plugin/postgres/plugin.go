@@ -1,4 +1,4 @@
-// SHIELD postgres Plugin
+// OVERVIEW
 //
 // The `postgres` plugin for SHIELD is intended to be a generic
 // backup/restore plugin for a postgres server. It can be used against
@@ -6,6 +6,9 @@
 // installed on the system where this plugin is run.
 //
 // PLUGIN FEATURES
+//
+// This plugin implements functionality suitable for use with the following
+// SHIELD Job components:
 //
 //   Target: yes
 //   Store:   no
@@ -23,7 +26,7 @@
 //        "pg_port":"port-above-pg-server-listens-on"
 //    }
 //
-// BACKUPS
+// BACKUP DETAILS
 //
 // The `postgres` plugin makes use of `pg_dumpall -c` to back up all databases
 // on the postgres server it connects to. There is currently no filtering of
@@ -34,7 +37,7 @@
 // Backing up with the `postgres` plugin will not drop any existing connections to the
 // database, or restart the service.
 //
-// RESTORES
+// RESTORE DETAILS
 //
 // To restore, the `postgres` plugin connects to the postgres server using the `psql`
 // command. It then feeds in the backup data (`pg_dumpall` output). To work around
