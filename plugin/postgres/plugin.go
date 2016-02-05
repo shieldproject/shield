@@ -8,8 +8,8 @@
 // This plugin implements functionality suitable for use with the following
 // SHIELD Job components:
 //
-//   | Target | yes |
-//   | Store | no |
+//   Target: yes
+//   Store:  no
 //
 // PLUGIN CONFIGURATION
 //
