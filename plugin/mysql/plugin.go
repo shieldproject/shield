@@ -1,3 +1,56 @@
+// The `mysql` plugin for SHIELD implements generic backup + restore
+// functionality for a MySQL-compatible server. It can be used against
+// any mysql server compatible with the `mysql` and `mysqldump` tools
+// installed on the system where this plugin is run.
+//
+// PLUGIN FEATURES
+//
+// This plugin implements functionality suitable for use with the following
+// SHIELD Job components:
+//
+//   Target: yes
+//   Store:  no
+//
+// PLUGIN CONFIGURATION
+//
+// The endpoint configuration passed to this plugin is used to identify what
+// potgres instance to back up, and how to connect to it. Your endpoint JSON
+// should look something like this:
+//
+//    {
+//        "mysql_user":"username-for-mysql",
+//        "mysql_password":"password-for-above-user",
+//        "mysql_host":"hostname-or-ip-of-mysql-server",
+//        "mysql_port":"port-above-mysql-server-listens-on"
+//    }
+//
+// BACKUP DETAILS
+//
+// The `mysql` plugin makes use of `mysqldump --all-databases` to back up all databases
+// on the mysql server it connects to. There is currently no filtering of individual databases
+// to back up, unless that is done via the mysql user/roles. The dumps generated include
+// SQL to clean up existing tables of the databases, so that the restores will go smoothly.
+//
+// Backing up with the `mysql` plugin will not drop any existing connections to the database,
+// or restart the service.
+//
+//RESTORE DETAILS
+//
+// To restore, the `mysql` plugin connects to the mysql server using the `mysql` command.
+// It then feeds in the backup data (`mysqldump` output). Unlike the the `postgres` plugin,
+// this plugin does NOT need to disconnect any open connections to mysql to perform the
+// restoration.
+//
+// Restoring with the `mysql` plugin should not interrupt established connections to the service.
+//
+// DEPENDENCIES
+//
+// This plugin relies on the `mysqldump` and `mysql` utilities. Please ensure
+// that they are present on the system that will be running the backups + restores
+// for postgres. If you are using shield-boshrelease to deploy SHIELD, these tools
+// are provided so long as you include the `agent-mysql` job template along side
+// your `shield agent`.
+//
 package main
 
 import (
@@ -59,17 +112,14 @@ func (p MySQLPlugin) Restore(endpoint ShieldEndpoint) error {
 	return Exec(cmd, STDIN)
 }
 
-// Store mysql - TODO
 func (p MySQLPlugin) Store(endpoint ShieldEndpoint) (string, error) {
 	return "", UNIMPLEMENTED
 }
 
-// Retrieve mysql - TODO
 func (p MySQLPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
 	return UNIMPLEMENTED
 }
 
-// Purge mysql - TODO
 func (p MySQLPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 	return UNIMPLEMENTED
 }
