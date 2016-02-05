@@ -1,6 +1,3 @@
-//
-// OVERVIEW
-//
 // The `postgres` plugin for SHIELD is intended to be a generic
 // backup/restore plugin for a postgres server. It can be used against
 // any postgres server compatible with the `psql` and `pg_dumpall` tools
@@ -11,8 +8,8 @@
 // This plugin implements functionality suitable for use with the following
 // SHIELD Job components:
 //
-//   Target: yes
-//   Store:   no
+//   | Target | yes |
+//   | Store | no |
 //
 // PLUGIN CONFIGURATION
 //
