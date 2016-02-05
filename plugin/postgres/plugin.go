@@ -1,3 +1,58 @@
+// SHIELD postgres Plugin
+//
+// The `postgres` plugin for SHIELD is intended to be a generic
+// backup/restore plugin for a postgres server. It can be used against
+// any postgres server compatible with the `psql` and `pg_dumpall` tools
+// installed on the system where this plugin is run.
+//
+// PLUGIN FEATURES
+//
+//   Target: yes
+//   Store:   no
+//
+// PLUGIN CONFIGURATION
+//
+// The endpoint configuration passed to this plugin is used to identify
+// what postgres instance to back up, and how to connect to it. Your
+// endpoint JSON should look something like this:
+//
+//    {
+//        "pg_user":"username-for-postgres",
+//        "pg_password":"password-for-above-user",
+//        "pg_host":"hostname-or-ip-of-pg-server",
+//        "pg_port":"port-above-pg-server-listens-on"
+//    }
+//
+// BACKUPS
+//
+// The `postgres` plugin makes use of `pg_dumpall -c` to back up all databases
+// on the postgres server it connects to. There is currently no filtering of
+// individual databases to back up, unless that is done via the postgres users
+// and roles. The dumps generated include SQL to clean up existing databses/tables,
+// so that the restore will go smoothly.
+//
+// Backing up with the `postgres` plugin will not drop any existing connections to the
+// database, or restart the service.
+//
+// RESTORES
+//
+// To restore, the `postgres` plugin connects to the postgres server using the `psql`
+// command. It then feeds in the backup data (`pg_dumpall` output). To work around
+// cases where the databases being restored cannot be recreated due to existing connections,
+// the plugin disallows incoming connections for each database, and disconnects the existing
+// connections, prior to dropping the database. Once the database is recreated, connections
+// are once again allowed into the database.
+//
+// Restoring with the `postgres` plugin will terminate existing connections to the database,
+// but does not need to restart the postgres service.
+//
+// DEPENDENCIES
+//
+// This plugin relies on the `pg_dumpall` and `psql` commands. Please ensure that they
+// are present on the system that will be running the backups + restores for postgres.
+// If you are using shield-boshrelease to deploy SHIELD, these tools are provided, if you
+// include the `agent-pgtools` job template along side your `shield-agent`.
+//
 package main
 
 import (
