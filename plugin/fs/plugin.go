@@ -1,3 +1,50 @@
+// The `fs` plugin for SHIELD implements generic backup + restore
+// functionality for filesystem based backups. It can be used against
+// any server that has files that should be backed up. It's not safe
+// to use if those files are held open and constantly written to
+// by a service (like a database), since there is no coordination
+// made with anything that may have those files open.
+//
+// PLUGIN FEATURES
+//
+// This plugin implements functionality suitable for use with the following
+// SHIELD Job components:
+//
+//    Target: yes
+//    Store:  no
+//
+// PLUGIN CONFIGURATION
+//
+// The endpoint configuration passed to this plugin is used to identify what
+// files should be backed up from the local system. Your endpoint JSON
+// should look something like this:
+//
+//    {
+//        "include":"glob-of-files-to-include", // optional
+//        "exclude":"glob-of-files-to-exclude", // optional
+//        "base_dir":"base-directory-to-backup"
+//    }
+//
+// BACKUP DETAILS
+//
+// The `fs` plugin uses `bsdtar` to back up all files located in `base_dir`
+// which match the `include` pattern, but do not match the `exclude` pattern.
+// If no exclude pattern is supplied, no files are filtered out. If no `include`
+// pattern is supplied, all files found are included. Following `bsdtar`'s logic,
+// excludes take priority over includes.
+//
+// RESTORE DETAILS
+//
+// The `fs` plugin restores the data backed up with `bsdtar` on top of `base_directory`.
+// It does not clean up the directory first, so any files that exist on the FS, but are
+// not in the restored archive will not be removed.
+//
+// DEPENDENCIES
+//
+// This plugin relies on the `bsdtar` utility. Please ensure that it is present on the
+// system that will be running the backups + restores. If you are using shield-boshrelease,
+// this is provided automatically for you as part of the `shield-agent` job template.
+//
 package main
 
 import (
@@ -13,7 +60,7 @@ func main() {
 		Version: "1.0.0",
 		Features: plugin.PluginFeatures{
 			Target: "yes",
-			Store:  "yes",
+			Store:  "no",
 		},
 	}
 
