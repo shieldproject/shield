@@ -1,0 +1,54 @@
+#!/bin/bash
+PORT=8181
+export SHIELD_API=http://127.0.0.1:${PORT}
+
+case "${1}" in
+(shieldd)
+  workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
+  trap "rm -rf ${workdir}" EXIT QUIT INT TERM
+
+  mkdir ${workdir}/etc
+  cat >${workdir}/etc/shieldd.conf <<EOF
+---
+port:          ${PORT}
+database_type: sqlite3
+database_dsn:  ${workdir}/var/shield.db
+private_key:   ${workdir}/var/key
+workers:       3
+max_timeout:   10
+EOF
+
+  mkdir ${workdir}/var
+  ssh-keygen -t rsa -f ${workdir}/var/key -N '' >/dev/null
+  rm ${workdir}/var/key.pub
+
+  if [[ ! -f "${workdir}/var/shield.db" ]]; then
+    echo ">> Setting up SHIELD schema in var/shield.db"
+    ./shield-schema -t sqlite3 -d "${workdir}/var/shield.db"
+    echo
+  fi
+
+  echo ">> RUNNING SHIELDD"
+  ./shieldd -c ${workdir}/etc/shieldd.conf
+  echo
+  echo "shieldd exited."
+  echo "Press enter to close this session."
+  read JUNK
+  ;;
+
+("")
+  tmux set-option update-environment ' SHIELD_API' \; \
+       new-session \; \
+       new-window -n core ./bin/testdev shieldd \;
+  ;;
+
+(*)
+  echo >&2 "USAGE: $0 [ACTION]"
+  echo >&2 ""
+  echo >&2 "Run components of a test/dev shield setup, on http://127.0.0.1:${PORT}"
+  echo >&2 ""
+  echo >&2 "Actions:"
+  echo >&2 "  shieldd     Run SHIELD core daemon"
+esac
+
+# vim:ft=bash
