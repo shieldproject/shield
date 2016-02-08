@@ -1327,7 +1327,7 @@ func main() {
 				store[s.UUID] = s
 			}
 
-			t := tui.NewTable("UUID", "Target", "Remote IP", "Store", "Taken at", "Expires at", "Status", "Notes")
+			t := tui.NewTable("UUID", "Target", "Restore IP", "Store", "Taken at", "Expires at", "Status", "Notes")
 			for _, archive := range archives {
 				if *opts.Target != "" && archive.TargetUUID != *opts.Target {
 					continue
