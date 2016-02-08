@@ -21,6 +21,7 @@ func init() {
 
 type Job struct {
 	UUID uuid.UUID
+	Name string
 
 	StorePlugin    string
 	StoreEndpoint  string
@@ -36,6 +37,7 @@ type Job struct {
 
 type JobRepresentation struct {
 	UUID  uuid.UUID
+	Name  string
 	Tspec string
 	Error error
 }
@@ -47,7 +49,7 @@ type JobFailedError struct {
 func (e JobFailedError) Error() string {
 	var jobList []string
 	for _, j := range e.FailedJobs {
-		jobList = append(jobList, j.UUID.String())
+		jobList = append(jobList, fmt.Sprintf("%s (%s)", j.Name, j.UUID))
 	}
 	return fmt.Sprintf("the following job(s) failed: %s", strings.Join(jobList, ", "))
 }
@@ -55,7 +57,7 @@ func (e JobFailedError) Error() string {
 func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 	l := []*Job{}
 	result, err := s.Database.Query(`
-		SELECT j.uuid, j.paused,
+		SELECT j.uuid, j.name, j.paused,
 		       t.plugin, t.endpoint,
 		       s.plugin, s.endpoint,
 		       sc.timespec, r.expiry, t.agent
@@ -73,17 +75,17 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 		j := &Job{}
 		var id, tspec string
 		var expiry int
-		err = result.Scan(&id, &j.Paused,
+		err = result.Scan(&id, &j.Name, &j.Paused,
 			&j.TargetPlugin, &j.TargetEndpoint,
 			&j.StorePlugin, &j.StoreEndpoint,
 			&tspec, &expiry, &j.Agent)
 		j.UUID = uuid.Parse(id)
 		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
+			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, j.Name, tspec, err})
 		}
 		j.Spec, err = timespec.Parse(tspec)
 		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, tspec, err})
+			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, j.Name, tspec, err})
 		}
 		l = append(l, j)
 	}

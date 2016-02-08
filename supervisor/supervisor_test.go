@@ -259,7 +259,7 @@ var _ = Describe("Retrieving Jobs", func() {
 					 3600)`,
 			)
 			_, err = s.GetAllJobs()
-			Ω(err.Error()).Should(MatchRegexp(`the following job\(s\) failed: ` + JOB_ERR_UUID))
+			Ω(err.Error()).Should(MatchRegexp(`the following job\(s\) failed: job err \(` + JOB_ERR_UUID + `\)`))
 			Ω(err).Should(HaveOccurred())
 		})
 	})

@@ -60,11 +60,11 @@ func (s *Supervisor) Resync() error {
 	for _, job := range jobq {
 		err := job.Reschedule()
 		if err != nil {
-			log.Errorf("error encountered while determining next run of %s (%s): %s",
-				job.UUID.String(), job.Spec.String(), err)
+			log.Errorf("error encountered while determining next run of %s [%s] which runs %s: %s",
+				job.Name, job.UUID.String(), job.Spec.String(), err)
 		} else {
-			log.Infof("initial run of %s (%s) is at %s",
-				job.UUID.String(), job.Spec.String(), job.NextRun)
+			log.Infof("initial run of %s [%s] which runs %s is at %s",
+				job.Name, job.UUID.String(), job.Spec.String(), job.NextRun)
 		}
 	}
 
@@ -84,7 +84,7 @@ func (s *Supervisor) CheckSchedule() {
 			continue
 		}
 
-		log.Infof("scheduling execution of job %s", job.UUID.String())
+		log.Infof("scheduling execution of job %s [%s]", job.Name, job.UUID.String())
 		task := job.Task()
 		id, err := s.Database.CreateBackupTask("system", job.UUID)
 		if err != nil {
@@ -100,8 +100,8 @@ func (s *Supervisor) CheckSchedule() {
 			log.Errorf("error encountered while determining next run of %s (%s): %s",
 				job.UUID.String(), job.Spec.String(), err)
 		} else {
-			log.Infof("next run of %s (%s) is at %s",
-				job.UUID.String(), job.Spec.String(), job.NextRun)
+			log.Infof("next run of %s [%s] which runs %s is at %s",
+				job.Name, job.UUID.String(), job.Spec.String(), job.NextRun)
 		}
 	}
 }
@@ -117,7 +117,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 				continue
 			}
 
-			log.Infof("scheduling immediate (ad hoc) execution of job %s", job.UUID.String())
+			log.Infof("scheduling immediate (ad hoc) execution of job %s [%s]", job.Name, job.UUID.String())
 			task := job.Task()
 			id, err := s.Database.CreateBackupTask(a.Owner, job.UUID)
 			if err != nil {
