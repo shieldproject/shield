@@ -13,7 +13,7 @@ format:
 # Running Tests
 tests: test
 test:
-	ginkgo *
+	ginkgo * ./cmd/shield
 	go vet ./...
 
 # Running Tests for race conditions
