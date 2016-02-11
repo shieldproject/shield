@@ -23,7 +23,7 @@ func ParseDuration(user string) (*Duration, error) {
 	r, _ := regexp.Compile(`^\s*(\d+)\s*([shmdwy]?)\s*$`)
 	matches := r.FindStringSubmatch(user)
   if len(matches) < 3 {
-    return nil, fmt.Errorf("Could not '%s' to (value, unit)\n ", user)
+    return nil, fmt.Errorf("Could not parse input '%s' to (value, unit)\n ", user)
   }
 	val, err := strconv.Atoi(matches[1])
 	if err != nil {
