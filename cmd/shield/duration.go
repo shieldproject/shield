@@ -11,6 +11,14 @@ type Duration struct {
 	text  string // the original string, for use in String()
 }
 
+func (d *Duration) HumanReadable() string {
+	return d.String()
+}
+
+func (d *Duration) MachineReadable() interface{} {
+	return d.Value()
+}
+
 func (d *Duration) String() string {
 	return d.text
 }

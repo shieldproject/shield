@@ -1,10 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"strconv"
-)
-
 func FieldIsStoreUUID(name string, value string) (interface{}, error) {
 	o, _, err := FindStore(value, false)
 	if err != nil {
@@ -38,12 +33,9 @@ func FieldIsScheduleUUID(name string, value string) (interface{}, error) {
 }
 
 func FieldIsRetentionTimeframe(name string, value string) (interface{}, error) {
-	i, err := strconv.Atoi(value)
+	i, err := ParseDuration(value)
 	if err != nil {
-		return value, fmt.Errorf("'%s' is not an integer: %s", value, err)
+		return value, err
 	}
-	if i < 0 {
-		return value, fmt.Errorf("retention timeframe must be at least 1 day")
-	}
-	return i * 86400, nil
+	return i, nil
 }

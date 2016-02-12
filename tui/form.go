@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+// ComplexValue represents information that has different values for human vs machine readable
+type ComplexValue interface {
+	HumanReadable() string						// Used to display information to the human operator
+	MachineReadable() interface{}			// Used for API requests
+}
+
 type FieldProcessor func(name string, value string) (interface{}, error)
 
 type Form struct {
@@ -91,7 +97,13 @@ func (f *Form) Show() error {
 func (f *Form) Confirm(prompt string) bool {
 	r := NewReport()
 	for _, field := range f.Fields {
-		r.Add(field.Label, fmt.Sprintf("%v", field.Value))
+		if v, ok := field.Value.(ComplexValue); ok {
+			fmt.Printf("v, ok: %v, %v\n", v, ok)
+			r.Add(field.Label, v.HumanReadable())
+		} else {
+			fmt.Printf("value: %v\n", field.Value)
+			r.Add(field.Label, fmt.Sprintf("%v", field.Value))
+		}
 	}
 
 	fmt.Printf("\n\n")
@@ -131,7 +143,11 @@ func (f *Form) BuildContent() (string, error) {
 	c := make(map[string]interface{})
 	for z := 0; z < len(f.Fields); z++ {
 		field := f.Fields[z]
-		c[field.Name] = field.Value
+		if v, ok := field.Value.(ComplexValue); ok {
+			c[field.Name] = v.MachineReadable()
+		} else {
+			c[field.Name] = field.Value
+		}
 	}
 	j, err := json.Marshal(c)
 	if err != nil {
