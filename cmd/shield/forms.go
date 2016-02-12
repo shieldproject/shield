@@ -1,10 +1,5 @@
 package main
 
-/*import (
-	"fmt"
-	"strconv"
-)*/
-
 func FieldIsStoreUUID(name string, value string) (interface{}, error) {
 	o, _, err := FindStore(value, false)
 	if err != nil {
