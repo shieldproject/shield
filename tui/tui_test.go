@@ -24,7 +24,7 @@ var _ = Describe("Cell Management", func() {
 		})
 	})
 
-	Context("with single-line strings", func() {
+	Context("with a single-line string", func() {
 		c := tui.ParseCell("hello")
 
 		It("should calculate the width as the length of the string", func() {
@@ -43,7 +43,7 @@ var _ = Describe("Cell Management", func() {
 		})
 	})
 
-	Context("with a newline-terminated single-line strings", func() {
+	Context("with a newline-terminated single-line string", func() {
 		c := tui.ParseCell("hello\n")
 
 		It("should calculate the width as the length of the string", func() {
@@ -52,7 +52,7 @@ var _ = Describe("Cell Management", func() {
 		It("should calculate the height as 1", func() {
 			Ω(c.Height()).Should(Equal(1))
 		})
-		It("should return the original string (sans-newline) for line 0", func() {
+		It("should return the original string (without the newline) for line 0", func() {
 			Ω(c.Line(0)).Should(Equal("hello"))
 		})
 		It("should return the empty string for all line indices > 0", func() {
@@ -71,7 +71,7 @@ var _ = Describe("Cell Management", func() {
 		It("should calculate the height as the number of lines", func() {
 			Ω(c.Height()).Should(Equal(3))
 		})
-		It("should return the the correct subsstring (sans-newline) for indices 0 - 2", func() {
+		It("should return the the correct substring (without the newline) for indices 0 - 2", func() {
 			Ω(c.Line(0)).Should(Equal("hi"))
 			Ω(c.Line(1)).Should(Equal("hello"))
 			Ω(c.Line(2)).Should(Equal("hiya"))
@@ -92,7 +92,7 @@ var _ = Describe("Cell Management", func() {
 		It("should calculate the height as the number of lines", func() {
 			Ω(c.Height()).Should(Equal(3))
 		})
-		It("should return the the correct subsstring (sans-newline) for indices 0 - 2", func() {
+		It("should return the the correct substring (without the newline) for indices 0 - 2", func() {
 			Ω(c.Line(0)).Should(Equal("hi"))
 			Ω(c.Line(1)).Should(Equal("hello"))
 			Ω(c.Line(2)).Should(Equal("hiya"))
