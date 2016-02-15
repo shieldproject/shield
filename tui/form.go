@@ -8,18 +8,30 @@ import (
 	"strings"
 )
 
-// ComplexValue represents information that has different values for human vs machine readable
+// A ComplexValue represents some thing that needs to be displayed
+// one way to a human operator, and another way to a machine (API)
 type ComplexValue interface {
-	HumanReadable() string						// Used to display information to the human operator
-	MachineReadable() interface{}			// Used for API requests
+	HumanReadable() string        // Used to display information to the human operator
+	MachineReadable() interface{} // Used for API requests
 }
 
+// A FieldProcessor is any function that validates, transforms, or
+// replaces a value entered by the operator into a different value.
+// For example, entering a duration as a string, i.e. "4d", might
+// result in a FieldProcessor creating a Duration object representing
+// four days worth of time.
 type FieldProcessor func(name string, value string) (interface{}, error)
 
+// A Form represents a set of Fields that an operator must fill out
+// in order to change some piece of data elsewhere inside of SHIELD.
 type Form struct {
 	Fields []*Field
 }
 
+// A Field represents a single piece of information that the operator
+// must enter, usually in the larger context of a Form.  Each Field has
+// its own prompt label, internal field name, stored value and
+// processor function for validation / data manipulation.
 type Field struct {
 	Label     string
 	Name      string
@@ -28,11 +40,12 @@ type Field struct {
 	Processor FieldProcessor
 }
 
+// NewForm creates and returns a pointer to a new Form object.
 func NewForm() *Form {
-	f := Form{}
-	return &f
+	return &Form{}
 }
 
+// NewField appends a new Field to the Form.
 func (f *Form) NewField(label string, name string, value interface{}, showas string, fn FieldProcessor) error {
 	f.Fields = append(f.Fields, &Field{
 		Label:     label,

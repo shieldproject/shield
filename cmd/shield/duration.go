@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
-  "strconv"
+	"strconv"
 )
 
 type Duration struct {
@@ -30,17 +30,17 @@ func (d *Duration) Value() int {
 func ParseDuration(user string) (*Duration, error) {
 	r, _ := regexp.Compile(`^\s*(\d+)\s*([shmdwy]?)\s*$`)
 	matches := r.FindStringSubmatch(user)
-  if len(matches) < 3 {
-    return nil, fmt.Errorf("Could not parse input '%s' to (value, unit)\n ", user)
-  }
+	if len(matches) < 3 {
+		return nil, fmt.Errorf("Could not parse input '%s' to (value, unit)\n ", user)
+	}
 	val, err := strconv.Atoi(matches[1])
 	if err != nil {
 		return nil, fmt.Errorf("Could not '%s' to (value, unit): %s\n ", user, err)
 	}
 	unit := matches[2]
-  if len(unit) == 0 {
-    unit = "d"
-  }
+	if len(unit) == 0 {
+		unit = "d"
+	}
 	switch unit {
 	case "w":
 		val = 604800 * val

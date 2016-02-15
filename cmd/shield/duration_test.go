@@ -28,7 +28,7 @@ var _ = Describe("CLI Duration", func() {
 	It("Should default to days ignoring whitespace characters", func() {
 		DEF := "          \t        32    \t     \t\t\t\t\r\n\r\n"
 		def_val, err := ParseDuration(DEF)
-    Ω(err).ShouldNot(HaveOccurred())
+		Ω(err).ShouldNot(HaveOccurred())
 		Ω(def_val.String()).Should(Equal("32d"))
 	})
 
