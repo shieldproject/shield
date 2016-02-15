@@ -192,7 +192,7 @@ func main() {
 
 			t := tui.NewTable("Name", "Summary", "Plugin", "Remote IP", "Configuration")
 			for _, target := range targets {
-				t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
+				t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, PrettyJSON(target.Endpoint))
 			}
 			t.Output(os.Stdout)
 			return nil
@@ -750,7 +750,7 @@ func main() {
 
 			t := tui.NewTable("Name", "Summary", "Plugin", "Configuration")
 			for _, store := range stores {
-				t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
+				t.Row(store, store.Name, store.Summary, store.Plugin, PrettyJSON(store.Endpoint))
 			}
 			t.Output(os.Stdout)
 			return nil
@@ -942,7 +942,7 @@ func main() {
 			t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Remote IP", "Target")
 			for _, job := range jobs {
 				t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
-					job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
+					job.RetentionName, job.ScheduleName, job.Agent, PrettyJSON(job.TargetEndpoint))
 			}
 			t.Output(os.Stdout)
 			return nil
