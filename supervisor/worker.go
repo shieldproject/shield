@@ -60,13 +60,11 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			continue
 		}
 
-		var jobFailed bool
 		err = client.Dial(remote)
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d unable to connect to %s (%s)\n", id, remote, err)}
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
-			jobFailed = true
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
 			continue
 		}
 		defer client.Close()
@@ -114,6 +112,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			continue
 		}
 		// exec the command
+		var jobFailed bool
 		err = client.Run(partial, string(command))
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
