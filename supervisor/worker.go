@@ -64,7 +64,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d unable to connect to %s (%s)\n", id, remote, err)}
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
 			continue
 		}
 		defer client.Close()
