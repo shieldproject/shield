@@ -264,5 +264,13 @@ var _ = Describe("Task Management", func() {
 		Ω(tasks[0].Owner).Should(Equal("fourth"))
 		Ω(tasks[1].Owner).Should(Equal("second"))
 
+		// Negative values return all tasks, these are prevented in the API
+		filter = TaskFilter{
+			Limit: "-1",
+		}
+		tasks, err = db.GetAllAnnotatedTasks(&filter)
+		Ω(err).ShouldNot(HaveOccurred(), "does not error")
+		Ω(len(tasks)).Should(Equal(4), "returns four tasks")
+
 	})
 })
