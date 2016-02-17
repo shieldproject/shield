@@ -13,6 +13,12 @@ import (
 	. "github.com/starkandwayne/shield/db"
 )
 
+var T0 = time.Date(1997, 8, 29, 2, 14, 0, 0, time.UTC)
+
+func at(seconds int) time.Time {
+	return T0.Add(time.Duration(seconds) * time.Second)
+}
+
 var _ = Describe("Task Management", func() {
 	JOB_UUID := uuid.NewRandom()
 	TARGET_UUID := uuid.NewRandom()
@@ -215,5 +221,48 @@ var _ = Describe("Task Management", func() {
 		Expect(archive_id).Should(BeNil())
 
 		shouldNotExist(`SELECT * from archives where store_key = ''`)
+	})
+	It("Can limit the number of tasks returned", func() {
+		id1, err1 := db.CreateBackupTask("first", JOB_UUID)
+		id2, err2 := db.CreateBackupTask("second", JOB_UUID)
+		id3, err3 := db.CreateBackupTask("third", JOB_UUID)
+		id4, err4 := db.CreateBackupTask("fourth", JOB_UUID)
+		Ω(err1).ShouldNot(HaveOccurred())
+		Ω(id1).ShouldNot(BeNil())
+		Ω(err2).ShouldNot(HaveOccurred())
+		Ω(id2).ShouldNot(BeNil())
+		Ω(err3).ShouldNot(HaveOccurred())
+		Ω(id3).ShouldNot(BeNil())
+		Ω(err4).ShouldNot(HaveOccurred())
+		Ω(id4).ShouldNot(BeNil())
+
+		Ω(db.StartTask(id1, at(0))).Should(Succeed())
+		Ω(db.CompleteTask(id1, at(2))).Should(Succeed())
+		Ω(db.StartTask(id2, at(4))).Should(Succeed())
+		Ω(db.CompleteTask(id2, at(6))).Should(Succeed())
+		Ω(db.StartTask(id3, at(8))).Should(Succeed())
+		Ω(db.StartTask(id4, at(12))).Should(Succeed())
+		Ω(db.CompleteTask(id4, at(14))).Should(Succeed())
+		shouldExist(`SELECT * FROM tasks`)
+
+		filter := TaskFilter{
+			Limit: "2",
+		}
+		tasks, err := db.GetAllAnnotatedTasks(&filter)
+		Ω(err).ShouldNot(HaveOccurred(), "does not error")
+		Ω(len(tasks)).Should(Equal(2), "returns two tasks")
+		Ω(tasks[0].Owner).Should(Equal("fourth"))
+		Ω(tasks[1].Owner).Should(Equal("third"))
+
+		filter = TaskFilter{
+			ForStatus: "done",
+			Limit:     "2",
+		}
+		tasks, err = db.GetAllAnnotatedTasks(&filter)
+		Ω(err).ShouldNot(HaveOccurred(), "does not error")
+		Ω(len(tasks)).Should(Equal(2), "returns two tasks")
+		Ω(tasks[0].Owner).Should(Equal("fourth"))
+		Ω(tasks[1].Owner).Should(Equal("second"))
+
 	})
 })

@@ -24,6 +24,7 @@ type AnnotatedTask struct {
 
 type TaskFilter struct {
 	ForStatus string
+	Limit     string
 }
 
 func ValidateEffectiveUnix(effective time.Time) int64 {
@@ -38,13 +39,24 @@ func (f *TaskFilter) Args() []interface{} {
 	if f.ForStatus != "" {
 		args = append(args, f.ForStatus)
 	}
+	if f.Limit != "" {
+		args = append(args, f.Limit)
+	}
 	return args
 }
 
 func (f *TaskFilter) Query() string {
 	wheres := []string{"t.uuid = t.uuid"}
+	n := 1
 	if f.ForStatus != "" {
-		wheres = append(wheres, "status = $1")
+		wheres = append(wheres, fmt.Sprintf("status = $%d", n))
+		n++
+	}
+
+	limit := ""
+	if f.Limit != "" {
+		limit = fmt.Sprintf(" LIMIT $%d", n)
+		n++
 	}
 	return `
 		SELECT t.uuid, t.owner, t.op, t.job_uuid, t.archive_uuid,
@@ -54,7 +66,7 @@ func (f *TaskFilter) Query() string {
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY t.started_at DESC, t.uuid ASC
-	`
+	` + limit
 }
 
 func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error) {
