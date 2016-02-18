@@ -186,6 +186,82 @@ var _ = Describe("/v1/tasks API", func() {
 			]`))
 	})
 
+	It("should only retrieved stopped tasks for active=f", func() {
+		res := GET(API, "/v1/tasks?active=f")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid": "` + TASK3 + `",
+					"owner": "joe",
+					"type": "backup",
+					"job_uuid": "` + JOB3 + `",
+					"archive_uuid": "",
+					"status": "canceled",
+					"started_at": "2015-04-18 19:12:05",
+					"stopped_at": "2015-04-18 19:13:55",
+					"log": "cancel!"
+				},
+				{
+					"uuid": "` + TASK2 + `",
+					"owner": "joe",
+					"type": "restore",
+					"job_uuid": "` + JOB2 + `",
+					"archive_uuid": "` + ARCHIVE2 + `",
+					"status": "done",
+					"started_at": "2015-04-10 17:35:01",
+					"stopped_at": "2015-04-10 18:19:45",
+					"log": "restore complete"
+				}
+			]`))
+	})
+
+	It("should can limit with active=f", func() {
+		res := GET(API, "/v1/tasks?active=f&limit=1")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid": "` + TASK3 + `",
+					"owner": "joe",
+					"type": "backup",
+					"job_uuid": "` + JOB3 + `",
+					"archive_uuid": "",
+					"status": "canceled",
+					"started_at": "2015-04-18 19:12:05",
+					"stopped_at": "2015-04-18 19:13:55",
+					"log": "cancel!"
+				}
+			]`))
+	})
+
+	It("should only retrieved running tasks for active=t", func() {
+		res := GET(API, "/v1/tasks?active=t")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid": "` + TASK1 + `",
+					"owner": "system",
+					"type": "backup",
+					"job_uuid": "` + JOB1 + `",
+					"archive_uuid": "",
+					"status": "running",
+					"started_at": "2015-04-15 06:00:01",
+					"stopped_at": "",
+					"log": "this is the log"
+				},
+				{
+					"uuid": "` + PURGE1 + `",
+					"owner": "system",
+					"type": "purge",
+					"job_uuid": "",
+					"archive_uuid": "` + NIL + `",
+					"status": "valid",
+					"started_at": "",
+					"stopped_at": "",
+					"log": ""
+				}
+			]`))
+	})
+
 	It("should error for invalid limit value", func() {
 		res := GET(API, "/v1/tasks?limit=n")
 		Ω(res.Code).Should(Equal(400))

@@ -23,8 +23,10 @@ type AnnotatedTask struct {
 }
 
 type TaskFilter struct {
-	ForStatus string
-	Limit     string
+	SkipActive   bool
+	SkipInactive bool
+	ForStatus    string
+	Limit        string
 }
 
 func ValidateEffectiveUnix(effective time.Time) int64 {
@@ -51,6 +53,12 @@ func (f *TaskFilter) Query() string {
 	if f.ForStatus != "" {
 		wheres = append(wheres, fmt.Sprintf("status = $%d", n))
 		n++
+	} else {
+		if f.SkipActive {
+			wheres = append(wheres, "stopped_at IS NOT NULL")
+		} else if f.SkipInactive {
+			wheres = append(wheres, "stopped_at IS NULL")
+		}
 	}
 
 	limit := ""

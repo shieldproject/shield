@@ -29,8 +29,10 @@ func (self TaskAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		tasks, err := self.Data.GetAllAnnotatedTasks(
 			&db.TaskFilter{
-				ForStatus: paramValue(req, "status", ""),
-				Limit:     limit,
+				SkipActive:   paramEquals(req, "active", "f"),
+				SkipInactive: paramEquals(req, "active", "t"),
+				ForStatus:    paramValue(req, "status", ""),
+				Limit:        limit,
 			},
 		)
 		if err != nil {
