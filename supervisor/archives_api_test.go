@@ -199,6 +199,35 @@ var _ = Describe("/v1/archives API", func() {
 			]`))
 		Ω(res.Code).Should(Equal(200))
 	})
+	It("should retrieve qty of archives based on valid limit", func() {
+		res := GET(API, "/v1/archives?limit=1")
+		Ω(res.Code).Should(Equal(200))
+		Ω(res.Body.String()).Should(MatchJSON(`
+			[{
+				"uuid": "b0eda11f-0414-4f6a-841f-c08609c542d0",
+				"key": "pg-archive-2-key",
+				"taken_at": "2015-04-28 03:00:01",
+				"expires_at": "2015-06-25 03:00:01",
+				"notes": "",
+				"status": "valid",
+				"purge_reason": "",
+				"target_uuid": "fab00c82-aac3-4e5f-8a2f-c534f81cdee3",
+				"target_plugin": "pg",
+				"target_endpoint": "\u003c\u003cpg-configuration\u003e\u003e",
+				"store_uuid": "05c3d005-f968-452f-bd59-bee8e79ab982",
+				"store_plugin": "s3",
+				"store_endpoint": "\u003c\u003cs3-configuration\u003e\u003e"
+		}]`))
+	})
+	It("should fail when provided an invalid limit", func() {
+		res := GET(API, "/v1/archives?limit=n")
+		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(MatchJSON(`{"error":"invalid limit supplied"}`))
+
+		res = GET(API, "/v1/archives?limit=-1")
+		Ω(res.Code).Should(Equal(400))
+		Ω(res.Body.String()).Should(MatchJSON(`{"error":"invalid limit supplied"}`))
+	})
 
 	It("should retrieve archives based on target UUID", func() {
 		res := GET(API, "/v1/archives?target="+TARGET_PG)

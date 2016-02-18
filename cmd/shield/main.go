@@ -55,6 +55,7 @@ func main() {
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
 		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
+		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
 	}
 
 	OK := func(f string, l ...interface{}) {
@@ -1298,12 +1299,18 @@ func main() {
 			}
 			DEBUG("  for status: '%s'", *opts.Status)
 
+			if *options.Limit == "" {
+				*options.Limit = "20"
+			}
+			DEBUG("  for limit: '%s'", *opts.Limit)
+
 			archives, err := GetArchives(ArchiveFilter{
 				Target: *options.Target,
 				Store:  *options.Store,
 				Before: *options.Before,
 				After:  *options.After,
 				Status: *options.Status,
+				Limit:  *options.Limit,
 			})
 			if err != nil {
 				return err
