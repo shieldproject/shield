@@ -21,7 +21,8 @@
 //        "mysql_user":"username-for-mysql",
 //        "mysql_password":"password-for-above-user",
 //        "mysql_host":"hostname-or-ip-of-mysql-server",
-//        "mysql_port":"port-above-mysql-server-listens-on"
+//        "mysql_port":"port-above-mysql-server-listens-on",
+//        "mysql_read_replica":"hostname-or-ip-of-mysql-replica-server"  #OPTIONAL
 //    }
 //
 // BACKUP DETAILS
@@ -82,6 +83,7 @@ type MySQLConnectionInfo struct {
 	User     string
 	Password string
 	Bin      string
+	Replica  string
 }
 
 func (p MySQLPlugin) Meta() PluginInfo {
@@ -93,6 +95,10 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 	mysql, err := mysqlConnectionInfo(endpoint)
 	if err != nil {
 		return err
+	}
+
+	if mysql.Replica != "" {
+		mysql.Host = mysql.Replica
 	}
 
 	cmd := fmt.Sprintf("%s/mysqldump --all-databases %s", mysql.Bin, connectionString(mysql))
@@ -156,6 +162,9 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQLPORT: '%s'", port)
 
+	replica, _ := endpoint.StringValue("mysql_read_replica")
+	DEBUG("MYSQLREADREPLICA: '%s'", replica)
+
 	bin := "/var/vcap/packages/shield-mysql/bin"
 	DEBUG("MYSQLBINDIR: '%s'", bin)
 
@@ -165,5 +174,6 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 		User:     user,
 		Password: password,
 		Bin:      bin,
+		Replica:  replica,
 	}, nil
 }
