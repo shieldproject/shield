@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-	"strconv"
 
 	"github.com/pborman/uuid"
 
@@ -28,12 +27,9 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			desiredStatus = []string{status}
 		}
 		limit := paramValue(req, "limit", "")
-		if limit != "" {
-			limint, err := strconv.Atoi(limit)
-			if err != nil || limint <= 0 {
-				bailWithError(w, ClientErrorf("invalid limit supplied"))
-				return
-			}
+		if invalidlimit(limit) {
+			bailWithError(w, ClientErrorf("invalid limit supplied"))
+			return
 		}
 		archives, err := self.Data.GetAllAnnotatedArchives(
 			&db.ArchiveFilter{
