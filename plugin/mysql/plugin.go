@@ -22,7 +22,7 @@
 //        "mysql_password":"password-for-above-user",
 //        "mysql_host":"hostname-or-ip-of-mysql-server",
 //        "mysql_port":"port-above-mysql-server-listens-on",
-//				"mysql_read_replica":"hostname-or-ip-of-mysql-replica-server", OPTIONAL
+//        "mysql_read_replica":"hostname-or-ip-of-mysql-replica-server"  #OPTIONAL
 //    }
 //
 // BACKUP DETAILS
