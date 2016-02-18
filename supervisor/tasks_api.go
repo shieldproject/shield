@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -20,12 +19,9 @@ func (self TaskAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `GET /v1/tasks`):
 		limit := paramValue(req, "limit", "")
-		if limit != "" {
-			limint, err := strconv.Atoi(limit)
-			if err != nil || limint <= 0 {
-				bailWithError(w, ClientErrorf("invalid limit supplied"))
-				return
-			}
+		if invalidlimit(limit) {
+			bailWithError(w, ClientErrorf("invalid limit supplied"))
+			return
 		}
 		tasks, err := self.Data.GetAllAnnotatedTasks(
 			&db.TaskFilter{

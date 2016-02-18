@@ -26,6 +26,11 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if status != "" {
 			desiredStatus = []string{status}
 		}
+		limit := paramValue(req, "limit", "")
+		if invalidlimit(limit) {
+			bailWithError(w, ClientErrorf("invalid limit supplied"))
+			return
+		}
 		archives, err := self.Data.GetAllAnnotatedArchives(
 			&db.ArchiveFilter{
 				ForTarget:  paramValue(req, "target", ""),
@@ -33,6 +38,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				Before:     paramDate(req, "before"),
 				After:      paramDate(req, "after"),
 				WithStatus: desiredStatus,
+				Limit:      limit,
 			},
 		)
 		if err != nil {

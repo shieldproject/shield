@@ -35,6 +35,7 @@ type ArchiveFilter struct {
 	ExpiresBefore *time.Time
 	WithStatus    []string
 	WithOutStatus []string
+	Limit         string
 }
 
 func (f *ArchiveFilter) Query() string {
@@ -54,6 +55,11 @@ func (f *ArchiveFilter) Query() string {
 	}
 	if f.After != nil {
 		wheres = append(wheres, fmt.Sprintf("taken_at >= $%d", n))
+		n++
+	}
+	limit := ""
+	if f.Limit != "" {
+		limit = fmt.Sprintf(" LIMIT $%d", n)
 		n++
 	}
 	if len(f.WithStatus) > 0 {
@@ -89,7 +95,7 @@ func (f *ArchiveFilter) Query() string {
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY a.taken_at DESC, a.uuid ASC
-	`
+	` + limit
 }
 
 func (f *ArchiveFilter) Args() []interface{} {
@@ -118,6 +124,9 @@ func (f *ArchiveFilter) Args() []interface{} {
 	}
 	if f.ExpiresBefore != nil {
 		args = append(args, f.ExpiresBefore.Unix())
+	}
+	if f.Limit != "" {
+		args = append(args, f.Limit)
 	}
 	return args
 }

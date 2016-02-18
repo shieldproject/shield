@@ -243,6 +243,23 @@ var _ = Describe("Archive Management", func() {
 				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED.String(), ARCHIVE_PURGED.String(), ARCHIVE_INVALID.String(), ARCHIVE_STORE2.String()}),
 					"returns the correct archives")
 			})
+			It("limits the number of results returned with valid limit", func() {
+				filter := ArchiveFilter{
+					Limit: "3",
+				}
+				archives, err := db.GetAllAnnotatedArchives(&filter)
+				Ω(err).ShouldNot(HaveOccurred(), "does not error")
+				Ω(len(archives)).Should(Equal(3), "returns three archives")
+			})
+			It("returns all results with negative limit", func() {
+				//This is prevented in the supervisor layer.
+				filter := ArchiveFilter{
+					Limit: "-1",
+				}
+				archives, err := db.GetAllAnnotatedArchives(&filter)
+				Ω(err).ShouldNot(HaveOccurred(), "does not error")
+				Ω(len(archives)).Should(Equal(6), "returns all 6 archives")
+			})
 		})
 
 		Describe("GetArchivesNeedingPurge", func() {
