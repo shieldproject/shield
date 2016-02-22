@@ -23,6 +23,7 @@ type AnnotatedTask struct {
 }
 
 type TaskFilter struct {
+	UUID         string
 	SkipActive   bool
 	SkipInactive bool
 	ForStatus    string
@@ -44,6 +45,9 @@ func (f *TaskFilter) Args() []interface{} {
 	if f.Limit != "" {
 		args = append(args, f.Limit)
 	}
+	if f.UUID != "" {
+		args = append(args, f.UUID)
+	}
 	return args
 }
 
@@ -59,6 +63,11 @@ func (f *TaskFilter) Query() string {
 		} else if f.SkipInactive {
 			wheres = append(wheres, "stopped_at IS NULL")
 		}
+	}
+
+	if f.UUID != "" {
+		wheres = append(wheres, fmt.Sprintf("uuid = $%d", n))
+		n++
 	}
 
 	limit := ""
@@ -118,15 +127,8 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 }
 
 func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
-	r, err := db.Query(`
-		SELECT t.uuid, t.owner, t.op, j.uuid, a.uuid,
-		       t.status, t.started_at, t.stopped_at, t.log
-
-		FROM tasks t
-			INNER JOIN jobs     j    ON j.uuid = t.job_uuid
-			LEFT  JOIN archives a    ON a.uuid = t.archive_uuid
-
-		WHERE t.uuid = $1`, id.String())
+	filter := TaskFilter{UUID: id.String()}
+	r, err := db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return nil, err
 	}

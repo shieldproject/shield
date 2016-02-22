@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"fmt"
+	"github.com/starkandwayne/shield/timestamp"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -271,6 +273,54 @@ var _ = Describe("Task Management", func() {
 		tasks, err = db.GetAllAnnotatedTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
 		Ω(len(tasks)).Should(Equal(4), "returns four tasks")
+	})
 
+	Describe("GetAnnotatedTask", func() {
+		TASK1_UUID := uuid.NewRandom()
+		TASK2_UUID := uuid.NewRandom()
+
+		BeforeEach(func() {
+			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, log, archive_uuid, job_uuid)`+
+				`VALUES('%s', '%s', '%s', '%s', %d, '', '', '')`,
+				TASK1_UUID.String(), "system", "backup", "pending", 0))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = db.Exec(
+				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid, log)`+
+					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s', '')`,
+					TASK2_UUID.String(), "system", "restore", "pending", 2,
+					ARCHIVE_UUID.String(), JOB_UUID.String()))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("Returns an individual task even when not associated with anything", func() {
+			task, err := db.GetAnnotatedTask(TASK1_UUID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(task).Should(BeEquivalentTo(&AnnotatedTask{
+				UUID:        TASK1_UUID.String(),
+				Owner:       "system",
+				Op:          "backup",
+				JobUUID:     "",
+				ArchiveUUID: "",
+				Status:      "pending",
+				StartedAt:   timestamp.Timestamp{},
+				StoppedAt:   timestamp.Timestamp{},
+				Log:         "",
+			}))
+		})
+		It("Returns an individual task when associated with job/archive", func() {
+			task, err := db.GetAnnotatedTask(TASK2_UUID)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(task).Should(BeEquivalentTo(&AnnotatedTask{
+				UUID:        TASK2_UUID.String(),
+				Owner:       "system",
+				Op:          "restore",
+				JobUUID:     JOB_UUID.String(),
+				ArchiveUUID: ARCHIVE_UUID.String(),
+				Status:      "pending",
+				StartedAt:   timestamp.Timestamp{},
+				StoppedAt:   timestamp.Timestamp{},
+				Log:         "",
+			}))
+		})
 	})
 })
