@@ -201,16 +201,16 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 	}
 }
 
-func FindArchivesFor(job Job, show int) (Archive, uuid.UUID, error) {
+func FindArchivesFor(target Target, show int) (Archive, uuid.UUID, error) {
 	archives, err := GetArchives(ArchiveFilter{
+		Target: target.UUID,
 		Status: "valid",
-		// FIXME: need a way of limiting
 	})
 	if err != nil {
 		return Archive{}, nil, err
 	}
 	if len(archives) == 0 {
-		return Archive{}, nil, fmt.Errorf("no valid backup archives found for %s", job.Name)
+		return Archive{}, nil, fmt.Errorf("no valid backup archives found for target %s", target.Name)
 	}
 
 	if show > len(archives) {
@@ -228,7 +228,7 @@ func FindArchivesFor(job Job, show int) (Archive, uuid.UUID, error) {
 	}
 
 	want := tui.Menu(
-		fmt.Sprintf("Here are the %d most recent backup archives for %s:", show, job.Name),
+		fmt.Sprintf("Here are the %d most recent backup archives for target %s:", show, target.Name),
 		&t, "Which backup archive would you like to restore?")
 
 	return want.(Archive), uuid.Parse(want.(Archive).UUID), nil

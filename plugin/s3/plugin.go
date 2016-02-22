@@ -22,7 +22,7 @@
 //        "s3_host":"https://s3.amazonaws.com",
 //        "access_key_id":"your-access-key-id",
 //        "secret_access_key":"your-secret-access-key",
-//        "skip_ssl_validation:false,
+//        "skip_ssl_validation":false,
 //        "bucket":"bucket-name",
 //        "prefix":"/path/inside/bucket/to/place/backup/data"
 //    }
