@@ -280,14 +280,14 @@ var _ = Describe("Task Management", func() {
 		TASK2_UUID := uuid.NewRandom()
 
 		BeforeEach(func() {
-			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, log, archive_uuid, job_uuid)`+
-				`VALUES('%s', '%s', '%s', '%s', %d, '', '', '')`,
+			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at)`+
+				`VALUES('%s', '%s', '%s', '%s', %d)`,
 				TASK1_UUID.String(), "system", "backup", "pending", 0))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = db.Exec(
-				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid, log)`+
-					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s', '')`,
+				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid)`+
+					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s')`,
 					TASK2_UUID.String(), "system", "restore", "pending", 2,
 					ARCHIVE_UUID.String(), JOB_UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())

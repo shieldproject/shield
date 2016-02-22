@@ -97,20 +97,37 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 	for r.Next() {
 		ann := &AnnotatedTask{}
 
-		var archive []byte
-		var job []byte
+		var archive interface{}
+		var job interface{}
+		var log interface{}
+
 		var started, stopped *int64
 		if err = r.Scan(
 			&ann.UUID, &ann.Owner, &ann.Op, &job, &archive,
-			&ann.Status, &started, &stopped, &ann.Log); err != nil {
+			&ann.Status, &started, &stopped, &log); err != nil {
 			return l, err
 		}
 
 		if job != nil {
-			ann.JobUUID = string(job)
+			if jstr, ok := job.([]byte); ok {
+				ann.JobUUID = string(jstr)
+			} else {
+				return nil, fmt.Errorf("DB returned unexpected data type for `job_uuid`")
+			}
 		}
 		if archive != nil {
-			ann.ArchiveUUID = string(archive)
+			if astr, ok := archive.([]byte); ok {
+				ann.ArchiveUUID = string(astr)
+			} else {
+				return nil, fmt.Errorf("DB returned unexpected data type for `archive_uuid`")
+			}
+		}
+		if log != nil {
+			if lstr, ok := log.([]byte); ok {
+				ann.Log = string(lstr)
+			} else {
+				return nil, fmt.Errorf("DB returned unexpected data type for `log`")
+			}
 		}
 		if started != nil {
 			ann.StartedAt = parseEpochTime(*started)
@@ -128,36 +145,14 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 
 func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
 	filter := TaskFilter{UUID: id.String()}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	r, err := db.GetAllAnnotatedTasks(&filter)
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
-
-	if !r.Next() {
+	if len(r) == 0 {
 		return nil, nil
 	}
-
-	ann := &AnnotatedTask{}
-	var archive []byte
-	var started, stopped *int64
-	if err = r.Scan(
-		&ann.UUID, &ann.Owner, &ann.Op, &ann.JobUUID, &archive,
-		&ann.Status, &started, &stopped, &ann.Log); err != nil {
-		return nil, err
-	}
-	if archive != nil {
-		ann.ArchiveUUID = string(archive)
-	}
-	if started != nil {
-		ann.StartedAt = parseEpochTime(*started)
-	}
-
-	if stopped != nil {
-		ann.StoppedAt = parseEpochTime(*stopped)
-	}
-
-	return ann, nil
+	return r[0], nil
 }
 
 func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
