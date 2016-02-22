@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/starkandwayne/goutils/log"
@@ -77,4 +78,14 @@ func paramDate(req *http.Request, name string) *time.Time {
 		return nil
 	}
 	return &t
+}
+
+func invalidlimit(limit string) bool {
+	if limit != "" {
+		limint, err := strconv.Atoi(limit)
+		if err != nil || limint <= 0 {
+			return true
+		}
+	}
+	return false
 }

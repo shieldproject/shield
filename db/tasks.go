@@ -23,7 +23,17 @@ type AnnotatedTask struct {
 }
 
 type TaskFilter struct {
-	ForStatus string
+	SkipActive   bool
+	SkipInactive bool
+	ForStatus    string
+	Limit        string
+}
+
+func ValidateEffectiveUnix(effective time.Time) int64 {
+	if effective.Unix() <= 0 {
+		return time.Now().Unix()
+	}
+	return effective.Unix()
 }
 
 func (f *TaskFilter) Args() []interface{} {
@@ -31,13 +41,30 @@ func (f *TaskFilter) Args() []interface{} {
 	if f.ForStatus != "" {
 		args = append(args, f.ForStatus)
 	}
+	if f.Limit != "" {
+		args = append(args, f.Limit)
+	}
 	return args
 }
 
 func (f *TaskFilter) Query() string {
 	wheres := []string{"t.uuid = t.uuid"}
+	n := 1
 	if f.ForStatus != "" {
-		wheres = append(wheres, "status = $1")
+		wheres = append(wheres, fmt.Sprintf("status = $%d", n))
+		n++
+	} else {
+		if f.SkipActive {
+			wheres = append(wheres, "stopped_at IS NOT NULL")
+		} else if f.SkipInactive {
+			wheres = append(wheres, "stopped_at IS NULL")
+		}
+	}
+
+	limit := ""
+	if f.Limit != "" {
+		limit = fmt.Sprintf(" LIMIT $%d", n)
+		n++
 	}
 	return `
 		SELECT t.uuid, t.owner, t.op, t.job_uuid, t.archive_uuid,
@@ -47,7 +74,7 @@ func (f *TaskFilter) Query() string {
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY t.started_at DESC, t.uuid ASC
-	`
+	` + limit
 }
 
 func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error) {
@@ -159,9 +186,10 @@ func (db *DB) CreatePurgeTask(owner string, archive *AnnotatedArchive) (uuid.UUI
 }
 
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
+	validtime := ValidateEffectiveUnix(effective)
 	return db.Exec(
 		`UPDATE tasks SET status = $1, started_at = $2 WHERE uuid = $3`,
-		"running", effective.Unix(), id.String(),
+		"running", validtime, id.String(),
 	)
 }
 
@@ -172,15 +200,18 @@ func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64) err
 	)
 }
 func (db *DB) CancelTask(id uuid.UUID, effective time.Time) error {
-	return db.updateTaskStatus(id, "canceled", effective.Unix())
+	validtime := ValidateEffectiveUnix(effective)
+	return db.updateTaskStatus(id, "canceled", validtime)
 }
 
 func (db *DB) FailTask(id uuid.UUID, effective time.Time) error {
-	return db.updateTaskStatus(id, "failed", effective.Unix())
+	validtime := ValidateEffectiveUnix(effective)
+	return db.updateTaskStatus(id, "failed", validtime)
 }
 
 func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
-	return db.updateTaskStatus(id, "done", effective.Unix())
+	validtime := ValidateEffectiveUnix(effective)
+	return db.updateTaskStatus(id, "done", validtime)
 }
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
@@ -221,6 +252,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 
 	// insert an archive with all proper references, expiration, etc.
 	archive_id := uuid.NewRandom()
+	validtime := ValidateEffectiveUnix(effective)
 	err = db.Exec(
 		`INSERT INTO archives
 			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes)
@@ -230,7 +262,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = $5`,
-		archive_id.String(), key, effective.Unix(), effective.Add(time.Duration(expiry)*time.Second).Unix(), id.String(),
+		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), id.String(),
 	)
 	if err != nil {
 		return nil, err

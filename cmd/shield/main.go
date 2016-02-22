@@ -55,6 +55,7 @@ func main() {
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
 		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
+		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
 	}
 
 	OK := func(f string, l ...interface{}) {
@@ -192,7 +193,7 @@ func main() {
 
 			t := tui.NewTable("Name", "Summary", "Plugin", "Remote IP", "Configuration")
 			for _, target := range targets {
-				t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, target.Endpoint)
+				t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, PrettyJSON(target.Endpoint))
 			}
 			t.Output(os.Stdout)
 			return nil
@@ -750,7 +751,7 @@ func main() {
 
 			t := tui.NewTable("Name", "Summary", "Plugin", "Configuration")
 			for _, store := range stores {
-				t.Row(store, store.Name, store.Summary, store.Plugin, store.Endpoint)
+				t.Row(store, store.Name, store.Summary, store.Plugin, PrettyJSON(store.Endpoint))
 			}
 			t.Output(os.Stdout)
 			return nil
@@ -942,7 +943,7 @@ func main() {
 			t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Remote IP", "Target")
 			for _, job := range jobs {
 				t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
-					job.RetentionName, job.ScheduleName, job.Agent, job.TargetEndpoint)
+					job.RetentionName, job.ScheduleName, job.Agent, PrettyJSON(job.TargetEndpoint))
 			}
 			t.Output(os.Stdout)
 			return nil
@@ -1298,12 +1299,18 @@ func main() {
 			}
 			DEBUG("  for status: '%s'", *opts.Status)
 
+			if *options.Limit == "" {
+				*options.Limit = "20"
+			}
+			DEBUG("  for limit: '%s'", *opts.Limit)
+
 			archives, err := GetArchives(ArchiveFilter{
 				Target: *options.Target,
 				Store:  *options.Store,
 				Before: *options.Before,
 				After:  *options.After,
 				Status: *options.Status,
+				Limit:  *options.Limit,
 			})
 			if err != nil {
 				return err

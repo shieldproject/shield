@@ -12,6 +12,7 @@ type ArchiveFilter struct {
 	Before string
 	After  string
 	Status string
+	Limit  string
 }
 
 type Archive struct {
@@ -37,6 +38,7 @@ func GetArchives(filter ArchiveFilter) ([]Archive, error) {
 	uri.MaybeAddParameter("before", filter.Before)
 	uri.MaybeAddParameter("after", filter.After)
 	uri.MaybeAddParameter("status", filter.Status)
+	uri.MaybeAddParameter("limit", filter.Limit)
 
 	var data []Archive
 	return data, uri.Get(&data)

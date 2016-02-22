@@ -31,6 +31,8 @@ type Options struct {
 	Before *string
 
 	To *string
+
+	Limit *string
 }
 
 type Handler func(opts Options, args []string) error

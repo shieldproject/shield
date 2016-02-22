@@ -680,7 +680,7 @@ Purpose: allows the Web UI and the CLI to show running tasks, query a specific t
 
 | Method | Path | Arguments | Request Body |
 | :----- | :---- | :------- | :----------- |
-| GET | /v1/tasks | ?status=:status <br> ?debug | - |
+| GET | /v1/tasks | ?status=:status <br> ?active=[tf] <br> ?debug | - |
 | GET | | /v1/task/:uuid | - | - |
 | DELETE | /v1/task/:uuid | - | - |
 

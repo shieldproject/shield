@@ -22,12 +22,14 @@ type Task struct {
 type TaskFilter struct {
 	Status string
 	Debug  YesNo
+	Limit  string
 }
 
 func GetTasks(filter TaskFilter) ([]Task, error) {
 	uri := ShieldURI("/v1/tasks")
-	uri.MaybeAddParameter("status", filter.Status)
 	uri.MaybeAddParameter("debug", filter.Debug)
+	uri.MaybeAddParameter("limit", filter.Limit)
+	uri.MaybeAddParameter("status", filter.Status)
 
 	var data []Task
 	return data, uri.Get(&data)

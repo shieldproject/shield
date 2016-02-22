@@ -56,7 +56,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		if remote == "" {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  no remote agent specified for task %s\n", t.UUID)}
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
 			continue
 		}
 
@@ -64,7 +64,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		if err != nil {
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d unable to connect to %s (%s)\n", id, remote, err)}
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
 			continue
 		}
 		defer client.Close()
@@ -108,7 +108,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			updates <- WorkerUpdate{Task: t.UUID, Op: OUTPUT,
 				Output: fmt.Sprintf("TASK FAILED!! shield worker %d was unable to json encode the request bound for remote agent %s (%s)", id, remote, err),
 			}
-			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED}
+			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
 			continue
 		}
 		// exec the command

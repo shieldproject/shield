@@ -21,14 +21,16 @@
 //        "mysql_user":"username-for-mysql",
 //        "mysql_password":"password-for-above-user",
 //        "mysql_host":"hostname-or-ip-of-mysql-server",
-//        "mysql_port":"port-above-mysql-server-listens-on"
+//        "mysql_port":"port-above-mysql-server-listens-on",
+//        "mysql_read_replica":"hostname-or-ip-of-mysql-replica-server",  #OPTIONAL
+//        "mysql_database": "your-database-name"  #OPTIONAL
 //    }
 //
 // BACKUP DETAILS
 //
-// The `mysql` plugin makes use of `mysqldump --all-databases` to back up all databases
-// on the mysql server it connects to. There is currently no filtering of individual databases
-// to back up, unless that is done via the mysql user/roles. The dumps generated include
+// If `mysql_database` is not specified in the plugin configuration, the `mysql` plugin makes
+// use of `mysqldump --all-databases` to back up all databases on the mysql server it connects to.
+// Otherwise, it backs up ONLY the specified database. The dumps generated include
 // SQL to clean up existing tables of the databases, so that the restores will go smoothly.
 //
 // Backing up with the `mysql` plugin will not drop any existing connections to the database,
@@ -82,6 +84,8 @@ type MySQLConnectionInfo struct {
 	User     string
 	Password string
 	Bin      string
+	Replica  string
+	Database string
 }
 
 func (p MySQLPlugin) Meta() PluginInfo {
@@ -95,7 +99,11 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 		return err
 	}
 
-	cmd := fmt.Sprintf("%s/mysqldump --all-databases %s", mysql.Bin, connectionString(mysql))
+	if mysql.Replica != "" {
+		mysql.Host = mysql.Replica
+	}
+
+	cmd := fmt.Sprintf("%s/mysqldump %s", mysql.Bin, connectionString(mysql))
 	DEBUG("Executing: `%s`", cmd)
 	return Exec(cmd, STDOUT)
 }
@@ -128,7 +136,12 @@ func connectionString(info *MySQLConnectionInfo) string {
 	// use env variable for communicating password, so it's less likely to appear in our logs/ps output
 	os.Setenv("MYSQL_PWD", info.Password)
 
-	return fmt.Sprintf("-h %s -P %s -u %s", info.Host, info.Port, info.User)
+	db := "--all-databases"
+	if info.Database != "" {
+		db = info.Database
+	}
+
+	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
 }
 
 func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) {
@@ -136,28 +149,34 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQLUSER: '%s'", user)
+	DEBUG("MYSQL_USER: '%s'", user)
 
 	password, err := endpoint.StringValue("mysql_password")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQLPASSWORD: '%s'", password)
+	DEBUG("MYSQL_PWD: '%s'", password)
 
 	host, err := endpoint.StringValue("mysql_host")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQLHOST: '%s'", host)
+	DEBUG("MYSQL_HOST: '%s'", host)
 
 	port, err := endpoint.StringValue("mysql_port")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQLPORT: '%s'", port)
+	DEBUG("MYSQL_PORT: '%s'", port)
+
+	replica, _ := endpoint.StringValue("mysql_read_replica")
+	DEBUG("MYSQL_READ_REPLICA: '%s'", replica)
+
+	db, _ := endpoint.StringValue("mysql_database")
+	DEBUG("MYSQL_DB: '%s'", db)
 
 	bin := "/var/vcap/packages/shield-mysql/bin"
-	DEBUG("MYSQLBINDIR: '%s'", bin)
+	DEBUG("MYSQL_BIN_DIR: '%s'", bin)
 
 	return &MySQLConnectionInfo{
 		Host:     host,
@@ -165,5 +184,7 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 		User:     user,
 		Password: password,
 		Bin:      bin,
+		Replica:  replica,
+		Database: db,
 	}, nil
 }
