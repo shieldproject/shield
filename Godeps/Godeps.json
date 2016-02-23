@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
-	"GoVersion": "go1.5.3",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"./..."
 	],
@@ -74,6 +74,10 @@
 		{
 			"ImportPath": "golang.org/x/net/proxy",
 			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "442cd600860ce722f6615730eb008a37a87b13ee"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
