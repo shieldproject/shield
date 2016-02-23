@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.5.3",
 	"Packages": [
 		"./..."
 	],
@@ -32,6 +32,11 @@
 			"Rev": "5651a9d9d49ec25811d08220ee972080378d52ea"
 		},
 		{
+			"ImportPath": "github.com/minio/minio-go",
+			"Comment": "v1.0.0",
+			"Rev": "84b89f6f458668d047b0de2d2cdf596dcf4a79a1"
+		},
+		{
 			"ImportPath": "github.com/onsi/ginkgo",
 			"Comment": "v1.2.0-11-gd94e2f4",
 			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
@@ -48,11 +53,6 @@
 		{
 			"ImportPath": "github.com/pborman/uuid",
 			"Rev": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655"
-		},
-		{
-			"ImportPath": "github.com/rlmcpherson/s3gof3r",
-			"Comment": "v0.5.0-3-gc70ac93",
-			"Rev": "c70ac93186ea905690463402cab5d3197acc636c"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/log",
@@ -72,8 +72,8 @@
 			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},
 		{
-			"ImportPath": "golang.org/x/sys/unix",
-			"Rev": "442cd600860ce722f6615730eb008a37a87b13ee"
+			"ImportPath": "golang.org/x/net/proxy",
+			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

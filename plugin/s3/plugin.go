@@ -19,12 +19,14 @@
 // your endpoint JSON should look something like this:
 //
 //    {
-//        "s3_host":"https://s3.amazonaws.com",
-//        "access_key_id":"your-access-key-id",
-//        "secret_access_key":"your-secret-access-key",
-//        "skip_ssl_validation:false,
-//        "bucket":"bucket-name",
-//        "prefix":"/path/inside/bucket/to/place/backup/data"
+//        "s3_host":             "s3.amazonaws.com",
+//        "access_key_id":       "your-access-key-id",
+//        "secret_access_key":   "your-secret-access-key",
+//        "skip_ssl_validation":  false,
+//        "bucket":              "bucket-name",
+//        "prefix":              "/path/inside/bucket/to/place/backup/data",
+//        "signature_version":   "2",             # should be 2 or 4. Defaults to 4
+//        "socks5_proxy":        "localhost:5000" #optionally defined SOCKS5 proxy to use for the s3 communications
 //    }
 //
 // STORE DETAILS
@@ -56,12 +58,14 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"golang.org/x/net/proxy"
 	"io"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/rlmcpherson/s3gof3r"
+	//	"github.com/rlmcpherson/s3gof3r"
+	minio "github.com/minio/minio-go"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -89,6 +93,8 @@ type S3ConnectionInfo struct {
 	SecretKey         string
 	Bucket            string
 	PathPrefix        string
+	SignatureVersion  string
+	SOCKS5Proxy       string
 }
 
 func (p S3Plugin) Meta() plugin.PluginInfo {
@@ -108,19 +114,16 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	bucket := s3.GetBucket()
-
-	path := s3.genBackupPath()
-	plugin.DEBUG("Storing data in %s", path)
-	writer, err := bucket.PutWriter(path, nil, bucket.Config)
+	client, err := s3.Connect()
 	if err != nil {
 		return "", err
 	}
-	if _, err = io.Copy(writer, os.Stdin); err != nil {
-		return "", err
-	}
 
-	err = writer.Close()
+	path := s3.genBackupPath()
+	plugin.DEBUG("Storing data in %s", path)
+
+	// FIXME: should we do something with the size of the write performed?
+	_, err = client.PutObject(s3.Bucket, path, os.Stdin, "application/x-gzip")
 	if err != nil {
 		return "", err
 	}
@@ -133,9 +136,12 @@ func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	if err != nil {
 		return err
 	}
-	bucket := s3.GetBucket()
+	client, err := s3.Connect()
+	if err != nil {
+		return err
+	}
 
-	reader, _, err := bucket.GetReader(file, bucket.Config)
+	reader, err := client.GetObject(s3.Bucket, file)
 	if err != nil {
 		return err
 	}
@@ -156,9 +162,12 @@ func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	if err != nil {
 		return err
 	}
-	bucket := s3.GetBucket()
+	client, err := s3.Connect()
+	if err != nil {
+		return err
+	}
 
-	err = bucket.Delete(file)
+	err = client.RemoveObject(s3.Bucket, file)
 	if err != nil {
 		return err
 	}
@@ -197,6 +206,17 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		return S3ConnectionInfo{}, err
 	}
 
+	sigVer, err := e.StringValue("signature_version")
+	if sigVer == "" {
+		sigVer = "4"
+	} else if sigVer == "2" {
+		sigVer = "2"
+	} else if sigVer != "4" {
+		return S3ConnectionInfo{}, fmt.Errorf("Invalid `signature_version` specified (`%s`). Expected `2` or `4`", sigVer)
+	}
+
+	proxy, _ := e.StringValue("socks5_proxy")
+
 	return S3ConnectionInfo{
 		Host:              host,
 		SkipSSLValidation: insecure_ssl,
@@ -204,6 +224,8 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		SecretKey:         secret,
 		Bucket:            bucket,
 		PathPrefix:        prefix,
+		SignatureVersion:  sigVer,
+		SOCKS5Proxy:       proxy,
 	}, nil
 }
 
@@ -215,16 +237,30 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 	return fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
 }
 
-func (s3 S3ConnectionInfo) GetBucket() *s3gof3r.Bucket {
-	keys := s3gof3r.Keys{
-		AccessKey:     s3.AccessKey,
-		SecretKey:     s3.SecretKey,
-		SecurityToken: "",
+func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
+	var s3Client *minio.Client
+	var err error
+	if s3.SignatureVersion == "2" {
+		s3Client, err = minio.NewV2(s3.Host, s3.AccessKey, s3.SecretKey, false)
+	} else {
+		s3Client, err = minio.NewV4(s3.Host, s3.AccessKey, s3.SecretKey, false)
 	}
-	conn := s3gof3r.New(s3.Host, keys)
+	if err != nil {
+		return nil, err
+	}
 
-	bucket := conn.Bucket(s3.Bucket)
-	bucket.Client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: s3.SkipSSLValidation}
-	//	bucket.Config.Md5Check = false
-	return bucket
+	transport := http.DefaultTransport
+	transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: s3.SkipSSLValidation}
+	if s3.SOCKS5Proxy != "" {
+		dialer, err := proxy.SOCKS5("tcp", s3.SOCKS5Proxy, nil, proxy.Direct)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)
+			os.Exit(1)
+		}
+		transport.(*http.Transport).Dial = dialer.Dial
+	}
+
+	s3Client.SetCustomTransport(transport)
+
+	return s3Client, nil
 }
