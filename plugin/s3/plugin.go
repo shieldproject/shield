@@ -19,7 +19,7 @@
 // your endpoint JSON should look something like this:
 //
 //    {
-//        "s3_host":"https://s3.amazonaws.com",
+//        "s3_host":"s3.amazonaws.com",
 //        "access_key_id":"your-access-key-id",
 //        "secret_access_key":"your-secret-access-key",
 //        "skip_ssl_validation":false,

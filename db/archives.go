@@ -57,11 +57,6 @@ func (f *ArchiveFilter) Query() string {
 		wheres = append(wheres, fmt.Sprintf("taken_at >= $%d", n))
 		n++
 	}
-	limit := ""
-	if f.Limit != "" {
-		limit = fmt.Sprintf(" LIMIT $%d", n)
-		n++
-	}
 	if len(f.WithStatus) > 0 {
 		var params []string
 		for range f.WithStatus {
@@ -82,6 +77,12 @@ func (f *ArchiveFilter) Query() string {
 		wheres = append(wheres, fmt.Sprintf("expires_at < $%d", n))
 		n++
 	}
+	limit := ""
+	if f.Limit != "" {
+		limit = fmt.Sprintf(" LIMIT $%d", n)
+		n++
+	}
+
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
