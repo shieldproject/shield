@@ -64,7 +64,6 @@ import (
 	"os"
 	"time"
 
-	//	"github.com/rlmcpherson/s3gof3r"
 	minio "github.com/minio/minio-go"
 
 	"github.com/starkandwayne/shield/plugin"
