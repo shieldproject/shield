@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -134,6 +135,11 @@ func (f *ArchiveFilter) Args() []interface{} {
 
 func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchive, error) {
 	l := []*AnnotatedArchive{}
+	if filter.Limit != "" {
+		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
+			return l, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
+		}
+	}
 	r, err := db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err

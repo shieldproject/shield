@@ -251,15 +251,50 @@ var _ = Describe("Archive Management", func() {
 				Ω(err).ShouldNot(HaveOccurred(), "does not error")
 				Ω(len(archives)).Should(Equal(3), "returns three archives")
 			})
-			It("returns all results with negative limit", func() {
+			It("errs when given a negative limit", func() {
 				//This is prevented in the supervisor layer.
 				filter := ArchiveFilter{
 					Limit: "-1",
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
-				Ω(err).ShouldNot(HaveOccurred(), "does not error")
-				Ω(len(archives)).Should(Equal(6), "returns all 6 archives")
+				_, err := db.GetAllAnnotatedArchives(&filter)
+				Ω(err).Should(HaveOccurred(), "does err")
 			})
+			It("errs when given a non-integer number limit", func() {
+				//This is prevented in the supervisor layer.
+				filter := ArchiveFilter{
+					Limit: "6.8",
+				}
+				_, err := db.GetAllAnnotatedArchives(&filter)
+				Ω(err).Should(HaveOccurred(), "does err")
+			})
+			It("errs when given a non-number limit", func() {
+				//This is prevented in the supervisor layer.
+				filter := ArchiveFilter{
+					Limit: "$h13ld",
+				}
+				_, err := db.GetAllAnnotatedArchives(&filter)
+				Ω(err).Should(HaveOccurred(), "does err")
+			})
+			It("correctly uses the limit in conjunction with other filters", func() {
+				//This is prevented in the supervisor layer.
+				filter := ArchiveFilter{
+					WithOutStatus: []string{"valid"},
+					Limit:         "2",
+				}
+				archives, err := db.GetAllAnnotatedArchives(&filter)
+				Ω(err).ShouldNot(HaveOccurred(), "does not err")
+				Ω(len(archives)).Should(Equal(2), "returns two archives")
+			})
+			It("returns all entries when limit is higher than matching rows", func() {
+				//This is prevented in the supervisor layer.
+				filter := ArchiveFilter{
+					Limit: "27",
+				}
+				archives, err := db.GetAllAnnotatedArchives(&filter)
+				Ω(err).ShouldNot(HaveOccurred(), "does not err")
+				Ω(len(archives)).Should(Equal(6), "returns six archives")
+			})
+
 		})
 
 		Describe("GetArchivesNeedingPurge", func() {
