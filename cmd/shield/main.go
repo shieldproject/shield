@@ -1393,12 +1393,12 @@ func main() {
 				DEBUG("  trying archive UUID '%s'", args[0])
 
 			} else {
-				job, _, err := FindJob(strings.Join(args, " "), false)
+				target, _, err := FindTarget(strings.Join(args, " "), false)
 				if err != nil {
 					return err
 				}
 
-				_, id, err = FindArchivesFor(job, 10)
+				_, id, err = FindArchivesFor(target, 10)
 				if err != nil {
 					return err
 				}

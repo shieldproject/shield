@@ -58,11 +58,12 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/net/proxy"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/net/proxy"
 
 	minio "github.com/minio/minio-go"
 

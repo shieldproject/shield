@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,11 +58,6 @@ func (f *ArchiveFilter) Query() string {
 		wheres = append(wheres, fmt.Sprintf("taken_at >= $%d", n))
 		n++
 	}
-	limit := ""
-	if f.Limit != "" {
-		limit = fmt.Sprintf(" LIMIT $%d", n)
-		n++
-	}
 	if len(f.WithStatus) > 0 {
 		var params []string
 		for range f.WithStatus {
@@ -82,6 +78,12 @@ func (f *ArchiveFilter) Query() string {
 		wheres = append(wheres, fmt.Sprintf("expires_at < $%d", n))
 		n++
 	}
+	limit := ""
+	if f.Limit != "" {
+		limit = fmt.Sprintf(" LIMIT $%d", n)
+		n++
+	}
+
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
@@ -133,6 +135,11 @@ func (f *ArchiveFilter) Args() []interface{} {
 
 func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchive, error) {
 	l := []*AnnotatedArchive{}
+	if filter.Limit != "" {
+		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
+			return l, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
+		}
+	}
 	r, err := db.Query(filter.Query(), filter.Args()...)
 	if err != nil {
 		return l, err
