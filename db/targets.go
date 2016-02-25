@@ -23,27 +23,19 @@ type TargetFilter struct {
 	ForPlugin  string
 }
 
-func (f *TargetFilter) Args() []interface{} {
-	args := []interface{}{}
-	if f.SearchName != "" {
-		args = append(args, Pattern(f.SearchName))
-	}
-	if f.ForPlugin != "" {
-		args = append(args, f.ForPlugin)
-	}
-	return args
-}
-
-func (f *TargetFilter) Query() string {
+func (f *TargetFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"t.uuid = t.uuid"}
+	args := []interface{}{}
 	n := 1
 
 	if f.SearchName != "" {
 		wheres = append(wheres, fmt.Sprintf("t.name LIKE $%d", n))
+		args = append(args, Pattern(f.SearchName))
 		n++
 	}
 	if f.ForPlugin != "" {
 		wheres = append(wheres, fmt.Sprintf("t.plugin LIKE $%d", n))
+		args = append(args, f.ForPlugin)
 		n++
 	}
 
@@ -53,7 +45,7 @@ func (f *TargetFilter) Query() string {
 				FROM targets t
 				WHERE ` + strings.Join(wheres, " AND ") + `
 				ORDER BY t.name, t.uuid ASC
-		`
+		`, args
 	}
 
 	// by default, show targets with no attached jobs (unused)
@@ -72,12 +64,13 @@ func (f *TargetFilter) Query() string {
 			GROUP BY t.uuid
 			` + having + `
 			ORDER BY t.name, t.uuid ASC
-	`
+	`, args
 }
 
 func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, error) {
 	l := []*AnnotatedTarget{}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}

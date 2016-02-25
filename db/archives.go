@@ -39,48 +39,57 @@ type ArchiveFilter struct {
 	Limit         string
 }
 
-func (f *ArchiveFilter) Query() string {
+func (f *ArchiveFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"a.uuid = a.uuid"}
+	var args []interface{}
 	n := 1
 	if f.ForTarget != "" {
 		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
+		args = append(args, f.ForTarget)
 		n++
 	}
 	if f.ForStore != "" {
 		wheres = append(wheres, fmt.Sprintf("store_uuid = $%d", n))
+		args = append(args, f.ForStore)
 		n++
 	}
 	if f.Before != nil {
 		wheres = append(wheres, fmt.Sprintf("taken_at <= $%d", n))
+		args = append(args, f.Before.Unix())
 		n++
 	}
 	if f.After != nil {
 		wheres = append(wheres, fmt.Sprintf("taken_at >= $%d", n))
+		args = append(args, f.After.Unix())
 		n++
 	}
 	if len(f.WithStatus) > 0 {
 		var params []string
-		for range f.WithStatus {
+		for _, e := range f.WithStatus {
 			params = append(params, fmt.Sprintf("$%d", n))
+			args = append(args, e)
 			n++
 		}
 		wheres = append(wheres, fmt.Sprintf("status IN (%s)", strings.Join(params, ", ")))
 	}
 	if len(f.WithOutStatus) > 0 {
 		var params []string
-		for range f.WithOutStatus {
+		for _, e := range f.WithOutStatus {
 			params = append(params, fmt.Sprintf("$%d", n))
+			args = append(args, e)
 			n++
 		}
 		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
 	}
 	if f.ExpiresBefore != nil {
 		wheres = append(wheres, fmt.Sprintf("expires_at < $%d", n))
+		args = append(args, f.ExpiresBefore.Unix())
 		n++
 	}
 	limit := ""
 	if f.Limit != "" {
 		limit = fmt.Sprintf(" LIMIT $%d", n)
+		args = append(args, f.Limit)
 		n++
 	}
 
@@ -97,40 +106,8 @@ func (f *ArchiveFilter) Query() string {
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY a.taken_at DESC, a.uuid ASC
-	` + limit
-}
-
-func (f *ArchiveFilter) Args() []interface{} {
-	var args []interface{}
-	if f.ForTarget != "" {
-		args = append(args, f.ForTarget)
-	}
-	if f.ForStore != "" {
-		args = append(args, f.ForStore)
-	}
-	if f.Before != nil {
-		args = append(args, f.Before.Unix())
-	}
-	if f.After != nil {
-		args = append(args, f.After.Unix())
-	}
-	if len(f.WithStatus) > 0 {
-		for _, e := range f.WithStatus {
-			args = append(args, e)
-		}
-	}
-	if len(f.WithOutStatus) > 0 {
-		for _, e := range f.WithOutStatus {
-			args = append(args, e)
-		}
-	}
-	if f.ExpiresBefore != nil {
-		args = append(args, f.ExpiresBefore.Unix())
-	}
-	if f.Limit != "" {
-		args = append(args, f.Limit)
-	}
-	return args
+	` + limit, //End of SQL query
+		args
 }
 
 func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchive, error) {
@@ -140,7 +117,8 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 			return l, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
 		}
 	}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}

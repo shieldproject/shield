@@ -23,20 +23,14 @@ type ScheduleFilter struct {
 	SearchName string
 }
 
-func (f *ScheduleFilter) Args() []interface{} {
-	var args []interface{}
-	if f.SearchName != "" {
-		args = append(args, Pattern(f.SearchName))
-	}
-	return args
-}
-
-func (f *ScheduleFilter) Query() string {
+func (f *ScheduleFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"s.uuid = s.uuid"}
+	var args []interface{}
 	n := 1
 
 	if f.SearchName != "" {
 		wheres = append(wheres, fmt.Sprintf("s.name LIKE $%d", n))
+		args = append(args, Pattern(f.SearchName))
 		n++
 	}
 
@@ -46,7 +40,7 @@ func (f *ScheduleFilter) Query() string {
 				FROM schedules s
 				WHERE ` + strings.Join(wheres, " AND ") + `
 				ORDER BY s.name, s.uuid ASC
-		`
+		`, args
 	}
 
 	// by default, show schedules with no attached jobs (unused)
@@ -65,12 +59,13 @@ func (f *ScheduleFilter) Query() string {
 			GROUP BY s.uuid
 			` + having + `
 			ORDER BY s.name, s.uuid ASC
-	`
+	`, args
 }
 
 func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSchedule, error) {
 	l := []*AnnotatedSchedule{}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
