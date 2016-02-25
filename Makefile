@@ -2,6 +2,7 @@
 # If you do not, then Travis will be sad.
 
 BUILD_TYPE?=build
+GO_CMD?=godep go
 
 # Everything; this is the default behavior
 all: format tests shield plugins
@@ -22,27 +23,27 @@ race:
 
 # Building Shield
 shield:
-	go $(BUILD_TYPE) ./cmd/shieldd
-	go $(BUILD_TYPE) ./cmd/shield-agent
-	go $(BUILD_TYPE) ./cmd/shield-schema
-	go $(BUILD_TYPE) ./cmd/shield
+	$(GO_CMD) $(BUILD_TYPE) ./cmd/shieldd
+	$(GO_CMD) $(BUILD_TYPE) ./cmd/shield-agent
+	$(GO_CMD) $(BUILD_TYPE) ./cmd/shield-schema
+	$(GO_CMD) $(BUILD_TYPE) ./cmd/shield
 
 # Building the Shield CLI *only*
 shield-cli:
-	go $(BUILD_TYPE) ./cmd/shield
+	$(GO_CMD) $(BUILD_TYPE) ./cmd/shield
 
 # Building Plugins
 plugin: plugins
 plugins:
-	go $(BUILD_TYPE) ./plugin/fs
-	go $(BUILD_TYPE) ./plugin/docker-postgres
-	go $(BUILD_TYPE) ./plugin/dummy
-	go $(BUILD_TYPE) ./plugin/elasticsearch
-	go $(BUILD_TYPE) ./plugin/postgres
-	go $(BUILD_TYPE) ./plugin/redis-broker
-	go $(BUILD_TYPE) ./plugin/s3
-	go $(BUILD_TYPE) ./plugin/mysql
-	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/fs
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/docker-postgres
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/dummy
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/elasticsearch
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/postgres
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/redis-broker
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/s3
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/mysql
+	$(GO_CMD) $(BUILD_TYPE) ./plugin/rabbitmq-broker
 
 # Run tests with coverage tracking, writing output to coverage/
 coverage: agent.cov db.cov plugin.cov supervisor.cov timespec.cov
