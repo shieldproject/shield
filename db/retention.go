@@ -21,19 +21,14 @@ type RetentionFilter struct {
 	SearchName string
 }
 
-func (f *RetentionFilter) Args() []interface{} {
-	var args []interface{}
-	if f.SearchName != "" {
-		args = append(args, Pattern(f.SearchName))
-	}
-	return args
-}
-func (f *RetentionFilter) Query() string {
+func (f *RetentionFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"r.uuid = r.uuid"}
+	var args []interface{}
 	n := 1
 
 	if f.SearchName != "" {
 		wheres = append(wheres, fmt.Sprintf("r.name LIKE $%d", n))
+		args = append(args, Pattern(f.SearchName))
 		n++
 	}
 	if !f.SkipUsed && !f.SkipUnused {
@@ -42,7 +37,7 @@ func (f *RetentionFilter) Query() string {
 				FROM retention r
 				WHERE ` + strings.Join(wheres, " AND ") + `
 				ORDER BY r.name, r.uuid ASC
-		`
+		`, args
 	}
 
 	// by default, show retention policies with no attached jobs (unused)
@@ -61,12 +56,13 @@ func (f *RetentionFilter) Query() string {
 			GROUP BY r.uuid
 			` + having + `
 			ORDER BY r.name, r.uuid ASC
-	`
+	`, args
 }
 
 func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*AnnotatedRetentionPolicy, error) {
 	l := []*AnnotatedRetentionPolicy{}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}

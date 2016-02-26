@@ -41,58 +41,43 @@ type JobFilter struct {
 	ForRetention string
 }
 
-func (f *JobFilter) Args() []interface{} {
+func (f *JobFilter) Query() (string, []interface{}) {
+	var wheres []string = []string{"j.uuid = j.uuid"}
 	var args []interface{}
+	n := 1
 	if f.SearchName != "" {
+		wheres = append(wheres, fmt.Sprintf("j.name LIKE $%d", n))
 		args = append(args, Pattern(f.SearchName))
+		n++
 	}
 	if f.ForTarget != "" {
+		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
 		args = append(args, f.ForTarget)
+		n++
 	}
 	if f.ForStore != "" {
+		wheres = append(wheres, fmt.Sprintf("store_uuid = $%d", n))
 		args = append(args, f.ForStore)
+		n++
 	}
 	if f.ForSchedule != "" {
+		wheres = append(wheres, fmt.Sprintf("schedule_uuid = $%d", n))
 		args = append(args, f.ForSchedule)
+		n++
 	}
 	if f.ForRetention != "" {
+		wheres = append(wheres, fmt.Sprintf("retention_uuid = $%d", n))
 		args = append(args, f.ForRetention)
+		n++
 	}
 	if f.SkipPaused || f.SkipUnpaused {
+		wheres = append(wheres, fmt.Sprintf("paused = $%d", n))
 		if f.SkipPaused {
 			args = append(args, 0)
 		} else {
 			args = append(args, 1)
 		}
-	}
-	return args
-}
 
-func (f *JobFilter) Query() string {
-	var wheres []string = []string{"j.uuid = j.uuid"}
-	n := 1
-	if f.SearchName != "" {
-		wheres = append(wheres, fmt.Sprintf("j.name LIKE $%d", n))
-		n++
-	}
-	if f.ForTarget != "" {
-		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
-		n++
-	}
-	if f.ForStore != "" {
-		wheres = append(wheres, fmt.Sprintf("store_uuid = $%d", n))
-		n++
-	}
-	if f.ForSchedule != "" {
-		wheres = append(wheres, fmt.Sprintf("schedule_uuid = $%d", n))
-		n++
-	}
-	if f.ForRetention != "" {
-		wheres = append(wheres, fmt.Sprintf("retention_uuid = $%d", n))
-		n++
-	}
-	if f.SkipPaused || f.SkipUnpaused {
-		wheres = append(wheres, fmt.Sprintf("paused = $%d", n))
 		n++
 	}
 
@@ -111,12 +96,13 @@ func (f *JobFilter) Query() string {
 
 			WHERE ` + strings.Join(wheres, " AND ") + `
 			ORDER BY j.name, j.uuid ASC
-	`
+	`, args
 }
 
 func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	l := []*AnnotatedJob{}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}

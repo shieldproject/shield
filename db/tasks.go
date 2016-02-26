@@ -37,25 +37,13 @@ func ValidateEffectiveUnix(effective time.Time) int64 {
 	return effective.Unix()
 }
 
-func (f *TaskFilter) Args() []interface{} {
-	var args []interface{}
-	if f.ForStatus != "" {
-		args = append(args, f.ForStatus)
-	}
-	if f.Limit != "" {
-		args = append(args, f.Limit)
-	}
-	if f.UUID != "" {
-		args = append(args, f.UUID)
-	}
-	return args
-}
-
-func (f *TaskFilter) Query() string {
+func (f *TaskFilter) Query() (string, []interface{}) {
 	wheres := []string{"t.uuid = t.uuid"}
+	var args []interface{}
 	n := 1
 	if f.ForStatus != "" {
 		wheres = append(wheres, fmt.Sprintf("status = $%d", n))
+		args = append(args, f.ForStatus)
 		n++
 	} else {
 		if f.SkipActive {
@@ -67,12 +55,14 @@ func (f *TaskFilter) Query() string {
 
 	if f.UUID != "" {
 		wheres = append(wheres, fmt.Sprintf("uuid = $%d", n))
+		args = append(args, f.UUID)
 		n++
 	}
 
 	limit := ""
 	if f.Limit != "" {
 		limit = fmt.Sprintf(" LIMIT $%d", n)
+		args = append(args, f.Limit)
 		n++
 	}
 	return `
@@ -83,12 +73,14 @@ func (f *TaskFilter) Query() string {
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY t.started_at DESC, t.uuid ASC
-	` + limit
+	` + limit, //End of SQL Query
+		args
 }
 
 func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error) {
 	l := []*AnnotatedTask{}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}

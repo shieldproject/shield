@@ -22,26 +22,18 @@ type StoreFilter struct {
 	ForPlugin  string
 }
 
-func (f *StoreFilter) Args() []interface{} {
-	args := []interface{}{}
-	if f.SearchName != "" {
-		args = append(args, Pattern(f.SearchName))
-	}
-	if f.ForPlugin != "" {
-		args = append(args, f.ForPlugin)
-	}
-	return args
-}
-
-func (f *StoreFilter) Query() string {
+func (f *StoreFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"s.uuid = s.uuid"}
+	args := []interface{}{}
 	n := 1
 	if f.SearchName != "" {
 		wheres = append(wheres, fmt.Sprintf("s.name LIKE $%d", n))
+		args = append(args, Pattern(f.SearchName))
 		n++
 	}
 	if f.ForPlugin != "" {
 		wheres = append(wheres, fmt.Sprintf("s.plugin = $%d", n))
+		args = append(args, f.ForPlugin)
 		n++
 	}
 
@@ -51,7 +43,7 @@ func (f *StoreFilter) Query() string {
 				FROM stores s
 				WHERE ` + strings.Join(wheres, " AND ") + `
 				ORDER BY s.name, s.uuid ASC
-		`
+		`, args
 	}
 
 	// by default, show stores with no attached jobs (unused)
@@ -70,12 +62,13 @@ func (f *StoreFilter) Query() string {
 			GROUP BY s.uuid
 			` + having + `
 			ORDER BY s.name, s.uuid ASC
-	`
+	`, args
 }
 
 func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, error) {
 	l := []*AnnotatedStore{}
-	r, err := db.Query(filter.Query(), filter.Args()...)
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
