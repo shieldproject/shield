@@ -32,6 +32,9 @@ func (p *MockPlugin) op(op string) error {
 	}
 	return nil
 }
+func (p *MockPlugin) Validate(endpoint ShieldEndpoint) error {
+	return p.op("validate")
+}
 func (p *MockPlugin) Backup(endpoint ShieldEndpoint) error {
 	return p.op("backup")
 }

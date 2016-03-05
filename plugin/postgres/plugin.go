@@ -64,6 +64,8 @@ import (
 	"os/exec"
 	"regexp"
 
+	"github.com/jhunt/ansi"
+
 	. "github.com/starkandwayne/shield/plugin"
 )
 
@@ -93,6 +95,51 @@ type PostgresConnectionInfo struct {
 
 func (p PostgresPlugin) Meta() PluginInfo {
 	return PluginInfo(p)
+}
+
+func (p PostgresPlugin) Validate(endpoint ShieldEndpoint) error {
+	var (
+		s    string
+		err  error
+		fail bool
+	)
+
+	s, err = endpoint.StringValue("pg_host")
+	if err != nil {
+		ansi.Printf("@R{\u2717 pg_host      %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 pg_host}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("pg_port")
+	if err != nil {
+		ansi.Printf("@R{\u2717 pg_port      %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 pg_port}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("pg_user")
+	if err != nil {
+		ansi.Printf("@R{\u2717 pg_user      %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 pg_user}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("pg_password")
+	if err != nil {
+		ansi.Printf("@R{\u2717 pg_password  %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
+	}
+
+	if fail {
+		return fmt.Errorf("postgres: invalid configuration")
+	}
+	return nil
 }
 
 func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {

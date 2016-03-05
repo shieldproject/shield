@@ -63,9 +63,9 @@ import (
 	"os"
 	"time"
 
-	"golang.org/x/net/proxy"
-
+	"github.com/jhunt/ansi"
 	minio "github.com/minio/minio-go"
+	"golang.org/x/net/proxy"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -99,6 +99,82 @@ type S3ConnectionInfo struct {
 
 func (p S3Plugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
+}
+
+func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
+	var (
+		s    string
+		err  error
+		fail bool
+	)
+
+	s, err = endpoint.StringValue("s3_host")
+	if err != nil {
+		ansi.Printf("@R{\u2717 s3_host              %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 s3_host}              @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("access_key_id")
+	if err != nil {
+		ansi.Printf("@R{\u2717 access_key_id        %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("secret_access_key")
+	if err != nil {
+		ansi.Printf("@R{\u2717 secret_access_key    %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("bucket")
+	if err != nil {
+		ansi.Printf("@R{\u2717 bucket               %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("prefix")
+	if err != nil {
+		ansi.Printf("@R{\u2717 prefix               %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("signature_version")
+	if s == "" || err != nil {
+		s = "4"
+	}
+	if s != "2" && s != "4" {
+		ansi.Printf("@R{\u2717 signature_version    Unexpected signature version '%s' found (expecting '2' or '4')}\n", s)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 signature_version}    @C{%s}\n", s)
+	}
+
+	tf, err := endpoint.BooleanValue("skip_ssl_validation")
+	if err != nil {
+		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fail = true
+	} else {
+		if tf {
+			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+		} else {
+			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+		}
+	}
+
+	if fail {
+		return fmt.Errorf("s3: invalid configuration")
+	}
+	return nil
 }
 
 func (p S3Plugin) Backup(endpoint plugin.ShieldEndpoint) error {

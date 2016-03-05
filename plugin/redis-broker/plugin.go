@@ -60,6 +60,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/jhunt/ansi"
+
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -85,6 +87,27 @@ type RedisEndpoint struct {
 
 func (p RedisBrokerPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
+}
+
+func (p RedisBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+	var (
+		s    string
+		err  error
+		fail bool
+	)
+
+	s, err = endpoint.StringValue("redis_type")
+	if err != nil {
+		ansi.Printf("@R{\u2717 redis_type  %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 redis_type}  @C{%s}\n", s)
+	}
+
+	if fail {
+		return fmt.Errorf("postgres: invalid configuration")
+	}
+	return nil
 }
 
 func (p RedisBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {

@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jhunt/ansi"
+
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -42,6 +44,28 @@ type DummyPlugin struct {
 // This function should be used to return the plugin's PluginInfo, however you decide to implement it
 func (p DummyPlugin) Meta() plugin.PluginInfo {
 	return p.meta
+}
+
+// Called to validate endpoints from the command line
+func (p DummyPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+	var (
+		s    string
+		err  error
+		fail bool
+	)
+
+	s, err = endpoint.StringValue("data")
+	if err != nil {
+		ansi.Printf("@R{\u2717 data   %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 data}  @C{%s}\n", s)
+	}
+
+	if fail {
+		return fmt.Errorf("dummy: invalid configuration")
+	}
+	return nil
 }
 
 // Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly

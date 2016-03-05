@@ -57,6 +57,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/jhunt/ansi"
+
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -85,6 +87,55 @@ type RabbitMQEndpoint struct {
 
 func (p RabbitMQBrokerPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
+}
+
+func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+	var (
+		s    string
+		err  error
+		fail bool
+	)
+
+	s, err = endpoint.StringValue("rmq_url")
+	if err != nil {
+		ansi.Printf("@R{\u2717 rmq_url              %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 rmq_url}              @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("rmq_username")
+	if err != nil {
+		ansi.Printf("@R{\u2717 rmq_username         %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 rmq_username}         @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("rmq_password")
+	if err != nil {
+		ansi.Printf("@R{\u2717 rmq_password         %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 rmq_password}         @C{%s}\n", s)
+	}
+
+	tf, err := endpoint.BooleanValue("skip_ssl_validation")
+	if err != nil {
+		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fail = true
+	} else {
+		if tf {
+			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+		} else {
+			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+		}
+	}
+
+	if fail {
+		return fmt.Errorf("rabbitmq-broker: invalid configuration")
+	}
+	return nil
 }
 
 func (p RabbitMQBrokerPlugin) Backup(endpoint plugin.ShieldEndpoint) error {

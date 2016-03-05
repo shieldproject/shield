@@ -28,6 +28,9 @@ type PluginOpts struct {
 	Action  goptions.Verbs
 	Info    struct {
 	} `goptions:"info"`
+	Validate struct {
+		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing backup target'"`
+	} `goptions:"validate"`
 	Backup struct {
 		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing backup target'"`
 	} `goptions:"backup"`
@@ -48,6 +51,7 @@ type PluginOpts struct {
 }
 
 type Plugin interface {
+	Validate(ShieldEndpoint) error
 	Backup(ShieldEndpoint) error
 	Restore(ShieldEndpoint) error
 	Store(ShieldEndpoint) (string, error)
@@ -141,6 +145,12 @@ func dispatch(p Plugin, mode string, opts PluginOpts) error {
 	DEBUG("'%s' action requested with options %#v", mode, opts)
 
 	switch mode {
+	case "validate":
+		endpoint, err = getEndpoint(opts.Validate.Endpoint)
+		if err != nil {
+			return err
+		}
+		err = p.Validate(endpoint)
 	case "backup":
 		endpoint, err = getEndpoint(opts.Backup.Endpoint)
 		if err != nil {

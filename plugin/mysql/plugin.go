@@ -59,6 +59,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jhunt/ansi"
+
 	. "github.com/starkandwayne/shield/plugin"
 )
 
@@ -90,6 +92,51 @@ type MySQLConnectionInfo struct {
 
 func (p MySQLPlugin) Meta() PluginInfo {
 	return PluginInfo(p)
+}
+
+func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
+	var (
+		s    string
+		err  error
+		fail bool
+	)
+
+	s, err = endpoint.StringValue("mysql_host")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_host      %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_host}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("mysql_port")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_port      %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_port}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("mysql_user")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_user      %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_user}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValue("mysql_password")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_password  %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_password}  @C{%s}\n", s)
+	}
+
+	if fail {
+		return fmt.Errorf("mysql: invalid configuration")
+	}
+	return nil
 }
 
 // Backup mysql database
