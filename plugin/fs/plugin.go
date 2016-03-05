@@ -11,7 +11,7 @@
 // SHIELD Job components:
 //
 //    Target: yes
-//    Store:  no
+//    Store:  yes
 //
 // PLUGIN CONFIGURATION
 //
@@ -49,6 +49,9 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"time"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -60,7 +63,7 @@ func main() {
 		Version: "1.0.0",
 		Features: plugin.PluginFeatures{
 			Target: "yes",
-			Store:  "no",
+			Store:  "yes",
 		},
 	}
 
@@ -136,13 +139,66 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+	cfg, err := getFSConfig(endpoint)
+	if err != nil {
+		return "", err
+	}
+
+	t := time.Now()
+	year, mon, day := t.Date()
+	hour, min, sec := t.Clock()
+	uuid := plugin.GenUUID()
+
+	dir := fmt.Sprintf("%04d/%02d/%02d", year, mon, day)
+	file := fmt.Sprintf("%04d-%02d-%02d-%02d%02d%02d-%s", year, mon, day, hour, min, sec, uuid)
+
+	err = os.MkdirAll(fmt.Sprintf("%s/%s", cfg.BasePath, dir), 0777) // umask will lower...
+	if err != nil {
+		return "", err
+	}
+
+	f, err := os.Create(fmt.Sprintf("%s/%s/%s", cfg.BasePath, dir, file))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	if _, err = io.Copy(f, os.Stdin); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s/%s", dir, file), nil
 }
 
 func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
+	cfg, err := getFSConfig(endpoint)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(fmt.Sprintf("%s/%s", cfg.BasePath, file))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err = io.Copy(os.Stdout, f); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (p FSPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
-	return plugin.UNIMPLEMENTED
+func (p FSPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	cfg, err := getFSConfig(endpoint)
+	if err != nil {
+		return err
+	}
+
+	err = os.Remove(fmt.Sprintf("%s/%s", cfg.BasePath, file))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
