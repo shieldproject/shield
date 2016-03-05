@@ -57,8 +57,13 @@ import (
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/jhunt/ansi"
 
 	. "github.com/starkandwayne/shield/plugin"
+)
+
+const (
+	DefaultSocket = "unix:///var/vcap/sys/run/docker/docker.sock"
 )
 
 func main() {
@@ -84,7 +89,7 @@ func (p DockerPostgresPlugin) Meta() PluginInfo {
 func dockerClient(endpoint ShieldEndpoint) (*docker.Client, error) {
 	socket, err := endpoint.StringValue("socket")
 	if err != nil {
-		socket = "unix:///var/vcap/sys/run/docker/docker.sock"
+		socket = DefaultSocket
 	}
 
 	DEBUG("connecting to docker at %s", socket)
@@ -95,6 +100,20 @@ func dockerClient(endpoint ShieldEndpoint) (*docker.Client, error) {
 	}
 
 	return c, nil
+}
+
+func (p DockerPostgresPlugin) Validate(endpoint ShieldEndpoint) error {
+	var (
+		s   string
+		err error
+	)
+	s, err = endpoint.StringValue("socket")
+	if err != nil {
+		ansi.Printf("@G{\u2713 socket}  using default socket @C{%s}\n", DefaultSocket)
+	} else {
+		ansi.Printf("@G{\u2713 socket}  using socket @C{%s}\n", s)
+	}
+	return nil
 }
 
 func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {

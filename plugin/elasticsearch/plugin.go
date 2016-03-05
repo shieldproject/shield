@@ -24,6 +24,10 @@ func (p ElasticSearchPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
+func (p ElasticSearchPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+	return nil
+}
+
 func (p ElasticSearchPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }

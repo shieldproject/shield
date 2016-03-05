@@ -50,6 +50,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/jhunt/ansi"
+
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -93,6 +95,41 @@ func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
 		Exclude:  exclude,
 		BasePath: base_dir,
 	}, nil
+}
+
+func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+	var (
+		s    string
+		err  error
+		fail bool
+	)
+
+	s, err = endpoint.StringValue("base_dir")
+	if err != nil {
+		ansi.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
+	}
+
+	s, err = endpoint.StringValue("include")
+	if s == "" {
+		ansi.Printf("@G{\u2713 include}   all files will be included\n")
+	} else {
+		ansi.Printf("@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
+	}
+
+	s, err = endpoint.StringValue("exclude")
+	if s == "" {
+		ansi.Printf("@G{\u2713 exclude}   no files will be excluded\n")
+	} else {
+		ansi.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
+	}
+
+	if fail {
+		return fmt.Errorf("fs: invalid configuration")
+	}
+	return nil
 }
 
 func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
