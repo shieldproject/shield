@@ -211,6 +211,17 @@ var _ = Describe("Timespec", func() {
 				Ω(spec.Next(now)).Should(Equal(
 					time.Date(1991, 8, 6, 23, 55, 00, 00, tz)))
 			})
+
+			It("handles the next timestamp being same day next week, before the current time", func() {
+				spec := &Spec{
+					Interval:  Weekly,
+					DayOfWeek: time.Tuesday,
+					TimeOfDay: inMinutes(3, 00),
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 13, 3, 00, 00, 00, tz)))
+			});
 		})
 
 		Context("with a monthly (nth week) spec", func() {
