@@ -70,6 +70,11 @@ JSON
 	exit 0
 	;;
 
+(validate)
+	echo "ALL GOOD"
+	exit 0
+	;;
+
 (backup)
 	shift
 	plugin_options "$@"

@@ -35,52 +35,107 @@
 #     https://code.google.com/p/go/issues/detail?id=2266
 #
 
+header() {
+	echo >&2 $*
+	echo $* | sed -e 's/./=/g' >&2
+}
+
+say() {
+	echo >&2 $*
+}
+
+ok() {
+	echo >&2 "OK"
+	echo >&2
+}
+
+fail() {
+	echo -n >&2 "FAILED: "
+	echo    >&2 $*
+}
+
+exiting() {
+	echo >&2
+	echo >&2 "EXITING ${1}"
+	exit $1
+}
+
+validate() {
+	local type="${1}"
+	local bin="${2}"
+	local cfg="${3}"
+	header "Validating ${type} plugin \`$(basename ${bin})\`..."
+	${bin} validate -e "${cfg}" >&2
+	ok
+}
+
 needenv() {
+	header "Validating environment..."
 	for var in "$@"; do
 		eval v=\$$var
 		if [[ -z ${v} ]]; then
-			echo >&2 "Missing required $var environment variable; bailing out"
-			exit 144
+			fail "Missing required $var environment variable; bailing out"
+			exiting 144
 		fi
+
+		say "${var} ... found"
 	done
+	ok
 }
-
-
-needenv SHIELD_OP \
-        SHIELD_STORE_PLUGIN \
-        SHIELD_STORE_ENDPOINT
-
-if [[ ${SHIELD_OP} == "backup" || ${SHIELD_OP} == "restore" ]]; then
-	needenv  SHIELD_TARGET_PLUGIN \
-	         SHIELD_TARGET_ENDPOINT
-fi
 
 case ${SHIELD_OP} in
 (backup)
+	needenv SHIELD_OP              \
+	        SHIELD_STORE_PLUGIN    \
+	        SHIELD_STORE_ENDPOINT  \
+	        SHIELD_TARGET_PLUGIN   \
+	        SHIELD_TARGET_ENDPOINT
+
 	set -e
+	validate TARGET ${SHIELD_TARGET_PLUGIN} "${SHIELD_TARGET_ENDPOINT}"
+	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
+
+	header "Running backup task (using bzip2 compression)"
 	set -o pipefail
 	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | bzip2 | \
 		${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
-	exit $?
+	exiting $?
 	;;
 
 (restore)
-	needenv SHIELD_RESTORE_KEY
+	needenv SHIELD_OP               \
+	        SHIELD_STORE_PLUGIN     \
+	        SHIELD_STORE_ENDPOINT   \
+	        SHIELD_TARGET_PLUGIN    \
+	        SHIELD_TARGET_ENDPOINT  \
+	        SHIELD_RESTORE_KEY
+
 	set -e
+	validate TARGET ${SHIELD_TARGET_PLUGIN} "${SHIELD_TARGET_ENDPOINT}"
+	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
+
+	header "Running restore task (using bzip2 compression)"
 	set -o pipefail
 	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | bunzip2 | \
 		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
-	exit $?
+	exiting $?
 	;;
 
 (purge)
-	needenv SHIELD_RESTORE_KEY
+	needenv SHIELD_OP               \
+	        SHIELD_STORE_PLUGIN     \
+	        SHIELD_STORE_ENDPOINT   \
+	        SHIELD_RESTORE_KEY
+
 	set -e
+	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
+
+	header "Running purge task"
 	${SHIELD_STORE_PLUGIN} purge -e "${SHIELD_STORE_ENDPOINT}" -k "${SHIELD_RESTORE_KEY}"
-	exit $?
+	exiting $?
 	;;
 
 (*)
 	echo >&2 "Invalid SHIELD_OP '${SHIELD_OP}'; bailing out"
-	exit 145
+	exiting 145
 esac
