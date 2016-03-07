@@ -239,9 +239,9 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	}
 	DEBUG("PGHOST: '%s'", host)
 
-	port, _ := endpoint.StringValue("pg_port")
-	if port == "" {
-		port = DefaultPort
+	port, err := endpoint.StringValueDefault("pg_port", DefaultPort)
+	if err != nil {
+		return nil, err
 	}
 	DEBUG("PGPORT: '%s'", port)
 

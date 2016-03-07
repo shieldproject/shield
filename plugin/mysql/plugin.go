@@ -215,16 +215,22 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQL_HOST: '%s'", host)
 
-	port, _ := endpoint.StringValue("mysql_port")
-	if port == "" {
-		port = DefaultPort
+	port, err := endpoint.StringValueDefault("mysql_port", DefaultPort)
+	if err != nil {
+		return nil, err
 	}
 	DEBUG("MYSQL_PORT: '%s'", port)
 
-	replica, _ := endpoint.StringValue("mysql_read_replica")
+	replica, err := endpoint.StringValueDefault("mysql_read_replica", "")
+	if err != nil {
+		return nil, err
+	}
 	DEBUG("MYSQL_READ_REPLICA: '%s'", replica)
 
-	db, _ := endpoint.StringValue("mysql_database")
+	db, err := endpoint.StringValueDefault("mysql_database", "")
+	if err != nil {
+		return nil, err
+	}
 	DEBUG("MYSQL_DB: '%s'", db)
 
 	bin := "/var/vcap/packages/shield-mysql/bin"

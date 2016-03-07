@@ -91,9 +91,21 @@ func (p FSPlugin) Meta() plugin.PluginInfo {
 }
 
 func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
-	include, _ := endpoint.StringValue("include")
-	exclude, _ := endpoint.StringValue("exclude")
-	bsdtar, _ := endpoint.StringValueDefault("bsdtar", DefaultBsdTar)
+	include, err := endpoint.StringValueDefault("include", "")
+	if err != nil {
+		return nil, err
+	}
+
+	exclude, err := endpoint.StringValueDefault("exclude", "")
+	if err != nil {
+		return nil, err
+	}
+
+	bsdtar, err := endpoint.StringValueDefault("bsdtar", DefaultBsdTar)
+	if err != nil {
+		return nil, err
+	}
+
 	base_dir, err := endpoint.StringValue("base_dir")
 	if err != nil {
 		return nil, err
@@ -142,10 +154,12 @@ func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("bsdtar", DefaultBsdTar)
+	s, err = endpoint.StringValueDefault("bsdtar", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 bsdtar    %s}\n", err)
 		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 bsdtar}    using default @C{%s}\n", DefaultBsdTar)
 	} else {
 		ansi.Printf("@G{\u2713 bsdtar}    @C{%s}\n", s)
 	}
