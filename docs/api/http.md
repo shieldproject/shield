@@ -1,5 +1,26 @@
 # HTTP API
 
+## Status API
+
+Purpose: allows the Web UI and CLI to ask the SHIELD installation
+for information about itself, including the version of the
+software, the name of the installation, etc.
+
+| Method | Path | Arguments | Request Body |
+| :----- | :--- | :-------- | :----------- |
+| GET | /v1/status | - | - |
+
+### GET /v1/status
+
+Response Body:
+
+```json
+{
+    "name"    : "My SHIELD installation",
+    "version" : "1.0"
+}
+```
+
 ## Schedules API
 
 Purpose: allows the Web UI and CLI to find out what schedules are defined, and provides CRUD operations for schedule management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show schedules that can be deleted safely.
