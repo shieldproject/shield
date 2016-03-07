@@ -28,7 +28,11 @@
   };
 
   var rejson = function(x) {
-    return JSON.stringify(JSON.parse(x), null, 2);
+    try {
+      return JSON.stringify(JSON.parse(x), null, 2);
+    } catch (e) {
+      return x;
+    }
   };
 
   $.fn.serializeObject = function() {
@@ -174,6 +178,7 @@
   var Task = {};
 
   $.extend(Job, {
+    type:   'job',
     list:   MODEL.lister  ('/v1/jobs', 'jobs'),
     delete: MODEL.deleter ('/v1/job/%s'),
     show:   MODEL.findOne ('/v1/job/%s'),
@@ -181,6 +186,7 @@
     update: MODEL.updater ('/v1/job/%s')
   });
   $.extend(Target, {
+    type:   'target',
     list:   MODEL.lister  ('/v1/targets', 'targets'),
     delete: MODEL.deleter ('/v1/target/%s'),
     show:   MODEL.findOne ('/v1/target/%s'),
@@ -188,6 +194,7 @@
     update: MODEL.updater ('/v1/target/%s', function (t) { t.endpoint = rejson(t.endpoint); return t; })
   });
   $.extend(Store, {
+    type:   'store',
     list:   MODEL.lister  ('/v1/stores', 'stores'),
     delete: MODEL.deleter ('/v1/store/%s'),
     show:   MODEL.findOne ('/v1/store/%s'),
@@ -195,6 +202,7 @@
     update: MODEL.updater ('/v1/store/%s', function (s) { s.endpoint = rejson(s.endpoint); return s; })
   });
   $.extend(Archive, {
+    type:   'archive',
     list:   MODEL.lister   ('/v1/archives', 'archives'),
     search: MODEL.searcher ('/v1/archives', 'archives'),
     delete: MODEL.deleter  ('/v1/archive/%s'),
@@ -203,6 +211,7 @@
     update: MODEL.updater  ('/v1/archive/%s')
   });
   $.extend(Schedule, {
+    type:   'schedule',
     list:   MODEL.lister  ('/v1/schedules', 'schedules'),
     delete: MODEL.deleter ('/v1/schedule/%s'),
     show:   MODEL.findOne ('/v1/schedule/%s'),
@@ -210,6 +219,7 @@
     update: MODEL.updater ('/v1/schedule/%s')
   });
   $.extend(Retention, {
+    type:   'retention',
     list:   MODEL.lister  ('/v1/retention', 'retention'),
     delete: MODEL.deleter ('/v1/retention/%s'),
     show:   MODEL.findOne ('/v1/retention/%s', function (r) { r.expires = parseInt(r.expires / 86400); return r; }),
@@ -217,6 +227,7 @@
     update: MODEL.updater ('/v1/retention/%s', function (r) { r.expires = parseInt(r.expires) * 86400; return r; })
   });
   $.extend(Task, {
+    type: 'task',
     show: MODEL.findOne ('/v1/task/%s')
   });
 
@@ -1006,18 +1017,18 @@
     });
 
     var createForm = lastly(function(event) {
-      go('#create-'+event.data.type);
+      go('#create-'+event.data.model.type);
     });
-    $('#main').on('click', 'button.create-new-retention-policy', { type: 'retention-policy' }, createForm);
-    $('#main').on('click', 'button.create-new-schedule',         { type: 'schedule'         }, createForm);
-    $('#main').on('click', 'button.create-new-target',           { type: 'target'           }, createForm);
-    $('#main').on('click', 'button.create-new-store',            { type: 'store'            }, createForm);
-    $('#main').on('click', 'button.create-new-job',              { type: 'job'              }, createForm);
+    $('#main').on('click', 'button.create-new-retention-policy', { model: Retention }, createForm);
+    $('#main').on('click', 'button.create-new-schedule',         { model: Schedule  }, createForm);
+    $('#main').on('click', 'button.create-new-target',           { model: Target    }, createForm);
+    $('#main').on('click', 'button.create-new-store',            { model: Store     }, createForm);
+    $('#main').on('click', 'button.create-new-job',              { model: Job       }, createForm);
 
     var validateForm = function(event) {
       var validate = new Validator($(event.target).closest('form'));
 
-      switch (event.data.type) {
+      switch (event.data.model.type) {
       case 'retention-policy':
         validate.present('name',    "Please provide a name for this retention policy")
                 .integer('expires', "Expiration must be specified as a number (of days)")
@@ -1057,33 +1068,16 @@
 
       return validate.ok();
     };
-    $('#main').on('blur', '#create-retention-policy form.attempted [name]', { type: 'retention-policy' }, validateForm);
-    $('#main').on('blur', '#update-retention-policy form.attempted [name]', { type: 'retention-policy' }, validateForm);
-    $('#main').on('blur', '#create-schedule form.attempted [name]',         { type: 'schedule'         }, validateForm);
-    $('#main').on('blur', '#update-schedule form.attempted [name]',         { type: 'schedule'         }, validateForm);
-    $('#main').on('blur', '#create-target form.attempted [name]',           { type: 'target'           }, validateForm);
-    $('#main').on('blur', '#update-target form.attempted [name]',           { type: 'target'           }, validateForm);
-    $('#main').on('blur', '#create-store form.attempted [name]',            { type: 'store'            }, validateForm);
-    $('#main').on('blur', '#update-store form.attempted [name]',            { type: 'store'            }, validateForm);
-    $('#main').on('blur', '#create-job form.attempted [name]',              { type: 'job'              }, validateForm);
-    $('#main').on('blur', '#update-job form.attempted [name]',              { type: 'job'              }, validateForm);
-
-    var postFixup = function (event, data) {
-      // data fixups!
-      switch (event.data.type) {
-      case 'retention-policy':
-        data['expires'] = parseInt(data['expires']) * 86400;
-        break;
-      case 'target':
-        data['endpoint'] = JSON.stringify(JSON.parse(data['endpoint']), null, 2);
-        break;
-      case 'store':
-        data['endpoint'] = JSON.stringify(JSON.parse(data['endpoint']), null, 2);
-        break;
-      }
-
-      return data;
-    }
+    $('#main').on('blur', '#create-retention-policy form.attempted [name]', { model: Retention }, validateForm);
+    $('#main').on('blur', '#update-retention-policy form.attempted [name]', { model: Retention }, validateForm);
+    $('#main').on('blur', '#create-schedule form.attempted [name]',         { model: Schedule  }, validateForm);
+    $('#main').on('blur', '#update-schedule form.attempted [name]',         { model: Schedule  }, validateForm);
+    $('#main').on('blur', '#create-target form.attempted [name]',           { model: Target    }, validateForm);
+    $('#main').on('blur', '#update-target form.attempted [name]',           { model: Target    }, validateForm);
+    $('#main').on('blur', '#create-store form.attempted [name]',            { model: Store     }, validateForm);
+    $('#main').on('blur', '#update-store form.attempted [name]',            { model: Store     }, validateForm);
+    $('#main').on('blur', '#create-job form.attempted [name]',              { model: Job       }, validateForm);
+    $('#main').on('blur', '#update-job form.attempted [name]',              { model: Job       }, validateForm);
 
     var createThing = lastly(function(event) {
       if (validateForm(event) != true) { return }
