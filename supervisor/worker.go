@@ -67,7 +67,6 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
 			continue
 		}
-		defer client.Close()
 
 		// start a command and stream output
 		final := make(chan string)
@@ -109,6 +108,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 				Output: fmt.Sprintf("TASK FAILED!! shield worker %d was unable to json encode the request bound for remote agent %s (%s)", id, remote, err),
 			}
 			updates <- WorkerUpdate{Task: t.UUID, Op: FAILED, StoppedAt: time.Now()}
+			client.Close()
 			continue
 		}
 		// exec the command
@@ -119,6 +119,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 				Output: fmt.Sprintf("TASK FAILED!!  shield worker %d failed to execute the command against the remote agent %s (%s)\n", id, remote, err)}
 			jobFailed = true
 		}
+		client.Close()
 
 		out := <-final
 		if t.Op == BACKUP {
