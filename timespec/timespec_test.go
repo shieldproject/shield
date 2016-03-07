@@ -221,7 +221,7 @@ var _ = Describe("Timespec", func() {
 
 				Ω(spec.Next(now)).Should(Equal(
 					time.Date(1991, 8, 13, 3, 00, 00, 00, tz)))
-			});
+			})
 		})
 
 		Context("with a monthly (nth week) spec", func() {
