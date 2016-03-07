@@ -23,6 +23,7 @@ type Supervisor struct {
 
 	Port           string /* addr/interface(s) and port to bind */
 	PrivateKeyFile string /* path to the SSH private key for talking to remote agents */
+	WebRoot        string /* path to the root of the Web User Interface */
 	Workers        uint   /* how many workers to spin up */
 	PurgeAgent     string /* What agent to use for purge jobs */
 
@@ -370,6 +371,7 @@ func (s *Supervisor) SpawnAPI() {
 		http.Handle("/v1/tasks", tasks)
 		http.Handle("/v1/task/", tasks)
 
+		http.Handle("/", http.FileServer(http.Dir(s.WebRoot)))
 		err := http.ListenAndServe(":"+s.Port, nil)
 		if err != nil {
 			log.Critf("HTTP API failed %s", err.Error())
