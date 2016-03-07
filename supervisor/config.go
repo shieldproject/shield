@@ -16,7 +16,7 @@ type Config struct {
 	Port string `yaml:"port"`
 
 	PrivateKeyFile string `yaml:"private_key"`
-	WebRoot string `yaml:"web_root"`
+	WebRoot        string `yaml:"web_root"`
 
 	Workers uint `yaml:"workers"`
 
