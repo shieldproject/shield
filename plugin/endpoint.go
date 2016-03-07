@@ -37,6 +37,17 @@ func (endpoint ShieldEndpoint) StringValue(key string) (string, error) {
 	return endpoint[key].(string), nil
 }
 
+func (endpoint ShieldEndpoint) StringValueDefault(key string, def string) (string, error) {
+	s, err := endpoint.StringValue(key)
+	if err == nil {
+		return s, nil
+	}
+	if _, ok := err.(EndpointMissingRequiredDataError); ok {
+		return def, nil
+	}
+	return "", err
+}
+
 func (endpoint ShieldEndpoint) FloatValue(key string) (float64, error) {
 	_, ok := endpoint[key]
 	if !ok {
@@ -50,6 +61,17 @@ func (endpoint ShieldEndpoint) FloatValue(key string) (float64, error) {
 	return endpoint[key].(float64), nil
 }
 
+func (endpoint ShieldEndpoint) FloatValueDefault(key string, def float64) (float64, error) {
+	f, err := endpoint.FloatValue(key)
+	if err == nil {
+		return f, nil
+	}
+	if _, ok := err.(EndpointMissingRequiredDataError); ok {
+		return def, nil
+	}
+	return 0.0, err
+}
+
 func (endpoint ShieldEndpoint) BooleanValue(key string) (bool, error) {
 	_, ok := endpoint[key]
 	if !ok {
@@ -61,6 +83,17 @@ func (endpoint ShieldEndpoint) BooleanValue(key string) (bool, error) {
 	}
 
 	return endpoint[key].(bool), nil
+}
+
+func (endpoint ShieldEndpoint) BooleanValueDefault(key string, def bool) (bool, error) {
+	tf, err := endpoint.BooleanValue(key)
+	if err == nil {
+		return tf, nil
+	}
+	if _, ok := err.(EndpointMissingRequiredDataError); ok {
+		return def, nil
+	}
+	return false, err
 }
 
 func (endpoint ShieldEndpoint) ArrayValue(key string) ([]interface{}, error) {

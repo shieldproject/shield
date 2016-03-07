@@ -120,7 +120,7 @@ func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 rmq_password}         @C{%s}\n", s)
 	}
 
-	tf, err := endpoint.BooleanValue("skip_ssl_validation")
+	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
 		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
