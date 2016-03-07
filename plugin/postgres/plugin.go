@@ -69,6 +69,10 @@ import (
 	. "github.com/starkandwayne/shield/plugin"
 )
 
+var (
+	DefaultPort = "5432"
+)
+
 func main() {
 	p := PostgresPlugin{
 		Name:    "PostgreSQL Backup Plugin",
@@ -112,10 +116,11 @@ func (p PostgresPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 pg_host}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("pg_port")
+	s, err = endpoint.StringValueDefault("pg_port", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 pg_port      %s}\n", err)
-		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 pg_port}      using default port @C{%s}\n", DefaultPort)
 	} else {
 		ansi.Printf("@G{\u2713 pg_port}      @C{%s}\n", s)
 	}
@@ -234,9 +239,9 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	}
 	DEBUG("PGHOST: '%s'", host)
 
-	port, err := endpoint.StringValue("pg_port")
-	if err != nil {
-		return nil, err
+	port, _ := endpoint.StringValue("pg_port")
+	if port == "" {
+		port = DefaultPort
 	}
 	DEBUG("PGPORT: '%s'", port)
 

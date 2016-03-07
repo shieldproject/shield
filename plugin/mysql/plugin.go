@@ -64,6 +64,10 @@ import (
 	. "github.com/starkandwayne/shield/plugin"
 )
 
+var (
+	DefaultPort = "3306"
+)
+
 func main() {
 	p := MySQLPlugin{
 		Name:    "MySQL Backup Plugin",
@@ -109,10 +113,11 @@ func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 mysql_host}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("mysql_port")
+	s, err = endpoint.StringValueDefault("mysql_port", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 mysql_port      %s}\n", err)
-		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mysql_port}      using default port @C{%s}\n", DefaultPort)
 	} else {
 		ansi.Printf("@G{\u2713 mysql_port}      @C{%s}\n", s)
 	}
@@ -210,9 +215,9 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQL_HOST: '%s'", host)
 
-	port, err := endpoint.StringValue("mysql_port")
-	if err != nil {
-		return nil, err
+	port, _ := endpoint.StringValue("mysql_port")
+	if port == "" {
+		port = DefaultPort
 	}
 	DEBUG("MYSQL_PORT: '%s'", port)
 

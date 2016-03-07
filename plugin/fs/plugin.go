@@ -58,6 +58,10 @@ import (
 	"github.com/starkandwayne/shield/plugin"
 )
 
+var (
+	DefaultBsdTar = "/var/vcap/packages/bsdtar/bin/bsdtar"
+)
+
 func main() {
 	p := FSPlugin{
 		Name:    "FS Plugin",
@@ -79,6 +83,7 @@ type FSConfig struct {
 	Include  string
 	Exclude  string
 	BasePath string
+	BsdTar   string
 }
 
 func (p FSPlugin) Meta() plugin.PluginInfo {
@@ -88,6 +93,7 @@ func (p FSPlugin) Meta() plugin.PluginInfo {
 func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
 	include, _ := endpoint.StringValue("include")
 	exclude, _ := endpoint.StringValue("exclude")
+	bsdtar, _ := endpoint.StringValueDefault("bsdtar", DefaultBsdTar)
 	base_dir, err := endpoint.StringValue("base_dir")
 	if err != nil {
 		return nil, err
@@ -97,6 +103,7 @@ func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
 		Include:  include,
 		Exclude:  exclude,
 		BasePath: base_dir,
+		BsdTar:   bsdtar,
 	}, nil
 }
 
@@ -115,18 +122,32 @@ func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
 	}
 
-	s, err = endpoint.StringValue("include")
-	if s == "" {
+	s, err = endpoint.StringValueDefault("include", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 include   %s}\n", err)
+		fail = true
+	} else if s == "" {
 		ansi.Printf("@G{\u2713 include}   all files will be included\n")
 	} else {
 		ansi.Printf("@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
 	}
 
-	s, err = endpoint.StringValue("exclude")
-	if s == "" {
+	s, err = endpoint.StringValueDefault("exclude", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fail = true
+	} else if s == "" {
 		ansi.Printf("@G{\u2713 exclude}   no files will be excluded\n")
 	} else {
 		ansi.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("bsdtar", DefaultBsdTar)
+	if err != nil {
+		ansi.Printf("@R{\u2717 bsdtar    %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 bsdtar}    @C{%s}\n", s)
 	}
 
 	if fail {
@@ -149,7 +170,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	if cfg.Exclude != "" {
 		flags = fmt.Sprintf("%s --include '%s'", flags, cfg.Exclude)
 	}
-	cmd := fmt.Sprintf("/var/vcap/packages/bsdtar/bin/bsdtar -c -C %s %s .", cfg.BasePath, flags)
+	cmd := fmt.Sprintf("%s -c -C %s %s .", cfg.BsdTar, cfg.BasePath, flags)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDOUT)
 	if err != nil {
@@ -165,7 +186,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	cmd := fmt.Sprintf("/var/vcap/packages/bsdtar/bin/bsdtar -x -C %s", cfg.BasePath)
+	cmd := fmt.Sprintf("%s -x -C %s", cfg.BsdTar, cfg.BasePath)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
