@@ -14,13 +14,6 @@ type Job struct {
 	Job *db.Job
 }
 
-// FIXME: deprecate JobFailedError
-type JobFailedError struct {
-}
-func (e JobFailedError) Error() string {
-	return "deprecated"
-}
-
 func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 	jobs, err := s.Database.GetAllJobs(&db.JobFilter{})
 	if err != nil {
