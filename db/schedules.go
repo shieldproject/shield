@@ -74,11 +74,11 @@ func (db *DB) GetAllSchedules(filter *ScheduleFilter) ([]*Schedule, error) {
 	for r.Next() {
 		ann := &Schedule{}
 		var n int
-		var thisUUID string
-		if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
+		var this NullUUID
+		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
 			return l, err
 		}
-		ann.UUID = uuid.Parse(thisUUID)
+		ann.UUID = this.UUID
 
 		l = append(l, ann)
 	}
@@ -100,11 +100,11 @@ func (db *DB) GetSchedule(id uuid.UUID) (*Schedule, error) {
 	}
 
 	ann := &Schedule{}
-	var thisUUID string
-	if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
+	var this NullUUID
+	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.When); err != nil {
 		return nil, err
 	}
-	ann.UUID = uuid.Parse(thisUUID)
+	ann.UUID = this.UUID
 
 	return ann, nil
 }

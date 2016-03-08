@@ -115,21 +115,21 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 	for r.Next() {
 		ann := &Job{}
-		var thisUUID, retentionUUID, scheduleUUID, storeUUID, targetUUID string
+		var this, retention, schedule, store, target NullUUID
 		if err = r.Scan(
-			&thisUUID, &ann.Name, &ann.Summary, &ann.Paused,
-			&ann.RetentionName, &retentionUUID, &ann.Expiry,
-			&ann.ScheduleName, &scheduleUUID, &ann.ScheduleWhen,
-			&storeUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&targetUUID, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&this, &ann.Name, &ann.Summary, &ann.Paused,
+			&ann.RetentionName, &retention, &ann.Expiry,
+			&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
+			&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+			&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Agent); err != nil {
 			return l, err
 		}
-		ann.UUID = uuid.Parse(thisUUID)
-		ann.RetentionUUID = uuid.Parse(retentionUUID)
-		ann.ScheduleUUID = uuid.Parse(scheduleUUID)
-		ann.StoreUUID = uuid.Parse(storeUUID)
-		ann.TargetUUID = uuid.Parse(targetUUID)
+		ann.UUID = this.UUID
+		ann.RetentionUUID = retention.UUID
+		ann.ScheduleUUID = schedule.UUID
+		ann.StoreUUID = store.UUID
+		ann.TargetUUID = target.UUID
 
 		l = append(l, ann)
 	}
@@ -162,21 +162,21 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	}
 
 	ann := &Job{}
-	var thisUUID, retentionUUID, scheduleUUID, storeUUID, targetUUID string
+	var this, retention, schedule, store, target NullUUID
 	if err = r.Scan(
-		&thisUUID, &ann.Name, &ann.Summary, &ann.Paused,
-		&ann.RetentionName, &retentionUUID, &ann.Expiry,
-		&ann.ScheduleName, &scheduleUUID, &ann.ScheduleWhen,
-		&storeUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
-		&targetUUID, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&this, &ann.Name, &ann.Summary, &ann.Paused,
+		&ann.RetentionName, &retention, &ann.Expiry,
+		&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
+		&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+		&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&ann.Agent); err != nil {
 		return nil, err
 	}
-	ann.UUID = uuid.Parse(thisUUID)
-	ann.RetentionUUID = uuid.Parse(retentionUUID)
-	ann.ScheduleUUID = uuid.Parse(scheduleUUID)
-	ann.StoreUUID = uuid.Parse(storeUUID)
-	ann.TargetUUID = uuid.Parse(targetUUID)
+	ann.UUID = this.UUID
+	ann.RetentionUUID = retention.UUID
+	ann.ScheduleUUID = schedule.UUID
+	ann.StoreUUID = store.UUID
+	ann.TargetUUID = target.UUID
 
 	return ann, nil
 }

@@ -126,18 +126,18 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		ann := &Archive{}
 
 		var takenAt, expiresAt *int64
-		var thisUUID, targetUUID, storeUUID string
+		var this, target, store NullUUID
 		if err = r.Scan(
-			&thisUUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&targetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&storeUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&store, &ann.StorePlugin, &ann.StoreEndpoint,
 			&ann.Status, &ann.PurgeReason); err != nil {
 
 			return l, err
 		}
-		ann.UUID = uuid.Parse(thisUUID)
-		ann.TargetUUID = uuid.Parse(targetUUID)
-		ann.StoreUUID = uuid.Parse(storeUUID)
+		ann.UUID = this.UUID
+		ann.TargetUUID = target.UUID
+		ann.StoreUUID = store.UUID
 		if takenAt != nil {
 			ann.TakenAt = parseEpochTime(*takenAt)
 		}
@@ -174,18 +174,18 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	ann := &Archive{}
 
 	var takenAt, expiresAt *int64
-	var thisUUID, targetUUID, storeUUID string
+	var this, target, store NullUUID
 	if err = r.Scan(
-		&thisUUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-		&targetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&storeUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+		&target, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&store, &ann.StorePlugin, &ann.StoreEndpoint,
 		&ann.Status, &ann.PurgeReason); err != nil {
 
 		return nil, err
 	}
-	ann.UUID = uuid.Parse(thisUUID)
-	ann.TargetUUID = uuid.Parse(targetUUID)
-	ann.StoreUUID = uuid.Parse(storeUUID)
+	ann.UUID = this.UUID
+	ann.TargetUUID = target.UUID
+	ann.StoreUUID = store.UUID
 	if takenAt != nil {
 		ann.TakenAt = parseEpochTime(*takenAt)
 	}

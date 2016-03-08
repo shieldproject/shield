@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -131,54 +132,34 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	for r.Next() {
 		ann := &Task{}
 		var (
-			thisUUID string
-			archive, job, store, target, log interface{}
-			started, stopped, deadline       *int64
+			log                               sql.NullString
+			this, archive, job, store, target NullUUID
+			started, stopped, deadline        *int64
 		)
 		if err = r.Scan(
-			&thisUUID, &ann.Owner, &ann.Op, &job, &archive,
+			&this, &ann.Owner, &ann.Op, &job, &archive,
 			&store, &ann.StorePlugin, &ann.StoreEndpoint,
 			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Status, &started, &stopped, &deadline,
 			&ann.Attempts, &ann.Agent, &log); err != nil {
 			return l, err
 		}
-		ann.UUID = uuid.Parse(thisUUID)
+		ann.UUID = this.UUID
 
-		if job != nil {
-			if s, ok := job.([]byte); ok {
-				ann.JobUUID = uuid.Parse(string(s))
-			} else {
-				return nil, fmt.Errorf("DB returned unexpected data type for `job_uuid`")
-			}
+		if job.Valid {
+			ann.JobUUID = job.UUID
 		}
-		if archive != nil {
-			if s, ok := archive.([]byte); ok {
-				ann.ArchiveUUID = uuid.Parse(string(s))
-			} else {
-				return nil, fmt.Errorf("DB returned unexpected data type for `archive_uuid`")
-			}
+		if archive.Valid {
+			ann.ArchiveUUID = archive.UUID
 		}
-		if store != nil {
-			if s, ok := store.([]byte); ok {
-				ann.StoreUUID = uuid.Parse(string(s))
-			} else {
-				return nil, fmt.Errorf("DB returned unexpected data type for `store_uuid`")
-			}
+		if store.Valid {
+			ann.StoreUUID = store.UUID
 		}
-		if target != nil {
-			if s, ok := target.([]byte); ok {
-				ann.TargetUUID = uuid.Parse(string(s))
-			} else {
-				return nil, fmt.Errorf("DB returned unexpected data type for `target_uuid`")
-			}
+		if target.Valid {
+			ann.TargetUUID = target.UUID
 		}
-		if log != nil {
-			if s, ok := log.([]byte); ok {
-				ann.Log = string(s)
-			} else {
-				return nil, fmt.Errorf("DB returned unexpected data type for `log`")
-			}
+		if log.Valid {
+			ann.Log = log.String
 		}
 		if started != nil {
 			ann.StartedAt = parseEpochTime(*started)

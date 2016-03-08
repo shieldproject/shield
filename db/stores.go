@@ -77,11 +77,11 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		ann := &Store{}
 		var n int
-		var thisUUID string
-		if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
+		var this NullUUID
+		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
 			return l, err
 		}
-		ann.UUID = uuid.Parse(thisUUID)
+		ann.UUID = this.UUID
 
 		l = append(l, ann)
 	}
@@ -106,11 +106,11 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	ann := &Store{}
-	var thisUUID string
-	if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+	var this NullUUID
+	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
 		return nil, err
 	}
-	ann.UUID = uuid.Parse(thisUUID)
+	ann.UUID = this.UUID
 
 	return ann, nil
 }

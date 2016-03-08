@@ -71,12 +71,12 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 	for r.Next() {
 		ann := &RetentionPolicy{}
 		var n int
-		var thisUUID string
+		var this NullUUID
 
-		if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
+		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
 			return l, err
 		}
-		ann.UUID = uuid.Parse(thisUUID)
+		ann.UUID = this.UUID
 
 		l = append(l, ann)
 	}
@@ -97,11 +97,11 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 		return nil, nil
 	}
 	ann := &RetentionPolicy{}
-	var thisUUID string
-	if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
+	var this NullUUID
+	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
 		return nil, err
 	}
-	ann.UUID = uuid.Parse(thisUUID)
+	ann.UUID = this.UUID
 
 	return ann, nil
 }
