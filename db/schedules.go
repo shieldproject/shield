@@ -10,10 +10,10 @@ import (
 )
 
 type Schedule struct {
-	UUID    string `json:"uuid"`
-	Name    string `json:"name"`
-	Summary string `json:"summary"`
-	When    string `json:"when"`
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Summary string    `json:"summary"`
+	When    string    `json:"when"`
 }
 
 type ScheduleFilter struct {
@@ -74,10 +74,11 @@ func (db *DB) GetAllSchedules(filter *ScheduleFilter) ([]*Schedule, error) {
 	for r.Next() {
 		ann := &Schedule{}
 		var n int
-
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
+		var thisUUID string
+		if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
 			return l, err
 		}
+		ann.UUID = uuid.Parse(thisUUID)
 
 		l = append(l, ann)
 	}
@@ -99,10 +100,11 @@ func (db *DB) GetSchedule(id uuid.UUID) (*Schedule, error) {
 	}
 
 	ann := &Schedule{}
-
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
+	var thisUUID string
+	if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
 		return nil, err
 	}
+	ann.UUID = uuid.Parse(thisUUID)
 
 	return ann, nil
 }
