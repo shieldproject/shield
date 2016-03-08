@@ -8,11 +8,11 @@ import (
 )
 
 type Store struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	Summary  string `json:"summary"`
-	Plugin   string `json:"plugin"`
-	Endpoint string `json:"endpoint"`
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Summary  string    `json:"summary"`
+	Plugin   string    `json:"plugin"`
+	Endpoint string    `json:"endpoint"`
 }
 
 type StoreFilter struct {
@@ -77,10 +77,11 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		ann := &Store{}
 		var n int
-
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
+		var thisUUID string
+		if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
 			return l, err
 		}
+		ann.UUID = uuid.Parse(thisUUID)
 
 		l = append(l, ann)
 	}
@@ -105,10 +106,11 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	ann := &Store{}
-
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+	var thisUUID string
+	if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
 		return nil, err
 	}
+	ann.UUID = uuid.Parse(thisUUID)
 
 	return ann, nil
 }
