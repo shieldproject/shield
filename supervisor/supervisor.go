@@ -199,11 +199,6 @@ func (s *Supervisor) Run() error {
 	if err := s.Resync(); err != nil {
 		return err
 	}
-	if DEV_MODE_SCHEDULING {
-		for _, job := range s.jobq {
-			job.Job.NextRun = time.Now()
-		}
-	}
 
 	for {
 		select {

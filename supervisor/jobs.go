@@ -10,14 +10,6 @@ import (
 	//"github.com/starkandwayne/shield/timespec"
 )
 
-var DEV_MODE_SCHEDULING bool = false
-
-func init() {
-	if os.Getenv("SHIELD_MODE") == "DEV" {
-		DEV_MODE_SCHEDULING = true
-	}
-}
-
 type Job struct {
 	Job *db.Job
 }
@@ -53,11 +45,6 @@ func (j *Job) Task() *Task {
 }
 
 func (j *Job) Reschedule() error {
-	if DEV_MODE_SCHEDULING {
-		j.Job.NextRun = time.Now().Add(time.Minute)
-		return nil
-	}
-
 	next, err := j.Job.Spec.Next(time.Now())
 	if err != nil {
 		return err
