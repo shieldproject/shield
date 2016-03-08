@@ -19,7 +19,7 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 
 	l := make([]*Job, len(jobs))
 	for i, j := range jobs {
-		l[i] = &Job{Job:j}
+		l[i] = &Job{Job: j}
 	}
 	return l, nil
 }
