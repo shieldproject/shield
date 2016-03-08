@@ -7,6 +7,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/starkandwayne/shield/supervisor"
+
+	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
 )
 
@@ -14,8 +16,10 @@ var _ = Describe("Jobs", func() {
 	Describe("Runnable()", func() {
 		runnable := func(paused bool, offset int) bool {
 			job := &Job{
-				Paused:  paused,
-				NextRun: time.Now().Add(time.Duration(offset) * time.Minute),
+				Job: &db.Job{
+					Paused:  paused,
+					NextRun: time.Now().Add(time.Duration(offset) * time.Minute),
+				},
 			}
 			return job.Runnable()
 		}
@@ -48,15 +52,17 @@ var _ = Describe("Jobs", func() {
 	Describe("Reschedule()", func() {
 		It("should set next run to a date in the future", func() {
 			job := &Job{
-				NextRun: time.Now().Add(-1 * time.Minute),
-				Spec: &timespec.Spec{
-					Interval:  timespec.Daily,
-					TimeOfDay: 60,
+				Job: &db.Job{
+					NextRun: time.Now().Add(-1 * time.Minute),
+					Spec: &timespec.Spec{
+						Interval:  timespec.Daily,
+						TimeOfDay: 60,
+					},
 				},
 			}
 
 			Ω(job.Reschedule()).Should(Succeed())
-			Ω(job.NextRun.After(time.Now())).Should(BeTrue())
+			Ω(job.Job.NextRun.After(time.Now())).Should(BeTrue())
 		})
 	})
 })

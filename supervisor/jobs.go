@@ -1,14 +1,13 @@
 package supervisor
 
 import (
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/pborman/uuid"
+	//"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/shield/timespec"
+	"github.com/starkandwayne/shield/db"
+	//"github.com/starkandwayne/shield/timespec"
 )
 
 var DEV_MODE_SCHEDULING bool = false
@@ -20,105 +19,53 @@ func init() {
 }
 
 type Job struct {
-	UUID uuid.UUID
-	Name string
-
-	StorePlugin    string
-	StoreEndpoint  string
-	TargetPlugin   string
-	TargetEndpoint string
-	Agent          string
-
-	Spec   *timespec.Spec
-	Paused bool
-
-	NextRun time.Time
+	Job *db.Job
 }
 
-type JobRepresentation struct {
-	UUID  uuid.UUID
-	Name  string
-	Tspec string
-	Error error
-}
-
+// FIXME: deprecate JobFailedError
 type JobFailedError struct {
-	FailedJobs []JobRepresentation
 }
-
 func (e JobFailedError) Error() string {
-	var jobList []string
-	for _, j := range e.FailedJobs {
-		jobList = append(jobList, fmt.Sprintf("%s (%s)", j.Name, j.UUID))
-	}
-	return fmt.Sprintf("the following job(s) failed: %s", strings.Join(jobList, ", "))
+	return "deprecated"
 }
 
 func (s *Supervisor) GetAllJobs() ([]*Job, error) {
-	l := []*Job{}
-	result, err := s.Database.Query(`
-		SELECT j.uuid, j.name, j.paused,
-		       t.plugin, t.endpoint,
-		       s.plugin, s.endpoint,
-		       sc.timespec, r.expiry, t.agent
-		FROM jobs j
-			INNER JOIN targets   t    ON  t.uuid = j.target_uuid
-			INNER JOIN stores    s    ON  s.uuid = j.store_uuid
-			INNER JOIN schedules sc   ON sc.uuid = j.schedule_uuid
-			INNER JOIN retention r    ON  r.uuid = j.retention_uuid
-	`)
+	jobs, err := s.Database.GetAllJobs(&db.JobFilter{})
 	if err != nil {
-		return l, err
+		return nil, err
 	}
-	e := JobFailedError{}
-	for result.Next() {
-		j := &Job{}
-		var id, tspec string
-		var expiry int
-		err = result.Scan(&id, &j.Name, &j.Paused,
-			&j.TargetPlugin, &j.TargetEndpoint,
-			&j.StorePlugin, &j.StoreEndpoint,
-			&tspec, &expiry, &j.Agent)
-		j.UUID = uuid.Parse(id)
-		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, j.Name, tspec, err})
-		}
-		j.Spec, err = timespec.Parse(tspec)
-		if err != nil {
-			e.FailedJobs = append(e.FailedJobs, JobRepresentation{j.UUID, j.Name, tspec, err})
-		}
-		l = append(l, j)
+
+	l := make([]*Job, len(jobs))
+	for i, j := range jobs {
+		l[i] = &Job{Job:j}
 	}
-	if len(e.FailedJobs) == 0 {
-		return l, nil
-	}
-	return l, e
+	return l, nil
 }
 
 func (j *Job) Task() *Task {
 	t := NewPendingTask(BACKUP)
-	t.StorePlugin = j.StorePlugin
-	t.StoreEndpoint = j.StoreEndpoint
-	t.TargetPlugin = j.TargetPlugin
-	t.TargetEndpoint = j.TargetEndpoint
-	t.Agent = j.Agent
+	t.StorePlugin = j.Job.StorePlugin
+	t.StoreEndpoint = j.Job.StoreEndpoint
+	t.TargetPlugin = j.Job.TargetPlugin
+	t.TargetEndpoint = j.Job.TargetEndpoint
+	t.Agent = j.Job.Agent
 	return t
 }
 
 func (j *Job) Reschedule() error {
 	if DEV_MODE_SCHEDULING {
-		j.NextRun = time.Now().Add(time.Minute)
+		j.Job.NextRun = time.Now().Add(time.Minute)
 		return nil
 	}
 
-	next, err := j.Spec.Next(time.Now())
+	next, err := j.Job.Spec.Next(time.Now())
 	if err != nil {
 		return err
 	}
-	j.NextRun = next
+	j.Job.NextRun = next
 	return nil
 }
 
 func (j *Job) Runnable() bool {
-	return j.Paused == false && !j.NextRun.After(time.Now())
+	return j.Job.Paused == false && !j.Job.NextRun.After(time.Now())
 }
