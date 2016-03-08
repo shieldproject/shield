@@ -3,8 +3,10 @@ package db
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/shield/timespec"
 )
 
 type Job struct {
@@ -27,6 +29,9 @@ type Job struct {
 	TargetPlugin   string `json:"target_plugin"`
 	TargetEndpoint string `json:"target_endpoint"`
 	Agent          string `json:"agent"`
+
+	Spec    *timespec.Spec `json:"-"`
+	NextRun time.Time      `json:"-"`
 }
 
 type JobFilter struct {
