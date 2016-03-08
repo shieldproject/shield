@@ -296,11 +296,11 @@ var _ = Describe("Task Management", func() {
 			task, err := db.GetTask(TASK1_UUID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(task).Should(BeEquivalentTo(&Task{
-				UUID:        TASK1_UUID.String(),
+				UUID:        TASK1_UUID,
 				Owner:       "system",
 				Op:          "backup",
-				JobUUID:     "",
-				ArchiveUUID: "",
+				JobUUID:     nil,
+				ArchiveUUID: nil,
 				Status:      "pending",
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
@@ -311,11 +311,11 @@ var _ = Describe("Task Management", func() {
 			task, err := db.GetTask(TASK2_UUID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(task).Should(BeEquivalentTo(&Task{
-				UUID:        TASK2_UUID.String(),
+				UUID:        TASK2_UUID,
 				Owner:       "system",
 				Op:          "restore",
-				JobUUID:     JOB_UUID.String(),
-				ArchiveUUID: ARCHIVE_UUID.String(),
+				JobUUID:     JOB_UUID,
+				ArchiveUUID: ARCHIVE_UUID,
 				Status:      "pending",
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},

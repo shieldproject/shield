@@ -41,11 +41,11 @@ const (
 )
 
 type Task struct {
-	UUID           string    `json:"uuid"`
+	UUID           uuid.UUID `json:"uuid"`
 	Owner          string    `json:"owner"`
 	Op             string    `json:"type"`
-	JobUUID        string    `json:"job_uuid"`
-	ArchiveUUID    string    `json:"archive_uuid"`
+	JobUUID        uuid.UUID `json:"job_uuid"`
+	ArchiveUUID    uuid.UUID `json:"archive_uuid"`
 	StoreUUID      uuid.UUID `json:"-"`
 	StorePlugin    string    `json:"-"`
 	StoreEndpoint  string    `json:"-"`
@@ -131,28 +131,30 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	for r.Next() {
 		ann := &Task{}
 		var (
+			thisUUID string
 			archive, job, store, target, log interface{}
 			started, stopped, deadline       *int64
 		)
 		if err = r.Scan(
-			&ann.UUID, &ann.Owner, &ann.Op, &job, &archive,
+			&thisUUID, &ann.Owner, &ann.Op, &job, &archive,
 			&store, &ann.StorePlugin, &ann.StoreEndpoint,
 			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Status, &started, &stopped, &deadline,
 			&ann.Attempts, &ann.Agent, &log); err != nil {
 			return l, err
 		}
+		ann.UUID = uuid.Parse(thisUUID)
 
 		if job != nil {
 			if s, ok := job.([]byte); ok {
-				ann.JobUUID = string(s)
+				ann.JobUUID = uuid.Parse(string(s))
 			} else {
 				return nil, fmt.Errorf("DB returned unexpected data type for `job_uuid`")
 			}
 		}
 		if archive != nil {
 			if s, ok := archive.([]byte); ok {
-				ann.ArchiveUUID = string(s)
+				ann.ArchiveUUID = uuid.Parse(string(s))
 			} else {
 				return nil, fmt.Errorf("DB returned unexpected data type for `archive_uuid`")
 			}

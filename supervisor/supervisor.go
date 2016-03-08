@@ -161,11 +161,11 @@ func (s *Supervisor) Sweep() error {
 	now := time.Now()
 	for _, task := range tasks {
 		log.Warnf("Found task %s in 'running' state at startup; setting to 'failed'", task.UUID)
-		if err := s.Database.FailTask(uuid.Parse(task.UUID), now); err != nil {
+		if err := s.Database.FailTask(task.UUID, now); err != nil {
 			return fmt.Errorf("Failed to sweep database of running tasks [%s]: %s", task.UUID, err)
 		}
-		if task.Op == "backup" && task.ArchiveUUID != "" {
-			archive, err := s.Database.GetArchive(uuid.Parse(task.ArchiveUUID))
+		if task.Op == "backup" && task.ArchiveUUID != nil {
+			archive, err := s.Database.GetArchive(task.ArchiveUUID)
 			if err != nil {
 				log.Warnf("Unable to retrieve archive %s (for task %s) from the database: %s",
 					task.UUID, task.ArchiveUUID)
