@@ -167,6 +167,9 @@ CREATE TABLE archives (
   notes        TEXT DEFAULT '', -- annotation for operator use, to describe this
                                 --   specific backup, i.e. 'before change #422 backup'
                                 --   (mostly, this will be empty)
+
+  purge_reason TEXT DEFAULT '',      -- (v2) why the archive was purged
+  status       TEXT DEFAULT 'valid', -- (v2) archive status (valid / purged / etc.)
 );
 ```
 
