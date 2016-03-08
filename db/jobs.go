@@ -10,7 +10,7 @@ import (
 )
 
 type Job struct {
-	UUID           string `json:"uuid"`
+	UUID           uuid.UUID `json:"uuid"`
 	Name           string `json:"name"`
 	Summary        string `json:"summary"`
 	RetentionName  string `json:"retention_name"`
@@ -115,9 +115,9 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 	for r.Next() {
 		ann := &Job{}
-
+		var thisUUID string;
 		if err = r.Scan(
-			&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
+			&thisUUID, &ann.Name, &ann.Summary, &ann.Paused,
 			&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
 			&ann.ScheduleName, &ann.ScheduleUUID, &ann.ScheduleWhen,
 			&ann.StoreUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
@@ -125,6 +125,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			&ann.Agent); err != nil {
 			return l, err
 		}
+		ann.UUID = uuid.Parse(thisUUID)
 
 		l = append(l, ann)
 	}
@@ -157,9 +158,9 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	}
 
 	ann := &Job{}
-
+	var thisUUID string
 	if err = r.Scan(
-		&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
+		&thisUUID, &ann.Name, &ann.Summary, &ann.Paused,
 		&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
 		&ann.ScheduleName, &ann.ScheduleUUID, &ann.ScheduleWhen,
 		&ann.StoreUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
@@ -167,6 +168,7 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 		&ann.Agent); err != nil {
 		return nil, err
 	}
+	ann.UUID = uuid.Parse(thisUUID)
 
 	return ann, nil
 }
