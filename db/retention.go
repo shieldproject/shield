@@ -7,7 +7,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AnnotatedRetentionPolicy struct {
+type RetentionPolicy struct {
 	UUID    string `json:"uuid"`
 	Name    string `json:"name"`
 	Summary string `json:"summary"`
@@ -59,8 +59,8 @@ func (f *RetentionFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*AnnotatedRetentionPolicy, error) {
-	l := []*AnnotatedRetentionPolicy{}
+func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPolicy, error) {
+	l := []*RetentionPolicy{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -69,7 +69,7 @@ func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedRetentionPolicy{}
+		ann := &RetentionPolicy{}
 		var n int
 
 		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
@@ -82,7 +82,7 @@ func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedRetentionPolicy(id uuid.UUID) (*AnnotatedRetentionPolicy, error) {
+func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 	r, err := db.Query(`
 		SELECT uuid, name, summary, expiry
 			FROM retention WHERE uuid = $1`, id.String())
@@ -94,7 +94,7 @@ func (db *DB) GetAnnotatedRetentionPolicy(id uuid.UUID) (*AnnotatedRetentionPoli
 	if !r.Next() {
 		return nil, nil
 	}
-	ann := &AnnotatedRetentionPolicy{}
+	ann := &RetentionPolicy{}
 	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
 		return nil, err
 	}

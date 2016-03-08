@@ -10,7 +10,7 @@ import (
 	. "github.com/starkandwayne/shield/timestamp"
 )
 
-type AnnotatedTask struct {
+type Task struct {
 	UUID        string    `json:"uuid"`
 	Owner       string    `json:"owner"`
 	Op          string    `json:"type"`
@@ -77,8 +77,8 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		args
 }
 
-func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error) {
-	l := []*AnnotatedTask{}
+func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
+	l := []*Task{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -87,7 +87,7 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedTask{}
+		ann := &Task{}
 
 		var archive interface{}
 		var job interface{}
@@ -135,9 +135,9 @@ func (db *DB) GetAllAnnotatedTasks(filter *TaskFilter) ([]*AnnotatedTask, error)
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedTask(id uuid.UUID) (*AnnotatedTask, error) {
+func (db *DB) GetTask(id uuid.UUID) (*Task, error) {
 	filter := TaskFilter{UUID: id.String()}
-	r, err := db.GetAllAnnotatedTasks(&filter)
+	r, err := db.GetAllTasks(&filter)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.U
 	)
 }
 
-func (db *DB) CreatePurgeTask(owner string, archive *AnnotatedArchive) (uuid.UUID, error) {
+func (db *DB) CreatePurgeTask(owner string, archive *Archive) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at)

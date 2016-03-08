@@ -149,7 +149,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 }
 
 func (s *Supervisor) Sweep() error {
-	tasks, err := s.Database.GetAllAnnotatedTasks(
+	tasks, err := s.Database.GetAllTasks(
 		&db.TaskFilter{
 			ForStatus: "running",
 		},
@@ -165,7 +165,7 @@ func (s *Supervisor) Sweep() error {
 			return fmt.Errorf("Failed to sweep database of running tasks [%s]: %s", task.UUID, err)
 		}
 		if task.Op == "backup" && task.ArchiveUUID != "" {
-			archive, err := s.Database.GetAnnotatedArchive(uuid.Parse(task.ArchiveUUID))
+			archive, err := s.Database.GetArchive(uuid.Parse(task.ArchiveUUID))
 			if err != nil {
 				log.Warnf("Unable to retrieve archive %s (for task %s) from the database: %s",
 					task.UUID, task.ArchiveUUID)
@@ -433,7 +433,7 @@ func (s *Supervisor) PurgeArchives() {
 	}
 }
 
-func (s *Supervisor) SchedulePurgeTask(archive *db.AnnotatedArchive) error {
+func (s *Supervisor) SchedulePurgeTask(archive *db.Archive) error {
 	task := NewPendingTask(PURGE)
 	id, err := s.Database.CreatePurgeTask("system", archive)
 	if err != nil {

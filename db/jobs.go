@@ -7,7 +7,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AnnotatedJob struct {
+type Job struct {
 	UUID           string `json:"uuid"`
 	Name           string `json:"name"`
 	Summary        string `json:"summary"`
@@ -99,8 +99,8 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
-	l := []*AnnotatedJob{}
+func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
+	l := []*Job{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -109,7 +109,7 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedJob{}
+		ann := &Job{}
 
 		if err = r.Scan(
 			&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
@@ -127,7 +127,7 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
+func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
 		SELECT j.uuid, j.name, j.summary, j.paused,
 		       r.name, r.uuid, r.expiry,
@@ -151,7 +151,7 @@ func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
 		return nil, nil
 	}
 
-	ann := &AnnotatedJob{}
+	ann := &Job{}
 
 	if err = r.Scan(
 		&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,

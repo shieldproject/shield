@@ -7,7 +7,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AnnotatedStore struct {
+type Store struct {
 	UUID     string `json:"uuid"`
 	Name     string `json:"name"`
 	Summary  string `json:"summary"`
@@ -65,8 +65,8 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, error) {
-	l := []*AnnotatedStore{}
+func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
+	l := []*Store{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -75,7 +75,7 @@ func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, err
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedStore{}
+		ann := &Store{}
 		var n int
 
 		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
@@ -88,7 +88,7 @@ func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, err
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedStore(id uuid.UUID) (*AnnotatedStore, error) {
+func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	r, err := db.Query(`
 		SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint
 			FROM stores s
@@ -104,7 +104,7 @@ func (db *DB) GetAnnotatedStore(id uuid.UUID) (*AnnotatedStore, error) {
 		return nil, nil
 	}
 
-	ann := &AnnotatedStore{}
+	ann := &Store{}
 
 	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
 		return nil, err

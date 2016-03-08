@@ -88,7 +88,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can create a new purge task", func() {
-		archive, err := db.GetAnnotatedArchive(ARCHIVE_UUID)
+		archive, err := db.GetArchive(ARCHIVE_UUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		id, err := db.CreatePurgeTask("owner-name", archive)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -250,7 +250,7 @@ var _ = Describe("Task Management", func() {
 		filter := TaskFilter{
 			Limit: "2",
 		}
-		tasks, err := db.GetAllAnnotatedTasks(&filter)
+		tasks, err := db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
 		Ω(len(tasks)).Should(Equal(2), "returns two tasks")
 		Ω(tasks[0].Owner).Should(Equal("fourth"))
@@ -260,7 +260,7 @@ var _ = Describe("Task Management", func() {
 			ForStatus: "done",
 			Limit:     "2",
 		}
-		tasks, err = db.GetAllAnnotatedTasks(&filter)
+		tasks, err = db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
 		Ω(len(tasks)).Should(Equal(2), "returns two tasks")
 		Ω(tasks[0].Owner).Should(Equal("fourth"))
@@ -270,12 +270,12 @@ var _ = Describe("Task Management", func() {
 		filter = TaskFilter{
 			Limit: "-1",
 		}
-		tasks, err = db.GetAllAnnotatedTasks(&filter)
+		tasks, err = db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
 		Ω(len(tasks)).Should(Equal(4), "returns four tasks")
 	})
 
-	Describe("GetAnnotatedTask", func() {
+	Describe("GetTask", func() {
 		TASK1_UUID := uuid.NewRandom()
 		TASK2_UUID := uuid.NewRandom()
 
@@ -293,9 +293,9 @@ var _ = Describe("Task Management", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Returns an individual task even when not associated with anything", func() {
-			task, err := db.GetAnnotatedTask(TASK1_UUID)
+			task, err := db.GetTask(TASK1_UUID)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(task).Should(BeEquivalentTo(&AnnotatedTask{
+			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK1_UUID.String(),
 				Owner:       "system",
 				Op:          "backup",
@@ -308,9 +308,9 @@ var _ = Describe("Task Management", func() {
 			}))
 		})
 		It("Returns an individual task when associated with job/archive", func() {
-			task, err := db.GetAnnotatedTask(TASK2_UUID)
+			task, err := db.GetTask(TASK2_UUID)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(task).Should(BeEquivalentTo(&AnnotatedTask{
+			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK2_UUID.String(),
 				Owner:       "system",
 				Op:          "restore",

@@ -9,7 +9,7 @@ import (
 	"github.com/starkandwayne/shield/timespec"
 )
 
-type AnnotatedSchedule struct {
+type Schedule struct {
 	UUID    string `json:"uuid"`
 	Name    string `json:"name"`
 	Summary string `json:"summary"`
@@ -62,8 +62,8 @@ func (f *ScheduleFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSchedule, error) {
-	l := []*AnnotatedSchedule{}
+func (db *DB) GetAllSchedules(filter *ScheduleFilter) ([]*Schedule, error) {
+	l := []*Schedule{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -72,7 +72,7 @@ func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSche
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedSchedule{}
+		ann := &Schedule{}
 		var n int
 
 		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When, &n); err != nil {
@@ -85,7 +85,7 @@ func (db *DB) GetAllAnnotatedSchedules(filter *ScheduleFilter) ([]*AnnotatedSche
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedSchedule(id uuid.UUID) (*AnnotatedSchedule, error) {
+func (db *DB) GetSchedule(id uuid.UUID) (*Schedule, error) {
 	r, err := db.Query(`
 		SELECT uuid, name, summary, timespec
 			FROM schedules WHERE uuid = $1`, id.String())
@@ -98,7 +98,7 @@ func (db *DB) GetAnnotatedSchedule(id uuid.UUID) (*AnnotatedSchedule, error) {
 		return nil, nil
 	}
 
-	ann := &AnnotatedSchedule{}
+	ann := &Schedule{}
 
 	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.When); err != nil {
 		return nil, err
