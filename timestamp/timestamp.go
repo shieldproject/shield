@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const Format = "2006-01-02 15:04:05"
+
 type Timestamp struct {
 	t time.Time
 }
@@ -21,7 +23,7 @@ func (t Timestamp) MarshalJSON() ([]byte, error) {
 	if t.t.IsZero() {
 		return []byte("\"\""), nil
 	}
-	stamp := fmt.Sprintf("\"%s\"", t.t.Format("2006-01-02 15:04:05"))
+	stamp := fmt.Sprintf("\"%s\"", t.t.Format(Format))
 	return []byte(stamp), nil
 }
 
@@ -30,7 +32,7 @@ func (t *Timestamp) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 	var err error
-	t.t, err = time.Parse("2006-01-02 15:04:05", string(b[1:len(b)-1]))
+	t.t, err = time.Parse(Format, string(b[1:len(b)-1]))
 	return err
 }
 
