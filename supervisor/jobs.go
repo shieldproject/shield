@@ -25,7 +25,7 @@ func (s *Supervisor) GetAllJobs() ([]*Job, error) {
 }
 
 func (j *Job) Task() *Task {
-	t := NewPendingTask(BACKUP)
+	t := NewPendingTask(db.BACKUP)
 	t.StorePlugin = j.Job.StorePlugin
 	t.StoreEndpoint = j.Job.StoreEndpoint
 	t.TargetPlugin = j.Job.TargetPlugin

@@ -92,7 +92,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		// tell the supervisor to schedule a task
 		self.AdhocChan <- AdhocTask{
-			Op:          RESTORE,
+			Op:          db.RESTORE,
 			Owner:       params.Owner,
 			TargetUUID:  tid,
 			ArchiveUUID: id,

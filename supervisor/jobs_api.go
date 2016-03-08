@@ -144,7 +144,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		self.AdhocChan <- AdhocTask{
-			Op:      BACKUP,
+			Op:      db.BACKUP,
 			Owner:   params.Owner,
 			JobUUID: id,
 		}

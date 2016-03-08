@@ -3,40 +3,12 @@ package supervisor
 import (
 	"github.com/pborman/uuid"
 	"time"
-)
 
-type Operation int
-
-const (
-	BACKUP Operation = iota
-	RESTORE
-	PURGE
-)
-
-func (o Operation) String() string {
-	switch o {
-	case BACKUP:
-		return "backup"
-	case RESTORE:
-		return "restore"
-	case PURGE:
-		return "purge"
-	default:
-		return "UNKNOWN"
-	}
-}
-
-type Status int
-
-const (
-	PENDING Status = iota
-	RUNNING
-	CANCELED
-	DONE
+	"github.com/starkandwayne/shield/db"
 )
 
 type AdhocTask struct {
-	Op    Operation
+	Op    db.Operation
 	Owner string
 
 	TargetUUID  uuid.UUID
@@ -57,8 +29,8 @@ type Task struct {
 	RestoreKey     string
 	Agent          string
 
-	Op       Operation
-	Status   Status
+	Op       db.Operation
+	Status   db.Status
 	Attempts int
 
 	StartedAt time.Time
@@ -68,10 +40,10 @@ type Task struct {
 	Output []string
 }
 
-func NewPendingTask(Op Operation) *Task {
+func NewPendingTask(Op db.Operation) *Task {
 	return &Task{
 		Op:     Op,
-		Status: PENDING,
+		Status: db.PENDING,
 		Output: make([]string, 0),
 	}
 }

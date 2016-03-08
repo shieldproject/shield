@@ -111,7 +111,7 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 	log.Infof("schedule adhoc %s job", a.Op)
 
 	switch a.Op {
-	case BACKUP:
+	case db.BACKUP:
 		// expect a JobUUID to move to the schedq Immediately
 		for _, job := range s.jobq {
 			if !uuid.Equal(job.Job.UUID, a.JobUUID) {
@@ -130,8 +130,8 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 			s.ScheduleTask(task)
 		}
 
-	case RESTORE:
-		task := NewPendingTask(RESTORE)
+	case db.RESTORE:
+		task := NewPendingTask(db.RESTORE)
 		err := s.Database.GetRestoreTaskDetails(
 			a.ArchiveUUID, a.TargetUUID,
 			&task.StorePlugin, &task.StoreEndpoint, &task.RestoreKey,
@@ -429,7 +429,7 @@ func (s *Supervisor) PurgeArchives() {
 }
 
 func (s *Supervisor) SchedulePurgeTask(archive *db.Archive) error {
-	task := NewPendingTask(PURGE)
+	task := NewPendingTask(db.PURGE)
 	id, err := s.Database.CreatePurgeTask("system", archive)
 	if err != nil {
 		return err

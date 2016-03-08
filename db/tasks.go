@@ -10,6 +10,35 @@ import (
 	. "github.com/starkandwayne/shield/timestamp"
 )
 
+type Operation int
+
+const (
+	BACKUP Operation = iota
+	RESTORE
+	PURGE
+)
+
+func (o Operation) String() string {
+	switch o {
+	case BACKUP:
+		return "backup"
+	case RESTORE:
+		return "restore"
+	case PURGE:
+		return "purge"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+type Status int
+
+const (
+	PENDING Status = iota
+	RUNNING
+	CANCELED
+	DONE
+)
 type Task struct {
 	UUID        string    `json:"uuid"`
 	Owner       string    `json:"owner"`

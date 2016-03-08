@@ -11,6 +11,7 @@ import (
 	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/agent"
+	"github.com/starkandwayne/shield/db"
 )
 
 type UpdateOp int
@@ -122,7 +123,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		client.Close()
 
 		out := <-final
-		if t.Op == BACKUP {
+		if t.Op == db.BACKUP {
 			// parse JSON from standard output and get the restore key
 			// (this might fail, we might not get a key, etc.)
 			v := struct {
@@ -154,7 +155,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			}
 		}
 
-		if t.Op == PURGE && !jobFailed {
+		if t.Op == db.PURGE && !jobFailed {
 			updates <- WorkerUpdate{
 				Task:    t.UUID,
 				Op:      PURGE_ARCHIVE,
