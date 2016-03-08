@@ -203,6 +203,7 @@ CREATE TABLE tasks (
   store_uuid      UUID, -- (v2)
   store_plugin    TEXT, -- (v3)
   store_endpoint  TEXT, -- (v3)
+  restore_key     TEXT, -- (v3)
 
   status       status, -- current status of the task
   requested_at INTEGER NOT NULL, -- when the task was _created_

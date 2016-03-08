@@ -58,6 +58,7 @@ type Task struct {
 	StoppedAt      Timestamp `json:"stopped_at"`
 	TimeoutAt      Timestamp `json:"-"`
 	Attempts       int       `json:"-"`
+	RestoreKey     string    `json:"-"`
 	Agent          string    `json:"-"`
 	Log            string    `json:"log"`
 }

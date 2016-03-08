@@ -23,6 +23,11 @@ func (s v3Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN restore_key TEXT DEFAULT ''`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`ALTER TABLE tasks ADD COLUMN timeout_at INTEGER DEFAULT NULL`)
 	if err != nil {
 		return err
