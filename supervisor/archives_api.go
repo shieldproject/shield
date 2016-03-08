@@ -78,11 +78,13 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		var tid uuid.UUID
 		if params.Target == "" {
-			params.Target = archive.TargetUUID
+			tid = archive.TargetUUID
+		} else {
+			tid = uuid.Parse(params.Target)
 		}
 
-		tid := uuid.Parse(params.Target)
 		// find the target
 		_, err = self.Data.GetTarget(id)
 		if err != nil {

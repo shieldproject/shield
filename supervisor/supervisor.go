@@ -405,7 +405,7 @@ func (s *Supervisor) PurgeArchives() {
 	}
 	for _, archive := range toExpire {
 		log.Infof("marking archive %s has expiration date %s, marking as expired", archive.UUID, archive.ExpiresAt)
-		err := s.Database.ExpireArchive(uuid.Parse(archive.UUID))
+		err := s.Database.ExpireArchive(archive.UUID)
 		if err != nil {
 			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
 			continue
@@ -440,7 +440,7 @@ func (s *Supervisor) SchedulePurgeTask(archive *db.Archive) error {
 	task.StoreEndpoint = archive.StoreEndpoint
 	task.Agent = s.PurgeAgent
 	task.RestoreKey = archive.StoreKey
-	task.ArchiveUUID = uuid.Parse(archive.UUID)
+	task.ArchiveUUID = archive.UUID
 	s.ScheduleTask(task)
 	return nil
 }

@@ -12,20 +12,19 @@ import (
 )
 
 type Archive struct {
-	UUID        string    `json:"uuid"`
-	StoreKey    string    `json:"key"`
-	TakenAt     Timestamp `json:"taken_at"`
-	ExpiresAt   Timestamp `json:"expires_at"`
-	Notes       string    `json:"notes"`
-	Status      string    `json:"status"`
-	PurgeReason string    `json:"purge_reason"`
-
-	TargetUUID     string `json:"target_uuid"`
-	TargetPlugin   string `json:"target_plugin"`
-	TargetEndpoint string `json:"target_endpoint"`
-	StoreUUID      string `json:"store_uuid"`
-	StorePlugin    string `json:"store_plugin"`
-	StoreEndpoint  string `json:"store_endpoint"`
+	UUID           uuid.UUID `json:"uuid"`
+	StoreKey       string    `json:"key"`
+	TakenAt        Timestamp `json:"taken_at"`
+	ExpiresAt      Timestamp `json:"expires_at"`
+	Notes          string    `json:"notes"`
+	Status         string    `json:"status"`
+	PurgeReason    string    `json:"purge_reason"`
+	TargetUUID     uuid.UUID `json:"target_uuid"`
+	TargetPlugin   string    `json:"target_plugin"`
+	TargetEndpoint string    `json:"target_endpoint"`
+	StoreUUID      uuid.UUID `json:"store_uuid"`
+	StorePlugin    string    `json:"store_plugin"`
+	StoreEndpoint  string    `json:"store_endpoint"`
 }
 
 type ArchiveFilter struct {
@@ -127,19 +126,21 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		ann := &Archive{}
 
 		var takenAt, expiresAt *int64
+		var thisUUID, targetUUID, storeUUID string
 		if err = r.Scan(
-			&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+			&thisUUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+			&targetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&storeUUID, &ann.StorePlugin, &ann.StoreEndpoint,
 			&ann.Status, &ann.PurgeReason); err != nil {
 
 			return l, err
 		}
-
+		ann.UUID = uuid.Parse(thisUUID)
+		ann.TargetUUID = uuid.Parse(targetUUID)
+		ann.StoreUUID = uuid.Parse(storeUUID)
 		if takenAt != nil {
 			ann.TakenAt = parseEpochTime(*takenAt)
 		}
-
 		if expiresAt != nil {
 			ann.ExpiresAt = parseEpochTime(*expiresAt)
 		}
@@ -173,19 +174,21 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	ann := &Archive{}
 
 	var takenAt, expiresAt *int64
+	var thisUUID, targetUUID, storeUUID string
 	if err = r.Scan(
-		&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-		&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+		&thisUUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+		&targetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&storeUUID, &ann.StorePlugin, &ann.StoreEndpoint,
 		&ann.Status, &ann.PurgeReason); err != nil {
 
 		return nil, err
 	}
-
+	ann.UUID = uuid.Parse(thisUUID)
+	ann.TargetUUID = uuid.Parse(targetUUID)
+	ann.StoreUUID = uuid.Parse(storeUUID)
 	if takenAt != nil {
 		ann.TakenAt = parseEpochTime(*takenAt)
 	}
-
 	if expiresAt != nil {
 		ann.ExpiresAt = parseEpochTime(*expiresAt)
 	}

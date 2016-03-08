@@ -229,7 +229,7 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (uuid.UUID, error)
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, "purge", archive.UUID, archive.StoreUUID, "pending", "", time.Now().Unix(),
+		id.String(), owner, "purge", archive.UUID.String(), archive.StoreUUID.String(), "pending", "", time.Now().Unix(),
 	)
 }
 

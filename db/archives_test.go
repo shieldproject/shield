@@ -140,17 +140,17 @@ var _ = Describe("Archive Management", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(a).ShouldNot(BeNil())
 				Expect(a).Should(BeEquivalentTo(&Archive{
-					UUID:           ARCHIVE_UUID.String(),
+					UUID:           ARCHIVE_UUID,
 					StoreKey:       "key",
 					TakenAt:        NewTimestamp(time.Unix(0, 0).UTC()),
 					ExpiresAt:      NewTimestamp(time.Unix(0, 0).UTC()),
 					Notes:          "my_notes",
 					Status:         "valid",
 					PurgeReason:    "",
-					TargetUUID:     TARGET_UUID.String(),
+					TargetUUID:     TARGET_UUID,
 					TargetPlugin:   "target_plugin",
 					TargetEndpoint: "target_endpoint",
-					StoreUUID:      STORE_UUID.String(),
+					StoreUUID:      STORE_UUID,
 					StoreEndpoint:  "store_endpoint",
 					StorePlugin:    "store_plugin",
 				}))
@@ -170,7 +170,7 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_PURGED.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_PURGED.String()), "returns the correct archive")
 			})
 			It("When filtering by Target", func() {
 				filter := ArchiveFilter{
@@ -179,7 +179,7 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_TARGET2.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_TARGET2.String()), "returns the correct archive")
 			})
 			It("When filtering by Store", func() {
 				filter := ArchiveFilter{
@@ -188,7 +188,7 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
 			})
 			It("When filtering with After", func() {
 				t := time.Unix(15, 0).UTC()
@@ -201,7 +201,7 @@ var _ = Describe("Archive Management", func() {
 
 				var uuids []string
 				for _, e := range archives {
-					uuids = append(uuids, e.UUID)
+					uuids = append(uuids, e.UUID.String())
 				}
 				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED.String(), ARCHIVE_TARGET2.String(), ARCHIVE_STORE2.String()}),
 					"returns the correct archives")
@@ -214,7 +214,7 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_UUID.String()), "returns the correct archive in the first result")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_UUID.String()), "returns the correct archive in the first result")
 			})
 			It("When filtering via a combination of values", func() {
 				t := time.Unix(15, 0).UTC()
@@ -225,7 +225,7 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
 
 			})
 			It("When filtering by WithoutStatus", func() {
@@ -238,7 +238,7 @@ var _ = Describe("Archive Management", func() {
 
 				var uuids []string
 				for _, e := range archives {
-					uuids = append(uuids, e.UUID)
+					uuids = append(uuids, e.UUID.String())
 				}
 				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED.String(), ARCHIVE_PURGED.String(), ARCHIVE_INVALID.String(), ARCHIVE_STORE2.String()}),
 					"returns the correct archives")
