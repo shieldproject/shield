@@ -8,12 +8,12 @@ import (
 )
 
 type Target struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	Summary  string `json:"summary"`
-	Plugin   string `json:"plugin"`
-	Endpoint string `json:"endpoint"`
-	Agent    string `json:"agent"`
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Summary  string    `json:"summary"`
+	Plugin   string    `json:"plugin"`
+	Endpoint string    `json:"endpoint"`
+	Agent    string    `json:"agent"`
 }
 
 type TargetFilter struct {
@@ -79,10 +79,11 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 	for r.Next() {
 		ann := &Target{}
 		var n int
-
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent, &n); err != nil {
+		var thisUUID string
+		if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent, &n); err != nil {
 			return l, err
 		}
+		ann.UUID = uuid.Parse(thisUUID)
 
 		l = append(l, ann)
 	}
@@ -107,10 +108,11 @@ func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 	}
 
 	ann := &Target{}
-
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent); err != nil {
+	var thisUUID string
+	if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent); err != nil {
 		return nil, err
 	}
+	ann.UUID = uuid.Parse(thisUUID)
 
 	return ann, nil
 }
