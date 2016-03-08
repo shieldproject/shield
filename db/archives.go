@@ -106,8 +106,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY a.taken_at DESC, a.uuid ASC
-	` + limit, //End of SQL query
-		args
+	` + limit, args
 }
 
 func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {

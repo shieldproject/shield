@@ -39,16 +39,26 @@ const (
 	CANCELED
 	DONE
 )
+
 type Task struct {
-	UUID        string    `json:"uuid"`
-	Owner       string    `json:"owner"`
-	Op          string    `json:"type"`
-	JobUUID     string    `json:"job_uuid"`
-	ArchiveUUID string    `json:"archive_uuid"`
-	Status      string    `json:"status"`
-	StartedAt   Timestamp `json:"started_at"`
-	StoppedAt   Timestamp `json:"stopped_at"`
-	Log         string    `json:"log"`
+	UUID           string    `json:"uuid"`
+	Owner          string    `json:"owner"`
+	Op             string    `json:"type"`
+	JobUUID        string    `json:"job_uuid"`
+	ArchiveUUID    string    `json:"archive_uuid"`
+	StoreUUID      uuid.UUID `json:"-"`
+	StorePlugin    string    `json:"-"`
+	StoreEndpoint  string    `json:"-"`
+	TargetUUID     uuid.UUID `json:"-"`
+	TargetPlugin   string    `json:"-"`
+	TargetEndpoint string    `json:"-"`
+	Status         string    `json:"status"`
+	StartedAt      Timestamp `json:"started_at"`
+	StoppedAt      Timestamp `json:"stopped_at"`
+	TimeoutAt      Timestamp `json:"-"`
+	Attempts       int       `json:"-"`
+	Agent          string    `json:"-"`
+	Log            string    `json:"log"`
 }
 
 type TaskFilter struct {
@@ -57,6 +67,7 @@ type TaskFilter struct {
 	SkipInactive bool
 	ForStatus    string
 	Limit        string
+	// FIXME: add options for store / target
 }
 
 func ValidateEffectiveUnix(effective time.Time) int64 {
@@ -96,14 +107,16 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	}
 	return `
 		SELECT t.uuid, t.owner, t.op, t.job_uuid, t.archive_uuid,
-		       t.status, t.started_at, t.stopped_at, t.log
+		       t.store_uuid,  t.store_plugin,  t.store_endpoint,
+		       t.target_uuid, t.target_plugin, t.target_endpoint,
+		       t.status, t.started_at, t.stopped_at, t.timeout_at,
+		       t.attempts, t.agent, t.log
 
 		FROM tasks t
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY t.started_at DESC, t.uuid ASC
-	` + limit, //End of SQL Query
-		args
+	` + limit, args
 }
 
 func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
@@ -117,35 +130,50 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 
 	for r.Next() {
 		ann := &Task{}
-
-		var archive interface{}
-		var job interface{}
-		var log interface{}
-
-		var started, stopped *int64
+		var (
+			archive, job, store, target, log interface{}
+			started, stopped, deadline       *int64
+		)
 		if err = r.Scan(
 			&ann.UUID, &ann.Owner, &ann.Op, &job, &archive,
-			&ann.Status, &started, &stopped, &log); err != nil {
+			&store, &ann.StorePlugin, &ann.StoreEndpoint,
+			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&ann.Status, &started, &stopped, &deadline,
+			&ann.Attempts, &ann.Agent, &log); err != nil {
 			return l, err
 		}
 
 		if job != nil {
-			if jstr, ok := job.([]byte); ok {
-				ann.JobUUID = string(jstr)
+			if s, ok := job.([]byte); ok {
+				ann.JobUUID = string(s)
 			} else {
 				return nil, fmt.Errorf("DB returned unexpected data type for `job_uuid`")
 			}
 		}
 		if archive != nil {
-			if astr, ok := archive.([]byte); ok {
-				ann.ArchiveUUID = string(astr)
+			if s, ok := archive.([]byte); ok {
+				ann.ArchiveUUID = string(s)
 			} else {
 				return nil, fmt.Errorf("DB returned unexpected data type for `archive_uuid`")
 			}
 		}
+		if store != nil {
+			if s, ok := store.([]byte); ok {
+				ann.StoreUUID = uuid.Parse(string(s))
+			} else {
+				return nil, fmt.Errorf("DB returned unexpected data type for `store_uuid`")
+			}
+		}
+		if target != nil {
+			if s, ok := target.([]byte); ok {
+				ann.TargetUUID = uuid.Parse(string(s))
+			} else {
+				return nil, fmt.Errorf("DB returned unexpected data type for `target_uuid`")
+			}
+		}
 		if log != nil {
-			if lstr, ok := log.([]byte); ok {
-				ann.Log = string(lstr)
+			if s, ok := log.([]byte); ok {
+				ann.Log = string(s)
 			} else {
 				return nil, fmt.Errorf("DB returned unexpected data type for `log`")
 			}
@@ -153,9 +181,11 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 		if started != nil {
 			ann.StartedAt = parseEpochTime(*started)
 		}
-
 		if stopped != nil {
 			ann.StoppedAt = parseEpochTime(*stopped)
+		}
+		if deadline != nil {
+			ann.TimeoutAt = parseEpochTime(*deadline)
 		}
 
 		l = append(l, ann)
