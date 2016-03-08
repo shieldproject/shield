@@ -223,3 +223,12 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 		id.String(),
 	)
 }
+
+func (j *Job) Reschedule() (err error) {
+	j.NextRun, err = j.Spec.Next(time.Now())
+	return
+}
+
+func (j *Job) Runnable() bool {
+	return j.Paused == false && !j.NextRun.After(time.Now())
+}

@@ -1,9 +1,6 @@
 package supervisor
 
 import (
-	"os"
-	"time"
-
 	//"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
@@ -38,14 +35,9 @@ func (j *Job) Task() *Task {
 }
 
 func (j *Job) Reschedule() error {
-	next, err := j.Job.Spec.Next(time.Now())
-	if err != nil {
-		return err
-	}
-	j.Job.NextRun = next
-	return nil
+	return j.Job.Reschedule()
 }
 
 func (j *Job) Runnable() bool {
-	return j.Job.Paused == false && !j.Job.NextRun.After(time.Now())
+	return j.Job.Runnable()
 }
