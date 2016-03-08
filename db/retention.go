@@ -8,10 +8,10 @@ import (
 )
 
 type RetentionPolicy struct {
-	UUID    string `json:"uuid"`
-	Name    string `json:"name"`
-	Summary string `json:"summary"`
-	Expires uint   `json:"expires"`
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Summary string    `json:"summary"`
+	Expires uint      `json:"expires"`
 }
 
 type RetentionFilter struct {
@@ -71,10 +71,12 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 	for r.Next() {
 		ann := &RetentionPolicy{}
 		var n int
+		var thisUUID string
 
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
+		if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
 			return l, err
 		}
+		ann.UUID = uuid.Parse(thisUUID)
 
 		l = append(l, ann)
 	}
@@ -95,9 +97,11 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 		return nil, nil
 	}
 	ann := &RetentionPolicy{}
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
+	var thisUUID string
+	if err = r.Scan(&thisUUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
 		return nil, err
 	}
+	ann.UUID = uuid.Parse(thisUUID)
 
 	return ann, nil
 }
