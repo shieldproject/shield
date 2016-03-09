@@ -112,12 +112,12 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can create a new backup task", func() {
-		id, err := db.CreateBackupTask("owner-name", SomeJob)
+		task, err := db.CreateBackupTask("owner-name", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(id).ShouldNot(BeNil())
+		Ω(task).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
+		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, task.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = $1`, BackupOperation)
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid = $1`, SomeJob.UUID.String())
@@ -133,12 +133,13 @@ var _ = Describe("Task Management", func() {
 	It("Can create a new purge task", func() {
 		archive, err := db.GetArchive(SomeArchive.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		id, err := db.CreatePurgeTask("owner-name", archive)
+
+		task, err := db.CreatePurgeTask("owner-name", archive, "127.0.0.1:9938")
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(id).ShouldNot(BeNil())
+		Expect(task).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * from tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
+		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, task.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = $1`, PurgeOperation)
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, SomeArchive.UUID.String())
@@ -149,15 +150,16 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE agent = $1`, "127.0.0.1:9938")
 	})
 
 	It("Can create a new restore task", func() {
-		id, err := db.CreateRestoreTask("owner-name", SomeArchive, SomeTarget)
+		task, err := db.CreateRestoreTask("owner-name", SomeArchive, SomeTarget)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(id).ShouldNot(BeNil())
+		Ω(task).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
+		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, task.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = $1`, RestoreOperation)
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, SomeArchive.UUID.String())
@@ -171,11 +173,11 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can start an existing task", func() {
-		id, err := db.CreateBackupTask("bob", SomeJob)
+		task, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(id).ShouldNot(BeNil())
+		Ω(task).ShouldNot(BeNil())
 
-		Ω(db.StartTask(id, time.Now())).Should(Succeed())
+		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE status = $1`, RunningStatus)
@@ -184,12 +186,12 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can cancel a running task", func() {
-		id, err := db.CreateBackupTask("bob", SomeJob)
+		task, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(id).ShouldNot(BeNil())
+		Ω(task).ShouldNot(BeNil())
 
-		Ω(db.StartTask(id, time.Now())).Should(Succeed())
-		Ω(db.CancelTask(id, time.Now())).Should(Succeed())
+		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
+		Ω(db.CancelTask(task.UUID, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE status = $1`, CanceledStatus)
@@ -198,12 +200,12 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can complete a running task", func() {
-		id, err := db.CreateBackupTask("bob", SomeJob)
+		task, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(id).ShouldNot(BeNil())
+		Ω(task).ShouldNot(BeNil())
 
-		Ω(db.StartTask(id, time.Now())).Should(Succeed())
-		Ω(db.CompleteTask(id, time.Now())).Should(Succeed())
+		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
+		Ω(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE status = $1`, DoneStatus)
@@ -212,34 +214,34 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can update the task log piecemeal", func() {
-		id, err := db.CreateBackupTask("bob", SomeJob)
+		task, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(id).ShouldNot(BeNil())
+		Ω(task).ShouldNot(BeNil())
 
 		shouldExist(`SELECT * FROM tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "")
 
-		Ω(db.UpdateTaskLog(id, "line 1\n")).Should(Succeed())
+		Ω(db.UpdateTaskLog(task.UUID, "line 1\n")).Should(Succeed())
 		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n")
 
-		Ω(db.UpdateTaskLog(id, "\n")).Should(Succeed())
+		Ω(db.UpdateTaskLog(task.UUID, "\n")).Should(Succeed())
 		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n\n")
 
-		Ω(db.UpdateTaskLog(id, "line ")).Should(Succeed())
+		Ω(db.UpdateTaskLog(task.UUID, "line ")).Should(Succeed())
 		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n\nline ")
 
-		Ω(db.UpdateTaskLog(id, "2\n")).Should(Succeed())
+		Ω(db.UpdateTaskLog(task.UUID, "2\n")).Should(Succeed())
 		shouldExist(`SELECT * FROM tasks WHERE log = $1`, "line 1\n\nline 2\n")
 	})
 
 	It("Can associate archives with the task", func() {
-		id, err := db.CreateBackupTask("bob", SomeJob)
+		task, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
-		Ω(id).ShouldNot(BeNil())
+		Ω(task).ShouldNot(BeNil())
 
-		Ω(db.StartTask(id, time.Now())).Should(Succeed())
-		Ω(db.CompleteTask(id, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(id, "SOME-KEY", time.Now())
+		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
+		Ω(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
+		archive_id, err := db.CreateTaskArchive(task.UUID, "SOME-KEY", time.Now())
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(archive_id).ShouldNot(BeNil())
 
@@ -255,39 +257,39 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM archives WHERE expires_at IS NOT NULL`)
 	})
 	It("Fails to associate archives with a task, when no restore key is present", func() {
-		id, err := db.CreateBackupTask("bob", SomeJob)
+		task, err := db.CreateBackupTask("bob", SomeJob)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(id).ShouldNot(BeNil())
+		Expect(task).ShouldNot(BeNil())
 
-		Expect(db.StartTask(id, time.Now())).Should(Succeed())
-		Expect(db.CompleteTask(id, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(id, "", time.Now())
+		Expect(db.StartTask(task.UUID, time.Now())).Should(Succeed())
+		Expect(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
+		archive_id, err := db.CreateTaskArchive(task.UUID, "", time.Now())
 		Expect(err).Should(HaveOccurred())
 		Expect(archive_id).Should(BeNil())
 
 		shouldNotExist(`SELECT * from archives where store_key = ''`)
 	})
 	It("Can limit the number of tasks returned", func() {
-		id1, err1 := db.CreateBackupTask("first", SomeJob)
-		id2, err2 := db.CreateBackupTask("second", SomeJob)
-		id3, err3 := db.CreateBackupTask("third", SomeJob)
-		id4, err4 := db.CreateBackupTask("fourth", SomeJob)
+		task1, err1 := db.CreateBackupTask("first", SomeJob)
+		task2, err2 := db.CreateBackupTask("second", SomeJob)
+		task3, err3 := db.CreateBackupTask("third", SomeJob)
+		task4, err4 := db.CreateBackupTask("fourth", SomeJob)
 		Ω(err1).ShouldNot(HaveOccurred())
-		Ω(id1).ShouldNot(BeNil())
+		Ω(task1).ShouldNot(BeNil())
 		Ω(err2).ShouldNot(HaveOccurred())
-		Ω(id2).ShouldNot(BeNil())
+		Ω(task2).ShouldNot(BeNil())
 		Ω(err3).ShouldNot(HaveOccurred())
-		Ω(id3).ShouldNot(BeNil())
+		Ω(task3).ShouldNot(BeNil())
 		Ω(err4).ShouldNot(HaveOccurred())
-		Ω(id4).ShouldNot(BeNil())
+		Ω(task4).ShouldNot(BeNil())
 
-		Ω(db.StartTask(id1, at(0))).Should(Succeed())
-		Ω(db.CompleteTask(id1, at(2))).Should(Succeed())
-		Ω(db.StartTask(id2, at(4))).Should(Succeed())
-		Ω(db.CompleteTask(id2, at(6))).Should(Succeed())
-		Ω(db.StartTask(id3, at(8))).Should(Succeed())
-		Ω(db.StartTask(id4, at(12))).Should(Succeed())
-		Ω(db.CompleteTask(id4, at(14))).Should(Succeed())
+		Ω(db.StartTask(task1.UUID, at(0))).Should(Succeed())
+		Ω(db.CompleteTask(task1.UUID, at(2))).Should(Succeed())
+		Ω(db.StartTask(task2.UUID, at(4))).Should(Succeed())
+		Ω(db.CompleteTask(task2.UUID, at(6))).Should(Succeed())
+		Ω(db.StartTask(task3.UUID, at(8))).Should(Succeed())
+		Ω(db.StartTask(task4.UUID, at(12))).Should(Succeed())
+		Ω(db.CompleteTask(task4.UUID, at(14))).Should(Succeed())
 		shouldExist(`SELECT * FROM tasks`)
 
 		filter := TaskFilter{

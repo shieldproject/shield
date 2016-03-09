@@ -172,9 +172,9 @@ func (db *DB) GetTask(id uuid.UUID) (*Task, error) {
 	return r[0], nil
 }
 
-func (db *DB) CreateBackupTask(owner string, job *Job) (uuid.UUID, error) {
+func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	id := uuid.NewRandom()
-	return id, db.Exec(
+	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
@@ -187,34 +187,55 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (uuid.UUID, error) {
 		job.StoreUUID.String(), job.StorePlugin, job.StoreEndpoint,
 		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, job.Agent, 0,
 	)
+
+	if err != nil {
+		return nil, err
+	}
+	return db.GetTask(id)
 }
 
-func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) (uuid.UUID, error) {
+func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) (*Task, error) {
 	id := uuid.NewRandom()
-	return id, db.Exec(
+	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
-		     target_uuid, target_plugin, target_endpoint, agent, attempts)
+		     target_uuid, target_plugin, target_endpoint,
+		     restore_key, agent, attempts)
 		  VALUES
 		    ($1, $2, $3, $4, $5, $6, $7,
-		     $8, $9, $10, $11, $12)`,
+		     $8, $9, $10,
+		     $11, $12, $13)`,
 		id.String(), owner, RestoreOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
-		target.UUID.String(), target.Plugin, target.Endpoint, target.Agent, 0,
+		target.UUID.String(), target.Plugin, target.Endpoint,
+		archive.StoreKey, target.Agent, 0,
 	)
+
+	if err != nil {
+		return nil, err
+	}
+	return db.GetTask(id)
 }
 
-func (db *DB) CreatePurgeTask(owner string, archive *Archive) (uuid.UUID, error) {
+func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Task, error) {
 	id := uuid.NewRandom()
-	return id, db.Exec(
+	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
-		     store_uuid, store_plugin, store_endpoint, attempts)
+		     store_uuid, store_plugin, store_endpoint,
+		     restore_key, agent, attempts)
 		  VALUES
 		    ($1, $2, $3, $4, $5, $6, $7,
-		     $8, $9, $10, $11)`,
+		     $8, $9, $10,
+		     $11, $12, $13)`,
 		id.String(), owner, PurgeOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
-		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint, 0,
+		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
+		archive.StoreKey, agent, 0,
 	)
+
+	if err != nil {
+		return nil, err
+	}
+	return db.GetTask(id)
 }
 
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {

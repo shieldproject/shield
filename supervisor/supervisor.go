@@ -12,20 +12,6 @@ import (
 	"github.com/starkandwayne/shield/timestamp"
 )
 
-func TaskForJob(j *db.Job) *db.Task {
-	return &db.Task{
-		Op:             db.BackupOperation,
-		Status:         db.PendingStatus,
-		StoreUUID:      j.StoreUUID,
-		StorePlugin:    j.StorePlugin,
-		StoreEndpoint:  j.StoreEndpoint,
-		TargetUUID:     j.TargetUUID,
-		TargetPlugin:   j.TargetPlugin,
-		TargetEndpoint: j.TargetEndpoint,
-		Agent:          j.Agent,
-	}
-}
-
 type Supervisor struct {
 	tick  *time.Ticker
 	purge *time.Ticker
@@ -102,14 +88,11 @@ func (s *Supervisor) CheckSchedule() {
 		}
 
 		log.Infof("scheduling execution of job %s [%s]", job.Name, job.UUID)
-		task := TaskForJob(job)
-		id, err := s.Database.CreateBackupTask("system", job)
+		task, err := s.Database.CreateBackupTask("system", job)
 		if err != nil {
 			log.Errorf("job -> task conversion / database update failed: %s", err)
 			continue
 		}
-
-		task.UUID = id
 		s.ScheduleTask(task)
 
 		err = job.Reschedule()
@@ -135,28 +118,15 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 			}
 
 			log.Infof("scheduling immediate (ad hoc) execution of job %s [%s]", job.Name, job.UUID)
-			task := TaskForJob(job)
-			id, err := s.Database.CreateBackupTask(a.Owner, job)
+			task, err := s.Database.CreateBackupTask(a.Owner, job)
 			if err != nil {
 				log.Errorf("job -> task conversion / database update failed: %s", err)
 				continue
 			}
-
-			task.UUID = id
 			s.ScheduleTask(task)
 		}
 
 	case db.RestoreOperation:
-		// FIXME: this is now a bit redundant
-		task := &db.Task{
-			Op:     db.RestoreOperation,
-			Status: db.PendingStatus,
-		}
-		err := s.Database.GetRestoreTaskDetails(
-			a.ArchiveUUID, a.TargetUUID,
-			&task.StorePlugin, &task.StoreEndpoint, &task.RestoreKey,
-			&task.TargetPlugin, &task.TargetEndpoint, &task.Agent)
-
 		archive, err := s.Database.GetArchive(a.ArchiveUUID)
 		if err != nil {
 			log.Errorf("unable to find archive %s for restore task: %s", a.ArchiveUUID, err)
@@ -167,13 +137,11 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 			log.Errorf("unable to find target %s for restore task: %s", a.TargetUUID, err)
 			return
 		}
-		id, err := s.Database.CreateRestoreTask(a.Owner, archive, target)
+		task, err := s.Database.CreateRestoreTask(a.Owner, archive, target)
 		if err != nil {
 			log.Errorf("restore task database creation failed: %s", err)
 			return
 		}
-
-		task.UUID = id
 		s.ScheduleTask(task)
 	}
 }
@@ -202,9 +170,12 @@ func (s *Supervisor) Sweep() error {
 				continue
 			}
 			log.Warnf("Found archive %s for task %s, purging", archive.UUID, task.UUID)
-			if _, err := s.Database.CreatePurgeTask("", archive); err != nil {
+			task, err := s.Database.CreatePurgeTask("", archive, s.PurgeAgent)
+			if err != nil {
 				log.Errorf("Failed to purge archive %s (for task %s, which was running at boot): %s",
 					archive.UUID, task.UUID, err)
+			} else {
+				s.ScheduleTask(task)
 			}
 		}
 	}
@@ -438,30 +409,11 @@ func (s *Supervisor) PurgeArchives() {
 
 	for _, archive := range toPurge {
 		log.Infof("requesting purge of archive %s due to status '%s'", archive.UUID, archive.Status)
-		err := s.SchedulePurgeTask(archive)
+		task, err := s.Database.CreatePurgeTask("system", archive, s.PurgeAgent)
 		if err != nil {
 			log.Errorf("error scheduling purge of archive %s: %s", archive.UUID, err)
 			continue
 		}
+		s.ScheduleTask(task)
 	}
-}
-
-func (s *Supervisor) SchedulePurgeTask(archive *db.Archive) error {
-	task := &db.Task{
-		Op:     db.PurgeOperation,
-		Status: db.PendingStatus,
-	}
-	id, err := s.Database.CreatePurgeTask("system", archive)
-	if err != nil {
-		return err
-	}
-
-	task.UUID = id
-	task.StorePlugin = archive.StorePlugin
-	task.StoreEndpoint = archive.StoreEndpoint
-	task.Agent = s.PurgeAgent
-	task.RestoreKey = archive.StoreKey
-	task.ArchiveUUID = archive.UUID
-	s.ScheduleTask(task)
-	return nil
 }
