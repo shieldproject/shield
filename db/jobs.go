@@ -233,6 +233,12 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 }
 
 func (j *Job) Reschedule() (err error) {
+	if j.Spec == nil {
+		j.Spec, err = timespec.Parse(j.ScheduleWhen)
+		if err != nil {
+			return
+		}
+	}
 	j.NextRun, err = j.Spec.Next(time.Now())
 	return
 }
