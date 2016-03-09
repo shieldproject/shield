@@ -104,6 +104,10 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
+	if filter == nil {
+		filter = &TaskFilter{}
+	}
+
 	l := []*Task{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)

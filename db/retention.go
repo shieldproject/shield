@@ -60,6 +60,10 @@ func (f *RetentionFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPolicy, error) {
+	if filter == nil {
+		filter = &RetentionFilter{}
+	}
+
 	l := []*RetentionPolicy{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)

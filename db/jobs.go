@@ -105,6 +105,10 @@ func (f *JobFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
+	if filter == nil {
+		filter = &JobFilter{}
+	}
+
 	l := []*Job{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)

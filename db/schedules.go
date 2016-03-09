@@ -63,6 +63,10 @@ func (f *ScheduleFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllSchedules(filter *ScheduleFilter) ([]*Schedule, error) {
+	if filter == nil {
+		filter = &ScheduleFilter{}
+	}
+
 	l := []*Schedule{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)

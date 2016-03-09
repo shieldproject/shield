@@ -301,7 +301,7 @@ var _ = Describe("Archive Management", func() {
 			var expectedArchiveCount int
 
 			BeforeEach(func() {
-				all, err := db.GetAllArchives(&ArchiveFilter{})
+				all, err := db.GetAllArchives(nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				valid, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"valid"}})
 				Expect(err).ShouldNot(HaveOccurred())
@@ -351,7 +351,7 @@ var _ = Describe("Archive Management", func() {
 					`", "key", 20, 20, "invalid")`)
 				Expect(err).ShouldNot(HaveOccurred())
 				// get expeted count of expired archives
-				all, err := db.GetAllArchives(&ArchiveFilter{})
+				all, err := db.GetAllArchives(nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				expectedArchiveCount = len(all) - 2 // two un-expirable results in the db currently

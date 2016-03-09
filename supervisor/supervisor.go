@@ -54,7 +54,7 @@ func NewSupervisor() *Supervisor {
 }
 
 func (s *Supervisor) Resync() error {
-	jobq, err := s.Database.GetAllJobs(&db.JobFilter{})
+	jobq, err := s.Database.GetAllJobs(nil)
 	if err != nil {
 		return err
 	}

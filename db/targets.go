@@ -68,6 +68,10 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
+	if filter == nil {
+		filter = &TargetFilter{}
+	}
+
 	l := []*Target{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)

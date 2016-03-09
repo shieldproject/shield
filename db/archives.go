@@ -109,6 +109,10 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
+	if filter == nil {
+		filter = &ArchiveFilter{}
+	}
+
 	l := []*Archive{}
 	if filter.Limit != "" {
 		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {

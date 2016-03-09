@@ -66,6 +66,10 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
+	if filter == nil {
+		filter = &StoreFilter{}
+	}
+
 	l := []*Store{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
