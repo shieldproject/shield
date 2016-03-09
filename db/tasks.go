@@ -94,7 +94,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		       t.store_uuid,  t.store_plugin,  t.store_endpoint,
 		       t.target_uuid, t.target_plugin, t.target_endpoint,
 		       t.status, t.started_at, t.stopped_at, t.timeout_at,
-		       t.attempts, t.agent, t.log
+		       t.restore_key, t.attempts, t.agent, t.log
 
 		FROM tasks t
 
@@ -128,7 +128,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 			&store, &ann.StorePlugin, &ann.StoreEndpoint,
 			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Status, &started, &stopped, &deadline,
-			&ann.Attempts, &ann.Agent, &log); err != nil {
+			&ann.RestoreKey, &ann.Attempts, &ann.Agent, &log); err != nil {
 			return l, err
 		}
 		ann.UUID = this.UUID
@@ -203,13 +203,16 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
+		     store_uuid, store_plugin, store_endpoint,
 		     target_uuid, target_plugin, target_endpoint,
 		     restore_key, agent, attempts)
 		  VALUES
 		    ($1, $2, $3, $4, $5, $6, $7,
 		     $8, $9, $10,
-		     $11, $12, $13)`,
+		     $11, $12, $13,
+		     $14, $15, $16)`,
 		id.String(), owner, RestoreOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
+		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
 		target.UUID.String(), target.Plugin, target.Endpoint,
 		archive.StoreKey, target.Agent, 0,
 	)

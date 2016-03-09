@@ -79,9 +79,9 @@ var _ = Describe("Task Management", func() {
 			           "`+SomeRetention.UUID.String()+`", "`+SomeSchedule.UUID.String()+`")`,
 
 			// need an archive
-			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at)
+			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
 			    VALUES("`+SomeArchive.UUID.String()+`", "`+SomeTarget.UUID.String()+`",
-			           "`+SomeStore.UUID.String()+`", "key", 0, 0)`,
+			           "`+SomeStore.UUID.String()+`", "key", 0, 0, "(no notes)", "valid", "")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())
@@ -164,7 +164,7 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE op = $1`, RestoreOperation)
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, SomeArchive.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE target_uuid = $1`, SomeTarget.UUID.String())
-		shouldExist(`SELECT * from tasks WHERE store_uuid IS NULL`)
+		shouldExist(`SELECT * from tasks WHERE store_uuid = $1`, SomeStore.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE status = $1`, PendingStatus)
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
