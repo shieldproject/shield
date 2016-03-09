@@ -15,7 +15,7 @@ import (
 type ArchiveAPI struct {
 	Data       *db.DB
 	ResyncChan chan int
-	AdhocChan  chan AdhocTask
+	Tasks      chan *db.Task
 }
 
 func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -93,7 +93,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		// tell the supervisor to schedule a task
-		self.AdhocChan <- AdhocTask{
+		self.Tasks <- &db.Task{
 			Op:          db.RestoreOperation,
 			Owner:       params.Owner,
 			TargetUUID:  tid,

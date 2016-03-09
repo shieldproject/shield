@@ -42,7 +42,7 @@ type WorkerRequest struct {
 	RestoreKey     string `json:"restore_key"`
 }
 
-func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
+func worker(id uint, privateKeyFile string, work chan *db.Task, updates chan WorkerUpdate) {
 	config, err := agent.ConfigureSSHClient(privateKeyFile)
 	if err != nil {
 		log.Errorf("worker %d unable to read user key %s: %s; bailing out.\n",
@@ -73,7 +73,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		final := make(chan string)
 		partial := make(chan string)
 
-		go func(out chan string, up chan WorkerUpdate, t Task, in chan string) {
+		go func(out chan string, up chan WorkerUpdate, id uuid.UUID, in chan string) {
 			var buffer []string
 			for {
 				s, ok := <-in
@@ -86,7 +86,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 					buffer = append(buffer, s[2:])
 				case "E:":
 					up <- WorkerUpdate{
-						Task:   t.UUID,
+						Task:   id,
 						Op:     OUTPUT,
 						Output: s[2:] + "\n",
 					}
@@ -94,7 +94,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			}
 			out <- strings.Join(buffer, "")
 			close(out)
-		}(final, updates, t, partial)
+		}(final, updates, t.UUID, partial)
 
 		command, err := json.Marshal(WorkerRequest{
 			Operation:      t.Op,

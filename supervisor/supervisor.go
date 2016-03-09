@@ -9,16 +9,17 @@ import (
 	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/timestamp"
 )
 
-func TaskForJob(j *db.Job) *Task {
-	return &Task{
+func TaskForJob(j *db.Job) *db.Task {
+	return &db.Task{
 		Op:             db.BackupOperation,
 		Status:         db.PendingStatus,
-		//StoreUUID:      j.StoreUUID,
+		StoreUUID:      j.StoreUUID,
 		StorePlugin:    j.StorePlugin,
 		StoreEndpoint:  j.StoreEndpoint,
-		//TargetUUID:     j.TargetUUID,
+		TargetUUID:     j.TargetUUID,
 		TargetPlugin:   j.TargetPlugin,
 		TargetEndpoint: j.TargetEndpoint,
 		Agent:          j.Agent,
@@ -29,9 +30,9 @@ type Supervisor struct {
 	tick    chan int          /* scheduler will send a message at regular intervals */
 	purge   chan int          /* scheduler for purging archive jobs sends a message at regular intervals */
 	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
-	workers chan Task         /* workers read from this channel to get tasks */
+	workers chan *db.Task     /* workers read from this channel to get tasks */
 	updates chan WorkerUpdate /* workers write updates to this channel */
-	adhoc   chan AdhocTask    /* for submission of new adhoc tasks */
+	adhoc   chan *db.Task     /* for submission of new adhoc tasks */
 
 	Database *db.DB
 
@@ -41,8 +42,8 @@ type Supervisor struct {
 	Workers        uint   /* how many workers to spin up */
 	PurgeAgent     string /* What agent to use for purge jobs */
 
-	schedq []*Task
-	runq   []Task
+	schedq []*db.Task
+	runq   []*db.Task
 	jobq   []*db.Job
 
 	nextWorker uint
@@ -54,11 +55,11 @@ func NewSupervisor() *Supervisor {
 		tick:     make(chan int),
 		resync:   make(chan int),
 		purge:    make(chan int),
-		workers:  make(chan Task),
-		adhoc:    make(chan AdhocTask),
+		workers:  make(chan *db.Task),
+		adhoc:    make(chan *db.Task),
 		updates:  make(chan WorkerUpdate),
-		schedq:   make([]*Task, 0),
-		runq:     make([]Task, 0),
+		schedq:   make([]*db.Task, 0),
+		runq:     make([]*db.Task, 0),
 		jobq:     make([]*db.Job, 0),
 		Timeout:  12 * time.Hour,
 		Database: &db.DB{},
@@ -87,8 +88,8 @@ func (s *Supervisor) Resync() error {
 	return nil
 }
 
-func (s *Supervisor) ScheduleTask(t *Task) {
-	t.TimeoutAt = time.Now().Add(s.Timeout)
+func (s *Supervisor) ScheduleTask(t *db.Task) {
+	t.TimeoutAt = timestamp.Now().Add(s.Timeout)
 	log.Infof("schedule task %s with deadline %v", t.UUID, t.TimeoutAt)
 	s.schedq = append(s.schedq, t)
 }
@@ -121,7 +122,7 @@ func (s *Supervisor) CheckSchedule() {
 	}
 }
 
-func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
+func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 	log.Infof("schedule adhoc %s job", a.Op)
 
 	switch a.Op {
@@ -145,7 +146,10 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 		}
 
 	case db.RestoreOperation:
-		task := NewPendingTask(db.RestoreOperation)
+		task := &db.Task{
+			Op:     db.RestoreOperation,
+			Status: db.PendingStatus,
+		}
 		err := s.Database.GetRestoreTaskDetails(
 			a.ArchiveUUID, a.TargetUUID,
 			&task.StorePlugin, &task.StoreEndpoint, &task.RestoreKey,
@@ -230,12 +234,12 @@ func (s *Supervisor) Run() error {
 			// see if any tasks have been running past the timeout period
 			if len(s.runq) > 0 {
 				ok := true
-				lst := make([]Task, 0)
-				now := time.Now()
+				lst := make([]*db.Task, 0)
+				now := timestamp.Now()
 
 				for _, runtask := range s.runq {
 					if now.After(runtask.TimeoutAt) {
-						s.Database.CancelTask(runtask.UUID, now)
+						s.Database.CancelTask(runtask.UUID, now.Time())
 						log.Errorf("shield timed out task '%s' after running for %v", runtask.UUID, s.Timeout)
 						ok = false
 
@@ -253,11 +257,11 @@ func (s *Supervisor) Run() error {
 		SchedQueue:
 			for len(s.schedq) > 0 {
 				select {
-				case s.workers <- *s.schedq[0]:
+				case s.workers <- s.schedq[0]:
 					s.Database.StartTask(s.schedq[0].UUID, time.Now())
 					s.schedq[0].Attempts++
 					log.Infof("sent a task to a worker")
-					s.runq = append(s.runq, *s.schedq[0])
+					s.runq = append(s.runq, s.schedq[0])
 					log.Debugf("added task to the runq")
 					s.schedq = s.schedq[1:]
 				default:
@@ -333,7 +337,7 @@ func (s *Supervisor) SpawnAPI() {
 		jobs := &JobAPI{
 			Data:       db,
 			ResyncChan: s.resync,
-			AdhocChan:  s.adhoc,
+			Tasks:      s.adhoc,
 		}
 		http.Handle("/v1/jobs", jobs)
 		http.Handle("/v1/job/", jobs)
@@ -348,7 +352,7 @@ func (s *Supervisor) SpawnAPI() {
 		archives := &ArchiveAPI{
 			Data:       db,
 			ResyncChan: s.resync,
-			AdhocChan:  s.adhoc,
+			Tasks:      s.adhoc,
 		}
 		http.Handle("/v1/archives", archives)
 		http.Handle("/v1/archive/", archives)
@@ -443,7 +447,10 @@ func (s *Supervisor) PurgeArchives() {
 }
 
 func (s *Supervisor) SchedulePurgeTask(archive *db.Archive) error {
-	task := NewPendingTask(db.PurgeOperation)
+	task := &db.Task{
+		Op:     db.PurgeOperation,
+		Status: db.PendingStatus,
+	}
 	id, err := s.Database.CreatePurgeTask("system", archive)
 	if err != nil {
 		return err
