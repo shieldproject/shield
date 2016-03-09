@@ -177,7 +177,7 @@ func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		id.String(), owner, "backup", job.String(), PendingStatus, "", time.Now().Unix(),
+		id.String(), owner, BackupOperation, job.String(), PendingStatus, "", time.Now().Unix(),
 	)
 }
 
@@ -186,7 +186,7 @@ func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.U
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, "restore", archive.String(), target.String(), PendingStatus, "", time.Now().Unix(),
+		id.String(), owner, RestoreOperation, archive.String(), target.String(), PendingStatus, "", time.Now().Unix(),
 	)
 }
 
@@ -195,7 +195,7 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (uuid.UUID, error)
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, "purge", archive.UUID.String(), archive.StoreUUID.String(), PendingStatus, "", time.Now().Unix(),
+		id.String(), owner, PurgeOperation, archive.UUID.String(), archive.StoreUUID.String(), PendingStatus, "", time.Now().Unix(),
 	)
 }
 
