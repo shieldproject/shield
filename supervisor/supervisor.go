@@ -183,7 +183,7 @@ func (s *Supervisor) Sweep() error {
 		if err := s.Database.FailTask(task.UUID, now); err != nil {
 			return fmt.Errorf("Failed to sweep database of running tasks [%s]: %s", task.UUID, err)
 		}
-		if task.Op == "backup" && task.ArchiveUUID != nil {
+		if task.Op == db.BackupOperation && task.ArchiveUUID != nil {
 			archive, err := s.Database.GetArchive(task.ArchiveUUID)
 			if err != nil {
 				log.Warnf("Unable to retrieve archive %s (for task %s) from the database: %s",

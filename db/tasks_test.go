@@ -76,12 +76,12 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
-		shouldExist(`SELECT * FROM tasks WHERE op = $1`, "backup")
+		shouldExist(`SELECT * FROM tasks WHERE op = $1`, BackupOperation)
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid = $1`, JOB_UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NULL`)
 		shouldExist(`SELECT * from tasks WHERE store_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE target_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "pending")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, PendingStatus)
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
@@ -97,12 +97,12 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * from tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
-		shouldExist(`SELECT * FROM tasks WHERE op = $1`, "purge")
+		shouldExist(`SELECT * FROM tasks WHERE op = $1`, PurgeOperation)
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, ARCHIVE_UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE target_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE store_uuid = $1`, STORE_UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "pending")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, PendingStatus)
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
@@ -116,12 +116,12 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks`)
 		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
-		shouldExist(`SELECT * FROM tasks WHERE op = $1`, "restore")
+		shouldExist(`SELECT * FROM tasks WHERE op = $1`, RestoreOperation)
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, ARCHIVE_UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE target_uuid = $1`, TARGET_UUID.String())
 		shouldExist(`SELECT * from tasks WHERE store_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "pending")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, PendingStatus)
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
@@ -135,7 +135,7 @@ var _ = Describe("Task Management", func() {
 		Ω(db.StartTask(id, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "running")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, RunningStatus)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
 	})
@@ -149,7 +149,7 @@ var _ = Describe("Task Management", func() {
 		Ω(db.CancelTask(id, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "canceled")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, CanceledStatus)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NOT NULL`)
 	})
@@ -163,7 +163,7 @@ var _ = Describe("Task Management", func() {
 		Ω(db.CompleteTask(id, time.Now())).Should(Succeed())
 
 		shouldExist(`SELECT * FROM tasks`)
-		shouldExist(`SELECT * FROM tasks WHERE status = $1`, "done")
+		shouldExist(`SELECT * FROM tasks WHERE status = $1`, DoneStatus)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NOT NULL`)
 	})
@@ -257,7 +257,7 @@ var _ = Describe("Task Management", func() {
 		Ω(tasks[1].Owner).Should(Equal("third"))
 
 		filter = TaskFilter{
-			ForStatus: "done",
+			ForStatus: DoneStatus,
 			Limit:     "2",
 		}
 		tasks, err = db.GetAllTasks(&filter)
@@ -282,13 +282,13 @@ var _ = Describe("Task Management", func() {
 		BeforeEach(func() {
 			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at)`+
 				`VALUES('%s', '%s', '%s', '%s', %d)`,
-				TASK1_UUID.String(), "system", "backup", "pending", 0))
+				TASK1_UUID.String(), "system", BackupOperation, PendingStatus, 0))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = db.Exec(
 				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid)`+
 					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s')`,
-					TASK2_UUID.String(), "system", "restore", "pending", 2,
+					TASK2_UUID.String(), "system", RestoreOperation, PendingStatus, 2,
 					ARCHIVE_UUID.String(), JOB_UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
@@ -298,10 +298,10 @@ var _ = Describe("Task Management", func() {
 			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK1_UUID,
 				Owner:       "system",
-				Op:          "backup",
+				Op:          BackupOperation,
 				JobUUID:     nil,
 				ArchiveUUID: nil,
-				Status:      "pending",
+				Status:      PendingStatus,
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
@@ -313,10 +313,10 @@ var _ = Describe("Task Management", func() {
 			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK2_UUID,
 				Owner:       "system",
-				Op:          "restore",
+				Op:          RestoreOperation,
 				JobUUID:     JOB_UUID,
 				ArchiveUUID: ARCHIVE_UUID,
-				Status:      "pending",
+				Status:      PendingStatus,
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
