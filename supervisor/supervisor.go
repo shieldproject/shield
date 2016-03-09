@@ -103,7 +103,7 @@ func (s *Supervisor) CheckSchedule() {
 
 		log.Infof("scheduling execution of job %s [%s]", job.Name, job.UUID)
 		task := TaskForJob(job)
-		id, err := s.Database.CreateBackupTask("system", job.UUID)
+		id, err := s.Database.CreateBackupTask("system", job)
 		if err != nil {
 			log.Errorf("job -> task conversion / database update failed: %s", err)
 			continue
@@ -136,7 +136,7 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 
 			log.Infof("scheduling immediate (ad hoc) execution of job %s [%s]", job.Name, job.UUID)
 			task := TaskForJob(job)
-			id, err := s.Database.CreateBackupTask(a.Owner, job.UUID)
+			id, err := s.Database.CreateBackupTask(a.Owner, job)
 			if err != nil {
 				log.Errorf("job -> task conversion / database update failed: %s", err)
 				continue
@@ -147,6 +147,7 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 		}
 
 	case db.RestoreOperation:
+		// FIXME: this is now a bit redundant
 		task := &db.Task{
 			Op:     db.RestoreOperation,
 			Status: db.PendingStatus,
@@ -156,7 +157,17 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 			&task.StorePlugin, &task.StoreEndpoint, &task.RestoreKey,
 			&task.TargetPlugin, &task.TargetEndpoint, &task.Agent)
 
-		id, err := s.Database.CreateRestoreTask(a.Owner, a.ArchiveUUID, a.TargetUUID)
+		archive, err := s.Database.GetArchive(a.ArchiveUUID)
+		if err != nil {
+			log.Errorf("unable to find archive %s for restore task: %s", a.ArchiveUUID, err)
+			return
+		}
+		target, err := s.Database.GetTarget(a.TargetUUID)
+		if err != nil {
+			log.Errorf("unable to find target %s for restore task: %s", a.TargetUUID, err)
+			return
+		}
+		id, err := s.Database.CreateRestoreTask(a.Owner, archive, target)
 		if err != nil {
 			log.Errorf("restore task database creation failed: %s", err)
 			return
@@ -187,10 +198,10 @@ func (s *Supervisor) Sweep() error {
 			archive, err := s.Database.GetArchive(task.ArchiveUUID)
 			if err != nil {
 				log.Warnf("Unable to retrieve archive %s (for task %s) from the database: %s",
-					task.UUID, task.ArchiveUUID)
+					task.ArchiveUUID, task.UUID, err)
 				continue
 			}
-			log.Warnf("Found archive %s for task %s, purging", task.ArchiveUUID, task.UUID)
+			log.Warnf("Found archive %s for task %s, purging", archive.UUID, task.UUID)
 			if _, err := s.Database.CreatePurgeTask("", archive); err != nil {
 				log.Errorf("Failed to purge archive %s (for task %s, which was running at boot): %s",
 					archive.UUID, task.UUID, err)

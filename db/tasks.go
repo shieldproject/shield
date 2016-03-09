@@ -172,30 +172,48 @@ func (db *DB) GetTask(id uuid.UUID) (*Task, error) {
 	return r[0], nil
 }
 
-func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
+func (db *DB) CreateBackupTask(owner string, job *Job) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log, requested_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		id.String(), owner, BackupOperation, job.String(), PendingStatus, "", time.Now().Unix(),
+		`INSERT INTO tasks
+		    (uuid, owner, op, job_uuid, status, log, requested_at,
+		     store_uuid, store_plugin, store_endpoint,
+		     target_uuid, target_plugin, target_endpoint, agent, attempts)
+		  VALUES
+		    ($1, $2, $3, $4, $5, $6, $7,
+		     $8, $9, $10,
+		     $11, $12, $13, $14, $15)`,
+		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
+		job.StoreUUID.String(), job.StorePlugin, job.StoreEndpoint,
+		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, job.Agent, 0,
 	)
 }
 
-func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.UUID, error) {
+func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log, requested_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, RestoreOperation, archive.String(), target.String(), PendingStatus, "", time.Now().Unix(),
+		`INSERT INTO tasks
+		    (uuid, owner, op, archive_uuid, status, log, requested_at,
+		     target_uuid, target_plugin, target_endpoint, agent, attempts)
+		  VALUES
+		    ($1, $2, $3, $4, $5, $6, $7,
+		     $8, $9, $10, $11, $12)`,
+		id.String(), owner, RestoreOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
+		target.UUID.String(), target.Plugin, target.Endpoint, target.Agent, 0,
 	)
 }
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, PurgeOperation, archive.UUID.String(), archive.StoreUUID.String(), PendingStatus, "", time.Now().Unix(),
+		`INSERT INTO tasks
+		    (uuid, owner, op, archive_uuid, status, log, requested_at,
+		     store_uuid, store_plugin, store_endpoint, attempts)
+		  VALUES
+		    ($1, $2, $3, $4, $5, $6, $7,
+		     $8, $9, $10, $11)`,
+		id.String(), owner, PurgeOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
+		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint, 0,
 	)
 }
 

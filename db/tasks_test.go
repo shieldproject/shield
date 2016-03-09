@@ -22,13 +22,16 @@ func at(seconds int) time.Time {
 }
 
 var _ = Describe("Task Management", func() {
-	JOB_UUID := uuid.NewRandom()
-	TARGET_UUID := uuid.NewRandom()
-	STORE_UUID := uuid.NewRandom()
-	RETENTION_UUID := uuid.NewRandom()
-	ARCHIVE_UUID := uuid.NewRandom()
+	var (
+		db *DB
 
-	var db *DB
+		SomeJob       *Job
+		SomeTarget    *Target
+		SomeStore     *Store
+		SomeRetention *RetentionPolicy
+		SomeSchedule  *Schedule
+		SomeArchive   *Archive
+	)
 
 	shouldExist := func(q string, params ...interface{}) {
 		n, err := db.Count(q, params...)
@@ -44,32 +47,72 @@ var _ = Describe("Task Management", func() {
 
 	BeforeEach(func() {
 		var err error
+		SomeJob = &Job{UUID: uuid.NewRandom()}
+		SomeTarget = &Target{UUID: uuid.NewRandom()}
+		SomeStore = &Store{UUID: uuid.NewRandom()}
+		SomeRetention = &RetentionPolicy{UUID: uuid.NewRandom()}
+		SomeSchedule = &Schedule{UUID: uuid.NewRandom()}
+		SomeArchive = &Archive{UUID: uuid.NewRandom()}
+
 		db, err = Database(
 			// need a target
-			`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES ("`+TARGET_UUID.String()+`", "plugin", "endpoint", "127.0.0.1:5444")`,
+			`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent)
+			   VALUES ("`+SomeTarget.UUID.String()+`", "Some Target", "", "plugin", "endpoint", "127.0.0.1:5444")`,
 
 			// need a store
-			`INSERT INTO stores (uuid, plugin, endpoint) VALUES ("`+STORE_UUID.String()+`", "plugin", "endpoint")`,
+			`INSERT INTO stores (uuid, name, summary, plugin, endpoint)
+			   VALUES ("`+SomeStore.UUID.String()+`", "Some Store", "", "plugin", "endpoint")`,
 
 			// need a retention policy
-			`INSERT INTO retention (uuid, expiry) VALUES ("`+RETENTION_UUID.String()+`", 3600)`,
+			`INSERT INTO retention (uuid, name, summary, expiry)
+			   VALUES ("`+SomeRetention.UUID.String()+`", "Some Retention", "", 3600)`,
+
+			// need a schedule
+			`INSERT INTO schedules (uuid, name, summary, timespec)
+			   VALUES ("`+SomeSchedule.UUID.String()+`", "Some Schedule", "", "daily 4am")`,
 
 			// need a job
-			`INSERT INTO jobs (uuid, target_uuid, store_uuid, retention_uuid, schedule_uuid)
-				VALUES ("`+JOB_UUID.String()+`", "`+TARGET_UUID.String()+`",
-				        "`+STORE_UUID.String()+`", "`+RETENTION_UUID.String()+`", "ec3e4fe4-99b4-411a-a91e-4887b5929399")`,
+			`INSERT INTO jobs (uuid, name, summary, paused,
+			                   target_uuid, store_uuid, retention_uuid, schedule_uuid)
+			   VALUES ("`+SomeJob.UUID.String()+`", "Some Job", "just a job...", 0,
+			           "`+SomeTarget.UUID.String()+`", "`+SomeStore.UUID.String()+`",
+			           "`+SomeRetention.UUID.String()+`", "`+SomeSchedule.UUID.String()+`")`,
 
 			// need an archive
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at)
-				VALUES("`+ARCHIVE_UUID.String()+`", "`+TARGET_UUID.String()+`",
-						"`+STORE_UUID.String()+`", "key", 0, 0)`,
+			    VALUES("`+SomeArchive.UUID.String()+`", "`+SomeTarget.UUID.String()+`",
+			           "`+SomeStore.UUID.String()+`", "key", 0, 0)`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())
+
+		SomeJob, err = db.GetJob(SomeJob.UUID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(SomeJob).ShouldNot(BeNil())
+
+		SomeTarget, err = db.GetTarget(SomeTarget.UUID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(SomeTarget).ShouldNot(BeNil())
+
+		SomeStore, err = db.GetStore(SomeStore.UUID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(SomeStore).ShouldNot(BeNil())
+
+		SomeRetention, err = db.GetRetentionPolicy(SomeRetention.UUID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(SomeRetention).ShouldNot(BeNil())
+
+		SomeSchedule, err = db.GetSchedule(SomeSchedule.UUID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(SomeSchedule).ShouldNot(BeNil())
+
+		SomeArchive, err = db.GetArchive(SomeArchive.UUID)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(SomeArchive).ShouldNot(BeNil())
 	})
 
 	It("Can create a new backup task", func() {
-		id, err := db.CreateBackupTask("owner-name", JOB_UUID)
+		id, err := db.CreateBackupTask("owner-name", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -77,10 +120,10 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = $1`, BackupOperation)
-		shouldExist(`SELECT * FROM tasks WHERE job_uuid = $1`, JOB_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE job_uuid = $1`, SomeJob.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NULL`)
-		shouldExist(`SELECT * from tasks WHERE store_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE target_uuid IS NULL`)
+		shouldExist(`SELECT * from tasks WHERE store_uuid = $1`, SomeStore.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE target_uuid = $1`, SomeTarget.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE status = $1`, PendingStatus)
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
@@ -88,7 +131,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can create a new purge task", func() {
-		archive, err := db.GetArchive(ARCHIVE_UUID)
+		archive, err := db.GetArchive(SomeArchive.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		id, err := db.CreatePurgeTask("owner-name", archive)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -98,9 +141,9 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = $1`, PurgeOperation)
-		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, ARCHIVE_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, SomeArchive.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE target_uuid IS NULL`)
-		shouldExist(`SELECT * FROM tasks WHERE store_uuid = $1`, STORE_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE store_uuid = $1`, SomeStore.UUID.String())
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE status = $1`, PendingStatus)
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
@@ -109,7 +152,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can create a new restore task", func() {
-		id, err := db.CreateRestoreTask("owner-name", ARCHIVE_UUID, TARGET_UUID)
+		id, err := db.CreateRestoreTask("owner-name", SomeArchive, SomeTarget)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -117,8 +160,8 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE uuid = $1`, id.String())
 		shouldExist(`SELECT * FROM tasks WHERE owner = $1`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = $1`, RestoreOperation)
-		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, ARCHIVE_UUID.String())
-		shouldExist(`SELECT * FROM tasks WHERE target_uuid = $1`, TARGET_UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE archive_uuid = $1`, SomeArchive.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE target_uuid = $1`, SomeTarget.UUID.String())
 		shouldExist(`SELECT * from tasks WHERE store_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE status = $1`, PendingStatus)
@@ -128,7 +171,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can start an existing task", func() {
-		id, err := db.CreateBackupTask("bob", JOB_UUID)
+		id, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -141,7 +184,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can cancel a running task", func() {
-		id, err := db.CreateBackupTask("bob", JOB_UUID)
+		id, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -155,7 +198,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can complete a running task", func() {
-		id, err := db.CreateBackupTask("bob", JOB_UUID)
+		id, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -169,7 +212,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can update the task log piecemeal", func() {
-		id, err := db.CreateBackupTask("bob", JOB_UUID)
+		id, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -190,7 +233,7 @@ var _ = Describe("Task Management", func() {
 	})
 
 	It("Can associate archives with the task", func() {
-		id, err := db.CreateBackupTask("bob", JOB_UUID)
+		id, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(id).ShouldNot(BeNil())
 
@@ -205,14 +248,14 @@ var _ = Describe("Task Management", func() {
 
 		shouldExist(`SELECT * FROM archives`)
 		shouldExist(`SELECT * FROM archives WHERE uuid = $1`, archive_id.String())
-		shouldExist(`SELECT * FROM archives WHERE target_uuid = $1`, TARGET_UUID.String())
-		shouldExist(`SELECT * FROM archives WHERE store_uuid = $1`, STORE_UUID.String())
+		shouldExist(`SELECT * FROM archives WHERE target_uuid = $1`, SomeTarget.UUID.String())
+		shouldExist(`SELECT * FROM archives WHERE store_uuid = $1`, SomeStore.UUID.String())
 		shouldExist(`SELECT * FROM archives WHERE store_key = $1`, "SOME-KEY")
 		shouldExist(`SELECT * FROM archives WHERE taken_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM archives WHERE expires_at IS NOT NULL`)
 	})
 	It("Fails to associate archives with a task, when no restore key is present", func() {
-		id, err := db.CreateBackupTask("bob", JOB_UUID)
+		id, err := db.CreateBackupTask("bob", SomeJob)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(id).ShouldNot(BeNil())
 
@@ -225,10 +268,10 @@ var _ = Describe("Task Management", func() {
 		shouldNotExist(`SELECT * from archives where store_key = ''`)
 	})
 	It("Can limit the number of tasks returned", func() {
-		id1, err1 := db.CreateBackupTask("first", JOB_UUID)
-		id2, err2 := db.CreateBackupTask("second", JOB_UUID)
-		id3, err3 := db.CreateBackupTask("third", JOB_UUID)
-		id4, err4 := db.CreateBackupTask("fourth", JOB_UUID)
+		id1, err1 := db.CreateBackupTask("first", SomeJob)
+		id2, err2 := db.CreateBackupTask("second", SomeJob)
+		id3, err3 := db.CreateBackupTask("third", SomeJob)
+		id4, err4 := db.CreateBackupTask("fourth", SomeJob)
 		Ω(err1).ShouldNot(HaveOccurred())
 		Ω(id1).ShouldNot(BeNil())
 		Ω(err2).ShouldNot(HaveOccurred())
@@ -289,7 +332,7 @@ var _ = Describe("Task Management", func() {
 				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid)`+
 					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s')`,
 					TASK2_UUID.String(), "system", RestoreOperation, PendingStatus, 2,
-					ARCHIVE_UUID.String(), JOB_UUID.String()))
+					SomeArchive.UUID.String(), SomeJob.UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Returns an individual task even when not associated with anything", func() {
@@ -314,8 +357,8 @@ var _ = Describe("Task Management", func() {
 				UUID:        TASK2_UUID,
 				Owner:       "system",
 				Op:          RestoreOperation,
-				JobUUID:     JOB_UUID,
-				ArchiveUUID: ARCHIVE_UUID,
+				JobUUID:     SomeJob.UUID,
+				ArchiveUUID: SomeArchive.UUID,
 				Status:      PendingStatus,
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
