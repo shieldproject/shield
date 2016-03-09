@@ -9,6 +9,7 @@ software, the name of the installation, etc.
 | Method | Path | Arguments | Request Body |
 | :----- | :--- | :-------- | :----------- |
 | GET | /v1/status | - | - |
+| GET | /v1/status/internal | - | - |
 
 ### GET /v1/status
 
@@ -20,6 +21,47 @@ Response Body:
     "version" : "1.0"
 }
 ```
+
+#### GET /v1/status/internal
+
+This API emits information about the _internals_ of the SHIELD
+supervisor.  This information is highly technical, and intended
+mostly for debugging and diagnostic purposes.
+
+```json
+{
+    "pending_tasks"  : [],
+    "running_tasks"  : [],
+    "schedule_queue" : [],
+    "run_queue"      : [
+        {
+            "uuid"         : "f8ce4cf8-1bf9-4f9a-9dc9-052157b57b69",
+            "owner"        : "anon",
+            "type"         : "backup",
+            "job_uuid"     : "c8d52fec-1dc3-4512-b81f-b764281bb5ef",
+            "archive_uuid" : "",
+            "status"       : "pending",
+            "started_at"   : "",
+            "stopped_at"   : "",
+            "log"          : ""
+        }
+    ]
+}
+```
+
+The top-level keys are:
+
+  - **pending_tasks** - Tasks marked as "pending" in the database.
+  - **running_tasks** - Tasks marked as "running" in the database.
+  - **schedule_queue** - Tasks in the supervisor scheduler queue.
+    These tasks will be executed on the next scheduler run, if a
+    worker is available.
+  - **run_queue** - Tasks in the supervisor run queue.  These
+    tasks are currently running on a worker.
+
+**NOTE:** this endpoint is subject to change without notice.  Do
+not rely on the contents, semantics, or format of the response
+body.  The documentation presented here is informative only.
 
 ## Schedules API
 

@@ -330,8 +330,12 @@ func (s *Supervisor) SpawnAPI() {
 		ping := &PingAPI{}
 		http.Handle("/v1/ping", ping)
 
-		status := &StatusAPI{}
+		status := &StatusAPI{
+			Data:  db,
+			Super: s,
+		}
 		http.Handle("/v1/status", status)
+		http.Handle("/v1/status/", status)
 
 		meta := &MetaAPI{
 			PrivateKeyFile: s.PrivateKeyFile,
