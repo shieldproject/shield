@@ -3,6 +3,7 @@ package supervisor
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -270,7 +271,7 @@ func (s *Supervisor) Run() error {
 				}
 
 			case OUTPUT:
-				log.Infof("  %s> %s", u.Task, u.Output)
+				log.Infof("  %s> %s", u.Task, strings.Trim(u.Output, "\n"))
 				if err := s.Database.UpdateTaskLog(u.Task, u.Output); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
