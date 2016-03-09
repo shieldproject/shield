@@ -8,7 +8,7 @@ import (
 )
 
 type AdhocTask struct {
-	Op    db.Operation
+	Op    string
 	Owner string
 
 	TargetUUID  uuid.UUID
@@ -29,8 +29,8 @@ type Task struct {
 	RestoreKey     string
 	Agent          string
 
-	Op       db.Operation
-	Status   db.Status
+	Op       string
+	Status   string
 	Attempts int
 
 	StartedAt time.Time
@@ -40,10 +40,10 @@ type Task struct {
 	Output []string
 }
 
-func NewPendingTask(Op db.Operation) *Task {
+func NewPendingTask(Op string) *Task {
 	return &Task{
 		Op:     Op,
-		Status: db.PENDING,
+		Status: db.PendingStatus,
 		Output: make([]string, 0),
 	}
 }

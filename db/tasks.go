@@ -11,34 +11,16 @@ import (
 	. "github.com/starkandwayne/shield/timestamp"
 )
 
-type Operation int
-
 const (
-	BACKUP Operation = iota
-	RESTORE
-	PURGE
-)
+	BackupOperation  = "backup"
+	RestoreOperation = "restore"
+	PurgeOperation   = "purge"
 
-func (o Operation) String() string {
-	switch o {
-	case BACKUP:
-		return "backup"
-	case RESTORE:
-		return "restore"
-	case PURGE:
-		return "purge"
-	default:
-		return "UNKNOWN"
-	}
-}
-
-type Status int
-
-const (
-	PENDING Status = iota
-	RUNNING
-	CANCELED
-	DONE
+	PendingStatus  = "pending"
+	RunningStatus  = "running"
+	CanceledStatus = "canceled"
+	FailedStatus   = "failed"
+	DoneStatus     = "done"
 )
 
 type Task struct {
@@ -195,7 +177,7 @@ func (db *DB) CreateBackupTask(owner string, job uuid.UUID) (uuid.UUID, error) {
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, job_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		id.String(), owner, "backup", job.String(), "pending", "", time.Now().Unix(),
+		id.String(), owner, "backup", job.String(), PendingStatus, "", time.Now().Unix(),
 	)
 }
 
@@ -204,7 +186,7 @@ func (db *DB) CreateRestoreTask(owner string, archive, target uuid.UUID) (uuid.U
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, target_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, "restore", archive.String(), target.String(), "pending", "", time.Now().Unix(),
+		id.String(), owner, "restore", archive.String(), target.String(), PendingStatus, "", time.Now().Unix(),
 	)
 }
 
@@ -213,7 +195,7 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (uuid.UUID, error)
 	return id, db.Exec(
 		`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-		id.String(), owner, "purge", archive.UUID.String(), archive.StoreUUID.String(), "pending", "", time.Now().Unix(),
+		id.String(), owner, "purge", archive.UUID.String(), archive.StoreUUID.String(), PendingStatus, "", time.Now().Unix(),
 	)
 }
 
@@ -221,7 +203,7 @@ func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
 	return db.Exec(
 		`UPDATE tasks SET status = $1, started_at = $2 WHERE uuid = $3`,
-		"running", validtime, id.String(),
+		RunningStatus, validtime, id.String(),
 	)
 }
 
@@ -233,17 +215,17 @@ func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64) err
 }
 func (db *DB) CancelTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, "canceled", validtime)
+	return db.updateTaskStatus(id, CanceledStatus, validtime)
 }
 
 func (db *DB) FailTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, "failed", validtime)
+	return db.updateTaskStatus(id, FailedStatus, validtime)
 }
 
 func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, "done", validtime)
+	return db.updateTaskStatus(id, DoneStatus, validtime)
 }
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {

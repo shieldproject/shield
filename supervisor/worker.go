@@ -97,7 +97,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		}(final, updates, t, partial)
 
 		command, err := json.Marshal(WorkerRequest{
-			Operation:      t.Op.String(),
+			Operation:      t.Op,
 			TargetPlugin:   t.TargetPlugin,
 			TargetEndpoint: t.TargetEndpoint,
 			StorePlugin:    t.StorePlugin,
@@ -123,7 +123,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		client.Close()
 
 		out := <-final
-		if t.Op == db.BACKUP {
+		if t.Op == db.BackupOperation {
 			// parse JSON from standard output and get the restore key
 			// (this might fail, we might not get a key, etc.)
 			v := struct {
@@ -155,7 +155,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			}
 		}
 
-		if t.Op == db.PURGE && !jobFailed {
+		if t.Op == db.PurgeOperation && !jobFailed {
 			updates <- WorkerUpdate{
 				Task:    t.UUID,
 				Op:      PURGE_ARCHIVE,
