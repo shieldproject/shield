@@ -27,8 +27,9 @@ func TaskForJob(j *db.Job) *db.Task {
 }
 
 type Supervisor struct {
-	tick    chan int          /* scheduler will send a message at regular intervals */
-	purge   chan int          /* scheduler for purging archive jobs sends a message at regular intervals */
+	tick  *time.Ticker
+	purge *time.Ticker
+
 	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
 	workers chan *db.Task     /* workers read from this channel to get tasks */
 	updates chan WorkerUpdate /* workers write updates to this channel */
@@ -52,9 +53,9 @@ type Supervisor struct {
 
 func NewSupervisor() *Supervisor {
 	return &Supervisor{
-		tick:     make(chan int),
+		tick:     time.NewTicker(time.Second * 1),
+		purge:    time.NewTicker(time.Second * 1800),
 		resync:   make(chan int),
-		purge:    make(chan int),
 		workers:  make(chan *db.Task),
 		adhoc:    make(chan *db.Task),
 		updates:  make(chan WorkerUpdate),
@@ -225,10 +226,10 @@ func (s *Supervisor) Run() error {
 				log.Errorf("resync error: %s", err)
 			}
 
-		case <-s.purge:
+		case <-s.purge.C:
 			s.PurgeArchives()
 
-		case <-s.tick:
+		case <-s.tick.C:
 			s.CheckSchedule()
 
 			// see if any tasks have been running past the timeout period
@@ -391,18 +392,6 @@ func (s *Supervisor) SpawnAPI() {
 			panic("HTTP API failed: " + err.Error())
 		}
 	}(s)
-}
-
-func scheduler(c chan int, interval time.Duration) {
-	for {
-		time.Sleep(time.Second * interval)
-		c <- 1
-	}
-}
-
-func (s *Supervisor) SpawnScheduler() {
-	go scheduler(s.tick, 1)
-	go scheduler(s.purge, 1800)
 }
 
 func (s *Supervisor) SpawnWorkers() {
