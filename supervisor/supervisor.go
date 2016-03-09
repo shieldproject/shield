@@ -147,7 +147,7 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 	}
 }
 
-func (s *Supervisor) Sweep() error {
+func (s *Supervisor) FailUnfinishedTasks() error {
 	tasks, err := s.Database.GetAllTasks(
 		&db.TaskFilter{
 			ForStatus: db.RunningStatus,
@@ -184,6 +184,24 @@ func (s *Supervisor) Sweep() error {
 	return nil
 }
 
+func (s *Supervisor) ReschedulePendingTasks() error {
+	tasks, err := s.Database.GetAllTasks(
+		&db.TaskFilter{
+			ForStatus: db.PendingStatus,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("Failed to sweep database of pending tasks: %s", err)
+	}
+
+	for _, task := range tasks {
+		log.Warnf("Found task %s in 'pending' state at startup; rescheduling", task.UUID)
+		s.ScheduleTask(task)
+	}
+
+	return nil
+}
+
 func (s *Supervisor) Run() error {
 	if err := s.Database.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to %s database at %s: %s\n",
@@ -194,11 +212,13 @@ func (s *Supervisor) Run() error {
 		return fmt.Errorf("database failed schema version check: %s\n", err)
 	}
 
-	if err := s.Sweep(); err != nil {
+	if err := s.Resync(); err != nil {
 		return err
 	}
-
-	if err := s.Resync(); err != nil {
+	if err := s.FailUnfinishedTasks(); err != nil {
+		return err
+	}
+	if err := s.ReschedulePendingTasks(); err != nil {
 		return err
 	}
 
