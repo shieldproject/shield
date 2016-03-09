@@ -37,20 +37,10 @@ func main() {
 	}
 
 	s.SpawnAPI()
-	s.SpawnScheduler()
 	s.SpawnWorkers()
 
-	err := s.Run()
-	if err != nil {
-		if e, ok := err.(supervisor.JobFailedError); ok {
-			log.Errorf("errors encountered while retrieving initial jobs list from database")
-			for _, fail := range e.FailedJobs {
-
-				log.Errorf("  - job %s (%s) failed: %s", fail.UUID, fail.Tspec, fail.Error)
-			}
-		} else {
-			log.Errorf("shield daemon failed: %s", err)
-		}
+	if err := s.Run(); err != nil {
+		log.Errorf("shield daemon failed: %s", err)
 	}
 	log.Infof("stopping daemon")
 }

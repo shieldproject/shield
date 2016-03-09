@@ -11,21 +11,20 @@ import (
 	. "github.com/starkandwayne/shield/timestamp"
 )
 
-type AnnotatedArchive struct {
-	UUID        string    `json:"uuid"`
-	StoreKey    string    `json:"key"`
-	TakenAt     Timestamp `json:"taken_at"`
-	ExpiresAt   Timestamp `json:"expires_at"`
-	Notes       string    `json:"notes"`
-	Status      string    `json:"status"`
-	PurgeReason string    `json:"purge_reason"`
-
-	TargetUUID     string `json:"target_uuid"`
-	TargetPlugin   string `json:"target_plugin"`
-	TargetEndpoint string `json:"target_endpoint"`
-	StoreUUID      string `json:"store_uuid"`
-	StorePlugin    string `json:"store_plugin"`
-	StoreEndpoint  string `json:"store_endpoint"`
+type Archive struct {
+	UUID           uuid.UUID `json:"uuid"`
+	StoreKey       string    `json:"key"`
+	TakenAt        Timestamp `json:"taken_at"`
+	ExpiresAt      Timestamp `json:"expires_at"`
+	Notes          string    `json:"notes"`
+	Status         string    `json:"status"`
+	PurgeReason    string    `json:"purge_reason"`
+	TargetUUID     uuid.UUID `json:"target_uuid"`
+	TargetPlugin   string    `json:"target_plugin"`
+	TargetEndpoint string    `json:"target_endpoint"`
+	StoreUUID      uuid.UUID `json:"store_uuid"`
+	StorePlugin    string    `json:"store_plugin"`
+	StoreEndpoint  string    `json:"store_endpoint"`
 }
 
 type ArchiveFilter struct {
@@ -106,12 +105,15 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY a.taken_at DESC, a.uuid ASC
-	` + limit, //End of SQL query
-		args
+	` + limit, args
 }
 
-func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchive, error) {
-	l := []*AnnotatedArchive{}
+func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
+	if filter == nil {
+		filter = &ArchiveFilter{}
+	}
+
+	l := []*Archive{}
 	if filter.Limit != "" {
 		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
 			return l, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
@@ -125,22 +127,24 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedArchive{}
+		ann := &Archive{}
 
 		var takenAt, expiresAt *int64
+		var this, target, store NullUUID
 		if err = r.Scan(
-			&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&store, &ann.StorePlugin, &ann.StoreEndpoint,
 			&ann.Status, &ann.PurgeReason); err != nil {
 
 			return l, err
 		}
-
+		ann.UUID = this.UUID
+		ann.TargetUUID = target.UUID
+		ann.StoreUUID = store.UUID
 		if takenAt != nil {
 			ann.TakenAt = parseEpochTime(*takenAt)
 		}
-
 		if expiresAt != nil {
 			ann.ExpiresAt = parseEpochTime(*expiresAt)
 		}
@@ -151,7 +155,7 @@ func (db *DB) GetAllAnnotatedArchives(filter *ArchiveFilter) ([]*AnnotatedArchiv
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
+func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	r, err := db.Query(`
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
@@ -171,22 +175,24 @@ func (db *DB) GetAnnotatedArchive(id uuid.UUID) (*AnnotatedArchive, error) {
 	if !r.Next() {
 		return nil, nil
 	}
-	ann := &AnnotatedArchive{}
+	ann := &Archive{}
 
 	var takenAt, expiresAt *int64
+	var this, target, store NullUUID
 	if err = r.Scan(
-		&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-		&ann.TargetUUID, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&ann.StoreUUID, &ann.StorePlugin, &ann.StoreEndpoint,
+		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+		&target, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&store, &ann.StorePlugin, &ann.StoreEndpoint,
 		&ann.Status, &ann.PurgeReason); err != nil {
 
 		return nil, err
 	}
-
+	ann.UUID = this.UUID
+	ann.TargetUUID = target.UUID
+	ann.StoreUUID = store.UUID
 	if takenAt != nil {
 		ann.TakenAt = parseEpochTime(*takenAt)
 	}
-
 	if expiresAt != nil {
 		ann.ExpiresAt = parseEpochTime(*expiresAt)
 	}
@@ -201,20 +207,20 @@ func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
 	)
 }
 
-func (db *DB) GetArchivesNeedingPurge() ([]*AnnotatedArchive, error) {
+func (db *DB) GetArchivesNeedingPurge() ([]*Archive, error) {
 	filter := &ArchiveFilter{
 		WithOutStatus: []string{"purged", "valid"},
 	}
-	return db.GetAllAnnotatedArchives(filter)
+	return db.GetAllArchives(filter)
 }
 
-func (db *DB) GetExpiredArchives() ([]*AnnotatedArchive, error) {
+func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 	now := time.Now()
 	filter := &ArchiveFilter{
 		ExpiresBefore: &now,
 		WithStatus:    []string{"valid"},
 	}
-	return db.GetAllAnnotatedArchives(filter)
+	return db.GetAllArchives(filter)
 }
 
 func (db *DB) InvalidateArchive(id uuid.UUID) error {
@@ -222,7 +228,7 @@ func (db *DB) InvalidateArchive(id uuid.UUID) error {
 }
 
 func (db *DB) PurgeArchive(id uuid.UUID) error {
-	a, err := db.GetAnnotatedArchive(id)
+	a, err := db.GetArchive(id)
 	if err != nil {
 		return err
 	}

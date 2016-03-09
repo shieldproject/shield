@@ -23,14 +23,14 @@ var _ = Describe("Archive Management", func() {
 	var db *DB
 
 	shouldHaveArchiveStatus := func(id uuid.UUID, status string) {
-		a, err := db.GetAnnotatedArchive(id)
+		a, err := db.GetArchive(id)
 		Ω(err).ShouldNot(HaveOccurred(), "Retrieving the archive should not have failed")
 		Expect(a).ShouldNot(BeNil(), "An archive should be returned")
 		Expect(a.Status).Should(Equal(status), "the archive should have correct status")
 	}
 
 	shouldHavePurgeReason := func(id uuid.UUID, reason string) {
-		a, err := db.GetAnnotatedArchive(id)
+		a, err := db.GetArchive(id)
 		Ω(err).ShouldNot(HaveOccurred(), "Retrieving the archive should not have failed")
 		Expect(a).ShouldNot(BeNil(), "An archive should be returned")
 		Expect(a.PurgeReason).Should(Equal(reason), "the archive should have correct purge_reason")
@@ -136,27 +136,27 @@ var _ = Describe("Archive Management", func() {
 		})
 		Describe("Of Individual archives", func() {
 			It("Should return the requested archive", func() {
-				a, err := db.GetAnnotatedArchive(ARCHIVE_UUID)
+				a, err := db.GetArchive(ARCHIVE_UUID)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(a).ShouldNot(BeNil())
-				Expect(a).Should(BeEquivalentTo(&AnnotatedArchive{
-					UUID:           ARCHIVE_UUID.String(),
+				Expect(a).Should(BeEquivalentTo(&Archive{
+					UUID:           ARCHIVE_UUID,
 					StoreKey:       "key",
 					TakenAt:        NewTimestamp(time.Unix(0, 0).UTC()),
 					ExpiresAt:      NewTimestamp(time.Unix(0, 0).UTC()),
 					Notes:          "my_notes",
 					Status:         "valid",
 					PurgeReason:    "",
-					TargetUUID:     TARGET_UUID.String(),
+					TargetUUID:     TARGET_UUID,
 					TargetPlugin:   "target_plugin",
 					TargetEndpoint: "target_endpoint",
-					StoreUUID:      STORE_UUID.String(),
+					StoreUUID:      STORE_UUID,
 					StoreEndpoint:  "store_endpoint",
 					StorePlugin:    "store_plugin",
 				}))
 			})
 			It("Should return error nil/nil if no records exist", func() {
-				a, err := db.GetAnnotatedArchive(uuid.NewRandom())
+				a, err := db.GetArchive(uuid.NewRandom())
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(a).Should(BeNil())
 			})
@@ -167,41 +167,41 @@ var _ = Describe("Archive Management", func() {
 				filter := ArchiveFilter{
 					WithStatus: []string{"purged"},
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_PURGED.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_PURGED.String()), "returns the correct archive")
 			})
 			It("When filtering by Target", func() {
 				filter := ArchiveFilter{
 					ForTarget: TARGET2_UUID.String(),
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_TARGET2.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_TARGET2.String()), "returns the correct archive")
 			})
 			It("When filtering by Store", func() {
 				filter := ArchiveFilter{
 					ForStore: STORE2_UUID.String(),
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
 			})
 			It("When filtering with After", func() {
 				t := time.Unix(15, 0).UTC()
 				filter := ArchiveFilter{
 					After: &t,
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(3), "returns the correct number of archives")
 
 				var uuids []string
 				for _, e := range archives {
-					uuids = append(uuids, e.UUID)
+					uuids = append(uuids, e.UUID.String())
 				}
 				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED.String(), ARCHIVE_TARGET2.String(), ARCHIVE_STORE2.String()}),
 					"returns the correct archives")
@@ -211,10 +211,10 @@ var _ = Describe("Archive Management", func() {
 				filter := ArchiveFilter{
 					Before: &t,
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_UUID.String()), "returns the correct archive in the first result")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_UUID.String()), "returns the correct archive in the first result")
 			})
 			It("When filtering via a combination of values", func() {
 				t := time.Unix(15, 0).UTC()
@@ -222,23 +222,23 @@ var _ = Describe("Archive Management", func() {
 					WithStatus: []string{"invalid"},
 					After:      &t,
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
+				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
 
 			})
 			It("When filtering by WithoutStatus", func() {
 				filter := ArchiveFilter{
 					WithOutStatus: []string{"valid"},
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(4), "returns the correct number of archives")
 
 				var uuids []string
 				for _, e := range archives {
-					uuids = append(uuids, e.UUID)
+					uuids = append(uuids, e.UUID.String())
 				}
 				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED.String(), ARCHIVE_PURGED.String(), ARCHIVE_INVALID.String(), ARCHIVE_STORE2.String()}),
 					"returns the correct archives")
@@ -247,7 +247,7 @@ var _ = Describe("Archive Management", func() {
 				filter := ArchiveFilter{
 					Limit: "3",
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Ω(err).ShouldNot(HaveOccurred(), "does not error")
 				Ω(len(archives)).Should(Equal(3), "returns three archives")
 			})
@@ -256,7 +256,7 @@ var _ = Describe("Archive Management", func() {
 				filter := ArchiveFilter{
 					Limit: "-1",
 				}
-				_, err := db.GetAllAnnotatedArchives(&filter)
+				_, err := db.GetAllArchives(&filter)
 				Ω(err).Should(HaveOccurred(), "does err")
 			})
 			It("errs when given a non-integer number limit", func() {
@@ -264,7 +264,7 @@ var _ = Describe("Archive Management", func() {
 				filter := ArchiveFilter{
 					Limit: "6.8",
 				}
-				_, err := db.GetAllAnnotatedArchives(&filter)
+				_, err := db.GetAllArchives(&filter)
 				Ω(err).Should(HaveOccurred(), "does err")
 			})
 			It("errs when given a non-number limit", func() {
@@ -272,7 +272,7 @@ var _ = Describe("Archive Management", func() {
 				filter := ArchiveFilter{
 					Limit: "$h13ld",
 				}
-				_, err := db.GetAllAnnotatedArchives(&filter)
+				_, err := db.GetAllArchives(&filter)
 				Ω(err).Should(HaveOccurred(), "does err")
 			})
 			It("correctly uses the limit in conjunction with other filters", func() {
@@ -281,7 +281,7 @@ var _ = Describe("Archive Management", func() {
 					WithOutStatus: []string{"valid"},
 					Limit:         "2",
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Ω(err).ShouldNot(HaveOccurred(), "does not err")
 				Ω(len(archives)).Should(Equal(2), "returns two archives")
 			})
@@ -290,7 +290,7 @@ var _ = Describe("Archive Management", func() {
 				filter := ArchiveFilter{
 					Limit: "27",
 				}
-				archives, err := db.GetAllAnnotatedArchives(&filter)
+				archives, err := db.GetAllArchives(&filter)
 				Ω(err).ShouldNot(HaveOccurred(), "does not err")
 				Ω(len(archives)).Should(Equal(6), "returns six archives")
 			})
@@ -301,11 +301,11 @@ var _ = Describe("Archive Management", func() {
 			var expectedArchiveCount int
 
 			BeforeEach(func() {
-				all, err := db.GetAllAnnotatedArchives(&ArchiveFilter{})
+				all, err := db.GetAllArchives(nil)
 				Expect(err).ShouldNot(HaveOccurred())
-				valid, err := db.GetAllAnnotatedArchives(&ArchiveFilter{WithStatus: []string{"valid"}})
+				valid, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"valid"}})
 				Expect(err).ShouldNot(HaveOccurred())
-				purged, err := db.GetAllAnnotatedArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
+				purged, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
 				Expect(err).ShouldNot(HaveOccurred())
 				expectedArchiveCount = len(all) - len(valid) - len(purged)
 			})
@@ -351,7 +351,7 @@ var _ = Describe("Archive Management", func() {
 					`", "key", 20, 20, "invalid")`)
 				Expect(err).ShouldNot(HaveOccurred())
 				// get expeted count of expired archives
-				all, err := db.GetAllAnnotatedArchives(&ArchiveFilter{})
+				all, err := db.GetAllArchives(nil)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				expectedArchiveCount = len(all) - 2 // two un-expirable results in the db currently

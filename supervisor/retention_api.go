@@ -21,7 +21,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
 	case match(req, `GET /v1/retention`):
-		policies, err := self.Data.GetAllAnnotatedRetentionPolicies(
+		policies, err := self.Data.GetAllRetentionPolicies(
 			&db.RetentionFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
@@ -90,7 +90,7 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile("^/v1/retention/")
 		id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
 
-		policy, err := self.Data.GetAnnotatedRetentionPolicy(id)
+		policy, err := self.Data.GetRetentionPolicy(id)
 		if err != nil {
 			bail(w, err)
 			return

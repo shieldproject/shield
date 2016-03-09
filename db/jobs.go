@@ -3,30 +3,35 @@ package db
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/shield/timespec"
 )
 
-type AnnotatedJob struct {
-	UUID           string `json:"uuid"`
-	Name           string `json:"name"`
-	Summary        string `json:"summary"`
-	RetentionName  string `json:"retention_name"`
-	RetentionUUID  string `json:"retention_uuid"`
-	Expiry         int    `json:"expiry"`
-	ScheduleName   string `json:"schedule_name"`
-	ScheduleUUID   string `json:"schedule_uuid"`
-	ScheduleWhen   string `json:"schedule_when"`
-	Paused         bool   `json:"paused"`
-	StoreUUID      string `json:"store_uuid"`
-	StoreName      string `json:"store_name"`
-	StorePlugin    string `json:"store_plugin"`
-	StoreEndpoint  string `json:"store_endpoint"`
-	TargetUUID     string `json:"target_uuid"`
-	TargetName     string `json:"target_name"`
-	TargetPlugin   string `json:"target_plugin"`
-	TargetEndpoint string `json:"target_endpoint"`
-	Agent          string `json:"agent"`
+type Job struct {
+	UUID           uuid.UUID `json:"uuid"`
+	Name           string    `json:"name"`
+	Summary        string    `json:"summary"`
+	RetentionName  string    `json:"retention_name"`
+	RetentionUUID  uuid.UUID `json:"retention_uuid"`
+	Expiry         int       `json:"expiry"`
+	ScheduleName   string    `json:"schedule_name"`
+	ScheduleUUID   uuid.UUID `json:"schedule_uuid"`
+	ScheduleWhen   string    `json:"schedule_when"`
+	Paused         bool      `json:"paused"`
+	StoreUUID      uuid.UUID `json:"store_uuid"`
+	StoreName      string    `json:"store_name"`
+	StorePlugin    string    `json:"store_plugin"`
+	StoreEndpoint  string    `json:"store_endpoint"`
+	TargetUUID     uuid.UUID `json:"target_uuid"`
+	TargetName     string    `json:"target_name"`
+	TargetPlugin   string    `json:"target_plugin"`
+	TargetEndpoint string    `json:"target_endpoint"`
+	Agent          string    `json:"agent"`
+
+	Spec    *timespec.Spec `json:"-"`
+	NextRun time.Time      `json:"-"`
 }
 
 type JobFilter struct {
@@ -99,8 +104,12 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
-	l := []*AnnotatedJob{}
+func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
+	if filter == nil {
+		filter = &JobFilter{}
+	}
+
+	l := []*Job{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -109,17 +118,22 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedJob{}
-
+		ann := &Job{}
+		var this, retention, schedule, store, target NullUUID
 		if err = r.Scan(
-			&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
-			&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
-			&ann.ScheduleName, &ann.ScheduleUUID, &ann.ScheduleWhen,
-			&ann.StoreUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.TargetUUID, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&this, &ann.Name, &ann.Summary, &ann.Paused,
+			&ann.RetentionName, &retention, &ann.Expiry,
+			&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
+			&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+			&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Agent); err != nil {
 			return l, err
 		}
+		ann.UUID = this.UUID
+		ann.RetentionUUID = retention.UUID
+		ann.ScheduleUUID = schedule.UUID
+		ann.StoreUUID = store.UUID
+		ann.TargetUUID = target.UUID
 
 		l = append(l, ann)
 	}
@@ -127,7 +141,7 @@ func (db *DB) GetAllAnnotatedJobs(filter *JobFilter) ([]*AnnotatedJob, error) {
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
+func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
 		SELECT j.uuid, j.name, j.summary, j.paused,
 		       r.name, r.uuid, r.expiry,
@@ -151,17 +165,22 @@ func (db *DB) GetAnnotatedJob(id uuid.UUID) (*AnnotatedJob, error) {
 		return nil, nil
 	}
 
-	ann := &AnnotatedJob{}
-
+	ann := &Job{}
+	var this, retention, schedule, store, target NullUUID
 	if err = r.Scan(
-		&ann.UUID, &ann.Name, &ann.Summary, &ann.Paused,
-		&ann.RetentionName, &ann.RetentionUUID, &ann.Expiry,
-		&ann.ScheduleName, &ann.ScheduleUUID, &ann.ScheduleWhen,
-		&ann.StoreUUID, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
-		&ann.TargetUUID, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&this, &ann.Name, &ann.Summary, &ann.Paused,
+		&ann.RetentionName, &retention, &ann.Expiry,
+		&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
+		&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+		&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&ann.Agent); err != nil {
 		return nil, err
 	}
+	ann.UUID = this.UUID
+	ann.RetentionUUID = retention.UUID
+	ann.ScheduleUUID = schedule.UUID
+	ann.StoreUUID = store.UUID
+	ann.TargetUUID = target.UUID
 
 	return ann, nil
 }
@@ -215,4 +234,19 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 		`DELETE FROM jobs WHERE uuid = $1`,
 		id.String(),
 	)
+}
+
+func (j *Job) Reschedule() (err error) {
+	if j.Spec == nil {
+		j.Spec, err = timespec.Parse(j.ScheduleWhen)
+		if err != nil {
+			return
+		}
+	}
+	j.NextRun, err = j.Spec.Next(time.Now())
+	return
+}
+
+func (j *Job) Runnable() bool {
+	return j.Paused == false && !j.NextRun.After(time.Now())
 }

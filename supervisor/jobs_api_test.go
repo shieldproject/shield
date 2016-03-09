@@ -12,12 +12,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	. "github.com/starkandwayne/shield/supervisor"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 var _ = Describe("/v1/jobs API", func() {
 	var API http.Handler
 	var resyncChan chan int
-	var adhocChan chan AdhocTask
+	var adhocChan chan *db.Task
 
 	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
 
@@ -136,11 +138,11 @@ var _ = Describe("/v1/jobs API", func() {
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
-		adhocChan = make(chan AdhocTask, 1)
+		adhocChan = make(chan *db.Task, 1)
 		API = JobAPI{
 			Data:       data,
 			ResyncChan: resyncChan,
-			AdhocChan:  adhocChan,
+			Tasks:      adhocChan,
 		}
 	})
 

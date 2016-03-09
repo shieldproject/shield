@@ -7,12 +7,12 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AnnotatedStore struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	Summary  string `json:"summary"`
-	Plugin   string `json:"plugin"`
-	Endpoint string `json:"endpoint"`
+type Store struct {
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Summary  string    `json:"summary"`
+	Plugin   string    `json:"plugin"`
+	Endpoint string    `json:"endpoint"`
 }
 
 type StoreFilter struct {
@@ -65,8 +65,12 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, error) {
-	l := []*AnnotatedStore{}
+func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
+	if filter == nil {
+		filter = &StoreFilter{}
+	}
+
+	l := []*Store{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -75,12 +79,13 @@ func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, err
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedStore{}
+		ann := &Store{}
 		var n int
-
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
+		var this NullUUID
+		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
 			return l, err
 		}
+		ann.UUID = this.UUID
 
 		l = append(l, ann)
 	}
@@ -88,7 +93,7 @@ func (db *DB) GetAllAnnotatedStores(filter *StoreFilter) ([]*AnnotatedStore, err
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedStore(id uuid.UUID) (*AnnotatedStore, error) {
+func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	r, err := db.Query(`
 		SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint
 			FROM stores s
@@ -104,11 +109,12 @@ func (db *DB) GetAnnotatedStore(id uuid.UUID) (*AnnotatedStore, error) {
 		return nil, nil
 	}
 
-	ann := &AnnotatedStore{}
-
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+	ann := &Store{}
+	var this NullUUID
+	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
 		return nil, err
 	}
+	ann.UUID = this.UUID
 
 	return ann, nil
 }

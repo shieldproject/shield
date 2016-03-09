@@ -13,6 +13,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	. "github.com/starkandwayne/shield/supervisor"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 var _ = Describe("/v1/tasks API", func() {
@@ -62,7 +64,7 @@ var _ = Describe("/v1/tasks API", func() {
 			`INSERT INTO tasks (uuid, owner, op, job_uuid,
 				status, requested_at, started_at, log)
 				VALUES (
-					"`+TASK1+`", "system", "backup", "`+JOB1+`", "running",
+					"`+TASK1+`", "system", "`+db.BackupOperation+`", "`+JOB1+`", "`+db.RunningStatus+`",
 					`+unixtime("2015-04-15 06:00:00")+`,
 					`+unixtime("2015-04-15 06:00:01")+`,
 					"this is the log"
@@ -72,7 +74,7 @@ var _ = Describe("/v1/tasks API", func() {
 			`INSERT INTO tasks (uuid, owner, op, job_uuid, archive_uuid,
 				status, requested_at, started_at, stopped_at, log)
 				VALUES (
-					"`+TASK2+`", "joe", "restore", "`+JOB2+`", "`+ARCHIVE2+`", "done",
+					"`+TASK2+`", "joe", "`+db.RestoreOperation+`", "`+JOB2+`", "`+ARCHIVE2+`", "`+db.DoneStatus+`",
 					`+unixtime("2015-04-10 17:35:00")+`,
 					`+unixtime("2015-04-10 17:35:01")+`,
 					`+unixtime("2015-04-10 18:19:45")+`,
@@ -83,7 +85,7 @@ var _ = Describe("/v1/tasks API", func() {
 			`INSERT INTO tasks (uuid, owner, op, job_uuid,
 				status, requested_at, started_at, stopped_at, log)
 				VALUES (
-					"`+TASK3+`", "joe", "backup", "`+JOB3+`", "canceled",
+					"`+TASK3+`", "joe", "`+db.BackupOperation+`", "`+JOB3+`", "`+db.CanceledStatus+`",
 					`+unixtime("2015-04-18 19:12:03")+`,
 					`+unixtime("2015-04-18 19:12:05")+`,
 					`+unixtime("2015-04-18 19:13:55")+`,
@@ -91,7 +93,7 @@ var _ = Describe("/v1/tasks API", func() {
 				)`,
 
 			`INSERT INTO tasks (uuid, owner, op, archive_uuid, store_uuid, status, log, requested_at, "job_uuid")
-				VALUES ("`+PURGE1+`", "system", "purge", "`+NIL+`", "`+NIL+`", "valid", "", 0, "")`,
+				VALUES ("`+PURGE1+`", "system", "`+db.PurgeOperation+`", "`+NIL+`", "`+NIL+`", "valid", "", 0, "")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		API = TaskAPI{Data: data}
@@ -104,10 +106,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK3 + `",
 					"owner": "joe",
-					"type": "backup",
+					"type": "` + db.BackupOperation + `",
 					"job_uuid": "` + JOB3 + `",
 					"archive_uuid": "",
-					"status": "canceled",
+					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
 					"log": "cancel!"
@@ -115,10 +117,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK1 + `",
 					"owner": "system",
-					"type": "backup",
+					"type": "` + db.BackupOperation + `",
 					"job_uuid": "` + JOB1 + `",
 					"archive_uuid": "",
-					"status": "running",
+					"status": "` + db.RunningStatus + `",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
 					"log": "this is the log"
@@ -126,10 +128,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK2 + `",
 					"owner": "joe",
-					"type": "restore",
+					"type": "` + db.RestoreOperation + `",
 					"job_uuid": "` + JOB2 + `",
 					"archive_uuid": "` + ARCHIVE2 + `",
-					"status": "done",
+					"status": "` + db.DoneStatus + `",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
 					"log": "restore complete"
@@ -137,7 +139,7 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + PURGE1 + `",
 					"owner": "system",
-					"type": "purge",
+					"type": "` + db.PurgeOperation + `",
 					"job_uuid": "",
 					"archive_uuid": "` + NIL + `",
 					"status": "valid",
@@ -156,10 +158,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK2 + `",
 					"owner": "joe",
-					"type": "restore",
+					"type": "` + db.RestoreOperation + `",
 					"job_uuid": "` + JOB2 + `",
 					"archive_uuid": "` + ARCHIVE2 + `",
-					"status": "done",
+					"status": "` + db.DoneStatus + `",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
 					"log": "restore complete"
@@ -175,10 +177,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "524753f0-4f24-4b63-929c-026d20cf07b1",
 					"owner": "joe",
-					"type": "backup",
+					"type": "` + db.BackupOperation + `",
 					"job_uuid": "5f04aef7-69cc-40e1-9736-4b3ee4caef50",
 					"archive_uuid": "",
-					"status": "canceled",
+					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
 					"log": "cancel!"
@@ -193,10 +195,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK3 + `",
 					"owner": "joe",
-					"type": "backup",
+					"type": "` + db.BackupOperation + `",
 					"job_uuid": "` + JOB3 + `",
 					"archive_uuid": "",
-					"status": "canceled",
+					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
 					"log": "cancel!"
@@ -204,10 +206,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK2 + `",
 					"owner": "joe",
-					"type": "restore",
+					"type": "` + db.RestoreOperation + `",
 					"job_uuid": "` + JOB2 + `",
 					"archive_uuid": "` + ARCHIVE2 + `",
-					"status": "done",
+					"status": "` + db.DoneStatus + `",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
 					"log": "restore complete"
@@ -222,10 +224,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK3 + `",
 					"owner": "joe",
-					"type": "backup",
+					"type": "` + db.BackupOperation + `",
 					"job_uuid": "` + JOB3 + `",
 					"archive_uuid": "",
-					"status": "canceled",
+					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
 					"log": "cancel!"
@@ -240,10 +242,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK1 + `",
 					"owner": "system",
-					"type": "backup",
+					"type": "` + db.BackupOperation + `",
 					"job_uuid": "` + JOB1 + `",
 					"archive_uuid": "",
-					"status": "running",
+					"status": "` + db.RunningStatus + `",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
 					"log": "this is the log"
@@ -251,7 +253,7 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + PURGE1 + `",
 					"owner": "system",
-					"type": "purge",
+					"type": "` + db.PurgeOperation + `",
 					"job_uuid": "",
 					"archive_uuid": "` + NIL + `",
 					"status": "valid",
@@ -278,10 +280,10 @@ var _ = Describe("/v1/tasks API", func() {
 		Ω(res.Body.String()).Should(MatchJSON(`{
 				"uuid": "` + TASK2 + `",
 				"owner": "joe",
-				"type": "restore",
+				"type": "` + db.RestoreOperation + `",
 				"job_uuid": "` + JOB2 + `",
 				"archive_uuid": "` + ARCHIVE2 + `",
-				"status": "done",
+				"status": "` + db.DoneStatus + `",
 				"started_at": "2015-04-10 17:35:01",
 				"stopped_at": "2015-04-10 18:19:45",
 				"log": "restore complete"
@@ -300,10 +302,10 @@ var _ = Describe("/v1/tasks API", func() {
 				{
 					"uuid": "` + TASK1 + `",
 					"owner": "system",
-					"type": "backup",
+					"type": "` + db.BackupOperation + `",
 					"job_uuid": "` + JOB1 + `",
 					"archive_uuid": "",
-					"status": "running",
+					"status": "` + db.RunningStatus + `",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
 					"log": "this is the log"

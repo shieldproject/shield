@@ -20,7 +20,7 @@ type ScheduleAPI struct {
 func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `GET /v1/schedules`):
-		schedules, err := self.Data.GetAllAnnotatedSchedules(
+		schedules, err := self.Data.GetAllSchedules(
 			&db.ScheduleFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
@@ -75,7 +75,7 @@ func (self ScheduleAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile(`^/v1/schedule/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-		schedule, err := self.Data.GetAnnotatedSchedule(id)
+		schedule, err := self.Data.GetSchedule(id)
 		if err != nil {
 			bail(w, err)
 			return

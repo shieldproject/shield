@@ -75,13 +75,15 @@ needenv() {
 		eval v=\$$var
 		if [[ -z ${v} ]]; then
 			fail "Missing required $var environment variable; bailing out"
-			exiting 144
+			exit 144
 		fi
 
 		say "${var} ... found"
 	done
 	ok
 }
+
+trap 'exiting $?' EXIT
 
 case ${SHIELD_OP} in
 (backup)
@@ -99,7 +101,7 @@ case ${SHIELD_OP} in
 	set -o pipefail
 	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | bzip2 | \
 		${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
-	exiting $?
+	exit 0
 	;;
 
 (restore)
@@ -118,7 +120,7 @@ case ${SHIELD_OP} in
 	set -o pipefail
 	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | bunzip2 | \
 		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
-	exiting $?
+	exit 0
 	;;
 
 (purge)
@@ -132,10 +134,10 @@ case ${SHIELD_OP} in
 
 	header "Running purge task"
 	${SHIELD_STORE_PLUGIN} purge -e "${SHIELD_STORE_ENDPOINT}" -k "${SHIELD_RESTORE_KEY}"
-	exiting $?
+	exit 0
 	;;
 
 (*)
 	echo >&2 "Invalid SHIELD_OP '${SHIELD_OP}'; bailing out"
-	exiting 145
+	exit 145
 esac

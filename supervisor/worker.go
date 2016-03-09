@@ -11,6 +11,7 @@ import (
 	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/agent"
+	"github.com/starkandwayne/shield/db"
 )
 
 type UpdateOp int
@@ -41,7 +42,7 @@ type WorkerRequest struct {
 	RestoreKey     string `json:"restore_key"`
 }
 
-func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerUpdate) {
+func worker(id uint, privateKeyFile string, work chan *db.Task, updates chan WorkerUpdate) {
 	config, err := agent.ConfigureSSHClient(privateKeyFile)
 	if err != nil {
 		log.Errorf("worker %d unable to read user key %s: %s; bailing out.\n",
@@ -72,7 +73,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		final := make(chan string)
 		partial := make(chan string)
 
-		go func(out chan string, up chan WorkerUpdate, t Task, in chan string) {
+		go func(out chan string, up chan WorkerUpdate, id uuid.UUID, in chan string) {
 			var buffer []string
 			for {
 				s, ok := <-in
@@ -85,7 +86,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 					buffer = append(buffer, s[2:])
 				case "E:":
 					up <- WorkerUpdate{
-						Task:   t.UUID,
+						Task:   id,
 						Op:     OUTPUT,
 						Output: s[2:] + "\n",
 					}
@@ -93,10 +94,10 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			}
 			out <- strings.Join(buffer, "")
 			close(out)
-		}(final, updates, t, partial)
+		}(final, updates, t.UUID, partial)
 
 		command, err := json.Marshal(WorkerRequest{
-			Operation:      t.Op.String(),
+			Operation:      t.Op,
 			TargetPlugin:   t.TargetPlugin,
 			TargetEndpoint: t.TargetEndpoint,
 			StorePlugin:    t.StorePlugin,
@@ -122,7 +123,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 		client.Close()
 
 		out := <-final
-		if t.Op == BACKUP {
+		if t.Op == db.BackupOperation {
 			// parse JSON from standard output and get the restore key
 			// (this might fail, we might not get a key, etc.)
 			v := struct {
@@ -154,7 +155,7 @@ func worker(id uint, privateKeyFile string, work chan Task, updates chan WorkerU
 			}
 		}
 
-		if t.Op == PURGE && !jobFailed {
+		if t.Op == db.PurgeOperation && !jobFailed {
 			updates <- WorkerUpdate{
 				Task:    t.UUID,
 				Op:      PURGE_ARCHIVE,

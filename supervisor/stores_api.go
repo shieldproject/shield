@@ -21,7 +21,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
 	case match(req, `GET /v1/stores`):
-		stores, err := self.Data.GetAllAnnotatedStores(
+		stores, err := self.Data.GetAllStores(
 			&db.StoreFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
@@ -78,7 +78,7 @@ func (self StoreAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile(`^/v1/store/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-		store, err := self.Data.GetAnnotatedStore(id)
+		store, err := self.Data.GetStore(id)
 		if err != nil {
 			bail(w, err)
 			return

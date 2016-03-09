@@ -7,11 +7,11 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AnnotatedRetentionPolicy struct {
-	UUID    string `json:"uuid"`
-	Name    string `json:"name"`
-	Summary string `json:"summary"`
-	Expires uint   `json:"expires"`
+type RetentionPolicy struct {
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Summary string    `json:"summary"`
+	Expires uint      `json:"expires"`
 }
 
 type RetentionFilter struct {
@@ -59,8 +59,12 @@ func (f *RetentionFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*AnnotatedRetentionPolicy, error) {
-	l := []*AnnotatedRetentionPolicy{}
+func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPolicy, error) {
+	if filter == nil {
+		filter = &RetentionFilter{}
+	}
+
+	l := []*RetentionPolicy{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -69,12 +73,14 @@ func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedRetentionPolicy{}
+		ann := &RetentionPolicy{}
 		var n int
+		var this NullUUID
 
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
+		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
 			return l, err
 		}
+		ann.UUID = this.UUID
 
 		l = append(l, ann)
 	}
@@ -82,7 +88,7 @@ func (db *DB) GetAllAnnotatedRetentionPolicies(filter *RetentionFilter) ([]*Anno
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedRetentionPolicy(id uuid.UUID) (*AnnotatedRetentionPolicy, error) {
+func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 	r, err := db.Query(`
 		SELECT uuid, name, summary, expiry
 			FROM retention WHERE uuid = $1`, id.String())
@@ -94,10 +100,12 @@ func (db *DB) GetAnnotatedRetentionPolicy(id uuid.UUID) (*AnnotatedRetentionPoli
 	if !r.Next() {
 		return nil, nil
 	}
-	ann := &AnnotatedRetentionPolicy{}
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
+	ann := &RetentionPolicy{}
+	var this NullUUID
+	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
 		return nil, err
 	}
+	ann.UUID = this.UUID
 
 	return ann, nil
 }

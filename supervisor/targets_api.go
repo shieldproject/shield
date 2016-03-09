@@ -21,7 +21,7 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	switch {
 	case match(req, `GET /v1/targets`):
-		targets, err := self.Data.GetAllAnnotatedTargets(
+		targets, err := self.Data.GetAllTargets(
 			&db.TargetFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
@@ -80,7 +80,7 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile(`^/v1/target/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-		target, err := self.Data.GetAnnotatedTarget(id)
+		target, err := self.Data.GetTarget(id)
 		if err != nil {
 			bail(w, err)
 			return

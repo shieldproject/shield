@@ -5,43 +5,51 @@ import (
 	"time"
 )
 
+const Format = "2006-01-02 15:04:05"
+
 type Timestamp struct {
-	t time.Time
+	when time.Time
 }
 
-func (orig Timestamp) Add(d time.Duration) Timestamp {
-	return Timestamp{t: orig.t.Add(d)}
+func Now() Timestamp {
+	return Timestamp{when: time.Now()}
 }
 
 func NewTimestamp(t time.Time) Timestamp {
-	return Timestamp{t: t}
+	return Timestamp{when: t}
+}
+
+func (t Timestamp) Add(d time.Duration) Timestamp {
+	return Timestamp{when: t.when.Add(d)}
+}
+
+func (t Timestamp) After(other Timestamp) bool {
+	return t.when.After(other.when)
 }
 
 func (t Timestamp) MarshalJSON() ([]byte, error) {
-	if t.t.IsZero() {
+	if t.when.IsZero() {
 		return []byte("\"\""), nil
 	}
-	stamp := fmt.Sprintf("\"%s\"", t.t.Format("2006-01-02 15:04:05"))
-	return []byte(stamp), nil
+	return []byte(fmt.Sprintf("\"%s\"", t.when.Format(Format))), nil
 }
 
-func (t *Timestamp) UnmarshalJSON(b []byte) error {
+func (t *Timestamp) UnmarshalJSON(b []byte) (err error) {
 	if string(b) == "\"\"" {
-		return nil
+		return
 	}
-	var err error
-	t.t, err = time.Parse("2006-01-02 15:04:05", string(b[1:len(b)-1]))
-	return err
+	t.when, err = time.Parse(Format, string(b[1:len(b)-1]))
+	return
 }
 
 func (t Timestamp) Format(layout string) string {
-	return t.t.Format(layout)
+	return t.when.Format(layout)
 }
 
 func (t Timestamp) IsZero() bool {
-	return t.t.IsZero()
+	return t.when.IsZero()
 }
 
 func (t Timestamp) Time() time.Time {
-	return t.t
+	return t.when
 }

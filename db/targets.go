@@ -7,13 +7,13 @@ import (
 	"github.com/pborman/uuid"
 )
 
-type AnnotatedTarget struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	Summary  string `json:"summary"`
-	Plugin   string `json:"plugin"`
-	Endpoint string `json:"endpoint"`
-	Agent    string `json:"agent"`
+type Target struct {
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Summary  string    `json:"summary"`
+	Plugin   string    `json:"plugin"`
+	Endpoint string    `json:"endpoint"`
+	Agent    string    `json:"agent"`
 }
 
 type TargetFilter struct {
@@ -67,8 +67,12 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	`, args
 }
 
-func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, error) {
-	l := []*AnnotatedTarget{}
+func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
+	if filter == nil {
+		filter = &TargetFilter{}
+	}
+
+	l := []*Target{}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -77,12 +81,13 @@ func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, 
 	defer r.Close()
 
 	for r.Next() {
-		ann := &AnnotatedTarget{}
+		ann := &Target{}
 		var n int
-
-		if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent, &n); err != nil {
+		var this NullUUID
+		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent, &n); err != nil {
 			return l, err
 		}
+		ann.UUID = this.UUID
 
 		l = append(l, ann)
 	}
@@ -90,7 +95,7 @@ func (db *DB) GetAllAnnotatedTargets(filter *TargetFilter) ([]*AnnotatedTarget, 
 	return l, nil
 }
 
-func (db *DB) GetAnnotatedTarget(id uuid.UUID) (*AnnotatedTarget, error) {
+func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 	r, err := db.Query(`
 		SELECT t.uuid, t.name, t.summary, t.plugin, t.endpoint, t.agent
 			FROM targets t
@@ -106,11 +111,12 @@ func (db *DB) GetAnnotatedTarget(id uuid.UUID) (*AnnotatedTarget, error) {
 		return nil, nil
 	}
 
-	ann := &AnnotatedTarget{}
-
-	if err = r.Scan(&ann.UUID, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent); err != nil {
+	ann := &Target{}
+	var this NullUUID
+	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent); err != nil {
 		return nil, err
 	}
+	ann.UUID = this.UUID
 
 	return ann, nil
 }

@@ -15,13 +15,13 @@ import (
 type JobAPI struct {
 	Data       *db.DB
 	ResyncChan chan int
-	AdhocChan  chan AdhocTask
+	Tasks      chan *db.Task
 }
 
 func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `GET /v1/jobs`):
-		jobs, err := self.Data.GetAllAnnotatedJobs(
+		jobs, err := self.Data.GetAllJobs(
 			&db.JobFilter{
 				SkipPaused:   paramEquals(req, "paused", "f"),
 				SkipUnpaused: paramEquals(req, "paused", "t"),
@@ -143,8 +143,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)/run`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-		self.AdhocChan <- AdhocTask{
-			Op:      BACKUP,
+		self.Tasks <- &db.Task{
+			Op:      db.BackupOperation,
 			Owner:   params.Owner,
 			JobUUID: id,
 		}
@@ -155,7 +155,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-		job, err := self.Data.GetAnnotatedJob(id)
+		job, err := self.Data.GetJob(id)
 		if err != nil {
 			bail(w, err)
 			return

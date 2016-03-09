@@ -15,7 +15,7 @@ import (
 type ArchiveAPI struct {
 	Data       *db.DB
 	ResyncChan chan int
-	AdhocChan  chan AdhocTask
+	Tasks      chan *db.Task
 }
 
 func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -31,7 +31,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			bailWithError(w, ClientErrorf("invalid limit supplied"))
 			return
 		}
-		archives, err := self.Data.GetAllAnnotatedArchives(
+		archives, err := self.Data.GetAllArchives(
 			&db.ArchiveFilter{
 				ForTarget:  paramValue(req, "target", ""),
 				ForStore:   paramValue(req, "store", ""),
@@ -72,27 +72,29 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
 		// find the archive
-		archive, err := self.Data.GetAnnotatedArchive(id)
+		archive, err := self.Data.GetArchive(id)
 		if err != nil {
 			w.WriteHeader(500)
 			return
 		}
 
+		var tid uuid.UUID
 		if params.Target == "" {
-			params.Target = archive.TargetUUID
+			tid = archive.TargetUUID
+		} else {
+			tid = uuid.Parse(params.Target)
 		}
 
-		tid := uuid.Parse(params.Target)
 		// find the target
-		_, err = self.Data.GetAnnotatedTarget(id)
+		_, err = self.Data.GetTarget(id)
 		if err != nil {
 			w.WriteHeader(501)
 			return
 		}
 
 		// tell the supervisor to schedule a task
-		self.AdhocChan <- AdhocTask{
-			Op:          RESTORE,
+		self.Tasks <- &db.Task{
+			Op:          db.RestoreOperation,
 			Owner:       params.Owner,
 			TargetUUID:  tid,
 			ArchiveUUID: id,
@@ -107,7 +109,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile(`^/v1/archive/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-		archive, err := self.Data.GetAnnotatedArchive(id)
+		archive, err := self.Data.GetArchive(id)
 		if err != nil {
 			bail(w, err)
 			return

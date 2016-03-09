@@ -23,7 +23,7 @@ func (self TaskAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			bailWithError(w, ClientErrorf("invalid limit supplied"))
 			return
 		}
-		tasks, err := self.Data.GetAllAnnotatedTasks(
+		tasks, err := self.Data.GetAllTasks(
 			&db.TaskFilter{
 				SkipActive:   paramEquals(req, "active", "f"),
 				SkipInactive: paramEquals(req, "active", "t"),
@@ -43,7 +43,7 @@ func (self TaskAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		re := regexp.MustCompile(`^/v1/task/([a-fA-F0-9-]+)`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-		task, err := self.Data.GetAnnotatedTask(id)
+		task, err := self.Data.GetTask(id)
 		if err != nil {
 			bail(w, err)
 			return

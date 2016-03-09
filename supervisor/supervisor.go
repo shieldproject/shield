@@ -3,21 +3,24 @@ package supervisor
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/timestamp"
 )
 
 type Supervisor struct {
-	tick    chan int          /* scheduler will send a message at regular intervals */
-	purge   chan int          /* scheduler for purging archive jobs sends a message at regular intervals */
+	tick  *time.Ticker
+	purge *time.Ticker
+
 	resync  chan int          /* api goroutine will send here when the db changes significantly (i.e. new job, updated target, etc.) */
-	workers chan Task         /* workers read from this channel to get tasks */
+	workers chan *db.Task     /* workers read from this channel to get tasks */
 	updates chan WorkerUpdate /* workers write updates to this channel */
-	adhoc   chan AdhocTask    /* for submission of new adhoc tasks */
+	adhoc   chan *db.Task     /* for submission of new adhoc tasks */
 
 	Database *db.DB
 
@@ -27,9 +30,9 @@ type Supervisor struct {
 	Workers        uint   /* how many workers to spin up */
 	PurgeAgent     string /* What agent to use for purge jobs */
 
-	schedq []*Task
-	runq   []Task
-	jobq   []*Job
+	schedq []*db.Task
+	runq   []*db.Task
+	jobq   []*db.Job
 
 	nextWorker uint
 	Timeout    time.Duration
@@ -37,22 +40,22 @@ type Supervisor struct {
 
 func NewSupervisor() *Supervisor {
 	return &Supervisor{
-		tick:     make(chan int),
+		tick:     time.NewTicker(time.Second * 1),
+		purge:    time.NewTicker(time.Second * 1800),
 		resync:   make(chan int),
-		purge:    make(chan int),
-		workers:  make(chan Task),
-		adhoc:    make(chan AdhocTask),
+		workers:  make(chan *db.Task),
+		adhoc:    make(chan *db.Task),
 		updates:  make(chan WorkerUpdate),
-		schedq:   make([]*Task, 0),
-		runq:     make([]Task, 0),
-		jobq:     make([]*Job, 0),
+		schedq:   make([]*db.Task, 0),
+		runq:     make([]*db.Task, 0),
+		jobq:     make([]*db.Job, 0),
 		Timeout:  12 * time.Hour,
 		Database: &db.DB{},
 	}
 }
 
 func (s *Supervisor) Resync() error {
-	jobq, err := s.GetAllJobs()
+	jobq, err := s.Database.GetAllJobs(nil)
 	if err != nil {
 		return err
 	}
@@ -62,10 +65,10 @@ func (s *Supervisor) Resync() error {
 		err := job.Reschedule()
 		if err != nil {
 			log.Errorf("error encountered while determining next run of %s [%s] which runs %s: %s",
-				job.Name, job.UUID.String(), job.Spec.String(), err)
+				job.Name, job.UUID, job.Spec, err)
 		} else {
 			log.Infof("initial run of %s [%s] which runs %s is at %s",
-				job.Name, job.UUID.String(), job.Spec.String(), job.NextRun)
+				job.Name, job.UUID, job.Spec, job.NextRun)
 		}
 	}
 
@@ -73,8 +76,8 @@ func (s *Supervisor) Resync() error {
 	return nil
 }
 
-func (s *Supervisor) ScheduleTask(t *Task) {
-	t.TimeoutAt = time.Now().Add(s.Timeout)
+func (s *Supervisor) ScheduleTask(t *db.Task) {
+	t.TimeoutAt = timestamp.Now().Add(s.Timeout)
 	log.Infof("schedule task %s with deadline %v", t.UUID, t.TimeoutAt)
 	s.schedq = append(s.schedq, t)
 }
@@ -85,73 +88,69 @@ func (s *Supervisor) CheckSchedule() {
 			continue
 		}
 
-		log.Infof("scheduling execution of job %s [%s]", job.Name, job.UUID.String())
-		task := job.Task()
-		id, err := s.Database.CreateBackupTask("system", job.UUID)
+		log.Infof("scheduling execution of job %s [%s]", job.Name, job.UUID)
+		task, err := s.Database.CreateBackupTask("system", job)
 		if err != nil {
 			log.Errorf("job -> task conversion / database update failed: %s", err)
 			continue
 		}
-
-		task.UUID = id
 		s.ScheduleTask(task)
 
 		err = job.Reschedule()
 		if err != nil {
 			log.Errorf("error encountered while determining next run of %s (%s): %s",
-				job.UUID.String(), job.Spec.String(), err)
+				job.UUID, job.Spec, err)
 		} else {
 			log.Infof("next run of %s [%s] which runs %s is at %s",
-				job.Name, job.UUID.String(), job.Spec.String(), job.NextRun)
+				job.Name, job.UUID, job.Spec, job.NextRun)
 		}
 	}
 }
 
-func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
+func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 	log.Infof("schedule adhoc %s job", a.Op)
 
 	switch a.Op {
-	case BACKUP:
+	case db.BackupOperation:
 		// expect a JobUUID to move to the schedq Immediately
 		for _, job := range s.jobq {
 			if !uuid.Equal(job.UUID, a.JobUUID) {
 				continue
 			}
 
-			log.Infof("scheduling immediate (ad hoc) execution of job %s [%s]", job.Name, job.UUID.String())
-			task := job.Task()
-			id, err := s.Database.CreateBackupTask(a.Owner, job.UUID)
+			log.Infof("scheduling immediate (ad hoc) execution of job %s [%s]", job.Name, job.UUID)
+			task, err := s.Database.CreateBackupTask(a.Owner, job)
 			if err != nil {
 				log.Errorf("job -> task conversion / database update failed: %s", err)
 				continue
 			}
-
-			task.UUID = id
 			s.ScheduleTask(task)
 		}
 
-	case RESTORE:
-		task := NewPendingTask(RESTORE)
-		err := s.Database.GetRestoreTaskDetails(
-			a.ArchiveUUID, a.TargetUUID,
-			&task.StorePlugin, &task.StoreEndpoint, &task.RestoreKey,
-			&task.TargetPlugin, &task.TargetEndpoint, &task.Agent)
-
-		id, err := s.Database.CreateRestoreTask(a.Owner, a.ArchiveUUID, a.TargetUUID)
+	case db.RestoreOperation:
+		archive, err := s.Database.GetArchive(a.ArchiveUUID)
+		if err != nil {
+			log.Errorf("unable to find archive %s for restore task: %s", a.ArchiveUUID, err)
+			return
+		}
+		target, err := s.Database.GetTarget(a.TargetUUID)
+		if err != nil {
+			log.Errorf("unable to find target %s for restore task: %s", a.TargetUUID, err)
+			return
+		}
+		task, err := s.Database.CreateRestoreTask(a.Owner, archive, target)
 		if err != nil {
 			log.Errorf("restore task database creation failed: %s", err)
 			return
 		}
-
-		task.UUID = id
 		s.ScheduleTask(task)
 	}
 }
 
-func (s *Supervisor) Sweep() error {
-	tasks, err := s.Database.GetAllAnnotatedTasks(
+func (s *Supervisor) FailUnfinishedTasks() error {
+	tasks, err := s.Database.GetAllTasks(
 		&db.TaskFilter{
-			ForStatus: "running",
+			ForStatus: db.RunningStatus,
 		},
 	)
 	if err != nil {
@@ -161,22 +160,43 @@ func (s *Supervisor) Sweep() error {
 	now := time.Now()
 	for _, task := range tasks {
 		log.Warnf("Found task %s in 'running' state at startup; setting to 'failed'", task.UUID)
-		if err := s.Database.FailTask(uuid.Parse(task.UUID), now); err != nil {
+		if err := s.Database.FailTask(task.UUID, now); err != nil {
 			return fmt.Errorf("Failed to sweep database of running tasks [%s]: %s", task.UUID, err)
 		}
-		if task.Op == "backup" && task.ArchiveUUID != "" {
-			archive, err := s.Database.GetAnnotatedArchive(uuid.Parse(task.ArchiveUUID))
+		if task.Op == db.BackupOperation && task.ArchiveUUID != nil {
+			archive, err := s.Database.GetArchive(task.ArchiveUUID)
 			if err != nil {
 				log.Warnf("Unable to retrieve archive %s (for task %s) from the database: %s",
-					task.UUID, task.ArchiveUUID)
+					task.ArchiveUUID, task.UUID, err)
 				continue
 			}
-			log.Warnf("Found archive %s for task %s, purging", task.ArchiveUUID, task.UUID)
-			if _, err := s.Database.CreatePurgeTask("", archive); err != nil {
+			log.Warnf("Found archive %s for task %s, purging", archive.UUID, task.UUID)
+			task, err := s.Database.CreatePurgeTask("", archive, s.PurgeAgent)
+			if err != nil {
 				log.Errorf("Failed to purge archive %s (for task %s, which was running at boot): %s",
 					archive.UUID, task.UUID, err)
+			} else {
+				s.ScheduleTask(task)
 			}
 		}
+	}
+
+	return nil
+}
+
+func (s *Supervisor) ReschedulePendingTasks() error {
+	tasks, err := s.Database.GetAllTasks(
+		&db.TaskFilter{
+			ForStatus: db.PendingStatus,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("Failed to sweep database of pending tasks: %s", err)
+	}
+
+	for _, task := range tasks {
+		log.Warnf("Found task %s in 'pending' state at startup; rescheduling", task.UUID)
+		s.ScheduleTask(task)
 	}
 
 	return nil
@@ -192,17 +212,14 @@ func (s *Supervisor) Run() error {
 		return fmt.Errorf("database failed schema version check: %s\n", err)
 	}
 
-	if err := s.Sweep(); err != nil {
-		return err
-	}
-
 	if err := s.Resync(); err != nil {
 		return err
 	}
-	if DEV_MODE_SCHEDULING {
-		for _, job := range s.jobq {
-			job.NextRun = time.Now()
-		}
+	if err := s.FailUnfinishedTasks(); err != nil {
+		return err
+	}
+	if err := s.ReschedulePendingTasks(); err != nil {
+		return err
 	}
 
 	for {
@@ -212,21 +229,21 @@ func (s *Supervisor) Run() error {
 				log.Errorf("resync error: %s", err)
 			}
 
-		case <-s.purge:
+		case <-s.purge.C:
 			s.PurgeArchives()
 
-		case <-s.tick:
+		case <-s.tick.C:
 			s.CheckSchedule()
 
 			// see if any tasks have been running past the timeout period
 			if len(s.runq) > 0 {
 				ok := true
-				lst := make([]Task, 0)
-				now := time.Now()
+				lst := make([]*db.Task, 0)
+				now := timestamp.Now()
 
 				for _, runtask := range s.runq {
 					if now.After(runtask.TimeoutAt) {
-						s.Database.CancelTask(runtask.UUID, now)
+						s.Database.CancelTask(runtask.UUID, now.Time())
 						log.Errorf("shield timed out task '%s' after running for %v", runtask.UUID, s.Timeout)
 						ok = false
 
@@ -244,11 +261,11 @@ func (s *Supervisor) Run() error {
 		SchedQueue:
 			for len(s.schedq) > 0 {
 				select {
-				case s.workers <- *s.schedq[0]:
+				case s.workers <- s.schedq[0]:
 					s.Database.StartTask(s.schedq[0].UUID, time.Now())
 					s.schedq[0].Attempts++
 					log.Infof("sent a task to a worker")
-					s.runq = append(s.runq, *s.schedq[0])
+					s.runq = append(s.runq, s.schedq[0])
 					log.Debugf("added task to the runq")
 					s.schedq = s.schedq[1:]
 				default:
@@ -262,7 +279,7 @@ func (s *Supervisor) Run() error {
 		case u := <-s.updates:
 			switch u.Op {
 			case STOPPED:
-				log.Infof("  %s: job stopped at %s", u.Task, u.StoppedAt.String())
+				log.Infof("  %s: job stopped at %s", u.Task, u.StoppedAt)
 				if err := s.Database.CompleteTask(u.Task, u.StoppedAt); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
@@ -274,7 +291,7 @@ func (s *Supervisor) Run() error {
 				}
 
 			case OUTPUT:
-				log.Errorf("  %s> %s", u.Task, u.Output) // There is only OUTPUT in this case if there is an error
+				log.Infof("  %s> %s", u.Task, strings.Trim(u.Output, "\n"))
 				if err := s.Database.UpdateTaskLog(u.Task, u.Output); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
@@ -324,7 +341,7 @@ func (s *Supervisor) SpawnAPI() {
 		jobs := &JobAPI{
 			Data:       db,
 			ResyncChan: s.resync,
-			AdhocChan:  s.adhoc,
+			Tasks:      s.adhoc,
 		}
 		http.Handle("/v1/jobs", jobs)
 		http.Handle("/v1/job/", jobs)
@@ -339,7 +356,7 @@ func (s *Supervisor) SpawnAPI() {
 		archives := &ArchiveAPI{
 			Data:       db,
 			ResyncChan: s.resync,
-			AdhocChan:  s.adhoc,
+			Tasks:      s.adhoc,
 		}
 		http.Handle("/v1/archives", archives)
 		http.Handle("/v1/archive/", archives)
@@ -380,18 +397,6 @@ func (s *Supervisor) SpawnAPI() {
 	}(s)
 }
 
-func scheduler(c chan int, interval time.Duration) {
-	for {
-		time.Sleep(time.Second * interval)
-		c <- 1
-	}
-}
-
-func (s *Supervisor) SpawnScheduler() {
-	go scheduler(s.tick, 1)
-	go scheduler(s.purge, 1800)
-}
-
 func (s *Supervisor) SpawnWorkers() {
 	var i uint
 	for i = 0; i < s.Workers; i++ {
@@ -410,7 +415,7 @@ func (s *Supervisor) PurgeArchives() {
 	}
 	for _, archive := range toExpire {
 		log.Infof("marking archive %s has expiration date %s, marking as expired", archive.UUID, archive.ExpiresAt)
-		err := s.Database.ExpireArchive(uuid.Parse(archive.UUID))
+		err := s.Database.ExpireArchive(archive.UUID)
 		if err != nil {
 			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
 			continue
@@ -425,27 +430,11 @@ func (s *Supervisor) PurgeArchives() {
 
 	for _, archive := range toPurge {
 		log.Infof("requesting purge of archive %s due to status '%s'", archive.UUID, archive.Status)
-		err := s.SchedulePurgeTask(archive)
+		task, err := s.Database.CreatePurgeTask("system", archive, s.PurgeAgent)
 		if err != nil {
 			log.Errorf("error scheduling purge of archive %s: %s", archive.UUID, err)
 			continue
 		}
+		s.ScheduleTask(task)
 	}
-}
-
-func (s *Supervisor) SchedulePurgeTask(archive *db.AnnotatedArchive) error {
-	task := NewPendingTask(PURGE)
-	id, err := s.Database.CreatePurgeTask("system", archive)
-	if err != nil {
-		return err
-	}
-
-	task.UUID = id
-	task.StorePlugin = archive.StorePlugin
-	task.StoreEndpoint = archive.StoreEndpoint
-	task.Agent = s.PurgeAgent
-	task.RestoreKey = archive.StoreKey
-	task.ArchiveUUID = uuid.Parse(archive.UUID)
-	s.ScheduleTask(task)
-	return nil
 }

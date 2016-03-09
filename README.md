@@ -167,6 +167,9 @@ CREATE TABLE archives (
   notes        TEXT DEFAULT '', -- annotation for operator use, to describe this
                                 --   specific backup, i.e. 'before change #422 backup'
                                 --   (mostly, this will be empty)
+
+  purge_reason TEXT DEFAULT '',      -- (v2) why the archive was purged
+  status       TEXT DEFAULT 'valid', -- (v2) archive status (valid / purged / etc.)
 );
 ```
 
@@ -192,12 +195,23 @@ CREATE TABLE tasks (
 
   job_uuid      UUID,
   archive_uuid  UUID,
-  target_uuid   UUID,
+
+  target_uuid     UUID, -- (v3)
+  target_plugin   TEXT, -- (v3)
+  target_endpoint TEXT, -- (v3)
+
+  store_uuid      UUID, -- (v2)
+  store_plugin    TEXT, -- (v3)
+  store_endpoint  TEXT, -- (v3)
+  restore_key     TEXT, -- (v3)
 
   status       status, -- current status of the task
   requested_at INTEGER NOT NULL, -- when the task was _created_
   started_at   INTEGER, -- when the task actually started
   stopped_at   INTEGER, -- when the task completed (or was cancelled)
+  timeout_at   INTEGER, -- (v3)
+  attempts     INTEGER, -- (v3)
+  agent        TEXT,    -- (v3)
 
   log       TEXT -- log of task activity
 );
