@@ -76,6 +76,17 @@ func (s *Supervisor) Resync() error {
 	return nil
 }
 
+func (s *Supervisor) RemoveTaskFromRunq(id uuid.UUID) {
+	l := make([]*db.Task, 0)
+	for _, task := range s.runq {
+		if uuid.Equal(task.UUID, id) {
+			continue
+		}
+		l = append(l, task)
+	}
+	s.runq = l
+}
+
 func (s *Supervisor) ScheduleTask(t *db.Task) {
 	t.TimeoutAt = timestamp.Now().Add(s.Timeout)
 	log.Infof("schedule task %s with deadline %v", t.UUID, t.TimeoutAt)
@@ -280,12 +291,14 @@ func (s *Supervisor) Run() error {
 			switch u.Op {
 			case STOPPED:
 				log.Infof("  %s: job stopped at %s", u.Task, u.StoppedAt)
+				s.RemoveTaskFromRunq(u.Task)
 				if err := s.Database.CompleteTask(u.Task, u.StoppedAt); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
 
 			case FAILED:
 				log.Warnf("  %s: task failed!", u.Task)
+				s.RemoveTaskFromRunq(u.Task)
 				if err := s.Database.FailTask(u.Task, u.StoppedAt); err != nil {
 					log.Errorf("  %s: !! failed to update database - %s", u.Task, err)
 				}
