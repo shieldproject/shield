@@ -43,5 +43,10 @@ func (s v3Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`UPDATE schema_info set version = 3`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
