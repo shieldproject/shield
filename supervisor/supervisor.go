@@ -11,6 +11,20 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+func TaskForJob(j *db.Job) *Task {
+	return &Task{
+		Op:             db.BACKUP,
+		Status:         db.PENDING,
+		//StoreUUID:      j.StoreUUID,
+		StorePlugin:    j.StorePlugin,
+		StoreEndpoint:  j.StoreEndpoint,
+		//TargetUUID:     j.TargetUUID,
+		TargetPlugin:   j.TargetPlugin,
+		TargetEndpoint: j.TargetEndpoint,
+		Agent:          j.Agent,
+	}
+}
+
 type Supervisor struct {
 	tick    chan int          /* scheduler will send a message at regular intervals */
 	purge   chan int          /* scheduler for purging archive jobs sends a message at regular intervals */
@@ -29,7 +43,7 @@ type Supervisor struct {
 
 	schedq []*Task
 	runq   []Task
-	jobq   []*Job
+	jobq   []*db.Job
 
 	nextWorker uint
 	Timeout    time.Duration
@@ -45,14 +59,14 @@ func NewSupervisor() *Supervisor {
 		updates:  make(chan WorkerUpdate),
 		schedq:   make([]*Task, 0),
 		runq:     make([]Task, 0),
-		jobq:     make([]*Job, 0),
+		jobq:     make([]*db.Job, 0),
 		Timeout:  12 * time.Hour,
 		Database: &db.DB{},
 	}
 }
 
 func (s *Supervisor) Resync() error {
-	jobq, err := s.GetAllJobs()
+	jobq, err := s.Database.GetAllJobs(&db.JobFilter{})
 	if err != nil {
 		return err
 	}
@@ -62,10 +76,10 @@ func (s *Supervisor) Resync() error {
 		err := job.Reschedule()
 		if err != nil {
 			log.Errorf("error encountered while determining next run of %s [%s] which runs %s: %s",
-				job.Job.Name, job.Job.UUID, job.Job.Spec, err)
+				job.Name, job.UUID, job.Spec, err)
 		} else {
 			log.Infof("initial run of %s [%s] which runs %s is at %s",
-				job.Job.Name, job.Job.UUID, job.Job.Spec, job.Job.NextRun)
+				job.Name, job.UUID, job.Spec, job.NextRun)
 		}
 	}
 
@@ -85,9 +99,9 @@ func (s *Supervisor) CheckSchedule() {
 			continue
 		}
 
-		log.Infof("scheduling execution of job %s [%s]", job.Job.Name, job.Job.UUID)
-		task := job.Task()
-		id, err := s.Database.CreateBackupTask("system", job.Job.UUID)
+		log.Infof("scheduling execution of job %s [%s]", job.Name, job.UUID)
+		task := TaskForJob(job)
+		id, err := s.Database.CreateBackupTask("system", job.UUID)
 		if err != nil {
 			log.Errorf("job -> task conversion / database update failed: %s", err)
 			continue
@@ -99,10 +113,10 @@ func (s *Supervisor) CheckSchedule() {
 		err = job.Reschedule()
 		if err != nil {
 			log.Errorf("error encountered while determining next run of %s (%s): %s",
-				job.Job.UUID, job.Job.Spec, err)
+				job.UUID, job.Spec, err)
 		} else {
 			log.Infof("next run of %s [%s] which runs %s is at %s",
-				job.Job.Name, job.Job.UUID, job.Job.Spec, job.Job.NextRun)
+				job.Name, job.UUID, job.Spec, job.NextRun)
 		}
 	}
 }
@@ -114,13 +128,13 @@ func (s *Supervisor) ScheduleAdhoc(a AdhocTask) {
 	case db.BACKUP:
 		// expect a JobUUID to move to the schedq Immediately
 		for _, job := range s.jobq {
-			if !uuid.Equal(job.Job.UUID, a.JobUUID) {
+			if !uuid.Equal(job.UUID, a.JobUUID) {
 				continue
 			}
 
-			log.Infof("scheduling immediate (ad hoc) execution of job %s [%s]", job.Job.Name, job.Job.UUID)
-			task := job.Task()
-			id, err := s.Database.CreateBackupTask(a.Owner, job.Job.UUID)
+			log.Infof("scheduling immediate (ad hoc) execution of job %s [%s]", job.Name, job.UUID)
+			task := TaskForJob(job)
+			id, err := s.Database.CreateBackupTask(a.Owner, job.UUID)
 			if err != nil {
 				log.Errorf("job -> task conversion / database update failed: %s", err)
 				continue
