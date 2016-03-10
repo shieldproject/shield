@@ -149,7 +149,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	s, err = endpoint.StringValueDefault("signature_version", "4")
-	if err == nil {
+	if err != nil {
 		ansi.Printf("@R{\u2717 signature_version    %s}\n", err)
 		fail = true
 	} else if s != "2" && s != "4" {
