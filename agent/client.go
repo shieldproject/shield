@@ -10,6 +10,7 @@ import (
 type Client struct {
 	config  *ssh.ClientConfig
 	session *ssh.Session
+	conn    *ssh.Client
 }
 
 func NewClient(config *ssh.ClientConfig) *Client {
@@ -26,18 +27,30 @@ func (c *Client) Dial(endpoint string) error {
 
 	session, err := conn.NewSession()
 	if err != nil {
+		conn.Close()
 		return err
 	}
 
+	c.conn = conn
 	c.session = session
 	return nil
 }
 
 func (c *Client) Close() error {
-	if c.session == nil {
-		return nil
+	var sessErr, connErr error
+	if c.conn != nil {
+		if c.session != nil {
+			sessErr = c.session.Close()
+		}
+		connErr = c.conn.Conn.Close()
 	}
-	return c.session.Close()
+	if connErr != nil {
+		return connErr
+	}
+	if sessErr != nil {
+		return sessErr
+	}
+	return nil
 }
 
 func (c *Client) Run(out chan string, command string) error {
