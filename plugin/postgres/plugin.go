@@ -160,8 +160,9 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	// If user specified specific database to backup
 	db_name := pg.Database
 
+	cmd := ""
 	// Check if db_name is valid
-	if db_name != "" || db_name != nil {
+	if db_name != "" {
 		// Run dump all on the specified db
 		cmd := fmt.Sprintf("%s/pg_dumpall -d %s -c --no-password", pg.Bin, db_name)
 		DEBUG("Executing: `%s`", cmd)
@@ -259,7 +260,7 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	}
 	DEBUG("PGPORT: '%s'", port)
 
-	database, err := endpoint.StringValueDefault("pg_database")
+	database, err := endpoint.StringValueDefault("pg_database", "")
 	DEBUG("PGDATABASE: '%s'", database)
 
 	bin := "/var/vcap/packages/postgres-9.4/bin"
