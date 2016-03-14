@@ -22,6 +22,7 @@
 //        "pg_password":"password-for-above-user",
 //        "pg_host":"hostname-or-ip-of-pg-server",
 //        "pg_port":"port-above-pg-server-listens-on"
+//		  "pg_database": "name-of-db-to-backup"
 //    }
 //
 // BACKUP DETAILS
@@ -95,6 +96,7 @@ type PostgresConnectionInfo struct {
 	User     string
 	Password string
 	Bin      string
+	Database string
 }
 
 func (p PostgresPlugin) Meta() PluginInfo {
@@ -154,8 +156,20 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	}
 
 	setupEnvironmentVariables(pg)
-	cmd := fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
-	DEBUG("Executing: `%s`", cmd)
+
+	// If user specified specific database to backup
+	db_name := pg.Database
+
+	// Check if db_name is valid
+	if db_name != "" || db_name != nil {
+		// Run dump all on the specified db
+		cmd := fmt.Sprintf("%s/pg_dumpall -d %s -c --no-password", pg.Bin, db_name)
+		DEBUG("Executing: `%s`", cmd)
+	} else {
+		// Else run dump on all
+		cmd := fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
+		DEBUG("Executing: `%s`", cmd)
+	}
 	return Exec(cmd, STDOUT)
 }
 
@@ -245,6 +259,9 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	}
 	DEBUG("PGPORT: '%s'", port)
 
+	database, err := endpoint.StringValueDefault("pg_database")
+	DEBUG("PGDATABASE: '%s'", database)
+
 	bin := "/var/vcap/packages/postgres-9.4/bin"
 	DEBUG("PGBINDIR: '%s'", bin)
 
@@ -254,5 +271,6 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 		User:     user,
 		Password: password,
 		Bin:      bin,
+		Database: database,
 	}, nil
 }
