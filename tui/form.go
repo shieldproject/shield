@@ -111,10 +111,8 @@ func (f *Form) Confirm(prompt string) bool {
 	r := NewReport()
 	for _, field := range f.Fields {
 		if v, ok := field.Value.(ComplexValue); ok {
-			fmt.Printf("v, ok: %v, %v\n", v, ok)
 			r.Add(field.Label, v.HumanReadable())
 		} else {
-			fmt.Printf("value: %v\n", field.Value)
 			r.Add(field.Label, fmt.Sprintf("%v", field.Value))
 		}
 	}
