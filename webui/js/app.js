@@ -125,7 +125,7 @@
       },
 
       creater: function (url, fixup) {
-        return function (uuid, data, cc) {
+        return function (data, cc) {
           if (fixup instanceof Function) {
             data = fixup(data);
           }
