@@ -11,7 +11,6 @@
       AJAX = $.ajax(params)
         .always(function() { AJAX = null })
         .fail(function(jqxhr) {
-          console.log("ajax failed: %v", arguments);
           notify('danger', "Backend request failed: "+jqxhr.status.toString()+' '+jqxhr.statusText);
         });
     };
