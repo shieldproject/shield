@@ -839,11 +839,11 @@
             '<form id="archive-search" class="form-inline">'+
                 '<div class="form-group">'+
                   ' <label for="archiveStart">From</label> '+
-                  '<input type="date" id="archiveStart" name="start" class="form-control" placeholder="'+yyyymmdd(timediff(new Date(), 86400 * 30))+'"/>'+
+                  '<input type="text" id="archiveStart" name="start" class="form-control date" placeholder="'+yyyymmdd(timediff(new Date(), 86400 * 30))+'"/>'+
                 '</div> '+
                 '<div class="form-group">'+
                   '<label for="archiveEnd">Until</label> '+
-                  '<input type="date" id="archiveEnd" name="end" class="form-control" placeholder="'+yyyymmdd(new Date())+'"/>'+
+                  '<input type="text" id="archiveEnd" name="end" class="form-control date" placeholder="'+yyyymmdd(new Date())+'"/>'+
                 '</div> '+
                 '<div class="form-group">'+
                   '<label for="archiveTarget">Target System</label> '+
@@ -1273,7 +1273,7 @@
     $('#main').on('click', 'button.cancel', lastly(function(event) {
       go(document.location.hash);
     }));
-    $('#main').on('click', 'input[type="date"]', lastly(function (event) {
+    $('#main').on('click', 'input.date', lastly(function (event) {
       $(this).addClass('date-target');
       $(document.body).append(datepicker(6, 3));
     }));
