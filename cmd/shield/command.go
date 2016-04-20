@@ -33,6 +33,10 @@ type Options struct {
 	To *string
 
 	Limit *string
+
+	Config   *string
+	User     *string
+	Password *string
 }
 
 type Handler func(opts Options, args []string) error

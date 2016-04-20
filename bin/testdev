@@ -16,6 +16,21 @@ database_dsn:  ${workdir}/var/shield.db
 private_key:   ${workdir}/var/key
 workers:       3
 max_timeout:   10
+web_root: ./webui
+auth:
+  api_tokens:
+    test: LETMEIN
+  basic:
+    user: testuser
+    password: testpass
+#  oauth:
+#    provider: github
+#    key: Fill this in with the github Client ID after creating a dev oauth app
+#    secret: Fill this in with the github secret after creating a dev oath app
+#    base_url: http://localhost:8181
+#    sessions:
+#      type: sqlite3
+#      dsn: ${workdir}/var/sessions.db
 EOF
 
   mkdir ${workdir}/var
@@ -29,7 +44,7 @@ EOF
   fi
 
   echo ">> RUNNING SHIELDD"
-  ./shieldd -c ${workdir}/etc/shieldd.conf
+  ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
   echo
   echo "shieldd exited."
   echo "Press enter to close this session."
@@ -37,8 +52,7 @@ EOF
   ;;
 
 ("")
-  tmux set-option update-environment ' SHIELD_API' \; \
-       new-session \; \
+  tmux new-session \; set-option update-environment ' SHIELD_API' \; \
        new-window -n core ./bin/testdev shieldd \;
   ;;
 

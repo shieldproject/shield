@@ -1,0 +1,8 @@
+---
+backend: first
+backends:
+  http://first: basic mytoken1
+  http://second: basic mytoken2
+aliases:
+  first: http://first
+  second: http://second

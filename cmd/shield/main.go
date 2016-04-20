@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -56,6 +58,10 @@ func main() {
 		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
 		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
+
+		Config:   getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Specify the shield config file to use"),
+		User:     getopt.StringLong("user", 0, "", "Specify a username to authenticate with"),
+		Password: getopt.StringLong("password", 0, "", "Specify a password to authenticate with"),
 	}
 
 	OK := func(f string, l ...interface{}) {
@@ -90,20 +96,6 @@ func main() {
 
 	debug = *options.Debug
 	DEBUG("shield cli starting up")
-	if *options.Shield != "" {
-		DEBUG("setting SHIELD_API to '%s'", *options.Shield)
-		os.Setenv("SHIELD_API", *options.Shield)
-	} else {
-		variable_value, variable_set := os.LookupEnv("SHIELD_API")
-		if variable_set && len(variable_value) > 6 {
-			DEBUG("SHIELD_API is currently set to '%s'", *options.Shield)
-		} else {
-			if command[0] != "help" {
-				fmt.Fprintf(os.Stderr, "\nShield API IP:Port is unknown, specify the API endpoint using one of:\n\n\texport SHIELD_API=\"http://127.0.0.1:8080\"; shield "+command[0]+"\n\tSHIELD_API=\"http://127.0.0.1:8080\" shield "+command[0]+"\n\tshield -H \"http://127.0.0.1:8080\" "+command[0]+"\n\n")
-				os.Exit(1)
-			}
-		}
-	}
 
 	if *options.Trace {
 		DEBUG("enabling TRACE output")
@@ -157,6 +149,78 @@ func main() {
 			return nil
 		})
 	c.Alias("stat", "status")
+
+	/*
+	   ########     ###     ######  ##    ## ######## ##    ## ########   ######
+	   ##     ##   ## ##   ##    ## ##   ##  ##       ###   ## ##     ## ##    ##
+	   ##     ##  ##   ##  ##       ##  ##   ##       ####  ## ##     ## ##
+	   ########  ##     ## ##       #####    ######   ## ## ## ##     ##  ######
+	   ##     ## ######### ##       ##  ##   ##       ##  #### ##     ##       ##
+	   ##     ## ##     ## ##    ## ##   ##  ##       ##   ### ##     ## ##    ##
+	   ########  ##     ##  ######  ##    ## ######## ##    ## ########   ######
+	*/
+	c.HelpBreak()
+	c.HelpGroup("BACKENDS:")
+	c.Dispatch("backends", "List configured SHIELD backends",
+		func(opts Options, args []string) error {
+			DEBUG("running 'backends' command")
+
+			var indices []string
+			for k, _ := range Cfg.Aliases {
+				indices = append(indices, k)
+			}
+			sort.Strings(indices)
+
+			t := tui.NewTable("Name", "Backend URI")
+			for _, alias := range indices {
+				be := map[string]string{"name": alias, "uri": Cfg.Aliases[alias]}
+				t.Row(be, be["name"], be["uri"])
+			}
+			t.Output(os.Stdout)
+
+			return nil
+		})
+	c.Alias("list backends", "backends")
+	c.Alias("ls be", "backends")
+
+	c.Dispatch("create backend", "Create Backend",
+		func(opts Options, args []string) error {
+			DEBUG("running 'create backend' command")
+
+			if len(args) != 2 {
+				return fmt.Errorf("Invalid 'create backend' syntax: `shield backend <name> <uri>")
+			}
+			err := Cfg.AddBackend(args[1], args[0])
+			if err != nil {
+				return err
+			}
+			Cfg.Save()
+
+			ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
+
+			return nil
+		})
+	c.Alias("c be", "create backend")
+	c.Alias("update backend", "create backend")
+
+	c.Dispatch("backend", "Select a particular backend for use",
+		func(opts Options, args []string) error {
+			DEBUG("running 'backend' command")
+
+			if len(args) != 1 {
+				return fmt.Errorf("Invalid 'backend' syntax: `shield backend <name>`")
+			}
+			err := Cfg.UseBackend(args[0])
+			if err != nil {
+				return err
+			}
+			Cfg.Save()
+
+			ansi.Fprintf(os.Stdout, "Using '@G{%s}' as the SHIELD backend.\n\n", args[0])
+
+			return nil
+		})
+	c.Alias("use backend", "backend")
 
 	/*
 	   ########    ###    ########   ######   ######## ########
@@ -1465,6 +1529,50 @@ func main() {
 	c.Alias("rm archive", "delete archive")
 
 	/**************************************************************************/
+	err := LoadConfig(*options.Config)
+	if err != nil {
+		ansi.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *options.Config, err)
+		os.Exit(1)
+	}
+
+	// only check for backends + creds if we aren't manipulating backends/help
+	nonAPICommands := regexp.MustCompile(`(help|backends|list backends|ls be|create backend|c be|update backend|backend|use backend)`)
+	if !nonAPICommands.MatchString(strings.Join(command, " ")) {
+		DEBUG("Command: '%s'", strings.Join(command, " "))
+
+		if *options.Shield != "" || os.Getenv("SHIELD_API") != "" {
+			ansi.Fprintf(os.Stderr, "@Y{WARNING: -H, --host, and the SHIELD_API environment variable have been deprecated and will be removed in a later release.} Use `shield backend` instead\n")
+		}
+
+		if len(Cfg.Backends) == 0 {
+			backend := os.Getenv("SHIELD_API")
+			if *options.Shield != "" {
+				backend = *options.Shield
+			}
+			ansi.Fprintf(os.Stderr, "@C{Initializing `default` backend as `%s`}\n", backend)
+			err := Cfg.AddBackend(backend, "default")
+			if err != nil {
+				ansi.Fprintf(os.Stderr, "@R{Error creating `default` backend: %s}", err)
+			}
+			Cfg.UseBackend("default")
+		}
+
+		if Cfg.BackendURI() == "" {
+			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
+			os.Exit(1)
+		}
+
+		if *options.User != "" || *options.Password != "" {
+			Cfg.UpdateCurrentBackend(BasicAuthToken(*options.User, *options.Password))
+		}
+
+		ansi.Fprintf(os.Stderr, "Using @G{%s} as SHIELD backend\n\n", Cfg.BackendURI())
+
+		err = Cfg.Save()
+		if err != nil {
+			DEBUG("Unable to save shield config: %s", err)
+		}
+	}
 
 	if err := c.Execute(command...); err != nil {
 		if *options.Raw {

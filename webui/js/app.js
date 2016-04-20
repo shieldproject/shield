@@ -11,7 +11,11 @@
       AJAX = $.ajax(params)
         .always(function() { AJAX = null })
         .fail(function(jqxhr) {
-          notify('danger', "Backend request failed: "+jqxhr.status.toString()+' '+jqxhr.statusText);
+          // reload the browser if we had an ajax call needing oauth, as cors will prevent this + cause errors
+          if (jqxhr.status == 401 && jqxhr.getResponseHeader("WWW-Authenticate").toLowerCase().StartsWith == "bearer") {
+            location.reload(true)
+          }
+          notify('danger', "Backend request failed: "+jxhr.status.toString()+' '+jqxhr.statusText);
         });
     };
   })();

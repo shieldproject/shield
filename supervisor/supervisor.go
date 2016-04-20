@@ -2,7 +2,6 @@ package supervisor
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -24,11 +23,11 @@ type Supervisor struct {
 
 	Database *db.DB
 
-	Port           string /* addr/interface(s) and port to bind */
 	PrivateKeyFile string /* path to the SSH private key for talking to remote agents */
-	WebRoot        string /* path to the root of the Web User Interface */
 	Workers        uint   /* how many workers to spin up */
 	PurgeAgent     string /* What agent to use for purge jobs */
+
+	Web *WebServer /* Webserver that gets spawned to handle http requests */
 
 	schedq []*db.Task
 	runq   []*db.Task
@@ -333,85 +332,7 @@ func (s *Supervisor) Run() error {
 }
 
 func (s *Supervisor) SpawnAPI() {
-	go func(s *Supervisor) {
-		db := s.Database.Copy()
-		if err := db.Connect(); err != nil {
-			log.Errorf("failed to connect to %s database at %s: %s", db.Driver, db.DSN, err)
-			return
-		}
-
-		ping := &PingAPI{}
-		http.Handle("/v1/ping", ping)
-
-		status := &StatusAPI{
-			Data:  db,
-			Super: s,
-		}
-		http.Handle("/v1/status", status)
-		http.Handle("/v1/status/", status)
-
-		meta := &MetaAPI{
-			PrivateKeyFile: s.PrivateKeyFile,
-		}
-		http.Handle("/v1/meta/", meta)
-
-		jobs := &JobAPI{
-			Data:       db,
-			ResyncChan: s.resync,
-			Tasks:      s.adhoc,
-		}
-		http.Handle("/v1/jobs", jobs)
-		http.Handle("/v1/job/", jobs)
-
-		retention := &RetentionAPI{
-			Data:       db,
-			ResyncChan: s.resync,
-		}
-		http.Handle("/v1/retention", retention)
-		http.Handle("/v1/retention/", retention)
-
-		archives := &ArchiveAPI{
-			Data:       db,
-			ResyncChan: s.resync,
-			Tasks:      s.adhoc,
-		}
-		http.Handle("/v1/archives", archives)
-		http.Handle("/v1/archive/", archives)
-
-		schedules := &ScheduleAPI{
-			Data:       db,
-			ResyncChan: s.resync,
-		}
-		http.Handle("/v1/schedules", schedules)
-		http.Handle("/v1/schedule/", schedules)
-
-		stores := &StoreAPI{
-			Data:       db,
-			ResyncChan: s.resync,
-		}
-		http.Handle("/v1/stores", stores)
-		http.Handle("/v1/store/", stores)
-
-		targets := &TargetAPI{
-			Data:       db,
-			ResyncChan: s.resync,
-		}
-		http.Handle("/v1/targets", targets)
-		http.Handle("/v1/target/", targets)
-
-		tasks := &TaskAPI{
-			Data: db,
-		}
-		http.Handle("/v1/tasks", tasks)
-		http.Handle("/v1/task/", tasks)
-
-		http.Handle("/", http.FileServer(http.Dir(s.WebRoot)))
-		err := http.ListenAndServe(":"+s.Port, nil)
-		if err != nil {
-			log.Critf("HTTP API failed %s", err.Error())
-			panic("HTTP API failed: " + err.Error())
-		}
-	}(s)
+	go s.Web.Start()
 }
 
 func (s *Supervisor) SpawnWorkers() {

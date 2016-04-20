@@ -1,9 +1,14 @@
 package supervisor_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
+	"github.com/markbates/goth/gothic"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -111,4 +116,86 @@ func DELETE(h http.Handler, uri string) *httptest.ResponseRecorder {
 
 	h.ServeHTTP(res, req)
 	return res
+}
+
+type FakeSessionStore struct {
+	Error       bool
+	CookieError bool
+	Session     *sessions.Session
+}
+
+func (fs *FakeSessionStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+	if fs.Error {
+		return nil, fmt.Errorf("Error getting session")
+	}
+	if fs.CookieError {
+		fs.CookieError = false
+		return nil, securecookie.MultiError{}
+	}
+
+	if fs.Session == nil {
+		s, err := fs.New(r, name)
+		if err != nil {
+			return nil, err
+		}
+		fs.Session = s
+	}
+	return fs.Session, nil
+}
+
+func (fs *FakeSessionStore) New(r *http.Request, name string) (*sessions.Session, error) {
+	if fs.Error {
+		return nil, fmt.Errorf("Error creating session")
+	}
+	s := sessions.NewSession(gothic.Store, name)
+	s.Values[gothic.SessionName] = `{"session":"exists"}`
+	s.Options = &sessions.Options{MaxAge: 60}
+	return s, nil
+}
+
+func (fs *FakeSessionStore) Save(r *http.Request, w http.ResponseWriter, s *sessions.Session) error {
+	if fs.Error {
+		return fmt.Errorf("Error saving session")
+	}
+	fs.Session = s
+	return nil
+}
+
+type FakeResponder struct {
+	Status  int
+	Headers http.Header
+	Body    *bytes.Buffer
+}
+
+func NewFakeResponder() *FakeResponder {
+	return &FakeResponder{Body: bytes.NewBuffer([]byte{}), Headers: http.Header{}}
+}
+
+func (fr *FakeResponder) Header() http.Header {
+	return fr.Headers
+}
+
+func (fr *FakeResponder) WriteHeader(i int) {
+	fr.Status = i
+}
+
+func (fr *FakeResponder) Write(data []byte) (int, error) {
+	if fr.Status == 0 {
+		fr.Status = 200
+	}
+	return fr.Body.Write(data)
+}
+
+func (fr *FakeResponder) ReadBody() (string, error) {
+	data, err := ioutil.ReadAll(fr.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func FakeResponderHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Processed request"))
+	})
 }
