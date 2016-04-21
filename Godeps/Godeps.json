@@ -123,19 +123,19 @@
 		},
 		{
 			"ImportPath": "github.com/markbates/goth",
-			"Rev": "e64d3868c24f9069fa8e65ca87851b5cccb1c003"
+			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
 		},
 		{
 			"ImportPath": "github.com/markbates/goth/gothic",
-			"Rev": "e64d3868c24f9069fa8e65ca87851b5cccb1c003"
+			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
 		},
 		{
 			"ImportPath": "github.com/markbates/goth/providers/faux",
-			"Rev": "e64d3868c24f9069fa8e65ca87851b5cccb1c003"
+			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
 		},
 		{
 			"ImportPath": "github.com/markbates/goth/providers/github",
-			"Rev": "e64d3868c24f9069fa8e65ca87851b5cccb1c003"
+			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
 		},
 		{
 			"ImportPath": "github.com/mattn/go-isatty",
