@@ -1,6 +1,8 @@
 # Run me to verify that all tests pass and all binaries are buildable before pushing!
 # If you do not, then Travis will be sad.
 
+export GO15VENDOREXPERIMENT=1
+
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
@@ -62,5 +64,10 @@ dev: shield
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
 # Deferred: Looping through plugins instead of listing them
+
+restore-deps:
+	godep restore ./...
+save-deps:
+	godep save ./...
 
 .PHONY: shield

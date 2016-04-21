@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
-	"GoVersion": "go1.6",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"./..."
 	],
