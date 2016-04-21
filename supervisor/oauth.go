@@ -102,8 +102,16 @@ var OAuthCallback = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if r.URL.Query().Get("code") == "" {
+		log.Errorf("No code detected in oauth callback: %v", r)
+		w.WriteHeader(403)
+		w.Write([]byte("No oauth code issued from provider"))
+		return
+	}
+
 	user, err := gothic.CompleteUserAuth(w, r)
 	if err != nil {
+		log.Errorf("Error verifying oauth success: %s. Request: %v", err, r)
 		w.WriteHeader(403)
 		w.Write([]byte("UnOAuthorized"))
 		return

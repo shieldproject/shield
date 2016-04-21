@@ -140,7 +140,7 @@ var _ = Describe("OAuthenticator", func() {
 		BeforeEach(func() {
 			res = NewFakeResponder()
 			var err error
-			req, err = http.NewRequest("GET", "/?state=csrf-detection", nil)
+			req, err = http.NewRequest("GET", "/?state=csrf-detection&code=success", nil)
 			if err != nil {
 				panic(err)
 			}
@@ -166,6 +166,18 @@ var _ = Describe("OAuthenticator", func() {
 			data, err := res.ReadBody()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(data).Should(Equal("UnOAuthorized"))
+		})
+		It("Returns a 403 if no code was specified in the callback from the provider", func() {
+			var err error
+			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
+			req, err = http.NewRequest("GET", "/?state=csrf-detection", nil)
+			Expect(err).ShouldNot(HaveOccurred())
+			OAuthCallback.ServeHTTP(res, req)
+			Expect(res.Status).Should(Equal(403))
+			data, err := res.ReadBody()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).Should(Equal("No oauth code issued from provider"))
+
 		})
 		It("Returns a 302 back to / if no flash was set in the session", func() {
 			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
