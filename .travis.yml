@@ -4,7 +4,7 @@ go:
 - 1.5
 before_install:
 #- go get golang.org/cmd/vet
-- go get golang.org/cmd/cover
+- go get golang.org/x/tools/cmd/cover
 script:
 #- go vet -x github.com/starkandwayne/shield/...
 - go test -v github.com/starkandwayne/shield/...
