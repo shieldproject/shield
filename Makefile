@@ -10,13 +10,13 @@ all: format tests shield plugins
 
 # go fmt ftw
 format:
-	go fmt ./...
+	@go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
 tests: test
 test:
 	ginkgo * ./cmd/shield
-	go vet ./...
+	@go list ./... | grep -v vendor | xargs go vet
 
 # Running Tests for race conditions
 race:
@@ -67,12 +67,8 @@ dev: shield
 
 restore-deps:
 	godep restore ./...
+
 save-deps:
 	godep save ./...
-
-
-vet: SHELL:=/bin/bash
-vet:
-	@go list ./... | grep -v vendor | xargs go vet
 
 .PHONY: shield
