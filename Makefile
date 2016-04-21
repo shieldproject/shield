@@ -70,4 +70,9 @@ restore-deps:
 save-deps:
 	godep save ./...
 
+
+vet: SHELL:=/bin/bash
+vet:
+	@go list ./... | grep -v vendor | xargs go vet
+
 .PHONY: shield
