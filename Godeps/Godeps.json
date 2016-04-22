@@ -104,10 +104,6 @@
 			"Rev": "c5bbe9d3d3c906d01de60189e5bfbba1d8164a80"
 		},
 		{
-			"ImportPath": "github.com/howeyc/gopass",
-			"Rev": "66487b23f2880ba32e185121d2cd51a338ea069a"
-		},
-		{
 			"ImportPath": "github.com/jhunt/ansi",
 			"Rev": "9aaf89a789f0b58bef35c13d4e0e4c4c62759364"
 		},
