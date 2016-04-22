@@ -1,0 +1,18 @@
+language: go
+
+go:
+  - 1.2
+  - tip
+
+script: make test
+
+env:
+  - PGSTORE_TEST_CONN="postgres://postgres@127.0.0.1/test?sslmode=disable"
+
+before_script:
+  - psql -c 'create database test;' -U postgres
+
+addons:
+  postgresql: "9.3"
+
+sudo: false

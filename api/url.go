@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 )
 
 type URL struct {
@@ -71,7 +73,7 @@ func httpTracingEnabled() bool {
 func debugRequest(req *http.Request) {
 	if httpTracingEnabled() {
 		r, _ := httputil.DumpRequest(req, true)
-		fmt.Fprintf(os.Stderr, "%s\n", r)
+		fmt.Fprintf(os.Stderr, "Request:\n%s\n---------------------------\n", r)
 	}
 }
 func debugResponse(res *http.Response) {
@@ -82,14 +84,18 @@ func debugResponse(res *http.Response) {
 }
 
 func (u *URL) Request(out interface{}, req *http.Request) error {
-	debugRequest(req)
-	client := &http.Client{}
-	r, err := client.Do(req)
-	debugResponse(r)
+	r, err := makeRequest(req)
 	if err != nil {
 		return err
 	}
 	defer r.Body.Close()
+
+	if r.StatusCode == 401 {
+		r, err = promptAndAuth(r, req)
+		if err != nil {
+			return err
+		}
+	}
 
 	var final error = nil
 	if r.StatusCode != 200 {
@@ -145,4 +151,71 @@ func (u *URL) Put(out interface{}, data string) error {
 	}
 	r.Header.Set("Content-Type", "application/json")
 	return u.Request(out, r)
+}
+
+func makeRequest(req *http.Request) (*http.Response, error) {
+	client := &http.Client{}
+	if os.Getenv("SHIELD_API_TOKEN") != "" {
+		req.Header.Set("X-SHIELD-TOKEN", os.Getenv("SHIELD_API_TOKEN"))
+	}
+	token := Cfg.BackendToken()
+	if token != "" {
+		req.Header.Set("Authorization", token)
+	}
+	debugRequest(req)
+	r, err := client.Do(req)
+	debugResponse(r)
+	if err != nil {
+		return nil, err
+	}
+	return r, err
+}
+
+func promptAndAuth(res *http.Response, req *http.Request) (*http.Response, error) {
+	auth := strings.Split(res.Header.Get("www-authenticate"), " ")
+	if len(auth) > 0 {
+		fmt.Fprintf(os.Stdout, "Authentication Required\n\n")
+		var token string
+		switch strings.ToLower(auth[0]) {
+		case "basic":
+			var user string
+			fmt.Fprintf(os.Stdout, "User: ")
+			_, err := fmt.Scanln(&user)
+			if err != nil {
+				return nil, err
+			}
+			fmt.Fprintf(os.Stdout, "\nPassword: ")
+			pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+			fmt.Fprintf(os.Stdout, "\n") // newline to line-break after the password prompt
+			if err != nil {
+				return nil, err
+			}
+
+			token = BasicAuthToken(user, string(pass))
+		case "bearer":
+			var t, s string
+			fmt.Fprintf(os.Stdout, "SHIELD has been protected by an OAuth2 provider. To authenticate on the command line,\n please visit the following URL, and paste in the entirety of the Bearer token provided:\n\n\t%s/v1/auth/cli\n\nToken: ", Cfg.BackendURI())
+			_, err := fmt.Scanln(&t, &s)
+			if err != nil {
+				return nil, err
+			}
+			token = t + " " + s
+		default:
+			return nil, fmt.Errorf("Unrecognized authentication request type: %s", res.Header.Get("www-authenticate"))
+		}
+		// newline to separate creds from response
+		fmt.Fprintf(os.Stdout, "\n")
+
+		Cfg.UpdateCurrentBackend(token)
+		r, err := makeRequest(req)
+		if err != nil {
+			return nil, err
+		}
+		if r.StatusCode < 400 {
+			Cfg.Save()
+		}
+		return r, nil
+	}
+	// if no authorization header, fall back to returning the orignal response, unprocessed
+	return res, nil
 }

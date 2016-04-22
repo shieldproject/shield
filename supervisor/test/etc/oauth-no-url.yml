@@ -1,0 +1,4 @@
+---
+auth:
+  oauth:
+    provider: github
