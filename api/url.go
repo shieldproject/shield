@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/howeyc/gopass"
+	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -185,10 +185,12 @@ func promptAndAuth(res *http.Response, req *http.Request) (*http.Response, error
 				return nil, err
 			}
 			fmt.Fprintf(os.Stdout, "\nPassword: ")
-			pass, err := gopass.GetPasswdMasked()
+			pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+			fmt.Fprintf(os.Stdout, "\n") // newline to line-break after the password prompt
 			if err != nil {
 				return nil, err
 			}
+
 			token = BasicAuthToken(user, string(pass))
 		case "bearer":
 			var t, s string
@@ -201,6 +203,8 @@ func promptAndAuth(res *http.Response, req *http.Request) (*http.Response, error
 		default:
 			return nil, fmt.Errorf("Unrecognized authentication request type: %s", res.Header.Get("www-authenticate"))
 		}
+		// newline to separate creds from response
+		fmt.Fprintf(os.Stdout, "\n")
 
 		Cfg.UpdateCurrentBackend(token)
 		r, err := makeRequest(req)

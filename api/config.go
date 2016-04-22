@@ -48,7 +48,27 @@ func (cfg *Config) Save() error {
 		return err
 	}
 
-	err = ioutil.WriteFile(cfg.Path, data, 0644)
+	tempFile, err := ioutil.TempFile("", "shield_config")
+	if err != nil {
+		return err
+	}
+
+	err = os.Chmod(tempFile.Name(), 0600)
+	if err != nil {
+		return err
+	}
+
+	_, err = tempFile.Write(data)
+	if err != nil {
+		return err
+	}
+
+	err = tempFile.Close()
+	if err != nil {
+		return err
+	}
+
+	err = os.Rename(tempFile.Name(), cfg.Path)
 	if err != nil {
 		return err
 	}

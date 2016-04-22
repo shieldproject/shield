@@ -37,7 +37,7 @@ var (
 
 func main() {
 	options := Options{
-		Shield:   getopt.StringLong("shield", 'H', "", "SHIELD target to run command against, i.e. http://shield.my.domain:8080"),
+		Shield:   getopt.StringLong("shield", 'H', "", "DEPRECATED - Previously required to point to a SHIELD backend to talk to. Now used to auto-vivify ~/.shield_config if necessary"),
 		Used:     getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
 		Unused:   getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
 		Paused:   getopt.BoolLong("paused", 0, "Only show jobs that are paused"),
@@ -59,9 +59,7 @@ func main() {
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
 		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
 
-		Config:   getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Specify the shield config file to use"),
-		User:     getopt.StringLong("user", 0, "", "Specify a username to authenticate with"),
-		Password: getopt.StringLong("password", 0, "", "Specify a password to authenticate with"),
+		Config: getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 	}
 
 	OK := func(f string, l ...interface{}) {
@@ -110,7 +108,6 @@ func main() {
 			ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
 			ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
 			ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
-			fmt.Fprintf(os.Stderr, "  SHIELD_API\t\tset to specify the shield API's IP:port.\n")
 			fmt.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
 			fmt.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
 			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
@@ -194,9 +191,16 @@ func main() {
 			if err != nil {
 				return err
 			}
+
+			err = Cfg.UseBackend(args[0])
+			if err != nil {
+				return err
+			}
+
 			Cfg.Save()
 
 			ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
+			ansi.Fprintf(os.Stdout, "Using '@G{%s}' as the SHIELD backend.\n\n", args[0])
 
 			return nil
 		})
@@ -1549,21 +1553,20 @@ func main() {
 			if *options.Shield != "" {
 				backend = *options.Shield
 			}
-			ansi.Fprintf(os.Stderr, "@C{Initializing `default` backend as `%s`}\n", backend)
-			err := Cfg.AddBackend(backend, "default")
-			if err != nil {
-				ansi.Fprintf(os.Stderr, "@R{Error creating `default` backend: %s}", err)
+
+			if backend != "" {
+				ansi.Fprintf(os.Stderr, "@C{Initializing `default` backend as `%s`}\n", backend)
+				err := Cfg.AddBackend(backend, "default")
+				if err != nil {
+					ansi.Fprintf(os.Stderr, "@R{Error creating `default` backend: %s}", err)
+				}
+				Cfg.UseBackend("default")
 			}
-			Cfg.UseBackend("default")
 		}
 
 		if Cfg.BackendURI() == "" {
 			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
 			os.Exit(1)
-		}
-
-		if *options.User != "" || *options.Password != "" {
-			Cfg.UpdateCurrentBackend(BasicAuthToken(*options.User, *options.Password))
 		}
 
 		ansi.Fprintf(os.Stderr, "Using @G{%s} as SHIELD backend\n\n", Cfg.BackendURI())

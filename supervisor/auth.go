@@ -42,18 +42,24 @@ func (ba BasicAuthenticator) RequireAuth(w http.ResponseWriter, r *http.Request)
 
 func Authenticate(tokens map[string]string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		for name, token := range tokens {
-			log.Debugf("Checking Tokens")
-			if r.Header.Get("X-SHIELD-TOKEN") == token {
-				log.Debugf("Matched token %s!", name)
-				next.ServeHTTP(w, r)
-				return
+		providedToken := r.Header.Get("X-SHIELD-TOKEN")
+		if providedToken != "" {
+			log.Debugf("Checking X-SHIELD-TOKEN against available tokens")
+			for name, token := range tokens {
+				if providedToken == token {
+					log.Debugf("Matched token %s!", name)
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
+			log.Debugf("No tokens matched")
 		}
 
 		if UserAuthenticator.IsAuthenticated(r) {
+			log.Debugf("Request was authenticated, continuing to process")
 			next.ServeHTTP(w, r)
 		} else {
+			log.Debugf("Request not authenticated, denying")
 			UserAuthenticator.RequireAuth(w, r)
 			return
 		}

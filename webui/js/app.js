@@ -15,7 +15,7 @@
           if (jqxhr.status == 401 && jqxhr.getResponseHeader("WWW-Authenticate").toLowerCase().StartsWith == "bearer") {
             location.reload(true)
           }
-          notify('danger', "Backend request failed: "+jxhr.status.toString()+' '+jqxhr.statusText);
+          notify('danger', "Backend request failed: "+jqxhr.status.toString()+' '+jqxhr.statusText);
         });
     };
   })();

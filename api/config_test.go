@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -73,7 +74,10 @@ aliases: {}
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(string(data)).Should(Equal(expectedCfg))
 
-			Expect(os.Remove(tempFile.Name())).Should(Succeed())
+			err = os.Remove(tempFile.Name())
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error cleaning up temporary test file (%s): %s\n", tempFile.Name(), err)
+			}
 		})
 	})
 	Describe("When retrieving the URI of the current backend", func() {
@@ -95,7 +99,7 @@ aliases: {}
 		It("Returns empty string if no current backend set", func() {
 			Expect(cfg.BackendURI()).Should(Equal(""))
 		})
-		It("Returns an empty string if current backend is an alias is set to an invalid backend", func() {
+		It("Returns an empty string if current backend is an alias which is set to an invalid backend", func() {
 			cfg.Backend = "invalid"
 			Expect(cfg.BackendURI()).Should(Equal(""))
 
@@ -245,6 +249,11 @@ aliases: {}
 		})
 		It("fails if the URL is bad", func() {
 			Expect(cfg.AddBackend("not a url", "willFail")).ShouldNot(Succeed())
+			Expect(cfg.Aliases).Should(Equal(initialAliases))
+			Expect(cfg.Backends).Should(Equal(initialBackends))
+		})
+		It("Fails if the URL doesnt exist", func() {
+			Expect(cfg.AddBackend("", "alias")).ShouldNot(Succeed())
 			Expect(cfg.Aliases).Should(Equal(initialAliases))
 			Expect(cfg.Backends).Should(Equal(initialBackends))
 		})
