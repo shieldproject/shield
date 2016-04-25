@@ -2,6 +2,7 @@ package supervisor
 
 import (
 	"fmt"
+	"golang.org/x/oauth2"
 	"net/http"
 	"regexp"
 	"strings"
@@ -115,10 +116,22 @@ var OAuthCallback = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(403)
 		w.Write([]byte("UnOAuthorized"))
 		return
-	} else {
-		log.Infof("Successful login for %s", user)
 	}
-	//FIXME: do some sort of authorization on the user to restrict access to more than any user with a password
+
+	log.Debugf("Authenticated user %#v", user)
+
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: user.AccessToken})
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	log.Debugf("Checking authorization...")
+	if !OAuthVerifier.Verify(user, tc) {
+		log.Debugf("Authorization denied")
+		w.WriteHeader(403)
+		w.Write([]byte("You are not authorized to view this content"))
+		return
+	}
+
+	log.Infof("Successful login for %s", user.NickName)
 
 	redirect := "/"
 	if flashes := sess.Flashes(); len(flashes) > 0 {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"io"
 	"io/ioutil"
@@ -14,6 +15,7 @@ import (
 	"strings"
 
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
@@ -198,4 +200,24 @@ func FakeResponderHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Processed request"))
 	})
+}
+
+type FakeVerifier struct {
+	Allow bool
+}
+
+func (fv *FakeVerifier) Verify(u goth.User, c *http.Client) bool {
+	return fv.Allow
+}
+
+type FakeProxy struct {
+	Backend      *ghttp.Server
+	ResponseCode int
+}
+
+func (fp *FakeProxy) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.URL.Host = fp.Backend.Addr()
+	r.URL.Scheme = "http"
+
+	return (&http.Transport{}).RoundTrip(r)
 }
