@@ -222,7 +222,7 @@
     update: MODEL.updater ('/v1/schedule/%s')
   });
   $.extend(Retention, {
-    type:   'retention',
+    type:   'retention-policy',
     list:   MODEL.lister  ('/v1/retention', 'retention'),
     delete: MODEL.deleter ('/v1/retention/%s'),
     show:   MODEL.findOne ('/v1/retention/%s', function (r) { r.expires = parseInt(r.expires / 86400); return r; }),
