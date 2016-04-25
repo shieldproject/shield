@@ -1,12 +1,12 @@
 language: go
 sudo: false
 go:
-- 1.5
+- 1.6
 before_install:
 #- go get golang.org/cmd/vet
 - go get golang.org/x/tools/cmd/cover
 script:
-#- go vet -x github.com/starkandwayne/shield/...
+- go vet $(go list github.com/starkandwayne/shield/... | grep -v vendor)
 - go test -v github.com/starkandwayne/shield/...
 - go test -race github.com/starkandwayne/shield/...
 notifications:

@@ -1,6 +1,8 @@
 # Run me to verify that all tests pass and all binaries are buildable before pushing!
 # If you do not, then Travis will be sad.
 
+export GO15VENDOREXPERIMENT=1
+
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
@@ -8,13 +10,13 @@ all: format tests shield plugins
 
 # go fmt ftw
 format:
-	go fmt ./...
+	go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
 tests: test
 test:
 	ginkgo * ./cmd/shield
-	go vet ./...
+	go list ./... | grep -v vendor | xargs go vet
 
 # Running Tests for race conditions
 race:
@@ -62,5 +64,11 @@ dev: shield
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
 # Deferred: Looping through plugins instead of listing them
+
+restore-deps:
+	godep restore ./...
+
+save-deps:
+	godep save ./...
 
 .PHONY: shield
