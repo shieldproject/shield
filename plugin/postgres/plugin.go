@@ -171,7 +171,11 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	// Check if db_name is valid
 	if db_name != "" {
 		// Run dump all on the specified db
+<<<<<<< HEAD
 		cmd = fmt.Sprintf("%s/pg_dump %s -c --no-password", pg.Bin, db_name)
+=======
+		cmd = fmt.Sprintf("%s/pg_dump %s", pg.Bin, db_name)
+>>>>>>> 6fa179a273971c28ed6b78a0fc2fe042362e8a76
 		DEBUG("Executing: `%s`", cmd)
 	} else {
 		// Else run dump on all
