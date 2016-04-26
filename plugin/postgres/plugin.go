@@ -21,8 +21,8 @@
 //        "pg_user":"username-for-postgres",
 //        "pg_password":"password-for-above-user",
 //        "pg_host":"hostname-or-ip-of-pg-server",
-//        "pg_port":"port-above-pg-server-listens-on"
-//		  "pg_database": "name-of-db-to-backup"
+//        "pg_port":"port-above-pg-server-listens-on",
+//        "pg_database": "name-of-db-to-backup"
 //    }
 //
 // BACKUP DETAILS
@@ -143,6 +143,13 @@ func (p PostgresPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValue("pg_database")
+	if err != nil {
+		ansi.Printf("@R{\u2717 pg_database  %s}\n", err)
+	} else {
+		ansi.Printf("@G{\u2713 pg_database} @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("postgres: invalid configuration")
 	}
@@ -164,11 +171,11 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	// Check if db_name is valid
 	if db_name != "" {
 		// Run dump all on the specified db
-		cmd := fmt.Sprintf("%s/pg_dump %s", pg.Bin, db_name)
+		cmd = fmt.Sprintf("%s/pg_dump %s -c --no-password", pg.Bin, db_name)
 		DEBUG("Executing: `%s`", cmd)
 	} else {
 		// Else run dump on all
-		cmd := fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
+		cmd = fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
 		DEBUG("Executing: `%s`", cmd)
 	}
 	return Exec(cmd, STDOUT)
@@ -263,7 +270,7 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	database, err := endpoint.StringValueDefault("pg_database", "")
 	DEBUG("PGDATABASE: '%s'", database)
 
-	bin := "/var/vcap/packages/postgresql-9.4/bin"
+	bin := "/var/vcap/packages/postgres-9.4/bin"
 	DEBUG("PGBINDIR: '%s'", bin)
 
 	return &PostgresConnectionInfo{
