@@ -20,7 +20,7 @@ var _ = Describe("WebServer", func() {
 		}
 		ws = &WebServer{
 			Database: db,
-			Port:     "0", // choose a random one
+			Addr:     ":0", // choose a random one
 			Auth: AuthConfig{
 				Basic: BasicAuthConfig{
 					User:     "testuser",
