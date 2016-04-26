@@ -17,7 +17,7 @@ import (
 
 type WebServer struct {
 	Database      *db.DB
-	Port          string
+	Addr          string
 	WebRoot       string
 	Auth          AuthConfig
 	Authenticator http.Handler
@@ -109,13 +109,12 @@ func (ws *WebServer) Start() {
 	if err != nil {
 		panic("Could not set up WebServer for SHIELD: " + err.Error())
 	}
-	log.Debugf("Starting WebServer...")
-	err = http.ListenAndServe(":"+ws.Port, nil)
+	log.Debugf("Starting WebServer on '%s'...", ws.Addr)
+	err = http.ListenAndServe(ws.Addr, nil)
 	if err != nil {
 		log.Errorf("HTTP API failed %s", err.Error())
 		panic("Cannot setup WebServer, aborting. Check logs for details.")
 	}
-	log.Debugf("WebServer is listening on ':%s'", ws.Port)
 }
 
 func (ws *WebServer) UnauthenticatedResources(next http.Handler) http.Handler {

@@ -18,7 +18,7 @@ type Config struct {
 	DatabaseType string `yaml:"database_type"`
 	DatabaseDSN  string `yaml:"database_dsn"`
 
-	Port string `yaml:"port"`
+	Addr string `yaml:"listen_addr"`
 
 	PrivateKeyFile string `yaml:"private_key"`
 	WebRoot        string `yaml:"web_root"`
@@ -77,8 +77,8 @@ func (s *Supervisor) ReadConfig(path string) error {
 		return err
 	}
 
-	if config.Port == "" {
-		config.Port = "8888"
+	if config.Addr == "" {
+		config.Addr = ":8888"
 	}
 	if config.PrivateKeyFile == "" {
 		config.PrivateKeyFile = "/etc/shield/ssh/server.key"
@@ -149,7 +149,7 @@ func (s *Supervisor) ReadConfig(path string) error {
 
 	ws := WebServer{
 		Database:   s.Database.Copy(),
-		Port:       config.Port,
+		Addr:       config.Addr,
 		WebRoot:    config.WebRoot,
 		Auth:       config.Auth,
 		Supervisor: s,
