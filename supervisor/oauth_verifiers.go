@@ -22,8 +22,8 @@ type GithubVerifier struct {
 func (gv *GithubVerifier) Verify(user goth.User, c *http.Client) bool {
 	// If none specified, just let any authenticated person in
 	if len(gv.Orgs) == 0 {
-		log.Debugf("No orgs required for authorization, granting access to '%s'.", user.NickName)
-		return true
+		log.Debugf("No orgs specified for authorization, denying access to '%s'.", user.NickName)
+		return false
 	}
 
 	ghc := github.NewClient(c)

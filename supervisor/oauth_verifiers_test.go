@@ -74,9 +74,9 @@ var _ = Describe("GithubVerifier", func() {
 			gv.Orgs = []string{"test-org-3"}
 			Expect(gv.Verify(goth.User{}, client)).To(BeTrue())
 		})
-		It("Grants access if there are no orgs specified to allow access", func() {
+		It("Denies access if there are no orgs specified to allow access", func() {
 			gv.Orgs = []string{}
-			Expect(gv.Verify(goth.User{}, client)).To(BeTrue())
+			Expect(gv.Verify(goth.User{}, client)).To(BeFalse())
 		})
 	})
 })
