@@ -60,8 +60,9 @@ func (ws *WebServer) Setup() error {
 
 		switch ws.Auth.OAuth.Provider {
 		case "github":
-			log.Debugf("Using github as the oauth proivder")
-			goth.UseProviders(github.New(ws.Auth.OAuth.Key, ws.Auth.OAuth.Secret, fmt.Sprintf("%s/v1/auth/github/callback", ws.Auth.OAuth.BaseURL)))
+			log.Debugf("Using github as the oauth provider")
+			goth.UseProviders(github.New(ws.Auth.OAuth.Key, ws.Auth.OAuth.Secret, fmt.Sprintf("%s/v1/auth/github/callback", ws.Auth.OAuth.BaseURL), "read:org"))
+			OAuthVerifier = &GithubVerifier{Orgs: ws.Auth.OAuth.Authorization.Orgs}
 		case "faux":
 			log.Debugf("Using mocked session store")
 			// does nothing, to avoid being accidentally used in prod
@@ -102,6 +103,7 @@ func (ws *WebServer) Setup() error {
 	http.Handle("/", ws.UnauthenticatedResources(Authenticate(ws.Auth.Tokens, protectedAPIs)))
 	return nil
 }
+
 func (ws *WebServer) Start() {
 	err := ws.Setup()
 	if err != nil {
