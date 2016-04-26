@@ -1,13 +1,29 @@
 #!/bin/bash
 PORT=8181
 export SHIELD_API=http://127.0.0.1:${PORT}
+export PATH=$(pwd):$(pwd)/bin:${PATH}
+workdir=""
 
-case "${1}" in
-(shieldd)
+setup_workdir() {
   workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
   trap "rm -rf ${workdir}" EXIT QUIT INT TERM
 
   mkdir ${workdir}/etc
+  mkdir ${workdir}/var
+  ssh-keygen -t rsa -f ${workdir}/var/key -N '' >/dev/null
+  #rm ${workdir}/var/key.pub
+}
+
+# If a work directory is not supplied as a parameter,
+# create one.
+if [ $# -lt 2 ]; then
+    setup_workdir
+else
+    workdir="${2}"
+fi
+
+case "${1}" in
+(shieldd)
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
 port:          ${PORT}
@@ -33,10 +49,6 @@ auth:
 #      dsn: ${workdir}/var/sessions.db
 EOF
 
-  mkdir ${workdir}/var
-  ssh-keygen -t rsa -f ${workdir}/var/key -N '' >/dev/null
-  rm ${workdir}/var/key.pub
-
   if [[ ! -f "${workdir}/var/shield.db" ]]; then
     echo ">> Setting up SHIELD schema in var/shield.db"
     ./shield-schema -t sqlite3 -d "${workdir}/var/shield.db"
@@ -50,10 +62,27 @@ EOF
   echo "Press enter to close this session."
   read JUNK
   ;;
+(shieldagent)
+  cat >${workdir}/etc/shield-agent.conf <<EOF
+---
+authorized_keys_file: ${workdir}/var/key.pub
+host_key_file: ${workdir}/var/key
+listen_address: 0.0.0.0:5444
+plugin_paths:
+  - $(pwd)
+EOF
 
+  echo ">> RUNNING SHIELD AGENT"
+  ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
+  echo
+  echo "shield-agent exited."
+  echo "Press enter to close this session."
+  read JUNK
+  ;;
 ("")
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
-       new-window -n core ./bin/testdev shieldd \;
+       new-window -n core ./bin/testdev shieldd ${workdir} \; \
+       new-window -n core ./bin/testdev shieldagent ${workdir} \;
   ;;
 
 (*)
