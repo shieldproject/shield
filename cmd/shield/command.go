@@ -14,9 +14,10 @@ type Options struct {
 	Unpaused *bool
 	All      *bool
 
-	Debug *bool
-	Trace *bool
-	Raw   *bool
+	Debug             *bool
+	Trace             *bool
+	Raw               *bool
+	SkipSSLValidation *bool
 
 	Status *string
 
