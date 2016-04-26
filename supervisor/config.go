@@ -48,11 +48,17 @@ type OAuthConfig struct {
 	Key           string         `yaml:"key"`
 	Secret        string         `yaml:"secret"`
 	BaseURL       string         `yaml:"base_url"`
+	Authorization AuthZConfig    `yaml:"authorization"`
 	Sessions      SessionsConfig `yaml:"sessions"`
 	SigningKey    string         `yaml:"signing_key"`
 	JWTPrivateKey *rsa.PrivateKey
 	JWTPublicKey  *rsa.PublicKey
 }
+
+type AuthZConfig struct {
+	Orgs []string `yaml:"orgs"`
+}
+
 type SessionsConfig struct {
 	Type   string `yaml:"type"`
 	DSN    string `yaml:"dsn"`
