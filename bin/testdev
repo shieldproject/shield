@@ -1,18 +1,35 @@
 #!/bin/bash
+export PATH=$(pwd):$(pwd)/bin:${PATH}
+workdir=""
 ADDR=127.0.0.1:8181
 
-case "${1}" in
-(shieldd)
+setup_workdir() {
   workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
   trap "rm -rf ${workdir}" EXIT QUIT INT TERM
 
   mkdir ${workdir}/etc
+  mkdir ${workdir}/var
+}
+
+# If a work directory is not supplied as a parameter,
+# create one.
+if [ $# -lt 2 ]; then
+    setup_workdir
+else
+    workdir="${2}"
+fi
+
+case "${1}" in
+(shieldd)
+  ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
+  rm ${workdir}/var/shieldd_key.pub
+
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
 listen_addr:   ${ADDR}
 database_type: sqlite3
 database_dsn:  ${workdir}/var/shield.db
-private_key:   ${workdir}/var/key
+private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
 web_root: ./webui
@@ -32,10 +49,6 @@ auth:
 #      dsn: ${workdir}/var/sessions.db
 EOF
 
-  mkdir ${workdir}/var
-  ssh-keygen -t rsa -f ${workdir}/var/key -N '' >/dev/null
-  rm ${workdir}/var/key.pub
-
   if [[ ! -f "${workdir}/var/shield.db" ]]; then
     echo ">> Setting up SHIELD schema in var/shield.db"
     ./shield-schema -t sqlite3 -d "${workdir}/var/shield.db"
@@ -49,10 +62,37 @@ EOF
   echo "Press enter to close this session."
   read JUNK
   ;;
+(shieldagent)
+  agent_up="1"
+  while [ $agent_up -eq 1 ]; do
+      sleep 1
+      agent_up=`nc -z 127.0.0.1 8181; echo $?`
+  done
 
+  ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
+  rm ${workdir}/var/shield-agent_key.pub
+
+  `curl -XGET -H "X-SHIELD-TOKEN: LETMEIN" http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
+  cat >${workdir}/etc/shield-agent.conf <<EOF
+---
+authorized_keys_file: ${workdir}/var/authorized_keys
+host_key_file: ${workdir}/var/shield-agent_key
+listen_address: 0.0.0.0:5444
+plugin_paths:
+  - $(pwd)
+EOF
+
+  echo ">> RUNNING SHIELD AGENT"
+  ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
+  echo
+  echo "shield-agent exited."
+  echo "Press enter to close this session."
+  read JUNK
+  ;;
 ("")
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
-       new-window -n core ./bin/testdev shieldd \;
+       new-window -n core ./bin/testdev shieldd ${workdir} \; \
+       new-window -n core ./bin/testdev shieldagent ${workdir} \;
   ;;
 
 (*)
