@@ -10,8 +10,6 @@ setup_workdir() {
 
   mkdir ${workdir}/etc
   mkdir ${workdir}/var
-  ssh-keygen -t rsa -f ${workdir}/var/key -N '' >/dev/null
-  #rm ${workdir}/var/key.pub
 }
 
 # If a work directory is not supplied as a parameter,
@@ -24,12 +22,15 @@ fi
 
 case "${1}" in
 (shieldd)
+  ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
+  rm ${workdir}/var/shieldd_key.pub
+
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
 port:          ${PORT}
 database_type: sqlite3
 database_dsn:  ${workdir}/var/shield.db
-private_key:   ${workdir}/var/key
+private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
 web_root: ./webui
@@ -63,10 +64,20 @@ EOF
   read JUNK
   ;;
 (shieldagent)
+  agent_up="1"
+  while [ $agent_up -eq 1 ]; do
+      sleep 1
+      agent_up=`nc -z 127.0.0.1 8181; echo $?`
+  done
+
+  ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
+  rm ${workdir}/var/shield-agent_key.pub
+
+  `curl -XGET --user testuser:testpass http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
   cat >${workdir}/etc/shield-agent.conf <<EOF
 ---
-authorized_keys_file: ${workdir}/var/key.pub
-host_key_file: ${workdir}/var/key
+authorized_keys_file: ${workdir}/var/authorized_keys
+host_key_file: ${workdir}/var/shield-agent_key
 listen_address: 0.0.0.0:5444
 plugin_paths:
   - $(pwd)
