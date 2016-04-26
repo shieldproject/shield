@@ -1,8 +1,7 @@
 #!/bin/bash
-PORT=8181
-export SHIELD_API=http://127.0.0.1:${PORT}
 export PATH=$(pwd):$(pwd)/bin:${PATH}
 workdir=""
+ADDR=127.0.0.1:8181
 
 setup_workdir() {
   workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
@@ -27,7 +26,7 @@ case "${1}" in
 
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
-port:          ${PORT}
+listen_addr:   ${ADDR}
 database_type: sqlite3
 database_dsn:  ${workdir}/var/shield.db
 private_key:   ${workdir}/var/shieldd_key
@@ -99,7 +98,7 @@ EOF
 (*)
   echo >&2 "USAGE: $0 [ACTION]"
   echo >&2 ""
-  echo >&2 "Run components of a test/dev shield setup, on http://127.0.0.1:${PORT}"
+  echo >&2 "Run components of a test/dev shield setup, on http://${ADDR}"
   echo >&2 ""
   echo >&2 "Actions:"
   echo >&2 "  shieldd     Run SHIELD core daemon"

@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"golang.org/x/crypto/ssh/terminal"
@@ -154,7 +155,13 @@ func (u *URL) Put(out interface{}, data string) error {
 }
 
 func makeRequest(req *http.Request) (*http.Response, error) {
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "",
+			},
+		},
+	}
 	if os.Getenv("SHIELD_API_TOKEN") != "" {
 		req.Header.Set("X-SHIELD-TOKEN", os.Getenv("SHIELD_API_TOKEN"))
 	}

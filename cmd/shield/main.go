@@ -44,9 +44,10 @@ func main() {
 		Unpaused: getopt.BoolLong("unpaused", 0, "Only show jobs that are unpaused"),
 		All:      getopt.BoolLong("all", 'a', "Show all the things"),
 
-		Debug: getopt.BoolLong("debug", 'D', "Enable debugging"),
-		Trace: getopt.BoolLong("trace", 'T', "Enable trace mode"),
-		Raw:   getopt.BoolLong("raw", 0, "Operate in RAW mode, reading and writing only JSON"),
+		Debug:             getopt.BoolLong("debug", 'D', "Enable debugging"),
+		Trace:             getopt.BoolLong("trace", 'T', "Enable trace mode"),
+		Raw:               getopt.BoolLong("raw", 0, "Operate in RAW mode, reading and writing only JSON"),
+		SkipSSLValidation: getopt.BoolLong("skip-ssl-validation", 'k', "Disable SSL Certificate Validation"),
 
 		Status:    getopt.StringLong("status", 'S', "", "Only show archives/tasks with the given status"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
@@ -98,6 +99,10 @@ func main() {
 	if *options.Trace {
 		DEBUG("enabling TRACE output")
 		os.Setenv("SHIELD_TRACE", "1")
+	}
+
+	if *options.SkipSSLValidation {
+		os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
 	}
 
 	c := NewCommand().With(options)
