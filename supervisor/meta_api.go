@@ -13,6 +13,8 @@ type MetaAPI struct {
 	PrivateKeyFile string
 }
 
+// NOTE: APIs HANDLED HERE DO NOT REQUIRE AUTHENTICATION/AUTHORIZATION!!!
+//       USE EXTREME CAUTION WHEN ADDING NEW HANDLERS
 func (self MetaAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `GET /v1/meta/pubkey`):
