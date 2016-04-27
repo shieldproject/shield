@@ -3,6 +3,7 @@ package supervisor
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/antonlindstrom/pgstore"
 	"github.com/gorilla/securecookie"
@@ -132,6 +133,12 @@ func (ws *WebServer) UnauthenticatedResources(next http.Handler) http.Handler {
 			return
 		}
 
+		if strings.HasPrefix(r.URL.Path, "/v1/meta/") {
+			meta := &MetaAPI{PrivateKeyFile: ws.Supervisor.PrivateKeyFile}
+			meta.ServeHTTP(w, r)
+			return
+		}
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -145,11 +152,6 @@ func (ws *WebServer) ProtectedAPIs() (http.Handler, error) {
 	}
 	router.Handle("/v1/status", status)
 	router.Handle("/v1/status/", status)
-
-	meta := &MetaAPI{
-		PrivateKeyFile: ws.Supervisor.PrivateKeyFile,
-	}
-	router.Handle("/v1/meta/", meta)
 
 	jobs := &JobAPI{
 		Data:       ws.Database,
