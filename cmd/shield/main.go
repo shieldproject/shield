@@ -732,7 +732,7 @@ func main() {
 				in := tui.NewForm()
 				in.NewField("Policy Name", "name", p.Name, "", tui.FieldIsRequired)
 				in.NewField("Summary", "summary", p.Summary, "", tui.FieldIsOptional)
-				in.NewField("Retention Timeframe", "expires", p.Expires, fmt.Sprintf("%dd", p.Expires/86400), FieldIsRetentionTimeframe)
+				in.NewField("Retention Timeframe, in days", "expires", p.Expires/86400, "", FieldIsRetentionTimeframe)
 
 				if err = in.Show(); err != nil {
 					return err

@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 func FieldIsStoreUUID(name string, value string) (interface{}, error) {
 	o, _, err := FindStore(value, false)
 	if err != nil {
@@ -37,5 +39,6 @@ func FieldIsRetentionTimeframe(name string, value string) (interface{}, error) {
 	if err != nil {
 		return value, err
 	}
+	i.text = strings.TrimSuffix(i.text, "d")
 	return i, nil
 }
