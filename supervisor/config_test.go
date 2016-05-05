@@ -1,6 +1,8 @@
 package supervisor_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -81,6 +83,15 @@ var _ = Describe("Supervisor Configuration", func() {
 				Expect(s.ReadConfig("test/etc/oauth-no-signing-key.yml")).Should(Succeed())
 				Expect(s.Web.Auth.OAuth.JWTPrivateKey).ShouldNot(BeNil())
 				Expect(s.Web.Auth.OAuth.JWTPublicKey).ShouldNot(BeNil())
+			})
+
+			It("Creates an http client with ssl verification enabled", func() {
+				Expect(s.ReadConfig("test/etc/oauth-ssl-checking.yml")).Should(Succeed())
+				Expect(s.Web.Auth.OAuth.Client.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify).Should(BeFalse())
+			})
+			It("Creates an http client with ssl verification disabled", func() {
+				Expect(s.ReadConfig("test/etc/oauth-ssl-skip-checking.yml")).Should(Succeed())
+				Expect(s.Web.Auth.OAuth.Client.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify).Should(BeTrue())
 			})
 		})
 	})

@@ -2,6 +2,7 @@ package supervisor
 
 import (
 	"fmt"
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"net/http"
 	"regexp"
@@ -37,12 +38,33 @@ func (oa OAuthenticator) IsAuthenticated(r *http.Request) bool {
 		if expir, ok := token.Claims["expiration"].(float64); !ok || int64(expir) <= time.Now().Unix() {
 			return false
 		}
-		return true
+
+		userName, ok := token.Claims["user"].(string)
+		if !ok {
+			log.Debugf("user claim is not a string: %#v", token.Claims["user"])
+			return false
+		}
+
+		membership, ok := token.Claims["membership"].(map[string]interface{})
+		if !ok {
+			log.Debugf("membership claim is not a Membership: %#v", token.Claims["membership"])
+			return false
+		}
+		return OAuthVerifier.Verify(userName, membership)
 	}
 
 	sess, err := gothic.Store.Get(r, gothic.SessionName)
-	if err == nil && sess.Values["User"] != nil {
-		return true
+	if err != nil {
+		log.Debugf("Error retrieving session: %s", err)
+		return false
+	}
+
+	user, ok := sess.Values["User"].(string)
+	if ok {
+		membership, ok := sess.Values["Membership"].(map[string]interface{})
+		if ok {
+			return OAuthVerifier.Verify(user, membership)
+		}
 	}
 	return false
 }
@@ -88,62 +110,81 @@ func ShouldOAuthRedirect(path string) bool {
 	return !apiCall.MatchString(path) || authCall.MatchString(path)
 }
 
-var OAuthCallback = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("Incoming Auth request: %s", r)
-	sess, err := gothic.Store.Get(r, gothic.SessionName)
-	if err != nil {
-		log.Errorf("Error retrieving session info: %s", err)
-		w.WriteHeader(500)
-		return
-	}
-	log.Debugf("Processing oauth callback for '%s'", sess.ID)
-	if gothic.GetState(r) != sess.Values["state"] {
-		w.WriteHeader(403)
-		w.Write([]byte("Unauthorized"))
-		return
-	}
+func (oa OAuthenticator) OAuthCallback() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("Incoming Auth request: %s", r)
+		sess, err := gothic.Store.Get(r, gothic.SessionName)
+		if err != nil {
+			log.Errorf("Error retrieving session info: %s", err)
+			w.WriteHeader(500)
+			return
+		}
+		log.Debugf("Processing oauth callback for '%s'", sess.ID)
+		if gothic.GetState(r) != sess.Values["state"] {
+			w.WriteHeader(403)
+			w.Write([]byte("Unauthorized"))
+			return
+		}
 
-	if r.URL.Query().Get("code") == "" {
-		log.Errorf("No code detected in oauth callback: %v", r)
-		w.WriteHeader(403)
-		w.Write([]byte("No oauth code issued from provider"))
-		return
-	}
+		if r.URL.Query().Get("code") == "" {
+			log.Errorf("No code detected in oauth callback: %v", r)
+			w.WriteHeader(403)
+			w.Write([]byte("No oauth code issued from provider"))
+			return
+		}
 
-	user, err := gothic.CompleteUserAuth(w, r)
-	if err != nil {
-		log.Errorf("Error verifying oauth success: %s. Request: %v", err, r)
-		w.WriteHeader(403)
-		w.Write([]byte("UnOAuthorized"))
-		return
-	}
+		user, err := gothic.CompleteUserAuth(w, r)
+		if err != nil {
+			log.Errorf("Error verifying oauth success: %s. Request: %v", err, r)
+			w.WriteHeader(403)
+			w.Write([]byte("UnOAuthorized"))
+			return
+		}
 
-	log.Debugf("Authenticated user %#v", user)
+		log.Debugf("Authenticated user %#v", user)
 
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: user.AccessToken})
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: user.AccessToken})
+		ctx := context.WithValue(oauth2.NoContext, oauth2.HTTPClient, oa.Cfg.Client)
+		tc := oauth2.NewClient(ctx, ts)
 
-	log.Debugf("Checking authorization...")
-	if !OAuthVerifier.Verify(user, tc) {
-		log.Debugf("Authorization denied")
-		w.WriteHeader(403)
-		w.Write([]byte("You are not authorized to view this content"))
-		return
-	}
+		log.Debugf("Checking authorization...")
+		membership, err := OAuthVerifier.Membership(user, tc)
+		if err != nil {
+			log.Errorf("Error retreiving user membership: %s", err)
+			w.WriteHeader(403)
+			w.Write([]byte("Unable to verify your membership"))
+			return
+		}
 
-	log.Infof("Successful login for %s", user.NickName)
+		if !OAuthVerifier.Verify(user.NickName, membership) {
+			log.Debugf("Authorization denied")
+			w.WriteHeader(403)
+			w.Write([]byte("You are not authorized to view this content"))
+			return
+		}
 
-	redirect := "/"
-	if flashes := sess.Flashes(); len(flashes) > 0 {
-		if flash, ok := flashes[0].(string); ok {
-			// don't redirect back to api calls, to prevent auth redirection loops
-			if !apiCall.MatchString(flash) || cliAuthCall.MatchString(flash) {
-				redirect = flash
+		log.Infof("Successful login for %s", user.NickName)
+
+		redirect := "/"
+		if flashes := sess.Flashes(); len(flashes) > 0 {
+			if flash, ok := flashes[0].(string); ok {
+				// don't redirect back to api calls, to prevent auth redirection loops
+				if !apiCall.MatchString(flash) || cliAuthCall.MatchString(flash) {
+					redirect = flash
+				}
 			}
 		}
-	}
-	sess.Values["User"] = user
-	sess.Save(r, w)
 
-	http.Redirect(w, r, redirect, 302) // checks auth
-})
+		sess.Values["User"] = user.NickName
+		sess.Values["Membership"] = membership
+		err = sess.Save(r, w)
+		if err != nil {
+			log.Errorf("Error saving session: %s", err)
+			w.WriteHeader(500)
+			w.Write([]byte("Unable to save authentication data. Check the SHIELD logs for more info."))
+			return
+		}
+
+		http.Redirect(w, r, redirect, 302) // checks auth
+	})
+}

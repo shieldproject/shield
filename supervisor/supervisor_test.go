@@ -122,6 +122,8 @@ func DELETE(h http.Handler, uri string) *httptest.ResponseRecorder {
 
 type FakeSessionStore struct {
 	Error       bool
+	SaveError   bool
+	Saved       int
 	CookieError bool
 	Session     *sessions.Session
 }
@@ -151,15 +153,18 @@ func (fs *FakeSessionStore) New(r *http.Request, name string) (*sessions.Session
 	}
 	s := sessions.NewSession(gothic.Store, name)
 	s.Values[gothic.SessionName] = `{"session":"exists"}`
+	s.Values["User"] = "fakeUser"
+	s.Values["Membership"] = map[string]interface{}{"Groups": []interface{}{"fakeGroup1", "fakeGroup2"}}
 	s.Options = &sessions.Options{MaxAge: 60}
 	return s, nil
 }
 
 func (fs *FakeSessionStore) Save(r *http.Request, w http.ResponseWriter, s *sessions.Session) error {
-	if fs.Error {
+	if fs.SaveError {
 		return fmt.Errorf("Error saving session")
 	}
 	fs.Session = s
+	fs.Saved++
 	return nil
 }
 
@@ -203,11 +208,19 @@ func FakeResponderHandler() http.Handler {
 }
 
 type FakeVerifier struct {
-	Allow bool
+	Allow           bool
+	MembershipError bool
 }
 
-func (fv *FakeVerifier) Verify(u goth.User, c *http.Client) bool {
+func (fv *FakeVerifier) Verify(u string, m map[string]interface{}) bool {
 	return fv.Allow
+}
+
+func (fv *FakeVerifier) Membership(u goth.User, c *http.Client) (map[string]interface{}, error) {
+	if fv.MembershipError {
+		return nil, fmt.Errorf("Mock error")
+	}
+	return map[string]interface{}{}, nil
 }
 
 type FakeProxy struct {

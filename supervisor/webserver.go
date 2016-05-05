@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"strings"
 
+	"encoding/gob"
 	"github.com/antonlindstrom/pgstore"
 	"github.com/gorilla/securecookie"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/cloudfoundry"
 	"github.com/markbates/goth/providers/github"
 	"github.com/michaeljs1990/sqlitestore"
 	"github.com/pborman/uuid"
@@ -59,11 +61,21 @@ func (ws *WebServer) Setup() error {
 			return err
 		}
 
+		gob.Register(map[string]interface{}{})
 		switch ws.Auth.OAuth.Provider {
 		case "github":
 			log.Debugf("Using github as the oauth provider")
 			goth.UseProviders(github.New(ws.Auth.OAuth.Key, ws.Auth.OAuth.Secret, fmt.Sprintf("%s/v1/auth/github/callback", ws.Auth.OAuth.BaseURL), "read:org"))
 			OAuthVerifier = &GithubVerifier{Orgs: ws.Auth.OAuth.Authorization.Orgs}
+		case "cloudfoundry":
+			log.Debugf("Using cloudfoundry as the oauth provider")
+			goth.UseProviders(cloudfoundry.New(ws.Auth.OAuth.ProviderURL, ws.Auth.OAuth.Key, ws.Auth.OAuth.Secret, fmt.Sprintf("%s/v1/auth/cloudfoundry/callback", ws.Auth.OAuth.BaseURL), "openid,scim.read"))
+			OAuthVerifier = &UAAVerifier{Groups: ws.Auth.OAuth.Authorization.Orgs, UAA: ws.Auth.OAuth.ProviderURL}
+			p, err := goth.GetProvider("cloudfoundry")
+			if err != nil {
+				return err
+			}
+			p.(*cloudfoundry.Provider).Client = ws.Auth.OAuth.Client
 		case "faux":
 			log.Debugf("Using mocked session store")
 			// does nothing, to avoid being accidentally used in prod
@@ -122,7 +134,7 @@ func (ws *WebServer) UnauthenticatedResources(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if ws.Auth.OAuth.Provider != "" {
 			if r.URL.Path == "/v1/auth/"+ws.Auth.OAuth.Provider+"/callback" {
-				OAuthCallback.ServeHTTP(w, r)
+				UserAuthenticator.(OAuthenticator).OAuthCallback().ServeHTTP(w, r)
 				return
 			}
 		}

@@ -18,7 +18,7 @@ import (
 
 var _ = Describe("JWTCreators", func() {
 	var jc JWTCreator
-	var validateToken = func(token string) {
+	var validateToken = func(token string, user string, membership interface{}) {
 		parsed, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 				return nil, fmt.Errorf("Unexpected signing method")
@@ -27,6 +27,8 @@ var _ = Describe("JWTCreators", func() {
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(parsed.Claims["expiration"]).Should(BeNumerically("~", time.Now().Unix()+60, 2.0))
+		Expect(parsed.Claims["user"]).Should(Equal(user))
+		Expect(parsed.Claims["membership"]).Should(Equal(membership))
 	}
 
 	BeforeEach(func() {
@@ -44,11 +46,11 @@ var _ = Describe("JWTCreators", func() {
 
 	Describe("When Generating tokens", func() {
 		It("Returns a valid token, with all the desired claims set", func() {
-			token, err := jc.GenToken("unused-currently", 60+int(time.Now().Unix()))
+			token, err := jc.GenToken("user1", map[string]interface{}{"Groups": []interface{}{"group1", "group2"}}, 60+int(time.Now().Unix()))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(token).ShouldNot(Equal(""))
 
-			validateToken(token)
+			validateToken(token, "user1", map[string]interface{}{"Groups": []interface{}{"group1", "group2"}})
 		})
 	})
 	Describe("When Serving Requests", func() {
@@ -79,7 +81,7 @@ var _ = Describe("JWTCreators", func() {
 
 			token := strings.Split(data, " ")
 			Expect(len(token)).Should(Equal(2))
-			validateToken(token[1])
+			validateToken(token[1], "fakeUser", map[string]interface{}{"Groups": []interface{}{"fakeGroup1", "fakeGroup2"}})
 		})
 	})
 })
