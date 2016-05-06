@@ -810,9 +810,10 @@ func main() {
 			DEBUG("  show in-use? %s", *opts.Used)
 
 			stores, err := GetStores(StoreFilter{
-				Name:   strings.Join(args, " "),
-				Plugin: *opts.Plugin,
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
+				Name:       strings.Join(args, " "),
+				Plugin:     *opts.Plugin,
+				Unused:     MaybeBools(*opts.Unused, *opts.Used),
+				ExactMatch: Maybe(*opts.Raw),
 			})
 			if err != nil {
 				return err

@@ -20,6 +20,7 @@ type StoreFilter struct {
 	SkipUnused bool
 	SearchName string
 	ForPlugin  string
+	ExactMatch bool
 }
 
 func (f *StoreFilter) Query() (string, []interface{}) {
@@ -27,7 +28,11 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	args := []interface{}{}
 	n := 1
 	if f.SearchName != "" {
-		wheres = append(wheres, fmt.Sprintf("s.name LIKE $%d", n))
+		var comparator string = "LIKE"
+		if f.ExactMatch {
+			comparator = "="
+		}
+		wheres = append(wheres, fmt.Sprintf("s.name %s $%d", comparator, n))
 		args = append(args, Pattern(f.SearchName))
 		n++
 	}

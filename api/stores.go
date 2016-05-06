@@ -13,9 +13,10 @@ type Store struct {
 }
 
 type StoreFilter struct {
-	Name   string
-	Plugin string
-	Unused YesNo
+	Name       string
+	Plugin     string
+	Unused     YesNo
+	ExactMatch YesNo
 }
 
 func GetStores(filter StoreFilter) ([]Store, error) {
@@ -23,6 +24,7 @@ func GetStores(filter StoreFilter) ([]Store, error) {
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("plugin", filter.Plugin)
 	uri.MaybeAddParameter("unused", filter.Unused)
+	uri.MaybeAddParameter("exact", filter.ExactMatch)
 	var data []Store
 	return data, uri.Get(&data)
 }
