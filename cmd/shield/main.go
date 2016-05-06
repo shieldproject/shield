@@ -813,7 +813,7 @@ func main() {
 				Name:       strings.Join(args, " "),
 				Plugin:     *opts.Plugin,
 				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: Maybe(*opts.Raw),
+				ExactMatch: MaybeBools(*opts.Raw, false),
 			})
 			if err != nil {
 				return err
