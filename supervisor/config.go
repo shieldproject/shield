@@ -3,9 +3,12 @@ package supervisor
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"io/ioutil"
+	"net/http"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -29,6 +32,8 @@ type Config struct {
 
 	MaxTimeout uint `yaml:"max_timeout"`
 
+	SkipSSLVerify bool `yaml:"skip_ssl_verify"`
+
 	Auth AuthConfig `yaml:"auth"`
 }
 
@@ -45,6 +50,7 @@ type BasicAuthConfig struct {
 
 type OAuthConfig struct {
 	Provider      string         `yaml:"provider"`
+	ProviderURL   string         `yaml:"provider_url"`
 	Key           string         `yaml:"key"`
 	Secret        string         `yaml:"secret"`
 	BaseURL       string         `yaml:"base_url"`
@@ -53,6 +59,7 @@ type OAuthConfig struct {
 	SigningKey    string         `yaml:"signing_key"`
 	JWTPrivateKey *rsa.PrivateKey
 	JWTPublicKey  *rsa.PublicKey
+	Client        *http.Client
 }
 
 type AuthZConfig struct {
@@ -134,6 +141,16 @@ func (s *Supervisor) ReadConfig(path string) error {
 
 		}
 		config.Auth.OAuth.JWTPublicKey = &config.Auth.OAuth.JWTPrivateKey.PublicKey
+
+		config.Auth.OAuth.Client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: config.SkipSSLVerify,
+				},
+			},
+		}
+
+		config.Auth.OAuth.ProviderURL = strings.TrimSuffix(config.Auth.OAuth.ProviderURL, "/")
 	}
 
 	if s.Database == nil {

@@ -20,7 +20,7 @@ func (jc JWTCreator) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := jc.GenToken(sess.Values["User"], sess.Options.MaxAge+int(time.Now().Unix()))
+	token, err := jc.GenToken(sess.Values["User"], sess.Values["Membership"], sess.Options.MaxAge+int(time.Now().Unix()))
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte("Unable to generate authentication token"))
@@ -29,10 +29,11 @@ func (jc JWTCreator) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Bearer " + token))
 }
 
-func (jc JWTCreator) GenToken(user interface{}, maxAge int) (string, error) {
+func (jc JWTCreator) GenToken(user interface{}, membership interface{}, maxAge int) (string, error) {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims["expiration"] = maxAge
-	// FIXME store org info for authorization
+	token.Claims["user"] = user
+	token.Claims["membership"] = membership
 
 	return token.SignedString(jc.SigningKey)
 }

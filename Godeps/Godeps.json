@@ -92,6 +92,10 @@
 			"Rev": "d750ee8aff39bca4ccf0b362db4f04510145d678"
 		},
 		{
+			"ImportPath": "github.com/geofffranks/botta",
+			"Rev": "368c2fa539ba12d8437220997ef9d6da4c1ebcc4"
+		},
+		{
 			"ImportPath": "github.com/google/go-github/github",
 			"Rev": "af17a5fa8537e159dfa73f1dd1d3f08e34dea200"
 		},
@@ -116,6 +120,10 @@
 			"Rev": "9aaf89a789f0b58bef35c13d4e0e4c4c62759364"
 		},
 		{
+			"ImportPath": "github.com/jhunt/tree",
+			"Rev": "2ad45c3404f9ea8116987e8a36db6f6d892aad26"
+		},
+		{
 			"ImportPath": "github.com/lib/pq",
 			"Comment": "go1.0-cutoff-59-gb269bd0",
 			"Rev": "b269bd035a727d6c1081f76e7a239a1b00674c40"
@@ -127,19 +135,23 @@
 		},
 		{
 			"ImportPath": "github.com/markbates/goth",
-			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
+			"Rev": "567cb575c2af82e031c1d2e95a5a16aa285a03be"
 		},
 		{
 			"ImportPath": "github.com/markbates/goth/gothic",
-			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
+			"Rev": "567cb575c2af82e031c1d2e95a5a16aa285a03be"
+		},
+		{
+			"ImportPath": "github.com/markbates/goth/providers/cloudfoundry",
+			"Rev": "567cb575c2af82e031c1d2e95a5a16aa285a03be"
 		},
 		{
 			"ImportPath": "github.com/markbates/goth/providers/faux",
-			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
+			"Rev": "567cb575c2af82e031c1d2e95a5a16aa285a03be"
 		},
 		{
 			"ImportPath": "github.com/markbates/goth/providers/github",
-			"Rev": "05a074063ccda0775941afaf25dcba9e75e9d063"
+			"Rev": "567cb575c2af82e031c1d2e95a5a16aa285a03be"
 		},
 		{
 			"ImportPath": "github.com/mattn/go-isatty",

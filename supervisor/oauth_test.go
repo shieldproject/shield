@@ -35,6 +35,7 @@ var _ = Describe("OAuthenticator", func() {
 				Secret:        "mysecret",
 				JWTPrivateKey: sk,
 				JWTPublicKey:  &sk.PublicKey,
+				Client:        http.DefaultClient,
 			},
 		}
 		gothic.Store = &FakeSessionStore{}
@@ -48,37 +49,94 @@ var _ = Describe("OAuthenticator", func() {
 		gothic.GetProviderName = func(req *http.Request) (string, error) {
 			return "faux", nil
 		}
+		OAuthVerifier = &FakeVerifier{Allow: true}
 	})
 
 	Describe("When seeing if requests are authenticated", func() {
-		It("Returns false if no bearer token, or authenticated session", func() {
-			Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+		Context("For bearer token authentication", func() {
+			It("Returns false if no bearer token, or authenticated session", func() {
+				delete(gothic.Store.(*FakeSessionStore).Session.Values, "User")
+				delete(gothic.Store.(*FakeSessionStore).Session.Values, "Membership")
+				delete(gothic.Store.(*FakeSessionStore).Session.Values, gothic.SessionName)
+
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false if no bearer token, and session couldn't be retrieved", func() {
+				gothic.Store.(*FakeSessionStore).Error = true
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false if bearer token is set and invalid", func() {
+				req.Header.Set("Authorization", "bearer my.invalid.token")
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false if bearer token is set, valid, but expired", func() {
+				jc := JWTCreator{SigningKey: oa.Cfg.JWTPrivateKey}
+				expiredToken, err := jc.GenToken("user1", map[string]interface{}{}, 0)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Set("Authorization", "Bearer "+expiredToken)
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false if bearer token user is not a string", func() {
+				token := jwt.New(jwt.SigningMethodRS256)
+				token.Claims["user"] = 1234
+				token.Claims["expiration"] = int(time.Now().Unix()) + 120
+				token.Claims["membership"] = map[string]interface{}{}
+				badUserToken, err := token.SignedString(oa.Cfg.JWTPrivateKey)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Set("Authorization", "Bearer "+badUserToken)
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false if bearer token membership is not a map[string]interface{}", func() {
+				jc := JWTCreator{SigningKey: oa.Cfg.JWTPrivateKey}
+				badMembershipToken, err := jc.GenToken("user1", []string{"group1"}, int(time.Now().Unix())+120)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Set("Authorization", "Bearer "+badMembershipToken)
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false if bearer token's OAuthVerifier.Verify() failed", func() {
+				jc := JWTCreator{SigningKey: oa.Cfg.JWTPrivateKey}
+				validToken, err := jc.GenToken("user1", map[string]interface{}{}, int(time.Now().Unix())+120)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Set("Authorization", "Bearer "+validToken)
+				OAuthVerifier.(*FakeVerifier).Allow = false
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns true if OAuthVerifier.Verify() succeeds", func() {
+				jc := JWTCreator{SigningKey: oa.Cfg.JWTPrivateKey}
+				validToken, err := jc.GenToken("user1", map[string]interface{}{}, int(time.Now().Unix())+120)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Set("Authorization", "Bearer "+validToken)
+				Expect(oa.IsAuthenticated(req)).Should(BeTrue())
+			})
 		})
-		It("Returns false if no bearer token, and session couldn't be retrieved", func() {
-			gothic.Store.(*FakeSessionStore).Error = true
-			Expect(oa.IsAuthenticated(req)).Should(BeFalse())
-		})
-		It("Returns false if bearer token is set and invalid", func() {
-			req.Header.Set("Authorization", "bearer my.invalid.token")
-			Expect(oa.IsAuthenticated(req)).Should(BeFalse())
-		})
-		It("Returns false if bearer token is set, valid, but expired", func() {
-			jc := JWTCreator{SigningKey: oa.Cfg.JWTPrivateKey}
-			expiredToken, err := jc.GenToken("not-currently-used", 0)
-			Expect(err).ShouldNot(HaveOccurred())
-			req.Header.Set("Authorization", "Bearer "+expiredToken)
-			Expect(oa.IsAuthenticated(req)).Should(BeFalse())
-		})
-		It("Returns true if session is valid", func() {
-			gothic.Store.(*FakeSessionStore).Session.Values["User"] = "validuser"
-			Expect(oa.IsAuthenticated(req)).Should(BeTrue())
-		})
-		It("Returns true if bearer token is valid/unexpired", func() {
-			jc := JWTCreator{SigningKey: oa.Cfg.JWTPrivateKey}
-			validToken, err := jc.GenToken("not-currently-used", int(time.Now().Unix())+120)
-			Expect(err).ShouldNot(HaveOccurred())
-			req.Header.Set("Authorization", "Bearer "+validToken)
-			Expect(oa.IsAuthenticated(req)).Should(BeTrue())
+		Context("For session based authentication", func() {
+			It("Returns false when retrieving session data fails", func() {
+				gothic.Store.(*FakeSessionStore).Error = true
+				gothic.Store.(*FakeSessionStore).Session.Values["User"] = "validuser"
+				gothic.Store.(*FakeSessionStore).Session.Values["Membership"] = map[string]interface{}{}
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false when session value for 'User' is not string", func() {
+				gothic.Store.(*FakeSessionStore).Session.Values["User"] = 1234
+				gothic.Store.(*FakeSessionStore).Session.Values["Membership"] = map[string]interface{}{}
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false when 'Membership' value for user is not map[string]interface{}", func() {
+				gothic.Store.(*FakeSessionStore).Session.Values["User"] = "validuser"
+				gothic.Store.(*FakeSessionStore).Session.Values["Membership"] = "oops"
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns false when OAuthVerify fails", func() {
+				gothic.Store.(*FakeSessionStore).Session.Values["User"] = "validuser"
+				gothic.Store.(*FakeSessionStore).Session.Values["Membership"] = map[string]interface{}{}
+				OAuthVerifier.(*FakeVerifier).Allow = false
+				Expect(oa.IsAuthenticated(req)).Should(BeFalse())
+			})
+			It("Returns true if OAuthVerifier.Verify() succeeds", func() {
+				gothic.Store.(*FakeSessionStore).Session.Values["User"] = "validuser"
+				gothic.Store.(*FakeSessionStore).Session.Values["Membership"] = map[string]interface{}{}
+				Expect(oa.IsAuthenticated(req)).Should(BeTrue())
+			})
 		})
 	})
 	Describe("When requiring authentication on a request", func() {
@@ -144,16 +202,15 @@ var _ = Describe("OAuthenticator", func() {
 			if err != nil {
 				panic(err)
 			}
-			OAuthVerifier = &FakeVerifier{Allow: true}
 		})
 		It("Returns a 500 if session state could not be retrieved", func() {
 			gothic.Store.(*FakeSessionStore).Error = true
-			OAuthCallback.ServeHTTP(res, req)
+			oa.OAuthCallback().ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(500))
 		})
 		It("Returns a 403 if CSRF checking failed", func() {
 			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "willfail"
-			OAuthCallback.ServeHTTP(res, req)
+			oa.OAuthCallback().ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(403))
 			data, err := res.ReadBody()
 			Expect(err).ShouldNot(HaveOccurred())
@@ -162,7 +219,7 @@ var _ = Describe("OAuthenticator", func() {
 		It("Returns an 403 if gothic couldn't complete auth", func() {
 			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
 			gothic.Store.(*FakeSessionStore).Session.Values[gothic.SessionName] = nil
-			OAuthCallback.ServeHTTP(res, req)
+			oa.OAuthCallback().ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(403))
 			data, err := res.ReadBody()
 			Expect(err).ShouldNot(HaveOccurred())
@@ -171,29 +228,45 @@ var _ = Describe("OAuthenticator", func() {
 		It("Returns a 403 if no code was specified in the callback from the provider", func() {
 			var err error
 			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
-			req, err = http.NewRequest("GET", "/?state=csrf-detection", nil)
+			req, err = http.NewRequest("GET", "?state=csrf-detection", nil) // valid state, no code
 			Expect(err).ShouldNot(HaveOccurred())
-			OAuthCallback.ServeHTTP(res, req)
+			oa.OAuthCallback().ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(403))
 			data, err := res.ReadBody()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(data).Should(Equal("No oauth code issued from provider"))
+		})
+		It("Returns a 403 error when UserAuthenticator.Membership() errors", func() {
+			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
+			OAuthVerifier.(*FakeVerifier).MembershipError = true
+			oa.OAuthCallback().ServeHTTP(res, req)
+			Expect(res.Status).Should(Equal(403))
+			data, err := res.ReadBody()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).Should(Equal("Unable to verify your membership"))
 		})
 		It("Returns a 403 if the user could not be authorized with the OAuthVerifier", func() {
 			var err error
 			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
 			OAuthVerifier.(*FakeVerifier).Allow = false
-			req, err = http.NewRequest("GET", "?state=csrf-detection", nil)
-			Expect(err).ShouldNot(HaveOccurred())
-			OAuthCallback.ServeHTTP(res, req)
+			oa.OAuthCallback().ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(403))
 			data, err := res.ReadBody()
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(data).Should(Equal("No oauth code issued from provider"))
+			Expect(data).Should(Equal("You are not authorized to view this content"))
+		})
+		It("Returns a 500 error when failing to save session data", func() {
+			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
+			gothic.Store.(*FakeSessionStore).SaveError = true
+			oa.OAuthCallback().ServeHTTP(res, req)
+			Expect(res.Status).Should(Equal(500))
+			data, err := res.ReadBody()
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(data).Should(Equal("Unable to save authentication data. Check the SHIELD logs for more info."))
 		})
 		It("Returns a 302 back to / if no flash was set in the session", func() {
 			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
-			OAuthCallback.ServeHTTP(res, req)
+			oa.OAuthCallback().ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(302))
 			_, err := res.ReadBody()
 			Expect(err).ShouldNot(HaveOccurred())
@@ -202,11 +275,17 @@ var _ = Describe("OAuthenticator", func() {
 		It("Returns a 302 back to the flash url if it was present", func() {
 			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
 			gothic.Store.(*FakeSessionStore).Session.AddFlash("/send-me-here")
-			OAuthCallback.ServeHTTP(res, req)
+			oa.OAuthCallback().ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(302))
 			_, err := res.ReadBody()
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(res.Header().Get("Location")).Should(Equal("/send-me-here"))
+		})
+		It("Saves 'User' and 'Membership' session values appropriately", func() {
+			gothic.Store.(*FakeSessionStore).Session.Values["state"] = "csrf-detection"
+			oa.OAuthCallback().ServeHTTP(res, req)
+			Expect(res.Status).Should(Equal(302))
+			Expect(gothic.Store.(*FakeSessionStore).Saved).Should(Equal(1))
 		})
 	})
 })
