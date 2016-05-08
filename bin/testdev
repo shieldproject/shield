@@ -74,7 +74,7 @@ EOF
   ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
   rm ${workdir}/var/shield-agent_key.pub
 
-  `curl -XGET -H "X-SHIELD-TOKEN: LETMEIN" http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
+  `curl -XGET -H "X-Shield-Token: LETMEIN" http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
   cat >${workdir}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${workdir}/var/authorized_keys

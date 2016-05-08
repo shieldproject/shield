@@ -75,7 +75,7 @@ var _ = Describe("Authentication", func() {
 			res = NewFakeResponder()
 		})
 		It("Allows the next handler to serve request if request had a valid API token", func() {
-			req.Header.Set("X-SHIELD-TOKEN", "LETMEINFORTESTING")
+			req.Header.Set("X-Shield-Token", "LETMEINFORTESTING")
 			handler.ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(200))
 			data, err := res.ReadBody()
@@ -83,7 +83,7 @@ var _ = Describe("Authentication", func() {
 			Expect(data).Should(Equal("Processed request"))
 		})
 		It("Prevents the next handler from serving request if it had an invalid API token", func() {
-			req.Header.Set("X-SHIELD-TOKEN", "LETMEINPRETTYPLEASE")
+			req.Header.Set("X-Shield-Token", "LETMEINPRETTYPLEASE")
 			handler.ServeHTTP(res, req)
 			Expect(res.Status).Should(Equal(401))
 			data, err := res.ReadBody()

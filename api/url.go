@@ -163,7 +163,7 @@ func makeRequest(req *http.Request) (*http.Response, error) {
 		},
 	}
 	if os.Getenv("SHIELD_API_TOKEN") != "" {
-		req.Header.Set("X-SHIELD-TOKEN", os.Getenv("SHIELD_API_TOKEN"))
+		req.Header.Set("X-Shield-Token", os.Getenv("SHIELD_API_TOKEN"))
 	}
 	token := Cfg.BackendToken()
 	if token != "" {
