@@ -46,11 +46,10 @@ func (yn *YesNo) Given() bool {
 }
 
 func ShieldURI(p string, args ...interface{}) *URL {
-	endpoint := Cfg.BackendURI()
-	if endpoint == "" {
-		endpoint = "https://shield"
+	endpoint, err := Cfg.SecureBackendURI()
+	if err != nil {
+		panic(err)
 	}
-
 	path := fmt.Sprintf(p, args...)
 	u, err := ParseURL(fmt.Sprintf("%s%s", endpoint, path))
 	if err != nil {
