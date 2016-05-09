@@ -1,10 +1,12 @@
 package api
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -17,6 +19,8 @@ type Config struct {
 	Backends map[string]string `yaml:"backends"`
 	Aliases  map[string]string `yaml:"aliases"`
 	Path     string            `yaml:"-"` // omit this little guy
+
+	resolved string // caches the resolved "secure" endpoint in force
 }
 
 func LoadConfig(p string) error {
@@ -134,6 +138,36 @@ func (cfg *Config) UseBackend(be string) error {
 
 	cfg.Backend = be
 	return nil
+}
+
+// Hits the /v1/ping endpoint to trigger any HTTP -> HTTPS redirection
+// and then returns the ultimate URL base (minus the '/v1/ping')
+func (cfg *Config) SecureBackendURI() (string, error) {
+	if cfg.resolved != "" {
+		return cfg.resolved, nil
+	}
+
+	var final string
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "",
+			},
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			final = fmt.Sprintf("%s://%s", req.URL.Scheme, req.URL.Host)
+			if len(via) > 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			return nil
+		},
+	}
+	final = Cfg.BackendURI()
+	_, err := client.Get(fmt.Sprintf("%s/v1/ping", final))
+	if err != nil {
+		cfg.resolved = final
+	}
+	return final, err
 }
 
 func BasicAuthToken(user, password string) string {
