@@ -109,16 +109,26 @@ func main() {
 
 	c.HelpGroup("INFO:")
 	c.Dispatch("help", "Show the list of available commands",
-		func(opts Options, args []string) error {
-			ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
-			ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
-			ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
-			fmt.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
-			fmt.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
-			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
-			ansi.Fprintf(os.Stderr, c.Usage())
-			fmt.Fprintf(os.Stderr, "\n")
-			return nil
+		func(opts Options, args []string, help bool) error {
+			if len(args) == 0 {
+				getopt.PrintUsage(os.Stderr)
+				return nil
+			}
+
+			if help || args[0] == "commands" {
+				ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
+				ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
+				ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
+				ansi.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
+				ansi.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
+				ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
+				ansi.Fprintf(os.Stderr, c.Usage())
+				ansi.Fprintf(os.Stderr, "\n")
+				return nil
+			}
+
+			// otherwise ...
+			return c.Help(args...)
 		})
 
 	/*
@@ -131,7 +141,11 @@ func main() {
 	    ######     ##    ##     ##    ##     #######   ######
 	*/
 	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			status, err := GetStatus()
 			if err != nil {
 				return err
@@ -164,7 +178,11 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("BACKENDS:")
 	c.Dispatch("backends", "List configured SHIELD backends",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'backends' command")
 
 			var indices []string
@@ -186,7 +204,11 @@ func main() {
 	c.Alias("ls be", "backends")
 
 	c.Dispatch("create backend", "Create Backend",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'create backend' command")
 
 			if len(args) != 2 {
@@ -213,7 +235,11 @@ func main() {
 	c.Alias("update backend", "create backend")
 
 	c.Dispatch("backend", "Select a particular backend for use",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'backend' command")
 
 			if len(args) != 1 {
@@ -244,7 +270,11 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("TARGETS:")
 	c.Dispatch("list targets", "List available backup targets",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'list targets' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -274,7 +304,11 @@ func main() {
 	c.Alias("ls targets", "list targets")
 
 	c.Dispatch("show target", "Print detailed information about a specific backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'show target' command")
 
 			target, _, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -295,7 +329,11 @@ func main() {
 	c.Alias("ls target", "show target")
 
 	c.Dispatch("create target", "Create a new backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'create target' command")
 
 			var err error
@@ -343,7 +381,11 @@ func main() {
 	c.Alias("c t", "create target")
 
 	c.Dispatch("edit target", "Modify an existing backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'edit target' command")
 
 			t, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -392,7 +434,11 @@ func main() {
 	c.Alias("update target", "edit target")
 
 	c.Dispatch("delete target", "Delete a backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'delete target' command")
 
 			target, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -430,7 +476,11 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("SCHEDULES:")
 	c.Dispatch("list schedules", "List available backup schedules",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'list schedules' command")
 			DEBUG("  show unused? %s", *opts.Unused)
 			DEBUG("  show in-use? %s", *opts.Used)
@@ -457,7 +507,11 @@ func main() {
 	c.Alias("ls schedules", "list schedules")
 
 	c.Dispatch("show schedule", "Print detailed information about a specific backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'show schedule' command")
 
 			schedule, _, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -478,7 +532,11 @@ func main() {
 	c.Alias("ls schedule", "show schedule")
 
 	c.Dispatch("create schedule", "Create a new backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'create schedule' command")
 
 			var err error
@@ -524,7 +582,11 @@ func main() {
 	c.Alias("c s", "create schedule")
 
 	c.Dispatch("edit schedule", "Modify an existing backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'edit schedule' command")
 
 			s, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -571,7 +633,11 @@ func main() {
 	c.Alias("update schedule", "edit schedule")
 
 	c.Dispatch("delete schedule", "Delete a backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'delete schedule' command")
 
 			schedule, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -609,7 +675,11 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("POLICIES:")
 	c.Dispatch("list retention policies", "List available retention policies",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'list retention policies' command")
 			DEBUG("  show unused? %s", *opts.Unused)
 			DEBUG("  show in-use? %s", *opts.Used)
@@ -638,7 +708,11 @@ func main() {
 	c.Alias("ls policies", "list policies")
 
 	c.Dispatch("show retention policy", "Print detailed information about a specific retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'show retention policy' command")
 
 			policy, _, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -662,7 +736,11 @@ func main() {
 	c.Alias("list policy", "show policy")
 
 	c.Dispatch("create retention policy", "Create a new retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'create retention policy' command")
 
 			var err error
@@ -713,7 +791,11 @@ func main() {
 	c.Alias("c p", "create policy")
 
 	c.Dispatch("edit retention policy", "Modify an existing retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'edit retention policy' command")
 
 			p, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -762,7 +844,11 @@ func main() {
 	c.Alias("update policy", "edit policy")
 
 	c.Dispatch("delete retention policy", "Delete a retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'delete retention policy' command")
 
 			policy, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -803,7 +889,11 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("STORES:")
 	c.Dispatch("list stores", "List available archive stores",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'list stores' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -833,7 +923,11 @@ func main() {
 	c.Alias("ls stores", "list stores")
 
 	c.Dispatch("show store", "Print detailed information about a specific archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'show store' command")
 
 			store, _, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -854,7 +948,11 @@ func main() {
 	c.Alias("ls store", "show store")
 
 	c.Dispatch("create store", "Create a new archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'create store' command")
 
 			var err error
@@ -902,7 +1000,11 @@ func main() {
 	c.Alias("c st", "create store")
 
 	c.Dispatch("edit store", "Modify an existing archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'edit store' command")
 
 			s, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -951,7 +1053,11 @@ func main() {
 	c.Alias("update store", "edit store")
 
 	c.Dispatch("delete store", "Delete an archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'delete store' command")
 
 			store, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -989,7 +1095,11 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("JOBS:")
 	c.Dispatch("list jobs", "List available backup jobs",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'list jobs' command")
 			DEBUG("  for target:      '%s'", *opts.Target)
 			DEBUG("  for store:       '%s'", *opts.Store)
@@ -1026,7 +1136,11 @@ func main() {
 	c.Alias("ls j", "list jobs")
 
 	c.Dispatch("show job", "Print detailed information about a specific backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'show job' command")
 
 			job, _, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1047,7 +1161,11 @@ func main() {
 	c.Alias("ls job", "show job")
 
 	c.Dispatch("create job", "Create a new backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'create job' command")
 
 			var err error
@@ -1099,7 +1217,11 @@ func main() {
 	c.Alias("c j", "create job")
 
 	c.Dispatch("edit job", "Modify an existing backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'edit job' command")
 
 			j, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1150,7 +1272,11 @@ func main() {
 	c.Alias("update job", "edit job")
 
 	c.Dispatch("delete job", "Delete a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'delete job' command")
 
 			job, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1176,7 +1302,11 @@ func main() {
 	c.Alias("rm job", "delete job")
 
 	c.Dispatch("pause job", "Pause a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'pause job' command")
 
 			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1191,7 +1321,11 @@ func main() {
 		})
 
 	c.Dispatch("unpause job", "Unpause a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'unpause job' command")
 
 			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1207,7 +1341,11 @@ func main() {
 		})
 
 	c.Dispatch("run job", "Schedule an immediate run of a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'run job' command")
 
 			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1247,7 +1385,15 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("TASKS:")
 	c.Dispatch("list tasks", "List available tasks",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				ansi.Fprintf(os.Stderr, "OPTIONS:\n")
+				ansi.Fprintf(os.Stderr, "  -S, --status <name>      Only show tasks of the given status\n")
+				ansi.Fprintf(os.Stderr, "                           (valid values: 'all' for everything,\n")
+				ansi.Fprintf(os.Stderr, "                            or 'running', 'pending', 'cancelled', ...)\n")
+				return nil
+			}
+
 			DEBUG("running 'list tasks' command")
 
 			if *options.Status == "" {
@@ -1296,7 +1442,11 @@ func main() {
 	c.Alias("ls tasks", "list tasks")
 
 	c.Dispatch("show task", "Print detailed information about a specific task",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'show task' command")
 
 			require(len(args) == 1, "shield show task <UUID>")
@@ -1321,7 +1471,11 @@ func main() {
 	c.Alias("ls task", "show task")
 
 	c.Dispatch("cancel task", "Cancel a running or pending task",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'cancel task' command")
 
 			require(len(args) == 1, "shield cancel task <UUID>")
@@ -1362,7 +1516,11 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("ARCHIVES:")
 	c.Dispatch("list archives", "List available backup archives",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'list archives' command")
 
 			if *options.Status == "" {
@@ -1431,7 +1589,11 @@ func main() {
 	c.Alias("ls archives", "list archives")
 
 	c.Dispatch("show archive", "Print detailed information about a backup archive",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'show archive' command")
 
 			require(len(args) == 1, "shield show archive <UUID>")
@@ -1456,7 +1618,11 @@ func main() {
 	c.Alias("ls archive", "show archive")
 
 	c.Dispatch("restore archive", "Restore a backup archive",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'restore archive' command")
 
 			var id uuid.UUID
@@ -1509,7 +1675,11 @@ func main() {
 	c.Alias("restore", "restore archive")
 
 	c.Dispatch("delete archive", "Delete a backup archive",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'delete archive' command")
 
 			require(len(args) == 1, "USAGE: shield delete archive <UUID>")

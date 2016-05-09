@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
+
+	"github.com/jhunt/ansi"
 )
 
 type Options struct {
@@ -40,16 +43,18 @@ type Options struct {
 	Password *string
 }
 
-type Handler func(opts Options, args []string) error
+type Handler func(opts Options, args []string, help bool) error
 
 type Command struct {
 	help     [][]string
+	summary  map[string]string
 	commands map[string]Handler
 	options  Options
 }
 
 func NewCommand() *Command {
 	return &Command{
+		summary:  map[string]string{},
 		commands: map[string]Handler{},
 	}
 }
@@ -86,6 +91,9 @@ func (c *Command) Dispatch(command string, help string, fn Handler) {
 
 	if help != "" {
 		c.help = append(c.help, []string{command, help})
+		c.summary[command] = ansi.Sprintf("@G{shield %s} - %s", command, help)
+	} else {
+		c.summary[command] = ansi.Sprintf("@G{shield %s}", command)
 	}
 	c.commands[command] = fn
 }
@@ -93,6 +101,9 @@ func (c *Command) Dispatch(command string, help string, fn Handler) {
 func (c *Command) Alias(alias string, command string) {
 	if fn, ok := c.commands[command]; ok {
 		c.Dispatch(alias, "", fn)
+		if summary, ok := c.summary[command]; ok {
+			c.summary[alias] = summary
+		}
 	} else {
 		panic(fmt.Sprintf("unknown command `%s' for alias `%s'", command, alias))
 	}
@@ -103,7 +114,7 @@ func (c *Command) With(opts Options) *Command {
 	return c
 }
 
-func (c *Command) Execute(cmd ...string) error {
+func (c *Command) do(cmd []string, help bool) error {
 	var last = 0
 	for i := 1; i <= len(cmd); i++ {
 		command := strings.Join(cmd[0:i], " ")
@@ -114,8 +125,21 @@ func (c *Command) Execute(cmd ...string) error {
 	if last != 0 {
 		command := strings.Join(cmd[0:last], " ")
 		if fn, ok := c.commands[command]; ok {
-			return fn(c.options, cmd[last:])
+			if help {
+				if summary, ok := c.summary[command]; ok {
+					ansi.Fprintf(os.Stderr, "%s\n\n", summary)
+				}
+			}
+			return fn(c.options, cmd[last:], help)
 		}
 	}
 	return fmt.Errorf("unrecognized command %s\n", strings.Join(cmd, " "))
+}
+
+func (c *Command) Execute(cmd ...string) error {
+	return c.do(cmd, false)
+}
+
+func (c *Command) Help(cmd ...string) error {
+	return c.do(cmd, true)
 }
