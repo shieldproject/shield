@@ -173,6 +173,14 @@ func main() {
 			}
 			sort.Strings(indices)
 
+			if *opts.Raw {
+				arr := []map[string]string{}
+				for _, alias := range indices {
+					arr = append(arr, map[string]string{"name": alias, "uri": Cfg.Aliases[alias]})
+				}
+				return RawJSON(arr)
+			}
+
 			t := tui.NewTable("Name", "Backend URI")
 			for _, alias := range indices {
 				be := map[string]string{"name": alias, "uri": Cfg.Aliases[alias]}
