@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +18,7 @@ import (
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
+	"github.com/starkandwayne/shield/version"
 )
 
 func require(good bool, msg string) {
@@ -108,28 +110,44 @@ func main() {
 	c := NewCommand().With(options)
 
 	c.HelpGroup("INFO:")
-	c.Dispatch("help", "Show the list of available commands",
+	c.Dispatch("help", "Get detailed help with a specific command",
 		func(opts Options, args []string, help bool) error {
 			if len(args) == 0 {
-				getopt.PrintUsage(os.Stderr)
-				return nil
-			}
-
-			if help || args[0] == "commands" {
-				ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
-				ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
-				ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
-				ansi.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
-				ansi.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
-				ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
-				ansi.Fprintf(os.Stderr, c.Usage())
-				ansi.Fprintf(os.Stderr, "\n")
+				buf := bytes.Buffer{}
+				getopt.PrintUsage(&buf)
+				//Gets the usage line from the getopt usage output
+				ansi.Fprintf(os.Stderr, strings.Split(buf.String(), "\n")[0]+"\n")
+				ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield commands}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield flags}\n")
 				return nil
 			}
 
 			// otherwise ...
 			return c.Help(args...)
 		})
+
+	c.Alias("usage", "help")
+
+	c.Dispatch("commands", "Show the list of available commands",
+		func(opts Options, args []string, help bool) error {
+			ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
+			ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
+			ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
+			ansi.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
+			ansi.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
+			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
+			ansi.Fprintf(os.Stderr, c.Usage())
+			ansi.Fprintf(os.Stderr, "\n")
+			return nil
+		})
+
+	c.Dispatch("flags", "Show the list of all command line flags",
+		func(opts Options, args []string, help bool) error {
+			getopt.PrintUsage(os.Stderr)
+			return nil
+		})
+	c.Alias("options", "flags")
 
 	/*
 	    ######  ########    ###    ######## ##     ##  ######
@@ -143,6 +161,11 @@ func main() {
 	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				ansi.Fprintf(os.Stderr, "@R{FLAGS}\n")
+				ansi.Fprintf(os.Stderr, "@M{--raw}\tOutputs information as a JSON object\n")
+				ansi.Fprintf(os.Stderr, "\n@R{JSON}\n")
+				ansi.Fprintf(os.Stderr,
+					PrettyJSON(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", version.String())))
 				return nil
 			}
 
