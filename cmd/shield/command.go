@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/jhunt/ansi"
@@ -109,6 +111,21 @@ func (c *Command) Alias(alias string, command string) {
 	}
 }
 
+//Returns a newline separated list of aliases for the given command
+func (c *Command) AliasesFor(command string) string {
+	aliases := []string{}
+	if _, found := c.commands[command]; !found {
+		panic(fmt.Sprintf("unknown command `%s' to find aliases for", command))
+	}
+	for alias, _ := range c.commands {
+		if reflect.ValueOf(c.commands[alias]).Pointer() == reflect.ValueOf(c.commands[command]).Pointer() {
+			aliases = append(aliases, alias)
+		}
+	}
+	sort.Strings(aliases)
+	return strings.Join(aliases, ", ")
+}
+
 func (c *Command) With(opts Options) *Command {
 	c.options = opts
 	return c
@@ -116,6 +133,7 @@ func (c *Command) With(opts Options) *Command {
 
 func (c *Command) do(cmd []string, help bool) error {
 	var last = 0
+	var err error = nil
 	for i := 1; i <= len(cmd); i++ {
 		command := strings.Join(cmd[0:i], " ")
 		if _, ok := c.commands[command]; ok {
@@ -130,7 +148,13 @@ func (c *Command) do(cmd []string, help bool) error {
 					ansi.Fprintf(os.Stderr, "%s\n\n", summary)
 				}
 			}
-			return fn(c.options, cmd[last:], help)
+			err = fn(c.options, cmd[last:], help)
+			if help {
+				PrintAliasHelp(command, c)
+				PrintFlagHelp()
+				PrintJSONHelp()
+			}
+			return err
 		}
 	}
 	return fmt.Errorf("unrecognized command %s\n", strings.Join(cmd, " "))

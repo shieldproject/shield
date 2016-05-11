@@ -118,8 +118,8 @@ func main() {
 				//Gets the usage line from the getopt usage output
 				ansi.Fprintf(os.Stderr, strings.Split(buf.String(), "\n")[0]+"\n")
 				ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
-				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield commands}\n")
-				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield flags}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield help commands}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield help flags}\n")
 				return nil
 			}
 
@@ -161,11 +161,8 @@ func main() {
 	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
 		func(opts Options, args []string, help bool) error {
 			if help {
-				ansi.Fprintf(os.Stderr, "@R{FLAGS}\n")
-				ansi.Fprintf(os.Stderr, "@M{--raw}\tOutputs information as a JSON object\n")
-				ansi.Fprintf(os.Stderr, "\n@R{JSON}\n")
-				ansi.Fprintf(os.Stderr,
-					PrettyJSON(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", version.String())))
+				FlagHelp("Outputs information as a JSON object", "--raw")
+				JSONHelp(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", version.String()))
 				return nil
 			}
 
@@ -226,7 +223,7 @@ func main() {
 	c.Alias("list backends", "backends")
 	c.Alias("ls be", "backends")
 
-	c.Dispatch("create backend", "Create Backend",
+	c.Dispatch("create backend", "Create or modify a SHIELD backend",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				return nil
@@ -256,6 +253,7 @@ func main() {
 		})
 	c.Alias("c be", "create backend")
 	c.Alias("update backend", "create backend")
+	c.Alias("edit backend", "create backend")
 
 	c.Dispatch("backend", "Select a particular backend for use",
 		func(opts Options, args []string, help bool) error {
@@ -295,6 +293,11 @@ func main() {
 	c.Dispatch("list targets", "List available backup targets",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				FlagHelp("Only show targets using the named target plugin", "-P", "--policy=value")
+				FlagHelp("Only show targets which are NOT in use by a job", "--unused")
+				FlagHelp("Only show target which are in use by a job", "--used")
+				FlagHelp("Returns results as a JSON object", "--raw")
+				JSONHelp(`[{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}]`)
 				return nil
 			}
 
@@ -325,6 +328,7 @@ func main() {
 			return nil
 		})
 	c.Alias("ls targets", "list targets")
+	c.Alias("targets", "list targets")
 
 	c.Dispatch("show target", "Print detailed information about a specific backup target",
 		func(opts Options, args []string, help bool) error {
@@ -402,6 +406,7 @@ func main() {
 	c.Alias("create new target", "create target")
 	c.Alias("make target", "create target")
 	c.Alias("c t", "create target")
+	c.Alias("add target", "create target")
 
 	c.Dispatch("edit target", "Modify an existing backup target",
 		func(opts Options, args []string, help bool) error {
