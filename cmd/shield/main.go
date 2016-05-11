@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -118,6 +119,16 @@ func main() {
 			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
 			ansi.Fprintf(os.Stderr, c.Usage())
 			fmt.Fprintf(os.Stderr, "\n")
+			// Capture the getopt Usage()
+			flags := bytes.Buffer{}
+			getopt.PrintUsage(&flags)
+			ansi.Fprintf(os.Stderr, "@R{FLAGS:}\n\n")
+			flagsArr := strings.Split(flags.String(), "\n")[1:]
+			// Reindent the usage
+			for i, v := range flagsArr {
+				flagsArr[i] = " " + v
+			}
+			fmt.Fprintf(os.Stderr, strings.Join(flagsArr, "\n"))
 			return nil
 		})
 
