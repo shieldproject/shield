@@ -19,7 +19,7 @@
 // your endpoint JSON should look something like this:
 //
 //    {
-//        "s3_host":             "s3.amazonaws.com",
+//        "s3_host":             "s3.amazonaws.com", # default
 //        "access_key_id":       "your-access-key-id",
 //        "secret_access_key":   "your-secret-access-key",
 //        "skip_ssl_validation":  false,
@@ -28,6 +28,9 @@
 //        "signature_version":   "2",             # should be 2 or 4. Defaults to 4
 //        "socks5_proxy":        "localhost:5000" #optionally defined SOCKS5 proxy to use for the s3 communications
 //    }
+//
+// `prefix` will default to the empty string, and backups will be placed in the
+// root of the bucket.
 //
 // STORE DETAILS
 //
@@ -70,6 +73,17 @@ import (
 	"github.com/starkandwayne/shield/plugin"
 )
 
+const (
+	DefaultS3Host            = "s3.amazonaws.com"
+	DefaultPrefix            = ""
+	DefaultSigVersion        = "4"
+	DefaultSkipSSLValidation = false
+)
+
+func validSigVersion(v string) bool {
+	return v == "2" || v == "4"
+}
+
 func main() {
 	p := S3Plugin{
 		Name:    "S3 Backup + Storage Plugin",
@@ -108,7 +122,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail bool
 	)
 
-	s, err = endpoint.StringValue("s3_host")
+	s, err = endpoint.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
 		ansi.Printf("@R{\u2717 s3_host              %s}\n", err)
 		fail = true
@@ -140,26 +154,38 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("prefix")
+	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
 		ansi.Printf("@R{\u2717 prefix               %s}\n", err)
 		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 prefix}               (none)\n")
 	} else {
 		ansi.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("signature_version", "4")
+	s, err = endpoint.StringValueDefault("signature_version", DefaultSigVersion)
 	if err != nil {
 		ansi.Printf("@R{\u2717 signature_version    %s}\n", err)
 		fail = true
-	} else if s != "2" && s != "4" {
+	} else if !validSigVersion(s) {
 		ansi.Printf("@R{\u2717 signature_version    Unexpected signature version '%s' found (expecting '2' or '4')}\n", s)
 		fail = true
 	} else {
 		ansi.Printf("@G{\u2713 signature_version}    @C{%s}\n", s)
 	}
 
-	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
+	s, err = endpoint.StringValueDefault("socks5_proxy", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 socks5_proxy}         (no proxy will be used)\n")
+	} else {
+		ansi.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
+	}
+
+	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
 		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
@@ -250,12 +276,12 @@ func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 }
 
 func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
-	host, err := e.StringValue("s3_host")
+	host, err := e.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
 		return S3ConnectionInfo{}, err
 	}
 
-	insecure_ssl, err := e.BooleanValue("skip_ssl_validation")
+	insecure_ssl, err := e.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
 		return S3ConnectionInfo{}, err
 	}
@@ -275,21 +301,20 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		return S3ConnectionInfo{}, err
 	}
 
-	prefix, err := e.StringValue("prefix")
+	prefix, err := e.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
 		return S3ConnectionInfo{}, err
 	}
 
-	sigVer, err := e.StringValue("signature_version")
-	if sigVer == "" {
-		sigVer = "4"
-	} else if sigVer == "2" {
-		sigVer = "2"
-	} else if sigVer != "4" {
+	sigVer, err := e.StringValueDefault("signature_version", DefaultSigVersion)
+	if !validSigVersion(sigVer) {
 		return S3ConnectionInfo{}, fmt.Errorf("Invalid `signature_version` specified (`%s`). Expected `2` or `4`", sigVer)
 	}
 
-	proxy, _ := e.StringValue("socks5_proxy")
+	proxy, err := e.StringValueDefault("socks5_proxy", "")
+	if err != nil {
+		return S3ConnectionInfo{}, err
+	}
 
 	return S3ConnectionInfo{
 		Host:              host,
