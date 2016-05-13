@@ -164,5 +164,6 @@ func (f *Form) BuildContent() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Could not marshal into JSON\nmapped input:%v\nerror:%s", c, err)
 	}
+	fmt.Println("CONTENT:\n" + string(j))
 	return string(j), nil
 }

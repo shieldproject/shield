@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"sort"
 	"strings"
-
-	"github.com/jhunt/ansi"
 )
 
 type Options struct {
@@ -93,10 +90,12 @@ func (c *Command) Dispatch(command string, help string, fn Handler) {
 
 	if help != "" {
 		c.help = append(c.help, []string{command, help})
-		c.summary[command] = ansi.Sprintf("@G{shield %s} - %s", command, help)
-	} else {
-		c.summary[command] = ansi.Sprintf("@G{shield %s}", command)
+		/*		c.summary[command] = ansi.Sprintf("@G{shield %s} - %s", command, help)
+				} else {
+					c.summary[command] = ansi.Sprintf("@G{shield %s}", command)
+		*/
 	}
+	c.summary[command] = help
 	c.commands[command] = fn
 }
 
@@ -112,7 +111,7 @@ func (c *Command) Alias(alias string, command string) {
 }
 
 //Returns a newline separated list of aliases for the given command
-func (c *Command) AliasesFor(command string) string {
+func (c *Command) AliasesFor(command string) []string {
 	aliases := []string{}
 	if _, found := c.commands[command]; !found {
 		panic(fmt.Sprintf("unknown command `%s' to find aliases for", command))
@@ -123,7 +122,7 @@ func (c *Command) AliasesFor(command string) string {
 		}
 	}
 	sort.Strings(aliases)
-	return strings.Join(aliases, ", ")
+	return aliases
 }
 
 func (c *Command) With(opts Options) *Command {
@@ -143,15 +142,26 @@ func (c *Command) do(cmd []string, help bool) error {
 	if last != 0 {
 		command := strings.Join(cmd[0:last], " ")
 		if fn, ok := c.commands[command]; ok {
-			if help {
-				if summary, ok := c.summary[command]; ok {
-					ansi.Fprintf(os.Stderr, "%s\n\n", summary)
+			err = fn(c.options, cmd[last:], help)
+
+			//Avoid recursive help
+			helpComs := []string{}
+			helpComs = append(helpComs, c.AliasesFor("help")...)
+			helpComs = append(helpComs, c.AliasesFor("commands")...)
+			helpComs = append(helpComs, c.AliasesFor("flags")...)
+			isHelper := false
+			for _, v := range helpComs {
+				if command == v {
+					isHelper = true
+					break
 				}
 			}
-			err = fn(c.options, cmd[last:], help)
-			if help {
+			if help && !isHelper {
+				PrintUsage(command)
+				PrintMessage(command, c)
 				PrintAliasHelp(command, c)
 				PrintFlagHelp()
+				PrintInputHelp()
 				PrintJSONHelp()
 			}
 			return err

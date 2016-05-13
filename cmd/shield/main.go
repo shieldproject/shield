@@ -121,6 +121,9 @@ func main() {
 				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield help commands}\n")
 				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield help flags}\n")
 				return nil
+			} else if args[0] == "help" {
+				ansi.Fprintf(os.Stderr, "@R{This is getting a bit too meta, don't you think?}\n")
+				return nil
 			}
 
 			// otherwise ...
@@ -161,7 +164,7 @@ func main() {
 	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
 		func(opts Options, args []string, help bool) error {
 			if help {
-				FlagHelp("Outputs information as a JSON object", "--raw")
+				FlagHelp("Outputs information as a JSON object", true, "--raw")
 				JSONHelp(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", version.String()))
 				return nil
 			}
@@ -200,6 +203,8 @@ func main() {
 	c.Dispatch("backends", "List configured SHIELD backends",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				JSONHelp(`[{"name":"mybackend","uri":"https://10.244.2.2:443"}]`)
+				FlagHelp("Outputs information as JSON object", true, "--raw")
 				return nil
 			}
 
@@ -301,10 +306,12 @@ func main() {
 	c.Dispatch("list targets", "List available backup targets",
 		func(opts Options, args []string, help bool) error {
 			if help {
-				FlagHelp("Only show targets using the named target plugin", "-P", "--policy=value")
-				FlagHelp("Only show targets which are NOT in use by a job", "--unused")
-				FlagHelp("Only show target which are in use by a job", "--used")
-				FlagHelp("Returns results as a JSON object", "--raw")
+				FlagHelp("Only show targets using the named target plugin", true, "-P", "--policy=value")
+				FlagHelp("Only show targets which are NOT in use by a job", true, "--unused")
+				FlagHelp("Only show target which are in use by a job", true, "--used")
+				FlagHelp("Returns results as a JSON object", true, "--raw")
+				FlagHelp("Disable SSL certificate validation", true, "-k", "--skip-ssl-validation")
+				FlagHelp("A string at least partially matching the name of a target", true, "<targetname>")
 				JSONHelp(`[{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}]`)
 				return nil
 			}
@@ -341,6 +348,12 @@ func main() {
 	c.Dispatch("show target", "Print detailed information about a specific backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}`)
+				FlagHelp(`A string partially matching the name of a single target
+				or a uuid exactly matching the uuid of a target`, true, "<target>")
+				FlagHelp("Returns information as a JSON object", true, "--raw")
+				FlagHelp("Disable SSL certificate validation", true, "-k", "--skip-ssl-validation")
+
 				return nil
 			}
 
@@ -366,6 +379,11 @@ func main() {
 	c.Dispatch("create target", "Create a new backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestTarget","plugin":"postgres","summary":"A Test Target"}`)
+				JSONHelp(`{"uuid":"77398f3e-2a31-4f20-b3f7-49d3f0998712","name":"TestTarget","summary":"A Test Target","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				FlagHelp(`Takes input as a JSON object from standard input
+				Outputs the resultant target info as a JSON object`, true, "--raw")
+				FlagHelp("Disable SSL certificate validation", true, "-k", "--skip-ssl-validation")
 				return nil
 			}
 
@@ -419,6 +437,15 @@ func main() {
 	c.Dispatch("edit target", "Modify an existing backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"newschmendpoint\"}","name":"NewTargetName","plugin":"postgres","summary":"Some Target"}`)
+				JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SomeTarget","summary":"Just this target, you know?","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				FlagHelp(`Takes input as a JSON object from standard input
+				Outputs the resultant target info as a JSON object`, true, "--raw")
+				FlagHelp("Disable SSL certificate validation", true, "-k", "--skip-ssl-validation")
+				FlagHelp(`A string partially matching the name of a single target 
+				or a uuid exactly matching the uuid of a target`, true, "<target>")
+				MessageHelp("Modify an existing backup target. The UUID of the target will remain the same after modifying a target.")
+
 				return nil
 			}
 
@@ -472,6 +499,13 @@ func main() {
 	c.Dispatch("delete target", "Delete a backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				JSONHelp(`{"ok":"Deleted target"}`)
+				FlagHelp(`Takes input as a JSON object from standard input.
+				Outputs the resultant target info as a JSON object.
+				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
+				FlagHelp("Disable SSL certificate validation", true, "-k", "--skip-ssl-validation")
+				FlagHelp(`A string partially matching the name of a single target
+				or a uuid exactly matching the uuid of a target`, true, "<target>")
 				return nil
 			}
 
