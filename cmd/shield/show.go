@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pborman/uuid"
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
 )
@@ -96,8 +97,12 @@ func ShowTask(task Task) {
 	t.Add("Stopped at", stopped)
 	t.Break()
 
-	t.Add("Job UUID", task.JobUUID)
-	t.Add("Archive UUID", task.ArchiveUUID)
+	if job, err := GetJob(uuid.Parse(task.JobUUID)); err == nil {
+		t.Add("Job", fmt.Sprintf("%s (%s)", job.Name, task.JobUUID))
+	}
+	if task.ArchiveUUID != "" {
+		t.Add("Archive UUID", task.ArchiveUUID)
+	}
 	t.Break()
 
 	t.Add("Log", task.Log)
