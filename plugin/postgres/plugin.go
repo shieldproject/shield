@@ -21,9 +21,13 @@
 //        "pg_user":"username-for-postgres",
 //        "pg_password":"password-for-above-user",
 //        "pg_host":"hostname-or-ip-of-pg-server",
-//        "pg_port":"port-above-pg-server-listens-on",
-//        "pg_database": "name-of-db-to-backup"
+//        "pg_port":"port-above-pg-server-listens-on",   # defaults to 5432
+//        "pg_database": "name-of-db-to-backup"          # optional
 //    }
+//
+// The `pg_database` field is optional.  If specified, the plugin will only
+// perform backups of the named database.  If not specified (the default), all
+// databases will be backed up.
 //
 // BACKUP DETAILS
 //
@@ -143,11 +147,13 @@ func (p PostgresPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("pg_database")
+	s, err = endpoint.StringValueDefault("pg_database", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 pg_database  %s}\n", err)
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 pg_database}  none (all databases will be backed up)\n")
 	} else {
-		ansi.Printf("@G{\u2713 pg_database} @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 pg_database}  @C{%s}\n", s)
 	}
 
 	if fail {
@@ -164,20 +170,15 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 
 	setupEnvironmentVariables(pg)
 
-	// If user specified specific database to backup
-	db_name := pg.Database
-
 	cmd := ""
-	// Check if db_name is valid
-	if db_name != "" {
+	if pg.Database != "" {
 		// Run dump all on the specified db
-		cmd = fmt.Sprintf("%s/pg_dump %s -c --no-password", pg.Bin, db_name)
-		DEBUG("Executing: `%s`", cmd)
+		cmd = fmt.Sprintf("%s/pg_dump %s -c --no-password", pg.Bin, pg.Database)
 	} else {
 		// Else run dump on all
 		cmd = fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
-		DEBUG("Executing: `%s`", cmd)
 	}
+	DEBUG("Executing: `%s`", cmd)
 	return Exec(cmd, STDOUT)
 }
 
