@@ -179,6 +179,17 @@ var _ = Describe("Timespec", func() {
 
 			*/
 
+			It("handles the next timestamp being in exactly one week", func() {
+				spec := &Spec{
+					Interval:  Weekly,
+					DayOfWeek: time.Tuesday,
+					TimeOfDay: inMinutes(11, 15),
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 13, 11, 15, 00, 00, tz)))
+			})
+
 			It("handles the next timestamp being later in the week", func() {
 				spec := &Spec{
 					Interval:  Weekly,
