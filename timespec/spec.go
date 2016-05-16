@@ -117,7 +117,7 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 		for target.Weekday() != s.DayOfWeek {
 			target = offsetM(target, 1440)
 		}
-		if target.Before(t) {
+		if target.Before(t) || target.Equal(t) {
 			target = offsetM(target, 7*1440)
 		}
 		return target, nil
