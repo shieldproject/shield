@@ -195,7 +195,7 @@ func HelpEditMacro(singular, plural string) {
 				Not setting this value explicitly will default it to the empty string.`, singular),
 		false, fmt.Sprintf("<%s>", singular))
 	HelpKMacro()
-	MessageHelp(fmt.Sprintf("Modify an existing backup %[1]s. The UUID of the %[1] will remain the same after modification."), singular)
+	MessageHelp(fmt.Sprintf("Modify an existing backup %[1]s. The UUID of the %[1]s will remain the same after modification.", singular))
 }
 
 func HelpDeleteMacro(singular, plural string) {
