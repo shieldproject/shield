@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-
-	"github.com/jhunt/ansi"
 )
 
 type Options struct {
