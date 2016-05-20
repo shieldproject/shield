@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +18,7 @@ import (
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
+	"github.com/starkandwayne/shield/version"
 )
 
 func require(good bool, msg string) {
@@ -108,18 +110,47 @@ func main() {
 	c := NewCommand().With(options)
 
 	c.HelpGroup("INFO:")
-	c.Dispatch("help", "Show the list of available commands",
-		func(opts Options, args []string) error {
+	c.Dispatch("help", "Get detailed help with a specific command",
+		func(opts Options, args []string, help bool) error {
+			if len(args) == 0 {
+				buf := bytes.Buffer{}
+				getopt.PrintUsage(&buf)
+				//Gets the usage line from the getopt usage output
+				ansi.Fprintf(os.Stderr, strings.Split(buf.String(), "\n")[0]+"\n")
+				ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield help commands}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield help flags}\n")
+				return nil
+			} else if args[0] == "help" {
+				ansi.Fprintf(os.Stderr, "@R{This is getting a bit too meta, don't you think?}\n")
+				return nil
+			}
+
+			// otherwise ...
+			return c.Help(args...)
+		})
+
+	c.Alias("usage", "help")
+
+	c.Dispatch("commands", "Show the list of available commands",
+		func(opts Options, args []string, help bool) error {
 			ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
 			ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
 			ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
-			fmt.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
-			fmt.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
+			ansi.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
+			ansi.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
 			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
 			ansi.Fprintf(os.Stderr, c.Usage())
-			fmt.Fprintf(os.Stderr, "\n")
+			ansi.Fprintf(os.Stderr, "\n")
 			return nil
 		})
+
+	c.Dispatch("flags", "Show the list of all command line flags",
+		func(opts Options, args []string, help bool) error {
+			getopt.PrintUsage(os.Stderr)
+			return nil
+		})
+	c.Alias("options", "flags")
 
 	/*
 	    ######  ########    ###    ######## ##     ##  ######
@@ -131,7 +162,13 @@ func main() {
 	    ######     ##    ##     ##    ##     #######   ######
 	*/
 	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp("Outputs information as a JSON object", true, "--raw")
+				JSONHelp(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", version.String()))
+				return nil
+			}
+
 			status, err := GetStatus()
 			if err != nil {
 				return err
@@ -164,7 +201,13 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("BACKENDS:")
 	c.Dispatch("backends", "List configured SHIELD backends",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				JSONHelp(`[{"name":"mybackend","uri":"https://10.244.2.2:443"}]`)
+				FlagHelp("Outputs information as JSON object", true, "--raw")
+				return nil
+			}
+
 			DEBUG("running 'backends' command")
 
 			var indices []string
@@ -193,8 +236,12 @@ func main() {
 	c.Alias("list backends", "backends")
 	c.Alias("ls be", "backends")
 
-	c.Dispatch("create backend", "Create Backend",
-		func(opts Options, args []string) error {
+	c.Dispatch("create backend", "Create or modify a SHIELD backend",
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'create backend' command")
 
 			if len(args) != 2 {
@@ -219,9 +266,14 @@ func main() {
 		})
 	c.Alias("c be", "create backend")
 	c.Alias("update backend", "create backend")
+	c.Alias("edit backend", "create backend")
 
 	c.Dispatch("backend", "Select a particular backend for use",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				return nil
+			}
+
 			DEBUG("running 'backend' command")
 
 			if len(args) != 1 {
@@ -252,7 +304,14 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("TARGETS:")
 	c.Dispatch("list targets", "List available backup targets",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp("Only show targets using the named target plugin", true, "-P", "--policy=value")
+				HelpListMacro("target", "targets")
+				JSONHelp(`[{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}]`)
+				return nil
+			}
+
 			DEBUG("running 'list targets' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -280,9 +339,16 @@ func main() {
 			return nil
 		})
 	c.Alias("ls targets", "list targets")
+	c.Alias("targets", "list targets")
 
 	c.Dispatch("show target", "Print detailed information about a specific backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}`)
+				HelpShowMacro("target", "targets")
+				return nil
+			}
+
 			DEBUG("running 'show target' command")
 
 			target, _, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -303,7 +369,14 @@ func main() {
 	c.Alias("ls target", "show target")
 
 	c.Dispatch("create target", "Create a new backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestTarget","plugin":"postgres","summary":"A Test Target"}`)
+				JSONHelp(`{"uuid":"77398f3e-2a31-4f20-b3f7-49d3f0998712","name":"TestTarget","summary":"A Test Target","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				HelpCreateMacro("target", "targets")
+				return nil
+			}
+
 			DEBUG("running 'create target' command")
 
 			var err error
@@ -349,9 +422,17 @@ func main() {
 	c.Alias("create new target", "create target")
 	c.Alias("make target", "create target")
 	c.Alias("c t", "create target")
+	c.Alias("add target", "create target")
 
 	c.Dispatch("edit target", "Modify an existing backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"newschmendpoint\"}","name":"NewTargetName","plugin":"postgres","summary":"Some Target"}`)
+				JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SomeTarget","summary":"Just this target, you know?","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				HelpEditMacro("target", "targets")
+				return nil
+			}
+
 			DEBUG("running 'edit target' command")
 
 			t, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -400,7 +481,12 @@ func main() {
 	c.Alias("update target", "edit target")
 
 	c.Dispatch("delete target", "Delete a backup target",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpDeleteMacro("target", "targets")
+				return nil
+			}
+
 			DEBUG("running 'delete target' command")
 
 			target, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -438,7 +524,13 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("SCHEDULES:")
 	c.Dispatch("list schedules", "List available backup schedules",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpListMacro("schedule", "schedules")
+				JSONHelp(`[{"uuid":"86ff3fec-76c5-48c4-880d-c37563033613","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}]`)
+				return nil
+			}
+
 			DEBUG("running 'list schedules' command")
 			DEBUG("  show unused? %s", *opts.Unused)
 			DEBUG("  show in-use? %s", *opts.Used)
@@ -465,7 +557,13 @@ func main() {
 	c.Alias("ls schedules", "list schedules")
 
 	c.Dispatch("show schedule", "Print detailed information about a specific backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpShowMacro("schedule", "schedules")
+				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
+				return nil
+			}
+
 			DEBUG("running 'show schedule' command")
 
 			schedule, _, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -486,7 +584,14 @@ func main() {
 	c.Alias("ls schedule", "show schedule")
 
 	c.Dispatch("create schedule", "Create a new backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				InputHelp(`{"name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
+				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
+				HelpCreateMacro("schedule", "schedules")
+				return nil
+			}
+
 			DEBUG("running 'create schedule' command")
 
 			var err error
@@ -532,7 +637,14 @@ func main() {
 	c.Alias("c s", "create schedule")
 
 	c.Dispatch("edit schedule", "Modify an existing backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				InputHelp(`{"name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
+				HelpEditMacro("schedule", "schedules")
+				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
+				return nil
+			}
+
 			DEBUG("running 'edit schedule' command")
 
 			s, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -579,7 +691,12 @@ func main() {
 	c.Alias("update schedule", "edit schedule")
 
 	c.Dispatch("delete schedule", "Delete a backup schedule",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpDeleteMacro("schedule", "schedules")
+				return nil
+			}
+
 			DEBUG("running 'delete schedule' command")
 
 			schedule, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -617,7 +734,13 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("POLICIES:")
 	c.Dispatch("list retention policies", "List available retention policies",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpListMacro("policy", "policies")
+				JSONHelp(`[{"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec","name":"apolicy","summary":"a policy","expires":5616000}]`)
+				return nil
+			}
+
 			DEBUG("running 'list retention policies' command")
 			DEBUG("  show unused? %s", *opts.Unused)
 			DEBUG("  show in-use? %s", *opts.Used)
@@ -646,7 +769,13 @@ func main() {
 	c.Alias("ls policies", "list policies")
 
 	c.Dispatch("show retention policy", "Print detailed information about a specific retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpShowMacro("policy", "policies")
+				JSONHelp(`{"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec","name":"apolicy","summary":"a policy","expires":5616000}`)
+				return nil
+			}
+
 			DEBUG("running 'show retention policy' command")
 
 			policy, _, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -670,7 +799,14 @@ func main() {
 	c.Alias("list policy", "show policy")
 
 	c.Dispatch("create retention policy", "Create a new retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				InputHelp(`{"expires":31536000,"name":"TestPolicy","summary":"A Test Policy"}`)
+				JSONHelp(`{"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","name":"TestPolicy","summary":"A Test Policy","expires":31536000}`)
+				HelpCreateMacro("policy", "policies")
+				return nil
+			}
+
 			DEBUG("running 'create retention policy' command")
 
 			var err error
@@ -721,7 +857,14 @@ func main() {
 	c.Alias("c p", "create policy")
 
 	c.Dispatch("edit retention policy", "Modify an existing retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpEditMacro("policy", "policies")
+				InputHelp(`{"expires":31536000,"name":"AnotherPolicy","summary":"A Test Policy"}`)
+				JSONHelp(`{"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","name":"AnotherPolicy","summary":"A Test Policy","expires":31536000}`)
+				return nil
+			}
+
 			DEBUG("running 'edit retention policy' command")
 
 			p, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -770,7 +913,12 @@ func main() {
 	c.Alias("update policy", "edit policy")
 
 	c.Dispatch("delete retention policy", "Delete a retention policy",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpDeleteMacro("policy", "policies")
+				return nil
+			}
+
 			DEBUG("running 'delete retention policy' command")
 
 			policy, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -789,7 +937,7 @@ func main() {
 				return err
 			}
 
-			OK("Deleted retention policy")
+			OK("Deleted policy")
 			return nil
 		})
 	c.Alias("remove retention policy", "delete retention policy")
@@ -811,7 +959,14 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("STORES:")
 	c.Dispatch("list stores", "List available archive stores",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpListMacro("store", "stores")
+				FlagHelp("Only show stores using the named store plugin", true, "-P", "--policy=value")
+				JSONHelp(`[{"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20","name":"test store","summary":"a test store named \"test store\"","plugin":"s3","endpoint":"{ \"endpoint\": \"doesntmatter\" }"}]`)
+				return nil
+			}
+
 			DEBUG("running 'list stores' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
 			DEBUG("  show unused? %s", *opts.Unused)
@@ -841,7 +996,13 @@ func main() {
 	c.Alias("ls stores", "list stores")
 
 	c.Dispatch("show store", "Print detailed information about a specific archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				JSONHelp(`{"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20","name":"test store","summary":"a test store named \"test store\"","plugin":"s3","endpoint":"{ \"endpoint\": \"doesntmatter\" }"}`)
+				HelpShowMacro("store", "stores")
+				return nil
+			}
+
 			DEBUG("running 'show store' command")
 
 			store, _, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -862,7 +1023,14 @@ func main() {
 	c.Alias("ls store", "show store")
 
 	c.Dispatch("create store", "Create a new archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpCreateMacro("store", "stores")
+				InputHelp(`{"endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestStore","plugin":"s3","summary":"A Test Store"}`)
+				JSONHelp(`{"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","name":"TestStore","summary":"A Test Store","plugin":"s3","endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
+				return nil
+			}
+
 			DEBUG("running 'create store' command")
 
 			var err error
@@ -910,7 +1078,14 @@ func main() {
 	c.Alias("c st", "create store")
 
 	c.Dispatch("edit store", "Modify an existing archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpEditMacro("store", "stores")
+				InputHelp(`{"endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"AnotherStore","plugin":"s3","summary":"A Test Store"}`)
+				JSONHelp(`{"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","name":"AnotherStore","summary":"A Test Store","plugin":"s3","endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
+				return nil
+			}
+
 			DEBUG("running 'edit store' command")
 
 			s, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -959,7 +1134,12 @@ func main() {
 	c.Alias("update store", "edit store")
 
 	c.Dispatch("delete store", "Delete an archive store",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpDeleteMacro("store", "stores")
+				return nil
+			}
+
 			DEBUG("running 'delete store' command")
 
 			store, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -997,7 +1177,19 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("JOBS:")
 	c.Dispatch("list jobs", "List available backup jobs",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpListMacro("job", "jobs")
+				FlagHelp("Show only jobs using the specified target", true, "-t", "--target=value")
+				FlagHelp("Show only jobs using the specified store", true, "-s", "--store=value")
+				FlagHelp("Show only jobs using the specified schedule", true, "-w", "--schedule=value")
+				FlagHelp("Show only jobs using the specified retention policy", true, "-p", "--policy=value")
+				FlagHelp("Show only jobs which are in the paused state", true, "--paused")
+				FlagHelp("Show only jobs which are NOT in the paused state", true, "--unpaused")
+				JSONHelp(`[{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}]`)
+				return nil
+			}
+
 			DEBUG("running 'list jobs' command")
 			DEBUG("  for target:      '%s'", *opts.Target)
 			DEBUG("  for store:       '%s'", *opts.Store)
@@ -1034,7 +1226,13 @@ func main() {
 	c.Alias("ls j", "list jobs")
 
 	c.Dispatch("show job", "Print detailed information about a specific backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpShowMacro("job", "jobs")
+				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				return nil
+			}
+
 			DEBUG("running 'show job' command")
 
 			job, _, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1055,7 +1253,14 @@ func main() {
 	c.Alias("ls job", "show job")
 
 	c.Dispatch("create job", "Create a new backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpCreateMacro("job", "jobs")
+				InputHelp(`{"name":"TestJob","paused":true,"retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
+				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				return nil
+			}
+
 			DEBUG("running 'create job' command")
 
 			var err error
@@ -1107,7 +1312,13 @@ func main() {
 	c.Alias("c j", "create job")
 
 	c.Dispatch("edit job", "Modify an existing backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpEditMacro("job", "jobs")
+
+				return nil
+			}
+
 			DEBUG("running 'edit job' command")
 
 			j, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1158,7 +1369,14 @@ func main() {
 	c.Alias("update job", "edit job")
 
 	c.Dispatch("delete job", "Delete a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpDeleteMacro("job", "jobs")
+				InputHelp(`{"name":"AnotherJob","retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
+				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"AnotherJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				return nil
+			}
+
 			DEBUG("running 'delete job' command")
 
 			job, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1184,7 +1402,16 @@ func main() {
 	c.Alias("rm job", "delete job")
 
 	c.Dispatch("pause job", "Pause a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`A string partially matching the name of a job to pause 
+				or a UUID exactly matching the UUID of a job to pause.
+				Not setting this value explicitly will default it to the empty string.`,
+					false, "<job>")
+				HelpKMacro()
+				return nil
+			}
+
 			DEBUG("running 'pause job' command")
 
 			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1199,7 +1426,16 @@ func main() {
 		})
 
 	c.Dispatch("unpause job", "Unpause a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`A string partially matching the name of a job to unpause 
+				or a UUID exactly matching the UUID of a job to unpause.
+				Not setting this value explicitly will default it to the empty string.`,
+					false, "<job>")
+				HelpKMacro()
+				return nil
+			}
+
 			DEBUG("running 'unpause job' command")
 
 			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1215,7 +1451,16 @@ func main() {
 		})
 
 	c.Dispatch("run job", "Schedule an immediate run of a backup job",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`A string partially matching the name of a job to run 
+				or a UUID exactly matching the UUID of a job to run.
+				Not setting this value explicitly will default it to the empty string.`,
+					false, "<job>")
+				HelpKMacro()
+				return nil
+			}
+
 			DEBUG("running 'run job' command")
 
 			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
@@ -1255,7 +1500,21 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("TASKS:")
 	c.Dispatch("list tasks", "List available tasks",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`Only show tasks with the specified status
+									Valid values are one of ['all', 'running', 'pending', 'cancelled']
+									If not explicitly set, it defaults to 'running'`,
+					true, "-S", "--status=value")
+				FlagHelp(`Show all tasks, regardless of state`, true, "-a", "--all")
+				FlagHelp("Returns information as a JSON object", true, "--raw")
+				//TODO: Uncommment that FlagHelp when --limit is implemented for this function
+				//FlagHelp("Show only the <value> most recent tasks", true, "--limit=value")
+				HelpKMacro()
+				JSONHelp(`[{"uuid":"0e3736f3-6905-40ba-9adc-06641a282ff4","owner":"system","type":"backup","job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8","archive_uuid":"2a4147ea-84a6-40fc-8028-143efabcc49d","status":"done","started_at":"2016-05-17 11:00:01","stopped_at":"2016-05-17 11:00:02","timeout_at":"","log":"This is where I would put my plugin output if I had one"}]`)
+				return nil
+			}
+
 			DEBUG("running 'list tasks' command")
 
 			if *options.Status == "" {
@@ -1304,7 +1563,15 @@ func main() {
 	c.Alias("ls tasks", "list tasks")
 
 	c.Dispatch("show task", "Print detailed information about a specific task",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp("The ID number of the task to show info about", false, "<id>")
+				HelpKMacro()
+				FlagHelp("Returns information as a JSON object", true, "--raw")
+				JSONHelp(`{"uuid":"b40ae708-6215-4932-90fb-fe580fac7196","owner":"system","type":"backup","job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8","archive_uuid":"62792b22-c89e-4d69-b874-69a5f056a9ef","status":"done","started_at":"2016-05-18 11:00:01","stopped_at":"2016-05-18 11:00:02","timeout_at":"","log":"This is where I would put my plugin output if I had one"}`)
+				return nil
+			}
+
 			DEBUG("running 'show task' command")
 
 			require(len(args) == 1, "shield show task <UUID>")
@@ -1329,7 +1596,15 @@ func main() {
 	c.Alias("ls task", "show task")
 
 	c.Dispatch("cancel task", "Cancel a running or pending task",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`Outputs the result as a JSON object.
+				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
+				HelpKMacro()
+				JSONHelp(`{"ok":"Cancelled task '81746508-bd18-46a8-842e-97911d4b23a3'\n"}`)
+				return nil
+			}
+
 			DEBUG("running 'cancel task' command")
 
 			require(len(args) == 1, "shield cancel task <UUID>")
@@ -1356,7 +1631,6 @@ func main() {
 			return nil
 		})
 	c.Alias("stop task", "cancel task")
-
 	/*
 	      ###    ########   ######  ##     ## #### ##     ## ########
 	     ## ##   ##     ## ##    ## ##     ##  ##  ##     ## ##
@@ -1370,7 +1644,26 @@ func main() {
 	c.HelpBreak()
 	c.HelpGroup("ARCHIVES:")
 	c.Dispatch("list archives", "List available backup archives",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				HelpListMacro("archive", "archives")
+				FlagHelp(`Only show archives with the specified state of validity.
+									Accepted values are one of ['all', 'valid']
+									If not explicitly set, it defaults to 'valid'`,
+					true, "-S", "--status=value")
+				FlagHelp("Show only archives created from the specified target", true, "-t", "--target=value")
+				FlagHelp("Show only archives sent to the specified store", true, "-s", "--store=value")
+				FlagHelp("Show only the <value> most recent archives", true, "--limit=value")
+				FlagHelp(`Show only the archives taken before this point in time
+				Specify in the format YYYYMMDD`, true, "-B", "--before=value")
+				FlagHelp(`Show only the archives taken after this point in time
+				Specify in the format YYYYMMDD`, true, "-A", "--after=value")
+				FlagHelp(`Show all archives, regardless of validity.
+									Equivalent to '--status=all'`, true, "-a", "--all")
+				JSONHelp(`[{"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533","key":"thisisastorekey","taken_at":"2016-05-18 11:02:43","expires_at":"2017-05-18 11:02:43","status":"valid","notes":"","target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1","target_plugin":"redis-broker","target_endpoint":"{\"redis_type\":\"broker\"}","store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}"}]`)
+				return nil
+			}
+
 			DEBUG("running 'list archives' command")
 
 			if *options.Status == "" {
@@ -1439,7 +1732,15 @@ func main() {
 	c.Alias("ls archives", "list archives")
 
 	c.Dispatch("show archive", "Print detailed information about a backup archive",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
+				FlagHelp("Returns information as a JSON object", true, "--raw")
+				HelpKMacro()
+				JSONHelp(`{"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533","key":"thisisastorekey","taken_at":"2016-05-18 11:02:43","expires_at":"2017-05-18 11:02:43","status":"valid","notes":"","target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1","target_plugin":"redis-broker","target_endpoint":"{\"redis_type\":\"broker\"}","store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
+				return nil
+			}
+
 			DEBUG("running 'show archive' command")
 
 			require(len(args) == 1, "shield show archive <UUID>")
@@ -1464,7 +1765,14 @@ func main() {
 	c.Alias("ls archive", "show archive")
 
 	c.Dispatch("restore archive", "Restore a backup archive",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`Outputs the result as a JSON object.`, true, "--raw")
+				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
+				HelpKMacro()
+				return nil
+			}
+
 			DEBUG("running 'restore archive' command")
 
 			var id uuid.UUID
@@ -1517,7 +1825,16 @@ func main() {
 	c.Alias("restore", "restore archive")
 
 	c.Dispatch("delete archive", "Delete a backup archive",
-		func(opts Options, args []string) error {
+		func(opts Options, args []string, help bool) error {
+			if help {
+				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
+				FlagHelp(`Outputs the result as a JSON object.
+				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
+				HelpKMacro()
+				JSONHelp(`{"ok":"Deleted archive"}`)
+				return nil
+			}
+
 			DEBUG("running 'delete archive' command")
 
 			require(len(args) == 1, "USAGE: shield delete archive <UUID>")
@@ -1554,7 +1871,7 @@ func main() {
 	}
 
 	// only check for backends + creds if we aren't manipulating backends/help
-	nonAPICommands := regexp.MustCompile(`(help|backends|list backends|ls be|create backend|c be|update backend|backend|use backend)`)
+	nonAPICommands := regexp.MustCompile(`(help|commands|flags|options|backends|list backends|ls be|create backend|c be|update backend|backend|use backend)`)
 	if !nonAPICommands.MatchString(strings.Join(command, " ")) {
 		DEBUG("Command: '%s'", strings.Join(command, " "))
 

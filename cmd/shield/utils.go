@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,17 +20,13 @@ func CurrentUser() string {
 }
 
 func PrettyJSON(raw string) string {
-	var v interface{}
-	if err := json.Unmarshal([]byte(raw), &v); err != nil {
-		DEBUG("json.Unmarshal failed with %s", err)
-		return raw
-	}
-	b, err := json.MarshalIndent(v, "", "  ")
+	tmpBuf := bytes.Buffer{}
+	err := json.Indent(&tmpBuf, []byte(raw), "", "  ")
 	if err != nil {
-		DEBUG("json.MarshalIndent failed with %s", err)
+		DEBUG("json.Indent failed with %s", err)
 		return raw
 	}
-	return string(b)
+	return tmpBuf.String()
 }
 
 func DEBUG(format string, args ...interface{}) {

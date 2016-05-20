@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -40,16 +42,18 @@ type Options struct {
 	Password *string
 }
 
-type Handler func(opts Options, args []string) error
+type Handler func(opts Options, args []string, help bool) error
 
 type Command struct {
 	help     [][]string
+	summary  map[string]string
 	commands map[string]Handler
 	options  Options
 }
 
 func NewCommand() *Command {
 	return &Command{
+		summary:  map[string]string{},
 		commands: map[string]Handler{},
 	}
 }
@@ -87,15 +91,34 @@ func (c *Command) Dispatch(command string, help string, fn Handler) {
 	if help != "" {
 		c.help = append(c.help, []string{command, help})
 	}
+	c.summary[command] = help
 	c.commands[command] = fn
 }
 
 func (c *Command) Alias(alias string, command string) {
 	if fn, ok := c.commands[command]; ok {
 		c.Dispatch(alias, "", fn)
+		if summary, ok := c.summary[command]; ok {
+			c.summary[alias] = summary
+		}
 	} else {
 		panic(fmt.Sprintf("unknown command `%s' for alias `%s'", command, alias))
 	}
+}
+
+//Returns a newline separated list of aliases for the given command
+func (c *Command) AliasesFor(command string) []string {
+	aliases := []string{}
+	if _, found := c.commands[command]; !found {
+		panic(fmt.Sprintf("unknown command `%s' to find aliases for", command))
+	}
+	for alias, _ := range c.commands {
+		if reflect.ValueOf(c.commands[alias]).Pointer() == reflect.ValueOf(c.commands[command]).Pointer() {
+			aliases = append(aliases, alias)
+		}
+	}
+	sort.Strings(aliases)
+	return aliases
 }
 
 func (c *Command) With(opts Options) *Command {
@@ -103,8 +126,9 @@ func (c *Command) With(opts Options) *Command {
 	return c
 }
 
-func (c *Command) Execute(cmd ...string) error {
+func (c *Command) do(cmd []string, help bool) error {
 	var last = 0
+	var err error = nil
 	for i := 1; i <= len(cmd); i++ {
 		command := strings.Join(cmd[0:i], " ")
 		if _, ok := c.commands[command]; ok {
@@ -114,8 +138,38 @@ func (c *Command) Execute(cmd ...string) error {
 	if last != 0 {
 		command := strings.Join(cmd[0:last], " ")
 		if fn, ok := c.commands[command]; ok {
-			return fn(c.options, cmd[last:])
+			err = fn(c.options, cmd[last:], help)
+
+			//Avoid recursive help
+			helpComs := []string{}
+			helpComs = append(helpComs, c.AliasesFor("help")...)
+			helpComs = append(helpComs, c.AliasesFor("commands")...)
+			helpComs = append(helpComs, c.AliasesFor("flags")...)
+			isHelper := false
+			for _, v := range helpComs {
+				if command == v {
+					isHelper = true
+					break
+				}
+			}
+			if help && !isHelper {
+				PrintUsage(command)
+				PrintMessage(command, c)
+				PrintAliasHelp(command, c)
+				PrintFlagHelp()
+				PrintInputHelp()
+				PrintJSONHelp()
+			}
+			return err
 		}
 	}
 	return fmt.Errorf("unrecognized command %s\n", strings.Join(cmd, " "))
+}
+
+func (c *Command) Execute(cmd ...string) error {
+	return c.do(cmd, false)
+}
+
+func (c *Command) Help(cmd ...string) error {
+	return c.do(cmd, true)
 }
