@@ -75,14 +75,14 @@ func PrintFlagHelp() {
 	}
 	Header("FLAGS")
 	sort.Sort(ByFlag(flagsToPrint))
-	for _, flags := range flagsToPrint {
+	for i, flags := range flagsToPrint {
 		//Parse out each newline separated flags
 		//Wrap each of the flag entries in @M{} to highlight them blue
-		printFlagHelper(flags.flag, flags.desc)
+		printFlagHelper(flags.flag, flags.desc, i == len(flagsToPrint)-1)
 	}
 }
 
-func printFlagHelper(flags []string, desc string) {
+func printFlagHelper(flags []string, desc string, last bool) {
 	defer func() { ansi.Fprintf(os.Stderr, "\n") }()
 	//Print the flag list
 	flagString := "@B{" + strings.Join(flags, "}, @B{") + "}"
@@ -96,7 +96,10 @@ func printFlagHelper(flags []string, desc string) {
 		return
 	}
 	for _, v := range lines[1:] {
-		ansi.Fprintf(os.Stderr, "\n%s%s", strings.Repeat(" ", flagLen+6), v)
+		ansi.Fprintf(os.Stderr, "\n%s%s", strings.Repeat(" ", flagLen+4), v)
+	}
+	if len(lines) > 1 && !last {
+		ansi.Fprintf(os.Stderr, "\n")
 	}
 }
 
@@ -115,15 +118,17 @@ func PrintJSONHelp() {
 
 func MessageHelp(mess string, args ...interface{}) {
 	messageToPrint = mess
+	messageArgs = args
 }
 
-//If MessageHelp was not called, the default summary for the command will be//printed.
+//If MessageHelp was not called, the default summary for the command will be
+//printed. Otherwise, prints the string given to MessageHelp in its place
 func PrintMessage(command string, c *Command) {
 	if messageToPrint == "" {
 		messageToPrint = c.summary[command]
 	}
 	if len(messageArgs) > 0 {
-		ansi.Fprintf(os.Stderr, messageToPrint, messageArgs)
+		ansi.Fprintf(os.Stderr, messageToPrint, messageArgs...)
 	} else {
 		ansi.Fprintf(os.Stderr, messageToPrint)
 	}
@@ -195,7 +200,7 @@ func HelpEditMacro(singular, plural string) {
 				Not setting this value explicitly will default it to the empty string.`, singular),
 		false, fmt.Sprintf("<%s>", singular))
 	HelpKMacro()
-	MessageHelp(fmt.Sprintf("Modify an existing backup %[1]s. The UUID of the %[1]s will remain the same after modification.", singular))
+	MessageHelp("Modify an existing backup %[1]s. The UUID of the %[1]s will remain the same after modification.", singular)
 }
 
 func HelpDeleteMacro(singular, plural string) {

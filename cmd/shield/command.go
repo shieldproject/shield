@@ -90,10 +90,6 @@ func (c *Command) Dispatch(command string, help string, fn Handler) {
 
 	if help != "" {
 		c.help = append(c.help, []string{command, help})
-		/*		c.summary[command] = ansi.Sprintf("@G{shield %s} - %s", command, help)
-				} else {
-					c.summary[command] = ansi.Sprintf("@G{shield %s}", command)
-		*/
 	}
 	c.summary[command] = help
 	c.commands[command] = fn
