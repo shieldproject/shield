@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
 	"GoVersion": "go1.5",
+	"GodepVersion": "v71",
 	"Packages": [
 		"./..."
 	],
@@ -321,6 +322,11 @@
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/log",
 			"Rev": "2ed57be1d34986a6c3fb4c7c6b94d8fe75ea8cdd"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/minio-go",
+			"Comment": "1.0.1-48-g84dd430",
+			"Rev": "84dd430f98ca7c34d673046dc7757bc828d3388b"
 		},
 		{
 			"ImportPath": "github.com/voxelbrain/goptions",
