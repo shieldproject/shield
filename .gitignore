@@ -11,6 +11,7 @@
 /rabbitmq-broker
 /s3
 /fs
+/scality
 .DS_Store
 
 # ignore vim buffers

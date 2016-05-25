@@ -45,6 +45,7 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/s3
 	go $(BUILD_TYPE) ./plugin/mysql
 	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
+	go $(BUILD_TYPE) ./plugin/scality
 
 # Run tests with coverage tracking, writing output to coverage/
 coverage: agent.cov db.cov plugin.cov supervisor.cov timespec.cov
