@@ -1,4 +1,7 @@
 # S.H.I.E.L.D. Backup Solution
+
+Questions? Pop in our [slack channel](https://cloudfoundry.slack.com/messages/shield/)!
+
 [![Build Status](https://travis-ci.org/starkandwayne/shield.svg)](https://travis-ci.org/starkandwayne/shield)
 
 ## Project Goal
