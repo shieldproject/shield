@@ -16,11 +16,17 @@ plugin.Exec() can be used to easily run external commands sending their stdin/st
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pborman/uuid"
-	"github.com/voxelbrain/goptions"
 	"os"
 	"strings"
+
+	"github.com/ErikDubbelboer/gspt"
+	"github.com/pborman/uuid"
+	"github.com/voxelbrain/goptions"
 )
+
+func init() {
+	gspt.SetProcTitle(os.Args[0])
+}
 
 type PluginOpts struct {
 	Debug   bool `goptions:"-D, --debug, description='Enable debugging'"`

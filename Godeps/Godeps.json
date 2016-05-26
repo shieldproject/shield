@@ -7,6 +7,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/ErikDubbelboer/gspt",
+			"Rev": "90553243e3346b62d0dccd1544a2030ac7237068"
+		},
+		{
 			"ImportPath": "github.com/antonlindstrom/pgstore",
 			"Rev": "646ee398524f0eb81ad90aa8f40cbd74045c99b2"
 		},
