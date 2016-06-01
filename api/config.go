@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -52,7 +53,12 @@ func (cfg *Config) Save() error {
 		return err
 	}
 
-	tempFile, err := ioutil.TempFile("", "shield_config")
+	err = os.MkdirAll(path.Dir(cfg.Path), 0755)
+	if err != nil {
+		return err
+	}
+
+	tempFile, err := ioutil.TempFile(path.Dir(cfg.Path), "shield_config")
 	if err != nil {
 		return err
 	}

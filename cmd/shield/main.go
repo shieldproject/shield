@@ -257,7 +257,10 @@ func main() {
 				return err
 			}
 
-			Cfg.Save()
+			err = Cfg.Save()
+			if err != nil {
+				return err
+			}
 
 			ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
 			ansi.Fprintf(os.Stdout, "Using '@G{%s}' as the SHIELD backend.\n\n", args[0])
