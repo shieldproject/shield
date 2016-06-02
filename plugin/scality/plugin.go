@@ -116,10 +116,10 @@ func (p ScalityPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("scality_host")
 	if err != nil {
-		ansi.Printf("@R{\u2717 s3_host              %s}\n", err)
+		ansi.Printf("@R{\u2717 scality_host              %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 s3_host}              @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 scality_host}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("access_key_id")
