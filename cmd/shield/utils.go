@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/jhunt/ansi"
+	"github.com/starkandwayne/shield/api"
 )
 
 func BoolString(tf bool) string {
@@ -39,4 +42,8 @@ func DEBUG(format string, args ...interface{}) {
 		content = strings.Join(lines, "\n")
 		fmt.Fprintf(os.Stderr, "%s\n", content)
 	}
+}
+
+func DisplayBackend(cfg *api.Config) {
+	ansi.Fprintf(os.Stderr, "Using @G{%s} (%s) as SHIELD backend\n\n", cfg.BackendURI(), cfg.Backend)
 }
