@@ -239,6 +239,9 @@ func main() {
 	c.Dispatch("create backend", "Create or modify a SHIELD backend",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				FlagHelp(`The name of the new backend`, false, "<name>")
+				FlagHelp(`The address at which the new backend can be found`, false, "<uri>")
+
 				return nil
 			}
 
@@ -263,7 +266,7 @@ func main() {
 			}
 
 			ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
-			ansi.Fprintf(os.Stdout, "Using '@G{%s}' as the SHIELD backend.\n\n", args[0])
+			DisplayBackend(Cfg)
 
 			return nil
 		})
@@ -274,6 +277,7 @@ func main() {
 	c.Dispatch("backend", "Select a particular backend for use",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				FlagHelp(`The name of the backend to target`, false, "<name>")
 				return nil
 			}
 
@@ -288,8 +292,7 @@ func main() {
 			}
 			Cfg.Save()
 
-			ansi.Fprintf(os.Stdout, "Using '@G{%s}' as the SHIELD backend.\n\n", args[0])
-
+			DisplayBackend(Cfg)
 			return nil
 		})
 	c.Alias("use backend", "backend")
@@ -1903,7 +1906,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		ansi.Fprintf(os.Stderr, "Using @G{%s} as SHIELD backend\n\n", Cfg.BackendURI())
+		DisplayBackend(Cfg)
 
 		err = Cfg.Save()
 		if err != nil {
