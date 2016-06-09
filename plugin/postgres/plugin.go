@@ -199,28 +199,52 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	if err != nil {
 		return err
 	}
-	go func(out io.WriteCloser, in io.Reader) {
+	scanErr := make(chan error)
+	go func(out io.WriteCloser, in io.Reader, errChan chan<- error) {
 		DEBUG("Starting to read SQL statements from stdin...")
-		b := bufio.NewScanner(in)
+		r := bufio.NewReader(in)
 		reg := regexp.MustCompile("^DROP DATABASE (.*);$")
-		i := 1
-		for b.Scan() {
-			m := reg.FindStringSubmatch(b.Text())
+		i := 0
+		for {
+			thisLine := []byte{}
+			isPrefix := true
+			var err error
+			for isPrefix {
+				var tmpLine []byte
+				tmpLine, isPrefix, err = r.ReadLine()
+				if err != nil {
+					if err == io.EOF {
+						goto eof
+					}
+					errChan <- err
+					return
+				}
+				thisLine = append(thisLine, tmpLine...)
+			}
+			m := reg.FindStringSubmatch(string(thisLine))
 			if len(m) > 0 {
 				DEBUG("Found dropped database '%s' on line %d", m[1], i)
 				out.Write([]byte(fmt.Sprintf("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '%s';\n", m[1])))
 				out.Write([]byte(fmt.Sprintf("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';\n", m[1])))
 			}
-			_, err = out.Write([]byte(b.Text() + "\n"))
+			_, err = out.Write([]byte(string(thisLine) + "\n"))
 			if err != nil {
-				DEBUG("Scanner had an error: %s", err)
+				DEBUG("Error when writing to output: %s", err)
+				errChan <- err
+				return
 			}
 			i++
 		}
+	eof:
 		DEBUG("Completed restore with %d lines of SQL", i)
 		out.Close()
-	}(stdin, os.Stdin)
-	return cmd.Run()
+		errChan <- nil
+	}(stdin, os.Stdin, scanErr)
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	return <-scanErr
 }
 
 func (p PostgresPlugin) Store(endpoint ShieldEndpoint) (string, error) {
