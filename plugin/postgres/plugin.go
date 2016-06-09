@@ -200,8 +200,7 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 		return err
 	}
 	scanErr := make(chan error)
-	cmdErr := make(chan error)
-	go func(out io.WriteCloser, in io.Reader, errChan chan error) {
+	go func(out io.WriteCloser, in io.Reader, errChan chan<- error) {
 		DEBUG("Starting to read SQL statements from stdin...")
 		r := bufio.NewReader(in)
 		reg := regexp.MustCompile("^DROP DATABASE (.*);$")
@@ -241,12 +240,11 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 		out.Close()
 		errChan <- nil
 	}(stdin, os.Stdin, scanErr)
-	cmdErr <- cmd.Run()
-	err = <-scanErr
+	err = cmd.Run()
 	if err != nil {
 		return err
 	}
-	return <-cmdErr
+	return <-scanErr
 }
 
 func (p PostgresPlugin) Store(endpoint ShieldEndpoint) (string, error) {
