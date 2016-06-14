@@ -5,13 +5,14 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/ssh/terminal"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type URL struct {
@@ -85,6 +86,19 @@ func debugResponse(res *http.Response) {
 }
 
 func (u *URL) Request(out interface{}, req *http.Request) error {
+	var bodyBytes []byte
+	var err error
+	if req.Body != nil {
+		bodyBytes, err = ioutil.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
+		req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+		if err != nil {
+			return err
+		}
+	}
+
 	r, err := makeRequest(req)
 	if err != nil {
 		return err
@@ -92,6 +106,9 @@ func (u *URL) Request(out interface{}, req *http.Request) error {
 	defer r.Body.Close()
 
 	if r.StatusCode == 401 {
+		if req.Body != nil {
+			req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+		}
 		r, err = promptAndAuth(r, req)
 		if err != nil {
 			return err
