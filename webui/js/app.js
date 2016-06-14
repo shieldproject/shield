@@ -874,7 +874,7 @@
         tbl = new Table("store", "Name", "Summary", "Plugin", "Configuration", "");
         for (var i = 0; i < DB.stores.length; i++) {
           s = DB.stores[i];
-          tbl.Row(s, s.name, summarize(s.summary), s.plugin, "<pre>"+s.endpoint+"</pre>", Icons("edit", "trash"));
+          tbl.Row(s, s.name, summarize(s.summary), s.plugin, "<pre>"+JSON.stringify(JSON.parse(s.endpoint),null,2)+"</pre>", Icons("edit", "trash"));
         }
         root.empty().append(Header("Stores", "Create New Store")).append(tbl.Render());
       });
