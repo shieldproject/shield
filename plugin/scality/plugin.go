@@ -25,7 +25,7 @@
 //        "skip_ssl_validation":  false,
 //        "bucket":              "bucket-name",
 //        "prefix":              "/path/inside/bucket/to/place/backup/data",
-//        "socks5_proxy":        "localhost:5000" #optionally defined SOCKS5 proxy to use for the scality communications
+//        "socks5_proxy":        "" #optionally defined SOCKS5 proxy to use for the scality communications
 //    }
 //
 // `prefix` will default to the empty string, and backups will be placed in the

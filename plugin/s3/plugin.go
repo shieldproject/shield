@@ -25,8 +25,8 @@
 //        "skip_ssl_validation":  false,
 //        "bucket":              "bucket-name",
 //        "prefix":              "/path/inside/bucket/to/place/backup/data",
-//        "signature_version":   "2",             # should be 2 or 4. Defaults to 4
-//        "socks5_proxy":        "localhost:5000" #optionally defined SOCKS5 proxy to use for the s3 communications
+//        "signature_version":   "4",  # should be 2 or 4. Defaults to 4
+//        "socks5_proxy":        "",   # optionally defined SOCKS5 proxy to use for the s3 communications
 //    }
 //
 // `prefix` will default to the empty string, and backups will be placed in the
