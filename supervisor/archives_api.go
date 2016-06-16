@@ -92,17 +92,25 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
+		taskChan := make(chan string)
 		// tell the supervisor to schedule a task
 		self.Tasks <- &db.Task{
-			Op:          db.RestoreOperation,
-			Owner:       params.Owner,
-			TargetUUID:  tid,
-			ArchiveUUID: id,
-			RestoreKey:  archive.StoreKey,
+			Op:           db.RestoreOperation,
+			Owner:        params.Owner,
+			TargetUUID:   tid,
+			ArchiveUUID:  id,
+			RestoreKey:   archive.StoreKey,
+			TaskUUIDChan: taskChan,
 		}
 
-		w.WriteHeader(200)
-		JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled"}`))
+		var taskUUID string = <-taskChan
+		if taskUUID == "" {
+			w.WriteHeader(500)
+			JSONLiteral(w, fmt.Sprintf(`{"ok":"error"}`))
+		} else {
+			w.WriteHeader(200)
+			JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled","task_uuid":"%s"}`, taskUUID))
+		}
 		return
 
 	case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
@@ -163,7 +171,6 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(403)
 			return
 		}
-
 		self.ResyncChan <- 1
 		JSONLiteral(w, fmt.Sprintf(`{"ok":"deleted"}`))
 		return

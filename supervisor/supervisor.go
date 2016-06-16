@@ -125,6 +125,7 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 		// expect a JobUUID to move to the schedq Immediately
 		for _, job := range s.jobq {
 			if !uuid.Equal(job.UUID, a.JobUUID) {
+
 				continue
 			}
 
@@ -132,8 +133,15 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 			task, err := s.Database.CreateBackupTask(a.Owner, job)
 			if err != nil {
 				log.Errorf("job -> task conversion / database update failed: %s", err)
+				if a.TaskUUIDChan != nil {
+					a.TaskUUIDChan <- ""
+				}
 				continue
 			}
+			if a.TaskUUIDChan != nil {
+				a.TaskUUIDChan <- task.UUID.String()
+			}
+
 			s.ScheduleTask(task)
 		}
 
@@ -151,8 +159,15 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 		task, err := s.Database.CreateRestoreTask(a.Owner, archive, target)
 		if err != nil {
 			log.Errorf("restore task database creation failed: %s", err)
+			if a.TaskUUIDChan != nil {
+				a.TaskUUIDChan <- ""
+			}
 			return
 		}
+		if a.TaskUUIDChan != nil {
+			a.TaskUUIDChan <- task.UUID.String()
+		}
+
 		s.ScheduleTask(task)
 	}
 }
