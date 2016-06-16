@@ -1,0 +1,71 @@
+#!/bin/bash
+
+set -e 
+
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+
+#if no cli, make cli
+if [[ ! -f "../shield" ]]
+then
+  pushd .. && make shield-cli  
+  popd
+fi
+
+shieldcomm="../shield -k --raw"
+jqcomm="jq -Mr"
+
+$shieldcomm create backend localdev http://localhost:8181
+target=$($shieldcomm create target <<MEEP0 
+{
+  "agent": "127.0.0.1:5444",
+  "endpoint": "{\"endpoint\":\"schmendpoint\"}",
+  "name": "TestTarget",
+  "plugin": "postgres",
+  "summary": "A Test Target"
+} 
+MEEP0 )
+target=$( $jqcomm .uuid <<<$target)
+echo "target=$target"
+
+store=$( $shieldcomm create store <<MEEP1
+{
+  "endpoint": "{\"endpoint\":\"schmendpoint\"}",
+  "name": "TestStore",
+  "plugin": "s3",
+  "summary": "A Test Store"
+}
+MEEP1 )
+store=$($jqcomm .uuid <<<$store) 
+echo "store=$store"
+
+policy=$( $shieldcomm create retention policy <<MEEP2 
+{
+  "expires": 31536000,
+  "name": "TestPolicy",
+  "summary": "A Test Policy"
+}
+MEEP2 )
+policy=$($jqcomm .uuid -Mr <<<$policy)
+echo "policy=$policy"
+
+schedule=$( $shieldcomm create schedule <<MEEP3 
+{
+  "name": "TestSched",
+  "summary": "A Test Schedule",
+  "when": "daily 4am"
+}
+MEEP3)
+schedule=$($jqcomm .uuid -Mr <<<$schedule)
+echo "schedule=$schedule"
+
+$shieldcomm create job <<MEEP4
+{
+  "name": "TestJob",
+  "paused": true,
+  "retention": "$policy",
+  "schedule": "$schedule",
+  "store": "$store",
+  "summary": "A Test Job",
+  "target": "$target"
+}
+MEEP4
