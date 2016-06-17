@@ -300,7 +300,7 @@ Request Body:
 | summary | N | A short description of the target
 | plugin | Y | The name of the plugin to use when backing up this target
 | endpoint | Y | The endpoint configuration required to access this target's data
-| agent | Y | The host:port of a Shield agent that can backup/resetore this target
+| agent | Y | The host:port of a Shield agent that can backup/restore this target
 
 Response Body:
 
@@ -336,7 +336,7 @@ Request Body:
 | summary | Y | A short description of the target
 | plugin | Y | The name of the plugin to use when backing up this target
 | endpoint | Y | The endpoint configuration required to access this target's data
-| agent | Y | The host:port of a Shield agent that can backup/resetore this target
+| agent | Y | The host:port of a Shield agent that can backup/restore this target
 
 **NOTE:** `summary` is required for update requests, whereas it is optional on creation.
 
