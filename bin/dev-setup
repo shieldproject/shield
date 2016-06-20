@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#requires: jq
+
 set -e 
 
 cd "$( dirname "${BASH_SOURCE[0]}" )"
@@ -11,56 +13,60 @@ then
   popd
 fi
 
+shieldbackend="http://localhost:8181"
 shieldcomm="../shield -k --raw"
 jqcomm="jq -Mr"
+targetdir=$1
+storedir=$2
 
-$shieldcomm create backend localdev http://localhost:8181
-target=$($shieldcomm create target <<MEEP0 
+echo targetdir=$targetdir 
+echo storedir=$storedir
+
+$shieldcomm create backend localdev $shieldbackend
+echo "backend created"
+target=$($shieldcomm create target <<MEEP0 | $jqcomm .uuid
 {
   "agent": "127.0.0.1:5444",
-  "endpoint": "{\"endpoint\":\"schmendpoint\"}",
-  "name": "TestTarget",
-  "plugin": "postgres",
-  "summary": "A Test Target"
+  "endpoint": "{\"base_dir\":\"${targetdir}\",\"bsdtar\":\"bsdtar\"}",
+  "name": "DevTarget",
+  "plugin": "fs",
+  "summary": "The working directory of the dev environment."
 } 
 MEEP0 )
-target=$( $jqcomm .uuid <<<$target)
+#target=$($jqcomm .uuid <<<$target)
 echo "target=$target"
 
-store=$( $shieldcomm create store <<MEEP1
+store=$( $shieldcomm create store <<MEEP1 | $jqcomm .uuid
 {
-  "endpoint": "{\"endpoint\":\"schmendpoint\"}",
-  "name": "TestStore",
-  "plugin": "s3",
-  "summary": "A Test Store"
+  "endpoint": "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
+  "name": "DevStore",
+  "plugin": "fs",
+  "summary": "A temporary store for the dev environment."
 }
 MEEP1 )
-store=$($jqcomm .uuid <<<$store) 
 echo "store=$store"
 
-policy=$( $shieldcomm create retention policy <<MEEP2 
+policy=$( $shieldcomm create retention policy <<MEEP2 | $jqcomm .uuid 
 {
   "expires": 31536000,
-  "name": "TestPolicy",
+  "name": "DevPolicy",
   "summary": "A Test Policy"
 }
 MEEP2 )
-policy=$($jqcomm .uuid -Mr <<<$policy)
 echo "policy=$policy"
 
-schedule=$( $shieldcomm create schedule <<MEEP3 
+schedule=$( $shieldcomm create schedule <<MEEP3 | $jqcomm .uuid 
 {
-  "name": "TestSched",
+  "name": "DevSched",
   "summary": "A Test Schedule",
   "when": "daily 4am"
 }
-MEEP3)
-schedule=$($jqcomm .uuid -Mr <<<$schedule)
+MEEP3 )
 echo "schedule=$schedule"
 
 $shieldcomm create job <<MEEP4
 {
-  "name": "TestJob",
+  "name": "DevJob",
   "paused": true,
   "retention": "$policy",
   "schedule": "$schedule",

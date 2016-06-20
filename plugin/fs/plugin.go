@@ -22,6 +22,7 @@
 //    {
 //        "include":"glob-of-files-to-include", // optional
 //        "exclude":"glob-of-files-to-exclude", // optional
+//				"bsdtar":"path-to-bsdtar",						// optional
 //        "base_dir":"base-directory-to-backup"
 //    }
 //
