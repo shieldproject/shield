@@ -3,9 +3,11 @@ export PATH=$(pwd):$(pwd)/bin:${PATH}
 workdir=""
 ADDR=127.0.0.1:8181
 
+
 setup_workdir() {
   workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
-  trap "rm -rf ${workdir}" EXIT QUIT INT TERM
+  storedir=$(mktemp -d /tmp/shield.testdev.storeXXXXXXX)
+  trap "rm -rf ${workdir} ${storedir}" EXIT QUIT INT TERM
 
   mkdir ${workdir}/etc
   mkdir ${workdir}/var
@@ -93,8 +95,9 @@ EOF
   ;;
 ("")
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
-       new-window -n core ./bin/testdev shieldd ${workdir} \; \
-       new-window -n core ./bin/testdev shieldagent ${workdir} \;
+       new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
+       new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir}" \;
   ;;
 
 (*)
