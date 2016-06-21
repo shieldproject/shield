@@ -1463,6 +1463,7 @@ func main() {
 				or a UUID exactly matching the UUID of a job to run.
 				Not setting this value explicitly will default it to the empty string.`,
 					false, "<job>")
+				JSONHelp(`{"ok":"Scheduled immediate run of job","task_uuid":"143e5494-63c4-4e05-9051-8b3015eae061"}`)
 				HelpKMacro()
 				return nil
 			}
@@ -1485,11 +1486,20 @@ func main() {
 				return err
 			}
 
-			if err := RunJob(id, string(b)); err != nil {
+			var taskUUID string = ""
+			if taskUUID, err = RunJob(id, string(b)); err != nil {
 				return err
 			}
 
-			OK("Scheduled immediate run of job")
+			if taskUUID != "" && *opts.Raw {
+				RawJSON(map[string]interface{}{
+					"ok":        "Scheduled immediate run of job",
+					"task_uuid": taskUUID,
+				})
+			} else {
+				OK("Scheduled immediate run of job")
+			}
+
 			return nil
 		})
 
@@ -1817,7 +1827,8 @@ func main() {
 				return err
 			}
 
-			if err := RestoreArchive(id, string(b)); err != nil {
+			var taskUUID string = ""
+			if taskUUID, err = RestoreArchive(id, string(b)); err != nil {
 				return err
 			}
 
@@ -1825,7 +1836,15 @@ func main() {
 			if params.Target != "" {
 				targetMsg = fmt.Sprintf("to target '%s'", params.Target)
 			}
-			OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
+			if taskUUID != "" && *opts.Raw {
+				RawJSON(map[string]interface{}{
+					"ok":        fmt.Sprintf("Scheduled immediate restore of archive '%s' %s", id, targetMsg),
+					"task_uuid": taskUUID,
+				})
+			} else {
+				OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
+			}
+
 			return nil
 		})
 	c.Alias("restore", "restore archive")

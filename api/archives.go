@@ -49,8 +49,16 @@ func GetArchive(id uuid.UUID) (Archive, error) {
 	return data, ShieldURI("/v1/archive/%s", id).Get(&data)
 }
 
-func RestoreArchive(id uuid.UUID, targetJSON string) error {
-	return ShieldURI("/v1/archive/%s/restore", id).Post(nil, targetJSON)
+//If the string returned is the empty string but the error returned is nil, then
+//it is most likely that the deployed version of the backend does not support
+//handing back the uuid for an adhoc task.
+func RestoreArchive(id uuid.UUID, targetJSON string) (string, error) {
+	respMap := make(map[string]string)
+	err := ShieldURI("/v1/archive/%s/restore", id).Post(&respMap, targetJSON)
+	if err != nil {
+		return "", err
+	}
+	return respMap["task_uuid"], nil
 }
 
 func UpdateArchive(id uuid.UUID, contentJSON string) (Archive, error) {
