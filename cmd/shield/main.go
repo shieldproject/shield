@@ -1459,6 +1459,8 @@ func main() {
 	c.Dispatch("run job", "Schedule an immediate run of a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
+
+				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
 				FlagHelp(`A string partially matching the name of a job to run 
 				or a UUID exactly matching the UUID of a job to run.
 				Not setting this value explicitly will default it to the empty string.`,
@@ -1491,13 +1493,12 @@ func main() {
 				return err
 			}
 
-			if taskUUID != "" && *opts.Raw {
+			if *opts.Raw {
 				RawJSON(map[string]interface{}{
 					"ok":        "Scheduled immediate run of job",
 					"task_uuid": taskUUID,
 				})
 			} else {
-				//`OK` handles raw check
 				OK("Scheduled immediate run of job")
 				if taskUUID != "" {
 					ansi.Printf("To view task, type @B{shield show task %s}\n", taskUUID)
@@ -1787,6 +1788,7 @@ func main() {
 	c.Dispatch("restore archive", "Restore a backup archive",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
 				FlagHelp(`Outputs the result as a JSON object.`, true, "--raw")
 				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
 				HelpKMacro()
@@ -1840,7 +1842,7 @@ func main() {
 			if params.Target != "" {
 				targetMsg = fmt.Sprintf("to target '%s'", params.Target)
 			}
-			if taskUUID != "" && *opts.Raw {
+			if *opts.Raw {
 				RawJSON(map[string]interface{}{
 					"ok":        fmt.Sprintf("Scheduled immediate restore of archive '%s' %s", id, targetMsg),
 					"task_uuid": taskUUID,
