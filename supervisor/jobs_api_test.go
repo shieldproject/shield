@@ -1,8 +1,11 @@
 package supervisor_test
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -851,18 +854,48 @@ var _ = Describe("/v1/jobs API", func() {
 		Ω(res.Code).Should(Equal(404))
 	})
 
-	It("can rerun unpaused jobs", func() {
-		res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
-		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"scheduled"}`))
-		Eventually(adhocChan).Should(Receive())
-	})
+	Context("when running adhoc jobs", func() {
+		var errChan chan error
+		BeforeEach(func() {
+			errChan = make(chan error, 1)
+			go func() {
+				var task *db.Task
+				select {
+				case task = <-adhocChan:
+					errChan <- nil
+					task.TaskUUIDChan <- "magical-mystery-uuid"
+				case <-time.After(2 * time.Second):
+					errChan <- errors.New("I timed out!")
+				}
+			}()
+		})
+		It("can rerun unpaused jobs", func() {
+			res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
+			Ω(res.Code).Should(Equal(200))
+			jsonBody := []byte(res.Body.String())
+			jsonMap := make(map[string]string)
+			err := json.Unmarshal(jsonBody, &jsonMap)
+			Ω(err).ShouldNot(HaveOccurred())
+			value := jsonMap["ok"]
+			Ω(value).Should(Equal("scheduled"))
+			_, found := jsonMap["task_uuid"]
+			Ω(found).Should(BeTrue())
+			Ω(<-errChan).Should(BeNil())
+		})
 
-	It("can rerun paused jobs", func() {
-		res := POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/run", "")
-		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"scheduled"}`))
-		Eventually(adhocChan).Should(Receive())
+		It("can rerun paused jobs", func() {
+			res := POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/run", "")
+			Ω(res.Code).Should(Equal(200))
+			jsonBody := []byte(res.Body.String())
+			jsonMap := make(map[string]string)
+			err := json.Unmarshal(jsonBody, &jsonMap)
+			Ω(err).ShouldNot(HaveOccurred())
+			value := jsonMap["ok"]
+			Ω(value).Should(Equal("scheduled"))
+			_, found := jsonMap["task_uuid"]
+			Ω(found).Should(BeTrue())
+			Ω(<-errChan).Should(BeNil())
+		})
 	})
 
 	It("validates JSON payloads", func() {

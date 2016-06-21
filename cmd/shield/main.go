@@ -1486,8 +1486,8 @@ func main() {
 				return err
 			}
 
-			var taskUUID string = ""
-			if taskUUID, err = RunJob(id, string(b)); err != nil {
+			taskUUID, err := RunJob(id, string(b))
+			if err != nil {
 				return err
 			}
 
@@ -1497,6 +1497,7 @@ func main() {
 					"task_uuid": taskUUID,
 				})
 			} else {
+				//`OK` handles raw check
 				OK("Scheduled immediate run of job")
 				if taskUUID != "" {
 					ansi.Printf("To view task, type @B{shield show task %s}\n", taskUUID)
@@ -1830,8 +1831,8 @@ func main() {
 				return err
 			}
 
-			var taskUUID string = ""
-			if taskUUID, err = RestoreArchive(id, string(b)); err != nil {
+			taskUUID, err := RestoreArchive(id, string(b))
+			if err != nil {
 				return err
 			}
 
@@ -1845,6 +1846,7 @@ func main() {
 					"task_uuid": taskUUID,
 				})
 			} else {
+				//`OK` handles raw checking
 				OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
 				if taskUUID != "" {
 					ansi.Printf("To view task, type @B{shield show task %s}\n", taskUUID)

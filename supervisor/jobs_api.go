@@ -142,7 +142,7 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)/run`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
-		taskChan := make(chan string)
+		taskChan := make(chan string, 1)
 
 		self.Tasks <- &db.Task{
 			Op:           db.BackupOperation,
@@ -151,7 +151,8 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			TaskUUIDChan: taskChan,
 		}
 
-		var taskUUID string = <-taskChan
+		taskUUID := <-taskChan
+
 		if taskUUID == "" {
 			w.WriteHeader(500)
 			JSONLiteral(w, fmt.Sprintf(`{"ok":"error"}`))
