@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/starkandwayne/goutils/log"
 
 	. "github.com/starkandwayne/shield/timestamp"
@@ -15,7 +16,7 @@ func parseEpochTime(et int64) Timestamp {
 }
 
 type DB struct {
-	connection *sql.DB
+	connection *sqlx.DB
 	Driver     string
 	DSN        string
 
@@ -40,7 +41,7 @@ func (db *DB) Connected() bool {
 
 // Connect to the backend database
 func (db *DB) Connect() error {
-	connection, err := sql.Open(db.Driver, db.DSN)
+	connection, err := sqlx.Open(db.Driver, db.DSN)
 	if err != nil {
 		return err
 	}
