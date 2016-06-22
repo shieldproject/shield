@@ -1,0 +1,22 @@
+---
+meta:
+  name: shield
+  target: sw
+  initial_version: 0.6.4
+
+  go:
+    binary: shield
+
+  aws:
+    access_key: (( vault "secret/pipelines/shield/aws:key" ))
+    secret_key: (( vault "secret/pipelines/shield/aws:secret" ))
+
+  slack:
+    channel: "#shield"
+    webhook: (( vault "secret/pipelines/shield/slack:webhook" ))
+
+  github:
+    owner: starkandwayne
+    repo: shield
+    access_token: (( vault "secret/pipelines/shield/github:token" ))
+    private_key: (( vault "secret/pipelines/shield/github:private" ))
