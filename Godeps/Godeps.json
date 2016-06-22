@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
 	"GoVersion": "go1.5",
-	"GodepVersion": "v71",
+	"GodepVersion": "v74",
 	"Packages": [
 		"./..."
 	],
@@ -127,6 +127,16 @@
 		{
 			"ImportPath": "github.com/jhunt/tree",
 			"Rev": "2ad45c3404f9ea8116987e8a36db6f6d892aad26"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx",
+			"Comment": "sqlx-v1.1-71-gbdae0c3",
+			"Rev": "bdae0c3219c3bdb92f3d7c70825018712787c933"
+		},
+		{
+			"ImportPath": "github.com/jmoiron/sqlx/reflectx",
+			"Comment": "sqlx-v1.1-71-gbdae0c3",
+			"Rev": "bdae0c3219c3bdb92f3d7c70825018712787c933"
 		},
 		{
 			"ImportPath": "github.com/lib/pq",
