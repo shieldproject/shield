@@ -27,7 +27,7 @@ echo "backend created"
 target=$($shieldcomm create target <<MEEP0 | $jqcomm .uuid
 {
   "agent": "127.0.0.1:5444",
-  "endpoint": "{\"base_dir\":\"${targetdir}\",\"bsdtar\":\"bsdtar\"}",
+  "endpoint": "{\"base_dir\":\"${targetdir}\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
   "name": "DevTarget",
   "plugin": "fs",
   "summary": "The working directory of the dev environment."
