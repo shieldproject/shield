@@ -174,7 +174,7 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 		}
 		if a.TaskUUIDChan != nil {
 			a.TaskUUIDChan <- &db.TaskInfo{
-				Err:  true,
+				Err:  false,
 				Info: task.UUID.String(),
 			}
 		}
