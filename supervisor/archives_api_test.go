@@ -538,7 +538,7 @@ var _ = Describe("/v1/archives API", func() {
 					Info: testUUID,
 				}
 			})
-			It("can rerun unpaused jobs", func() {
+			It("it returns the task uuid", func() {
 				res := POST(API, "/v1/archive/"+REDIS_ARCHIVE_1+"/restore", "")
 				Ω(res.Code).Should(Equal(200))
 				expected, err := json.Marshal(map[string]string{
