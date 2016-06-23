@@ -1,6 +1,8 @@
 package supervisor_test
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -8,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/shield/supervisor"
 
 	// sql drivers
@@ -17,6 +20,7 @@ import (
 var _ = Describe("/v1/archives API", func() {
 	var API http.Handler
 	var resyncChan chan int
+	var adhocChan chan *db.Task
 
 	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
 
@@ -121,15 +125,19 @@ var _ = Describe("/v1/archives API", func() {
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
+		adhocChan = make(chan *db.Task, 1)
 		API = ArchiveAPI{
 			Data:       data,
 			ResyncChan: resyncChan,
+			Tasks:      adhocChan,
 		}
 	})
 
 	AfterEach(func() {
 		close(resyncChan)
 		resyncChan = nil
+		close(adhocChan)
+		adhocChan = nil
 	})
 
 	It("should retrieve all archives, sorted reverse chronological", func() {
@@ -504,6 +512,65 @@ var _ = Describe("/v1/archives API", func() {
 	It("validates JSON payloads", func() {
 		JSONValidated(API, "PUT", "/v1/archive/"+REDIS_ARCHIVE_1)
 		JSONValidated(API, "POST", "/v1/archive/"+REDIS_ARCHIVE_1+"/restore")
+	})
+
+	Context("When queuing up restore jobs", func() {
+		var errChan chan error
+		var taskChannelFodder db.TaskInfo
+		JustBeforeEach(func() {
+			errChan = make(chan error, 1)
+			go func() {
+				var task *db.Task
+				select {
+				case task = <-adhocChan:
+					errChan <- nil
+					task.TaskUUIDChan <- &taskChannelFodder
+				case <-time.After(2 * time.Second):
+					errChan <- errors.New("I timed out!")
+				}
+			}()
+		})
+		Context("when the task is created with no error", func() {
+			testUUID := "magical-mystery-uuid"
+			BeforeEach(func() {
+				taskChannelFodder = db.TaskInfo{
+					Err:  false,
+					Info: testUUID,
+				}
+			})
+			It("it returns the task uuid", func() {
+				res := POST(API, "/v1/archive/"+REDIS_ARCHIVE_1+"/restore", "")
+				Ω(res.Code).Should(Equal(200))
+				expected, err := json.Marshal(map[string]string{
+					"ok":        "scheduled",
+					"task_uuid": testUUID,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
+		})
+		Context("when there is an error creating the task", func() {
+			errorMessage := "All your task are belong to us"
+			BeforeEach(func() {
+				taskChannelFodder = db.TaskInfo{
+					Err:  true,
+					Info: errorMessage,
+				}
+			})
+
+			It("returns the error through the API", func() {
+				res := POST(API, "/v1/archive/"+REDIS_ARCHIVE_1+"/restore", "")
+				Ω(res.Code).Should(Equal(500))
+				expected, err := json.Marshal(map[string]string{
+					"error": errorMessage,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
+		})
+
 	})
 
 	It("ignores other HTTP methods", func() {
