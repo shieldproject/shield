@@ -25,7 +25,11 @@ var _ = Describe("API Config", func() {
 			defaultCfg.Path = "test/etc/invalid.yml"
 			Expect(Cfg).Should(Equal(defaultCfg))
 		})
+
 		It("Throws an error on unreadable files", func() {
+			if os.Geteuid() == 0 {
+				Skip("Cannot test unreadable files when euid = 0")
+			}
 			Expect(LoadConfig("test/etc/unreadable.yml")).ShouldNot(Succeed())
 			defaultCfg.Path = "test/etc/unreadable.yml"
 			Expect(Cfg).Should(Equal(defaultCfg))
