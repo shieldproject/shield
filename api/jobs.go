@@ -94,6 +94,14 @@ func UnpauseJob(id uuid.UUID) error {
 	return ShieldURI("/v1/job/%s/unpause", id).Post(nil, "{}")
 }
 
-func RunJob(id uuid.UUID, ownerJSON string) error {
-	return ShieldURI("/v1/job/%s/run", id).Post(nil, ownerJSON)
+//If the string returned is the empty string but the error returned is nil, then
+//it is most likely that the deployed version of the backend does not support
+//handing back the uuid for an adhoc task.
+func RunJob(id uuid.UUID, ownerJSON string) (string, error) {
+	respMap := make(map[string]string)
+	err := ShieldURI("/v1/job/%s/run", id).Post(&respMap, ownerJSON)
+	if err != nil {
+		return "", err
+	}
+	return respMap["task_uuid"], nil
 }

@@ -1,8 +1,11 @@
 package supervisor_test
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -851,18 +854,74 @@ var _ = Describe("/v1/jobs API", func() {
 		Ω(res.Code).Should(Equal(404))
 	})
 
-	It("can rerun unpaused jobs", func() {
-		res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
-		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"scheduled"}`))
-		Eventually(adhocChan).Should(Receive())
-	})
+	Context("when running adhoc jobs", func() {
+		var errChan chan error
+		var taskChannelFodder db.TaskInfo
+		JustBeforeEach(func() {
+			errChan = make(chan error, 1)
+			go func() {
+				var task *db.Task
+				select {
+				case task = <-adhocChan:
+					errChan <- nil
+					task.TaskUUIDChan <- &taskChannelFodder
+				case <-time.After(2 * time.Second):
+					errChan <- errors.New("I timed out!")
+				}
+			}()
+		})
+		Context("when the task is created with no error", func() {
+			testUUID := "magical-mystery-uuid"
+			BeforeEach(func() {
+				taskChannelFodder = db.TaskInfo{
+					Err:  false,
+					Info: testUUID,
+				}
+			})
+			It("can rerun unpaused jobs", func() {
+				res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
+				Ω(res.Code).Should(Equal(200))
+				expected, err := json.Marshal(map[string]string{
+					"ok":        "scheduled",
+					"task_uuid": testUUID,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
 
-	It("can rerun paused jobs", func() {
-		res := POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/run", "")
-		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"scheduled"}`))
-		Eventually(adhocChan).Should(Receive())
+			It("can rerun paused jobs", func() {
+				res := POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/run", "")
+				Ω(res.Code).Should(Equal(200))
+				expected, err := json.Marshal(map[string]string{
+					"ok":        "scheduled",
+					"task_uuid": testUUID,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
+		})
+		Context("when there is an error creating the task", func() {
+			errorMessage := "All your task are belong to us"
+			BeforeEach(func() {
+				taskChannelFodder = db.TaskInfo{
+					Err:  true,
+					Info: errorMessage,
+				}
+			})
+
+			It("returns the error through the API", func() {
+				res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
+				Ω(res.Code).Should(Equal(500))
+				expected, err := json.Marshal(map[string]string{
+					"error": errorMessage,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
+		})
 	})
 
 	It("validates JSON payloads", func() {

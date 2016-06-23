@@ -142,13 +142,24 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 		re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)/run`)
 		id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
+		taskChan := make(chan *db.TaskInfo, 1)
 
 		self.Tasks <- &db.Task{
-			Op:      db.BackupOperation,
-			Owner:   params.Owner,
-			JobUUID: id,
+			Op:           db.BackupOperation,
+			Owner:        params.Owner,
+			JobUUID:      id,
+			TaskUUIDChan: taskChan,
 		}
-		JSONLiteral(w, `{"ok":"scheduled"}`)
+
+		thisTaskInfo := <-taskChan
+
+		if thisTaskInfo.Err {
+			w.WriteHeader(500)
+			JSONLiteral(w, fmt.Sprintf(`{"error":"%s"}`, thisTaskInfo.Info))
+		} else {
+			w.WriteHeader(200)
+			JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled","task_uuid":"%s"}`, thisTaskInfo.Info))
+		}
 		return
 
 	case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
