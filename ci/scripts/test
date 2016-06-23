@@ -2,6 +2,8 @@
 
 set -e
 
+whoami
+
 export GOPATH=${PWD}/gopath
 export PATH=${PATH}:${GOPATH}/bin
 
@@ -11,3 +13,4 @@ godep restore
 
 go vet $(go list ./... | grep -v vendor)
 go test -v ./...
+
