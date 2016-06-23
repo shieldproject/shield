@@ -4,6 +4,8 @@ set -e
 
 whoami
 
+ls -la
+
 export GOPATH=${PWD}/gopath
 export PATH=${PATH}:${GOPATH}/bin
 

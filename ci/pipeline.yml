@@ -17,10 +17,14 @@ meta:
   target:   (( param "Please identify the name of the target Concourse CI" ))
   pipeline: (( grab meta.name ))
 
-  image:    (( concat "docker:///starkandwayne/concourse-go#" meta.go.version ))
+  image:
+    type: docker-image
+    source:
+      repository: starkandwayne/concourse-go
+      tag: (( grab meta.go.version ))
 
   go:
-    version: 1.5
+    version: "1.5"
     module:  (( concat "github.com/" meta.github.owner "/" meta.github.repo ))
     cmd_module: (( grab meta.go.module ))
     binary:  (( grab meta.github.repo ))
@@ -65,7 +69,7 @@ jobs:
       - task: test
         config:
           platform: linux
-          image: (( grab meta.image ))
+          image_resource: (( grab meta.image ))
           inputs:
             - name: git
               path: (( concat "gopath/src/" meta.go.module ))
@@ -111,7 +115,7 @@ jobs:
           - { get: git,     passed: [rc] }
       - task: release
         config:
-          image: (( grab meta.image ))
+          image_resource: (( grab meta.image ))
           platform: linux
           inputs:
             - name: version
