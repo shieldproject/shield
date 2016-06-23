@@ -59,6 +59,9 @@ var _ = Describe("API Config", func() {
 	})
 	Describe("When saving configs", func() {
 		It("Throws an error when failing to write data", func() {
+			if os.Geteuid() == 0 {
+				Skip("Cannot test unwritable files when euid = 0. golang will create the path structure for you")
+			}
 			cfg := &Config{Backend: "default", Path: "/path/to/nowhere"}
 			Expect(cfg.Save()).ShouldNot(Succeed())
 		})
