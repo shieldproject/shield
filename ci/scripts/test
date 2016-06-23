@@ -2,8 +2,8 @@
 
 set -e
 
-su - worker
-
+su worker -c bash <<EOF
+set -e
 export GOPATH=${PWD}/gopath
 export PATH=${PATH}:${GOPATH}/bin
 cd ${GOPATH}/src/${MODULE}
@@ -12,3 +12,4 @@ godep restore
 
 go vet $(go list ./... | grep -v vendor)
 go test -v ./...
+EOF
