@@ -2,9 +2,7 @@
 
 set -e
 
-whoami
-
-ls -la
+chown -R $(whoami) .
 
 export GOPATH=${PWD}/gopath
 export PATH=${PATH}:${GOPATH}/bin
