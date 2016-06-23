@@ -1459,10 +1459,13 @@ func main() {
 	c.Dispatch("run job", "Schedule an immediate run of a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
+
+				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
 				FlagHelp(`A string partially matching the name of a job to run 
 				or a UUID exactly matching the UUID of a job to run.
 				Not setting this value explicitly will default it to the empty string.`,
 					false, "<job>")
+				JSONHelp(`{"ok":"Scheduled immediate run of job","task_uuid":"143e5494-63c4-4e05-9051-8b3015eae061"}`)
 				HelpKMacro()
 				return nil
 			}
@@ -1485,11 +1488,23 @@ func main() {
 				return err
 			}
 
-			if err := RunJob(id, string(b)); err != nil {
+			taskUUID, err := RunJob(id, string(b))
+			if err != nil {
 				return err
 			}
 
-			OK("Scheduled immediate run of job")
+			if *opts.Raw {
+				RawJSON(map[string]interface{}{
+					"ok":        "Scheduled immediate run of job",
+					"task_uuid": taskUUID,
+				})
+			} else {
+				OK("Scheduled immediate run of job")
+				if taskUUID != "" {
+					ansi.Printf("To view task, type @B{shield show task %s}\n", taskUUID)
+				}
+			}
+
 			return nil
 		})
 
@@ -1773,6 +1788,7 @@ func main() {
 	c.Dispatch("restore archive", "Restore a backup archive",
 		func(opts Options, args []string, help bool) error {
 			if help {
+				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
 				FlagHelp(`Outputs the result as a JSON object.`, true, "--raw")
 				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
 				HelpKMacro()
@@ -1817,7 +1833,8 @@ func main() {
 				return err
 			}
 
-			if err := RestoreArchive(id, string(b)); err != nil {
+			taskUUID, err := RestoreArchive(id, string(b))
+			if err != nil {
 				return err
 			}
 
@@ -1825,7 +1842,19 @@ func main() {
 			if params.Target != "" {
 				targetMsg = fmt.Sprintf("to target '%s'", params.Target)
 			}
-			OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
+			if *opts.Raw {
+				RawJSON(map[string]interface{}{
+					"ok":        fmt.Sprintf("Scheduled immediate restore of archive '%s' %s", id, targetMsg),
+					"task_uuid": taskUUID,
+				})
+			} else {
+				//`OK` handles raw checking
+				OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
+				if taskUUID != "" {
+					ansi.Printf("To view task, type @B{shield show task %s}\n", taskUUID)
+				}
+			}
+
 			return nil
 		})
 	c.Alias("restore", "restore archive")

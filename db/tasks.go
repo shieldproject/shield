@@ -24,25 +24,31 @@ const (
 )
 
 type Task struct {
-	UUID           uuid.UUID `json:"uuid"`
-	Owner          string    `json:"owner"`
-	Op             string    `json:"type"`
-	JobUUID        uuid.UUID `json:"job_uuid"`
-	ArchiveUUID    uuid.UUID `json:"archive_uuid"`
-	StoreUUID      uuid.UUID `json:"-"`
-	StorePlugin    string    `json:"-"`
-	StoreEndpoint  string    `json:"-"`
-	TargetUUID     uuid.UUID `json:"-"`
-	TargetPlugin   string    `json:"-"`
-	TargetEndpoint string    `json:"-"`
-	Status         string    `json:"status"`
-	StartedAt      Timestamp `json:"started_at"`
-	StoppedAt      Timestamp `json:"stopped_at"`
-	TimeoutAt      Timestamp `json:"-"`
-	Attempts       int       `json:"-"`
-	RestoreKey     string    `json:"-"`
-	Agent          string    `json:"-"`
-	Log            string    `json:"log"`
+	UUID           uuid.UUID      `json:"uuid"`
+	Owner          string         `json:"owner"`
+	Op             string         `json:"type"`
+	JobUUID        uuid.UUID      `json:"job_uuid"`
+	ArchiveUUID    uuid.UUID      `json:"archive_uuid"`
+	StoreUUID      uuid.UUID      `json:"-"`
+	StorePlugin    string         `json:"-"`
+	StoreEndpoint  string         `json:"-"`
+	TargetUUID     uuid.UUID      `json:"-"`
+	TargetPlugin   string         `json:"-"`
+	TargetEndpoint string         `json:"-"`
+	Status         string         `json:"status"`
+	StartedAt      Timestamp      `json:"started_at"`
+	StoppedAt      Timestamp      `json:"stopped_at"`
+	TimeoutAt      Timestamp      `json:"-"`
+	Attempts       int            `json:"-"`
+	RestoreKey     string         `json:"-"`
+	Agent          string         `json:"-"`
+	Log            string         `json:"log"`
+	TaskUUIDChan   chan *TaskInfo `json:"-"`
+}
+
+type TaskInfo struct {
+	Info string //UUID if not Err. Error message if Err.
+	Err  bool
 }
 
 type TaskFilter struct {

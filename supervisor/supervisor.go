@@ -132,8 +132,21 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 			task, err := s.Database.CreateBackupTask(a.Owner, job)
 			if err != nil {
 				log.Errorf("job -> task conversion / database update failed: %s", err)
+				if a.TaskUUIDChan != nil {
+					a.TaskUUIDChan <- &db.TaskInfo{
+						Err:  true,
+						Info: err.Error(),
+					}
+				}
 				continue
 			}
+			if a.TaskUUIDChan != nil {
+				a.TaskUUIDChan <- &db.TaskInfo{
+					Err:  false,
+					Info: task.UUID.String(),
+				}
+			}
+
 			s.ScheduleTask(task)
 		}
 
@@ -151,8 +164,21 @@ func (s *Supervisor) ScheduleAdhoc(a *db.Task) {
 		task, err := s.Database.CreateRestoreTask(a.Owner, archive, target)
 		if err != nil {
 			log.Errorf("restore task database creation failed: %s", err)
+			if a.TaskUUIDChan != nil {
+				a.TaskUUIDChan <- &db.TaskInfo{
+					Err:  true,
+					Info: err.Error(),
+				}
+			}
 			return
 		}
+		if a.TaskUUIDChan != nil {
+			a.TaskUUIDChan <- &db.TaskInfo{
+				Err:  true,
+				Info: task.UUID.String(),
+			}
+		}
+
 		s.ScheduleTask(task)
 	}
 }
