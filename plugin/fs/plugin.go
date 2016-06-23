@@ -183,7 +183,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		flags = fmt.Sprintf("%s --include '%s'", flags, cfg.Include)
 	}
 	if cfg.Exclude != "" {
-		flags = fmt.Sprintf("%s --include '%s'", flags, cfg.Exclude)
+		flags = fmt.Sprintf("%s --exclude '%s'", flags, cfg.Exclude)
 	}
 	cmd := fmt.Sprintf("%s -c -C %s %s .", cfg.BsdTar, cfg.BasePath, flags)
 	plugin.DEBUG("Executing `%s`", cmd)
