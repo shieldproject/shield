@@ -856,45 +856,71 @@ var _ = Describe("/v1/jobs API", func() {
 
 	Context("when running adhoc jobs", func() {
 		var errChan chan error
-		BeforeEach(func() {
+		var taskChannelFodder db.TaskInfo
+		JustBeforeEach(func() {
 			errChan = make(chan error, 1)
 			go func() {
 				var task *db.Task
 				select {
 				case task = <-adhocChan:
 					errChan <- nil
-					task.TaskUUIDChan <- "magical-mystery-uuid"
+					task.TaskUUIDChan <- &taskChannelFodder
 				case <-time.After(2 * time.Second):
 					errChan <- errors.New("I timed out!")
 				}
 			}()
 		})
-		It("can rerun unpaused jobs", func() {
-			res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
-			Ω(res.Code).Should(Equal(200))
-			jsonBody := []byte(res.Body.String())
-			jsonMap := make(map[string]string)
-			err := json.Unmarshal(jsonBody, &jsonMap)
-			Ω(err).ShouldNot(HaveOccurred())
-			value := jsonMap["ok"]
-			Ω(value).Should(Equal("scheduled"))
-			_, found := jsonMap["task_uuid"]
-			Ω(found).Should(BeTrue())
-			Ω(<-errChan).Should(BeNil())
-		})
+		Context("when the task is created with no error", func() {
+			testUUID := "magical-mystery-uuid"
+			BeforeEach(func() {
+				taskChannelFodder = db.TaskInfo{
+					Err:  false,
+					Info: testUUID,
+				}
+			})
+			It("can rerun unpaused jobs", func() {
+				res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
+				Ω(res.Code).Should(Equal(200))
+				expected, err := json.Marshal(map[string]string{
+					"ok":        "scheduled",
+					"task_uuid": testUUID,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
 
-		It("can rerun paused jobs", func() {
-			res := POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/run", "")
-			Ω(res.Code).Should(Equal(200))
-			jsonBody := []byte(res.Body.String())
-			jsonMap := make(map[string]string)
-			err := json.Unmarshal(jsonBody, &jsonMap)
-			Ω(err).ShouldNot(HaveOccurred())
-			value := jsonMap["ok"]
-			Ω(value).Should(Equal("scheduled"))
-			_, found := jsonMap["task_uuid"]
-			Ω(found).Should(BeTrue())
-			Ω(<-errChan).Should(BeNil())
+			It("can rerun paused jobs", func() {
+				res := POST(API, "/v1/job/"+REDIS_S3_WEEKLY+"/run", "")
+				Ω(res.Code).Should(Equal(200))
+				expected, err := json.Marshal(map[string]string{
+					"ok":        "scheduled",
+					"task_uuid": testUUID,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
+		})
+		Context("when there is an error creating the task", func() {
+			errorMessage := "All your task are belong to us"
+			BeforeEach(func() {
+				taskChannelFodder = db.TaskInfo{
+					Err:  true,
+					Info: errorMessage,
+				}
+			})
+
+			It("returns the error through the API", func() {
+				res := POST(API, "/v1/job/"+PG_S3_WEEKLY+"/run", "")
+				Ω(res.Code).Should(Equal(500))
+				expected, err := json.Marshal(map[string]string{
+					"error": errorMessage,
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(res.Body.String()).Should(MatchJSON(expected))
+				Ω(<-errChan).Should(BeNil())
+			})
 		})
 	})
 

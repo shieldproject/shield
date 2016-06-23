@@ -92,7 +92,7 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		taskChan := make(chan string, 1)
+		taskChan := make(chan *db.TaskInfo, 1)
 		// tell the supervisor to schedule a task
 		self.Tasks <- &db.Task{
 			Op:           db.RestoreOperation,
@@ -103,14 +103,15 @@ func (self ArchiveAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			TaskUUIDChan: taskChan,
 		}
 
-		taskUUID := <-taskChan
-		if taskUUID == "" {
+		thisTaskInfo := <-taskChan
+		if thisTaskInfo.Err {
 			w.WriteHeader(500)
-			JSONLiteral(w, fmt.Sprintf(`{"ok":"error"}`))
+			JSONLiteral(w, fmt.Sprintf(`{"error":"%s"}`, thisTaskInfo.Info))
 		} else {
 			w.WriteHeader(200)
-			JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled","task_uuid":"%s"}`, taskUUID))
+			JSONLiteral(w, fmt.Sprintf(`{"ok":"scheduled","task_uuid":"%s"}`, thisTaskInfo.Info))
 		}
+
 		return
 
 	case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
