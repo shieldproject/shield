@@ -7,7 +7,7 @@ meta:
   go:
     version: "1.6"
     binary: shield
-    build_package: ./cmd/shield
+    cmd_package: ./cmd/shield
 
   aws:
     access_key: (( vault "secret/pipelines/shield/aws:key" ))
