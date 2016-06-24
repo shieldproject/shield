@@ -18,7 +18,6 @@ import (
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
-	"github.com/starkandwayne/shield/version"
 )
 
 func require(good bool, msg string) {
@@ -36,6 +35,8 @@ func readall(in io.Reader) (string, error) {
 var (
 	debug = false
 )
+
+var Version = "(development)"
 
 func main() {
 	options := Options{
@@ -62,7 +63,8 @@ func main() {
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
 		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
 
-		Config: getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
+		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
+		Version: getopt.BoolLong("version", 'v', "Print shield CLI version"),
 	}
 
 	OK := func(f string, l ...interface{}) {
@@ -105,6 +107,11 @@ func main() {
 
 	if *options.SkipSSLValidation {
 		os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
+	}
+
+	if *options.Version {
+		fmt.Printf("%s - Version %s\n", os.Args[0], Version)
+		os.Exit(0)
 	}
 
 	c := NewCommand().With(options)
@@ -165,7 +172,7 @@ func main() {
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp("Outputs information as a JSON object", true, "--raw")
-				JSONHelp(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", version.String()))
+				JSONHelp(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", Version))
 				return nil
 			}
 
@@ -183,7 +190,7 @@ func main() {
 
 			t := tui.NewReport()
 			t.Add("Name", status.Name)
-			t.Add("Version", status.Version)
+			t.Add("API Version", status.Version)
 			t.Output(os.Stdout)
 			return nil
 		})

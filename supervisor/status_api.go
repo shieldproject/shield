@@ -5,8 +5,9 @@ import (
 	"os"
 
 	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/version"
 )
+
+var Version = "(development)"
 
 type StatusAPI struct {
 	Data  *db.DB
@@ -20,7 +21,7 @@ func (p StatusAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			Version string `json:"version"`
 			Name    string `json:"name"`
 		}{
-			Version: version.String(),
+			Version: Version,
 			Name:    os.Getenv("SHIELD_NAME"),
 		})
 		return

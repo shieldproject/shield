@@ -20,6 +20,7 @@ type Options struct {
 	Trace             *bool
 	Raw               *bool
 	SkipSSLValidation *bool
+	Version           *bool
 
 	Status *string
 
