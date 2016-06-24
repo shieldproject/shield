@@ -29,6 +29,7 @@ meta:
     cmd_module: (( grab meta.go.module ))
     binary:  (( grab meta.github.repo ))
     force_static_binary: false
+    build_package: ./...
 
   aws:
     bucket:     (( concat meta.name "-pipeline" ))
@@ -137,6 +138,7 @@ jobs:
             BRANCH:       (( grab meta.github.branch ))
             CMD_PKG:      (( grab meta.go.cmd_module ))
             STATIC_BINARY: (( grab meta.go.force_static_binary ))
+            BUILD_PACKAGE: (( grab meta.go.build_package ))
 
       - put: version
         params: { bump: final }
