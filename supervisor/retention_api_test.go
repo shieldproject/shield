@@ -85,6 +85,29 @@ var _ = Describe("HTTP API /v1/retention", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	Context("Without exact matching", func() {
+		It("should retrieve all policies with partially matching names", func() {
+			res := GET(API, "/v1/retention?name=sho")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "` + SHORT + `",
+					"name"    : "Short-Term Retention",
+					"summary" : "retain bosh-blobs for two weeks",
+					"expires" : 1209600
+				}
+			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+	})
+
+	Context("With exact matching", func() {
+		It("should not retrieve policies with only partially matching names", func() {
+			res := GET(API, "/v1/retention?name=sho&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+	})
+
 	It("should retrieve only unused retention policies for ?unused=t", func() {
 		res := GET(API, "/v1/retention?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[

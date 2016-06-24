@@ -477,10 +477,11 @@ var _ = Describe("/v1/jobs API", func() {
 			]`))
 	})
 
-	It("should retrieve jobs that match a search pattern", func() {
-		res := GET(API, "/v1/jobs?name=Redis")
-		Ω(res.Code).Should(Equal(200))
-		Ω(res.Body.String()).Should(MatchJSON(`[
+	Context("Without exact matching", func() {
+		It("should retrieve all jobs with partially matching names", func() {
+			res := GET(API, "/v1/jobs?name=Redis")
+			Ω(res.Code).Should(Equal(200))
+			Ω(res.Body.String()).Should(MatchJSON(`[
 				{
 					"uuid"            : "` + REDIS_S3_DAILY + `",
 					"name"            : "Redis Daily Backup",
@@ -524,7 +525,38 @@ var _ = Describe("/v1/jobs API", func() {
 					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
-		Ω(res.Code).Should(Equal(200))
+			Ω(res.Code).Should(Equal(200))
+		})
+	})
+
+	Context("With exact matching", func() {
+		It("should not retrieve jobs with only partially matching names", func() {
+			res := GET(API, "/v1/jobs?name=Redis+Daily+Backup&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"            : "` + REDIS_S3_DAILY + `",
+					"name"            : "Redis Daily Backup",
+					"summary"         : "mandated by TKT-1234",
+					"retention_name"  : "Long-Term Retention",
+					"retention_uuid"  : "` + RETAIN_LONG + `",
+					"expiry"          : 7776000,
+					"schedule_name"   : "Daily",
+					"schedule_uuid"   : "` + SCHED_DAILY + `",
+					"schedule_when"   : "daily 3am",
+					"paused"          : false,
+					"store_name"      : "s3",
+					"store_uuid"      : "` + STORE_S3 + `",
+					"store_plugin"    : "s3",
+					"store_endpoint"  : "<<s3-configuration>>",
+					"target_name"     : "redis-shared",
+					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_plugin"   : "redis",
+					"target_endpoint" : "<<redis-configuration>>",
+					"agent"           : "10.11.22.33:4455"
+				}
+			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
 	})
 
 	It("should retrieve jobs that match a search pattern, which is case-insensitive", func() {

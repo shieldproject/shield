@@ -94,6 +94,31 @@ var _ = Describe("/v1/targets API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	Context("Without exact matching", func() {
+		It("should retrieve all targets with partially matching names", func() {
+			res := GET(API, "/v1/targets?name=red")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "` + TARGET_REDIS + `",
+					"name"     : "redis-shared",
+					"summary"  : "Shared Redis services for CF",
+					"agent"    : "127.0.0.1:5544",
+					"plugin"   : "redis",
+					"endpoint" : "<<redis-configuration>>"
+				}
+			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+	})
+
+	Context("With exact matching", func() {
+		It("should not retrieve targets with only partially matching names", func() {
+			res := GET(API, "/v1/targets?name=red&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+	})
+
 	It("should retrieve only unused targets ?unused=t", func() {
 		res := GET(API, "/v1/targets?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[

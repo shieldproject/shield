@@ -27,12 +27,13 @@ type Job struct {
 }
 
 type JobFilter struct {
-	Name      string
-	Target    string
-	Store     string
-	Schedule  string
-	Retention string
-	Paused    YesNo
+	Name       string
+	Target     string
+	Store      string
+	Schedule   string
+	Retention  string
+	Paused     YesNo
+	ExactMatch YesNo
 }
 
 func GetJobs(filter JobFilter) ([]Job, error) {
@@ -43,6 +44,7 @@ func GetJobs(filter JobFilter) ([]Job, error) {
 	uri.MaybeAddParameter("schedule", filter.Schedule)
 	uri.MaybeAddParameter("retention", filter.Retention)
 	uri.MaybeAddParameter("paused", filter.Paused)
+	uri.MaybeAddParameter("exact", filter.ExactMatch)
 
 	var data []Job
 	return data, uri.Get(&data)

@@ -14,9 +14,10 @@ type Target struct {
 }
 
 type TargetFilter struct {
-	Name   string
-	Plugin string
-	Unused YesNo
+	Name       string
+	Plugin     string
+	Unused     YesNo
+	ExactMatch YesNo
 }
 
 func GetTargets(filter TargetFilter) ([]Target, error) {
@@ -24,6 +25,7 @@ func GetTargets(filter TargetFilter) ([]Target, error) {
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("plugin", filter.Plugin)
 	uri.MaybeAddParameter("unused", filter.Unused)
+	uri.MaybeAddParameter("exact", filter.ExactMatch)
 
 	var data []Target
 	return data, uri.Get(&data)

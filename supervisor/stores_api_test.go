@@ -90,6 +90,30 @@ var _ = Describe("/v1/stores API", func() {
 		Ω(res.Code).Should(Equal(200))
 	})
 
+	Context("Without exact matching", func() {
+		It("should retrieve all stores with partially matching names", func() {
+			res := GET(API, "/v1/stores?name=red")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "` + STORE_REDIS + `",
+					"name"     : "redis-shared",
+					"summary"  : "Shared Redis services for CF",
+					"plugin"   : "redis",
+					"endpoint" : "<<redis-configuration>>"
+				}
+			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+	})
+
+	Context("With exact matching", func() {
+		It("should not retrieve stores with only partially matching names", func() {
+			res := GET(API, "/v1/stores?name=red&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+	})
+
 	It("should retrieve only unused stores ?unused=t", func() {
 		res := GET(API, "/v1/stores?unused=t")
 		Ω(res.Body.String()).Should(MatchJSON(`[
