@@ -3,7 +3,6 @@ export PATH=$(pwd):$(pwd)/bin:${PATH}
 workdir=""
 ADDR=127.0.0.1:8181
 
-
 setup_workdir() {
   workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
   storedir=$(mktemp -d /tmp/shield.testdev.storeXXXXXXX)
@@ -21,6 +20,9 @@ else
     workdir="${2}"
 fi
 
+export DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
+export DATABASE_DSN=${DATABASE_DSN:-$workdir/var/shield.db}
+
 case "${1}" in
 (shieldd)
   ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
@@ -29,8 +31,8 @@ case "${1}" in
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
 listen_addr:   ${ADDR}
-database_type: sqlite3
-database_dsn:  ${workdir}/var/shield.db
+database_type: ${DATABASE_TYPE}
+database_dsn:  ${DATABASE_DSN}
 private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
@@ -53,11 +55,9 @@ auth:
 #      dsn: ${workdir}/var/sessions.db
 EOF
 
-  if [[ ! -f "${workdir}/var/shield.db" ]]; then
-    echo ">> Setting up SHIELD schema in var/shield.db"
-    ./shield-schema -t sqlite3 -d "${workdir}/var/shield.db"
-    echo
-  fi
+  echo ">> Setting up SHIELD schema"
+  ./shield-schema -t ${DATABASE_TYPE} -d "${DATABASE_DSN}"
+  echo
 
   echo ">> RUNNING SHIELDD"
   ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
