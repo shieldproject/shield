@@ -10,6 +10,7 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/shield/supervisor"
 )
 
@@ -19,31 +20,40 @@ var _ = Describe("/v1/stores API", func() {
 
 	STORE_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
 	STORE_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
+	STORE_S3_PLUS := `e62ecbe7-d0d1-4573-b0f6-1a3c0c95b92f`
 
 	NIL := `00000000-0000-0000-0000-000000000000`
 
-	BeforeEach(func() {
-		data, err := Database(
-			`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
-				("`+STORE_REDIS+`",
+	databaseEntries := []string{
+		`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
+				("` + STORE_REDIS + `",
 				 "redis-shared",
 				 "Shared Redis services for CF",
 				 "redis",
 				 "<<redis-configuration>>")`,
 
-			`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
-				("`+STORE_S3+`",
+		`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
+				("` + STORE_S3 + `",
 				 "s3",
 				 "Amazon S3 Blobstore",
 				 "s3",
 				 "<<s3-configuration>>")`,
 
-			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid) VALUES
+		`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid) VALUES
 				("abc-def",
-				 "`+STORE_S3+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
-		)
+				 "` + STORE_S3 + `", "` + NIL + `", "` + NIL + `", "` + NIL + `")`,
+	}
+
+	var data *db.DB
+
+	BeforeEach(func() {
+		var err error
+		data, err = Database(databaseEntries...)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
+	})
+
+	JustBeforeEach(func() {
 		API = StoreAPI{
 			Data:       data,
 			ResyncChan: resyncChan,
@@ -107,7 +117,32 @@ var _ = Describe("/v1/stores API", func() {
 	})
 
 	Context("With exact matching", func() {
+		BeforeEach(func() {
+			var err error
+			data, err = Database(append(databaseEntries,
+				`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
+				("`+STORE_S3_PLUS+`",
+				 "s3 PLUS",
+				 "Amazon S3 Blobstore",
+				 "s3",
+				 "<<s3-configuration>>")`,
+			)...)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
 		It("should not retrieve stores with only partially matching names", func() {
+			res := GET(API, "/v1/stores?name=s3&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "` + STORE_S3 + `",
+					"name"     : "s3",
+					"summary"  : "Amazon S3 Blobstore",
+					"plugin"   : "s3",
+					"endpoint" : "<<s3-configuration>>"
+				}
+			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+		It("should not retrieve any stores if none match exactly", func() {
 			res := GET(API, "/v1/stores?name=red&exact=t")
 			Ω(res.Body.String()).Should(MatchJSON(`[]`))
 			Ω(res.Code).Should(Equal(200))

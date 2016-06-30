@@ -11,6 +11,7 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/shield/supervisor"
 )
 
@@ -20,34 +21,43 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 
 	WEEKLY := `51e69607-eb48-4679-afd2-bc3b4c92e691`
 	DAILY := `647bc775-b07b-4f87-bb67-d84cccac34a7`
+	DAILY_PLUS := `b560977f-e186-480c-aa4e-08b931638617`
 
 	NIL := `00000000-0000-0000-0000-000000000000`
 
-	BeforeEach(func() {
-		log.SetupLogging(log.LogConfig{Type: "file", Level: "EMERG", File: "/dev/null"})
-		data, err := Database(
-			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("`+WEEKLY+`",
+	databaseEntries := []string{
+		`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
+				("` + WEEKLY + `",
 				 "Weekly Backups",
 				 "A schedule for weekly bosh-blobs, during normal maintenance windows",
 				 "sundays at 3:15am")`,
 
-			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("`+DAILY+`",
+		`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
+				("` + DAILY + `",
 				 "Daily Backups",
 				 "Use for daily (11-something-at-night) bosh-blobs",
 				 "daily at 11:24pm")`,
 
-			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
-				VALUES ("abc-def", "`+NIL+`", "`+NIL+`", "`+WEEKLY+`", "`+NIL+`")`,
-		)
-		Ω(err).ShouldNot(HaveOccurred())
+		`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
+				VALUES ("abc-def", "` + NIL + `", "` + NIL + `", "` + WEEKLY + `", "` + NIL + `")`,
+	}
 
+	var data *db.DB
+
+	BeforeEach(func() {
+		log.SetupLogging(log.LogConfig{Type: "file", Level: "EMERG", File: "/dev/null"})
+		var err error
+		data, err = Database(databaseEntries...)
+		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
+	})
+
+	JustBeforeEach(func() {
 		API = ScheduleAPI{
 			Data:       data,
 			ResyncChan: resyncChan,
 		}
+
 	})
 
 	AfterEach(func() {
@@ -89,7 +99,7 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 
 	Context("Without exact matching", func() {
 		It("should retrieve all schedules with partially matching names", func() {
-			res := GET(API, "/v1/schedules?name=dai")
+			res := GET(API, "/v1/schedules?name=Dai")
 			Ω(res.Body.String()).Should(MatchJSON(`[
 				{
 					"uuid"    : "` + DAILY + `",
@@ -103,8 +113,31 @@ var _ = Describe("HTTP API /v1/schedule", func() {
 	})
 
 	Context("With exact matching", func() {
+		BeforeEach(func() {
+			var err error
+			data, err = Database(append(databaseEntries,
+				`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
+				("`+DAILY_PLUS+`",
+				 "Daily Backups Plus",
+				 "Extra fodder",
+				 "daily at 11:25pm")`,
+			)...)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
 		It("should not retrieve schedules with only partially matching names", func() {
-			res := GET(API, "/v1/schedules?name=dai&exact=t")
+			res := GET(API, "/v1/schedules?name=Daily+Backups&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "` + DAILY + `",
+					"name"    : "Daily Backups",
+					"summary" : "Use for daily (11-something-at-night) bosh-blobs",
+					"when"    : "daily at 11:24pm"
+				}
+			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+		It("should not retrieve anything if there aren't exact matches", func() {
+			res := GET(API, "/v1/schedules?name=Dai&exact=t")
 			Ω(res.Body.String()).Should(MatchJSON(`[]`))
 			Ω(res.Code).Should(Equal(200))
 		})

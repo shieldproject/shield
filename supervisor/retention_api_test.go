@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/shield/supervisor"
 
 	// sql drivers
@@ -19,29 +20,37 @@ var _ = Describe("HTTP API /v1/retention", func() {
 
 	SHORT := `43705750-33b7-4134-a532-ce069abdc08f`
 	LONG := `3e783b71-d595-498d-a739-e01fb335098a`
+	LONG_LONG := `025c2025-c941-4cc4-adb0-2baca6bdf79c`
 
 	NIL := `00000000-0000-0000-0000-000000000000`
-
-	BeforeEach(func() {
-		data, err := Database(
-			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
-				("`+SHORT+`",
+	databaseEntries := []string{
+		`INSERT INTO retention (uuid, name, summary, expiry) VALUES
+				("` + SHORT + `",
 				 "Short-Term Retention",
 				 "retain bosh-blobs for two weeks",
 				 1209600)`, // 14 days
 
-			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
-				("`+LONG+`",
+		`INSERT INTO retention (uuid, name, summary, expiry) VALUES
+				("` + LONG + `",
 				 "Important Materials",
 				 "Keep for 90d",
 				 7776000)`, // 90 days
 
-			`INSERT INTO jobs (uuid, retention_uuid, schedule_uuid, target_uuid, store_uuid) VALUES
+		`INSERT INTO jobs (uuid, retention_uuid, schedule_uuid, target_uuid, store_uuid) VALUES
 				("abc-def",
-				 "`+SHORT+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
-		)
+				 "` + SHORT + `", "` + NIL + `", "` + NIL + `", "` + NIL + `")`,
+	}
+
+	var data *db.DB
+
+	BeforeEach(func() {
+		var err error
+		data, err = Database(databaseEntries...)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
+	})
+
+	JustBeforeEach(func() {
 		API = RetentionAPI{
 			Data:       data,
 			ResyncChan: resyncChan,
@@ -101,8 +110,30 @@ var _ = Describe("HTTP API /v1/retention", func() {
 	})
 
 	Context("With exact matching", func() {
+		BeforeEach(func() {
+			var err error
+			data, err = Database(append(databaseEntries,
+				`INSERT INTO retention (uuid, name, summary, expiry) VALUES
+				("`+LONG_LONG+`",
+				 "Longer Important Materials",
+				 "Keep for 91d",
+				 7862520)`, // 91 days
+			)...)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+		It("should retrieve only the policies with exactly matching names", func() {
+			res := GET(API, "/v1/retention?name=Important+Materials&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"    : "` + LONG + `",
+					"name"    : "Important Materials",
+					"summary" : "Keep for 90d",
+					"expires" : 7776000
+				}
+			]`))
+		})
 		It("should not retrieve policies with only partially matching names", func() {
-			res := GET(API, "/v1/retention?name=sho&exact=t")
+			res := GET(API, "/v1/retention?name=Long&exact=t")
 			Ω(res.Body.String()).Should(MatchJSON(`[]`))
 			Ω(res.Code).Should(Equal(200))
 		})

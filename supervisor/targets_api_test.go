@@ -10,6 +10,7 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/shield/supervisor"
 )
 
@@ -19,32 +20,41 @@ var _ = Describe("/v1/targets API", func() {
 
 	TARGET_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
 	TARGET_S3 := `05c3d005-f968-452f-bd59-bee8e79ab982`
+	TARGET_REDIS_PLUS := `44b70f9a-e3ee-4c99-b275-2ba0e7517c96`
 
 	NIL := `00000000-0000-0000-0000-000000000000`
 
-	BeforeEach(func() {
-		data, err := Database(
-			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
-				("`+TARGET_REDIS+`",
+	databaseEntries := []string{
+		`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
+				("` + TARGET_REDIS + `",
 				 "redis-shared",
 				 "Shared Redis services for CF",
 				 "127.0.0.1:5544",
 				 "redis",
 				 "<<redis-configuration>>")`,
 
-			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
-				("`+TARGET_S3+`",
+		`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
+				("` + TARGET_S3 + `",
 				 "s3",
 				 "Amazon S3 Blobstore",
 				 "127.0.0.1:5544",
 				 "s3",
 				 "<<s3-configuration>>")`,
 
-			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
-				VALUES ("abc-def", "`+NIL+`", "`+TARGET_S3+`", "`+NIL+`", "`+NIL+`")`,
-		)
+		`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
+				VALUES ("abc-def", "` + NIL + `", "` + TARGET_S3 + `", "` + NIL + `", "` + NIL + `")`,
+	}
+
+	var data *db.DB
+
+	BeforeEach(func() {
+		var err error
+		data, err = Database(databaseEntries...)
 		Ω(err).ShouldNot(HaveOccurred())
 		channel = make(chan int, 1)
+	})
+
+	JustBeforeEach(func() {
 		API = &TargetAPI{
 			Data:       data,
 			ResyncChan: channel,
@@ -112,7 +122,34 @@ var _ = Describe("/v1/targets API", func() {
 	})
 
 	Context("With exact matching", func() {
+		BeforeEach(func() {
+			var err error
+			data, err = Database(append(databaseEntries,
+				`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
+				("`+TARGET_REDIS_PLUS+`",
+				 "redis-shared-plus",
+				 "fodder",
+				 "127.0.0.1:5544",
+				 "redis",
+				 "<<redis-configuration>>")`,
+			)...)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
 		It("should not retrieve targets with only partially matching names", func() {
+			res := GET(API, "/v1/targets?name=redis-shared&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[
+				{
+					"uuid"     : "` + TARGET_REDIS + `",
+					"name"     : "redis-shared",
+					"summary"  : "Shared Redis services for CF",
+					"agent"    : "127.0.0.1:5544",
+					"plugin"   : "redis",
+					"endpoint" : "<<redis-configuration>>"
+				}
+			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+		It("should not retrieve any targets if none match exactly", func() {
 			res := GET(API, "/v1/targets?name=red&exact=t")
 			Ω(res.Body.String()).Should(MatchJSON(`[]`))
 			Ω(res.Code).Should(Equal(200))

@@ -39,109 +39,115 @@ var _ = Describe("/v1/jobs API", func() {
 	PG_S3_WEEKLY := `ea5eec7a-20b8-40ef-9868-cb4c54133018`
 	REDIS_S3_DAILY := `9f42b026-8698-4150-b508-561a73031a47`
 	REDIS_S3_WEEKLY := `4259dd16-0fad-478b-815c-9a9a7d209f56`
+	REDIS_S3_WEEKLY_PLUS := `56cb2511-3286-449b-970e-cb7f21db145c`
 
-	BeforeEach(func() {
-		data, err := Database(
-
-			// TARGETS
-			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
-				("`+TARGET_REDIS+`",
+	databaseEntries := []string{
+		// TARGETS
+		`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
+				("` + TARGET_REDIS + `",
 				 "redis-shared",
 				 "Shared Redis services for CF",
 				 "10.11.22.33:4455",
 				 "redis",
 				 "<<redis-configuration>>")`,
-			`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
-				("`+TARGET_PG+`",
+		`INSERT INTO targets (uuid, name, summary, agent, plugin, endpoint) VALUES
+				("` + TARGET_PG + `",
 				 "pg1",
 				 "Test Postgres Service",
 				 "10.11.22.33:4455",
 				 "pg",
 				 "<<pg-configuration>>")`,
 
-			// STORES
-			`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
-				("`+STORE_S3+`",
+		// STORES
+		`INSERT INTO stores (uuid, name, summary, plugin, endpoint) VALUES
+				("` + STORE_S3 + `",
 				 "s3",
 				 "Amazon S3 Blobstore",
 				 "s3",
 				 "<<s3-configuration>>")`,
 
-			// SCHEDULES
-			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("`+SCHED_DAILY+`",
+		// SCHEDULES
+		`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
+				("` + SCHED_DAILY + `",
 				 "Daily",
 				 "Backups that should run every day",
 				 "daily 3am")`,
-			`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("`+SCHED_WEEKLY+`",
+		`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
+				("` + SCHED_WEEKLY + `",
 				 "Weekly",
 				 "Backups that should be run every Sunday",
 				 "sundays at 10pm")`,
 
-			// RETENTION POLICIES
-			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
-				("`+RETAIN_SHORT+`",
+		// RETENTION POLICIES
+		`INSERT INTO retention (uuid, name, summary, expiry) VALUES
+				("` + RETAIN_SHORT + `",
 				 "Short-Term Retention",
 				 "Prefered retention policy for daily backups",
 				 345600)`, // 4 days
-			`INSERT INTO retention (uuid, name, summary, expiry) VALUES
-				("`+RETAIN_LONG+`",
+		`INSERT INTO retention (uuid, name, summary, expiry) VALUES
+				("` + RETAIN_LONG + `",
 				 "Long-Term Retention",
 				 "For stuff we need to keep longer than a month",
 				 7776000)`, // 90 days
-
-			// daily backup for pg -> s3, short retention
-			`INSERT INTO jobs (uuid, name, summary, paused,
+		// daily backup for pg -> s3, short retention
+		`INSERT INTO jobs (uuid, name, summary, paused,
 					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
-				("`+PG_S3_DAILY+`",
+				("` + PG_S3_DAILY + `",
 				 "PG operational hot backups",
 				 "For short-term operational restores",
 				 0,
-				 "`+TARGET_PG+`",
-				 "`+STORE_S3+`",
-				 "`+SCHED_DAILY+`",
-				 "`+RETAIN_SHORT+`")`,
+				 "` + TARGET_PG + `",
+				 "` + STORE_S3 + `",
+				 "` + SCHED_DAILY + `",
+				 "` + RETAIN_SHORT + `")`,
 
-			// weekly backup for pg -> s3, long retention
-			`INSERT INTO jobs (uuid, name, summary, paused,
+		// weekly backup for pg -> s3, long retention
+		`INSERT INTO jobs (uuid, name, summary, paused,
 					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
-				("`+PG_S3_WEEKLY+`",
+				("` + PG_S3_WEEKLY + `",
 				 "Main DB weekly backup (long-term)",
 				 "For long-term storage requirements",
 				 0,
-				 "`+TARGET_PG+`",
-				 "`+STORE_S3+`",
-				 "`+SCHED_WEEKLY+`",
-				 "`+RETAIN_LONG+`")`,
+				 "` + TARGET_PG + `",
+				 "` + STORE_S3 + `",
+				 "` + SCHED_WEEKLY + `",
+				 "` + RETAIN_LONG + `")`,
 
-			// daily backup for redis -> s3, long retention
-			`INSERT INTO jobs (uuid, name, summary, paused,
+		// daily backup for redis -> s3, long retention
+		`INSERT INTO jobs (uuid, name, summary, paused,
 					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
-				("`+REDIS_S3_DAILY+`",
+				("` + REDIS_S3_DAILY + `",
 				 "Redis Daily Backup",
 				 "mandated by TKT-1234",
 				 0,
-				 "`+TARGET_REDIS+`",
-				 "`+STORE_S3+`",
-				 "`+SCHED_DAILY+`",
-				 "`+RETAIN_LONG+`")`,
+				 "` + TARGET_REDIS + `",
+				 "` + STORE_S3 + `",
+				 "` + SCHED_DAILY + `",
+				 "` + RETAIN_LONG + `")`,
 
-			// (paused) weekly backup for redis -> s3, long retention
-			`INSERT INTO jobs (uuid, name, summary, paused,
+		// (paused) weekly backup for redis -> s3, long retention
+		`INSERT INTO jobs (uuid, name, summary, paused,
 					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
-				("`+REDIS_S3_WEEKLY+`",
+				("` + REDIS_S3_WEEKLY + `",
 				 "Redis Weekly Backup",
 				 "...",
 				 1,
-				 "`+TARGET_REDIS+`",
-				 "`+STORE_S3+`",
-				 "`+SCHED_WEEKLY+`",
-				 "`+RETAIN_LONG+`")`,
-		)
+				 "` + TARGET_REDIS + `",
+				 "` + STORE_S3 + `",
+				 "` + SCHED_WEEKLY + `",
+				 "` + RETAIN_LONG + `")`,
+	}
+	var data *db.DB
+
+	BeforeEach(func() {
+		var err error
+		data, err = Database(databaseEntries...)
 		Ω(err).ShouldNot(HaveOccurred())
 		resyncChan = make(chan int, 1)
 		adhocChan = make(chan *db.Task, 1)
+	})
+
+	JustBeforeEach(func() {
 		API = JobAPI{
 			Data:       data,
 			ResyncChan: resyncChan,
@@ -530,7 +536,25 @@ var _ = Describe("/v1/jobs API", func() {
 	})
 
 	Context("With exact matching", func() {
-		It("should not retrieve jobs with only partially matching names", func() {
+		BeforeEach(func() {
+			var err error
+			data, err = Database(append(databaseEntries,
+				// (paused) weekly backup for redis -> s3, long retention
+				// Better in some way
+				`INSERT INTO jobs (uuid, name, summary, paused,
+					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
+				("`+REDIS_S3_WEEKLY_PLUS+`",
+				 "Redis Weekly Backup PLUS",
+				 "...plus",
+				 1,
+				 "`+TARGET_REDIS+`",
+				 "`+STORE_S3+`",
+				 "`+SCHED_WEEKLY+`",
+				 "`+RETAIN_LONG+`")`,
+			)...)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+		It("retrieves only the job that matches the name exactly", func() {
 			res := GET(API, "/v1/jobs?name=Redis+Daily+Backup&exact=t")
 			Ω(res.Body.String()).Should(MatchJSON(`[
 				{
@@ -555,6 +579,12 @@ var _ = Describe("/v1/jobs API", func() {
 					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
+			Ω(res.Code).Should(Equal(200))
+		})
+
+		It("won't retrieve any partially matching names", func() {
+			res := GET(API, "/v1/jobs?name=Redis&exact=t")
+			Ω(res.Body.String()).Should(MatchJSON(`[]`))
 			Ω(res.Code).Should(Equal(200))
 		})
 	})
@@ -693,7 +723,7 @@ var _ = Describe("/v1/jobs API", func() {
 	})
 
 	It("can update existing jobs", func() {
-		res := GET(API, "/v1/jobs?paused=t")
+		res := GET(API, "/v1/jobs?name=Redis+Weekly+Backup&exact=t")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
@@ -732,7 +762,7 @@ var _ = Describe("/v1/jobs API", func() {
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"updated"}`))
 		Eventually(resyncChan).Should(Receive())
 
-		res = GET(API, "/v1/jobs?paused=t")
+		res = GET(API, "/v1/jobs?name=Redis+WEEKLY+backups&exact=t")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
@@ -766,7 +796,7 @@ var _ = Describe("/v1/jobs API", func() {
 	})
 
 	It("can delete jobs", func() {
-		res := GET(API, "/v1/jobs?paused=t")
+		res := GET(API, "/v1/jobs?name=Redis+Weekly+Backup&exact=t")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
@@ -791,15 +821,24 @@ var _ = Describe("/v1/jobs API", func() {
 					"agent"           : "10.11.22.33:4455"
 				}
 			]`))
+		bodySlice := []map[string]interface{}{}
+		json.Unmarshal([]byte(res.Body.String()), &bodySlice)
+		previousLen := len(bodySlice)
 
 		res = DELETE(API, "/v1/job/"+REDIS_S3_WEEKLY)
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`{"ok":"deleted"}`))
 		Eventually(resyncChan).Should(Receive())
 
-		res = GET(API, "/v1/jobs?paused=t")
+		res = GET(API, "/v1/jobs?name=Redis+Weekly_Backups&exact=t")
+
+		bodySlice = []map[string]interface{}{}
+		json.Unmarshal([]byte(res.Body.String()), &bodySlice)
+		thisLen := len(bodySlice)
+
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
+		Ω(thisLen == previousLen-1).Should(BeTrue())
 	})
 
 	It("can pause jobs", func() {
