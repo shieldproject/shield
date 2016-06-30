@@ -19,8 +19,8 @@ type Schedule struct {
 type ScheduleFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
-
 	SearchName string
+	ExactMatch bool
 }
 
 func (f *ScheduleFilter) Query() (string, []interface{}) {
@@ -29,8 +29,14 @@ func (f *ScheduleFilter) Query() (string, []interface{}) {
 	n := 1
 
 	if f.SearchName != "" {
-		wheres = append(wheres, fmt.Sprintf("s.name LIKE $%d", n))
-		args = append(args, Pattern(f.SearchName))
+		var comparator string = "LIKE"
+		var toAdd string = Pattern(f.SearchName)
+		if f.ExactMatch {
+			comparator = "="
+			toAdd = f.SearchName
+		}
+		wheres = append(wheres, fmt.Sprintf("s.name %s $%d", comparator, n))
+		args = append(args, toAdd)
 		n++
 	}
 

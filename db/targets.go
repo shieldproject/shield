@@ -21,6 +21,7 @@ type TargetFilter struct {
 	SkipUnused bool
 	SearchName string
 	ForPlugin  string
+	ExactMatch bool
 }
 
 func (f *TargetFilter) Query() (string, []interface{}) {
@@ -29,10 +30,17 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	n := 1
 
 	if f.SearchName != "" {
-		wheres = append(wheres, fmt.Sprintf("t.name LIKE $%d", n))
-		args = append(args, Pattern(f.SearchName))
+		var comparator string = "LIKE"
+		var toAdd string = Pattern(f.SearchName)
+		if f.ExactMatch {
+			comparator = "="
+			toAdd = f.SearchName
+		}
+		wheres = append(wheres, fmt.Sprintf("t.name %s $%d", comparator, n))
+		args = append(args, toAdd)
 		n++
 	}
+
 	if f.ForPlugin != "" {
 		wheres = append(wheres, fmt.Sprintf("t.plugin LIKE $%d", n))
 		args = append(args, f.ForPlugin)

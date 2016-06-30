@@ -331,9 +331,10 @@ func main() {
 			DEBUG("  show in-use? %s", *opts.Used)
 
 			targets, err := GetTargets(TargetFilter{
-				Name:   strings.Join(args, " "),
-				Plugin: *opts.Plugin,
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
+				Name:       strings.Join(args, " "),
+				Plugin:     *opts.Plugin,
+				Unused:     MaybeBools(*opts.Unused, *opts.Used),
+				ExactMatch: MaybeBools(*opts.Raw, false),
 			})
 
 			if err != nil {
@@ -549,8 +550,9 @@ func main() {
 			DEBUG("  show in-use? %s", *opts.Used)
 
 			schedules, err := GetSchedules(ScheduleFilter{
-				Name:   strings.Join(args, " "),
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
+				Name:       strings.Join(args, " "),
+				Unused:     MaybeBools(*opts.Unused, *opts.Used),
+				ExactMatch: MaybeBools(*opts.Raw, false),
 			})
 			if err != nil {
 				return err
@@ -759,8 +761,9 @@ func main() {
 			DEBUG("  show in-use? %s", *opts.Used)
 
 			policies, err := GetRetentionPolicies(RetentionPolicyFilter{
-				Name:   strings.Join(args, " "),
-				Unused: MaybeBools(*opts.Unused, *opts.Used),
+				Name:       strings.Join(args, " "),
+				Unused:     MaybeBools(*opts.Unused, *opts.Used),
+				ExactMatch: MaybeBools(*opts.Raw, false),
 			})
 			if err != nil {
 				return err
@@ -1212,12 +1215,13 @@ func main() {
 			DEBUG("  show unpaused?    %s", *opts.Unpaused)
 
 			jobs, err := GetJobs(JobFilter{
-				Name:      strings.Join(args, " "),
-				Paused:    MaybeBools(*opts.Unpaused, *opts.Paused),
-				Target:    *opts.Target,
-				Store:     *opts.Store,
-				Schedule:  *opts.Schedule,
-				Retention: *opts.Retention,
+				Name:       strings.Join(args, " "),
+				Paused:     MaybeBools(*opts.Unpaused, *opts.Paused),
+				Target:     *opts.Target,
+				Store:      *opts.Store,
+				Schedule:   *opts.Schedule,
+				Retention:  *opts.Retention,
+				ExactMatch: MaybeBools(*opts.Raw, false),
 			})
 			if err != nil {
 				return err

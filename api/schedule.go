@@ -12,14 +12,16 @@ type Schedule struct {
 }
 
 type ScheduleFilter struct {
-	Unused YesNo
-	Name   string
+	Unused     YesNo
+	Name       string
+	ExactMatch YesNo
 }
 
 func GetSchedules(filter ScheduleFilter) ([]Schedule, error) {
 	uri := ShieldURI("/v1/schedules")
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("unused", filter.Unused)
+	uri.MaybeAddParameter("exact", filter.ExactMatch)
 
 	var data []Schedule
 	return data, uri.Get(&data)

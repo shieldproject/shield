@@ -17,8 +17,8 @@ type RetentionPolicy struct {
 type RetentionFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
-
 	SearchName string
+	ExactMatch bool
 }
 
 func (f *RetentionFilter) Query() (string, []interface{}) {
@@ -27,10 +27,17 @@ func (f *RetentionFilter) Query() (string, []interface{}) {
 	n := 1
 
 	if f.SearchName != "" {
-		wheres = append(wheres, fmt.Sprintf("r.name LIKE $%d", n))
-		args = append(args, Pattern(f.SearchName))
+		var comparator string = "LIKE"
+		var toAdd string = Pattern(f.SearchName)
+		if f.ExactMatch {
+			comparator = "="
+			toAdd = f.SearchName
+		}
+		wheres = append(wheres, fmt.Sprintf("r.name %s $%d", comparator, n))
+		args = append(args, toAdd)
 		n++
 	}
+
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 			SELECT r.uuid, r.name, r.summary, r.expiry, -1 AS n

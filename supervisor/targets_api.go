@@ -27,6 +27,7 @@ func (self TargetAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				SkipUnused: paramEquals(req, "unused", "f"),
 				SearchName: paramValue(req, "name", ""),
 				ForPlugin:  paramValue(req, "plugin", ""),
+				ExactMatch: paramEquals(req, "exact", "t"),
 			},
 		)
 		if err != nil {

@@ -25,8 +25,8 @@ func (self RetentionAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			&db.RetentionFilter{
 				SkipUsed:   paramEquals(req, "unused", "t"),
 				SkipUnused: paramEquals(req, "unused", "f"),
-
 				SearchName: paramValue(req, "name", ""),
+				ExactMatch: paramEquals(req, "exact", "t"),
 			},
 		)
 		if err != nil {

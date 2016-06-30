@@ -44,6 +44,7 @@ type JobFilter struct {
 	ForStore     string
 	ForSchedule  string
 	ForRetention string
+	ExactMatch   bool
 }
 
 func (f *JobFilter) Query() (string, []interface{}) {
@@ -51,8 +52,14 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	var args []interface{}
 	n := 1
 	if f.SearchName != "" {
-		wheres = append(wheres, fmt.Sprintf("j.name LIKE $%d", n))
-		args = append(args, Pattern(f.SearchName))
+		var comparator string = "LIKE"
+		var toAdd string = Pattern(f.SearchName)
+		if f.ExactMatch {
+			comparator = "="
+			toAdd = f.SearchName
+		}
+		wheres = append(wheres, fmt.Sprintf("j.name %s $%d", comparator, n))
+		args = append(args, toAdd)
 		n++
 	}
 	if f.ForTarget != "" {

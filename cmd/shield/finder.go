@@ -21,7 +21,8 @@ func FindStore(search string, strict bool) (Store, uuid.UUID, error) {
 	}
 
 	stores, err := GetStores(StoreFilter{
-		Name: search,
+		Name:       search,
+		ExactMatch: MaybeBools(strict, false),
 	})
 	if err != nil {
 		return Store{}, nil, fmt.Errorf("Failed to retrieve list of archive stores: %s", err)
@@ -60,7 +61,8 @@ func FindTarget(search string, strict bool) (Target, uuid.UUID, error) {
 	}
 
 	targets, err := GetTargets(TargetFilter{
-		Name: search,
+		Name:       search,
+		ExactMatch: MaybeBools(strict, false),
 	})
 	if err != nil {
 		return Target{}, nil, fmt.Errorf("Failed to retrieve list of backup targets: %s", err)
@@ -98,7 +100,8 @@ func FindRetentionPolicy(search string, strict bool) (RetentionPolicy, uuid.UUID
 	}
 
 	policies, err := GetRetentionPolicies(RetentionPolicyFilter{
-		Name: search,
+		Name:       search,
+		ExactMatch: MaybeBools(strict, false),
 	})
 	if err != nil {
 		return RetentionPolicy{}, nil, fmt.Errorf("Failed to retrieve list of retention policies: %s", err)
@@ -136,7 +139,8 @@ func FindSchedule(search string, strict bool) (Schedule, uuid.UUID, error) {
 	}
 
 	schedules, err := GetSchedules(ScheduleFilter{
-		Name: search,
+		Name:       search,
+		ExactMatch: MaybeBools(strict, false),
 	})
 	if err != nil {
 		return Schedule{}, nil, fmt.Errorf("Failed to retrieve list of backup schedules: %s", err)
@@ -174,7 +178,8 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 	}
 
 	jobs, err := GetJobs(JobFilter{
-		Name: search,
+		Name:       search,
+		ExactMatch: MaybeBools(strict, false),
 	})
 	if err != nil {
 		return Job{}, nil, fmt.Errorf("Failed to retrieve list of jobs: %s", err)
