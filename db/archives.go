@@ -41,55 +41,46 @@ type ArchiveFilter struct {
 func (f *ArchiveFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"a.uuid = a.uuid"}
 	var args []interface{}
-	n := 1
 	if f.ForTarget != "" {
-		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
+		wheres = append(wheres, "target_uuid = ?")
 		args = append(args, f.ForTarget)
-		n++
 	}
 	if f.ForStore != "" {
-		wheres = append(wheres, fmt.Sprintf("store_uuid = $%d", n))
+		wheres = append(wheres, "store_uuid = ?")
 		args = append(args, f.ForStore)
-		n++
 	}
 	if f.Before != nil {
-		wheres = append(wheres, fmt.Sprintf("taken_at <= $%d", n))
+		wheres = append(wheres, "taken_at <= ?")
 		args = append(args, f.Before.Unix())
-		n++
 	}
 	if f.After != nil {
-		wheres = append(wheres, fmt.Sprintf("taken_at >= $%d", n))
+		wheres = append(wheres, "taken_at >= ?")
 		args = append(args, f.After.Unix())
-		n++
 	}
 	if len(f.WithStatus) > 0 {
 		var params []string
 		for _, e := range f.WithStatus {
-			params = append(params, fmt.Sprintf("$%d", n))
+			params = append(params, "?")
 			args = append(args, e)
-			n++
 		}
 		wheres = append(wheres, fmt.Sprintf("status IN (%s)", strings.Join(params, ", ")))
 	}
 	if len(f.WithOutStatus) > 0 {
 		var params []string
 		for _, e := range f.WithOutStatus {
-			params = append(params, fmt.Sprintf("$%d", n))
+			params = append(params, "?")
 			args = append(args, e)
-			n++
 		}
 		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
 	}
 	if f.ExpiresBefore != nil {
-		wheres = append(wheres, fmt.Sprintf("expires_at < $%d", n))
+		wheres = append(wheres, "expires_at < ?")
 		args = append(args, f.ExpiresBefore.Unix())
-		n++
 	}
 	limit := ""
 	if f.Limit != "" {
-		limit = fmt.Sprintf(" LIMIT $%d", n)
+		limit = " LIMIT ?"
 		args = append(args, f.Limit)
-		n++
 	}
 
 	return `
@@ -166,7 +157,7 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
 			INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
-		WHERE a.uuid = $1`, id.String())
+		WHERE a.uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +193,7 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 
 func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
 	return db.Exec(
-		`UPDATE archives SET notes = $1 WHERE uuid = $2`,
+		`UPDATE archives SET notes = ? WHERE uuid = ?`,
 		notes, id.String(),
 	)
 }
@@ -224,7 +215,7 @@ func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 }
 
 func (db *DB) InvalidateArchive(id uuid.UUID) error {
-	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = $1`, id.String())
+	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id.String())
 }
 
 func (db *DB) PurgeArchive(id uuid.UUID) error {
@@ -238,23 +229,23 @@ func (db *DB) PurgeArchive(id uuid.UUID) error {
 	}
 
 	err = db.Exec(`UPDATE archives SET purge_reason =
-                       (SELECT status FROM archives WHERE uuid = $1)
-                       WHERE uuid = $1
-                  `, id.String())
+                       (SELECT status FROM archives WHERE uuid = ?)
+                       WHERE uuid = ?
+                  `, id.String(), id.String())
 	if err != nil {
 		return err
 	}
 
-	return db.Exec(`UPDATE archives SET status = 'purged' WHERE uuid = $1`, id.String())
+	return db.Exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id.String())
 }
 
 func (db *DB) ExpireArchive(id uuid.UUID) error {
-	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid = $1`, id.String())
+	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id.String())
 }
 
 func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
 	return true, db.Exec(
-		`DELETE FROM archives WHERE uuid = $1`,
+		`DELETE FROM archives WHERE uuid = ?`,
 		id.String(),
 	)
 }

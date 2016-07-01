@@ -50,7 +50,6 @@ type JobFilter struct {
 func (f *JobFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"j.uuid = j.uuid"}
 	var args []interface{}
-	n := 1
 	if f.SearchName != "" {
 		var comparator string = "LIKE"
 		var toAdd string = Pattern(f.SearchName)
@@ -58,39 +57,32 @@ func (f *JobFilter) Query() (string, []interface{}) {
 			comparator = "="
 			toAdd = f.SearchName
 		}
-		wheres = append(wheres, fmt.Sprintf("j.name %s $%d", comparator, n))
+		wheres = append(wheres, fmt.Sprintf("j.name %s ?", comparator))
 		args = append(args, toAdd)
-		n++
 	}
 	if f.ForTarget != "" {
-		wheres = append(wheres, fmt.Sprintf("target_uuid = $%d", n))
+		wheres = append(wheres, "target_uuid = ?")
 		args = append(args, f.ForTarget)
-		n++
 	}
 	if f.ForStore != "" {
-		wheres = append(wheres, fmt.Sprintf("store_uuid = $%d", n))
+		wheres = append(wheres, "store_uuid = ?")
 		args = append(args, f.ForStore)
-		n++
 	}
 	if f.ForSchedule != "" {
-		wheres = append(wheres, fmt.Sprintf("schedule_uuid = $%d", n))
+		wheres = append(wheres, "schedule_uuid = ?")
 		args = append(args, f.ForSchedule)
-		n++
 	}
 	if f.ForRetention != "" {
-		wheres = append(wheres, fmt.Sprintf("retention_uuid = $%d", n))
+		wheres = append(wheres, "retention_uuid = ?")
 		args = append(args, f.ForRetention)
-		n++
 	}
 	if f.SkipPaused || f.SkipUnpaused {
-		wheres = append(wheres, fmt.Sprintf("paused = $%d", n))
+		wheres = append(wheres, "paused = ?")
 		if f.SkipPaused {
 			args = append(args, 0)
 		} else {
 			args = append(args, 1)
 		}
-
-		n++
 	}
 
 	return `
@@ -162,7 +154,7 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 				INNER JOIN stores     s  ON  s.uuid = j.store_uuid
 				INNER JOIN targets    t  ON  t.uuid = j.target_uuid
 
-			WHERE j.uuid = $1`, id.String())
+			WHERE j.uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -194,14 +186,14 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 
 func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
 	n, err := db.Count(
-		`SELECT uuid FROM jobs WHERE uuid = $1 AND paused = $2`,
+		`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`,
 		id.String(), !pause)
 	if n == 0 || err != nil {
 		return false, err
 	}
 
 	return true, db.Exec(
-		`UPDATE jobs SET paused = $1 WHERE uuid = $2 AND paused = $3`,
+		`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`,
 		pause, id.String(), !pause)
 }
 
@@ -215,7 +207,7 @@ func (db *DB) UnpauseJob(id uuid.UUID) (bool, error) {
 
 func (db *DB) AnnotateJob(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE jobs SET name = $1, summary = $2 WHERE uuid = $3`,
+		`UPDATE jobs SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
@@ -224,21 +216,21 @@ func (db *DB) CreateJob(target, store, schedule, retention string, paused bool) 
 	id := uuid.NewRandom()
 	return id, db.Exec(
 		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused)
-			VALUES ($1, $2, $3, $4, $5, $6)`,
+			VALUES (?, ?, ?, ?, ?, ?)`,
 		id.String(), target, store, schedule, retention, paused,
 	)
 }
 
 func (db *DB) UpdateJob(id uuid.UUID, target, store, schedule, retention string) error {
 	return db.Exec(
-		`UPDATE jobs SET target_uuid = $1, store_uuid = $2, schedule_uuid = $3, retention_uuid = $4 WHERE uuid = $5`,
+		`UPDATE jobs SET target_uuid = ?, store_uuid = ?, schedule_uuid = ?, retention_uuid = ? WHERE uuid = ?`,
 		target, store, schedule, retention, id.String(),
 	)
 }
 
 func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 	return true, db.Exec(
-		`DELETE FROM jobs WHERE uuid = $1`,
+		`DELETE FROM jobs WHERE uuid = ?`,
 		id.String(),
 	)
 }

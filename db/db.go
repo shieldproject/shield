@@ -129,9 +129,13 @@ func (db *DB) resolve(sql_or_name string) string {
 	return sql_or_name
 }
 
+func (db *DB) rebind(sql string) string {
+	return db.connection.Rebind(sql)
+}
+
 // Return the prepared Statement for a given SQL query
 func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
-	sql := db.resolve(sql_or_name)
+	sql := db.resolve(db.rebind(sql_or_name))
 	if db.connection == nil {
 		return nil, fmt.Errorf("Not connected to database")
 	}
