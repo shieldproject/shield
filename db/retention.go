@@ -24,7 +24,6 @@ type RetentionFilter struct {
 func (f *RetentionFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"r.uuid = r.uuid"}
 	var args []interface{}
-	n := 1
 
 	if f.SearchName != "" {
 		var comparator string = "LIKE"
@@ -33,9 +32,8 @@ func (f *RetentionFilter) Query() (string, []interface{}) {
 			comparator = "="
 			toAdd = f.SearchName
 		}
-		wheres = append(wheres, fmt.Sprintf("r.name %s $%d", comparator, n))
+		wheres = append(wheres, fmt.Sprintf("r.name %s ?", comparator))
 		args = append(args, toAdd)
-		n++
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
@@ -98,7 +96,7 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 	r, err := db.Query(`
 		SELECT uuid, name, summary, expiry
-			FROM retention WHERE uuid = $1`, id.String())
+			FROM retention WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +117,7 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 
 func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE retention SET name = $1, summary = $2 WHERE uuid = $3`,
+		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
@@ -127,21 +125,21 @@ func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string)
 func (db *DB) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO retention (uuid, expiry) VALUES ($1, $2)`,
+		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`,
 		id.String(), expiry,
 	)
 }
 
 func (db *DB) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
 	return db.Exec(
-		`UPDATE retention SET expiry = $1 WHERE uuid = $2`,
+		`UPDATE retention SET expiry = ? WHERE uuid = ?`,
 		expiry, id.String(),
 	)
 }
 
 func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = $1`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`,
 		id.String(),
 	)
 	if err != nil {
@@ -168,7 +166,7 @@ func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM retention WHERE uuid = $1`,
+		`DELETE FROM retention WHERE uuid = ?`,
 		id.String(),
 	)
 }

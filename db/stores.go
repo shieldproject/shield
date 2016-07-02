@@ -26,7 +26,6 @@ type StoreFilter struct {
 func (f *StoreFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"s.uuid = s.uuid"}
 	args := []interface{}{}
-	n := 1
 	if f.SearchName != "" {
 		var comparator string = "LIKE"
 		var toAdd string = Pattern(f.SearchName)
@@ -34,14 +33,12 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 			comparator = "="
 			toAdd = f.SearchName
 		}
-		wheres = append(wheres, fmt.Sprintf("s.name %s $%d", comparator, n))
+		wheres = append(wheres, fmt.Sprintf("s.name %s ?", comparator))
 		args = append(args, toAdd)
-		n++
 	}
 	if f.ForPlugin != "" {
-		wheres = append(wheres, fmt.Sprintf("s.plugin = $%d", n))
+		wheres = append(wheres, "s.plugin = ?")
 		args = append(args, f.ForPlugin)
-		n++
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
@@ -106,7 +103,7 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 			FROM stores s
 				LEFT JOIN jobs j
 					ON j.store_uuid = s.uuid
-			WHERE s.uuid = $1`, id.String())
+			WHERE s.uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +125,7 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 
 func (db *DB) AnnotateStore(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE stores SET name = $1, summary = $2 WHERE uuid = $3`,
+		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
@@ -136,21 +133,21 @@ func (db *DB) AnnotateStore(id uuid.UUID, name string, summary string) error {
 func (db *DB) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO stores (uuid, plugin, endpoint) VALUES ($1, $2, $3)`,
+		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
 		id.String(), plugin, endpoint,
 	)
 }
 
 func (db *DB) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error {
 	return db.Exec(
-		`UPDATE stores SET plugin = $1, endpoint = $2 WHERE uuid = $3`,
+		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`,
 		plugin, endpoint, id.String(),
 	)
 }
 
 func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = $1`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`,
 		id.String(),
 	)
 	if err != nil {
@@ -177,7 +174,7 @@ func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM stores WHERE uuid = $1`,
+		`DELETE FROM stores WHERE uuid = ?`,
 		id.String(),
 	)
 }

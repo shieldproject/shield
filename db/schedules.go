@@ -26,7 +26,6 @@ type ScheduleFilter struct {
 func (f *ScheduleFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"s.uuid = s.uuid"}
 	var args []interface{}
-	n := 1
 
 	if f.SearchName != "" {
 		var comparator string = "LIKE"
@@ -35,9 +34,8 @@ func (f *ScheduleFilter) Query() (string, []interface{}) {
 			comparator = "="
 			toAdd = f.SearchName
 		}
-		wheres = append(wheres, fmt.Sprintf("s.name %s $%d", comparator, n))
+		wheres = append(wheres, fmt.Sprintf("s.name %s ?", comparator))
 		args = append(args, toAdd)
-		n++
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
@@ -99,7 +97,7 @@ func (db *DB) GetAllSchedules(filter *ScheduleFilter) ([]*Schedule, error) {
 func (db *DB) GetSchedule(id uuid.UUID) (*Schedule, error) {
 	r, err := db.Query(`
 		SELECT uuid, name, summary, timespec
-			FROM schedules WHERE uuid = $1`, id.String())
+			FROM schedules WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +119,7 @@ func (db *DB) GetSchedule(id uuid.UUID) (*Schedule, error) {
 
 func (db *DB) AnnotateSchedule(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE schedules SET name = $1, summary = $2 WHERE uuid = $3`,
+		`UPDATE schedules SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
@@ -134,7 +132,7 @@ func (db *DB) CreateSchedule(ts string) (uuid.UUID, error) {
 		return id, err
 	}
 	return id, db.Exec(
-		`INSERT INTO schedules (uuid, timespec) VALUES ($1, $2)`,
+		`INSERT INTO schedules (uuid, timespec) VALUES (?, ?)`,
 		id.String(), ts,
 	)
 }
@@ -145,14 +143,14 @@ func (db *DB) UpdateSchedule(id uuid.UUID, ts string) error {
 		return err
 	}
 	return db.Exec(
-		`UPDATE schedules SET timespec = $1 WHERE uuid = $2`,
+		`UPDATE schedules SET timespec = ? WHERE uuid = ?`,
 		ts, id.String(),
 	)
 }
 
 func (db *DB) DeleteSchedule(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = $1`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.schedule_uuid = ?`,
 		id.String(),
 	)
 	if err != nil {
@@ -179,7 +177,7 @@ func (db *DB) DeleteSchedule(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM schedules WHERE uuid = $1`,
+		`DELETE FROM schedules WHERE uuid = ?`,
 		id.String(),
 	)
 }

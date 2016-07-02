@@ -335,13 +335,13 @@ var _ = Describe("Archive Management", func() {
 				// insert an archive that should be expired
 				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
 					EXPIRABLE_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
-					`", "key", 20, $1, "valid")`, time.Now().Add(-30*time.Second).Unix())
+					`", "key", 20, ?, "valid")`, time.Now().Add(-30*time.Second).Unix())
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// insert archive expiring in a day
 				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
 					UNEXPIRED_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
-					`", "key", 20, $1, "valid")`, time.Now().Unix())
+					`", "key", 20, ?, "valid")`, time.Now().Unix())
 
 				Expect(err).ShouldNot(HaveOccurred())
 

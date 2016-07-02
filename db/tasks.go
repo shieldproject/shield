@@ -70,11 +70,9 @@ func ValidateEffectiveUnix(effective time.Time) int64 {
 func (f *TaskFilter) Query() (string, []interface{}) {
 	wheres := []string{"t.uuid = t.uuid"}
 	var args []interface{}
-	n := 1
 	if f.ForStatus != "" {
-		wheres = append(wheres, fmt.Sprintf("status = $%d", n))
+		wheres = append(wheres, "status = ?")
 		args = append(args, f.ForStatus)
-		n++
 	} else {
 		if f.SkipActive {
 			wheres = append(wheres, "stopped_at IS NOT NULL")
@@ -84,16 +82,14 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	}
 
 	if f.UUID != "" {
-		wheres = append(wheres, fmt.Sprintf("uuid = $%d", n))
+		wheres = append(wheres, "uuid = ?")
 		args = append(args, f.UUID)
-		n++
 	}
 
 	limit := ""
 	if f.Limit != "" {
-		limit = fmt.Sprintf(" LIMIT $%d", n)
+		limit = " LIMIT ?"
 		args = append(args, f.Limit)
-		n++
 	}
 	return `
 		SELECT t.uuid, t.owner, t.op, t.job_uuid, t.archive_uuid,
@@ -190,9 +186,9 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		     store_uuid, store_plugin, store_endpoint,
 		     target_uuid, target_plugin, target_endpoint, agent, attempts)
 		  VALUES
-		    ($1, $2, $3, $4, $5, $6, $7,
-		     $8, $9, $10,
-		     $11, $12, $13, $14, $15)`,
+		    (?, ?, ?, ?, ?, ?, ?,
+		     ?, ?, ?,
+		     ?, ?, ?, ?, ?)`,
 		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		job.StoreUUID.String(), job.StorePlugin, job.StoreEndpoint,
 		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, job.Agent, 0,
@@ -213,10 +209,10 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		     target_uuid, target_plugin, target_endpoint,
 		     restore_key, agent, attempts)
 		  VALUES
-		    ($1, $2, $3, $4, $5, $6, $7,
-		     $8, $9, $10,
-		     $11, $12, $13,
-		     $14, $15, $16)`,
+		    (?, ?, ?, ?, ?, ?, ?,
+		     ?, ?, ?,
+		     ?, ?, ?,
+		     ?, ?, ?)`,
 		id.String(), owner, RestoreOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
 		target.UUID.String(), target.Plugin, target.Endpoint,
@@ -237,9 +233,9 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 		     store_uuid, store_plugin, store_endpoint,
 		     restore_key, agent, attempts)
 		  VALUES
-		    ($1, $2, $3, $4, $5, $6, $7,
-		     $8, $9, $10,
-		     $11, $12, $13)`,
+		    (?, ?, ?, ?, ?, ?, ?,
+		     ?, ?, ?,
+		     ?, ?, ?)`,
 		id.String(), owner, PurgeOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
 		archive.StoreKey, agent, 0,
@@ -254,14 +250,14 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
 	return db.Exec(
-		`UPDATE tasks SET status = $1, started_at = $2 WHERE uuid = $3`,
+		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
 		RunningStatus, validtime, id.String(),
 	)
 }
 
 func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64) error {
 	return db.Exec(
-		`UPDATE tasks SET status = $1, stopped_at = $2 WHERE uuid = $3`,
+		`UPDATE tasks SET status = ?, stopped_at = ? WHERE uuid = ?`,
 		status, effective, id.String(),
 	)
 }
@@ -282,7 +278,7 @@ func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	return db.Exec(
-		`UPDATE tasks SET log = log || $1 WHERE uuid = $2`,
+		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
 		more, id.String(),
 	)
 }
@@ -298,7 +294,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 			FROM retention r
 				INNER JOIN jobs  j    ON r.uuid = j.retention_uuid
 				INNER JOIN tasks t    ON j.uuid = t.job_uuid
-			WHERE t.uuid = $1`,
+			WHERE t.uuid = ?`,
 		id.String(),
 	)
 	if err != nil {
@@ -322,12 +318,12 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 	err = db.Exec(
 		`INSERT INTO archives
 			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes)
-			SELECT $1, t.uuid, s.uuid, $2, $3, $4, ''
+			SELECT ?, t.uuid, s.uuid, ?, ?, ?, ''
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
-				WHERE tasks.uuid = $5`,
+				WHERE tasks.uuid = ?`,
 		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), id.String(),
 	)
 	if err != nil {
@@ -336,7 +332,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 
 	// and finally, associate task -> archive
 	return archive_id, db.Exec(
-		`UPDATE tasks SET archive_uuid = $1 WHERE uuid = $2`,
+		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
 		archive_id.String(), id.String(),
 	)
 }

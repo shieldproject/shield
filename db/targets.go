@@ -27,7 +27,6 @@ type TargetFilter struct {
 func (f *TargetFilter) Query() (string, []interface{}) {
 	var wheres []string = []string{"t.uuid = t.uuid"}
 	args := []interface{}{}
-	n := 1
 
 	if f.SearchName != "" {
 		var comparator string = "LIKE"
@@ -36,15 +35,13 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 			comparator = "="
 			toAdd = f.SearchName
 		}
-		wheres = append(wheres, fmt.Sprintf("t.name %s $%d", comparator, n))
+		wheres = append(wheres, fmt.Sprintf("t.name %s ?", comparator))
 		args = append(args, toAdd)
-		n++
 	}
 
 	if f.ForPlugin != "" {
-		wheres = append(wheres, fmt.Sprintf("t.plugin LIKE $%d", n))
+		wheres = append(wheres, "t.plugin LIKE ?")
 		args = append(args, f.ForPlugin)
-		n++
 	}
 
 	if !f.SkipUsed && !f.SkipUnused {
@@ -109,7 +106,7 @@ func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 			FROM targets t
 				LEFT JOIN jobs j
 					ON j.target_uuid = t.uuid
-			WHERE t.uuid = $1`, id.String())
+			WHERE t.uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +128,7 @@ func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 
 func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
 	return db.Exec(
-		`UPDATE targets SET name = $1, summary = $2 WHERE uuid = $3`,
+		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`,
 		name, summary, id.String(),
 	)
 }
@@ -140,21 +137,21 @@ func (db *DB) CreateTarget(plugin string, endpoint interface{}, agent string) (u
 	id := uuid.NewRandom()
 
 	return id, db.Exec(
-		`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES ($1, $2, $3, $4)`,
+		`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES (?, ?, ?, ?)`,
 		id.String(), plugin, endpoint, agent,
 	)
 }
 
 func (db *DB) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}, agent string) error {
 	return db.Exec(
-		`UPDATE targets SET plugin = $1, endpoint = $2, agent = $3 WHERE uuid = $4`,
+		`UPDATE targets SET plugin = ?, endpoint = ?, agent = ? WHERE uuid = ?`,
 		plugin, endpoint, agent, id.String(),
 	)
 }
 
 func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 	r, err := db.Query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = $1`,
+		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`,
 		id.String(),
 	)
 	if err != nil {
@@ -181,7 +178,7 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 
 	r.Close()
 	return true, db.Exec(
-		`DELETE FROM targets WHERE uuid = $1`,
+		`DELETE FROM targets WHERE uuid = ?`,
 		id.String(),
 	)
 }
