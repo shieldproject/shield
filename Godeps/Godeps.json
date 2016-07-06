@@ -101,6 +101,11 @@
 			"Rev": "368c2fa539ba12d8437220997ef9d6da4c1ebcc4"
 		},
 		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.2-196-g3654d25",
+			"Rev": "3654d25ec346ee8ce71a68431025458d52a38ac0"
+		},
+		{
 			"ImportPath": "github.com/google/go-github/github",
 			"Rev": "af17a5fa8537e159dfa73f1dd1d3f08e34dea200"
 		},
@@ -174,6 +179,7 @@
 		},
 		{
 			"ImportPath": "github.com/mattn/go-shellwords",
+			"Comment": "v1.0.0",
 			"Rev": "f4e566c536cf69158e808ec28ef4182a37fdc981"
 		},
 		{

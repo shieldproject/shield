@@ -1,29 +1,45 @@
 package db
 
+import (
+	"fmt"
+)
+
 type v3Schema struct{}
 
 func (s v3Schema) Deploy(db *DB) error {
-	err := db.Exec(`ALTER TABLE tasks ADD COLUMN target_plugin TEXT DEFAULT ''`)
+	var err error
+
+	var textType string
+	switch db.Driver {
+	case "mysql":
+		textType = "VARCHAR(255)"
+	case "postgres", "sqlite3":
+		textType = "TEXT"
+	default:
+		return fmt.Errorf("unsupported database driver '%s'", db.Driver)
+	}
+
+	err = db.Exec(fmt.Sprintf(`ALTER TABLE tasks ADD COLUMN target_plugin %s DEFAULT ''`, textType))
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN target_endpoint TEXT DEFAULT ''`)
+	err = db.Exec(fmt.Sprintf(`ALTER TABLE tasks ADD COLUMN target_endpoint %s DEFAULT ''`, textType))
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_plugin TEXT DEFAULT ''`)
+	err = db.Exec(fmt.Sprintf(`ALTER TABLE tasks ADD COLUMN store_plugin %s DEFAULT ''`, textType))
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN store_endpoint TEXT DEFAULT ''`)
+	err = db.Exec(fmt.Sprintf(`ALTER TABLE tasks ADD COLUMN store_endpoint %s DEFAULT ''`, textType))
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN restore_key TEXT DEFAULT ''`)
+	err = db.Exec(fmt.Sprintf(`ALTER TABLE tasks ADD COLUMN restore_key %s DEFAULT ''`, textType))
 	if err != nil {
 		return err
 	}
@@ -38,7 +54,7 @@ func (s v3Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN agent TEXT DEFAULT ''`)
+	err = db.Exec(fmt.Sprintf(`ALTER TABLE tasks ADD COLUMN agent %s DEFAULT ''`, textType))
 	if err != nil {
 		return err
 	}

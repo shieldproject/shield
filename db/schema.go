@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 var CurrentSchema int = currentSchema()
@@ -65,6 +66,9 @@ func (db *DB) SchemaVersion() (int, error) {
 			return 0, nil
 		}
 		if err.Error() == `pq: relation "schema_info" does not exist` {
+			return 0, nil
+		}
+		if strings.HasPrefix(err.Error(), `Error 1146: Table`) {
 			return 0, nil
 		}
 		return 0, err
