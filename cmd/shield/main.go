@@ -1216,7 +1216,7 @@ func main() {
 
 			jobs, err := GetJobs(JobFilter{
 				Name:       strings.Join(args, " "),
-				Paused:     MaybeBools(*opts.Unpaused, *opts.Paused),
+				Paused:     MaybeBools(*opts.Paused, *opts.Unpaused),
 				Target:     *opts.Target,
 				Store:      *opts.Store,
 				Schedule:   *opts.Schedule,
