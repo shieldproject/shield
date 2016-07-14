@@ -107,7 +107,6 @@ func (s v1Schema) Deploy(db *DB) error {
                summary  TEXT,
                expiry   INTEGER NOT NULL
              )`)
-
 	}
 	if err != nil {
 		return err
@@ -139,7 +138,6 @@ func (s v1Schema) Deploy(db *DB) error {
                name            TEXT,
                summary         TEXT
              )`)
-
 	}
 	if err != nil {
 		return err
