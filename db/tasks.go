@@ -184,14 +184,14 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
-		     target_uuid, target_plugin, target_endpoint, agent, attempts)
+		     target_uuid, target_plugin, target_endpoint, restore_key, agent, attempts)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
-		     ?, ?, ?, ?, ?)`,
+		     ?, ?, ?, ?, ?, ?)`,
 		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		job.StoreUUID.String(), job.StorePlugin, job.StoreEndpoint,
-		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, job.Agent, 0,
+		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, "", job.Agent, 0,
 	)
 
 	if err != nil {
@@ -317,14 +317,14 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 	validtime := ValidateEffectiveUnix(effective)
 	err = db.Exec(
 		`INSERT INTO archives
-			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes)
-			SELECT ?, t.uuid, s.uuid, ?, ?, ?, ''
+			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
+			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, ''
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = ?`,
-		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), id.String(),
+		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", id.String(),
 	)
 	if err != nil {
 		return nil, err
