@@ -9,22 +9,27 @@ type v2Schema struct{}
 func (s v2Schema) Deploy(db *DB) error {
 	var err error
 
-	var textType string
 	switch db.Driver {
 	case "mysql":
-		textType = "VARCHAR(255)"
+		err = db.Exec(`ALTER TABLE archives ADD COLUMN purge_reason TEXT NOT NULL DEFAULT ''`)
 	case "postgres", "sqlite3":
-		textType = "TEXT"
+		err = db.Exec(`ALTER TABLE archives ADD COLUMN purge_reason TEXT DEFAULT ''`)
 	default:
 		return fmt.Errorf("unsupported database driver '%s'", db.Driver)
 	}
-
-	err = db.Exec(fmt.Sprintf(`ALTER TABLE archives ADD COLUMN purge_reason %s DEFAULT ''`, textType))
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(fmt.Sprintf(`ALTER TABLE archives ADD COLUMN status %s DEFAULT 'valid'`, textType))
+	var defaultValue string
+	switch db.Driver {
+	case "mysql":
+		defaultValue = ""
+	case "postgres", "sqlite3":
+		defaultValue = "valid"
+	}
+
+	err = db.Exec(fmt.Sprintf(`ALTER TABLE archives ADD COLUMN status TEXT DEFAULT '%s'`, defaultValue))
 	if err != nil {
 		return err
 	}

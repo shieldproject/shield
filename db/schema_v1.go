@@ -153,7 +153,7 @@ func (s v1Schema) Deploy(db *DB) error {
 
                taken_at     INTEGER NOT NULL,
                expires_at   INTEGER NOT NULL,
-               notes        VARCHAR(255) DEFAULT '',
+               notes        TEXT DEFAULT '',
                PRIMARY KEY (uuid)
              )`)
 	case "postgres", "sqlite3":
@@ -183,7 +183,7 @@ func (s v1Schema) Deploy(db *DB) error {
                archive_uuid  VARCHAR(36) NOT NULL,
                target_uuid   VARCHAR(36) NOT NULL,
 
-               status       VARCHAR(255) NOT NULL,
+               status       TEXT NOT NULL,
                requested_at INTEGER NOT NULL,
                started_at   INTEGER,
                stopped_at   INTEGER,
