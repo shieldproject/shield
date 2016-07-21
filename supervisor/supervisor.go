@@ -295,7 +295,9 @@ func (s *Supervisor) Run() error {
 
 			// see if we have anything in the schedule queue
 		SchedQueue:
-			for i, t := range s.schedq {
+			for i := 0; i < len(s.schedq); i++ {
+				t := s.schedq[i]
+
 				runnable, err := s.Database.IsTaskRunnable(t)
 				if err != nil {
 					continue
@@ -312,6 +314,7 @@ func (s *Supervisor) Run() error {
 					s.runq = append(s.runq, s.schedq[i])
 					log.Debugf("added task to the runq")
 					s.schedq = append(s.schedq[:i], s.schedq[i+1:]...)
+					i -= 1 // adjust index after changing schedq's size
 				default:
 					break SchedQueue
 				}
