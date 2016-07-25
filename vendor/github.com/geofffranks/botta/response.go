@@ -1,8 +1,9 @@
 package botta
 
 import (
-	"github.com/jhunt/tree"
 	"net/http"
+
+	"github.com/starkandwayne/goutils/tree"
 )
 
 // Represents the HTTP response from your API

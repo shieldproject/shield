@@ -97,7 +97,7 @@
 		},
 		{
 			"ImportPath": "github.com/geofffranks/botta",
-			"Rev": "368c2fa539ba12d8437220997ef9d6da4c1ebcc4"
+			"Rev": "3c2ef4eff190dfeb79543b73ff92ca9534b8c3ce"
 		},
 		{
 			"ImportPath": "github.com/go-sql-driver/mysql",
@@ -123,14 +123,6 @@
 		{
 			"ImportPath": "github.com/gorilla/sessions",
 			"Rev": "c5bbe9d3d3c906d01de60189e5bfbba1d8164a80"
-		},
-		{
-			"ImportPath": "github.com/jhunt/ansi",
-			"Rev": "9aaf89a789f0b58bef35c13d4e0e4c4c62759364"
-		},
-		{
-			"ImportPath": "github.com/jhunt/tree",
-			"Rev": "2ad45c3404f9ea8116987e8a36db6f6d892aad26"
 		},
 		{
 			"ImportPath": "github.com/jmoiron/sqlx",
@@ -339,8 +331,16 @@
 			"Rev": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655"
 		},
 		{
+			"ImportPath": "github.com/starkandwayne/goutils/ansi",
+			"Rev": "1af0d9806cdff1eaa84c422f7bea313f3c4d073f"
+		},
+		{
 			"ImportPath": "github.com/starkandwayne/goutils/log",
-			"Rev": "2ed57be1d34986a6c3fb4c7c6b94d8fe75ea8cdd"
+			"Rev": "1af0d9806cdff1eaa84c422f7bea313f3c4d073f"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/tree",
+			"Rev": "1af0d9806cdff1eaa84c422f7bea313f3c4d073f"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/minio-go",
