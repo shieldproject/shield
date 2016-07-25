@@ -60,7 +60,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/jhunt/ansi"
+	"github.com/starkandwayne/goutils/ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )

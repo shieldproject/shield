@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jhunt/ansi"
+	"github.com/starkandwayne/goutils/ansi"
 )
 
 func Confirm(prompt string) bool {

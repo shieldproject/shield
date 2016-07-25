@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jhunt/ansi"
 	"github.com/pborman/getopt"
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/goutils/ansi"
 
 	. "github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"

@@ -66,8 +66,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/jhunt/ansi"
 	minio "github.com/minio/minio-go"
+	"github.com/starkandwayne/goutils/ansi"
 	"golang.org/x/net/proxy"
 
 	"github.com/starkandwayne/shield/plugin"

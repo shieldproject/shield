@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jhunt/ansi"
+	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 )
 
