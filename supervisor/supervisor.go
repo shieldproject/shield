@@ -295,15 +295,26 @@ func (s *Supervisor) Run() error {
 
 			// see if we have anything in the schedule queue
 		SchedQueue:
-			for len(s.schedq) > 0 {
+			for i := 0; i < len(s.schedq); i++ {
+				t := s.schedq[i]
+
+				runnable, err := s.Database.IsTaskRunnable(t)
+				if err != nil {
+					continue
+				}
+				if !runnable {
+					continue
+				}
+
 				select {
-				case s.workers <- s.schedq[0]:
-					s.Database.StartTask(s.schedq[0].UUID, time.Now())
-					s.schedq[0].Attempts++
+				case s.workers <- t:
+					s.Database.StartTask(t.UUID, time.Now())
+					s.schedq[i].Attempts++
 					log.Infof("sent a task to a worker")
-					s.runq = append(s.runq, s.schedq[0])
+					s.runq = append(s.runq, s.schedq[i])
 					log.Debugf("added task to the runq")
-					s.schedq = s.schedq[1:]
+					s.schedq = append(s.schedq[:i], s.schedq[i+1:]...)
+					i -= 1 // adjust index after changing schedq's size
 				default:
 					break SchedQueue
 				}

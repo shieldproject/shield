@@ -247,6 +247,21 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 	return db.GetTask(id)
 }
 
+func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
+	r, err := db.Query(`
+		SELECT uuid FROM tasks
+		  WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID.String(), RunningStatus)
+	if err != nil {
+		return false, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
 	return db.Exec(

@@ -368,4 +368,30 @@ var _ = Describe("Task Management", func() {
 			}))
 		})
 	})
+
+	Describe("IsTaskRunnable", func() {
+		notRunningTaskTargetUUID := uuid.NewRandom()
+		runningTaskTargetUUID := uuid.NewRandom()
+
+		BeforeEach(func() {
+			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
+				`VALUES('%s', '%s', '%s', %d, '%s')`,
+				uuid.NewRandom().String(), BackupOperation, PendingStatus, 0, notRunningTaskTargetUUID.String()))
+			Expect(err).ShouldNot(HaveOccurred())
+			err = db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
+				`VALUES('%s', '%s', '%s', %d, '%s')`,
+				uuid.NewRandom().String(), BackupOperation, RunningStatus, 0, runningTaskTargetUUID.String()))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+		It("Returns true if no other task with same target uuid is running", func() {
+			runnable, err := db.IsTaskRunnable(&Task{TargetUUID: notRunningTaskTargetUUID})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(runnable).To(BeTrue())
+		})
+		It("Returns false if another task with same target uuid is running", func() {
+			runnable, err := db.IsTaskRunnable(&Task{TargetUUID: runningTaskTargetUUID})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(runnable).To(BeFalse())
+		})
+	})
 })
