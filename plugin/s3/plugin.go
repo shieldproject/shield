@@ -339,7 +339,7 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 	path = strings.Replace(path, "//", "/", -1)
 	// Remove a leading slash
 	if strings.HasPrefix(path, "/") {
-		strings.Replace(path, "/", "", 1))
+		strings.Replace(path, "/", "", 1)
 	}
 	return path
 }
