@@ -64,6 +64,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	minio "github.com/minio/minio-go"
@@ -333,7 +334,9 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 	year, mon, day := t.Date()
 	hour, min, sec := t.Clock()
 	uuid := plugin.GenUUID()
-	return fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
+	path := fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
+	path = strings.Replace(path, "//", "/", -1)
+	return path
 }
 
 func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
