@@ -96,10 +96,6 @@
 			"Rev": "d750ee8aff39bca4ccf0b362db4f04510145d678"
 		},
 		{
-			"ImportPath": "github.com/geofffranks/botta",
-			"Rev": "3c2ef4eff190dfeb79543b73ff92ca9534b8c3ce"
-		},
-		{
 			"ImportPath": "github.com/go-sql-driver/mysql",
 			"Comment": "v1.2-196-g3654d25",
 			"Rev": "3654d25ec346ee8ce71a68431025458d52a38ac0"
@@ -170,7 +166,6 @@
 		},
 		{
 			"ImportPath": "github.com/mattn/go-shellwords",
-			"Comment": "v1.0.0",
 			"Rev": "f4e566c536cf69158e808ec28ef4182a37fdc981"
 		},
 		{
@@ -332,19 +327,19 @@
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/ansi",
-			"Rev": "a7c776659b268a2aef989e0b5ec0d60f1ce7751b"
+			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/botta",
-			"Rev": "a7c776659b268a2aef989e0b5ec0d60f1ce7751b"
+			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/log",
-			"Rev": "a7c776659b268a2aef989e0b5ec0d60f1ce7751b"
+			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/tree",
-			"Rev": "a7c776659b268a2aef989e0b5ec0d60f1ce7751b"
+			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/minio-go",
