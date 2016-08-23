@@ -2,12 +2,13 @@ package supervisor
 
 import (
 	"fmt"
-	"github.com/geofffranks/botta"
-	"github.com/google/go-github/github"
-	"github.com/markbates/goth"
-	"github.com/starkandwayne/goutils/log"
 	"net/http"
 	"strings"
+
+	"github.com/google/go-github/github"
+	"github.com/markbates/goth"
+	"github.com/starkandwayne/goutils/botta"
+	"github.com/starkandwayne/goutils/log"
 )
 
 var OAuthVerifier MembershipChecker
