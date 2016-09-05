@@ -231,13 +231,16 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
+		     target_plugin, target_endpoint,
 		     restore_key, agent, attempts)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
+		     ?, ?,
 		     ?, ?, ?)`,
 		id.String(), owner, PurgeOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
+		"", "",
 		archive.StoreKey, agent, 0,
 	)
 
