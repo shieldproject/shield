@@ -21,9 +21,9 @@
 //        "pg_user":"username-for-postgres",
 //        "pg_password":"password-for-above-user",
 //        "pg_host":"hostname-or-ip-of-pg-server",
-//        "pg_port":"port-above-pg-server-listens-on",   # optional, defaults to '5432'
-//        "pg_database": "name-of-db-to-backup"          # optional, defaults to 'all'
-//        "pg_bindir": "PostgreSQL binaries directory"   # optional, defaults to '/var/vcap/packages/postgres/bin'
+//        "pg_port":"port-above-pg-server-listens-on", # optional
+//        "pg_database": "name-of-db-to-backup",       # optional
+//        "pg_bindir": "PostgreSQL binaries directory" # optional
 //    }
 //
 // The `pg_port` field is optional. If specified, the plugin will connect to the
@@ -272,6 +272,7 @@ func (p PostgresPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 
 func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
 	DEBUG("Setting up env:\n   PGUSER=%s, PGPASSWORD=%s, PGHOST=%s, PGPORT=%s", pg.User, pg.Password, pg.Host, pg.Port)
+
 	os.Setenv("PGUSER", pg.User)
 	os.Setenv("PGPASSWORD", pg.Password)
 	os.Setenv("PGHOST", pg.Host)
