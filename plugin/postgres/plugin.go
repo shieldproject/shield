@@ -21,13 +21,24 @@
 //        "pg_user":"username-for-postgres",
 //        "pg_password":"password-for-above-user",
 //        "pg_host":"hostname-or-ip-of-pg-server",
-//        "pg_port":"port-above-pg-server-listens-on",   # defaults to 5432
-//        "pg_database": "name-of-db-to-backup"          # optional
+//        "pg_port":"port-above-pg-server-listens-on", # optional
+//        "pg_database": "name-of-db-to-backup",       # optional
+//        "pg_bindir": "PostgreSQL binaries directory" # optional
 //    }
+//
+// The `pg_port` field is optional. If specified, the plugin will connect to the
+// given port to perform backups. If not specified plugin will connect to
+// default postgres port 5432.
 //
 // The `pg_database` field is optional.  If specified, the plugin will only
 // perform backups of the named database.  If not specified (the default), all
 // databases will be backed up.
+//
+// The `pg_bindir` field is optional. It specifies where to find the PostgreSQL
+// binaries such as pg_dump / pg_dumpall / pg_restore. If specified, the plugin
+// will attempt to use binaries from within the given directory. If not specified
+// the plugin will default to trying to use binaries in
+// '/var/vcap/packages/postgres/bin'.
 //
 // BACKUP DETAILS
 //
@@ -261,6 +272,7 @@ func (p PostgresPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 
 func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
 	DEBUG("Setting up env:\n   PGUSER=%s, PGPASSWORD=%s, PGHOST=%s, PGPORT=%s", pg.User, pg.Password, pg.Host, pg.Port)
+
 	os.Setenv("PGUSER", pg.User)
 	os.Setenv("PGPASSWORD", pg.Password)
 	os.Setenv("PGHOST", pg.Host)
@@ -293,9 +305,15 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	DEBUG("PGPORT: '%s'", port)
 
 	database, err := endpoint.StringValueDefault("pg_database", "")
+	if err != nil {
+		return nil, err
+	}
 	DEBUG("PGDATABASE: '%s'", database)
 
-	bin := "/var/vcap/packages/postgres-9.4/bin"
+	bin, err := endpoint.StringValueDefault("pg_bindir", "/var/vcap/packages/postgres/bin")
+	if err != nil {
+		return nil, err
+	}
 	DEBUG("PGBINDIR: '%s'", bin)
 
 	return &PostgresConnectionInfo{
