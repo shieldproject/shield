@@ -304,9 +304,15 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	DEBUG("PGPORT: '%s'", port)
 
 	database, err := endpoint.StringValueDefault("pg_database", "")
+	if err != nil {
+		return nil, err
+	}
 	DEBUG("PGDATABASE: '%s'", database)
 
 	bin, err := endpoint.StringValueDefault("pg_bindir", "/var/vcap/packages/postgres/bin")
+	if err != nil {
+		return nil, err
+	}
 	DEBUG("PGBINDIR: '%s'", bin)
 
 	return &PostgresConnectionInfo{
