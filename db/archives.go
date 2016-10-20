@@ -228,10 +228,9 @@ func (db *DB) PurgeArchive(id uuid.UUID) error {
 		return fmt.Errorf("Invalid attempt to purge a 'valid' archive detected")
 	}
 
-	err = db.Exec(`UPDATE archives SET purge_reason =
-                       (SELECT status FROM archives WHERE uuid = ?)
-                       WHERE uuid = ?
-                  `, id.String(), id.String())
+	err = db.Exec(`UPDATE archives AS a, (SELECT status FROM archives WHERE uuid = ?) AS s
+			SET a.purge_reason = s.status
+			WHERE a.uuid = ?;`, id.String(), id.String())
 	if err != nil {
 		return err
 	}
