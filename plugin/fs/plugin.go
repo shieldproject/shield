@@ -185,7 +185,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	if cfg.Exclude != "" {
 		flags = fmt.Sprintf("%s --exclude '%s'", flags, cfg.Exclude)
 	}
-	cmd := fmt.Sprintf("%s -c -C %s %s .", cfg.BsdTar, cfg.BasePath, flags)
+	cmd := fmt.Sprintf("%s -c -C %s -f /dev/stdout %s .", cfg.BsdTar, cfg.BasePath, flags)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDOUT)
 	if err != nil {
