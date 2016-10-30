@@ -36,7 +36,7 @@ var (
 	debug = false
 )
 
-var Version = "(development)"
+var Version = ""
 
 func main() {
 	options := Options{
@@ -64,7 +64,7 @@ func main() {
 		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
 
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
-		Version: getopt.BoolLong("version", 'v', "Print shield CLI version"),
+		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
 	}
 
 	OK := func(f string, l ...interface{}) {
@@ -110,7 +110,11 @@ func main() {
 	}
 
 	if *options.Version {
-		fmt.Printf("%s - Version %s\n", os.Args[0], Version)
+		if Version == "" {
+			fmt.Printf("shield cli (development)%s\n", Version)
+		} else {
+			fmt.Printf("shield cli v%s\n", Version)
+		}
 		os.Exit(0)
 	}
 

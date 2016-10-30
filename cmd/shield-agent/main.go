@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/voxelbrain/goptions"
 
@@ -10,9 +11,13 @@ import (
 )
 
 type ShieldAgentOpts struct {
-	ConfigFile string `goptions:"-c, --config, obligatory, description='Path to the shield-agent configuration file'"`
+	Help       bool   `goptions:"-h, --help, description='Show the help screen'"`
+	ConfigFile string `goptions:"-c, --config, description='Path to the shield-agent configuration file'"`
 	Log        string `goptions:"-l, --log-level, description='Set logging level to debug, info, notice, warn, error, crit, alert, or emerg'"`
+	Version    bool   `goptions:"-v, --version, description='Display the SHIELD version'"`
 }
+
+var Version = ""
 
 func main() {
 	var opts ShieldAgentOpts
@@ -21,6 +26,22 @@ func main() {
 		fmt.Printf("%s\n", err)
 		goptions.PrintHelp()
 		return
+	}
+	if opts.Help {
+		goptions.PrintHelp()
+		os.Exit(0)
+	}
+	if opts.Version {
+		if Version == "" {
+			fmt.Printf("shield-agent (development)%s\n", Version)
+		} else {
+			fmt.Printf("shield-agent v%s\n", Version)
+		}
+		os.Exit(0)
+	}
+	if opts.ConfigFile == "" {
+		fmt.Fprintf(os.Stderr, "You must specify a configuration file via `--config`\n")
+		os.Exit(1)
 	}
 
 	log.SetupLogging(log.LogConfig{Type: "console", Level: opts.Log})
