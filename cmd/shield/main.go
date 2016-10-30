@@ -1545,8 +1545,7 @@ func main() {
 					true, "-S", "--status=value")
 				FlagHelp(`Show all tasks, regardless of state`, true, "-a", "--all")
 				FlagHelp("Returns information as a JSON object", true, "--raw")
-				//TODO: Uncommment that FlagHelp when --limit is implemented for this function
-				//FlagHelp("Show only the <value> most recent tasks", true, "--limit=value")
+				FlagHelp("Show only the <value> most recent tasks", true, "--limit=value")
 				HelpKMacro()
 				JSONHelp(`[{"uuid":"0e3736f3-6905-40ba-9adc-06641a282ff4","owner":"system","type":"backup","job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8","archive_uuid":"2a4147ea-84a6-40fc-8028-143efabcc49d","status":"done","started_at":"2016-05-17 11:00:01","stopped_at":"2016-05-17 11:00:02","timeout_at":"","log":"This is where I would put my plugin output if I had one"}]`)
 				return nil
@@ -1564,6 +1563,7 @@ func main() {
 
 			tasks, err := GetTasks(TaskFilter{
 				Status: *options.Status,
+				Limit:  *options.Limit,
 			})
 			if err != nil {
 				return err
