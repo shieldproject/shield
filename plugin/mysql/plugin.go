@@ -165,7 +165,7 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 		mysql.Host = mysql.Replica
 	}
 
-	cmd := fmt.Sprintf("%s/mysqldump %s", mysql.Bin, connectionString(mysql))
+	cmd := fmt.Sprintf("%s/mysqldump %s", mysql.Bin, connectionString(mysql, true))
 	DEBUG("Executing: `%s`", cmd)
 	return Exec(cmd, STDOUT)
 }
@@ -177,7 +177,7 @@ func (p MySQLPlugin) Restore(endpoint ShieldEndpoint) error {
 		return err
 	}
 
-	cmd := fmt.Sprintf("%s/mysql %s", mysql.Bin, connectionString(mysql))
+	cmd := fmt.Sprintf("%s/mysql %s", mysql.Bin, connectionString(mysql, false))
 	DEBUG("Exec: %s", cmd)
 	return Exec(cmd, STDIN)
 }
@@ -194,13 +194,15 @@ func (p MySQLPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 	return UNIMPLEMENTED
 }
 
-func connectionString(info *MySQLConnectionInfo) string {
+func connectionString(info *MySQLConnectionInfo, backup bool) string {
 	// use env variable for communicating password, so it's less likely to appear in our logs/ps output
 	os.Setenv("MYSQL_PWD", info.Password)
 
-	db := "--all-databases"
+	var db string
 	if info.Database != "" {
 		db = info.Database
+	} else if backup {
+		db = "--all-databases"
 	}
 
 	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)

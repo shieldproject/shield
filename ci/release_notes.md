@@ -27,3 +27,6 @@
 
 - Dropdowns on the Job Edit Form now remember the values the Job
   had before you opened the form.  Fixes #173
+
+- The `mysql` plugin can now be used to backup _and_ restore all
+  databases.  Fixes #211
