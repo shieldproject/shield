@@ -290,6 +290,11 @@ func main() {
 
 			DEBUG("running 'backend' command")
 
+			if len(args) == 0 {
+				DisplayBackend(Cfg)
+				return nil
+			}
+
 			if len(args) != 1 {
 				return fmt.Errorf("Invalid 'backend' syntax: `shield backend <name>`")
 			}
