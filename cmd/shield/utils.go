@@ -46,7 +46,7 @@ func DEBUG(format string, args ...interface{}) {
 
 func DisplayBackend(cfg *api.Config) {
 	if cfg.BackendURI() == "" {
-		ansi.Fprintf(os.Stderr, "No current SHIELD backend\n\n");
+		ansi.Fprintf(os.Stderr, "No current SHIELD backend\n\n")
 	} else {
 		ansi.Fprintf(os.Stderr, "Using @G{%s} (%s) as SHIELD backend\n\n", cfg.BackendURI(), cfg.Backend)
 	}
