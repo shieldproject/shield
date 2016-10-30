@@ -7,7 +7,7 @@ func FieldIsStoreUUID(name string, value string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return o.UUID, nil
+	return NewReference(o.UUID, o.Name), nil
 }
 
 func FieldIsTargetUUID(name string, value string) (interface{}, error) {
@@ -15,7 +15,7 @@ func FieldIsTargetUUID(name string, value string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return o.UUID, nil
+	return NewReference(o.UUID, o.Name), nil
 }
 
 func FieldIsRetentionPolicyUUID(name string, value string) (interface{}, error) {
@@ -23,7 +23,7 @@ func FieldIsRetentionPolicyUUID(name string, value string) (interface{}, error) 
 	if err != nil {
 		return nil, err
 	}
-	return o.UUID, nil
+	return NewReference(o.UUID, o.Name), nil
 }
 
 func FieldIsScheduleUUID(name string, value string) (interface{}, error) {
@@ -31,7 +31,7 @@ func FieldIsScheduleUUID(name string, value string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return o.UUID, nil
+	return NewReference(o.UUID, o.Name), nil
 }
 
 func FieldIsRetentionTimeframe(name string, value string) (interface{}, error) {
