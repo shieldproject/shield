@@ -30,6 +30,13 @@
   supported plugins, and the static assets for the SHIELD Web UI
   (in webui/).  Fixes #217
 
+- Backup and Restore operations now bail out if no data is
+  detected on the input side of the stream.  That is, if a backup
+  plugin misbehaves and doesn't send any data to be backed up, the
+  job will fail.  Likewise, if a restore doesn't pull any data
+  back from the remote store, the operation fails.  This is
+  considered a good thing.
+
 # Bug Fixes
 
 - Dropdowns on the Job Edit Form now remember the values the Job
