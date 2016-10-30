@@ -193,16 +193,24 @@
     list:   MODEL.lister  ('/v1/targets', 'targets'),
     delete: MODEL.deleter ('/v1/target/%s'),
     show:   MODEL.findOne ('/v1/target/%s'),
-    create: MODEL.creater ('/v1/targets',   function (t) { t.endpoint = rejson(t.endpoint); return t; }),
-    update: MODEL.updater ('/v1/target/%s', function (t) { t.endpoint = rejson(t.endpoint); return t; })
+    create: MODEL.creater ('/v1/targets',   function (t) { t.plugin = t.plugin.toLowerCase();
+                                                           t.endpoint = rejson(t.endpoint);
+                                                           return t; }),
+    update: MODEL.updater ('/v1/target/%s', function (t) { t.plugin = t.plugin.toLowerCase();
+                                                           t.endpoint = rejson(t.endpoint);
+                                                           return t; })
   });
   $.extend(Store, {
     type:   'store',
     list:   MODEL.lister  ('/v1/stores', 'stores'),
     delete: MODEL.deleter ('/v1/store/%s'),
     show:   MODEL.findOne ('/v1/store/%s'),
-    create: MODEL.creater ('/v1/stores',   function (s) { s.endpoint = rejson(s.endpoint); return s; }),
-    update: MODEL.updater ('/v1/store/%s', function (s) { s.endpoint = rejson(s.endpoint); return s; })
+    create: MODEL.creater ('/v1/stores',   function (s) { s.plugin = s.plugin.toLowerCase();
+                                                          s.endpoint = rejson(s.endpoint);
+                                                          return s; }),
+    update: MODEL.updater ('/v1/store/%s', function (s) { s.plugin = s.plugin.toLowerCase();
+                                                          s.endpoint = rejson(s.endpoint);
+                                                          return s; })
   });
   $.extend(Archive, {
     type:   'archive',

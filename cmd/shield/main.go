@@ -410,7 +410,7 @@ func main() {
 				in := tui.NewForm()
 				in.NewField("Target Name", "name", "", "", tui.FieldIsRequired)
 				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", "", "", tui.FieldIsRequired)
+				in.NewField("Plugin Name", "plugin", "", "", FieldIsPluginName)
 				in.NewField("Configuration", "endpoint", "", "", tui.FieldIsRequired)
 				in.NewField("Remote IP:port", "agent", "", "", tui.FieldIsRequired)
 				err := in.Show()
@@ -470,7 +470,7 @@ func main() {
 				in := tui.NewForm()
 				in.NewField("Target Name", "name", t.Name, "", tui.FieldIsRequired)
 				in.NewField("Summary", "summary", t.Summary, "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", t.Plugin, "", tui.FieldIsRequired)
+				in.NewField("Plugin Name", "plugin", t.Plugin, "", FieldIsPluginName)
 				in.NewField("Configuration", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
 				in.NewField("Remote IP:port", "agent", t.Agent, "", tui.FieldIsRequired)
 
@@ -1066,7 +1066,7 @@ func main() {
 				in := tui.NewForm()
 				in.NewField("Store Name", "name", "", "", tui.FieldIsRequired)
 				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", "", "", tui.FieldIsRequired)
+				in.NewField("Plugin Name", "plugin", "", "", FieldIsPluginName)
 				in.NewField("Configuration (JSON)", "endpoint", "", "", tui.FieldIsRequired)
 
 				if err := in.Show(); err != nil {
@@ -1125,7 +1125,7 @@ func main() {
 				in := tui.NewForm()
 				in.NewField("Store Name", "name", s.Name, "", tui.FieldIsRequired)
 				in.NewField("Summary", "summary", s.Summary, "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", s.Plugin, "", tui.FieldIsRequired)
+				in.NewField("Plugin Name", "plugin", s.Plugin, "", FieldIsPluginName)
 				in.NewField("Configuration (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
 
 				err = in.Show()

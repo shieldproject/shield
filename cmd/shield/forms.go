@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 func FieldIsStoreUUID(name string, value string) (interface{}, error) {
 	o, _, err := FindStore(value, false)
@@ -41,4 +44,11 @@ func FieldIsRetentionTimeframe(name string, value string) (interface{}, error) {
 	}
 	i.text = strings.TrimSuffix(i.text, "d")
 	return i, nil
+}
+
+func FieldIsPluginName(name string, value string) (interface{}, error) {
+	if len(value) < 1 {
+		return value, fmt.Errorf("Field %s is a required field.\n", name)
+	}
+	return strings.ToLower(value), nil
 }
