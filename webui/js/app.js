@@ -675,7 +675,7 @@
           for (var i = 0; i < DB[f.listof].length; i++) {
             o = DB[f.listof][i];
             sel = '';
-            if (this.thing && v == f.value) {
+            if (this.thing && this.thing[f.name + '_' + f.keyed] == o[f.keyed]) {
               sel = ' selected="selected"';
             }
             s += '<option value="'+o[f.keyed]+'"'+sel+'>'+f.display(o)+'</option>';
