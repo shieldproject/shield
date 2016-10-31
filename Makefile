@@ -99,6 +99,6 @@ release:
 	gox -osarch="$(TARGETS)" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema"      ./cmd/shield-schema
 	gox -osarch="$(TARGETS)" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"            ./cmd/shieldd
 
-	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
+	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
 
 .PHONY: shield
