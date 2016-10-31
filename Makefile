@@ -92,6 +92,8 @@ release:
 
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
 
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/cli/shield"                ./cmd/shield
+
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
 
