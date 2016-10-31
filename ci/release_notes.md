@@ -52,3 +52,6 @@
   but didn't work out so well in the real world.  Mitigations have
   been put in place to ensure that plugins send backup data to the
   store plugin.
+
+- The `fs` plugin now creates the base directory if it does not
+  already exist, allowing for complete restore from a backup.

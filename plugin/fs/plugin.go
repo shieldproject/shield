@@ -201,6 +201,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
+	os.MkdirAll(cfg.BasePath, 0777)
 	cmd := fmt.Sprintf("%s -x -C %s -f -", cfg.BsdTar, cfg.BasePath)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
