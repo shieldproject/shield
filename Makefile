@@ -96,8 +96,8 @@ release:
 
 	gox -osarch="$(TARGETS)" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
 
-	gox -osarch="$(TARGETS)" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema"      ./cmd/shield-schema
-	gox -osarch="$(TARGETS)" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"            ./cmd/shieldd
+	CGO_ENABLED=1 gox -osarch="$(TARGETS)" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
+	CGO_ENABLED=1 gox -osarch="$(TARGETS)" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
 
 	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
 
