@@ -62,7 +62,10 @@ go build -o "${BINARY}" -ldflags="-X main.Version=${VERSION}" ${CMD_PKG:-.}
 ./${BINARY} -v
 
 # SHIELD-specific packaging requirements
-test -f Makefile && make release
+if [[ -f Makefile ]]; then
+	export VERSION TARGETS
+	make release
+fi
 # </customization>
 
 popd
