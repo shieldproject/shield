@@ -60,6 +60,11 @@ mkdir artifacts
 gox -osarch="${TARGETS}" --output="artifacts/${BINARY}-{{.OS}}-{{.Arch}}" -ldflags="-X main.Version=${VERSION}" ${CMD_PKG:-./...}
 go build -o "${BINARY}" -ldflags="-X main.Version=${VERSION}" ${CMD_PKG:-.}
 ./${BINARY} -v
+
+# SHIELD-specific packaging requirements
+test -f Makefile && make release
+# </customization>
+
 popd
 
 echo "v${VERSION}"                         > ${RELEASE_ROOT}/tag

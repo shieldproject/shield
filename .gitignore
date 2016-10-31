@@ -14,8 +14,8 @@
 /scality
 .DS_Store
 
-# ignore vim buffers
-.*.sw?
+# ignore release testing output
+/artifacts
 
 # where we keep coverage reports...
 /coverage

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/starkandwayne/goutils/log"
 	"github.com/voxelbrain/goptions"
 
@@ -12,16 +15,44 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+var Version = ""
+
 func main() {
 	log.Infof("starting schema...")
 
 	options := struct {
-		Driver string `goptions:"-t,--type, obligatory, description='Type of database backend'"`
-		DSN    string `goptions:"-d,--database, obligatory, description='DSN of the database backend'"`
+		Help    bool   `goptions:"-h, --help, description='Show the help screen'"`
+		Driver  string `goptions:"-t, --type, description='Type of database backend (postgres or mysql)'"`
+		DSN     string `goptions:"-d,--database, description='DSN of the database backend'"`
+		Version bool   `goptions:"-v, --version, description='Display the SHIELD version'"`
 	}{
 	// No defaults
 	}
-	goptions.ParseAndFail(&options)
+	if err := goptions.Parse(&options); err != nil {
+		fmt.Printf("%s\n", err)
+		goptions.PrintHelp()
+		return
+	}
+	if options.Help {
+		goptions.PrintHelp()
+		os.Exit(0)
+	}
+	if options.Version {
+		if Version == "" {
+			fmt.Printf("shield-schema (development)%s\n", Version)
+		} else {
+			fmt.Printf("shield-schema v%s\n", Version)
+		}
+		os.Exit(0)
+	}
+	if options.Driver == "" {
+		fmt.Fprintf(os.Stderr, "You must indicate which type of database you wish to manage, via the `--type` option.\n")
+		os.Exit(1)
+	}
+	if options.DSN == "" {
+		fmt.Fprintf(os.Stderr, "You must specify the DSN of your database, via the `--database` option.\n")
+		os.Exit(1)
+	}
 
 	database := &db.DB{
 		Driver: options.Driver,

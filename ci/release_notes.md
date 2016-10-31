@@ -23,6 +23,13 @@
   it is unneeded. If it is specified and is an invalid value, your postgres
   backups will start to fail after upgrading.
 
+- Releases should now include both the SHIELD CLI (built for
+  various platforms) and also the server components, available as a
+  tarball for different platforms / architectures.  This tarball
+  contains: `shield-schema`, `shield-agent` and `shieldd`, all
+  supported plugins, and the static assets for the SHIELD Web UI
+  (in webui/).  Fixes #217
+
 # Bug Fixes
 
 - Dropdowns on the Job Edit Form now remember the values the Job
