@@ -44,3 +44,11 @@
 
 - The `mysql` plugin can now be used to backup _and_ restore all
   databases.  Fixes #211
+
+- The `fs` plugin just plain didn't work; it would happily write
+  to the (regular) file /dev/st0, but not to standard output.
+  Similarly, on restore, it would read from /dev/st0, not standard
+  input.  This caused our testing (one fs-based backup) to pass,
+  but didn't work out so well in the real world.  Mitigations have
+  been put in place to ensure that plugins send backup data to the
+  store plugin.
