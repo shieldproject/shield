@@ -98,9 +98,21 @@ case ${SHIELD_OP} in
 	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
 
 	header "Running backup task (using bzip2 compression)"
+
+	PULSE=$(mktemp --tmpdir shield-pipe.XXXXX)
+	trap "rm -f ${PULSE}" QUIT TERM INT
+
 	set -o pipefail
-	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | bzip2 | \
+	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | tee >(tail -c1 >$PULSE) | bzip2 | \
 		${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
+
+	if [[ ! -s ${PULSE} ]]; then
+		rm -f ${PULSE}
+		echo >&2 "NO DATA RECEIVED FROM BACKUP PLUGIN"
+		exit 1
+	fi
+	rm -f ${PULSE}
+
 	exit 0
 	;;
 
