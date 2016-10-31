@@ -171,8 +171,8 @@
 		},
 		{
 			"ImportPath": "github.com/mattn/go-sqlite3",
-			"Comment": "v1.1.0-62-g467f50b",
-			"Rev": "467f50b0c026317ad28fc2c0a08aab6f755cfc7a"
+			"Comment": "v1.1.0-102-g86681de",
+			"Rev": "86681de00adef4f8040947b7d35f97000fc5a230"
 		},
 		{
 			"ImportPath": "github.com/michaeljs1990/sqlitestore",
