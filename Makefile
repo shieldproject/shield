@@ -72,7 +72,7 @@ restore-deps:
 save-deps:
 	godep save ./...
 
-ARTIFACTS := artifacts/shield-server-$(VERSION)-{{.OS}}-{{.Arch}}
+ARTIFACTS := artifacts/shield-server-{{.OS}}-{{.Arch}}
 LDFLAGS := -X main.Version=$(VERSION)
 release:
 	@echo "Checking that VERSION was defined in the calling environment"
