@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
+
+	"github.com/starkandwayne/goutils/ansi"
 )
 
 type Options struct {
@@ -46,16 +49,18 @@ type Options struct {
 type Handler func(opts Options, args []string, help bool) error
 
 type Command struct {
-	help     [][]string
-	summary  map[string]string
-	commands map[string]Handler
-	options  Options
+	help       [][]string
+	summary    map[string]string
+	commands   map[string]Handler
+	deprecated map[string]bool
+	options    Options
 }
 
 func NewCommand() *Command {
 	return &Command{
-		summary:  map[string]string{},
-		commands: map[string]Handler{},
+		summary:    map[string]string{},
+		commands:   map[string]Handler{},
+		deprecated: map[string]bool{},
 	}
 }
 
@@ -92,6 +97,7 @@ func (c *Command) Dispatch(command string, help string, fn Handler) {
 	if help != "" {
 		c.help = append(c.help, []string{command, help})
 	}
+
 	c.summary[command] = help
 	c.commands[command] = fn
 }
@@ -105,6 +111,7 @@ func (c *Command) Alias(alias string, command string) {
 	} else {
 		panic(fmt.Sprintf("unknown command `%s' for alias `%s'", command, alias))
 	}
+	c.deprecated[alias] = true
 }
 
 //Returns a newline separated list of aliases for the given command
@@ -114,12 +121,29 @@ func (c *Command) AliasesFor(command string) []string {
 		panic(fmt.Sprintf("unknown command `%s' to find aliases for", command))
 	}
 	for alias, _ := range c.commands {
-		if reflect.ValueOf(c.commands[alias]).Pointer() == reflect.ValueOf(c.commands[command]).Pointer() {
+		if c.isAliasFor(alias, command) {
 			aliases = append(aliases, alias)
 		}
 	}
 	sort.Strings(aliases)
 	return aliases
+}
+
+func (c *Command) isAliasFor(alias, command string) bool {
+	return reflect.ValueOf(c.commands[alias]).Pointer() == reflect.ValueOf(c.commands[command]).Pointer()
+}
+
+func (c *Command) isCanonicalFor(canon, command string) bool {
+	return c.isAliasFor(canon, command) && !c.deprecated[canon]
+}
+
+func (c *Command) getCanonicalOf(command string) string {
+	for alias := range c.commands {
+		if c.isCanonicalFor(alias, command) {
+			return alias
+		}
+	}
+	return ""
 }
 
 func (c *Command) With(opts Options) *Command {
@@ -139,6 +163,10 @@ func (c *Command) do(cmd []string, help bool) error {
 	if last != 0 {
 		command := strings.Join(cmd[0:last], " ")
 		if fn, ok := c.commands[command]; ok {
+			if c.deprecated[command] {
+				canon := c.getCanonicalOf(command)
+				ansi.Fprintf(os.Stderr, "@R{The alias `%s` is deprecated in favor of `%s`}\n", command, canon)
+			}
 			err = fn(c.options, cmd[last:], help)
 
 			//Avoid recursive help
@@ -154,6 +182,9 @@ func (c *Command) do(cmd []string, help bool) error {
 				}
 			}
 			if help && !isHelper {
+				if c.deprecated[command] {
+					command = c.getCanonicalOf(command)
+				}
 				PrintUsage(command)
 				PrintMessage(command, c)
 				PrintAliasHelp(command, c)
