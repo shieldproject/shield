@@ -91,6 +91,7 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mysql"             ./plugin/mysql
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/rabbitmq-broker"   ./plugin/rabbitmq-broker
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/scality"           ./plugin/scality
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul"           ./plugin/consul
 
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
 
