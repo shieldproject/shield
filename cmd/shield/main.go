@@ -129,8 +129,11 @@ func main() {
 				//Gets the usage line from the getopt usage output
 				ansi.Fprintf(os.Stderr, strings.Split(buf.String(), "\n")[0]+"\n")
 				ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
-				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield help commands}\n")
-				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield help flags}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield commands}\n")
+				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield flags}\n")
+				ansi.Fprintf(os.Stderr, "\n@R{The verbose, multi-word commands (such as `list schedules`) are now deprecated}\n"+
+					"@R{in favor of, for example, the shorter `schedules`. Other long commands have had their}\n"+
+					"@R{spaces replaced with dashes. Check `commands` for the new canonical names.}\n")
 				return nil
 			} else if args[0] == "help" {
 				ansi.Fprintf(os.Stderr, "@R{This is getting a bit too meta, don't you think?}\n")
@@ -247,7 +250,7 @@ func main() {
 	c.Alias("list backends", "backends")
 	c.Alias("ls be", "backends")
 
-	c.Dispatch("create backend", "Create or modify a SHIELD backend",
+	c.Dispatch("create-backend", "Create or modify a SHIELD backend",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp(`The name of the new backend`, false, "<name>")
@@ -281,9 +284,12 @@ func main() {
 
 			return nil
 		})
-	c.Alias("c be", "create backend")
-	c.Alias("update backend", "create backend")
-	c.Alias("edit backend", "create backend")
+	c.Alias("create backend", "create-backend")
+	c.Alias("c be", "create-backend")
+	c.Alias("update backend", "create-backend")
+	c.Alias("update-backend", "create-backend")
+	c.Alias("edit-backend", "create-backend")
+	c.Alias("edit backend", "create-backend")
 
 	c.Dispatch("backend", "Select a particular backend for use",
 		func(opts Options, args []string, help bool) error {
@@ -312,6 +318,7 @@ func main() {
 			return nil
 		})
 	c.Alias("use backend", "backend")
+	c.Alias("use-backend", "backend")
 
 	/*
 	   ########    ###    ########   ######   ######## ########
@@ -325,7 +332,7 @@ func main() {
 
 	c.HelpBreak()
 	c.HelpGroup("TARGETS:")
-	c.Dispatch("list targets", "List available backup targets",
+	c.Dispatch("targets", "List available backup targets",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp("Only show targets using the named target plugin", true, "-P", "--policy=value")
@@ -361,10 +368,10 @@ func main() {
 			t.Output(os.Stdout)
 			return nil
 		})
-	c.Alias("ls targets", "list targets")
-	c.Alias("targets", "list targets")
+	c.Alias("list targets", "targets")
+	c.Alias("ls targets", "targets")
 
-	c.Dispatch("show target", "Print detailed information about a specific backup target",
+	c.Dispatch("target", "Print detailed information about a specific backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}`)
@@ -386,12 +393,13 @@ func main() {
 			ShowTarget(target)
 			return nil
 		})
-	c.Alias("view target", "show target")
-	c.Alias("display target", "show target")
-	c.Alias("list target", "show target")
-	c.Alias("ls target", "show target")
+	c.Alias("show target", "target")
+	c.Alias("view target", "target")
+	c.Alias("display target", "target")
+	c.Alias("list target", "target")
+	c.Alias("ls target", "target")
 
-	c.Dispatch("create target", "Create a new backup target",
+	c.Dispatch("create-target", "Create a new backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestTarget","plugin":"postgres","summary":"A Test Target"}`)
@@ -441,13 +449,14 @@ func main() {
 			MSG("Created new target")
 			return c.Execute("show", "target", t.UUID)
 		})
-	c.Alias("new target", "create target")
-	c.Alias("create new target", "create target")
-	c.Alias("make target", "create target")
-	c.Alias("c t", "create target")
-	c.Alias("add target", "create target")
+	c.Alias("create target", "create-target")
+	c.Alias("new target", "create-target")
+	c.Alias("create new target", "create-target")
+	c.Alias("make target", "create-target")
+	c.Alias("c t", "create-target")
+	c.Alias("add target", "create-target")
 
-	c.Dispatch("edit target", "Modify an existing backup target",
+	c.Dispatch("edit-target", "Modify an existing backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"newschmendpoint\"}","name":"NewTargetName","plugin":"postgres","summary":"Some Target"}`)
@@ -501,9 +510,10 @@ func main() {
 			MSG("Updated target")
 			return c.Execute("show", "target", t.UUID)
 		})
-	c.Alias("update target", "edit target")
+	c.Alias("edit target", "edit-target")
+	c.Alias("update target", "edit-target")
 
-	c.Dispatch("delete target", "Delete a backup target",
+	c.Dispatch("delete-target", "Delete a backup target",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpDeleteMacro("target", "targets")
@@ -531,8 +541,9 @@ func main() {
 			OK("Deleted target")
 			return nil
 		})
-	c.Alias("remove target", "delete target")
-	c.Alias("rm target", "delete target")
+	c.Alias("delete target", "delete-target")
+	c.Alias("remove target", "delete-target")
+	c.Alias("rm target", "delete-target")
 
 	/*
 	    ######   ######  ##     ## ######## ########  ##     ## ##       ########
@@ -546,7 +557,7 @@ func main() {
 
 	c.HelpBreak()
 	c.HelpGroup("SCHEDULES:")
-	c.Dispatch("list schedules", "List available backup schedules",
+	c.Dispatch("schedules", "List available backup schedules",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpListMacro("schedule", "schedules")
@@ -578,9 +589,10 @@ func main() {
 			t.Output(os.Stdout)
 			return nil
 		})
-	c.Alias("ls schedules", "list schedules")
+	c.Alias("list schedules", "schedules")
+	c.Alias("ls schedules", "schedules")
 
-	c.Dispatch("show schedule", "Print detailed information about a specific backup schedule",
+	c.Dispatch("schedule", "Print detailed information about a specific backup schedule",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpShowMacro("schedule", "schedules")
@@ -602,12 +614,13 @@ func main() {
 			ShowSchedule(schedule)
 			return nil
 		})
-	c.Alias("view schedule", "show schedule")
-	c.Alias("display schedule", "show schedule")
-	c.Alias("list schedule", "show schedule")
-	c.Alias("ls schedule", "show schedule")
+	c.Alias("show schedule", "schedule")
+	c.Alias("view schedule", "schedule")
+	c.Alias("display schedule", "schedule")
+	c.Alias("list schedule", "schedule")
+	c.Alias("ls schedule", "schedule")
 
-	c.Dispatch("create schedule", "Create a new backup schedule",
+	c.Dispatch("create-schedule", "Create a new backup schedule",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				InputHelp(`{"name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
@@ -655,12 +668,13 @@ func main() {
 			MSG("Created new schedule")
 			return c.Execute("show", "schedule", s.UUID)
 		})
-	c.Alias("new schedule", "create schedule")
-	c.Alias("create new schedule", "create schedule")
-	c.Alias("make schedule", "create schedule")
-	c.Alias("c s", "create schedule")
+	c.Alias("create schedule", "create-schedule")
+	c.Alias("new schedule", "create-schedule")
+	c.Alias("create new schedule", "create-schedule")
+	c.Alias("make schedule", "create-schedule")
+	c.Alias("c s", "create-schedule")
 
-	c.Dispatch("edit schedule", "Modify an existing backup schedule",
+	c.Dispatch("edit-schedule", "Modify an existing backup schedule",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				InputHelp(`{"name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
@@ -712,9 +726,10 @@ func main() {
 			MSG("Updated schedule")
 			return c.Execute("show", "schedule", s.UUID)
 		})
-	c.Alias("update schedule", "edit schedule")
+	c.Alias("edit schedule", "edit-schedule")
+	c.Alias("update schedule", "edit-schedule")
 
-	c.Dispatch("delete schedule", "Delete a backup schedule",
+	c.Dispatch("delete-schedule", "Delete a backup schedule",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpDeleteMacro("schedule", "schedules")
@@ -742,8 +757,9 @@ func main() {
 			OK("Deleted schedule")
 			return nil
 		})
-	c.Alias("remove schedule", "delete schedule")
-	c.Alias("rm schedule", "delete schedule")
+	c.Alias("delete schedule", "delete-schedule")
+	c.Alias("remove schedule", "delete-schedule")
+	c.Alias("rm schedule", "delete-schedule")
 
 	/*
 	   ########  ######## ######## ######## ##    ## ######## ####  #######  ##    ##
@@ -757,7 +773,7 @@ func main() {
 
 	c.HelpBreak()
 	c.HelpGroup("POLICIES:")
-	c.Dispatch("list retention policies", "List available retention policies",
+	c.Dispatch("policies", "List available retention policies",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpListMacro("policy", "policies")
@@ -789,11 +805,12 @@ func main() {
 			t.Output(os.Stdout)
 			return nil
 		})
-	c.Alias("ls retention policies", "list retention policies")
-	c.Alias("list policies", "list retention policies")
-	c.Alias("ls policies", "list policies")
+	c.Alias("list retention policies", "policies")
+	c.Alias("ls retention policies", "policies")
+	c.Alias("list policies", "policies")
+	c.Alias("ls policies", "policies")
 
-	c.Dispatch("show retention policy", "Print detailed information about a specific retention policy",
+	c.Dispatch("policy", "Print detailed information about a specific retention policy",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpShowMacro("policy", "policies")
@@ -815,15 +832,16 @@ func main() {
 			ShowRetentionPolicy(policy)
 			return nil
 		})
-	c.Alias("view retention policy", "show retention policy")
-	c.Alias("display retention policy", "show retention policy")
-	c.Alias("list retention policy", "show retention policy")
-	c.Alias("show policy", "show retention policy")
-	c.Alias("view policy", "show policy")
-	c.Alias("display policy", "show policy")
-	c.Alias("list policy", "show policy")
+	c.Alias("show retention policy", "policy")
+	c.Alias("view retention policy", "policy")
+	c.Alias("display retention policy", "policy")
+	c.Alias("list retention policy", "policy")
+	c.Alias("show policy", "policy")
+	c.Alias("view policy", "policy")
+	c.Alias("display policy", "policy")
+	c.Alias("list policy", "policy")
 
-	c.Dispatch("create retention policy", "Create a new retention policy",
+	c.Dispatch("create-policy", "Create a new retention policy",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				InputHelp(`{"expires":31536000,"name":"TestPolicy","summary":"A Test Policy"}`)
@@ -872,16 +890,17 @@ func main() {
 			MSG("Created new retention policy")
 			return c.Execute("show", "retention", "policy", p.UUID)
 		})
-	c.Alias("new retention policy", "create retention policy")
-	c.Alias("create new retention policy", "create retention policy")
-	c.Alias("make retention policy", "create retention policy")
-	c.Alias("create policy", "create retention policy")
-	c.Alias("new policy", "create policy")
-	c.Alias("create new policy", "create policy")
-	c.Alias("make policy", "create policy")
-	c.Alias("c p", "create policy")
+	c.Alias("create retention policy", "create-policy")
+	c.Alias("new retention policy", "create-policy")
+	c.Alias("create new retention policy", "create-policy")
+	c.Alias("make retention policy", "create-policy")
+	c.Alias("create policy", "create-policy")
+	c.Alias("new policy", "create-policy")
+	c.Alias("create new policy", "create-policy")
+	c.Alias("make policy", "create-policy")
+	c.Alias("c p", "create-policy")
 
-	c.Dispatch("edit retention policy", "Modify an existing retention policy",
+	c.Dispatch("edit-policy", "Modify an existing retention policy",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpEditMacro("policy", "policies")
@@ -933,11 +952,12 @@ func main() {
 			MSG("Updated retention policy")
 			return c.Execute("show", "retention", "policy", p.UUID)
 		})
-	c.Alias("update retention policy", "edit retention policy")
-	c.Alias("edit policy", "edit retention policy")
-	c.Alias("update policy", "edit policy")
+	c.Alias("edit retention policy", "edit-policy")
+	c.Alias("update retention policy", "edit-policy")
+	c.Alias("edit policy", "edit-policy")
+	c.Alias("update policy", "edit-policy")
 
-	c.Dispatch("delete retention policy", "Delete a retention policy",
+	c.Dispatch("delete-policy", "Delete a retention policy",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpDeleteMacro("policy", "policies")
@@ -965,11 +985,12 @@ func main() {
 			OK("Deleted policy")
 			return nil
 		})
-	c.Alias("remove retention policy", "delete retention policy")
-	c.Alias("rm retention policy", "delete retention policy")
-	c.Alias("delete policy", "delete retention policy")
-	c.Alias("remove policy", "delete policy")
-	c.Alias("rm policy", "delete policy")
+	c.Alias("delete retention policy", "delete-policy")
+	c.Alias("remove retention policy", "delete-policy")
+	c.Alias("rm retention policy", "delete-policy")
+	c.Alias("delete policy", "delete-policy")
+	c.Alias("remove policy", "delete-policy")
+	c.Alias("rm policy", "delete-policy")
 
 	/*
 	    ######  ########  #######  ########  ########
@@ -983,7 +1004,7 @@ func main() {
 
 	c.HelpBreak()
 	c.HelpGroup("STORES:")
-	c.Dispatch("list stores", "List available archive stores",
+	c.Dispatch("stores", "List available archive stores",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpListMacro("store", "stores")
@@ -1018,9 +1039,10 @@ func main() {
 			t.Output(os.Stdout)
 			return nil
 		})
-	c.Alias("ls stores", "list stores")
+	c.Alias("list stores", "stores")
+	c.Alias("ls stores", "stores")
 
-	c.Dispatch("show store", "Print detailed information about a specific archive store",
+	c.Dispatch("store", "Print detailed information about a specific archive store",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				JSONHelp(`{"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20","name":"test store","summary":"a test store named \"test store\"","plugin":"s3","endpoint":"{ \"endpoint\": \"doesntmatter\" }"}`)
@@ -1042,12 +1064,13 @@ func main() {
 			ShowStore(store)
 			return nil
 		})
-	c.Alias("view store", "show store")
-	c.Alias("display store", "show store")
-	c.Alias("list store", "show store")
-	c.Alias("ls store", "show store")
+	c.Alias("show store", "store")
+	c.Alias("view store", "store")
+	c.Alias("display store", "store")
+	c.Alias("list store", "store")
+	c.Alias("ls store", "store")
 
-	c.Dispatch("create store", "Create a new archive store",
+	c.Dispatch("create-store", "Create a new archive store",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpCreateMacro("store", "stores")
@@ -1097,12 +1120,13 @@ func main() {
 			MSG("Created new store")
 			return c.Execute("show", "store", s.UUID)
 		})
-	c.Alias("new store", "create store")
-	c.Alias("create new store", "create store")
-	c.Alias("make store", "create store")
-	c.Alias("c st", "create store")
+	c.Alias("create store", "create-store")
+	c.Alias("new store", "create-store")
+	c.Alias("create new store", "create-store")
+	c.Alias("make store", "create-store")
+	c.Alias("c st", "create-store")
 
-	c.Dispatch("edit store", "Modify an existing archive store",
+	c.Dispatch("edit-store", "Modify an existing archive store",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpEditMacro("store", "stores")
@@ -1156,9 +1180,10 @@ func main() {
 			MSG("Updated store")
 			return c.Execute("show", "store", s.UUID)
 		})
-	c.Alias("update store", "edit store")
+	c.Alias("edit store", "edit-store")
+	c.Alias("update store", "edit-store")
 
-	c.Dispatch("delete store", "Delete an archive store",
+	c.Dispatch("delete-store", "Delete an archive store",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpDeleteMacro("store", "stores")
@@ -1186,8 +1211,9 @@ func main() {
 			OK("Deleted store")
 			return nil
 		})
-	c.Alias("remove store", "delete store")
-	c.Alias("rm store", "delete store")
+	c.Alias("delete store", "delete-store")
+	c.Alias("remove store", "delete-store")
+	c.Alias("rm store", "delete-store")
 
 	/*
 	         ##  #######  ########
@@ -1201,7 +1227,7 @@ func main() {
 
 	c.HelpBreak()
 	c.HelpGroup("JOBS:")
-	c.Dispatch("list jobs", "List available backup jobs",
+	c.Dispatch("jobs", "List available backup jobs",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpListMacro("job", "jobs")
@@ -1248,10 +1274,11 @@ func main() {
 			t.Output(os.Stdout)
 			return nil
 		})
-	c.Alias("ls jobs", "list jobs")
-	c.Alias("ls j", "list jobs")
+	c.Alias("list jobs", "jobs")
+	c.Alias("ls jobs", "jobs")
+	c.Alias("ls j", "jobs")
 
-	c.Dispatch("show job", "Print detailed information about a specific backup job",
+	c.Dispatch("job", "Print detailed information about a specific backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpShowMacro("job", "jobs")
@@ -1273,12 +1300,13 @@ func main() {
 			ShowJob(job)
 			return nil
 		})
-	c.Alias("view job", "show job")
-	c.Alias("display job", "show job")
-	c.Alias("list job", "show job")
-	c.Alias("ls job", "show job")
+	c.Alias("show job", "job")
+	c.Alias("view job", "job")
+	c.Alias("display job", "job")
+	c.Alias("list job", "job")
+	c.Alias("ls job", "job")
 
-	c.Dispatch("create job", "Create a new backup job",
+	c.Dispatch("create-job", "Create a new backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpCreateMacro("job", "jobs")
@@ -1332,12 +1360,13 @@ func main() {
 			MSG("Created new job")
 			return c.Execute("show", "job", job.UUID)
 		})
-	c.Alias("new job", "create job")
-	c.Alias("create new job", "create job")
-	c.Alias("make job", "create job")
-	c.Alias("c j", "create job")
+	c.Alias("create job", "create-job")
+	c.Alias("new job", "create-job")
+	c.Alias("create new job", "create-job")
+	c.Alias("make job", "create-job")
+	c.Alias("c j", "create-job")
 
-	c.Dispatch("edit job", "Modify an existing backup job",
+	c.Dispatch("edit-job", "Modify an existing backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpEditMacro("job", "jobs")
@@ -1392,9 +1421,10 @@ func main() {
 			MSG("Updated job")
 			return c.Execute("show", "job", j.UUID)
 		})
-	c.Alias("update job", "edit job")
+	c.Alias("edit job", "edit-job")
+	c.Alias("update job", "edit-job")
 
-	c.Dispatch("delete job", "Delete a backup job",
+	c.Dispatch("delete-job", "Delete a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpDeleteMacro("job", "jobs")
@@ -1424,10 +1454,11 @@ func main() {
 			OK("Deleted job")
 			return nil
 		})
-	c.Alias("remove job", "delete job")
-	c.Alias("rm job", "delete job")
+	c.Alias("delete job", "delete-job")
+	c.Alias("remove job", "delete-job")
+	c.Alias("rm job", "delete-job")
 
-	c.Dispatch("pause job", "Pause a backup job",
+	c.Dispatch("pause", "Pause a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp(`A string partially matching the name of a job to pause 
@@ -1450,8 +1481,9 @@ func main() {
 
 			return nil
 		})
+	c.Alias("pause job", "pause")
 
-	c.Dispatch("unpause job", "Unpause a backup job",
+	c.Dispatch("unpause", "Unpause a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp(`A string partially matching the name of a job to unpause 
@@ -1475,8 +1507,9 @@ func main() {
 			OK("Unpaused job")
 			return nil
 		})
+	c.Alias("unpause job", "unpause")
 
-	c.Dispatch("run job", "Schedule an immediate run of a backup job",
+	c.Dispatch("run", "Schedule an immediate run of a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
 
@@ -1527,6 +1560,7 @@ func main() {
 
 			return nil
 		})
+	c.Alias("run job", "run")
 
 	/*
 	   ########    ###     ######  ##    ##
@@ -1540,7 +1574,7 @@ func main() {
 
 	c.HelpBreak()
 	c.HelpGroup("TASKS:")
-	c.Dispatch("list tasks", "List available tasks",
+	c.Dispatch("tasks", "List available tasks",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp(`Only show tasks with the specified status
@@ -1601,9 +1635,10 @@ func main() {
 			t.Output(os.Stdout)
 			return nil
 		})
-	c.Alias("ls tasks", "list tasks")
+	c.Alias("list tasks", "tasks")
+	c.Alias("ls tasks", "tasks")
 
-	c.Dispatch("show task", "Print detailed information about a specific task",
+	c.Dispatch("task", "Print detailed information about a specific task",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp("The ID number of the task to show info about", false, "<id>")
@@ -1631,12 +1666,13 @@ func main() {
 			ShowTask(task)
 			return nil
 		})
-	c.Alias("view task", "show task")
-	c.Alias("display task", "show task")
-	c.Alias("list task", "show task")
-	c.Alias("ls task", "show task")
+	c.Alias("show task", "task")
+	c.Alias("view task", "task")
+	c.Alias("display task", "task")
+	c.Alias("list task", "task")
+	c.Alias("ls task", "task")
 
-	c.Dispatch("cancel task", "Cancel a running or pending task",
+	c.Dispatch("cancel-task", "Cancel a running or pending task",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp(`Outputs the result as a JSON object.
@@ -1671,7 +1707,9 @@ func main() {
 			OK("Cancelled task '%s'\n", id)
 			return nil
 		})
-	c.Alias("stop task", "cancel task")
+	c.Alias("cancel task", "cancel-task")
+	c.Alias("stop task", "cancel-task")
+
 	/*
 	      ###    ########   ######  ##     ## #### ##     ## ########
 	     ## ##   ##     ## ##    ## ##     ##  ##  ##     ## ##
@@ -1684,7 +1722,7 @@ func main() {
 
 	c.HelpBreak()
 	c.HelpGroup("ARCHIVES:")
-	c.Dispatch("list archives", "List available backup archives",
+	c.Dispatch("archives", "List available backup archives",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpListMacro("archive", "archives")
@@ -1770,9 +1808,10 @@ func main() {
 			t.Output(os.Stdout)
 			return nil
 		})
-	c.Alias("ls archives", "list archives")
+	c.Alias("list archives", "archives")
+	c.Alias("ls archives", "archives")
 
-	c.Dispatch("show archive", "Print detailed information about a backup archive",
+	c.Dispatch("archive", "Print detailed information about a backup archive",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
@@ -1800,12 +1839,13 @@ func main() {
 			ShowArchive(archive)
 			return nil
 		})
-	c.Alias("view archive", "show archive")
-	c.Alias("display archive", "show archive")
-	c.Alias("list archive", "show archive")
-	c.Alias("ls archive", "show archive")
+	c.Alias("show archive", "archive")
+	c.Alias("view archive", "archive")
+	c.Alias("display archive", "archive")
+	c.Alias("list archive", "archive")
+	c.Alias("ls archive", "archive")
 
-	c.Dispatch("restore archive", "Restore a backup archive",
+	c.Dispatch("restore", "Restore a backup archive",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
@@ -1877,9 +1917,10 @@ func main() {
 
 			return nil
 		})
-	c.Alias("restore", "restore archive")
+	c.Alias("restore archive", "restore")
+	c.Alias("restore-archive", "restore")
 
-	c.Dispatch("delete archive", "Delete a backup archive",
+	c.Dispatch("delete-archive", "Delete a backup archive",
 		func(opts Options, args []string, help bool) error {
 			if help {
 				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
@@ -1915,8 +1956,9 @@ func main() {
 			OK("Deleted archive")
 			return nil
 		})
-	c.Alias("remove archive", "delete archive")
-	c.Alias("rm archive", "delete archive")
+	c.Alias("delete archive", "delete-archive")
+	c.Alias("remove archive", "delete-archive")
+	c.Alias("rm archive", "delete-archive")
 
 	/**************************************************************************/
 	err := LoadConfig(*options.Config)
