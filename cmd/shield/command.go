@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/jhunt/ansi"
+	"github.com/starkandwayne/goutils/ansi"
 )
 
 type Options struct {
