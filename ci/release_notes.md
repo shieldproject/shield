@@ -10,6 +10,8 @@
   aliases will stop working. **PLEASE UPDATE YOUR SCRIPTS /
   AUTOMATION ACCORDINGLY**
 
+- Add plugin to backup / restore consul KV
+
 ## Bug Fixes
 
 - Purge tasks will now be considered runnable and will be
