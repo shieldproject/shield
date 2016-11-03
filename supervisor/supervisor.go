@@ -300,9 +300,11 @@ func (s *Supervisor) Run() error {
 
 				runnable, err := s.Database.IsTaskRunnable(t)
 				if err != nil {
+					log.Errorf("failed to determine if task %s was runnable: %s", t.UUID, err)
 					continue
 				}
 				if !runnable {
+					log.Infof("skipping task %s; not runnable", t.UUID);
 					continue
 				}
 

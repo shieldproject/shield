@@ -251,6 +251,10 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 }
 
 func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
+	/* tasks without targets (i.e. purge tasks) are always valid */
+	if task.TargetUUID.String() == "" {
+		return true, nil
+	}
 	r, err := db.Query(`
 		SELECT uuid FROM tasks
 		  WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID.String(), RunningStatus)
