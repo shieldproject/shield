@@ -57,7 +57,11 @@ func SetupLogging(cfg LogConfig) {
 		}
 		l.out = f
 	} else {
-		l.out = os.Stdout
+		if cfg.File == "stderr" {
+			l.out = os.Stderr
+		} else {
+			l.out = os.Stdout
+		}
 	}
 	l.level = get_level(cfg.Level)
 	l.ltype = cfg.Type
