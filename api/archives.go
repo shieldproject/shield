@@ -3,7 +3,7 @@ package api
 import (
 	"github.com/pborman/uuid"
 
-	. "github.com/starkandwayne/shield/timestamp"
+	. "github.com/starkandwayne/goutils/timestamp"
 )
 
 type ArchiveFilter struct {

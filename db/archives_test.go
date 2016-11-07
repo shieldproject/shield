@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/starkandwayne/shield/db"
-	. "github.com/starkandwayne/shield/timestamp"
+	. "github.com/starkandwayne/goutils/timestamp"
 )
 
 var _ = Describe("Archive Management", func() {

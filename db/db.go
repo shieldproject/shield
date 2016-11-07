@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/starkandwayne/goutils/log"
 
-	. "github.com/starkandwayne/shield/timestamp"
+	. "github.com/starkandwayne/goutils/timestamp"
 )
 
 func parseEpochTime(et int64) Timestamp {
