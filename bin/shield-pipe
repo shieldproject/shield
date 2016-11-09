@@ -99,7 +99,7 @@ case ${SHIELD_OP} in
 
 	header "Running backup task (using bzip2 compression)"
 
-	PULSE=$(mktemp --tmpdir shield-pipe.XXXXX)
+	PULSE=$(mktemp -t shield-pipe.XXXXX)
 	trap "rm -f ${PULSE}" QUIT TERM INT
 
 	set -o pipefail
