@@ -8,7 +8,7 @@ import (
 
 	"github.com/pborman/uuid"
 
-	. "github.com/starkandwayne/shield/timestamp"
+	. "github.com/starkandwayne/goutils/timestamp"
 )
 
 type Archive struct {

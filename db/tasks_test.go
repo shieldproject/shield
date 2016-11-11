@@ -2,7 +2,7 @@ package db_test
 
 import (
 	"fmt"
-	"github.com/starkandwayne/shield/timestamp"
+	"github.com/starkandwayne/goutils/timestamp"
 	"time"
 
 	. "github.com/onsi/ginkgo"

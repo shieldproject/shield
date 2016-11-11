@@ -8,8 +8,8 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
 
+	"github.com/starkandwayne/goutils/timestamp"
 	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/timestamp"
 )
 
 type Supervisor struct {
@@ -304,7 +304,7 @@ func (s *Supervisor) Run() error {
 					continue
 				}
 				if !runnable {
-					log.Infof("skipping task %s; not runnable", t.UUID);
+					log.Infof("skipping task %s; not runnable", t.UUID)
 					continue
 				}
 

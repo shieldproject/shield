@@ -328,19 +328,23 @@
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/ansi",
-			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/botta",
-			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/log",
-			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/timestamp",
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/tree",
-			"Rev": "6fde490f64c2112f5d858389293170b6542eb013"
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/minio-go",
@@ -387,6 +391,22 @@
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/starkandwayne/goutils/tree",
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/starkandwayne/goutils/ansi",
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/mattn/go-isatty",
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/golang.org/x/sys/unix",
+			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
 		}
 	]
 }
