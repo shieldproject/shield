@@ -11,8 +11,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/starkandwayne/shield/db"
 	. "github.com/starkandwayne/goutils/timestamp"
+	. "github.com/starkandwayne/shield/db"
 )
 
 var _ = Describe("Archive Management", func() {
