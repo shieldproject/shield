@@ -79,7 +79,6 @@ const (
 	DefaultPrefix            = ""
 	DefaultSigVersion        = "4"
 	DefaultSkipSSLValidation = false
-	DefaultSSL               = true
 )
 
 func validSigVersion(v string) bool {
@@ -104,7 +103,6 @@ type S3Plugin plugin.PluginInfo
 
 type S3ConnectionInfo struct {
 	Host              string
-	UseSSL            bool
 	SkipSSLValidation bool
 	AccessKey         string
 	SecretKey         string
@@ -198,16 +196,6 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 	}
 
-	tf, err = endpoint.BooleanValueDefault("use_ssl", DefaultSSL)
-	if err != nil {
-		ansi.Printf("@R{\u2717 use_ssl  %s}\n", err)
-		fail = true
-	} else if tf {
-		ansi.Printf("@G{\u2713 use_ssl}  @C{yes}, SSL will @Y{NOT} be used\n")
-	} else {
-		ansi.Printf("@G{\u2713 use_ssl}  @C{no}, SSL @Y{WILL} be used\n")
-	}
-
 	if fail {
 		return fmt.Errorf("s3: invalid configuration")
 	}
@@ -299,11 +287,6 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		return S3ConnectionInfo{}, err
 	}
 
-	use_ssl, err := e.BooleanValueDefault("use_ssl", DefaultSSL)
-	if err != nil {
-		return S3ConnectionInfo{}, err
-	}
-
 	key, err := e.StringValue("access_key_id")
 	if err != nil {
 		return S3ConnectionInfo{}, err
@@ -337,7 +320,6 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 	return S3ConnectionInfo{
 		Host:              host,
 		SkipSSLValidation: insecure_ssl,
-		UseSSL:            use_ssl,
 		AccessKey:         key,
 		SecretKey:         secret,
 		Bucket:            bucket,
@@ -366,9 +348,9 @@ func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
 	var s3Client *minio.Client
 	var err error
 	if s3.SignatureVersion == "2" {
-		s3Client, err = minio.NewV2(s3.Host, s3.AccessKey, s3.SecretKey, s3.UseSSL)
+		s3Client, err = minio.NewV2(s3.Host, s3.AccessKey, s3.SecretKey, false)
 	} else {
-		s3Client, err = minio.NewV4(s3.Host, s3.AccessKey, s3.SecretKey, s3.UseSSL)
+		s3Client, err = minio.NewV4(s3.Host, s3.AccessKey, s3.SecretKey, false)
 	}
 	if err != nil {
 		return nil, err
