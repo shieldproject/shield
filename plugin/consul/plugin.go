@@ -44,10 +44,6 @@ import (
 	. "github.com/starkandwayne/shield/plugin"
 )
 
-var (
-	DefaultPort = "5432"
-)
-
 func main() {
 	p := ConsulPlugin{
 		Name:    "Consul Backup Plugin",
