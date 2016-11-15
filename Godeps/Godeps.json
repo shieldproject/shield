@@ -122,6 +122,20 @@
 			"Rev": "c5bbe9d3d3c906d01de60189e5bfbba1d8164a80"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/consul/api",
+			"Comment": "v0.7.1-6-gdf51fde",
+			"Rev": "df51fde7b071a3211fda039c4272b647254a568a"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-cleanhttp",
+			"Rev": "ad28ea4487f05916463e2423a55166280e8254b5"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/serf/coordinate",
+			"Comment": "v0.8.0-31-gf679d75",
+			"Rev": "f679d7594a349263f6118db40d87122d3a474e7d"
+		},
+		{
 			"ImportPath": "github.com/jmoiron/sqlx",
 			"Comment": "sqlx-v1.1-71-gbdae0c3",
 			"Rev": "bdae0c3219c3bdb92f3d7c70825018712787c933"
@@ -391,22 +405,6 @@
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
-		},
-		{
-			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/starkandwayne/goutils/tree",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
-		},
-		{
-			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/starkandwayne/goutils/ansi",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
-		},
-		{
-			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/mattn/go-isatty",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
-		},
-		{
-			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/golang.org/x/sys/unix",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
 		}
 	]
 }

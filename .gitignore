@@ -12,6 +12,7 @@
 /s3
 /fs
 /scality
+/consul
 .DS_Store
 
 # ignore release testing output

@@ -46,6 +46,8 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/mysql
 	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
 	go $(BUILD_TYPE) ./plugin/scality
+	go $(BUILD_TYPE) ./plugin/consul
+
 
 # Run tests with coverage tracking, writing output to coverage/
 coverage: agent.cov db.cov plugin.cov supervisor.cov timespec.cov
@@ -89,6 +91,7 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mysql"             ./plugin/mysql
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/rabbitmq-broker"   ./plugin/rabbitmq-broker
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/scality"           ./plugin/scality
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul"           ./plugin/consul
 
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
 
