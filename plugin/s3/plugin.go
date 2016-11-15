@@ -224,7 +224,8 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	plugin.DEBUG("Storing data in %s", path)
 
 	// FIXME: should we do something with the size of the write performed?
-	_, err = client.PutObject(s3.Bucket, path, os.Stdin, "application/x-gzip")
+	// Removing leading slash until https://github.com/minio/minio/issues/3256 is fixed
+	_, err = client.PutObject(s3.Bucket, strings.TrimPrefix(path, "/"), os.Stdin, "application/x-gzip")
 	if err != nil {
 		return "", err
 	}
@@ -337,10 +338,6 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 	path := fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
 	// Remove double slashes
 	path = strings.Replace(path, "//", "/", -1)
-	// Remove a leading slash
-	if strings.HasPrefix(path, "/") {
-		strings.Replace(path, "/", "", 1)
-	}
 	return path
 }
 
