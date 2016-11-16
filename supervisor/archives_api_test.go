@@ -144,66 +144,74 @@ var _ = Describe("/v1/archives API", func() {
 		res := GET(API, "/v1/archives")
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[
-				{
-					"uuid"            : "` + PG_ARCHIVE_2 + `",
-					"notes"           : "",
-					"key"             : "pg-archive-2-key",
-					"taken_at"        : "2015-04-28 03:00:01",
-					"expires_at"      : "2015-06-25 03:00:01",
-					"status"           : "valid",
-					"purge_reason"    : "",
-					"store_uuid"      : "` + STORE_S3 + `",
-					"store_plugin"    : "s3",
-					"store_endpoint"  : "<<s3-configuration>>",
-					"target_uuid"     : "` + TARGET_PG + `",
-					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
-				},
-				{
-					"uuid": "2eaa8cad-57d0-4bdd-bb53-25f9acc2ef29",
-					"key": "invalid-archive-1-key",
-					"taken_at": "2015-04-23 14:35:22",
-					"expires_at": "2015-04-25 14:35:22",
-					"notes": "Invalid Backup",
-					"status": "invalid",
-					"purge_reason": "",
-					"target_uuid": "825abfc4-73ff-40d0-b878-58e0dcda9084",
-					"target_plugin": "invalid",
-					"target_endpoint": "\u003c\u003cinvalid-configuration\u003e\u003e",
-					"store_uuid": "05c3d005-f968-452f-bd59-bee8e79ab982",
-					"store_plugin": "s3",
-					"store_endpoint": "\u003c\u003cs3-configuration\u003e\u003e"
-				},
-				{
-					"uuid"            : "` + REDIS_ARCHIVE_1 + `",
-					"notes"           : "Good Redis Backup",
-					"key"             : "redis-archive-1-key",
-					"taken_at"        : "2015-04-23 14:35:22",
-					"expires_at"      : "2015-04-25 14:35:22",
-					"status"           : "valid",
-					"purge_reason"    : "",
-					"store_uuid"      : "` + STORE_S3 + `",
-					"store_plugin"    : "s3",
-					"store_endpoint"  : "<<s3-configuration>>",
-					"target_uuid"     : "` + TARGET_REDIS + `",
-					"target_plugin"   : "redis",
-					"target_endpoint" : "<<redis-configuration>>"
-				},
-				{
-					"uuid"            : "` + PG_ARCHIVE_1 + `",
-					"notes"           : "test backup",
-					"key"             : "pg-archive-1-key",
-					"taken_at"        : "2015-04-21 03:00:01",
-					"expires_at"      : "2015-06-18 03:00:01",
-					"status"           : "valid",
-					"purge_reason"    : "",
-					"store_uuid"      : "` + STORE_S3 + `",
-					"store_plugin"    : "s3",
-					"store_endpoint"  : "<<s3-configuration>>",
-					"target_uuid"     : "` + TARGET_PG + `",
-					"target_plugin"   : "pg",
-					"target_endpoint" : "<<pg-configuration>>"
-				}
+			{
+			  "uuid"            : "` + PG_ARCHIVE_2 + `",
+			  "notes"           : "",
+			  "key"             : "pg-archive-2-key",
+			  "taken_at"        : "2015-04-28 03:00:01",
+			  "expires_at"      : "2015-06-25 03:00:01",
+			  "status"           : "valid",
+			  "purge_reason"    : "",
+			  "store_uuid"      : "` + STORE_S3 + `",
+			  "store_name"      : "s3",
+			  "store_plugin"    : "s3",
+			  "store_endpoint"  : "<<s3-configuration>>",
+			  "target_uuid"     : "` + TARGET_PG + `",
+			  "target_name"     : "pg1",
+			  "target_plugin"   : "pg",
+			  "target_endpoint" : "<<pg-configuration>>"
+			},
+			{
+			  "uuid"            : "2eaa8cad-57d0-4bdd-bb53-25f9acc2ef29",
+			  "key"             : "invalid-archive-1-key",
+			  "taken_at"        : "2015-04-23 14:35:22",
+			  "expires_at"      : "2015-04-25 14:35:22",
+			  "notes"           : "Invalid Backup",
+			  "status"          : "invalid",
+			  "purge_reason"    : "",
+			  "store_uuid"      : "05c3d005-f968-452f-bd59-bee8e79ab982",
+			  "store_name"      : "s3",
+			  "store_plugin"    : "s3",
+			  "store_endpoint"  : "\u003c\u003cs3-configuration\u003e\u003e",
+			  "target_uuid"     : "825abfc4-73ff-40d0-b878-58e0dcda9084",
+			  "target_name"     : "pg1",
+			  "target_plugin"   : "invalid",
+			  "target_endpoint" : "\u003c\u003cinvalid-configuration\u003e\u003e"
+			},
+			{
+			  "uuid"            : "` + REDIS_ARCHIVE_1 + `",
+			  "notes"           : "Good Redis Backup",
+			  "key"             : "redis-archive-1-key",
+			  "taken_at"        : "2015-04-23 14:35:22",
+			  "expires_at"      : "2015-04-25 14:35:22",
+			  "status"           : "valid",
+			  "purge_reason"    : "",
+			  "store_uuid"      : "` + STORE_S3 + `",
+			  "store_name"      : "s3",
+			  "store_plugin"    : "s3",
+			  "store_endpoint"  : "<<s3-configuration>>",
+			  "target_uuid"     : "` + TARGET_REDIS + `",
+			  "target_name"     : "redis-shared",
+			  "target_plugin"   : "redis",
+			  "target_endpoint" : "<<redis-configuration>>"
+			},
+			{
+			  "uuid"            : "` + PG_ARCHIVE_1 + `",
+			  "notes"           : "test backup",
+			  "key"             : "pg-archive-1-key",
+			  "taken_at"        : "2015-04-21 03:00:01",
+			  "expires_at"      : "2015-06-18 03:00:01",
+			  "status"           : "valid",
+			  "purge_reason"    : "",
+			  "store_uuid"      : "` + STORE_S3 + `",
+			  "store_name"      : "s3",
+			  "store_plugin"    : "s3",
+			  "store_endpoint"  : "<<s3-configuration>>",
+			  "target_uuid"     : "` + TARGET_PG + `",
+			  "target_name"     : "pg1",
+			  "target_plugin"   : "pg",
+			  "target_endpoint" : "<<pg-configuration>>"
+			}
 			]`))
 		Ω(res.Code).Should(Equal(200))
 	})
@@ -212,19 +220,21 @@ var _ = Describe("/v1/archives API", func() {
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`
 			[{
-				"uuid": "b0eda11f-0414-4f6a-841f-c08609c542d0",
-				"key": "pg-archive-2-key",
-				"taken_at": "2015-04-28 03:00:01",
-				"expires_at": "2015-06-25 03:00:01",
-				"notes": "",
-				"status": "valid",
-				"purge_reason": "",
-				"target_uuid": "fab00c82-aac3-4e5f-8a2f-c534f81cdee3",
-				"target_plugin": "pg",
-				"target_endpoint": "\u003c\u003cpg-configuration\u003e\u003e",
-				"store_uuid": "05c3d005-f968-452f-bd59-bee8e79ab982",
-				"store_plugin": "s3",
-				"store_endpoint": "\u003c\u003cs3-configuration\u003e\u003e"
+				"uuid"            : "b0eda11f-0414-4f6a-841f-c08609c542d0",
+				"key"             : "pg-archive-2-key",
+				"taken_at"        : "2015-04-28 03:00:01",
+				"expires_at"      : "2015-06-25 03:00:01",
+				"notes"           : "",
+				"status"          : "valid",
+				"purge_reason"    : "",
+				"target_uuid"     : "fab00c82-aac3-4e5f-8a2f-c534f81cdee3",
+				"target_name"     : "pg1",
+				"target_plugin"   : "pg",
+				"target_endpoint" : "\u003c\u003cpg-configuration\u003e\u003e",
+				"store_uuid"      : "05c3d005-f968-452f-bd59-bee8e79ab982",
+				"store_name"      : "s3",
+				"store_plugin"    : "s3",
+				"store_endpoint"  : "\u003c\u003cs3-configuration\u003e\u003e"
 		}]`))
 	})
 	It("should fail when provided an invalid limit", func() {
@@ -249,10 +259,12 @@ var _ = Describe("/v1/archives API", func() {
 					"expires_at"      : "2015-06-25 03:00:01",
 					"status"           : "valid",
 					"purge_reason"    : "",
-					"target_uuid"     : "` + TARGET_PG + `",
+					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
-					"store_uuid"      : "` + STORE_S3 + `",
+					"target_uuid"     : "` + TARGET_PG + `",
+					"target_name"     : "pg1",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
 				},
@@ -265,9 +277,11 @@ var _ = Describe("/v1/archives API", func() {
 					"status"           : "valid",
 					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_PG + `",
+					"target_name"     : "pg1",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
 				}
@@ -280,19 +294,21 @@ var _ = Describe("/v1/archives API", func() {
 		Ω(res.Code).Should(Equal(200))
 		Ω(res.Body.String()).Should(MatchJSON(`[
 				{
-					"uuid": "2eaa8cad-57d0-4bdd-bb53-25f9acc2ef29",
-					"key": "invalid-archive-1-key",
-					"taken_at": "2015-04-23 14:35:22",
-					"expires_at": "2015-04-25 14:35:22",
-					"notes": "Invalid Backup",
-					"status": "invalid",
-					"purge_reason": "",
-					"target_uuid": "825abfc4-73ff-40d0-b878-58e0dcda9084",
-					"target_plugin": "invalid",
-					"target_endpoint": "\u003c\u003cinvalid-configuration\u003e\u003e",
-					"store_uuid": "05c3d005-f968-452f-bd59-bee8e79ab982",
-					"store_plugin": "s3",
-					"store_endpoint": "\u003c\u003cs3-configuration\u003e\u003e"
+					"uuid"            : "2eaa8cad-57d0-4bdd-bb53-25f9acc2ef29",
+					"key"             : "invalid-archive-1-key",
+					"taken_at"        : "2015-04-23 14:35:22",
+					"expires_at"      : "2015-04-25 14:35:22",
+					"notes"           : "Invalid Backup",
+					"status"          : "invalid",
+					"purge_reason"    : "",
+					"target_uuid"     : "825abfc4-73ff-40d0-b878-58e0dcda9084",
+					"target_name"     : "pg1",
+					"target_plugin"   : "invalid",
+					"target_endpoint" : "\u003c\u003cinvalid-configuration\u003e\u003e",
+					"store_uuid"      : "05c3d005-f968-452f-bd59-bee8e79ab982",
+					"store_name"      : "s3",
+					"store_plugin"    : "s3",
+					"store_endpoint"  : "\u003c\u003cs3-configuration\u003e\u003e"
 				},
 				{
 					"uuid"            : "` + REDIS_ARCHIVE_1 + `",
@@ -303,9 +319,11 @@ var _ = Describe("/v1/archives API", func() {
 					"status"           : "valid",
 					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_name"     : "redis-shared",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				},
@@ -318,9 +336,11 @@ var _ = Describe("/v1/archives API", func() {
 					"status"           : "valid",
 					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_PG + `",
+					"target_name"     : "pg1",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
 				}
@@ -337,14 +357,17 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "pg-archive-2-key",
 					"taken_at"        : "2015-04-28 03:00:01",
 					"expires_at"      : "2015-06-25 03:00:01",
-					"status"           : "valid",
+					"status"          : "valid",
 					"purge_reason"    : "",
-					"target_uuid"     : "` + TARGET_PG + `",
+					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
-					"store_uuid"      : "` + STORE_S3 + `",
+					"target_uuid"     : "` + TARGET_PG + `",
+					"target_name"     : "pg1",
 					"target_plugin"   : "pg",
 					"target_endpoint" : "<<pg-configuration>>"
+
 				}
 			]`))
 	})
@@ -362,9 +385,11 @@ var _ = Describe("/v1/archives API", func() {
 					"status"           : "valid",
 					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_name"     : "redis-shared",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				}
@@ -383,9 +408,11 @@ var _ = Describe("/v1/archives API", func() {
 					"status"           : "invalid",
 					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_INVALID + `",
+					"target_name"     : "pg1",
 					"target_plugin"   : "invalid",
 					"target_endpoint" : "<<invalid-configuration>>",
 					"status"           : "invalid"
@@ -405,9 +432,11 @@ var _ = Describe("/v1/archives API", func() {
 				"purge_reason"    : "",
 				"expires_at"      : "2015-04-25 14:35:22",
 				"store_uuid"      : "` + STORE_S3 + `",
+				"store_name"      : "s3",
 				"store_plugin"    : "s3",
 				"store_endpoint"  : "<<s3-configuration>>",
 				"target_uuid"     : "` + TARGET_REDIS + `",
+				"target_name"     : "redis-shared",
 				"target_plugin"   : "redis",
 				"target_endpoint" : "<<redis-configuration>>"
 			}`))
@@ -434,12 +463,14 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "redis-archive-1-key",
 					"taken_at"        : "2015-04-23 14:35:22",
 					"expires_at"      : "2015-04-25 14:35:22",
-				"status"           : "valid",
-				"purge_reason"    : "",
+					"status"          : "valid",
+					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_name"     : "redis-shared",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				}
@@ -461,12 +492,14 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "redis-archive-1-key",
 					"taken_at"        : "2015-04-23 14:35:22",
 					"expires_at"      : "2015-04-25 14:35:22",
-				"status"           : "valid",
-				"purge_reason"    : "",
+					"status"           : "valid",
+					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_name"     : "redis-shared",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				}
@@ -488,12 +521,14 @@ var _ = Describe("/v1/archives API", func() {
 					"key"             : "redis-archive-1-key",
 					"taken_at"        : "2015-04-23 14:35:22",
 					"expires_at"      : "2015-04-25 14:35:22",
-				"status"           : "valid",
-				"purge_reason"    : "",
+					"status"          : "valid",
+					"purge_reason"    : "",
 					"store_uuid"      : "` + STORE_S3 + `",
+					"store_name"      : "s3",
 					"store_plugin"    : "s3",
 					"store_endpoint"  : "<<s3-configuration>>",
 					"target_uuid"     : "` + TARGET_REDIS + `",
+					"target_name"     : "redis-shared",
 					"target_plugin"   : "redis",
 					"target_endpoint" : "<<redis-configuration>>"
 				}

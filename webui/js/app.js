@@ -1198,7 +1198,7 @@
                 var a = DB.archives[i];
                 var t = T[a.target_uuid];
                 var s = S[a.store_uuid];
-                tbl.Row(a, Icons("import"), t.name, t.agent, s.name, a.taken_at, a.expires_at, a.status, a.notes, Icons("trash"));
+                tbl.Row(a, '<button class="action restore">Restore</button>', t.name, t.agent, s.name, a.taken_at, a.expires_at, a.status, a.notes, Icons("trash"));
               }
               $('#archives-main').empty().append(tbl.Render({rowClass: 'status'}));
             });
@@ -1206,6 +1206,33 @@
         });
     });
     $('#main').on('submit', '#archive-search', searchArchives);
+    $('#main').on('click', 'button.restore', function(event){
+      uuid = $(event.target).closest('[data-uuid]').data('uuid');
+      console.log(uuid)
+
+      ajax({
+        type: 'GET',
+        url:  '/v1/archive/'+uuid,
+        success: function(data) {
+
+          var message = "You have request a restore of " + data.target_name + " which was taken at " + data.taken_at +". \n\nYou will lose all data written between now and when this backup was taken.  Are you sure you want to proceed?";
+          if ( confirm(message) ) {
+            console.log("Said yes")
+            ajax({
+              type: 'POST',
+              url:  '/v1/archive/'+uuid+'/restore',
+              success: function() {
+                go('#dashboard');
+              }
+            });
+          }
+          else {
+            console.log("Restore was declined")
+          }
+        }
+      });
+
+    })
 
     var restoreArchive = lastly(function(event) {
       Loading($('#main'));
