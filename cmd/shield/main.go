@@ -1554,7 +1554,7 @@ func main() {
 			} else {
 				OK("Scheduled immediate run of job")
 				if taskUUID != "" {
-					ansi.Printf("To view task, type @B{shield show task %s}\n", taskUUID)
+					ansi.Printf("To view task, type @B{shield task %s}\n", taskUUID)
 				}
 			}
 
@@ -1911,7 +1911,7 @@ func main() {
 				//`OK` handles raw checking
 				OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
 				if taskUUID != "" {
-					ansi.Printf("To view task, type @B{shield show task %s}\n", taskUUID)
+					ansi.Printf("To view task, type @B{shield task %s}\n", taskUUID)
 				}
 			}
 
