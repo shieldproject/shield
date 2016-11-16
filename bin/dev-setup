@@ -2,7 +2,7 @@
 
 #requires: jq
 
-set -e 
+set -e -x
 
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
