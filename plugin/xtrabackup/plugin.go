@@ -3,29 +3,49 @@
 //
 // PLUGIN FEATURES
 //
-// This plugin implements functionality suitable for use with the following SHIELD
-// Job components:
+// This plugin implements functionality suitable for use with the following
+// SHIELD Job components:
 //
 //    Target: yes
 //    Store:  no
 //
 // PLUGIN CONFIGURATION
 //
-// This option specifies the list of databases to back up.
-// The option accepts a string argument or path to file that contains the list of databases to back up.
-// The list is of the form "databasename1[.table_name1] databasename2[.table_name2]".
-// If this option is not specified, all databases containing MyISAM and InnoDB tables will be backed up.
-// The location of the source directory for the backup can be specified. Otherwise the location of the datadir
-// for your MySQL server will be read from my.cnf.
+// The endpoint configuration passed to this plugin is used to identify how to
+// to connect to a MySQL instance co-located on the same machine.
 //
 // Your endpoint JSON should look something like this:
 //
 //    {
-//        "databases":<list_of_databases> #OPTIONAL,
-//        "mysql_user":"username-for-mysql",
-//        "mysql_password":"password-for-above-user",
-//		  "datadir":"backup-source-directory" #OPTIONAL
+//        "mysql_user":						"username-for-mysql",
+//        "mysql_password":  			"password-for-above-user",
+//        "mysql_databases": 			<list_of_databases>,							# OPTIONAL
+//		    "mysql_datadir":   			"/var/lib/mysql",                 # OPTIONAL
+//        "mysql_xtrabackup":     "/path/to/xtrabackup",            # OPTIONAL
+//        "mysql_temp_targetdir": "/tmp/backups"										# OPTIONAL
+//        "mysql_tar":            "tar"										          # OPTIONAL
 //    }
+//
+// mysql_databases:
+// This option specifies the list of databases to back up.
+// It accepts a string argument or path to a file that contains the list of databases to back up.
+// The list is of the form "databasename1[.table_name1] databasename2[.table_name2]".
+// If this option is not specified, all databases containing MyISAM and InnoDB tables will be backed up.
+//
+// mysql_datadir:
+// This option specifies MySQL's datadir.
+//
+// mysql_xtrabackup:
+// This option specifies the absolute path to the `xtrabackup` tool.
+//
+// mysql_temp_targetdir:
+// This option specifies the absolute path to a temporary directory used by
+// the `xtrabackup` tool to backup the MySQL databases. It must be empty after
+// each run of the plugin.
+//
+// mysql_tar:
+// This option specifies the absolute path to the `tar` tool.
+//
 //
 // BACKUP DETAILS
 //
@@ -34,11 +54,15 @@
 //
 // RESTORE DETAILS
 //
-// TODO
+// To restore, the `xtrabackup` plugin moves back the backed up data files to
+// the MySQL data directory. The MySQL data directory needs to be empty before
+// the restore operation.
 //
 // DEPENDENCIES
 //
-// None.
+// This plugin relies on the `xtrabackup` and `tar` utilities. Please ensure
+// that they are present on the system that will be running the
+// backups + restores for MySQL.
 package main
 
 import (
@@ -48,6 +72,13 @@ import (
 	"github.com/starkandwayne/goutils/ansi"
 
 	. "github.com/starkandwayne/shield/plugin"
+)
+
+var (
+	DefaultTar           = "tar"
+	DefaultDataDir       = "/var/lib/mysql"
+	DefaultTempTargetDir = "/tmp/backups"
+	DefaultXtrabackup    = "/var/vcap/packages/shield-mysql/bin/xtrabackup"
 )
 
 func main() {
@@ -71,6 +102,9 @@ type XtraBackupEndpoint struct {
 	DataDir   string
 	User      string
 	Password  string
+	Bin       string
+	TargetDir string
+	Tar       string
 }
 
 func (p XtraBackupPlugin) Meta() PluginInfo {
@@ -83,26 +117,6 @@ func (p XtraBackupPlugin) Validate(endpoint ShieldEndpoint) error {
 		err  error
 		fail bool
 	)
-
-	s, err = endpoint.StringValueDefault("databases", "")
-	if err != nil {
-		ansi.Printf("@R{\u2717 databases  %s}\n", err)
-		fail = true
-	} else if s == "" {
-		ansi.Printf("@G{\u2713 databases}  no databases\n")
-	} else {
-		ansi.Printf("@G{\u2713 databases}  @C{%s}\n", s)
-	}
-
-	s, err = endpoint.StringValueDefault("datadir", "")
-	if err != nil {
-		ansi.Printf("@R{\u2717 datadir  %s}\n", err)
-		fail = true
-	} else if s == "" {
-		ansi.Printf("@G{\u2713 datadir}  no datadir\n")
-	} else {
-		ansi.Printf("@G{\u2713 datadir}  @C{%s}\n", s)
-	}
 
 	s, err = endpoint.StringValue("mysql_user")
 	if err != nil {
@@ -120,6 +134,16 @@ func (p XtraBackupPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValueDefault("mysql_databases", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_databases  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mysql_databases}  no databases\n")
+	} else {
+		ansi.Printf("@G{\u2713 mysql_databases}  @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("xtrabackup: invalid configuration")
 	}
@@ -132,24 +156,19 @@ func (p XtraBackupPlugin) Backup(endpoint ShieldEndpoint) error {
 		return err
 	}
 
-	targetDir := "/tmp/backups/"
+	targetDir := xtrabackup.TargetDir
 
 	dbs := ""
 	if xtrabackup.Databases != "" {
-		dbs = fmt.Sprintf("--databases=%s", dbs)
-	}
-
-	dd := ""
-	if xtrabackup.DataDir != "" {
-		dbs = fmt.Sprintf("--datadir=%s", dbs)
+		dbs = fmt.Sprintf(`--databases="%s"`, xtrabackup.Databases)
 	}
 
 	// create backup files
-	cmdString := fmt.Sprintf("xtrabackup --backup --target-dir=%s %s %s --user=%s --password=%s", targetDir, dbs, dd, xtrabackup.User, xtrabackup.Password)
+	cmdString := fmt.Sprintf("%s --backup --target-dir=%s --datadir=%s %s --user=%s --password=%s", xtrabackup.Bin, targetDir, xtrabackup.DataDir, dbs, xtrabackup.User, xtrabackup.Password)
 	opts := ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
-		ExpectRC: []int{0, 1},
+		ExpectRC: []int{0},
 	}
 
 	DEBUG("Executing: `%s`", cmdString)
@@ -158,12 +177,12 @@ func (p XtraBackupPlugin) Backup(endpoint ShieldEndpoint) error {
 	}
 
 	// create and return archive
-	cmdString = fmt.Sprintf("tar -cf - %s", targetDir)
+	cmdString = fmt.Sprintf("%s -cf - -C %s .", xtrabackup.Tar, targetDir)
 	if err = Exec(cmdString, STDOUT); err != nil {
 		return err
 	}
 
-	// remove target directory
+	// remove temporary target directory
 	return os.RemoveAll(targetDir)
 }
 
@@ -173,47 +192,51 @@ func (p XtraBackupPlugin) Restore(endpoint ShieldEndpoint) error {
 		return err
 	}
 
-	backupDir := "/tmp/backups/"
+	backupDir := xtrabackup.TargetDir
 
-	// create tmp folder and unpack archive
-	cmdString := fmt.Sprintf("mkdir -p %s && tar -xf - -C %s", backupDir, backupDir)
-	DEBUG("Executing: `%s`", cmdString)
-	if err := Exec(cmdString, STDOUT); err != nil {
-		return err
-	}
-
-	// xtrabackup --prepare --target-dir=tmpFolder
-	cmdString = fmt.Sprintf("xtrabackup --prepare --target-dir=%s", backupDir)
+	// create tmp folder
+	cmdString := fmt.Sprintf("mkdir -p %s", backupDir)
 	opts := ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
-		ExpectRC: []int{0, 1},
+		ExpectRC: []int{0},
 	}
-
 	DEBUG("Executing: `%s`", cmdString)
 	if err := ExecWithOptions(opts); err != nil {
 		return err
 	}
 
-	// stop mysql server
-	// remove data dir
+	// unpack archive
+	cmdString = fmt.Sprintf("%s -xf - -C %s", xtrabackup.Tar, backupDir)
+	DEBUG("Executing: `%s`", cmdString)
+	if err := Exec(cmdString, STDIN); err != nil {
+		return err
+	}
 
-	// xtrabackup --move-back --target-dir=/data/backups/
-	cmdString = fmt.Sprintf("xtrabackup --move-back --target-dir=%s --user=%s --password=%s", backupDir, xtrabackup.User, xtrabackup.Password)
+	cmdString = fmt.Sprintf("%s --prepare --target-dir=%s", xtrabackup.Bin, backupDir)
 	opts = ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
-		ExpectRC: []int{0, 1},
+		ExpectRC: []int{0},
 	}
-
 	DEBUG("Executing: `%s`", cmdString)
 	if err := ExecWithOptions(opts); err != nil {
 		return err
 	}
-	// chown -R mysql:mysql /var/lib/mysql
-	// restart mysql server
 
-	return nil
+	cmdString = fmt.Sprintf("%s --move-back --target-dir=%s --datadir=%s", xtrabackup.Bin, backupDir, xtrabackup.DataDir)
+	opts = ExecOptions{
+		Cmd:      cmdString,
+		Stdout:   os.Stdout,
+		ExpectRC: []int{0},
+	}
+	DEBUG("Executing: `%s`", cmdString)
+	if err := ExecWithOptions(opts); err != nil {
+		return err
+	}
+
+	// remove temporary target directory
+	return os.RemoveAll(xtrabackup.TargetDir)
 }
 
 func (p XtraBackupPlugin) Store(endpoint ShieldEndpoint) (string, error) {
@@ -229,30 +252,55 @@ func (p XtraBackupPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 }
 
 func getXtraBackupEndpoint(endpoint ShieldEndpoint) (XtraBackupEndpoint, error) {
-	databases, err := endpoint.StringValueDefault("databases", "")
-	if err != nil {
-		return XtraBackupEndpoint{}, err
-	}
-
-	dataDir, err := endpoint.StringValueDefault("datadir", "")
-	if err != nil {
-		return XtraBackupEndpoint{}, err
-	}
-
 	user, err := endpoint.StringValue("mysql_user")
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
+	DEBUG("MYSQL_USER: '%s'", user)
 
 	password, err := endpoint.StringValue("mysql_password")
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
+	DEBUG("MYSQL_PWD: '%s'", password)
+
+	databases, err := endpoint.StringValueDefault("mysql_databases", "")
+	if err != nil {
+		return XtraBackupEndpoint{}, err
+	}
+	DEBUG("MYSQL_DATABASES: '%s'", databases)
+
+	dataDir, err := endpoint.StringValueDefault("mysql_datadir", DefaultDataDir)
+	if err != nil {
+		return XtraBackupEndpoint{}, err
+	}
+	DEBUG("MYSQL_DATADIR: '%s'", dataDir)
+
+	targetDir, err := endpoint.StringValueDefault("mysql_temp_targetdir", DefaultTempTargetDir)
+	if err != nil {
+		return XtraBackupEndpoint{}, err
+	}
+	DEBUG("MYSQL_TEMP_TARGETDIR: '%s'", targetDir)
+
+	xtrabackupBin, err := endpoint.StringValueDefault("mysql_xtrabackup", DefaultXtrabackup)
+	if err != nil {
+		return XtraBackupEndpoint{}, err
+	}
+	DEBUG("MYSQL_XTRABACKUP: '%s'", xtrabackupBin)
+
+	tar, err := endpoint.StringValueDefault("mysql_tar", DefaultTar)
+	if err != nil {
+		return XtraBackupEndpoint{}, err
+	}
+	DEBUG("MYSQL_TAR: '%s'", tar)
 
 	return XtraBackupEndpoint{
-		Databases: databases,
-		DataDir:   dataDir,
 		User:      user,
 		Password:  password,
+		Databases: databases,
+		DataDir:   dataDir,
+		TargetDir: targetDir,
+		Bin:       xtrabackupBin,
+		Tar:       tar,
 	}, nil
 }
