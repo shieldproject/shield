@@ -44,6 +44,7 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/redis-broker
 	go $(BUILD_TYPE) ./plugin/s3
 	go $(BUILD_TYPE) ./plugin/mysql
+	go $(BUILD_TYPE) ./plugin/xtrabackup
 	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
 	go $(BUILD_TYPE) ./plugin/scality
 	go $(BUILD_TYPE) ./plugin/consul
