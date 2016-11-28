@@ -84,7 +84,7 @@ var (
 func main() {
 	p := XtraBackupPlugin{
 		Name:    "MySQL XtraBackup Plugin",
-		Author:  "-",
+		Author:  "Swisscom",
 		Version: "0.0.1",
 		Features: PluginFeatures{
 			Target: "yes",
