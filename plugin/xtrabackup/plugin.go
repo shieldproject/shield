@@ -144,6 +144,50 @@ func (p XtraBackupPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 mysql_databases}  @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValueDefault("mysql_datadir", DefaultDataDir)
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_datadir  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@R{\u2717 mysql_datadir}  no datadir\n")
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_datadir}  @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("mysql_xtrabackup", DefaultXtrabackup)
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_xtrabackup  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@R{\u2717 mysql_xtrabackup}  xtrabackup command not specified\n")
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_xtrabackup}  @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("mysql_temp_targetdir", DefaultTempTargetDir)
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_temp_targetdir  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@R{\u2717 mysql_temp_targetdir}  no temporary target dir\n")
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_temp_targetdir}  @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("mysql_tar", DefaultTar)
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_tar  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@R{\u2717 mysql_tar}  tar command not specified\n")
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 mysql_tar}  @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("xtrabackup: invalid configuration")
 	}
