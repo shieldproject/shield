@@ -23,7 +23,8 @@
 //        "mysql_host":"hostname-or-ip-of-mysql-server",
 //        "mysql_port":"port-above-mysql-server-listens-on",
 //        "mysql_read_replica":"hostname-or-ip-of-mysql-replica-server",  #OPTIONAL
-//        "mysql_database": "your-database-name"  #OPTIONAL
+//        "mysql_database": "your-database-name",  #OPTIONAL
+//        "mysql_options": "mysqldump-specific-options" #OPTIONAL
 //    }
 //
 // BACKUP DETAILS
@@ -32,6 +33,9 @@
 // use of `mysqldump --all-databases` to back up all databases on the mysql server it connects to.
 // Otherwise, it backs up ONLY the specified database. The dumps generated include
 // SQL to clean up existing tables of the databases, so that the restores will go smoothly.
+//
+// The mysql_options setting can apply mysqldump specific options like --force, --quick and/or
+// --single-transaction
 //
 // Backing up with the `mysql` plugin will not drop any existing connections to the database,
 // or restart the service.
@@ -92,6 +96,7 @@ type MySQLConnectionInfo struct {
 	Bin      string
 	Replica  string
 	Database string
+	Options	 string
 }
 
 func (p MySQLPlugin) Meta() PluginInfo {
@@ -148,6 +153,16 @@ func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValueDefault("mysql_options", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_options  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mysql_options}  no options given - using defaults\n")
+	} else {
+		ansi.Printf("@G{\u2713 mysql_options}  @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("mysql: invalid configuration")
 	}
@@ -165,7 +180,7 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 		mysql.Host = mysql.Replica
 	}
 
-	cmd := fmt.Sprintf("%s/mysqldump %s", mysql.Bin, connectionString(mysql, true))
+	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
 	DEBUG("Executing: `%s`", cmd)
 	return Exec(cmd, STDOUT)
 }
@@ -239,6 +254,12 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQL_READ_REPLICA: '%s'", replica)
 
+	options, err := endpoint.StringValueDefault("mysql_options", "")
+	if err != nil {
+		return nil, err
+	}
+	DEBUG("MYSQL_OPTIONS: '%s'", options)
+
 	db, err := endpoint.StringValueDefault("mysql_database", "")
 	if err != nil {
 		return nil, err
@@ -256,5 +277,6 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 		Bin:      bin,
 		Replica:  replica,
 		Database: db,
+		Options: options,
 	}, nil
 }
