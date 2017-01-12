@@ -381,6 +381,12 @@ $ make report FOR=db
 go tool cover -html=coverage/db.cov
 ```
 
+## CLI Setup
+```
+brew tap starkandwayne/cf
+brew install starkandwayne/cf/shield
+```
+
 ## CLI Usage Examples
 
 This section is exploratory.
