@@ -27,6 +27,7 @@
 //        "prefix":              "/path/inside/bucket/to/place/backup/data",
 //        "signature_version":   "4",  # should be 2 or 4. Defaults to 4
 //        "socks5_proxy":        ""    # optionally defined SOCKS5 proxy to use for the s3 communications
+//        "s3_port":             "443"
 //    }
 //
 // `prefix` will default to the empty string, and backups will be placed in the
@@ -59,7 +60,7 @@
 package main
 
 import (
-	"crypto/tls"
+//	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -67,8 +68,8 @@ import (
 	"strings"
 	"time"
 
-	minio "github.com/minio/minio-go"
 	"github.com/starkandwayne/goutils/ansi"
+	minio "github.com/minio/minio-go"
 	"golang.org/x/net/proxy"
 
 	"github.com/starkandwayne/shield/plugin"
@@ -79,6 +80,7 @@ const (
 	DefaultPrefix            = ""
 	DefaultSigVersion        = "4"
 	DefaultSkipSSLValidation = false
+	DefaultPort              = "443"
 )
 
 func validSigVersion(v string) bool {
@@ -110,6 +112,7 @@ type S3ConnectionInfo struct {
 	PathPrefix        string
 	SignatureVersion  string
 	SOCKS5Proxy       string
+	Port              string
 }
 
 func (p S3Plugin) Meta() plugin.PluginInfo {
@@ -137,6 +140,16 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail = true
 	} else {
 		ansi.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("s3_port","443")
+	if err != nil {
+		ansi.Printf("@R{\u2717 s3_port        %s}\n", err)
+		fail = true
+	} else if s == DefaultPort {
+		ansi.Printf("@G{\u2713 s3_port}               443\n")
+	} else {
+		ansi.Printf("@G{\u2713 s3_port}        @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("secret_access_key")
@@ -222,7 +235,7 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 
 	path := s3.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
-
+   
 	// FIXME: should we do something with the size of the write performed?
 	// Removing leading slash until https://github.com/minio/minio/issues/3256 is fixed
 	_, err = client.PutObject(s3.Bucket, strings.TrimPrefix(path, "/"), os.Stdin, "application/x-gzip")
@@ -318,6 +331,11 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		return S3ConnectionInfo{}, err
 	}
 
+	port, err := e.StringValueDefault("s3_port", "443")
+	if err != nil {
+		return S3ConnectionInfo{}, err
+	}
+
 	return S3ConnectionInfo{
 		Host:              host,
 		SkipSSLValidation: insecure_ssl,
@@ -327,6 +345,7 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		PathPrefix:        prefix,
 		SignatureVersion:  sigVer,
 		SOCKS5Proxy:       proxy,
+		Port:              port,
 	}, nil
 }
 
@@ -344,17 +363,18 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
 	var s3Client *minio.Client
 	var err error
+	
 	if s3.SignatureVersion == "2" {
-		s3Client, err = minio.NewV2(s3.Host, s3.AccessKey, s3.SecretKey, false)
+		s3Client, err = minio.NewV2(s3.Host+":"+s3.Port, s3.AccessKey, s3.SecretKey, false)
 	} else {
-		s3Client, err = minio.NewV4(s3.Host, s3.AccessKey, s3.SecretKey, false)
+		s3Client, err = minio.NewV4(s3.Host+":"+s3.Port, s3.AccessKey, s3.SecretKey, false)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	transport := http.DefaultTransport
-	transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: s3.SkipSSLValidation}
+//	transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: s3.SkipSSLValidation}
 	if s3.SOCKS5Proxy != "" {
 		dialer, err := proxy.SOCKS5("tcp", s3.SOCKS5Proxy, nil, proxy.Direct)
 		if err != nil {
