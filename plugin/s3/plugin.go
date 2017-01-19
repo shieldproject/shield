@@ -60,7 +60,7 @@
 package main
 
 import (
-//	"crypto/tls"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -374,7 +374,7 @@ func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
 	}
 
 	transport := http.DefaultTransport
-//	transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: s3.SkipSSLValidation}
+	transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: s3.SkipSSLValidation}
 	if s3.SOCKS5Proxy != "" {
 		dialer, err := proxy.SOCKS5("tcp", s3.SOCKS5Proxy, nil, proxy.Direct)
 		if err != nil {
