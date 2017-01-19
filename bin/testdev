@@ -22,6 +22,7 @@ fi
 
 export DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
 export DATABASE_DSN=${DATABASE_DSN:-$workdir/var/shield.db}
+export SHIELD_API_TOKEN=LETMEIN
 
 case "${1}" in
 (shieldd)
@@ -39,7 +40,7 @@ max_timeout:   10
 web_root: ./webui
 auth:
   api_tokens:
-    test: LETMEIN
+    test: ${SHIELD_API_TOKEN}
   basic:
     user: testuser
     password: testpass
@@ -76,7 +77,7 @@ EOF
   ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
   rm ${workdir}/var/shield-agent_key.pub
 
-  `curl -XGET -H "X-Shield-Token: LETMEIN" http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
+  `curl -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
   cat >${workdir}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${workdir}/var/authorized_keys
@@ -97,7 +98,7 @@ EOF
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
        new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
        new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir}" \;
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ; read JUNK" \;
   ;;
 
 (*)

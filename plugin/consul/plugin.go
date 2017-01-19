@@ -17,6 +17,8 @@
 //
 //    {
 //        "host":"consul-endpoint",
+//        "username":"basic-auth-username",  #OPTIONAL
+//        "password":"basic-auth-password",  #OPTIONAL
 //    }
 //
 //
@@ -90,6 +92,27 @@ func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
 	} else {
 		ansi.Printf("@G{\u2713 host}      @C{%s}\n", s)
 	}
+
+	s, err = endpoint.StringValueDefault("username", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 username  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 username}  no username\n")
+	} else {
+		ansi.Printf("@G{\u2713 username}  @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("password", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 password  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 password}  no password\n")
+	} else {
+		ansi.Printf("@G{\u2713 password}  @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("consul: invalid configuration")
 	}
@@ -171,6 +194,27 @@ func consulClient(endpoint ShieldEndpoint) (*api.Client, error) {
 
 	DEBUG("HOST: '%s'", host)
 	config.Address = host
+
+	username, err := endpoint.StringValue("username")
+	if err != nil {
+		return nil, err
+	}
+	DEBUG("USERNAME: '%s'", username)
+
+	password, err := endpoint.StringValue("password")
+	if err != nil {
+		return nil, err
+	}
+	DEBUG("PASSWORD: '%s'", password)
+
+	if username != "" && password != "" {
+
+		config.HttpAuth = &api.HttpBasicAuth{
+			Username: username,
+			Password: password,
+		}
+
+	}
 
 	client, err := api.NewClient(config)
 	if err != nil {
