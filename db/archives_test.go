@@ -40,9 +40,9 @@ var _ = Describe("Archive Management", func() {
 		var err error
 		db, err = Database(
 			// need a target
-			`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES ("`+TARGET_UUID.String()+`", "target_plugin", "target_endpoint", "127.0.0.1:5444")`,
+			`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES ("`+TARGET_UUID.String()+`", "target_plugin", "target_endpoint", "127.0.0.1:5444", "target_name")`,
 			// need a store
-			`INSERT INTO stores (uuid, plugin, endpoint) VALUES ("`+STORE_UUID.String()+`", "store_plugin", "store_endpoint")`,
+			`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES ("`+STORE_UUID.String()+`", "store_plugin", "store_endpoint", "store_name")`,
 			// need an ARCHIVE
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status, notes, purge_reason)
 				VALUES ("`+ARCHIVE_UUID.String()+`", "`+TARGET_UUID.String()+`",
@@ -110,8 +110,8 @@ var _ = Describe("Archive Management", func() {
 		ARCHIVE_STORE2 := uuid.NewRandom()
 		BeforeEach(func() {
 			var err error
-			db.Exec(`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES("` + TARGET2_UUID.String() + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444")`)
-			err = db.Exec(`INSERT INTO stores (uuid, plugin, endpoint ) VALUES("` + STORE2_UUID.String() + `","store_plugin2", "store_endpoint2")`)
+			db.Exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID.String() + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444", "target_name2")`)
+			err = db.Exec(`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES("` + STORE2_UUID.String() + `","store_plugin2", "store_endpoint2", "store_name2")`)
 			Expect(err).ShouldNot(HaveOccurred())
 			err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 				ARCHIVE_PURGED.String() + `","` + TARGET_UUID.String() + `", "` + STORE_UUID.String() +
@@ -148,9 +148,11 @@ var _ = Describe("Archive Management", func() {
 					Status:         "valid",
 					PurgeReason:    "",
 					TargetUUID:     TARGET_UUID,
+					TargetName:     "target_name",
 					TargetPlugin:   "target_plugin",
 					TargetEndpoint: "target_endpoint",
 					StoreUUID:      STORE_UUID,
+					StoreName:      "store_name",
 					StoreEndpoint:  "store_endpoint",
 					StorePlugin:    "store_plugin",
 				}))

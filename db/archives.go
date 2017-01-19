@@ -20,9 +20,11 @@ type Archive struct {
 	Status         string    `json:"status"`
 	PurgeReason    string    `json:"purge_reason"`
 	TargetUUID     uuid.UUID `json:"target_uuid"`
+	TargetName     string    `json:"target_name"`
 	TargetPlugin   string    `json:"target_plugin"`
 	TargetEndpoint string    `json:"target_endpoint"`
 	StoreUUID      uuid.UUID `json:"store_uuid"`
+	StoreName      string    `json:"store_name"`
 	StorePlugin    string    `json:"store_plugin"`
 	StoreEndpoint  string    `json:"store_endpoint"`
 }
@@ -86,9 +88,9 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
-		       t.uuid, t.plugin, t.endpoint,
-		       s.uuid, s.plugin, s.endpoint,
-			   a.status, a.purge_reason
+		       t.uuid, t.name, t.plugin, t.endpoint,
+		       s.uuid, s.name, s.plugin, s.endpoint,
+		       a.status, a.purge_reason
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -121,11 +123,12 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		ann := &Archive{}
 
 		var takenAt, expiresAt *int64
+		var targetName, storeName *string
 		var this, target, store NullUUID
 		if err = r.Scan(
 			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&store, &ann.StorePlugin, &ann.StoreEndpoint,
+			&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
 			&ann.Status, &ann.PurgeReason); err != nil {
 
 			return l, err
@@ -139,6 +142,12 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		if expiresAt != nil {
 			ann.ExpiresAt = parseEpochTime(*expiresAt)
 		}
+		if targetName != nil {
+			ann.TargetName = *targetName
+		}
+		if storeName != nil {
+			ann.StoreName = *storeName
+		}
 
 		l = append(l, ann)
 	}
@@ -150,8 +159,8 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	r, err := db.Query(`
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
-		       t.uuid, t.plugin, t.endpoint,
-		       s.uuid, s.plugin, s.endpoint, a.status, a.purge_reason
+		       t.uuid, t.name, t.plugin, t.endpoint,
+		       s.uuid, s.name, s.plugin, s.endpoint, a.status, a.purge_reason
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -169,11 +178,12 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	ann := &Archive{}
 
 	var takenAt, expiresAt *int64
+	var targetName, storeName *string
 	var this, target, store NullUUID
 	if err = r.Scan(
 		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-		&target, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&store, &ann.StorePlugin, &ann.StoreEndpoint,
+		&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
 		&ann.Status, &ann.PurgeReason); err != nil {
 
 		return nil, err
@@ -186,6 +196,12 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	}
 	if expiresAt != nil {
 		ann.ExpiresAt = parseEpochTime(*expiresAt)
+	}
+	if targetName != nil {
+		ann.TargetName = *targetName
+	}
+	if storeName != nil {
+		ann.StoreName = *storeName
 	}
 
 	return ann, nil

@@ -180,6 +180,7 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 		mysql.Host = mysql.Replica
 	}
 
+
 	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
 	DEBUG("Executing: `%s`", cmd)
 	return Exec(cmd, STDOUT)
