@@ -3,7 +3,7 @@ meta:
   name: shield
   target: sw
   initial_version: 0.6.4
-  url:     https://ci.vsphere.starkandwayne.com
+  url:     https://ci.starkandwayne.com
 
   go:
     version: "1.6"
