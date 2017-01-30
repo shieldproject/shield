@@ -447,7 +447,7 @@ func main() {
 			}
 
 			MSG("Created new target")
-			return c.Execute("show", "target", t.UUID)
+			return c.Execute("target", t.UUID)
 		})
 	c.Alias("create target", "create-target")
 	c.Alias("new target", "create-target")
@@ -666,7 +666,7 @@ func main() {
 			}
 
 			MSG("Created new schedule")
-			return c.Execute("show", "schedule", s.UUID)
+			return c.Execute("schedule", s.UUID)
 		})
 	c.Alias("create schedule", "create-schedule")
 	c.Alias("new schedule", "create-schedule")
@@ -888,7 +888,7 @@ func main() {
 			}
 
 			MSG("Created new retention policy")
-			return c.Execute("show", "retention", "policy", p.UUID)
+			return c.Execute("policy", p.UUID)
 		})
 	c.Alias("create retention policy", "create-policy")
 	c.Alias("new retention policy", "create-policy")
@@ -1118,7 +1118,7 @@ func main() {
 			}
 
 			MSG("Created new store")
-			return c.Execute("show", "store", s.UUID)
+			return c.Execute("store", s.UUID)
 		})
 	c.Alias("create store", "create-store")
 	c.Alias("new store", "create-store")
@@ -1358,7 +1358,7 @@ func main() {
 			}
 
 			MSG("Created new job")
-			return c.Execute("show", "job", job.UUID)
+			return c.Execute("job", job.UUID)
 		})
 	c.Alias("create job", "create-job")
 	c.Alias("new job", "create-job")
