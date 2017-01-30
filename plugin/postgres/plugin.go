@@ -184,7 +184,7 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	cmd := ""
 	if pg.Database != "" {
 		// Run dump all on the specified db
-		cmd = fmt.Sprintf("%s/pg_dump %s -c --no-password", pg.Bin, pg.Database)
+		cmd = fmt.Sprintf("%s/pg_dump %s -C -c --no-password", pg.Bin, pg.Database)
 	} else {
 		// Else run dump on all
 		cmd = fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
