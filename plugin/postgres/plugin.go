@@ -38,7 +38,8 @@
 // binaries such as pg_dump / pg_dumpall / pg_restore. If specified, the plugin
 // will attempt to use binaries from within the given directory. If not specified
 // the plugin will default to trying to use binaries in
-// '/var/vcap/packages/postgres/bin'.
+// '/var/vcap/packages/postgres-9.4/bin', which is provided by the
+// `agent-pgtools' package in the SHIELD BOSH release.
 //
 // BACKUP DETAILS
 //
@@ -310,7 +311,7 @@ func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) 
 	}
 	DEBUG("PGDATABASE: '%s'", database)
 
-	bin, err := endpoint.StringValueDefault("pg_bindir", "/var/vcap/packages/postgres/bin")
+	bin, err := endpoint.StringValueDefault("pg_bindir", "/var/vcap/packages/postgres-9.4/bin")
 	if err != nil {
 		return nil, err
 	}
