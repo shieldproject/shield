@@ -27,11 +27,13 @@
 //        "prefix":              "/path/inside/bucket/to/place/backup/data",
 //        "signature_version":   "4",  # should be 2 or 4. Defaults to 4
 //        "socks5_proxy":        ""    # optionally defined SOCKS5 proxy to use for the s3 communications
-//        "s3_port":             "443"
+//        "s3_port":             ""    # optionally defined port to use for the s3 communications
 //    }
 //
 // `prefix` will default to the empty string, and backups will be placed in the
 // root of the bucket.
+//
+// The `s3_port` field is optional. If specified, `s3_host` cannot be empty.
 //
 // STORE DETAILS
 //
@@ -68,8 +70,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
 	minio "github.com/minio/minio-go"
+	"github.com/starkandwayne/goutils/ansi"
 	"golang.org/x/net/proxy"
 
 	"github.com/starkandwayne/shield/plugin"
@@ -80,7 +82,6 @@ const (
 	DefaultPrefix            = ""
 	DefaultSigVersion        = "4"
 	DefaultSkipSSLValidation = false
-	DefaultPort              = "443"
 )
 
 func validSigVersion(v string) bool {
@@ -142,14 +143,17 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("s3_port","443")
+	s, err = endpoint.StringValueDefault("s3_port", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 s3_port        %s}\n", err)
 		fail = true
-	} else if s == DefaultPort {
-		ansi.Printf("@G{\u2713 s3_port}               443\n")
 	} else {
-		ansi.Printf("@G{\u2713 s3_port}        @C{%s}\n", s)
+		if s3Host, err := endpoint.StringValueDefault("s3_host", ""); s != "" && err == nil && s3Host == "" {
+			ansi.Printf("@R{\u2717 s3_port        %s but s3_host cannot be empty}\n", s)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 s3_port}        @C{%s}\n", s)
+		}
 	}
 
 	s, err = endpoint.StringValue("secret_access_key")
@@ -235,7 +239,7 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 
 	path := s3.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
-   
+
 	// FIXME: should we do something with the size of the write performed?
 	// Removing leading slash until https://github.com/minio/minio/issues/3256 is fixed
 	_, err = client.PutObject(s3.Bucket, strings.TrimPrefix(path, "/"), os.Stdin, "application/x-gzip")
@@ -331,7 +335,7 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		return S3ConnectionInfo{}, err
 	}
 
-	port, err := e.StringValueDefault("s3_port", "443")
+	port, err := e.StringValueDefault("s3_port", "")
 	if err != nil {
 		return S3ConnectionInfo{}, err
 	}
@@ -363,11 +367,16 @@ func (s3 S3ConnectionInfo) genBackupPath() string {
 func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
 	var s3Client *minio.Client
 	var err error
-	
+
+	s3Host := s3.Host
+	if s3.Port != "" {
+		s3Host = s3.Host + ":" + s3.Port
+	}
+
 	if s3.SignatureVersion == "2" {
-		s3Client, err = minio.NewV2(s3.Host+":"+s3.Port, s3.AccessKey, s3.SecretKey, false)
+		s3Client, err = minio.NewV2(s3Host, s3.AccessKey, s3.SecretKey, false)
 	} else {
-		s3Client, err = minio.NewV4(s3.Host+":"+s3.Port, s3.AccessKey, s3.SecretKey, false)
+		s3Client, err = minio.NewV4(s3Host, s3.AccessKey, s3.SecretKey, false)
 	}
 	if err != nil {
 		return nil, err
