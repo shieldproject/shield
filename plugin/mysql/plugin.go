@@ -97,7 +97,7 @@ type MySQLConnectionInfo struct {
 	Bin      string
 	Replica  string
 	Database string
-	Options	 string
+	Options  string
 }
 
 func (p MySQLPlugin) Meta() PluginInfo {
@@ -281,6 +281,6 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 		Bin:      bin,
 		Replica:  replica,
 		Database: db,
-		Options: options,
+		Options:  options,
 	}, nil
 }
