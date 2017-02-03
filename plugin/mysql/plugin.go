@@ -24,7 +24,7 @@
 //        "mysql_port":"port-above-mysql-server-listens-on",
 //        "mysql_read_replica":"hostname-or-ip-of-mysql-replica-server",  #OPTIONAL
 //        "mysql_database": "your-database-name",  #OPTIONAL
-//       	"mysql_options": "mysqldump-specific-options", #OPTIONAL
+//        "mysql_options": "mysqldump-specific-options", #OPTIONAL
 //        "mysql_bindir": "/mysql/binary/directory" #OPTIONAL
 //    }
 //
