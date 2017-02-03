@@ -24,7 +24,8 @@
 //        "mysql_port":"port-above-mysql-server-listens-on",
 //        "mysql_read_replica":"hostname-or-ip-of-mysql-replica-server",  #OPTIONAL
 //        "mysql_database": "your-database-name",  #OPTIONAL
-//        "mysql_options": "mysqldump-specific-options" #OPTIONAL
+//        "mysql_options": "mysqldump-specific-options", #OPTIONAL
+//        "mysql_bindir": "/mysql/binary/directory" #OPTIONAL
 //    }
 //
 // BACKUP DETAILS
@@ -180,7 +181,6 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 		mysql.Host = mysql.Replica
 	}
 
-
 	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
 	DEBUG("Executing: `%s`", cmd)
 	return Exec(cmd, STDOUT)
@@ -267,8 +267,11 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQL_DB: '%s'", db)
 
-	bin := "/var/vcap/packages/shield-mysql/bin"
-	DEBUG("MYSQL_BIN_DIR: '%s'", bin)
+	bin, err := endpoint.StringValueDefault("mysql_bindir", "/var/vcap/packages/shield-mysql/bin")
+	if err != nil {
+		return nil, err
+	}
+	DEBUG("MYSQL_BINDIR: '%s'", bin)
 
 	return &MySQLConnectionInfo{
 		Host:     host,
