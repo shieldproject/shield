@@ -16,9 +16,9 @@
 // endpoint JSON should look something like this:
 //
 //    {
-//        "host":"consul-endpoint",
-//        "username":"basic-auth-username",  #OPTIONAL
-//        "password":"basic-auth-password",  #OPTIONAL
+//        "host":"consul-endpoint",          # optional
+//        "username":"basic-auth-username",  # optional
+//        "password":"basic-auth-password",  # optional
 //    }
 //
 //
@@ -44,6 +44,10 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/starkandwayne/goutils/ansi"
 	. "github.com/starkandwayne/shield/plugin"
+)
+
+var (
+	DefaultHostPort = "127.0.0.1:8500"
 )
 
 func main() {
@@ -82,13 +86,12 @@ func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
 		fail bool
 	)
 
-	s, err = endpoint.StringValue("host")
+	s, err = endpoint.StringValueDefault("host", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 host      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 host      (none)}\n")
-		fail = true
+		ansi.Printf("@G{\u2717 host      using default host @C{%s}}\n", DefaultHostPort)
 	} else {
 		ansi.Printf("@G{\u2713 host}      @C{%s}\n", s)
 	}
@@ -187,7 +190,7 @@ func (p ConsulPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 func consulClient(endpoint ShieldEndpoint) (*api.Client, error) {
 	config := api.DefaultConfig()
 
-	host, err := endpoint.StringValue("host")
+	host, err := endpoint.StringValueDefault("host", DefaultHostPort)
 	if err != nil {
 		return nil, err
 	}
@@ -195,25 +198,23 @@ func consulClient(endpoint ShieldEndpoint) (*api.Client, error) {
 	DEBUG("HOST: '%s'", host)
 	config.Address = host
 
-	username, err := endpoint.StringValue("username")
+	username, err := endpoint.StringValueDefault("username", "")
 	if err != nil {
 		return nil, err
 	}
 	DEBUG("USERNAME: '%s'", username)
 
-	password, err := endpoint.StringValue("password")
+	password, err := endpoint.StringValueDefault("password", "")
 	if err != nil {
 		return nil, err
 	}
 	DEBUG("PASSWORD: '%s'", password)
 
 	if username != "" && password != "" {
-
 		config.HttpAuth = &api.HttpBasicAuth{
 			Username: username,
 			Password: password,
 		}
-
 	}
 
 	client, err := api.NewClient(config)
