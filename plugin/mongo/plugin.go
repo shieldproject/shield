@@ -18,12 +18,12 @@
 // should look something like this:
 //
 //    {
-//        "mongo_user":"username-for-mongodb",
-//        "mongo_password":"password-for-above-user",
-//        "mongo_host":"hostname-or-ip-of-mongodb-server",
-//        "mongo_port":"port-above-mongodb-server-listens-on",
-//        "mongo_database": "your-database-name"  #OPTIONAL,
-//        "mongo_bindir": "Mongo binaries directory"  #OPTIONAL
+//        "mongo_host"     : "127.0.0.1",   # optional
+//        "mongo_port"     : "27017",       # optional
+//        "mongo_user"     : "username",    # optional
+//        "mongo_password" : "password",    # optional
+//        "mongo_database" : "db",          # optional
+//        "mongo_bindir"   : "/path/to/bin" # optional
 //    }
 //
 // BACKUP DETAILS
@@ -67,6 +67,7 @@ import (
 )
 
 var (
+	DefaultHost        = "127.0.0.1"
 	DefaultPort        = "27017"
 	DefaultMongoBinDir = "/var/vcap/packages/shield-mongo/bin"
 )
@@ -107,10 +108,12 @@ func (p MongoPlugin) Validate(endpoint ShieldEndpoint) error {
 		fail bool
 	)
 
-	s, err = endpoint.StringValue("mongo_host")
+	s, err = endpoint.StringValueDefault("mongo_host", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 mongo_host          %s}\n", err)
 		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mongo_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
 		ansi.Printf("@G{\u2713 mongo_host}          @C{%s}\n", s)
 	}
@@ -124,18 +127,22 @@ func (p MongoPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 mongo_port}          @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("mongo_user")
+	s, err = endpoint.StringValueDefault("mongo_user", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 mongo_user          %s}\n", err)
 		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mongo_user}          none\n", s)
 	} else {
 		ansi.Printf("@G{\u2713 mongo_user}          @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("mongo_password")
+	s, err = endpoint.StringValueDefault("mongo_password", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 mongo_password      %s}\n", err)
 		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mongo_password}      none\n", s)
 	} else {
 		ansi.Printf("@G{\u2713 mongo_password}      @C{%s}\n", s)
 	}
@@ -186,27 +193,33 @@ func connectionString(info *MongoConnectionInfo, backup bool) string {
 
 	var db string
 	if info.Database != "" {
-		db = fmt.Sprintf("--db %s", info.Database)
+		db = fmt.Sprintf(" --db %s", info.Database)
 	}
 
-	return fmt.Sprintf("--archive --authenticationDatabase admin --host %s --port %s --username %s --password %s %s",
-		info.Host, info.Port, info.User, info.Password, db)
+	var auth string
+	if info.User != "" && info.Password != "" {
+		auth = fmt.Sprintf(" --authenticationDatabase admin --username %s --password %s",
+			info.User, info.Password)
+	}
+
+	return fmt.Sprintf("--archive --host %s --port %s%s%s",
+		info.Host, info.Port, auth, db)
 }
 
 func mongoConnectionInfo(endpoint ShieldEndpoint) (*MongoConnectionInfo, error) {
-	user, err := endpoint.StringValue("mongo_user")
+	user, err := endpoint.StringValueDefault("mongo_user", "")
 	if err != nil {
 		return nil, err
 	}
 	DEBUG("MONGO_USER: '%s'", user)
 
-	password, err := endpoint.StringValue("mongo_password")
+	password, err := endpoint.StringValueDefault("mongo_password", "")
 	if err != nil {
 		return nil, err
 	}
 	DEBUG("MONGO_PWD: '%s'", password)
 
-	host, err := endpoint.StringValue("mongo_host")
+	host, err := endpoint.StringValueDefault("mongo_host", DefaultHost)
 	if err != nil {
 		return nil, err
 	}

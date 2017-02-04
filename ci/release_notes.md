@@ -18,3 +18,9 @@
 - The `consul` plugin now defaults to `127.0.0.1:8500` for the
   `host` parameter, which is what most people were manually
   setting it to anyway.  The plugin is now truly 'zero-conf', Yay!
+
+- The `mongo` plugin now defaults to `127.0.0.1` for the
+  `mongo\_host` parameter, and `27017` for the `mongo\_port`
+  property.  Similarly, authentication is optional, and will be
+  skipped if you don't specify a username/password.  The plugin is
+  now truly `zero-conf`, double-Yay!
