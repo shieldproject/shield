@@ -1997,8 +1997,6 @@ func main() {
 			os.Exit(1)
 		}
 
-		DisplayBackend(Cfg)
-
 		err = Cfg.Save()
 		if err != nil {
 			DEBUG("Unable to save shield config: %s", err)
