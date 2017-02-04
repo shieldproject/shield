@@ -76,4 +76,23 @@ Defaults:
 }
 ```
 
+### Filesystem
+```
+{
+    "include":"glob-of-files-to-include", // optional
+    "exclude":"glob-of-files-to-exclude", // optional
+    "bsdtar":"/var/vcap/packages/bsdtar/bin/bsdtar", // optional
+    "base_dir":"base-directory-to-backup"
+}
+
+```
+
+Defaults:
+```
+{
+  "bsdtar": "/var/vcap/packages/bsdtar/bin/bsdtar"
+}
+
+```
+
 ### Fill out more plugins in this readme and submit a PR
