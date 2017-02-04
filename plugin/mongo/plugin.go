@@ -132,7 +132,7 @@ func (p MongoPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@R{\u2717 mongo_user          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_user}          none\n", s)
+		ansi.Printf("@G{\u2713 mongo_user}          (none)\n")
 	} else {
 		ansi.Printf("@G{\u2713 mongo_user}          @C{%s}\n", s)
 	}
@@ -142,7 +142,7 @@ func (p MongoPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@R{\u2717 mongo_password      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_password}      none\n", s)
+		ansi.Printf("@G{\u2713 mongo_password}      (none)\n")
 	} else {
 		ansi.Printf("@G{\u2713 mongo_password}      @C{%s}\n", s)
 	}
