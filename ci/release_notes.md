@@ -9,6 +9,10 @@
   the endpoint now fails properly.  Before, such cases (rare as they
   were) were being silently ignored.
 
+- The `mysql` plugin now spells out what databases (even if that
+  means "all") it is going to backup, when validation runs.  This
+  parameter was missing from validation output, previously.
+
 # Improvements
 
 - The SHIELD CLI, `shield` no longer natters on incessently about
@@ -24,3 +28,7 @@
   property.  Similarly, authentication is optional, and will be
   skipped if you don't specify a username/password.  The plugin is
   now truly `zero-conf`, double-Yay!
+
+- The `mysql` plugin now defaults to `127.0.0.1` for the
+  `mysql\_host` parameter, leaving just the authentication
+  parameters as required.

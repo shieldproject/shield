@@ -18,14 +18,14 @@
 // should look something like this:
 //
 //    {
-//        "mysql_user":"username-for-mysql",
-//        "mysql_password":"password-for-above-user",
-//        "mysql_host":"hostname-or-ip-of-mysql-server",
-//        "mysql_port":"port-above-mysql-server-listens-on",
-//        "mysql_read_replica":"hostname-or-ip-of-mysql-replica-server",  #OPTIONAL
-//        "mysql_database": "your-database-name",  #OPTIONAL
-//        "mysql_options": "mysqldump-specific-options", #OPTIONAL
-//        "mysql_bindir": "/mysql/binary/directory" #OPTIONAL
+//        "mysql_host"         : "127.0.0.1",    # optional
+//        "mysql_port"         : "3306",         # optional
+//        "mysql_user"         : "username",
+//        "mysql_password"     : "password",
+//        "mysql_read_replica" : "hostname/ip",  # optional
+//        "mysql_database"     : "db",           # optional
+//        "mysql_options"      : "--quick",      # optional
+//        "mysql_bindir"       : "/path/to/bin"  # optional
 //    }
 //
 // BACKUP DETAILS
@@ -70,6 +70,7 @@ import (
 )
 
 var (
+	DefaultHost = "127.0.0.1"
 	DefaultPort = "3306"
 )
 
@@ -111,10 +112,12 @@ func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
 		fail bool
 	)
 
-	s, err = endpoint.StringValue("mysql_host")
+	s, err = endpoint.StringValueDefault("mysql_host", DefaultHost)
 	if err != nil {
 		ansi.Printf("@R{\u2717 mysql_host          %s}\n", err)
 		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mysql_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
 		ansi.Printf("@G{\u2713 mysql_host}          @C{%s}\n", s)
 	}
@@ -149,19 +152,29 @@ func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@R{\u2717 mysql_read_replica  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_read_replica}  no read replica\n")
+		ansi.Printf("@G{\u2713 mysql_read_replica}  no read replica given\n")
 	} else {
 		ansi.Printf("@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("mysql_options", "")
+	s, err = endpoint.StringValueDefault("mysql_database", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_options  %s}\n", err)
+		ansi.Printf("@R{\u2717 mysql_database      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_options}  no options given - using defaults\n")
+		ansi.Printf("@G{\u2713 mysql_database}      backing up *all* databases\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_options}  @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 mysql_database}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("mysql_options", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_options       %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mysql_options}       no options given\n")
+	} else {
+		ansi.Printf("@G{\u2713 mysql_options}       @C{%s}\n", s)
 	}
 
 	if fail {

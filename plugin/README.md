@@ -24,19 +24,20 @@ Defaults:
 ### MySQL
 ```
 {
-  "mysql_user"         : "username-for-mysql",
-  "mysql_password"     : "password-for-above-user",
-  "mysql_host"         : "hostname-or-ip-of-mysql-server",
-  "mysql_port"         : "port-above-mysql-server-listens-on",
-  "mysql_read_replica" : "hostname-or-ip-of-mysql-replica-server",  # optional
-  "mysql_database"     : "your-database-name",                      # optional
-  "mysql_options"      : "mysqldump-specific-options",              # optional
-  "mysql_bindir"       : "/mysql/binary/directory"                  # optional
+  "mysql_host"         : "127.0.0.1",    # optional
+  "mysql_port"         : "3306",         # optional
+  "mysql_user"         : "username",
+  "mysql_password"     : "password",
+  "mysql_read_replica" : "hostname/ip",  # optional
+  "mysql_database"     : "db",           # optional
+  "mysql_options"      : "--quick",      # optional
+  "mysql_bindir"       : "/path/to/bin"  # optional
 }
 ```
 Defaults:
 ```
 {
+  "mysql_host"   : "127.0.0.1",
   "mysql_port"   : "3306",
   "mysql_bindir" : "/var/vcap/packages/shield-mysql/bin"
 }
