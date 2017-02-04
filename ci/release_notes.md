@@ -4,6 +4,11 @@
   password from your endpoint configuration, in-line with what the
   documentation said all along.
 
+- If an error is encountered trying to read the `pg_port` endpoint
+  configuration directive in the `postgres` plugin, validation of
+  the endpoint now fails properly.  Before, such cases (rare as they
+  were) were being silently ignored.
+
 # Improvements
 
 - The SHIELD CLI, `shield` no longer natters on incessently about

@@ -137,6 +137,7 @@ func (p PostgresPlugin) Validate(endpoint ShieldEndpoint) error {
 	s, err = endpoint.StringValueDefault("pg_port", "")
 	if err != nil {
 		ansi.Printf("@R{\u2717 pg_port      %s}\n", err)
+		fail = true
 	} else if s == "" {
 		ansi.Printf("@G{\u2713 pg_port}      using default port @C{%s}\n", DefaultPort)
 	} else {
