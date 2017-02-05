@@ -250,7 +250,7 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQL_PWD: '%s'", password)
 
-	host, err := endpoint.StringValue("mysql_host")
+	host, err := endpoint.StringValueDefault("mysql_host", DefaultHost)
 	if err != nil {
 		return nil, err
 	}
