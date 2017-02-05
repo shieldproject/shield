@@ -23,3 +23,71 @@ meta:
     repo: shield
     access_token: (( vault "secret/pipelines/shield/github:token" ))
     private_key: (( vault "secret/pipelines/shield/github:private" ))
+
+  bosh-lite:
+    target:   https://10.58.111.44:25555
+    username: admin
+    password: admin
+
+#################################################################################
+
+groups:
+  - name: (( grab meta.pipeline ))
+    jobs:
+      - (( append ))
+      - phalanx
+
+resources:
+  - name: phalanx
+    type: git
+    source:
+      uri:    https://github.com/starkandwayne/shield-phalanx
+      branch: master
+
+jobs:
+  - name: phalanx
+    public: true
+    serial: true
+    plan:
+      - do:
+        - aggregate:
+          - { get: git,     trigger: true, passed: [test] }
+          - { get: phalanx, trigger: true }
+          - { get: version }
+        - task: phalanx
+          config:
+            platform: linux
+            image: (( grab meta.image ))
+            inputs:
+              - name: git
+                path: gopath/src/github.com/starkandwayne/shield
+              - name: phalanx
+              - name: version
+            run:
+              path: ./phalanx/ci/run
+              args: []
+            params:
+              SHIELD:  gopath/src/github.com/starkandwayne/shield
+              PHALANX: phalanx
+              VERSION: version
+              OUTPUT:  out
+              BOSH_LITE_TARGET:     (( grab meta.bosh-lite.target ))
+              BOSH_LITE_USERNAME:   (( grab meta.bosh-lite.username ))
+              BOSH_LITE_PASSWORD:   (( grab meta.bosh-lite.password ))
+              BOSH_LITE_DEPLOYMENT: shield-phalanx-tests
+        on_failure:
+          put: notify
+          params:
+            channel:  (( grab meta.slack.channel ))
+            username: (( grab meta.slack.username ))
+            icon_url: (( grab meta.slack.icon ))
+            text:    '(( concat meta.slack.fail_url " " meta.pipeline ": Phalanx tests failed" ))'
+
+  - name: rc
+    plan:
+      - do:
+        - aggregate:
+          - get: git
+            passed:
+              - (( replace ))
+              - phalanx
