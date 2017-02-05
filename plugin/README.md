@@ -5,14 +5,14 @@
 | [Consul](#consul)                   | consul          | X      |       |
 | [Docker Postgres](#docker-postgres) | docker-postgres | X      |       |
 | [Filesystem](#filesystem)           | fs              | X      | X     |
-| [MongoDB](#mongodo)                 | mongo           | X      |       |
+| [Mongo](#mongo)                 | mongo           | X      |       |
 | [Postgres](#postgres)               | postgres        | X      |       |
 | [MySQL](#mysql)                     | mysql           | X      |       |
-| [RabbitMQ Broker](#rabbmq-broker)   | rabbitmq-broker | X      |       |
+| [RabbitMQ Broker](#rabbitmq-broker)   | rabbitmq-broker | X      |       |
 | [Redis Broker](#redis-broker)       | redis-broker    | X      |       |
 | [S3](#s3)                           | s3              |        | X     |
 | [Scality](#scality)                 | scality         |        | X     |
-| [Xtra Backup](#xtrabackup)          | xtrabackup      | X      |       |
+| [Xtra Backup](#xtra-backup)          | xtrabackup      | X      |       |
 
 **See a missing plugin? Create one and submit a PR**<br>
 [Example Plugin Stub](../plugin/dummy)
