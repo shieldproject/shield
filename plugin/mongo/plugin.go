@@ -50,7 +50,6 @@
 // This plugin relies on the `mongodump` and `mongorestore` utilities. Please ensure
 // that they are present on the system that will be running the backups + restores
 // for mongodb.
-
 // TODO: add agent-mongodb job template to shield-boshrelease
 // If you are using shield-boshrelease to deploy SHIELD, these tools
 // are provided so long as you include the `agent-mongodb` job template along side
