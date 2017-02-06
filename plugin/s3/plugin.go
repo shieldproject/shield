@@ -187,6 +187,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		ansi.Printf("@G{\u2713 prefix}               (none)\n")
 	} else {
+		s = strings.TrimLeft(s, "/")
 		ansi.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
@@ -332,6 +333,7 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 	if err != nil {
 		return S3ConnectionInfo{}, err
 	}
+	prefix = strings.TrimLeft(prefix, "/")
 
 	sigVer, err := e.StringValueDefault("signature_version", DefaultSigVersion)
 	if !validSigVersion(sigVer) {

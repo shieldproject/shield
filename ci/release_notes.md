@@ -32,3 +32,7 @@
 - The `mysql` plugin now defaults to `127.0.0.1` for the
   `mysql\_host` parameter, leaving just the authentication
   parameters as required.
+
+- The `s3` plugin now ignores all leading slashes on the `prefix`
+  path, since they were interfering with properly retrieving
+  archives from S3 for restore operations.
