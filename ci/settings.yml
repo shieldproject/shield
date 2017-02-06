@@ -75,6 +75,8 @@ jobs:
               BOSH_LITE_USERNAME:   (( grab meta.bosh-lite.username ))
               BOSH_LITE_PASSWORD:   (( grab meta.bosh-lite.password ))
               BOSH_LITE_DEPLOYMENT: shield-phalanx-tests
+              AWS_ACCESS_KEY:       (( vault "secret/aws/cfcommunity:access" ))
+              AWS_SECRET_KEY:       (( vault "secret/aws/cfcommunity:secret" ))
         on_failure:
           put: notify
           params:
