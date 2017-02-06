@@ -26,6 +26,12 @@
 //        "skip_ssl_validation":false
 //     }
 //
+// Default Configuration
+//
+//    {
+//        "skip_ssl_validation": false
+//    }
+//
 // BACKUP DETAILS
 //
 // The `rabbitmq-broker` plugin connects to the RabbitMQ management API to perform

@@ -26,6 +26,14 @@
 //        "mongo_bindir"   : "/path/to/bin" # optional
 //    }
 //
+// Default Configuration
+//
+//    {
+//        "mongo_host"        : "127.0.0.1",
+//        "DefaultPort"       : "27017",
+//        "DefaultMongoBinDir": "/var/vcap/packages/shield-mongo/bin"
+//    }
+//
 // BACKUP DETAILS
 //
 // If `mongo_database` is specified in the plugin configuration, the `mongo` plugin backs up ONLY

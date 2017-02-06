@@ -28,6 +28,14 @@
 //        "socks5_proxy":        "" #optionally defined SOCKS5 proxy to use for the scality communications
 //    }
 //
+// Default Configuration
+//
+//    {
+//        "skip_ssl_validation" : false,
+//        "prefix"              : "",
+//        "socks5_proxy"        : ""
+//    }
+//
 // `prefix` will default to the empty string, and backups will be placed in the
 // root of the bucket.
 //

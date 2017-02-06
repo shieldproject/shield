@@ -19,6 +19,26 @@ Engineers should be able to integrate support for new data systems and storage s
 
 ![Task Lifecyle Image](https://raw.githubusercontent.com/starkandwayne/shield/master/docs/images/task-lifecycle.png)
 
+
+## Plugins
+
+| Plugin                                                                                      | Config Name     | Target | Store |
+| ------------------------------------------------------------------------------------------- | ----------------| :----: | :---: |
+| [Consul](https://godoc.org/github.com/starkandwayne/shield/plugin/consul)                   | consul          | X      |       |
+| [Docker Postgres](https://godoc.org/github.com/starkandwayne/shield/plugin/docker-postgres) | docker-postgres | X      |       |
+| [Filesystem](https://godoc.org/github.com/starkandwayne/shield/plugin/fs)                   | fs              | X      | X     |
+| [Mongo](https://godoc.org/github.com/starkandwayne/shield/plugin/mongo)                     | mongo           | X      |       |
+| [MySQL](https://godoc.org/github.com/starkandwayne/shield/plugin/mysql)                     | mysql           | X      |       |
+| [Postgres](https://godoc.org/github.com/starkandwayne/shield/plugin/postgres)               | postgres        | X      |       |
+| [RabbitMQ Broker](https://godoc.org/github.com/starkandwayne/shield/plugin/rabbitmq-broker) | rabbitmq-broker | X      |       |
+| [Redis Broker](https://godoc.org/github.com/starkandwayne/shield/plugin/redis-broker)       | redis-broker    | X      |       |
+| [S3](https://godoc.org/github.com/starkandwayne/shield/plugin/s3)                           | s3              |        | X     |
+| [Scality](https://godoc.org/github.com/starkandwayne/shield/plugin/scality)                 | scality         |        | X     |
+| [Xtra Backup](https://godoc.org/github.com/starkandwayne/shield/plugin/xtrabackup)          | xtrabackup      | X      |       |
+
+**See a missing plugin? Create one and submit a PR**<br>
+[Example Plugin Stub](../plugin/dummy)
+
 ## Target Plugins
 
 The system interfaces with data systems that hold the data to back up via Target Plugins.  These plugins are bits of code that are compiled and linked into the Core Daemon, and implement a standard interface for the following operations:

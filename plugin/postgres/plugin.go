@@ -26,6 +26,13 @@
 //        "pg_bindir": "PostgreSQL binaries directory" # optional
 //    }
 //
+// Default Configuration
+//
+//    {
+//        "pg_port"  : "5432",
+//        "pg_bindir": "/var/vcap/packages/postgres/bin"
+//    }
+//
 // The `pg_port` field is optional. If specified, the plugin will connect to the
 // given port to perform backups. If not specified plugin will connect to
 // default postgres port 5432.

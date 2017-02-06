@@ -21,6 +21,11 @@
 //        "password":"basic-auth-password",  # optional
 //    }
 //
+// Default Configuration
+//
+//    {
+//         "host" : "127.0.0.1:8500"
+//    }
 //
 // BACKUP DETAILS
 //

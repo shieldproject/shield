@@ -30,6 +30,14 @@
 //        "s3_port":             ""    # optionally defined port to use for the s3 communications
 //    }
 //
+// Default Configuration
+//
+//    {
+//        "s3_host"             : "s3.amazonawd.com",
+//        "signature_version"   : "4",
+//        "skip_ssl_validation" : false
+//    }
+//
 // `prefix` will default to the empty string, and backups will be placed in the
 // root of the bucket.
 //

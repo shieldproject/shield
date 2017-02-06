@@ -17,13 +17,22 @@
 // Your endpoint JSON should look something like this:
 //
 //    {
-//        "mysql_user":						"username-for-mysql",
-//        "mysql_password":  			"password-for-above-user",
-//        "mysql_databases": 			<list_of_databases>,							# OPTIONAL
-//		    "mysql_datadir":   			"/var/lib/mysql",                 # OPTIONAL
-//        "mysql_xtrabackup":     "/path/to/xtrabackup",            # OPTIONAL
-//        "mysql_temp_targetdir": "/tmp/backups"										# OPTIONAL
-//        "mysql_tar":            "tar"										          # OPTIONAL
+//        "mysql_user":           "username-for-mysql",
+//        "mysql_password":       "password-for-above-user",
+//        "mysql_databases":      <list_of_databases>,       # OPTIONAL
+//        "mysql_datadir":        "/var/lib/mysql",          # OPTIONAL
+//        "mysql_xtrabackup":     "/path/to/xtrabackup",     # OPTIONAL
+//        "mysql_temp_targetdir": "/tmp/backups"             # OPTIONAL
+//        "mysql_tar":            "tar"                      # OPTIONAL
+//    }
+//
+// Default Configuration
+//
+//    {
+//        "mysql_tar"           : "tar",
+//        "mysql_datadir"       : "/var/lib/mysql",
+//        "mysql_xtrabackup"    : "/var/vcap/packages/shield-mysql/bin/xtrabackup",
+//        "mysql_temp_targetdir": "/tmp/backups"
 //    }
 //
 // mysql_databases:

@@ -21,6 +21,10 @@
 //        "redis_type":<dedicated|broker>"
 //    }
 //
+// Default Configuration
+//
+//    {}
+//
 // BACKUP DETAILS
 //
 // The `redis-broker` plugin backs up all data in `/var/vcap/store`, to

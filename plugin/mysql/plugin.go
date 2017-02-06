@@ -28,6 +28,14 @@
 //        "mysql_bindir"       : "/path/to/bin"  # optional
 //    }
 //
+// Default Configuration
+//
+//    {
+//        "mysql_host"   : "127.0.0.1",
+//        "mysql_port"   : "3306",
+//        "mysql_bindir" : "/var/vcap/packages/shield-mysql/bin"
+//    }
+//
 // BACKUP DETAILS
 //
 // If `mysql_database` is not specified in the plugin configuration, the `mysql` plugin makes

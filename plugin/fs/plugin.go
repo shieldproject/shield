@@ -26,6 +26,12 @@
 //        "base_dir":"base-directory-to-backup"
 //    }
 //
+// Default Configuration
+//
+//    {
+//        "bsdtar": "/var/vcap/packages/bsdtar/bin/bsdtar"
+//    }
+//
 // BACKUP DETAILS
 //
 // The `fs` plugin uses `bsdtar` to back up all files located in `base_dir`

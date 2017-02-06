@@ -19,6 +19,10 @@
 //
 //    {}
 //
+// Default Configuration
+//
+//    {}
+//
 // BACKUP DETAILS
 //
 // The `docker-postgres` plugin backs up by connecting to docker, finding all running
