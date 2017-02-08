@@ -12,12 +12,17 @@ const NOPIPE = 0
 const STDIN = 1
 const STDOUT = 2
 
+var (
+	DefaultCheckExitStatus = "true"
+)
+
 type ExecOptions struct {
-	Stdout   *os.File
-	Stdin    *os.File
-	Stderr   *os.File
-	Cmd      string
-	ExpectRC []int
+	Stdout          *os.File
+	Stdin           *os.File
+	Stderr          *os.File
+	Cmd             string
+	ExpectRC        []int
+	CheckExitStatus string
 }
 
 func ExecWithOptions(opts ExecOptions) error {
@@ -42,26 +47,37 @@ func ExecWithOptions(opts ExecOptions) error {
 		opts.ExpectRC = []int{0}
 	}
 
+	if opts.CheckExitStatus == "" {
+		opts.CheckExitStatus = DefaultCheckExitStatus
+	}
+
+	if (opts.CheckExitStatus != "true") && (opts.CheckExitStatus != "false") {
+		return ExecFailure{Err: fmt.Sprintf("CheckExitStatus is set to: %s. Needs to be either true or false.", opts.CheckExitStatus)}
+	}
+
 	err = cmd.Run()
-	if err != nil {
-		// make sure we got an Exit error
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			sys := exitErr.ProcessState.Sys()
-			// os.ProcessState.Sys() may not return syscall.WaitStatus on non-UNIX machines,
-			// so currently this feature only works on UNIX, but shouldn't crash on other OSes
-			if rc, ok := sys.(syscall.WaitStatus); ok {
-				code := rc.ExitStatus()
-				// -1 indicates signals, stops, or traps, so force an error
-				if code >= 0 {
-					for _, expect := range opts.ExpectRC {
-						if code == expect {
-							return nil
+	if opts.CheckExitStatus == "true" {
+		if err != nil {
+			// make sure we got an Exit error
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				sys := exitErr.ProcessState.Sys()
+				// os.ProcessState.Sys() may not return syscall.WaitStatus on non-UNIX machines,
+				// so currently this feature only works on UNIX, but shouldn't crash on other OSes
+				if rc, ok := sys.(syscall.WaitStatus); ok {
+					code := rc.ExitStatus()
+					// -1 indicates signals, stops, or traps, so force an error
+					if code >= 0 {
+						for _, expect := range opts.ExpectRC {
+							if code == expect {
+								return nil
+							}
 						}
 					}
+				} else {
 				}
 			}
+			return ExecFailure{Err: fmt.Sprintf("Unable to exec '%s': %s", cmdArgs[0], err.Error())}
 		}
-		return ExecFailure{Err: fmt.Sprintf("Unable to exec '%s': %s", cmdArgs[0], err.Error())}
 	}
 	return nil
 }

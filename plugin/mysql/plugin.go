@@ -18,14 +18,15 @@
 // should look something like this:
 //
 //    {
-//        "mysql_host"         : "127.0.0.1",    # optional
-//        "mysql_port"         : "3306",         # optional
-//        "mysql_user"         : "username",
-//        "mysql_password"     : "password",
-//        "mysql_read_replica" : "hostname/ip",  # optional
-//        "mysql_database"     : "db",           # optional
-//        "mysql_options"      : "--quick",      # optional
-//        "mysql_bindir"       : "/path/to/bin"  # optional
+//        "mysql_host"             : "127.0.0.1",    # optional
+//        "mysql_port"             : "3306",         # optional
+//        "mysql_user"             : "username",
+//        "mysql_password"         : "password",
+//        "mysql_read_replica"     : "hostname/ip",  # optional
+//        "mysql_database"         : "db",           # optional
+//        "mysql_options"          : "--quick",      # optional
+//        "mysql_bindir"           : "/path/to/bin"  # optional
+//        "mysql_check_exit_status : "true"          # optional
 //    }
 //
 // Default Configuration
@@ -45,6 +46,8 @@
 //
 // The mysql_options setting can apply mysqldump specific options like --force, --quick and/or
 // --single-transaction
+//
+// The mysql_check_exit_status allows mysqldump not to fail when the database to backup is not consistent.
 //
 // Backing up with the `mysql` plugin will not drop any existing connections to the database,
 // or restart the service.
@@ -99,14 +102,15 @@ func main() {
 type MySQLPlugin PluginInfo
 
 type MySQLConnectionInfo struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Bin      string
-	Replica  string
-	Database string
-	Options  string
+	Host            string
+	Port            string
+	User            string
+	Password        string
+	Bin             string
+	Replica         string
+	Database        string
+	Options         string
+	CheckExitStatus string
 }
 
 func (p MySQLPlugin) Meta() PluginInfo {
@@ -185,6 +189,16 @@ func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 mysql_options}       @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValueDefault("mysql_check_exit_status", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 mysql_check_exit_status       %s}\n", err)
+		fail = true
+	} else if s == "" {
+		ansi.Printf("@G{\u2713 mysql_check_exit_status}       check exit status by default\n")
+	} else {
+		ansi.Printf("@G{\u2713 mysql_check_exit_status}       @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("mysql: invalid configuration")
 	}
@@ -204,7 +218,15 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
 	DEBUG("Executing: `%s`", cmd)
-	return Exec(cmd, STDOUT)
+
+	opts := ExecOptions{
+		Cmd:             cmd,
+		Stderr:          os.Stderr,
+		Stdout:          os.Stdout,
+		CheckExitStatus: mysql.CheckExitStatus,
+	}
+
+	return ExecWithOptions(opts)
 }
 
 // Restore mysql database
@@ -288,6 +310,12 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	}
 	DEBUG("MYSQL_DB: '%s'", db)
 
+	check_exit_status, err := endpoint.StringValueDefault("mysql_check_exit_status", DefaultCheckExitStatus)
+	if err != nil {
+		return nil, err
+	}
+	DEBUG("MYSQL_CHECK_EXIT_STATUS: '%s'", check_exit_status)
+
 	bin, err := endpoint.StringValueDefault("mysql_bindir", "/var/vcap/packages/shield-mysql/bin")
 	if err != nil {
 		return nil, err
@@ -295,13 +323,14 @@ func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) 
 	DEBUG("MYSQL_BINDIR: '%s'", bin)
 
 	return &MySQLConnectionInfo{
-		Host:     host,
-		Port:     port,
-		User:     user,
-		Password: password,
-		Bin:      bin,
-		Replica:  replica,
-		Database: db,
-		Options:  options,
+		Host:            host,
+		Port:            port,
+		User:            user,
+		Password:        password,
+		Bin:             bin,
+		Replica:         replica,
+		Database:        db,
+		Options:         options,
+		CheckExitStatus: check_exit_status,
 	}, nil
 }
