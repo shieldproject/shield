@@ -1,3 +1,11 @@
+# New Features
+
+- The Web UI now provides feedback for failing jobs, on both the
+  Dashboard (by way of a red banner), and on the Jobs page.
+  Hopefully, this will make it easier to catch job failures before
+  it's too late (i.e. when you need those backups that haven't been
+  running properly...)
+
 # Improvements
 
 - The SHIELD CLI's `--raw` mode now suports a new flag, `--fuzzy`,

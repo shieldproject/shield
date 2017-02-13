@@ -751,9 +751,40 @@
                 tbl.Row(t, t.type, t.owner, t.status, datecol(start, ago), duration(start, end));
               }
               root.find('#completed').append(Header("Completed Tasks", "")).append(tbl.Render());
+
+              ajax({
+                type: 'GET',
+                url:  '/v1/status/jobs',
+                success: function (stat) {
+                  var failed = [];
+                  var pending = [];
+                  for (var name in stat) {
+                    if (stat[name].status == 'done') { continue; }
+                    if (stat[name].status == 'pending') {
+                      pending.push(name);
+                    } else {
+                      failed.push(name);
+                    }
+                  }
+                  if (failed.length > 0) {
+                    /* uh-oh, make a big scary red banner */
+                    notify('danger', failed.length.toString() + ' job(s) are failing: ' +
+                      failed.join(', '));
+                    return;
+                  }
+                  if (pending.length > 0) {
+                    notify('warning', pending.length.toString() + ' job(s) are pending: ' +
+                      pending.join(', '));
+                    return;
+                  }
+                }
+                // FIXME: what about error?
+              });
             }
+            // FIXME: what about error?
           });
         }
+        // FIXME: what about error?
       });
     },
 
@@ -775,12 +806,28 @@
     },
 
     "#jobs": function(root) {
+      var statusName = function (s) {
+        if (!s) { return "unknown" }
+        if (s == "done") { return "ok" }
+        return s;
+      };
       Loading(root);
       Job.list({ cached: false }, function () {
-        tbl = new Table("job", "", "Name", "Target", "Store", "Schedule", "Retention", "");
+        tbl = new Table("job", "", "Name", "Target", "Store", "Schedule", "Retention", "Last Run", "Status", "");
         for (var i = 0; i < DB.jobs.length; i++) {
           j = DB.jobs[i];
-          tbl.Row(j, Icons("repeat", j.paused ? "play" : "pause"), j.paused ? j.name + ' (paused)' : j.name, j.target_name, j.store_name, j.schedule_when + " ("+j.schedule_name+")", j.retention_name, Icons("edit", "trash"));
+          var last_run = weirdtime(j.last_run)
+
+          tbl.Row(j,
+            Icons("repeat", j.paused ? "play" : "pause"),
+            j.paused ? j.name + ' (paused)' : j.name,
+            j.target_name,
+            j.store_name,
+            j.schedule_when + " ("+j.schedule_name+")",
+            j.retention_name,
+            (isNaN(last_run) ? '<span class="never-run">never</span>' : datecol(weirdtime(j.last_run), ago)),
+            '<span class="status '+statusName(j.last_task_status)+'">'+statusName(j.last_task_status)+'</span>',
+            Icons("edit", "trash"));
         }
         root.empty().append(Header("Jobs", "Create New Job")).append(tbl.Render());
       });
