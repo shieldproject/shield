@@ -1,0 +1,82 @@
+version: '2'
+services:
+  shield:
+    image: shield
+    build:
+      dockerfile: ./daemon/Dockerfile
+      context: .
+      args:
+        SHIELD_VERSION: v0.10.0
+  shield-agent:
+    build:
+      context: .
+      dockerfile: ./agent/Dockerfile
+      args:
+        SHIELD_VERSION: v0.10.0
+  web:
+    image: nginx
+    volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    - ./ssl.key:/etc/nginx/ssl.key:ro
+    - ./ssl.crt:/etc/nginx/ssl.crt:ro
+    ports:
+    - "443:443"
+    - "80:80"
+    depends_on:
+      - shield
+  pg-ssl:
+    build:
+      context: ./postgres-ssl
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shield
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+    - pg-data-volume:/var/lib/postgresql/data/pgdata
+
+  ##################################
+  # Extra Services to backup/restore
+  ##################################
+  postgres:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shield
+    depends_on:
+      - shield
+      - web
+      - pg-ssl
+      # important for `docker-compose up postgres`
+      - insert-postgres-sample-data
+  # Insert postgres sample data
+  insert-postgres-sample-data:
+    image: postgres
+    volumes:
+    - ./sample-data/postgres.sql:/postgres.sql
+    - ./sample-data/postgres-startup.sh:/postgres-startup.sh
+    command: [./postgres-startup.sh]
+
+  mysql:
+    image: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: shield
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
+    depends_on:
+      - shield
+      - web
+      - pg-ssl
+
+networks:
+  shield:
+    driver: bridge
+
+volumes:
+  pg-data-volume:
