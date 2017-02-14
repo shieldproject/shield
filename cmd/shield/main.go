@@ -508,7 +508,7 @@ func main() {
 			}
 
 			MSG("Updated target")
-			return c.Execute("show", "target", t.UUID)
+			return c.Execute("target", t.UUID)
 		})
 	c.Alias("edit target", "edit-target")
 	c.Alias("update target", "edit-target")
@@ -724,7 +724,7 @@ func main() {
 			}
 
 			MSG("Updated schedule")
-			return c.Execute("show", "schedule", s.UUID)
+			return c.Execute("schedule", s.UUID)
 		})
 	c.Alias("edit schedule", "edit-schedule")
 	c.Alias("update schedule", "edit-schedule")
@@ -950,7 +950,7 @@ func main() {
 			}
 
 			MSG("Updated retention policy")
-			return c.Execute("show", "retention", "policy", p.UUID)
+			return c.Execute("policy", p.UUID)
 		})
 	c.Alias("edit retention policy", "edit-policy")
 	c.Alias("update retention policy", "edit-policy")
@@ -1178,7 +1178,7 @@ func main() {
 			}
 
 			MSG("Updated store")
-			return c.Execute("show", "store", s.UUID)
+			return c.Execute("store", s.UUID)
 		})
 	c.Alias("edit store", "edit-store")
 	c.Alias("update store", "edit-store")
@@ -1419,7 +1419,7 @@ func main() {
 			}
 
 			MSG("Updated job")
-			return c.Execute("show", "job", j.UUID)
+			return c.Execute("job", j.UUID)
 		})
 	c.Alias("edit job", "edit-job")
 	c.Alias("update job", "edit-job")
