@@ -39,6 +39,11 @@ func Yes() YesNo {
 	return Maybe(true)
 }
 
+func Opposite(yn YesNo) YesNo {
+	yn.Yes = !yn.Yes
+	return yn
+}
+
 func (yn *YesNo) Given() bool {
 	if yn == nil {
 		return false

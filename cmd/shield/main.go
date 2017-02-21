@@ -50,6 +50,7 @@ func main() {
 		Debug:             getopt.BoolLong("debug", 'D', "Enable debugging"),
 		Trace:             getopt.BoolLong("trace", 'T', "Enable trace mode"),
 		Raw:               getopt.BoolLong("raw", 0, "Operate in RAW mode, reading and writing only JSON"),
+		Fuzzy:             getopt.BoolLong("fuzzy", 0, "In RAW mode, perform fuzzy (inexact) searching"),
 		SkipSSLValidation: getopt.BoolLong("skip-ssl-validation", 'k', "Disable SSL Certificate Validation"),
 
 		Status:    getopt.StringLong("status", 'S', "", "Only show archives/tasks with the given status"),
@@ -343,14 +344,17 @@ func main() {
 
 			DEBUG("running 'list targets' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
-			DEBUG("  show unused? %s", *opts.Unused)
-			DEBUG("  show in-use? %s", *opts.Used)
+			DEBUG("  show unused? %v", *opts.Unused)
+			DEBUG("  show in-use? %v", *opts.Used)
+			if *opts.Raw {
+				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
+			}
 
 			targets, err := GetTargets(TargetFilter{
 				Name:       strings.Join(args, " "),
 				Plugin:     *opts.Plugin,
 				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: MaybeBools(*opts.Raw, false),
+				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
 			})
 
 			if err != nil {
@@ -566,13 +570,16 @@ func main() {
 			}
 
 			DEBUG("running 'list schedules' command")
-			DEBUG("  show unused? %s", *opts.Unused)
-			DEBUG("  show in-use? %s", *opts.Used)
+			DEBUG("  show unused? %v", *opts.Unused)
+			DEBUG("  show in-use? %v", *opts.Used)
+			if *opts.Raw {
+				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
+			}
 
 			schedules, err := GetSchedules(ScheduleFilter{
 				Name:       strings.Join(args, " "),
 				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: MaybeBools(*opts.Raw, false),
+				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
 			})
 			if err != nil {
 				return err
@@ -782,13 +789,16 @@ func main() {
 			}
 
 			DEBUG("running 'list retention policies' command")
-			DEBUG("  show unused? %s", *opts.Unused)
-			DEBUG("  show in-use? %s", *opts.Used)
+			DEBUG("  show unused? %v", *opts.Unused)
+			DEBUG("  show in-use? %v", *opts.Used)
+			if *opts.Raw {
+				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
+			}
 
 			policies, err := GetRetentionPolicies(RetentionPolicyFilter{
 				Name:       strings.Join(args, " "),
 				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: MaybeBools(*opts.Raw, false),
+				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
 			})
 			if err != nil {
 				return err
@@ -1015,14 +1025,17 @@ func main() {
 
 			DEBUG("running 'list stores' command")
 			DEBUG("  for plugin: '%s'", *opts.Plugin)
-			DEBUG("  show unused? %s", *opts.Unused)
-			DEBUG("  show in-use? %s", *opts.Used)
+			DEBUG("  show unused? %v", *opts.Unused)
+			DEBUG("  show in-use? %v", *opts.Used)
+			if *opts.Raw {
+				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
+			}
 
 			stores, err := GetStores(StoreFilter{
 				Name:       strings.Join(args, " "),
 				Plugin:     *opts.Plugin,
 				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: MaybeBools(*opts.Raw, false),
+				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
 			})
 			if err != nil {
 				return err
@@ -1246,8 +1259,11 @@ func main() {
 			DEBUG("  for store:       '%s'", *opts.Store)
 			DEBUG("  for schedule:    '%s'", *opts.Schedule)
 			DEBUG("  for ret. policy: '%s'", *opts.Retention)
-			DEBUG("  show paused?      %s", *opts.Paused)
-			DEBUG("  show unpaused?    %s", *opts.Unpaused)
+			DEBUG("  show paused?      %v", *opts.Paused)
+			DEBUG("  show unpaused?    %v", *opts.Unpaused)
+			if *opts.Raw {
+				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
+			}
 
 			jobs, err := GetJobs(JobFilter{
 				Name:       strings.Join(args, " "),
@@ -1256,7 +1272,7 @@ func main() {
 				Store:      *opts.Store,
 				Schedule:   *opts.Schedule,
 				Retention:  *opts.Retention,
-				ExactMatch: MaybeBools(*opts.Raw, false),
+				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
 			})
 			if err != nil {
 				return err

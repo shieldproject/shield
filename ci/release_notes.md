@@ -1,3 +1,8 @@
+# Improvements
+
+- The SHIELD CLI's `--raw` mode now suports a new flag, `--fuzzy`,
+  that enables fuzzy (inexact) name searching on the backend.
+
 # Developer Stuff
 
 - Moved the gspt stuff for process table credentials expunging
