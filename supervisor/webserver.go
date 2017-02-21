@@ -170,8 +170,10 @@ func (ws *WebServer) ProtectedAPIs() (http.Handler, error) {
 		ResyncChan: ws.Supervisor.resync,
 		Tasks:      ws.Supervisor.adhoc,
 	}
-	router.Handle("/v1/jobs", jobs)
-	router.Handle("/v1/job/", jobs)
+	router.Handle("/v1/jobs",  jobs)
+	router.Handle("/v1/jobs/", jobs)
+	router.Handle("/v1/job",   jobs)
+	router.Handle("/v1/job/",  jobs)
 
 	retention := &RetentionAPI{
 		Data:       ws.Database,
@@ -185,35 +187,45 @@ func (ws *WebServer) ProtectedAPIs() (http.Handler, error) {
 		ResyncChan: ws.Supervisor.resync,
 		Tasks:      ws.Supervisor.adhoc,
 	}
-	router.Handle("/v1/archives", archives)
-	router.Handle("/v1/archive/", archives)
+	router.Handle("/v1/archives",  archives)
+	router.Handle("/v1/archives/", archives)
+	router.Handle("/v1/archive",   archives)
+	router.Handle("/v1/archive/",  archives)
 
 	schedules := &ScheduleAPI{
 		Data:       ws.Database,
 		ResyncChan: ws.Supervisor.resync,
 	}
-	router.Handle("/v1/schedules", schedules)
-	router.Handle("/v1/schedule/", schedules)
+	router.Handle("/v1/schedules",  schedules)
+	router.Handle("/v1/schedules/", schedules)
+	router.Handle("/v1/schedule",   schedules)
+	router.Handle("/v1/schedule/",  schedules)
 
 	stores := &StoreAPI{
 		Data:       ws.Database,
 		ResyncChan: ws.Supervisor.resync,
 	}
-	router.Handle("/v1/stores", stores)
-	router.Handle("/v1/store/", stores)
+	router.Handle("/v1/stores",  stores)
+	router.Handle("/v1/stores/", stores)
+	router.Handle("/v1/store",   stores)
+	router.Handle("/v1/store/",  stores)
 
 	targets := &TargetAPI{
 		Data:       ws.Database,
 		ResyncChan: ws.Supervisor.resync,
 	}
-	router.Handle("/v1/targets", targets)
-	router.Handle("/v1/target/", targets)
+	router.Handle("/v1/targets",  targets)
+	router.Handle("/v1/targets/", targets)
+	router.Handle("/v1/target",   targets)
+	router.Handle("/v1/target/",  targets)
 
 	tasks := &TaskAPI{
 		Data: ws.Database,
 	}
-	router.Handle("/v1/tasks", tasks)
-	router.Handle("/v1/task/", tasks)
+	router.Handle("/v1/tasks",  tasks)
+	router.Handle("/v1/tasks/", tasks)
+	router.Handle("/v1/task",   tasks)
+	router.Handle("/v1/task/",  tasks)
 
 	jwtCreator := &JWTCreator{
 		SigningKey: ws.Auth.OAuth.JWTPrivateKey,

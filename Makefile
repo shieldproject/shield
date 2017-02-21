@@ -16,7 +16,7 @@ format:
 tests: test
 test:
 	ginkgo * ./cmd/shield
-	go list ./... | grep -v vendor | xargs go vet
+	./t/api
 
 # Running Tests for race conditions
 race:

@@ -14,3 +14,7 @@
   ```
   no buildable Go source files in $CODE/vendor/github.com/ErikDubbelboer/gspt
   ```
+
+- SHIELD API tests are now excercised via the SHIELD CLI in
+  `--raw` mode, which should help to both uncover bugs in the CLI,
+  and also make it easier to augment and improve the SHIELD API.

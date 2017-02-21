@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -47,38 +46,6 @@ func Database(sqls ...string) (*db.DB, error) {
 	}
 
 	return database, nil
-}
-
-func JSONValidated(h http.Handler, method string, uri string) {
-	req, _ := http.NewRequest(method, uri, strings.NewReader("}"))
-	res := httptest.NewRecorder()
-
-	h.ServeHTTP(res, req)
-	Ω(res.Code).Should(Equal(400),
-		fmt.Sprintf("%s %s should elicit HTTP 400 (Bad Request) response...", method, uri))
-	Ω(res.Body.String()).Should(
-		MatchJSON(`{"error":"bad JSON payload: invalid character '}' looking for beginning of value"}`),
-		fmt.Sprintf("%s %s should have a JSON error in the Response Body...", method, uri))
-}
-
-func NotImplemented(h http.Handler, method string, uri string, body io.Reader) {
-	req, _ := http.NewRequest(method, uri, body)
-	res := httptest.NewRecorder()
-
-	h.ServeHTTP(res, req)
-	Ω(res.Code).Should(Equal(501),
-		fmt.Sprintf("%s %s should elicit HTTP 501 (Not Implemented) response...", method, uri))
-	Ω(res.Body.String()).Should(Equal(""),
-		fmt.Sprintf("%s %s should have no HTTP Response Body...", method, uri))
-}
-
-func NotFound(h http.Handler, method string, uri string, body io.Reader) {
-	req, _ := http.NewRequest(method, uri, body)
-	res := httptest.NewRecorder()
-
-	h.ServeHTTP(res, req)
-	Ω(res.Code).Should(Equal(404))
-	Ω(res.Body.String()).Should(Equal(""))
 }
 
 func GET(h http.Handler, uri string) *httptest.ResponseRecorder {

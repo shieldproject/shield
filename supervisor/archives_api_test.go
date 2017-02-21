@@ -544,11 +544,6 @@ var _ = Describe("/v1/archives API", func() {
 		Ω(res.Body.String()).Should(MatchJSON(`[]`))
 	})
 
-	It("validates JSON payloads", func() {
-		JSONValidated(API, "PUT", "/v1/archive/"+REDIS_ARCHIVE_1)
-		JSONValidated(API, "POST", "/v1/archive/"+REDIS_ARCHIVE_1+"/restore")
-	})
-
 	Context("When queuing up restore jobs", func() {
 		var errChan chan error
 		var taskChannelFodder db.TaskInfo
@@ -606,22 +601,5 @@ var _ = Describe("/v1/archives API", func() {
 			})
 		})
 
-	})
-
-	It("ignores other HTTP methods", func() {
-		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
-			NotImplemented(API, method, "/v1/archives", nil)
-		}
-
-		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
-			NotImplemented(API, method, "/v1/archives/sub/requests", nil)
-			NotImplemented(API, method, "/v1/archive/sub/requests", nil)
-		}
-	})
-
-	It("ignores malformed UUIDs", func() {
-		for _, id := range []string{"malformed-uuid-01234", "(abcdef-01234-56-789)"} {
-			NotImplemented(API, "PUT", fmt.Sprintf("/v1/archive/%s", id), nil)
-		}
 	})
 })

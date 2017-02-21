@@ -322,21 +322,4 @@ var _ = Describe("/v1/tasks API", func() {
 		res = GET(API, "/v1/tasks?state=running")
 		Ω(res.Code).Should(Equal(200))
 	})
-
-	It("ignores other HTTP methods", func() {
-		for _, method := range []string{"PUT", "DELETE", "PATCH", "OPTIONS", "TRACE"} {
-			NotImplemented(API, method, "/v1/tasks", nil)
-		}
-
-		for _, method := range []string{"GET", "HEAD", "POST", "PATCH", "OPTIONS", "TRACE"} {
-			NotImplemented(API, method, "/v1/tasks/sub/requests", nil)
-			NotImplemented(API, method, "/v1/task/sub/requests", nil)
-		}
-	})
-
-	It("ignores malformed UUIDs", func() {
-		for _, id := range []string{"malformed-uuid-01234", "(abcdef-01234-56-789)"} {
-			NotImplemented(API, "PUT", fmt.Sprintf("/v1/task/%s", id), nil)
-		}
-	})
 })
