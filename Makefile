@@ -15,7 +15,7 @@ format:
 # Running Tests
 tests: test
 test:
-	ginkgo * ./cmd/shield
+	go test ./...
 	./t/api
 
 # Running Tests for race conditions
