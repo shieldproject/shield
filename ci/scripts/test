@@ -13,4 +13,4 @@ godep restore
 
 # customization - shield runs a battery of live-fire tests
 # against a real shieldd + agent pair.
-make test
+make shield shield-cli tests
