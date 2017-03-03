@@ -321,7 +321,10 @@ func (scal ScalityConnectionInfo) genBackupPath() string {
 }
 
 func (scal ScalityConnectionInfo) Connect() (*minio.Client, error) {
-	scalityClient, err := minio.NewV2(scal.Host, scal.AccessKey, scal.SecretKey, false)
+	// github.com/starkandwayne/minio-go has the last field mean "secure", whereas the s3 plugin
+	// is using an older copy of minio (vendored), and this field used to mean "insecure".
+	// See https://github.com/starkandwayne/shield/issues/230
+	scalityClient, err := minio.NewV2(scal.Host, scal.AccessKey, scal.SecretKey, true)
 	if err != nil {
 		return nil, err
 	}
