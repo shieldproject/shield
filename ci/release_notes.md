@@ -6,6 +6,11 @@
   it's too late (i.e. when you need those backups that haven't been
   running properly...)
 
+# Bug Fixes
+
+- The scality plugin was incorrectly forcing http-based connections.
+  It now correctly forces https-based connections.
+
 # Improvements
 
 - The SHIELD CLI's `--raw` mode now suports a new flag, `--fuzzy`,
