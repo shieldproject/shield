@@ -1866,7 +1866,7 @@ func main() {
 			if help {
 				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
 				FlagHelp(`Outputs the result as a JSON object.`, true, "--raw")
-				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
+				FlagHelp(`The name or UUID of a single target to restore. In raw mode, it must be a UUID assigned to a single archive instance`, false, "<target or uuid>")
 				HelpKMacro()
 				return nil
 			}
