@@ -83,8 +83,8 @@ release:
 	@test -n "$(VERSION)"
 	@echo "OK.  VERSION=$(VERSION)"
 
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/fs"                ./plugin/fs
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/docker-postgres"   ./plugin/docker-postgres
+	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/fs"                ./plugin/fs
+	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/docker-postgres"   ./plugin/docker-postgres
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/dummy"             ./plugin/dummy
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/elasticsearch"     ./plugin/elasticsearch
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/postgres"          ./plugin/postgres
