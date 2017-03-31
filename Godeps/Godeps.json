@@ -7,6 +7,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Azure/azure-sdk-for-go/storage",
+			"Rev": "4897648e310020dae650a89c31ff633284c13a24"
+		},
+		{
 			"ImportPath": "github.com/ErikDubbelboer/gspt",
 			"Rev": "90553243e3346b62d0dccd1544a2030ac7237068"
 		},
