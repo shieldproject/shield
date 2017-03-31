@@ -1,3 +1,3 @@
-# New Features
+# Minor Cleanup
 
-- Added a new `azure` store plugin, for storing data in the Azure Blobstore
+Removed unimplemented elasticsearch plugin
