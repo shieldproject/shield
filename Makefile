@@ -39,7 +39,6 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/fs
 	go $(BUILD_TYPE) ./plugin/docker-postgres
 	go $(BUILD_TYPE) ./plugin/dummy
-	go $(BUILD_TYPE) ./plugin/elasticsearch
 	go $(BUILD_TYPE) ./plugin/postgres
 	go $(BUILD_TYPE) ./plugin/redis-broker
 	go $(BUILD_TYPE) ./plugin/s3
@@ -87,7 +86,6 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/fs"                ./plugin/fs
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/docker-postgres"   ./plugin/docker-postgres
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/dummy"             ./plugin/dummy
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/elasticsearch"     ./plugin/elasticsearch
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/postgres"          ./plugin/postgres
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/redis-broker"      ./plugin/redis-broker
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/s3"                ./plugin/s3
