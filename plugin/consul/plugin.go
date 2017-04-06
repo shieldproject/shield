@@ -16,15 +16,16 @@
 // endpoint JSON should look something like this:
 //
 //    {
-//        "host":"consul-endpoint",          # optional
+//        "host":"consul-endpoint",          # optional - can also be prefixed with http:// or https://
+//        "skip_ssl_validation":false        # optional
 //        "username":"basic-auth-username",  # optional
-//        "password":"basic-auth-password",  # optional
+//        "password":"basic-auth-password"   # optional
 //    }
 //
 // Default Configuration
 //
 //    {
-//         "host" : "127.0.0.1:8500"
+//         "host" : "http://127.0.0.1:8500"
 //    }
 //
 // BACKUP DETAILS
@@ -52,7 +53,7 @@ import (
 )
 
 var (
-	DefaultHostPort = "127.0.0.1:8500"
+	DefaultHostPort = "http://127.0.0.1:8500"
 )
 
 func main() {
@@ -87,38 +88,47 @@ func (p ConsulPlugin) Meta() PluginInfo {
 func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
 	var (
 		s    string
+		b    bool
 		err  error
 		fail bool
 	)
 
 	s, err = endpoint.StringValueDefault("host", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 host      %s}\n", err)
+		ansi.Printf("@R{\u2717 host                  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2717 host      using default host @C{%s}}\n", DefaultHostPort)
+		ansi.Printf("@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
 	} else {
-		ansi.Printf("@G{\u2713 host}      @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 host}                  @C{%s}\n", s)
+	}
+
+	b, err = endpoint.BooleanValueDefault("skip_ssl_validation", false)
+	if err != nil {
+		ansi.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
 	}
 
 	s, err = endpoint.StringValueDefault("username", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 username  %s}\n", err)
+		ansi.Printf("@R{\u2717 username              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 username}  no username\n")
+		ansi.Printf("@G{\u2713 username}              no username\n")
 	} else {
-		ansi.Printf("@G{\u2713 username}  @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 username}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("password", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 password  %s}\n", err)
+		ansi.Printf("@R{\u2717 password              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 password}  no password\n")
+		ansi.Printf("@G{\u2713 password}              no password\n")
 	} else {
-		ansi.Printf("@G{\u2713 password}  @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 password}              @C{%s}\n", s)
 	}
 
 	if fail {
@@ -193,6 +203,15 @@ func (p ConsulPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 }
 
 func consulClient(endpoint ShieldEndpoint) (*api.Client, error) {
+	skipSSLVerify, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
+	if err != nil {
+		return nil, err
+	}
+	if skipSSLVerify {
+		DEBUG("Skipping SSL Validation")
+		os.Setenv(api.HTTPSSLVerifyEnvName, "false")
+	}
+
 	config := api.DefaultConfig()
 
 	host, err := endpoint.StringValueDefault("host", DefaultHostPort)
