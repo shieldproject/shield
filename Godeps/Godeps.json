@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
 	"GoVersion": "go1.7",
-	"GodepVersion": "v74",
+	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
 	],
@@ -127,7 +127,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/consul/api",
-			"Comment": "v0.7.1-779-g402636ff",
+			"Comment": "v0.8.0",
 			"Rev": "402636ff2db998edef392ac6d59210d2170b3ebf"
 		},
 		{
@@ -409,16 +409,6 @@
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/consul/vendor/github.com/hashicorp/go-cleanhttp",
-			"Comment": "v0.7.1-779-g402636ff",
-			"Rev": "402636ff2db998edef392ac6d59210d2170b3ebf"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/consul/vendor/github.com/hashicorp/serf/coordinate",
-			"Comment": "v0.7.1-779-g402636ff",
-			"Rev": "402636ff2db998edef392ac6d59210d2170b3ebf"
 		}
 	]
 }

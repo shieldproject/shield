@@ -6,7 +6,7 @@ meta:
   url:     https://ci.starkandwayne.com
 
   go:
-    version: "1.6"
+    version: "1.7"
     binary: shield
     cmd_module: ./cmd/shield
 
