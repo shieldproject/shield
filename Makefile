@@ -1,19 +1,16 @@
 # Run me to verify that all tests pass and all binaries are buildable before pushing!
 # If you do not, then Travis will be sad.
 
-export GO15VENDOREXPERIMENT=1
-
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format tests shield plugins
+all: format shield plugins test
 
 # go fmt ftw
 format:
 	go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
-tests: test
 test:
 	go test ./...
 	./t/api
@@ -49,6 +46,12 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/scality
 	go $(BUILD_TYPE) ./plugin/consul
 	go $(BUILD_TYPE) ./plugin/mongo
+
+clean:
+	rm shieldd shield-agent shield-schema shield
+	rm fs docker-postgres dummy postgres redis-broker
+	rm s3 azure mysql xtrabackup rabbitmq-broker
+	rm consul mongo scality
 
 
 # Run tests with coverage tracking, writing output to coverage/

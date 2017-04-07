@@ -50,12 +50,14 @@ auth:
     password: ${SHIELD_WEB_PASS}
 EOF
 
+  set -e
   echo ">> Setting up SHIELD schema"
   ./shield-schema -t ${DATABASE_TYPE} -d "${DATABASE_DSN}"
   echo
 
   echo ">> RUNNING SHIELDD"
   ./shieldd -c ${WORKDIR}/etc/shieldd.conf --log-level debug &
+  set +e
 }
 
 spin_agent() {
@@ -78,7 +80,9 @@ plugin_paths:
   - $(pwd)
 EOF
 
+  set -e
   ./shield-agent -c ${WORKDIR}/etc/shield-agent.conf --log-level debug &
+  set +e
 }
 
 CONTEXT=""
