@@ -9,8 +9,6 @@ export PATH=${PATH}:${GOPATH}/bin
 
 cd ${GOPATH}/src/${MODULE}
 
-godep restore
-
 # customization - shield runs a battery of live-fire tests
 # against a real shieldd + agent pair.
 make shield shield-cli tests
