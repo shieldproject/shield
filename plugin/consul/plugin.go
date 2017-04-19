@@ -65,6 +65,22 @@ func main() {
 			Target: "yes",
 			Store:  "no",
 		},
+		Example: `
+{
+  "host"     : "consul-endpoint",      # Optional hostname, with or without the
+                                       # http:// or https:// URL scheme.
+
+  "skip_ssl_validation" : false        # Skip certificate verification (not recommended)
+
+  "username" : "basic-auth-username",  # Optional username and password
+  "password" : "basic-auth-password"   # for HTTP Basic Authentication.
+}
+`,
+		Defaults: `
+{
+  "host" : "http://127.0.0.1:8500"
+}
+`,
 	}
 
 	Run(p)

@@ -66,5 +66,5 @@ func (e JSONError) Error() string {
 type MissingRestoreKeyError struct{}
 
 func (e MissingRestoreKeyError) Error() string {
-	return "retrieving requires --key, but it was not provided"
+	return "Missing required --key flag"
 }

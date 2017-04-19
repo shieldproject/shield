@@ -79,6 +79,16 @@ func main() {
 			Target: "yes",
 			Store:  "no",
 		},
+		Example: `
+{
+  # this plugin has no configuration
+}
+`,
+		Defaults: `
+{
+  # this plugin has no configuration
+}
+`,
 	}
 
 	Run(p)

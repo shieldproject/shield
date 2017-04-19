@@ -94,6 +94,25 @@ func main() {
 			Target: "no",
 			Store:  "yes",
 		},
+		Example: `
+{
+  "scality_host"        : "your-scality-host",       # REQUIRED
+  "access_key_id"       : "your-access-key-id",      # REQUIRED
+  "secret_access_key"   : "your-secret-access-key",  # REQUIRED
+  "bucket"              : "name-of-your-bucket",     # REQUIRED
+
+  "skip_ssl_validation" : false,                 # Skip certificate verification (not recommended)
+  "prefix"              : "/path/in/bucket",     # where to store archives, inside the bucket
+  "socks5_proxy"        : ""                     # optional SOCKS5 proxy for accessing S3
+}
+`,
+		Defaults: `
+{
+  "skip_ssl_validation" : false,  # Always verify certificates
+  "prefix"              : "",     # store archives in the root
+  "socks5_proxy"        : ""      # don't use a proxy
+}
+`,
 	}
 
 	plugin.Run(p)

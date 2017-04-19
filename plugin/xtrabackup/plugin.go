@@ -99,6 +99,28 @@ func main() {
 			Target: "yes",
 			Store:  "no",
 		},
+		Example: `
+{
+  "mysql_user":           "username-for-mysql",      # REQUIRED
+  "mysql_password":       "password-for-above-user", # REQUIRED
+
+  "mysql_databases":      "db1,db2",              # List of databases to limit
+                                                  # backup and recovery to.
+
+  "mysql_datadir":        "/var/lib/mysql",       # Path to the MySQL data directory
+  "mysql_xtrabackup":     "/path/to/xtrabackup",  # Full path to the xtrabackup binary
+  "mysql_temp_targetdir": "/tmp/backups"          # Temporary work directory
+  "mysql_tar":            "tar"                   # Tar-compatible archival tool to use
+}
+`,
+		Defaults: `
+{
+  "mysql_tar"           : "tar",
+  "mysql_datadir"       : "/var/lib/mysql",
+  "mysql_xtrabackup"    : "/var/vcap/packages/shield-mysql/bin/xtrabackup",
+  "mysql_temp_targetdir": "/tmp/backups"
+}
+`,
 	}
 
 	Run(p)

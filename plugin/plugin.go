@@ -19,36 +19,27 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jhunt/go-cli"
+	env "github.com/jhunt/go-envirotron"
 	"github.com/pborman/uuid"
-	"github.com/voxelbrain/goptions"
 )
 
-type PluginOpts struct {
-	Debug   bool `goptions:"-D, --debug, description='Enable debugging'"`
-	Version bool `goptions:"-v, --version, description='Display version information'"`
-	Action  goptions.Verbs
-	Info    struct {
-	} `goptions:"info"`
-	Validate struct {
-		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing backup target'"`
-	} `goptions:"validate"`
-	Backup struct {
-		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing backup target'"`
-	} `goptions:"backup"`
-	Restore struct {
-		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing backup target'"`
-	} `goptions:"restore"`
-	Store struct {
-		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing store endpoint'"`
-	} `goptions:"store"`
-	Retrieve struct {
-		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing retrieve endpoint'"`
-		Key      string `goptions:"-k, --key, obligatory, description='Key of blob to retrieve from storage'"`
-	} `goptions:"retrieve"`
-	Purge struct {
-		Endpoint string `goptions:"-e, --endpoint, obligatory, description='JSON string representing purge endpoint'"`
-		Key      string `goptions:"-k, --key, obligatory, description='Key of blob to purge from storage'"`
-	} `goptions:"purge"`
+type Opt struct {
+	HelpShort bool   `cli:"-h"`
+	HelpFull  bool   `cli:"--help"`
+	Debug     bool   `cli:"-D, --debug",env:"DEBUG"`
+	Version   bool   `cli:"-v, --version"`
+	Endpoint  string `cli:"-e,--endpoint"`
+	Key       string `cli:"-k, --key"`
+
+	Info     struct{} `cli:"info"`
+	Example  struct{} `cli:"example"`
+	Validate struct{} `cli:"validate"`
+	Backup   struct{} `cli:"backup"`
+	Restore  struct{} `cli:"restore"`
+	Store    struct{} `cli:"store"`
+	Retrieve struct{} `cli:"retrieve"`
+	Purge    struct{} `cli:"purge"`
 }
 
 type Plugin interface {
@@ -66,6 +57,9 @@ type PluginInfo struct {
 	Author   string         `json:"author"`
 	Version  string         `json:"version"`
 	Features PluginFeatures `json:"features"`
+
+	Example  string `json:"-"`
+	Defaults string `json:"-"`
 }
 
 type PluginFeatures struct {
@@ -83,89 +77,182 @@ func DEBUG(format string, args ...interface{}) {
 			lines[i] = "DEBUG> " + line
 		}
 		content = strings.Join(lines, "\n")
-		fmt.Fprintf(stderr, "%s\n", content)
+		fmt.Fprintf(os.Stderr, "%s\n", content)
 	}
-}
-
-var stdout = os.Stdout
-var stderr = os.Stderr
-
-var usage = func(err error) {
-	fmt.Fprintf(stderr, "%s\n", err.Error())
-	goptions.PrintHelp()
-}
-var exit = func(code int) {
-	os.Exit(code)
 }
 
 func Run(p Plugin) {
-	var code int
-	var action string
-
-	opts, err := getPluginOptions()
+	var opt Opt
+	info := p.Meta()
+	env.Override(&opt)
+	command, args, err := cli.Parse(&opt)
 	if err != nil {
-		usage(err)
-		code = USAGE
-	} else {
-		action = string(opts.Action)
+		fmt.Fprintf(os.Stderr, "!!! %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Try %s --help for more information.\n", os.Args[0])
+		os.Exit(USAGE)
+	}
+	if opt.Debug {
+		debug = true
+	}
 
-		if action == "info" {
-			err = pluginInfo(p)
-			if err != nil {
-				fmt.Fprintf(stderr, "%s\n", err.Error())
-				code = codeForError(err)
-			}
-		} else if action != "" {
-			err = dispatch(p, action, opts)
-			DEBUG("'%s' action returned %#v", action, err)
-			if err != nil {
-				switch err.(type) {
-				case UnsupportedActionError:
-					if err.(UnsupportedActionError).Action == "" {
-						e := err.(UnsupportedActionError)
-						e.Action = action
-						err = e
-					}
+	if opt.HelpShort {
+		fmt.Fprintf(os.Stderr, "%s v%s - %s\n", info.Name, info.Version, info.Author)
+		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, `OPTIONS
+  -h, --help      Get some help. (--help provides more detail; -h, less)
+  -D, --debug     Enable debugging.
+  -v, --version   Print the version of this plugin and exit.
+
+COMMANDS
+  info                         Print plugin information (name / version / author)
+  validate -e JSON             Validate endpoint JSON/configuration
+  backup   -e JSON             Backup a target
+  restore  -e JSON             Replay a backup archive to a target
+  store    -e JSON             Store a backup archive
+  retrieve -e JSON -k KEY      Stream a backup archive from storage
+  purge    -e JSON -k KEY      Delete a backup archive from storage
+`)
+		if info.Example != "" {
+			fmt.Fprintf(os.Stderr, "\nEXAMPLE ENDPOINT CONFIGURATION\n%s\n", info.Example)
+		}
+		if info.Defaults != "" {
+			fmt.Fprintf(os.Stderr, "\nDEFAULT ENDPOINT\n%s\n", info.Defaults)
+		}
+		os.Exit(0)
+	}
+
+	if opt.HelpFull {
+		fmt.Fprintf(os.Stderr, "%s v%s - %s\n", info.Name, info.Version, info.Author)
+		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, `OPTIONS
+  -h, --help      Get some help. (--help provides more detail; -h, less)
+  -D, --debug     Enable debugging.
+  -v, --version   Print the version of this plugin and exit.
+
+  -e, --endpoint  JSON string representing what to backup / where to back it up.
+
+
+
+GENERAL COMMANDS
+
+  info
+
+    Print information about this plugin, in JSON format, to standard output.
+
+
+  validate --endpoint ENDPOINT-JSON
+
+    Validates the given ENDPOINT-JSON to ensure that it is (a) well-formed
+    JSON data, and (b) is semantically valid for this plugin.  Checks that
+    required configuration is set, and verifies the format and suitability
+    of the given configuration.
+
+
+
+BACKUP COMMANDS
+
+  backup --endpoint TARGET-ENDPOINT-JSON
+
+    Perform a backup of the indicated target endpoint.  The raw (uncompressed)
+    backup archive will be written to standard output.
+
+  restore --endpoint TARGET-ENDPOINT-JSON
+
+    Reads a raw (uncompressed) backup archive on standard input and attempts to
+    replay it to the given target.
+
+
+STORAGE COMMANDS
+
+  store --endpoint STORE-ENDPOINT-JSON
+
+    Reads a compressed backup archive on standard input and attempts to
+    persist it to the backing storage system indicated by --endpoint.
+    Upon success, writes the STORAGE-HANDLE to standard output.
+
+  retrieve --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON
+
+    Retrieves a compressed backup archive from the backing storage,
+    using the STORAGE-HANDLE given by a previous 'store' command, and
+    writes it to standard output.
+
+  purge --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON
+
+    Removes a backup archive from the backing storage, using the
+    STORAGE-HANDLE given by a previous 'store' command.
+`)
+		os.Exit(0)
+	}
+
+	if len(args) != 0 {
+		fmt.Fprintf(os.Stderr, "extra arguments found, starting at %v\n", args[0])
+		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", info.Name)
+		os.Exit(USAGE)
+	}
+
+	if opt.Version {
+		fmt.Printf("%s v%s - %s\n", info.Name, info.Version, info.Author)
+		os.Exit(0)
+	}
+
+	switch command {
+	case "info":
+		json, err := json.MarshalIndent(info, "", "    ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+			os.Exit(JSON_FAILURE)
+		}
+		fmt.Printf("%s\n", json)
+		os.Exit(0)
+
+	default:
+		err = dispatch(p, command, opt)
+		DEBUG("'%s' action returned %#v", command, err)
+		if err != nil {
+			switch err.(type) {
+			case UnsupportedActionError:
+				if err.(UnsupportedActionError).Action == "" {
+					e := err.(UnsupportedActionError)
+					e.Action = command
+					err = e
 				}
-				fmt.Fprintf(stderr, "%s\n", err.Error())
-				code = codeForError(err)
 			}
-		} else {
-			code = USAGE
-			usage(fmt.Errorf("No plugin action was provided"))
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			os.Exit(codeForError(err))
 		}
 	}
-	exit(code)
+	os.Exit(0)
 }
 
-func dispatch(p Plugin, mode string, opts PluginOpts) error {
+func dispatch(p Plugin, mode string, opt Opt) error {
 	var err error
 	var key string
 	var endpoint ShieldEndpoint
 
-	DEBUG("'%s' action requested with options %#v", mode, opts)
+	DEBUG("'%s' action requested with options %#v", mode, opt)
 
 	switch mode {
 	case "validate":
-		endpoint, err = getEndpoint(opts.Validate.Endpoint)
+		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		err = p.Validate(endpoint)
 	case "backup":
-		endpoint, err = getEndpoint(opts.Backup.Endpoint)
+		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		err = p.Backup(endpoint)
 	case "restore":
-		endpoint, err = getEndpoint(opts.Restore.Endpoint)
+		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		err = p.Restore(endpoint)
 	case "store":
-		endpoint, err = getEndpoint(opts.Store.Endpoint)
+		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
@@ -176,25 +263,26 @@ func dispatch(p Plugin, mode string, opts PluginOpts) error {
 		if jsonErr != nil {
 			return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
 		}
-		fmt.Fprintf(stdout, "%s\n", string(output))
+		fmt.Printf("%s\n", string(output))
 	case "retrieve":
-		endpoint, err = getEndpoint(opts.Retrieve.Endpoint)
+		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
-		if opts.Retrieve.Key == "" {
+		if opt.Key == "" {
 			return MissingRestoreKeyError{}
 		}
-		err = p.Retrieve(endpoint, opts.Retrieve.Key)
+		err = p.Retrieve(endpoint, opt.Key)
+
 	case "purge":
-		endpoint, err = getEndpoint(opts.Purge.Endpoint)
+		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
-		if opts.Purge.Key == "" {
+		if opt.Key == "" {
 			return MissingRestoreKeyError{}
 		}
-		err = p.Purge(endpoint, opts.Purge.Key)
+		err = p.Purge(endpoint, opt.Key)
 	default:
 		return UnsupportedActionError{Action: mode}
 	}
@@ -202,30 +290,12 @@ func dispatch(p Plugin, mode string, opts PluginOpts) error {
 	return err
 }
 
-func getPluginOptions() (PluginOpts, error) {
-	var opts PluginOpts
-	err := goptions.Parse(&opts)
-	if err != nil {
-		return opts, err
-	}
-
-	if os.Getenv("DEBUG") != "" && strings.ToLower(os.Getenv("DEBUG")) != "false" && os.Getenv("DEBUG") != "0" {
-		debug = true
-	}
-
-	if opts.Debug {
-		debug = true
-	}
-
-	return opts, err
-}
-
 func pluginInfo(p Plugin) error {
 	json, err := json.MarshalIndent(p.Meta(), "", "    ")
 	if err != nil {
 		return JSONError{Err: fmt.Sprintf("Could not create plugin metadata output: %s", err.Error())}
 	}
-	fmt.Fprintf(stdout, "%s\n", json)
+	fmt.Printf("%s\n", json)
 	return nil
 }
 

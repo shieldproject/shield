@@ -91,6 +91,25 @@ func main() {
 			Target: "yes",
 			Store:  "no",
 		},
+		Example: `
+{
+  "mysql_host"         : "127.0.0.1",    # optional
+  "mysql_port"         : "3306",         # optional
+  "mysql_user"         : "username",
+  "mysql_password"     : "password",
+  "mysql_read_replica" : "hostname/ip",  # optional
+  "mysql_database"     : "db",           # optional
+  "mysql_options"      : "--quick",      # optional
+  "mysql_bindir"       : "/path/to/bin"  # optional
+}
+`,
+		Defaults: `
+{
+  "mysql_host"   : "127.0.0.1",
+  "mysql_port"   : "3306",
+  "mysql_bindir" : "/var/vcap/packages/shield-mysql/bin"
+}
+`,
 	}
 
 	Run(p)

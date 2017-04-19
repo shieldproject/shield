@@ -106,6 +106,23 @@ func main() {
 			Target: "yes",
 			Store:  "no",
 		},
+		Example: `
+{
+  "pg_user"     : "username",   # REQUIRED
+  "pg_password" : "password",   # REQUIRED
+  "pg_host"     : "10.0.0.1",   # REQUIRED
+
+  "pg_port"     : "5432",             # Port that PostgreSQL is listening on
+  "pg_database" : "db1",              # Limit backup/restore operation to this database
+  "pg_bindir"   : "/path/to/pg/bin"   # Where to find the psql command
+}
+`,
+		Defaults: `
+{
+  "pg_port"  : "5432",
+  "pg_bindir": "/var/vcap/packages/postgres/bin"
+}
+`,
 	}
 
 	Run(p)

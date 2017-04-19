@@ -78,6 +78,18 @@ func main() {
 			Target: "yes",
 			Store:  "no",
 		},
+		Example: `
+{
+  "redis_type" : "broker"    # Type of Redis Broker backups to run.
+                             # Must be either 'shared' or 'dedicated'
+}
+`,
+		Defaults: `
+{
+  # there are no defaults.
+  # all keys are required.
+}
+`,
 	}
 
 	plugin.Run(p)

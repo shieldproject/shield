@@ -1,0 +1,533 @@
+#!/bin/bash
+set -u
+
+PATH=$(pwd):${PATH}
+WORKDIR=$(mktemp -d /tmp/shield.test.XXXXXXX)
+
+# TEST HARNESS APPARATUS {{{
+export PATH
+cleanup () {
+	rm -rf ${WORKDIR}
+	if [[ -n "$(jobs -p)" ]]; then
+		kill $(jobs -p)
+	fi
+}
+trap "cleanup >&2" EXIT QUIT INT TERM
+
+CONTEXT=""
+context() {
+	CONTEXT=$1
+}
+
+pass() {
+	local msg=$1
+	echo -e "\033[1;32m[ OK ]\033[0m $msg" | tee -a $WORKDIR/summary
+}
+
+fail() {
+	local msg=$1
+	echo -e "\033[1;31m[FAIL]\033[0m $msg" | tee -a $WORKDIR/summary
+}
+
+nocolor() {
+	sed -e 's,'$(printf "\x1b")'\[[0-9;]*m,,g'
+}
+
+done_testing() {
+	echo
+	if [[ ! -f $WORKDIR/summary ]]; then
+		echo "NO TESTS RUN"
+		exit 2
+	fi
+
+	tests=$(wc -l $WORKDIR/summary | awk '{print $1}')
+	fails=$(nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | wc -l | awk '{print $1}')
+	if [[ $fails == 0 ]]; then
+		echo "ALL $tests TESTS PASS"
+		exit 0
+	else
+		echo "$fails/$tests TESTS FAILED"
+		echo
+		nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | sed -e 's/^/   /'
+		exit 1
+	fi
+}
+# }}}
+
+# try "A Suite of Tests" {{{
+try() {
+	CONTEXT=""
+	echo ">> $*:"
+}
+# }}}
+# (run some tests) 2>&1 | indent {{{
+indent() {
+	sed -e 's/^/   /'
+}
+# }}}
+# ok $? "what should have happened..." {{{
+ok() {
+	local rc=$1
+	local msg=$2
+
+	if [[ $rc == 0 ]]; then
+		pass "$msg"
+	else
+		fail "$msg"
+	fi
+}
+# }}}
+# notok $? "what should have happened..." {{{
+notok() {
+	local rc=$1
+	local msg=$2
+
+	if [[ $rc == 0 ]]; then
+		fail "$msg"
+	else
+		pass "$msg"
+	fi
+}
+# }}}
+# is $got $expected "why it should have been that way..." {{{
+is() {
+	local got=$1
+	local want=$2
+	local msg=${3:-}
+	if [[ -z "$msg" ]]; then
+		msg="'${got}' should equal '${want}'"
+	fi
+
+	if [[ "$got" != "$want" ]]; then
+		fail "$msg"
+		echo "     got '${got}'"
+		echo "  wanted '${want}'"
+		echo
+		return
+	fi
+
+	pass "$msg"
+}
+# }}}
+# isnt $got $expected "why it should not have been that way..." {{{
+isnt(){
+	local got=$1
+	local want=$2
+	local msg=${3:-}
+	if [[ -z "$msg" ]]; then
+		msg="'${got}' should NOT equal '${want}'"
+	fi
+
+	if [[ "$got" == "$want" ]]; then
+		fail "$msg"
+		echo "     got '${got}'"
+		echo "  wanted pretty much anything else."
+		echo
+		return
+	fi
+
+	pass "$msg"
+}
+# }}}
+# with $pattern $file "why it should have been that way..." {{{
+with() {
+	local pat=$1
+	local file=${2:-out}
+	local msg=${3:-}
+	if [[ -z "$msg" ]]; then
+		msg="$file should contain '${pat}'"
+	fi
+
+	if ! grep -q -- "$pat" "$WORKDIR/$file"; then
+		fail "$msg"
+		echo "  did not find '${pat}'"
+		echo "       in file  $file"
+		echo
+		cat "$WORKDIR/$file" | indent
+		echo
+		return
+	fi
+
+	pass "$msg"
+}
+# }}}
+# with $pattern $file "why it should have been that way..." {{{
+without() {
+	local pat=$1
+	local file=${2:-out}
+	local msg=${3:-}
+	if [[ -z "$msg" ]]; then
+		msg="$file should contain '${pat}'"
+	fi
+
+	if grep -q -- "$pat" "$WORKDIR/$file"; then
+		fail "$msg"
+		echo "         found '${pat}'"
+		echo "       in file  $file"
+		echo
+		grep -n -- "$pat" "$WORKDIR/$file" | indent
+		echo
+		return
+	fi
+
+	pass "$msg"
+}
+# }}}
+
+GOOD_ENDPOINT='{
+  "string1" : "set",
+  "float1"  : 1.2,
+  "bool1"   : true,
+  "list"    : [],
+  "map"     : {}
+}'
+
+####################################################################################
+try "basic -h (short help) output"
+./mock -h &> $WORKDIR/out
+ok $? "retrieved help from mock plugin"
+with "Mock Plugin v0.0.1 - Stark & Wayne"
+with "USAGE: .*OPTIONS.*COMMAND.*OPTIONS"
+with "-h, --help"
+with "-D, --debug"
+with "-v, --version"
+with "  info  "
+with "  validate -e JSON  "
+with "  backup   -e JSON  "
+with "  restore  -e JSON  "
+with "  store    -e JSON  "
+with "  retrieve -e JSON -k KEY  "
+with "  purge    -e JSON -k KEY  "
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+####################################################################################
+try "basic --help (long help) output"
+./mock --help &> $WORKDIR/out
+ok $? "retrieved long help from mock plugin"
+with "Mock Plugin v0.0.1 - Stark & Wayne"
+with "USAGE: .*OPTIONS.*COMMAND.*OPTIONS"
+with "-h, --help"
+with "-D, --debug"
+with "-v, --version"
+with "info$"
+with "validate --endpoint ENDPOINT-JSON$"
+with "backup --endpoint TARGET-ENDPOINT-JSON$"
+with "restore --endpoint TARGET-ENDPOINT-JSON$"
+with "store --endpoint STORE-ENDPOINT-JSON$"
+with "retrieve --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON$"
+with "purge --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON$"
+
+####################################################################################
+try "validation failure"
+./mock validate &> $WORKDIR/out
+notok $? "validate requires --endpoint flag"
+with "Missing required --endpoint"
+./mock validate -e "[]" &> $WORKDIR/out
+notok $? "validate requires --endpoint to be a JSON map, not a list"
+with "Error.*parse.*JSON"
+./mock validate -e "true" &> $WORKDIR/out
+notok $? "validate requires --endpoint to be a JSON map, not a scalar boolean"
+with "Error.*parse.*JSON"
+./mock validate -e "42" &> $WORKDIR/out
+notok $? "validate requires --endpoint to be a JSON map, not a scalar integer"
+with "Error.*parse.*JSON"
+./mock validate -e '"text"' &> $WORKDIR/out
+notok $? "validate requires --endpoint to be a JSON map, not a scalar string"
+with "Error.*parse.*JSON"
+
+./mock validate -e '{}' &> $WORKDIR/out
+notok $? "validate requires specific keys to be set"
+without "Error.*parse.*JSON"
+with "✗ string1 * No 'string1' key"
+with "✓ string2 * not set"
+with "✗ float1  * No 'float1' key"
+with "✓ float2  * 42"
+with "✗ bool1   * No 'bool1' key"
+with "✓ bool2   * true"
+with "✗ list    * No 'list' key"
+with "✗ map     * No 'map' key"
+with "mock plugin: invalid configuration"
+
+./mock validate -e '{
+  "string1": "string the first",
+  "string2": "string the second",
+  "float1" : 123.456,
+  "float2" : 456.78901,
+  "bool1"  : true,
+  "bool2"  : false,
+  "list"   : [1,2,3],
+  "map"    : {"a":1,"b":2}
+}' &>$WORKDIR/out
+ok $? "validate works without default values set"
+with "✓ string1 * string the first"
+with "✓ string2 * string the second"
+with "✓ float1  * 123.456"
+with "✓ float2  * 456.78901"
+with "✓ bool1   * true"
+with "✓ bool2   * false"
+with "✓ list    * \\[0] = 1"
+with "✓ list    * \\[1] = 2"
+with "✓ list    * \\[2] = 3"
+with "✓ map     * 'a' = 1"
+with "✓ map     * 'b' = 2"
+
+./mock validate -e '{
+  "string1": "explicitly set",
+  "float1" : 12.6,
+  "bool1"  : true,
+  "list"   : [1],
+  "map"    : {"a":1}
+}' &>$WORKDIR/out
+ok $? "validate works without default values set"
+without "Error.*parse.*JSON"
+with "✓ string1 * explicitly set"
+with "✓ string2 * not set"       # default
+with "✓ float1  * 12.6"
+with "✓ float2  * 42"            # default
+with "✓ bool1   * true"
+with "✓ bool2   * true"          # default
+with "✓ list    * \\[0] = 1"
+with "✓ map     * 'a' = 1"
+
+####################################################################################
+try "retrieving info from the mock plugin"
+./mock info &>$WORKDIR/out
+ok $? "\`mock info\` succeded"
+is "$(cat $WORKDIR/out)" '{
+    "name": "Mock Plugin",
+    "author": "Stark \u0026 Wayne",
+    "version": "0.0.1",
+    "features": {
+        "target": "yes",
+        "store": "yes"
+    }
+}' "mock plugin information"
+
+####################################################################################
+try "backup"
+./mock backup &>$WORKDIR/out
+notok $? "backup command requires an --endpoint"
+with "Missing required --endpoint flag"
+./mock backup -e "$GOOD_ENDPOINT" &>$WORKDIR/out
+ok $? "backup command is happy with the GOOD_ENDPOINT"
+with "mock data" # the 'data' to be backed up...
+
+####################################################################################
+try "restore"
+echo "test" | ./mock restore &>$WORKDIR/out
+notok $? "restore command requires an --endpoint"
+with "Missing required --endpoint flag"
+echo "test" | ./mock restore -e "$GOOD_ENDPOINT" &>$WORKDIR/out
+ok $? "restore command is happy with the GOOD_ENDPOINT"
+
+####################################################################################
+try "store"
+echo "test" | ./mock store &>$WORKDIR/out
+notok $? "store command requires an --endpoint"
+with "Missing required --endpoint flag"
+echo "test" | ./mock store -e "$GOOD_ENDPOINT" &>$WORKDIR/out
+ok $? "store command is happy with the GOOD_ENDPOINT"
+with '{
+  "key":"fake-storage-key"
+}' out "prints storage key after store op"
+
+####################################################################################
+try "retrieve"
+./mock retrieve &>$WORKDIR/out
+notok $? "retrieve command requires an --endpoint and a --key"
+with "Missing required --endpoint flag"
+./mock retrieve --key STORAGE-KEY &>$WORKDIR/out
+notok $? "retrieve command requires an --endpoint"
+with "Missing required --endpoint flag"
+./mock retrieve --endpoint "$GOOD_ENDPOINT" &>$WORKDIR/out
+notok $? "retrieve command requires a --key"
+without "Missing required --endpoint flag"
+with "Missing required --key flag"
+
+####################################################################################
+try "purge"
+./mock purge &>$WORKDIR/out
+notok $? "purge command requires an --endpoint and a --key"
+with "Missing required --endpoint flag"
+./mock purge --key STORAGE-KEY &>$WORKDIR/out
+notok $? "purge command requires an --endpoint"
+with "Missing required --endpoint flag"
+./mock purge --endpoint "$GOOD_ENDPOINT" &>$WORKDIR/out
+notok $? "purge command requires a --key"
+without "Missing required --endpoint flag"
+with "Missing required --key flag"
+
+
+ ######   #######  
+##    ## ##     ## 
+##              ## 
+ ######   #######  
+      ##        ## 
+##    ## ##     ## 
+ ######   #######  
+
+####################################################################################
+strip s3
+try "s3 help"
+./s3 -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+strip scality
+try "scality help"
+./scality -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+########  ######  
+##       ##    ## 
+##       ##       
+######    ######  
+##             ## 
+##       ##    ## 
+##        ######  
+
+####################################################################################
+strip fs
+try "fs help"
+./fs -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+   ###    ######## ##     ## ########  ######## 
+  ## ##        ##  ##     ## ##     ## ##       
+ ##   ##      ##   ##     ## ##     ## ##       
+##     ##    ##    ##     ## ########  ######   
+#########   ##     ##     ## ##   ##   ##       
+##     ##  ##      ##     ## ##    ##  ##       
+##     ## ########  #######  ##     ## ######## 
+
+####################################################################################
+strip azure
+try "azure help"
+./azure -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+ ######   #######  ##    ##  ######  ##     ## ##       
+##    ## ##     ## ###   ## ##    ## ##     ## ##       
+##       ##     ## ####  ## ##       ##     ## ##       
+##       ##     ## ## ## ##  ######  ##     ## ##       
+##       ##     ## ##  ####       ## ##     ## ##       
+##    ## ##     ## ##   ### ##    ## ##     ## ##       
+ ######   #######  ##    ##  ######   #######  ######## 
+
+####################################################################################
+strip consul
+try "consul help"
+./consul -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+########   #######   ######  ########  ######   ########  ########  ######  
+##     ## ##     ## ##    ##    ##    ##    ##  ##     ## ##       ##    ## 
+##     ## ##     ## ##          ##    ##        ##     ## ##       ##       
+########  ##     ##  ######     ##    ##   #### ########  ######    ######  
+##        ##     ##       ##    ##    ##    ##  ##   ##   ##             ## 
+##        ##     ## ##    ##    ##    ##    ##  ##    ##  ##       ##    ## 
+##         #######   ######     ##     ######   ##     ## ########  ######  
+
+####################################################################################
+strip postgres
+try "postgres help"
+./postgres -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+####################################################################################
+strip docker-postgres
+try "docker-postgres help"
+./docker-postgres -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+##     ##  #######  ##    ##  ######    #######  
+###   ### ##     ## ###   ## ##    ##  ##     ## 
+#### #### ##     ## ####  ## ##        ##     ## 
+## ### ## ##     ## ## ## ## ##   #### ##     ## 
+##     ## ##     ## ##  #### ##    ##  ##     ## 
+##     ## ##     ## ##   ### ##    ##  ##     ## 
+##     ##  #######  ##    ##  ######    #######  
+
+
+####################################################################################
+strip mongo
+try "mongo help"
+./mongo -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+##     ## ##    ##  ######   #######  ##       
+###   ###  ##  ##  ##    ## ##     ## ##       
+#### ####   ####   ##       ##     ## ##       
+## ### ##    ##     ######  ##     ## ##       
+##     ##    ##          ## ##  ## ## ##       
+##     ##    ##    ##    ## ##    ##  ##       
+##     ##    ##     ######   ##### ## ######## 
+
+####################################################################################
+strip mysql
+try "mysql help"
+./mysql -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+strip xtrabackup
+try "xtrabackup help"
+./xtrabackup -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+########  ######## ########  ####  ######  
+##     ## ##       ##     ##  ##  ##    ## 
+##     ## ##       ##     ##  ##  ##       
+########  ######   ##     ##  ##   ######  
+##   ##   ##       ##     ##  ##        ## 
+##    ##  ##       ##     ##  ##  ##    ## 
+##     ## ######## ########  ####  ######  
+
+####################################################################################
+strip redis-broker
+try "redis-broker help"
+./redis-broker -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+
+
+########     ###    ########  ########  #### ######## ##     ##  #######  
+##     ##   ## ##   ##     ## ##     ##  ##     ##    ###   ### ##     ## 
+##     ##  ##   ##  ##     ## ##     ##  ##     ##    #### #### ##     ## 
+########  ##     ## ########  ########   ##     ##    ## ### ## ##     ## 
+##   ##   ######### ##     ## ##     ##  ##     ##    ##     ## ##  ## ## 
+##    ##  ##     ## ##     ## ##     ##  ##     ##    ##     ## ##    ##  
+##     ## ##     ## ########  ########  ####    ##    ##     ##  ##### ## 
+
+####################################################################################
+strip rabbitmq-broker
+try "rabbitmq-broker help"
+./rabbitmq-broker -h &>$WORKDIR/out
+with "EXAMPLE ENDPOINT CONFIGURATION"
+with "DEFAULT ENDPOINT"
+
+done_testing
