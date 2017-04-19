@@ -24,12 +24,12 @@ type ScheduleFilter struct {
 }
 
 func (f *ScheduleFilter) Query() (string, []interface{}) {
-	var wheres []string = []string{"s.uuid = s.uuid"}
+	wheres := []string{"s.uuid = s.uuid"}
 	var args []interface{}
 
 	if f.SearchName != "" {
-		var comparator string = "LIKE"
-		var toAdd string = Pattern(f.SearchName)
+		comparator := "LIKE"
+		toAdd := Pattern(f.SearchName)
 		if f.ExactMatch {
 			comparator = "="
 			toAdd = f.SearchName

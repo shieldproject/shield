@@ -48,11 +48,11 @@ type JobFilter struct {
 }
 
 func (f *JobFilter) Query() (string, []interface{}) {
-	var wheres []string = []string{"j.uuid = j.uuid"}
+	wheres := []string{"j.uuid = j.uuid"}
 	var args []interface{}
 	if f.SearchName != "" {
-		var comparator string = "LIKE"
-		var toAdd string = Pattern(f.SearchName)
+		comparator := "LIKE"
+		toAdd := Pattern(f.SearchName)
 		if f.ExactMatch {
 			comparator = "="
 			toAdd = f.SearchName
