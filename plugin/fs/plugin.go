@@ -78,6 +78,22 @@ func main() {
 			Target: "yes",
 			Store:  "yes",
 		},
+		Example: `
+{
+  "base_dir" : "/path/to/backup"   # REQUIRED
+
+  "include"  : "*.txt",            # UNIX glob of files to include in backup
+  "exclude"  : "*.o",              # ... and another for what to exclude
+
+  "bsdtar"   : "/usr/bin/bsdtar"   # where is the BSD tar utility?
+                                   # (GNU tar is insufficient)
+}
+`,
+		Defaults: `
+{
+  "bsdtar" : "/var/vcap/packages/bsdtar/bin/bsdtar"
+}
+`,
 	}
 
 	plugin.DEBUG("fs plugin starting up...")

@@ -15,6 +15,9 @@ import (
 type ShieldEndpoint map[string]interface{}
 
 func getEndpoint(j string) (ShieldEndpoint, error) {
+	if j == "" {
+		return nil, fmt.Errorf("Missing required --endpoint flag")
+	}
 	endpoint := make(ShieldEndpoint)
 	err := json.Unmarshal([]byte(j), &endpoint)
 	if err != nil {

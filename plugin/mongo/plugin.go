@@ -88,6 +88,23 @@ func main() {
 			Target: "yes",
 			Store:  "no",
 		},
+		Example: `
+{
+  "mongo_host"     : "127.0.0.1",   # optional
+  "mongo_port"     : "27017",       # optional
+  "mongo_user"     : "username",    # optional
+  "mongo_password" : "password",    # optional
+  "mongo_database" : "db",          # optional
+  "mongo_bindir"   : "/path/to/bin" # optional
+}
+`,
+		Defaults: `
+{
+  "mongo_host"   : "127.0.0.1",
+  "mongo_port"   : "27017",
+  "mongo_bindir" : "/var/vcap/packages/shield-mongo/bin"
+}
+`,
 	}
 
 	Run(p)

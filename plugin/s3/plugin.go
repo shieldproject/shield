@@ -105,6 +105,27 @@ func main() {
 			Target: "no",
 			Store:  "yes",
 		},
+		Example: `
+{
+  "access_key_id"       : "your-access-key-id",       # REQUIRED
+  "secret_access_key"   : "your-secret-access-key",   # REQUIRED
+  "bucket"              : "name-of-your-bucket",      # REQUIRED
+
+  "s3_host"             : "s3.amazonaws.com",    # override Amazon S3 endpoint
+  "s3_port"             : ""                     # optional port to access s3_host on
+  "skip_ssl_validation" : false,                 # Skip certificate verification (not recommended)
+  "prefix"              : "/path/in/bucket",     # where to store archives, inside the bucket
+  "signature_version"   : "4",                   # AWS signature version; must be '2' or '4'
+  "socks5_proxy"        : ""                     # optional SOCKS5 proxy for accessing S3
+}
+`,
+		Defaults: `
+{
+  "s3_host"             : "s3.amazonawd.com",
+  "signature_version"   : "4",
+  "skip_ssl_validation" : false
+}
+`,
 	}
 
 	plugin.Run(p)

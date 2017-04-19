@@ -140,6 +140,18 @@
 			"Rev": "f679d7594a349263f6118db40d87122d3a474e7d"
 		},
 		{
+			"ImportPath": "github.com/jhunt/go-cli",
+			"Rev": "d74b1b6905297834d014b95038b9a58539832140"
+		},
+		{
+			"ImportPath": "github.com/jhunt/go-envirotron",
+			"Rev": "6bdf7cebaa407f9ef7869eeb673a268d04126c90"
+		},
+		{
+			"ImportPath": "github.com/jhunt/go-snapshot",
+			"Rev": "92984e0ad8d83220d55e97554c5ec8d41d8edc18"
+		},
+		{
 			"ImportPath": "github.com/jmoiron/sqlx",
 			"Comment": "sqlx-v1.1-71-gbdae0c3",
 			"Rev": "bdae0c3219c3bdb92f3d7c70825018712787c933"

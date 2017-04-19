@@ -72,6 +72,20 @@ func main() {
 			Target: "no",
 			Store:  "yes",
 		},
+
+		Example: `
+{
+  "storage_account":     "your-access-key-id",
+  "storage_account_key": "your-secret-access-key",
+  "storage_container":   "storage-container-name",
+}
+`,
+		Defaults: `
+{
+  # there are no defaults.
+  # all keys are required.
+}
+`,
 	}
 
 	plugin.Run(p)

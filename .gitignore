@@ -5,6 +5,7 @@
 /docker-postgres*
 /dummy
 /elasticsearch
+/mock
 /mysql
 /postgres
 /redis-broker
