@@ -17,6 +17,7 @@
 /consul
 /xtrabackup
 /mongo
+/mock
 .DS_Store
 
 # ignore release testing output
