@@ -41,7 +41,7 @@ type ArchiveFilter struct {
 }
 
 func (f *ArchiveFilter) Query() (string, []interface{}) {
-	var wheres []string = []string{"a.uuid = a.uuid"}
+	wheres := []string{"a.uuid = a.uuid"}
 	var args []interface{}
 	if f.ForTarget != "" {
 		wheres = append(wheres, "target_uuid = ?")

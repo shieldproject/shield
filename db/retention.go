@@ -22,12 +22,12 @@ type RetentionFilter struct {
 }
 
 func (f *RetentionFilter) Query() (string, []interface{}) {
-	var wheres []string = []string{"r.uuid = r.uuid"}
+	wheres := []string{"r.uuid = r.uuid"}
 	var args []interface{}
 
 	if f.SearchName != "" {
-		var comparator string = "LIKE"
-		var toAdd string = Pattern(f.SearchName)
+		comparator := "LIKE"
+		toAdd := Pattern(f.SearchName)
 		if f.ExactMatch {
 			comparator = "="
 			toAdd = f.SearchName

@@ -25,12 +25,12 @@ type TargetFilter struct {
 }
 
 func (f *TargetFilter) Query() (string, []interface{}) {
-	var wheres []string = []string{"t.uuid = t.uuid"}
+	wheres := []string{"t.uuid = t.uuid"}
 	args := []interface{}{}
 
 	if f.SearchName != "" {
-		var comparator string = "LIKE"
-		var toAdd string = Pattern(f.SearchName)
+		comparator := "LIKE"
+		toAdd := Pattern(f.SearchName)
 		if f.ExactMatch {
 			comparator = "="
 			toAdd = f.SearchName

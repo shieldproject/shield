@@ -24,11 +24,11 @@ type StoreFilter struct {
 }
 
 func (f *StoreFilter) Query() (string, []interface{}) {
-	var wheres []string = []string{"s.uuid = s.uuid"}
+	wheres := []string{"s.uuid = s.uuid"}
 	args := []interface{}{}
 	if f.SearchName != "" {
-		var comparator string = "LIKE"
-		var toAdd string = Pattern(f.SearchName)
+		comparator := "LIKE"
+		toAdd := Pattern(f.SearchName)
 		if f.ExactMatch {
 			comparator = "="
 			toAdd = f.SearchName
