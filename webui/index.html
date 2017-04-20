@@ -101,6 +101,24 @@
 
       table.task [data-uuid] td { cursor: pointer }
 
+      .job .status {
+        color: red;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+      .job .never-run {
+        font-weight: bold;
+          text-transform: uppercase;
+      }
+      .job .never-run,
+      .job .status.pending {
+        color: orange;
+      }
+      .job .status.ok {
+        color: green;
+        text-transform: none;
+      }
+
       #about h1 { margin-bottom: 1em; }
       #about img { margin: 0 2em; float: left; background-color: #848; }
 
