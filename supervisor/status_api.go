@@ -59,7 +59,7 @@ func (p StatusAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 
 	case match(req, `GET /v1/status/jobs`):
-		jobs, err := p.Data.GetAllJobsStatus(&db.JobFilter{})
+		jobs, err := p.Data.GetAllJobs(&db.JobFilter{})
 		if err != nil {
 			bail(w, err)
 			return
