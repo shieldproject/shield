@@ -10,6 +10,7 @@ software, the name of the installation, etc.
 | :----- | :--- | :-------- | :----------- |
 | GET | /v1/status | - | - |
 | GET | /v1/status/internal | - | - |
+| GET | /v1/status/jobs | - | - |
 
 ### GET /v1/status
 
@@ -62,6 +63,32 @@ The top-level keys are:
 **NOTE:** this endpoint is subject to change without notice.  Do
 not rely on the contents, semantics, or format of the response
 body.  The documentation presented here is informative only.
+
+#### GET /v1/status/jobs
+
+This API emits information about the success or failure of the
+most recent task associated with a job.  This information is
+intended to be used with a monitoring system to alert on job health.
+
+```json
+{
+  "My job": {
+    "name": "My job",
+    "last_run": 1492698300,
+    "next_run": 1492701900,
+    "paused": false,
+    "status": "done"
+  }
+}
+
+For alerting purposes the following alerts are suggested:
+
+ - A job where `status` is "failed" and `paused` is false
+ - A job which has exceeded `next_run` by more than the difference
+   between `next_run` and `last_run` and `paused` is false
+ - There are no `paused` false jobs at all
+```
+
 
 ## Schedules API
 
@@ -790,5 +817,3 @@ remote operations, rather than having to specify the key
 out-of-band.  There are security risks involved in using this
 feature, so be consider the potential for MitM attacks and act
 accordingly.
-
-

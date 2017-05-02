@@ -14,6 +14,14 @@ type StatusAPI struct {
 	Super *Supervisor
 }
 
+type JobHealth struct {
+	Name    string `json:"name"`
+	LastRun int64  `json:"last_run"`
+	NextRun int64  `json:"next_run"`
+	Paused  bool   `json:"paused"`
+	Status  string `json:"status"`
+}
+
 func (p StatusAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `GET /v1/status`):
@@ -48,6 +56,41 @@ func (p StatusAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			ScheduleQueue: p.Super.schedq,
 			RunQueue:      p.Super.runq,
 		})
+		return
+
+	case match(req, `GET /v1/status/jobs`):
+		jobs, err := p.Data.GetAllJobs(&db.JobFilter{})
+		if err != nil {
+			bail(w, err)
+			return
+		}
+
+		health := make(map[string]JobHealth)
+		for _, j := range jobs {
+			var next, last int64
+			if j.LastRun.Time().IsZero() {
+				last = 0
+			} else {
+				last = j.LastRun.Time().Unix()
+			}
+
+			j.Reschedule() /* not really, just enough to get NextRun */
+			if j.Paused || j.NextRun.IsZero() {
+				next = 0
+			} else {
+				next = j.NextRun.Unix()
+			}
+
+			health[j.Name] = JobHealth{
+				Name:    j.Name,
+				Paused:  j.Paused,
+				LastRun: last,
+				NextRun: next,
+				Status:  j.LastTaskStatus,
+			}
+		}
+
+		JSON(w, health)
 		return
 
 	default:
