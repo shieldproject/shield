@@ -32,7 +32,10 @@ type Archive struct {
 }
 
 func GetArchives(filter ArchiveFilter) ([]Archive, error) {
-	uri := ShieldURI("/v1/archives")
+	uri, err := ShieldURI("/v1/archives")
+	if err != nil {
+		return []Archive{}, err
+	}
 	uri.MaybeAddParameter("target", filter.Target)
 	uri.MaybeAddParameter("store", filter.Store)
 	uri.MaybeAddParameter("before", filter.Before)
@@ -46,7 +49,11 @@ func GetArchives(filter ArchiveFilter) ([]Archive, error) {
 
 func GetArchive(id uuid.UUID) (Archive, error) {
 	var data Archive
-	return data, ShieldURI("/v1/archive/%s", id).Get(&data)
+	uri, err := ShieldURI("/v1/archive/%s", id)
+	if err != nil {
+		return Archive{}, err
+	}
+	return data, uri.Get(&data)
 }
 
 //If the string returned is the empty string but the error returned is nil, then
@@ -54,21 +61,31 @@ func GetArchive(id uuid.UUID) (Archive, error) {
 //handing back the uuid for an adhoc task.
 func RestoreArchive(id uuid.UUID, targetJSON string) (string, error) {
 	respMap := make(map[string]string)
-	err := ShieldURI("/v1/archive/%s/restore", id).Post(&respMap, targetJSON)
+	uri, err := ShieldURI("/v1/archive/%s/restore", id)
 	if err != nil {
+		return "", err
+	}
+	if err := uri.Post(&respMap, targetJSON); err != nil {
 		return "", err
 	}
 	return respMap["task_uuid"], nil
 }
 
 func UpdateArchive(id uuid.UUID, contentJSON string) (Archive, error) {
-	err := ShieldURI("/v1/archive/%s", id).Put(nil, contentJSON)
-	if err == nil {
-		return GetArchive(id)
+	uri, err := ShieldURI("/v1/archive/%s", id)
+	if err != nil {
+		return Archive{}, err
 	}
-	return Archive{}, err
+	if err := uri.Put(nil, contentJSON); err != nil {
+		return Archive{}, err
+	}
+	return GetArchive(id)
 }
 
 func DeleteArchive(id uuid.UUID) error {
-	return ShieldURI("/v1/archive/%s", id).Delete(nil)
+	uri, err := ShieldURI("/v1/archive/%s", id)
+	if err != nil {
+		return err
+	}
+	return uri.Delete(nil)
 }

@@ -18,7 +18,10 @@ type ScheduleFilter struct {
 }
 
 func GetSchedules(filter ScheduleFilter) ([]Schedule, error) {
-	uri := ShieldURI("/v1/schedules")
+	uri, err := ShieldURI("/v1/schedules")
+	if err != nil {
+		return []Schedule{}, err
+	}
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("unused", filter.Unused)
 	uri.MaybeAddParameter("exact", filter.ExactMatch)
@@ -29,28 +32,42 @@ func GetSchedules(filter ScheduleFilter) ([]Schedule, error) {
 
 func GetSchedule(id uuid.UUID) (Schedule, error) {
 	var data Schedule
-	return data, ShieldURI("/v1/schedule/%s", id).Get(&data)
+	uri, err := ShieldURI("/v1/schedule/%s", id)
+	if err != nil {
+		return Schedule{}, err
+	}
+	return data, uri.Get(&data)
 }
 
 func CreateSchedule(contentJSON string) (Schedule, error) {
 	data := struct {
 		UUID string `json:"uuid"`
 	}{}
-	err := ShieldURI("/v1/schedules").Post(&data, contentJSON)
-	if err == nil {
-		return GetSchedule(uuid.Parse(data.UUID))
+	uri, err := ShieldURI("/v1/schedules")
+	if err != nil {
+		return Schedule{}, err
 	}
-	return Schedule{}, err
+	if err := uri.Post(&data, contentJSON); err != nil {
+		return Schedule{}, err
+	}
+	return GetSchedule(uuid.Parse(data.UUID))
 }
 
 func UpdateSchedule(id uuid.UUID, contentJSON string) (Schedule, error) {
-	err := ShieldURI("/v1/schedule/%s", id).Put(nil, contentJSON)
-	if err == nil {
-		return GetSchedule(id)
+	uri, err := ShieldURI("/v1/schedule/%s", id)
+	if err != nil {
+		return Schedule{}, err
 	}
-	return Schedule{}, err
+	if err := uri.Put(nil, contentJSON); err != nil {
+		return Schedule{}, err
+	}
+	return GetSchedule(id)
 }
 
 func DeleteSchedule(id uuid.UUID) error {
-	return ShieldURI("/v1/schedule/%s", id).Delete(nil)
+	uri, err := ShieldURI("/v1/schedule/%s", id)
+	if err != nil {
+		return err
+	}
+	return uri.Delete(nil)
 }

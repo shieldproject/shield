@@ -26,7 +26,10 @@ type TaskFilter struct {
 }
 
 func GetTasks(filter TaskFilter) ([]Task, error) {
-	uri := ShieldURI("/v1/tasks")
+	uri, err := ShieldURI("/v1/tasks")
+	if err != nil {
+		return []Task{}, err
+	}
 	uri.MaybeAddParameter("debug", filter.Debug)
 	uri.MaybeAddParameter("limit", filter.Limit)
 	uri.MaybeAddParameter("status", filter.Status)
@@ -37,9 +40,17 @@ func GetTasks(filter TaskFilter) ([]Task, error) {
 
 func GetTask(id uuid.UUID) (Task, error) {
 	var data Task
-	return data, ShieldURI("/v1/task/%s", id).Get(&data)
+	uri, err := ShieldURI("/v1/task/%s", id)
+	if err != nil {
+		return Task{}, err
+	}
+	return data, uri.Get(&data)
 }
 
 func CancelTask(id uuid.UUID) error {
-	return ShieldURI("/v1/task/%s", id).Delete(nil)
+	uri, err := ShieldURI("/v1/task/%s", id)
+	if err != nil {
+		return err
+	}
+	return uri.Delete(nil)
 }

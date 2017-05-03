@@ -6,7 +6,10 @@ type Status struct {
 }
 
 func GetStatus() (Status, error) {
-	uri := ShieldURI("/v1/status")
+	uri, err := ShieldURI("/v1/status")
+	if err != nil {
+		return Status{}, err
+	}
 
 	var data Status
 	return data, uri.Get(&data)

@@ -18,7 +18,10 @@ type RetentionPolicy struct {
 }
 
 func GetRetentionPolicies(filter RetentionPolicyFilter) ([]RetentionPolicy, error) {
-	uri := ShieldURI("/v1/retention")
+	uri, err := ShieldURI("/v1/retention")
+	if err != nil {
+		return []RetentionPolicy{}, err
+	}
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("unused", filter.Unused)
 	uri.MaybeAddParameter("exact", filter.ExactMatch)
@@ -29,28 +32,42 @@ func GetRetentionPolicies(filter RetentionPolicyFilter) ([]RetentionPolicy, erro
 
 func GetRetentionPolicy(id uuid.UUID) (RetentionPolicy, error) {
 	var data RetentionPolicy
-	return data, ShieldURI("/v1/retention/%s", id).Get(&data)
+	uri, err := ShieldURI("/v1/retention/%s", id)
+	if err != nil {
+		return RetentionPolicy{}, err
+	}
+	return data, uri.Get(&data)
 }
 
 func CreateRetentionPolicy(contentJSON string) (RetentionPolicy, error) {
 	data := struct {
 		UUID string `json:"uuid"`
 	}{}
-	err := ShieldURI("/v1/retention").Post(&data, contentJSON)
-	if err == nil {
-		return GetRetentionPolicy(uuid.Parse(data.UUID))
+	uri, err := ShieldURI("/v1/retention")
+	if err != nil {
+		return RetentionPolicy{}, err
 	}
-	return RetentionPolicy{}, err
+	if err := uri.Post(&data, contentJSON); err != nil {
+		return RetentionPolicy{}, err
+	}
+	return GetRetentionPolicy(uuid.Parse(data.UUID))
 }
 
 func UpdateRetentionPolicy(id uuid.UUID, contentJSON string) (RetentionPolicy, error) {
-	err := ShieldURI("/v1/retention/%s", id).Put(nil, contentJSON)
-	if err == nil {
-		return GetRetentionPolicy(id)
+	uri, err := ShieldURI("/v1/retention/%s", id)
+	if err != nil {
+		return RetentionPolicy{}, err
 	}
-	return RetentionPolicy{}, err
+	if err := uri.Put(nil, contentJSON); err != nil {
+		return RetentionPolicy{}, err
+	}
+	return GetRetentionPolicy(id)
 }
 
 func DeleteRetentionPolicy(id uuid.UUID) error {
-	return ShieldURI("/v1/retention/%s", id).Delete(nil)
+	uri, err := ShieldURI("/v1/retention/%s", id)
+	if err != nil {
+		return err
+	}
+	return uri.Delete(nil)
 }
