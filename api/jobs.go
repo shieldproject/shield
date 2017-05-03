@@ -37,7 +37,10 @@ type JobFilter struct {
 }
 
 func GetJobs(filter JobFilter) ([]Job, error) {
-	uri := ShieldURI("/v1/jobs")
+	uri, err := ShieldURI("/v1/jobs")
+	if err != nil {
+		return []Job{}, err
+	}
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("target", filter.Target)
 	uri.MaybeAddParameter("store", filter.Store)
@@ -52,7 +55,11 @@ func GetJobs(filter JobFilter) ([]Job, error) {
 
 func GetJob(id uuid.UUID) (Job, error) {
 	var data Job
-	return data, ShieldURI("/v1/job/%s", id).Get(&data)
+	uri, err := ShieldURI("/v1/job/%s", id)
+	if err != nil {
+		return Job{}, err
+	}
+	return data, uri.Get(&data)
 }
 
 func IsPausedJob(id uuid.UUID) (bool, error) {
@@ -69,31 +76,49 @@ func CreateJob(contentJSON string) (Job, error) {
 		Status string `json:"ok"`
 		UUID   string `json:"uuid"`
 	}{}
-	err := ShieldURI("/v1/jobs").Post(&data, contentJSON)
-	if err == nil {
-		return GetJob(uuid.Parse(data.UUID))
+	uri, err := ShieldURI("/v1/jobs")
+	if err != nil {
+		return Job{}, err
 	}
-	return Job{}, err
+	if err := uri.Post(&data, contentJSON); err != nil {
+		return Job{}, err
+	}
+	return GetJob(uuid.Parse(data.UUID))
 }
 
 func UpdateJob(id uuid.UUID, contentJSON string) (Job, error) {
-	err := ShieldURI("/v1/job/%s", id).Put(nil, contentJSON)
-	if err == nil {
-		return GetJob(id)
+	uri, err := ShieldURI("/v1/job/%s", id)
+	if err != nil {
+		return Job{}, err
 	}
-	return Job{}, err
+	if err := uri.Put(nil, contentJSON); err != nil {
+		return Job{}, err
+	}
+	return GetJob(id)
 }
 
 func DeleteJob(id uuid.UUID) error {
-	return ShieldURI("/v1/job/%s", id).Delete(nil)
+	uri, err := ShieldURI("/v1/job/%s", id)
+	if err != nil {
+		return err
+	}
+	return uri.Delete(nil)
 }
 
 func PauseJob(id uuid.UUID) error {
-	return ShieldURI("/v1/job/%s/pause", id).Post(nil, "{}")
+	uri, err := ShieldURI("/v1/job/%s/pause", id)
+	if err != nil {
+		return err
+	}
+	return uri.Post(nil, "{}")
 }
 
 func UnpauseJob(id uuid.UUID) error {
-	return ShieldURI("/v1/job/%s/unpause", id).Post(nil, "{}")
+	uri, err := ShieldURI("/v1/job/%s/unpause", id)
+	if err != nil {
+		return err
+	}
+	return uri.Post(nil, "{}")
 }
 
 //If the string returned is the empty string but the error returned is nil, then
@@ -101,8 +126,11 @@ func UnpauseJob(id uuid.UUID) error {
 //handing back the uuid for an adhoc task.
 func RunJob(id uuid.UUID, ownerJSON string) (string, error) {
 	respMap := make(map[string]string)
-	err := ShieldURI("/v1/job/%s/run", id).Post(&respMap, ownerJSON)
+	uri, err := ShieldURI("/v1/job/%s/run", id)
 	if err != nil {
+		return "", err
+	}
+	if err := uri.Post(&respMap, ownerJSON); err != nil {
 		return "", err
 	}
 	return respMap["task_uuid"], nil

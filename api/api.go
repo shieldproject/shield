@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"os"
 )
 
 type YesNo struct {
@@ -51,17 +50,15 @@ func (yn *YesNo) Given() bool {
 	return yn.On
 }
 
-func ShieldURI(p string, args ...interface{}) *URL {
+func ShieldURI(p string, args ...interface{}) (*URL, error) {
 	endpoint, err := Cfg.SecureBackendURI()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 	path := fmt.Sprintf(p, args...)
 	u, err := ParseURL(fmt.Sprintf("%s%s", endpoint, path))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+		return nil, err
 	}
-	return u
+	return u, nil
 }

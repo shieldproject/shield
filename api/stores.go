@@ -20,7 +20,10 @@ type StoreFilter struct {
 }
 
 func GetStores(filter StoreFilter) ([]Store, error) {
-	uri := ShieldURI("/v1/stores")
+	uri, err := ShieldURI("/v1/stores")
+	if err != nil {
+		return []Store{}, err
+	}
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("plugin", filter.Plugin)
 	uri.MaybeAddParameter("unused", filter.Unused)
@@ -31,28 +34,42 @@ func GetStores(filter StoreFilter) ([]Store, error) {
 
 func GetStore(id uuid.UUID) (Store, error) {
 	var data Store
-	return data, ShieldURI("/v1/store/%s", id).Get(&data)
+	uri, err := ShieldURI("/v1/store/%s", id)
+	if err != nil {
+		return Store{}, err
+	}
+	return data, uri.Get(&data)
 }
 
 func CreateStore(contentJSON string) (Store, error) {
 	data := struct {
 		UUID string `json:"uuid"`
 	}{}
-	err := ShieldURI("/v1/stores").Post(&data, contentJSON)
-	if err == nil {
-		return GetStore(uuid.Parse(data.UUID))
+	uri, err := ShieldURI("/v1/stores")
+	if err != nil {
+		return Store{}, err
 	}
-	return Store{}, err
+	if err := uri.Post(&data, contentJSON); err != nil {
+		return Store{}, err
+	}
+	return GetStore(uuid.Parse(data.UUID))
 }
 
 func UpdateStore(id uuid.UUID, contentJSON string) (Store, error) {
-	err := ShieldURI("/v1/store/%s", id).Put(nil, contentJSON)
-	if err == nil {
-		return GetStore(id)
+	uri, err := ShieldURI("/v1/store/%s", id)
+	if err != nil {
+		return Store{}, err
 	}
-	return Store{}, err
+	if err := uri.Put(nil, contentJSON); err != nil {
+		return Store{}, err
+	}
+	return GetStore(id)
 }
 
 func DeleteStore(id uuid.UUID) error {
-	return ShieldURI("/v1/store/%s", id).Delete(nil)
+	uri, err := ShieldURI("/v1/store/%s", id)
+	if err != nil {
+		return err
+	}
+	return uri.Delete(nil)
 }
