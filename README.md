@@ -37,7 +37,7 @@ Engineers should be able to integrate support for new data systems and storage s
 | [Xtra Backup](https://godoc.org/github.com/starkandwayne/shield/plugin/xtrabackup)          | xtrabackup      | X      |       |
 
 **See a missing plugin? Create one and submit a PR**<br>
-[Example Plugin Stub](../plugin/dummy)
+[Example Plugin Stub](/plugin/dummy)
 
 ## Target Plugins
 
