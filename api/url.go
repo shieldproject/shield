@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -177,7 +178,10 @@ func makeRequest(req *http.Request) (*http.Response, error) {
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "",
 			},
+			Proxy:             http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
 		},
+		Timeout: 30 * time.Second,
 	}
 	if os.Getenv("SHIELD_API_TOKEN") != "" {
 		req.Header.Set("X-Shield-Token", os.Getenv("SHIELD_API_TOKEN"))
