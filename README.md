@@ -1,4 +1,4 @@
-# S.H.I.E.L.D. Backup Solution
+# S.H.I.E.L.D. Backup Framework
 
 Questions? Pop in our [slack channel](https://cloudfoundry.slack.com/messages/shield/)!
 
