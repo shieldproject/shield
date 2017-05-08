@@ -11,6 +11,7 @@
 /redis-broker
 /rabbitmq-broker
 /s3
+/swift
 /azure
 /fs
 /scality

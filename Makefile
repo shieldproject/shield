@@ -39,6 +39,7 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/postgres
 	go $(BUILD_TYPE) ./plugin/redis-broker
 	go $(BUILD_TYPE) ./plugin/s3
+	go $(BUILD_TYPE) ./plugin/swift
 	go $(BUILD_TYPE) ./plugin/azure
 	go $(BUILD_TYPE) ./plugin/mysql
 	go $(BUILD_TYPE) ./plugin/xtrabackup
@@ -51,7 +52,7 @@ plugins:
 clean:
 	rm shieldd shield-agent shield-schema shield
 	rm fs docker-postgres dummy postgres redis-broker
-	rm s3 azure mysql xtrabackup rabbitmq-broker
+	rm s3 swift azure mysql xtrabackup rabbitmq-broker
 	rm consul mongo scality google
 
 
@@ -93,6 +94,7 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/postgres"          ./plugin/postgres
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/redis-broker"      ./plugin/redis-broker
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/s3"                ./plugin/s3
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/swift"             ./plugin/swift
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/azure"             ./plugin/azure
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mysql"             ./plugin/mysql
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/rabbitmq-broker"   ./plugin/rabbitmq-broker
