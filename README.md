@@ -27,6 +27,7 @@ Engineers should be able to integrate support for new data systems and storage s
 | [Azure](https://godoc.org/github.com/starkandwayne/shield/plugin/azure  )                   | azure           |        | X     | [Consul](https://godoc.org/github.com/starkandwayne/shield/plugin/consul)                   | consul          | X      |       |
 | [Docker Postgres](https://godoc.org/github.com/starkandwayne/shield/plugin/docker-postgres) | docker-postgres | X      |       |
 | [Filesystem](https://godoc.org/github.com/starkandwayne/shield/plugin/fs)                   | fs              | X      | X     |
+| [Google](https://godoc.org/github.com/starkandwayne/shield/plugin/google)                   | google          |        | X     |
 | [Mongo](https://godoc.org/github.com/starkandwayne/shield/plugin/mongo)                     | mongo           | X      |       |
 | [MySQL](https://godoc.org/github.com/starkandwayne/shield/plugin/mysql)                     | mysql           | X      |       |
 | [Postgres](https://godoc.org/github.com/starkandwayne/shield/plugin/postgres)               | postgres        | X      |       |

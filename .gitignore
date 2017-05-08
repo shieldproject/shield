@@ -17,6 +17,7 @@
 /consul
 /xtrabackup
 /mongo
+/google
 /mock
 .DS_Store
 
