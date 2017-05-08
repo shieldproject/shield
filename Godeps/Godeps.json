@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
-	"GoVersion": "go1.7",
-	"GodepVersion": "v79",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v77",
 	"Packages": [
 		"./..."
 	],
@@ -403,6 +403,10 @@
 			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
 		},
 		{
+			"ImportPath": "golang.org/x/net/context/ctxhttp",
+			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
+		},
+		{
 			"ImportPath": "golang.org/x/net/proxy",
 			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
 		},
@@ -411,12 +415,48 @@
 			"Rev": "b5adcc2dcdf009d0391547edc6ecbaff889f5bb9"
 		},
 		{
+			"ImportPath": "golang.org/x/oauth2/google",
+			"Rev": "b5adcc2dcdf009d0391547edc6ecbaff889f5bb9"
+		},
+		{
 			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "b5adcc2dcdf009d0391547edc6ecbaff889f5bb9"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/jws",
+			"Rev": "b5adcc2dcdf009d0391547edc6ecbaff889f5bb9"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/jwt",
 			"Rev": "b5adcc2dcdf009d0391547edc6ecbaff889f5bb9"
 		},
 		{
 			"ImportPath": "golang.org/x/sys/unix",
 			"Rev": "442cd600860ce722f6615730eb008a37a87b13ee"
+		},
+		{
+			"ImportPath": "google.golang.org/api/gensupport",
+			"Rev": "77e7d383beb96054547729f49c372b3d01e196ff"
+		},
+		{
+			"ImportPath": "google.golang.org/api/googleapi",
+			"Rev": "77e7d383beb96054547729f49c372b3d01e196ff"
+		},
+		{
+			"ImportPath": "google.golang.org/api/googleapi/internal/uritemplates",
+			"Rev": "77e7d383beb96054547729f49c372b3d01e196ff"
+		},
+		{
+			"ImportPath": "google.golang.org/api/storage/v1",
+			"Rev": "77e7d383beb96054547729f49c372b3d01e196ff"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/compute/metadata",
+			"Rev": "eb47ba841d53d93506cfbfbc03927daf9cc48f88"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/internal",
+			"Rev": "eb47ba841d53d93506cfbfbc03927daf9cc48f88"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
