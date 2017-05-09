@@ -5,12 +5,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var Cfg *Config
@@ -159,7 +161,10 @@ func (cfg *Config) SecureBackendURI() (string, error) {
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "",
 			},
+			Proxy:             http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
 		},
+		Timeout: 30 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			final = fmt.Sprintf("%s://%s", req.URL.Scheme, req.URL.Host)
 			if len(via) > 10 {
@@ -169,10 +174,13 @@ func (cfg *Config) SecureBackendURI() (string, error) {
 		},
 	}
 	final = Cfg.BackendURI()
-	_, err := client.Get(fmt.Sprintf("%s/v1/ping", final))
+	res, err := client.Get(fmt.Sprintf("%s/v1/ping", final))
 	if err != nil {
 		cfg.resolved = final
+		return final, err
 	}
+	defer res.Body.Close()
+	io.Copy(ioutil.Discard, res.Body)
 	return final, err
 }
 
