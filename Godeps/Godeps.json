@@ -1,11 +1,23 @@
 {
 	"ImportPath": "github.com/starkandwayne/shield",
 	"GoVersion": "go1.8",
-	"GodepVersion": "v77",
+	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
+		{
+			"ImportPath": "git.openstack.org/openstack/golang-client/objectstorage/v1",
+			"Rev": "f8471e433432b26dd29aa1c1cd42317a9d79a551"
+		},
+		{
+			"ImportPath": "git.openstack.org/openstack/golang-client/openstack",
+			"Rev": "f8471e433432b26dd29aa1c1cd42317a9d79a551"
+		},
+		{
+			"ImportPath": "git.openstack.org/openstack/golang-client/util",
+			"Rev": "f8471e433432b26dd29aa1c1cd42317a9d79a551"
+		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/storage",
 			"Rev": "4897648e310020dae650a89c31ff633284c13a24"
