@@ -182,6 +182,112 @@ There is a special _pseudo-role_, called **Administrator** that
 grants the holder full access; all rights on all tenants.
 
 
+Authentication Backends
+-----------------------
+
+Most operators work in an environment with existing authentication
+systems, be they Active Directory / LDAP, Github authentication,
+some form of UAA, etc.  It would be desirable for SHIELD to align
+with those authentication systems, rather than provide yet another
+set of credentials for operators and their customers to manage.
+
+To that end, SHIELD (as of 0.10.8) supports Github and CF UAA
+(although there are [issues][cf-uaa] with that) OAuth2 systems for
+authentication.
+
+These systems will continue to be supported, but will go through
+some changes to support role-based access control.
+
+Primarily, SHIELD will be able to support multiple authentication
+backends concurrently.  This does not make much sense with the
+big OAuth2 systems like Github and CF/UAA, but it starts to make
+sense when we add API Key and Local Authentication as
+authentication backends.
+
+SHIELD administrators may opt to keep local authentication for
+root-level access to their SHIELD environments, as a sort of
+emergency avenue for performing backups.  This allows SHIELD to
+safely backup (and restore!) the authentication data itself,
+without running into primacy problems.
+
+What follows are rough sketches of how each proposed
+authentication backend interacts with Roles &amp; Rights, and how
+the SHIELD UI / CLI must adapt to accommodate.
+
+### Local Authentication Backend
+
+Local Authentication is completely independent of external
+systems.  SHIELD itself maintains a list of user accounts, data
+for verifying passwords (bcrypt hashes or the like), and their
+tenant/role assignments.
+
+This is the simplest backend conceptually, but requires the most
+change to the SHIELD codebase and UI/CLI.  The UI and CLI will
+need new features (screens and commands) that allow SHIELD site
+administrators to create new accounts, disable and remove
+accounts, assign tenants and roles to accounts, etc.
+
+In the interest of shipping the RBAC feature, we may focus on the
+web interface and forego the CLI in the first round.
+
+### Github Authentication Backend
+
+When SHIELD verifies the bearer token, Github returns a list
+of the organizations and groups the user belongs to.  The
+configuration for the Github Authentication Backend maps these
+org/group combinations to tenant/roles.  The SHIELD site
+administrator is responsible for maintaining this mapping.
+
+It is not possible to _override_ the org/team &rarr; tenant/role
+mapping to grant or revoke tenant/role assignments manually.
+
+The SHIELD UI and CLI will need new screens and commands to allow
+SHIELD site administrators to configure the Github integration
+(URL, application client/secret), and set up the role mapping
+rules.
+
+In the interest of shipping the RBAC feature, we may focus on the
+web interface and forego the CLI in the first round.
+
+### UAA Authentication Backend
+
+When SHIELD verifies the bearer token, UAA returns a list of
+groups the user belongs to.  The configuration for the UAA
+Authentication Backend maps these groups to tenant/role
+combinations.  The SHIELD site administrator is responsible for
+maintaining this mapping.
+
+It is not possible to _override_ the group &rarr; tenant/role
+mapping to grant or revoke tenant/role assignments manually.
+
+The SHIELD UI and CLI will need new screens and commands to allow
+SHIELD site administrators to configure the UAA integration
+(URL, application client/secret), and set up the role mapping
+rules.
+
+In the interest of shipping the RBAC feature, we may focus on the
+web interface and forego the CLI in the first round.
+
+### API Key Authentication Backend
+
+Right now, API keys are used by supplying a custom header,
+`X-Shield-Token` in the request.  The API code verifies the key
+against a list of keys.
+
+With the introduction of multi-tenancy, API keys need overhauled;
+API keys must be tied to a set of tenants and roles, just like
+regular accounts.  The biggest change is that API keys will need
+to be treated as "live" configuration, moved out of the SHIELD
+daemon configuration, and into the database proper.
+
+The SHIELD UI and CLI will need new screens and commands to allow
+SHIELD site administrators to generate, modify and revoke API
+keys, map them to tenant/roles, and annotate them.
+
+In the interest of shipping the RBAC feature, we may focus on the
+web interface and forego the CLI in the first round.
+
+
 Auditing
 --------
 
@@ -193,6 +299,7 @@ The key details of an audit log record are:
 
   - Who
     - Username / API Key
+    - Authentication Backend
     - Affected Tenant (or global)
     - Remote IP
   - What
