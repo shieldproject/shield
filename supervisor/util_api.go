@@ -28,6 +28,7 @@ func bailWithError(w http.ResponseWriter, err JSONError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 	w.Write([]byte(err.JSON()))
+	log.Errorf("Request bailed: <%s>\n", err)
 	return
 }
 

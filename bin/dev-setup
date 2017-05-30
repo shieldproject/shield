@@ -1,10 +1,7 @@
 #!/bin/bash
+set -e
 
-#requires: jq
-
-set -e -x
-
-cd "$( dirname "${BASH_SOURCE[0]}" )"
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 #if no cli, make cli
 if [[ ! -f "../shield" ]]
@@ -14,64 +11,81 @@ then
 fi
 
 shieldbackend="http://localhost:8181"
-shieldcomm="../shield -k --raw"
-jqcomm="jq -Mr"
+shield="../shield -k --raw -D"
+jq="jq -Mr"
 targetdir=$1
 storedir=$2
 
 echo targetdir=$targetdir
 echo storedir=$storedir
 
-$shieldcomm create-backend localdev $shieldbackend
+$shield create-backend localdev $shieldbackend
 echo "backend created"
-target=$($shieldcomm create-target <<MEEP0 | $jqcomm .uuid
+target=$($shield create-target <<EOF | $jq .uuid
 {
-  "agent": "127.0.0.1:5444",
-  "endpoint": "{\"base_dir\":\"${targetdir}\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-  "name": "DevTarget",
-  "plugin": "fs",
-  "summary": "The working directory of the dev environment."
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{\"base_dir\":\"${targetdir}\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+  "name"     : "DevTarget",
+  "plugin"   : "fs",
+  "summary"  : "The working directory of the dev environment."
 }
-MEEP0 )
-#target=$($jqcomm .uuid <<<$target)
+EOF )
+if [[ "$target" = "null" ]]; then
+  echo >&2 "Failed to create the DevTarget target"
+  exit 1
+fi
 echo "target=$target"
 
-store=$( $shieldcomm create-store <<MEEP1 | $jqcomm .uuid
+store=$($shield create-store <<EOF | $jq .uuid
 {
-  "endpoint": "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
-  "name": "DevStore",
-  "plugin": "fs",
-  "summary": "A temporary store for the dev environment."
+  "endpoint" : "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
+  "name"     : "DevStore",
+  "plugin"   : "fs",
+  "summary"  : "A temporary store for the dev environment."
 }
-MEEP1 )
+EOF )
+if [[ "$store" = "null" ]]; then
+  echo >&2 "Failed to create the DevStore store"
+  exit 1
+fi
 echo "store=$store"
 
-policy=$( $shieldcomm create-retention policy <<MEEP2 | $jqcomm .uuid
+policy=$($shield create-policy <<EOF | $jq .uuid
 {
-  "expires": 31536000,
-  "name": "DevPolicy",
-  "summary": "A Test Policy"
+  "name"    : "DevPolicy",
+  "summary" : "A Test Policy",
+  "expires" : 86400
 }
-MEEP2 )
+EOF )
+if [[ "$policy" = "null" ]]; then
+  echo >&2 "Failed to create the DevPolicy retention policy"
+  exit 1
+fi
+echo "target=$target"
 echo "policy=$policy"
 
-schedule=$( $shieldcomm create-schedule <<MEEP3 | $jqcomm .uuid
+schedule=$($shield create-schedule <<EOF | $jq .uuid
 {
-  "name": "DevSched",
-  "summary": "A Test Schedule",
-  "when": "daily 4am"
+  "name"    : "DevSched",
+  "summary" : "A Test Schedule",
+  "when"    : "daily 4am"
 }
-MEEP3 )
+EOF )
+if [[ "$schedule" = "null" ]]; then
+  echo >&2 "Failed to create the DevSchedule schedule"
+  exit 1
+fi
+echo "target=$target"
 echo "schedule=$schedule"
 
-$shieldcomm create-job <<MEEP4
+$shield create-job <<EOF
 {
-  "name": "DevJob",
-  "paused": true,
-  "retention": "$policy",
-  "schedule": "$schedule",
-  "store": "$store",
-  "summary": "A Test Job",
-  "target": "$target"
+  "name"      : "DevJob",
+  "paused"    : true,
+  "retention" : "$policy",
+  "schedule"  : "$schedule",
+  "store"     : "$store",
+  "summary"   : "A Test Job",
+  "target"    : "$target"
 }
-MEEP4
+EOF
