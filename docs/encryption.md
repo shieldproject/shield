@@ -182,15 +182,12 @@ worker communication channel.  At that point, these credentials
 enter the memory space of the SHIELD agent, possibly on a
 different host.
 
-The SHIELD agent process mplaces the Encryption Type, Key and IV
-in the environment of the `shield-pipe` orchestatrion process, so
-that it passes through to the child environments of the Target and
-Store plugin processes.
-
-Plugins that execute other programs to handle the actual task of
-performing a backup or a restore are responsible for scrubbing
-their environments prior to a call to `execve(2)` to mitigate
-further leakage of credentials.
+The SHIELD agent process places the Encryption Type, Key and IV
+in the environment of the `shield-pipe` orchestatrion process,
+which will actually perform the encryption (on store) and
+decryption (on retrieve) of the archive data.  These environment
+variables _MUST NOT_ be propagated to the plugins themselves, to
+limit exposure of the credentials.
 
 ### Consideration - TLS Certificate Validation
 
@@ -234,10 +231,11 @@ I do not have a solution to this yet.
 
 The current implementation of SHIELD passes the Encryption Key and
 IV via the `shield-pipe` environment.  This is available both
-in-memory, and from inside of `/proc`.  Unless plugins (or the
-plugin framework) make an effort to scrub their environment by
-overwriting the variable values, these bits of sensitive key
-material can leak to sub-processes as well.
+in-memory, and from inside of `/proc`.  We will have to
+investigate whether grabbing local copies of exported environment
+variables keeps them out of `/proc` or not.  In any event,
+`shield-pipe` _must not_ propagate key material to the plugins it
+executes, and must therefore scrub its environment.
 
 One solution is to replace the `shield-pipe` bash implementation
 for one in Go, and manage memory according to the previous two
