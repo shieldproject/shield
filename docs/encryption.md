@@ -82,6 +82,24 @@ as-yet-unseen case of a Vault being uninitialized after legitimate
 work has been done, having monitoring go off is preferable to the
 alternative.
 
+### Consideration - Backing Up SHIELD Itself
+
+One of the nice features of SHIELD being a backup system is that
+it is able to quite easily backup its own configuration.  Once we
+add encryption into the mix, however, it becomes a bit trickier.
+We cannot just generate new key material for every backup of
+SHIELD, since that key material will not be known to the SHIELD
+site administrators during restore.
+
+Instead, when a SHIELD backup is performed, instead of generating
+new key material, the master password will be used, and an
+initialization vector derived from it.  That way, during restore,
+the administrator need only provide the master password that was
+in-force when the backup archive was taken, in order to decrypt.
+
+The mechanism for detecting SHIELD backups is simple: if the
+target plugin is "shield", use the master password; otherwise,
+generate new key material.
 
 Configuration of Encryption and Generation of Key Material
 ----------------------------------------------------------
