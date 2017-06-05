@@ -62,9 +62,19 @@ EOF
 
 spin_agent() {
   agent_up="1"
+  n=60
   while [ $agent_up -eq 1 ]; do
       sleep 1
       agent_up=$(nc -z ${SHIELD_DAEMON_HOST} ${SHIELD_DAEMON_PORT} &>/dev/null; echo $?)
+      n=$(( n - 1 ))
+      if [[ $n -eq 0 ]]; then
+        echo >&2 "SHIELD core did not spin up within 60s; aborting"
+        echo >&2 "---[ shieldd log ]-----------------------------------------"
+        cat  >&2 ${WORKDIR}/daemon.log
+        echo >&2 "-----------------------------------------------------------"
+        echo >&2
+        exit 4;
+      fi
   done
 
   ssh-keygen -t rsa -f ${WORKDIR}/var/shield-agent_key -N '' >/dev/null
