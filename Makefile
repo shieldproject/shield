@@ -12,7 +12,7 @@ format:
 
 # Running Tests
 test:
-	go test ./...
+	go list ./... | grep -v vendor | xargs go test
 	./t/api
 
 # Running Tests for race conditions
