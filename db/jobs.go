@@ -19,9 +19,7 @@ type Job struct {
 	RetentionName  string    `json:"retention_name"`
 	RetentionUUID  uuid.UUID `json:"retention_uuid"`
 	Expiry         int       `json:"expiry"`
-	ScheduleName   string    `json:"schedule_name"`
-	ScheduleUUID   uuid.UUID `json:"schedule_uuid"`
-	ScheduleWhen   string    `json:"schedule_when"`
+	Schedule       string    `json:"schedule"`
 	Paused         bool      `json:"paused"`
 	StoreUUID      uuid.UUID `json:"store_uuid"`
 	StoreName      string    `json:"store_name"`
@@ -47,7 +45,6 @@ type JobFilter struct {
 
 	ForTarget    string
 	ForStore     string
-	ForSchedule  string
 	ForRetention string
 	ExactMatch   bool
 }
@@ -74,10 +71,6 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 		wheres = append(wheres, "j.store_uuid = ?")
 		args = append(args, f.ForStore)
 	}
-	if f.ForSchedule != "" {
-		wheres = append(wheres, "j.schedule_uuid = ?")
-		args = append(args, f.ForSchedule)
-	}
 	if f.ForRetention != "" {
 		wheres = append(wheres, "j.retention_uuid = ?")
 		args = append(args, f.ForRetention)
@@ -100,16 +93,14 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 		most_recent_job_task AS (
 			SELECT t.started_at, t.status, t.job_uuid, t.uuid FROM tasks t, most_recent_job_task_at mr WHERE t.job_uuid = mr.job_uuid AND t.requested_at = mr.requested_at
 		)
-			SELECT j.uuid, j.name, j.summary, j.paused,
+			SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
 						 r.name, r.uuid, r.expiry,
-						 sc.name, sc.uuid, sc.timespec,
 						 s.uuid, s.name, s.plugin, s.endpoint,
 						 t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 						 k.started_at, k.status
 
 				FROM jobs j
 					INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-					INNER JOIN schedules sc  ON sc.uuid = j.schedule_uuid
 					INNER JOIN stores     s  ON  s.uuid = j.store_uuid
 					INNER JOIN targets    t  ON  t.uuid = j.target_uuid
 					LEFT  JOIN most_recent_job_task k  ON  j.uuid = k.job_uuid
@@ -120,16 +111,14 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 
 	default:
 		return `
-			SELECT j.uuid, j.name, j.summary, j.paused,
+			SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
 			       r.name, r.uuid, r.expiry,
-			       sc.name, sc.uuid, sc.timespec,
 			       s.uuid, s.name, s.plugin, s.endpoint,
 			       t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 			       null AS started_at, '' AS status
 
 				FROM jobs j
 					INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-					INNER JOIN schedules sc  ON sc.uuid = j.schedule_uuid
 					INNER JOIN stores     s  ON  s.uuid = j.store_uuid
 					INNER JOIN targets    t  ON  t.uuid = j.target_uuid
 
@@ -156,14 +145,13 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	for r.Next() {
 		ann := &Job{}
 		var (
-			this, retention, schedule, store, target NullUUID
-			last_run                                 *int64
-			last_task_status                         sql.NullString
+			this, retention, store, target NullUUID
+			last_run                       *int64
+			last_task_status               sql.NullString
 		)
 		if err = r.Scan(
-			&this, &ann.Name, &ann.Summary, &ann.Paused,
+			&this, &ann.Name, &ann.Summary, &ann.Paused, &ann.Schedule,
 			&ann.RetentionName, &retention, &ann.Expiry,
-			&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
 			&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
 			&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Agent, &last_run, &last_task_status); err != nil {
@@ -171,7 +159,6 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		}
 		ann.UUID = this.UUID
 		ann.RetentionUUID = retention.UUID
-		ann.ScheduleUUID = schedule.UUID
 		ann.StoreUUID = store.UUID
 		ann.TargetUUID = target.UUID
 		if last_run != nil {
@@ -192,15 +179,13 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
-		SELECT j.uuid, j.name, j.summary, j.paused,
+		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
 		       r.name, r.uuid, r.expiry,
-		       sc.name, sc.uuid, sc.timespec,
 		       s.uuid, s.name, s.plugin, s.endpoint,
 		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-				INNER JOIN schedules sc  ON sc.uuid = j.schedule_uuid
 				INNER JOIN stores     s  ON  s.uuid = j.store_uuid
 				INNER JOIN targets    t  ON  t.uuid = j.target_uuid
 
@@ -215,11 +200,10 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	}
 
 	ann := &Job{}
-	var this, retention, schedule, store, target NullUUID
+	var this, retention, store, target NullUUID
 	if err = r.Scan(
-		&this, &ann.Name, &ann.Summary, &ann.Paused,
+		&this, &ann.Name, &ann.Summary, &ann.Paused, &ann.Schedule,
 		&ann.RetentionName, &retention, &ann.Expiry,
-		&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
 		&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
 		&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&ann.Agent); err != nil {
@@ -227,7 +211,6 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	}
 	ann.UUID = this.UUID
 	ann.RetentionUUID = retention.UUID
-	ann.ScheduleUUID = schedule.UUID
 	ann.StoreUUID = store.UUID
 	ann.TargetUUID = target.UUID
 
@@ -265,7 +248,7 @@ func (db *DB) AnnotateJob(id uuid.UUID, name string, summary string) error {
 func (db *DB) CreateJob(target, store, schedule, retention string, paused bool) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused)
+		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule, retention_uuid, paused)
 			VALUES (?, ?, ?, ?, ?, ?)`,
 		id.String(), target, store, schedule, retention, paused,
 	)
@@ -273,7 +256,7 @@ func (db *DB) CreateJob(target, store, schedule, retention string, paused bool) 
 
 func (db *DB) UpdateJob(id uuid.UUID, target, store, schedule, retention string) error {
 	return db.Exec(
-		`UPDATE jobs SET target_uuid = ?, store_uuid = ?, schedule_uuid = ?, retention_uuid = ? WHERE uuid = ?`,
+		`UPDATE jobs SET target_uuid = ?, store_uuid = ?, schedule = ?, retention_uuid = ? WHERE uuid = ?`,
 		target, store, schedule, retention, id.String(),
 	)
 }
@@ -287,7 +270,7 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 
 func (j *Job) Reschedule() (err error) {
 	if j.Spec == nil {
-		j.Spec, err = timespec.Parse(j.ScheduleWhen)
+		j.Spec, err = timespec.Parse(j.Schedule)
 		if err != nil {
 			return
 		}

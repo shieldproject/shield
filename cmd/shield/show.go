@@ -33,14 +33,6 @@ func ShowStore(store Store) {
 	t.Output(os.Stdout)
 }
 
-func ShowSchedule(schedule Schedule) {
-	t := tui.NewReport()
-	t.Add("Name", schedule.Name)
-	t.Add("Summary", schedule.Summary)
-	t.Add("Timespec", schedule.When)
-	t.Output(os.Stdout)
-}
-
 func ShowRetentionPolicy(policy RetentionPolicy) {
 	t := tui.NewReport()
 	t.Add("Name", policy.Name)
@@ -59,7 +51,7 @@ func ShowJob(job Job) {
 	t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
 	t.Break()
 
-	t.Add("Schedule Policy", job.ScheduleName)
+	t.Add("Schedule", job.Schedule)
 	t.Break()
 
 	t.Add("Target", job.TargetPlugin)

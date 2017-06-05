@@ -192,15 +192,6 @@ func (ws *WebServer) ProtectedAPIs() (http.Handler, error) {
 	router.Handle("/v1/archive", archives)
 	router.Handle("/v1/archive/", archives)
 
-	schedules := &ScheduleAPI{
-		Data:       ws.Database,
-		ResyncChan: ws.Supervisor.resync,
-	}
-	router.Handle("/v1/schedules", schedules)
-	router.Handle("/v1/schedules/", schedules)
-	router.Handle("/v1/schedule", schedules)
-	router.Handle("/v1/schedule/", schedules)
-
 	stores := &StoreAPI{
 		Data:       ws.Database,
 		ResyncChan: ws.Supervisor.resync,
