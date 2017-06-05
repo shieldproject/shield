@@ -59,7 +59,7 @@ func ShowJob(job api.Job) {
 	t.Add("Expires in", fmt.Sprintf("%d days", job.Expiry/86400))
 	t.Break()
 
-	t.Add("Schedule Policy", job.ScheduleName)
+	t.Add("Schedule", job.Schedule)
 	t.Break()
 
 	t.Add("Target", job.TargetPlugin)

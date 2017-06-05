@@ -64,26 +64,12 @@ fi
 echo "target=$target"
 echo "policy=$policy"
 
-schedule=$($shield create-schedule <<EOF | $jq .uuid
-{
-  "name"    : "DevSched",
-  "summary" : "A Test Schedule",
-  "when"    : "daily 4am"
-}
-EOF )
-if [[ "$schedule" = "null" ]]; then
-  echo >&2 "Failed to create the DevSchedule schedule"
-  exit 1
-fi
-echo "target=$target"
-echo "schedule=$schedule"
-
 $shield create-job <<EOF
 {
   "name"      : "DevJob",
   "paused"    : true,
   "retention" : "$policy",
-  "schedule"  : "$schedule",
+  "schedule"  : "daily 4am",
   "store"     : "$store",
   "summary"   : "A Test Job",
   "target"    : "$target"

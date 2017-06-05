@@ -44,7 +44,6 @@ func main() {
 		Status:    getopt.StringLong("status", 'S', "", "Only show archives/tasks with the given status"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
 		Store:     getopt.StringLong("store", 's', "", "Only show things for the store with this UUID"),
-		Schedule:  getopt.StringLong("schedule", 'w', "", "Only show things for the schedule with this UUID"),
 		Retention: getopt.StringLong("policy", 'p', "", "Only show things for the retention policy with this UUID"),
 		Plugin:    getopt.StringLong("plugin", 'P', "", "Only show things for the given target or store plugin"),
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),

@@ -290,7 +290,7 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 		}
 		t := tui.NewTable("Name", "Summary", "Target", "Store", "Schedule")
 		for _, job := range jobs {
-			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.ScheduleWhen)
+			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.Schedule)
 		}
 		want := tui.Menu(
 			fmt.Sprintf("More than one job matched your search for '%s':", search),

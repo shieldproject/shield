@@ -11,9 +11,7 @@ type Job struct {
 	RetentionName  string `json:"retention_name"`
 	RetentionUUID  string `json:"retention_uuid"`
 	Expiry         int    `json:"expiry"`
-	ScheduleName   string `json:"schedule_name"`
-	ScheduleUUID   string `json:"schedule_uuid"`
-	ScheduleWhen   string `json:"schedule_when"`
+	Schedule       string `json:"schedule"`
 	Paused         bool   `json:"paused"`
 	StoreUUID      string `json:"store_uuid"`
 	StoreName      string `json:"store_name"`
@@ -30,7 +28,6 @@ type JobFilter struct {
 	Name       string
 	Target     string
 	Store      string
-	Schedule   string
 	Retention  string
 	Paused     YesNo
 	ExactMatch YesNo
@@ -44,7 +41,6 @@ func GetJobs(filter JobFilter) ([]Job, error) {
 	uri.MaybeAddParameter("name", filter.Name)
 	uri.MaybeAddParameter("target", filter.Target)
 	uri.MaybeAddParameter("store", filter.Store)
-	uri.MaybeAddParameter("schedule", filter.Schedule)
 	uri.MaybeAddParameter("retention", filter.Retention)
 	uri.MaybeAddParameter("paused", filter.Paused)
 	uri.MaybeAddParameter("exact", filter.ExactMatch)

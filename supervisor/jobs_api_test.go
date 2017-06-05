@@ -27,9 +27,6 @@ var _ = Describe("/v1/jobs API", func() {
 	TARGET_REDIS := `66be7c43-6c57-4391-8ea9-e770d6ab5e9e`
 	TARGET_PG := `fab00c82-aac3-4e5f-8a2f-c534f81cdee3`
 
-	SCHED_DAILY := `590eddbd-426f-408c-981b-9cf1faf2669e`
-	SCHED_WEEKLY := `fce33a96-d352-480f-b04a-db7f2c14e98f`
-
 	RETAIN_SHORT := `848ff67e-f857-47bd-9692-ae5f2be85674`
 	RETAIN_LONG := `c5fca8e0-7d40-4cff-8dec-5f0df36ecee9`
 
@@ -63,18 +60,6 @@ var _ = Describe("/v1/jobs API", func() {
 				 "s3",
 				 "<<s3-configuration>>")`,
 
-		// SCHEDULES
-		`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("` + SCHED_DAILY + `",
-				 "Daily",
-				 "Backups that should run every day",
-				 "daily 3am")`,
-		`INSERT INTO schedules (uuid, name, summary, timespec) VALUES
-				("` + SCHED_WEEKLY + `",
-				 "Weekly",
-				 "Backups that should be run every Sunday",
-				 "sundays at 10pm")`,
-
 		// RETENTION POLICIES
 		`INSERT INTO retention (uuid, name, summary, expiry) VALUES
 				("` + RETAIN_SHORT + `",
@@ -88,50 +73,50 @@ var _ = Describe("/v1/jobs API", func() {
 				 7776000)`, // 90 days
 		// daily backup for pg -> s3, short retention
 		`INSERT INTO jobs (uuid, name, summary, paused,
-					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
+					target_uuid, store_uuid, schedule, retention_uuid) VALUES
 				("` + PG_S3_DAILY + `",
 				 "PG operational hot backups",
 				 "For short-term operational restores",
 				 0,
 				 "` + TARGET_PG + `",
 				 "` + STORE_S3 + `",
-				 "` + SCHED_DAILY + `",
+				 "daily 4am",
 				 "` + RETAIN_SHORT + `")`,
 
 		// weekly backup for pg -> s3, long retention
 		`INSERT INTO jobs (uuid, name, summary, paused,
-					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
+					target_uuid, store_uuid, schedule, retention_uuid) VALUES
 				("` + PG_S3_WEEKLY + `",
 				 "Main DB weekly backup (long-term)",
 				 "For long-term storage requirements",
 				 0,
 				 "` + TARGET_PG + `",
 				 "` + STORE_S3 + `",
-				 "` + SCHED_WEEKLY + `",
+				 "sundays at 10pm",
 				 "` + RETAIN_LONG + `")`,
 
 		// daily backup for redis -> s3, long retention
 		`INSERT INTO jobs (uuid, name, summary, paused,
-					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
+					target_uuid, store_uuid, schedule, retention_uuid) VALUES
 				("` + REDIS_S3_DAILY + `",
 				 "Redis Daily Backup",
 				 "mandated by TKT-1234",
 				 0,
 				 "` + TARGET_REDIS + `",
 				 "` + STORE_S3 + `",
-				 "` + SCHED_DAILY + `",
+				 "daily 4am",
 				 "` + RETAIN_LONG + `")`,
 
 		// (paused) weekly backup for redis -> s3, long retention
 		`INSERT INTO jobs (uuid, name, summary, paused,
-					target_uuid, store_uuid, schedule_uuid, retention_uuid) VALUES
+					target_uuid, store_uuid, schedule, retention_uuid) VALUES
 				("` + REDIS_S3_WEEKLY + `",
 				 "Redis Weekly Backup",
 				 "...",
 				 1,
 				 "` + TARGET_REDIS + `",
 				 "` + STORE_S3 + `",
-				 "` + SCHED_WEEKLY + `",
+				 "sundays at 10pm",
 				 "` + RETAIN_LONG + `")`,
 	}
 	var data *db.DB
