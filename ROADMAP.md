@@ -34,7 +34,7 @@ User-Driven Backup and Restore
 
 Currently, SHIELD has a flat access model, an all-or-nothing
 proposition for review and management of jobs, tasks, archives,
-schedules, etc.
+etc.
 
 We would like to move to a more robust access model that permits
 individual customers, be they operators or develoeprs, to view and
@@ -43,11 +43,11 @@ restore operations on owned jobs and target systems.
 
 Ideally, non-administrator users will be able to:
 
-  - Create stores, targets, schedules, and retention policies
+  - Create stores, targets, and retention policies
   - Schedule and run backup jobs
   - Restore their data from their backup archives
   - Review logs for scheduled and ad hoc tasks
-  - Utilize global stores, targets, schedules, and policies
+  - Utilize global stores, targets, and policies
 
 Both the web interface and the `shield` command-line utility will
 need to support this isolation of resources.

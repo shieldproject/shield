@@ -128,45 +128,6 @@ func FindRetentionPolicy(search string, strict bool) (RetentionPolicy, uuid.UUID
 	}
 }
 
-func FindSchedule(search string, strict bool) (Schedule, uuid.UUID, error) {
-	id := uuid.Parse(search)
-	if id != nil {
-		want, err := GetSchedule(id)
-		if err != nil {
-			return Schedule{}, nil, err
-		}
-		return want, uuid.Parse(want.UUID), nil
-	}
-
-	schedules, err := GetSchedules(ScheduleFilter{
-		Name:       search,
-		ExactMatch: MaybeBools(strict, false),
-	})
-	if err != nil {
-		return Schedule{}, nil, fmt.Errorf("Failed to retrieve list of backup schedules: %s", err)
-	}
-	switch len(schedules) {
-	case 0:
-		return Schedule{}, nil, fmt.Errorf("no matching backup schedules found")
-
-	case 1:
-		return schedules[0], uuid.Parse(schedules[0].UUID), nil
-
-	default:
-		if strict {
-			return Schedule{}, nil, fmt.Errorf("more than one matching backup schedule found")
-		}
-		t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
-		for _, schedule := range schedules {
-			t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
-		}
-		want := tui.Menu(
-			fmt.Sprintf("More than one backup schedule matched your search for '%s':", search),
-			&t, "Which backup schedule do you want?")
-		return want.(Schedule), uuid.Parse(want.(Schedule).UUID), nil
-	}
-}
-
 func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 	id := uuid.Parse(search)
 	if id != nil {
@@ -197,7 +158,7 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 		}
 		t := tui.NewTable("Name", "Summary", "Target", "Store", "Schedule")
 		for _, job := range jobs {
-			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.ScheduleWhen)
+			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.Schedule)
 		}
 		want := tui.Menu(
 			fmt.Sprintf("More than one job matched your search for '%s':", search),

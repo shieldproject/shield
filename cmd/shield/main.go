@@ -56,7 +56,6 @@ func main() {
 		Status:    getopt.StringLong("status", 'S', "", "Only show archives/tasks with the given status"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
 		Store:     getopt.StringLong("store", 's', "", "Only show things for the store with this UUID"),
-		Schedule:  getopt.StringLong("schedule", 'w', "", "Only show things for the schedule with this UUID"),
 		Retention: getopt.StringLong("policy", 'p', "", "Only show things for the retention policy with this UUID"),
 		Plugin:    getopt.StringLong("plugin", 'P', "", "Only show things for the given target or store plugin"),
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
@@ -132,8 +131,8 @@ func main() {
 				ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
 				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield commands}\n")
 				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield flags}\n")
-				ansi.Fprintf(os.Stderr, "\n@R{The verbose, multi-word commands (such as `list schedules`) are now deprecated}\n"+
-					"@R{in favor of, for example, the shorter `schedules`. Other long commands have had their}\n"+
+				ansi.Fprintf(os.Stderr, "\n@R{The verbose, multi-word commands (such as `list jobs`) are now deprecated}\n"+
+					"@R{in favor of, for example, the shorter `jobs`. Other long commands have had their}\n"+
 					"@R{spaces replaced with dashes. Check `commands` for the new canonical names.}\n")
 				return nil
 			} else if args[0] == "help" {
@@ -548,225 +547,6 @@ func main() {
 	c.Alias("delete target", "delete-target")
 	c.Alias("remove target", "delete-target")
 	c.Alias("rm target", "delete-target")
-
-	/*
-	    ######   ######  ##     ## ######## ########  ##     ## ##       ########
-	   ##    ## ##    ## ##     ## ##       ##     ## ##     ## ##       ##
-	   ##       ##       ##     ## ##       ##     ## ##     ## ##       ##
-	    ######  ##       ######### ######   ##     ## ##     ## ##       ######
-	         ## ##       ##     ## ##       ##     ## ##     ## ##       ##
-	   ##    ## ##    ## ##     ## ##       ##     ## ##     ## ##       ##
-	    ######   ######  ##     ## ######## ########   #######  ######## ########
-	*/
-
-	c.HelpBreak()
-	c.HelpGroup("SCHEDULES:")
-	c.Dispatch("schedules", "List available backup schedules",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpListMacro("schedule", "schedules")
-				JSONHelp(`[{"uuid":"86ff3fec-76c5-48c4-880d-c37563033613","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}]`)
-				return nil
-			}
-
-			DEBUG("running 'list schedules' command")
-			DEBUG("  show unused? %v", *opts.Unused)
-			DEBUG("  show in-use? %v", *opts.Used)
-			if *opts.Raw {
-				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
-			}
-
-			schedules, err := GetSchedules(ScheduleFilter{
-				Name:       strings.Join(args, " "),
-				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
-			})
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(schedules)
-			}
-
-			t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
-			for _, schedule := range schedules {
-				t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
-	c.Alias("list schedules", "schedules")
-	c.Alias("ls schedules", "schedules")
-
-	c.Dispatch("schedule", "Print detailed information about a specific backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpShowMacro("schedule", "schedules")
-				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				return nil
-			}
-
-			DEBUG("running 'show schedule' command")
-
-			schedule, _, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(schedule)
-			}
-
-			ShowSchedule(schedule)
-			return nil
-		})
-	c.Alias("show schedule", "schedule")
-	c.Alias("view schedule", "schedule")
-	c.Alias("display schedule", "schedule")
-	c.Alias("list schedule", "schedule")
-	c.Alias("ls schedule", "schedule")
-
-	c.Dispatch("create-schedule", "Create a new backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				InputHelp(`{"name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				HelpCreateMacro("schedule", "schedules")
-				return nil
-			}
-
-			DEBUG("running 'create schedule' command")
-
-			var err error
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Schedule Name", "name", "", "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-				in.NewField("Time Spec (i.e. 'daily 4am')", "when", "", "", tui.FieldIsRequired)
-
-				if err := in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Really create this schedule?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-			s, err := CreateSchedule(content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Created new schedule")
-			return c.Execute("schedule", s.UUID)
-		})
-	c.Alias("create schedule", "create-schedule")
-	c.Alias("new schedule", "create-schedule")
-	c.Alias("create new schedule", "create-schedule")
-	c.Alias("make schedule", "create-schedule")
-	c.Alias("c s", "create-schedule")
-
-	c.Dispatch("edit-schedule", "Modify an existing backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				InputHelp(`{"name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				HelpEditMacro("schedule", "schedules")
-				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				return nil
-			}
-
-			DEBUG("running 'edit schedule' command")
-
-			s, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Schedule Name", "name", s.Name, "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", s.Summary, "", tui.FieldIsOptional)
-				in.NewField("Time Spec (i.e. 'daily 4am')", "when", s.When, "", tui.FieldIsRequired)
-
-				if err = in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Save these changes?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-			s, err = UpdateSchedule(id, content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Updated schedule")
-			return c.Execute("schedule", s.UUID)
-		})
-	c.Alias("edit schedule", "edit-schedule")
-	c.Alias("update schedule", "edit-schedule")
-
-	c.Dispatch("delete-schedule", "Delete a backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpDeleteMacro("schedule", "schedules")
-				return nil
-			}
-
-			DEBUG("running 'delete schedule' command")
-
-			schedule, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowSchedule(schedule)
-				if !tui.Confirm("Really delete this schedule?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := DeleteSchedule(id); err != nil {
-				return err
-			}
-
-			OK("Deleted schedule")
-			return nil
-		})
-	c.Alias("delete schedule", "delete-schedule")
-	c.Alias("remove schedule", "delete-schedule")
-	c.Alias("rm schedule", "delete-schedule")
 
 	/*
 	   ########  ######## ######## ######## ##    ## ######## ####  #######  ##    ##
@@ -1246,18 +1026,16 @@ func main() {
 				HelpListMacro("job", "jobs")
 				FlagHelp("Show only jobs using the specified target", true, "-t", "--target=value")
 				FlagHelp("Show only jobs using the specified store", true, "-s", "--store=value")
-				FlagHelp("Show only jobs using the specified schedule", true, "-w", "--schedule=value")
 				FlagHelp("Show only jobs using the specified retention policy", true, "-p", "--policy=value")
 				FlagHelp("Show only jobs which are in the paused state", true, "--paused")
 				FlagHelp("Show only jobs which are NOT in the paused state", true, "--unpaused")
-				JSONHelp(`[{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}]`)
+				JSONHelp(`[{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}]`)
 				return nil
 			}
 
 			DEBUG("running 'list jobs' command")
 			DEBUG("  for target:      '%s'", *opts.Target)
 			DEBUG("  for store:       '%s'", *opts.Store)
-			DEBUG("  for schedule:    '%s'", *opts.Schedule)
 			DEBUG("  for ret. policy: '%s'", *opts.Retention)
 			DEBUG("  show paused?      %v", *opts.Paused)
 			DEBUG("  show unpaused?    %v", *opts.Unpaused)
@@ -1270,7 +1048,6 @@ func main() {
 				Paused:     MaybeBools(*opts.Paused, *opts.Unpaused),
 				Target:     *opts.Target,
 				Store:      *opts.Store,
-				Schedule:   *opts.Schedule,
 				Retention:  *opts.Retention,
 				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
 			})
@@ -1285,7 +1062,7 @@ func main() {
 			t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Remote IP", "Target")
 			for _, job := range jobs {
 				t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
-					job.RetentionName, job.ScheduleName, job.Agent, PrettyJSON(job.TargetEndpoint))
+					job.RetentionName, job.Schedule, job.Agent, PrettyJSON(job.TargetEndpoint))
 			}
 			t.Output(os.Stdout)
 			return nil
@@ -1298,7 +1075,7 @@ func main() {
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpShowMacro("job", "jobs")
-				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
 				return nil
 			}
 
@@ -1326,8 +1103,8 @@ func main() {
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpCreateMacro("job", "jobs")
-				InputHelp(`{"name":"TestJob","paused":true,"retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
-				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
+				InputHelp(`{"name":"TestJob","paused":true,"retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"daily 3am","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
+				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule":"daily 3am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
 				return nil
 			}
 
@@ -1349,7 +1126,7 @@ func main() {
 				in.NewField("Store", "store", "", "", FieldIsStoreUUID)
 				in.NewField("Target", "target", "", "", FieldIsTargetUUID)
 				in.NewField("Retention Policy", "retention", "", "", FieldIsRetentionPolicyUUID)
-				in.NewField("Schedule", "schedule", "", "", FieldIsScheduleUUID)
+				in.NewField("Schedule", "schedule", "", "", tui.FieldIsRequired)
 
 				in.NewField("Paused?", "paused", "no", "", tui.FieldIsBoolean)
 				err := in.Show()
@@ -1386,6 +1163,8 @@ func main() {
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpEditMacro("job", "jobs")
+				InputHelp(`{"name":"AnotherJob","retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"daily 4am","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
+				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"AnotherJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
 
 				return nil
 			}
@@ -1412,7 +1191,7 @@ func main() {
 				in.NewField("Store", "store", j.StoreUUID, j.StoreName, FieldIsStoreUUID)
 				in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
 				in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry/86400), FieldIsRetentionPolicyUUID)
-				in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
+				in.NewField("Schedule", "schedule", j.Schedule, "", tui.FieldIsRequired)
 
 				if err = in.Show(); err != nil {
 					return err
@@ -1444,8 +1223,6 @@ func main() {
 		func(opts Options, args []string, help bool) error {
 			if help {
 				HelpDeleteMacro("job", "jobs")
-				InputHelp(`{"name":"AnotherJob","retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
-				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"AnotherJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
 				return nil
 			}
 

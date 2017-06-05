@@ -10,7 +10,6 @@ Made for learning and trying out [Shield](https://github.com/starkandwayne/shiel
   - [Targets](#targets)
   - [Stores](#stores)
   - [Policies](#policies)
-  - [Schedules](#schedules)
   - [Jobs](#jobs)
     - [Manually Run Backup](#manually-run-backup)
   - [Restore](#restore-from-backup)
@@ -69,7 +68,6 @@ Download CLI from https://github.com/starkandwayne/shield/releases
 - Target - service to backup
 - Store - place to store backups
 - Policy - how long to keep backups (ie 10 days, 30 days, etc)
-- Schedule - how often to run backups
 - Job - Runs a backup/restore
 
 The shield daemon serves up a `backend` api
@@ -296,53 +294,6 @@ Name    Summary           Expires in
 10-day  optional summary  10 days
 ```
 
-### Schedules
-**Used for scheduling a backup on a regular interval**
-
-create a schedule
-```
-shield create-schedule -k
-```
-
-Fill in fields
-```
-Using https://localhost (lh) as SHIELD backend
-
-Schedule Name: daily
-Summary: optional summary
-Time Spec (i.e. 'daily 4am'): daily 1am
-
-
-Schedule Name:                daily
-Summary:                      optional summary
-Time Spec (i.e. 'daily 4am'): daily 1am
-
-
-Really create this schedule? [y/n] y
-```
-
-response:
-```
-Created new schedule
-Name:     daily
-Summary:  optional summary
-Timespec: daily 1am
-```
-
-List schedules
-```
-shield schedules -k
-```
-
-Response:
-```
-Using https://localhost (lh) as SHIELD backend
-
-Name   Summary           Frequency / Interval (UTC)
-====   =======           ==========================
-daily  optional summary  daily 1am
-```
-
 ### Jobs
 Create a job
 ```
@@ -358,7 +309,7 @@ Summary: optional summary
 Store: filesystem
 Target: my-target-name
 Retention Policy: 10-day
-Schedule: daily
+Schedule: daily 4am
 Paused? (no): no
 
 
@@ -367,7 +318,7 @@ Summary:          optional summary
 Store:            filesystem (af4fd251-3754-425f-b83c-f5597c40043b)
 Target:           my-target-name (5e177a44-36a2-4683-ab9c-150494bc43ab)
 Retention Policy: 10-day (d642a1f6-7f88-4ff5-aba0-308fb61866bb)
-Schedule:         daily (487d0f86-5e7c-4c2a-b444-84350ac3d679)
+Schedule:         daily 4am
 Paused?:          false
 
 
@@ -383,7 +334,7 @@ Paused:           N
 Retention Policy: 10-day
 Expires in:       10 days
 
-Schedule Policy:  daily
+Schedule:         daily 4am
 
 Target:           postgres
 Target Endpoint:  { "pg_user": "postgres", "pg_password": "postgres", "pg_host": "postgres", "pg_database": "shield", "pg_bindir": "/usr/lib/postgresql/9.6/bin" }

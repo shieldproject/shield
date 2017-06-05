@@ -176,7 +176,6 @@
   var Target = {};
   var Store = {};
   var Archive = {};
-  var Schedule = {};
   var Retention = {};
   var Task = {};
 
@@ -220,14 +219,6 @@
     show:   MODEL.findOne  ('/v1/archive/%s'),
     create: MODEL.creater  ('/v1/archives'),
     update: MODEL.updater  ('/v1/archive/%s')
-  });
-  $.extend(Schedule, {
-    type:   'schedule',
-    list:   MODEL.lister  ('/v1/schedules', 'schedules'),
-    delete: MODEL.deleter ('/v1/schedule/%s'),
-    show:   MODEL.findOne ('/v1/schedule/%s'),
-    create: MODEL.creater ('/v1/schedules'),
-    update: MODEL.updater ('/v1/schedule/%s')
   });
   $.extend(Retention, {
     type:   'retention-policy',
@@ -821,7 +812,7 @@
             j.paused ? j.name + ' (paused)' : j.name,
             j.target_name,
             j.store_name,
-            j.schedule_when + " ("+j.schedule_name+")",
+            j.schedule,
             j.retention_name,
             (isNaN(last_run) ? '<span class="never-run">never</span>' : datecol(weirdtime(j.last_run), ago)),
             '<span class="status '+statusName(j.last_task_status)+'">'+statusName(j.last_task_status)+'</span>',
@@ -845,11 +836,7 @@
         listof: 'stores',
         dummy:  ''
       });
-      form.Field('schedule', 'Schedule', {
-        listof: 'schedules',
-        dummy:  '',
-        display: function(x) { return x.name + ' - ' + x.when }
-      });
+      form.Field('schedule', 'Schedule');
       form.Field('retention', 'Retention Policy', {
         listof: 'retention',
         dummy:  '',
@@ -873,11 +860,7 @@
         listof: 'stores',
         dummy:  ''
       });
-      form.Field('schedule', 'Schedule', {
-        listof: 'schedules',
-        dummy:  '',
-        display: function(x) { return x.name + ' - ' + x.when }
-      });
+      form.Field('schedule', 'Schedule');
       form.Field('retention', 'Retention Policy', {
         listof: 'retention',
         dummy:  '',
@@ -987,36 +970,6 @@
       root.empty().append(form.Render()).find('form .form-control:first').focus();
     },
 
-    '#schedules': function(root) {
-      Loading(root);
-      Schedule.list({ cached: false }, function () {
-        tbl = new Table("schedule", "Name", "Summary", "When", "");
-        for (var i = 0; i < DB.schedules.length; i++) {
-          s = DB.schedules[i];
-          tbl.Row(s, s.name, summarize(s.summary), s.when, Icons("edit", "trash"));
-        }
-        root.empty().append(Header("Schedules", "Create New Schedule")).append(tbl.Render());
-      });
-    },
-    '#create-schedule': function(root) {
-      form = new Form('create-schedule', 'New Schedule');
-      //form.Sidebar('lorem ipsum dolor sit amet');
-      form.Field('name', 'Schedule Name', { help: 'Try to give your backup schedule a unique and memorable name' });
-      form.Field('summary', 'Summary', { type: 'textarea' });
-      form.Field('when', 'Schedule');
-      form.Buttons({ok:'Create'}, {cancel:'Cancel'});
-      root.empty().append(form.Render()).find('form .form-control:first').focus();
-    },
-    '#edit-schedule': function(root, schedule) {
-      form = new Form('update-schedule', 'Schedule: ' + schedule.name, schedule);
-      //form.Sidebar('lorem ipsum dolor sit amet');
-      form.Field('name', 'Schedule Name', { help: 'Try to give your backup schedule a unique and memorable name' });
-      form.Field('summary', 'Summary', { type: 'textarea' });
-      form.Field('when', 'Schedule');
-      form.Buttons({ok:'Update'}, {cancel:'Cancel'});
-      root.empty().append(form.Render()).find('form .form-control:first').focus();
-    },
-
     '#retention': function(root) {
       Loading(root);
       Retention.list({ cached: false }, function () {
@@ -1076,7 +1029,6 @@
       go('#create-'+event.data.model.type);
     });
     $('#main').on('click', 'button.create-new-retention-policy', { model: Retention }, createForm);
-    $('#main').on('click', 'button.create-new-schedule',         { model: Schedule  }, createForm);
     $('#main').on('click', 'button.create-new-target',           { model: Target    }, createForm);
     $('#main').on('click', 'button.create-new-store',            { model: Store     }, createForm);
     $('#main').on('click', 'button.create-new-job',              { model: Job       }, createForm);
@@ -1090,11 +1042,6 @@
                 .integer('expires', "Expiration must be specified as a number (of days)")
                 .range(  'expires', 1, 3660,
                                     "Please specify an expiration period between 1 day and 10 years");
-        break;
-
-      case 'schedule':
-        validate.present('name', "Please provide a name for this backup schedule")
-                .present('when', "Required.  Example: 'daily at 4am' or 'every week at 2:30am on monday'");
         break;
 
       case 'target':
@@ -1126,8 +1073,6 @@
     };
     $('#main').on('blur', '#create-retention-policy form.attempted [name]', { model: Retention }, validateForm);
     $('#main').on('blur', '#update-retention-policy form.attempted [name]', { model: Retention }, validateForm);
-    $('#main').on('blur', '#create-schedule form.attempted [name]',         { model: Schedule  }, validateForm);
-    $('#main').on('blur', '#update-schedule form.attempted [name]',         { model: Schedule  }, validateForm);
     $('#main').on('blur', '#create-target form.attempted [name]',           { model: Target    }, validateForm);
     $('#main').on('blur', '#update-target form.attempted [name]',           { model: Target    }, validateForm);
     $('#main').on('blur', '#create-store form.attempted [name]',            { model: Store     }, validateForm);
@@ -1142,7 +1087,6 @@
           function () { go(event.data.next) });
     });
     $('#main').on('submit', '#create-retention-policy form', { model: Retention, next: '#retention' }, createThing);
-    $('#main').on('submit', '#create-schedule form',         { model: Schedule,  next: '#schedules' }, createThing);
     $('#main').on('submit', '#create-target form',           { model: Target,    next: '#targets'   }, createThing);
     $('#main').on('submit', '#create-store form',            { model: Store,     next: '#stores'    }, createThing);
     $('#main').on('submit', '#create-job form',              { model: Job,       next: '#jobs'      }, createThing);
@@ -1156,7 +1100,6 @@
           function () { go(event.data.next) });
     });
     $('#main').on('click', '.retention [data-uuid] .trash', { model: Retention, next: '#retention' }, deleteThing);
-    $('#main').on('click', '.schedule  [data-uuid] .trash', { model: Schedule,  next: '#schedules' }, deleteThing);
     $('#main').on('click', '.archive   [data-uuid] .trash', { model: Archive,   next: '#archives'  }, deleteThing);
     $('#main').on('click', '.target    [data-uuid] .trash', { model: Target,    next: '#targets'   }, deleteThing);
     $('#main').on('click', '.store     [data-uuid] .trash', { model: Store,     next: '#stores'    }, deleteThing);
@@ -1169,7 +1112,6 @@
           function (thing) { go(event.data.form, thing) });
     });
     $('#main').on('click', '.retention [data-uuid] .edit', { model: Retention, form: '#edit-retention-policy' }, editThing);
-    $('#main').on('click', '.schedule [data-uuid]  .edit', { model: Schedule,  form: '#edit-schedule'         }, editThing);
     $('#main').on('click', '.target [data-uuid]    .edit', { model: Target,    form: '#edit-target'           }, editThing);
     $('#main').on('click', '.store [data-uuid]     .edit', { model: Store,     form: '#edit-store'            }, editThing);
     $('#main').on('click', '.job [data-uuid]       .edit', { model: Job,       form: '#edit-job'              }, editThing);
@@ -1185,7 +1127,6 @@
           function () { go(event.data.next) });
     });
     $('#main').on('submit', '#update-retention-policy form', { model: Retention, next: '#retention' }, updateThing);
-    $('#main').on('submit', '#update-schedule form',         { model: Schedule,  next: '#schedules' }, updateThing);
     $('#main').on('submit', '#update-target form',           { model: Target,    next: '#targets'   }, updateThing);
     $('#main').on('submit', '#update-store form',            { model: Store,     next: '#stores'    }, updateThing);
     $('#main').on('submit', '#update-job form',              { model: Job,       next: '#jobs'      }, updateThing);
