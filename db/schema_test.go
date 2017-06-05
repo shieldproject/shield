@@ -76,7 +76,7 @@ var _ = Describe("Database Schema", func() {
 
 				var v int
 				Ω(r.Scan(&v)).Should(Succeed())
-				Ω(v).Should(Equal(3))
+				Ω(v).Should(Equal(4))
 			})
 
 			It("creates the correct tables", func() {
@@ -89,7 +89,6 @@ var _ = Describe("Database Schema", func() {
 
 				tableExists("targets")
 				tableExists("stores")
-				tableExists("schedules")
 				tableExists("retention")
 				tableExists("jobs")
 				tableExists("archives")

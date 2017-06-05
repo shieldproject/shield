@@ -30,7 +30,6 @@ func (self JobAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 				ForTarget:    paramValue(req, "target", ""),
 				ForStore:     paramValue(req, "store", ""),
-				ForSchedule:  paramValue(req, "schedule", ""),
 				ForRetention: paramValue(req, "retention", ""),
 				ExactMatch:   paramEquals(req, "exact", "t"),
 			},

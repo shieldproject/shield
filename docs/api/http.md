@@ -90,101 +90,6 @@ For alerting purposes the following alerts are suggested:
 ```
 
 
-## Schedules API
-
-Purpose: allows the Web UI and CLI to find out what schedules are defined, and provides CRUD operations for schedule management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show schedules that can be deleted safely.
-
-| Method | Path | Arguments | Request Body |
-| :----- | :---- | :------- | :----------- |
-| GET | /v1/schedules | ?unused=[tf] <br> ?name=:search | - |
-| POST | /v1/schedules | - | see below |
-| DELETE | /v1/schedule/:uuid | - | - |
-| GET | /v1/schedule/:uuid | - | - |
-| PUT | /v1/schedule/:uuid | - | see below |
-
-### GET /v1/schedules
-
-Response Body:
-
-```json
-[
-  {
-    "uuid"    : "36f50f26-b007-433a-a67a-bdffbd0746c8",
-    "name"    : "Schedule Name",
-    "summary" : "a short description",
-    "when"    : "daily at 4am"
-  },
-
-  "..."
-]
-```
-
-### POST /v1/schedules
-
-Request Body:
-
-```json
-{
-  "name"    : "Schedule Name",
-  "summary" : "a short description",
-  "when"    : "daily at 4am"
-}
-```
-
-| Field | Required? | Meaning |
-| :---- | :-------: | :------ |
-| name | Y | The name of the new schedule
-| summary | N | A short summary of what the schedule is for, when it should be used
-| when | Y | The schedule, in the Timespec Language
-
-Response Body:
-
-```json
-{
-  "ok"   : "created",
-  "uuid" : "6b8398be-fdc0-424a-8532-e812e5dfc116"
-}
-```
-
-| Field | Meaning |
-| :---- | :------ |
-| ok    | The new schedule was created
-| uuid  | The UUID of the newly-created schedule
-
-### PUT /v1/schedule/:uuid
-
-Request Body:
-
-```json
-{
-  "name"    : "Schedule Name",
-  "summary" : "a short description",
-  "when"    : "daily at 4am"
-}
-```
-
-| Field | Required? | Meaning |
-| :---- | :-------: | :------ |
-| name | Y | The name of the new schedule
-| summary | Y | A short summary of what the schedule is for, when it should be used
-| when | Y | The schedule, in the Timespec Language
-
-**NOTE:** `summary` is required for update requests, whereas it is optional on creation.
-
-Response Body:
-
-```json
-{
-  "ok" : "updated"
-}
-```
-
-| Field | Meaning |
-| :---- | :------ |
-| ok    | The schedule was updated
-
-
-
 ## Retention Policies API
 
 Purpose: allows the Web UI and CLI to find out what retention policies are defined, and provides CRUD operations for policy management.  Allowing queries to filter to unused=t or unused=f enables the frontends to show retention policies that can be deleted safely.
@@ -506,8 +411,6 @@ Purpose: allows end-users and operators to see what jobs have been configured, a
     "retention_uuid"  : "7eb2131c-c2ad-40b1-916f-7e162be89465",
     "expiry"          : 8640000,
 
-    "schedule_name"   : "Daily Backups Schedule",
-    "schedule_uuid"   : "e390934b-fc43-4343-a51b-22bd69a8894f",
     "schedule"        : "daily at 4am",
 
     "paused"          : false,
@@ -579,8 +482,6 @@ Response Body:
   "retention_uuid"  : "7eb2131c-c2ad-40b1-916f-7e162be89465",
   "expiry"          : 8640000,
 
-  "schedule_name"   : "Daily Backups Schedule",
-  "schedule_uuid"   : "e390934b-fc43-4343-a51b-22bd69a8894f",
   "schedule"        : "daily at 4am",
 
   "paused"          : false,

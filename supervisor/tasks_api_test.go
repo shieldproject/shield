@@ -49,12 +49,12 @@ var _ = Describe("/v1/tasks API", func() {
 
 		data, err := Database(
 			// need a job
-			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
-				VALUES ("`+JOB1+`", "`+NIL+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
-			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
-				VALUES ("`+JOB2+`", "`+NIL+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
-			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule_uuid, retention_uuid)
-				VALUES ("`+JOB3+`", "`+NIL+`", "`+NIL+`", "`+NIL+`", "`+NIL+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule, retention_uuid)
+				VALUES ("`+JOB1+`", "`+NIL+`", "`+NIL+`", "daily 4am", "`+NIL+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule, retention_uuid)
+				VALUES ("`+JOB2+`", "`+NIL+`", "`+NIL+`", "daily 4am", "`+NIL+`")`,
+			`INSERT INTO jobs (uuid, store_uuid, target_uuid, schedule, retention_uuid)
+				VALUES ("`+JOB3+`", "`+NIL+`", "`+NIL+`", "daily 4am", "`+NIL+`")`,
 
 			// need an archive
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at)
