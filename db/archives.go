@@ -27,6 +27,7 @@ type Archive struct {
 	StoreName      string    `json:"store_name"`
 	StorePlugin    string    `json:"store_plugin"`
 	StoreEndpoint  string    `json:"store_endpoint"`
+	Job            string    `json:"job"`
 }
 
 type ArchiveFilter struct {
@@ -90,7 +91,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint,
-		       a.status, a.purge_reason
+		       a.status, a.purge_reason, a.job
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -129,7 +130,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 			&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.Status, &ann.PurgeReason); err != nil {
+			&ann.Status, &ann.PurgeReason, &ann.Job); err != nil {
 
 			return l, err
 		}

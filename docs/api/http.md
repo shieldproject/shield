@@ -689,7 +689,11 @@ Purpose: allows the Web UI and the CLI to show running tasks, query a specific t
     "status"       : "done",
     "started_at"   : "2015-11-25 11:30:00",
     "stopped_at"   : "2015-11-25 11:32:00",
-    "log"          : "this is the log of the job"
+    "log"          : "this is the log of the job",
+
+    "ok"           : true,
+    "clear"        : "normal",
+    "notes"        : "Verified this backup manually."
   },
 
   "..."

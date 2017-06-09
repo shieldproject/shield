@@ -75,3 +75,22 @@ $shield create-job <<EOF
   "target"    : "$target"
 }
 EOF
+
+$shield run DevJob
+sleep 2
+$shield run DevJob
+$shield edit-target DevTarget<<EOF
+{
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\"}",
+  "name"     : "DevTarget",
+  "plugin"   : "fs",
+  "summary"  : "The working directory of the dev environment."
+}
+EOF
+sleep 3
+$shield run DevJob
+sleep 3
+$shield run DevJob
+
+echo "DONE"
