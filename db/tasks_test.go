@@ -340,6 +340,9 @@ var _ = Describe("Task Management", func() {
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
+				OK:          true,
+				Notes:       "",
+				Clear:       "normal",
 			}))
 		})
 		It("Returns an individual task when associated with job/archive", func() {
@@ -355,6 +358,9 @@ var _ = Describe("Task Management", func() {
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
+				OK:          true,
+				Notes:       "",
+				Clear:       "normal",
 			}))
 		})
 	})

@@ -112,6 +112,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "cancel!"
 				},
 				{
@@ -123,6 +126,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.RunningStatus + `",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "this is the log"
 				},
 				{
@@ -134,6 +140,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.DoneStatus + `",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "restore complete"
 				},
 				{
@@ -145,6 +154,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "valid",
 					"started_at": "",
 					"stopped_at": "",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": ""
 				}
 			]`))
@@ -164,6 +176,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.DoneStatus + `",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "restore complete"
 				}
 			]`))
@@ -183,6 +198,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "cancel!"
 				}
 			]`))
@@ -201,6 +219,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "cancel!"
 				},
 				{
@@ -212,6 +233,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.DoneStatus + `",
 					"started_at": "2015-04-10 17:35:01",
 					"stopped_at": "2015-04-10 18:19:45",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "restore complete"
 				}
 			]`))
@@ -230,6 +254,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.CanceledStatus + `",
 					"started_at": "2015-04-18 19:12:05",
 					"stopped_at": "2015-04-18 19:13:55",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "cancel!"
 				}
 			]`))
@@ -248,6 +275,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.RunningStatus + `",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "this is the log"
 				},
 				{
@@ -259,6 +289,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "valid",
 					"started_at": "",
 					"stopped_at": "",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": ""
 				}
 			]`))
@@ -286,6 +319,9 @@ var _ = Describe("/v1/tasks API", func() {
 				"status": "` + db.DoneStatus + `",
 				"started_at": "2015-04-10 17:35:01",
 				"stopped_at": "2015-04-10 18:19:45",
+				"ok":    true,
+				"notes": "",
+				"clear": "normal",
 				"log": "restore complete"
 			}`))
 	})
@@ -308,6 +344,9 @@ var _ = Describe("/v1/tasks API", func() {
 					"status": "` + db.RunningStatus + `",
 					"started_at": "2015-04-15 06:00:01",
 					"stopped_at": "",
+					"ok":    true,
+					"notes": "",
+					"clear": "normal",
 					"log": "this is the log"
 				}
 			]`))

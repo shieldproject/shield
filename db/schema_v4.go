@@ -67,6 +67,32 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN ok INT NOT NULL DEFAULT 1`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN notes TEXT NOT NULL DEFAULT ''`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN clear TEXT NOT NULL DEFAULT 'normal'`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN relevant INT NOT NULL DEFAULT 1`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE archives ADD COLUMN job TEXT NOT NULL DEFAULT ''`)
+	if err != nil {
+		return err
+	}
+	// FIXME - need to backfill archives.job based on heuristics
+
 	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err

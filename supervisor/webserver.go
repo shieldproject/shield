@@ -223,6 +223,12 @@ func (ws *WebServer) ProtectedAPIs() (http.Handler, error) {
 	}
 	router.Handle("/v1/auth/cli", jwtCreator)
 
+	router.Handle("/v2/", &V2API{
+		Data:       ws.Database,
+		ResyncChan: ws.Supervisor.resync,
+		Tasks:      ws.Supervisor.adhoc,
+	})
+
 	router.Handle("/", http.FileServer(http.Dir(ws.WebRoot)))
 	return router, nil
 }
