@@ -267,6 +267,7 @@ func (s *Supervisor) Run() error {
 
 		case <-s.purge.C:
 			s.PurgeArchives()
+			s.Database.MarkTasksIrrelevant()
 
 		case <-s.tick.C:
 			s.CheckSchedule()

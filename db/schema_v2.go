@@ -44,6 +44,11 @@ func (s v2Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE archives ADD COLUMN size INTEGER DEFAULT NULL`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`UPDATE schema_info set version = 2`)
 	if err != nil {
 		return err

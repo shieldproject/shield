@@ -433,7 +433,7 @@ func (db *DB) MarkTasksIrrelevant() error {
 		      SELECT tasks.uuid FROM tasks
 		        INNER JOIN jobs      ON jobs.uuid = tasks.job_uuid
 		        INNER JOIN retention ON retention.uuid = jobs.retention_uuid
-		             WHERE retention.expiry + tasks.started_at < DATE('now'))`)
+		             WHERE retention.expiry + tasks.started_at < ?`, time.Now().Unix())
 
 	if err != nil {
 		return err
