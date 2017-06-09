@@ -66,7 +66,7 @@ report:
 
 fixmes: fixme
 fixme:
-	@grep -rn FIXME * | grep -v Godeps/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
+	@grep -rn FIXME * | grep -v vendor/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
 
 dev: shield
 	./bin/testdev
