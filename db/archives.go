@@ -215,6 +215,13 @@ func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
 	)
 }
 
+func (db *DB) AnnotateTargetArchive(target uuid.UUID, id string, notes string) error {
+	return db.Exec(
+		`UPDATE archives SET notes = ? WHERE uuid = ? AND target_uuid = ?`,
+		notes, id, target.String(),
+	)
+}
+
 func (db *DB) GetArchivesNeedingPurge() ([]*Archive, error) {
 	filter := &ArchiveFilter{
 		WithOutStatus: []string{"purged", "valid"},

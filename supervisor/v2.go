@@ -221,7 +221,8 @@ func (v2 V2API) GetSystem(w http.ResponseWriter, req *http.Request) {
 		system.Archives[i].TakenAt = archive.TakenAt.Time().Unix()
 		system.Archives[i].UUID = archive.UUID
 		system.Archives[i].Expiry = (int)((archive.ExpiresAt.Time().Unix() - archive.TakenAt.Time().Unix()) / 86400)
-		system.Archives[i].Size = -1
+		system.Archives[i].Notes = archive.Notes
+		system.Archives[i].Size = -1 // FIXME
 
 		tasks, err := v2.Data.GetAllTasks(
 			&db.TaskFilter{
@@ -236,7 +237,6 @@ func (v2 V2API) GetSystem(w http.ResponseWriter, req *http.Request) {
 		if len(tasks) == 1 {
 			system.Archives[i].TaskUUID = tasks[0].UUID
 			system.Archives[i].OK = tasks[0].OK
-			system.Archives[i].Notes = tasks[0].Notes
 		} else if len(tasks) > 1 {
 			bail(w, fmt.Errorf("multiple tasks associated with archive UUID %s", archive.UUID))
 			return
@@ -318,6 +318,17 @@ func (v2 V2API) PatchSystem(w http.ResponseWriter, req *http.Request) {
 					Notes:       ann.Notes,
 					Clear:       ann.Clear,
 				},
+			)
+			if err != nil {
+				bail(w, err)
+				return
+			}
+
+		case "archive":
+			err = v2.Data.AnnotateTargetArchive(
+				target.UUID,
+				ann.UUID,
+				ann.Notes,
 			)
 			if err != nil {
 				bail(w, err)
