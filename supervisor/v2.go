@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"regexp"
 
 	"github.com/pborman/uuid"
@@ -21,6 +22,9 @@ type V2API struct {
 
 func (v2 V2API) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
+	case match(req, `GET /v2/health`):
+		v2.GetHealth(w, req)
+
 	case match(req, `GET /v2/systems`):
 		v2.GetSystems(w, req)
 	case match(req, `POST /v2/systems`):
@@ -37,6 +41,143 @@ func (v2 V2API) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(501)
 	return
+}
+
+/*
+
+  GET /v2/health
+
+  Returns health information about the SHIELD core,
+  connected storage accounts, and general metrics.
+
+  {
+    "shield": {
+      "version" : "6.7.2",
+      "ip"      : "10.0.0.5",
+      "fqdn"    : "shield.example.com",
+      "env"     : "PRODUCTION",
+      "color"   : ""
+    },
+    "health": {
+      "api_ok"     : true,
+      "storage_ok" : true,
+      "jobs_ok"    : true
+    },
+    "storage": [
+      { "name": "s3", "healthy": true },
+      { "name": "fs", "healthy": true } ],
+    "jobs": [
+      { "target": "BOSH DB", "job": "daily",  "healthy": true },
+      { "target": "BOSH DB", "job": "weekly", "healthy": true } ],
+    "stats": {
+      "jobs"    : 8,
+      "systems" : 7,
+      "archives": 124,
+      "storage" : 243567112,
+      "daily"   : 12345000
+    }
+  }
+
+*/
+type v2StorageHealth struct {
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Healthy bool      `json:"healthy"`
+}
+type v2JobHealth struct {
+	UUID    uuid.UUID `json:"uuid"`
+	Target  string    `json:"target"`
+	Job     string    `json:"job"`
+	Healthy bool      `json:"healthy"`
+}
+type v2Health struct {
+	SHIELD struct {
+		Version string `json:"version"`
+		IP      string `json:"ip"`
+		FQDN    string `json:"fqdn"`
+		Env     string `json:"env"`
+		Color   string `json:"color"`
+	} `json:"shield"`
+	Health struct {
+		API     bool `json:"api_ok"`
+		Storage bool `json:"storage_ok"`
+		Jobs    bool `json:"jobs_ok"`
+	} `json:"health"`
+
+	Storage []v2StorageHealth `json:"storage"`
+	Jobs    []v2JobHealth     `json:"jobs"`
+
+	Stats struct {
+		Jobs     int `json:"jobs"`
+		Systems  int `json:"systems"`
+		Archives int `json:"archives"`
+		Storage  int `json:"storage"`
+		Daily    int `json:"daily"`
+	} `json:"stats"`
+}
+
+func (v2 V2API) GetHealth(w http.ResponseWriter, req *http.Request) {
+	var health v2Health
+
+	health.Health.API = true
+	health.SHIELD.Version = Version
+	health.SHIELD.Env = os.Getenv("SHIELD_NAME")
+	health.SHIELD.IP = "x.x.x.x"              // FIXME
+	health.SHIELD.FQDN = "shield.example.com" // FIXME
+
+	health.Health.Storage = true
+	stores, err := v2.Data.GetAllStores(nil)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+	health.Storage = make([]v2StorageHealth, len(stores))
+	for i, store := range stores {
+		health.Storage[i].UUID = store.UUID
+		health.Storage[i].Name = store.Name
+		health.Storage[i].Healthy = true // FIXME
+		if !health.Storage[i].Healthy {
+			health.Health.Storage = false
+		}
+	}
+
+	health.Health.Jobs = true
+	jobs, err := v2.Data.GetAllJobs(nil)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+	health.Jobs = make([]v2JobHealth, len(jobs))
+	for i, job := range jobs {
+		health.Jobs[i].UUID = job.UUID
+		health.Jobs[i].Target = job.TargetName
+		health.Jobs[i].Job = job.Name
+		health.Jobs[i].Healthy = job.Healthy()
+
+		if !health.Jobs[i].Healthy {
+			health.Health.Jobs = false
+		}
+	}
+	health.Stats.Jobs = len(jobs)
+
+	if health.Stats.Systems, err = v2.Data.CountTargets(nil); err != nil {
+		bail(w, err)
+		return
+	}
+
+	if health.Stats.Archives, err = v2.Data.CountArchives(nil); err != nil {
+		bail(w, err)
+		return
+	}
+
+	if health.Stats.Storage, err = v2.Data.ArchiveStorageFootprint(nil); err != nil {
+		bail(w, err)
+		return
+	}
+
+	health.Stats.Daily = 0 // FIXME
+
+	JSON(w, health)
 }
 
 /*
@@ -135,7 +276,11 @@ func (v2 V2API) copyTarget(dst *v2System, target *db.Target) error {
 		dst.Jobs[j].Schedule = job.Schedule
 		dst.Jobs[j].From = job.TargetPlugin
 		dst.Jobs[j].To = job.StorePlugin
-		dst.Jobs[j].OK = true /* FIXME */
+		dst.Jobs[j].OK = job.Healthy()
+		if !job.Healthy() {
+			dst.OK = false
+		}
+
 		dst.Jobs[j].Keep.Days = job.Expiry / 86400
 
 		tspec, err := timespec.Parse(job.Schedule)
@@ -245,9 +390,10 @@ func (v2 V2API) GetSystem(w http.ResponseWriter, req *http.Request) {
 
 	failed, err := v2.Data.GetAllTasks(
 		&db.TaskFilter{
-			ForTarget: target.UUID.String(),
-			ForOp:     "backup",
-			ForStatus: "failed",
+			ForTarget:    target.UUID.String(),
+			ForOp:        "backup",
+			ForStatus:    "failed",
+			OnlyRelevant: true,
 		},
 	)
 	if err != nil {
@@ -340,6 +486,8 @@ func (v2 V2API) PatchSystem(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
+
+	_ = v2.Data.MarkTasksIrrelevant()
 
 	JSONLiteral(w, `{"ok":"annotated"}`)
 	return

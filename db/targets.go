@@ -72,6 +72,26 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	`, args
 }
 
+func (db *DB) CountTargets(filter *TargetFilter) (int, error) {
+	if filter == nil {
+		filter = &TargetFilter{}
+	}
+
+	var i int
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
+	if err != nil {
+		return i, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		i++
+	}
+
+	return i, nil
+}
+
 func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 	if filter == nil {
 		filter = &TargetFilter{}

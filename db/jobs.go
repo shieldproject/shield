@@ -37,6 +37,10 @@ type Job struct {
 	NextRun time.Time      `json:"-"`
 }
 
+func (j Job) Healthy() bool {
+	return j.LastTaskStatus == "" || j.LastTaskStatus == "done"
+}
+
 type JobFilter struct {
 	SkipPaused   bool
 	SkipUnpaused bool

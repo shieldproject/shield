@@ -102,6 +102,31 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 	` + limit, args
 }
 
+func (db *DB) CountArchives(filter *ArchiveFilter) (int, error) {
+	if filter == nil {
+		filter = &ArchiveFilter{}
+	}
+
+	var i int
+	if filter.Limit != "" {
+		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
+			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
+		}
+	}
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
+	if err != nil {
+		return i, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		i++
+	}
+
+	return i, nil
+}
+
 func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	if filter == nil {
 		filter = &ArchiveFilter{}
@@ -269,4 +294,85 @@ func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
 		`DELETE FROM archives WHERE uuid = ?`,
 		id.String(),
 	)
+}
+
+func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
+	var i int
+
+	if filter == nil {
+		filter = &ArchiveFilter{}
+	}
+	if filter.Limit != "" {
+		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
+			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
+		}
+	}
+
+	wheres := []string{"a.uuid = a.uuid"}
+	var args []interface{}
+	if filter.ForTarget != "" {
+		wheres = append(wheres, "target_uuid = ?")
+		args = append(args, filter.ForTarget)
+	}
+	if filter.ForStore != "" {
+		wheres = append(wheres, "store_uuid = ?")
+		args = append(args, filter.ForStore)
+	}
+	if filter.Before != nil {
+		wheres = append(wheres, "taken_at <= ?")
+		args = append(args, filter.Before.Unix())
+	}
+	if filter.After != nil {
+		wheres = append(wheres, "taken_at >= ?")
+		args = append(args, filter.After.Unix())
+	}
+	if len(filter.WithStatus) > 0 {
+		var params []string
+		for _, e := range filter.WithStatus {
+			params = append(params, "?")
+			args = append(args, e)
+		}
+		wheres = append(wheres, fmt.Sprintf("status IN (%s)", strings.Join(params, ", ")))
+	}
+	if len(filter.WithOutStatus) > 0 {
+		var params []string
+		for _, e := range filter.WithOutStatus {
+			params = append(params, "?")
+			args = append(args, e)
+		}
+		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
+	}
+	if filter.ExpiresBefore != nil {
+		wheres = append(wheres, "expires_at < ?")
+		args = append(args, filter.ExpiresBefore.Unix())
+	}
+	limit := ""
+	if filter.Limit != "" {
+		limit = " LIMIT ?"
+		args = append(args, filter.Limit)
+	}
+
+	r, err := db.Query(`
+		SELECT SUM(a.size)
+		FROM archives a
+			INNER JOIN targets t   ON t.uuid = a.target_uuid
+			INNER JOIN stores  s   ON s.uuid = a.store_uuid
+		WHERE `+strings.Join(wheres, " AND ")+limit, args...)
+	if err != nil {
+		return i, err
+	}
+	defer r.Close()
+
+	var p *int
+	for r.Next() {
+		if err = r.Scan(&p); err != nil {
+			return i, err
+		}
+		if p != nil {
+			i = *p
+		}
+		return i, nil
+	}
+
+	return i, fmt.Errorf("no results from SUM(size) query...")
 }
