@@ -22,6 +22,7 @@ type Options struct {
 	Debug             *bool
 	Trace             *bool
 	Raw               *bool
+	ShowUUID          *bool
 	Fuzzy             *bool
 	SkipSSLValidation *bool
 	Version           *bool

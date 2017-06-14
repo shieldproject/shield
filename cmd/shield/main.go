@@ -50,6 +50,7 @@ func main() {
 		Debug:             getopt.BoolLong("debug", 'D', "Enable debugging"),
 		Trace:             getopt.BoolLong("trace", 'T', "Enable trace mode"),
 		Raw:               getopt.BoolLong("raw", 0, "Operate in RAW mode, reading and writing only JSON"),
+		ShowUUID:          getopt.BoolLong("uuid", 0, "Return UUID"),
 		Fuzzy:             getopt.BoolLong("fuzzy", 0, "In RAW mode, perform fuzzy (inexact) searching"),
 		SkipSSLValidation: getopt.BoolLong("skip-ssl-validation", 'k', "Disable SSL Certificate Validation"),
 
@@ -394,6 +395,9 @@ func main() {
 				return RawJSON(target)
 			}
 
+			if *opts.ShowUUID {
+				return RawUUID(target.UUID)
+			}
 			ShowTarget(target)
 			return nil
 		})
@@ -617,6 +621,9 @@ func main() {
 			if *opts.Raw {
 				return RawJSON(schedule)
 			}
+			if *opts.ShowUUID {
+				return RawUUID(schedule.UUID)
+			}
 
 			ShowSchedule(schedule)
 			return nil
@@ -837,6 +844,9 @@ func main() {
 
 			if *opts.Raw {
 				return RawJSON(policy)
+			}
+			if *opts.ShowUUID {
+				return RawUUID(policy.UUID)
 			}
 
 			ShowRetentionPolicy(policy)
@@ -1072,6 +1082,9 @@ func main() {
 
 			if *opts.Raw {
 				return RawJSON(store)
+			}
+			if *opts.ShowUUID {
+				return RawUUID(store.UUID)
 			}
 
 			ShowStore(store)
@@ -1312,6 +1325,9 @@ func main() {
 			if *opts.Raw {
 				return RawJSON(job)
 			}
+			if *opts.ShowUUID {
+				return RawUUID(job.UUID)
+			}
 
 			ShowJob(job)
 			return nil
@@ -1477,7 +1493,7 @@ func main() {
 	c.Dispatch("pause", "Pause a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
-				FlagHelp(`A string partially matching the name of a job to pause 
+				FlagHelp(`A string partially matching the name of a job to pause
 				or a UUID exactly matching the UUID of a job to pause.
 				Not setting this value explicitly will default it to the empty string.`,
 					false, "<job>")
@@ -1502,7 +1518,7 @@ func main() {
 	c.Dispatch("unpause", "Unpause a backup job",
 		func(opts Options, args []string, help bool) error {
 			if help {
-				FlagHelp(`A string partially matching the name of a job to unpause 
+				FlagHelp(`A string partially matching the name of a job to unpause
 				or a UUID exactly matching the UUID of a job to unpause.
 				Not setting this value explicitly will default it to the empty string.`,
 					false, "<job>")
@@ -1530,7 +1546,7 @@ func main() {
 			if help {
 
 				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
-				FlagHelp(`A string partially matching the name of a job to run 
+				FlagHelp(`A string partially matching the name of a job to run
 				or a UUID exactly matching the UUID of a job to run.
 				Not setting this value explicitly will default it to the empty string.`,
 					false, "<job>")
@@ -1677,6 +1693,9 @@ func main() {
 
 			if *opts.Raw {
 				return RawJSON(task)
+			}
+			if *opts.ShowUUID {
+				return RawUUID(task.UUID)
 			}
 
 			ShowTask(task)
@@ -1850,6 +1869,9 @@ func main() {
 
 			if *opts.Raw {
 				return RawJSON(archive)
+			}
+			if *opts.ShowUUID {
+				return RawUUID(archive.UUID)
 			}
 
 			ShowArchive(archive)
