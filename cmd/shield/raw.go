@@ -14,3 +14,8 @@ func RawJSON(raw interface{}) error {
 	fmt.Printf("%s\n", string(b))
 	return nil
 }
+
+func RawUUID(uuid string) error {
+	fmt.Printf("%s\n", uuid)
+	return nil
+}
