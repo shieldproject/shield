@@ -20,6 +20,7 @@
 		},
 		{
 			"ImportPath": "github.com/Azure/azure-sdk-for-go/storage",
+			"Comment": "v8.1.1-beta",
 			"Rev": "4897648e310020dae650a89c31ff633284c13a24"
 		},
 		{
@@ -209,6 +210,7 @@
 		},
 		{
 			"ImportPath": "github.com/mattn/go-shellwords",
+			"Comment": "v1.0.0",
 			"Rev": "f4e566c536cf69158e808ec28ef4182a37fdc981"
 		},
 		{
@@ -370,23 +372,23 @@
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/ansi",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/botta",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/log",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/timestamp",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/tree",
-			"Rev": "1c0ce1eaa4e29f94b6727019224b3803460c7256"
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
 		},
 		{
 			"ImportPath": "github.com/starkandwayne/minio-go",
@@ -473,6 +475,36 @@
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
 			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/consul/vendor/github.com/hashicorp/go-cleanhttp",
+			"Comment": "v0.8.0",
+			"Rev": "402636ff2db998edef392ac6d59210d2170b3ebf"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/consul/vendor/github.com/hashicorp/serf/coordinate",
+			"Comment": "v0.8.0",
+			"Rev": "402636ff2db998edef392ac6d59210d2170b3ebf"
+		},
+		{
+			"ImportPath": "github.com/jhunt/go-cli/vendor/github.com/jhunt/go-snapshot",
+			"Rev": "d74b1b6905297834d014b95038b9a58539832140"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/starkandwayne/goutils/tree",
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/starkandwayne/goutils/ansi",
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/github.com/mattn/go-isatty",
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
+		},
+		{
+			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/golang.org/x/sys/unix",
+			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
 		}
 	]
 }
