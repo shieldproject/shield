@@ -690,6 +690,22 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindSchedule(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateSchedule(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing schedule")
+					return c.Execute("schedule", t.UUID)
+				}
+			}
+
 			s, err := CreateSchedule(content)
 			if err != nil {
 				return err

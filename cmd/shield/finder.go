@@ -159,6 +159,24 @@ func FindSchedule(search string, strict bool) (Schedule, uuid.UUID, error) {
 		return want, uuid.Parse(want.UUID), nil
 	}
 
+	// test if 'search' is actually a JSON Target
+	schedule := Schedule{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&schedule)
+
+	if err == nil {
+		if schedule.UUID != "" {
+			var want Schedule
+			want, err = GetSchedule(id)
+			if err != nil {
+				return Schedule{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if schedule.Name != "" {
+			search = schedule.Name
+		}
+	}
+
 	schedules, err := GetSchedules(ScheduleFilter{
 		Name:       search,
 		ExactMatch: MaybeBools(strict, false),
