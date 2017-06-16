@@ -1448,6 +1448,22 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindJob(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateJob(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing job")
+					return c.Execute("job", t.UUID)
+				}
+			}
+
 			job, err := CreateJob(content)
 			if err != nil {
 				return err

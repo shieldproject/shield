@@ -252,6 +252,24 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 		return want, uuid.Parse(want.UUID), nil
 	}
 
+	// test if 'search' is actually a JSON job
+	job := Job{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&job)
+
+	if err == nil {
+		if job.UUID != "" {
+			var want Job
+			want, err = GetJob(id)
+			if err != nil {
+				return Job{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if job.Name != "" {
+			search = job.Name
+		}
+	}
+
 	jobs, err := GetJobs(JobFilter{
 		Name:       search,
 		ExactMatch: MaybeBools(strict, false),
