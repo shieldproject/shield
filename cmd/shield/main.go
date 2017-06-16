@@ -1185,6 +1185,22 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindStore(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateStore(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing store")
+					return c.Execute("store", t.UUID)
+				}
+			}
+
 			s, err := CreateStore(content)
 
 			if err != nil {

@@ -22,6 +22,24 @@ func FindStore(search string, strict bool) (Store, uuid.UUID, error) {
 		return s, nil, err
 	}
 
+	// test if 'search' is actually a JSON store
+	store := Store{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&store)
+
+	if err == nil {
+		if store.UUID != "" {
+			var want Store
+			want, err = GetStore(id)
+			if err != nil {
+				return Store{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if store.Name != "" {
+			search = store.Name
+		}
+	}
+
 	stores, err := GetStores(StoreFilter{
 		Name:       search,
 		ExactMatch: MaybeBools(strict, false),
