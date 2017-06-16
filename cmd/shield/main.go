@@ -51,6 +51,7 @@ func main() {
 		Trace:             getopt.BoolLong("trace", 'T', "Enable trace mode"),
 		Raw:               getopt.BoolLong("raw", 0, "Operate in RAW mode, reading and writing only JSON"),
 		ShowUUID:          getopt.BoolLong("uuid", 0, "Return UUID"),
+		UpdateIfExists:    getopt.BoolLong("update-if-exists", 0, "Create will update record if another exists with same name"),
 		Fuzzy:             getopt.BoolLong("fuzzy", 0, "In RAW mode, perform fuzzy (inexact) searching"),
 		SkipSSLValidation: getopt.BoolLong("skip-ssl-validation", 'k', "Disable SSL Certificate Validation"),
 
@@ -449,11 +450,26 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindTarget(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateTarget(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing target")
+					return c.Execute("target", t.UUID)
+				}
+			}
 			t, err := CreateTarget(content)
 			if err != nil {
 				return err
 			}
-
 			MSG("Created new target")
 			return c.Execute("target", t.UUID)
 		})
@@ -674,6 +690,22 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindSchedule(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateSchedule(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing schedule")
+					return c.Execute("schedule", t.UUID)
+				}
+			}
+
 			s, err := CreateSchedule(content)
 			if err != nil {
 				return err
@@ -901,6 +933,22 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindRetentionPolicy(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateRetentionPolicy(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing retention policy")
+					return c.Execute("policy", t.UUID)
+				}
+			}
+
 			p, err := CreateRetentionPolicy(content)
 
 			if err != nil {
@@ -1137,6 +1185,22 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindStore(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateStore(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing store")
+					return c.Execute("store", t.UUID)
+				}
+			}
+
 			s, err := CreateStore(content)
 
 			if err != nil {

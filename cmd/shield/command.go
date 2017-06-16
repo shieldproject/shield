@@ -23,6 +23,7 @@ type Options struct {
 	Trace             *bool
 	Raw               *bool
 	ShowUUID          *bool
+	UpdateIfExists    *bool
 	Fuzzy             *bool
 	SkipSSLValidation *bool
 	Version           *bool

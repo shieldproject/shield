@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -18,6 +20,24 @@ func FindStore(search string, strict bool) (Store, uuid.UUID, error) {
 			return s, uuid.Parse(s.UUID), err
 		}
 		return s, nil, err
+	}
+
+	// test if 'search' is actually a JSON store
+	store := Store{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&store)
+
+	if err == nil {
+		if store.UUID != "" {
+			var want Store
+			want, err = GetStore(id)
+			if err != nil {
+				return Store{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if store.Name != "" {
+			search = store.Name
+		}
 	}
 
 	stores, err := GetStores(StoreFilter{
@@ -51,6 +71,7 @@ func FindStore(search string, strict bool) (Store, uuid.UUID, error) {
 }
 
 func FindTarget(search string, strict bool) (Target, uuid.UUID, error) {
+	// test if 'search' is a UUID
 	id := uuid.Parse(search)
 	if id != nil {
 		want, err := GetTarget(id)
@@ -58,6 +79,24 @@ func FindTarget(search string, strict bool) (Target, uuid.UUID, error) {
 			return Target{}, nil, err
 		}
 		return want, uuid.Parse(want.UUID), nil
+	}
+
+	// test if 'search' is actually a JSON Target
+	target := Target{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&target)
+
+	if err == nil {
+		if target.UUID != "" {
+			var want Target
+			want, err = GetTarget(id)
+			if err != nil {
+				return Target{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if target.Name != "" {
+			search = target.Name
+		}
 	}
 
 	targets, err := GetTargets(TargetFilter{
@@ -99,6 +138,24 @@ func FindRetentionPolicy(search string, strict bool) (RetentionPolicy, uuid.UUID
 		return want, uuid.Parse(want.UUID), nil
 	}
 
+	// test if 'search' is actually a JSON policy
+	policy := RetentionPolicy{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&policy)
+
+	if err == nil {
+		if policy.UUID != "" {
+			var want RetentionPolicy
+			want, err = GetRetentionPolicy(id)
+			if err != nil {
+				return RetentionPolicy{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if policy.Name != "" {
+			search = policy.Name
+		}
+	}
+
 	policies, err := GetRetentionPolicies(RetentionPolicyFilter{
 		Name:       search,
 		ExactMatch: MaybeBools(strict, false),
@@ -136,6 +193,24 @@ func FindSchedule(search string, strict bool) (Schedule, uuid.UUID, error) {
 			return Schedule{}, nil, err
 		}
 		return want, uuid.Parse(want.UUID), nil
+	}
+
+	// test if 'search' is actually a JSON schedule
+	schedule := Schedule{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&schedule)
+
+	if err == nil {
+		if schedule.UUID != "" {
+			var want Schedule
+			want, err = GetSchedule(id)
+			if err != nil {
+				return Schedule{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if schedule.Name != "" {
+			search = schedule.Name
+		}
 	}
 
 	schedules, err := GetSchedules(ScheduleFilter{
