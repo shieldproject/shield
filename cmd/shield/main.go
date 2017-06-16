@@ -449,12 +449,26 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
-			t, err := CreateTarget(content)
+
+
+			t, id, err := FindTarget(content, true)
 			if err != nil {
 				return err
 			}
+			if id == nil {
+				t, err = CreateTarget(content)
+				if err != nil {
+					return err
+				}
+				MSG("Created new target")
+			} else {
+				t, err = UpdateTarget(id, content)
+				if err != nil {
+					return err
+				}
+				MSG("Updated existing target")
+			}
 
-			MSG("Created new target")
 			return c.Execute("target", t.UUID)
 		})
 	c.Alias("create target", "create-target")

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -51,6 +53,7 @@ func FindStore(search string, strict bool) (Store, uuid.UUID, error) {
 }
 
 func FindTarget(search string, strict bool) (Target, uuid.UUID, error) {
+	// test if 'search' is a UUID
 	id := uuid.Parse(search)
 	if id != nil {
 		want, err := GetTarget(id)
@@ -58,6 +61,24 @@ func FindTarget(search string, strict bool) (Target, uuid.UUID, error) {
 			return Target{}, nil, err
 		}
 		return want, uuid.Parse(want.UUID), nil
+	}
+
+	// test if 'search' is actually a JSON Target
+	target := Target{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&target)
+
+	if err == nil {
+		if target.UUID != "" {
+			var want Target
+			want, err = GetTarget(id)
+			if err != nil {
+				return Target{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if target.Name != "" {
+			search = target.Name
+		}
 	}
 
 	targets, err := GetTargets(TargetFilter{
