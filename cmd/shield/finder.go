@@ -120,6 +120,24 @@ func FindRetentionPolicy(search string, strict bool) (RetentionPolicy, uuid.UUID
 		return want, uuid.Parse(want.UUID), nil
 	}
 
+	// test if 'search' is actually a JSON policy
+	policy := RetentionPolicy{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&policy)
+
+	if err == nil {
+		if policy.UUID != "" {
+			var want RetentionPolicy
+			want, err = GetRetentionPolicy(id)
+			if err != nil {
+				return RetentionPolicy{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if policy.Name != "" {
+			search = policy.Name
+		}
+	}
+
 	policies, err := GetRetentionPolicies(RetentionPolicyFilter{
 		Name:       search,
 		ExactMatch: MaybeBools(strict, false),
@@ -159,7 +177,7 @@ func FindSchedule(search string, strict bool) (Schedule, uuid.UUID, error) {
 		return want, uuid.Parse(want.UUID), nil
 	}
 
-	// test if 'search' is actually a JSON Target
+	// test if 'search' is actually a JSON schedule
 	schedule := Schedule{}
 	err := json.NewDecoder(strings.NewReader(search)).Decode(&schedule)
 

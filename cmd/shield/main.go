@@ -933,6 +933,22 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
+
+			if *opts.UpdateIfExists {
+				t, id, err := FindRetentionPolicy(content, true)
+				if err != nil {
+					return err
+				}
+				if id != nil {
+					t, err = UpdateRetentionPolicy(id, content)
+					if err != nil {
+						return err
+					}
+					MSG("Updated existing retention policy")
+					return c.Execute("policy", t.UUID)
+				}
+			}
+
 			p, err := CreateRetentionPolicy(content)
 
 			if err != nil {
