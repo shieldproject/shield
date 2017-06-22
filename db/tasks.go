@@ -16,11 +16,12 @@ const (
 	RestoreOperation = "restore"
 	PurgeOperation   = "purge"
 
-	PendingStatus  = "pending"
-	RunningStatus  = "running"
-	CanceledStatus = "canceled"
-	FailedStatus   = "failed"
-	DoneStatus     = "done"
+	PendingStatus   = "pending"
+	ScheduledStatus = "scheduled"
+	RunningStatus   = "running"
+	CanceledStatus  = "canceled"
+	FailedStatus    = "failed"
+	DoneStatus      = "done"
 )
 
 type Task struct {
@@ -304,6 +305,12 @@ func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
 		RunningStatus, validtime, id.String(),
 	)
+}
+
+func (db *DB) ScheduledTask(id uuid.UUID) error {
+	return db.Exec(
+		`UPDATE tasks SET status = ? WHERE uuid = ?`,
+		ScheduledStatus, id.String())
 }
 
 func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64, ok int) error {

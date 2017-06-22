@@ -48,6 +48,7 @@ func main() {
 	log.Infof("starting agent")
 
 	ag := agent.NewAgent()
+	ag.Version = Version
 	if err := ag.ReadConfig(opts.ConfigFile); err != nil {
 		log.Errorf("configuration failed: %s", err)
 		return

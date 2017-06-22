@@ -63,12 +63,13 @@ func main() {
 	if err := database.Connect(); err != nil {
 		log.Errorf("failed to connect to %s database at %s: %s",
 			database.Driver, database.DSN, err)
+		os.Exit(1)
 	}
 
 	if err := database.Setup(); err != nil {
 		log.Errorf("failed to set up schema in %s database at %s: %s",
 			database.Driver, database.DSN, err)
-		return
+		os.Exit(1)
 	}
 
 	log.Infof("deployed schema version %d", db.CurrentSchema)

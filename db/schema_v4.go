@@ -15,12 +15,18 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE jobs ADD COLUMN next_run INTEGER DEFAULT 0`)
+	if err != nil {
+		return err
+	}
+
 	if db.Driver == "sqlite3" {
 		err = db.Exec(`CREATE TABLE jobs_new (
                uuid            UUID PRIMARY KEY,
                target_uuid     UUID NOT NULL,
                store_uuid      UUID NOT NULL,
                schedule        TEXT NOT NULL,
+               next_run        INTEGER DEFAULT 0,
                retention_uuid  UUID NOT NULL,
                priority        INTEGER DEFAULT 50,
                paused          BOOLEAN,
@@ -32,10 +38,10 @@ func (s v4Schema) Deploy(db *DB) error {
 		}
 
 		err = db.Exec(`INSERT INTO jobs_new
-		               (uuid, target_uuid, store_uuid, schedule, retention_uuid,
-		                priority, paused, name, summary)
-		               SELECT uuid, target_uuid, store_uuid, schedule, retention_uuid,
-		                      priority, paused, name, summary FROM jobs`)
+		               (uuid, target_uuid, store_uuid, schedule, next_run,
+		                retention_uuid, priority, paused, name, summary)
+		               SELECT uuid, target_uuid, store_uuid, schedule, next_run,
+		                      retention_uuid, priority, paused, name, summary FROM jobs`)
 		if err != nil {
 			return err
 		}
@@ -92,6 +98,39 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 	// FIXME - need to backfill archives.job based on heuristics
+
+	switch db.Driver {
+	case "mysql":
+		err = db.Exec(`CREATE TABLE agents (
+		                 uuid          VARCHAR(36) NOT NULL,
+		                 name          TEXT NOT NULL DEFAULT '',
+		                 address       TEXT NOT NULL DEFAULT '',
+		                 version       TEXT NOT NULL DEFAULT '',
+		                 hidden        BOOLEAN,
+		                 last_seen_at  INTEGER NOT NULL,
+		                 last_error    TEXT NOT NULL DEFAULT '',
+		                 status        TEXT NOT NULL,
+		                 metadata      TEXT NOT NULL DEFAULT '',
+
+		                 PRIMARY KEY (uuid)
+		               )`)
+
+	case "postgres", "sqlite3":
+		err = db.Exec(`CREATE TABLE agents (
+		                 uuid          UUID NOT NULL,
+		                 name          TEXT NOT NULL DEFAULT '',
+		                 address       TEXT NOT NULL DEFAULT '',
+		                 version       TEXT NOT NULL DEFAULT '',
+		                 hidden        BOOLEAN,
+		                 last_seen_at  INTEGER NOT NULL,
+		                 last_error    TEXT NOT NULL DEFAULT '',
+		                 status        TEXT NOT NULL,
+		                 metadata      TEXT NOT NULL DEFAULT ''
+		               )`)
+	}
+	if err != nil {
+		return err
+	}
 
 	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {

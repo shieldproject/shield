@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/starkandwayne/goutils/log"
-
 	. "github.com/starkandwayne/goutils/timestamp"
 )
 
@@ -81,7 +79,6 @@ func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
 		return err
 	}
 
-	log.Debugf("Parameters: %v", args)
 	_, err = s.Exec(args...)
 	if err != nil {
 		return err
@@ -97,7 +94,6 @@ func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) 
 		return nil, err
 	}
 
-	log.Debugf("Parameters: %v", args)
 	r, err := s.Query(args...)
 	if err != nil {
 		return nil, err
@@ -139,8 +135,6 @@ func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
 	if db.connection == nil {
 		return nil, fmt.Errorf("Not connected to database")
 	}
-
-	log.Debugf("Executing SQL: %s", sql)
 
 	q, ok := db.qCache[sql]
 	if !ok {

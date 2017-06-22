@@ -1,0 +1,18 @@
+#!/bin/bash
+set -eu
+
+mkdir -p htdocs/i
+for src in src/svg/*.svg; do
+  out=htdocs/i/${src##src/svg/}
+  stem=${src##src/svg/}; stem=${stem%.svg}
+  stem=$(echo "$stem" | tr '-' ' ')
+
+  sed -e 's@<style>.*</style>@<style>.ok{fill:#8CC63F}.fail{fill:#FF6161}</style>@' \
+      -e 's@<title>.*</title>@@' \
+      -e "s/cls-1/$stem/g" \
+      -e 's/ id="[^"]*"//g' \
+      -e 's/ data-name="[^"]*"//g' \
+      -e 's@<g><g>@<g>@g' \
+      -e 's@</g></g>@</g>@g' \
+      <$src >$out
+done

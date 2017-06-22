@@ -6,16 +6,24 @@ import (
 	"github.com/starkandwayne/goutils/log"
 	"io/ioutil"
 	"net"
+	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
+	Name               string   `yaml:"name"`
 	AuthorizedKeysFile string   `yaml:"authorized_keys_file"`
 	HostKeyFile        string   `yaml:"host_key_file"`
 	ListenAddress      string   `yaml:"listen_address"`
 	PluginPaths        []string `yaml:"plugin_paths"`
+	Registration       struct {
+		URL        string `yaml:"url"`
+		Interval   int    `yaml:"interval"`
+		SkipVerify bool   `yaml:"skip_verify"`
+	} `yaml:"registration"`
 }
 
 func (agent *Agent) ReadConfig(path string) error {
@@ -31,6 +39,9 @@ func (agent *Agent) ReadConfig(path string) error {
 		return err
 	}
 
+	if config.Name == "" {
+		return fmt.Errorf("No agent name specified.")
+	}
 	if config.AuthorizedKeysFile == "" {
 		return fmt.Errorf("No authorized keys file supplied.")
 	}
@@ -52,10 +63,29 @@ func (agent *Agent) ReadConfig(path string) error {
 
 	server, err := ConfigureSSHServer(config.HostKeyFile, authorizedKeys)
 	if err != nil {
-		log.Errorf("failed to configure SSH server: %s\n", err)
+		log.Errorf("failed to configure SSH server: %s", err)
 		return err
 	}
 	agent.config = server
+
+	agent.Name = config.Name
+	l := strings.Split(config.ListenAddress, ":")
+	if len(l) == 1 {
+		config.ListenAddress = config.ListenAddress + ":5444"
+		agent.Port = 5444
+
+	} else if len(l) != 2 {
+		log.Errorf("failed to configure shield-agent: '%s' does not look like a valid address to bind", config.ListenAddress)
+		return fmt.Errorf("invalid bind address '%s'", config.ListenAddress)
+
+	} else {
+		n, err := strconv.ParseInt(l[1], 10, 0)
+		if err != nil {
+			log.Errorf("failed to configure shield-agent: '%s' does not look like a valid address to bind: %s", config.ListenAddress, err)
+			return err
+		}
+		agent.Port = int(n)
+	}
 
 	listener, err := net.Listen("tcp4", config.ListenAddress)
 	if err != nil {
@@ -65,6 +95,10 @@ func (agent *Agent) ReadConfig(path string) error {
 	agent.Listen = listener
 
 	agent.PluginPaths = config.PluginPaths
+
+	agent.Registration.URL = config.Registration.URL
+	agent.Registration.Interval = config.Registration.Interval
+	agent.Registration.SkipVerify = config.Registration.SkipVerify
 
 	return nil
 }
