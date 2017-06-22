@@ -45,6 +45,8 @@ type JobFilter struct {
 	SkipPaused   bool
 	SkipUnpaused bool
 
+	Overdue bool
+
 	SearchName string
 
 	ForTarget    string
@@ -86,6 +88,10 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 		} else {
 			args = append(args, 1)
 		}
+	}
+	if f.Overdue {
+		wheres = append(wheres, "j.next_run > ?")
+		args = append(args, time.Now().Unix())
 	}
 
 	switch driver {
@@ -270,6 +276,12 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 		`DELETE FROM jobs WHERE uuid = ?`,
 		id.String(),
 	)
+}
+
+func (db *DB) RescheduleJob(j *Job, next time.Time) error {
+	return db.Exec(
+		`UPDATE jobs SET next_run = ? WHERE uuid = ?`,
+		next.Unix(), j.UUID.String())
 }
 
 func (j *Job) Reschedule() (err error) {

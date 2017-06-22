@@ -86,6 +86,46 @@ needenv() {
 trap 'exiting $?' EXIT
 
 case ${SHIELD_OP} in
+(status)
+	needenv SHIELD_OP \
+	        SHIELD_AGENT_NAME \
+	        SHIELD_PLUGINS_PATH
+
+	if [[ -z "${SHIELD_AGENT_VERSION:-}" ]]; then
+		SHIELD_AGENT_VERSION="dev"
+	fi
+
+	set -e
+	header "Running SHIELD Agent ($SHIELD_AGENT_VERSION) Health Checks"
+
+	echo "{"
+	# METADATA
+	cat <<EOF
+"name"    : "${SHIELD_AGENT_NAME}",
+"version" : "${SHIELD_AGENT_VERSION}",
+"health"  : "ok",
+EOF
+
+	# PLUGIN inventory
+	(IFS=:; for x in $SHIELD_PLUGINS_PATH; do
+	   say "checking for plugins in $x..."
+	   echo "\"plugins\": {"
+	   comma=""
+	   while IFS= read -r -d '' plugin; do
+	     name=${plugin##*/}
+	     set +e ; output=$($plugin info 2>/dev/null) ; set -e
+	     if [[ $? -eq 0 ]]; then
+	       echo "$comma\"$name\":$output"
+	       comma=","
+	     fi
+	   done < <(find $x -maxdepth 1 -type f -perm +111 -print0)
+	   echo "}"
+	 done)
+	echo "}"
+
+	exit 0
+	;;
+
 (backup)
 	needenv SHIELD_OP              \
 	        SHIELD_STORE_PLUGIN    \
