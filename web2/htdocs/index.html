@@ -2058,18 +2058,6 @@ $(function () {
     dispatch(document.location.hash);
   }).trigger('hashchange');
 
-  $('.top-bar').html(template('top-bar', {
-    shield: {
-      env: 'PRODUCTION',
-      ip:  '1.2.3.4'
-    },
-    user: {
-      display: 'James'
-    },
-    tenant: {
-      name: 'Stark & Wayne'
-    }
-  }));
 
   (function (s) {
     var RUNNING = false;
@@ -2085,6 +2073,18 @@ $(function () {
           var json = JSON.stringify(data);
           if (json != last) {
             $('#hud').html(template('hud', data));
+            $('.top-bar').html(template('top-bar', {
+              shield: {
+                env: 'DEMO',
+                ip:  data.shield.ip
+              },
+              user: {
+                display: 'James Hunt'
+              },
+              tenant: {
+                name: 'Stark & Wayne'
+              }
+            }));
           }
           last = json;
         },
