@@ -79,10 +79,10 @@ EOF
   read JUNK
   ;;
 (shieldagent)
-  agent_up="1"
-  while [ $agent_up -eq 1 ]; do
+  shield_up="1"
+  while [ $shield_up -eq 1 ]; do
       sleep 1
-      agent_up=`nc -z 127.0.0.1 8181; echo $?`
+      shield_up=`nc -z 127.0.0.1 8181; echo $?`
   done
 
   ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
