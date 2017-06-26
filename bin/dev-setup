@@ -16,6 +16,13 @@ jq="jq -Mr"
 targetdir=$1
 storedir=$2
 
+echo "waiting for shield to spin up..."
+shield_up="1"
+while [ $shield_up -eq 1 ]; do
+  sleep 1
+  shield_up=`nc -z 127.0.0.1 8181; echo $?`
+done
+
 echo targetdir=$targetdir
 echo storedir=$storedir
 
