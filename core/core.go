@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -25,6 +26,10 @@ type Core struct {
 
 	timeout int
 	agent   *AgentClient
+
+	/* cached for /v2/health */
+	ip   string
+	fqdn string
 
 	/* foreman */
 	numWorkers int
@@ -102,12 +107,17 @@ func NewCore(file string) (*Core, error) {
 		return nil, fmt.Errorf("failed to read agent key file %s: %s", config.KeyFile, err)
 	}
 
+	ip, fqdn := networkIdentity()
+
 	return &Core{
 		fastloop: time.NewTicker(time.Second * time.Duration(config.FastLoop)),
 		slowloop: time.NewTicker(time.Second * time.Duration(config.SlowLoop)),
 
 		timeout: config.Timeout,
 		agent:   agent,
+
+		ip:   ip,
+		fqdn: fqdn,
 
 		/* foreman */
 		numWorkers: config.Workers,
@@ -501,4 +511,66 @@ func (core *Core) handleOutput(task *db.Task, f string, args ...interface{}) {
 	if err := core.DB.UpdateTaskLog(task.UUID, s); err != nil {
 		log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 	}
+}
+
+func networkIdentity() (string, string) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "(unknown)", ""
+	}
+
+	var v4ip, v6ip, host string
+
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var (
+				found bool
+				ip    net.IP
+			)
+
+			switch addr.(type) {
+			case *net.IPNet:
+				ip = addr.(*net.IPNet).IP
+				found = !ip.IsLoopback()
+			case *net.IPAddr:
+				ip = addr.(*net.IPAddr).IP
+				found = !ip.IsLoopback()
+			}
+			log.Debugf("net: found interface with address %s", ip.String())
+			isv4 := ip.To4() != nil
+			log.Debugf("net: (found=%v, isv4=%v, v4ip=%s, v6ip=%s)",
+				found, isv4, v4ip, v6ip)
+			if !found || (!isv4 && v6ip != "") || (isv4 && v4ip != "") {
+				log.Debugf("net: SKIPPING")
+				continue
+			}
+
+			if isv4 {
+				v4ip = ip.String()
+			} else {
+				v6ip = ip.String()
+			}
+
+			names, err := net.LookupAddr(ip.String())
+			if err != nil {
+				continue
+			}
+			if len(names) != 0 {
+				host = names[0]
+			}
+		}
+	}
+
+	if v4ip != "" {
+		return v4ip, host
+	}
+	if v6ip != "" {
+		return v6ip, host
+	}
+	return "(unknown)", ""
 }

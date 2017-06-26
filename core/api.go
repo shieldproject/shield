@@ -1207,8 +1207,8 @@ func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
 	health.Health.API = true
 	health.SHIELD.Version = Version
 	health.SHIELD.Env = os.Getenv("SHIELD_NAME")
-	health.SHIELD.IP = "x.x.x.x"              // FIXME
-	health.SHIELD.FQDN = "shield.example.com" // FIXME
+	health.SHIELD.IP = core.ip
+	health.SHIELD.FQDN = core.fqdn
 
 	health.Health.Storage = true
 	stores, err := core.DB.GetAllStores(nil)
