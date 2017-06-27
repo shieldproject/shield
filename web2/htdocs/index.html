@@ -34,7 +34,7 @@ body {
   position: absolute; top: 0;
   width: 100%;
 }
-ol, ul {
+ol, ul, li {
   list-style: none;
 }
 blockquote, q {
@@ -765,6 +765,101 @@ pre.task-failed code em em { color: salmon; }
 pre.task-failed code button { background-color: #222; }
 
 pre.task-failed.override code { background-color: #333; }
+
+
+.timeline {
+  /*
+  border-left: 3px solid #777;
+  padding-left: 6px;
+  margin-left: 6px;
+    */
+}
+.timeline .event {
+  position: relative;
+  border-left: 3px solid #777;
+  padding-left: 10px;
+  margin-left: 6px;
+  padding-bottom: 24px;
+}
+.timeline .event::before {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 12px;
+  background-color: #777;
+  border: 3px solid #fff;
+  border-radius: 12px;
+
+  position: absolute;
+  top: 0px;
+  left: -10.5px;
+}
+
+.timeline .event.ok               { border-left-color: #8cc63f; }
+.timeline .event.ok::before       { background-color:  #8cc63f; }
+.timeline .event.failed           { border-left-color: #ff1d25; }
+.timeline .event.failed::before   { background-color:  #ff1d25; }
+.timeline .event.handled          { border-left-color: #0071bc; }
+.timeline .event.handled::before  { background-color:  #0071bc; }
+
+.timeline .event .date {
+  display: inline-block;
+  font-size: 14pt;
+}
+.timeline .event .tag{
+  background-color: #ccc;
+  border-radius: 4px;
+  font-size: 8pt;
+  font-weight: bold;
+  padding: 4px 8px;
+  display: inline-block;
+
+  position: relative;
+  top: -3px;
+  left: 3px;
+}
+.timeline .event.backup.ok .tag {
+  color: #fff;
+  background-color: #8CC63F;
+}
+.timeline .event .desc {
+  font-size: 18pt;
+  line-height: 24pt;
+  font-weight: bold;
+}
+.timeline .event.failed  .desc        { color: #ff1d25; }
+.timeline .event.failed  .desc::after { content: " — FAILED"; }
+.timeline .event.handled .desc        { color: inherit; }
+.timeline .event.handled .desc::after { content: " — handled"; }
+
+.timeline .event .meta {
+}
+
+.timeline .event .note {
+  display: block;
+  max-width: 40em;
+  margin: 1em 0;
+}
+.timeline .event .note strong {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.timeline .event .task { display: none; }
+
+.timeline .event .expand {
+  visibility: hidden;
+  display: block;
+  margin-top: 4px;
+  font-size: 10pt;
+}
+.timeline .event:hover .expand {
+  visibility: visible;
+}
+.timeline .event .expand a {
+  text-decoration: none;
+  color: #0071bc;
+}
 </style>
 </head>
 <body>
@@ -1047,78 +1142,40 @@ into your Github issue:
         <p>[[= _.target.notes ]]</p>
       </div>
 
-      <h2>Backup Archives</h2>
-      [[ if (_.target.archives.length == 0) { ]]
-      <div class="no-data">This target has not been successfully backed up yet.</div>
-      [[ } else { ]]
-      <table class="archives">
-        <thead><tr>
-          <th>Schedule</th>
-          <th>Date Taken</th>
-          <th>Expires</th>
-          <th>Size</th>
-          <th>Task Details</th>
-          <th></th>
-        </tr></thead>
-        <tbody>
-          [[ $.each(_.target.archives, function (i, archive) { ]]
-          <tr[[ if (archive.notes != "") { ]] class="noted"[[ } ]]>
-            [[ if (archive.schedule != "") { ]]
-            <td>[[= archive.schedule ]]</td>
-            [[ } else { ]]
-            <td><span class="unknown">unknown</span></td>
-            [[ } ]]
-            <td>[[= strftime("%B %Oe", archive.taken_at) ]]</td>
-            <td>[[= archive.expiry ]]d</td>
-            [[ if (archive.size >= 0) { ]]
-            <td>[[= archive.size ]]</td>
-            [[ } else { ]]
-            <td><span class="unknown">unknown</span></td>
-            [[ } ]]
-            <td><a href="task:[[= archive.task_uuid ]]">#[[= task_id(archive.task_uuid) ]] (click for more options)</a></td>
-          </tr>
-          [[ if (archive.notes != "") { ]]
-          <tr class="note"><td colspan="5">
-            <strong>Note:</strong><div>[[= archive.notes ]]</div></td></tr>
-          [[ } ]]
-          <tr class="task" data-archive-uuid="[[= archive.uuid ]]"><td colspan="5"></td></tr>
-          [[ if (archive.notes != "") { ]]
-          <tr class="empty"><td colspan="4"></td></tr>
-          [[ } ]]
-        [[ }); ]]
-        </tbody>
-      </table>
-      [[ } ]]
-
-      [[ if (_.target.failed_tasks.length > 0) { ]]
-      <h2>Failed Task Runs</h2>
-      <table class="tasks">
-        <thead><tr>
-          <th>Type</th>
-          <th>Failed at</th>
-          <th>User</th>
-          <th>Task Details</th>
-        </tr></thead>
-        <tbody>
-          [[ $.each(_.target.failed_tasks, function (i, task) { ]]
-          <tr[[ if (task.notes != "") { ]] class="noted [[= task.ok ? 'ok' : 'fail' ]]"[[ } ]]>
-            <td>[[= task.type ]]</td>
-            <td>[[= strftime("%c", task.started_at) ]]</th>
-            <td>[[= task.owner ]]</td>
-            <td><a href="task:[[= task.uuid ]]">#[[= task_id(task) ]] (click for more options)</a></td>
-          </tr>
-          [[   if (task.notes != "") { ]]
-          <tr class="note [[= task.ok ? 'ok' : 'fail' ]]"><td colspan="4">
-            <strong>Note:</strong><div>[[= task.notes ]]</div></td></tr>
-          [[   } ]]
-          <tr class="task"><td colspan="4"></td></tr>
-          [[   if (task.notes != "") { ]]
-          <tr class="empty"><td colspan="4"></td></tr>
-          [[   } ]]
+      <h2>Timeline</h2>
+      <div class="timeline">
+          [[ $.each(_.target.tasks, function (i, task) { ]]
+          <div class="event [[= task.type ]] [[= (task.status == 'done' ? 'ok' : task.status) ]][[ if (task.notes != "") { ]] noted[[ } ]][[ if (task.status != 'done' && task.ok) { ]] handled[[ } ]]" data-task-uuid="[[= task.uuid ]]"[[ if (task.archive) { ]] data-archive-uuid="[[= task.archive.uuid ]]"[[ } ]]>
+            <ul>
+              <li class="date">[[ if (task.status == 'scheduled') { ]]
+                <em>scheduled / pending</em>
+              [[ } else { ]]
+                [[= strftime("%b %d %Y", task.started_at) ]]</li>
+              [[ } ]]
+              [[ if (task.archive) { ]]<li class="tag">backup</li>[[ } ]]
+              [[ if (task.type == "backup") { ]]
+                [[ if (task.owner == "") { ]]
+                <li class="desc">[[= maybe(task.archive.schedule, 'Scheduled Backup') ]]</li>
+                <li class="meta">run automatically per job schedule</li>
+                [[ } else { ]]
+                <li class="desc">Ad Hoc Backup</li>
+                <li class="meta">run by [[= task.owner ]]</li>
+                [[ } ]]
+              [[ } else if (task.type == "purge") { ]]
+                <li class="desc">Purge Expired Archive</li>
+                <li class="meta">...</li>
+              [[ } else { ]]
+                <li class="desc">[[= task.type ]] Task</li>
+              [[ } ]]
+              [[ if (task.notes != "") { ]]
+              <li class="note"><strong>Note:</strong> [[= task.notes ]]</li>
+              [[ } ]]
+              <li class="expand"><a href="task:[[= task.uuid ]]">show full task log</a></li>
+            </ul>
+            <div class="task"></div>
+          </div>
           [[ }); ]]
-        </tbody>
-      </table>
-      [[ } ]]
+      </div>
     </div>
 </script>
 <script type="text/html" id="tpl--task">
@@ -1140,21 +1197,10 @@ into your Github issue:
   [[ } ]]
   <p><textarea name="notes" id="notes"
                placeholder="no notes recorded yet...">[[= maybe(_.task.notes, '') ]]</textarea></p>
-  [[ if (_.task.status == "failed") { ]]
-  <ul>
-    <li><label>Remove this failure from the list...</label>
-    <li><input type="radio" optgroup="clear" name="clear" id="annotask-normal"
-               value="normal"[[ if (_.task.clear == '' || _.task.clear == 'normal') { ]] checked[[ } ]]><label for="annotask-normal">Normally</label></li>
-    <li><input type="radio" optgroup="clear" name="clear" id="annotask-immediate"
-               value="immediate"[[ if (_.task.clear == 'immediate') { ]] checked[[ } ]]><label for="annotask-immediate">Immediately</label></li>
-    <li><input type="radio" optgroup="clear" name="clear" id="annotask-manual"
-               value="manual"[[ if (_.task.clear == 'manual') { ]] checked[[ } ]]><label for="annotask-manual">Manually</label></li>
-  </ul>
-  [[ } ]]
   <button>Save</button>
 </form>
 
-</div><em>[[= _.task.type ]] task started <em>[[= strftime("%c", _.task.started_at) ]]</em>
+</div><em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>
 initiated by <em>[[= _.task.owner ]]</em></em>
 
 [[= _.task.log ]]
@@ -1422,7 +1468,10 @@ function tparse(d) {
   if (typeof d == "string") {
     // because we insist on doing bad things with date formatting in the API...
     m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(d);
-    if (!m) { return "" }
+    if (!m) {
+      console.log("'%s' doesn't look like a date/time string...", d);
+      return ""
+    }
 
     d = new Date();
     d.setTime(Date.UTC(parseInt(m[1]),   // year
@@ -1481,6 +1530,9 @@ function trelative(d, threshold, fmt) {
 
 function strftime(fmt, d) {
   d = tparse(d);
+  if (typeof(d) === 'undefined') {
+    return "";
+  }
 
   en_US = {
     pref: {
@@ -2123,18 +2175,16 @@ $(function () {
   $('#main').on('click', 'a[href^="task:"]', function (event) {
     event.preventDefault();
     var uuid  = $(event.target).closest('a[href^="task:"]').attr('href').replace(/^task:/, '');
-    var $task = $(event.target).closest('tr').nextAll('tr.task').first();
-    console.log($(event.target).closest('tr'));
+    var $ev   = $(event.target).closest('.event');
+    var $task = $ev.find('.task');
 
-    if ($task.is(":visible")) {
+    if ($task.is(':visible')) {
       $task.hide();
       return;
     }
 
-    $task = $task
-      .show()
-      .find('td')
-        .html(template('loading'));
+    $task = $task.show()
+                 .html(template('loading'));
 
     $.ajax({
       type: 'GET',
@@ -2157,6 +2207,11 @@ $(function () {
     $(event.target).closest('.task').find('form.annotate').toggle();
   });
 
+  $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
+    console.log('restoring!');
+    banner("restorate operation started");
+  });
+
   /* submit the annotation form */
   $('#main').on('submit', '.task form.annotate', function (event) {
     event.preventDefault();
@@ -2165,7 +2220,29 @@ $(function () {
     var uuid = $form.closest('[data-system-uuid]').data('system-uuid');
     console.log($form);
 
-    if ($form.is('[data-system-uuid] .tasks *')) {
+    if ($form.is('[data-system-uuid] [data-archive-uuid] *')) {
+      var ann = {
+        type  : "archive",
+        uuid  : $form.closest('[data-archive-uuid]').data('archive-uuid'),
+        notes : $form.find('[name=notes]').val()
+      };
+      $.ajax({
+        type: 'PATCH',
+        url:  '/v2/systems/'+uuid,
+
+        contentType: 'application/json',
+        data: JSON.stringify({ "annotations": [ann] }),
+        success: function (data) {
+          $form.hide();
+          banner("archive annotation saved.");
+        },
+        error: function (xhr) {
+          $form.hide();
+          banner("archive annotation failed to save.");
+        }
+      });
+
+    } else if ($form.is('[data-system-uuid] [data-task-uuid] *')) {
       var ann = {
         type  : "task",
         uuid  : $form.find('[name=uuid]').val(),
@@ -2193,28 +2270,6 @@ $(function () {
         error: function (xhr) {
           $form.hide();
           banner("task annotation failed to save.");
-        }
-      });
-
-    } else if ($form.is('[data-system-uuid] .archives *')) {
-      var ann = {
-        type  : "archive",
-        uuid  : $form.closest('[data-archive-uuid]').data('archive-uuid'),
-        notes : $form.find('[name=notes]').val()
-      };
-      $.ajax({
-        type: 'PATCH',
-        url:  '/v2/systems/'+uuid,
-
-        contentType: 'application/json',
-        data: JSON.stringify({ "annotations": [ann] }),
-        success: function (data) {
-          $form.hide();
-          banner("archive annotation saved.");
-        },
-        error: function (xhr) {
-          $form.hide();
-          banner("archive annotation failed to save.");
         }
       });
 

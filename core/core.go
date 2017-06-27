@@ -415,6 +415,10 @@ func (core *Core) worker(id int) {
 	for task := range core.workers {
 		log.Debugf("worker %d starting to execute task %s", id, task.UUID)
 
+		if err := core.DB.StartTask(task.UUID, time.Now()); err != nil {
+			log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
+		}
+
 		if task.Agent == "" {
 			err := core.DB.UpdateTaskLog(
 				task.UUID,
