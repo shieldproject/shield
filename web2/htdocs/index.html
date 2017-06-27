@@ -818,9 +818,14 @@ pre.task-failed.override code { background-color: #333; }
   top: -3px;
   left: 3px;
 }
-.timeline .event.backup.ok .tag {
+.timeline .event.failed .tag { display: none; }
+.timeline .event.backup .tag {
   color: #fff;
   background-color: #8CC63F;
+}
+.timeline .event.restore .tag {
+  color: #fff;
+  background-color: darkviolet;
 }
 .timeline .event .desc {
   font-size: 18pt;
@@ -859,6 +864,71 @@ pre.task-failed.override code { background-color: #333; }
 .timeline .event .expand a {
   text-decoration: none;
   color: #0071bc;
+}
+
+
+#modal.modal-wash {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  width: 100vw;
+  height: 100vw;
+  background-color: rgba(0,0,0,0.95);
+  z-index: 140;
+}
+#modal > .confirm {
+  box-sizing: border-box;
+  width: 70vw;
+  height: 70vh;
+  margin: 15vh 15vw;
+  padding: 20px;
+  overflow: scroll;
+
+  background-color: #111;
+  border: 1px solid #777;
+  color: #fff;
+}
+#modal > .confirm h2 {
+  font-size: 250%;
+  color: yellow;
+  font-variant: small-caps;
+  font-weight: bold;
+  text-align: center;
+}
+#modal > .confirm p {
+  margin: 1em auto;
+  font-size: 120%;
+  line-height: 1.2em;
+  max-width: 680px;
+}
+#modal > .confirm p em {
+  font-weight: bold;
+  color: yellow;
+}
+#modal > .confirm p.q {
+  font-size: 160%;
+  margin: 1em auto;
+}
+#modal .confirm .a {
+  max-width: 680px;
+  text-align: center;
+  margin: 1em auto;
+}
+#modal > .confirm button {
+  display: inline-block;
+  border: none;
+  border-radius: 2px;
+  font-size: 140%;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+#modal > .confirm button.danger {
+  background-color: yellow;
+  color: #000;
+}
+#modal > .confirm button.safe {
+  background-color: transparent;
+  color: palegreen;
 }
 </style>
 </head>
@@ -1001,6 +1071,30 @@ pre.task-failed.override code { background-color: #333; }
       <p id="message">[[= _.message ]]</p>
     </div>
 </script>
+<script type="text/html" id="tpl--restore-are-you-sure">
+[[#
+  {restore-are-you-sure}
+
+  A modal interaction screen that requires the oeprator to acknowledge
+  that what they are about to do is in fact to restore data, that it
+  might be dangerous, and it might not work out.
+]]
+    <div class="confirm">
+      <h2>You Are About To Restore Data</h2>
+      <p>You have requested that S.H.I.E.L.D. restore <em>[[= _.target ]]</em>
+      from a backup that was taken <em>[[= strftime("on %A, %B %d, %Y at %H:%M%P", _.taken) ]]</em> ([[= duration(tdiff(_.taken, new Date())) ]] ago).
+      Any new data created after that point in time <em>will be lost</em>.</p>
+
+      <p>Addtionally, the target system may be <em>offline or non-operational</em>
+      while the restore operation is carried out.</p>
+
+      <p class="q">Are you sure you want to restore <em>[[= _.target ]]</em>?</p>
+      <div class="a">
+        <button class="danger" rel="yes">Yes, Initiate Restore</button>
+        <button class="safe" rel="close">No, Cancel This Operation</button>
+      </div>
+    </div>
+</script>
 <script type="text/html" id="tpl--top-bar">
 [[#
   {top-bar} template
@@ -1120,7 +1214,7 @@ into your Github issue:
   Enables operators to easily see when a given system is backed up,
   and facilitates quick and easy access to restore valid archives.
 ]]
-    <div class="gutter" data-system-uuid="[[= _.target.uuid ]]">
+    <div class="gutter" data-system-uuid="[[= _.target.uuid ]]" data-system-name="[[= _.target.name ]]">
       <div class="job card [[= _.target.ok ? 'ok' : 'fail' ]]">
         <img src="i/shield-[[= _.target.ok ? 'ok' : 'fail' ]].svg">
         <h3>[[= _.target.name ]]</h3>
@@ -1145,14 +1239,14 @@ into your Github issue:
       <h2>Timeline</h2>
       <div class="timeline">
           [[ $.each(_.target.tasks, function (i, task) { ]]
-          <div class="event [[= task.type ]] [[= (task.status == 'done' ? 'ok' : task.status) ]][[ if (task.notes != "") { ]] noted[[ } ]][[ if (task.status != 'done' && task.ok) { ]] handled[[ } ]]" data-task-uuid="[[= task.uuid ]]"[[ if (task.archive) { ]] data-archive-uuid="[[= task.archive.uuid ]]"[[ } ]]>
+          <div class="event [[= task.type ]] [[= (task.status == 'done' ? 'ok' : task.status) ]][[ if (task.notes != "") { ]] noted[[ } ]][[ if (task.status != 'done' && task.ok) { ]] handled[[ } ]]" data-task-uuid="[[= task.uuid ]]"[[ if (task.archive) { ]] data-archive-uuid="[[= task.archive.uuid ]]" data-archive-taken="[[= task.started_at ]]"[[ } ]]>
             <ul>
               <li class="date">[[ if (task.status == 'scheduled') { ]]
                 <em>scheduled / pending</em>
               [[ } else { ]]
                 [[= strftime("%b %d %Y", task.started_at) ]]</li>
               [[ } ]]
-              [[ if (task.archive) { ]]<li class="tag">backup</li>[[ } ]]
+              [[ if (task.archive) { ]]<li class="tag">[[= task.type ]]</li>[[ } ]]
               [[ if (task.type == "backup") { ]]
                 [[ if (task.owner == "") { ]]
                 <li class="desc">[[= maybe(task.archive.schedule, 'Scheduled Backup') ]]</li>
@@ -1161,6 +1255,9 @@ into your Github issue:
                 <li class="desc">Ad Hoc Backup</li>
                 <li class="meta">run by [[= task.owner ]]</li>
                 [[ } ]]
+              [[ } else if (task.type == "restore") { ]]
+                <li class="desc">Manual Restore</li>
+                <li class="meta">run by [[= task.owner ]]</li>
               [[ } else if (task.type == "purge") { ]]
                 <li class="desc">Purge Expired Archive</li>
                 <li class="meta">...</li>
@@ -1170,7 +1267,7 @@ into your Github issue:
               [[ if (task.notes != "") { ]]
               <li class="note"><strong>Note:</strong> [[= task.notes ]]</li>
               [[ } ]]
-              <li class="expand"><a href="task:[[= task.uuid ]]">show full task log</a></li>
+              <li class="expand"><a href="task:[[= task.uuid ]]">full task log</a></li>
             </ul>
             <div class="task"></div>
           </div>
@@ -1200,17 +1297,30 @@ into your Github issue:
   <button>Save</button>
 </form>
 
-</div><em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>
+</div><em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
+if (_.task.type == "purge") { ]]
+purging archive <em>[[= _.task.archive_uuid ]]</em>[[
+} else if (_.task.type == "restore") { ]]
+restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
+} ]]
 initiated by <em>[[= _.task.owner ]]</em></em>
 
 [[= _.task.log ]]
 
 <em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
-]]task ran for <em>[[= duration(tdiff(_.task.stopped_at, _.task.stopped_at)) ]]</em>
-[[ } if (_.task.archive_uuid != "") {
-]]generated archive <em>[[= _.task.archive_uuid ]]</em>
-for job <em>[[= _.task.job_uuid ]]</em>[[ } ]]
-[[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
+]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
+[[ }
+
+if (_.task.type == 'backup') {
+  if (_.task.archive_uuid != "") {
+    ]]generated archive <em>[[= _.task.archive_uuid ]]</em>
+for job <em>[[= _.task.job_uuid ]]</em>
+[[
+  } else {
+  ]]no archive was generated.
+[[
+  }
+} ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
 </em></code></pre>
 </script>
 <script type="text/html" id="tpl--stores">
@@ -1498,6 +1608,8 @@ function tdiff(t1, t2) {
 }
 
 function duration(t) {
+    t = parseInt(t);
+    if (t < 0) { t = 0; }
     if (t < 60) {
       return t.toString() + "s";
     }
@@ -1888,7 +2000,29 @@ var banner = (function () {
     if (typeof type == 'undefined') { type = 'info' }
     $banner.show('fade').html(template('banner', {
       type: type, message: message }));
+    time = window.setTimeout(function () {
+      $banner.hide('fade');
+    }, 7000);
   };
+}());
+
+/*
+   modal() - Display a modal dialog that the user must interact with
+ */
+var modal = (function () {
+  var $wash = $('<div id="modal" class="modal-wash"></div>').hide();
+  $(document.body).append($wash);
+
+  $wash.on('click', '[rel="close"]', function (event) {
+    event.preventDefault();
+    $wash.hide();
+  });
+
+  return function (html) {
+    var $window = $(html);
+    $wash.hide().empty().append($window).show();
+    return $window;
+  }
 }());
 
 /*
@@ -2208,8 +2342,24 @@ $(function () {
   });
 
   $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
-    console.log('restoring!');
-    banner("restorate operation started");
+    var uuid   = $(event.target).closest('[data-archive-uuid]').data('archive-uuid');
+    var target = $(event.target).closest('[data-system-name]').data('system-name');
+    var taken  = $(event.target).closest('[data-archive-taken]').data('archive-taken');
+    console.log('restoring archive %s!', uuid);
+
+    modal(template('restore-are-you-sure', {
+        target: target,
+        taken:  taken
+      })).on('click', '[rel=yes]', function(event) {
+      event.preventDefault();
+      $.ajax({
+        type: 'POST',
+        url:  '/v1/archive/'+uuid+'/restore',
+        success: function() {
+          banner("restore operation started");
+        }
+      });
+    });
   });
 
   /* submit the annotation form */
