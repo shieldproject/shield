@@ -41,7 +41,7 @@ header() {
 }
 
 say() {
-	echo >&2 $*
+	echo >&2 "$@"
 }
 
 ok() {
@@ -123,6 +123,50 @@ EOF
 	 done)
 	echo "}"
 
+	exit 0
+	;;
+
+(test-store)
+	needenv SHIELD_OP              \
+	        SHIELD_STORE_PLUGIN    \
+	        SHIELD_STORE_ENDPOINT
+
+	set -e
+	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
+
+	header "Performing store / retrieve / purge test"
+	say "generating an input bit pattern"
+	input=$(echo -n "test::"; dd if=/dev/urandom 2>/dev/null bs=25 count=1 | base64 -w0)
+	if [[ -z "${input}" ]]; then
+		fail "input bit pattern was empty; this test is INVALID."
+		exit 1
+	fi
+
+	key=$(echo "${input}" | ${SHIELD_STORE_PLUGIN} store --text -e "${SHIELD_STORE_ENDPOINT}" || true)
+	if [[ -z "${key}" ]]; then
+		fail "unable to write to storage"
+		exit 2
+	fi
+
+	output=$(${SHIELD_STORE_PLUGIN} retrieve -e "${SHIELD_STORE_ENDPOINT}" -k "${key}"        || true)
+	${SHIELD_STORE_PLUGIN} purge -e "${SHIELD_STORE_ENDPOINT}" -k "${key}" || true
+
+	say "INPUT:  ${input}"
+	say "OUTPUT: ${output}"
+	say "KEY:    ${key}"
+	say
+
+	if [[ -z "${output}" ]]; then
+		fail "unable to read from storage"
+		exit 2
+	fi
+
+	if [[ "${input}" != "${output}" ]]; then
+		fail "output bit pattern did not match the input pattern"
+		exit 3
+	fi
+
+	ok
 	exit 0
 	;;
 
