@@ -1413,10 +1413,11 @@ type v2SystemTask struct {
 	Archive   *v2SystemArchive `json:"archive,omitempty"`
 }
 type v2SystemJob struct {
-	Schedule string `json:"schedule"`
-	From     string `json:"from"`
-	To       string `json:"to"`
-	OK       bool   `json:"ok"`
+	UUID     uuid.UUID `json:"uuid"`
+	Schedule string    `json:"schedule"`
+	From     string    `json:"from"`
+	To       string    `json:"to"`
+	OK       bool      `json:"ok"`
 
 	Keep struct {
 		N    int `json:"n"`
@@ -1429,8 +1430,8 @@ type v2System struct {
 	Notes string    `json:"notes"`
 	OK    bool      `json:"ok"`
 
-	Jobs        []v2SystemJob     `json:"jobs"`
-	Tasks       []v2SystemTask    `json:"tasks"`
+	Jobs  []v2SystemJob  `json:"jobs"`
+	Tasks []v2SystemTask `json:"tasks"`
 }
 
 func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
@@ -1450,6 +1451,7 @@ func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 
 	dst.Jobs = make([]v2SystemJob, len(jobs))
 	for j, job := range jobs {
+		dst.Jobs[j].UUID = job.UUID
 		dst.Jobs[j].Schedule = job.Schedule
 		dst.Jobs[j].From = job.TargetPlugin
 		dst.Jobs[j].To = job.StorePlugin
@@ -1527,7 +1529,7 @@ func (core *Core) v2GetSystem(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// keep track of our archives, indexed by task UUID
-	archives:= make(map[string]*db.Archive)
+	archives := make(map[string]*db.Archive)
 	aa, err := core.DB.GetAllArchives(
 		&db.ArchiveFilter{
 			ForTarget:  target.UUID.String(),

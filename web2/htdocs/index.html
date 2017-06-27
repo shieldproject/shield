@@ -295,7 +295,9 @@ body { font-family: sans-serif; }
   background-color: #ccc;
   color: #000;
 }
-.banner-top p.info { color: #fff; background-color: #729849; }
+.banner-top p.info     { color: #fff; background-color: #729849; }
+.banner-top p.error    { color: #fff; background-color: #ff1d25; }
+.banner-top p.progress { color: #fff; background-color: #0071bc; }
 
 .story-sidebar nav,
 .hud > div {
@@ -844,6 +846,14 @@ pre.task-failed.override code { background-color: #333; }
   display: block;
   max-width: 40em;
   margin: 1em 0;
+  background-color: #fffac7;
+  padding: 1em;
+  border: 1px dashed #ccc;
+}
+.timeline .event .note a {
+  text-decoration: none;
+  border-bottom: 1px dashed #ccc;
+  color: blue;
 }
 .timeline .event .note strong {
   font-weight: bold;
@@ -929,6 +939,19 @@ pre.task-failed.override code { background-color: #333; }
 #modal > .confirm button.safe {
   background-color: transparent;
   color: palegreen;
+}
+
+button[rel^="backup:"] {
+  display: block;
+  float: right;
+  font-size: 14pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
+  cursor: pointer;
 }
 </style>
 </head>
@@ -1220,7 +1243,7 @@ into your Github issue:
         <h3>[[= _.target.name ]]</h3>
         [[ $.each(_.target.jobs, function (i, job) { ]]
         <ul class="details">
-          <li>runs [[= job.schedule ]]</li>
+          <li>runs [[= job.schedule ]] &mdash; <a href="run:[[= job.uuid ]]">run now</a></li>
           <li>keep [[= job.keep.n ]] backups ([[= job.keep.days ]] days)</li>
         </ul>
         <div class="graph[[ if (!job.ok) { ]] fail[[ } ]]">
@@ -1233,7 +1256,7 @@ into your Github issue:
 
       <div class="job summary">
         <h2>Notes</h2>
-        <p>[[= _.target.notes ]]</p>
+        <p>[[= html(_.target.notes) ]]</p>
       </div>
 
       <h2>Timeline</h2>
@@ -1253,7 +1276,7 @@ into your Github issue:
                 <li class="meta">run automatically per job schedule</li>
                 [[ } else { ]]
                 <li class="desc">Ad Hoc Backup</li>
-                <li class="meta">run by [[= task.owner ]]</li>
+                <li class="meta">run by [[= task.owner ]] at [[= strftime("%l:%M%P", task.started_at) ]]</li>
                 [[ } ]]
               [[ } else if (task.type == "restore") { ]]
                 <li class="desc">Manual Restore</li>
@@ -1265,7 +1288,7 @@ into your Github issue:
                 <li class="desc">[[= task.type ]] Task</li>
               [[ } ]]
               [[ if (task.notes != "") { ]]
-              <li class="note"><strong>Note:</strong> [[= task.notes ]]</li>
+              <li class="note"><strong>Note:</strong> [[= html(task.notes) ]]</li>
               [[ } ]]
               <li class="expand"><a href="task:[[= task.uuid ]]">full task log</a></li>
             </ul>
@@ -1297,7 +1320,8 @@ into your Github issue:
   <button>Save</button>
 </form>
 
-</div><em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
+</div><em>task <em>[[= _.task.uuid ]]</em></em>
+<em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
 if (_.task.type == "purge") { ]]
 purging archive <em>[[= _.task.archive_uuid ]]</em>[[
 } else if (_.task.type == "restore") { ]]
@@ -1999,7 +2023,9 @@ var banner = (function () {
     if (!$banner) { $(document.body).append( $banner = $('<div class="banner-top">').hide() ); }
     if (typeof type == 'undefined') { type = 'info' }
     $banner.show('fade').html(template('banner', {
-      type: type, message: message }));
+      type:    type,
+      message: message
+    }));
     time = window.setTimeout(function () {
       $banner.hide('fade');
     }, 7000);
@@ -2067,6 +2093,10 @@ function compile(src) {
   return function (_) {
     var __ = '';
     var maybe = function (a,b) { return typeof(a) !== 'undefined' ? a : b; };
+    var html  = function (s) {
+      return $('<textarea>').text(s).html()
+        .replace(/&lt;(https?:.+?)&gt;/g, '<a target="_blank" href="$1">$1</a>')
+        .replace(/\n/g, '<br>'); };
 
     eval(code);
     return __;
@@ -2239,6 +2269,10 @@ function dispatch(page) {
   referer = page;
 }
 
+function reload() {
+  dispatch(document.location.hash);
+}
+
 $(function () {
   $(window).on('hashchange', function (event) {
     dispatch(document.location.hash);
@@ -2341,6 +2375,21 @@ $(function () {
     $(event.target).closest('.task').find('form.annotate').toggle();
   });
 
+  $('#main').on('click', 'a[href^="run:"]', function (event) {
+    event.preventDefault();
+    var uuid  = $(event.target).closest('a[href^="run:"]').attr('href').replace(/^run:/, '');
+
+    banner('scheduling ad hoc backup...', 'progress');
+    $.ajax({
+      type: 'POST',
+      url:  '/v1/job/'+uuid+'/run',
+      success: function (data) {
+        banner('ad hoc backup job scheduled');
+        reload();
+      },
+    });
+  });
+
   $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
     var uuid   = $(event.target).closest('[data-archive-uuid]').data('archive-uuid');
     var target = $(event.target).closest('[data-system-name]').data('system-name');
@@ -2368,31 +2417,8 @@ $(function () {
 
     var $form = $(event.target);
     var uuid = $form.closest('[data-system-uuid]').data('system-uuid');
-    console.log($form);
 
-    if ($form.is('[data-system-uuid] [data-archive-uuid] *')) {
-      var ann = {
-        type  : "archive",
-        uuid  : $form.closest('[data-archive-uuid]').data('archive-uuid'),
-        notes : $form.find('[name=notes]').val()
-      };
-      $.ajax({
-        type: 'PATCH',
-        url:  '/v2/systems/'+uuid,
-
-        contentType: 'application/json',
-        data: JSON.stringify({ "annotations": [ann] }),
-        success: function (data) {
-          $form.hide();
-          banner("archive annotation saved.");
-        },
-        error: function (xhr) {
-          $form.hide();
-          banner("archive annotation failed to save.");
-        }
-      });
-
-    } else if ($form.is('[data-system-uuid] [data-task-uuid] *')) {
+    if ($form.is('[data-system-uuid] [data-task-uuid] *')) {
       var ann = {
         type  : "task",
         uuid  : $form.find('[name=uuid]').val(),
@@ -2416,10 +2442,11 @@ $(function () {
         success: function (data) {
           $form.hide();
           banner("task annotation saved.");
+          reload();
         },
         error: function (xhr) {
           $form.hide();
-          banner("task annotation failed to save.");
+          banner("task annotation failed to save.", 'error');
         }
       });
 
