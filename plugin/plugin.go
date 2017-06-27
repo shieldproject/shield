@@ -31,6 +31,7 @@ type Opt struct {
 	Version   bool   `cli:"-v, --version"`
 	Endpoint  string `cli:"-e,--endpoint"`
 	Key       string `cli:"-k, --key"`
+	Text      bool   `cli:"--text"`
 
 	Info     struct{} `cli:"info"`
 	Example  struct{} `cli:"example"`
@@ -109,7 +110,7 @@ COMMANDS
   validate -e JSON             Validate endpoint JSON/configuration
   backup   -e JSON             Backup a target
   restore  -e JSON             Replay a backup archive to a target
-  store    -e JSON             Store a backup archive
+  store    -e JSON [--text]    Store a backup archive
   retrieve -e JSON -k KEY      Stream a backup archive from storage
   purge    -e JSON -k KEY      Delete a backup archive from storage
 `)
@@ -165,11 +166,15 @@ BACKUP COMMANDS
 
 STORAGE COMMANDS
 
-  store --endpoint STORE-ENDPOINT-JSON
+  store --endpoint STORE-ENDPOINT-JSON [--text]
 
     Reads a compressed backup archive on standard input and attempts to
     persist it to the backing storage system indicated by --endpoint.
     Upon success, writes the STORAGE-HANDLE to standard output.
+
+    If --text is given, the STORAGE-HANDLE is printed on a single line,
+    without any additional whitespace or formatting.  By default, it will
+    be printed inside of a JSON structure.
 
   retrieve --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON
 
@@ -239,31 +244,39 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 			return err
 		}
 		err = p.Validate(endpoint)
+
 	case "backup":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		err = p.Backup(endpoint)
+
 	case "restore":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		err = p.Restore(endpoint)
+
 	case "store":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		key, err = p.Store(endpoint)
-		output, jsonErr := json.MarshalIndent(struct {
-			Key string `json:"key"`
-		}{Key: key}, "", "    ")
-		if jsonErr != nil {
-			return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
+		if opt.Text {
+			fmt.Printf("%s\n", key)
+		} else {
+			output, jsonErr := json.MarshalIndent(struct {
+				Key string `json:"key"`
+			}{Key: key}, "", "    ")
+			if jsonErr != nil {
+				return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
+			}
+			fmt.Printf("%s\n", string(output))
 		}
-		fmt.Printf("%s\n", string(output))
+
 	case "retrieve":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
