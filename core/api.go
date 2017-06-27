@@ -1394,22 +1394,23 @@ func (core *Core) v2PostAgents(w http.ResponseWriter, req *http.Request) {
   ]
 */
 type v2SystemArchive struct {
+	UUID     uuid.UUID `json:"uuid"`
 	Schedule string    `json:"schedule"`
 	TakenAt  int64     `json:"taken_at"`
-	UUID     uuid.UUID `json:"uuid"`
-	TaskUUID uuid.UUID `json:"task_uuid"`
 	Expiry   int       `json:"expiry"`
 	Size     int       `json:"size"`
 	OK       bool      `json:"ok"`
 	Notes    string    `json:"notes"`
 }
 type v2SystemTask struct {
-	UUID      uuid.UUID `json:"uuid"`
-	Type      string    `json:"type"`
-	Owner     string    `json:"owner"`
-	StartedAt int64     `json:"started_at"`
-	OK        bool      `json:"ok"`
-	Notes     string    `json:"notes"`
+	UUID      uuid.UUID        `json:"uuid"`
+	Type      string           `json:"type"`
+	Status    string           `json:"status"`
+	Owner     string           `json:"owner"`
+	StartedAt int64            `json:"started_at"`
+	OK        bool             `json:"ok"`
+	Notes     string           `json:"notes"`
+	Archive   *v2SystemArchive `json:"archive,omitempty"`
 }
 type v2SystemJob struct {
 	Schedule string `json:"schedule"`
@@ -1429,8 +1430,7 @@ type v2System struct {
 	OK    bool      `json:"ok"`
 
 	Jobs        []v2SystemJob     `json:"jobs"`
-	Archives    []v2SystemArchive `json:"archives"`
-	FailedTasks []v2SystemTask    `json:"failed_tasks"`
+	Tasks       []v2SystemTask    `json:"tasks"`
 }
 
 func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
@@ -1526,7 +1526,9 @@ func (core *Core) v2GetSystem(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	archives, err := core.DB.GetAllArchives(
+	// keep track of our archives, indexed by task UUID
+	archives:= make(map[string]*db.Archive)
+	aa, err := core.DB.GetAllArchives(
 		&db.ArchiveFilter{
 			ForTarget:  target.UUID.String(),
 			WithStatus: []string{"valid"},
@@ -1536,40 +1538,13 @@ func (core *Core) v2GetSystem(w http.ResponseWriter, req *http.Request) {
 		bail(w, err)
 		return
 	}
-
-	system.Archives = make([]v2SystemArchive, len(archives))
-	for i, archive := range archives {
-		system.Archives[i].Schedule = archive.Job
-		system.Archives[i].TakenAt = archive.TakenAt.Time().Unix()
-		system.Archives[i].UUID = archive.UUID
-		system.Archives[i].Expiry = (int)((archive.ExpiresAt.Time().Unix() - archive.TakenAt.Time().Unix()) / 86400)
-		system.Archives[i].Notes = archive.Notes
-		system.Archives[i].Size = -1 // FIXME
-
-		tasks, err := core.DB.GetAllTasks(
-			&db.TaskFilter{
-				ForArchive: archive.UUID.String(),
-			},
-		)
-		if err != nil {
-			bail(w, err)
-			return
-		}
-
-		if len(tasks) == 1 {
-			system.Archives[i].TaskUUID = tasks[0].UUID
-			system.Archives[i].OK = tasks[0].OK
-		} else if len(tasks) > 1 {
-			bail(w, fmt.Errorf("multiple tasks associated with archive UUID %s", archive.UUID))
-			return
-		}
+	for _, archive := range aa {
+		archives[archive.UUID.String()] = archive
 	}
 
-	failed, err := core.DB.GetAllTasks(
+	tasks, err := core.DB.GetAllTasks(
 		&db.TaskFilter{
 			ForTarget:    target.UUID.String(),
-			ForOp:        "backup",
-			ForStatus:    "failed",
 			OnlyRelevant: true,
 		},
 	)
@@ -1577,15 +1552,30 @@ func (core *Core) v2GetSystem(w http.ResponseWriter, req *http.Request) {
 		bail(w, err)
 		return
 	}
+	system.Tasks = make([]v2SystemTask, len(tasks))
+	for i, task := range tasks {
+		system.Tasks[i].UUID = task.UUID
+		system.Tasks[i].Type = task.Op
+		system.Tasks[i].Status = task.Status
+		system.Tasks[i].Owner = task.Owner
+		system.Tasks[i].OK = task.OK
+		system.Tasks[i].Notes = task.Notes
 
-	system.FailedTasks = make([]v2SystemTask, len(failed))
-	for i, task := range failed {
-		system.FailedTasks[i].UUID = task.UUID
-		system.FailedTasks[i].Type = task.Op
-		system.FailedTasks[i].Owner = task.Owner
-		system.FailedTasks[i].StartedAt = task.StartedAt.Time().Unix()
-		system.FailedTasks[i].OK = task.OK
-		system.FailedTasks[i].Notes = task.Notes
+		if t := task.StartedAt.Time(); t.IsZero() {
+			system.Tasks[i].StartedAt = 0
+		} else {
+			system.Tasks[i].StartedAt = t.Unix()
+		}
+
+		if archive, ok := archives[task.ArchiveUUID.String()]; ok {
+			system.Tasks[i].Archive = &v2SystemArchive{
+				UUID:     archive.UUID,
+				Schedule: archive.Job,
+				Expiry:   (int)((archive.ExpiresAt.Time().Unix() - archive.TakenAt.Time().Unix()) / 86400),
+				Notes:    archive.Notes,
+				Size:     -1, // FIXME
+			}
+		}
 	}
 
 	JSON(w, system)
