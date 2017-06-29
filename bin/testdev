@@ -114,7 +114,7 @@ EOF
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
        new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
        new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ; read JUNK" \; \
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ${SHIELD_ENV}; read JUNK" \; \
        new-window -n db sqlite3 ${workdir}/var/shield.db \;
   ;;
 
