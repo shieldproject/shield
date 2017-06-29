@@ -941,7 +941,7 @@ pre.task-failed.override code { background-color: #333; }
   color: palegreen;
 }
 
-button[rel^="backup:"] {
+button[rel^="run:"] {
   display: block;
   float: right;
   font-size: 14pt;
@@ -950,12 +950,64 @@ button[rel^="backup:"] {
   padding: 12px 20px;
   border-radius: 8px;
   border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
   box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
   cursor: pointer;
 }
+
+.do-caption {
+  font-style: italic;
+  font-size: 11pt;
+  margin-bottom: 2em;
+  color: #0071bc;
+}
+.do-backup .picks {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+.do-backup .picks {
+  overflow: hidden;
+}
+.do-backup .picks > div {
+  width: 29%;
+  margin: 0 2% 2% 0;
+}
+.do-backup .picks > div:nth-child(2n+1) { clear: none; }
+.do-backup .picks > div:nth-child(3n+3) { margin: 0 0 2% 0; }
+.do-backup .picks > div:nth-child(3n+1) { clear: both; }
+.do-backup .picks .empty {
+  border: 2px dashed #777;
+  padding: 10px;
+  background-color: #eee;
+  opacity: 0.5;
+}
+
+.do-backup .step > h3 {
+  font-size: 24px;
+  line-height: 64px;
+  font-weight: bold;
+}
+.do-backup .step {
+  clear: both;
+  overflow: hidden;
+}
+.do-backup .step p {
+  width: 70%;
+    line-height: 1.2em;
+}
+.do-backup .step p strong {
+  font-weight: bold;
+  color: #0071bc;
+  font-size: 110%;
+}
+.do-backup .run-the-backup p {
+  float: left;
+}
+<body>
 </style>
 </head>
-<body>
 
 <div class="top-bar" data-tpl-src="top-bar">
   <h1>SHIELD</h1>
@@ -963,7 +1015,7 @@ button[rel^="backup:"] {
 
 <div class="story-sidebar">
   <nav>
-    <li><a href="#">Perform an ad hoc backup</a>
+    <li><a href="#!/do/backup">Perform an ad hoc backup</a>
         <p>Run a backup job whenever you need to, regardless of the job's
         schedule.</p></li>
 
@@ -1199,6 +1251,180 @@ into your Github issue:
 - **Arguments**:  ([[= _.args.join(', ') ]])
 - **Referer**:    [[= maybe(_.referer, '_none_') ]]
 </pre>
+    </div>
+</script>
+<script type="text/html" id="tpl--do-backup">
+[[#
+  {do-backup}
+
+]]
+[[
+  var stores = {};
+  if (!_.system) {
+    _.store = undefined;
+    _.policy = undefined;
+  }
+
+  if (_.system && !_.store) {
+    _.policy = undefined;
+    $.each(_.system.jobs, function (i, job) {
+      _.store = stores[job.store.uuid] = job.store;
+      job.store.plugin = job.to;
+    });
+    if (_.noauto || Object.keys(stores).length != 1) {
+      _.store = undefined;
+    }
+  }
+
+  var policies = {};
+  if (_.system && _.store && !_.policy) {
+    $.each(_.system.jobs, function(i, job) {
+      if (job.store.uuid = _.store.uuid) {
+        _.policy = policies[job.retention.uuid] = job.retention;
+      }
+    });
+    if (_.noauto || Object.keys(policies).length != 1) {
+      _.policy = undefined;
+    }
+  }
+]]
+    <div class="gutter blk do-backup">
+      <p class="do-caption">Performing an Ad Hoc Backup</p>
+      <div class="picks">
+        [[ if (_.system) { ]]
+        <div class="job card [[ if (!_.system.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+        <a href="do-backup:unpick">
+          <img src="i/shield-[[= _.system.ok ? 'ok' : 'fail' ]].svg">
+          <h3>[[= _.system.name ]]</h3>
+          <div class="notes">[[= _.system.notes ]]</div>
+        </a>
+        </div>
+        [[ } else { ]]
+        <div class="job card empty">Protected System</div>
+        [[ } ]]
+        [[ if (_.store) { ]]
+        <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+        <a href="do-backup:unpick">
+          <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+          <h3>[[= _.store.name ]]</h3>
+          <div class="notes">[[ if (_.store.summary) { ]]
+            [[= _.store.summary ]]
+          [[ } else { ]]
+            <div class="no-data">No summary provided.  Too bad.</div>
+          [[ } ]]</div>
+          <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+            <div class="to">[[= _.store.plugin ]]</div>
+          </div>
+        </a>
+        </div>
+        [[ } else { ]]
+        <div class="store card empty">Cloud Storage</div>
+        [[ } ]]
+        [[ if (_.policy) { ]]
+        <div class="policy card">
+        <a href="do-backup:unpick">
+          <h3>[[= _.policy.name ]]</h3>
+          <ul class="details">
+            <li>keep for [[= _.policy.days ]] days</li>
+          </ul>
+          <div class="notes">[[= _.policy.summary ]]</div>
+        </a>
+        </div>
+        [[ } else { ]]
+        <div class="store card empty">Retention Policy</div>
+        [[ } ]]
+      </div>
+
+      [[ if (!_.system) { ]]
+      <div class="step pick-a-system">
+        <h3>1. Pick What You Want To Back Up</h3>
+        <p>Which protected system you want to back up?</p>
+
+        <div>
+        [[ $.each(_.systems, function (i, target) { ]]
+        <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <a href="do-backup:pick:target:[[= target.uuid ]]">
+          <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
+          <h3>[[= target.name ]]</h3>
+          <div class="notes">[[= target.notes ]]</div>
+          </a>
+        </div>
+        [[ }); ]]
+        </div>
+      </div>
+      [[ } ]]
+
+      [[ if (_.system && !_.store) { ]]
+      <div class="step pick-a-store">
+        <h3>2. Select Cloud Storage</h3>
+        <p>Where would you like to store this backup archive?</p>
+
+        <div>
+          [[ $.each(stores, function (uuid, store) { ]]
+              <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+                <a href="do-backup:pick:store:[[= store.uuid ]]">
+                <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+                <h3>[[= store.name ]]</h3>
+                <div class="notes">[[ if (store.summary) { ]]
+                  [[= store.summary ]]
+                [[ } else { ]]
+                  <div class="no-data">No summary provided.  Too bad.</div>
+                [[ } ]]</div>
+                <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+                  <div class="to">[[= store.plugin ]]</div>
+                </div>
+                </a>
+              </div>
+          [[ }); ]]
+        </div>
+      </div>
+      [[ } ]]
+
+      [[ if (_.system && _.store && !_.policy) { ]]
+      <div class="step pick-a-retention-policy" style="display: block">
+        <h3>3. Choose a Retention Policy</h3>
+        <p>How long should we keep this backup?</p>
+
+        <div>
+          [[ $.each(policies, function (uuid, retention) { ]]
+             <div class="policy card">
+               <a href="do-backup:pick:policy:[[= retention.uuid ]]">
+               <h3>[[= retention.name ]]</h3>
+               <ul class="details">
+                 <li>keep for [[= retention.days ]] days</li>
+               </ul>
+               <div class="notes">[[= retention.summary ]]</div>
+               </a>
+             </div>
+          [[ }); ]]
+        </div>
+        </div>
+      </div>
+      [[ } ]]
+
+      [[ if (_.system && _.store && _.policy) { ]]
+      [[
+         var uuid;
+         for (var i = 0; i < _.system.jobs.length; i++) {
+           var job = _.system.jobs[i];
+           if (job.store.uuid == _.store.uuid
+            && job.retention.uuid == _.policy.uuid) {
+
+             uuid = job.uuid;
+             break;
+           }
+         }
+      ]]
+      <div class="step run-the-backup" style="display: block">
+        <h3>4. Review Your Choices</h3>
+        <p>If everything looks correct, click the big button to
+        initiate a manual backup of <strong>[[= _.system.name ]]</strong>
+        to <strong>[[= _.store.name ]]</strong> &mdash; backup archive will be kept
+        for <strong>[[= _.policy.days ]] days</strong>.</p>
+
+        <button rel="run:[[= uuid ]]">Run Backup &raquo;</button>
+      </div>
+      [[ } ]]
     </div>
 </script>
 <script type="text/html" id="tpl--systems">
@@ -2129,6 +2355,78 @@ function dispatch(page) {
   $('nav a[href="'+top+'"]').closest('li').addClass('current');
 
   switch (page) {
+  case "#!/do/backup": /* {{{ */
+    (function () {
+      $('#main').html(template('loading'));
+      var data = {};
+
+      $.ajax({
+        type: 'GET',
+        url:  '/v2/systems',
+        success: function (systems) {
+          data = { systems: systems };
+          $('#main').html(template('do-backup', data))
+            .on('click', "a[href^=\"do-backup:\"]", function (event) {
+              event.preventDefault();
+              l = $(event.target).closest('a[href^="do-backup:"]').attr('href').split(':');
+              if (l[1] == "unpick") {
+                var $card = $(event.target).closest('.card');
+                if ($card.is('.job'))    { data.system = data.store = data.policy = undefined; }
+                if ($card.is('.store'))  {               data.store = data.policy = undefined; }
+                if ($card.is('.policy')) {                            data.policy = undefined; }
+
+                data.noauto = true;
+                $('#main').html(template('do-backup', data));
+                data.noauto = false;
+                return;
+              }
+
+              if (l[1] == "pick" && l[2] == "target") {
+                for (var i = 0; i < data.systems.length; i++) {
+                  if (data.systems[i].uuid == l[3]) {
+                    data.system = data.systems[i];
+                    break;
+                  }
+                }
+                $('#main').html(template('do-backup', data));
+                return;
+              }
+
+              if (l[1] == "pick" && l[2] == "store") {
+                for (var i = 0; i < data.system.jobs.length; i++) {
+                  if (data.system.jobs[i].store.uuid == l[3]) {
+                    data.store = data.system.jobs[i].store;
+                    break;
+                  }
+                }
+                $('#main').html(template('do-backup', data));
+                return;
+              }
+
+              if (l[1] == "pick" && l[2] == "policy") {
+                for (var i = 0; i < data.system.jobs.length; i++) {
+                  if (data.system.jobs[i].store.uuid == data.store.uuid
+                   && data.system.jobs[i].retention.uuid == l[3]) {
+                    data.policy = data.system.jobs[i].retention;
+                    break;
+                  }
+                }
+                $('#main').html(template('do-backup', data));
+                return;
+              }
+            });
+        },
+        error: function (xhr) {
+          $('#main').html(template('error', {
+            http:     xhr.status + ' ' + xhr.statusText,
+            response: xhr.responseText,
+            message:  "Failed retrieving the list of protected systems from the SHIELD API."
+          }));
+        }
+      });
+    })();
+    break; /* #!/do/backup */
+    // }}}
   case "#!/systems": /* {{{ */
     $('#main').html(template('loading'));
     $.ajax({
@@ -2138,7 +2436,6 @@ function dispatch(page) {
         $('#main').html(template('systems', { systems: data }));
       },
       error: function (xhr) {
-        console.log(arguments);
         $('#main').html(template('error', {
           http:     xhr.status + ' ' + xhr.statusText,
           response: xhr.responseText,
@@ -2375,9 +2672,15 @@ $(function () {
     $(event.target).closest('.task').find('form.annotate').toggle();
   });
 
-  $('#main').on('click', 'a[href^="run:"]', function (event) {
+  $('#main').on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) {
     event.preventDefault();
-    var uuid  = $(event.target).closest('a[href^="run:"]').attr('href').replace(/^run:/, '');
+    var uuid;
+    if ($(event.target).is('button')) {
+      uuid = $(event.target).attr('rel');
+    } else {
+      uuid  = $(event.target).closest('a[href^="run:"]').attr('href');
+    }
+    uuid = uuid.replace(/^run:/, '');
 
     banner('scheduling ad hoc backup...', 'progress');
     $.ajax({

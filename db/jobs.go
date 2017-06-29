@@ -13,25 +13,27 @@ import (
 )
 
 type Job struct {
-	UUID           uuid.UUID `json:"uuid"`
-	Name           string    `json:"name"`
-	Summary        string    `json:"summary"`
-	RetentionName  string    `json:"retention_name"`
-	RetentionUUID  uuid.UUID `json:"retention_uuid"`
-	Expiry         int       `json:"expiry"`
-	Schedule       string    `json:"schedule"`
-	Paused         bool      `json:"paused"`
-	StoreUUID      uuid.UUID `json:"store_uuid"`
-	StoreName      string    `json:"store_name"`
-	StorePlugin    string    `json:"store_plugin"`
-	StoreEndpoint  string    `json:"store_endpoint"`
-	TargetUUID     uuid.UUID `json:"target_uuid"`
-	TargetName     string    `json:"target_name"`
-	TargetPlugin   string    `json:"target_plugin"`
-	TargetEndpoint string    `json:"target_endpoint"`
-	Agent          string    `json:"agent"`
-	LastRun        Timestamp `json:"last_run"`
-	LastTaskStatus string    `json:"last_task_status"`
+	UUID             uuid.UUID `json:"uuid"`
+	Name             string    `json:"name"`
+	Summary          string    `json:"summary"`
+	RetentionName    string    `json:"retention_name"`
+	RetentionSummary string    `json:"retention_summary"`
+	RetentionUUID    uuid.UUID `json:"retention_uuid"`
+	Expiry           int       `json:"expiry"`
+	Schedule         string    `json:"schedule"`
+	Paused           bool      `json:"paused"`
+	StoreUUID        uuid.UUID `json:"store_uuid"`
+	StoreName        string    `json:"store_name"`
+	StorePlugin      string    `json:"store_plugin"`
+	StoreEndpoint    string    `json:"store_endpoint"`
+	StoreSummary     string    `json:"store_summary"`
+	TargetUUID       uuid.UUID `json:"target_uuid"`
+	TargetName       string    `json:"target_name"`
+	TargetPlugin     string    `json:"target_plugin"`
+	TargetEndpoint   string    `json:"target_endpoint"`
+	Agent            string    `json:"agent"`
+	LastRun          Timestamp `json:"last_run"`
+	LastTaskStatus   string    `json:"last_task_status"`
 
 	Spec    *timespec.Spec `json:"-"`
 	NextRun time.Time      `json:"-"`
@@ -104,8 +106,8 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 			SELECT t.started_at, t.status, t.job_uuid, t.uuid FROM tasks t, most_recent_job_task_at mr WHERE t.job_uuid = mr.job_uuid AND t.requested_at = mr.requested_at
 		)
 			SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-						 r.name, r.uuid, r.expiry,
-						 s.uuid, s.name, s.plugin, s.endpoint,
+						 r.name, r.summary, r.uuid, r.expiry,
+						 s.uuid, s.name, s.plugin, s.endpoint, s.summary,
 						 t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 						 k.started_at, k.status
 
@@ -122,8 +124,8 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 	default:
 		return `
 			SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-			       r.name, r.uuid, r.expiry,
-			       s.uuid, s.name, s.plugin, s.endpoint,
+			       r.name, r.summary, r.uuid, r.expiry,
+			       s.uuid, s.name, s.plugin, s.endpoint, s.summary,
 			       t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 			       null AS started_at, '' AS status
 
@@ -161,8 +163,8 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		)
 		if err = r.Scan(
 			&this, &ann.Name, &ann.Summary, &ann.Paused, &ann.Schedule,
-			&ann.RetentionName, &retention, &ann.Expiry,
-			&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+			&ann.RetentionName, &ann.RetentionSummary, &retention, &ann.Expiry,
+			&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreSummary,
 			&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Agent, &last_run, &last_task_status); err != nil {
 			return l, err
@@ -190,8 +192,8 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
 		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-		       r.name, r.uuid, r.expiry,
-		       s.uuid, s.name, s.plugin, s.endpoint,
+		       r.name, r.summary, r.uuid, r.expiry,
+		       s.uuid, s.name, s.plugin, s.endpoint, s.summary,
 		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
@@ -213,8 +215,8 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	var this, retention, store, target NullUUID
 	if err = r.Scan(
 		&this, &ann.Name, &ann.Summary, &ann.Paused, &ann.Schedule,
-		&ann.RetentionName, &retention, &ann.Expiry,
-		&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
+		&ann.RetentionName, &ann.RetentionSummary, &retention, &ann.Expiry,
+		&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreSummary,
 		&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&ann.Agent); err != nil {
 		return nil, err
