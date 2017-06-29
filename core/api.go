@@ -1419,10 +1419,24 @@ type v2SystemJob struct {
 	To       string    `json:"to"`
 	OK       bool      `json:"ok"`
 
+	Store struct {
+		UUID    uuid.UUID `json:"uuid"`
+		Name    string    `json:"name"`
+		Summary string    `json:"summary"`
+		Plugin  string    `json:"plugin"`
+	} `json:"store"`
+
 	Keep struct {
 		N    int `json:"n"`
 		Days int `json:"days"`
 	} `json:"keep"`
+
+	Retention struct {
+		UUID    uuid.UUID `json:"uuid"`
+		Name    string    `json:"name"`
+		Summary string    `json:"summary"`
+		Days    int       `json:"days"`
+	} `json:"retention"`
 }
 type v2System struct {
 	UUID  uuid.UUID `json:"uuid"`
@@ -1456,11 +1470,19 @@ func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 		dst.Jobs[j].From = job.TargetPlugin
 		dst.Jobs[j].To = job.StorePlugin
 		dst.Jobs[j].OK = job.Healthy()
+		dst.Jobs[j].Store.UUID = job.StoreUUID
+		dst.Jobs[j].Store.Name = job.StoreName
+		dst.Jobs[j].Store.Summary = job.StoreSummary
+		dst.Jobs[j].Retention.UUID = job.RetentionUUID
+		dst.Jobs[j].Retention.Name = job.RetentionName
+		dst.Jobs[j].Retention.Summary = job.RetentionSummary
+
 		if !job.Healthy() {
 			dst.OK = false
 		}
 
 		dst.Jobs[j].Keep.Days = job.Expiry / 86400
+		dst.Jobs[j].Retention.Days = dst.Jobs[j].Keep.Days
 
 		tspec, err := timespec.Parse(job.Schedule)
 		if err != nil {
