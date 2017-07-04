@@ -1,5 +1,5 @@
 /*
- * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015 Minio, Inc.
+ * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015, 2016, 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,10 @@ type ErrorResponse struct {
 
 	// Region where the bucket is located. This header is returned
 	// only in HEAD bucket and ListObjects response.
-	AmzBucketRegion string
+	Region string
+
+	// Headers of the returned S3 XML error
+	Headers http.Header `xml:"-" json:"-"`
 }
 
 // ToErrorResponse - Returns parsed ErrorResponse struct from body and
@@ -72,8 +75,15 @@ func ToErrorResponse(err error) ErrorResponse {
 	}
 }
 
-// Error - Returns HTTP error string
+// Error - Returns S3 error string.
 func (e ErrorResponse) Error() string {
+	if e.Message == "" {
+		msg, ok := s3ErrorResponseMap[e.Code]
+		if !ok {
+			msg = fmt.Sprintf("Error response code %s.", e.Code)
+		}
+		return msg
+	}
 	return e.Message
 }
 
@@ -91,6 +101,7 @@ func httpRespToErrorResponse(resp *http.Response, bucketName, objectName string)
 		return ErrInvalidArgument(msg)
 	}
 	var errResp ErrorResponse
+
 	err := xmlDecoder(resp.Body, &errResp)
 	// Xml decoding failed with no body, fall back to HTTP headers.
 	if err != nil {
@@ -98,66 +109,73 @@ func httpRespToErrorResponse(resp *http.Response, bucketName, objectName string)
 		case http.StatusNotFound:
 			if objectName == "" {
 				errResp = ErrorResponse{
-					Code:            "NoSuchBucket",
-					Message:         "The specified bucket does not exist.",
-					BucketName:      bucketName,
-					RequestID:       resp.Header.Get("x-amz-request-id"),
-					HostID:          resp.Header.Get("x-amz-id-2"),
-					AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+					Code:       "NoSuchBucket",
+					Message:    "The specified bucket does not exist.",
+					BucketName: bucketName,
 				}
 			} else {
 				errResp = ErrorResponse{
-					Code:            "NoSuchKey",
-					Message:         "The specified key does not exist.",
-					BucketName:      bucketName,
-					Key:             objectName,
-					RequestID:       resp.Header.Get("x-amz-request-id"),
-					HostID:          resp.Header.Get("x-amz-id-2"),
-					AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+					Code:       "NoSuchKey",
+					Message:    "The specified key does not exist.",
+					BucketName: bucketName,
+					Key:        objectName,
 				}
 			}
 		case http.StatusForbidden:
 			errResp = ErrorResponse{
-				Code:            "AccessDenied",
-				Message:         "Access Denied.",
-				BucketName:      bucketName,
-				Key:             objectName,
-				RequestID:       resp.Header.Get("x-amz-request-id"),
-				HostID:          resp.Header.Get("x-amz-id-2"),
-				AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+				Code:       "AccessDenied",
+				Message:    "Access Denied.",
+				BucketName: bucketName,
+				Key:        objectName,
 			}
 		case http.StatusConflict:
 			errResp = ErrorResponse{
-				Code:            "Conflict",
-				Message:         "Bucket not empty.",
-				BucketName:      bucketName,
-				RequestID:       resp.Header.Get("x-amz-request-id"),
-				HostID:          resp.Header.Get("x-amz-id-2"),
-				AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+				Code:       "Conflict",
+				Message:    "Bucket not empty.",
+				BucketName: bucketName,
+			}
+		case http.StatusPreconditionFailed:
+			errResp = ErrorResponse{
+				Code:       "PreconditionFailed",
+				Message:    s3ErrorResponseMap["PreconditionFailed"],
+				BucketName: bucketName,
+				Key:        objectName,
 			}
 		default:
 			errResp = ErrorResponse{
-				Code:            resp.Status,
-				Message:         resp.Status,
-				BucketName:      bucketName,
-				RequestID:       resp.Header.Get("x-amz-request-id"),
-				HostID:          resp.Header.Get("x-amz-id-2"),
-				AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+				Code:       resp.Status,
+				Message:    resp.Status,
+				BucketName: bucketName,
 			}
 		}
 	}
 
-	// AccessDenied without a signature mismatch code, usually means
-	// that the bucket policy has certain restrictions where some API
-	// operations are not allowed. Handle this case so that top level
-	// callers can interpret this easily and fall back if needed to a
-	// lower functionality call. Read each individual API specific
-	// code for such fallbacks.
-	if errResp.Code == "AccessDenied" && errResp.Message == "Access Denied" {
-		errResp.Code = "NotImplemented"
-		errResp.Message = "Operation is not allowed according to your bucket policy."
+	// Save hodID, requestID and region information
+	// from headers if not available through error XML.
+	if errResp.RequestID == "" {
+		errResp.RequestID = resp.Header.Get("x-amz-request-id")
 	}
+	if errResp.HostID == "" {
+		errResp.HostID = resp.Header.Get("x-amz-id-2")
+	}
+	if errResp.Region == "" {
+		errResp.Region = resp.Header.Get("x-amz-bucket-region")
+	}
+
+	// Save headers returned in the API XML error
+	errResp.Headers = resp.Header
+
 	return errResp
+}
+
+// ErrTransferAccelerationBucket - bucket name is invalid to be used with transfer acceleration.
+func ErrTransferAccelerationBucket(bucketName string) error {
+	msg := fmt.Sprintf("The name of the bucket used for Transfer Acceleration must be DNS-compliant and must not contain periods (\".\").")
+	return ErrorResponse{
+		Code:       "InvalidArgument",
+		Message:    msg,
+		BucketName: bucketName,
+	}
 }
 
 // ErrEntityTooLarge - Input size is larger than supported maximum.
@@ -212,16 +230,6 @@ func ErrInvalidObjectName(message string) error {
 	}
 }
 
-// ErrInvalidParts - Invalid number of parts.
-func ErrInvalidParts(expectedParts, uploadedParts int) error {
-	msg := fmt.Sprintf("Unexpected number of parts found Want %d, Got %d", expectedParts, uploadedParts)
-	return ErrorResponse{
-		Code:      "InvalidParts",
-		Message:   msg,
-		RequestID: "minio",
-	}
-}
-
 // ErrInvalidObjectPrefix - Invalid object prefix response is
 // similar to object name response.
 var ErrInvalidObjectPrefix = ErrInvalidObjectName
@@ -230,6 +238,26 @@ var ErrInvalidObjectPrefix = ErrInvalidObjectName
 func ErrInvalidArgument(message string) error {
 	return ErrorResponse{
 		Code:      "InvalidArgument",
+		Message:   message,
+		RequestID: "minio",
+	}
+}
+
+// ErrNoSuchBucketPolicy - No Such Bucket Policy response
+// The specified bucket does not have a bucket policy.
+func ErrNoSuchBucketPolicy(message string) error {
+	return ErrorResponse{
+		Code:      "NoSuchBucketPolicy",
+		Message:   message,
+		RequestID: "minio",
+	}
+}
+
+// ErrAPINotSupported - API not supported response
+// The specified API call is not supported
+func ErrAPINotSupported(message string) error {
+	return ErrorResponse{
+		Code:      "APINotSupported",
 		Message:   message,
 		RequestID: "minio",
 	}

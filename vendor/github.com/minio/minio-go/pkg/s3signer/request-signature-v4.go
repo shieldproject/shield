@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package minio
+package s3signer
 
 import (
 	"bytes"
@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/minio/minio-go/pkg/s3utils"
 )
 
 // Signature and API related constants.
@@ -68,7 +70,7 @@ const (
 ///
 ///      Is skipped for obvious reasons
 ///
-var ignoredHeaders = map[string]bool{
+var v4IgnoredHeaders = map[string]bool{
 	"Authorization":  true,
 	"Content-Type":   true,
 	"Content-Length": true,
@@ -101,8 +103,8 @@ func getScope(location string, t time.Time) string {
 	return scope
 }
 
-// getCredential generate a credential string.
-func getCredential(accessKeyID, location string, t time.Time) string {
+// GetCredential generate a credential string.
+func GetCredential(accessKeyID, location string, t time.Time) string {
 	scope := getScope(location, t)
 	return accessKeyID + "/" + scope
 }
@@ -113,14 +115,14 @@ func getHashedPayload(req http.Request) string {
 	hashedPayload := req.Header.Get("X-Amz-Content-Sha256")
 	if hashedPayload == "" {
 		// Presign does not have a payload, use S3 recommended value.
-		hashedPayload = "UNSIGNED-PAYLOAD"
+		hashedPayload = unsignedPayload
 	}
 	return hashedPayload
 }
 
 // getCanonicalHeaders generate a list of request headers for
 // signature.
-func getCanonicalHeaders(req http.Request) string {
+func getCanonicalHeaders(req http.Request, ignoredHeaders map[string]bool) string {
 	var headers []string
 	vals := make(map[string][]string)
 	for k, vv := range req.Header {
@@ -159,7 +161,7 @@ func getCanonicalHeaders(req http.Request) string {
 // getSignedHeaders generate all signed request headers.
 // i.e lexically sorted, semicolon-separated list of lowercase
 // request header names.
-func getSignedHeaders(req http.Request) string {
+func getSignedHeaders(req http.Request, ignoredHeaders map[string]bool) string {
 	var headers []string
 	for k := range req.Header {
 		if _, ok := ignoredHeaders[http.CanonicalHeaderKey(k)]; ok {
@@ -181,14 +183,14 @@ func getSignedHeaders(req http.Request) string {
 //  <CanonicalHeaders>\n
 //  <SignedHeaders>\n
 //  <HashedPayload>
-func getCanonicalRequest(req http.Request) string {
+func getCanonicalRequest(req http.Request, ignoredHeaders map[string]bool) string {
 	req.URL.RawQuery = strings.Replace(req.URL.Query().Encode(), "+", "%20", -1)
 	canonicalRequest := strings.Join([]string{
 		req.Method,
-		urlEncodePath(req.URL.Path),
+		s3utils.EncodePath(req.URL.Path),
 		req.URL.RawQuery,
-		getCanonicalHeaders(req),
-		getSignedHeaders(req),
+		getCanonicalHeaders(req, ignoredHeaders),
+		getSignedHeaders(req, ignoredHeaders),
 		getHashedPayload(req),
 	}, "\n")
 	return canonicalRequest
@@ -202,9 +204,9 @@ func getStringToSignV4(t time.Time, location, canonicalRequest string) string {
 	return stringToSign
 }
 
-// preSignV4 presign the request, in accordance with
+// PreSignV4 presign the request, in accordance with
 // http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html.
-func preSignV4(req http.Request, accessKeyID, secretAccessKey, location string, expires int64) *http.Request {
+func PreSignV4(req http.Request, accessKeyID, secretAccessKey, location string, expires int64) *http.Request {
 	// Presign is not needed for anonymous credentials.
 	if accessKeyID == "" || secretAccessKey == "" {
 		return &req
@@ -214,10 +216,10 @@ func preSignV4(req http.Request, accessKeyID, secretAccessKey, location string, 
 	t := time.Now().UTC()
 
 	// Get credential string.
-	credential := getCredential(accessKeyID, location, t)
+	credential := GetCredential(accessKeyID, location, t)
 
 	// Get all signed headers.
-	signedHeaders := getSignedHeaders(req)
+	signedHeaders := getSignedHeaders(req, v4IgnoredHeaders)
 
 	// Set URL query.
 	query := req.URL.Query()
@@ -229,7 +231,7 @@ func preSignV4(req http.Request, accessKeyID, secretAccessKey, location string, 
 	req.URL.RawQuery = query.Encode()
 
 	// Get canonical request.
-	canonicalRequest := getCanonicalRequest(req)
+	canonicalRequest := getCanonicalRequest(req, v4IgnoredHeaders)
 
 	// Get string to sign from canonical request.
 	stringToSign := getStringToSignV4(t, location, canonicalRequest)
@@ -246,9 +248,9 @@ func preSignV4(req http.Request, accessKeyID, secretAccessKey, location string, 
 	return &req
 }
 
-// postPresignSignatureV4 - presigned signature for PostPolicy
+// PostPresignSignatureV4 - presigned signature for PostPolicy
 // requests.
-func postPresignSignatureV4(policyBase64 string, t time.Time, secretAccessKey, location string) string {
+func PostPresignSignatureV4(policyBase64 string, t time.Time, secretAccessKey, location string) string {
 	// Get signining key.
 	signingkey := getSigningKey(secretAccessKey, location, t)
 	// Calculate signature.
@@ -256,9 +258,9 @@ func postPresignSignatureV4(policyBase64 string, t time.Time, secretAccessKey, l
 	return signature
 }
 
-// signV4 sign the request before Do(), in accordance with
+// SignV4 sign the request before Do(), in accordance with
 // http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html.
-func signV4(req http.Request, accessKeyID, secretAccessKey, location string) *http.Request {
+func SignV4(req http.Request, accessKeyID, secretAccessKey, location string) *http.Request {
 	// Signature calculation is not needed for anonymous credentials.
 	if accessKeyID == "" || secretAccessKey == "" {
 		return &req
@@ -271,7 +273,7 @@ func signV4(req http.Request, accessKeyID, secretAccessKey, location string) *ht
 	req.Header.Set("X-Amz-Date", t.Format(iso8601DateFormat))
 
 	// Get canonical request.
-	canonicalRequest := getCanonicalRequest(req)
+	canonicalRequest := getCanonicalRequest(req, v4IgnoredHeaders)
 
 	// Get string to sign from canonical request.
 	stringToSign := getStringToSignV4(t, location, canonicalRequest)
@@ -280,10 +282,10 @@ func signV4(req http.Request, accessKeyID, secretAccessKey, location string) *ht
 	signingKey := getSigningKey(secretAccessKey, location, t)
 
 	// Get credential string.
-	credential := getCredential(accessKeyID, location, t)
+	credential := GetCredential(accessKeyID, location, t)
 
 	// Get all signed headers.
-	signedHeaders := getSignedHeaders(req)
+	signedHeaders := getSignedHeaders(req, v4IgnoredHeaders)
 
 	// Calculate signature.
 	signature := getSignature(signingKey, stringToSign)
