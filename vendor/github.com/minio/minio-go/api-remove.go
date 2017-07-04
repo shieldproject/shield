@@ -1,5 +1,5 @@
 /*
- * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015 Minio, Inc.
+ * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015, 2016 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
 package minio
 
 import (
+	"bytes"
+	"encoding/xml"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -30,15 +33,11 @@ func (c Client) RemoveBucket(bucketName string) error {
 	if err := isValidBucketName(bucketName); err != nil {
 		return err
 	}
-	// Instantiate a new request.
-	req, err := c.newRequest("DELETE", requestMetadata{
-		bucketName: bucketName,
+	// Execute DELETE on bucket.
+	resp, err := c.executeMethod("DELETE", requestMetadata{
+		bucketName:         bucketName,
+		contentSHA256Bytes: emptySHA256,
 	})
-	if err != nil {
-		return err
-	}
-	// Initiate the request.
-	resp, err := c.do(req)
 	defer closeResponse(resp)
 	if err != nil {
 		return err
@@ -64,28 +63,153 @@ func (c Client) RemoveObject(bucketName, objectName string) error {
 	if err := isValidObjectName(objectName); err != nil {
 		return err
 	}
-	// Instantiate the request.
-	req, err := c.newRequest("DELETE", requestMetadata{
-		bucketName: bucketName,
-		objectName: objectName,
+	// Execute DELETE on objectName.
+	resp, err := c.executeMethod("DELETE", requestMetadata{
+		bucketName:         bucketName,
+		objectName:         objectName,
+		contentSHA256Bytes: emptySHA256,
 	})
-	if err != nil {
-		return err
-	}
-	// Initiate the request.
-	resp, err := c.do(req)
 	defer closeResponse(resp)
 	if err != nil {
 		return err
 	}
+	if resp != nil {
+		// if some unexpected error happened and max retry is reached, we want to let client know
+		if resp.StatusCode != http.StatusNoContent {
+			return httpRespToErrorResponse(resp, bucketName, objectName)
+		}
+	}
+
 	// DeleteObject always responds with http '204' even for
 	// objects which do not exist. So no need to handle them
 	// specifically.
 	return nil
 }
 
+// RemoveObjectError - container of Multi Delete S3 API error
+type RemoveObjectError struct {
+	ObjectName string
+	Err        error
+}
+
+// generateRemoveMultiObjects - generate the XML request for remove multi objects request
+func generateRemoveMultiObjectsRequest(objects []string) []byte {
+	rmObjects := []deleteObject{}
+	for _, obj := range objects {
+		rmObjects = append(rmObjects, deleteObject{Key: obj})
+	}
+	xmlBytes, _ := xml.Marshal(deleteMultiObjects{Objects: rmObjects, Quiet: true})
+	return xmlBytes
+}
+
+// processRemoveMultiObjectsResponse - parse the remove multi objects web service
+// and return the success/failure result status for each object
+func processRemoveMultiObjectsResponse(body io.Reader, objects []string, errorCh chan<- RemoveObjectError) {
+	// Parse multi delete XML response
+	rmResult := &deleteMultiObjectsResult{}
+	err := xmlDecoder(body, rmResult)
+	if err != nil {
+		errorCh <- RemoveObjectError{ObjectName: "", Err: err}
+		return
+	}
+
+	// Fill deletion that returned an error.
+	for _, obj := range rmResult.UnDeletedObjects {
+		errorCh <- RemoveObjectError{
+			ObjectName: obj.Key,
+			Err: ErrorResponse{
+				Code:    obj.Code,
+				Message: obj.Message,
+			},
+		}
+	}
+}
+
+// RemoveObjects remove multiples objects from a bucket.
+// The list of objects to remove are received from objectsCh.
+// Remove failures are sent back via error channel.
+func (c Client) RemoveObjects(bucketName string, objectsCh <-chan string) <-chan RemoveObjectError {
+	errorCh := make(chan RemoveObjectError, 1)
+
+	// Validate if bucket name is valid.
+	if err := isValidBucketName(bucketName); err != nil {
+		defer close(errorCh)
+		errorCh <- RemoveObjectError{
+			Err: err,
+		}
+		return errorCh
+	}
+	// Validate objects channel to be properly allocated.
+	if objectsCh == nil {
+		defer close(errorCh)
+		errorCh <- RemoveObjectError{
+			Err: ErrInvalidArgument("Objects channel cannot be nil"),
+		}
+		return errorCh
+	}
+
+	// Generate and call MultiDelete S3 requests based on entries received from objectsCh
+	go func(errorCh chan<- RemoveObjectError) {
+		maxEntries := 1000
+		finish := false
+		urlValues := make(url.Values)
+		urlValues.Set("delete", "")
+
+		// Close error channel when Multi delete finishes.
+		defer close(errorCh)
+
+		// Loop over entries by 1000 and call MultiDelete requests
+		for {
+			if finish {
+				break
+			}
+			count := 0
+			var batch []string
+
+			// Try to gather 1000 entries
+			for object := range objectsCh {
+				batch = append(batch, object)
+				if count++; count >= maxEntries {
+					break
+				}
+			}
+			if count == 0 {
+				// Multi Objects Delete API doesn't accept empty object list, quit immediatly
+				break
+			}
+			if count < maxEntries {
+				// We didn't have 1000 entries, so this is the last batch
+				finish = true
+			}
+
+			// Generate remove multi objects XML request
+			removeBytes := generateRemoveMultiObjectsRequest(batch)
+			// Execute GET on bucket to list objects.
+			resp, err := c.executeMethod("POST", requestMetadata{
+				bucketName:         bucketName,
+				queryValues:        urlValues,
+				contentBody:        bytes.NewReader(removeBytes),
+				contentLength:      int64(len(removeBytes)),
+				contentMD5Bytes:    sumMD5(removeBytes),
+				contentSHA256Bytes: sum256(removeBytes),
+			})
+			if err != nil {
+				for _, b := range batch {
+					errorCh <- RemoveObjectError{ObjectName: b, Err: err}
+				}
+				continue
+			}
+
+			// Process multiobjects remove xml response
+			processRemoveMultiObjectsResponse(resp.Body, batch, errorCh)
+
+			closeResponse(resp)
+		}
+	}(errorCh)
+	return errorCh
+}
+
 // RemoveIncompleteUpload aborts an partially uploaded object.
-// Requires explicit authentication, no anonymous requests are allowed for multipart API.
 func (c Client) RemoveIncompleteUpload(bucketName, objectName string) error {
 	// Input validation.
 	if err := isValidBucketName(bucketName); err != nil {
@@ -124,18 +248,13 @@ func (c Client) abortMultipartUpload(bucketName, objectName, uploadID string) er
 	urlValues := make(url.Values)
 	urlValues.Set("uploadId", uploadID)
 
-	// Instantiate a new DELETE request.
-	req, err := c.newRequest("DELETE", requestMetadata{
-		bucketName:  bucketName,
-		objectName:  objectName,
-		queryValues: urlValues,
+	// Execute DELETE on multipart upload.
+	resp, err := c.executeMethod("DELETE", requestMetadata{
+		bucketName:         bucketName,
+		objectName:         objectName,
+		queryValues:        urlValues,
+		contentSHA256Bytes: emptySHA256,
 	})
-	if err != nil {
-		return err
-	}
-
-	// Initiate the request.
-	resp, err := c.do(req)
 	defer closeResponse(resp)
 	if err != nil {
 		return err
@@ -149,13 +268,13 @@ func (c Client) abortMultipartUpload(bucketName, objectName, uploadID string) er
 				// This is needed specifically for abort and it cannot
 				// be converged into default case.
 				errorResponse = ErrorResponse{
-					Code:            "NoSuchUpload",
-					Message:         "The specified multipart upload does not exist.",
-					BucketName:      bucketName,
-					Key:             objectName,
-					RequestID:       resp.Header.Get("x-amz-request-id"),
-					HostID:          resp.Header.Get("x-amz-id-2"),
-					AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+					Code:       "NoSuchUpload",
+					Message:    "The specified multipart upload does not exist.",
+					BucketName: bucketName,
+					Key:        objectName,
+					RequestID:  resp.Header.Get("x-amz-request-id"),
+					HostID:     resp.Header.Get("x-amz-id-2"),
+					Region:     resp.Header.Get("x-amz-bucket-region"),
 				}
 			default:
 				return httpRespToErrorResponse(resp, bucketName, objectName)

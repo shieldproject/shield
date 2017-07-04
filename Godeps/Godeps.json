@@ -212,8 +212,8 @@
 		},
 		{
 			"ImportPath": "github.com/minio/minio-go",
-			"Comment": "v1.0.0",
-			"Rev": "84b89f6f458668d047b0de2d2cdf596dcf4a79a1"
+			"Comment": "v2.1.0",
+			"Rev": "2f03abaa07d8bc57faef16cda7655ea62a7e0bed"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
@@ -493,6 +493,31 @@
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/golang.org/x/sys/unix",
 			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
+		},
+		{
+			"ImportPath": "github.com/minio/minio-go/pkg/encrypt",
+			"Comment": "v2.1.0",
+			"Rev": "2f03abaa07d8bc57faef16cda7655ea62a7e0bed"
+		},
+		{
+			"ImportPath": "github.com/minio/minio-go/pkg/policy",
+			"Comment": "v2.1.0",
+			"Rev": "2f03abaa07d8bc57faef16cda7655ea62a7e0bed"
+		},
+		{
+			"ImportPath": "github.com/minio/minio-go/pkg/s3signer",
+			"Comment": "v2.1.0",
+			"Rev": "2f03abaa07d8bc57faef16cda7655ea62a7e0bed"
+		},
+		{
+			"ImportPath": "github.com/minio/minio-go/pkg/s3utils",
+			"Comment": "v2.1.0",
+			"Rev": "2f03abaa07d8bc57faef16cda7655ea62a7e0bed"
+		},
+		{
+			"ImportPath": "github.com/minio/minio-go/pkg/set",
+			"Comment": "v2.1.0",
+			"Rev": "2f03abaa07d8bc57faef16cda7655ea62a7e0bed"
 		}
 	]
 }
