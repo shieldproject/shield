@@ -23,10 +23,11 @@
 //        "access_key_id":       "your-access-key-id",
 //        "secret_access_key":   "your-secret-access-key",
 //        "skip_ssl_validation":  false,
+//        "secure":               false, # Define scheme to use http for false, https for true (default : false)
 //        "bucket":              "bucket-name",
 //        "prefix":              "/path/inside/bucket/to/place/backup/data",
 //        "signature_version":   "4",  # should be 2 or 4. Defaults to 4
-//        "socks5_proxy":        ""    # optionally defined SOCKS5 proxy to use for the s3 communications
+//        "socks5_proxy":        "",   # optionally defined SOCKS5 proxy to use for the s3 communications
 //        "s3_port":             ""    # optionally defined port to use for the s3 communications
 //    }
 //
@@ -35,7 +36,8 @@
 //    {
 //        "s3_host"             : "s3.amazonawd.com",
 //        "signature_version"   : "4",
-//        "skip_ssl_validation" : false
+//        "skip_ssl_validation" : false,
+//        "secure"              : false
 //    }
 //
 // `prefix` will default to the empty string, and backups will be placed in the
@@ -90,6 +92,7 @@ const (
 	DefaultPrefix            = ""
 	DefaultSigVersion        = "4"
 	DefaultSkipSSLValidation = false
+	DefaultSecure            = false
 )
 
 func validSigVersion(v string) bool {
@@ -114,6 +117,7 @@ func main() {
   "s3_host"             : "s3.amazonaws.com",    # override Amazon S3 endpoint
   "s3_port"             : ""                     # optional port to access s3_host on
   "skip_ssl_validation" : false,                 # Skip certificate verification (not recommended)
+  "secure"              : false,                 # Define scheme to use : true = https / false = http (default false)
   "prefix"              : "/path/in/bucket",     # where to store archives, inside the bucket
   "signature_version"   : "4",                   # AWS signature version; must be '2' or '4'
   "socks5_proxy"        : ""                     # optional SOCKS5 proxy for accessing S3
@@ -123,7 +127,8 @@ func main() {
 {
   "s3_host"             : "s3.amazonawd.com",
   "signature_version"   : "4",
-  "skip_ssl_validation" : false
+  "skip_ssl_validation" : false,
+  "secure"              : false
 }
 `,
 	}
@@ -136,6 +141,7 @@ type S3Plugin plugin.PluginInfo
 type S3ConnectionInfo struct {
 	Host              string
 	SkipSSLValidation bool
+	Secure            bool
 	AccessKey         string
 	SecretKey         string
 	Bucket            string
@@ -152,6 +158,7 @@ func (p S3Plugin) Meta() plugin.PluginInfo {
 func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
+		tf   bool
 		err  error
 		fail bool
 	)
@@ -233,7 +240,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
 	}
 
-	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
+	tf, err = endpoint.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
 		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
@@ -241,6 +248,16 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 	} else {
 		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+	}
+
+	tf, err = endpoint.BooleanValueDefault("secure", DefaultSecure)
+	if err != nil {
+		ansi.Printf("@R{\u2717 secure  %s}\n", err)
+		fail = true
+	} else if tf {
+		ansi.Printf("@G{\u2713 secure}  @C{yes}, S3 Endpoint will be validated in @Y{https} mode\n")
+	} else {
+		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, S3 Endpoint will be validated in @Y{http} mode\n")
 	}
 
 	if fail {
@@ -335,6 +352,11 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 		return S3ConnectionInfo{}, err
 	}
 
+	mode_ssl, err := e.BooleanValueDefault("secure", DefaultSecure)
+	if err != nil {
+		return S3ConnectionInfo{}, err
+	}
+
 	key, err := e.StringValue("access_key_id")
 	if err != nil {
 		return S3ConnectionInfo{}, err
@@ -374,6 +396,7 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 	return S3ConnectionInfo{
 		Host:              host,
 		SkipSSLValidation: insecure_ssl,
+		Secure:            mode_ssl,
 		AccessKey:         key,
 		SecretKey:         secret,
 		Bucket:            bucket,
@@ -405,9 +428,9 @@ func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
 	}
 
 	if s3.SignatureVersion == "2" {
-		s3Client, err = minio.NewV2(s3Host, s3.AccessKey, s3.SecretKey, false)
+		s3Client, err = minio.NewV2(s3Host, s3.AccessKey, s3.SecretKey, s3.Secure)
 	} else {
-		s3Client, err = minio.NewV4(s3Host, s3.AccessKey, s3.SecretKey, false)
+		s3Client, err = minio.NewV4(s3Host, s3.AccessKey, s3.SecretKey, s3.Secure)
 	}
 	if err != nil {
 		return nil, err

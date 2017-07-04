@@ -1,5 +1,5 @@
 /*
- * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015 Minio, Inc.
+ * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015, 2016 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,33 +21,60 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/minio/minio-go/pkg/s3utils"
 )
 
 // BucketExists verify if bucket exists and you have permission to access it.
-func (c Client) BucketExists(bucketName string) error {
+func (c Client) BucketExists(bucketName string) (bool, error) {
 	// Input validation.
 	if err := isValidBucketName(bucketName); err != nil {
-		return err
+		return false, err
 	}
-	// Instantiate a new request.
-	req, err := c.newRequest("HEAD", requestMetadata{
-		bucketName: bucketName,
+
+	// Execute HEAD on bucketName.
+	resp, err := c.executeMethod("HEAD", requestMetadata{
+		bucketName:         bucketName,
+		contentSHA256Bytes: emptySHA256,
 	})
-	if err != nil {
-		return err
-	}
-	// Initiate the request.
-	resp, err := c.do(req)
 	defer closeResponse(resp)
 	if err != nil {
-		return err
+		if ToErrorResponse(err).Code == "NoSuchBucket" {
+			return false, nil
+		}
+		return false, err
 	}
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
-			return httpRespToErrorResponse(resp, bucketName, "")
+			return false, httpRespToErrorResponse(resp, bucketName, "")
 		}
 	}
-	return nil
+	return true, nil
+}
+
+// List of header keys to be filtered, usually
+// from all S3 API http responses.
+var defaultFilterKeys = []string{
+	"Transfer-Encoding",
+	"Accept-Ranges",
+	"Date",
+	"Server",
+	"Vary",
+	"x-amz-request-id",
+	"x-amz-id-2",
+	// Add new headers to be ignored.
+}
+
+// Extract only necessary metadata header key/values by
+// filtering them out with a list of custom header keys.
+func extractObjMetadata(header http.Header) http.Header {
+	filterKeys := append([]string{
+		"ETag",
+		"Content-Length",
+		"Last-Modified",
+		"Content-Type",
+	}, defaultFilterKeys...)
+	return filterHeader(header, filterKeys)
 }
 
 // StatObject verifies if object exists and you have permission to access.
@@ -59,16 +86,32 @@ func (c Client) StatObject(bucketName, objectName string) (ObjectInfo, error) {
 	if err := isValidObjectName(objectName); err != nil {
 		return ObjectInfo{}, err
 	}
-	// Instantiate a new request.
-	req, err := c.newRequest("HEAD", requestMetadata{
-		bucketName: bucketName,
-		objectName: objectName,
-	})
-	if err != nil {
+	reqHeaders := NewHeadReqHeaders()
+	return c.statObject(bucketName, objectName, reqHeaders)
+}
+
+// Lower level API for statObject supporting pre-conditions and range headers.
+func (c Client) statObject(bucketName, objectName string, reqHeaders RequestHeaders) (ObjectInfo, error) {
+	// Input validation.
+	if err := isValidBucketName(bucketName); err != nil {
 		return ObjectInfo{}, err
 	}
-	// Initiate the request.
-	resp, err := c.do(req)
+	if err := isValidObjectName(objectName); err != nil {
+		return ObjectInfo{}, err
+	}
+
+	customHeader := make(http.Header)
+	for k, v := range reqHeaders.Header {
+		customHeader[k] = v
+	}
+
+	// Execute HEAD on objectName.
+	resp, err := c.executeMethod("HEAD", requestMetadata{
+		bucketName:         bucketName,
+		objectName:         objectName,
+		contentSHA256Bytes: emptySHA256,
+		customHeader:       customHeader,
+	})
 	defer closeResponse(resp)
 	if err != nil {
 		return ObjectInfo{}, err
@@ -83,43 +126,56 @@ func (c Client) StatObject(bucketName, objectName string) (ObjectInfo, error) {
 	md5sum := strings.TrimPrefix(resp.Header.Get("ETag"), "\"")
 	md5sum = strings.TrimSuffix(md5sum, "\"")
 
-	// Parse content length.
-	size, err := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-		return ObjectInfo{}, ErrorResponse{
-			Code:            "InternalError",
-			Message:         "Content-Length is invalid. " + reportIssue,
-			BucketName:      bucketName,
-			Key:             objectName,
-			RequestID:       resp.Header.Get("x-amz-request-id"),
-			HostID:          resp.Header.Get("x-amz-id-2"),
-			AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+	// Content-Length is not valid for Google Cloud Storage, do not verify.
+	var size int64 = -1
+	if !s3utils.IsGoogleEndpoint(c.endpointURL) {
+		// Parse content length.
+		size, err = strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
+		if err != nil {
+			return ObjectInfo{}, ErrorResponse{
+				Code:       "InternalError",
+				Message:    "Content-Length is invalid. " + reportIssue,
+				BucketName: bucketName,
+				Key:        objectName,
+				RequestID:  resp.Header.Get("x-amz-request-id"),
+				HostID:     resp.Header.Get("x-amz-id-2"),
+				Region:     resp.Header.Get("x-amz-bucket-region"),
+			}
 		}
 	}
+
 	// Parse Last-Modified has http time format.
 	date, err := time.Parse(http.TimeFormat, resp.Header.Get("Last-Modified"))
 	if err != nil {
 		return ObjectInfo{}, ErrorResponse{
-			Code:            "InternalError",
-			Message:         "Last-Modified time format is invalid. " + reportIssue,
-			BucketName:      bucketName,
-			Key:             objectName,
-			RequestID:       resp.Header.Get("x-amz-request-id"),
-			HostID:          resp.Header.Get("x-amz-id-2"),
-			AmzBucketRegion: resp.Header.Get("x-amz-bucket-region"),
+			Code:       "InternalError",
+			Message:    "Last-Modified time format is invalid. " + reportIssue,
+			BucketName: bucketName,
+			Key:        objectName,
+			RequestID:  resp.Header.Get("x-amz-request-id"),
+			HostID:     resp.Header.Get("x-amz-id-2"),
+			Region:     resp.Header.Get("x-amz-bucket-region"),
 		}
 	}
+
 	// Fetch content type if any present.
 	contentType := strings.TrimSpace(resp.Header.Get("Content-Type"))
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
+
+	// Extract only the relevant header keys describing the object.
+	// following function filters out a list of standard set of keys
+	// which are not part of object metadata.
+	metadata := extractObjMetadata(resp.Header)
+
 	// Save object metadata info.
-	var objectStat ObjectInfo
-	objectStat.ETag = md5sum
-	objectStat.Key = objectName
-	objectStat.Size = size
-	objectStat.LastModified = date
-	objectStat.ContentType = contentType
-	return objectStat, nil
+	return ObjectInfo{
+		ETag:         md5sum,
+		Key:          objectName,
+		Size:         size,
+		LastModified: date,
+		ContentType:  contentType,
+		Metadata:     metadata,
+	}, nil
 }

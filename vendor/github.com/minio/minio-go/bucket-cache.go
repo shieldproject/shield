@@ -20,11 +20,14 @@ import (
 	"encoding/hex"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"sync"
+
+	"github.com/minio/minio-go/pkg/s3signer"
+	"github.com/minio/minio-go/pkg/s3utils"
 )
 
-// bucketLocationCache - Provides simple mechansim to hold bucket
+// bucketLocationCache - Provides simple mechanism to hold bucket
 // locations in memory.
 type bucketLocationCache struct {
 	// mutex is used for handling the concurrent
@@ -65,13 +68,35 @@ func (r *bucketLocationCache) Delete(bucketName string) {
 	delete(r.items, bucketName)
 }
 
-// getBucketLocation - Get location for the bucketName from location map cache.
-func (c Client) getBucketLocation(bucketName string) (string, error) {
-	// For anonymous requests, default to "us-east-1" and let other calls
-	// move forward.
-	if c.anonymous {
-		return "us-east-1", nil
+// GetBucketLocation - get location for the bucket name from location cache, if not
+// fetch freshly by making a new request.
+func (c Client) GetBucketLocation(bucketName string) (string, error) {
+	if err := isValidBucketName(bucketName); err != nil {
+		return "", err
 	}
+	return c.getBucketLocation(bucketName)
+}
+
+// getBucketLocation - Get location for the bucketName from location map cache, if not
+// fetch freshly by making a new request.
+func (c Client) getBucketLocation(bucketName string) (string, error) {
+	if err := isValidBucketName(bucketName); err != nil {
+		return "", err
+	}
+
+	if s3utils.IsAmazonChinaEndpoint(c.endpointURL) {
+		// For china specifically we need to set everything to
+		// cn-north-1 for now, there is no easier way until AWS S3
+		// provides a cleaner compatible API across "us-east-1" and
+		// China region.
+		return "cn-north-1", nil
+	}
+
+	// Region set then no need to fetch bucket location.
+	if c.region != "" {
+		return c.region, nil
+	}
+
 	if location, ok := c.bucketLocCache.Get(bucketName); ok {
 		return location, nil
 	}
@@ -88,9 +113,27 @@ func (c Client) getBucketLocation(bucketName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	location, err := processBucketLocationResponse(resp, bucketName)
+	if err != nil {
+		return "", err
+	}
+	c.bucketLocCache.Set(bucketName, location)
+	return location, nil
+}
+
+// processes the getBucketLocation http response from the server.
+func processBucketLocationResponse(resp *http.Response, bucketName string) (bucketLocation string, err error) {
 	if resp != nil {
 		if resp.StatusCode != http.StatusOK {
-			return "", httpRespToErrorResponse(resp, bucketName, "")
+			err = httpRespToErrorResponse(resp, bucketName, "")
+			errResp := ToErrorResponse(err)
+			// For access denied error, it could be an anonymous
+			// request. Move forward and let the top level callers
+			// succeed if possible based on their policy.
+			if errResp.Code == "AccessDenied" {
+				return "us-east-1", nil
+			}
+			return "", err
 		}
 	}
 
@@ -113,7 +156,6 @@ func (c Client) getBucketLocation(bucketName string) (string, error) {
 	}
 
 	// Save the location into cache.
-	c.bucketLocCache.Set(bucketName, location)
 
 	// Return.
 	return location, nil
@@ -127,7 +169,7 @@ func (c Client) getBucketLocationRequest(bucketName string) (*http.Request, erro
 
 	// Set get bucket location always as path style.
 	targetURL := c.endpointURL
-	targetURL.Path = filepath.Join(bucketName, "") + "/"
+	targetURL.Path = path.Join(bucketName, "") + "/"
 	targetURL.RawQuery = urlValues.Encode()
 
 	// Get a new HTTP request for the method.
@@ -141,14 +183,20 @@ func (c Client) getBucketLocationRequest(bucketName string) (*http.Request, erro
 
 	// Set sha256 sum for signature calculation only with signature version '4'.
 	if c.signature.isV4() {
-		req.Header.Set("X-Amz-Content-Sha256", hex.EncodeToString(sum256([]byte{})))
+		var contentSha256 string
+		if c.secure {
+			contentSha256 = unsignedPayload
+		} else {
+			contentSha256 = hex.EncodeToString(sum256([]byte{}))
+		}
+		req.Header.Set("X-Amz-Content-Sha256", contentSha256)
 	}
 
 	// Sign the request.
 	if c.signature.isV4() {
-		req = signV4(*req, c.accessKeyID, c.secretAccessKey, "us-east-1")
+		req = s3signer.SignV4(*req, c.accessKeyID, c.secretAccessKey, "us-east-1")
 	} else if c.signature.isV2() {
-		req = signV2(*req, c.accessKeyID, c.secretAccessKey)
+		req = s3signer.SignV2(*req, c.accessKeyID, c.secretAccessKey)
 	}
 	return req, nil
 }
