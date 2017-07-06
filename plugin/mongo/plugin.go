@@ -24,6 +24,7 @@
 //        "mongo_password" : "password",    # optional
 //        "mongo_database" : "db",          # optional
 //        "mongo_bindir"   : "/path/to/bin" # optional
+//        "mongo_options"  : "--ssl"        # optional
 //    }
 //
 // Default Configuration
@@ -96,6 +97,7 @@ func main() {
   "mongo_password" : "password",    # optional
   "mongo_database" : "db",          # optional
   "mongo_bindir"   : "/path/to/bin" # optional
+  "mongo_options"  : "--ssl"        # optional
 }
 `,
 		Defaults: `
@@ -119,6 +121,7 @@ type MongoConnectionInfo struct {
 	Password string
 	Bin      string
 	Database string
+	Options  string
 }
 
 func (p MongoPlugin) Meta() PluginInfo {
@@ -215,6 +218,11 @@ func (p MongoPlugin) Purge(endpoint ShieldEndpoint, file string) error {
 
 func connectionString(info *MongoConnectionInfo, backup bool) string {
 
+	var options string
+	if info.Options != "" {
+		options = fmt.Sprintf(" %s ", info.Options)
+	}
+
 	var db string
 	if info.Database != "" {
 		db = fmt.Sprintf(" --db %s", info.Database)
@@ -226,8 +234,8 @@ func connectionString(info *MongoConnectionInfo, backup bool) string {
 			info.User, info.Password)
 	}
 
-	return fmt.Sprintf("--archive --host %s --port %s%s%s",
-		info.Host, info.Port, auth, db)
+	return fmt.Sprintf("--archive --host %s --port %s%s%s%s",
+		info.Host, info.Port, auth, db, options)
 }
 
 func mongoConnectionInfo(endpoint ShieldEndpoint) (*MongoConnectionInfo, error) {
@@ -267,6 +275,12 @@ func mongoConnectionInfo(endpoint ShieldEndpoint) (*MongoConnectionInfo, error) 
 	}
 	DEBUG("MONGO_BIN_DIR: '%s'", bin)
 
+	options, err := endpoint.StringValueDefault("mongo_options", "")
+	if err != nil {
+		return nil, err
+	}
+	DEBUG("MONGO_OPTIONS: '%s'", options)
+
 	return &MongoConnectionInfo{
 		Host:     host,
 		Port:     port,
@@ -274,5 +288,6 @@ func mongoConnectionInfo(endpoint ShieldEndpoint) (*MongoConnectionInfo, error) 
 		Password: password,
 		Bin:      bin,
 		Database: db,
+		Options:  options,
 	}, nil
 }
