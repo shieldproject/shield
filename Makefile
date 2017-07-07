@@ -46,6 +46,7 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
 	go $(BUILD_TYPE) ./plugin/scality
 	go $(BUILD_TYPE) ./plugin/consul
+	go $(BUILD_TYPE) ./plugin/consul-snapshot
 	go $(BUILD_TYPE) ./plugin/mongo
 	go $(BUILD_TYPE) ./plugin/google
 
@@ -53,7 +54,7 @@ clean:
 	rm shieldd shield-agent shield-schema shield
 	rm fs docker-postgres dummy postgres redis-broker
 	rm s3 swift azure mysql xtrabackup rabbitmq-broker
-	rm consul mongo scality google
+	rm consul consul-snapshot mongo scality google
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -101,6 +102,7 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/scality"           ./plugin/scality
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mongo"             ./plugin/mongo
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul"            ./plugin/consul
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul-snapshot"   ./plugin/consul-snapshot
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/xtrabackup"        ./plugin/xtrabackup
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/google"            ./plugin/google
 
