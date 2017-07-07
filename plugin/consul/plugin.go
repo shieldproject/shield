@@ -16,16 +16,17 @@
 // endpoint JSON should look something like this:
 //
 //    {
-//        "host":"consul-endpoint",          # optional - can also be prefixed with http:// or https://
-//        "skip_ssl_validation":false        # optional
-//        "username":"basic-auth-username",  # optional
-//        "password":"basic-auth-password"   # optional
+//        "address":"consul.service.consul:8500",                    # optional - can also be prefixed with http:// or https://
+//        "ca-path":"/var/vcap/jobs/consul/consul/ca.cert",          # optional - required for connecting via https
+//        "client-cert":"/var/vcap/jobs/consul/consul/consul.cert",  # optional - required when verify_incoming is set to true
+//        "client-key":"/var/vcap/jobs/consul/consul/consul.key"     # optional - required when verify_incoming is set to true
 //    }
 //
 // Default Configuration
 //
 //    {
-//         "host" : "http://127.0.0.1:8500"
+//         "address" : "http://127.0.0.1:8500"
+//         "consul" : "/var/vcap/packages/consul/bin/consul"
 //    }
 //
 // BACKUP DETAILS
@@ -42,18 +43,18 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
+	"strings"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/starkandwayne/goutils/ansi"
-	. "github.com/starkandwayne/shield/plugin"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 var (
-	DefaultHostPort = "http://127.0.0.1:8500"
+	DefaultAddress = "http://127.0.0.1:8500"
+	DefaultConsul  = "/var/vcap/packages/consul/bin/consul"
 )
 
 func main() {
@@ -61,90 +62,134 @@ func main() {
 		Name:    "Consul Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
-		Features: PluginFeatures{
+		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
 		Example: `
 {
-  "host"     : "consul-endpoint",      # Optional hostname, with or without the
-                                       # http:// or https:// URL scheme.
+  "consul"      : "/var/vcap/packages/consul/bin/consul"     # Path to the consul binary
+  "address"     : "consul.service.consul:8200",              # Optional hostname, with or without the http:// or https:// URL scheme.
 
-  "skip_ssl_validation" : false        # Skip certificate verification (not recommended)
+  "ca-path"     : "/var/vcap/jobs/consul/consul/ca.cert"     # Path to the CA certificate to use for TLS when communicating with Consul via https.
+  "client-cert" : "/var/vcap/jobs/consul/consul/consul.cert" # Path to a client cert file to use for TLS when 'verify_incoming' is enabled.
+  "client-key"  : "/var/vcap/jobs/consul/consul/consul.key"  # Path to a client key file to use for TLS when 'verify_incoming' is enabled.
 
-  "username" : "basic-auth-username",  # Optional username and password
-  "password" : "basic-auth-password"   # for HTTP Basic Authentication.
 }
 `,
 		Defaults: `
 {
-  "host" : "http://127.0.0.1:8500"
+  "consul"  : "/var/vcap/packages/consul/bin/consul"
+  "address" : "http://127.0.0.1:8500"
 }
 `,
 	}
 
-	Run(p)
+	plugin.Run(p)
 }
 
-type ConsulPlugin PluginInfo
+type ConsulPlugin plugin.PluginInfo
 
-type ConsulConnectionInfo struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Bin      string
-	Database string
+type ConsulConfig struct {
+	Consul     string
+	Address    string
+	CaPath     string
+	ClientCert string
+	ClientKey  string
 }
 
-func (p ConsulPlugin) Meta() PluginInfo {
-	return PluginInfo(p)
+func (p ConsulPlugin) Meta() plugin.PluginInfo {
+	return plugin.PluginInfo(p)
 }
 
-func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
+func getConsulConfig(endpoint plugin.ShieldEndpoint) (*ConsulConfig, error) {
+	consul, err := endpoint.StringValueDefault("consul", DefaultConsul)
+	if err != nil {
+		return nil, err
+	}
+
+	address, err := endpoint.StringValueDefault("address", DefaultAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	ca_path, err := endpoint.StringValueDefault("ca-path", "")
+	if err != nil {
+		return nil, err
+	}
+
+	client_cert, err := endpoint.StringValueDefault("client-cert", "")
+	if err != nil {
+		return nil, err
+	}
+
+	client_key, err := endpoint.StringValueDefault("client-key", "")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConsulConfig{
+		Consul:     consul,
+		Address:    address,
+		CaPath:     ca_path,
+		ClientCert: client_cert,
+		ClientKey:  client_key,
+	}, nil
+}
+
+func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
-		b    bool
 		err  error
 		fail bool
 	)
 
-	s, err = endpoint.StringValueDefault("host", "")
+	s, err = endpoint.StringValueDefault("consul", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 host                  %s}\n", err)
+		ansi.Printf("@R{\u2717 consul        %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
+		ansi.Printf("@G{\u2713 consul}       using default consul @C{%s}\n", DefaultConsul)
 	} else {
-		ansi.Printf("@G{\u2713 host}                  @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 consul}       @C{%s}\n", s)
 	}
 
-	b, err = endpoint.BooleanValueDefault("skip_ssl_validation", false)
+	s, err = endpoint.StringValueDefault("address", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
-		fail = true
-	} else {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
-	}
-
-	s, err = endpoint.StringValueDefault("username", "")
-	if err != nil {
-		ansi.Printf("@R{\u2717 username              %s}\n", err)
+		ansi.Printf("@R{\u2717 address       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 username}              no username\n")
+		ansi.Printf("@G{\u2713 address}      using default address @C{%s}\n", DefaultAddress)
 	} else {
-		ansi.Printf("@G{\u2713 username}              @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 address}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("password", "")
+	addr := s
+	s, err = endpoint.StringValueDefault("ca-path", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 password              %s}\n", err)
+		ansi.Printf("@R{\u2717 ca-path       %s}\n", err)
 		fail = true
-	} else if s == "" {
-		ansi.Printf("@G{\u2713 password}              no password\n")
+	} else if s == "" && strings.HasPrefix(addr, "https") {
+		ansi.Printf("@G{\u2717 ca-path       ca-path must be specified when using https}\n")
+		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 password}              @C{%s}\n", s)
+		ansi.Printf("@G{\u2713 ca-path}      @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("client-cert", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 client-cert   %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 client-cert}  @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("client-key", "")
+	if err != nil {
+		ansi.Printf("@R{\u2717 client-key    %s}\n", err)
+		fail = true
+	} else {
+		ansi.Printf("@G{\u2713 client-key}   @C{%s}\n", s)
 	}
 
 	if fail {
@@ -153,114 +198,98 @@ func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Backup(endpoint ShieldEndpoint) error {
+func (p ConsulPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
-	encoder := json.NewEncoder(os.Stdout)
-
-	client, err := consulClient(endpoint)
+	cfg, err := getConsulConfig(endpoint)
 	if err != nil {
 		return err
 	}
 
-	kv := client.KV()
+	var flags string
+	if cfg.CaPath != "" {
+		flags = fmt.Sprintf("%s -ca-path='%s'", flags, cfg.CaPath)
+	}
+	if cfg.ClientCert != "" {
+		flags = fmt.Sprintf("%s -client-cert='%s'", flags, cfg.ClientCert)
+	}
+	if cfg.ClientKey != "" {
+		flags = fmt.Sprintf("%s -client-key='%s'", flags, cfg.ClientKey)
+	}
 
-	kvs, _, err := kv.List("/", nil)
+	tmp_dir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp_dir)
+	backup_file := fmt.Sprintf("%s/consul.back", tmp_dir)
+
+	cmd := fmt.Sprintf("%s snapshot save -http-addr='%s' %s %s", cfg.Consul, cfg.Address, flags, backup_file)
+	plugin.DEBUG("Executing `%s`", cmd)
+	err = plugin.Exec(cmd, plugin.NOPIPE)
 	if err != nil {
 		return err
 	}
 
-	for _, kv := range kvs {
-		encoder.Encode(kv)
-	}
-
-	return err
-}
-
-func (p ConsulPlugin) Restore(endpoint ShieldEndpoint) error {
-	client, err := consulClient(endpoint)
+	cmd = fmt.Sprintf("cat %s", backup_file)
+	plugin.DEBUG("Executing `%s`", cmd)
+	err = plugin.Exec(cmd, plugin.STDOUT)
 	if err != nil {
 		return err
 	}
 
-	kvClient := client.KV()
-	decoder := json.NewDecoder(os.Stdin)
-
-	var kvs []api.KVPair
-	var kv api.KVPair
-
-	for {
-		if err := decoder.Decode(&kv); err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		} else {
-			kvs = append(kvs, kv)
-		}
-	}
-	for _, kv := range kvs {
-		_, err := kvClient.Put(&kv, nil)
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
-func (p ConsulPlugin) Store(endpoint ShieldEndpoint) (string, error) {
-	return "", UNIMPLEMENTED
+func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+
+	cfg, err := getConsulConfig(endpoint)
+	if err != nil {
+		return err
+	}
+
+	var flags string
+	if cfg.CaPath != "" {
+		flags = fmt.Sprintf("%s -ca-path='%s'", flags, cfg.CaPath)
+	}
+	if cfg.ClientCert != "" {
+		flags = fmt.Sprintf("%s -client-cert='%s'", flags, cfg.ClientCert)
+	}
+	if cfg.ClientKey != "" {
+		flags = fmt.Sprintf("%s -client-key='%s'", flags, cfg.ClientKey)
+	}
+
+	tmp_dir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp_dir)
+	backup_file := fmt.Sprintf("%s/consul.back", tmp_dir)
+
+	cmd := fmt.Sprintf("tee %s", backup_file)
+	plugin.DEBUG("Executing `%s`", cmd)
+	err = plugin.Exec(cmd, plugin.STDIN)
+	if err != nil {
+		return err
+	}
+
+	cmd = fmt.Sprintf("%s snapshot restore -http-addr='%s' %s %s", cfg.Consul, cfg.Address, flags, backup_file)
+	plugin.DEBUG("Executing `%s`", cmd)
+	err = plugin.Exec(cmd, plugin.NOPIPE)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (p ConsulPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p ConsulPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+	return "", plugin.UNIMPLEMENTED
 }
 
-func (p ConsulPlugin) Purge(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p ConsulPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func consulClient(endpoint ShieldEndpoint) (*api.Client, error) {
-	skipSSLVerify, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
-	if err != nil {
-		return nil, err
-	}
-	if skipSSLVerify {
-		DEBUG("Skipping SSL Validation")
-		os.Setenv(api.HTTPSSLVerifyEnvName, "false")
-	}
-
-	config := api.DefaultConfig()
-
-	host, err := endpoint.StringValueDefault("host", DefaultHostPort)
-	if err != nil {
-		return nil, err
-	}
-
-	DEBUG("HOST: '%s'", host)
-	config.Address = host
-
-	username, err := endpoint.StringValueDefault("username", "")
-	if err != nil {
-		return nil, err
-	}
-	DEBUG("USERNAME: '%s'", username)
-
-	password, err := endpoint.StringValueDefault("password", "")
-	if err != nil {
-		return nil, err
-	}
-	DEBUG("PASSWORD: '%s'", password)
-
-	if username != "" && password != "" {
-		config.HttpAuth = &api.HttpBasicAuth{
-			Username: username,
-			Password: password,
-		}
-	}
-
-	client, err := api.NewClient(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+func (p ConsulPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
