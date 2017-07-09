@@ -199,7 +199,6 @@ func main() {
 	   ##     ## ##     ## ##    ## ##   ##  ##       ##   ### ##     ## ##    ##
 	   ########  ##     ##  ######  ##    ## ######## ##    ## ########   ######
 	*/
-	c.HelpBreak()
 	c.HelpGroup("BACKENDS:")
 	c.Dispatch("backends", "List configured SHIELD backends",
 		func(opts Options, args []string, help bool) error {
@@ -317,7 +316,6 @@ func main() {
 	      ##    ##     ## ##     ##  ######   ########    ##
 	*/
 
-	c.HelpBreak()
 	c.HelpGroup("TARGETS:")
 	c.Dispatch("targets", "List available backup targets",
 		func(opts Options, args []string, help bool) error {
@@ -562,7 +560,6 @@ func main() {
 	    ######   ######  ##     ## ######## ########   #######  ######## ########
 	*/
 
-	c.HelpBreak()
 	c.HelpGroup("SCHEDULES:")
 	c.Dispatch("schedules", "List available backup schedules",
 		func(opts Options, args []string, help bool) error {
@@ -800,7 +797,6 @@ func main() {
 	   ##     ## ########    ##    ######## ##    ##    ##    ####  #######  ##    ##
 	*/
 
-	c.HelpBreak()
 	c.HelpGroup("POLICIES:")
 	c.Dispatch("policies", "List available retention policies",
 		func(opts Options, args []string, help bool) error {
@@ -1053,7 +1049,6 @@ func main() {
 	    ######     ##     #######  ##     ## ########
 	*/
 
-	c.HelpBreak()
 	c.HelpGroup("STORES:")
 	c.Dispatch("stores", "List available archive stores",
 		func(opts Options, args []string, help bool) error {
@@ -1298,7 +1293,6 @@ func main() {
 	    ######   #######  ########
 	*/
 
-	c.HelpBreak()
 	c.HelpGroup("JOBS:")
 	c.Dispatch("jobs", "List available backup jobs",
 		func(opts Options, args []string, help bool) error {
@@ -1667,7 +1661,6 @@ func main() {
 	      ##    ##     ##  ######  ##    ##
 	*/
 
-	c.HelpBreak()
 	c.HelpGroup("TASKS:")
 	c.Dispatch("tasks", "List available tasks",
 		func(opts Options, args []string, help bool) error {
@@ -1818,7 +1811,6 @@ func main() {
 	   ##     ## ##     ##  ######  ##     ## ####    ###    ########
 	*/
 
-	c.HelpBreak()
 	c.HelpGroup("ARCHIVES:")
 	c.Dispatch("archives", "List available backup archives",
 		func(opts Options, args []string, help bool) error {
