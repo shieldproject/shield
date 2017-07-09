@@ -11,6 +11,8 @@ import (
 	"github.com/starkandwayne/shield/api"
 )
 
+var errCanceled = fmt.Errorf("Canceling... ")
+
 func BoolString(tf bool) string {
 	if tf {
 		return "Y"
@@ -41,6 +43,20 @@ func DEBUG(format string, args ...interface{}) {
 		}
 		content = strings.Join(lines, "\n")
 		fmt.Fprintf(os.Stderr, "%s\n", content)
+	}
+}
+
+func OK(f string, l ...interface{}) {
+	if *options.Raw {
+		RawJSON(map[string]string{"ok": fmt.Sprintf(f, l...)})
+		return
+	}
+	ansi.Printf("@G{%s}\n", fmt.Sprintf(f, l...))
+}
+
+func MSG(f string, l ...interface{}) {
+	if !*options.Raw {
+		ansi.Printf("\n@G{%s}\n", fmt.Sprintf(f, l...))
 	}
 }
 

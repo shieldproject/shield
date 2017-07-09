@@ -33,13 +33,9 @@ func readall(in io.Reader) (string, error) {
 }
 
 var (
-	debug = false
-)
-
-var Version = ""
-
-func main() {
-	options := Options{
+	debug   = false
+	Version = ""
+	options = Options{
 		Shield:   getopt.StringLong("shield", 'H', "", "DEPRECATED - Previously required to point to a SHIELD backend to talk to. Now used to auto-vivify ~/.shield_config if necessary"),
 		Used:     getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
 		Unused:   getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
@@ -69,21 +65,9 @@ func main() {
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
 	}
+)
 
-	OK := func(f string, l ...interface{}) {
-		if *options.Raw {
-			RawJSON(map[string]string{"ok": fmt.Sprintf(f, l...)})
-			return
-		}
-		ansi.Printf("@G{%s}\n", fmt.Sprintf(f, l...))
-	}
-
-	MSG := func(f string, l ...interface{}) {
-		if !*options.Raw {
-			ansi.Printf("\n@G{%s}\n", fmt.Sprintf(f, l...))
-		}
-	}
-
+func main() {
 	var command []string
 	var opts = getopt.CommandLine
 	args := os.Args
@@ -450,7 +434,6 @@ func main() {
 			}
 
 			DEBUG("JSON:\n  %s\n", content)
-
 
 			if *opts.UpdateIfExists {
 				t, id, err := FindTarget(content, true)
