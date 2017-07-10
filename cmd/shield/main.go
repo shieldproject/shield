@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -65,6 +63,7 @@ var (
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
 	}
+	c = NewCommand().With(options)
 )
 
 func main() {
@@ -105,52 +104,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	c := NewCommand().With(options)
-
 	c.HelpGroup("INFO:")
-	c.Dispatch("help", "Get detailed help with a specific command",
-		func(opts Options, args []string, help bool) error {
-			if len(args) == 0 {
-				buf := bytes.Buffer{}
-				getopt.PrintUsage(&buf)
-				//Gets the usage line from the getopt usage output
-				ansi.Fprintf(os.Stderr, strings.Split(buf.String(), "\n")[0]+"\n")
-				ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
-				ansi.Fprintf(os.Stderr, "For a list of available commands, type @M{shield commands}\n")
-				ansi.Fprintf(os.Stderr, "For a list of available flags, type @M{shield flags}\n")
-				ansi.Fprintf(os.Stderr, "\n@R{The verbose, multi-word commands (such as `list schedules`) are now deprecated}\n"+
-					"@R{in favor of, for example, the shorter `schedules`. Other long commands have had their}\n"+
-					"@R{spaces replaced with dashes. Check `commands` for the new canonical names.}\n")
-				return nil
-			} else if args[0] == "help" {
-				ansi.Fprintf(os.Stderr, "@R{This is getting a bit too meta, don't you think?}\n")
-				return nil
-			}
-
-			// otherwise ...
-			return c.Help(args...)
-		})
-
+	c.Dispatch("help", "Get detailed help with a specific command", cliUsage)
 	c.Alias("usage", "help")
 
-	c.Dispatch("commands", "Show the list of available commands",
-		func(opts Options, args []string, help bool) error {
-			ansi.Fprintf(os.Stderr, "\n@R{NAME:}\n  shield\t\tCLI for interacting with the Shield API.\n")
-			ansi.Fprintf(os.Stderr, "\n@R{USAGE:}\n  shield [options] <command>\n")
-			ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
-			ansi.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
-			ansi.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
-			ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
-			ansi.Fprintf(os.Stderr, c.Usage())
-			ansi.Fprintf(os.Stderr, "\n")
-			return nil
-		})
+	c.Dispatch("commands", "Show the list of available commands", cliCommands)
 
-	c.Dispatch("flags", "Show the list of all command line flags",
-		func(opts Options, args []string, help bool) error {
-			getopt.PrintUsage(os.Stderr)
-			return nil
-		})
+	c.Dispatch("flags", "Show the list of all command line flags", cliFlags)
 	c.Alias("options", "flags")
 
 	/*
@@ -162,32 +122,7 @@ func main() {
 	   ##    ##    ##    ##     ##    ##    ##     ## ##    ##
 	    ######     ##    ##     ##    ##     #######   ######
 	*/
-	c.Dispatch("status", "Query the SHIELD backup server for its status and version info",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp("Outputs information as a JSON object", true, "--raw")
-				JSONHelp(fmt.Sprintf("{\"name\":\"MyShield\",\"version\":\"%s\"}\n", Version))
-				return nil
-			}
-
-			status, err := GetStatus()
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(map[string]string{
-					"name":    status.Name,
-					"version": status.Version,
-				})
-			}
-
-			t := tui.NewReport()
-			t.Add("Name", status.Name)
-			t.Add("API Version", status.Version)
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("status", "Query the SHIELD backup server for its status and version info", cliStatus)
 	c.Alias("stat", "status")
 
 	/*
@@ -200,76 +135,11 @@ func main() {
 	   ########  ##     ##  ######  ##    ## ######## ##    ## ########   ######
 	*/
 	c.HelpGroup("BACKENDS:")
-	c.Dispatch("backends", "List configured SHIELD backends",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				JSONHelp(`[{"name":"mybackend","uri":"https://10.244.2.2:443"}]`)
-				FlagHelp("Outputs information as JSON object", true, "--raw")
-				return nil
-			}
-
-			DEBUG("running 'backends' command")
-
-			var indices []string
-			for k, _ := range Cfg.Aliases {
-				indices = append(indices, k)
-			}
-			sort.Strings(indices)
-
-			if *opts.Raw {
-				arr := []map[string]string{}
-				for _, alias := range indices {
-					arr = append(arr, map[string]string{"name": alias, "uri": Cfg.Aliases[alias]})
-				}
-				return RawJSON(arr)
-			}
-
-			t := tui.NewTable("Name", "Backend URI")
-			for _, alias := range indices {
-				be := map[string]string{"name": alias, "uri": Cfg.Aliases[alias]}
-				t.Row(be, be["name"], be["uri"])
-			}
-			t.Output(os.Stdout)
-
-			return nil
-		})
+	c.Dispatch("backends", "List configured SHIELD backends", cliListBackends)
 	c.Alias("list backends", "backends")
 	c.Alias("ls be", "backends")
 
-	c.Dispatch("create-backend", "Create or modify a SHIELD backend",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`The name of the new backend`, false, "<name>")
-				FlagHelp(`The address at which the new backend can be found`, false, "<uri>")
-
-				return nil
-			}
-
-			DEBUG("running 'create backend' command")
-
-			if len(args) != 2 {
-				return fmt.Errorf("Invalid 'create backend' syntax: `shield backend <name> <uri>")
-			}
-			err := Cfg.AddBackend(args[1], args[0])
-			if err != nil {
-				return err
-			}
-
-			err = Cfg.UseBackend(args[0])
-			if err != nil {
-				return err
-			}
-
-			err = Cfg.Save()
-			if err != nil {
-				return err
-			}
-
-			ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
-			DisplayBackend(Cfg)
-
-			return nil
-		})
+	c.Dispatch("create-backend", "Create or modify a SHIELD backend", cliCreateBackend)
 	c.Alias("create backend", "create-backend")
 	c.Alias("c be", "create-backend")
 	c.Alias("update backend", "create-backend")
@@ -277,32 +147,7 @@ func main() {
 	c.Alias("edit-backend", "create-backend")
 	c.Alias("edit backend", "create-backend")
 
-	c.Dispatch("backend", "Select a particular backend for use",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`The name of the backend to target`, false, "<name>")
-				return nil
-			}
-
-			DEBUG("running 'backend' command")
-
-			if len(args) == 0 {
-				DisplayBackend(Cfg)
-				return nil
-			}
-
-			if len(args) != 1 {
-				return fmt.Errorf("Invalid 'backend' syntax: `shield backend <name>`")
-			}
-			err := Cfg.UseBackend(args[0])
-			if err != nil {
-				return err
-			}
-			Cfg.Save()
-
-			DisplayBackend(Cfg)
-			return nil
-		})
+	c.Dispatch("backend", "Select a particular backend for use", cliUseBackend)
 	c.Alias("use backend", "backend")
 	c.Alias("use-backend", "backend")
 
