@@ -104,6 +104,15 @@ func main() {
 		os.Exit(0)
 	}
 
+	/*
+		   #### ##    ## ########  #######
+			  ##  ###   ## ##       ##     ##
+			  ##  ####  ## ##       ##     ##
+			  ##  ## ## ## ######   ##     ##
+			  ##  ##  #### ##       ##     ##
+			  ##  ##   ### ##       ##     ##
+			 #### ##    ## ##        #######
+	*/
 	c.HelpGroup("INFO:")
 	c.Dispatch("help", "Get detailed help with a specific command", cliUsage)
 	c.Alias("usage", "help")
@@ -113,15 +122,6 @@ func main() {
 	c.Dispatch("flags", "Show the list of all command line flags", cliFlags)
 	c.Alias("options", "flags")
 
-	/*
-	    ######  ########    ###    ######## ##     ##  ######
-	   ##    ##    ##      ## ##      ##    ##     ## ##    ##
-	   ##          ##     ##   ##     ##    ##     ## ##
-	    ######     ##    ##     ##    ##    ##     ##  ######
-	         ##    ##    #########    ##    ##     ##       ##
-	   ##    ##    ##    ##     ##    ##    ##     ## ##    ##
-	    ######     ##    ##     ##    ##     #######   ######
-	*/
 	c.Dispatch("status", "Query the SHIELD backup server for its status and version info", cliStatus)
 	c.Alias("stat", "status")
 
@@ -162,143 +162,18 @@ func main() {
 	*/
 
 	c.HelpGroup("TARGETS:")
-	c.Dispatch("targets", "List available backup targets",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp("Only show targets using the named target plugin", true, "-P", "--policy=value")
-				HelpListMacro("target", "targets")
-				JSONHelp(`[{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}]`)
-				return nil
-			}
-
-			DEBUG("running 'list targets' command")
-			DEBUG("  for plugin: '%s'", *opts.Plugin)
-			DEBUG("  show unused? %v", *opts.Unused)
-			DEBUG("  show in-use? %v", *opts.Used)
-			if *opts.Raw {
-				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
-			}
-
-			targets, err := GetTargets(TargetFilter{
-				Name:       strings.Join(args, " "),
-				Plugin:     *opts.Plugin,
-				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
-			})
-
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(targets)
-			}
-
-			t := tui.NewTable("Name", "Summary", "Plugin", "Remote IP", "Configuration")
-			for _, target := range targets {
-				t.Row(target, target.Name, target.Summary, target.Plugin, target.Agent, PrettyJSON(target.Endpoint))
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("targets", "List available backup targets", cliListTargets)
 	c.Alias("list targets", "targets")
 	c.Alias("ls targets", "targets")
 
-	c.Dispatch("target", "Print detailed information about a specific backup target",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}`)
-				HelpShowMacro("target", "targets")
-				return nil
-			}
-
-			DEBUG("running 'show target' command")
-
-			target, _, err := FindTarget(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(target)
-			}
-
-			if *opts.ShowUUID {
-				return RawUUID(target.UUID)
-			}
-			ShowTarget(target)
-			return nil
-		})
+	c.Dispatch("target", "Print detailed information about a specific backup target", cliGetTarget)
 	c.Alias("show target", "target")
 	c.Alias("view target", "target")
 	c.Alias("display target", "target")
 	c.Alias("list target", "target")
 	c.Alias("ls target", "target")
 
-	c.Dispatch("create-target", "Create a new backup target",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestTarget","plugin":"postgres","summary":"A Test Target"}`)
-				JSONHelp(`{"uuid":"77398f3e-2a31-4f20-b3f7-49d3f0998712","name":"TestTarget","summary":"A Test Target","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
-				HelpCreateMacro("target", "targets")
-				return nil
-			}
-
-			DEBUG("running 'create target' command")
-
-			var err error
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Target Name", "name", "", "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", "", "", FieldIsPluginName)
-				in.NewField("Configuration", "endpoint", "", "", tui.FieldIsRequired)
-				in.NewField("Remote IP:port", "agent", "", "", tui.FieldIsRequired)
-				err := in.Show()
-				if err != nil {
-					return err
-				}
-
-				if !in.Confirm("Really create this target?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-
-			if *opts.UpdateIfExists {
-				t, id, err := FindTarget(content, true)
-				if err != nil {
-					return err
-				}
-				if id != nil {
-					t, err = UpdateTarget(id, content)
-					if err != nil {
-						return err
-					}
-					MSG("Updated existing target")
-					return c.Execute("target", t.UUID)
-				}
-			}
-			t, err := CreateTarget(content)
-			if err != nil {
-				return err
-			}
-			MSG("Created new target")
-			return c.Execute("target", t.UUID)
-		})
+	c.Dispatch("create-target", "Create a new backup target", cliCreateTarget)
 	c.Alias("create target", "create-target")
 	c.Alias("new target", "create-target")
 	c.Alias("create new target", "create-target")
@@ -306,91 +181,11 @@ func main() {
 	c.Alias("c t", "create-target")
 	c.Alias("add target", "create-target")
 
-	c.Dispatch("edit-target", "Modify an existing backup target",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"newschmendpoint\"}","name":"NewTargetName","plugin":"postgres","summary":"Some Target"}`)
-				JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SomeTarget","summary":"Just this target, you know?","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
-				HelpEditMacro("target", "targets")
-				return nil
-			}
-
-			DEBUG("running 'edit target' command")
-
-			t, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Target Name", "name", t.Name, "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", t.Summary, "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", t.Plugin, "", FieldIsPluginName)
-				in.NewField("Configuration", "endpoint", t.Endpoint, "", tui.FieldIsRequired)
-				in.NewField("Remote IP:port", "agent", t.Agent, "", tui.FieldIsRequired)
-
-				if err := in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Save these changes?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-			t, err = UpdateTarget(id, content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Updated target")
-			return c.Execute("target", t.UUID)
-		})
+	c.Dispatch("edit-target", "Modify an existing backup target", cliEditTarget)
 	c.Alias("edit target", "edit-target")
 	c.Alias("update target", "edit-target")
 
-	c.Dispatch("delete-target", "Delete a backup target",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpDeleteMacro("target", "targets")
-				return nil
-			}
-
-			DEBUG("running 'delete target' command")
-
-			target, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowTarget(target)
-				if !tui.Confirm("Really delete this target?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := DeleteTarget(id); err != nil {
-				return err
-			}
-
-			OK("Deleted target")
-			return nil
-		})
+	c.Dispatch("delete-target", "Delete a backup target", cliDeleteTarget)
 	c.Alias("delete target", "delete-target")
 	c.Alias("remove target", "delete-target")
 	c.Alias("rm target", "delete-target")
@@ -406,228 +201,29 @@ func main() {
 	*/
 
 	c.HelpGroup("SCHEDULES:")
-	c.Dispatch("schedules", "List available backup schedules",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpListMacro("schedule", "schedules")
-				JSONHelp(`[{"uuid":"86ff3fec-76c5-48c4-880d-c37563033613","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}]`)
-				return nil
-			}
-
-			DEBUG("running 'list schedules' command")
-			DEBUG("  show unused? %v", *opts.Unused)
-			DEBUG("  show in-use? %v", *opts.Used)
-			if *opts.Raw {
-				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
-			}
-
-			schedules, err := GetSchedules(ScheduleFilter{
-				Name:       strings.Join(args, " "),
-				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
-			})
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(schedules)
-			}
-
-			t := tui.NewTable("Name", "Summary", "Frequency / Interval (UTC)")
-			for _, schedule := range schedules {
-				t.Row(schedule, schedule.Name, schedule.Summary, schedule.When)
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("schedules", "List available backup schedules", cliListSchedules)
 	c.Alias("list schedules", "schedules")
 	c.Alias("ls schedules", "schedules")
 
-	c.Dispatch("schedule", "Print detailed information about a specific backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpShowMacro("schedule", "schedules")
-				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				return nil
-			}
-
-			DEBUG("running 'show schedule' command")
-
-			schedule, _, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(schedule)
-			}
-			if *opts.ShowUUID {
-				return RawUUID(schedule.UUID)
-			}
-
-			ShowSchedule(schedule)
-			return nil
-		})
+	c.Dispatch("schedule", "Print detailed information about a specific backup schedule", cliGetSchedule)
 	c.Alias("show schedule", "schedule")
 	c.Alias("view schedule", "schedule")
 	c.Alias("display schedule", "schedule")
 	c.Alias("list schedule", "schedule")
 	c.Alias("ls schedule", "schedule")
 
-	c.Dispatch("create-schedule", "Create a new backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				InputHelp(`{"name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				HelpCreateMacro("schedule", "schedules")
-				return nil
-			}
-
-			DEBUG("running 'create schedule' command")
-
-			var err error
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Schedule Name", "name", "", "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-				in.NewField("Time Spec (i.e. 'daily 4am')", "when", "", "", tui.FieldIsRequired)
-
-				if err := in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Really create this schedule?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-
-			if *opts.UpdateIfExists {
-				t, id, err := FindSchedule(content, true)
-				if err != nil {
-					return err
-				}
-				if id != nil {
-					t, err = UpdateSchedule(id, content)
-					if err != nil {
-						return err
-					}
-					MSG("Updated existing schedule")
-					return c.Execute("schedule", t.UUID)
-				}
-			}
-
-			s, err := CreateSchedule(content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Created new schedule")
-			return c.Execute("schedule", s.UUID)
-		})
+	c.Dispatch("create-schedule", "Create a new backup schedule", cliCreateSchedule)
 	c.Alias("create schedule", "create-schedule")
 	c.Alias("new schedule", "create-schedule")
 	c.Alias("create new schedule", "create-schedule")
 	c.Alias("make schedule", "create-schedule")
 	c.Alias("c s", "create-schedule")
 
-	c.Dispatch("edit-schedule", "Modify an existing backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				InputHelp(`{"name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				HelpEditMacro("schedule", "schedules")
-				JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
-				return nil
-			}
-
-			DEBUG("running 'edit schedule' command")
-
-			s, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Schedule Name", "name", s.Name, "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", s.Summary, "", tui.FieldIsOptional)
-				in.NewField("Time Spec (i.e. 'daily 4am')", "when", s.When, "", tui.FieldIsRequired)
-
-				if err = in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Save these changes?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-			s, err = UpdateSchedule(id, content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Updated schedule")
-			return c.Execute("schedule", s.UUID)
-		})
+	c.Dispatch("edit-schedule", "Modify an existing backup schedule", cliEditSchedule)
 	c.Alias("edit schedule", "edit-schedule")
 	c.Alias("update schedule", "edit-schedule")
 
-	c.Dispatch("delete-schedule", "Delete a backup schedule",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpDeleteMacro("schedule", "schedules")
-				return nil
-			}
-
-			DEBUG("running 'delete schedule' command")
-
-			schedule, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowSchedule(schedule)
-				if !tui.Confirm("Really delete this schedule?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := DeleteSchedule(id); err != nil {
-				return err
-			}
-
-			OK("Deleted schedule")
-			return nil
-		})
+	c.Dispatch("delete-schedule", "Delete a backup schedule", cliDeleteSchedule)
 	c.Alias("delete schedule", "delete-schedule")
 	c.Alias("remove schedule", "delete-schedule")
 	c.Alias("rm schedule", "delete-schedule")
