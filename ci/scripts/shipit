@@ -47,7 +47,6 @@ if [[ -d ${newgopath} ]]; then
 	PATH="${PATH}:${newgopath}/bin"
 fi
 echo ">> Using GOPATH ${GOPATH}"
-godep restore
 go get github.com/mitchellh/gox
 popd
 
