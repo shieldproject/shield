@@ -11,8 +11,8 @@ meta:
     cmd_module: ./cmd/shield
 
   aws:
-    access_key: (( vault "secret/pipelines/shield/aws:key" ))
-    secret_key: (( vault "secret/pipelines/shield/aws:secret" ))
+    access_key: (( vault "secret/aws/cfcommunity:access" ))
+    secret_key: (( vault "secret/aws/cfcommunity:secret" ))
 
   slack:
     channel: "#shield"
@@ -57,7 +57,11 @@ jobs:
         - task: phalanx
           config:
             platform: linux
-            image: (( grab meta.image ))
+            image_resource:
+              type: docker-image
+              source:
+                repository: (( grab meta.image ))
+                tag: (( grab meta.go.version ))
             inputs:
               - name: git
                 path: gopath/src/github.com/starkandwayne/shield
