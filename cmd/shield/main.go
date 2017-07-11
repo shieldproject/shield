@@ -1,21 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/pborman/getopt"
-	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/ansi"
 
 	. "github.com/starkandwayne/shield/api"
-	"github.com/starkandwayne/shield/tui"
 )
 
 func require(good bool, msg string) {
@@ -330,361 +326,41 @@ func main() {
 	*/
 
 	c.HelpGroup("JOBS:")
-	c.Dispatch("jobs", "List available backup jobs",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpListMacro("job", "jobs")
-				FlagHelp("Show only jobs using the specified target", true, "-t", "--target=value")
-				FlagHelp("Show only jobs using the specified store", true, "-s", "--store=value")
-				FlagHelp("Show only jobs using the specified schedule", true, "-w", "--schedule=value")
-				FlagHelp("Show only jobs using the specified retention policy", true, "-p", "--policy=value")
-				FlagHelp("Show only jobs which are in the paused state", true, "--paused")
-				FlagHelp("Show only jobs which are NOT in the paused state", true, "--unpaused")
-				JSONHelp(`[{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}]`)
-				return nil
-			}
-
-			DEBUG("running 'list jobs' command")
-			DEBUG("  for target:      '%s'", *opts.Target)
-			DEBUG("  for store:       '%s'", *opts.Store)
-			DEBUG("  for schedule:    '%s'", *opts.Schedule)
-			DEBUG("  for ret. policy: '%s'", *opts.Retention)
-			DEBUG("  show paused?      %v", *opts.Paused)
-			DEBUG("  show unpaused?    %v", *opts.Unpaused)
-			if *opts.Raw {
-				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
-			}
-
-			jobs, err := GetJobs(JobFilter{
-				Name:       strings.Join(args, " "),
-				Paused:     MaybeBools(*opts.Paused, *opts.Unpaused),
-				Target:     *opts.Target,
-				Store:      *opts.Store,
-				Schedule:   *opts.Schedule,
-				Retention:  *opts.Retention,
-				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
-			})
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(jobs)
-			}
-
-			t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Remote IP", "Target")
-			for _, job := range jobs {
-				t.Row(job, job.Name, BoolString(job.Paused), job.Summary,
-					job.RetentionName, job.ScheduleName, job.Agent, PrettyJSON(job.TargetEndpoint))
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("jobs", "List available backup jobs", cliListJobs)
 	c.Alias("list jobs", "jobs")
 	c.Alias("ls jobs", "jobs")
 	c.Alias("ls j", "jobs")
 
-	c.Dispatch("job", "Print detailed information about a specific backup job",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpShowMacro("job", "jobs")
-				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
-				return nil
-			}
-
-			DEBUG("running 'show job' command")
-
-			job, _, err := FindJob(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(job)
-			}
-			if *opts.ShowUUID {
-				return RawUUID(job.UUID)
-			}
-
-			ShowJob(job)
-			return nil
-		})
+	c.Dispatch("job", "Print detailed information about a specific backup job", cliGetJob)
 	c.Alias("show job", "job")
 	c.Alias("view job", "job")
 	c.Alias("display job", "job")
 	c.Alias("list job", "job")
 	c.Alias("ls job", "job")
 
-	c.Dispatch("create-job", "Create a new backup job",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpCreateMacro("job", "jobs")
-				InputHelp(`{"name":"TestJob","paused":true,"retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
-				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"TestJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
-				return nil
-			}
-
-			DEBUG("running 'create job' command")
-
-			var err error
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Job Name", "name", "", "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-
-				in.NewField("Store", "store", "", "", FieldIsStoreUUID)
-				in.NewField("Target", "target", "", "", FieldIsTargetUUID)
-				in.NewField("Retention Policy", "retention", "", "", FieldIsRetentionPolicyUUID)
-				in.NewField("Schedule", "schedule", "", "", FieldIsScheduleUUID)
-
-				in.NewField("Paused?", "paused", "no", "", tui.FieldIsBoolean)
-				err := in.Show()
-				if err != nil {
-					return err
-				}
-
-				if !in.Confirm("Really create this backup job?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-
-			if *opts.UpdateIfExists {
-				t, id, err := FindJob(content, true)
-				if err != nil {
-					return err
-				}
-				if id != nil {
-					t, err = UpdateJob(id, content)
-					if err != nil {
-						return err
-					}
-					MSG("Updated existing job")
-					return c.Execute("job", t.UUID)
-				}
-			}
-
-			job, err := CreateJob(content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Created new job")
-			return c.Execute("job", job.UUID)
-		})
+	c.Dispatch("create-job", "Create a new backup job", cliCreateJob)
 	c.Alias("create job", "create-job")
 	c.Alias("new job", "create-job")
 	c.Alias("create new job", "create-job")
 	c.Alias("make job", "create-job")
 	c.Alias("c j", "create-job")
 
-	c.Dispatch("edit-job", "Modify an existing backup job",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpEditMacro("job", "jobs")
-
-				return nil
-			}
-
-			DEBUG("running 'edit job' command")
-
-			j, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-
-				in := tui.NewForm()
-				in.NewField("Job Name", "name", j.Name, "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", j.Summary, "", tui.FieldIsOptional)
-				in.NewField("Store", "store", j.StoreUUID, j.StoreName, FieldIsStoreUUID)
-				in.NewField("Target", "target", j.TargetUUID, j.TargetName, FieldIsTargetUUID)
-				in.NewField("Retention Policy", "retention", j.RetentionUUID, fmt.Sprintf("%s - %dd", j.RetentionName, j.Expiry/86400), FieldIsRetentionPolicyUUID)
-				in.NewField("Schedule", "schedule", j.ScheduleUUID, fmt.Sprintf("%s - %s", j.ScheduleName, j.ScheduleWhen), FieldIsScheduleUUID)
-
-				if err = in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Save these changes?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-			j, err = UpdateJob(id, content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Updated job")
-			return c.Execute("job", j.UUID)
-		})
+	c.Dispatch("edit-job", "Modify an existing backup job", cliEditJob)
 	c.Alias("edit job", "edit-job")
 	c.Alias("update job", "edit-job")
 
-	c.Dispatch("delete-job", "Delete a backup job",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpDeleteMacro("job", "jobs")
-				InputHelp(`{"name":"AnotherJob","retention":"18a446c4-c068-4c09-886c-cb77b6a85274","schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b","store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","summary":"A Test Job","target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"}`)
-				JSONHelp(`{"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588","name":"AnotherJob","summary":"A Test Job","retention_name":"AnotherPolicy","retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","expiry":31536000,"schedule_name":"AnotherSched","schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","schedule_when":"daily 4am","paused":true,"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","store_name":"AnotherStore","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}","target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee","target_name":"TestTarget","target_plugin":"postgres","target_endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
-				return nil
-			}
-
-			DEBUG("running 'delete job' command")
-
-			job, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowJob(job)
-				if !tui.Confirm("Really delete this backup job?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := DeleteJob(id); err != nil {
-				return err
-			}
-
-			OK("Deleted job")
-			return nil
-		})
+	c.Dispatch("delete-job", "Delete a backup job", cliDeleteJob)
 	c.Alias("delete job", "delete-job")
 	c.Alias("remove job", "delete-job")
 	c.Alias("rm job", "delete-job")
 
-	c.Dispatch("pause", "Pause a backup job",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`A string partially matching the name of a job to pause
-				or a UUID exactly matching the UUID of a job to pause.
-				Not setting this value explicitly will default it to the empty string.`,
-					false, "<job>")
-				HelpKMacro()
-				return nil
-			}
-
-			DEBUG("running 'pause job' command")
-
-			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-			if err := PauseJob(id); err != nil {
-				return err
-			}
-
-			return nil
-		})
+	c.Dispatch("pause", "Pause a backup job", cliPauseJob)
 	c.Alias("pause job", "pause")
 
-	c.Dispatch("unpause", "Unpause a backup job",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`A string partially matching the name of a job to unpause
-				or a UUID exactly matching the UUID of a job to unpause.
-				Not setting this value explicitly will default it to the empty string.`,
-					false, "<job>")
-				HelpKMacro()
-				return nil
-			}
-
-			DEBUG("running 'unpause job' command")
-
-			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-			if err := UnpauseJob(id); err != nil {
-				return err
-			}
-
-			OK("Unpaused job")
-			return nil
-		})
+	c.Dispatch("unpause", "Unpause a backup job", cliUnpauseJob)
 	c.Alias("unpause job", "unpause")
 
-	c.Dispatch("run", "Schedule an immediate run of a backup job",
-		func(opts Options, args []string, help bool) error {
-			if help {
-
-				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
-				FlagHelp(`A string partially matching the name of a job to run
-				or a UUID exactly matching the UUID of a job to run.
-				Not setting this value explicitly will default it to the empty string.`,
-					false, "<job>")
-				JSONHelp(`{"ok":"Scheduled immediate run of job","task_uuid":"143e5494-63c4-4e05-9051-8b3015eae061"}`)
-				HelpKMacro()
-				return nil
-			}
-
-			DEBUG("running 'run job' command")
-
-			_, id, err := FindJob(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			var params = struct {
-				Owner string `json:"owner"`
-			}{
-				Owner: CurrentUser(),
-			}
-
-			b, err := json.Marshal(params)
-			if err != nil {
-				return err
-			}
-
-			taskUUID, err := RunJob(id, string(b))
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				RawJSON(map[string]interface{}{
-					"ok":        "Scheduled immediate run of job",
-					"task_uuid": taskUUID,
-				})
-			} else {
-				OK("Scheduled immediate run of job")
-				if taskUUID != "" {
-					ansi.Printf("To view task, type @B{shield task %s}\n", taskUUID)
-				}
-			}
-
-			return nil
-		})
+	c.Dispatch("run", "Schedule an immediate run of a backup job", cliRunJob)
 	c.Alias("run job", "run")
 
 	/*
@@ -698,142 +374,18 @@ func main() {
 	*/
 
 	c.HelpGroup("TASKS:")
-	c.Dispatch("tasks", "List available tasks",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`Only show tasks with the specified status
-									Valid values are one of ['all', 'running', 'pending', 'cancelled']
-									If not explicitly set, it defaults to 'running'`,
-					true, "-S", "--status=value")
-				FlagHelp(`Show all tasks, regardless of state`, true, "-a", "--all")
-				FlagHelp("Returns information as a JSON object", true, "--raw")
-				FlagHelp("Show only the <value> most recent tasks", true, "--limit=value")
-				HelpKMacro()
-				JSONHelp(`[{"uuid":"0e3736f3-6905-40ba-9adc-06641a282ff4","owner":"system","type":"backup","job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8","archive_uuid":"2a4147ea-84a6-40fc-8028-143efabcc49d","status":"done","started_at":"2016-05-17 11:00:01","stopped_at":"2016-05-17 11:00:02","timeout_at":"","log":"This is where I would put my plugin output if I had one"}]`)
-				return nil
-			}
-
-			DEBUG("running 'list tasks' command")
-
-			if *options.Status == "" {
-				*options.Status = "running"
-			}
-			if *options.Status == "all" || *options.All {
-				*options.Status = ""
-			}
-			DEBUG("  for status: '%s'", *opts.Status)
-
-			tasks, err := GetTasks(TaskFilter{
-				Status: *options.Status,
-				Limit:  *options.Limit,
-			})
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(tasks)
-			}
-
-			job := map[string]Job{}
-			jobs, _ := GetJobs(JobFilter{})
-			for _, j := range jobs {
-				job[j.UUID] = j
-			}
-
-			t := tui.NewTable("UUID", "Owner", "Type", "Remote IP", "Status", "Started", "Stopped")
-			for _, task := range tasks {
-				started := "(pending)"
-				stopped := "(not yet started)"
-				if !task.StartedAt.IsZero() {
-					stopped = "(running)"
-					started = task.StartedAt.Format(time.RFC1123Z)
-				}
-
-				if !task.StoppedAt.IsZero() {
-					stopped = task.StoppedAt.Format(time.RFC1123Z)
-				}
-
-				t.Row(task, task.UUID, task.Owner, task.Op, job[task.JobUUID].Agent, task.Status, started, stopped)
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("tasks", "List available tasks", cliListTasks)
 	c.Alias("list tasks", "tasks")
 	c.Alias("ls tasks", "tasks")
 
-	c.Dispatch("task", "Print detailed information about a specific task",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp("The ID number of the task to show info about", false, "<id>")
-				HelpKMacro()
-				FlagHelp("Returns information as a JSON object", true, "--raw")
-				JSONHelp(`{"uuid":"b40ae708-6215-4932-90fb-fe580fac7196","owner":"system","type":"backup","job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8","archive_uuid":"62792b22-c89e-4d69-b874-69a5f056a9ef","status":"done","started_at":"2016-05-18 11:00:01","stopped_at":"2016-05-18 11:00:02","timeout_at":"","log":"This is where I would put my plugin output if I had one"}`)
-				return nil
-			}
-
-			DEBUG("running 'show task' command")
-
-			require(len(args) == 1, "shield show task <UUID>")
-			id := uuid.Parse(args[0])
-			DEBUG("  task UUID = '%s'", id)
-
-			task, err := GetTask(id)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(task)
-			}
-			if *opts.ShowUUID {
-				return RawUUID(task.UUID)
-			}
-
-			ShowTask(task)
-			return nil
-		})
+	c.Dispatch("task", "Print detailed information about a specific task", cliGetTask)
 	c.Alias("show task", "task")
 	c.Alias("view task", "task")
 	c.Alias("display task", "task")
 	c.Alias("list task", "task")
 	c.Alias("ls task", "task")
 
-	c.Dispatch("cancel-task", "Cancel a running or pending task",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`Outputs the result as a JSON object.
-				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
-				HelpKMacro()
-				JSONHelp(`{"ok":"Cancelled task '81746508-bd18-46a8-842e-97911d4b23a3'\n"}`)
-				return nil
-			}
-
-			DEBUG("running 'cancel task' command")
-
-			require(len(args) == 1, "shield cancel task <UUID>")
-			id := uuid.Parse(args[0])
-			DEBUG("  task UUID = '%s'", id)
-
-			task, err := GetTask(id)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowTask(task)
-				if !tui.Confirm("Really cancel this task?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := CancelTask(id); err != nil {
-				return err
-			}
-
-			OK("Cancelled task '%s'\n", id)
-			return nil
-		})
+	c.Dispatch("cancel-task", "Cancel a running or pending task", cliCancelTask)
 	c.Alias("cancel task", "cancel-task")
 	c.Alias("stop task", "cancel-task")
 
@@ -848,243 +400,22 @@ func main() {
 	*/
 
 	c.HelpGroup("ARCHIVES:")
-	c.Dispatch("archives", "List available backup archives",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpListMacro("archive", "archives")
-				FlagHelp(`Only show archives with the specified state of validity.
-									Accepted values are one of ['all', 'valid']
-									If not explicitly set, it defaults to 'valid'`,
-					true, "-S", "--status=value")
-				FlagHelp("Show only archives created from the specified target", true, "-t", "--target=value")
-				FlagHelp("Show only archives sent to the specified store", true, "-s", "--store=value")
-				FlagHelp("Show only the <value> most recent archives", true, "--limit=value")
-				FlagHelp(`Show only the archives taken before this point in time
-				Specify in the format YYYYMMDD`, true, "-B", "--before=value")
-				FlagHelp(`Show only the archives taken after this point in time
-				Specify in the format YYYYMMDD`, true, "-A", "--after=value")
-				FlagHelp(`Show all archives, regardless of validity.
-									Equivalent to '--status=all'`, true, "-a", "--all")
-				JSONHelp(`[{"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533","key":"thisisastorekey","taken_at":"2016-05-18 11:02:43","expires_at":"2017-05-18 11:02:43","status":"valid","notes":"","target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1","target_plugin":"redis-broker","target_endpoint":"{\"redis_type\":\"broker\"}","store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}"}]`)
-				return nil
-			}
-
-			DEBUG("running 'list archives' command")
-
-			if *options.Status == "" {
-				*options.Status = "valid"
-			}
-			if *options.Status == "all" || *options.All {
-				*options.Status = ""
-			}
-			DEBUG("  for status: '%s'", *opts.Status)
-
-			if *options.Limit == "" {
-				*options.Limit = "20"
-			}
-			DEBUG("  for limit: '%s'", *opts.Limit)
-
-			archives, err := GetArchives(ArchiveFilter{
-				Target: *options.Target,
-				Store:  *options.Store,
-				Before: *options.Before,
-				After:  *options.After,
-				Status: *options.Status,
-				Limit:  *options.Limit,
-			})
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(archives)
-			}
-
-			// Map out the target names, for prettier output
-			target := map[string]Target{}
-			targets, _ := GetTargets(TargetFilter{})
-			for _, t := range targets {
-				target[t.UUID] = t
-			}
-
-			// Map out the store names, for prettier output
-			store := map[string]Store{}
-			stores, _ := GetStores(StoreFilter{})
-			for _, s := range stores {
-				store[s.UUID] = s
-			}
-
-			t := tui.NewTable("UUID", "Target", "Restore IP", "Store", "Taken at", "Expires at", "Status", "Notes")
-			for _, archive := range archives {
-				if *opts.Target != "" && archive.TargetUUID != *opts.Target {
-					continue
-				}
-				if *opts.Store != "" && archive.StoreUUID != *opts.Store {
-					continue
-				}
-
-				t.Row(archive, archive.UUID,
-					fmt.Sprintf("%s (%s)", target[archive.TargetUUID].Name, archive.TargetPlugin),
-					target[archive.TargetUUID].Agent,
-					fmt.Sprintf("%s (%s)", store[archive.StoreUUID].Name, archive.StorePlugin),
-					archive.TakenAt.Format(time.RFC1123Z),
-					archive.ExpiresAt.Format(time.RFC1123Z),
-					archive.Status, archive.Notes)
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("archives", "List available backup archives", cliListArchives)
 	c.Alias("list archives", "archives")
 	c.Alias("ls archives", "archives")
 
-	c.Dispatch("archive", "Print detailed information about a backup archive",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
-				FlagHelp("Returns information as a JSON object", true, "--raw")
-				HelpKMacro()
-				JSONHelp(`{"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533","key":"thisisastorekey","taken_at":"2016-05-18 11:02:43","expires_at":"2017-05-18 11:02:43","status":"valid","notes":"","target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1","target_plugin":"redis-broker","target_endpoint":"{\"redis_type\":\"broker\"}","store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
-				return nil
-			}
-
-			DEBUG("running 'show archive' command")
-
-			require(len(args) == 1, "shield show archive <UUID>")
-			id := uuid.Parse(args[0])
-			DEBUG("  archive UUID = '%s'", id)
-
-			archive, err := GetArchive(id)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(archive)
-			}
-			if *opts.ShowUUID {
-				return RawUUID(archive.UUID)
-			}
-
-			ShowArchive(archive)
-			return nil
-		})
+	c.Dispatch("archive", "Print detailed information about a backup archive", cliGetArchive)
 	c.Alias("show archive", "archive")
 	c.Alias("view archive", "archive")
 	c.Alias("display archive", "archive")
 	c.Alias("list archive", "archive")
 	c.Alias("ls archive", "archive")
 
-	c.Dispatch("restore", "Restore a backup archive",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
-				FlagHelp(`Outputs the result as a JSON object.`, true, "--raw")
-				FlagHelp(`The name or UUID of a single target to restore. In raw mode, it must be a UUID assigned to a single archive instance`, false, "<target or uuid>")
-				HelpKMacro()
-				return nil
-			}
-
-			DEBUG("running 'restore archive' command")
-
-			var id uuid.UUID
-
-			if *opts.Raw {
-				require(len(args) == 1, "USAGE: shield restore archive <UUID>")
-				id = uuid.Parse(args[0])
-				DEBUG("  trying archive UUID '%s'", args[0])
-
-			} else {
-				target, _, err := FindTarget(strings.Join(args, " "), false)
-				if err != nil {
-					return err
-				}
-
-				_, id, err = FindArchivesFor(target, 10)
-				if err != nil {
-					return err
-				}
-			}
-			DEBUG("  archive UUID = '%s'", id)
-
-			var params = struct {
-				Owner  string `json:"owner,omitempty"`
-				Target string `json:"target,omitempty"`
-			}{
-				Owner: CurrentUser(),
-			}
-
-			if *opts.To != "" {
-				params.Target = *opts.To
-			}
-
-			b, err := json.Marshal(params)
-			if err != nil {
-				return err
-			}
-
-			taskUUID, err := RestoreArchive(id, string(b))
-			if err != nil {
-				return err
-			}
-
-			targetMsg := ""
-			if params.Target != "" {
-				targetMsg = fmt.Sprintf("to target '%s'", params.Target)
-			}
-			if *opts.Raw {
-				RawJSON(map[string]interface{}{
-					"ok":        fmt.Sprintf("Scheduled immediate restore of archive '%s' %s", id, targetMsg),
-					"task_uuid": taskUUID,
-				})
-			} else {
-				//`OK` handles raw checking
-				OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
-				if taskUUID != "" {
-					ansi.Printf("To view task, type @B{shield task %s}\n", taskUUID)
-				}
-			}
-
-			return nil
-		})
+	c.Dispatch("restore", "Restore a backup archive", cliRestoreArchive)
 	c.Alias("restore archive", "restore")
 	c.Alias("restore-archive", "restore")
 
-	c.Dispatch("delete-archive", "Delete a backup archive",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
-				FlagHelp(`Outputs the result as a JSON object.
-				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
-				HelpKMacro()
-				JSONHelp(`{"ok":"Deleted archive"}`)
-				return nil
-			}
-
-			DEBUG("running 'delete archive' command")
-
-			require(len(args) == 1, "USAGE: shield delete archive <UUID>")
-			id := uuid.Parse(args[0])
-			DEBUG("  archive UUID = '%s'", id)
-
-			archive, err := GetArchive(id)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowArchive(archive)
-				if !tui.Confirm("Really delete this archive?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := DeleteArchive(id); err != nil {
-				return err
-			}
-
-			OK("Deleted archive")
-			return nil
-		})
+	c.Dispatch("delete-archive", "Delete a backup archive", cliDeleteArchive)
 	c.Alias("delete archive", "delete-archive")
 	c.Alias("remove archive", "delete-archive")
 	c.Alias("rm archive", "delete-archive")
@@ -1105,31 +436,7 @@ func main() {
 			ansi.Fprintf(os.Stderr, "@Y{WARNING: -H, --host, and the SHIELD_API environment variable have been deprecated and will be removed in a later release.} Use `shield backend` instead\n")
 		}
 
-		if len(Cfg.Backends) == 0 {
-			backend := os.Getenv("SHIELD_API")
-			if *options.Shield != "" {
-				backend = *options.Shield
-			}
-
-			if backend != "" {
-				ansi.Fprintf(os.Stderr, "@C{Initializing `default` backend as `%s`}\n", backend)
-				err := Cfg.AddBackend(backend, "default")
-				if err != nil {
-					ansi.Fprintf(os.Stderr, "@R{Error creating `default` backend: %s}", err)
-				}
-				Cfg.UseBackend("default")
-			}
-		}
-
-		if Cfg.BackendURI() == "" {
-			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
-			os.Exit(1)
-		}
-
-		err = Cfg.Save()
-		if err != nil {
-			DEBUG("Unable to save shield config: %s", err)
-		}
+		loadBackend()
 	}
 
 	if err := c.Execute(command...); err != nil {

@@ -105,3 +105,31 @@ func cliUseBackend(opts Options, args []string, help bool) error {
 	DisplayBackend(api.Cfg)
 	return nil
 }
+
+func loadBackend() {
+	if len(api.Cfg.Backends) == 0 {
+		backend := os.Getenv("SHIELD_API")
+		if *options.Shield != "" {
+			backend = *options.Shield
+		}
+
+		if backend != "" {
+			ansi.Fprintf(os.Stderr, "@C{Initializing `default` backend as `%s`}\n", backend)
+			err := api.Cfg.AddBackend(backend, "default")
+			if err != nil {
+				ansi.Fprintf(os.Stderr, "@R{Error creating `default` backend: %s}", err)
+			}
+			api.Cfg.UseBackend("default")
+		}
+	}
+
+	if api.Cfg.BackendURI() == "" {
+		ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
+		os.Exit(1)
+	}
+
+	err := api.Cfg.Save()
+	if err != nil {
+		DEBUG("Unable to save shield config: %s", err)
+	}
+}
