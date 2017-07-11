@@ -122,7 +122,7 @@ func cliCreateSchedule(opts Options, args []string, help bool) error {
 				return err
 			}
 			MSG("Updated existing schedule")
-			return c.Execute("schedule", t.UUID)
+			return cliGetSchedule(opts, []string{t.UUID}, false)
 		}
 	}
 

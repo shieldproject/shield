@@ -31,7 +31,8 @@ func readall(in io.Reader) (string, error) {
 }
 
 var (
-	debug   = false
+	debug = false
+	//Version gets overridden by lflags when building
 	Version = ""
 	options = Options{
 		Shield:   getopt.StringLong("shield", 'H', "", "DEPRECATED - Previously required to point to a SHIELD backend to talk to. Now used to auto-vivify ~/.shield_config if necessary"),
@@ -239,71 +240,13 @@ func main() {
 	*/
 
 	c.HelpGroup("POLICIES:")
-	c.Dispatch("policies", "List available retention policies",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpListMacro("policy", "policies")
-				JSONHelp(`[{"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec","name":"apolicy","summary":"a policy","expires":5616000}]`)
-				return nil
-			}
-
-			DEBUG("running 'list retention policies' command")
-			DEBUG("  show unused? %v", *opts.Unused)
-			DEBUG("  show in-use? %v", *opts.Used)
-			if *opts.Raw {
-				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
-			}
-
-			policies, err := GetRetentionPolicies(RetentionPolicyFilter{
-				Name:       strings.Join(args, " "),
-				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
-			})
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(policies)
-			}
-
-			t := tui.NewTable("Name", "Summary", "Expires in")
-			for _, policy := range policies {
-				t.Row(policy, policy.Name, policy.Summary, fmt.Sprintf("%d days", policy.Expires/86400))
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("policies", "List available retention policies", cliListPolicies)
 	c.Alias("list retention policies", "policies")
 	c.Alias("ls retention policies", "policies")
 	c.Alias("list policies", "policies")
 	c.Alias("ls policies", "policies")
 
-	c.Dispatch("policy", "Print detailed information about a specific retention policy",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpShowMacro("policy", "policies")
-				JSONHelp(`{"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec","name":"apolicy","summary":"a policy","expires":5616000}`)
-				return nil
-			}
-
-			DEBUG("running 'show retention policy' command")
-
-			policy, _, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(policy)
-			}
-			if *opts.ShowUUID {
-				return RawUUID(policy.UUID)
-			}
-
-			ShowRetentionPolicy(policy)
-			return nil
-		})
+	c.Dispatch("policy", "Print detailed information about a specific retention policy", cliGetPolicy)
 	c.Alias("show retention policy", "policy")
 	c.Alias("view retention policy", "policy")
 	c.Alias("display retention policy", "policy")
@@ -313,71 +256,7 @@ func main() {
 	c.Alias("display policy", "policy")
 	c.Alias("list policy", "policy")
 
-	c.Dispatch("create-policy", "Create a new retention policy",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				InputHelp(`{"expires":31536000,"name":"TestPolicy","summary":"A Test Policy"}`)
-				JSONHelp(`{"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","name":"TestPolicy","summary":"A Test Policy","expires":31536000}`)
-				HelpCreateMacro("policy", "policies")
-				return nil
-			}
-
-			DEBUG("running 'create retention policy' command")
-
-			var err error
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Policy Name", "name", "", "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-				in.NewField("Retention Timeframe, in days", "expires", "", "", FieldIsRetentionTimeframe)
-
-				if err := in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Really create this retention policy?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-
-			if *opts.UpdateIfExists {
-				t, id, err := FindRetentionPolicy(content, true)
-				if err != nil {
-					return err
-				}
-				if id != nil {
-					t, err = UpdateRetentionPolicy(id, content)
-					if err != nil {
-						return err
-					}
-					MSG("Updated existing retention policy")
-					return c.Execute("policy", t.UUID)
-				}
-			}
-
-			p, err := CreateRetentionPolicy(content)
-
-			if err != nil {
-				return err
-			}
-
-			MSG("Created new retention policy")
-			return c.Execute("policy", p.UUID)
-		})
+	c.Dispatch("create-policy", "Create a new retention policy", cliCreatePolicy)
 	c.Alias("create retention policy", "create-policy")
 	c.Alias("new retention policy", "create-policy")
 	c.Alias("create new retention policy", "create-policy")
@@ -388,91 +267,13 @@ func main() {
 	c.Alias("make policy", "create-policy")
 	c.Alias("c p", "create-policy")
 
-	c.Dispatch("edit-policy", "Modify an existing retention policy",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpEditMacro("policy", "policies")
-				InputHelp(`{"expires":31536000,"name":"AnotherPolicy","summary":"A Test Policy"}`)
-				JSONHelp(`{"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","name":"AnotherPolicy","summary":"A Test Policy","expires":31536000}`)
-				return nil
-			}
-
-			DEBUG("running 'edit retention policy' command")
-
-			p, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Policy Name", "name", p.Name, "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", p.Summary, "", tui.FieldIsOptional)
-				in.NewField("Retention Timeframe, in days", "expires", p.Expires/86400, "", FieldIsRetentionTimeframe)
-
-				if err = in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Save these changes?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-			p, err = UpdateRetentionPolicy(id, content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Updated retention policy")
-			return c.Execute("policy", p.UUID)
-		})
+	c.Dispatch("edit-policy", "Modify an existing retention policy", cliEditPolicy)
 	c.Alias("edit retention policy", "edit-policy")
 	c.Alias("update retention policy", "edit-policy")
 	c.Alias("edit policy", "edit-policy")
 	c.Alias("update policy", "edit-policy")
 
-	c.Dispatch("delete-policy", "Delete a retention policy",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpDeleteMacro("policy", "policies")
-				return nil
-			}
-
-			DEBUG("running 'delete retention policy' command")
-
-			policy, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowRetentionPolicy(policy)
-				if !tui.Confirm("Really delete this retention policy?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := DeleteRetentionPolicy(id); err != nil {
-				return err
-			}
-
-			OK("Deleted policy")
-			return nil
-		})
+	c.Dispatch("delete-policy", "Delete a retention policy", cliDeletePolicy)
 	c.Alias("delete retention policy", "delete-policy")
 	c.Alias("remove retention policy", "delete-policy")
 	c.Alias("rm retention policy", "delete-policy")
@@ -491,235 +292,29 @@ func main() {
 	*/
 
 	c.HelpGroup("STORES:")
-	c.Dispatch("stores", "List available archive stores",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpListMacro("store", "stores")
-				FlagHelp("Only show stores using the named store plugin", true, "-P", "--policy=value")
-				JSONHelp(`[{"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20","name":"test store","summary":"a test store named \"test store\"","plugin":"s3","endpoint":"{ \"endpoint\": \"doesntmatter\" }"}]`)
-				return nil
-			}
-
-			DEBUG("running 'list stores' command")
-			DEBUG("  for plugin: '%s'", *opts.Plugin)
-			DEBUG("  show unused? %v", *opts.Unused)
-			DEBUG("  show in-use? %v", *opts.Used)
-			if *opts.Raw {
-				DEBUG(" fuzzy search? %v", MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
-			}
-
-			stores, err := GetStores(StoreFilter{
-				Name:       strings.Join(args, " "),
-				Plugin:     *opts.Plugin,
-				Unused:     MaybeBools(*opts.Unused, *opts.Used),
-				ExactMatch: Opposite(MaybeBools(*opts.Fuzzy, *opts.Raw)),
-			})
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(stores)
-			}
-
-			t := tui.NewTable("Name", "Summary", "Plugin", "Configuration")
-			for _, store := range stores {
-				t.Row(store, store.Name, store.Summary, store.Plugin, PrettyJSON(store.Endpoint))
-			}
-			t.Output(os.Stdout)
-			return nil
-		})
+	c.Dispatch("stores", "List available archive stores", cliListStores)
 	c.Alias("list stores", "stores")
 	c.Alias("ls stores", "stores")
 
-	c.Dispatch("store", "Print detailed information about a specific archive store",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				JSONHelp(`{"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20","name":"test store","summary":"a test store named \"test store\"","plugin":"s3","endpoint":"{ \"endpoint\": \"doesntmatter\" }"}`)
-				HelpShowMacro("store", "stores")
-				return nil
-			}
-
-			DEBUG("running 'show store' command")
-
-			store, _, err := FindStore(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if *opts.Raw {
-				return RawJSON(store)
-			}
-			if *opts.ShowUUID {
-				return RawUUID(store.UUID)
-			}
-
-			ShowStore(store)
-			return nil
-		})
+	c.Dispatch("store", "Print detailed information about a specific archive store", cliGetStore)
 	c.Alias("show store", "store")
 	c.Alias("view store", "store")
 	c.Alias("display store", "store")
 	c.Alias("list store", "store")
 	c.Alias("ls store", "store")
 
-	c.Dispatch("create-store", "Create a new archive store",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpCreateMacro("store", "stores")
-				InputHelp(`{"endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestStore","plugin":"s3","summary":"A Test Store"}`)
-				JSONHelp(`{"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","name":"TestStore","summary":"A Test Store","plugin":"s3","endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
-				return nil
-			}
-
-			DEBUG("running 'create store' command")
-
-			var err error
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Store Name", "name", "", "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", "", "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", "", "", FieldIsPluginName)
-				in.NewField("Configuration (JSON)", "endpoint", "", "", tui.FieldIsRequired)
-
-				if err := in.Show(); err != nil {
-					return err
-				}
-
-				if !in.Confirm("Really create this archive store?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-
-			if *opts.UpdateIfExists {
-				t, id, err := FindStore(content, true)
-				if err != nil {
-					return err
-				}
-				if id != nil {
-					t, err = UpdateStore(id, content)
-					if err != nil {
-						return err
-					}
-					MSG("Updated existing store")
-					return c.Execute("store", t.UUID)
-				}
-			}
-
-			s, err := CreateStore(content)
-
-			if err != nil {
-				return err
-			}
-
-			MSG("Created new store")
-			return c.Execute("store", s.UUID)
-		})
+	c.Dispatch("create-store", "Create a new archive store", cliCreateStore)
 	c.Alias("create store", "create-store")
 	c.Alias("new store", "create-store")
 	c.Alias("create new store", "create-store")
 	c.Alias("make store", "create-store")
 	c.Alias("c st", "create-store")
 
-	c.Dispatch("edit-store", "Modify an existing archive store",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpEditMacro("store", "stores")
-				InputHelp(`{"endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"AnotherStore","plugin":"s3","summary":"A Test Store"}`)
-				JSONHelp(`{"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","name":"AnotherStore","summary":"A Test Store","plugin":"s3","endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
-				return nil
-			}
-
-			DEBUG("running 'edit store' command")
-
-			s, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			var content string
-			if *opts.Raw {
-				content, err = readall(os.Stdin)
-				if err != nil {
-					return err
-				}
-
-			} else {
-				in := tui.NewForm()
-				in.NewField("Store Name", "name", s.Name, "", tui.FieldIsRequired)
-				in.NewField("Summary", "summary", s.Summary, "", tui.FieldIsOptional)
-				in.NewField("Plugin Name", "plugin", s.Plugin, "", FieldIsPluginName)
-				in.NewField("Configuration (JSON)", "endpoint", s.Endpoint, "", tui.FieldIsRequired)
-
-				err = in.Show()
-				if err != nil {
-					return err
-				}
-
-				if !in.Confirm("Save these changes?") {
-					return fmt.Errorf("Canceling...")
-				}
-
-				content, err = in.BuildContent()
-				if err != nil {
-					return err
-				}
-			}
-
-			DEBUG("JSON:\n  %s\n", content)
-			s, err = UpdateStore(id, content)
-			if err != nil {
-				return err
-			}
-
-			MSG("Updated store")
-			return c.Execute("store", s.UUID)
-		})
+	c.Dispatch("edit-store", "Modify an existing archive store", cliEditStore)
 	c.Alias("edit store", "edit-store")
 	c.Alias("update store", "edit-store")
 
-	c.Dispatch("delete-store", "Delete an archive store",
-		func(opts Options, args []string, help bool) error {
-			if help {
-				HelpDeleteMacro("store", "stores")
-				return nil
-			}
-
-			DEBUG("running 'delete store' command")
-
-			store, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
-			if err != nil {
-				return err
-			}
-
-			if !*opts.Raw {
-				ShowStore(store)
-				if !tui.Confirm("Really delete this store?") {
-					return fmt.Errorf("Cancelling...")
-				}
-			}
-
-			if err := DeleteStore(id); err != nil {
-				return err
-			}
-
-			OK("Deleted store")
-			return nil
-		})
+	c.Dispatch("delete-store", "Delete an archive store", cliDeleteStore)
 	c.Alias("delete store", "delete-store")
 	c.Alias("remove store", "delete-store")
 	c.Alias("rm store", "delete-store")

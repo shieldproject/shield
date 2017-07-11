@@ -125,7 +125,7 @@ func cliCreateTarget(opts Options, args []string, help bool) error {
 				return err
 			}
 			MSG("Updated existing target")
-			return c.Execute("target", t.UUID)
+			return cliGetTarget(opts, []string{t.UUID}, false)
 		}
 	}
 	t, err := api.CreateTarget(content)
