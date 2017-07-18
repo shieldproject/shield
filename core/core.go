@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/goutils/timestamp"
-	"gopkg.in/yaml.v2"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
@@ -44,64 +42,17 @@ type Core struct {
 	/* api */
 	webroot string
 	listen  string
+	auth    []AuthConfig
+	motd    string
 
 	DB *db.DB
 }
 
 func NewCore(file string) (*Core, error) {
-	config := struct {
-		SlowLoop int `yaml:"slow_loop"`
-		FastLoop int `yaml:"fast_loop"`
-
-		DBType        string `yaml:"database_type"`
-		DBPath        string `yaml:"database_dsn"`
-		Addr          string `yaml:"listen_addr"`
-		KeyFile       string `yaml:"private_key"`
-		Workers       int    `yaml:"workers"`
-		Purge         string `yaml:"purge_agent"`
-		Timeout       int    `yaml:"max_timeout"`
-		SkipSSLVerify bool   `yaml:"skip_ssl_verify"`
-		WebRoot       string `yaml:"web_root"`
-	}{
-		FastLoop: 1,
-		SlowLoop: 60 * 5,
-
-		DBPath:  "shield.db",
-		Addr:    "*:8888",
-		KeyFile: "worker.key",
-		Workers: 2,
-		Purge:   "localhost:5444",
-		Timeout: 12,
-		WebRoot: "web",
+	config, err := ReadConfig(file)
+	if err != nil {
+		return nil, err
 	}
-
-	/* optionally read configuration from a file */
-	if file != "" {
-		b, err := ioutil.ReadFile(file)
-		if err != nil {
-			return nil, err
-		}
-
-		if err = yaml.Unmarshal(b, &config); err != nil {
-			return nil, err
-		}
-	}
-
-	/* validate configuration */
-	if config.FastLoop <= 0 {
-		return nil, fmt.Errorf("fast_loop value '%d' is invalid (must be greater than zero)")
-	}
-	if config.SlowLoop <= 0 {
-		return nil, fmt.Errorf("slow_loop value '%d' is invalid (must be greater than zero)")
-	}
-	if config.Timeout <= 0 {
-		return nil, fmt.Errorf("timeout value '%d' is invalid (must be greater than zero)")
-	}
-	if config.Workers <= 0 {
-		return nil, fmt.Errorf("number of workers '%d' is invalid (must be greater than zero)")
-	}
-	// FIXME: check existence of WebRoot
-
 	agent, err := NewAgentClient(config.KeyFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read agent key file %s: %s", config.KeyFile, err)
@@ -132,6 +83,8 @@ func NewCore(file string) (*Core, error) {
 		/* api */
 		webroot: config.WebRoot,
 		listen:  config.Addr,
+		auth:    config.Auth,
+		motd:    config.MOTD,
 
 		DB: &db.DB{
 			Driver: config.DBType,
@@ -170,6 +123,7 @@ func (core *Core) Run() error {
 func (core *Core) api() {
 	http.Handle("/v1/", core)
 	http.Handle("/v2/", core)
+	http.Handle("/auth/", core)
 	http.Handle("/", http.FileServer(http.Dir(core.webroot)))
 	// FIXME: no OAuth2 support yet...
 

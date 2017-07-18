@@ -20,6 +20,13 @@ import (
 
 func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
+	case match(req, `POST /auth/login`):
+		core.authLogin(w, req)
+	case match(req, `POST /auth/logout`):
+		core.authLogout(w, req)
+	case match(req, `GET /auth/id`):
+		core.authID(w, req)
+
 	case match(req, `GET /v1/ping`):
 		core.v1Ping(w, req)
 
@@ -122,6 +129,17 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case match(req, `DELETE /v2/systems/:uuid`):
 		core.v2DeleteSystem(w, req)
 
+	case match(req, `GET /v2/tenants`):
+		core.v2GetTenants(w, req)
+	case match(req, `POST /v2/tenants`):
+		core.v2CreateTenant(w, req)
+	case match(req, `PUT /v2/tenant`):
+		core.v2UpdateTenant(w, req)
+	case match(req, `GET /v2/tenant/:uuid`):
+		core.v2GetTenant(w, req)
+	case match(req, `PATCH /v2/tenant/:uuid`):
+		core.v2PatchTenant(w, req)
+
 	default:
 		w.WriteHeader(501)
 	}
@@ -202,6 +220,143 @@ func invalidlimit(limit string) bool {
 		}
 	}
 	return false
+}
+
+func (core *Core) authLogin(w http.ResponseWriter, req *http.Request) {
+	// only applies to the local backend configuration
+	// so we can assume that `username` and `password` are set in the
+	// POST body.
+
+	if req.ParseForm() != nil {
+		w.WriteHeader(400) // FIXME
+		return
+	}
+
+	username := req.PostFormValue("username")
+	password := req.PostFormValue("password")
+
+	user, err := core.DB.GetLocalUser(username)
+	if err != nil {
+		log.Errorf("failed authentication attempt for local user '%s' (database error: %s)", username, err)
+		w.WriteHeader(400) // FIXME
+		return
+	}
+	if user == nil {
+		log.Errorf("failed authentication attempt for local user '%s' (no such local account)", username)
+		w.WriteHeader(400) // FIXME
+		return
+	}
+	if !user.Authenticate(password) {
+		log.Errorf("failed authentication attempt for local user '%s' (incorrect password)", username)
+		w.WriteHeader(400) // FIXME
+		return
+	}
+
+	// create a session for the user and
+	// set the session cookie
+	session, err := core.DB.CreateSessionFor(user)
+	if err != nil {
+		log.Errorf("failed to create session for local user '%s' (database error: %s)", username, err)
+		w.WriteHeader(400) // FIXME
+		return
+	}
+	if session == nil {
+		log.Errorf("failed to create session for local user '%s' (session was nil)", username)
+		w.WriteHeader(400) // FIXME
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:  "shield7",
+		Value: session.UUID.String(),
+	})
+
+	w.Header().Set("Location", "/")
+	w.WriteHeader(302)
+}
+
+func (core *Core) authLogout(w http.ResponseWriter, req *http.Request) {
+	// unset the session cookie
+	cookie, err := req.Cookie("shield7")
+	if err != http.ErrNoCookie {
+		if err != nil {
+			w.Header().Set("Location", "/#!err")
+			w.WriteHeader(302)
+			return
+		}
+
+		err := core.DB.ClearSession(uuid.Parse(cookie.Value))
+		if err != nil {
+			w.Header().Set("Location", "/#!err")
+			w.WriteHeader(302)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:   "shield7",
+			Value:  "-",
+			MaxAge: 0,
+		})
+	}
+	w.Header().Set("Location", "/#!/login")
+	w.WriteHeader(302)
+}
+
+type authIDTenant struct {
+	UUID uuid.UUID `json:"uuid"`
+	Name string    `json:"name"`
+	Role string    `json:"role"`
+}
+type authIDResponse struct {
+	User struct {
+		Name    string `json:"name"`
+		Account string `json:"account"`
+		Backend string `json:"backend"`
+	} `json:"user"`
+
+	Tenants []authIDTenant `json:"tenants"`
+}
+
+func (core *Core) authID(w http.ResponseWriter, req *http.Request) {
+	cookie, err := req.Cookie("shield7")
+	if err != nil && err != http.ErrNoCookie {
+		bail(w, err)
+		return
+	}
+
+	if err == http.ErrNoCookie {
+		JSONLiteral(w, `{"unauthenticated":true}`)
+		return
+	}
+
+	user, err := core.DB.GetUserForSession(cookie.Value)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+
+	answer := authIDResponse{}
+	if user == nil {
+		JSONLiteral(w, `{"unauthenticated":true}`)
+		return
+	}
+	answer.User.Name = user.Name
+	answer.User.Account = user.Account
+	answer.User.Backend = user.Backend
+
+	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+
+	answer.Tenants = make([]authIDTenant, len(memberships))
+	for i, membership := range memberships {
+		answer.Tenants[i].UUID = membership.TenantUUID
+		answer.Tenants[i].Name = membership.TenantName
+		answer.Tenants[i].Role = membership.Role
+	}
+
+	JSON(w, answer)
 }
 
 func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
@@ -1684,4 +1839,16 @@ func (core *Core) v2PatchSystem(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v2DeleteSystem(w http.ResponseWriter, req *http.Request) {
+}
+
+func (core *Core) v2GetTenants(w http.ResponseWriter, req *http.Request) {
+}
+
+func (core *Core) v2CreateTenant(w http.ResponseWriter, req *http.Request) {
+}
+func (core *Core) v2UpdateTenant(w http.ResponseWriter, req *http.Request) {
+}
+func (core *Core) v2GetTenant(w http.ResponseWriter, req *http.Request) {
+}
+func (core *Core) v2PatchTenant(w http.ResponseWriter, req *http.Request) {
 }

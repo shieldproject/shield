@@ -3,7 +3,7 @@
 <head>
 
 <meta charset="utf-8">
-<style type="text/css">
+<style type="text/css">/* {{{ */
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 a, abbr, acronym, address, big, cite, code,
@@ -247,6 +247,12 @@ table {
 
 body { height: 100%; }
 .pane { height: 100%; }
+.full { height: 100%; }
+.full #login { padding-top: 40px; }
+.story-sidebar nav,
+.hud > div {
+  margin-top: 40px;
+}
 
 body { font-family: sans-serif; }
 
@@ -270,11 +276,163 @@ body { font-family: sans-serif; }
 }
 .top-bar > * { display: block; padding: 7px; }
 .top-bar h1 { float: left; }
-.top-bar p  { text-align: right; }
 .top-bar a  { text-decoration: none; color: inherit; }
+.top-bar a[rel=account]  { float: right; }
 
 .top-bar h1 { font-weight: bold; }
 .top-bar h1 span { font-weight: normal; font-size: 10px; vertical-align: text-top }
+
+#login {
+  background: #4d4d4d url(/i/shield-logo.svg) no-repeat 30% 60%;
+  background-size: auto 90vh;
+  box-sizing: border-box;
+  position: fixed;
+  height: 100%;
+  width: 100%;
+}
+#login > div {
+  display: block;
+  width: 600px;
+  margin: 10vh auto;
+}
+#login > div.local-only { width: 400px; }
+#login h1,
+#login .dialog { width: 580px; }
+#login h1 {
+  font-size: 40pt;
+  font-weight: bold;
+  color: white;
+  text-shadow: 3px 3px 4px #333;
+  text-transform: uppercase;
+}
+#login h1 span {
+  color: #8CC63F;
+  font-size: 16pt;
+  padding-left: 0.3em;
+}
+#login .dialog {
+  background-color: #E6E6E6;
+  border: none;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+#login .motd {
+  font-size: 10pt;
+  line-height: 1.1em;
+  margin-bottom: 2em;
+}
+#login .oauth2,
+#login .local {
+  width: 50%;
+  margin: 0;
+  box-sizing: border-box;
+  float: left;
+}
+#login .oauth2 { width: 45%; padding-right: 10px; }
+#login .local  { width: 55%; padding-left:  20px; border-left: 1px solid #aaa; }
+#login > div.local-only .local { width: 100%; padding: 0; border: none; }
+#login h2 {
+  font-size: 12pt;
+  font-weight: bold;
+  white-space: pre;
+}
+
+#login .oauth2 li a {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 12px;
+  margin-right: 6px;
+  cursor: pointer;
+  text-decoration: none;
+}
+#login .oauth2 ul {
+  margin: 20px 0;
+}
+#login .local a {
+  color: #0071bc;
+  text-decoration: none;
+}
+#login .local p.divert {
+  font-size: 10pt;
+  margin-top: 0.4em;
+  margin-bottom: 1em;
+}
+#login .local .ctl {
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+#login .local label {
+  font-weight: normal;
+}
+#login .local input[type=text],
+#login .local input[type=password] {
+  border: none;
+  width: 100%;
+  font-size: 14pt;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  color: #fff;
+
+  box-sizing: border-box;
+  padding: 8px;
+}
+#login .local .cbdark {
+  width: 16px;
+  position: relative;
+}
+#login .local .cbdark label {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  position: absolute;
+  left: 0px; top: 0px;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  border-radius: 4px;
+  box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+}
+#login .local .cbdark label::after {
+  content: '';
+  width: 8px;
+  height: 4px;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  border: 3px solid #fcfff4;
+  border-top: none;
+  border-right: none;
+  background: transparent;
+  opacity: 0;
+  transform: rotate(-45deg);
+}
+#login .local .cbdark label:hover::after {
+  opacity: 0.3;
+}
+#login .local .cbdark input {
+  visibility: hidden;
+}
+#login .local .cbdark input:checked + label:after {
+  opacity: 1;
+}
+#login .local a.forgotpw {
+  font-size: 10pt;
+  float: right;
+}
+#login .local button {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+}
 
 .banner-top {
   position: fixed;
@@ -298,11 +456,6 @@ body { font-family: sans-serif; }
 .banner-top p.info     { color: #fff; background-color: #729849; }
 .banner-top p.error    { color: #fff; background-color: #ff1d25; }
 .banner-top p.progress { color: #fff; background-color: #0071bc; }
-
-.story-sidebar nav,
-.hud > div {
-  margin-top: 40px;
-}
 
 .story-sidebar {
   background-color: #F2F2F2;
@@ -883,7 +1036,7 @@ pre.task-failed.override code { background-color: #333; }
   left: 0px;
   width: 100vw;
   height: 100vw;
-  background-color: rgba(0,0,0,0.95);
+  background-color: rgba(16,16,16,0.85);
   z-index: 140;
 }
 #modal > .confirm {
@@ -1005,14 +1158,99 @@ button[rel^="run:"] {
 .do-backup .run-the-backup p {
   float: left;
 }
-<body>
-</style>
+
+
+.flyout {
+  position: absolute;
+  top: 38px;
+  right: 8px;
+
+  color: #000;
+  background-color: #F2F2F2;
+  min-width: 200px;
+  padding: 0px;
+  box-shadow: 0px 4px 5px rgba(0,0,0,0.25);
+
+  display: none;
+}
+.flyout::before {
+  content: "";
+  border: 6px solid transparent;
+  border-bottom-color: transparent;
+  border-bottom-color: #f2f2f2;
+  position: absolute;
+  top: -12px;
+  right: 8px;
+}
+.flyout .menu {
+  padding: 8px 0;
+}
+.flyout .menu .header,
+.flyout .menu .dropdown {
+  padding: 4px 8px;
+  display: block;
+}
+.flyout .menu .header {
+  font-weight: bold;
+}
+.flyout .menu .header span {
+  font-size: 80%;
+  font-weight: normal;
+  display: block;
+}
+.flyout .menu .divider {
+  display: block;
+  margin: 8px 0;
+  height: 1px;
+  background-color: #ccc;
+}
+.flyout .menu .dropdown:hover {
+  background-color: #0071bc;
+  color: #fff !important;
+}
+.flyout .menu .dropdown.odd {
+  font-style: italic;
+  font-size: 95%;
+}
+.flyout .menu .dropdown.current-tenant {
+}
+.flyout .menu .dropdown.current-tenant::after {
+  content: " (current)";
+}
+
+#overlay {
+  background-color: #e6e6e6;
+  width: 40vw;
+  position: absolute;
+  top: 30vh;
+  left: 30vw;
+  border-radius: 8px;
+  box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+}
+#overlay .header {
+  border-radius: 8px 8px 0 0;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 16px 16px 12px 16px;
+  border-bottom: 1px solid #666;
+}
+#overlay .frame {
+  overflow: auto;
+  height: 40vh;
+  padding: 16px;
+}
+/* }}} */</style>
 </head>
+<body>
+<div class="top-bar"><h1>SHIELD</h1></div>
+<div id="viewport" class="full"></div>
 
-<div class="top-bar" data-tpl-src="top-bar">
-  <h1>SHIELD</h1>
-</div>
+<script type="text/html" id="tpl--layout"><!-- {{{ -->
+[[#
+  {layout}
 
+  The main (authenticated) layout for the UI
+]]
 <div class="story-sidebar">
   <nav>
     <li><a href="#!/do/backup">Perform an ad hoc backup</a>
@@ -1029,7 +1267,7 @@ button[rel^="run:"] {
   </nav>
 </div>
 <div class="pane">
-  <div class="hud blk" id="hud" data-tpl-src="hud">
+  <div class="hud blk" id="hud">
     <div class="x5"><div class="inst">
       <ul>
         <li class="shield">SHIELD &hellip;</li>
@@ -1116,8 +1354,8 @@ button[rel^="run:"] {
     <img id="loading" src="/i/loading.svg"/>
   </div>
 </div>
-
-<script type="text/html" id="tpl--loading">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--loading"><!-- {{{ -->
 [[#
   {loading} template
 
@@ -1125,16 +1363,57 @@ button[rel^="run:"] {
   go talk to SHIELD over AJAX, asynchronously.
 ]]
 <img id="loading" src="/i/loading.svg"/>
-</script>
-<script type="text/html" id="tpl--banner">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--overlay"><!-- {{{ -->
+[[#
+  {overlay}
+
+  A page overlay washes out the main page, makes the viewport fixed
+  and non-scrollable, and then displays a message, warning, notice,
+  or update to ensure that the viewer sees it.
+]]
+<div id="overlay">
+  <div class="header"><h2>[[= maybe(_.title, "SHIELD") ]]</h2></div>
+  <div class="frame">
+<p>Neque porro quisquam est, qui dolorem ipsum quia dolor. Nam libero tempore,
+cum soluta nobis est. Duis aute irure dolor in reprehenderit in voluptate velit
+esse cillum dolore eu fugiat nulla. Ut enim ad minim veniam, quis nostrud
+exercitation ullamco laboris. Quis autem vel eum iure reprehenderit qui in ea
+voluptate velit esse quam nihil molestiae consequatur, vel.</p>
+
+<p>Nemo enim ipsam voluptatem quia. Nam libero tempore, cum soluta nobis est
+eligendi optio cumque. Duis aute irure dolor in reprehenderit in voluptate velit
+esse cillum dolore eu fugiat nulla pariatur. Et harum quidem rerum facilis est et
+expedita distinctio. Ut enim ad minima veniam, quis.</p>
+
+<p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit,
+sed quia consequuntur magni. Excepteur sint occaecat cupidatat non proident, sunt
+in culpa qui officia deserunt mollit. Duis aute irure dolor in reprehenderit in
+voluptate velit esse. Et harum quidem. Ut enim ad minim veniam, quis nostrud
+exercitation ullamco laboris nisi ut aliquip ex ea commodo.</p>
+
+<p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+eu fugiat nulla pariatur. Sed ut perspiciatis unde omnis iste natus error sit
+voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. At vero eos et accusamus et iusto odio
+dignissimos ducimus qui blanditiis praesentium voluptatum deleniti. Nemo enim
+ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia
+consequuntur magni.</p>
+
+    [[= _.html ]]
+  </div>
+</div>
+<!-- }}} --></script>
+<script type="text/html" id="tpl--banner"><!-- {{{ -->
 [[#
   {banner} template
 
   Displays a message at the top of the viewport
 ]]
 <p class="[[= _.type ]]">[[= _.message ]]</p>
-</script>
-<script type="text/html" id="tpl--error">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--error"><!-- {{{ -->
 [[#
   {error} template
 
@@ -1145,8 +1424,8 @@ button[rel^="run:"] {
       <h2>Uh-oh &mdash; Something broke.</h2>
       <p id="message">[[= _.message ]]</p>
     </div>
-</script>
-<script type="text/html" id="tpl--restore-are-you-sure">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--restore-are-you-sure"><!-- {{{ -->
 [[#
   {restore-are-you-sure}
 
@@ -1169,20 +1448,92 @@ button[rel^="run:"] {
         <button class="safe" rel="close">No, Cancel This Operation</button>
       </div>
     </div>
-</script>
-<script type="text/html" id="tpl--top-bar">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--login"><!-- {{{ -->
+[[#
+  {login} template
+
+  Displays the login screen, which is a slightly different layout than
+  most of the interface.  If OAuth2 backends have been configured, those
+  are displayed as links to kick off the necessary OAuth2 flows (although
+  they are styled as buttons)
+]]
+    <div id="login">
+      <div[[ if (_.oauth.length == 0) { ]] class="local-only"[[ } ]]>
+        <h1>SHIELD<span>Production<span></h1>
+        <div class="dialog">
+          <p class="motd">Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi.</p>
+
+          [[ if (_.oauth.length > 0) { ]]
+          <div class="oauth2">
+            <h2>Sign in using...</h2>
+
+            <ul>
+              <li><a href="#">Github Enterprise</a></li>
+              <li><a href="#">Prod us-2 CF</a></li>
+          </div>
+          [[ } ]]
+          <div class="local">
+            <h2>Sign in with your SHIELD account</h2>
+            <p class="divert">Need an account? <a href="#">Sign up for one today.</a></p>
+
+            <form method="post" action="/auth/login">
+              <div class="ctl">
+                <label for="local-login-username">Username</label>
+                <input type="text" id="local-login-username" name="username">
+              </div>
+              <div class="ctl">
+                <label for="local-login-password">Password</label>
+                <input type="password" id="local-login-password" name="password">
+                <a class="forgotpw" href="#">Forgot your password?</a>
+              </div>
+              <div class="ctl cb">
+                <div class="cbdark">
+                  <input type="checkbox" id="local-login-remember-me" name="remember-me">
+                  <label for="local-login-remember-me"></label>
+                </div>
+                <label for="local-login-remember-me">Remember me</label>
+              </div>
+              <button>Sign in</button>
+            <form>
+          </div>
+        </div>
+      </div>
+    </div>
+<!-- }}} --></script>
+<script type="text/html" id="tpl--top-bar"><!-- {{{ -->
 [[#
   {top-bar} template
 
   Renders the top-most bar, with the SHIELD name / environment, and the
   current users name / tenant and "personal settings" menu.
 ]]
-    <a href="#!/systems"><h1>SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></h1>
-    <p>[[= _.user.display ]] ([[= _.tenant.name ]])</p></a>
+    <h1><a href="#!/systems">SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></a></h1>
+    [[ if (_.user) { ]]
+    <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
+    <div class="flyout">
+      <div class="menu">
+        <div class="header">Signed in as [[= _.user.account ]]
+          <span>[[= _.user.backend ]]</span>
+        </div>
+        <div class="divider"></div>
+        [[ if (_.tenants.length == 0) { ]]
+        <span class="dropdown odd">you have no tenants</span>
+        [[ } else { ]]
+        [[   $.each(_.tenants, function (i, tenant) { ]]
+        <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="#!/tenant/[[= tenant.uuid ]]">[[= tenant.name ]]</a>
+        [[   }); ]]
+        [[ } ]]
+        <div class="divider"></div>
+        <a class="dropdown" href="#!/account">Settings</a>
+        <a class="dropdown" href="#!/logout">Sign Out</a>
+      </div>
+    </div>
+    [[ } ]]
 
 
-</script>
-<script type="text/html" id="tpl--hud">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--hud"><!-- {{{ -->
 [[#
   {hud} template
 
@@ -1228,8 +1579,8 @@ button[rel^="run:"] {
         <li class="ok">Daily Storage Increase <span>[[= _.stats.daily ]]</span></li>
       </ul>
     </div></div>
-</script>
-<script type="text/html" id="tpl--404">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--404"><!-- {{{ -->
 [[#
   {404} template
 
@@ -1252,8 +1603,26 @@ into your Github issue:
 - **Referer**:    [[= maybe(_.referer, '_none_') ]]
 </pre>
     </div>
-</script>
-<script type="text/html" id="tpl--do-backup">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--account"><!-- {{{ -->
+[[#
+  {account}
+
+  Shows the user their current account information,
+  including a form for changing their name (and, if
+  local, their password), and a list of all tenants
+  that they belong to, and their roles therein.
+]]
+    <div class="gutter blk account">
+      <h2>My Account</h2>
+
+      <form>
+        <p><label for="name">Display</label>
+        <input type="text" value="" /></p>
+      </form>
+    </div>
+<!-- }}} --></script>
+<script type="text/html" id="tpl--do-backup"><!-- {{{ -->
 [[#
   {do-backup}
 
@@ -1426,8 +1795,8 @@ into your Github issue:
       </div>
       [[ } ]]
     </div>
-</script>
-<script type="text/html" id="tpl--systems">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--systems"><!-- {{{ -->
 [[#
   {systems} template
 
@@ -1454,8 +1823,8 @@ into your Github issue:
       </div>
       [[ }); ]]
     </div>
-</script>
-<script type="text/html" id="tpl--system">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--system"><!-- {{{ -->
 [[#
   {system} template
 
@@ -1523,8 +1892,8 @@ into your Github issue:
           [[ }); ]]
       </div>
     </div>
-</script>
-<script type="text/html" id="tpl--task">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--task"><!-- {{{ -->
 [[#
   {task} template
 
@@ -1572,8 +1941,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
   }
 } ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
 </em></code></pre>
-</script>
-<script type="text/html" id="tpl--stores">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--stores"><!-- {{{ -->
 [[#
   {stores} template
 
@@ -1598,8 +1967,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
       </div>
       [[ }); ]]
     </div>
-</script>
-<script type="text/html" id="tpl--store">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--store"><!-- {{{ -->
 [[#
   {store} template
 
@@ -1718,8 +2087,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
         </dl>
       </div>
     </div>
-</script>
-<script type="text/html" id="tpl--policies">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--policies"><!-- {{{ -->
 [[#
   {policies} template
 
@@ -1748,8 +2117,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
       </table>
       [[ } ]]
     </div>
-</script>
-<script type="text/html" id="tpl--agents">
+<!-- }}} --></script>
+<script type="text/html" id="tpl--agents"><!-- {{{ -->
 [[#
   {agents} template
 
@@ -1800,11 +2169,11 @@ for job <em>[[= _.task.job_uuid ]]</em>
       </table>
       [[ } ]]
     </div>
-</script>
-<script type="text/html" id="tpl--">
-</script>
+<!-- }}} --></script>
+<script type="text/html" id="tpl--"><!-- {{{ -->
+<!-- }}} --></script>
 
-<!-- FIXME: colo jquery with our assets -->
+<!-- FIXME: colo jquery / lensjs with our assets -->
 <script script" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
 <script type="text/javascript">
 /*
@@ -2340,9 +2709,14 @@ function template(name, data) {
   return Templates[name](data);
 }
 
+var $global = { auth: { unauthenticated: 1 } };
 var referer = undefined;
 function dispatch(page) {
-  if (!page || page == "") { page = "#!/systems"; }
+  if ($global.auth.unauthenticated) {
+    page = "#!/login";
+  } else if (!page || page == "") {
+    page = "#!/systems";
+  }
   var argv = page.split(':');
   page = argv.shift();
   var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
@@ -2355,6 +2729,16 @@ function dispatch(page) {
   $('nav a[href="'+top+'"]').closest('li').addClass('current');
 
   switch (page) {
+  case "#!/login": /* {{{ */
+    (function () {
+      $('#viewport').html(template('login', {
+        oauth: [
+          'Github'
+        ],
+      }));
+    })();
+    break; /* #!/login */
+    // }}}
   case "#!/do/backup": /* {{{ */
     (function () {
       $('#main').html(template('loading'));
@@ -2571,10 +2955,19 @@ function reload() {
 }
 
 $(function () {
+  $.ajax({
+    type: 'GET',
+    url:  '/auth/id',
+    async: false,
+    success: function (response) {
+      $global.auth = response;
+      $('#viewport').html(template('layout'));
+    }
+  });
+
   $(window).on('hashchange', function (event) {
     dispatch(document.location.hash);
   }).trigger('hashchange');
-
 
   (function (s) {
     var RUNNING = false;
@@ -2595,12 +2988,9 @@ $(function () {
                 env: 'DEMO',
                 ip:  data.shield.ip
               },
-              user: {
-                display: 'James Hunt'
-              },
-              tenant: {
-                name: 'Stark & Wayne'
-              }
+              user:    $global.auth.user,
+              tenants: $global.auth.tenants,
+              tenant:  $global.auth.tenants[0]
             }));
           }
           last = json;
@@ -2614,27 +3004,11 @@ $(function () {
     window.setInterval(ping, s * 1000);
   })(5);
 
-  /*
-  $('#hud').html(template('hud', {
-    shield: {
-      env: 'PRODUCTION',
-      ip:  '1.2.3.4',
-      fqdn: 'shield.example.com',
-      version: '6.7.2',
-    },
-    health: {
-      api_ok     : false,
-      storage_ok : true,
-      jobs_ok    : true
-    },
-    stats: {
-      jobs: 123,
-      archives: 123456,
-      storage: '207.32G',
-      daily_add: '+2.3M'
-    }
-  }));
-  */
+  /* handle the account flyout */
+  $(document.body).on('click', '.top-bar a[rel=account]', function (event) {
+    event.preventDefault();
+    $('.top-bar .flyout').toggle();
+  });
 
   /* show a task in the next row down. */
   $('#main').on('click', 'a[href^="task:"]', function (event) {
