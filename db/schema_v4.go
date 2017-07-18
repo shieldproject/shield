@@ -1,5 +1,9 @@
 package db
 
+import (
+	"github.com/pborman/uuid"
+)
+
 type v4Schema struct{}
 
 func (s v4Schema) Deploy(db *DB) error {
@@ -117,7 +121,7 @@ func (s v4Schema) Deploy(db *DB) error {
 
 	case "postgres", "sqlite3":
 		err = db.Exec(`CREATE TABLE agents (
-		                 uuid          UUID NOT NULL,
+		                 uuid          UUID PRIMARY KEY,
 		                 name          TEXT NOT NULL DEFAULT '',
 		                 address       TEXT NOT NULL DEFAULT '',
 		                 version       TEXT NOT NULL DEFAULT '',
@@ -126,6 +130,101 @@ func (s v4Schema) Deploy(db *DB) error {
 		                 last_error    TEXT NOT NULL DEFAULT '',
 		                 status        TEXT NOT NULL,
 		                 metadata      TEXT NOT NULL DEFAULT ''
+		               )`)
+	}
+	if err != nil {
+		return err
+	}
+
+	switch db.Driver {
+	case "mysql":
+		err = db.Exec(`CREATE TABLE tenants (
+		                 uuid          VARCHAR(36) NOT NULL,
+		                 name          TEXT NOT NULL DEFAULT '',
+
+		                 PRIMARY KEY (uuid)
+		               )`)
+
+	case "postgres", "sqlite3":
+		err = db.Exec(`CREATE TABLE tenants (
+		                 uuid          UUID PRIMARY KEY,
+		                 name          TEXT NOT NULL DEFAULT ''
+		               )`)
+	}
+	if err != nil {
+		return err
+	}
+
+	// FIXME: backfill tenant UUIDs everywhere
+	err = db.Exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, uuid.NewRandom().String(), "system")
+	if err != nil {
+		return err
+	}
+
+	switch db.Driver {
+	case "mysql":
+		err = db.Exec(`CREATE TABLE users (
+		                 uuid          VARCHAR(36) NOT NULL,
+		                 name          TEXT NOT NULL DEFAULT '',
+		                 account       TEXT NOT NULL DEFAULT '',
+		                 backend       VARCHAR(100) NOT NULL,
+		                 pwhash        TEXT, -- only for local accounts
+		                 sysrole       VARCHAR(100) NOT NULL DEFAULT '',
+
+		                 UNIQUE KEY (account, backend),
+		                 PRIMARY KEY (uuid)
+		               )`)
+
+	case "postgres", "sqlite3":
+		err = db.Exec(`CREATE TABLE users (
+		                 uuid          UUID PRIMARY KEY,
+		                 name          TEXT NOT NULL DEFAULT '',
+		                 account       TEXT NOT NULL DEFAULT '',
+		                 backend       VARCHAR(100) NOT NULL,
+		                 pwhash        TEXT, -- only for local accounts
+		                 sysrole       VARCHAR(100) NOT NULL DEFAULT '',
+
+		                 UNIQUE (account, backend)
+		               )`)
+	}
+	if err != nil {
+		return err
+	}
+
+	switch db.Driver {
+	case "mysql":
+		err = db.Exec(`CREATE TABLE memberships (
+		                 user_uuid     VARCHAR(36) NOT NULL,
+		                 tenant_uuid   VARCHAR(36) NOT NULL,
+		                 role          VARCHAR(100) NOT NULL,
+		                 PRIMARY KEY (user_uuid, tenant_uuid)
+		               )`)
+
+	case "postgres", "sqlite3":
+		err = db.Exec(`CREATE TABLE memberships (
+		                 user_uuid     UUID NOT NULL,
+		                 tenant_uuid   UUID NOT NULL,
+		                 role          VARCHAR(100) NOT NULL,
+		                 PRIMARY KEY (user_uuid, tenant_uuid)
+		               )`)
+	}
+	if err != nil {
+		return err
+	}
+
+	switch db.Driver {
+	case "mysql":
+		err = db.Exec(`CREATE TABLE sessions (
+		                 uuid          VARCHAR(36) NOT NULL,
+		                 user_uuid     VARCHAR(36) NOT NULL,
+
+		                 PRIMARY KEY (uuid)
+		               )`)
+
+	case "postgres", "sqlite3":
+		err = db.Exec(`CREATE TABLE sessions (
+		                 uuid          UUID PRIMARY KEY,
+		                 user_uuid     UUID NOT NULL
 		               )`)
 	}
 	if err != nil {

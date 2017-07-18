@@ -3,6 +3,7 @@
 /shield
 /shield-agent
 /shield-schema
+/shield-umc
 
 # ignore the plugin
 /azure

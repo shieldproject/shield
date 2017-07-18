@@ -50,21 +50,22 @@ web_root:      ./web2/htdocs
 slow_loop:     20
 fast_loop:     2
 auth:
-  api_tokens:
-    test: ${SHIELD_API_TOKEN}
-  basic:
-    user: testuser
-    password: testpass
-#  oauth:
-#    provider: github
-#    key: Fill this in with the github Client ID after creating a dev oauth app
-#    secret: Fill this in with the github secret after creating a dev oath app
-#    base_url: http://localhost:8181
-#    orgs:
-#    - Fill this in with a real github group you want to restrict access to
-#    sessions:
-#      type: sqlite3
-#      dsn: ${workdir}/var/sessions.db
+auth:
+#  api_tokens:
+#    test: ${SHIELD_API_TOKEN}
+#  basic:
+#    user: testuser
+#    password: testpass
+##  oauth:
+##    provider: github
+##    key: Fill this in with the github Client ID after creating a dev oauth app
+##    secret: Fill this in with the github secret after creating a dev oath app
+##    base_url: http://localhost:8181
+##    orgs:
+##    - Fill this in with a real github group you want to restrict access to
+##    sessions:
+##      type: sqlite3
+##      dsn: ${workdir}/var/sessions.db
 EOF
 
   echo ">> Setting up SHIELD schema"
