@@ -401,6 +401,14 @@
 			"Rev": "68583de33d9209ba795a0a334dad27418e4c18f5"
 		},
 		{
+			"ImportPath": "golang.org/x/crypto/bcrypt",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
 			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},
