@@ -150,8 +150,8 @@ Lastly, we should talk about the things that are never shared:
     sharing jobs.
 
 
-Roles and Rights
-----------------
+Roles
+-----
 
 Some times, we may want to grant someone access to our SHIELD
 tenant, but only on restricted terms, with a subset of "full"
@@ -160,26 +160,29 @@ access.
 For example, we may want to have a NOC team be able to re-run
 failing backup jobs, but not be allowed to change any
 configuration, or see the credentials stored in target / storage
-endpoints.  This is where rights and roles come into play.
+endpoints.  This is where roles come into play.
 
 A **Right** is a token that governs one single aspect of the
 system.  The ability to view backup archives would be a right; so
 would the ability to run an ad hoc backup job.
 
-A **Role** combines multiple _rights_ into a single assignable
-unit.  "NOC Operator" might be a role that has just enough rights
-to perform ad hoc backup jobs.
+A **Role** represents a given level of access to either a tenant
+("Tenant Roles") or the system itself ("System Roles").  These
+roles are defined by the SHIELD software itself.  They are:
+
+- **Site Administrator** - super user
+- **Site Manager** - able to manage tenants and assignments
+- **Site Engineer** - site-level configuration management (i.e.
+    shared cloud storage definitions, retention policy templates,
+    etc.)
+- **Tenant Administrator** - manages tenant membership and roles
+- **Tenant Engineer** - manages configuration of tenant systems
+    and backup jobs.
+- **Tenant Operator** - day-to-day operation; run / restore /
+    pause / unpause / view access.
 
 Each user is assigned one or more roles, for each tenant that they
 have access to.
-
-Rights are defined by the SHIELD software itself, and metadata
-about those rights is made available for configuration.
-
-Roles are globally defined by the SHIELD site administrators.
-
-There is a special _pseudo-role_, called **Administrator** that
-grants the holder full access; all rights on all tenants.
 
 
 Authentication Backends
