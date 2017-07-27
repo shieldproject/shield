@@ -17,6 +17,7 @@ import (
 	"time"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
+	"github.com/mholt/archiver"
 	"github.com/pivotal-cf/bosh-backup-and-restore/backup"
 	"github.com/pivotal-cf/bosh-backup-and-restore/bosh"
 	"github.com/pivotal-cf/bosh-backup-and-restore/instance"
@@ -25,8 +26,6 @@ import (
 	"github.com/pivotal-cf/bosh-backup-and-restore/standalone"
 	"github.com/starkandwayne/goutils/ansi"
 	. "github.com/starkandwayne/shield/plugin"
-
-	"github.com/mholt/archiver"
 )
 
 func main() {
