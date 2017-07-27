@@ -18,6 +18,7 @@ import (
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/pivotal-cf/bosh-backup-and-restore/backup"
+	"github.com/pivotal-cf/bosh-backup-and-restore/bosh"
 	"github.com/pivotal-cf/bosh-backup-and-restore/instance"
 	"github.com/pivotal-cf/bosh-backup-and-restore/orchestrator"
 	"github.com/pivotal-cf/bosh-backup-and-restore/ssh"
@@ -64,16 +65,16 @@ func main() {
 
 // Define my BbrPlugin type
 type BbrPlugin struct {
-	meta       PluginInfo // needs a place to store metadata
-	Type       string     // select director or deployment
-	Host       string     // SSH username of the Director
-	PrivateKey string     // used for director
-	Username   string     // used for director
-	DUsername  string     // used for deployment
-	Password   string     // used for deployment
-	Target     string     // used for deployment
-	Deployment string     // used for deployment
-	CaCert     string     // used for deployment
+	meta        PluginInfo // needs a place to store metadata
+	Type        string     // select director or deployment
+	Host        string     // SSH username of the Director
+	PrivateKey  string     // used for director
+	SSHUsername string     // used for director
+	Username    string     // used for deployment
+	Password    string     // used for deployment
+	Target      string     // used for deployment
+	Deployment  string     // used for deployment
+	CaCert      string     // used for deployment
 }
 
 const (
@@ -167,7 +168,7 @@ func makeDirectorBackuper(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrator.
 	}
 	deploymentManager := standalone.NewDeploymentManager(logger,
 		bbr.Host,
-		bbr.Username,
+		bbr.SSHUsername,
 		privateKeyPath,
 		instance.NewJobFinder(logger),
 		ssh.NewConnection,
@@ -188,7 +189,33 @@ func makeDirectorRestorer(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrator.
 		instance.NewJobFinder(logger),
 		ssh.NewConnection,
 	)
-	return orchestrator.NewRestorer(backup.BackupDirectoryManager{}, logger, deploymentManager), nil
+	return orchestrator.NewResttargetUrlorer(backup.BackupDirectoryManager{}, logger, deploymentManager), nil
+}
+
+func makeDeploymentBackuper(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrator.Backuper, error) {
+	caCertPath, err := tmpfile(bbr.CaCert)
+	if err != nil {
+		return nil, err
+	}
+	boshClient, err := bosh.BuildClient(bbr.Target, bbr.Username, password, caCert, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return bosh.NewDeploymentManager(boshClient, logger, downloadManifest), nil
+	deploymentManager, err := newDeploymentManager(
+		bbr.Target,
+		bbr.Username,
+		bbr.Password,
+		caCertPath,
+		logger,
+		false,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return orchestrator.NewBackuper(backup.BackupDirectoryManager{}, logger, deploymentManager, time.Now), nil
 }
 
 // // Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly
@@ -336,17 +363,17 @@ func BbrConnectionInfo(endpoint ShieldEndpoint) (*BbrPlugin, error) {
 		DEBUG("BBRSSHUSERNAME: '%s'", sshusername)
 
 		return &BbrPlugin{
-			Type:       bbrType,
-			Host:       host,
-			PrivateKey: privatekey,
-			Username:   sshusername,
+			Type:        bbrType,
+			Host:        host,
+			PrivateKey:  privatekey,
+			SSHUsername: sshusername,
 		}, nil
 	case deploymentType:
-		dusername, err := endpoint.StringValue("bbr_dusername")
+		username, err := endpoint.StringValue("bbr_username")
 		if err != nil {
 			return nil, err
 		}
-		DEBUG("BBRDUSERNAME: '%s'", dusername)
+		DEBUG("BBRUSERNAME: '%s'", username)
 
 		password, err := endpoint.StringValue("bbr_password")
 		if err != nil {
@@ -374,7 +401,7 @@ func BbrConnectionInfo(endpoint ShieldEndpoint) (*BbrPlugin, error) {
 
 		return &BbrPlugin{
 			Type:       bbrType,
-			DUsername:  dusername,
+			Username:   username,
 			Password:   password,
 			Target:     target,
 			Deployment: deployment,
