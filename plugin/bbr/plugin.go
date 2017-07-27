@@ -16,14 +16,14 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cloudfoundry-incubator/bosh-backup-and-restore/backup"
+	"github.com/cloudfoundry-incubator/bosh-backup-and-restore/bosh"
+	"github.com/cloudfoundry-incubator/bosh-backup-and-restore/instance"
+	"github.com/cloudfoundry-incubator/bosh-backup-and-restore/orchestrator"
+	"github.com/cloudfoundry-incubator/bosh-backup-and-restore/ssh"
+	"github.com/cloudfoundry-incubator/bosh-backup-and-restore/standalone"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/mholt/archiver"
-	"github.com/pivotal-cf/bosh-backup-and-restore/backup"
-	"github.com/pivotal-cf/bosh-backup-and-restore/bosh"
-	"github.com/pivotal-cf/bosh-backup-and-restore/instance"
-	"github.com/pivotal-cf/bosh-backup-and-restore/orchestrator"
-	"github.com/pivotal-cf/bosh-backup-and-restore/ssh"
-	"github.com/pivotal-cf/bosh-backup-and-restore/standalone"
 	"github.com/starkandwayne/goutils/ansi"
 	. "github.com/starkandwayne/shield/plugin"
 )
@@ -188,7 +188,7 @@ func makeDirectorRestorer(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrator.
 		instance.NewJobFinder(logger),
 		ssh.NewConnection,
 	)
-	return orchestrator.NewResttargetUrlorer(backup.BackupDirectoryManager{}, logger, deploymentManager), nil
+	return orchestrator.NewRestorer(backup.BackupDirectoryManager{}, logger, deploymentManager), nil
 }
 
 func makeDeploymentBackuper(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrator.Backuper, error) {
@@ -196,23 +196,12 @@ func makeDeploymentBackuper(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrato
 	if err != nil {
 		return nil, err
 	}
-	boshClient, err := bosh.BuildClient(bbr.Target, bbr.Username, password, caCert, logger)
+	boshClient, err := bosh.BuildClient(bbr.Target, bbr.Username, bbr.Password, caCertPath, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	return bosh.NewDeploymentManager(boshClient, logger, downloadManifest), nil
-	deploymentManager, err := newDeploymentManager(
-		bbr.Target,
-		bbr.Username,
-		bbr.Password,
-		caCertPath,
-		logger,
-		false,
-	)
-	if err != nil {
-		return nil, err
-	}
+	deploymentManager := bosh.NewDeploymentManager(boshClient, logger, false)
 
 	return orchestrator.NewBackuper(backup.BackupDirectoryManager{}, logger, deploymentManager, time.Now), nil
 }
