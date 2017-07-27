@@ -451,7 +451,6 @@ func main() {
 
 			DEBUG("JSON:\n  %s\n", content)
 
-
 			if *opts.UpdateIfExists {
 				t, id, err := FindTarget(content, true)
 				if err != nil {
