@@ -1,0 +1,14 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/init
+
+inputs:
+- name: bosh-utils
+  path: gopath/src/github.com/cloudfoundry/bosh-utils
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-utils/ci/tasks/test-unit.sh

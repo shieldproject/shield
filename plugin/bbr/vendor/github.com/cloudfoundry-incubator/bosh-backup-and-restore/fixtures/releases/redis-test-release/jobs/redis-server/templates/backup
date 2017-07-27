@@ -1,0 +1,3 @@
+#!/bin/bash -eu
+
+cp -r /var/vcap/store/redis-server/ $BBR_ARTIFACT_DIRECTORY

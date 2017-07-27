@@ -1,0 +1,24 @@
+---
+name: ((deployment-name))
+director_uuid: bc6a9543-72f3-4b1f-98bd-1437ea748564
+releases: []
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+jobs:
+- name: jumpbox
+  instances: 1
+  templates: []
+  vm_type: container
+  persistent_disk_type: five
+  stemcell: trusty
+  azs:
+  - lite
+  networks:
+  - name: services
+update:
+  canaries: 1
+  canary_watch_time: 1000
+  update_watch_time: 1000
+  max_in_flight: 4

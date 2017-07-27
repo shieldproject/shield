@@ -1,0 +1,36 @@
+---
+name: ((deployment-name))
+
+releases:
+- name: redis-test
+  version: latest
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+
+instance_groups:
+- name: redis
+  instances: 1
+  jobs:
+  - name: slow-backup
+    release: redis-test
+  vm_type: container
+  persistent_disk_type: five
+  stemcell: trusty
+  azs:
+  - lite
+  networks:
+  - name: services
+  properties:
+    redis:
+      password: redis
+      persistence: 'yes'
+      maxclients: 1000
+
+update:
+  canaries: 2
+  canary_watch_time: 30000-180000
+  update_watch_time: 30000-180000
+  max_in_flight: 4

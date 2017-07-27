@@ -1,0 +1,8 @@
+---
+name: mysql-backup-and-restore
+templates:
+  backup: bin/bbr/backup
+
+packages: []
+
+properties: {}

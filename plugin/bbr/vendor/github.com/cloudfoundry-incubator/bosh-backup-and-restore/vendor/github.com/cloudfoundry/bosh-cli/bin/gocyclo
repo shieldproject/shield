@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# tool to measure (and print) the cyclomatic complexity of functions
+
+bin=$(dirname $0)
+
+$bin/go install github.com/fzipp/gocyclo
+
+$bin/godirs gocyclo -avg -top 10

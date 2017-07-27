@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "---
+restore_name: custom-redis-backup"

@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+cp -R /var/vcap/store/cf-redis-broker/* /var/vcap/store/backup/

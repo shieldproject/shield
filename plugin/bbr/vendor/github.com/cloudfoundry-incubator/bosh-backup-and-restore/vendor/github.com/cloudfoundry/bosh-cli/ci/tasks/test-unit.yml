@@ -1,0 +1,15 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/cli
+    tag: 'latest'
+
+inputs:
+- name: bosh-cli
+  path: gopath/src/github.com/cloudfoundry/bosh-cli
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-cli/ci/tasks/test-unit.sh

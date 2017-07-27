@@ -1,0 +1,35 @@
+#!/bin/bash
+
+JOB_NAME=dummyToo
+BASE_DIR=/var/vcap
+SYS_DIR=$BASE_DIR/sys
+RUN_DIR=$SYS_DIR/run/$JOB_NAME
+LOG_DIR=$SYS_DIR/log/$JOB_NAME
+JOB_DIR=$BASE_DIR/jobs/$JOB_NAME
+CONFIG_DIR=$JOB_DIR/config
+EPHEMERAL=$BASE_DIR/data/$JOB_NAME
+PERSISTENT=$BASE_DIR/store/$JOB_NAME
+PIDFILE=$RUN_DIR/$JOB_NAME.pid
+RUNAS=vcap
+
+exec 1>> $LOG_DIR/$JOB_NAME.stdout.log
+exec 2>> $LOG_DIR/$JOB_NAME.stderr.log
+
+case $1 in
+
+  start)
+    mkdir -p $RUN_DIR $LOG_DIR $EPHEMERAL
+    chown -R $RUNAS:$RUNAS $RUN_DIR $LOG_DIR $EPHEMERAL $PERSISTENT
+
+    ## Start Code Here
+    echo 1 >> $PIDFILE
+
+    ;;
+
+  stop)
+    rm -f $PIDFILE
+    ;;
+
+  *)
+  echo "Usage: ${JOB_NAME}_ctl {start|stop}" ;;
+esac

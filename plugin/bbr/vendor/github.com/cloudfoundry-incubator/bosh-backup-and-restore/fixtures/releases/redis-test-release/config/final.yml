@@ -1,0 +1,8 @@
+---
+final_name: redis-test
+blobstore:
+  provider: s3
+  options:
+    bucket_name: redis-example-service-release-bosh-blobs
+    endpoint: https://s3-eu-west-1.amazonaws.com
+    region: eu-west-1

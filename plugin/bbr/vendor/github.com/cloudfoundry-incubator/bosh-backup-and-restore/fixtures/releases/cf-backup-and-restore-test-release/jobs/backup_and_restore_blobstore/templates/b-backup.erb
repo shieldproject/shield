@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -x
+
+cp -r /var/vcap/store/shared/<%= p("cc.buildpacks.buildpack_directory_key") %> /var/vcap/store/backup
+cp -r /var/vcap/store/shared/<%= p("cc.droplets.droplet_directory_key") %> /var/vcap/store/backup
+cp -r /var/vcap/store/shared/<%= p("cc.packages.app_package_directory_key") %> /var/vcap/store/backup

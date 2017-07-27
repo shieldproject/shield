@@ -1,0 +1,28 @@
+name: redis-service
+
+director_uuid: REPLACE_WITH_DIRECTOR_UUID
+
+releases:
+- {name: REPLACE_WITH_RELEASE_NAME, version: latest}
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: 3177
+
+jobs:
+- name: redis-server
+  instances: 1
+  templates:
+  - {name: redis-server, release: REPLACE_WITH_RELEASE_NAME}
+  vm_type: REPLACE_WITH_VM_TYPE_FROM_DIRECTOR_CLOUD_CONFIG
+  persistent_disk_type: REPLACE_WITH_PERSISTENT_DISK_TYPE_FROM_CLOUD_CONFIG
+  stemcell: trusty
+  networks:
+  - name: REPLACE_WITH_NETWORK_FROM_DIRECTOR_CLOUD_CONFIG
+
+update:
+  canaries: 1
+  canary_watch_time: 30000-180000
+  update_watch_time: 30000-180000
+  max_in_flight: 4
