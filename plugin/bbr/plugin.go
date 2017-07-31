@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloudfoundry-incubator/bosh-backup-and-restore/backup"
@@ -94,19 +95,6 @@ func (p BbrPlugin) Validate(endpoint ShieldEndpoint) error {
 		fail bool
 	)
 
-	// s, err = endpoint.StringValue("bbr_type")
-	// if err != nil {
-	// 	ansi.Printf("@R{\u2717 bbr_type   %s}\n", err)
-	// 	fail = true
-	// } else {
-	// 	if matched, _ := regexp.MatchString("deployment|director", s); matched {
-	// 		ansi.Printf("@G{\u2713 bbr_type}  @C{%s}\n", s)
-	// 	} else {
-	// 		ansi.Printf("@R{\u2717 bbr_type   %s (Expected `director` or `deployment`)}\n", err)
-	// 		return fmt.Errorf("bbr: invalid type: exepected 'director', 'deployment'")
-	// 	}
-	// }
-
 	s, err = endpoint.StringValue("bbr_type")
 	if err != nil {
 		ansi.Printf("@R{\u2717 bbr_type   %s}\n", err)
@@ -121,6 +109,34 @@ func (p BbrPlugin) Validate(endpoint ShieldEndpoint) error {
 		} else {
 			ansi.Printf("@G{\u2713 bbr_deployment}  @C{%s}\n", s)
 		}
+		s, err = endpoint.StringValue("bbr_target")
+		if err != nil {
+			ansi.Printf("@R{\u2717 bbr_target   %s}\n", err)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 bbr_target}  @C{%s}\n", s)
+		}
+		s, err = endpoint.StringValue("bbr_username")
+		if err != nil {
+			ansi.Printf("@R{\u2717 bbr_username   %s}\n", err)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 bbr_username}  @C{%s}\n", s)
+		}
+		s, err = endpoint.StringValue("bbr_password")
+		if err != nil {
+			ansi.Printf("@R{\u2717 bbr_password   %s}\n", err)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 bbr_password}  @C{%s}\n", s)
+		}
+		s, err = endpoint.StringValue("bbr_cacert")
+		if err != nil {
+			ansi.Printf("@R{\u2717 bbr_cacert   %s}\n", err)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 bbr_cacert}  @C{%s}\n", s)
+		}
 	case directorType:
 		s, err = endpoint.StringValue("bbr_host")
 		if err != nil {
@@ -128,6 +144,20 @@ func (p BbrPlugin) Validate(endpoint ShieldEndpoint) error {
 			fail = true
 		} else {
 			ansi.Printf("@G{\u2713 bbr_host}  @C{%s}\n", s)
+		}
+		s, err = endpoint.StringValue("bbr_privatekey")
+		if err != nil {
+			ansi.Printf("@R{\u2717 bbr_privatekey   %s}\n", err)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 bbr_privatekey}  @C{%s}\n", s)
+		}
+		s, err = endpoint.StringValue("bbr_sshusername")
+		if err != nil {
+			ansi.Printf("@R{\u2717 bbr_sshusername   %s}\n", err)
+			fail = true
+		} else {
+			ansi.Printf("@G{\u2713 bbr_sshusername}  @C{%s}\n", s)
 		}
 	default:
 		ansi.Printf("@R{\u2717 bbr_type   %s (Expected `director` or `deployment`)}\n", err)
@@ -206,6 +236,21 @@ func makeDeploymentBackuper(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrato
 	return orchestrator.NewBackuper(backup.BackupDirectoryManager{}, logger, deploymentManager, time.Now), nil
 }
 
+func makeDeploymentRestorer(bbr *BbrPlugin, logger boshlog.Logger) (*orchestrator.Restorer, error) {
+	caCertPath, err := tmpfile(bbr.CaCert)
+	if err != nil {
+		return nil, err
+	}
+	boshClient, err := bosh.BuildClient(bbr.Target, bbr.Username, bbr.Password, caCertPath, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	deploymentManager := bosh.NewDeploymentManager(boshClient, logger, false)
+
+	return orchestrator.NewRestorer(backup.BackupDirectoryManager{}, logger, deploymentManager), nil
+}
+
 // // Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly
 func (p BbrPlugin) Backup(endpoint ShieldEndpoint) error {
 	bbr, err := BbrConnectionInfo(endpoint)
@@ -215,46 +260,45 @@ func (p BbrPlugin) Backup(endpoint ShieldEndpoint) error {
 		return err
 	}
 
-	if bbr.Type == "director" {
+	switch bbr.Type {
+	case directorType:
 		// backup director
 		backuper, err := makeDirectorBackuper(bbr, logger)
 		if err != nil {
 			return err
 		}
-		tmp_dir, err := ioutil.TempDir("", "bbr")
+		tmpdir, err := ioutil.TempDir("", "bbr")
 		if err != nil {
 			return err
 		}
-		defer os.RemoveAll(tmp_dir)
-		err = os.Chdir(tmp_dir)
+		defer os.RemoveAll(tmpdir)
+		err = os.Chdir(tmpdir)
 		if err != nil {
 			return err
 		}
-		DEBUG("BACKUP 1")
 		// backup with bbr
 		err = orchestrator.ConvertErrors(backuper.Backup("director"))
 		if err != nil {
 			return err
 		}
-		DEBUG("BACKUP 2")
-		// create path
-		backups, err := filepath.Glob(path.Join(tmp_dir, "director*"))
+		// create path so we can use it this path to zip the directory
+		backups, err := filepath.Glob(path.Join(tmpdir, "director*"))
 		if err != nil {
 			return err
 		}
 		DEBUG("PATHS: `%s`", backups)
 		// Write our backuped directory to zip
-		tmp_file, err := ioutil.TempFile("", ".zip")
+		tmpfile, err := ioutil.TempFile("", ".zip")
 		if err != nil {
 			return err
 		}
-		defer os.Remove(tmp_file.Name())
-		err = archiver.Zip.Make(tmp_file.Name(), backups)
+		defer os.Remove(tmpfile.Name())
+		err = archiver.Zip.Make(tmpfile.Name(), backups)
 		if err != nil {
 			return err
 		}
 		// open zip for reader
-		reader, err := os.Open(tmp_file.Name())
+		reader, err := os.Open(tmpfile.Name())
 		if err != nil {
 			return err
 		}
@@ -262,6 +306,56 @@ func (p BbrPlugin) Backup(endpoint ShieldEndpoint) error {
 		if err != nil {
 			return err
 		}
+
+	case deploymentType:
+		// backup director
+		backuper, err := makeDeploymentBackuper(bbr, logger)
+		if err != nil {
+			return err
+		}
+		tmpdir, err := ioutil.TempDir("", "bbr")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpdir)
+		err = os.Chdir(tmpdir)
+		if err != nil {
+			return err
+		}
+		//TODO: join string can't this be a onliner?
+		s := []string{bbr.Deployment, "*"}
+		joined := strings.Join(s, "")
+		// backup with bbr
+		err = orchestrator.ConvertErrors(backuper.Backup(bbr.Deployment))
+		if err != nil {
+			return err
+		}
+		// create path so we can use it this path to zip the directory
+		backups, err := filepath.Glob(path.Join(tmpdir, joined))
+		if err != nil {
+			return err
+		}
+		DEBUG("PATHS: `%s`", backups)
+		// Write our backuped directory to zip
+		tmpfile, err := ioutil.TempFile("", ".zip")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(tmpfile.Name())
+		err = archiver.Zip.Make(tmpfile.Name(), backups)
+		if err != nil {
+			return err
+		}
+		// open zip for reader
+		reader, err := os.Open(tmpfile.Name())
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(os.Stdout, reader)
+		if err != nil {
+			return err
+		}
+
 	}
 	return nil
 }
@@ -270,39 +364,83 @@ func (p BbrPlugin) Backup(endpoint ShieldEndpoint) error {
 func (p BbrPlugin) Restore(endpoint ShieldEndpoint) error {
 	bbr, err := BbrConnectionInfo(endpoint)
 	logger := boshlog.NewWriterLogger(boshlog.LevelInfo, os.Stderr, os.Stderr)
-
-	tmp_dir, err := ioutil.TempDir("", "bbr")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmp_dir)
-	// Write our backuped directory to zip
-	tmp_file, err := ioutil.TempFile("", ".zip")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp_file.Name())
-	_, err = io.Copy(tmp_file, os.Stdin)
-	if err != nil {
-		return err
-	}
-	err = archiver.Zip.Open(tmp_file.Name(), tmp_dir)
-	if err != nil {
-		return err
-	}
-	backups, err := filepath.Glob(path.Join(tmp_dir, "director*"))
 	if err != nil {
 		return err
 	}
 
-	restorer, err := makeDirectorRestorer(bbr, logger)
-	if err != nil {
-		return err
+	switch bbr.Type {
+	case directorType:
+		tmpdir, err := ioutil.TempDir("", "bbr")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpdir)
+		// Write our backuped directory to zip
+		tmpfile, err := ioutil.TempFile("", ".zip")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(tmpfile.Name())
+		_, err = io.Copy(tmpfile, os.Stdin)
+		if err != nil {
+			return err
+		}
+		err = archiver.Zip.Open(tmpfile.Name(), tmpdir)
+		if err != nil {
+			return err
+		}
+		backups, err := filepath.Glob(path.Join(tmpdir, "director*"))
+		if err != nil {
+			return err
+		}
+		restorer, err := makeDirectorRestorer(bbr, logger)
+		if err != nil {
+			return err
+		}
+		err = orchestrator.ConvertErrors(restorer.Restore("director", backups[0]))
+		if err != nil {
+			return err
+		}
+		return nil
+
+	case deploymentType:
+		tmpdir, err := ioutil.TempDir("", "bbr")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpdir)
+		// Write our backuped directory to zip
+		tmpfile, err := ioutil.TempFile("", ".zip")
+		if err != nil {
+			return err
+		}
+		defer os.Remove(tmpfile.Name())
+		_, err = io.Copy(tmpfile, os.Stdin)
+		if err != nil {
+			return err
+		}
+		err = archiver.Zip.Open(tmpfile.Name(), tmpdir)
+		if err != nil {
+			return err
+		}
+		//TODO: join string can't this be a onliner?
+		s := []string{bbr.Deployment, "*"}
+		joined := strings.Join(s, "")
+		backups, err := filepath.Glob(path.Join(tmpdir, joined))
+		if err != nil {
+			return err
+		}
+		restorer, err := makeDeploymentRestorer(bbr, logger)
+		if err != nil {
+			return err
+		}
+		err = orchestrator.ConvertErrors(restorer.Restore(bbr.Deployment, backups[0]))
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	err = orchestrator.ConvertErrors(restorer.Restore("director", backups[0]))
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
