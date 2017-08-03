@@ -40,17 +40,17 @@ func (f *FlagInfo) HelpLine(colwidth int) string {
 	}
 	flagStr := strings.Join(flags, ", ")
 
-	const lineWidth = 78
+	const lineWidth = 76
 	const formatString = "%-[1]*[2]s  %[3]s"
 
 	//Add line with actual flags
 	descLine, remaining := splitTokensAfterLen(f.desc, lineWidth-colwidth)
-	lines := []string{ansi.Sprintf(formatString, colwidth, flagStr, f.desc)}
+	lines := []string{ansi.Sprintf("%-[1]*[2]s  %[3]s", colwidth, flagStr, descLine)}
 
 	//If the summary is longer than the line width, make another line for it
 	for remaining != "" {
-		descLine, remaining = splitTokensAfterLen(f.desc, lineWidth-colwidth)
-		lines = append(lines, fmt.Sprintf(formatString, colwidth, "", descLine))
+		descLine, remaining = splitTokensAfterLen(remaining, lineWidth-colwidth)
+		lines = append(lines, fmt.Sprintf("%-[1]*[2]s     %[3]s", colwidth, "", descLine))
 	}
 
 	return strings.Join(lines, "\n")
@@ -207,7 +207,7 @@ func splitTokensAfterLen(input string, numChars int) (before, after string) {
 	curLen := len(tokens[0])
 	splitAt := 1
 	for ; splitAt < len(tokens); splitAt++ {
-		curLen += len(tokens[splitAt])
+		curLen += len(tokens[splitAt]) + 1
 		if curLen > numChars {
 			break
 		}
