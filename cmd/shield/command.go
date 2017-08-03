@@ -123,6 +123,11 @@ func (c *Command) DisplayHelp() {
 		fmt.Fprintln(os.Stderr, strings.Join(c.help.FlagHelp(), "\n"))
 	}
 
+	if len(c.dispatch.globals.Flags) != 0 {
+		fmt.Fprintln(os.Stderr, HelpHeader("GLOBAL FLAGS"))
+		fmt.Fprintln(os.Stderr, strings.Join(c.dispatch.globals.FlagHelp(), "\n"))
+	}
+
 	//Print JSON input, if present
 	if c.help.JSONInput != "" {
 		fmt.Fprintln(os.Stderr, HelpHeader("RAW INPUT"))

@@ -151,16 +151,6 @@ func (f ByFlag) Less(i, j int) bool {
 }
 
 var (
-	//KFlag --skip-ssl-validation, -k
-	KFlag = FlagInfo{
-		name: "skip-ssl-validation", short: 'k',
-		desc: "Disable SSL certificate validation",
-	}
-	//RawFlag --raw
-	RawFlag = FlagInfo{
-		name: "raw",
-		desc: "Takes any input and gives any output as a JSON object",
-	}
 	//UnusedFlag --unused
 	UnusedFlag = FlagInfo{
 		name: "unused",

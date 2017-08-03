@@ -47,7 +47,10 @@ func cliCommands(args ...string) error {
 	ansi.Fprintf(os.Stderr, "\n@R{ENVIRONMENT VARIABLES:}\n")
 	ansi.Fprintf(os.Stderr, "  SHIELD_TRACE\t\tset to 'true' for trace output.\n")
 	ansi.Fprintf(os.Stderr, "  SHIELD_DEBUG\t\tset to 'true' for debug output.\n\n")
-	ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n\n")
+	ansi.Fprintf(os.Stderr, "@R{GLOBAL FLAGS:}\n")
+	ansi.Fprintf(os.Stderr, dispatch.GlobalFlags())
+	ansi.Fprintf(os.Stderr, "\n\n")
+	ansi.Fprintf(os.Stderr, "@R{COMMANDS:}\n")
 	ansi.Fprintf(os.Stderr, dispatch.Usage())
 	ansi.Fprintf(os.Stderr, "\n")
 	return nil

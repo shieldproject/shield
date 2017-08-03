@@ -14,6 +14,7 @@ import (
 type Dispatcher struct {
 	commands   map[string]*Command
 	helpgroups []helpGroup
+	globals    HelpInfo
 	maxCmdLen  int //Length, in chars, of the longest command name. Set from Dispatch()
 }
 
@@ -41,7 +42,7 @@ func (d *Dispatcher) HelpGroup(groupname string) {
 func (d *Dispatcher) Usage() string {
 	var helpLines []string
 	for _, group := range d.helpgroups {
-		groupHeader := fmt.Sprintf("@M{%s}", group.name)
+		groupHeader := fmt.Sprintf("  @M{%s}", group.name)
 		helpLines = append(helpLines, groupHeader) //Add the helpGroup header
 
 		for _, command := range group.commands {
@@ -52,6 +53,17 @@ func (d *Dispatcher) Usage() string {
 	}
 
 	return strings.Join(helpLines, "\n") //Split by newline
+}
+
+//GlobalFlags returns the formatted help lines for the registered global flags
+func (d *Dispatcher) GlobalFlags() string {
+	return strings.Join(d.globals.FlagHelp(), "\n")
+}
+
+//AddGlobalFlag registers a global flag with the dispatcher to be printed in the
+// help if necessary
+func (d *Dispatcher) AddGlobalFlag(flag FlagInfo) {
+	d.globals.Flags = append(d.globals.Flags, flag)
 }
 
 //Register registers a command to the Dispatcher object, callable by the name
