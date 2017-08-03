@@ -25,10 +25,10 @@ type FlagInfo struct {
 	valued     bool
 }
 
-//HelpLine returns a string formatted as `shortflag, longflag summary`, where
-//colwidth is how many spaces are taken up by the flags and the buffer
-//spaces before the summary
-func (f *FlagInfo) HelpLine(colwidth int) string {
+//HelpLines returns a slice of strings formatted as `shortflag, longflag
+//summary`, where colwidth is how many spaces are taken up by the flags and the
+//buffer spaces before the summary
+func (f *FlagInfo) HelpLines(colwidth int) []string {
 	flags := []string{}
 	if f.short != 0 {
 		flags = append(flags, f.formatShort())
@@ -39,21 +39,24 @@ func (f *FlagInfo) HelpLine(colwidth int) string {
 		flags[i] = ansi.Sprintf("@B{%s}", flags[i])
 	}
 	flagStr := strings.Join(flags, ", ")
-
-	const lineWidth = 76
-	const formatString = "%-[1]*[2]s  %[3]s"
+	//Adjust the formatting column width to account for non-printing chars
+	nonAnsiFlagLength := f.combinedFlagLength()
+	ansiFlagLength := len(flagStr)
+	widthAdjustment := ansiFlagLength - nonAnsiFlagLength
+	colwidth = colwidth + widthAdjustment
+	const lineWidth = 78
 
 	//Add line with actual flags
-	descLine, remaining := splitTokensAfterLen(f.desc, lineWidth-colwidth)
-	lines := []string{ansi.Sprintf("%-[1]*[2]s  %[3]s", colwidth, flagStr, descLine)}
+	descLine, remaining := splitTokensAfterLen(f.desc, lineWidth-colwidth+widthAdjustment)
+	lines := []string{fmt.Sprintf("%-*s  %s", colwidth, flagStr, descLine)}
 
 	//If the summary is longer than the line width, make another line for it
 	for remaining != "" {
-		descLine, remaining = splitTokensAfterLen(remaining, lineWidth-colwidth)
-		lines = append(lines, fmt.Sprintf("%-[1]*[2]s     %[3]s", colwidth, "", descLine))
+		descLine, remaining = splitTokensAfterLen(remaining, lineWidth-colwidth+widthAdjustment)
+		lines = append(lines, fmt.Sprintf("%-*s  %s", colwidth-widthAdjustment, "", descLine))
 	}
 
-	return strings.Join(lines, "\n")
+	return lines
 }
 
 //Adds leading dash
@@ -115,8 +118,14 @@ func (f FlagInfo) lenLong() (length int) {
 func (h HelpInfo) FlagHelp() (lines []string) {
 	columnWidth := h.maxFlagLength()
 	for _, flag := range h.Flags {
-		lines = append(lines, fmt.Sprintf("   %s", flag.HelpLine(columnWidth)))
+		lines = append(lines, flag.HelpLines(columnWidth)...)
 	}
+
+	//Indent all the lines
+	for i, line := range lines {
+		lines[i] = fmt.Sprintf("   %s", line)
+	}
+
 	return lines
 }
 
