@@ -10,8 +10,7 @@ import (
 
 	"github.com/pborman/getopt"
 	"github.com/starkandwayne/goutils/ansi"
-
-	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/api"
 )
 
 func require(good bool, msg string) {
@@ -30,7 +29,7 @@ var (
 	debug = false
 	//Version gets overridden by lflags when building
 	Version = ""
-	options = Options{
+	opts    = Options{
 		Shield:   getopt.StringLong("shield", 'H', "", "DEPRECATED - Previously required to point to a SHIELD backend to talk to. Now used to auto-vivify ~/.shield_config if necessary"),
 		Used:     getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
 		Unused:   getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
@@ -60,39 +59,38 @@ var (
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
 	}
-	c = NewCommand().With(options)
 )
 
 func main() {
 	var command []string
-	var opts = getopt.CommandLine
+	var cmdLine = getopt.CommandLine
 	args := os.Args
 	for {
-		opts.Parse(args)
-		if opts.NArgs() == 0 {
+		cmdLine.Parse(args)
+		if cmdLine.NArgs() == 0 {
 			break
 		}
-		command = append(command, opts.Arg(0))
-		args = opts.Args()
+		command = append(command, cmdLine.Arg(0))
+		args = cmdLine.Args()
 	}
 
 	if len(command) == 0 {
 		command = []string{"help"}
 	}
 
-	debug = *options.Debug
+	debug = *opts.Debug
 	DEBUG("shield cli starting up")
 
-	if *options.Trace {
+	if *opts.Trace {
 		DEBUG("enabling TRACE output")
 		os.Setenv("SHIELD_TRACE", "1")
 	}
 
-	if *options.SkipSSLValidation {
+	if *opts.SkipSSLValidation {
 		os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
 	}
 
-	if *options.Version {
+	if *opts.Version {
 		if Version == "" {
 			fmt.Printf("shield cli (development)%s\n", Version)
 		} else {
@@ -110,17 +108,26 @@ func main() {
 			  ##  ##   ### ##       ##     ##
 			 #### ##    ## ##        #######
 	*/
-	c.HelpGroup("INFO:")
-	c.Dispatch("help", "Get detailed help with a specific command", cliUsage)
-	c.Alias("usage", "help")
+	dispatch.HelpGroup("INFO:")
 
-	c.Dispatch("commands", "Show the list of available commands", cliCommands)
+	help := dispatch.Register("help", cliUsage).Aliases("usage")
+	help.Summarize("Get detailed help with a specific command")
+	help.Help(HelpInfo{
+		Message: ansi.Sprintf("@R{This is getting a bit too meta, don't you think?}"),
+	})
 
-	c.Dispatch("flags", "Show the list of all command line flags", cliFlags)
-	c.Alias("options", "flags")
+	commands := dispatch.Register("commands", cliCommands)
+	commands.Summarize("Show the list of available commands")
 
-	c.Dispatch("status", "Query the SHIELD backup server for its status and version info", cliStatus)
-	c.Alias("stat", "status")
+	flags := dispatch.Register("flags", cliFlags).Aliases("options")
+	flags.Summarize("Show the list of all command line flags")
+
+	status := dispatch.Register("status", cliStatus).Aliases("stat")
+	status.Summarize("Query the SHIELD backup server for its status and version info")
+	status.Help(HelpInfo{
+		Flags:      []FlagInfo{RawFlag},
+		JSONOutput: fmt.Sprintf(`{"name":"MyShield","version":"%s"}`, Version),
+	})
 
 	/*
 	   ########     ###     ######  ##    ## ######## ##    ## ########   ######
@@ -131,22 +138,44 @@ func main() {
 	   ##     ## ##     ## ##    ## ##   ##  ##       ##   ### ##     ## ##    ##
 	   ########  ##     ##  ######  ##    ## ######## ##    ## ########   ######
 	*/
-	c.HelpGroup("BACKENDS:")
-	c.Dispatch("backends", "List configured SHIELD backends", cliListBackends)
-	c.Alias("list backends", "backends")
-	c.Alias("ls be", "backends")
+	dispatch.HelpGroup("BACKENDS:")
 
-	c.Dispatch("create-backend", "Create or modify a SHIELD backend", cliCreateBackend)
-	c.Alias("create backend", "create-backend")
-	c.Alias("c be", "create-backend")
-	c.Alias("update backend", "create-backend")
-	c.Alias("update-backend", "create-backend")
-	c.Alias("edit-backend", "create-backend")
-	c.Alias("edit backend", "create-backend")
+	backends := dispatch.Register("backends", cliListBackends).Aliases("list backends", "ls be")
+	backends.Summarize("List configured SHIELD backends")
+	backends.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag},
+		JSONOutput: `[{
+			"name":"mybackend",
+			"uri":"https://10.244.2.2:443"
+		}]`,
+	})
 
-	c.Dispatch("backend", "Select a particular backend for use", cliUseBackend)
-	c.Alias("use backend", "backend")
-	c.Alias("use-backend", "backend")
+	cbackend := dispatch.Register("create-backend", cliCreateBackend)
+	cbackend.Aliases("create backend", "c be", "update backend", "update-backend", "edit-backend", "edit backend")
+	cbackend.Summarize("Create or modify a SHIELD backend")
+	cbackend.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "name", mandatory: true, positional: true,
+				desc: `The name of the new backend`,
+			},
+			FlagInfo{
+				name: "uri", mandatory: true, positional: true,
+				desc: `The address at which the new backend can be found`,
+			},
+		},
+	})
+
+	backend := dispatch.Register("backend", cliUseBackend).Aliases("use backend", "use-backend")
+	backend.Summarize("Select a particular backend for use")
+	backend.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "name", mandatory: true, positional: true,
+				desc: "The name of the backend to target",
+			},
+		},
+	})
 
 	/*
 	   ########    ###    ########   ######   ######## ########
@@ -158,34 +187,95 @@ func main() {
 	      ##    ##     ## ##     ##  ######   ########    ##
 	*/
 
-	c.HelpGroup("TARGETS:")
-	c.Dispatch("targets", "List available backup targets", cliListTargets)
-	c.Alias("list targets", "targets")
-	c.Alias("ls targets", "targets")
+	dispatch.HelpGroup("TARGETS:")
+	targets := dispatch.Register("targets", cliListTargets).Aliases("list targets", "ls targets")
+	targets.Summarize("List available backup targets")
+	targets.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "plugin", short: 'P', valued: true,
+				desc: "Only show targets using the named target plugin",
+			},
+			UsedFlag,
+			UnusedFlag,
+			KFlag,
+			FuzzyFlag,
+		},
+		JSONOutput: `[{
+				"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392",
+				"name":"SampleTarget",
+				"summary":"A Sample Target",
+				"plugin":"postgres",
+				"endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}",
+				"agent":"127.0.0.1:1234"
+			}]`,
+	})
 
-	c.Dispatch("target", "Print detailed information about a specific backup target", cliGetTarget)
-	c.Alias("show target", "target")
-	c.Alias("view target", "target")
-	c.Alias("display target", "target")
-	c.Alias("list target", "target")
-	c.Alias("ls target", "target")
+	target := dispatch.Register("target", cliGetTarget)
+	target.Aliases("show target", "view target", "display target", "list target", "ls target")
+	target.Summarize("Print detailed information about a specific backup target")
+	target.Help(HelpInfo{
+		Flags: []FlagInfo{TargetNameFlag, RawFlag, KFlag},
+		JSONOutput: `{
+			"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392",
+			"name":"SampleTarget",
+			"summary":"A Sample Target",
+			"plugin":"postgres",
+			"endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}",
+			"agent":"127.0.0.1:1234"
+		}`,
+	})
 
-	c.Dispatch("create-target", "Create a new backup target", cliCreateTarget)
-	c.Alias("create target", "create-target")
-	c.Alias("new target", "create-target")
-	c.Alias("create new target", "create-target")
-	c.Alias("make target", "create-target")
-	c.Alias("c t", "create-target")
-	c.Alias("add target", "create-target")
+	ctarget := dispatch.Register("create-target", cliCreateTarget)
+	ctarget.Aliases("create target", "new target", "create new target", "make target", "c t", "add target")
+	ctarget.Summarize("Create a new backup target")
+	ctarget.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag},
+		JSONInput: `{
+			"agent":"127.0.0.1:1234",
+			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"name":"TestTarget",
+			"plugin":"postgres",
+			"summary":"A Test Target"
+		}`,
+		JSONOutput: `{
+			"uuid":"77398f3e-2a31-4f20-b3f7-49d3f0998712",
+			"name":"TestTarget",
+			"summary":"A Test Target",
+			"plugin":"postgres",
+			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"agent":"127.0.0.1:1234"
+		}`,
+	})
 
-	c.Dispatch("edit-target", "Modify an existing backup target", cliEditTarget)
-	c.Alias("edit target", "edit-target")
-	c.Alias("update target", "edit-target")
+	etarget := dispatch.Register("edit-target", cliEditTarget).Aliases("edit target", "update target")
+	etarget.Summarize("Modify an existing backup target")
+	etarget.Help(HelpInfo{
+		Message: "Modify an existing backup target. The UUID of the target will remain the same after modification.",
+		Flags:   []FlagInfo{TargetNameFlag, RawFlag, KFlag},
+		JSONInput: `{
+			"agent":"127.0.0.1:1234",
+			"endpoint":"{\"endpoint\":\"newschmendpoint\"}",
+			"name":"NewTargetName",
+			"plugin":"postgres",
+			"summary":"Some Target"
+		}`,
+		JSONOutput: `{
+			"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392",
+			"name":"SomeTarget",
+			"summary":"Just this target, you know?",
+			"plugin":"postgres",
+			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"agent":"127.0.0.1:1234"
+		}`,
+	})
 
-	c.Dispatch("delete-target", "Delete a backup target", cliDeleteTarget)
-	c.Alias("delete target", "delete-target")
-	c.Alias("remove target", "delete-target")
-	c.Alias("rm target", "delete-target")
+	dtarget := dispatch.Register("delete-target", cliDeleteTarget).Aliases("delete target", "remove target", "rm target")
+	dtarget.Summarize("Delete a backup target")
+	dtarget.Help(HelpInfo{
+		Flags:      []FlagInfo{TargetNameFlag, KFlag, RawFlag},
+		JSONOutput: `{"ok":"Deleted target"}`,
+	})
 
 	/*
 	    ######   ######  ##     ## ######## ########  ##     ## ##       ########
@@ -197,33 +287,81 @@ func main() {
 	    ######   ######  ##     ## ######## ########   #######  ######## ########
 	*/
 
-	c.HelpGroup("SCHEDULES:")
-	c.Dispatch("schedules", "List available backup schedules", cliListSchedules)
-	c.Alias("list schedules", "schedules")
-	c.Alias("ls schedules", "schedules")
+	dispatch.HelpGroup("SCHEDULES:")
 
-	c.Dispatch("schedule", "Print detailed information about a specific backup schedule", cliGetSchedule)
-	c.Alias("show schedule", "schedule")
-	c.Alias("view schedule", "schedule")
-	c.Alias("display schedule", "schedule")
-	c.Alias("list schedule", "schedule")
-	c.Alias("ls schedule", "schedule")
+	schedules := dispatch.Register("schedules", cliListSchedules).Aliases("list schedules", "ls schedules")
+	schedules.Summarize("List available backup schedules")
+	schedules.Help(HelpInfo{
+		Flags: []FlagInfo{
+			RawFlag,
+			KFlag,
+			UsedFlag,
+			UnusedFlag,
+			FuzzyFlag,
+		},
+		JSONOutput: `[{
+			"uuid":"86ff3fec-76c5-48c4-880d-c37563033613",
+			"name":"TestSched",
+			"summary":"A Test Schedule",
+			"when":"daily 4am"
+		}]`,
+	})
 
-	c.Dispatch("create-schedule", "Create a new backup schedule", cliCreateSchedule)
-	c.Alias("create schedule", "create-schedule")
-	c.Alias("new schedule", "create-schedule")
-	c.Alias("create new schedule", "create-schedule")
-	c.Alias("make schedule", "create-schedule")
-	c.Alias("c s", "create-schedule")
+	schedule := dispatch.Register("schedule", cliGetSchedule)
+	schedule.Aliases("show schedule", "view schedule", "display schedule", "list schedule", "ls schedule")
+	schedule.Summarize("Print detailed information about a specific backup schedule")
+	schedule.Help(HelpInfo{
+		Flags: []FlagInfo{ScheduleNameFlag, RawFlag, KFlag},
+		JSONOutput: `{
+			"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"name":"TestSched",
+			"summary":"A Test Schedule",
+			"when":"daily 4am"
+		}`,
+	})
 
-	c.Dispatch("edit-schedule", "Modify an existing backup schedule", cliEditSchedule)
-	c.Alias("edit schedule", "edit-schedule")
-	c.Alias("update schedule", "edit-schedule")
+	cSchedule := dispatch.Register("create-schedule", cliCreateSchedule)
+	cSchedule.Summarize("Create a new backup schedule")
+	cSchedule.Aliases("create schedule", "new schedule", "create new schedule", "make schedule", "c s")
+	cSchedule.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag},
+		JSONInput: `{
+			"name":"TestSched",
+			"summary":"A Test Schedule",
+			"when":"daily 4am"
+		}`,
+		JSONOutput: `{
+			"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"name":"TestSched",
+			"summary":"A Test Schedule",
+			"when":"daily 4am"
+		}`,
+	})
 
-	c.Dispatch("delete-schedule", "Delete a backup schedule", cliDeleteSchedule)
-	c.Alias("delete schedule", "delete-schedule")
-	c.Alias("remove schedule", "delete-schedule")
-	c.Alias("rm schedule", "delete-schedule")
+	eSchedule := dispatch.Register("edit-schedule", cliEditSchedule).Aliases("edit schedule", "update schedule")
+	eSchedule.Summarize("Modify an existing backup schedule")
+	eSchedule.Help(HelpInfo{
+		Flags: []FlagInfo{ScheduleNameFlag, RawFlag, KFlag},
+		JSONInput: `{
+			"name":"AnotherSched",
+			"summary":"A Test Schedule",
+			"when":"daily 4am"
+		}`,
+		JSONOutput: `{
+			"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"name":"AnotherSched",
+			"summary":"A Test Schedule",
+			"when":"daily 4am"
+		}`,
+	})
+
+	dSchedule := dispatch.Register("delete-schedule", cliDeleteSchedule)
+	dSchedule.Summarize("Delete a backup schedule")
+	dSchedule.Aliases("delete schedule", "remove schedule", "rm schedule")
+	dSchedule.Help(HelpInfo{
+		Flags:      []FlagInfo{ScheduleNameFlag, RawFlag, KFlag},
+		JSONOutput: `{"ok":"Deleted schedule"}`,
+	})
 
 	/*
 	   ########  ######## ######## ######## ##    ## ######## ####  #######  ##    ##
@@ -235,47 +373,79 @@ func main() {
 	   ##     ## ########    ##    ######## ##    ##    ##    ####  #######  ##    ##
 	*/
 
-	c.HelpGroup("POLICIES:")
-	c.Dispatch("policies", "List available retention policies", cliListPolicies)
-	c.Alias("list retention policies", "policies")
-	c.Alias("ls retention policies", "policies")
-	c.Alias("list policies", "policies")
-	c.Alias("ls policies", "policies")
+	dispatch.HelpGroup("POLICIES:")
+	policies := dispatch.Register("policies", cliListPolicies)
+	policies.Summarize("List available retention policies")
+	policies.Aliases("list retention policies", "ls retention policies", "list policies", "ls policies")
+	policies.Help(HelpInfo{
+		Flags: []FlagInfo{KFlag, RawFlag, UnusedFlag, UsedFlag, FuzzyFlag},
+		JSONOutput: `[{
+			"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec",
+			"name":"apolicy",
+			"summary":"a policy",
+			"expires":5616000
+		}]`,
+	})
 
-	c.Dispatch("policy", "Print detailed information about a specific retention policy", cliGetPolicy)
-	c.Alias("show retention policy", "policy")
-	c.Alias("view retention policy", "policy")
-	c.Alias("display retention policy", "policy")
-	c.Alias("list retention policy", "policy")
-	c.Alias("show policy", "policy")
-	c.Alias("view policy", "policy")
-	c.Alias("display policy", "policy")
-	c.Alias("list policy", "policy")
+	policy := dispatch.Register("policy", cliGetPolicy)
+	policy.Summarize("Print detailed information about a specific retention policy")
+	policy.Aliases("show retention policy", "view retention policy", "display retention policy", "list retention policy")
+	policy.Aliases("show policy", "view policy", "display policy", "list policy")
+	policy.Help(HelpInfo{
+		Flags: []FlagInfo{PolicyNameFlag, RawFlag, KFlag},
+		JSONOutput: `{
+			"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec",
+			"name":"apolicy",
+			"summary":"a policy",
+			"expires":5616000
+		}`,
+	})
 
-	c.Dispatch("create-policy", "Create a new retention policy", cliCreatePolicy)
-	c.Alias("create retention policy", "create-policy")
-	c.Alias("new retention policy", "create-policy")
-	c.Alias("create new retention policy", "create-policy")
-	c.Alias("make retention policy", "create-policy")
-	c.Alias("create policy", "create-policy")
-	c.Alias("new policy", "create-policy")
-	c.Alias("create new policy", "create-policy")
-	c.Alias("make policy", "create-policy")
-	c.Alias("c p", "create-policy")
+	cPolicy := dispatch.Register("create-policy", cliCreatePolicy)
+	cPolicy.Summarize("Create a new retention policy")
+	cPolicy.Aliases("create retention policy", "new retention policy", "create new retention policy", "make retention policy")
+	cPolicy.Aliases("create policy", "new policy", "create new policy", "make policy")
+	cPolicy.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag},
+		JSONInput: `{
+			"expires":31536000,
+			"name":"TestPolicy",
+			"summary":"A Test Policy"
+		}`,
+		JSONOutput: `{
+			"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"name":"TestPolicy",
+			"summary":"A Test Policy",
+			"expires":31536000
+		}`,
+	})
 
-	c.Dispatch("edit-policy", "Modify an existing retention policy", cliEditPolicy)
-	c.Alias("edit retention policy", "edit-policy")
-	c.Alias("update retention policy", "edit-policy")
-	c.Alias("edit policy", "edit-policy")
-	c.Alias("update policy", "edit-policy")
+	ePolicy := dispatch.Register("edit-policy", cliEditPolicy)
+	ePolicy.Summarize("Modify an existing retention policy")
+	ePolicy.Aliases("edit retention policy", "update retention policy", "edit policy", "update policy")
+	ePolicy.Help(HelpInfo{
+		Flags: []FlagInfo{PolicyNameFlag, RawFlag, KFlag},
+		JSONInput: `{
+			"expires":31536000,
+			"name":"AnotherPolicy",
+			"summary":"A Test Policy"
+		}`,
+		JSONOutput: `{
+			"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"name":"AnotherPolicy",
+			"summary":"A Test Policy",
+			"expires":31536000
+		}`,
+	})
 
-	c.Dispatch("delete-policy", "Delete a retention policy", cliDeletePolicy)
-	c.Alias("delete retention policy", "delete-policy")
-	c.Alias("remove retention policy", "delete-policy")
-	c.Alias("rm retention policy", "delete-policy")
-	c.Alias("delete policy", "delete-policy")
-	c.Alias("remove policy", "delete-policy")
-	c.Alias("rm policy", "delete-policy")
+	dPolicy := dispatch.Register("delete-policy", cliDeletePolicy)
+	dPolicy.Summarize("Delete a retention policy")
+	dPolicy.Aliases("delete retention policy", "remove retention policy", "rm retention policy")
+	dPolicy.Aliases("delete policy", "remove policy", "rm policy")
+	dPolicy.Help(HelpInfo{
+		Flags:      []FlagInfo{PolicyNameFlag, KFlag, RawFlag},
+		JSONOutput: `{"ok":"Deleted policy"}`,
+	})
 
 	/*
 	    ######  ########  #######  ########  ########
@@ -287,33 +457,80 @@ func main() {
 	    ######     ##     #######  ##     ## ########
 	*/
 
-	c.HelpGroup("STORES:")
-	c.Dispatch("stores", "List available archive stores", cliListStores)
-	c.Alias("list stores", "stores")
-	c.Alias("ls stores", "stores")
+	dispatch.HelpGroup("STORES:")
+	stores := dispatch.Register("stores", cliListStores).Aliases("list stores, ls stores")
+	stores.Summarize("List available archive stores")
+	stores.Help(HelpInfo{
+		Flags: []FlagInfo{KFlag, RawFlag, UsedFlag, UnusedFlag, FuzzyFlag},
+		JSONOutput: `[{
+			"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20",
+			"name":"test store",
+			"summary":"a test store named \"test store\"",
+			"plugin":"s3",
+			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
+		}]`,
+	})
 
-	c.Dispatch("store", "Print detailed information about a specific archive store", cliGetStore)
-	c.Alias("show store", "store")
-	c.Alias("view store", "store")
-	c.Alias("display store", "store")
-	c.Alias("list store", "store")
-	c.Alias("ls store", "store")
+	store := dispatch.Register("store", cliGetStore)
+	store.Summarize("Print detailed information about a specific archive store")
+	store.Aliases("show store", "view store", "display store", "list store", "ls store")
+	store.Help(HelpInfo{
+		Flags: []FlagInfo{StoreNameFlag, KFlag, RawFlag},
+		JSONOutput: `{
+			"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20",
+			"name":"test store",
+			"summary":"a test store named \"test store\"",
+			"plugin":"s3",
+			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
+		}`,
+	})
 
-	c.Dispatch("create-store", "Create a new archive store", cliCreateStore)
-	c.Alias("create store", "create-store")
-	c.Alias("new store", "create-store")
-	c.Alias("create new store", "create-store")
-	c.Alias("make store", "create-store")
-	c.Alias("c st", "create-store")
+	cStore := dispatch.Register("create-store", cliCreateStore)
+	cStore.Summarize("Create a new archive store")
+	cStore.Aliases("create store", "new store", "create new store", "make store", "c st")
+	cStore.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag},
+		JSONInput: `{
+			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"name":"TestStore",
+			"plugin":"s3",
+			"summary":"A Test Store"
+		}`,
+		JSONOutput: `{
+			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"name":"TestStore",
+			"summary":"A Test Store",
+			"plugin":"s3",
+			"endpoint":"{\"endpoint\":\"schmendpoint\"}"
+		}`,
+	})
 
-	c.Dispatch("edit-store", "Modify an existing archive store", cliEditStore)
-	c.Alias("edit store", "edit-store")
-	c.Alias("update store", "edit-store")
+	eStore := dispatch.Register("edit-store", cliEditStore).Aliases("edit store", "update store")
+	eStore.Summarize("Modify an existing archive store")
+	eStore.Help(HelpInfo{
+		Flags: []FlagInfo{StoreNameFlag, RawFlag, KFlag},
+		JSONInput: `{
+			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"name":"AnotherStore",
+			"plugin":"s3",
+			"summary":"A Test Store"
+		}`,
+		JSONOutput: `{
+			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"name":"AnotherStore",
+			"summary":"A Test Store",
+			"plugin":"s3",
+			"endpoint":"{\"endpoint\":\"schmendpoint\"}"
+		}`,
+	})
 
-	c.Dispatch("delete-store", "Delete an archive store", cliDeleteStore)
-	c.Alias("delete store", "delete-store")
-	c.Alias("remove store", "delete-store")
-	c.Alias("rm store", "delete-store")
+	dStore := dispatch.Register("delete-store", cliDeleteStore)
+	dStore.Summarize("Delete an archive store")
+	dStore.Aliases("delete store", "remove store", "rm store")
+	dStore.Help(HelpInfo{
+		Flags:      []FlagInfo{StoreNameFlag, RawFlag, KFlag},
+		JSONOutput: `{"ok":"Deleted store"}`,
+	})
 
 	/*
 	         ##  #######  ########
@@ -325,43 +542,186 @@ func main() {
 	    ######   #######  ########
 	*/
 
-	c.HelpGroup("JOBS:")
-	c.Dispatch("jobs", "List available backup jobs", cliListJobs)
-	c.Alias("list jobs", "jobs")
-	c.Alias("ls jobs", "jobs")
-	c.Alias("ls j", "jobs")
+	dispatch.HelpGroup("JOBS:")
+	jobs := dispatch.Register("jobs", cliListJobs)
+	jobs.Summarize("List available backup jobs")
+	jobs.Aliases("list jobs", "ls jobs", "ls j")
+	jobs.Help(HelpInfo{
+		Flags: []FlagInfo{
+			{
+				name: "target", short: 't', valued: true,
+				desc: "Show only jobs using the specified target",
+			},
+			{
+				name: "store", short: 's', valued: true,
+				desc: "Show only jobs using the specified store",
+			},
+			{
+				name: "schedule", short: 'w', valued: true,
+				desc: "Show only jobs using the specified schedule",
+			},
+			{
+				name: "policy", short: 'p', valued: true,
+				desc: "Show only jobs using the specified retention policy",
+			},
+			{name: "paused", desc: "Show only jobs which are paused"},
+			{name: "unpaused", desc: "Show only jobs which are unpaused"},
+			RawFlag,
+			KFlag,
+			FuzzyFlag,
+		},
+		JSONOutput: `[{
+			"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588",
+			"name":"TestJob",
+			"summary":"A Test Job",
+			"retention_name":"AnotherPolicy",
+			"retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"expiry":31536000,
+			"schedule_name":"AnotherSched",
+			"schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"schedule_when":"daily 4am",
+			"paused":true,
+			"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"store_name":"AnotherStore",
+			"store_plugin":"s3",
+			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee",
+			"target_name":"TestTarget",
+			"target_plugin":"postgres",
+			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"agent":"127.0.0.1:1234"
+		}]`,
+	})
 
-	c.Dispatch("job", "Print detailed information about a specific backup job", cliGetJob)
-	c.Alias("show job", "job")
-	c.Alias("view job", "job")
-	c.Alias("display job", "job")
-	c.Alias("list job", "job")
-	c.Alias("ls job", "job")
+	job := dispatch.Register("job", cliGetJob)
+	job.Summarize("Print detailed information about a specific backup job")
+	job.Aliases("show job", "view job", "display job", "list job", "ls job")
+	job.Help(HelpInfo{
+		Flags: []FlagInfo{JobNameFlag, RawFlag, KFlag},
+		JSONOutput: `{
+			"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588",
+			"name":"TestJob",
+			"summary":"A Test Job",
+			"retention_name":"AnotherPolicy",
+			"retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"expiry":31536000,
+			"schedule_name":"AnotherSched",
+			"schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"schedule_when":"daily 4am",
+			"paused":true,
+			"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"store_name":"AnotherStore",
+			"store_plugin":"s3",
+			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee",
+			"target_name":"TestTarget",
+			"target_plugin":"postgres",
+			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"agent":"127.0.0.1:1234"
+		}`,
+	})
 
-	c.Dispatch("create-job", "Create a new backup job", cliCreateJob)
-	c.Alias("create job", "create-job")
-	c.Alias("new job", "create-job")
-	c.Alias("create new job", "create-job")
-	c.Alias("make job", "create-job")
-	c.Alias("c j", "create-job")
+	cJob := dispatch.Register("create-job", cliCreateJob)
+	cJob.Summarize("Create a new backup job")
+	cJob.Aliases("create job", "new job", "create new job", "make job", "c j")
+	cJob.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag},
+		JSONInput: `{
+			"name":"TestJob",
+			"paused":true,
+			"retention":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"summary":"A Test Job",
+			"target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"
+		}`,
+		JSONOutput: `{
+			"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588",
+			"name":"TestJob",
+			"summary":"A Test Job",
+			"retention_name":"AnotherPolicy",
+			"retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"expiry":31536000,
+			"schedule_name":"AnotherSched",
+			"schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"schedule_when":"daily 4am",
+			"paused":true,
+			"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"store_name":"AnotherStore",
+			"store_plugin":"s3",
+			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee",
+			"target_name":"TestTarget",
+			"target_plugin":"postgres",
+			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"agent":"127.0.0.1:1234"
+		}`,
+	})
 
-	c.Dispatch("edit-job", "Modify an existing backup job", cliEditJob)
-	c.Alias("edit job", "edit-job")
-	c.Alias("update job", "edit-job")
+	eJob := dispatch.Register("edit-job", cliEditJob).Aliases("edit job", "update job")
+	eJob.Summarize("Modify an existing backup job")
+	eJob.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag, JobNameFlag},
+		JSONInput: `{
+			"name":"AnotherJob",
+			"retention":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"summary":"A Test Job",
+			"target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"
+		}`,
+		JSONOutput: `{
+			"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588",
+			"name":"AnotherJob",
+			"summary":"A Test Job",
+			"retention_name":"AnotherPolicy",
+			"retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
+			"expiry":31536000,
+			"schedule_name":"AnotherSched",
+			"schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
+			"schedule_when":"daily 4am",
+			"paused":true,
+			"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+			"store_name":"AnotherStore",
+			"store_plugin":"s3",
+			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee",
+			"target_name":"TestTarget",
+			"target_plugin":"postgres",
+			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
+			"agent":"127.0.0.1:1234"
+		}`,
+	})
 
-	c.Dispatch("delete-job", "Delete a backup job", cliDeleteJob)
-	c.Alias("delete job", "delete-job")
-	c.Alias("remove job", "delete-job")
-	c.Alias("rm job", "delete-job")
+	dJob := dispatch.Register("delete-job", cliDeleteJob)
+	dJob.Summarize("Delete a backup job")
+	dJob.Aliases("delete job", "remove job", "rm job")
+	dJob.Help(HelpInfo{
+		Flags:      []FlagInfo{JobNameFlag, RawFlag, KFlag},
+		JSONOutput: `{"ok":"Deleted job"}`,
+	})
 
-	c.Dispatch("pause", "Pause a backup job", cliPauseJob)
-	c.Alias("pause job", "pause")
+	pause := dispatch.Register("pause", cliPauseJob).Aliases("pause job")
+	pause.Summarize("Pause a backup job")
+	pause.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag, JobNameFlag},
+	})
 
-	c.Dispatch("unpause", "Unpause a backup job", cliUnpauseJob)
-	c.Alias("unpause job", "unpause")
+	unpause := dispatch.Register("unpause", cliUnpauseJob).Aliases("unpause job")
+	unpause.Summarize("Unpause a backup job")
+	unpause.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag, JobNameFlag},
+	})
 
-	c.Dispatch("run", "Schedule an immediate run of a backup job", cliRunJob)
-	c.Alias("run job", "run")
+	run := dispatch.Register("run", cliRunJob).Aliases("run job")
+	run.Summarize("Schedule an immediate run of a backup job")
+	run.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag, JobNameFlag},
+		JSONOutput: `{
+			"ok":"Scheduled immediate run of job",
+			"task_uuid":"143e5494-63c4-4e05-9051-8b3015eae061"
+		}`,
+	})
 
 	/*
 	   ########    ###     ######  ##    ##
@@ -373,22 +733,49 @@ func main() {
 	      ##    ##     ##  ######  ##    ##
 	*/
 
-	c.HelpGroup("TASKS:")
-	c.Dispatch("tasks", "List available tasks", cliListTasks)
-	c.Alias("list tasks", "tasks")
-	c.Alias("ls tasks", "tasks")
+	dispatch.HelpGroup("TASKS:")
+	tasks := dispatch.Register("tasks", cliListTasks).Aliases("list tasks", "ls tasks")
+	tasks.Summarize("List available tasks")
+	tasks.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "status", short: 'S', valued: true,
+				desc: `Only show tasks with the specified status
+							Valid values are one of ['all', 'running', 'pending', 'cancelled']
+							If not explicitly set, it defaults to 'running'`,
+			},
+			FlagInfo{name: "all", short: 'a', desc: "Show all tasks, regardless of state"},
+			FlagInfo{name: "limit", desc: "Show only the <value> most recent tasks"},
+			RawFlag,
+			KFlag,
+		},
+		JSONOutput: `[{
+			"uuid":"0e3736f3-6905-40ba-9adc-06641a282ff4",
+			"owner":"system",
+			"type":"backup",
+			"job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8",
+			"archive_uuid":"2a4147ea-84a6-40fc-8028-143efabcc49d",
+			"status":"done",
+			"started_at":"2016-05-17 11:00:01",
+			"stopped_at":"2016-05-17 11:00:02",
+			"timeout_at":"",
+			"log":"This is where I would put my plugin output if I had one"
+		}]`,
+	})
 
-	c.Dispatch("task", "Print detailed information about a specific task", cliGetTask)
-	c.Alias("show task", "task")
-	c.Alias("view task", "task")
-	c.Alias("display task", "task")
-	c.Alias("list task", "task")
-	c.Alias("ls task", "task")
+	task := dispatch.Register("task", cliGetTask)
+	task.Summarize("Print detailed information about a specific task")
+	task.Aliases("show task", "view task", "display task", "list task", "ls task")
+	task.Help(HelpInfo{})
 
-	c.Dispatch("cancel-task", "Cancel a running or pending task", cliCancelTask)
-	c.Alias("cancel task", "cancel-task")
-	c.Alias("stop task", "cancel-task")
-
+	cTask := dispatch.Register("cancel-task", cliCancelTask).Aliases("cancel task", "stop task")
+	cTask.Summarize("Cancel a running or pending task")
+	cTask.Help(HelpInfo{
+		Flags: []FlagInfo{RawFlag, KFlag},
+		JSONOutput: `{
+			"ok":"Cancelled task '81746508-bd18-46a8-842e-97911d4b23a3'"
+		}`,
+	})
 	/*
 	      ###    ########   ######  ##     ## #### ##     ## ########
 	     ## ##   ##     ## ##    ## ##     ##  ##  ##     ## ##
@@ -399,31 +786,125 @@ func main() {
 	   ##     ## ##     ##  ######  ##     ## ####    ###    ########
 	*/
 
-	c.HelpGroup("ARCHIVES:")
-	c.Dispatch("archives", "List available backup archives", cliListArchives)
-	c.Alias("list archives", "archives")
-	c.Alias("ls archives", "archives")
+	dispatch.HelpGroup("ARCHIVES:")
+	archives := dispatch.Register("archives", cliListArchives)
+	archives.Summarize("List available backup archives")
+	archives.Aliases("list archives", "ls archives")
+	archives.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "status", short: 'S', valued: true,
+				desc: `Only show archives with the specified state of validity.
+								 Accepted values are one of ['all', 'valid']. If not
+								 explicitly set, it defaults to 'valid'`,
+			},
+			FlagInfo{
+				name: "target", short: 't', valued: true,
+				desc: "Show only archives created from the specified target",
+			},
+			FlagInfo{
+				name: "store", short: 's', valued: true,
+				desc: "Show only archives sent to the specified store",
+			},
+			FlagInfo{
+				name: "limit", valued: true,
+				desc: "Show only the <value> most recent archives",
+			},
+			FlagInfo{
+				name: "before", short: 'B', valued: true,
+				desc: `Show only the archives taken before this point in time. Specify
+				  in the format YYYYMMDD`,
+			},
+			FlagInfo{
+				name: "after", short: 'A', valued: true,
+				desc: `Show only the archives taken after this point in time. Specify
+				  in the format YYYYMMDD`,
+			},
+			FlagInfo{
+				name: "all", short: 'a',
+				desc: "Show all archives, regardless of validity. Equivalent to '--status=all'",
+			},
+			RawFlag,
+			KFlag,
+		},
+		JSONOutput: `[{
+			"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533",
+			"key":"thisisastorekey",
+			"taken_at":"2016-05-18 11:02:43",
+			"expires_at":"2017-05-18 11:02:43",
+			"status":"valid",
+			"notes":"",
+			"target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1",
+			"target_plugin":"redis-broker",
+			"target_endpoint":"{\"redis_type\":\"broker\"}",
+			"store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808",
+			"store_plugin":"s3",
+			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}"
+		}]`,
+	})
 
-	c.Dispatch("archive", "Print detailed information about a backup archive", cliGetArchive)
-	c.Alias("show archive", "archive")
-	c.Alias("view archive", "archive")
-	c.Alias("display archive", "archive")
-	c.Alias("list archive", "archive")
-	c.Alias("ls archive", "archive")
+	archive := dispatch.Register("archive", cliGetArchive)
+	archive.Summarize("Print detailed information about a backup archive")
+	archive.Aliases("show archive", "view archive", "display archive", "list archive", "ls archive")
+	archive.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "uuid", positional: true, mandatory: true,
+				desc: "A UUID assigned to a single archive instance",
+			},
+			RawFlag,
+			KFlag,
+		},
+		JSONOutput: `{
+			"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533",
+			"key":"thisisastorekey",
+			"taken_at":"2016-05-18 11:02:43",
+			"expires_at":"2017-05-18 11:02:43",
+			"status":"valid",
+			"notes":"",
+			"target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1",
+			"target_plugin":"redis-broker",
+			"target_endpoint":"{\"redis_type\":\"broker\"}",
+			"store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808",
+			"store_plugin":"s3",
+			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}"
+		}`,
+	})
 
-	c.Dispatch("restore", "Restore a backup archive", cliRestoreArchive)
-	c.Alias("restore archive", "restore")
-	c.Alias("restore-archive", "restore")
+	restore := dispatch.Register("restore", cliRestoreArchive)
+	restore.Summarize("Restore a backup archive")
+	restore.Aliases("restore archive", "restore-archive")
+	restore.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "target or uuid", positional: true, mandatory: true,
+				desc: `The name or UUID of a single target to restore. In raw mode, it
+				  must be a UUID assigned to a single archive instance`,
+			},
+			RawFlag,
+			KFlag,
+		},
+	})
 
-	c.Dispatch("delete-archive", "Delete a backup archive", cliDeleteArchive)
-	c.Alias("delete archive", "delete-archive")
-	c.Alias("remove archive", "delete-archive")
-	c.Alias("rm archive", "delete-archive")
+	dArchive := dispatch.Register("delete-archive", cliDeleteArchive)
+	dArchive.Summarize("Delete a backup archive")
+	dArchive.Aliases("delete archive", "remove archive", "rm archive")
+	dArchive.Help(HelpInfo{
+		Flags: []FlagInfo{
+			FlagInfo{
+				name: "uuid", positional: true, mandatory: true,
+				desc: "A UUID assigned to a single archive instance",
+			},
+			RawFlag,
+			KFlag,
+		},
+		JSONOutput: `{"ok":"Deleted archive"}`,
+	})
 
 	/**************************************************************************/
-	err := LoadConfig(*options.Config)
+	err := api.LoadConfig(*opts.Config)
 	if err != nil {
-		ansi.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *options.Config, err)
+		ansi.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *opts.Config, err)
 		os.Exit(1)
 	}
 
@@ -432,16 +913,23 @@ func main() {
 	if !nonAPICommands.MatchString(strings.Join(command, " ")) {
 		DEBUG("Command: '%s'", strings.Join(command, " "))
 
-		if *options.Shield != "" || os.Getenv("SHIELD_API") != "" {
+		if *opts.Shield != "" || os.Getenv("SHIELD_API") != "" {
 			ansi.Fprintf(os.Stderr, "@Y{WARNING: -H, --host, and the SHIELD_API environment variable have been deprecated and will be removed in a later release.} Use `shield backend` instead\n")
 		}
 
 		loadBackend()
 	}
 
-	if err := c.Execute(command...); err != nil {
-		if *options.Raw {
-			_ = RawJSON(map[string]string{"error": err.Error()})
+	cmd, cmdname, args := dispatch.ParseCommand(command...)
+	maybeWarnDeprecation(cmdname, cmd)
+	if cmd == nil {
+		ansi.Fprintf(os.Stderr, "@R{unrecognized command %s}\n", strings.Join(command, " "))
+		os.Exit(1)
+	}
+
+	if err := cmd.Run(args...); err != nil {
+		if *opts.Raw {
+			RawJSON(map[string]string{"error": err.Error()})
 		} else {
 			ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
 		}

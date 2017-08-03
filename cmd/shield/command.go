@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/starkandwayne/goutils/ansi"
@@ -49,161 +47,105 @@ type Options struct {
 	Password *string
 }
 
-type Handler func(opts Options, args []string, help bool) error
+type commandFn func(args ...string) error
 
+//Command holds all the information about a command that the Dispatcher, well...
+// dispatches to
 type Command struct {
-	help       [][]string
-	summary    map[string]string
-	commands   map[string]Handler
-	deprecated map[string]bool
-	options    Options
+	canonical string      //Canonical name of the command
+	summary   string      //Summary description of a command (short help)
+	runFn     commandFn   //Function to call to run a command
+	help      HelpInfo    //Function to call to print help about a command
+	dispatch  *Dispatcher //Pointer to the dispatcher that created this Command
 }
 
-func NewCommand() *Command {
-	return &Command{
-		summary:    map[string]string{},
-		commands:   map[string]Handler{},
-		deprecated: map[string]bool{},
-	}
+//GetAliases retrieves all aliases for this command registered with the Dispatcher
+func (c *Command) GetAliases() []string {
+	return c.dispatch.AliasesFor(c)
 }
 
-func (c *Command) HelpGroup(groupname string) {
-	groupname = "@M{" + fmt.Sprintf("%s", groupname) + "}"
-	if len(c.help) > 0 {
-		c.help = append(c.help, []string{"", ""})
+//Aliases registers alterative names for this command with the Dispatcher
+func (c *Command) Aliases(aliases ...string) *Command {
+	for _, alias := range aliases {
+		dispatch.commands[alias] = c
 	}
-	c.help = append(c.help, []string{groupname, ""})
-}
-
-func (c *Command) Usage() string {
-	n := 0
-	for _, v := range c.help {
-		if len(v[0]) > n {
-			n = len(v[0])
-		}
-	}
-
-	format := fmt.Sprintf("  %%-%ds   %%s\n", n)
-	l := make([]string, len(c.help))
-	for i, v := range c.help {
-		l[i] = fmt.Sprintf(format, v[0], v[1])
-	}
-	return strings.Join(l, "")
-}
-
-func (c *Command) Dispatch(command string, help string, fn Handler) {
-	if _, ok := c.commands[command]; ok {
-		panic(fmt.Sprintf("command `%s' already registered", command))
-	}
-
-	if help != "" {
-		c.help = append(c.help, []string{command, help})
-	}
-
-	c.summary[command] = help
-	c.commands[command] = fn
-}
-
-func (c *Command) Alias(alias string, command string) {
-	if fn, ok := c.commands[command]; ok {
-		c.Dispatch(alias, "", fn)
-		if summary, ok := c.summary[command]; ok {
-			c.summary[alias] = summary
-		}
-	} else {
-		panic(fmt.Sprintf("unknown command `%s' for alias `%s'", command, alias))
-	}
-	c.deprecated[alias] = true
-}
-
-//Returns a newline separated list of aliases for the given command
-func (c *Command) AliasesFor(command string) []string {
-	aliases := []string{}
-	if _, found := c.commands[command]; !found {
-		panic(fmt.Sprintf("unknown command `%s' to find aliases for", command))
-	}
-	for alias, _ := range c.commands {
-		if c.isAliasFor(alias, command) {
-			aliases = append(aliases, alias)
-		}
-	}
-	sort.Strings(aliases)
-	return aliases
-}
-
-func (c *Command) isAliasFor(alias, command string) bool {
-	return reflect.ValueOf(c.commands[alias]).Pointer() == reflect.ValueOf(c.commands[command]).Pointer()
-}
-
-func (c *Command) isCanonicalFor(canon, command string) bool {
-	return c.isAliasFor(canon, command) && !c.deprecated[canon]
-}
-
-func (c *Command) getCanonicalOf(command string) string {
-	for alias := range c.commands {
-		if c.isCanonicalFor(alias, command) {
-			return alias
-		}
-	}
-	return ""
-}
-
-func (c *Command) With(opts Options) *Command {
-	c.options = opts
 	return c
 }
 
-func (c *Command) do(cmd []string, help bool) error {
-	var last = 0
-	var err error = nil
-	for i := 1; i <= len(cmd); i++ {
-		command := strings.Join(cmd[0:i], " ")
-		if _, ok := c.commands[command]; ok {
-			last = i
-		}
-	}
-	if last != 0 {
-		command := strings.Join(cmd[0:last], " ")
-		if fn, ok := c.commands[command]; ok {
-			if c.deprecated[command] {
-				canon := c.getCanonicalOf(command)
-				ansi.Fprintf(os.Stderr, "@R{The alias `%s` is deprecated in favor of `%s`}\n", command, canon)
-			}
-			err = fn(c.options, cmd[last:], help)
-
-			//Avoid recursive help
-			helpComs := []string{}
-			helpComs = append(helpComs, c.AliasesFor("help")...)
-			helpComs = append(helpComs, c.AliasesFor("commands")...)
-			helpComs = append(helpComs, c.AliasesFor("flags")...)
-			isHelper := false
-			for _, v := range helpComs {
-				if command == v {
-					isHelper = true
-					break
-				}
-			}
-			if help && !isHelper {
-				if c.deprecated[command] {
-					command = c.getCanonicalOf(command)
-				}
-				PrintUsage(command)
-				PrintMessage(command, c)
-				PrintAliasHelp(command, c)
-				PrintFlagHelp()
-				PrintInputHelp()
-				PrintJSONHelp()
-			}
-			return err
-		}
-	}
-	return fmt.Errorf("unrecognized command %s\n", strings.Join(cmd, " "))
+//Summarize sets the short help string for this command
+func (c *Command) Summarize(summary string) *Command {
+	c.summary = summary
+	return c
 }
 
-func (c *Command) Execute(cmd ...string) error {
-	return c.do(cmd, false)
+//SetHelp sets the function to call if the help for this command is requested
+func (c *Command) Help(help HelpInfo) *Command {
+	c.help = help
+	return c
 }
 
-func (c *Command) Help(cmd ...string) error {
-	return c.do(cmd, true)
+//ShortHelp prints the one line help for a command
+func (c *Command) ShortHelp() string {
+	const minBuffer = 3
+	//Number of spaces taken up by command name and extra buffer spaces before
+	//summary. All commands will have the same buffer, so this justifies the
+	//all of the summarys' text
+	summaryIndent := c.dispatch.maxCmdLen + minBuffer
+	//Create format string with buffer specified
+	return ansi.Sprintf("  @B{%-[1]*[2]s}%[3]s", summaryIndent, c.canonical, c.summary)
+}
+
+//Run runs the attached runFn with the given args
+func (c *Command) Run(args ...string) error {
+	return c.runFn(args...)
+}
+
+//DisplayHelp prints the help for this command to stderr
+func (c *Command) DisplayHelp() {
+	//Print Usage Line
+	fmt.Fprintln(os.Stderr, c.usageLine())
+	if c.help.Message != "" {
+		fmt.Fprintln(os.Stderr, c.help.Message)
+	} else { //Default to summary unless overridden in help
+		fmt.Fprintln(os.Stderr, c.summary)
+	}
+
+	//Print Aliases, if present
+	aliases := c.GetAliases()
+	if len(aliases) > 0 {
+		fmt.Fprintln(os.Stderr, HelpHeader("ALIASES"))
+		fmt.Fprintf(os.Stderr, "  %s\n", strings.Join(c.GetAliases(), ", "))
+	}
+
+	//Print flag help if there are any flags for this command
+	if len(c.help.Flags) > 0 {
+		fmt.Fprintln(os.Stderr, HelpHeader("FLAGS"))
+		fmt.Fprintln(os.Stderr, strings.Join(c.help.FlagHelp(), "\n"))
+	}
+
+	//Print JSON input, if present
+	if c.help.JSONInput != "" {
+		fmt.Fprintln(os.Stderr, HelpHeader("RAW INPUT"))
+		fmt.Fprintln(os.Stderr, PrettyJSON(c.help.JSONInput))
+	}
+
+	//Print JSON output, if present
+	if c.help.JSONOutput != "" {
+		fmt.Fprintln(os.Stderr, HelpHeader("RAW OUTPUT"))
+		fmt.Fprintln(os.Stderr, PrettyJSON(c.help.JSONOutput))
+	}
+}
+
+func (c *Command) usageLine() string {
+	components := []string{ansi.Sprintf("@G{shield %s}", c.canonical)}
+	for _, f := range c.help.Flags {
+		var flagNotation string
+		if !f.mandatory {
+			flagNotation = ansi.Sprintf("@G{[%s]}", f.formatShortIfPresent())
+		} else {
+			flagNotation = ansi.Sprintf("@G{%s}", f.formatShortIfPresent())
+		}
+		components = append(components, flagNotation)
+	}
+	return strings.Join(components, " ")
 }

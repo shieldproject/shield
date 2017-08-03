@@ -8,14 +8,8 @@ import (
 	"github.com/starkandwayne/shield/tui"
 )
 
-func cliListTargets(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp("Only show targets using the named target plugin", true, "-P", "--policy=value")
-		HelpListMacro("target", "targets")
-		JSONHelp(`[{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}]`)
-		return nil
-	}
-
+//List available backup targets
+func cliListTargets(args ...string) error {
 	DEBUG("running 'list targets' command")
 	DEBUG("  for plugin: '%s'", *opts.Plugin)
 	DEBUG("  show unused? %v", *opts.Unused)
@@ -47,13 +41,8 @@ func cliListTargets(opts Options, args []string, help bool) error {
 	return nil
 }
 
-func cliGetTarget(opts Options, args []string, help bool) error {
-	if help {
-		JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SampleTarget","summary":"A Sample Target","plugin":"postgres","endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}","agent":"127.0.0.1:1234"}`)
-		HelpShowMacro("target", "targets")
-		return nil
-	}
-
+//Print detailed information about a specific backup target
+func cliGetTarget(args ...string) error {
 	DEBUG("running 'show target' command")
 
 	target, _, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -72,14 +61,8 @@ func cliGetTarget(opts Options, args []string, help bool) error {
 	return nil
 }
 
-func cliCreateTarget(opts Options, args []string, help bool) error {
-	if help {
-		InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestTarget","plugin":"postgres","summary":"A Test Target"}`)
-		JSONHelp(`{"uuid":"77398f3e-2a31-4f20-b3f7-49d3f0998712","name":"TestTarget","summary":"A Test Target","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
-		HelpCreateMacro("target", "targets")
-		return nil
-	}
-
+//Create a new backup target
+func cliCreateTarget(args ...string) error {
 	DEBUG("running 'create target' command")
 
 	var err error
@@ -125,7 +108,7 @@ func cliCreateTarget(opts Options, args []string, help bool) error {
 				return err
 			}
 			MSG("Updated existing target")
-			return cliGetTarget(opts, []string{t.UUID}, false)
+			return cliGetTarget(t.UUID)
 		}
 	}
 	t, err := api.CreateTarget(content)
@@ -133,17 +116,11 @@ func cliCreateTarget(opts Options, args []string, help bool) error {
 		return err
 	}
 	MSG("Created new target")
-	return cliGetTarget(opts, []string{t.UUID}, false)
+	return cliGetTarget(t.UUID)
 }
 
-func cliEditTarget(opts Options, args []string, help bool) error {
-	if help {
-		InputHelp(`{"agent":"127.0.0.1:1234","endpoint":"{\"endpoint\":\"newschmendpoint\"}","name":"NewTargetName","plugin":"postgres","summary":"Some Target"}`)
-		JSONHelp(`{"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392","name":"SomeTarget","summary":"Just this target, you know?","plugin":"postgres","endpoint":"{\"endpoint\":\"schmendpoint\"}","agent":"127.0.0.1:1234"}`)
-		HelpEditMacro("target", "targets")
-		return nil
-	}
-
+//Modify an existing backup target
+func cliEditTarget(args ...string) error {
 	DEBUG("running 'edit target' command")
 
 	t, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)
@@ -187,15 +164,11 @@ func cliEditTarget(opts Options, args []string, help bool) error {
 	}
 
 	MSG("Updated target")
-	return cliGetTarget(opts, []string{t.UUID}, false)
+	return cliGetTarget(t.UUID)
 }
 
-func cliDeleteTarget(opts Options, args []string, help bool) error {
-	if help {
-		HelpDeleteMacro("target", "targets")
-		return nil
-	}
-
+//Delete a backup target
+func cliDeleteTarget(args ...string) error {
 	DEBUG("running 'delete target' command")
 
 	target, id, err := FindTarget(strings.Join(args, " "), *opts.Raw)

@@ -11,13 +11,7 @@ import (
 )
 
 //List configured SHIELD backends
-func cliListBackends(opts Options, args []string, help bool) error {
-	if help {
-		JSONHelp(`[{"name":"mybackend","uri":"https://10.244.2.2:443"}]`)
-		FlagHelp("Outputs information as JSON object", true, "--raw")
-		return nil
-	}
-
+func cliListBackends(args ...string) error {
 	DEBUG("running 'backends' command")
 
 	var indices []string
@@ -45,14 +39,7 @@ func cliListBackends(opts Options, args []string, help bool) error {
 }
 
 //Create or modify a SHIELD backend
-func cliCreateBackend(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp(`The name of the new backend`, false, "<name>")
-		FlagHelp(`The address at which the new backend can be found`, false, "<uri>")
-
-		return nil
-	}
-
+func cliCreateBackend(args ...string) error {
 	DEBUG("running 'create backend' command")
 
 	if len(args) != 2 {
@@ -80,12 +67,7 @@ func cliCreateBackend(opts Options, args []string, help bool) error {
 }
 
 //Select a particular backend for use
-func cliUseBackend(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp(`The name of the backend to target`, false, "<name>")
-		return nil
-	}
-
+func cliUseBackend(args ...string) error {
 	DEBUG("running 'backend' command")
 
 	if len(args) == 0 {
@@ -109,8 +91,8 @@ func cliUseBackend(opts Options, args []string, help bool) error {
 func loadBackend() {
 	if len(api.Cfg.Backends) == 0 {
 		backend := os.Getenv("SHIELD_API")
-		if *options.Shield != "" {
-			backend = *options.Shield
+		if *opts.Shield != "" {
+			backend = *opts.Shield
 		}
 
 		if backend != "" {

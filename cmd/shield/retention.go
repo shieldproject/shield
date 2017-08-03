@@ -10,13 +10,7 @@ import (
 )
 
 //List available retention policies
-func cliListPolicies(opts Options, args []string, help bool) error {
-	if help {
-		HelpListMacro("policy", "policies")
-		JSONHelp(`[{"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec","name":"apolicy","summary":"a policy","expires":5616000}]`)
-		return nil
-	}
-
+func cliListPolicies(args ...string) error {
 	DEBUG("running 'list retention policies' command")
 	DEBUG("  show unused? %v", *opts.Unused)
 	DEBUG("  show in-use? %v", *opts.Used)
@@ -45,13 +39,7 @@ func cliListPolicies(opts Options, args []string, help bool) error {
 	return nil
 }
 
-func cliGetPolicy(opts Options, args []string, help bool) error {
-	if help {
-		HelpShowMacro("policy", "policies")
-		JSONHelp(`{"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec","name":"apolicy","summary":"a policy","expires":5616000}`)
-		return nil
-	}
-
+func cliGetPolicy(args ...string) error {
 	DEBUG("running 'show retention policy' command")
 
 	policy, _, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -70,14 +58,7 @@ func cliGetPolicy(opts Options, args []string, help bool) error {
 	return nil
 }
 
-func cliCreatePolicy(opts Options, args []string, help bool) error {
-	if help {
-		InputHelp(`{"expires":31536000,"name":"TestPolicy","summary":"A Test Policy"}`)
-		JSONHelp(`{"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","name":"TestPolicy","summary":"A Test Policy","expires":31536000}`)
-		HelpCreateMacro("policy", "policies")
-		return nil
-	}
-
+func cliCreatePolicy(args ...string) error {
 	DEBUG("running 'create retention policy' command")
 
 	var err error
@@ -121,7 +102,7 @@ func cliCreatePolicy(opts Options, args []string, help bool) error {
 				return err
 			}
 			MSG("Updated existing retention policy")
-			return cliGetPolicy(opts, []string{t.UUID}, false)
+			return cliGetPolicy(t.UUID)
 		}
 	}
 
@@ -132,18 +113,11 @@ func cliCreatePolicy(opts Options, args []string, help bool) error {
 	}
 
 	MSG("Created new retention policy")
-	return cliGetPolicy(opts, []string{p.UUID}, false)
+	return cliGetPolicy(p.UUID)
 }
 
 //Modify an existing retention policy
-func cliEditPolicy(opts Options, args []string, help bool) error {
-	if help {
-		HelpEditMacro("policy", "policies")
-		InputHelp(`{"expires":31536000,"name":"AnotherPolicy","summary":"A Test Policy"}`)
-		JSONHelp(`{"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274","name":"AnotherPolicy","summary":"A Test Policy","expires":31536000}`)
-		return nil
-	}
-
+func cliEditPolicy(args ...string) error {
 	DEBUG("running 'edit retention policy' command")
 
 	p, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)
@@ -185,16 +159,11 @@ func cliEditPolicy(opts Options, args []string, help bool) error {
 	}
 
 	MSG("Updated retention policy")
-	return cliGetPolicy(opts, []string{p.UUID}, false)
+	return cliGetPolicy(p.UUID)
 }
 
 //Delete a retention policy
-func cliDeletePolicy(opts Options, args []string, help bool) error {
-	if help {
-		HelpDeleteMacro("policy", "policies")
-		return nil
-	}
-
+func cliDeletePolicy(args ...string) error {
 	DEBUG("running 'delete retention policy' command")
 
 	policy, id, err := FindRetentionPolicy(strings.Join(args, " "), *opts.Raw)

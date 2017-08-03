@@ -14,48 +14,29 @@ import (
 )
 
 //List available backup archives
-func cliListArchives(opts Options, args []string, help bool) error {
-	if help {
-		HelpListMacro("archive", "archives")
-		FlagHelp(`Only show archives with the specified state of validity.
-									Accepted values are one of ['all', 'valid']
-									If not explicitly set, it defaults to 'valid'`,
-			true, "-S", "--status=value")
-		FlagHelp("Show only archives created from the specified target", true, "-t", "--target=value")
-		FlagHelp("Show only archives sent to the specified store", true, "-s", "--store=value")
-		FlagHelp("Show only the <value> most recent archives", true, "--limit=value")
-		FlagHelp(`Show only the archives taken before this point in time
-				Specify in the format YYYYMMDD`, true, "-B", "--before=value")
-		FlagHelp(`Show only the archives taken after this point in time
-				Specify in the format YYYYMMDD`, true, "-A", "--after=value")
-		FlagHelp(`Show all archives, regardless of validity.
-									Equivalent to '--status=all'`, true, "-a", "--all")
-		JSONHelp(`[{"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533","key":"thisisastorekey","taken_at":"2016-05-18 11:02:43","expires_at":"2017-05-18 11:02:43","status":"valid","notes":"","target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1","target_plugin":"redis-broker","target_endpoint":"{\"redis_type\":\"broker\"}","store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}"}]`)
-		return nil
-	}
-
+func cliListArchives(args ...string) error {
 	DEBUG("running 'list archives' command")
 
-	if *options.Status == "" {
-		*options.Status = "valid"
+	if *opts.Status == "" {
+		*opts.Status = "valid"
 	}
-	if *options.Status == "all" || *options.All {
-		*options.Status = ""
+	if *opts.Status == "all" || *opts.All {
+		*opts.Status = ""
 	}
 	DEBUG("  for status: '%s'", *opts.Status)
 
-	if *options.Limit == "" {
-		*options.Limit = "20"
+	if *opts.Limit == "" {
+		*opts.Limit = "20"
 	}
 	DEBUG("  for limit: '%s'", *opts.Limit)
 
 	archives, err := api.GetArchives(api.ArchiveFilter{
-		Target: *options.Target,
-		Store:  *options.Store,
-		Before: *options.Before,
-		After:  *options.After,
-		Status: *options.Status,
-		Limit:  *options.Limit,
+		Target: *opts.Target,
+		Store:  *opts.Store,
+		Before: *opts.Before,
+		After:  *opts.After,
+		Status: *opts.Status,
+		Limit:  *opts.Limit,
 	})
 	if err != nil {
 		return err
@@ -101,15 +82,7 @@ func cliListArchives(opts Options, args []string, help bool) error {
 }
 
 //Print detailed information about a backup archive
-func cliGetArchive(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
-		FlagHelp("Returns information as a JSON object", true, "--raw")
-		HelpKMacro()
-		JSONHelp(`{"uuid":"b4a842c5-cb61-4fa1-b0c7-08260fdc3533","key":"thisisastorekey","taken_at":"2016-05-18 11:02:43","expires_at":"2017-05-18 11:02:43","status":"valid","notes":"","target_uuid":"b7aa8269-008d-486a-ba1b-610ee191e4c1","target_plugin":"redis-broker","target_endpoint":"{\"redis_type\":\"broker\"}","store_uuid":"6d52c95f-8d7f-4697-ae32-b9ce51fb4808","store_plugin":"s3","store_endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
-		return nil
-	}
-
+func cliGetArchive(args ...string) error {
 	DEBUG("running 'show archive' command")
 
 	require(len(args) == 1, "shield show archive <UUID>")
@@ -133,15 +106,7 @@ func cliGetArchive(opts Options, args []string, help bool) error {
 }
 
 //Restore a backup archive
-func cliRestoreArchive(opts Options, args []string, help bool) error {
-	if help {
-		MessageHelp("Note: If raw mode is specified and the targeted SHIELD backend does not support handing back the task uuid, the task_uuid in the JSON will be the empty string")
-		FlagHelp(`Outputs the result as a JSON object.`, true, "--raw")
-		FlagHelp(`The name or UUID of a single target to restore. In raw mode, it must be a UUID assigned to a single archive instance`, false, "<target or uuid>")
-		HelpKMacro()
-		return nil
-	}
-
+func cliRestoreArchive(args ...string) error {
 	DEBUG("running 'restore archive' command")
 
 	var id uuid.UUID
@@ -205,16 +170,7 @@ func cliRestoreArchive(opts Options, args []string, help bool) error {
 	return nil
 }
 
-func cliDeleteArchive(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp(`A UUID assigned to a single archive instance`, false, "<uuid>")
-		FlagHelp(`Outputs the result as a JSON object.
-				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
-		HelpKMacro()
-		JSONHelp(`{"ok":"Deleted archive"}`)
-		return nil
-	}
-
+func cliDeleteArchive(args ...string) error {
 	DEBUG("running 'delete archive' command")
 
 	require(len(args) == 1, "USAGE: shield delete archive <UUID>")

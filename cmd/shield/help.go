@@ -2,218 +2,225 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"sort"
 	"strings"
 
 	"github.com/starkandwayne/goutils/ansi"
 )
 
-var (
-	flagsToPrint   []flagInfo    = []flagInfo{}
-	flagLen        int           = 0
-	jsonToPrint    string        = ""
-	messageToPrint string        = ""
-	messageArgs    []interface{} = []interface{}{}
-	inputHelpText  string        = ""
-)
-
-type flagInfo struct {
-	flag     []string
-	desc     string
-	optional bool
+//HelpInfo contains information and functions to display help dialogue
+type HelpInfo struct {
+	Flags      []FlagInfo
+	Message    string
+	JSONInput  string
+	JSONOutput string
 }
 
-//Prints out all the aliases for the given command in the help format.
-func PrintAliasHelp(input string, c *Command) {
-	aliases := c.AliasesFor(input)
-	aliasString := ""
-	if len(aliases) > 1 {
-		aliasString = strings.Join(aliases, ", ")
+//FlagInfo contains attributes needed to display help for this command's flags
+type FlagInfo struct {
+	name       string
+	desc       string
+	short      rune
+	mandatory  bool
+	positional bool
+	valued     bool
+}
+
+//HelpLine returns a string formatted as `shortflag, longflag summary`, where
+//colwidth is how many spaces are taken up by the flags and the buffer
+//spaces before the summary
+func (f *FlagInfo) HelpLine(colwidth int) string {
+	flags := []string{}
+	if f.short != 0 {
+		flags = append(flags, f.formatShort())
+	}
+	flags = append(flags, f.formatLong())
+
+	for i := range flags { //Turn the flags blue
+		flags[i] = ansi.Sprintf("@B{%s}", flags[i])
+	}
+	flagStr := strings.Join(flags, ", ")
+
+	const lineWidth = 78
+	const formatString = "%-[1]*[2]s  %[3]s"
+
+	//Add line with actual flags
+	descLine, remaining := splitTokensAfterLen(f.desc, lineWidth-colwidth)
+	lines := []string{ansi.Sprintf(formatString, colwidth, flagStr, f.desc)}
+
+	//If the summary is longer than the line width, make another line for it
+	for remaining != "" {
+		descLine, remaining = splitTokensAfterLen(f.desc, lineWidth-colwidth)
+		lines = append(lines, fmt.Sprintf(formatString, colwidth, "", descLine))
 	}
 
-	if aliasString != "" {
-		Header("ALIASES")
-		ansi.Fprintf(os.Stderr, "  %s\n", aliasString)
+	return strings.Join(lines, "\n")
+}
+
+//Adds leading dash
+func (f FlagInfo) formatShort() (formatted string) {
+	if f.short != 0 {
+		formatted = fmt.Sprintf("-%c", f.short)
 	}
+	return formatted
 }
 
-//Prints out a Header of the given string in the help format.
-func Header(text string) {
-	ansi.Fprintf(os.Stderr, "\n@G{%s}\n", text)
+func (f FlagInfo) formatShortIfPresent() string {
+	if f.short != 0 {
+		return f.formatShort()
+	}
+	return f.formatLong()
 }
 
-//Sorts flagInfo objects by their... flag, dashes excluded. --Z > -a
-type ByFlag []flagInfo
+//Adds leading dashes or wraps in <> if is a positional argument
+func (f FlagInfo) formatLong() (formatted string) {
+	if f.name == "" {
+		panic("No name given for flag")
+	}
+	if f.positional {
+		return fmt.Sprintf("<%s>", f.name)
+	} else if f.valued {
+		return fmt.Sprintf("--%s=value", f.name)
+	}
+	return fmt.Sprintf("--%s", f.name)
+}
+
+//The sum of the short and long flag name lengths plus the
+// necessary dashes and punctuation/whitespace, if necessary
+func (f FlagInfo) combinedFlagLength() (length int) {
+	shortLen := f.lenShort()
+	longLen := f.lenLong()
+	length = shortLen + longLen
+	if shortLen > 0 {
+		length = length + 2
+	}
+	return
+}
+
+func (f FlagInfo) lenShort() (length int) {
+	if f.short != 0 {
+		length = 2
+	}
+	return
+}
+
+func (f FlagInfo) lenLong() (length int) {
+	if f.name != "" {
+		return len(f.name) + 2
+	}
+	panic("flag name not set")
+}
+
+//FlagHelp returns all of the contained flags' help lines, formatted into
+//columns
+func (h HelpInfo) FlagHelp() (lines []string) {
+	columnWidth := h.maxFlagLength()
+	for _, flag := range h.Flags {
+		lines = append(lines, fmt.Sprintf("   %s", flag.HelpLine(columnWidth)))
+	}
+	return lines
+}
+
+//Get the longest length of flags in this helpinfo, to be used to determine the
+//buffer width in help formatting
+func (h HelpInfo) maxFlagLength() (length int) {
+	for _, flag := range h.Flags {
+		thisLen := flag.combinedFlagLength()
+		if thisLen > length {
+			length = thisLen
+		}
+	}
+	return
+}
+
+//HelpHeader returns the input string formatted for a help dialogue's header
+func HelpHeader(text string) string {
+	return ansi.Sprintf("\n@G{%s}", text)
+}
+
+//ByFlag sorts FlagInfo objects by their flag. Positional arguments come first.
+// Short flags are only used for sorting if long flags aren't present
+type ByFlag []FlagInfo
 
 func (f ByFlag) Len() int      { return len(f) }
 func (f ByFlag) Swap(i, j int) { f[i], f[j] = f[j], f[i] }
 func (f ByFlag) Less(i, j int) bool {
-	return strings.ToLower(strings.Replace(f[i].flag[0], "-", "", 2)) <
-		strings.ToLower(strings.Replace(f[j].flag[0], "-", "", 2))
+	if f[i].positional != f[j].positional { //Positional arguments come first
+		return f[i].positional
+	}
+	return f[i].name < f[j].name
 }
 
-//Adds a flag to be printed in a call to PrintFlagHelp
-//The list of flags given will be printed comma-separated
-//Also used for usage
-func FlagHelp(desc string, optional bool, flags ...string) {
-	if len(flags) == 0 {
-		panic("No flag specified to FlagHelp")
+var (
+	//KFlag --skip-ssl-validation, -k
+	KFlag = FlagInfo{
+		name: "skip-ssl-validation", short: 'k',
+		desc: "Disable SSL certificate validation",
 	}
-	flagsToPrint = append(flagsToPrint, flagInfo{flags, desc, optional})
-	//Calc longest flag
-	thisLen := len(strings.Join(flags, ", "))
-	if thisLen > flagLen {
-		flagLen = thisLen
+	//RawFlag --raw
+	RawFlag = FlagInfo{
+		name: "raw",
+		desc: "Takes any input and gives any output as a JSON object",
 	}
-}
+	//UnusedFlag --unused
+	UnusedFlag = FlagInfo{
+		name: "unused",
+		desc: "Only return objects which are not registered to a job",
+	}
+	//UsedFlag --used
+	UsedFlag = FlagInfo{
+		name: "used",
+		desc: "Only return objects which are registered to a job",
+	}
+	//FuzzyFlag --fuzzy
+	FuzzyFlag = FlagInfo{
+		name: "fuzzy",
+		desc: "In RAW mode, perform fuzzy (inexact) searching",
+	}
+	//TargetNameFlag <targetname>
+	TargetNameFlag = FlagInfo{
+		name: "targetname", positional: true, mandatory: true,
+		desc: `A string partially matching the name of a single target
+				or a UUID exactly matching the UUID of a target.`,
+	}
+	//ScheduleNameFlag <schedulename>
+	ScheduleNameFlag = FlagInfo{
+		name: "schedulename", positional: true, mandatory: true,
+		desc: `A string partially matching the name of a single schedule
+				or a UUID exactly matching the UUID of a schedule.`,
+	}
+	//PolicyNameFlag <policyname>
+	PolicyNameFlag = FlagInfo{
+		name: "policyname", positional: true, mandatory: true,
+		desc: `A string partially matching the name of a single policy
+				or a UUID exactly matching the UUID of a policy.`,
+	}
+	//StoreNameFlag <storename>
+	StoreNameFlag = FlagInfo{
+		name: "storename", positional: true, mandatory: true,
+		desc: `A string partially matching the name of a single store
+				or a UUID exactly matching the UUID of a store.`,
+	}
+	//JobNameFlag <jobname>
+	JobNameFlag = FlagInfo{
+		name: "jobname", positional: true, mandatory: true,
+		desc: `A string partially matching the name of a single job
+				or a UUID exactly matching the UUID of a job.`,
+	}
+)
 
-//Prints the queued list of flags in the help format
-func PrintFlagHelp() {
-	if len(flagsToPrint) == 0 {
-		return
+func splitTokensAfterLen(input string, numChars int) (before, after string) {
+	tokens := strings.Fields(input)
+	if len(tokens) == 0 {
+		panic("No input to split tokens was given")
 	}
-	Header("FLAGS")
-	sort.Sort(ByFlag(flagsToPrint))
-	for i, flags := range flagsToPrint {
-		//Parse out each newline separated flags
-		//Wrap each of the flag entries in @M{} to highlight them blue
-		printFlagHelper(flags.flag, flags.desc, i == len(flagsToPrint)-1)
-	}
-}
 
-func printFlagHelper(flags []string, desc string, last bool) {
-	defer func() { ansi.Fprintf(os.Stderr, "\n") }()
-	//Print the flag list
-	flagString := "@B{" + strings.Join(flags, "}, @B{") + "}"
-	space := flagLen - len(strings.Join(flags, ", ")) + 2
-	lines := strings.Split(desc, "\n")
-	for i, v := range lines {
-		lines[i] = strings.Trim(v, " \t")
-	}
-	ansi.Fprintf(os.Stderr, "  "+flagString+"%s%s", strings.Repeat(" ", space), lines[0])
-	if len(lines) <= 1 {
-		return
-	}
-	for _, v := range lines[1:] {
-		ansi.Fprintf(os.Stderr, "\n%s%s", strings.Repeat(" ", flagLen+4), v)
-	}
-	if len(lines) > 1 && !last {
-		ansi.Fprintf(os.Stderr, "\n")
-	}
-}
-
-//Sets the JSON object to be printed
-func JSONHelp(j string) {
-	jsonToPrint = j
-}
-
-//Prints the JSON previously queued in the help format.
-func PrintJSONHelp() {
-	if jsonToPrint != "" {
-		Header("RAW OUTPUT")
-		ansi.Fprintf(os.Stderr, "%s\n", PrettyJSON(jsonToPrint))
-	}
-}
-
-func MessageHelp(mess string, args ...interface{}) {
-	messageToPrint = mess
-	messageArgs = args
-}
-
-//If MessageHelp was not called, the default summary for the command will be
-//printed. Otherwise, prints the string given to MessageHelp in its place
-func PrintMessage(command string, c *Command) {
-	if messageToPrint == "" {
-		messageToPrint = c.summary[command]
-	}
-	if len(messageArgs) > 0 {
-		ansi.Fprintf(os.Stderr, messageToPrint, messageArgs...)
-	} else {
-		ansi.Fprintf(os.Stderr, messageToPrint)
-	}
-	ansi.Fprintf(os.Stderr, "\n")
-}
-
-func PrintUsage(c string) {
-	ansi.Fprintf(os.Stderr, "@G{shield %s}", c)
-	sort.Sort(ByFlag(flagsToPrint))
-	for _, f := range flagsToPrint {
-		if f.optional {
-			ansi.Fprintf(os.Stderr, " @G{[%s]}", f.flag[0])
-		} else {
-			ansi.Fprintf(os.Stderr, " @G{%s}", f.flag[0])
+	curLen := len(tokens[0])
+	splitAt := 1
+	for ; splitAt < len(tokens); splitAt++ {
+		curLen += len(tokens[splitAt])
+		if curLen > numChars {
+			break
 		}
 	}
-	fmt.Fprintf(os.Stderr, "\n")
-}
-
-func InputHelp(help string) {
-	inputHelpText = help
-}
-
-func PrintInputHelp() {
-	if inputHelpText == "" {
-		return
-	}
-	Header("RAW INPUT")
-	ansi.Fprintf(os.Stderr, "%s\n", PrettyJSON(inputHelpText))
-}
-
-func HelpListMacro(singular, plural string) {
-	if singular != "job" && singular != "archive" {
-		FlagHelp(fmt.Sprintf("Only show %s which are NOT in use by a job", plural), true, "--unused")
-		FlagHelp(fmt.Sprintf("Only show %s which are in use by a job", plural), true, "--used")
-	}
-	FlagHelp("Outputs information as a JSON object", true, "--raw")
-
-	if singular != "archive" {
-		FlagHelp(fmt.Sprintf("A string partially matching the names of the %s to return", plural),
-			true,
-			fmt.Sprintf("<%sname>", singular))
-	}
-	HelpKMacro()
-}
-
-func HelpShowMacro(singular, plural string) {
-	FlagHelp(fmt.Sprintf(`A string partially matching the name of a single %[1]s
-				or a UUID exactly matching the UUID of a %[1]s.
-				Not setting this value explicitly will default it to the empty string.`, singular),
-		false, fmt.Sprintf("<%s>", singular))
-	FlagHelp("Returns information as a JSON object", true, "--raw")
-	HelpKMacro()
-}
-
-func HelpCreateMacro(singular, plural string) {
-	FlagHelp(`Takes input as a JSON object from standard input
-				Outputs the resultant target info as a JSON object`, true, "--raw")
-	HelpKMacro()
-}
-
-func HelpEditMacro(singular, plural string) {
-	FlagHelp(fmt.Sprintf(`Takes input as a JSON object from standard input
-				Outputs the resultant %[1]s info as a JSON object.
-				Suppresses interactive dialogues and confirmation.`, singular),
-		true, "--raw")
-	FlagHelp(fmt.Sprintf(`A string partially matching the name of a single %[1]s 
-				or a UUID exactly matching the UUID of a %[1]s.
-				Not setting this value explicitly will default it to the empty string.`, singular),
-		false, fmt.Sprintf("<%s>", singular))
-	HelpKMacro()
-	MessageHelp("Modify an existing backup %[1]s. The UUID of the %[1]s will remain the same after modification.", singular)
-}
-
-func HelpDeleteMacro(singular, plural string) {
-	FlagHelp(`Outputs the result as a JSON object.
-				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
-	HelpKMacro()
-	FlagHelp(fmt.Sprintf(`A string partially matching the name of a single %[1]s
-				or a UUID exactly matching the UUID of a %[1]s.
-				Not setting this value explicitly will default it to the empty string.`, singular),
-		false, fmt.Sprintf("<%s>", singular))
-	JSONHelp(fmt.Sprintf(`{"ok":"Deleted %s"}`, singular))
-}
-
-func HelpKMacro() {
-	FlagHelp("Disable SSL certificate validation", true, "-k", "--skip-ssl-validation")
+	return strings.Join(tokens[:splitAt], " "), strings.Join(tokens[splitAt:], " ")
 }

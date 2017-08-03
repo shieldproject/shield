@@ -9,13 +9,7 @@ import (
 )
 
 //List available backup schedules
-func cliListSchedules(opts Options, args []string, help bool) error {
-	if help {
-		HelpListMacro("schedule", "schedules")
-		JSONHelp(`[{"uuid":"86ff3fec-76c5-48c4-880d-c37563033613","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}]`)
-		return nil
-	}
-
+func cliListSchedules(args ...string) error {
 	DEBUG("running 'list schedules' command")
 	DEBUG("  show unused? %v", *opts.Unused)
 	DEBUG("  show in-use? %v", *opts.Used)
@@ -45,13 +39,7 @@ func cliListSchedules(opts Options, args []string, help bool) error {
 }
 
 //Print detailed information about a specific backup schedule
-func cliGetSchedule(opts Options, args []string, help bool) error {
-	if help {
-		HelpShowMacro("schedule", "schedules")
-		JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-		return nil
-	}
-
+func cliGetSchedule(args ...string) error {
 	DEBUG("running 'show schedule' command")
 
 	schedule, _, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -71,14 +59,7 @@ func cliGetSchedule(opts Options, args []string, help bool) error {
 }
 
 //Create a new backup schedule
-func cliCreateSchedule(opts Options, args []string, help bool) error {
-	if help {
-		InputHelp(`{"name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-		JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"TestSched","summary":"A Test Schedule","when":"daily 4am"}`)
-		HelpCreateMacro("schedule", "schedules")
-		return nil
-	}
-
+func cliCreateSchedule(args ...string) error {
 	DEBUG("running 'create schedule' command")
 
 	var err error
@@ -122,7 +103,7 @@ func cliCreateSchedule(opts Options, args []string, help bool) error {
 				return err
 			}
 			MSG("Updated existing schedule")
-			return cliGetSchedule(opts, []string{t.UUID}, false)
+			return cliGetSchedule(t.UUID)
 		}
 	}
 
@@ -132,18 +113,11 @@ func cliCreateSchedule(opts Options, args []string, help bool) error {
 	}
 
 	MSG("Created new schedule")
-	return cliGetSchedule(opts, []string{s.UUID}, false)
+	return cliGetSchedule(s.UUID)
 }
 
 //Modify an existing backup schedule
-func cliEditSchedule(opts Options, args []string, help bool) error {
-	if help {
-		InputHelp(`{"name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
-		HelpEditMacro("schedule", "schedules")
-		JSONHelp(`{"uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b","name":"AnotherSched","summary":"A Test Schedule","when":"daily 4am"}`)
-		return nil
-	}
-
+func cliEditSchedule(args ...string) error {
 	DEBUG("running 'edit schedule' command")
 
 	s, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)
@@ -185,16 +159,11 @@ func cliEditSchedule(opts Options, args []string, help bool) error {
 	}
 
 	MSG("Updated schedule")
-	return cliGetSchedule(opts, []string{s.UUID}, false)
+	return cliGetSchedule(s.UUID)
 }
 
 //Delete a backup schedule
-func cliDeleteSchedule(opts Options, args []string, help bool) error {
-	if help {
-		HelpDeleteMacro("schedule", "schedules")
-		return nil
-	}
-
+func cliDeleteSchedule(args ...string) error {
 	DEBUG("running 'delete schedule' command")
 
 	schedule, id, err := FindSchedule(strings.Join(args, " "), *opts.Raw)

@@ -9,14 +9,7 @@ import (
 )
 
 //List available archive stores
-func cliListStores(opts Options, args []string, help bool) error {
-	if help {
-		HelpListMacro("store", "stores")
-		FlagHelp("Only show stores using the named store plugin", true, "-P", "--policy=value")
-		JSONHelp(`[{"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20","name":"test store","summary":"a test store named \"test store\"","plugin":"s3","endpoint":"{ \"endpoint\": \"doesntmatter\" }"}]`)
-		return nil
-	}
-
+func cliListStores(args ...string) error {
 	DEBUG("running 'list stores' command")
 	DEBUG("  for plugin: '%s'", *opts.Plugin)
 	DEBUG("  show unused? %v", *opts.Unused)
@@ -48,13 +41,7 @@ func cliListStores(opts Options, args []string, help bool) error {
 }
 
 //Print detailed information about a specific archive store
-func cliGetStore(opts Options, args []string, help bool) error {
-	if help {
-		JSONHelp(`{"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20","name":"test store","summary":"a test store named \"test store\"","plugin":"s3","endpoint":"{ \"endpoint\": \"doesntmatter\" }"}`)
-		HelpShowMacro("store", "stores")
-		return nil
-	}
-
+func cliGetStore(args ...string) error {
 	DEBUG("running 'show store' command")
 
 	store, _, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -74,14 +61,7 @@ func cliGetStore(opts Options, args []string, help bool) error {
 }
 
 //Create a new archive store
-func cliCreateStore(opts Options, args []string, help bool) error {
-	if help {
-		HelpCreateMacro("store", "stores")
-		InputHelp(`{"endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"TestStore","plugin":"s3","summary":"A Test Store"}`)
-		JSONHelp(`{"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","name":"TestStore","summary":"A Test Store","plugin":"s3","endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
-		return nil
-	}
-
+func cliCreateStore(args ...string) error {
 	DEBUG("running 'create store' command")
 
 	var err error
@@ -126,7 +106,7 @@ func cliCreateStore(opts Options, args []string, help bool) error {
 				return err
 			}
 			MSG("Updated existing store")
-			return cliGetStore(opts, []string{t.UUID}, false)
+			return cliGetStore(t.UUID)
 		}
 	}
 
@@ -137,18 +117,11 @@ func cliCreateStore(opts Options, args []string, help bool) error {
 	}
 
 	MSG("Created new store")
-	return cliGetStore(opts, []string{s.UUID}, false)
+	return cliGetStore(s.UUID)
 }
 
 //Modify an existing archive store
-func cliEditStore(opts Options, args []string, help bool) error {
-	if help {
-		HelpEditMacro("store", "stores")
-		InputHelp(`{"endpoint":"{\"endpoint\":\"schmendpoint\"}","name":"AnotherStore","plugin":"s3","summary":"A Test Store"}`)
-		JSONHelp(`{"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf","name":"AnotherStore","summary":"A Test Store","plugin":"s3","endpoint":"{\"endpoint\":\"schmendpoint\"}"}`)
-		return nil
-	}
-
+func cliEditStore(args ...string) error {
 	DEBUG("running 'edit store' command")
 
 	s, id, err := FindStore(strings.Join(args, " "), *opts.Raw)
@@ -192,16 +165,11 @@ func cliEditStore(opts Options, args []string, help bool) error {
 	}
 
 	MSG("Updated store")
-	return cliGetStore(opts, []string{s.UUID}, false)
+	return cliGetStore(s.UUID)
 }
 
 //Delete an archive store
-func cliDeleteStore(opts Options, args []string, help bool) error {
-	if help {
-		HelpDeleteMacro("store", "stores")
-		return nil
-	}
-
+func cliDeleteStore(args ...string) error {
 	DEBUG("running 'delete store' command")
 
 	store, id, err := FindStore(strings.Join(args, " "), *opts.Raw)

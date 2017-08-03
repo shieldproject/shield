@@ -47,7 +47,7 @@ func DEBUG(format string, args ...interface{}) {
 }
 
 func OK(f string, l ...interface{}) {
-	if *options.Raw {
+	if *opts.Raw {
 		RawJSON(map[string]string{"ok": fmt.Sprintf(f, l...)})
 		return
 	}
@@ -55,7 +55,7 @@ func OK(f string, l ...interface{}) {
 }
 
 func MSG(f string, l ...interface{}) {
-	if !*options.Raw {
+	if !*opts.Raw {
 		ansi.Printf("\n@G{%s}\n", fmt.Sprintf(f, l...))
 	}
 }

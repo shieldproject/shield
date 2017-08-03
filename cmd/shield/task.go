@@ -11,33 +11,20 @@ import (
 )
 
 //List available tasks
-func cliListTasks(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp(`Only show tasks with the specified status
-									Valid values are one of ['all', 'running', 'pending', 'cancelled']
-									If not explicitly set, it defaults to 'running'`,
-			true, "-S", "--status=value")
-		FlagHelp(`Show all tasks, regardless of state`, true, "-a", "--all")
-		FlagHelp("Returns information as a JSON object", true, "--raw")
-		FlagHelp("Show only the <value> most recent tasks", true, "--limit=value")
-		HelpKMacro()
-		JSONHelp(`[{"uuid":"0e3736f3-6905-40ba-9adc-06641a282ff4","owner":"system","type":"backup","job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8","archive_uuid":"2a4147ea-84a6-40fc-8028-143efabcc49d","status":"done","started_at":"2016-05-17 11:00:01","stopped_at":"2016-05-17 11:00:02","timeout_at":"","log":"This is where I would put my plugin output if I had one"}]`)
-		return nil
-	}
-
+func cliListTasks(args ...string) error {
 	DEBUG("running 'list tasks' command")
 
-	if *options.Status == "" {
-		*options.Status = "running"
+	if *opts.Status == "" {
+		*opts.Status = "running"
 	}
-	if *options.Status == "all" || *options.All {
-		*options.Status = ""
+	if *opts.Status == "all" || *opts.All {
+		*opts.Status = ""
 	}
 	DEBUG("  for status: '%s'", *opts.Status)
 
 	tasks, err := api.GetTasks(api.TaskFilter{
-		Status: *options.Status,
-		Limit:  *options.Limit,
+		Status: *opts.Status,
+		Limit:  *opts.Limit,
 	})
 	if err != nil {
 		return err
@@ -73,15 +60,7 @@ func cliListTasks(opts Options, args []string, help bool) error {
 }
 
 //Print detailed information about a specific task
-func cliGetTask(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp("The ID number of the task to show info about", false, "<id>")
-		HelpKMacro()
-		FlagHelp("Returns information as a JSON object", true, "--raw")
-		JSONHelp(`{"uuid":"b40ae708-6215-4932-90fb-fe580fac7196","owner":"system","type":"backup","job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8","archive_uuid":"62792b22-c89e-4d69-b874-69a5f056a9ef","status":"done","started_at":"2016-05-18 11:00:01","stopped_at":"2016-05-18 11:00:02","timeout_at":"","log":"This is where I would put my plugin output if I had one"}`)
-		return nil
-	}
-
+func cliGetTask(args ...string) error {
 	DEBUG("running 'show task' command")
 
 	require(len(args) == 1, "shield show task <UUID>")
@@ -104,15 +83,7 @@ func cliGetTask(opts Options, args []string, help bool) error {
 	return nil
 }
 
-func cliCancelTask(opts Options, args []string, help bool) error {
-	if help {
-		FlagHelp(`Outputs the result as a JSON object.
-				The cli will not prompt for confirmation in raw mode.`, true, "--raw")
-		HelpKMacro()
-		JSONHelp(`{"ok":"Cancelled task '81746508-bd18-46a8-842e-97911d4b23a3'\n"}`)
-		return nil
-	}
-
+func cliCancelTask(args ...string) error {
 	DEBUG("running 'cancel task' command")
 
 	require(len(args) == 1, "shield cancel task <UUID>")
