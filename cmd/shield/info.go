@@ -29,10 +29,12 @@ func cliUsage(args ...string) error {
 	//Allow `help commands`
 	if c, _, _ := dispatch.ParseCommand(args...); c == dispatch.commands["commands"] {
 		cliCommands()
+		return nil
 	}
 	//Allow `help commands`
 	if c, _, _ := dispatch.ParseCommand(args...); c == dispatch.commands["flags"] {
 		cliFlags()
+		return nil
 	}
 
 	c, _, _ := dispatch.ParseCommand(args...)

@@ -42,18 +42,17 @@ func (f *FlagInfo) HelpLines(colwidth int) []string {
 	//Adjust the formatting column width to account for non-printing chars
 	nonAnsiFlagLength := f.combinedFlagLength()
 	ansiFlagLength := len(flagStr)
-	widthAdjustment := ansiFlagLength - nonAnsiFlagLength
-	colwidth = colwidth + widthAdjustment
+	numNonPrinting := ansiFlagLength - nonAnsiFlagLength
 	const lineWidth = 78
 
 	//Add line with actual flags
-	descLine, remaining := splitTokensAfterLen(f.desc, lineWidth-colwidth+widthAdjustment)
-	lines := []string{fmt.Sprintf("%-*s  %s", colwidth, flagStr, descLine)}
+	descLine, remaining := splitTokensAfterLen(f.desc, lineWidth-colwidth)
+	lines := []string{fmt.Sprintf("%-*s  %s", colwidth+numNonPrinting, flagStr, descLine)}
 
 	//If the summary is longer than the line width, make another line for it
 	for remaining != "" {
-		descLine, remaining = splitTokensAfterLen(remaining, lineWidth-colwidth+widthAdjustment)
-		lines = append(lines, fmt.Sprintf("%-*s  %s", colwidth-widthAdjustment, "", descLine))
+		descLine, remaining = splitTokensAfterLen(remaining, lineWidth-colwidth)
+		lines = append(lines, fmt.Sprintf("%-*s  %s", colwidth, "", descLine))
 	}
 
 	return lines
@@ -123,7 +122,7 @@ func (h HelpInfo) FlagHelp() (lines []string) {
 
 	//Indent all the lines
 	for i, line := range lines {
-		lines[i] = fmt.Sprintf("   %s", line)
+		lines[i] = fmt.Sprintf("  %s", line)
 	}
 
 	return lines
@@ -204,6 +203,12 @@ var (
 		name: "jobname", positional: true, mandatory: true,
 		desc: `A string partially matching the name of a single job
 				or a UUID exactly matching the UUID of a job.`,
+	}
+
+	//UpdateIfExistsFlag --update-if-exists
+	UpdateIfExistsFlag = FlagInfo{
+		name: "update-if-exists",
+		desc: "Update record if another exists with same name",
 	}
 )
 

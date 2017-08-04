@@ -227,6 +227,7 @@ func main() {
 	ctarget.Aliases("create target", "new target", "create new target", "make target", "c t", "add target")
 	ctarget.Summarize("Create a new backup target")
 	ctarget.Help(HelpInfo{
+		Flags: []FlagInfo{UpdateIfExistsFlag},
 		JSONInput: `{
 			"agent":"127.0.0.1:1234",
 			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
@@ -314,6 +315,7 @@ func main() {
 	cSchedule.Summarize("Create a new backup schedule")
 	cSchedule.Aliases("create schedule", "new schedule", "create new schedule", "make schedule", "c s")
 	cSchedule.Help(HelpInfo{
+		Flags: []FlagInfo{UpdateIfExistsFlag},
 		JSONInput: `{
 			"name":"TestSched",
 			"summary":"A Test Schedule",
@@ -395,6 +397,7 @@ func main() {
 	cPolicy.Aliases("create retention policy", "new retention policy", "create new retention policy", "make retention policy")
 	cPolicy.Aliases("create policy", "new policy", "create new policy", "make policy")
 	cPolicy.Help(HelpInfo{
+		Flags: []FlagInfo{UpdateIfExistsFlag},
 		JSONInput: `{
 			"expires":31536000,
 			"name":"TestPolicy",
@@ -477,6 +480,7 @@ func main() {
 	cStore.Summarize("Create a new archive store")
 	cStore.Aliases("create store", "new store", "create new store", "make store", "c st")
 	cStore.Help(HelpInfo{
+		Flags: []FlagInfo{UpdateIfExistsFlag},
 		JSONInput: `{
 			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
 			"name":"TestStore",
@@ -610,6 +614,7 @@ func main() {
 	cJob.Summarize("Create a new backup job")
 	cJob.Aliases("create job", "new job", "create new job", "make job", "c j")
 	cJob.Help(HelpInfo{
+		Flags: []FlagInfo{UpdateIfExistsFlag},
 		JSONInput: `{
 			"name":"TestJob",
 			"paused":true,
