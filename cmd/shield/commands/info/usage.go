@@ -43,8 +43,12 @@ func cliUsage(opts *commands.Options, args ...string) error {
 		return nil
 	}
 
-	c, _, _ := commands.ParseCommand(args...)
-	c.DisplayHelp()
+	c, commandname, _ := commands.ParseCommand(args...)
+	if c != nil {
+		c.DisplayHelp()
+	} else {
+		ansi.Fprintf(os.Stderr, "@R{unrecognized command %s}\n", commandname)
+	}
 	return nil
 }
 
