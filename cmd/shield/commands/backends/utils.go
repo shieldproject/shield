@@ -3,7 +3,7 @@ package backends
 import (
 	"os"
 
-	"github.com/geofffranks/spruce/log"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"

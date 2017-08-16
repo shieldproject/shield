@@ -3,7 +3,7 @@ package policies
 import (
 	"strings"
 
-	"github.com/geofffranks/spruce/log"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 )

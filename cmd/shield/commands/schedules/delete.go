@@ -3,7 +3,7 @@ package schedules
 import (
 	"strings"
 
-	"github.com/geofffranks/spruce/log"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"

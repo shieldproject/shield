@@ -3,9 +3,9 @@ package backends
 import (
 	"fmt"
 
-	"github.com/geofffranks/spruce/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
 func init() {

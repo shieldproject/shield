@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/geofffranks/spruce/log"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
 //ErrCanceled is the error returned from commands if the user denied a
