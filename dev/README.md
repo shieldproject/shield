@@ -18,7 +18,7 @@ Made for learning and trying out [Shield](https://github.com/starkandwayne/shiel
 ## Setup
 Install [docker-compose](https://docs.docker.com/compose/install/)
 ```
-git clone git@github.com:johnlonganecker/shield-docker.git 
+git clone git@github.com:starkandwayne/shield.git 
 cd shield-docker
 docker-compose build
 ```
