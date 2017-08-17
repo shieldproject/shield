@@ -1,11 +1,50 @@
+// The `bbr` plugin for SHIELD
+// backup/restore plugin for all your bbr enabled deployments and directors.
+//
+// PLUGIN FEATURES
+//
+// This plugin implements functionality suitable for use with the following
+// SHIELD Job components:
+//
+//   Target: yes
+//   Store:  no
+//
+// PLUGIN CONFIGURATION
+//
+// The endpoint configuration passed to this plugin is used to identify
+// which bosh director instance to back up, and how to connect to it. Your
+// endpoint JSON should look something like this:
+// Director
+//    {
+//					"bbr_type": "director",																													# set the type to director
+//					"bbr_host": "192.168.50.6",																											# the ip of the director
+//					"bbr_sshusername": "jumpbox",																 										# the ssh username for the director
+//					"bbr_privatekey": "-----BEGIN RSA PRIVATE mycert -----END RSA PRIVATE KEY-----" # a single line private key of the director
+//    }
+//
+// Deployment
+//
+//    {
+//						"bbr_type": "deployment",																									 	 # set the type to deployment
+//						"bbr_username": "admin",																										 # the username of the director
+//						"bbr_password": "c1oudc0w",																						   		 # the password of the director
+//						"bbr_target": "192.168.50.6",																								 # the director ip
+//						"bbr_deployment": "cf",																											 # the deployment name
+//						"bbr_cacert": "-----BEGIN CERTIFICATE----- my cert -----END CERTIFICATE----- # a single line certificate of you bosh instance
+//    }
+//
+// BACKUP DETAILS
+//
+// The `bbr` plugin lets you backup your bbr enabled deployment or bosh director
+//
+// RESTORE DETAILS
+//
+// The `bbr` plugin will also restore your complete deployment or bosh director.
+//
+// DEPENDENCIES
+//
+//
 package main
-
-/*
-
-This is a generic and not terribly helpful plugin. However, it shows the basics
-of what is needed in a backup plugin, and how they execute.
-
-*/
 
 import (
 	"fmt"
@@ -42,11 +81,23 @@ func main() {
 				Store:  "no",
 			},
 			Example: `
-	{
-	  "bbr_host"       : "username",   # REQUIRED
-	  "bbr_sshusername"   : "password",   # REQUIRED
-	  "bbr_privatekey" : "mykey",      # REQUIRED
-	}
+			Director
+			   {
+								"bbr_type": "director",
+								"bbr_host": "192.168.50.6",
+								"bbr_sshusername": "jumpbox",
+								"bbr_privatekey": "-----BEGIN RSA PRIVATE my single line certs -----END RSA PRIVATE KEY-----"
+			   }
+
+			Deployment
+			   {
+									"bbr_type": "deployment",
+									"bbr_username": "admin",
+									"bbr_password": "c1oudc0w",
+									"bbr_target": "192.168.50.6",
+									"bbr_deployment": "cf",
+									"bbr_cacert": "-----BEGIN CERTIFICATE----- my single line certs -----END CERTIFICATE-----"
+			   }
 	`,
 			Defaults: `
 	{
