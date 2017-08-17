@@ -140,7 +140,7 @@ func main() {
 			if err != nil {
 				panic("Couldn't parse error json")
 			}
-			fmt.Println(j)
+			fmt.Println(string(j))
 		} else {
 			ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
 		}
