@@ -17,6 +17,7 @@ func ToggleDebug(should bool) {
 func ToggleTrace(should bool) {
 	if should {
 		os.Setenv("SHIELD_TRACE", "1")
+		DEBUG("enabling TRACE output")
 	} else {
 		os.Unsetenv("SHIELD_TRACE")
 	}

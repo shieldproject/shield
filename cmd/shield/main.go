@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
-	"strings"
 
 	"github.com/pborman/getopt"
 	"github.com/starkandwayne/goutils/ansi"
@@ -73,17 +71,10 @@ func main() {
 		args = cmdLine.Args()
 	}
 
-	if len(command) == 0 {
-		command = []string{"help"}
-	}
-
 	log.ToggleDebug(*commands.Opts.Debug)
-	log.DEBUG("shield cli starting up")
-
 	log.ToggleTrace(*commands.Opts.Trace)
-	if *commands.Opts.Trace {
-		log.DEBUG("enabling TRACE output")
-	}
+
+	log.DEBUG("shield cli starting up")
 
 	if *commands.Opts.SkipSSLValidation {
 		os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
@@ -91,7 +82,7 @@ func main() {
 
 	if *commands.Opts.Version {
 		if Version == "" {
-			fmt.Printf("shield cli (development)%s\n", Version)
+			fmt.Println("shield cli (development)")
 		} else {
 			fmt.Printf("shield cli v%s\n", Version)
 		}
@@ -115,30 +106,32 @@ func main() {
 		Desc: "Takes any input and gives any output as a JSON object",
 	})
 
-	/**************************************************************************/
 	err := api.LoadConfig(*commands.Opts.Config)
 	if err != nil {
 		ansi.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *commands.Opts.Config, err)
 		os.Exit(1)
 	}
 
-	// only check for backends + creds if we aren't manipulating backends/help
-	nonAPICommands := regexp.MustCompile(`(help|commands|flags|options|backends|list backends|ls be|create backend|c be|update backend|backend|use backend)`)
-	if !nonAPICommands.MatchString(strings.Join(command, " ")) {
-		log.DEBUG("Command: '%s'", strings.Join(command, " "))
+	cmd, cmdname, args := commands.ParseCommand(command...)
+	log.DEBUG("Command: '%s'", cmdname)
+	//Check if user gave a valid command
+	if cmd == nil {
+		ansi.Fprintf(os.Stderr, "@R{unrecognized command `%s'}\n", cmdname)
+		os.Exit(1)
+	}
+	commands.MaybeWarnDeprecation(cmdname, cmd)
 
+	// only check for backends + creds if we aren't manipulating backends/help
+	helpCmd, _, _ := commands.ParseCommand("help")
+	backendsCmd, _, _ := commands.ParseCommand("backends")
+	backendCmd, _, _ := commands.ParseCommand("backend")
+	cBackendCmd, _, _ := commands.ParseCommand("create-backend")
+	if cmd != helpCmd && cmd != backendsCmd && cmd != backendCmd && cmd != cBackendCmd {
 		if *commands.Opts.Shield != "" || os.Getenv("SHIELD_API") != "" {
 			ansi.Fprintf(os.Stderr, "@Y{WARNING: -H, --host, and the SHIELD_API environment variable have been deprecated and will be removed in a later release.} Use `shield backend` instead\n")
 		}
 
 		backends.Load()
-	}
-
-	cmd, cmdname, args := commands.ParseCommand(command...)
-	commands.MaybeWarnDeprecation(cmdname, cmd)
-	if cmd == nil {
-		ansi.Fprintf(os.Stderr, "@R{unrecognized command %s}\n", strings.Join(command, " "))
-		os.Exit(1)
 	}
 
 	if err := cmd.Run(args...); err != nil {

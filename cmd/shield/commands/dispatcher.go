@@ -122,15 +122,19 @@ func AliasesFor(command *Command) []string {
 //Searches for the longest name it can construct from the beginning of the
 //input that matches a registered command. Returns the matched Command, the
 //name given by the user that matched that command, and the unmatched remainder
-//of the input array to be used as Command args. Returns nil, "", nil if no
+//of the input array to be used as Command args. Returns nil, "the bad command", nil if no
 //match can be found
 func ParseCommand(userInput ...string) (cmd *Command, givenName string, args []string) {
+	if len(userInput) == 0 {
+		userInput = []string{"help"}
+	}
+
 	for i := 1; i <= len(userInput); i++ {
-		cmdName := strings.Join(userInput[:i], " ")
-		if command, found := commands[cmdName]; found {
-			cmd = command
-			args = userInput[i:]
-			givenName = cmdName
+		givenName = strings.Join(userInput[:i], " ")
+		args = userInput[i:]
+		var found bool
+		if cmd, found = commands[givenName]; found {
+			break
 		}
 	}
 	return
