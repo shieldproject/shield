@@ -54,6 +54,7 @@ func main() {
 
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
+		Help:    getopt.BoolLong("help", 'h'),
 	}
 
 	var command []string
@@ -88,6 +89,10 @@ func main() {
 			fmt.Printf("shield cli v%s\n", Version)
 		}
 		os.Exit(0)
+	}
+
+	if *cmds.Opts.Help {
+		command = append([]string{"help"}, command...)
 	}
 
 	addCommands()

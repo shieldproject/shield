@@ -28,6 +28,7 @@ type Options struct {
 	Fuzzy             *bool
 	SkipSSLValidation *bool
 	Version           *bool
+	Help              *bool
 
 	Status *string
 
