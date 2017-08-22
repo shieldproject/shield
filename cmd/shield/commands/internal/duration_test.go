@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/starkandwayne/shield/cmd/shield"
+	. "github.com/starkandwayne/shield/cmd/shield/commands/internal"
 )
 
 var _ = Describe("CLI Duration", func() {
