@@ -362,7 +362,7 @@
 		},
 		{
 			"ImportPath": "github.com/pborman/getopt",
-			"Rev": "2211c0f1daa1d165eb31026fc509c007a7fa067b"
+			"Rev": "7148bc3a4c3008adfcab60cbebfd0576018f330b"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",

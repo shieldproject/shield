@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pborman/getopt"
+	"github.com/pborman/getopt/v2"
 	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 	cmds "github.com/starkandwayne/shield/cmd/shield/commands"
@@ -60,7 +60,11 @@ func main() {
 	var cmdLine = getopt.CommandLine
 	args := os.Args
 	for {
-		cmdLine.Parse(args)
+		err := cmdLine.Getopt(args, nil)
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{%s}\n", err.Error())
+			os.Exit(1)
+		}
 		if cmdLine.NArgs() == 0 {
 			break
 		}

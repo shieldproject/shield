@@ -3,10 +3,10 @@ package backends
 import (
 	"os"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
 //Load loads the backend information into the api config
