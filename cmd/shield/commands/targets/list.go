@@ -4,17 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	targets := commands.Register("targets", cliListTargets).Aliases("list targets", "ls targets")
-	targets.Summarize("List available backup targets")
-	targets.Help(commands.HelpInfo{
+//List - List available backup targets
+var List = &commands.Command{
+	Summary: "List available backup targets",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "plugin", Short: 'P', Valued: true,
@@ -32,11 +32,11 @@ func init() {
 				"endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}",
 				"agent":"127.0.0.1:1234"
 			}]`,
-	})
-	targets.HelpGroup(commands.TargetsGroup)
+	},
+	RunFn: cliListTargets,
+	Group: commands.TargetsGroup,
 }
 
-//List available backup targets
 func cliListTargets(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list targets' command")
 	log.DEBUG("  for plugin: '%s'", *opts.Plugin)

@@ -3,16 +3,15 @@ package targets
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	target := commands.Register("target", cliGetTarget)
-	target.Summarize("Print detailed information about a specific backup target")
-	target.Aliases("show target", "view target", "display target", "list target", "ls target")
-	target.Help(commands.HelpInfo{
+//Get - Print detailed information about a specific backup target
+var Get = &commands.Command{
+	Summary: "Print detailed information about a specific backup target",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.TargetNameFlag,
 			commands.FlagInfo{
@@ -27,10 +26,11 @@ func init() {
 			"endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}",
 			"agent":"127.0.0.1:1234"
 		}`,
-	})
+	},
+	RunFn: cliGetTarget,
+	Group: commands.TargetsGroup,
 }
 
-//Print detailed information about a specific backup target
 func cliGetTarget(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'show target' command")
 

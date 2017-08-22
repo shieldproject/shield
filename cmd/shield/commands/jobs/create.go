@@ -10,11 +10,10 @@ import (
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	cJob := commands.Register("create-job", cliCreateJob)
-	cJob.Summarize("Create a new backup job")
-	cJob.Aliases("create job", "new job", "create new job", "make job", "c j")
-	cJob.Help(commands.HelpInfo{
+//Create - Create a new backup job
+var Create = &commands.Command{
+	Summary: "Create a new backup job",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{commands.UpdateIfExistsFlag},
 		JSONInput: `{
 			"name":"TestJob",
@@ -46,11 +45,11 @@ func init() {
 			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
 			"agent":"127.0.0.1:1234"
 		}`,
-	})
-	cJob.HelpGroup(commands.JobsGroup)
+	},
+	RunFn: cliCreateJob,
+	Group: commands.JobsGroup,
 }
 
-//Create a new backup job
 func cliCreateJob(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'create job' command")
 

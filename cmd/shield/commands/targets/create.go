@@ -3,18 +3,17 @@ package targets
 import (
 	"os"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	ctarget := commands.Register("create-target", cliCreateTarget)
-	ctarget.Aliases("create target", "new target", "create new target", "make target", "c t", "add target")
-	ctarget.Summarize("Create a new backup target")
-	ctarget.Help(commands.HelpInfo{
+//Create - Create a new backup target
+var Create = &commands.Command{
+	Summary: "Create a new backup target",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.UpdateIfExistsFlag,
 		},
@@ -33,12 +32,11 @@ func init() {
 			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
 			"agent":"127.0.0.1:1234"
 		}`,
-	})
-	ctarget.HelpGroup(commands.TargetsGroup)
-
+	},
+	RunFn: cliCreateTarget,
+	Group: commands.TargetsGroup,
 }
 
-//Create a new backup target
 func cliCreateTarget(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'create target' command")
 

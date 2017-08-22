@@ -4,27 +4,27 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	run := commands.Register("run", cliRunJob).Aliases("run job")
-	run.Summarize("Schedule an immediate run of a backup job")
-	run.Help(commands.HelpInfo{
+//Run - Schedule an immediate run of a backup job
+var Run = &commands.Command{
+	Summary: "Schedule an immediate run of a backup job",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{commands.JobNameFlag},
 		JSONOutput: `{
 			"ok":"Scheduled immediate run of job",
 			"task_uuid":"143e5494-63c4-4e05-9051-8b3015eae061"
 		}`,
-	})
-	run.HelpGroup(commands.JobsGroup)
+	},
+	RunFn: cliRunJob,
+	Group: commands.JobsGroup,
 }
 
-//Schedule an immediate run of a backup job
 func cliRunJob(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'run job' command")
 

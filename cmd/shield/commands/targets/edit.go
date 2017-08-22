@@ -4,17 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	etarget := commands.Register("edit-target", cliEditTarget).Aliases("edit target", "update target")
-	etarget.Summarize("Modify an existing backup target")
-	etarget.Help(commands.HelpInfo{
+//Edit - Modify an existing backup target
+var Edit = &commands.Command{
+	Summary: "Modify an existing backup target",
+	Help: &commands.HelpInfo{
 		Message: "Modify an existing backup target. The UUID of the target will remain the same after modification.",
 		Flags:   []commands.FlagInfo{commands.TargetNameFlag},
 		JSONInput: `{
@@ -32,11 +32,11 @@ func init() {
 			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
 			"agent":"127.0.0.1:1234"
 		}`,
-	})
-	etarget.HelpGroup(commands.TargetsGroup)
+	},
+	RunFn: cliEditTarget,
+	Group: commands.TargetsGroup,
 }
 
-//Modify an existing backup target
 func cliEditTarget(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'edit target' command")
 

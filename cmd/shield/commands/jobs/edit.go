@@ -5,17 +5,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	eJob := commands.Register("edit-job", cliEditJob).Aliases("edit job", "update job")
-	eJob.Summarize("Modify an existing backup job")
-	eJob.Help(commands.HelpInfo{
+//Edit - Modify an existing backup job
+var Edit = &commands.Command{
+	Summary: "Modify an existing backup job",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{commands.JobNameFlag},
 		JSONInput: `{
 			"name":"AnotherJob",
@@ -46,11 +46,11 @@ func init() {
 			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
 			"agent":"127.0.0.1:1234"
 		}`,
-	})
-	eJob.HelpGroup(commands.JobsGroup)
+	},
+	RunFn: cliEditJob,
+	Group: commands.JobsGroup,
 }
 
-//Modify an existing backup job
 func cliEditJob(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'edit job' command")
 

@@ -3,22 +3,22 @@ package jobs
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	pause := commands.Register("pause", cliPauseJob).Aliases("pause job")
-	pause.Summarize("Pause a backup job")
-	pause.Help(commands.HelpInfo{
+//Pause - Pause a backup job
+var Pause = &commands.Command{
+	Summary: "Pause a backup job",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{commands.JobNameFlag},
-	})
-	pause.HelpGroup(commands.JobsGroup)
+	},
+	RunFn: cliPauseJob,
+	Group: commands.JobsGroup,
 }
 
-//Pause a backup job
 func cliPauseJob(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'pause job' command")
 

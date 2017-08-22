@@ -4,17 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	eSchedule := commands.Register("edit-schedule", cliEditSchedule).Aliases("edit schedule", "update schedule")
-	eSchedule.Summarize("Modify an existing backup schedule")
-	eSchedule.Help(commands.HelpInfo{
+//Edit - Modify an existing backup schedule
+var Edit = &commands.Command{
+	Summary: "Modify an existing backup schedule",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.ScheduleNameFlag,
 		},
@@ -29,11 +29,11 @@ func init() {
 			"summary":"A Test Schedule",
 			"when":"daily 4am"
 		}`,
-	})
-	eSchedule.HelpGroup(commands.SchedulesGroup)
+	},
+	RunFn: cliEditSchedule,
+	Group: commands.SchedulesGroup,
 }
 
-//Modify an existing backup schedule
 func cliEditSchedule(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'edit schedule' command")
 

@@ -4,26 +4,26 @@ import (
 	"os"
 	"sort"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	backends := commands.Register("backends", cliListBackends).Aliases("list backends", "ls be")
-	backends.Summarize("List configured SHIELD backends")
-	backends.Help(commands.HelpInfo{
+//List - List configured SHIELD backends
+var List = &commands.Command{
+	Summary: "List configured SHIELD backends",
+	Help: &commands.HelpInfo{
 		JSONOutput: `[{
 			"name":"mybackend",
 			"uri":"https://10.244.2.2:443"
 		}]`,
-	})
-	backends.HelpGroup(commands.BackendsGroup)
+	},
+	RunFn: cliListBackends,
+	Group: commands.BackendsGroup,
 }
 
-//List configured SHIELD backends
 func cliListBackends(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'backends' command")
 

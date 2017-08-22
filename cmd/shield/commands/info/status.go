@@ -9,16 +9,16 @@ import (
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	status := commands.Register("status", cliStatus).Aliases("stat")
-	status.Summarize("Query the SHIELD backup server for its status and version info")
-	status.Help(commands.HelpInfo{
+//Status - Query the SHIELD backup server for its status and version info
+var Status = &commands.Command{
+	Summary: "Query the SHIELD backup server for its status and version info",
+	Help: &commands.HelpInfo{
 		JSONOutput: `{"name":"MyShield","version":"1.2.3"}`,
-	})
-	status.HelpGroup(commands.InfoGroup)
+	},
+	RunFn: cliStatus,
+	Group: commands.InfoGroup,
 }
 
-//Query the SHIELD backup server for its status and version info
 func cliStatus(opts *commands.Options, args ...string) error {
 	status, err := api.GetStatus()
 	if err != nil {

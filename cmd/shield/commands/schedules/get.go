@@ -3,16 +3,15 @@ package schedules
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	schedule := commands.Register("schedule", cliGetSchedule)
-	schedule.Aliases("show schedule", "view schedule", "display schedule", "list schedule", "ls schedule")
-	schedule.Summarize("Print detailed information about a specific backup schedule")
-	schedule.Help(commands.HelpInfo{
+//Get - Print detailed information about a specific backup schedule
+var Get = &commands.Command{
+	Summary: "Print detailed information about a specific backup schedule",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.ScheduleNameFlag,
 		},
@@ -22,11 +21,11 @@ func init() {
 			"summary":"A Test Schedule",
 			"when":"daily 4am"
 		}`,
-	})
-	schedule.HelpGroup(commands.SchedulesGroup)
+	},
+	RunFn: cliGetSchedule,
+	Group: commands.SchedulesGroup,
 }
 
-//Print detailed information about a specific backup schedule
 func cliGetSchedule(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'show schedule' command")
 

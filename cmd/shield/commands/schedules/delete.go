@@ -3,27 +3,26 @@ package schedules
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	dSchedule := commands.Register("delete-schedule", cliDeleteSchedule)
-	dSchedule.Summarize("Delete a backup schedule")
-	dSchedule.Aliases("delete schedule", "remove schedule", "rm schedule")
-	dSchedule.Help(commands.HelpInfo{
+//Delete - Delete a backup schedule
+var Delete = &commands.Command{
+	Summary: "Delete a backup schedule",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.ScheduleNameFlag,
 		},
 		JSONOutput: `{"ok":"Deleted schedule"}`,
-	})
-	dSchedule.HelpGroup(commands.SchedulesGroup)
+	},
+	RunFn: cliDeleteSchedule,
+	Group: commands.SchedulesGroup,
 }
 
-//Delete a backup schedule
 func cliDeleteSchedule(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'delete schedule' command")
 

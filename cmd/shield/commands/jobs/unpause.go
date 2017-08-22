@@ -3,22 +3,22 @@ package jobs
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	unpause := commands.Register("unpause", cliUnpauseJob).Aliases("unpause job")
-	unpause.Summarize("Unpause a backup job")
-	unpause.Help(commands.HelpInfo{
+//Unpause - Unpause a backup job
+var Unpause = &commands.Command{
+	Summary: "Unpause a backup job",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{commands.JobNameFlag},
-	})
-	unpause.HelpGroup(commands.JobsGroup)
+	},
+	RunFn: cliUnpauseJob,
+	Group: commands.JobsGroup,
 }
 
-//Unpause a backup job
 func cliUnpauseJob(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'unpause job' command")
 

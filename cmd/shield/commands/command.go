@@ -59,9 +59,10 @@ type commandFn func(opts *Options, args ...string) error
 // dispatches to
 type Command struct {
 	canonical string    //Canonical name of the command
-	summary   string    //Summary description of a command (short help)
-	runFn     commandFn //Function to call to run a command
-	help      HelpInfo  //Function to call to print help about a command
+	Summary   string    //Summary description of a command (short help)
+	RunFn     commandFn //Function to call to run a command
+	Help      *HelpInfo //Function to call to print help about a command
+	Group     *HelpGroup
 }
 
 //GetAliases retrieves all aliases for this command registered with the Dispatcher
@@ -69,24 +70,11 @@ func (c *Command) GetAliases() []string {
 	return AliasesFor(c)
 }
 
-//Aliases registers alterative names for this command with the Dispatcher
-func (c *Command) Aliases(aliases ...string) *Command {
+//AKA registers alterative names for this command with the Dispatcher
+func (c *Command) AKA(aliases ...string) {
 	for _, alias := range aliases {
 		commands[alias] = c
 	}
-	return c
-}
-
-//Summarize sets the short help string for this command
-func (c *Command) Summarize(summary string) *Command {
-	c.summary = summary
-	return c
-}
-
-//Help sets the function to call if the help for this command is requested
-func (c *Command) Help(help HelpInfo) *Command {
-	c.help = help
-	return c
 }
 
 //ShortHelp prints the one line help for a command
@@ -97,22 +85,22 @@ func (c *Command) ShortHelp() string {
 	//all of the summarys' text
 	summaryIndent := maxCmdLen + minBuffer
 	//Create format string with buffer specified
-	return ansi.Sprintf("@B{%-[1]*[2]s}%[3]s", summaryIndent, c.canonical, c.summary)
+	return ansi.Sprintf("@B{%-[1]*[2]s}%[3]s", summaryIndent, c.canonical, c.Summary)
 }
 
 //Run runs the attached runFn with the given args
 func (c *Command) Run(args ...string) error {
-	return c.runFn(Opts, args...)
+	return c.RunFn(Opts, args...)
 }
 
 //DisplayHelp prints the help for this command to stderr
 func (c *Command) DisplayHelp() {
 	//Print Usage Line
 	fmt.Fprintln(os.Stderr, c.usageLine())
-	if c.help.Message != "" {
-		fmt.Fprintln(os.Stderr, c.help.Message)
+	if c.Help.Message != "" {
+		fmt.Fprintln(os.Stderr, c.Help.Message)
 	} else { //Default to summary unless overridden in help
-		fmt.Fprintln(os.Stderr, c.summary)
+		fmt.Fprintln(os.Stderr, c.Summary)
 	}
 
 	//Print Aliases, if present
@@ -123,9 +111,9 @@ func (c *Command) DisplayHelp() {
 	}
 
 	//Print flag help if there are any flags for this command
-	if len(c.help.Flags) > 0 {
+	if len(c.Help.Flags) > 0 {
 		fmt.Fprintln(os.Stderr, HelpHeader("FLAGS"))
-		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(c.help.FlagHelp()), "\n"))
+		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(c.Help.FlagHelp()), "\n"))
 	}
 
 	if len(globals.Flags) != 0 {
@@ -134,26 +122,21 @@ func (c *Command) DisplayHelp() {
 	}
 
 	//Print JSON input, if present
-	if c.help.JSONInput != "" {
+	if c.Help.JSONInput != "" {
 		fmt.Fprintln(os.Stderr, HelpHeader("RAW INPUT"))
-		fmt.Fprintln(os.Stderr, internal.PrettyJSON(c.help.JSONInput))
+		fmt.Fprintln(os.Stderr, internal.PrettyJSON(c.Help.JSONInput))
 	}
 
 	//Print JSON output, if present
-	if c.help.JSONOutput != "" {
+	if c.Help.JSONOutput != "" {
 		fmt.Fprintln(os.Stderr, HelpHeader("RAW OUTPUT"))
-		fmt.Fprintln(os.Stderr, internal.PrettyJSON(c.help.JSONOutput))
+		fmt.Fprintln(os.Stderr, internal.PrettyJSON(c.Help.JSONOutput))
 	}
-}
-
-//HelpGroup assigns this command to a help group
-func (c *Command) HelpGroup(group *helpGroup) {
-	group.addCommand(c)
 }
 
 func (c *Command) usageLine() string {
 	components := []string{ansi.Sprintf("@G{shield %s}", c.canonical)}
-	for _, f := range c.help.Flags {
+	for _, f := range c.Help.Flags {
 		var flagNotation string
 		if !f.Mandatory {
 			flagNotation = ansi.Sprintf("@G{[%s]}", f.formatShortIfPresent())
@@ -163,4 +146,27 @@ func (c *Command) usageLine() string {
 		components = append(components, flagNotation)
 	}
 	return strings.Join(components, " ")
+}
+
+//Panics if command doesn't have all the things a command should
+func (c *Command) validate() {
+	if c.canonical == "" {
+		panic(fmt.Sprintf("Command missing canonical name: %+v", c))
+	}
+
+	if c.Summary == "" && c.Help.Message == "" {
+		panic(fmt.Sprintf("Command missing summary: %+v", c))
+	}
+
+	if c.RunFn == nil {
+		panic(fmt.Sprintf("Command missing function: %+v", c))
+	}
+
+	if c.Help == nil {
+		panic(fmt.Sprintf("Command missing help: %+v", c))
+	}
+
+	if c.Group == nil {
+		panic(fmt.Sprintf("Command not assigned to group: %+v", c))
+	}
 }

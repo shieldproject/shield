@@ -9,17 +9,16 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 )
 
-func init() {
-	help := commands.Register("help", cliUsage)
-	help.Summarize("Get detailed help with a specific command")
-	help.Aliases("usage", "commands")
-	help.Help(commands.HelpInfo{
+//Usage - Get detailed help with a specific command
+var Usage = &commands.Command{
+	Summary: "Get detailed help with a specific command",
+	Help: &commands.HelpInfo{
 		Message: ansi.Sprintf("@R{This is getting a bit too meta, don't you think?}"),
-	})
-	help.HelpGroup(commands.InfoGroup)
+	},
+	RunFn: cliUsage,
+	Group: commands.InfoGroup,
 }
 
-//Get detailed help with a specific command
 func cliUsage(opts *commands.Options, args ...string) error {
 	if len(args) == 0 {
 		ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")

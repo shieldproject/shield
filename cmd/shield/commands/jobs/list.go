@@ -4,18 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	jobs := commands.Register("jobs", cliListJobs)
-	jobs.Summarize("List available backup jobs")
-	jobs.Aliases("list jobs", "ls jobs", "ls j")
-	jobs.Help(commands.HelpInfo{
+//List - List available backup jobs
+var List = &commands.Command{
+	Summary: "List available backup jobs",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			{
 				Name: "target", Short: 't', Valued: true,
@@ -58,11 +57,11 @@ func init() {
 			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
 			"agent":"127.0.0.1:1234"
 		}]`,
-	})
-	jobs.HelpGroup(commands.JobsGroup)
+	},
+	RunFn: cliListJobs,
+	Group: commands.JobsGroup,
 }
 
-//List available backup jobs
 func cliListJobs(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list jobs' command")
 	log.DEBUG("  for target:      '%s'", *opts.Target)

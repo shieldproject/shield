@@ -4,17 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	eStore := commands.Register("edit-store", cliEditStore).Aliases("edit store", "update store")
-	eStore.Summarize("Modify an existing archive store")
-	eStore.Help(commands.HelpInfo{
+//Edit - Modify an existing archive store
+var Edit = &commands.Command{
+	Summary: "Modify an existing archive store",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.StoreNameFlag,
 		},
@@ -31,11 +31,11 @@ func init() {
 			"plugin":"s3",
 			"endpoint":"{\"endpoint\":\"schmendpoint\"}"
 		}`,
-	})
-	eStore.HelpGroup(commands.StoresGroup)
+	},
+	RunFn: cliEditStore,
+	Group: commands.StoresGroup,
 }
 
-//Modify an existing archive store
 func cliEditStore(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'edit store' command")
 

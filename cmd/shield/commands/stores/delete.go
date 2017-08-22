@@ -3,27 +3,26 @@ package stores
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	dStore := commands.Register("delete-store", cliDeleteStore)
-	dStore.Summarize("Delete an archive store")
-	dStore.Aliases("delete store", "remove store", "rm store")
-	dStore.Help(commands.HelpInfo{
+//Delete - Delete an archive store
+var Delete = &commands.Command{
+	Summary: "Delete an archive store",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.StoreNameFlag,
 		},
 		JSONOutput: `{"ok":"Deleted store"}`,
-	})
-	dStore.HelpGroup(commands.StoresGroup)
+	},
+	RunFn: cliDeleteStore,
+	Group: commands.StoresGroup,
 }
 
-//Delete an archive store
 func cliDeleteStore(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'delete store' command")
 

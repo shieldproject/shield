@@ -3,28 +3,26 @@ package policies
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	dPolicy := commands.Register("delete-policy", cliDeletePolicy)
-	dPolicy.Summarize("Delete a retention policy")
-	dPolicy.Aliases("delete retention policy", "remove retention policy", "rm retention policy")
-	dPolicy.Aliases("delete policy", "remove policy", "rm policy")
-	dPolicy.Help(commands.HelpInfo{
+//Delete - Delete a retention policy
+var Delete = &commands.Command{
+	Summary: "Delete a retention policy",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.PolicyNameFlag,
 		},
 		JSONOutput: `{"ok":"Deleted policy"}`,
-	})
-	dPolicy.HelpGroup(commands.PoliciesGroup)
+	},
+	RunFn: cliDeletePolicy,
+	Group: commands.PoliciesGroup,
 }
 
-//Delete a retention policy
 func cliDeletePolicy(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'delete retention policy' command")
 

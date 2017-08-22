@@ -4,18 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	schedules := commands.Register("schedules", cliListSchedules)
-	schedules.Aliases("list schedules", "ls schedules")
-	schedules.Summarize("List available backup schedules")
-	schedules.Help(commands.HelpInfo{
+//List - List available backup schedules
+var List = &commands.Command{
+	Summary: "List available backup schedules",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.UsedFlag,
 			commands.UnusedFlag,
@@ -27,11 +26,11 @@ func init() {
 			"summary":"A Test Schedule",
 			"when":"daily 4am"
 		}]`,
-	})
-	schedules.HelpGroup(commands.SchedulesGroup)
+	},
+	RunFn: cliListSchedules,
+	Group: commands.SchedulesGroup,
 }
 
-//List available backup schedules
 func cliListSchedules(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list schedules' command")
 	log.DEBUG("  show unused? %v", *opts.Unused)
@@ -61,4 +60,3 @@ func cliListSchedules(opts *commands.Options, args ...string) error {
 	t.Output(os.Stdout)
 	return nil
 }
-

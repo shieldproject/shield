@@ -8,11 +8,10 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	archive := commands.Register("archive", cliGetArchive)
-	archive.Summarize("Print detailed information about a backup archive")
-	archive.Aliases("show archive", "view archive", "display archive", "list archive", "ls archive")
-	archive.Help(commands.HelpInfo{
+//Get - Print detailed information about a backup archive
+var Get = &commands.Command{
+	Summary: "Print detailed information about a backup archive",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "uuid", Positional: true, Mandatory: true,
@@ -33,11 +32,11 @@ func init() {
 			"store_plugin":"s3",
 			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}"
 		}`,
-	})
-	archive.HelpGroup(commands.ArchivesGroup)
+	},
+	RunFn: cliGetArchive,
+	Group: commands.ArchivesGroup,
 }
 
-//Print detailed information about a backup archive
 func cliGetArchive(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'show archive' command")
 

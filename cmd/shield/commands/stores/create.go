@@ -3,18 +3,17 @@ package stores
 import (
 	"os"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	cStore := commands.Register("create-store", cliCreateStore)
-	cStore.Summarize("Create a new archive store")
-	cStore.Aliases("create store", "new store", "create new store", "make store", "c st")
-	cStore.Help(commands.HelpInfo{
+//Create - Create a new archive store
+var Create = &commands.Command{
+	Summary: "Create a new archive store",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.UpdateIfExistsFlag,
 		},
@@ -31,11 +30,11 @@ func init() {
 			"plugin":"s3",
 			"endpoint":"{\"endpoint\":\"schmendpoint\"}"
 		}`,
-	})
-	cStore.HelpGroup(commands.StoresGroup)
+	},
+	RunFn: cliCreateStore,
+	Group: commands.StoresGroup,
 }
 
-//Create a new archive store
 func cliCreateStore(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'create store' command")
 

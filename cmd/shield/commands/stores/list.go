@@ -4,17 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	stores := commands.Register("stores", cliListStores).Aliases("list stores, ls stores")
-	stores.Summarize("List available archive stores")
-	stores.Help(commands.HelpInfo{
+//List - List available archive stores
+var List = &commands.Command{
+	Summary: "List available archive stores",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.UsedFlag,
 			commands.UnusedFlag,
@@ -27,11 +27,11 @@ func init() {
 			"plugin":"s3",
 			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
 		}]`,
-	})
-	stores.HelpGroup(commands.StoresGroup)
+	},
+	RunFn: cliListStores,
+	Group: commands.StoresGroup,
 }
 
-//List available archive stores
 func cliListStores(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list stores' command")
 	log.DEBUG("  for plugin: '%s'", *opts.Plugin)

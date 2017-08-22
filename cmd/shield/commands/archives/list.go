@@ -12,11 +12,10 @@ import (
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	archives := commands.Register("archives", cliListArchives)
-	archives.Summarize("List available backup archives")
-	archives.Aliases("list archives", "ls archives")
-	archives.Help(commands.HelpInfo{
+//List - List available backup archives
+var List = &commands.Command{
+	Summary: "List available backup archives",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "status", Short: 'S', Valued: true,
@@ -65,11 +64,11 @@ func init() {
 			"store_plugin":"s3",
 			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}"
 		}]`,
-	})
-	archives.HelpGroup(commands.ArchivesGroup)
+	},
+	RunFn: cliListArchives,
+	Group: commands.ArchivesGroup,
 }
 
-//List available backup archives
 func cliListArchives(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list archives' command")
 

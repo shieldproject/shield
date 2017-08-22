@@ -4,18 +4,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	ePolicy := commands.Register("edit-policy", cliEditPolicy)
-	ePolicy.Summarize("Modify an existing retention policy")
-	ePolicy.Aliases("edit retention policy", "update retention policy", "edit policy", "update policy")
-	ePolicy.Help(commands.HelpInfo{
+//Edit - Modify an existing retention policy
+var Edit = &commands.Command{
+	Summary: "Modify an existing retention policy",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.PolicyNameFlag,
 		},
@@ -30,11 +29,11 @@ func init() {
 			"summary":"A Test Policy",
 			"expires":31536000
 		}`,
-	})
-	ePolicy.HelpGroup(commands.PoliciesGroup)
+	},
+	RunFn: cliEditPolicy,
+	Group: commands.PoliciesGroup,
 }
 
-//Modify an existing retention policy
 func cliEditPolicy(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'edit retention policy' command")
 

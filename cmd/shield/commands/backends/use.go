@@ -8,21 +8,21 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	backend := commands.Register("backend", cliUseBackend)
-	backend.Summarize("Select a particular backend for use")
-	backend.Aliases("use backend", "use-backend")
-	backend.Help(commands.HelpInfo{
+//Use - Select a particular backend for use
+var Use = &commands.Command{
+	Summary: "Select a particular backend for use",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "name", Mandatory: true, Positional: true,
 				Desc: "The name of the backend to target",
 			},
 		},
-	})
+	},
+	RunFn: cliUseBackend,
+	Group: commands.BackendsGroup,
 }
 
-//Select a particular backend for use
 func cliUseBackend(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'backend' command")
 

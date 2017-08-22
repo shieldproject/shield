@@ -3,16 +3,15 @@ package stores
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	store := commands.Register("store", cliGetStore)
-	store.Summarize("Print detailed information about a specific archive store")
-	store.Aliases("show store", "view store", "display store", "list store", "ls store")
-	store.Help(commands.HelpInfo{
+//Get - Print detailed information about a specific archive store
+var Get = &commands.Command{
+	Summary: "Print detailed information about a specific archive store",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.StoreNameFlag,
 		},
@@ -23,11 +22,11 @@ func init() {
 			"plugin":"s3",
 			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
 		}`,
-	})
-	store.HelpGroup(commands.StoresGroup)
+	},
+	RunFn: cliGetStore,
+	Group: commands.StoresGroup,
 }
 
-//Print detailed information about a specific archive store
 func cliGetStore(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'show store' command")
 

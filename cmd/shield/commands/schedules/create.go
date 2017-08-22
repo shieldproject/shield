@@ -3,18 +3,17 @@ package schedules
 import (
 	"os"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	cSchedule := commands.Register("create-schedule", cliCreateSchedule)
-	cSchedule.Summarize("Create a new backup schedule")
-	cSchedule.Aliases("create schedule", "new schedule", "create new schedule", "make schedule", "c s")
-	cSchedule.Help(commands.HelpInfo{
+//Create - Create a new backup schedule
+var Create = &commands.Command{
+	Summary: "Create a new backup schedule",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.UpdateIfExistsFlag,
 		},
@@ -29,11 +28,11 @@ func init() {
 			"summary":"A Test Schedule",
 			"when":"daily 4am"
 		}`,
-	})
-	cSchedule.HelpGroup(commands.SchedulesGroup)
+	},
+	RunFn: cliCreateSchedule,
+	Group: commands.SchedulesGroup,
 }
 
-//Create a new backup schedule
 func cliCreateSchedule(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'create schedule' command")
 

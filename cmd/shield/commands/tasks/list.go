@@ -4,18 +4,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	tasks := commands.Register("tasks", cliListTasks)
-	tasks.Aliases("list tasks", "ls tasks")
-	tasks.Summarize("List available tasks")
-	tasks.Help(commands.HelpInfo{
+//List - List available tasks
+var List = &commands.Command{
+	Summary: "List available tasks",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "status", Short: 'S', Valued: true,
@@ -38,12 +37,11 @@ func init() {
 			"timeout_at":"",
 			"log":"This is where I would put my plugin output if I had one"
 		}]`,
-	})
-	tasks.HelpGroup(commands.TasksGroup)
-
+	},
+	RunFn: cliListTasks,
+	Group: commands.TasksGroup,
 }
 
-//List available tasks
 func cliListTasks(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list tasks' command")
 

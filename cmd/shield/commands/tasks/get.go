@@ -1,18 +1,17 @@
 package tasks
 
 import (
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	task := commands.Register("task", cliGetTask)
-	task.Summarize("Print detailed information about a specific task")
-	task.Aliases("show task", "view task", "display task", "list task", "ls task")
-	task.Help(commands.HelpInfo{
+//Get - Print detailed information about a specific task
+var Get = &commands.Command{
+	Summary: "Print detailed information about a specific task",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "taskuuid", Desc: "The UUID of the task to get information for",
@@ -31,11 +30,10 @@ func init() {
 			"timeout_at":"",
 			"log":"This is where I would put my plugin output if I had one"
 		}`,
-	})
-	task.HelpGroup(commands.TasksGroup)
+	},
+	Group: commands.TasksGroup,
 }
 
-//Print detailed information about a specific task
 func cliGetTask(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'show task' command")
 

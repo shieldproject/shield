@@ -9,11 +9,10 @@ import (
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	dArchive := commands.Register("delete-archive", cliDeleteArchive)
-	dArchive.Summarize("Delete a backup archive")
-	dArchive.Aliases("delete archive", "remove archive", "rm archive")
-	dArchive.Help(commands.HelpInfo{
+//Delete - Delete a backup archive
+var Delete = &commands.Command{
+	Summary: "Delete a backup archive",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "uuid", Positional: true, Mandatory: true,
@@ -21,8 +20,9 @@ func init() {
 			},
 		},
 		JSONOutput: `{"ok":"Deleted archive"}`,
-	})
-	dArchive.HelpGroup(commands.ArchivesGroup)
+	},
+	RunFn: cliDeleteArchive,
+	Group: commands.ArchivesGroup,
 }
 
 func cliDeleteArchive(opts *commands.Options, args ...string) error {

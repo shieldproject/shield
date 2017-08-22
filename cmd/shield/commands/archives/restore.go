@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	restore := commands.Register("restore", cliRestoreArchive)
-	restore.Summarize("Restore a backup archive")
-	restore.Aliases("restore archive", "restore-archive")
-	restore.Help(commands.HelpInfo{
+//Restore - Restore a backup archive
+var Restore = &commands.Command{
+	Summary: "Restore a backup archive",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "target or uuid", Positional: true, Mandatory: true,
@@ -25,11 +24,11 @@ func init() {
 				  must be a UUID assigned to a single archive instance`,
 			},
 		},
-	})
-	restore.HelpGroup(commands.ArchivesGroup)
+	},
+	RunFn: cliRestoreArchive,
+	Group: commands.ArchivesGroup,
 }
 
-//Restore a backup archive
 func cliRestoreArchive(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'restore archive' command")
 

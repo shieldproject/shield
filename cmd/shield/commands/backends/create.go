@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	cbackend := commands.Register("create-backend", cliCreateBackend)
-	cbackend.Aliases("create backend", "c be", "update backend", "update-backend", "edit-backend", "edit backend")
-	cbackend.Summarize("Create or modify a SHIELD backend")
-	cbackend.Help(commands.HelpInfo{
+//Create - Create or modify a SHIELD backend
+var Create = &commands.Command{
+	Summary: "Create or modify a SHIELD backend",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
 				Name: "name", Mandatory: true, Positional: true,
@@ -25,11 +24,11 @@ func init() {
 				Desc: `The address at which the new backend can be found`,
 			},
 		},
-	})
-	cbackend.HelpGroup(commands.BackendsGroup)
+	},
+	RunFn: cliCreateBackend,
+	Group: commands.BackendsGroup,
 }
 
-//Create or modify a SHIELD backend
 func cliCreateBackend(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'create backend' command")
 

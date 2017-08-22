@@ -3,19 +3,17 @@ package policies
 import (
 	"os"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	cPolicy := commands.Register("create-policy", cliCreatePolicy)
-	cPolicy.Summarize("Create a new retention policy")
-	cPolicy.Aliases("create retention policy", "new retention policy", "create new retention policy", "make retention policy")
-	cPolicy.Aliases("create policy", "new policy", "create new policy", "make policy")
-	cPolicy.Help(commands.HelpInfo{
+//Create - Create a new retention policy
+var Create = &commands.Command{
+	Summary: "Create a new retention policy",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.UpdateIfExistsFlag,
 		},
@@ -30,8 +28,9 @@ func init() {
 			"summary":"A Test Policy",
 			"expires":31536000
 		}`,
-	})
-	cPolicy.HelpGroup(commands.PoliciesGroup)
+	},
+	RunFn: cliCreatePolicy,
+	Group: commands.PoliciesGroup,
 }
 
 func cliCreatePolicy(opts *commands.Options, args ...string) error {

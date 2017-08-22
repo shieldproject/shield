@@ -3,17 +3,14 @@ package policies
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-func init() {
-	policy := commands.Register("policy", cliGetPolicy)
-	policy.Summarize("Print detailed information about a specific retention policy")
-	policy.Aliases("show retention policy", "view retention policy", "display retention policy", "list retention policy")
-	policy.Aliases("show policy", "view policy", "display policy", "list policy")
-	policy.Help(commands.HelpInfo{
+var Get = &commands.Command{
+	Summary: "Print detailed information about a specific retention policy",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.PolicyNameFlag,
 		},
@@ -23,8 +20,9 @@ func init() {
 			"summary":"a policy",
 			"expires":5616000
 		}`,
-	})
-	policy.HelpGroup(commands.PoliciesGroup)
+	},
+	RunFn: cliGetPolicy,
+	Group: commands.PoliciesGroup,
 }
 
 func cliGetPolicy(opts *commands.Options, args ...string) error {

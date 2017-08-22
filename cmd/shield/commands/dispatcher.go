@@ -16,29 +16,30 @@ var (
 	maxCmdLen = 0
 )
 
-type helpGroup struct {
+//HelpGroup represents a set of commands for help organization purposes
+type HelpGroup struct {
 	name     string
 	commands []*Command
 }
 
 //Enumeration for HelpGroupTypes
 var (
-	InfoGroup      = &helpGroup{name: "INFO"}
-	BackendsGroup  = &helpGroup{name: "BACKENDS"}
-	TargetsGroup   = &helpGroup{name: "TARGETS"}
-	StoresGroup    = &helpGroup{name: "STORES"}
-	SchedulesGroup = &helpGroup{name: "SCHEDULES"}
-	PoliciesGroup  = &helpGroup{name: "POLICIES"}
-	JobsGroup      = &helpGroup{name: "JOBS"}
-	ArchivesGroup  = &helpGroup{name: "ARCHIVES"}
-	TasksGroup     = &helpGroup{name: "TASKS"}
+	InfoGroup      = &HelpGroup{name: "INFO"}
+	BackendsGroup  = &HelpGroup{name: "BACKENDS"}
+	TargetsGroup   = &HelpGroup{name: "TARGETS"}
+	StoresGroup    = &HelpGroup{name: "STORES"}
+	SchedulesGroup = &HelpGroup{name: "SCHEDULES"}
+	PoliciesGroup  = &HelpGroup{name: "POLICIES"}
+	JobsGroup      = &HelpGroup{name: "JOBS"}
+	ArchivesGroup  = &HelpGroup{name: "ARCHIVES"}
+	TasksGroup     = &HelpGroup{name: "TASKS"}
 )
 
-func (h *helpGroup) addCommand(c *Command) {
+func (h *HelpGroup) addCommand(c *Command) {
 	h.commands = append(h.commands, c)
 }
 
-func (h *helpGroup) String() string {
+func (h *HelpGroup) String() string {
 	var helpLines []string
 	groupHeader := ansi.Sprintf("@M{%s:}", h.name)
 	helpLines = append(helpLines, groupHeader) //Add the helpGroup header
@@ -54,7 +55,7 @@ func (h *helpGroup) String() string {
 //package, each on a line with their command summary
 func CommandString() string {
 	var helpLines []string
-	groupList := []*helpGroup{
+	groupList := []*HelpGroup{
 		InfoGroup,
 		BackendsGroup,
 		TargetsGroup,
@@ -85,17 +86,15 @@ func AddGlobalFlag(flag FlagInfo) {
 	globals.Flags = append(globals.Flags, flag)
 }
 
-//Register registers a command to the Dispatcher object, callable by the name
+//Add registers a command to the Dispatcher object, callable by the name
 // `command`, and then returns the newly-created and registered Command struct.
-func Register(commandName string, fn commandFn) *Command {
+func Add(commandName string, cmd *Command) *Command {
 	if _, exists := commands[commandName]; exists {
 		panic(fmt.Sprintf("command `%s' already registered", commandName))
 	}
 
-	cmd := &Command{
-		canonical: commandName,
-		runFn:     fn,
-	}
+	cmd.canonical = commandName
+	cmd.Group.addCommand(cmd)
 
 	commands[commandName] = cmd
 	if len(commandName) > maxCommandLength() {

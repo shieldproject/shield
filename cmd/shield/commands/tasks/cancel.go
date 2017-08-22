@@ -3,23 +3,24 @@ package tasks
 import (
 	"fmt"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	cTask := commands.Register("cancel-task", cliCancelTask).Aliases("cancel task", "stop task")
-	cTask.Summarize("Cancel a running or pending task")
-	cTask.Help(commands.HelpInfo{
+//Cancel - Cancel a running or pending task
+var Cancel = &commands.Command{
+	Summary: "Cancel a running or pending task",
+	Help: &commands.HelpInfo{
 		JSONOutput: `{
 			"ok":"Cancelled task '81746508-bd18-46a8-842e-97911d4b23a3'"
 		}`,
-	})
-	cTask.HelpGroup(commands.TasksGroup)
+	},
+	RunFn: cliCancelTask,
+	Group: commands.TasksGroup,
 }
 
 func cliCancelTask(opts *commands.Options, args ...string) error {

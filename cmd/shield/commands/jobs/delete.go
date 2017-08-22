@@ -3,25 +3,24 @@ package jobs
 import (
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	dJob := commands.Register("delete-job", cliDeleteJob)
-	dJob.Summarize("Delete a backup job")
-	dJob.Aliases("delete job", "remove job", "rm job")
-	dJob.Help(commands.HelpInfo{
+//Delete - Delete a backup job
+var Delete = &commands.Command{
+	Summary: "Delete a backup job",
+	Help: &commands.HelpInfo{
 		Flags:      []commands.FlagInfo{commands.JobNameFlag},
 		JSONOutput: `{"ok":"Deleted job"}`,
-	})
-	dJob.HelpGroup(commands.JobsGroup)
+	},
+	RunFn: cliDeleteJob,
+	Group: commands.JobsGroup,
 }
 
-//Delete a backup job
 func cliDeleteJob(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'delete job' command")
 

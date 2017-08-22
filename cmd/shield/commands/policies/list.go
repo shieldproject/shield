@@ -5,18 +5,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func init() {
-	policies := commands.Register("policies", cliListPolicies)
-	policies.Summarize("List available retention policies")
-	policies.Aliases("list retention policies", "ls retention policies", "list policies", "ls policies")
-	policies.Help(commands.HelpInfo{
+//List - List available retention policies
+var List = &commands.Command{
+	Summary: "List available retention policies",
+	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.UnusedFlag,
 			commands.UsedFlag,
@@ -28,11 +27,11 @@ func init() {
 			"summary":"a policy",
 			"expires":5616000
 		}]`,
-	})
-	policies.HelpGroup(commands.PoliciesGroup)
+	},
+	RunFn: cliListPolicies,
+	Group: commands.PoliciesGroup,
 }
 
-//List available retention policies
 func cliListPolicies(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list retention policies' command")
 	log.DEBUG("  show unused? %v", *opts.Unused)
