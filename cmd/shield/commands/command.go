@@ -116,9 +116,9 @@ func (c *Command) DisplayHelp() {
 		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(c.Help.FlagHelp()), "\n"))
 	}
 
-	if len(globals.Flags) != 0 {
+	if len(GlobalFlags) != 0 {
 		fmt.Fprintln(os.Stderr, HelpHeader("GLOBAL FLAGS"))
-		fmt.Fprintln(os.Stderr, internal.IndentString(GlobalFlags()))
+		fmt.Fprintln(os.Stderr, internal.IndentString(GlobalFlagHelp()))
 	}
 
 	//Print JSON input, if present

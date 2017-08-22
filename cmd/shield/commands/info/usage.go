@@ -80,7 +80,7 @@ func printEnvVars() {
 
 func printGlobalFlags() {
 	header("GLOBAL FLAGS")
-	contents(commands.GlobalFlags())
+	contents(commands.GlobalFlagHelp())
 }
 
 func printCommandList() {

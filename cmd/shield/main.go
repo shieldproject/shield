@@ -87,23 +87,7 @@ func main() {
 	}
 
 	addCommands()
-
-	cmds.AddGlobalFlag(cmds.FlagInfo{
-		Name: "debug", Short: 'D',
-		Desc: "Enable the output of debug output",
-	})
-	cmds.AddGlobalFlag(cmds.FlagInfo{
-		Name: "trace", Short: 'T',
-		Desc: "Enable the output of verbose trace output",
-	})
-	cmds.AddGlobalFlag(cmds.FlagInfo{
-		Name: "skip-ssl-validation", Short: 'k',
-		Desc: "Disable SSL certificate validation",
-	})
-	cmds.AddGlobalFlag(cmds.FlagInfo{
-		Name: "raw",
-		Desc: "Takes any input and gives any output as a JSON object",
-	})
+	addGlobalFlags()
 
 	err := api.LoadConfig(*cmds.Opts.Config)
 	if err != nil {
@@ -197,4 +181,25 @@ func addCommands() {
 	cmds.Add("tasks", tasks.List).AKA("list tasks", "ls tasks")
 	cmds.Add("task", tasks.Get).AKA("show task", "view task", "display task", "list task", "ls task")
 	cmds.Add("cancel", tasks.Cancel).AKA("cancel-task", "cancel task", "stop task")
+}
+
+func addGlobalFlags() {
+	cmds.GlobalFlags = []cmds.FlagInfo{
+		cmds.FlagInfo{
+			Name: "debug", Short: 'D',
+			Desc: "Enable the output of debug output",
+		},
+		cmds.FlagInfo{
+			Name: "trace", Short: 'T',
+			Desc: "Enable the output of verbose trace output",
+		},
+		cmds.FlagInfo{
+			Name: "skip-ssl-validation", Short: 'k',
+			Desc: "Disable SSL certificate validation",
+		},
+		cmds.FlagInfo{
+			Name: "raw",
+			Desc: "Takes any input and gives any output as a JSON object",
+		},
+	}
 }

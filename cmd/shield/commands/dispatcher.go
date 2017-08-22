@@ -11,7 +11,8 @@ import (
 
 var (
 	commands = map[string]*Command{}
-	globals  = HelpInfo{}
+	//GlobalFlags is the array of global flags for the program
+	GlobalFlags = []FlagInfo{}
 	//Length, in chars, of the longest command name. Set from Dispatch()
 	maxCmdLen = 0
 )
@@ -75,15 +76,9 @@ func CommandString() string {
 	return strings.Join(helpLines[:len(helpLines)-1], "\n") //Split by newline
 }
 
-//GlobalFlags returns the formatted help lines for the registered global flags
-func GlobalFlags() string {
-	return strings.Join(globals.FlagHelp(), "\n")
-}
-
-//AddGlobalFlag registers a global flag with the dispatcher to be printed in the
-// help if necessary
-func AddGlobalFlag(flag FlagInfo) {
-	globals.Flags = append(globals.Flags, flag)
+//GlobalFlagHelp returns the formatted help lines for the registered global flags
+func GlobalFlagHelp() string {
+	return strings.Join(HelpInfo{Flags: GlobalFlags}.FlagHelp(), "\n")
 }
 
 //Add registers a command to the Dispatcher object, callable by the name
