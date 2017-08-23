@@ -25,10 +25,6 @@ var List = &commands.Command{
 				Desc: "Show only jobs using the specified store",
 			},
 			{
-				Name: "schedule", Short: 'w', Valued: true,
-				Desc: "Show only jobs using the specified schedule",
-			},
-			{
 				Name: "policy", Short: 'p', Valued: true,
 				Desc: "Show only jobs using the specified retention policy",
 			},
@@ -66,7 +62,6 @@ func cliListJobs(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list jobs' command")
 	log.DEBUG("  for target:      '%s'", *opts.Target)
 	log.DEBUG("  for store:       '%s'", *opts.Store)
-	log.DEBUG("  for schedule:    '%s'", *opts.Schedule)
 	log.DEBUG("  for ret. policy: '%s'", *opts.Retention)
 	log.DEBUG("  show paused?      %v", *opts.Paused)
 	log.DEBUG("  show unpaused?    %v", *opts.Unpaused)
@@ -79,7 +74,6 @@ func cliListJobs(opts *commands.Options, args ...string) error {
 		Paused:     api.MaybeBools(*opts.Paused, *opts.Unpaused),
 		Target:     *opts.Target,
 		Store:      *opts.Store,
-		Schedule:   *opts.Schedule,
 		Retention:  *opts.Retention,
 		ExactMatch: api.Opposite(api.MaybeBools(*opts.Fuzzy, *opts.Raw)),
 	})

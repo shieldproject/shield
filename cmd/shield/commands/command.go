@@ -34,7 +34,6 @@ type Options struct {
 
 	Target    *string
 	Store     *string
-	Schedule  *string
 	Retention *string
 
 	Plugin *string
