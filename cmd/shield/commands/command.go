@@ -152,22 +152,22 @@ func (c *Command) usageLine() string {
 //Panics if command doesn't have all the things a command should
 func (c *Command) validate() {
 	if c.canonical == "" {
-		panic(fmt.Sprintf("Command missing canonical name: %+v", c))
+		panic(fmt.Sprintf("Command missing canonical name: %+v\n", c))
 	}
 
 	if c.Summary == "" && c.Help.Message == "" {
-		panic(fmt.Sprintf("Command missing summary: %+v", c))
+		panic(fmt.Sprintf("Command missing summary: %+v\n", c))
 	}
 
 	if c.RunFn == nil {
-		panic(fmt.Sprintf("Command missing function: %+v", c))
+		panic(fmt.Sprintf("Command missing function: %+v\n", c))
 	}
 
 	if c.Help == nil {
-		panic(fmt.Sprintf("Command missing help: %+v", c))
+		panic(fmt.Sprintf("Command missing help: %+v\n", c))
 	}
 
 	if c.Group == nil {
-		panic(fmt.Sprintf("Command not assigned to group: %+v", c))
+		panic(fmt.Sprintf("Command not assigned to group: %+v\n", c))
 	}
 }

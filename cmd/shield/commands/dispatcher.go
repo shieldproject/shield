@@ -89,6 +89,7 @@ func Add(commandName string, cmd *Command) *Command {
 	}
 
 	cmd.canonical = commandName
+	cmd.validate()
 	cmd.Group.addCommand(cmd)
 
 	commands[commandName] = cmd

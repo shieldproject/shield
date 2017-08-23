@@ -31,6 +31,7 @@ var Get = &commands.Command{
 			"log":"This is where I would put my plugin output if I had one"
 		}`,
 	},
+	RunFn: cliGetTask,
 	Group: commands.TasksGroup,
 }
 
