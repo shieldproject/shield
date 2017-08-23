@@ -361,7 +361,7 @@
 			"Rev": "a2ab8644e0b6a33df2cbe44673bd0f6ebba9abc3"
 		},
 		{
-			"ImportPath": "github.com/pborman/getopt",
+			"ImportPath": "github.com/pborman/getopt/v2",
 			"Rev": "7148bc3a4c3008adfcab60cbebfd0576018f330b"
 		},
 		{
