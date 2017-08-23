@@ -1,4 +1,4 @@
-// Copyright 2013 Google Inc.  All rights reserved.
+// Copyright 2017 Google Inc.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package getopt
 import (
 	"fmt"
 	"strconv"
+	"sync"
 )
 
 type unsigned uint64
@@ -18,10 +19,15 @@ type UnsignedLimit struct {
 	Max  uint64 // Maximum allowed value if both Min and Max are not 0
 }
 
-var unsignedLimits = make(map[*unsigned]*UnsignedLimit)
+var (
+	unsignedLimitsMu sync.Mutex
+	unsignedLimits   = make(map[*unsigned]*UnsignedLimit)
+)
 
 func (n *unsigned) Set(value string, opt Option) error {
+	unsignedLimitsMu.Lock()
 	l := unsignedLimits[n]
+	unsignedLimitsMu.Unlock()
 	if l == nil {
 		return fmt.Errorf("no limits defined for %s", opt.Name())
 	}
@@ -50,7 +56,9 @@ func (n *unsigned) Set(value string, opt Option) error {
 }
 
 func (n *unsigned) String() string {
+	unsignedLimitsMu.Lock()
 	l := unsignedLimits[n]
+	unsignedLimitsMu.Unlock()
 	if l != nil && l.Base != 0 {
 		return strconv.FormatUint(uint64(*n), l.Base)
 	}
@@ -63,36 +71,27 @@ func (n *unsigned) String() string {
 // implied by the string's prefix: base 16 for "0x", base 8 for "0", and base
 // 10 otherwise.
 func Unsigned(name rune, value uint64, l *UnsignedLimit, helpvalue ...string) *uint64 {
-	return CommandLine.Unsigned(name, value, l, helpvalue...)
-}
-
-func (s *Set) Unsigned(name rune, value uint64, l *UnsignedLimit, helpvalue ...string) *uint64 {
-	return s.UnsignedLong("", name, value, l, helpvalue...)
-}
-
-func UnsignedLong(name string, short rune, value uint64, l *UnsignedLimit, helpvalue ...string) *uint64 {
-	return CommandLine.UnsignedLong(name, short, value, l, helpvalue...)
-}
-
-func (s *Set) UnsignedLong(name string, short rune, value uint64, l *UnsignedLimit, helpvalue ...string) *uint64 {
-	s.UnsignedVarLong(&value, name, short, l, helpvalue...)
+	CommandLine.unsignedOption(&value, "", name, l, helpvalue...)
 	return &value
 }
 
-func UnsignedVar(p *uint64, name rune, l *UnsignedLimit, helpvalue ...string) Option {
-	return CommandLine.UnsignedVar(p, name, l, helpvalue...)
+func (s *Set) Unsigned(name rune, value uint64, l *UnsignedLimit, helpvalue ...string) *uint64 {
+	s.unsignedOption(&value, "", name, l, helpvalue...)
+	return &value
 }
 
-func (s *Set) UnsignedVar(p *uint64, name rune, l *UnsignedLimit, helpvalue ...string) Option {
-	return s.UnsignedVarLong(p, "", name, l, helpvalue...)
+func UnsignedLong(name string, short rune, value uint64, l *UnsignedLimit, helpvalue ...string) *uint64 {
+	CommandLine.unsignedOption(&value, name, short, l, helpvalue...)
+	return &value
 }
 
-func UnsignedVarLong(p *uint64, name string, short rune, l *UnsignedLimit, helpvalue ...string) Option {
-	return CommandLine.UnsignedVarLong(p, name, short, l, helpvalue...)
+func (s *Set) UnsignedLong(name string, short rune, value uint64, l *UnsignedLimit, helpvalue ...string) *uint64 {
+	s.unsignedOption(&value, name, short, l, helpvalue...)
+	return &value
 }
 
-func (s *Set) UnsignedVarLong(p *uint64, name string, short rune, l *UnsignedLimit, helpvalue ...string) Option {
-	opt := s.VarLong((*unsigned)(p), name, short, helpvalue...)
+func (s *Set) unsignedOption(p *uint64, name string, short rune, l *UnsignedLimit, helpvalue ...string) {
+	opt := s.FlagLong((*unsigned)(p), name, short, helpvalue...)
 	if l.Base > 36 || l.Base == 1 || l.Base < 0 {
 		fmt.Fprintf(stderr, "invalid base for %s: %d\n", opt.Name(), l.Base)
 		exit(1)
@@ -106,6 +105,7 @@ func (s *Set) UnsignedVarLong(p *uint64, name string, short rune, l *UnsignedLim
 		exit(1)
 	}
 	lim := *l
+	unsignedLimitsMu.Lock()
 	unsignedLimits[(*unsigned)(p)] = &lim
-	return opt
+	unsignedLimitsMu.Unlock()
 }

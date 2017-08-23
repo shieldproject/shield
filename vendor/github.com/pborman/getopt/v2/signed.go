@@ -1,4 +1,4 @@
-// Copyright 2013 Google Inc.  All rights reserved.
+// Copyright 2017 Google Inc.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package getopt
 import (
 	"fmt"
 	"strconv"
+	"sync"
 )
 
 type signed int64
@@ -18,10 +19,15 @@ type SignedLimit struct {
 	Max  int64 // Maximum allowed value if both Min and Max are not 0
 }
 
-var signedLimits = make(map[*signed]*SignedLimit)
+var (
+	signedLimitsMu sync.Mutex
+	signedLimits   = make(map[*signed]*SignedLimit)
+)
 
 func (n *signed) Set(value string, opt Option) error {
+	signedLimitsMu.Lock()
 	l := signedLimits[n]
+	signedLimitsMu.Unlock()
 	if l == nil {
 		return fmt.Errorf("no limits defined for %s", opt.Name())
 	}
@@ -50,7 +56,9 @@ func (n *signed) Set(value string, opt Option) error {
 }
 
 func (n *signed) String() string {
+	signedLimitsMu.Lock()
 	l := signedLimits[n]
+	signedLimitsMu.Unlock()
 	if l != nil && l.Base != 0 {
 		return strconv.FormatInt(int64(*n), l.Base)
 	}
@@ -62,36 +70,27 @@ func (n *signed) String() string {
 // at least one of the values are not 0.   If Base is 0, the base is implied by
 // the string's prefix: base 16 for "0x", base 8 for "0", and base 10 otherwise.
 func Signed(name rune, value int64, l *SignedLimit, helpvalue ...string) *int64 {
-	return CommandLine.Signed(name, value, l, helpvalue...)
-}
-
-func (s *Set) Signed(name rune, value int64, l *SignedLimit, helpvalue ...string) *int64 {
-	return s.SignedLong("", name, value, l, helpvalue...)
-}
-
-func SignedLong(name string, short rune, value int64, l *SignedLimit, helpvalue ...string) *int64 {
-	return CommandLine.SignedLong(name, short, value, l, helpvalue...)
-}
-
-func (s *Set) SignedLong(name string, short rune, value int64, l *SignedLimit, helpvalue ...string) *int64 {
-	s.SignedVarLong(&value, name, short, l, helpvalue...)
+	CommandLine.signedOption(&value, "", name, l, helpvalue...)
 	return &value
 }
 
-func SignedVar(p *int64, name rune, l *SignedLimit, helpvalue ...string) Option {
-	return CommandLine.SignedVar(p, name, l, helpvalue...)
+func (s *Set) Signed(name rune, value int64, l *SignedLimit, helpvalue ...string) *int64 {
+	s.signedOption(&value, "", name, l, helpvalue...)
+	return &value
 }
 
-func (s *Set) SignedVar(p *int64, name rune, l *SignedLimit, helpvalue ...string) Option {
-	return s.SignedVarLong(p, "", name, l, helpvalue...)
+func SignedLong(name string, short rune, value int64, l *SignedLimit, helpvalue ...string) *int64 {
+	CommandLine.signedOption(&value, name, short, l, helpvalue...)
+	return &value
 }
 
-func SignedVarLong(p *int64, name string, short rune, l *SignedLimit, helpvalue ...string) Option {
-	return CommandLine.SignedVarLong(p, name, short, l, helpvalue...)
+func (s *Set) SignedLong(name string, short rune, value int64, l *SignedLimit, helpvalue ...string) *int64 {
+	s.signedOption(&value, name, short, l, helpvalue...)
+	return &value
 }
 
-func (s *Set) SignedVarLong(p *int64, name string, short rune, l *SignedLimit, helpvalue ...string) Option {
-	opt := s.VarLong((*signed)(p), name, short, helpvalue...)
+func (s *Set) signedOption(p *int64, name string, short rune, l *SignedLimit, helpvalue ...string) {
+	opt := s.FlagLong((*signed)(p), name, short, helpvalue...)
 	if l.Base > 36 || l.Base == 1 || l.Base < 0 {
 		fmt.Fprintf(stderr, "invalid base for %s: %d\n", opt.Name(), l.Base)
 		exit(1)
@@ -105,6 +104,7 @@ func (s *Set) SignedVarLong(p *int64, name string, short rune, l *SignedLimit, h
 		exit(1)
 	}
 	lim := *l
+	signedLimitsMu.Lock()
 	signedLimits[(*signed)(p)] = &lim
-	return opt
+	signedLimitsMu.Unlock()
 }

@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"fmt"
@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	. "github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/tui"
 )
 
-func ShowTarget(target Target) {
+func ShowTarget(target api.Target) {
 	t := tui.NewReport()
 	t.Add("Name", target.Name)
 	t.Add("Summary", target.Summary)
@@ -22,7 +22,7 @@ func ShowTarget(target Target) {
 	t.Output(os.Stdout)
 }
 
-func ShowStore(store Store) {
+func ShowStore(store api.Store) {
 	t := tui.NewReport()
 	t.Add("Name", store.Name)
 	t.Add("Summary", store.Summary)
@@ -33,7 +33,7 @@ func ShowStore(store Store) {
 	t.Output(os.Stdout)
 }
 
-func ShowSchedule(schedule Schedule) {
+func ShowSchedule(schedule api.Schedule) {
 	t := tui.NewReport()
 	t.Add("Name", schedule.Name)
 	t.Add("Summary", schedule.Summary)
@@ -41,7 +41,7 @@ func ShowSchedule(schedule Schedule) {
 	t.Output(os.Stdout)
 }
 
-func ShowRetentionPolicy(policy RetentionPolicy) {
+func ShowRetentionPolicy(policy api.RetentionPolicy) {
 	t := tui.NewReport()
 	t.Add("Name", policy.Name)
 	t.Add("Summary", policy.Summary)
@@ -49,10 +49,10 @@ func ShowRetentionPolicy(policy RetentionPolicy) {
 	t.Output(os.Stdout)
 }
 
-func ShowJob(job Job) {
+func ShowJob(job api.Job) {
 	t := tui.NewReport()
 	t.Add("Name", job.Name)
-	t.Add("Paused", BoolString(job.Paused))
+	t.Add("Paused", boolString(job.Paused))
 	t.Break()
 
 	t.Add("Retention Policy", job.RetentionName)
@@ -76,7 +76,7 @@ func ShowJob(job Job) {
 	t.Output(os.Stdout)
 }
 
-func ShowTask(task Task) {
+func ShowTask(task api.Task) {
 	t := tui.NewReport()
 	t.Add("UUID", task.UUID)
 	t.Add("Owner", task.Owner)
@@ -97,7 +97,7 @@ func ShowTask(task Task) {
 	t.Add("Stopped at", stopped)
 	t.Break()
 
-	if job, err := GetJob(uuid.Parse(task.JobUUID)); err == nil {
+	if job, err := api.GetJob(uuid.Parse(task.JobUUID)); err == nil {
 		t.Add("Job", fmt.Sprintf("%s (%s)", job.Name, task.JobUUID))
 	}
 	if task.ArchiveUUID != "" {
@@ -109,7 +109,7 @@ func ShowTask(task Task) {
 	t.Output(os.Stdout)
 }
 
-func ShowArchive(archive Archive) {
+func ShowArchive(archive api.Archive) {
 	t := tui.NewReport()
 	t.Add("UUID", archive.UUID)
 	t.Add("Backup Key", archive.StoreKey)
@@ -122,4 +122,11 @@ func ShowArchive(archive Archive) {
 	t.Add("Notes", archive.Notes)
 
 	t.Output(os.Stdout)
+}
+
+func boolString(tf bool) string {
+	if tf {
+		return "Y"
+	}
+	return "N"
 }

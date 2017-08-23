@@ -1,12 +1,13 @@
-package main_test
+package internal_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestCli(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "SHIELD CLI Test Suite")
+	RunSpecs(t, "Command Internals Test Suite")
 }

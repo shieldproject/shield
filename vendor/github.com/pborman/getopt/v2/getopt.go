@@ -1,16 +1,13 @@
-// Copyright 2013 Google Inc.  All rights reserved.
+// Copyright 2017 Google Inc.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package getopt (v1) provides traditional getopt processing for implementing
+// Package getopt (v2) provides traditional getopt processing for implementing
 // commands that use traditional command lines.  The standard Go flag package
 // cannot be used to write a program that parses flags the way ls or ssh does,
-// for example.
+// for example.  Version 2 of this package has a simplified API.
 //
-// A new version of this package (v2) (whose package name is also getopt) is
-// available as:
-//
-//	"github.com/pborman/getopt/v2"
+// USAGE
 //
 // Getopt supports functionality found in both the standard BSD getopt as well
 // as (one of the many versions of) the GNU getopt_long.  Being a Go package,
@@ -19,15 +16,28 @@
 //
 // Typical usage:
 //
-//	// Declare the flags to be used
+//	// Declare flags and have getopt return pointers to the values.
 //	helpFlag := getopt.Bool('?', "display help")
-//      cmdFlag := getopt.StringLong("command", 'c', "", "the command)
+//	cmdFlag := getopt.StringLong("command", 'c', "default", "the command)
+//
+//	// Declare flags against existing variables.
+//	var {
+//		fileName = "/the/default/path"
+//		timeout = time.Second * 5
+//		verbose bool
+//	}
+//	func init() {
+//		getopt.Flag(&verbose, 'v', "be verbose")
+//		getopt.FlagLong(&fileName, "path", 0, "the path")
+//		getopt.FlagLong(&timeout, "timeout", 't', "some timeout")
+//	}
 //
 //	func main() {
 //		// Parse the program arguments
 //		getopt.Parse()
 //		// Get the remaining positional parameters
 //		args := getopt.Args()
+//		...
 //
 // If you don't want the program to exit on error, use getopt.Getopt:
 //
@@ -36,6 +46,8 @@
 //			// code to handle error
 //			fmt.Fprintln(os.Stderr, err)
 //		}
+//
+// FLAG SYNTAX
 //
 // Support is provided for both short (-f) and long (--flag) options.  A single
 // option may have both a short and a long name.  Each option may be a flag or a
@@ -75,14 +87,14 @@
 //  --val -f       (sets v and f as being seen)
 //  --val=value -f (sets v to "value" and sets f)
 //
-// There is no convience function defined for making the value optional.  The
+// There is no convenience function defined for making the value optional.  The
 // SetOptional method must be called on the actual Option.
 //
 //  v := String("val", 'v', "", "the optional v")
 //  Lookup("v").SetOptional()
 //
 //  var s string
-//  StringVar(&s, "val", 'v', "the optional v).SetOptional()
+//  FlagLong(&s, "val", 'v', "the optional v).SetOptional()
 //
 // Parsing continues until the first non-option or "--" is encountered.
 //
@@ -91,6 +103,8 @@
 // specified then "--f" could also be used.  If "-" is not declared as an option
 // then the single "-" will also terminate the option processing but unlike
 // "--", the "-" will be part of the remaining arguments.
+//
+// ADVANCED USAGE
 //
 // Normally the parsing is performed by calling the Parse function.  If it is
 // important to see the order of the options then the Getopt function should be
@@ -113,8 +127,8 @@
 // error is encountered then Args will begin with argument that caused the
 // error.
 //
-// It is valid to call a set's Parse a second time to amend the current set of
-// flags or values.  As an example:
+// It is valid to call a set's Parse a second time to amen flags or values.  As
+// an example:
 //
 //  var a = getopt.Bool('a', "", "The a flag")
 //  var b = getopt.Bool('b', "", "The a flag")
@@ -135,58 +149,27 @@
 // Unless an option type explicitly prohibits it, an option may appear more than
 // once in the arguments.  The last value provided to the option is the value.
 //
-// SYNTAX
+// BUILTIN TYPES
 //
-// For each option type there are an unfortunately large number of ways, 8, to
-// initialize the option.  This number is derived from three attributes:
+// The Flag and FlagLong functions support most standard Go types.  For the
+// list, see the description of FlagLong below for a list of supported types.
 //
-//  1)  Short or Long name
-//  2)  Normal vs Var
-//  3)  Command Line vs Option Set
+// There are also helper routines to allow single line flag declarations.  These
+// types are: Bool, Counter, Duration, Enum, Int16, Int32, Int64, Int, List,
+// Signed, String, Uint16, Uint32, Uint64, Uint, and Unsigned.
 //
-// The first two variations provide 4 signature:
+// Each comes in a short and long flavor, e.g., Bool and BoolLong and include
+// functions to set the flags on the standard command line or for a specific Set
+// of flags.
 //
-//  Option(name rune, [value type,]  helpvalue... string)
-//  OptionLong(name string, short rune, [value type,]  helpvalue... string)
-//  OptionVar(p *type, name rune, helpvalue... string)
-//  OptionVarLong(p *type, name string, short rune, helpvalue... string)
+// Except for the Counter, Enum, Signed and Unsigned types, all of these types
+// can be declared using Flag and FlagLong by passing in a pointer to the
+// appropriate type.
 //
-// Foo can actually be expressed in terms of FooLong:
+// DECLARING NEW FLAG TYPES
 //
-//  func Foo(name rune, value type, helpvalue... string) *type {
-//      return FooLong("", name, value, helpvalue...)
-//  }
-//
-// Normally Foo is used, unless long options are needed.  Setting short to 0
-// creates only a long option.
-//
-// The difference bentween Foo and FooVar is that you pass a pointer, p, to the
-// location of the value to FooVar.  The default value is simply *p.  The
-// initial value of *p is the defaut value of the option.
-//
-// Foo is actually a wrapper around FooVar:
-//
-//  func Foo(name rune, value type, helpvalue... string) *type {
-//      p := value
-//      FooVar(&p, name, helpvalue... string)
-//      return &p
-//  }
-//
-//
-// The third variation provides a top-level function and a method on a Set:
-//
-//  func Option(...)
-//  func (s *Set) Option(...)
-//
-// The top-level function is simply:
-//
-//  func Option(...) *type {
-//      return CommandLine.Option(...) {
-//  }
-//
-// To simplfy documentation, typically only the main top-level function is fully
-// documented.  The others will have documentation when there is something
-// special about them.
+// A pointer to any type that implements the Value interface may be passed to
+// Flag or FlagLong.
 //
 // VALUEHELP
 //
@@ -400,19 +383,19 @@ func (s *Set) Parse(args []string) {
 // Getopt returns nil when all options have been processed (a non-option
 // argument was encountered, "--" was encountered, or fn returned false).
 //
-// On error getopt returns a refernce to an InvalidOption (which implements
-// the error interface).
+// On error getopt returns a reference to an InvalidOption (which implements the
+// error interface).
 func (s *Set) Getopt(args []string, fn func(Option) bool) (err error) {
-	s.State = InProgress
+	s.setState(InProgress)
 	defer func() {
-		if s.State == InProgress {
+		if s.State() == InProgress {
 			switch {
 			case err != nil:
-				s.State = Failure
+				s.setState(Failure)
 			case len(s.args) == 0:
-				s.State = EndOfArguments
+				s.setState(EndOfArguments)
 			default:
-				s.State = Unknown
+				s.setState(Unknown)
 			}
 		}
 	}()
@@ -435,7 +418,7 @@ Parsing:
 
 		// end of options?
 		if arg == "" || arg[0] != '-' {
-			s.State = EndOfOptions
+			s.setState(EndOfOptions)
 			return nil
 		}
 
@@ -446,7 +429,7 @@ Parsing:
 		// explicitly request end of options?
 		if arg == "--" {
 			s.args = args
-			s.State = DashDash
+			s.setState(DashDash)
 			return nil
 		}
 
@@ -485,7 +468,7 @@ Parsing:
 			}
 
 			if !fn(opt) {
-				s.State = Terminated
+				s.setState(Terminated)
 				return nil
 			}
 			continue Parsing
@@ -501,7 +484,7 @@ Parsing:
 				// as an option, a lone - is treated as
 				// if there were a -- in front of it.
 				if arg == "-" {
-					s.State = Dash
+					s.setState(Dash)
 					return nil
 				}
 				return unknownOption(c)
@@ -523,7 +506,7 @@ Parsing:
 				return setError(opt, value, err)
 			}
 			if !fn(opt) {
-				s.State = Terminated
+				s.setState(Terminated)
 				return nil
 			}
 			if !opt.flag {

@@ -1,4 +1,4 @@
-// Copyright 2013 Google Inc.  All rights reserved.
+// Copyright 2017 Google Inc.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -43,7 +43,7 @@ type Option interface {
 	// SetFlag makes the value a flag.  Flags are boolean values and
 	// normally do not taken a value.  They are set to true when seen.
 	// If a value is passed in the long form then it must be on, case
-	// insenstive, one of "true", "false", "t", "f", "on", "off", "1", "0".
+	// insensitivinsensitive, one of "true", "false", "t", "f", "on", "off", "1", "0".
 	// SetFlag returns the Option
 	SetFlag() Option
 
