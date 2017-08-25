@@ -18,6 +18,10 @@ import (
 	"github.com/starkandwayne/shield/timespec"
 )
 
+//APIVersion is the maximum supported version of the core Shield Daemon API.
+// Supported as of Version 2.
+const APIVersion = "2"
+
 func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `POST /auth/login`):
@@ -371,11 +375,13 @@ func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
 
 func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
 	JSON(w, struct {
-		Version string `json:"version"`
-		Name    string `json:"name"`
+		Version    string `json:"version"`
+		Name       string `json:"name"`
+		APIVersion string `json:"api_version"`
 	}{
-		Version: Version,
-		Name:    os.Getenv("SHIELD_NAME"),
+		Version:    Version,
+		Name:       os.Getenv("SHIELD_NAME"),
+		APIVersion: APIVersion,
 	})
 }
 
