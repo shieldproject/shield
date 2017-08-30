@@ -7,7 +7,6 @@ import (
 
 	"github.com/pborman/getopt/v2"
 	"github.com/starkandwayne/goutils/ansi"
-	"github.com/starkandwayne/shield/api"
 	cmds "github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/archives"
 	"github.com/starkandwayne/shield/cmd/shield/commands/backends"
@@ -18,6 +17,7 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/stores"
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tasks"
+	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
@@ -26,7 +26,6 @@ var Version = ""
 
 func main() {
 	cmds.Opts = &cmds.Options{
-		Shield:   getopt.StringLong("shield", 'H', "", "DEPRECATED - Previously required to point to a SHIELD backend to talk to. Now used to auto-vivify ~/.shield_config if necessary"),
 		Used:     getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
 		Unused:   getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
 		Paused:   getopt.BoolLong("paused", 0, "Only show jobs that are paused"),
@@ -97,7 +96,7 @@ func main() {
 	addCommands()
 	addGlobalFlags()
 
-	err := api.LoadConfig(*cmds.Opts.Config)
+	err := config.Load(*cmds.Opts.Config)
 	if err != nil {
 		ansi.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *cmds.Opts.Config, err)
 		os.Exit(1)
@@ -114,11 +113,10 @@ func main() {
 
 	// only check for backends + creds if we aren't manipulating backends/help
 	if cmd != info.Usage && cmd != backends.List && cmd != backends.Use && cmd != backends.Create {
-		if *cmds.Opts.Shield != "" || os.Getenv("SHIELD_API") != "" {
-			ansi.Fprintf(os.Stderr, "@Y{WARNING: -H, --host, and the SHIELD_API environment variable have been deprecated and will be removed in a later release.} Use `shield backend` instead\n")
+		if config.Current() == nil {
+			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
+			os.Exit(1)
 		}
-
-		backends.Load()
 	}
 
 	if err := cmd.Run(args...); err != nil {
@@ -133,6 +131,17 @@ func main() {
 		}
 		os.Exit(1)
 	} else {
+		//Save the config changes if everything worked out
+		err = config.Commit(config.Current())
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
+			os.Exit(1)
+		}
+		err = config.Save()
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{Error saving config: %s}\n", err)
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
 }

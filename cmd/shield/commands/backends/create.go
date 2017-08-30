@@ -7,6 +7,7 @@ import (
 	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
+	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
@@ -23,6 +24,11 @@ var Create = &commands.Command{
 				Name: "uri", Mandatory: true, Positional: true,
 				Desc: `The address at which the new backend can be found`,
 			},
+			commands.FlagInfo{
+				Name: "skip-ssl-validation", Short: 'k',
+				Desc: `If this flag is specified, SSL validation will always be skipped
+				when using this backend`,
+			},
 		},
 	},
 	RunFn: cliCreateBackend,
@@ -35,23 +41,25 @@ func cliCreateBackend(opts *commands.Options, args ...string) error {
 	if len(args) != 2 {
 		return fmt.Errorf("Invalid 'create backend' syntax: `shield backend <name> <uri>")
 	}
-	err := api.Cfg.AddBackend(args[1], args[0])
+
+	name := args[0]
+	uri := args[1]
+	err := config.Commit(&api.Backend{
+		Name:              name,
+		Address:           uri,
+		SkipSSLValidation: *opts.SkipSSLValidation,
+	})
 	if err != nil {
 		return err
 	}
 
-	err = api.Cfg.UseBackend(args[0])
-	if err != nil {
-		return err
-	}
-
-	err = api.Cfg.Save()
+	err = config.Use(name)
 	if err != nil {
 		return err
 	}
 
 	ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
-	Display(api.Cfg)
+	DisplayCurrent()
 
 	return nil
 }
