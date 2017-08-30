@@ -4,12 +4,16 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/tui"
 )
 
 var _ = Describe("Cell Management", func() {
+	var c tui.Cell
 	Context("with the empty string", func() {
-		c := tui.ParseCell("")
+		BeforeEach(func() {
+			c = tui.ParseCell("")
+		})
 
 		It("should calculate the width as 0", func() {
 			Ω(c.Width()).Should(Equal(0))
@@ -25,7 +29,9 @@ var _ = Describe("Cell Management", func() {
 	})
 
 	Context("with a single-line string", func() {
-		c := tui.ParseCell("hello")
+		BeforeEach(func() {
+			c = tui.ParseCell("hello")
+		})
 
 		It("should calculate the width as the length of the string", func() {
 			Ω(c.Width()).Should(Equal(len("hello")))
@@ -40,6 +46,29 @@ var _ = Describe("Cell Management", func() {
 			Ω(c.Line(1)).Should(Equal(""))
 			Ω(c.Line(5)).Should(Equal(""))
 			Ω(c.Line(9)).Should(Equal(""))
+		})
+
+		Context("With colorization", func() {
+			BeforeEach(func() {
+				c = tui.ParseCell(ansi.Sprintf("@G{hello}"))
+			})
+
+			It("should calculate the width as the length of the string", func() {
+				Ω(c.Width()).Should(Equal(len("hello")))
+			})
+			It("should calculate the height as 1", func() {
+				Ω(c.Height()).Should(Equal(1))
+			})
+
+			It("should return the original string for line 0", func() {
+				Ω(c.Line(0)).Should(Equal(ansi.Sprintf("@G{hello}")))
+			})
+
+			It("should return the empty string for all line indices > 0", func() {
+				Ω(c.Line(1)).Should(Equal(""))
+				Ω(c.Line(5)).Should(Equal(""))
+				Ω(c.Line(9)).Should(Equal(""))
+			})
 		})
 	})
 
@@ -162,6 +191,7 @@ var _ = Describe("Row Management", func() {
 })
 
 var _ = Describe("Table Management", func() {
+	var t tui.Grid
 	Context("with a 1x1 configuration", func() {
 		t := tui.NewGrid("header")
 		t.Row("hello")
@@ -202,12 +232,14 @@ var _ = Describe("Table Management", func() {
 		})
 	})
 	Context("with a 5x2 configuration", func() {
-		t := tui.NewGrid("Superhero", "Secret Identity")
-		t.Row("Batman", "Bruce Wayne")
-		t.Row("Iron Man", "Tony Stark")
-		t.Row("The Green Lantern", "Alan / Hal / Guy / Kyle / John")
-		t.Row("Deadpool(?)", "Wade Winston Wilson")
-		t.Row("The Spectre", "Jim Corrigan")
+		BeforeEach(func() {
+			t = tui.NewGrid("Superhero", "Secret Identity")
+			t.Row("Batman", "Bruce Wayne")
+			t.Row("Iron Man", "Tony Stark")
+			t.Row("The Green Lantern", "Alan / Hal / Guy / Kyle / John")
+			t.Row("Deadpool(?)", "Wade Winston Wilson")
+			t.Row("The Spectre", "Jim Corrigan")
+		})
 
 		It("should format data properly", func() {
 			Ω(t.Height()).Should(Equal(7))
@@ -218,6 +250,28 @@ var _ = Describe("Table Management", func() {
 			Ω(t.Line(4)).Should(Equal("The Green Lantern  Alan / Hal / Guy / Kyle / John\n"), `fifth line`)
 			Ω(t.Line(5)).Should(Equal("Deadpool(?)        Wade Winston Wilson\n"), `sixth line`)
 			Ω(t.Line(6)).Should(Equal("The Spectre        Jim Corrigan\n"), `seventh line`)
+		})
+
+		Context("with a colored line", func() {
+			BeforeEach(func() {
+				t = tui.NewGrid("Superhero", "Secret Identity")
+				t.Row("Batman", "Bruce Wayne")
+				t.Row("Iron Man", "Tony Stark")
+				t.Row("The Green Lantern", "Alan / Hal / Guy / Kyle / John")
+				t.Row(ansi.Sprintf("@R{Deadpool(?)}"), "Wade Winston Wilson")
+				t.Row("The Spectre", "Jim Corrigan")
+			})
+
+			It("should format data properly", func() {
+				Ω(t.Height()).Should(Equal(7))
+				Ω(t.Line(0)).Should(Equal("Superhero          Secret Identity\n"), `first line`)
+				Ω(t.Line(1)).Should(Equal("=========          ===============\n"), `second line`)
+				Ω(t.Line(2)).Should(Equal("Batman             Bruce Wayne\n"), `third line`)
+				Ω(t.Line(3)).Should(Equal("Iron Man           Tony Stark\n"), `fourth line`)
+				Ω(t.Line(4)).Should(Equal("The Green Lantern  Alan / Hal / Guy / Kyle / John\n"), `fifth line`)
+				Ω(t.Line(5)).Should(Equal(ansi.Sprintf("@R{Deadpool(?)}        Wade Winston Wilson\n")), `sixth line`)
+				Ω(t.Line(6)).Should(Equal("The Spectre        Jim Corrigan\n"), `seventh line`)
+			})
 		})
 	})
 	Context("with multi-line cells", func() {
