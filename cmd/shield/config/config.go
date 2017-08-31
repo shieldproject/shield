@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 	"regexp"
 
+	"github.com/geofffranks/spruce/log"
 	"github.com/starkandwayne/shield/api"
 	"gopkg.in/yaml.v2"
 )
@@ -20,7 +22,8 @@ type Config struct {
 	Aliases    map[string]string      `yaml:"aliases"`
 	Properties map[string]backendInfo `yaml:"properties"`
 
-	path string //The filepath that this config was read from
+	dirty bool   //True if the config has been changed since saving
+	path  string //The filepath that this config was read from
 }
 
 //BackendInfo contains all info about a backend that isn't the endpoint or the
@@ -64,6 +67,13 @@ func Load(p string) error {
 
 //Save writes back the config to the file it was loaded in from
 func Save() error {
+	if !cfg.dirty {
+		return nil
+	}
+
+	log.DEBUG("Saving config to %s", cfg.path)
+	collectGarbage()
+
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err
@@ -99,6 +109,8 @@ func Save() error {
 		return err
 	}
 
+	cfg.dirty = false
+
 	return nil
 }
 
@@ -109,7 +121,9 @@ func Current() *api.Backend {
 		return nil
 	}
 
-	return Get(cfg.Backend)
+	ret := Get(cfg.Backend)
+	ret.Canonize()
+	return ret
 }
 
 //resolveAlias retrieves the address associated with the given backend alias
@@ -141,10 +155,6 @@ func Get(name string) *api.Backend {
 		SkipSSLValidation: cfg.Properties[uri].SkipSSLValidation,
 	}
 
-	//Canonize in case there was an incorrectly formatted address originating from
-	//a CLI version before one that regulated this
-	ret.Canonize()
-	Commit(ret)
 	return ret
 }
 
@@ -168,27 +178,71 @@ func Use(be string) error {
 		return fmt.Errorf("Undefined Backend: %s", be)
 	}
 
+	if be == cfg.Backend {
+		return nil
+	}
+
 	cfg.Backend = be
 	api.SetBackend(Current())
+
+	cfg.dirty = true
 	return nil
 }
 
 //Commit puts this backend into the config, overwriting the old backend info if
 //present. Does not write to disk. Call Save() for that.
 func Commit(b *api.Backend) error {
-	//Commit puts this backend into the config, overwriting the old backend info if
-	//present. Does not write to disk. Call Save() for that.
 	urlRE := regexp.MustCompile(`^https?://[^:]+(:\d+)?/?$`)
 	if !urlRE.MatchString(b.Address) {
 		return fmt.Errorf("Invalid backend format. Expecting `protocol://hostname:port/`. Got `%s`", b.Address)
 	}
 
-	b.Canonize()
+	if _, found := cfg.Aliases[b.Name]; found && reflect.DeepEqual(b, Get(b.Name)) {
+		return nil
+	}
 
 	cfg.Aliases[b.Name] = b.Address
 	cfg.Backends[b.Address] = b.Token
 	cfg.Properties[b.Address] = backendInfo{
 		SkipSSLValidation: b.SkipSSLValidation,
 	}
+
+	cfg.dirty = true
 	return nil
+}
+
+//Delete removes the alias with the given name from the config
+func Delete(name string) error {
+	if _, found := cfg.Aliases[name]; !found {
+		return fmt.Errorf("No backend with alias `%s' was found", name)
+	}
+	delete(cfg.Aliases, name)
+
+	if cfg.Backend == name {
+		cfg.Backend = ""
+	}
+
+	cfg.dirty = true
+
+	return nil
+}
+
+func collectGarbage() {
+	referencedAddrs := map[string]bool{}
+	for _, addr := range cfg.Aliases {
+		referencedAddrs[api.CanonizeURI(addr)] = true
+	}
+
+	for addr, token := range cfg.Backends {
+		//Keep lines with tokens to preserve old behavior
+		if _, found := referencedAddrs[api.CanonizeURI(addr)]; !found && token == "" {
+			delete(cfg.Backends, addr)
+		}
+	}
+
+	for addr := range cfg.Properties {
+		if _, found := referencedAddrs[api.CanonizeURI(addr)]; !found {
+			delete(cfg.Properties, addr)
+		}
+	}
 }

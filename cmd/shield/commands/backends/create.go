@@ -13,7 +13,7 @@ import (
 
 //Create - Create or modify a SHIELD backend
 var Create = &commands.Command{
-	Summary: "Create or modify a SHIELD backend",
+	Summary: "Create or modify a SHIELD backend alias",
 	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
@@ -39,7 +39,7 @@ func cliCreateBackend(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'create backend' command")
 
 	if len(args) != 2 {
-		return fmt.Errorf("Invalid 'create backend' syntax: `shield backend <name> <uri>")
+		return fmt.Errorf("Invalid 'create-backend' syntax: `shield create-backend <name> <uri>")
 	}
 
 	name := args[0]

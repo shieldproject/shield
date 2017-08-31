@@ -112,7 +112,7 @@ func main() {
 	cmds.MaybeWarnDeprecation(cmdname, cmd)
 
 	// only check for backends + creds if we aren't manipulating backends/help
-	if cmd != info.Usage && cmd != backends.List && cmd != backends.Use && cmd != backends.Create {
+	if cmd != info.Usage && cmd.Group != cmds.BackendsGroup {
 		if config.Current() == nil {
 			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
 			os.Exit(1)
@@ -132,16 +132,19 @@ func main() {
 		os.Exit(1)
 	} else {
 		//Save the config changes if everything worked out
-		err = config.Commit(config.Current())
-		if err != nil {
-			ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
-			os.Exit(1)
+		if config.Current() != nil {
+			err = config.Commit(config.Current())
+			if err != nil {
+				ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
+				os.Exit(1)
+			}
 		}
 		err = config.Save()
 		if err != nil {
 			ansi.Fprintf(os.Stderr, "@R{Error saving config: %s}\n", err)
 			os.Exit(1)
 		}
+
 		os.Exit(0)
 	}
 }
@@ -153,6 +156,7 @@ func addCommands() {
 	cmds.Add("backends", backends.List).AKA("list backends", "ls be")
 	cmds.Add("backend", backends.Use).AKA("use backend", "use-backend")
 	cmds.Add("create-backend", backends.Create).AKA("create backend", "c be", "update backend")
+	cmds.Add("delete-backend", backends.Delete).AKA("delete backend")
 
 	cmds.Add("targets", targets.List).AKA("list targets", "ls targets")
 	cmds.Add("target", targets.Get).AKA("show target", "view target", "display target", "list target", "ls target")

@@ -34,7 +34,12 @@ func SetBackend(b *Backend) {
 //Canonize formats the backend data such that differently formatted backend datas
 // that reference the same endpoint will have the same address string
 func (b *Backend) Canonize() {
-	b.Address = strings.TrimSuffix(b.Address, "/")
+	b.Address = CanonizeURI(b.Address)
+}
+
+//CanonizeURI takes an input URI and normalizes it for use in API functions
+func CanonizeURI(uri string) string {
+	return strings.TrimSuffix(uri, "/")
 }
 
 //SecureBackendURI Hits the /v1/ping endpoint to trigger any HTTP -> HTTPS

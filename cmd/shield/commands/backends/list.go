@@ -15,7 +15,7 @@ import (
 
 //List - List configured SHIELD backends
 var List = &commands.Command{
-	Summary: "List configured SHIELD backends",
+	Summary: "List configured SHIELD backend aliases",
 	Help: &commands.HelpInfo{
 		JSONOutput: `[{
 			"name":"mybackend",
@@ -46,7 +46,7 @@ func cliListBackends(opts *commands.Options, args ...string) error {
 
 	t := tui.NewTable("Name", "Backend URI")
 	for _, backend := range backends {
-		isCurrent := backend.Name == config.Current().Name
+		isCurrent := config.Current() != nil && backend.Name == config.Current().Name
 
 		if backend.SkipSSLValidation {
 			backend.Name = ansi.Sprintf("%s @R{(insecure)}", backend.Name)
