@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/geofffranks/spruce/log"
 	"github.com/starkandwayne/shield/api"
+	"github.com/starkandwayne/shield/cmd/shield/log"
 	"gopkg.in/yaml.v2"
 )
 
