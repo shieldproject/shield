@@ -229,78 +229,78 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/config",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/codelocation",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/containernode",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/failer",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/leafnodes",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/remote",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/spec",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/specrunner",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/suite",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/testingtproxy",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/internal/writer",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/reporters",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/reporters/stenographer",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo/types",
-			"Comment": "v1.2.0-11-gd94e2f4",
-			"Rev": "d94e2f4000332f62b356ecb2840c98f4218f5358"
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
@@ -513,6 +513,16 @@
 		{
 			"ImportPath": "github.com/starkandwayne/goutils/botta/vendor/golang.org/x/sys/unix",
 			"Rev": "a28afee5ab1f712454bee22cd403f512308e25e2"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable",
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty",
+			"Comment": "v1.2.0-87-g00054c0",
+			"Rev": "00054c0bb96fc880d4e0be1b90937fad438c5290"
 		}
 	]
 }

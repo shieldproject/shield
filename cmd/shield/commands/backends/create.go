@@ -55,7 +55,7 @@ func cliCreateBackend(opts *commands.Options, args ...string) error {
 
 	err = config.Use(name)
 	if err != nil {
-		return err
+		panic("We just created this backend. Why can't we use it?")
 	}
 
 	ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])

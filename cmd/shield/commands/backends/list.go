@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/starkandwayne/goutils/ansi"
-	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 	"github.com/starkandwayne/shield/cmd/shield/config"
@@ -27,17 +26,11 @@ var List = &commands.Command{
 	Group: commands.BackendsGroup,
 }
 
-type byAlias []api.Backend
-
-func (a byAlias) Len() int           { return len(a) }
-func (a byAlias) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a byAlias) Less(i, j int) bool { return a[i].Name < a[j].Name }
-
 func cliListBackends(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'backends' command")
 
 	backends := config.List()
-	sort.Sort(byAlias(backends))
+	sort.Slice(backends, func(i, j int) bool { return backends[i].Name < backends[j].Name })
 
 	if *opts.Raw {
 		internal.RawJSON(backends)

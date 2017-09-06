@@ -7,6 +7,7 @@ import (
 
 	"github.com/pborman/getopt/v2"
 	"github.com/starkandwayne/goutils/ansi"
+	"github.com/starkandwayne/shield/api"
 	cmds "github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/archives"
 	"github.com/starkandwayne/shield/cmd/shield/commands/backends"
@@ -111,12 +112,14 @@ func main() {
 	}
 	cmds.MaybeWarnDeprecation(cmdname, cmd)
 
+	currentBackend := config.Current()
 	// only check for backends + creds if we aren't manipulating backends/help
 	if cmd != info.Usage && cmd.Group != cmds.BackendsGroup {
-		if config.Current() == nil {
+		if currentBackend == nil {
 			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
 			os.Exit(1)
 		}
+		api.SetBackend(currentBackend)
 	}
 
 	if err := cmd.Run(args...); err != nil {
@@ -132,8 +135,8 @@ func main() {
 		os.Exit(1)
 	} else {
 		//Save the config changes if everything worked out
-		if config.Current() != nil {
-			err = config.Commit(config.Current())
+		if currentBackend != nil {
+			err = config.Commit(currentBackend)
 			if err != nil {
 				ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
 				os.Exit(1)
@@ -156,6 +159,7 @@ func addCommands() {
 	cmds.Add("backends", backends.List).AKA("list backends", "ls be")
 	cmds.Add("backend", backends.Use).AKA("use backend", "use-backend")
 	cmds.Add("create-backend", backends.Create).AKA("create backend", "c be", "update backend")
+	cmds.Add("rename-backend", backends.Rename).AKA("rename backend")
 	cmds.Add("delete-backend", backends.Delete).AKA("delete backend")
 
 	cmds.Add("targets", targets.List).AKA("list targets", "ls targets")

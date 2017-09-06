@@ -13,10 +13,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var cfg *Config
+//cfg is the singleton Config object that the CLI will use. The functions in
+//this package manipulate and read from this
+var cfg *config
 
 //Config has information about the backends the SHIELD CLI knows about
-type Config struct {
+type config struct {
 	Backend    string                 `yaml:"backend"`
 	Backends   map[string]string      `yaml:"backends"`
 	Aliases    map[string]string      `yaml:"aliases"`
@@ -32,9 +34,9 @@ type backendInfo struct {
 	SkipSSLValidation bool `yaml:"skip_ssl_validation"`
 }
 
-//NewConfig makes a fresh new blank config object
-func NewConfig() *Config {
-	return &Config{
+//Initialize makes a fresh new blank config object
+func Initialize() {
+	cfg = &config{
 		Backends:   map[string]string{},
 		Aliases:    map[string]string{},
 		Properties: map[string]backendInfo{},
@@ -44,7 +46,7 @@ func NewConfig() *Config {
 //Load reads in the config file at path p and sets this package's config
 // to the unmarshalled contents of the file
 func Load(p string) error {
-	cfg = NewConfig()
+	Initialize()
 	cfg.path = p
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		return nil
@@ -60,8 +62,6 @@ func Load(p string) error {
 		return err
 	}
 
-	api.SetBackend(Current())
-
 	return nil
 }
 
@@ -76,7 +76,7 @@ func Save() error {
 
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
-		return err
+		panic("Could not marshal config struct in order to save")
 	}
 
 	err = os.MkdirAll(path.Dir(cfg.path), 0755)
@@ -160,14 +160,13 @@ func Get(name string) *api.Backend {
 
 //List returns a slice of backend objects representing each of the backends known
 // to the config
-func List() []api.Backend {
-	backends := []api.Backend{}
+func List() (backends []*api.Backend) {
 	for name := range cfg.Aliases {
 		thisBackend := Get(name)
 		if thisBackend == nil {
 			panic("Searched for a non-existent backend when listing. Did you mess with the config?")
 		}
-		backends = append(backends, *thisBackend)
+		backends = append(backends, thisBackend)
 	}
 	return backends
 }
@@ -225,6 +224,11 @@ func Delete(name string) error {
 	cfg.dirty = true
 
 	return nil
+}
+
+//Path returns the path from which the config was loaded
+func Path() string {
+	return cfg.path
 }
 
 func collectGarbage() {
