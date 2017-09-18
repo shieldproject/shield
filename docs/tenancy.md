@@ -13,14 +13,14 @@ What Is Tenancy?
 
 A Tenant is a single group that defines the context for
 interaction with resources in a SHIELD configuration.  All
-schedules, retention policies, jobs, backup targets, storage
-endpoints and archives belong to a single tenant.
+retention policies, jobs, backup targets, storage endpoints and
+archives belong to a single tenant.
 
 For example, a SHIELD may serve the infrastructure team and two
 application development teams.  Each of these groups needs to be
-able to specify when their backups run (schedules), how long to
-keep the archives (retention policies), what to backup (targets
-and jobs), and where to store the archives (storage).
+able to specify their backup job configuration, how long to keep
+the archives (retention policies), what to backup (targets and
+jobs), and where to store the archives (storage).
 
 Tenancy exists to keep these three groups isolated from one
 another, for the following purposes:
@@ -29,15 +29,13 @@ another, for the following purposes:
   - To protect confidentiality of systems
 
 By _insulating change_ we mean that one team is free to
-reconfigure when their daily backups run, without affecting the
-other teams adversely.  The infrastructure team, for example, may
-have a lull in the late evening time frame (say, 10pm - midnight)
-during which they wish to perform backups if critical systems.
-This may not mesh well with a 3am-6am change window for the
-application teams.
+reconfigure how long they retain their backups, without affecting
+the other teams adversely.  The infrastructure team, for example, may
+need to keep several months of platform backups, so long-term for
+them might be 90d.  To the app teams, long-term might be a week.
 
-Therefore, each tenant gets its own set of schedules, and they can
-determine when "daily" is for them.
+Therefore, each tenant gets its own set of retention policies, and
+they can determine what "long-term" means to them.
 
 Confidentiality is protected on two fronts.  First, and foremost,
 the archives created as a result of performing backups must only
@@ -101,14 +99,14 @@ viewing the configuration details of the thing shared, to prevent
 them from gaining out-of-band access to the storage backend.
 
 Other things (aside from storage endpoints) at first seem to
-benefit from the same _global sharing_: primarily, schedules and
-retention policies.  However, instead of following that line of
-thinking, let's consider an alternate approach: _templating_.
+benefit from the same _global sharing_: primarily, retention
+policies.  However, instead of following that line of thinking,
+let's consider an alternate approach: _templating_.
 
-Schedules and retention policies are fairly flat resources - they
-are entirely self-contained, straightforward and simple.  There is
-not much benefit to be had by sharing them, and there is a large
-downside: it breaks the _change insulation_ of tenancy.
+Retention policies are fairly flat resources - they are entirely
+self-contained, straightforward and simple.  There is not much
+benefit to be had by sharing them, and there is a large downside:
+it breaks the _change insulation_ of tenancy.
 
 Consider what happens if several tenants all rely on the
 "Long-term" retention policy, originally defined as 90 days.
@@ -129,17 +127,16 @@ The second solution is the correct one, given _global sharing_,
 but is far from ideal.
 
 Instead, what if SHIELD gave every tenant a copy of the
-globally-defined retention policies and schedules?  Each tenant
-would then have full control over their scheduling and retention
-policies.  If a tenant wants to modify them, they can, and it will
-only affect them.
+globally-defined retention policies?  Each tenant would then have
+full control over their scheduling and retention policies.  If a
+tenant wants to modify them, they can, and it will only affect
+them.
 
-This is called _templating_.  It only applies to schedules and
-retention policies.  After a tenant is created, any changes to the
-global schedules and retention policies will only affect future
-tenants, as they are created.  In the real world, this is rarely a
-problem, since schedule and policy management tasks are few and
-far between.
+This is called _templating_.  It only applies to retention
+policies.  After a tenant is created, any changes to the global
+retention policies will only affect future tenants, as they are
+created.  In the real world, this is rarely a problem, since
+retention policy management tasks are few and far between.
 
 Lastly, we should talk about the things that are never shared:
 

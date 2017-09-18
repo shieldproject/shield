@@ -20,6 +20,15 @@ else
     workdir="${2}"
 fi
 
+# set up a dedicated directory just for plugins
+mkdir -p ${workdir}/bin
+for x in $(find plugin -maxdepth 1 -type d); do
+  bin=${x##*/}
+  if [[ -f $bin && -x $bin ]]; then
+    cp $bin ${workdir}/bin/$bin
+  fi
+done
+
 export DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
 export DATABASE_DSN=${DATABASE_DSN:-$workdir/var/shield.db}
 export SHIELD_API_TOKEN=LETMEIN
@@ -37,23 +46,26 @@ database_dsn:  ${DATABASE_DSN}
 private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
-web_root: ./webui
+web_root:      ./web2/htdocs
+slow_loop:     20
+fast_loop:     2
 auth:
-  api_tokens:
-    test: ${SHIELD_API_TOKEN}
-  basic:
-    user: testuser
-    password: testpass
-#  oauth:
-#    provider: github
-#    key: Fill this in with the github Client ID after creating a dev oauth app
-#    secret: Fill this in with the github secret after creating a dev oath app
-#    base_url: http://localhost:8181
-#    orgs:
-#    - Fill this in with a real github group you want to restrict access to
-#    sessions:
-#      type: sqlite3
-#      dsn: ${workdir}/var/sessions.db
+auth:
+#  api_tokens:
+#    test: ${SHIELD_API_TOKEN}
+#  basic:
+#    user: testuser
+#    password: testpass
+##  oauth:
+##    provider: github
+##    key: Fill this in with the github Client ID after creating a dev oauth app
+##    secret: Fill this in with the github secret after creating a dev oath app
+##    base_url: http://localhost:8181
+##    orgs:
+##    - Fill this in with a real github group you want to restrict access to
+##    sessions:
+##      type: sqlite3
+##      dsn: ${workdir}/var/sessions.db
 EOF
 
   echo ">> Setting up SHIELD schema"
@@ -68,10 +80,10 @@ EOF
   read JUNK
   ;;
 (shieldagent)
-  agent_up="1"
-  while [ $agent_up -eq 1 ]; do
+  shield_up="1"
+  while [ $shield_up -eq 1 ]; do
       sleep 1
-      agent_up=`nc -z 127.0.0.1 8181; echo $?`
+      shield_up=`nc -z 127.0.0.1 8181; echo $?`
   done
 
   ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
@@ -84,7 +96,12 @@ authorized_keys_file: ${workdir}/var/authorized_keys
 host_key_file: ${workdir}/var/shield-agent_key
 listen_address: 0.0.0.0:5444
 plugin_paths:
-  - $(pwd)
+  - ${workdir}/bin
+
+name: bond-james-bond
+registration:
+  url: http://localhost:8181
+  interval: 15
 EOF
 
   echo ">> RUNNING SHIELD AGENT"
@@ -98,7 +115,8 @@ EOF
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
        new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
        new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ; read JUNK" \;
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ${SHIELD_ENV}; read JUNK" \; \
+       new-window -n db sqlite3 ${workdir}/var/shield.db \;
   ;;
 
 (*)

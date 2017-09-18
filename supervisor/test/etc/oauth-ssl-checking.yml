@@ -1,5 +1,0 @@
----
-auth:
-  oauth:
-    provider: github
-    base_url: https://localhost/

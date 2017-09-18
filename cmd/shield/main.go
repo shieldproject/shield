@@ -18,6 +18,7 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/stores"
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tasks"
+	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
@@ -26,7 +27,6 @@ var Version = ""
 
 func main() {
 	cmds.Opts = &cmds.Options{
-		Shield:   getopt.StringLong("shield", 'H', "", "DEPRECATED - Previously required to point to a SHIELD backend to talk to. Now used to auto-vivify ~/.shield_config if necessary"),
 		Used:     getopt.BoolLong("used", 0, "Only show things that are in-use by something else"),
 		Unused:   getopt.BoolLong("unused", 0, "Only show things that are not used by something else"),
 		Paused:   getopt.BoolLong("paused", 0, "Only show jobs that are paused"),
@@ -44,7 +44,6 @@ func main() {
 		Status:    getopt.StringLong("status", 'S', "", "Only show archives/tasks with the given status"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
 		Store:     getopt.StringLong("store", 's', "", "Only show things for the store with this UUID"),
-		Schedule:  getopt.StringLong("schedule", 'w', "", "Only show things for the schedule with this UUID"),
 		Retention: getopt.StringLong("policy", 'p', "", "Only show things for the retention policy with this UUID"),
 		Plugin:    getopt.StringLong("plugin", 'P', "", "Only show things for the given target or store plugin"),
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
@@ -98,7 +97,7 @@ func main() {
 	addCommands()
 	addGlobalFlags()
 
-	err := api.LoadConfig(*cmds.Opts.Config)
+	err := config.Load(*cmds.Opts.Config)
 	if err != nil {
 		ansi.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *cmds.Opts.Config, err)
 		os.Exit(1)
@@ -113,13 +112,14 @@ func main() {
 	}
 	cmds.MaybeWarnDeprecation(cmdname, cmd)
 
+	currentBackend := config.Current()
 	// only check for backends + creds if we aren't manipulating backends/help
-	if cmd != info.Usage && cmd != backends.List && cmd != backends.Use && cmd != backends.Create {
-		if *cmds.Opts.Shield != "" || os.Getenv("SHIELD_API") != "" {
-			ansi.Fprintf(os.Stderr, "@Y{WARNING: -H, --host, and the SHIELD_API environment variable have been deprecated and will be removed in a later release.} Use `shield backend` instead\n")
+	if cmd != info.Usage && cmd.Group != cmds.BackendsGroup {
+		if currentBackend == nil {
+			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
+			os.Exit(1)
 		}
-
-		backends.Load()
+		api.SetBackend(currentBackend)
 	}
 
 	if err := cmd.Run(args...); err != nil {
@@ -134,6 +134,20 @@ func main() {
 		}
 		os.Exit(1)
 	} else {
+		//Save the config changes if everything worked out
+		if currentBackend != nil {
+			err = config.Commit(currentBackend)
+			if err != nil {
+				ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
+				os.Exit(1)
+			}
+		}
+		err = config.Save()
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{Error saving config: %s}\n", err)
+			os.Exit(1)
+		}
+
 		os.Exit(0)
 	}
 }
@@ -145,6 +159,8 @@ func addCommands() {
 	cmds.Add("backends", backends.List).AKA("list backends", "ls be")
 	cmds.Add("backend", backends.Use).AKA("use backend", "use-backend")
 	cmds.Add("create-backend", backends.Create).AKA("create backend", "c be", "update backend")
+	cmds.Add("rename-backend", backends.Rename).AKA("rename backend")
+	cmds.Add("delete-backend", backends.Delete).AKA("delete backend")
 
 	cmds.Add("targets", targets.List).AKA("list targets", "ls targets")
 	cmds.Add("target", targets.Get).AKA("show target", "view target", "display target", "list target", "ls target")

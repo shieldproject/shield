@@ -290,7 +290,7 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 		}
 		t := tui.NewTable("Name", "Summary", "Target", "Store", "Schedule")
 		for _, job := range jobs {
-			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.ScheduleWhen)
+			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.Schedule)
 		}
 		want := tui.Menu(
 			fmt.Sprintf("More than one job matched your search for '%s':", search),
@@ -330,4 +330,62 @@ func FindArchivesFor(target Target, show int) (Archive, uuid.UUID, error) {
 		&t, "Which backup archive would you like to restore?")
 
 	return want.(Archive), uuid.Parse(want.(Archive).UUID), nil
+}
+
+func FindTenant(search string, strict bool) (Tenant, uuid.UUID, error) {
+	id := uuid.Parse(search)
+	if id != nil {
+		t, err := GetTenant(id)
+		if err == nil {
+			return t, uuid.Parse(t.UUID), err
+		}
+		return t, nil, err
+	}
+
+	// test if 'search' is actually a JSON Tenant
+	tenant := Tenant{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&tenant)
+
+	if err == nil {
+		if tenant.UUID != "" {
+			var want Tenant
+			want, err = GetTenant(id)
+			if err != nil {
+				return Tenant{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if tenant.Name != "" {
+			search = tenant.Name
+		}
+	}
+
+	tenants, err := GetTenants(TenantFilter{
+		Name:       search,
+		ExactMatch: MaybeBools(strict, false),
+	})
+	if err != nil {
+		return Tenant{}, nil, fmt.Errorf("Failed to retrieve list of tenants: %s", err)
+	}
+
+	switch len(tenants) {
+	case 0:
+		return Tenant{}, nil, fmt.Errorf("no matching tenants found")
+
+	case 1:
+		return tenants[0], uuid.Parse(tenants[0].UUID), nil
+
+	default:
+		if strict {
+			return Tenant{}, nil, fmt.Errorf("more than one matching tenant found")
+		}
+		t := tui.NewTable("Name", "UUID")
+		for _, tenant := range tenants {
+			t.Row(tenant, tenant.Name, tenant.UUID)
+		}
+		want := tui.Menu(
+			fmt.Sprintf("More than one tenant matched your search for '%s':", search),
+			&t, "Which tenant do you want?")
+		return want.(Tenant), uuid.Parse(want.(Tenant).UUID), nil
+	}
 }

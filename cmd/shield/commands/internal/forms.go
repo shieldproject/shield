@@ -21,16 +21,16 @@ func FieldIsTargetUUID(name string, value string) (interface{}, error) {
 	return NewReference(o.UUID, o.Name), nil
 }
 
-func FieldIsRetentionPolicyUUID(name string, value string) (interface{}, error) {
-	o, _, err := FindRetentionPolicy(value, false)
+func FieldIsScheduleUUID(name string, value string) (interface{}, error) {
+	o, _, err := FindSchedule(value, false)
 	if err != nil {
 		return nil, err
 	}
 	return NewReference(o.UUID, o.Name), nil
 }
 
-func FieldIsScheduleUUID(name string, value string) (interface{}, error) {
-	o, _, err := FindSchedule(value, false)
+func FieldIsRetentionPolicyUUID(name string, value string) (interface{}, error) {
+	o, _, err := FindRetentionPolicy(value, false)
 	if err != nil {
 		return nil, err
 	}
@@ -51,4 +51,8 @@ func FieldIsPluginName(name string, value string) (interface{}, error) {
 		return value, fmt.Errorf("Field %s is a required field.\n", name)
 	}
 	return strings.ToLower(value), nil
+}
+
+func FieldIsTenantUUID(name string, value string) (interface{}, error) {
+	return NewReference(value, name), nil
 }

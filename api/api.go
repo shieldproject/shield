@@ -51,7 +51,7 @@ func (yn *YesNo) Given() bool {
 }
 
 func ShieldURI(p string, args ...interface{}) (*URL, error) {
-	endpoint, err := Cfg.SecureBackendURI()
+	endpoint, err := curBackend.SecureBackendURI()
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,0 @@
----
-skip_ssl_verify: true
-
-auth:
-  oauth:
-    provider: github
-    base_url: https://localhost/

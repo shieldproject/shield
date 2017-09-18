@@ -15,12 +15,138 @@ shield="../shield -k --raw -D"
 jq="jq -Mr"
 targetdir=$1
 storedir=$2
+environment=$3
+
+echo "waiting for shield to spin up..."
+shield_up="1"
+while [ $shield_up -eq 1 ]; do
+  sleep 1
+  shield_up=`nc -z 127.0.0.1 8181; echo $?`
+done
 
 echo targetdir=$targetdir
 echo storedir=$storedir
 
 $shield create-backend localdev $shieldbackend
 echo "backend created"
+
+webui() {
+s3_store=$($shield create-store <<EOF | $jq .uuid
+{
+  "endpoint" : "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
+  "name"     : "S3",
+  "plugin"   : "fs",
+  "summary"  : "A fake S3 store for pretending and web UI development."
+}
+EOF )
+if [[ "$s3_store" = "null" ]]; then
+  echo >&2 "Failed to create the S3 store"
+  exit 1
+fi
+echo "s3_store=$s3_store"
+
+scality_store=$($shield create-store <<EOF | $jq .uuid
+{
+  "endpoint" : "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
+  "name"     : "Scality (On-Prem)",
+  "plugin"   : "fs",
+  "summary"  : "A fake Scality (On-Premise) store for pretending and web UI development."
+}
+EOF )
+if [[ "$scality_store" = "null" ]]; then
+  echo >&2 "Failed to create the Scality store"
+  exit 1
+fi
+echo "scality_store=$scalitry_store"
+
+
+short_policy=$($shield create-policy <<EOF | $jq .uuid
+{
+  "name"    : "Short-Term",
+  "summary" : "For frequent backups, only kept for a few days at most.",
+  "expires" : 86400
+}
+EOF )
+if [[ "$short_policy" = "null" ]]; then
+  echo >&2 "Failed to create the Short-Term retention policy"
+  exit 1
+fi
+echo "short_policy=$short_policy"
+
+long_policy=$($shield create-policy <<EOF | $jq .uuid
+{
+  "name"    : "Long-Term",
+  "summary" : "For infrequent backups, to be kept for at least two weeks.",
+  "expires" : 1209600
+}
+EOF )
+if [[ "$long_policy" = "null" ]]; then
+  echo >&2 "Failed to create the Long-Term retention policy"
+  exit 1
+fi
+echo "long_policy=$long_policy"
+
+
+for i in $(seq 1 5); do
+	target=$($shield create-target <<EOF | $jq .uuid
+{
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{\"base_dir\":\"${targetdir}\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+  "name"     : "System #427/a0$i",
+  "plugin"   : "fs",
+  "summary"  : "A test system for generating lots of web UI output and pushing the limits of the new UI."
+}
+EOF )
+	if [[ "$target" = "null" ]]; then
+	  echo >&2 "Failed to create the #$i'th target"
+	  exit 1
+	fi
+	echo "target=$target"
+
+	store="$s3_store"
+	policy=$long_policy
+
+	if [[ $i -eq 3 ]]; then
+		store="$scality_store"
+	fi
+
+	if [[ $i -gt 3 ]]; then
+		store=""
+	fi
+
+	if [[ -n "${store}" ]]; then
+	$shield create-job <<EOF
+{
+  "name"      : "Weekly",
+  "paused"    : true,
+  "retention" : "$policy",
+  "schedule"  : "sundays at 2:30am",
+  "store"     : "$store",
+  "summary"   : "",
+  "target"    : "$target"
+}
+EOF
+	fi
+
+	store="$scality_store"
+	policy="$short_policy"
+	$shield create-job <<EOF
+{
+  "name"      : "Daily",
+  "paused"    : true,
+  "retention" : "$policy",
+  "schedule"  : "daily 4am",
+  "store"     : "$store",
+  "summary"   : "",
+  "target"    : "$target"
+}
+EOF
+	done
+
+	echo "FINISHED SETTING UP FOR WEB UI DEVELOPMENT"
+}
+
+slim() {
 target=$($shield create-target <<EOF | $jq .uuid
 {
   "agent"    : "127.0.0.1:5444",
@@ -64,28 +190,77 @@ fi
 echo "target=$target"
 echo "policy=$policy"
 
-schedule=$($shield create-schedule <<EOF | $jq .uuid
-{
-  "name"    : "DevSched",
-  "summary" : "A Test Schedule",
-  "when"    : "daily 4am"
-}
-EOF )
-if [[ "$schedule" = "null" ]]; then
-  echo >&2 "Failed to create the DevSchedule schedule"
-  exit 1
-fi
-echo "target=$target"
-echo "schedule=$schedule"
-
 $shield create-job <<EOF
 {
   "name"      : "DevJob",
   "paused"    : true,
   "retention" : "$policy",
-  "schedule"  : "$schedule",
+  "schedule"  : "daily 4am",
   "store"     : "$store",
   "summary"   : "A Test Job",
   "target"    : "$target"
 }
 EOF
+
+
+# populate roles based on spec from docs, using static uuids for now
+# Site Administrator - super user
+# Site Manager - able to manage tenants and assignments
+# Site Engineer - site-level configuration management (i.e. shared cloud storage definitions, retention policy templates, etc.)
+# Tenant Administrator - manages tenant membership and roles
+# Tenant Engineer - manages configuration of tenant systems and backup jobs.
+# Tenant Operator - day-to-day operation; run / restore / pause / unpause / view access.
+sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Site Administrator',   'f')"
+sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Site Manager',         'f')"
+sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Site Engineer',        'f')"
+sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Tenant Administrator', 'f')"
+sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Tenant Engineer',      'f')"
+sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Tenant Operator',      'f')"
+
+
+
+
+#set up local test environment
+echo "CREATING TENANT DevTenant"
+../cmd/shield-umc/main new-tenant --name DevTenant --type sqlite3 --dsn $targetdir/var/shield.db
+echo "CREATING USER DevUser WITH PASSWORD DevPassword"
+../cmd/shield-umc/main new-user --username DevUser --password DevPassword --type sqlite3 --dsn $targetdir/var/shield.db
+
+#get the uuid of the tenant so that you can add the user to it
+tenant_query="select uuid from tenants where name='DevTenant'"
+tenant_uuid=$( sqlite3 $targetdir/var/shield.db "$tenant_query" )
+
+#get the uuid of the user so that you can add the user to the tenant
+user_query="select uuid from users where name='DevUser'"
+user_uuid=$( sqlite3 $targetdir/var/shield.db "$user_query" )
+
+../cmd/shield-umc/main invite $user_uuid --role DevRole --tenant $tenant_uuid --type sqlite3 --dsn $targetdir/var/shield.db
+sqlite3 $targetdir/var/shield.db "INSERT INTO org_team_tenant_role VALUES ('starkandwayne', 'Engineering', '$tenant_uuid', 'Site_Administrator')"
+
+# $shield run DevJob
+# sleep 2
+# $shield run DevJob
+$shield edit-target DevTarget<<EOF
+{
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\"}",
+  "name"     : "DevTarget",
+  "plugin"   : "fs",
+  "summary"  : "The working directory of the dev environment."
+}
+EOF
+# sleep 3
+# $shield run DevJob
+# sleep 3
+# $shield run DevJob
+
+
+echo "FINISHED SETTING UP FOR SHIELD DEVELOPMENT"
+}
+
+
+case ${environment} in
+ui) webui ;;
+*)  slim  ;;
+esac
+echo "DONE"

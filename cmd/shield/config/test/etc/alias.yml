@@ -1,0 +1,10 @@
+---
+backend: thing
+backends:
+  http://thing: basic mytoken
+aliases:
+  thing1: http://thing1
+  thing2: http://thing2
+properties:
+  http://second:
+    skip_ssl_validation: true

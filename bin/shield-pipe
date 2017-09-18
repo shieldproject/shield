@@ -41,7 +41,7 @@ header() {
 }
 
 say() {
-	echo >&2 $*
+	echo >&2 "$@"
 }
 
 ok() {
@@ -86,6 +86,90 @@ needenv() {
 trap 'exiting $?' EXIT
 
 case ${SHIELD_OP} in
+(status)
+	needenv SHIELD_OP \
+	        SHIELD_AGENT_NAME \
+	        SHIELD_PLUGINS_PATH
+
+	if [[ -z "${SHIELD_AGENT_VERSION:-}" ]]; then
+		SHIELD_AGENT_VERSION="dev"
+	fi
+
+	set -e
+	header "Running SHIELD Agent ($SHIELD_AGENT_VERSION) Health Checks"
+
+	echo "{"
+	# METADATA
+	cat <<EOF
+"name"    : "${SHIELD_AGENT_NAME}",
+"version" : "${SHIELD_AGENT_VERSION}",
+"health"  : "ok",
+EOF
+
+	# PLUGIN inventory
+	(IFS=:; for x in $SHIELD_PLUGINS_PATH; do
+	   say "checking for plugins in $x..."
+	   echo "\"plugins\": {"
+	   comma=""
+	   while IFS= read -r -d '' plugin; do
+	     name=${plugin##*/}
+	     set +e ; output=$($plugin info 2>/dev/null) ; set -e
+	     if [[ $? -eq 0 ]]; then
+	       echo "$comma\"$name\":$output"
+	       comma=","
+	     fi
+	   done < <(find $x -maxdepth 1 -type f -perm +111 -print0)
+	   echo "}"
+	 done)
+	echo "}"
+
+	exit 0
+	;;
+
+(test-store)
+	needenv SHIELD_OP              \
+	        SHIELD_STORE_PLUGIN    \
+	        SHIELD_STORE_ENDPOINT
+
+	set -e
+	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
+
+	header "Performing store / retrieve / purge test"
+	say "generating an input bit pattern"
+	input=$(echo -n "test::"; dd if=/dev/urandom 2>/dev/null bs=25 count=1 | base64 -w0)
+	if [[ -z "${input}" ]]; then
+		fail "input bit pattern was empty; this test is INVALID."
+		exit 1
+	fi
+
+	key=$(echo "${input}" | ${SHIELD_STORE_PLUGIN} store --text -e "${SHIELD_STORE_ENDPOINT}" || true)
+	if [[ -z "${key}" ]]; then
+		fail "unable to write to storage"
+		exit 2
+	fi
+
+	output=$(${SHIELD_STORE_PLUGIN} retrieve -e "${SHIELD_STORE_ENDPOINT}" -k "${key}"        || true)
+	${SHIELD_STORE_PLUGIN} purge -e "${SHIELD_STORE_ENDPOINT}" -k "${key}" || true
+
+	say "INPUT:  ${input}"
+	say "OUTPUT: ${output}"
+	say "KEY:    ${key}"
+	say
+
+	if [[ -z "${output}" ]]; then
+		fail "unable to read from storage"
+		exit 2
+	fi
+
+	if [[ "${input}" != "${output}" ]]; then
+		fail "output bit pattern did not match the input pattern"
+		exit 3
+	fi
+
+	ok
+	exit 0
+	;;
+
 (backup)
 	needenv SHIELD_OP              \
 	        SHIELD_STORE_PLUGIN    \

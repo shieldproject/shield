@@ -1,33 +1,39 @@
+# ignore the binaries
 /shieldd
 /shield
 /shield-agent
 /shield-schema
+/shield-umc
+
+# ignore the plugin
+/azure
+/consul
+/consul-snapshot
 /docker-postgres*
 /dummy
 /elasticsearch
-/mock
-/mysql
-/postgres
-/redis-broker
-/rabbitmq-broker
-/s3
-/swift
-/azure
 /fs
-/scality
-/consul
-/xtrabackup
-/mongo
 /google
 /mock
-/consul-snapshot
-.DS_Store
+/mongo
+/mysql
+/postgres
+/rabbitmq-broker
+/redis-broker
+/s3
+/swift
+/scality
+/xtrabackup
+
+# ignore database we may create
+*.db
 
 # ignore release testing output
 /artifacts
 
-# where we keep coverage reports...
+# ignore the coverage reports
 /coverage
 
-# secrets
-/ci/credentials.yml
+cmd/shield-umc/shield-umc
+
+cmd/shield-umc/main
