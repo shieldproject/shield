@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	// sql drivers
-	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
 	. "github.com/starkandwayne/shield/db"
@@ -100,8 +99,8 @@ var _ = Describe("Database Schema", func() {
 	Describe("Schema Version Interrogation", func() {
 		It("should return an error for a bad database connection", func() {
 			db := &DB{
-				Driver: "postgres",
-				DSN:    "host=127.86.86.86, port=8686",
+				Driver: "sqlite3",
+				DSN:    "/path/to/no/such/file",
 			}
 
 			db.Connect()

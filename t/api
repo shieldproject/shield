@@ -3,8 +3,7 @@ set -u
 
 PATH=$(pwd):$(pwd)/bin:${PATH}
 WORKDIR=$(mktemp -d /tmp/shield.test.XXXXXXX)
-DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
-DATABASE_DSN=${DATABASE_DSN:-$WORKDIR/var/shield.db}
+DATABASE=${DATABASE:-$WORKDIR/var/shield.db}
 SHIELD_API_TOKEN=LETMEIN
 SHIELD_DAEMON_HOST=127.0.0.1
 SHIELD_DAEMON_PORT=8181
@@ -53,8 +52,7 @@ spin_shieldd() {
   cat >${WORKDIR}/etc/shieldd.conf <<EOF
 ---
 listen_addr:   ${SHIELD_DAEMON_ADDR}
-database_type: ${DATABASE_TYPE}
-database_dsn:  ${DATABASE_DSN}
+database:      ${DATABASE}
 private_key:   ${WORKDIR}/var/shieldd_key
 vault_keyfile: ${WORKDIR}/var/vault
 workers:       3
@@ -86,7 +84,7 @@ EOF
 
   set -e
   echo ">> Setting up SHIELD schema"
-  ./shield-schema -t ${DATABASE_TYPE} -d "${DATABASE_DSN}"
+  ./shield-schema -d "${DATABASE}"
   echo
 
   echo ">> RUNNING SHIELDD"

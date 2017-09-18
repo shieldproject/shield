@@ -30,8 +30,7 @@ for x in $(find plugin -maxdepth 1 -type d); do
   fi
 done
 
-export DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
-export DATABASE_DSN=${DATABASE_DSN:-$workdir/var/shield.db}
+export DATABASE=${DATABASE:-$workdir/var/shield.db}
 export SHIELD_API_TOKEN=LETMEIN
 
 case "${1}" in
@@ -70,8 +69,7 @@ EOF
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
 listen_addr:   ${ADDR}
-database_type: ${DATABASE_TYPE}
-database_dsn:  ${DATABASE_DSN}
+database:      ${DATABASE}
 private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
@@ -127,7 +125,7 @@ auth:
 EOF
 
   echo ">> Setting up SHIELD schema"
-  ./shield-schema -t ${DATABASE_TYPE} -d "${DATABASE_DSN}"
+  ./shield-schema -d "${DATABASE}"
   echo
 
   echo ">> RUNNING SHIELDD"
