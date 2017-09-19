@@ -110,7 +110,6 @@ func main() {
 		ansi.Fprintf(os.Stderr, "@R{unrecognized command `%s'}\n", cmdname)
 		os.Exit(1)
 	}
-	cmds.MaybeWarnDeprecation(cmdname, cmd)
 
 	currentBackend := config.Current()
 	// only check for backends + creds if we aren't manipulating backends/help
@@ -182,7 +181,7 @@ func addCommands() {
 
 	cmds.Add("policies", policies.List).AKA("retention policies", "retention-policies")
 	cmds.Add("policy", policies.Get).AKA("retention policy", "retention-policy")
-	cmds.Add("create-policy", policies.Create).AKA("create retention policy", "create-retention-policy", "create-policy")
+	cmds.Add("create-policy", policies.Create).AKA("create retention policy", "create-retention-policy", "create policy")
 	cmds.Add("edit-policy", policies.Edit).AKA("edit retention policy", "edit policy", "edit-retention-policy")
 	cmds.Add("delete-policy", policies.Delete).AKA("delete retention policy", "delete policy", "delete-retention-policy")
 
@@ -198,7 +197,7 @@ func addCommands() {
 	cmds.Add("archives", archives.List)
 	cmds.Add("archive", archives.Get)
 	cmds.Add("restore", archives.Restore).AKA("restore archive", "restore-archive")
-	cmds.Add("delete-archive", archives.Delete).AKA("delete archive", "delete-archive")
+	cmds.Add("delete-archive", archives.Delete).AKA("delete archive")
 
 	cmds.Add("tasks", tasks.List)
 	cmds.Add("task", tasks.Get)

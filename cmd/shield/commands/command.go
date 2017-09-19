@@ -71,6 +71,10 @@ func (c *Command) GetAliases() []string {
 //AKA registers alterative names for this command with the Dispatcher
 func (c *Command) AKA(aliases ...string) {
 	for _, alias := range aliases {
+		if _, found := commands[alias]; found {
+			panic(fmt.Sprintf("Attempting to register duplicate alias `%s'", alias))
+		}
+
 		commands[alias] = c
 	}
 }
