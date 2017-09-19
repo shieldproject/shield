@@ -139,6 +139,11 @@ func (s v4Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
+
+	err = db.Exec(`ALTER TABLE archives ADD COLUMN encryption_type TEXT NOT NULL DEFAULT ''`)
+	if err != nil {
+		return err
+	}
 	// FIXME - need to backfill archives.job based on heuristics
 
 	switch db.Driver {

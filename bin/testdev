@@ -1,5 +1,6 @@
 #!/bin/bash
 export PATH=$(pwd):$(pwd)/bin:${PATH}
+export VAULT_SKIP_VERIFY=1
 workdir=""
 ADDR=127.0.0.1:8181
 

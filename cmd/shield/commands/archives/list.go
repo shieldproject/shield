@@ -116,7 +116,7 @@ func cliListArchives(opts *commands.Options, args ...string) error {
 		store[s.UUID] = s
 	}
 
-	t := tui.NewTable("UUID", "Target", "Restore IP", "Store", "Taken at", "Expires at", "Status", "Notes")
+	t := tui.NewTable("UUID", "Target", "Restore IP", "Store", "Taken at", "Expires at", "Encryption Type", "Status", "Notes")
 	for _, archive := range archives {
 		if *opts.Target != "" && archive.TargetUUID != *opts.Target {
 			continue
@@ -131,6 +131,7 @@ func cliListArchives(opts *commands.Options, args ...string) error {
 			fmt.Sprintf("%s (%s)", store[archive.StoreUUID].Name, archive.StorePlugin),
 			archive.TakenAt.Format(time.RFC1123Z),
 			archive.ExpiresAt.Format(time.RFC1123Z),
+			archive.EncryptionType,
 			archive.Status, archive.Notes)
 	}
 	t.Output(os.Stdout)

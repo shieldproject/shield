@@ -1,9 +1,7 @@
 package core
 
-// might be worth adding later on
-// "github.com/google/go-github/github"
-// "golang.org/x/oauth2"
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -18,6 +16,8 @@ import (
 	"github.com/markbates/goth/providers/github"
 	//"github.com/markbates/goth/providers/cloudfoundry"
 	"github.com/gorilla/sessions"
+	"github.com/pborman/uuid"
+
 	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/goutils/timestamp"
 	"github.com/starkandwayne/shield/db"
@@ -52,6 +52,9 @@ type Core struct {
 	listen  string
 	auth    []AuthConfig
 	motd    string
+
+	/* vault */
+	vault Vault
 
 	DB *db.DB
 }
@@ -110,14 +113,50 @@ func (core *Core) Run() error {
 	}
 
 	core.cleanup()
+
+	core.vault = Vault{
+		URL:            "http://127.0.0.1:8200",
+		Token:          "",
+		EncryptionType: "",
+		Insecure:       true,
+	}
+	core.vault.HTTP = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: core.vault.Insecure,
+			},
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) > 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			req.Header.Add("X-Vault-Token", core.vault.Token)
+			return nil
+		},
+	}
+	//TODO: Replace path with config.VaultPath / similar
+	if err := core.vault.Init("vault/config.crypt"); err != nil {
+		log.Errorf("vault failed to initialize: %s", err)
+		os.Exit(2)
+	}
+
 	core.api()
 	core.runWorkers()
 
 	for {
 		select {
 		case <-core.fastloop.C:
-			core.scheduleTasks()
-			core.runPending()
+			sealed, err := core.vault.IsSealed()
+			initialized, initErr := core.vault.IsInitialized()
+			if initialized && !sealed {
+				core.scheduleTasks()
+				core.runPending()
+			} else {
+				if err != nil || initErr != nil {
+					log.Errorf("Failed to schedule tasks due to Vault error: %s %s", err, initErr)
+				}
+				log.Errorf("Failed to schedule tasks due to Sealed Vault")
+			}
 
 		case <-core.slowloop.C:
 			core.expireArchives()
@@ -407,18 +446,66 @@ func (core *Core) worker(id int) {
 			}
 		}()
 
+		if task.Op == db.BackupOperation {
+			task.ArchiveUUID = uuid.NewRandom()
+
+			encIV, err := core.vault.Gen(16)
+			if err != nil {
+				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption IV: %s\n", id, err)
+				core.handleFailure(task)
+				continue
+			}
+
+			encKey := ""
+			if strings.Contains(core.vault.EncryptionType, "128") {
+				encKey, err = core.vault.Gen(16)
+			} else {
+				encKey, err = core.vault.Gen(32)
+			}
+			if err != nil {
+				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption key: %s\n", id, err)
+				core.handleFailure(task)
+				continue
+			}
+
+			err = core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
+				"key":  encKey,
+				"iv":   encIV,
+				"type": core.vault.EncryptionType,
+				"uuid": task.ArchiveUUID.String(),
+			})
+
+			if err != nil {
+				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to set encryption vars: %s\n", id, err)
+				core.handleFailure(task)
+				continue
+			}
+
+		}
+
+		data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
+		if err != nil || exists == false {
+			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to set encryption uuid: %s\n", id, err)
+			core.handleFailure(task)
+			continue
+		}
+
 		/* connect to the remote SSH agent for this specific request
 		   (a worker may connect to lots of different agents in its
 		    lifetime; these connections endure long enough to submit
 		    the agent command and gather the exit code + output) */
-		err := core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
+		err = core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
 			Op:             task.Op,
 			TargetPlugin:   task.TargetPlugin,
 			TargetEndpoint: task.TargetEndpoint,
 			StorePlugin:    task.StorePlugin,
 			StoreEndpoint:  task.StoreEndpoint,
 			RestoreKey:     task.RestoreKey,
+			EncryptType:    data["type"].(string),
+			EncryptKey:     strings.Replace(data["key"].(string), "-", "", -1),
+			EncryptIV:      strings.Replace(data["iv"].(string), "-", "", -1),
 		})
+
 		if err != nil {
 			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to run command against %s: %s\n", id, task.Agent, err)
 			core.handleFailure(task)
@@ -438,7 +525,7 @@ func (core *Core) worker(id int) {
 			} else {
 				if v.Key != "" {
 					log.Infof("  %s: restore key is %s", task.UUID, v.Key)
-					if id, err := core.DB.CreateTaskArchive(task.UUID, v.Key, time.Now()); err != nil {
+					if id, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.vault.EncryptionType); err != nil {
 						log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 					} else if failed {
 						core.DB.InvalidateArchive(id)

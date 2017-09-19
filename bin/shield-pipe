@@ -15,6 +15,9 @@
 #   SHIELD_STORE_PLUGIN       Path to the store plugin to use
 #   SHIELD_STORE_ENDPOINT     The store endpoint config (probably JSON)
 #   SHIELD_RESTORE_KEY        Archive key for 'restore' operations
+#   SHIELD_ENCRYPT_TYPE       Cipher and mode to be used for archive encryption
+#   SHIELD_ENCRYPT_KEY        Encryption key for archive encryption
+#   SHIELD_ENCRYPT_IV         Initialization vector for archive encryption
 #
 # Exit Codes
 # ----------
@@ -34,6 +37,11 @@
 #     https://github.com/golang/go/issues/9382
 #     https://code.google.com/p/go/issues/detail?id=2266
 #
+
+#SHIELD_ENCRYPT_TYPE='aes-256-cbc'
+#SHIELD_ENCRYPT_KEY='C5BD682F6456E4EF4B2BE75CAF41C704B7CE7EAB46319C07'
+#SHIELD_ENCRYPT_IV='8E19230033C9D294EA06B6732116D4D9'
+
 
 header() {
 	echo >&2 $*
@@ -188,6 +196,7 @@ EOF
 
 	set -o pipefail
 	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | tee >(tail -c1 >$PULSE) | bzip2 | \
+		openssl enc -${SHIELD_ENCRYPT_TYPE} -a -e -K ${SHIELD_ENCRYPT_KEY} -iv ${SHIELD_ENCRYPT_IV} | \
 		${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
 
 	if [[ ! -s ${PULSE} ]]; then
@@ -214,8 +223,9 @@ EOF
 
 	header "Running restore task (using bzip2 compression)"
 	set -o pipefail
-	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | bunzip2 | \
-		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
+		openssl enc -${SHIELD_ENCRYPT_TYPE} -a -d -K ${SHIELD_ENCRYPT_KEY} -iv ${SHIELD_ENCRYPT_IV} | \
+		bunzip2 | ${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
 	exit 0
 	;;
 

@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/starkandwayne/goutils/log"
 	"io"
 	"log/syslog"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+
+	"github.com/starkandwayne/goutils/log"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -22,6 +23,9 @@ type Command struct {
 	StorePlugin    string `json:"store_plugin,omitempty"`
 	StoreEndpoint  string `json:"store_endpoint,omitempty"`
 	RestoreKey     string `json:"restore_key,omitempty"`
+	EncryptType    string `json:"encrypt_type,omitempty"`
+	EncryptKey     string `json:"encrypt_key,omitempty"`
+	EncryptIV      string `json:"encrypt_iv,omitempty"`
 }
 
 func ParseCommand(b []byte) (*Command, error) {
@@ -47,6 +51,15 @@ func ParseCommand(b []byte) (*Command, error) {
 		if cmd.StoreEndpoint == "" {
 			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
+		if cmd.EncryptType == "" {
+			return nil, fmt.Errorf("missing required 'encrypt_cipher' value in payload")
+		}
+		if cmd.EncryptKey == "" {
+			return nil, fmt.Errorf("missing required 'encrypt_key' value in payload")
+		}
+		if cmd.EncryptIV == "" {
+			return nil, fmt.Errorf("missing required 'encrypt_iv' value in payload")
+		}
 
 	case "restore":
 		if cmd.TargetPlugin == "" {
@@ -66,7 +79,15 @@ func ParseCommand(b []byte) (*Command, error) {
 		if cmd.RestoreKey == "" {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
 		}
-
+		if cmd.EncryptType == "" {
+			return nil, fmt.Errorf("missing required 'encrypt_cipher' value in payload")
+		}
+		if cmd.EncryptKey == "" {
+			return nil, fmt.Errorf("missing required 'encrypt_key' value in payload")
+		}
+		if cmd.EncryptIV == "" {
+			return nil, fmt.Errorf("missing required 'encrypt_iv' value in payload")
+		}
 	case "purge":
 		if cmd.StorePlugin == "" {
 			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
@@ -137,6 +158,9 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		fmt.Sprintf("SHIELD_PLUGINS_PATH=%s", strings.Join(agent.PluginPaths, ":")),
 		fmt.Sprintf("SHIELD_AGENT_NAME=%s", agent.Name),
 		fmt.Sprintf("SHIELD_AGENT_VERSION=%s", agent.Version),
+		fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", c.EncryptType),
+		fmt.Sprintf("SHIELD_ENCRYPT_KEY=%s", c.EncryptKey),
+		fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", c.EncryptIV),
 	}
 
 	if log.LogLevel() == syslog.LOG_DEBUG {
