@@ -40,6 +40,15 @@ func (h *HelpGroup) addCommand(c *Command) {
 	h.commands = append(h.commands, c)
 }
 
+//Reset wipes away all of the registered commands and global flags, leaving you
+// with a fresh dispatcher state. Useless for the actual program, but great for
+// testing
+func Reset() {
+	commands = map[string]*Command{}
+	GlobalFlags = []FlagInfo{}
+	maxCmdLen = 0
+}
+
 func (h *HelpGroup) String() string {
 	var helpLines []string
 	groupHeader := ansi.Sprintf("@M{%s:}", h.name)
@@ -125,11 +134,10 @@ func ParseCommand(userInput ...string) (cmd *Command, givenName string, args []s
 	}
 
 	for i := 1; i <= len(userInput); i++ {
-		givenName = strings.Join(userInput[:i], " ")
-		args = userInput[i:]
-		var found bool
-		if cmd, found = commands[givenName]; found {
-			break
+		thisName := strings.Join(userInput[:i], " ")
+		if thisCmd, found := commands[thisName]; found {
+			cmd, givenName = thisCmd, thisName
+			args = userInput[i:]
 		}
 	}
 	return
