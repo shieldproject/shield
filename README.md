@@ -405,10 +405,22 @@ $ make report FOR=db
 go tool cover -html=coverage/db.cov
 ```
 
-## CLI Setup
+## CLI Installation
+
+For OS X/MacOS:
+
 ```
 brew tap starkandwayne/cf
 brew install starkandwayne/cf/shield
+```
+
+For Ubuntu/Debian:
+
+```
+wget -q -O - https://raw.githubusercontent.com/starkandwayne/homebrew-cf/master/public.key | apt-key add -
+echo "deb http://apt.starkandwayne.com stable main" | tee /etc/apt/sources.list.d/starkandwayne.list
+apt-get update
+apt-get install shield
 ```
 
 ## CLI Usage Examples
