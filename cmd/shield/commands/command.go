@@ -12,8 +12,6 @@ import (
 //Options contains all the possible command line options that commands may
 //possibly use
 type Options struct {
-	Shield *string
-
 	Used     *bool
 	Unused   *bool
 	Paused   *bool
