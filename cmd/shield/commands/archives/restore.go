@@ -24,6 +24,10 @@ var Restore = &commands.Command{
 				  must be a UUID assigned to a single archive instance`,
 			},
 		},
+		JSONOutput: `{
+			"ok": "Scheduled immediate restore of archive '12345678-9abc-def0-1234-56789abcdef0' to target 'targetname',
+			"task_uuid": "6789abcd-ef01-2345-6789-abcdef012345"
+		}`,
 	},
 	RunFn: cliRestoreArchive,
 	Group: commands.ArchivesGroup,
@@ -35,7 +39,7 @@ func cliRestoreArchive(opts *commands.Options, args ...string) error {
 	var id uuid.UUID
 
 	if *opts.Raw {
-		internal.Require(len(args) == 1, "USAGE: shield restore archive <UUID>")
+		internal.Require(len(args) == 1, "shield restore archive <UUID>")
 		id = uuid.Parse(args[0])
 		log.DEBUG("  trying archive UUID '%s'", args[0])
 
