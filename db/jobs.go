@@ -60,11 +60,8 @@ type JobFilter struct {
 }
 
 func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
-	if f.TenantID == "" {
-		return "", nil, fmt.Errorf("tenant id is required for job retrieval")
-	}
-	wheres := []string{"j.tenant_uuid = ?"}
-	args := []interface{}{f.TenantID}
+	wheres := []string{"1"}
+	args := []interface{}{}
 
 	if f.SearchName != "" {
 		comparator := "LIKE"

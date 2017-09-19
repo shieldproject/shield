@@ -68,9 +68,27 @@ slow_loop:     20
 fast_loop:     2
 vault_keyfile: ${workdir}/var/vault.crypt
 auth:
-  - name: Github
-    type: github
-    identifier: github
+  - name:       Github
+    identifier: public-gh
+    backend:    github
+    properties:
+      client_id:     7760ef75ba49c9699114
+      client_secret: 9833e0d2f10df1c77eff41adfb07d6084b238349
+#  api_tokens:
+#    test: ${SHIELD_API_TOKEN}
+#  basic:
+#    user: testuser
+#    password: testpass
+##  oauth:
+##    provider: github
+##    key: Fill this in with the github Client ID after creating a dev oauth app
+##    secret: Fill this in with the github secret after creating a dev oath app
+##    base_url: http://localhost:8181
+##    orgs:
+##    - Fill this in with a real github group you want to restrict access to
+##    sessions:
+##      type: sqlite3
+##      dsn: ${workdir}/var/sessions.db
 EOF
 
   echo ">> Setting up SHIELD schema"

@@ -1471,8 +1471,9 @@ consequuntur magni.</p>
             <h2>Sign in using...</h2>
 
             <ul>
-              <li><a href="/auth/github">Github</a></li>
-              <li><a href="#">Prod us-2 CF</a></li>
+              [[ $.each(_.oauth, function (i, oauth) { ]]
+              <li class="oauth-[[= oauth.type ]]"><a href="/auth/oauth/[[= oauth.identifier ]]">[[= oauth.name ]]</a></li>
+              [[ }); ]]
           </div>
           [[ } ]]
           <div class="local">
@@ -2172,6 +2173,35 @@ for job <em>[[= _.task.job_uuid ]]</em>
       [[ } ]]
     </div>
 <!-- }}} --></script>
+<script type="text/html" id="tpl--auth-providers"><!-- {{{ -->
+[[#
+  {auth-providers} template
+
+  Renders the list of configured authentication providers, including
+  details about how to integrate with their respective 3rd party auth
+  systems, i.e. Github oauth App registration, CF/UAA client creation,
+  etc.
+]]
+    <div class="gutter blk" id="auth-providers">
+      <h2>Authentication Providers</h2>
+      <table>
+        <thead><tr>
+          <th>Name</th>
+          <th>Identifier</th>
+          <th>Type</th>
+        </tr></thead>
+        <tbody>
+        [[ $.each(_.providers, function (i, provider) { ]]
+          <tr>
+            <td>[[= provider.name ]]</td>
+            <td><span class="tag">[[= provider.identifier ]]</span></td>
+            <td>[[= provider.type ]] (<a href="#">configuration</a>)</td>
+          </tr>
+        [[ }); ]]
+        </tbody>
+      </table>
+    </div>
+<!-- }}} --></script>
 <script type="text/html" id="tpl--"><!-- {{{ -->
 <!-- }}} --></script>
 
@@ -2733,11 +2763,13 @@ function dispatch(page) {
   switch (page) {
   case "#!/login": /* {{{ */
     (function () {
-      $('#viewport').html(template('login', {
-        oauth: [
-          'Github'
-        ],
-      }));
+      $.ajax({
+        type: 'GET',
+        url:  '/v2/auth/providers',
+        success: function (data) {
+          $('#viewport').html(template('login', { oauth: data }));
+        }
+      })
     })();
     break; /* #!/login */
     // }}}
@@ -2939,6 +2971,25 @@ function dispatch(page) {
       }
     });
     break; /* #!/admin/agents */
+    // }}}
+  case '#!/admin/auth': /* {{{ */
+    $('#main').html(template('loading'));
+    $.ajax({
+      type: 'GET',
+      url:  '/v2/auth/providers',
+      success: function (data) {
+        $('#main').html(template('auth-providers', { providers: data }));
+      },
+      error: function (xhr) {
+        console.log(arguments);
+        $('#main').html(template('error', {
+          http:     xhr.status + ' ' + xhr.statusText,
+          response: xhr.responseText,
+          message:  "Failed retrieving the list of configured authentication providers from the SHIELD API."
+        }));
+      }
+    });
+    break; /* #!/admin/auth */
     // }}}
   default:
     $('#main').html(template('404', {

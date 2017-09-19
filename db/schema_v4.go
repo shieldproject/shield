@@ -279,9 +279,12 @@ func (s v4Schema) Deploy(db *DB) error {
 
 	switch db.Driver {
 	case "mysql":
+		//provider data contains access token for the user/provider and their org/team
 		err = db.Exec(`CREATE TABLE sessions (
 		                 uuid          VARCHAR(36) NOT NULL,
-		                 user_uuid     VARCHAR(36) NOT NULL,
+		                 user_uuid     VARCHAR(36),
+		                 provider      TEXT,
+		                 provider_data TEXT,
 
 		                 PRIMARY KEY (uuid)
 		               )`)
@@ -289,7 +292,9 @@ func (s v4Schema) Deploy(db *DB) error {
 	case "postgres", "sqlite3":
 		err = db.Exec(`CREATE TABLE sessions (
 		                 uuid          UUID PRIMARY KEY,
-		                 user_uuid     UUID NOT NULL
+		                 user_uuid     UUID,
+		                 provider      TEXT,
+		                 provider_data TEXT
 		               )`)
 	}
 	if err != nil {

@@ -59,14 +59,27 @@ workers:       3
 max_timeout:   10
 web_root: ./webui
 auth:
-  - type: github
-    identifier: github
-    name: github
-#  api_tokens:
-#    test: ${SHIELD_API_TOKEN}
-#  basic:
-#    user:     ${SHIELD_WEB_USER}
-#    password: ${SHIELD_WEB_PASS}
+  - identifier: public-github
+    backend:    github
+    name:       Github
+    properties:
+      client_id:     KJSEHRKJWEHRKJHWER
+      client_secret: KLJWREKJWELKRJWLER
+      # use default github_endpoint
+
+  - identifier: corp-github
+    backend:    github
+    name:       Corporate Github
+    properties:
+      client_id:       FOO
+      client_secret:   BAR
+      github_endpoint: https://git.corporate.internal
+
+# api_tokens:
+#   test: ${SHIELD_API_TOKEN}
+# basic:
+#   user:     ${SHIELD_WEB_USER}
+#   password: ${SHIELD_WEB_PASS}
 EOF
 
   set -e

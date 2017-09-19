@@ -8,10 +8,10 @@ import (
 )
 
 type AuthConfig struct {
-	Name       string                 `yaml:"name"`
-	Identifier string                 `yaml:"identifier"`
-	Backend    string                 `yaml:"backend"`
-	Properties map[string]interface{} `yaml:"properties"`
+	Name       string                      `yaml:"name"`
+	Identifier string                      `yaml:"identifier"`
+	Backend    string                      `yaml:"backend"`
+	Properties map[interface{}]interface{} `yaml:"properties"`
 }
 
 type Config struct {

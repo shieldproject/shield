@@ -1,7 +1,6 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/pborman/uuid"
@@ -55,24 +54,54 @@ func (db *DB) GetTenant(id string) (*Tenant, error) {
 	return t, nil
 }
 
-func (db *DB) CreateTenant(given_uuid string, given_name string) (*Tenant, error) {
+func (db *DB) GetTenantByName(name string) (*Tenant, error) {
+	r, err := db.Query(`SELECT t.uuid, t.name FROM tenants t WHERE t.name = ?`, name)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
 
-	id := uuid.NewRandom()
+	if !r.Next() {
+		return nil, nil
+	}
+
+	var this NullUUID
+	t := &Tenant{}
+
+	if err := r.Scan(&this, &t.Name); err != nil {
+		return t, err
+	}
+	t.UUID = this.UUID
+	return t, nil
+}
+
+func (db *DB) EnsureTenant(name string) (*Tenant, error) {
+	if t, err := db.GetTenantByName(name); t != nil {
+		return t, err
+	}
+	return db.CreateTenant("", name)
+}
+
+func (db *DB) CreateTenant(given_uuid string, given_name string) (*Tenant, error) {
+	var id uuid.UUID
 	if given_uuid != "" {
 		id = uuid.Parse(given_uuid)
+	} else {
+		id = uuid.NewRandom()
 	}
 	if id == nil {
-		return nil, errors.New("uuid must be of format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+		return nil, fmt.Errorf("uuid must be of format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
 	}
-	fmt.Printf("%s, %s \n", id, given_uuid)
+
 	err := db.Exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, id.String(), given_name)
 	if err != nil {
 		return nil, err
 	}
-	t := &Tenant{}
-	t.UUID = id
-	t.Name = given_name
-	return t, nil
+
+	return &Tenant{
+		UUID: id,
+		Name: given_name,
+	}, nil
 }
 
 func (db *DB) UpdateTenant(given_uuid string, given_name string) (*Tenant, error) {

@@ -17,6 +17,7 @@ import (
 	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/util"
 	"github.com/starkandwayne/shield/timespec"
 )
 
@@ -35,6 +36,9 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case match(req, `GET /auth/id`):
 		core.authID(w, req)
 		return
+	case match(req, `GET /auth/oauth/.+`):
+		core.oauth2(w, req)
+		return
 
 	case match(req, `GET /v1/ping`):
 		core.v1Ping(w, req)
@@ -47,6 +51,10 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case match(req, `GET /v2/health`):
 		core.v2GetHealth(w, req)
 		return
+	case match (req, `GET /v2/auth/providers`):
+		core.v2GetAuthProviders(w, req)
+  case match (req, `GET /v2/auth/provider/.+`):
+		core.v2GetAuthProvider(w, req)
 
 	case match(req, `POST /v2/unlock`):
 		core.v2Unlock(w, req)
@@ -335,20 +343,6 @@ func (core *Core) authLogin(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(302)
 }
 
-// create a session for the user and returns a pointer to said session
-func (core *Core) createSession(user *db.User) (*db.Session, error) {
-
-	username := user.Name
-	session, err := core.DB.CreateSessionFor(user)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create session for local user '%s' (database error: %s)", username, err)
-	}
-	if session == nil {
-		return nil, fmt.Errorf("failed to create session for local user '%s' (session was nil)", username)
-	}
-	return session, nil
-}
-
 func (core *Core) authLogout(w http.ResponseWriter, req *http.Request) {
 	// unset the session cookie
 	cookie, err := req.Cookie("shield7")
@@ -366,11 +360,7 @@ func (core *Core) authLogout(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		http.SetCookie(w, &http.Cookie{
-			Name:   "shield7",
-			Value:  "-",
-			MaxAge: 0,
-		})
+		http.SetCookie(w, SessionCookie("-", false))
 	}
 	w.Header().Set("Location", "/#!/login")
 	w.WriteHeader(302)
@@ -399,16 +389,23 @@ func (core *Core) authID(w http.ResponseWriter, req *http.Request) {
 		bailWithError(w, ClientErrorf(err.Error()))
 		return
 	}
+	if userInfo == nil {
+		JSONLiteral(w, `{"unauthenticated":true}`)
+		w.WriteHeader(500)
+		return
+	}
 
 	answer := authResponse{}
-	if userInfo.User.Name == "" {
-		JSONLiteral(w, `{"unauthenticated":true}`)
+	answer.User.Name = userInfo.User.Name
+	answer.User.Account = userInfo.User.Account
+
+	provider, err := core.FindAuthProvider(userInfo.User.Backend)
+	/* FIXME ^^ does not handle local provider users terribly well */
+	if err != nil {
 		bailWithError(w, ClientErrorf(err.Error()))
 		return
 	}
-	answer.User.Name = userInfo.User.Name
-	answer.User.Account = userInfo.User.Account
-	answer.User.Backend = userInfo.User.Backend
+	answer.User.Backend = provider.DisplayName()
 
 	memberships, err := core.DB.GetMembershipsForUser(uuid.Parse(userInfo.User.UUID))
 	if err != nil {
@@ -1496,6 +1493,50 @@ func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
 	health.Stats.Daily = 0 // FIXME
 
 	JSON(w, health)
+}
+
+type v2AuthProvider struct {
+	Name string `json:"name"`
+	Identifier string `json:"identifier"`
+	Type string `json:"type"`
+}
+
+func (core *Core) v2GetAuthProviders(w http.ResponseWriter, req *http.Request) {
+	l := make([]v2AuthProvider, 0)
+	for _, auth := range core.auth {
+		l = append(l, v2AuthProvider{
+			Name: auth.Name,
+			Identifier: auth.Identifier,
+			Type: auth.Backend,
+		})
+	}
+
+	JSON(w, l)
+}
+
+type v2AuthProviderFull struct {
+	Name       string                 `json:"name"`
+	Identifier string                 `json:"identifier"`
+	Type       string                 `json:"type"`
+	Properties map[string]interface{} `json:"properties"`
+}
+func (core *Core) v2GetAuthProvider(w http.ResponseWriter, req *http.Request) {
+	re := regexp.MustCompile(`/v2/auth/provider/(.+)`)
+	m := re.FindStringSubmatch(req.URL.Path)
+
+	for _, a := range core.auth {
+		if a.Identifier == m[1] {
+			JSON(w, &v2AuthProviderFull{
+				Name: a.Name,
+				Identifier: a.Identifier,
+				Type: a.Backend,
+				Properties: util.StringifyKeys(a.Properties).(map[string]interface{}),
+			})
+			return
+		}
+	}
+	bailWithError(w, ClientErrorf("no such authentication provider: '%s'", m[1]))
+	return
 }
 
 func (core *Core) v2GetAgents(w http.ResponseWriter, req *http.Request) {

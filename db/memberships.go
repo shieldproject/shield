@@ -42,6 +42,10 @@ func (db *DB) GetMembershipsForUser(user uuid.UUID) ([]*Membership, error) {
 	return l, nil
 }
 
+func (db *DB) ClearMembershipsFor(user *User) error {
+	return db.Exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID.String())
+}
+
 //Manual close of sql transaction necessary to avoid database lockup due to defer
 func (db *DB) AddUserToTenant(user, tenant, role string) error {
 	r, err := db.Query(`

@@ -34,6 +34,9 @@
 # ignore the coverage reports
 /coverage
 
+# ignore testing files
 cmd/shield-umc/shield-umc
-
 cmd/shield-umc/main
+oauth.conf
+oauth.key
+oauth.key.pub
