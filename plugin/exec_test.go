@@ -51,13 +51,23 @@ var _ = Describe("Plugin Commands", func() {
 		err := plugin.ExecWithOptions(opts)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
-	It("Does return errors when the cmd returns an unexpected exit code", func() {
+	It("Does return errors when the cmd returns an unexpected exit code and is evaluating the error code", func() {
 		opts := plugin.ExecOptions{
-			Cmd:      "test/bin/exec_tester 2",
-			ExpectRC: []int{1},
+			Cmd:             "test/bin/exec_tester 2",
+			ExpectRC:        []int{1},
+			CheckExitStatus: "true",
 		}
 		err := plugin.ExecWithOptions(opts)
 		Expect(err).Should(HaveOccurred())
+	})
+	It("Does not return errors when the cmd returns an unexpected exit code and is not evaluating the error code", func() {
+		opts := plugin.ExecOptions{
+			Cmd:             "test/bin/exec_tester 2",
+			ExpectRC:        []int{1},
+			CheckExitStatus: "false",
+		}
+		err := plugin.ExecWithOptions(opts)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 	It("Gets stderr/stdout and uses stdin", func() {
 		rStdin, wStdin, err := os.Pipe()
@@ -78,11 +88,12 @@ var _ = Describe("Plugin Commands", func() {
 		wStdin.Close()
 
 		opts := plugin.ExecOptions{
-			Cmd:      "test/bin/exec_tester 0",
-			Stdout:   wStdout,
-			Stderr:   wStderr,
-			Stdin:    rStdin,
-			ExpectRC: []int{0},
+			Cmd:             "test/bin/exec_tester 0",
+			Stdout:          wStdout,
+			Stderr:          wStderr,
+			Stdin:           rStdin,
+			ExpectRC:        []int{0},
+			CheckExitStatus: "true",
 		}
 
 		err = plugin.ExecWithOptions(opts)
