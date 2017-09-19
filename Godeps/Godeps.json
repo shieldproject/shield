@@ -422,15 +422,19 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
+			"Rev": "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context/ctxhttp",
-			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
+			"Rev": "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 		},
 		{
 			"ImportPath": "golang.org/x/net/proxy",
-			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
+			"Rev": "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html/charset",
+			"Rev": "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2",
@@ -597,6 +601,14 @@
 		{
 			"ImportPath": "github.com/golang/protobuf/proto",
 			"Rev": "ab9f9a6dab164b7d1246e0e688b0ab7b94d8553e"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html",
+			"Rev": "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html/atom",
+			"Rev": "8351a756f30f1297fe94bbf4b767ec589c6ea6d0"
 		}
 	]
 }
