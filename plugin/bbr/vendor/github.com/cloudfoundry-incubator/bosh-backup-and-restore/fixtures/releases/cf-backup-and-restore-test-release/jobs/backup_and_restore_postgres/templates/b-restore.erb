@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -x
+
+<%
+  databases = p("databases.databases")
+  roles = p("databases.roles")
+%>
+
+<% databases.each_with_index do |db, i| %>
+PG_PASSWORD=<%= roles[i]["password"] %> /var/vcap/packages/postgres-9.4.6/bin/psql \
+  -p <%= p("databases.port") %> \
+  -U <%= roles[i]["name"] %> \
+  <%= db["name"] %> < /var/vcap/store/backup/<%= db["name"].strip %>_dump.sql
+<% end %>

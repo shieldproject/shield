@@ -1,0 +1,18 @@
+---
+name: backup_and_restore_blobstore
+templates:
+  backup.erb: bin/bbr/backup
+  restore.erb: bin/bbr/restore
+
+packages: []
+
+properties:
+  cc.buildpacks.buildpack_directory_key:
+    description: "Name of buildpack directory"
+    default: "cc-buildpacks"
+  cc.droplets.droplet_directory_key:
+    description: "Name of droplets directory"
+    default: "cc-droplets"
+  cc.packages.app_package_directory_key:
+    description: "Name of app packages directory"
+    default: "cc-packages"

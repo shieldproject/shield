@@ -1,0 +1,14 @@
+---
+platform: windows
+
+inputs:
+- name: bosh-cli
+  path: gopath/src/github.com/cloudfoundry/bosh-cli
+
+run:
+  path: powershell
+  args:
+  - "-ExecutionPolicy"
+  - "Bypass"
+  - "-File"
+  - gopath/src/github.com/cloudfoundry/bosh-cli/ci/tasks/test-integration.ps1

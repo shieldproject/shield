@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+# Travis randomly kills go builds when using -race
+race=""
+if [ -z "$TRAVIS" ]; then
+  race="-race"
+fi
+
+$bin/clean
+$bin/install-ginkgo
+$bin/test-prepare
+$bin/test-unit
+$bin/test-integration

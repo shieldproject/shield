@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+cp -R /var/vcap/store/redis/* /var/vcap/store/backup/

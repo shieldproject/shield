@@ -1,0 +1,4 @@
+#!/bin/bash -e
+
+echo "output from post-backup-unlock" > /tmp/post-backup-unlock.out
+date >> /tmp/post-backup-unlock.out

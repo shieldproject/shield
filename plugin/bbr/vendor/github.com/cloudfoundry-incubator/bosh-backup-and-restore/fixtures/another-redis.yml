@@ -1,0 +1,33 @@
+---
+name: ((deployment-name))
+director_uuid: bc6a9543-72f3-4b1f-98bd-1437ea748564
+releases:
+- name: redis-test
+  version: latest
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+jobs:
+- name: another-redis
+  instances: 1
+  templates:
+  - name: redis-server
+    release: redis-test
+  vm_type: container
+  persistent_disk_type: five
+  stemcell: trusty
+  azs:
+  - lite
+  networks:
+  - name: services
+  properties:
+    redis:
+      password: redis
+      persistence: 'yes'
+      maxclients: 1000
+update:
+  canaries: 2
+  canary_watch_time: 30000-180000
+  update_watch_time: 30000-180000
+  max_in_flight: 4

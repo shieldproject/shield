@@ -1,0 +1,6 @@
+---
+name: dummyToo
+templates:
+  ctl.erb: bin/dummyToo_ctl
+
+packages: []

@@ -1,0 +1,3 @@
+GO_VERSION=1.7.1
+GO_ARCHIVE_SHA256=43ad621c9b014cde8db17393dc108378d37bc853aa351a6c74bf6432c1bbd182
+GO_ARCHIVE_URL=https://storage.googleapis.com/golang/go$GO_VERSION.linux-amd64.tar.gz

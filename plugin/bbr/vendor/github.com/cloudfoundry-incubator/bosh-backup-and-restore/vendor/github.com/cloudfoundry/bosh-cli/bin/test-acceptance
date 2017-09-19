@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+bin=$(dirname $0)
+
+$bin/install-ginkgo
+
+echo -e "\n Running acceptance tests..."
+$bin/env ginkgo -race -trace acceptance

@@ -1,0 +1,8 @@
+dev_releases
+tmp
+.blobs
+.dev_builds
+blobs
+releases/*/*.tgz
+.project
+bin

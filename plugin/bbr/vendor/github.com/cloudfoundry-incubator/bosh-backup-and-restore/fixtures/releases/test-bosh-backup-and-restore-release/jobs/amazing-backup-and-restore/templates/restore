@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -ue
+
+mkdir -p /var/vcap/store/amazing-backup-and-restore
+cp $ARTIFACT_DIRECTORY/backup /var/vcap/store/amazing-backup-and-restore

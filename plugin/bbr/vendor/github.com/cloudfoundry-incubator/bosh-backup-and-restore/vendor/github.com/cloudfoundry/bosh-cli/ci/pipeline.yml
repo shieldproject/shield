@@ -1,0 +1,355 @@
+---
+jobs:
+  - name: test-unit
+    public: true
+    plan:
+      - get: bosh-cli
+        trigger: true
+      - task: test-unit
+        file: bosh-cli/ci/tasks/test-unit.yml
+
+  - name: test-integration
+    public: true
+    plan:
+      - get: bosh-cli
+        trigger: true
+      - task: test-integration
+        file: bosh-cli/ci/tasks/test-integration.yml
+        privileged: true
+
+  - name: test-acceptance
+    public: true
+    plan:
+      - aggregate:
+        - get: bosh-cli
+          passed: [test-unit,test-integration]
+          trigger: true
+        - get: bosh-warden-cpi-release
+          trigger: true
+      - aggregate:
+        - task: test-acceptance
+          file: bosh-cli/ci/tasks/test-acceptance.yml
+          privileged: true
+          params:
+            BOSH_AWS_ACCESS_KEY_ID:     {{aws_ec2_acceptance_tests_access_key}}
+            BOSH_AWS_SECRET_ACCESS_KEY: {{aws_ec2_acceptance_tests_secret_key}}
+            BOSH_LITE_KEYPAIR:          {{aws_ec2_acceptance_tests_bosh_lite_keypair}}
+            BOSH_LITE_SUBNET_ID:        {{aws_ec2_acceptance_tests_bosh_lite_subnet_id}}
+            BOSH_LITE_SECURITY_GROUP:   {{aws_ec2_acceptance_tests_bosh_lite_security_group}}
+            BOSH_LITE_PRIVATE_KEY_DATA: {{aws_ec2_acceptance_tests_bosh_lite_private_key}}
+
+  - name: integration-2.3-postgres-gocli
+    public: true
+    serial: true
+    build_logs_to_retain: 250
+    plan:
+      - aggregate:
+        - get: bosh-src
+          trigger: true
+        - get: version-semver
+          params: {bump: patch}
+        - get: bosh-cli
+          passed: [test-unit,test-integration]
+          trigger: true
+        - get: bosh-agent
+          trigger: true
+      - task: build-linux
+        file: bosh-cli/ci/tasks/build-linux.yml
+        params:
+          SKIP_BOSH_IO: true
+          BOSHIO_BEARER_TOKEN:
+      - aggregate:
+        - task: test-group-1
+          privileged: true
+          input_mapping:
+            bosh-cli: compiled-linux
+          file: bosh-src/ci/tasks/test-integration-gocli.yml
+          tags: ["bosh-integration-1"]
+          params:
+            DB:           postgresql
+            RUBY_VERSION: 2.3.1
+            NUM_GROUPS: 24
+            GROUP:      1,4,7,10,13,16,19,22
+        - task: test-group-2
+          privileged: true
+          input_mapping:
+            bosh-cli: compiled-linux
+          file: bosh-src/ci/tasks/test-integration-gocli.yml
+          tags: ["bosh-integration-2"]
+          params:
+            DB:           postgresql
+            RUBY_VERSION: 2.3.1
+            NUM_GROUPS: 24
+            GROUP:      2,5,8,11,14,17,20,23
+        - task: test-group-3
+          privileged: true
+          input_mapping:
+            bosh-cli: compiled-linux
+          file: bosh-src/ci/tasks/test-integration-gocli.yml
+          tags: ["bosh-integration-3"]
+          params:
+            DB:           postgresql
+            RUBY_VERSION: 2.3.1
+            NUM_GROUPS: 24
+            GROUP:      3,6,9,12,15,18,21,24
+        on_failure:
+          put: slack-alert
+          params:
+            channel: {{slack_channel_name}}
+            icon_url: http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png
+            text: {{slack_failure_message}}
+
+  - name: build
+    public: true
+    plan:
+      - aggregate:
+        - get: bosh-cli
+          passed:
+           - test-acceptance
+           - integration-2.3-postgres-gocli
+          trigger: true
+        - get: version-semver
+          params: {bump: patch}
+        - get: homebrew-tap
+      - {put: version-semver, params: {file: version-semver/number}}
+      - aggregate:
+        - task: build-linux
+          file: bosh-cli/ci/tasks/build-linux.yml
+          params:
+            BOSHIO_BEARER_TOKEN: {{boshio_bearer_token}}
+        - task: build-darwin
+          file: bosh-cli/ci/tasks/build-darwin.yml
+          params:
+            BOSHIO_BEARER_TOKEN: {{boshio_bearer_token}}
+        - task: build-windows
+          file: bosh-cli/ci/tasks/build-windows.yml
+          params:
+            BOSHIO_BEARER_TOKEN: {{boshio_bearer_token}}
+
+      - task: create-dockerfile
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source: {repository: bosh/cli}
+          run:
+            path: /bin/bash
+            args:
+            - -c
+            - |
+              cp compiled-linux/bosh-cli-* docker-assets/bosh2
+              chmod +x docker-assets/bosh2
+
+              cat >docker-assets/Dockerfile <<-FILE
+              FROM ubuntu:trusty
+
+              RUN locale-gen en_US.UTF-8
+              RUN dpkg-reconfigure locales
+              ENV LANG en_US.UTF-8
+              ENV LC_ALL en_US.UTF-8
+
+              RUN apt-get update && \
+                apt-get install -y \
+                build-essential zlibc zlib1g-dev ruby ruby-dev openssl \
+                libxslt-dev libxml2-dev libssl-dev libreadline6 libreadline6-dev \
+                libyaml-dev libsqlite3-dev sqlite3 && \
+                apt-get clean
+
+              COPY bosh2 /usr/local/bin/bosh2
+              FILE
+          inputs:
+          - name: compiled-linux
+          outputs:
+          - name: docker-assets
+
+      - aggregate:
+        - {put: release-bucket-linux, params: {file: compiled-linux/bosh-cli-*-linux-amd64}}
+        - {put: release-bucket-darwin, params: {file: compiled-darwin/bosh-cli-*-darwin-amd64}}
+        - {put: release-bucket-windows, params: {file: compiled-windows/bosh-cli-*-windows-amd64.exe}}
+        - {put: bosh-cli-promoted, params: {repository: bosh-cli, tag: version-semver/number, tag_prefix: v}}
+
+        - put: final-docker
+          params:
+            build: docker-assets
+            tag: version-semver/number
+            tag_as_latest: true
+
+      - task: update-homebrew-formula
+        file: bosh-cli/ci/tasks/update-homebrew-formula.yml
+      - put: homebrew-tap
+        params:
+          repository: update-brew-formula-output/homebrew-tap
+
+  - name: build-alpha
+    public: true
+    plan:
+      - aggregate:
+        - get: bosh-cli
+          passed:
+           - test-acceptance
+           - integration-2.3-postgres-gocli
+          trigger: true
+        - get: alpha-version-semver
+          params: {bump: patch}
+      - {put: alpha-version-semver, params: {file: alpha-version-semver/number}}
+      - aggregate:
+        - task: build-linux
+          input_mapping: {version-semver: alpha-version-semver}
+          file: bosh-cli/ci/tasks/build-linux.yml
+          params:
+            SKIP_BOSH_IO: true
+            FILENAME_PREFIX: "alpha-"
+        - task: build-darwin
+          input_mapping: {version-semver: alpha-version-semver}
+          file: bosh-cli/ci/tasks/build-darwin.yml
+          params:
+            SKIP_BOSH_IO: true
+            FILENAME_PREFIX: "alpha-"
+        - task: build-windows
+          input_mapping: {version-semver: alpha-version-semver}
+          file: bosh-cli/ci/tasks/build-windows.yml
+          params:
+            SKIP_BOSH_IO: true
+            FILENAME_PREFIX: "alpha-"
+
+      - aggregate:
+        - {put: alpha-release-bucket-linux, params: {file: compiled-linux/alpha-bosh-cli-*-linux-amd64}}
+        - {put: alpha-release-bucket-darwin, params: {file: compiled-darwin/alpha-bosh-cli-*-darwin-amd64}}
+        - {put: alpha-release-bucket-windows, params: {file: compiled-windows/alpha-bosh-cli-*-windows-amd64.exe}}
+
+  - name: bump-minor
+    public: true
+    plan:
+      - get: version-semver
+        params: {bump: minor}
+      - {put: version-semver, params: {file: version-semver/number}}
+
+  - name: bump-major
+    public: true
+    plan:
+      - get: version-semver
+        params: {bump: major}
+      - {put: version-semver, params: {file: version-semver/number}}
+
+resources:
+  - name: bosh-src
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh.git
+      branch: master
+
+  - name: bosh-agent
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-agent.git
+      branch: master
+
+  - name: bosh-cli
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-cli
+      branch: develop
+
+  - name: bosh-warden-cpi-release
+    type: bosh-io-release
+    source:
+      repository: cppforlife/bosh-warden-cpi-release
+
+  - name: bosh-cli-promoted
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/bosh-cli.git
+      branch: master
+      private_key: {{concourse_github_private_key}}
+
+  - name: release-bucket-linux
+    type: s3
+    source:
+      regexp: bosh-cli-(.*)-linux-amd64
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: release-bucket-darwin
+    type: s3
+    source:
+      regexp: bosh-cli-(.*)-darwin-amd64
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: release-bucket-windows
+    type: s3
+    source:
+      regexp: bosh-cli-(.*)-windows-amd64.exe
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: alpha-release-bucket-linux
+    type: s3
+    source:
+      regexp: alpha-bosh-cli-(.*)-linux-amd64
+      bucket: {{aws_s3_alpha_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: alpha-release-bucket-darwin
+    type: s3
+    source:
+      regexp: alpha-bosh-cli-(.*)-darwin-amd64
+      bucket: {{aws_s3_alpha_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: alpha-release-bucket-windows
+    type: s3
+    source:
+      regexp: alpha-bosh-cli-(.*)-windows-amd64.exe
+      bucket: {{aws_s3_alpha_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: slack-alert
+    type: slack-notification
+    source:
+      url: {{slack_hook_url}}
+
+  - name: version-semver
+    type: semver
+    source:
+      initial_version: 0.0.1
+      key: cli-current-version
+      bucket: {{aws_s3_release_bucket}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: alpha-version-semver
+    type: semver
+    source:
+      initial_version: 0.0.1
+      key: cli-alpha-current-version
+      bucket: {{aws_s3_alpha_release_bucket}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: homebrew-tap
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/homebrew-tap
+      branch: master
+      private_key: {{cloudfoundry_homebrew_tap_deploy_key}}
+
+  - name: final-docker
+    type: docker-image
+    source:
+      repository: bosh/cli2
+      username: {{docker_username}}
+      password: {{docker_password}}
+      email: foo@bar.com

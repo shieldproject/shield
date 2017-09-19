@@ -4,6 +4,8 @@
 /shield-schema
 /docker-postgres*
 /dummy
+/bbr
+/consul-snapshot
 /elasticsearch
 /mock
 /mysql
