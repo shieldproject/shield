@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 
+	"github.com/golang/protobuf/proto"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 )
@@ -88,6 +90,19 @@ func VerifyHeaderKV(key string, values ...string) http.HandlerFunc {
 	return VerifyHeader(http.Header{key: values})
 }
 
+//VerifyBody returns a handler that verifies that the body of the request matches the passed in byte array.
+//It does this using Equal().
+func VerifyBody(expectedBody []byte) http.HandlerFunc {
+	return CombineHandlers(
+		func(w http.ResponseWriter, req *http.Request) {
+			body, err := ioutil.ReadAll(req.Body)
+			req.Body.Close()
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(body).Should(Equal(expectedBody), "Body Mismatch")
+		},
+	)
+}
+
 //VerifyJSON returns a handler that verifies that the body of the request is a valid JSON representation
 //matching the passed in JSON string.  It does this using Gomega's MatchJSON method
 //
@@ -113,6 +128,53 @@ func VerifyJSONRepresenting(object interface{}) http.HandlerFunc {
 	return CombineHandlers(
 		VerifyContentType("application/json"),
 		VerifyJSON(string(data)),
+	)
+}
+
+//VerifyForm returns a handler that verifies a request contains the specified form values.
+//
+//The request must contain *all* of the specified values, but it is allowed to have additional
+//form values beyond the passed in set.
+func VerifyForm(values url.Values) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		Ω(err).ShouldNot(HaveOccurred())
+		for key, vals := range values {
+			Ω(r.Form[key]).Should(Equal(vals), "Form mismatch for key: %s", key)
+		}
+	}
+}
+
+//VerifyFormKV returns a handler that verifies a request contains a form key with the specified values.
+//
+//It is a convenience wrapper around `VerifyForm` that lets you avoid having to create a `url.Values` object.
+func VerifyFormKV(key string, values ...string) http.HandlerFunc {
+	return VerifyForm(url.Values{key: values})
+}
+
+//VerifyProtoRepresenting returns a handler that verifies that the body of the request is a valid protobuf
+//representation of the passed message.
+//
+//VerifyProtoRepresenting also verifies that the request's content type is application/x-protobuf
+func VerifyProtoRepresenting(expected proto.Message) http.HandlerFunc {
+	return CombineHandlers(
+		VerifyContentType("application/x-protobuf"),
+		func(w http.ResponseWriter, req *http.Request) {
+			body, err := ioutil.ReadAll(req.Body)
+			Ω(err).ShouldNot(HaveOccurred())
+			req.Body.Close()
+
+			expectedType := reflect.TypeOf(expected)
+			actualValuePtr := reflect.New(expectedType.Elem())
+
+			actual, ok := actualValuePtr.Interface().(proto.Message)
+			Ω(ok).Should(BeTrue(), "Message value is not a proto.Message")
+
+			err = proto.Unmarshal(body, actual)
+			Ω(err).ShouldNot(HaveOccurred(), "Failed to unmarshal protobuf")
+
+			Ω(actual).Should(Equal(expected), "ProtoBuf Mismatch")
+		},
 	)
 }
 
@@ -221,6 +283,31 @@ func RespondWithJSONEncodedPtr(statusCode *int, object interface{}, optionalHead
 		}
 		copyHeader(headers, w.Header())
 		w.WriteHeader(*statusCode)
+		w.Write(data)
+	}
+}
+
+//RespondWithProto returns a handler that responds to a request with the specified status code and a body
+//containing the protobuf serialization of the provided message.
+//
+//Also, RespondWithProto can be given an optional http.Header.  The headers defined therein will be added to the response headers.
+func RespondWithProto(statusCode int, message proto.Message, optionalHeader ...http.Header) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		data, err := proto.Marshal(message)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		var headers http.Header
+		if len(optionalHeader) == 1 {
+			headers = optionalHeader[0]
+		} else {
+			headers = make(http.Header)
+		}
+		if _, found := headers["Content-Type"]; !found {
+			headers["Content-Type"] = []string{"application/x-protobuf"}
+		}
+		copyHeader(headers, w.Header())
+
+		w.WriteHeader(statusCode)
 		w.Write(data)
 	}
 }
