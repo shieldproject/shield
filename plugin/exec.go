@@ -3,6 +3,7 @@ package plugin
 import (
 	"crypto/cipher"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -31,17 +32,25 @@ func ExecWithOptions(opts ExecOptions) error {
 		return ExecFailure{Err: fmt.Sprintf("Could not parse '%s' into exec-able command: %s", opts.Cmd, err.Error())}
 	}
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
+
+	//Encryption data is passed from the shield-pipe on fd 3
+	var data map[string]interface{}
+	decoder := json.NewDecoder(os.NewFile(uintptr(3), "encConfig"))
+	if err := decoder.Decode(&data); err != nil {
+		return err
+	}
+
 	// some liberties will be taken here.  hang on!
-	keyRaw, err := hex.DecodeString(os.Getenv("SHIELD_ENCRYPT_KEY"))
+	keyRaw, err := hex.DecodeString(data["encKey"].(string))
 	if err != nil {
 		return err
 	}
-	ivRaw, err := hex.DecodeString(os.Getenv("SHIELD_ENCRYPT_IV"))
+	ivRaw, err := hex.DecodeString(data["encIV"].(string))
 	if err != nil {
 		return err
 	}
 
-	encStream, decStream, err := crypter.Stream(os.Getenv("SHIELD_ENCRYPT_TYPE"), keyRaw, ivRaw)
+	encStream, decStream, err := crypter.Stream(data["encType"].(string), keyRaw, ivRaw)
 	if err != nil {
 		return err
 	}
