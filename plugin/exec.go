@@ -1,11 +1,16 @@
 package plugin
 
 import (
+	"crypto/cipher"
+	"encoding/hex"
 	"fmt"
-	"github.com/mattn/go-shellwords"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
+
+	"github.com/mattn/go-shellwords"
+	"github.com/starkandwayne/shield/crypter"
 )
 
 const NOPIPE = 0
@@ -13,8 +18,8 @@ const STDIN = 1
 const STDOUT = 2
 
 type ExecOptions struct {
-	Stdout   *os.File
-	Stdin    *os.File
+	Stdout   io.Writer
+	Stdin    io.Reader
 	Stderr   *os.File
 	Cmd      string
 	ExpectRC []int
@@ -26,16 +31,36 @@ func ExecWithOptions(opts ExecOptions) error {
 		return ExecFailure{Err: fmt.Sprintf("Could not parse '%s' into exec-able command: %s", opts.Cmd, err.Error())}
 	}
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
+	// some liberties will be taken here.  hang on!
+	keyRaw, err := hex.DecodeString(os.Getenv("SHIELD_ENCRYPT_KEY"))
+	if err != nil {
+		return err
+	}
+	ivRaw, err := hex.DecodeString(os.Getenv("SHIELD_ENCRYPT_IV"))
+	if err != nil {
+		return err
+	}
 
+	encStream, decStream, err := crypter.Stream(os.Getenv("SHIELD_ENCRYPT_TYPE"), keyRaw, ivRaw)
+	if err != nil {
+		return err
+	}
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	if opts.Stdout != nil {
-		cmd.Stdout = opts.Stdout
+		cmd.Stdout = cipher.StreamWriter{
+			S: encStream,
+			W: opts.Stdout,
+		}
 	}
 	if opts.Stderr != nil {
 		cmd.Stderr = opts.Stderr
 	}
 	if opts.Stdin != nil {
 		cmd.Stdin = opts.Stdin
+		cmd.Stdin = cipher.StreamReader{
+			S: decStream,
+			R: opts.Stdin,
+		}
 	}
 
 	if len(opts.ExpectRC) == 0 {
@@ -78,6 +103,5 @@ func Exec(cmdString string, flags int) error {
 	if flags&STDIN == STDIN {
 		opts.Stdin = os.Stdin
 	}
-
 	return ExecWithOptions(opts)
 }

@@ -12,10 +12,9 @@ import (
 
 	"github.com/markbates/goth/gothic"
 
+	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/github"
-	//"github.com/markbates/goth/providers/cloudfoundry"
-	"github.com/gorilla/sessions"
 	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/goutils/log"
@@ -448,8 +447,8 @@ func (core *Core) worker(id int) {
 
 		if task.Op == db.BackupOperation {
 			task.ArchiveUUID = uuid.NewRandom()
-
-			encIV, err := core.vault.Gen(16)
+			//Keys/IVs are twice as long as they are treated as hex encoded for OpenSSL compatibility
+			encIV, err := core.vault.Gen(32)
 			if err != nil {
 				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption IV: %s\n", id, err)
 				core.handleFailure(task)
@@ -458,9 +457,9 @@ func (core *Core) worker(id int) {
 
 			encKey := ""
 			if strings.Contains(core.vault.EncryptionType, "128") {
-				encKey, err = core.vault.Gen(16)
-			} else {
 				encKey, err = core.vault.Gen(32)
+			} else {
+				encKey, err = core.vault.Gen(64)
 			}
 			if err != nil {
 				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption key: %s\n", id, err)
