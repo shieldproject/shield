@@ -34,28 +34,28 @@ func ExecWithOptions(opts ExecOptions) error {
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
 
 	//Encryption data is passed from the shield-pipe on fd 3
+	var encStream, decStream cipher.Stream
 	var data map[string]interface{}
 	decoder := json.NewDecoder(os.NewFile(uintptr(3), "encConfig"))
-	if err := decoder.Decode(&data); err != nil {
-		return err
-	}
-
-	// some liberties will be taken here.  hang on!
-	keyRaw, err := hex.DecodeString(data["encKey"].(string))
-	if err != nil {
-		return err
-	}
-	ivRaw, err := hex.DecodeString(data["encIV"].(string))
-	if err != nil {
-		return err
-	}
-	var encStream, decStream cipher.Stream
-	if data["encType"].(string) != "" {
-		encStream, decStream, err = crypter.Stream(data["encType"].(string), keyRaw, ivRaw)
+	if err := decoder.Decode(&data); err == nil {
+		// some liberties will be taken here.  hang on!
+		keyRaw, err := hex.DecodeString(data["encKey"].(string))
 		if err != nil {
 			return err
 		}
+		ivRaw, err := hex.DecodeString(data["encIV"].(string))
+		if err != nil {
+			return err
+		}
+
+		if data["encType"].(string) != "" {
+			encStream, decStream, err = crypter.Stream(data["encType"].(string), keyRaw, ivRaw)
+			if err != nil {
+				return err
+			}
+		}
 	}
+
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	if opts.Stdout != nil {
 		cmd.Stdout = opts.Stdout
