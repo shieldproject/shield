@@ -51,15 +51,6 @@ func ParseCommand(b []byte) (*Command, error) {
 		if cmd.StoreEndpoint == "" {
 			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
-		if cmd.EncryptType == "" {
-			return nil, fmt.Errorf("missing required 'encrypt_cipher' value in payload")
-		}
-		if cmd.EncryptKey == "" {
-			return nil, fmt.Errorf("missing required 'encrypt_key' value in payload")
-		}
-		if cmd.EncryptIV == "" {
-			return nil, fmt.Errorf("missing required 'encrypt_iv' value in payload")
-		}
 
 	case "restore":
 		if cmd.TargetPlugin == "" {
@@ -79,15 +70,7 @@ func ParseCommand(b []byte) (*Command, error) {
 		if cmd.RestoreKey == "" {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
 		}
-		if cmd.EncryptType == "" {
-			return nil, fmt.Errorf("missing required 'encrypt_cipher' value in payload")
-		}
-		if cmd.EncryptKey == "" {
-			return nil, fmt.Errorf("missing required 'encrypt_key' value in payload")
-		}
-		if cmd.EncryptIV == "" {
-			return nil, fmt.Errorf("missing required 'encrypt_iv' value in payload")
-		}
+
 	case "purge":
 		if cmd.StorePlugin == "" {
 			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")

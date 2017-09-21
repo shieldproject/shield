@@ -483,10 +483,17 @@ func (core *Core) worker(id int) {
 		}
 
 		data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
-		if err != nil || exists == false {
+		if err != nil {
 			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to set encryption uuid: %s\n", id, err)
 			core.handleFailure(task)
 			continue
+		}
+
+		var encType, encKey, encIV string
+		if exists {
+			encType = data["type"].(string)
+			encKey = strings.Replace(data["key"].(string), "-", "", -1)
+			encIV = strings.Replace(data["iv"].(string), "-", "", -1)
 		}
 
 		/* connect to the remote SSH agent for this specific request
@@ -500,9 +507,9 @@ func (core *Core) worker(id int) {
 			StorePlugin:    task.StorePlugin,
 			StoreEndpoint:  task.StoreEndpoint,
 			RestoreKey:     task.RestoreKey,
-			EncryptType:    data["type"].(string),
-			EncryptKey:     strings.Replace(data["key"].(string), "-", "", -1),
-			EncryptIV:      strings.Replace(data["iv"].(string), "-", "", -1),
+			EncryptType:    encType,
+			EncryptKey:     encKey,
+			EncryptIV:      encIV,
 		})
 
 		if err != nil {
