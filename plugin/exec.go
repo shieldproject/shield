@@ -49,16 +49,21 @@ func ExecWithOptions(opts ExecOptions) error {
 	if err != nil {
 		return err
 	}
-
-	encStream, decStream, err := crypter.Stream(data["encType"].(string), keyRaw, ivRaw)
-	if err != nil {
-		return err
+	var encStream, decStream cipher.Stream
+	if data["encType"].(string) != "" {
+		encStream, decStream, err = crypter.Stream(data["encType"].(string), keyRaw, ivRaw)
+		if err != nil {
+			return err
+		}
 	}
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	if opts.Stdout != nil {
-		cmd.Stdout = cipher.StreamWriter{
-			S: encStream,
-			W: opts.Stdout,
+		cmd.Stdout = opts.Stdout
+		if encStream != nil {
+			cmd.Stdout = cipher.StreamWriter{
+				S: encStream,
+				W: opts.Stdout,
+			}
 		}
 	}
 	if opts.Stderr != nil {
@@ -66,9 +71,11 @@ func ExecWithOptions(opts ExecOptions) error {
 	}
 	if opts.Stdin != nil {
 		cmd.Stdin = opts.Stdin
-		cmd.Stdin = cipher.StreamReader{
-			S: decStream,
-			R: opts.Stdin,
+		if decStream != nil {
+			cmd.Stdin = cipher.StreamReader{
+				S: decStream,
+				R: opts.Stdin,
+			}
 		}
 	}
 
