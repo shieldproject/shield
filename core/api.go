@@ -28,25 +28,33 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `POST /auth/login`):
 		core.authLogin(w, req)
+		return
 	case match(req, `GET /auth/logout`):
 		core.authLogout(w, req)
+		return
 	case match(req, `GET /auth/id`):
 		core.authID(w, req)
+		return
 
 	case match(req, `GET /v1/ping`):
 		core.v1Ping(w, req)
+		return
 
 	case match(req, `GET /v1/status`):
 		core.v1Status(w, req)
+		return
 
 	case match(req, `GET /v2/health`):
 		core.v2GetHealth(w, req)
+		return
 
 	case match(req, `POST /v2/unlock`):
 		core.v2Unlock(w, req)
+		return
 
 	case match(req, `POST /v2/init`):
 		core.v2Init(w, req)
+		return
 
 	}
 
@@ -54,116 +62,160 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		switch {
 		case match(req, `GET /v1/meta/pubkey`):
 			core.v1GetPublicKey(w, req)
+			return
 
 		case match(req, `GET /v1/status/internal`):
 			core.v1DetailedStatus(w, req)
+			return
 		case match(req, `GET /v1/status/jobs`):
 			core.v1JobsStatus(w, req)
+			return
 
 		case match(req, `GET /v1/archives`):
 			core.v1GetArchives(w, req)
+			return
 		case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
 			core.v1RestoreArchive(w, req)
+			return
 		case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
 			core.v1GetArchive(w, req)
+			return
 		case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
 			core.v1UpdateArchive(w, req)
+			return
 		case match(req, `DELETE /v1/archive/[a-fA-F0-9-]+`):
 			core.v1DeleteArchive(w, req)
+			return
 
 		case match(req, `GET /v1/jobs`):
 			core.v1GetJobs(w, req)
+			return
 		case match(req, `POST /v1/jobs`):
 			core.v1CreateJob(w, req)
+			return
 		case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
 			core.v1PauseJob(w, req)
+			return
 		case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
 			core.v1UnpauseJob(w, req)
+			return
 		case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
 			core.v1RunJob(w, req)
+			return
 		case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
 			core.v1GetJob(w, req)
+			return
 		case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
 			core.v1UpdateJob(w, req)
+			return
 		case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
 			core.v1DeleteJob(w, req)
+			return
 
 		case match(req, `GET /v1/retention`):
 			core.v1GetRetentionPolicies(w, req)
+			return
 		case match(req, `POST /v1/retention`):
 			core.v1CreateRetentionPolicy(w, req)
+			return
 		case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
 			core.v1GetRetentionPolicy(w, req)
+			return
 		case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
 			core.v1UpdateRetentionPolicy(w, req)
+			return
 		case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
 			core.v1DeleteRetentionPolicy(w, req)
+			return
 
 		case match(req, `GET /v1/stores`):
 			core.v1GetStores(w, req)
+			return
 		case match(req, `POST /v1/stores`):
 			core.v1CreateStore(w, req)
+			return
 		case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
 			core.v1GetStore(w, req)
+			return
 		case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
 			core.v1UpdateStore(w, req)
+			return
 		case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
 			core.v1DeleteStore(w, req)
+			return
 
 		case match(req, `GET /v1/targets`):
 			core.v1GetTargets(w, req)
+			return
 		case match(req, `POST /v1/targets`):
 			core.v1CreateTarget(w, req)
+			return
 		case match(req, `GET /v1/target/[a-fA-F0-9-]+`):
 			core.v1GetTarget(w, req)
+			return
 		case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
 			core.v1UpdateTarget(w, req)
+			return
 		case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
 			core.v1DeleteTarget(w, req)
+			return
 
 		case match(req, `GET /v1/tasks`):
 			core.v1GetTasks(w, req)
+			return
 		case match(req, `GET /v1/task/[a-fA-F0-9-]+`):
 			core.v1GetTask(w, req)
+			return
 		case match(req, `DELETE /v1/task/[a-fA-F0-9-]+`):
 			core.v1CancelTask(w, req)
+			return
 
 		case match(req, `GET /v2/agents`):
 			core.v2GetAgents(w, req)
+			return
 		case match(req, `POST /v2/agents`):
 			core.v2PostAgents(w, req)
+			return
 
 		case match(req, `GET /v2/systems`):
 			core.v2GetSystems(w, req)
+			return
 		case match(req, `POST /v2/systems`):
 			core.v2PostSystem(w, req)
+			return
 		case match(req, `GET /v2/systems/:uuid`):
 			core.v2GetSystem(w, req)
+			return
 		case match(req, `PUT /v2/systems/:uuid`):
 			core.v2PutSystem(w, req)
+			return
 		case match(req, `PATCH /v2/systems/:uuid`):
 			core.v2PatchSystem(w, req)
+			return
 		case match(req, `DELETE /v2/systems/:uuid`):
 			core.v2DeleteSystem(w, req)
+			return
 
 		case match(req, `GET /v2/tenants`):
 			core.v2GetTenants(w, req)
+			return
 		case match(req, `POST /v2/tenants`):
 			core.v2CreateTenant(w, req)
+			return
 		case match(req, `PUT /v2/tenant`):
 			core.v2UpdateTenant(w, req)
+			return
 		case match(req, `GET /v2/tenant/:uuid`):
 			core.v2GetTenant(w, req)
+			return
 		case match(req, `PATCH /v2/tenant/:uuid`):
 			core.v2PatchTenant(w, req)
+			return
 
 		}
 	}
 
-	if len(w.Header()) == 0 {
-		w.WriteHeader(501)
-	}
-
+	w.WriteHeader(501)
 }
 
 func match(req *http.Request, pattern string) bool {
