@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
@@ -15,31 +14,28 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/starkandwayne/goutils/log"
 )
 
 type Vault struct {
-	URL            string
-	Token          string
-	EncryptionType string
-	Insecure       bool
-	HTTP           *http.Client
+	URL      string
+	Token    string
+	Insecure bool
+	HTTP     *http.Client
 }
 
 type VaultCreds struct {
-	SealKey        string `json:"seal_key"`
-	RootToken      string `json:"root_token"`
-	EncryptionType string `json:"encryption_type"`
+	SealKey   string `json:"seal_key"`
+	RootToken string `json:"root_token"`
 }
 
 var status struct {
 	Sealed bool `json:"sealed"`
 }
 
-func (vault *Vault) Init(store string) error {
+func (vault *Vault) Init(store string, master string) error {
 	initialized, err := vault.IsInitialized()
 	if err != nil {
 		return err
@@ -48,18 +44,11 @@ func (vault *Vault) Init(store string) error {
 	if initialized {
 		log.Infof("vault is already initialized")
 
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Enter Master Password: ")
-		master, _ := reader.ReadString('\n')
-		master = strings.TrimSpace(master)
-
 		creds, err := vault.ReadConfig(store, master)
 		if err != nil {
 			return err
 		}
 		vault.Token = creds.RootToken
-		vault.EncryptionType = creds.EncryptionType
-		os.Setenv("VAULT_TOKEN", vault.Token)
 		return vault.Unseal(creds.SealKey)
 	}
 
@@ -99,30 +88,14 @@ func (vault *Vault) Init(store string) error {
 		return err
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter Encryption Cipher (aes-128, aes-256, twofish): ")
-	encryptionCipher, _ := reader.ReadString('\n')
-	encryptionCipher = strings.TrimSpace(encryptionCipher)
-
-	fmt.Print("Enter Encryption Mode (cfb, ofb, ctr): ")
-	encryptionMode, _ := reader.ReadString('\n')
-	encryptionType := strings.TrimSpace(encryptionCipher) + "-" + strings.TrimSpace(encryptionMode)
-	encryptionType = strings.TrimSpace(encryptionType)
-
-	fmt.Print("Enter Master Password: ")
-	master, _ := reader.ReadString('\n')
-	master = strings.TrimSpace(master)
-
 	creds := VaultCreds{
-		SealKey:        keys.Keys[0],
-		RootToken:      keys.RootToken,
-		EncryptionType: encryptionType,
+		SealKey:   keys.Keys[0],
+		RootToken: keys.RootToken,
 	}
 
 	vault.WriteConfig(store, master, creds)
 
 	vault.Token = creds.RootToken
-	vault.EncryptionType = encryptionType
 	return vault.Unseal(creds.SealKey)
 }
 
@@ -262,16 +235,9 @@ func (vault *Vault) ReadConfig(store string, master string) (VaultCreds, error) 
 		return VaultCreds{}, err
 	}
 
-	plainType, err := vault.decrypt(key[:], []byte(creds.EncryptionType))
-	if err != nil {
-		log.Errorf("Failed to encrypt type for longterm storage: %s", err)
-		return VaultCreds{}, err
-	}
-
 	plainCreds := VaultCreds{
-		SealKey:        plainSeal,
-		RootToken:      plainRoot,
-		EncryptionType: plainType,
+		SealKey:   plainSeal,
+		RootToken: plainRoot,
 	}
 
 	return plainCreds, err
@@ -292,16 +258,9 @@ func (vault *Vault) WriteConfig(store string, master string, creds VaultCreds) e
 		return err
 	}
 
-	encType, err := vault.encrypt(key[:], []byte(creds.EncryptionType))
-	if err != nil {
-		log.Errorf("Failed to encrypt type for longterm storage: %s", err)
-		return err
-	}
-
 	encryptedCreds := VaultCreds{
-		SealKey:        encSeal,
-		RootToken:      encRoot,
-		EncryptionType: encType,
+		SealKey:   encSeal,
+		RootToken: encRoot,
 	}
 
 	log.Debugf("marshaling credentials for longterm storage")
@@ -319,14 +278,57 @@ func (vault *Vault) WriteConfig(store string, master string, creds VaultCreds) e
 	return nil
 }
 
-func (vault *Vault) Gen(length int) (string, error) {
+// CreateBackupEncryptionConfig creats random keys and corresponding iv's for a given cipher
+// It returns both a key and iv (hex format)
+func (vault *Vault) CreateBackupEncryptionConfig(enctype string) (string, string, error) {
+	//Keys/IVs are twice as long as they are treated as hex encoded for OpenSSL compatibility
+	//Passing in full enctype in case modes determine key or iv sizes
+	cipher := strings.Split(enctype, "-")[0]
+	switch cipher {
+	case "aes128":
+		key, err := vault.Keygen(32)
+		if err != nil {
+			return "", "", err
+		}
+
+		iv, err := vault.Keygen(32)
+		if err != nil {
+			return "", "", err
+		}
+		return key, iv, nil
+
+	case "aes256":
+		key, err := vault.Keygen(64)
+		if err != nil {
+			return "", "", err
+		}
+
+		iv, err := vault.Keygen(32)
+		if err != nil {
+			return "", "", err
+		}
+		return key, iv, nil
+	case "twofish":
+		key, err := vault.Keygen(64)
+		if err != nil {
+			return "", "", err
+		}
+
+		iv, err := vault.Keygen(32)
+		if err != nil {
+			return "", "", err
+		}
+		return key, iv, nil
+	default:
+		return "", "", fmt.Errorf("Invalid cipher '%s' specified for key/iv generation", cipher)
+	}
+}
+
+func (vault *Vault) Keygen(length int) (string, error) {
 	chars := "0123456789ABCDEF"
 	var buffer bytes.Buffer
 
 	for i := 0; i < length; i++ {
-		if i > 0 && i%4 == 0 {
-			buffer.WriteString("-")
-		}
 		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
 		if err != nil {
 			return "", err
@@ -334,11 +336,24 @@ func (vault *Vault) Gen(length int) (string, error) {
 		indexInt := index.Int64()
 		buffer.WriteString(string(chars[indexInt]))
 	}
-
 	return buffer.String(), nil
 }
 
+func (vault *Vault) ASCIIHexEncode(s string, n int) string {
+	var buffer bytes.Buffer
+	for i, rune := range s {
+		buffer.WriteRune(rune)
+		if i%n == (n-1) && i != (len(s)-1) {
+			buffer.WriteRune('-')
+		}
+	}
+	return buffer.String()
+}
+
 func (vault *Vault) IsSealed() (bool, error) {
+	if init, err := vault.IsInitialized(); err != nil || init == false {
+		return true, err
+	}
 	res, err := vault.Do("GET", "/v1/sys/seal-status", nil)
 	if err != nil {
 		log.Errorf("failed to check current seal status of the vault: %s", err)
@@ -355,8 +370,10 @@ func (vault *Vault) IsSealed() (bool, error) {
 		log.Errorf("failed to parse response from the vault, concerning current seal status: %s", err)
 		return true, err
 	}
+	//Treat unauthorized/missing root token as sealed - token needs to be read from encrypted config
+	seal_status := status.Sealed || vault.Token == ""
 
-	return status.Sealed, err
+	return seal_status, err
 }
 
 func (vault *Vault) IsInitialized() (bool, error) {
@@ -378,6 +395,26 @@ func (vault *Vault) IsInitialized() (bool, error) {
 		return false, err
 	}
 	return init.Initialized, err
+}
+
+func (vault *Vault) status() (string, error) {
+	vaultSealed, err := vault.IsSealed()
+	if err != nil {
+		return "", err
+	}
+
+	vaultInit, err := vault.IsInitialized()
+	if err != nil {
+		return "", err
+	}
+
+	if vaultInit {
+		if vaultSealed {
+			return "sealed", nil
+		}
+		return "unsealed", nil
+	}
+	return "uninitialized", nil
 }
 
 func (vault *Vault) encrypt(key, text []byte) (string, error) {

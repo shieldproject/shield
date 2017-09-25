@@ -8,13 +8,12 @@ import (
 	"io"
 	"strings"
 
-	"golang.org/x/crypto/blowfish"
 	"golang.org/x/crypto/twofish"
 )
 
 func Stream(enctype string, key, iv []byte) (cipher.Stream, cipher.Stream, error) {
 	// cipher-mode combinations included so far are:
-	// aes-cfb, blowfish-cfb, twofish-cfb
+	// aes/twofish+ctr/orb/cfb
 	if enctype == "" {
 		return nil, nil, fmt.Errorf("No encryption type specified")
 	}
@@ -28,12 +27,9 @@ func Stream(enctype string, key, iv []byte) (cipher.Stream, cipher.Stream, error
 	var block cipher.Block
 
 	switch cipherName {
-	// Was originally going to specify aes128 or aes256, but the keysize determines
-	// which is used.
-	case "aes128", "aes256": // should we pull 128-bit? FIXME
+	//keysize determines aes128 vs 256.
+	case "aes128", "aes256":
 		block, err = aes.NewCipher(key)
-	case "blowfish": // not recommended by its author; pull it?  FIXME
-		block, err = blowfish.NewCipher(key)
 	case "twofish":
 		block, err = twofish.NewCipher(key)
 	default:

@@ -35,21 +35,24 @@ func ExecWithOptions(opts ExecOptions) error {
 
 	//Encryption data is passed from the shield-pipe on fd 3
 	var encStream, decStream cipher.Stream
-	var data map[string]interface{}
+	var data struct {
+		EncryptionKey  string `json:"enc_key"`
+		EncrypyionIV   string `json:"enc_iv"`
+		EncrypyionType string `json:"enc_type"`
+	}
 	decoder := json.NewDecoder(os.NewFile(uintptr(3), "encConfig"))
 	if err := decoder.Decode(&data); err == nil {
-		// some liberties will be taken here.  hang on!
-		keyRaw, err := hex.DecodeString(data["encKey"].(string))
+		keyRaw, err := hex.DecodeString(data.EncryptionKey)
 		if err != nil {
 			return err
 		}
-		ivRaw, err := hex.DecodeString(data["encIV"].(string))
+		ivRaw, err := hex.DecodeString(data.EncrypyionIV)
 		if err != nil {
 			return err
 		}
 
-		if data["encType"].(string) != "" {
-			encStream, decStream, err = crypter.Stream(data["encType"].(string), keyRaw, ivRaw)
+		if data.EncrypyionType != "" {
+			encStream, decStream, err = crypter.Stream(data.EncrypyionType, keyRaw, ivRaw)
 			if err != nil {
 				return err
 			}

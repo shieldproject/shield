@@ -370,7 +370,6 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 	r.Close()
 
 	// insert an archive with all proper references, expiration, etc.
-	//archive_id := uuid.NewRandom()
 	validtime := ValidateEffectiveUnix(effective)
 	err = db.Exec(
 		`INSERT INTO archives

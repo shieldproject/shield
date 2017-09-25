@@ -28,7 +28,7 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `POST /auth/login`):
 		core.authLogin(w, req)
-	case match(req, `POST /auth/logout`):
+	case match(req, `GET /auth/logout`):
 		core.authLogout(w, req)
 	case match(req, `GET /auth/id`):
 		core.authID(w, req)
@@ -44,6 +44,9 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	case match(req, `POST /v2/unlock`):
 		core.v2Unlock(w, req)
+
+	case match(req, `POST /v2/init`):
+		core.v2Init(w, req)
 
 	}
 
@@ -1356,9 +1359,10 @@ type v2Health struct {
 		Color   string `json:"color"`
 	} `json:"shield"`
 	Health struct {
-		API     bool `json:"api_ok"`
-		Storage bool `json:"storage_ok"`
-		Jobs    bool `json:"jobs_ok"`
+		API         bool   `json:"api_ok"`
+		Storage     bool   `json:"storage_ok"`
+		Jobs        bool   `json:"jobs_ok"`
+		VaultStatus string `json:"vault_status"`
 	} `json:"health"`
 
 	Storage []v2StorageHealth `json:"storage"`
@@ -1416,6 +1420,11 @@ func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	health.Stats.Jobs = len(jobs)
+
+	if health.Health.VaultStatus, err = core.vault.status(); err != nil {
+		bail(w, err)
+		return
+	}
 
 	if health.Stats.Systems, err = core.DB.CountTargets(nil); err != nil {
 		bail(w, err)
@@ -1952,20 +1961,36 @@ func (core *Core) v2PatchTenant(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
-	if req.ParseForm() != nil {
-		w.WriteHeader(400) // FIXME
+	if req.Body == nil {
+		w.WriteHeader(400)
+		return
+	}
+	var params struct {
+		Master string `json:"master_password"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+		return
+	}
+	e := MissingParameters()
+	e.Check("master_password", params.Master)
+	if e.IsValid() {
+		bailWithError(w, e)
 		return
 	}
 
-	master := req.PostFormValue("master_password")
+	if init, err := core.vault.IsInitialized(); init == false || err != nil {
+		bail(w, errors.New("Vault uninitialized, failed to unseal"))
+		return
+	}
 
 	//TODO: Replace path with config.VaultPath / similar
-	sealCreds, err := core.vault.ReadConfig("vault/config.crypt", master)
+	sealCreds, err := core.vault.ReadConfig("vault/config.crypt", params.Master)
 	if err != nil {
 		bail(w, err)
 		return
 	}
-
+	core.vault.Token = sealCreds.RootToken
 	err = core.vault.Unseal(sealCreds.SealKey)
 	if err != nil {
 		bail(w, err)
@@ -1976,6 +2001,40 @@ func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
 		bail(w, errors.New("Shield failed to unlock key database"))
 		return
 	}
-
+	fmt.Printf("Vault token:%s\n", core.vault.Token) //TODO REMOVE THIS
 	JSONLiteral(w, `{"ok":"Unlocked Key Database"}`)
+}
+
+func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
+	if req.Body == nil {
+		w.WriteHeader(400)
+		return
+	}
+	var params struct {
+		Master string `json:"master_password"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+		return
+	}
+	e := MissingParameters()
+	e.Check("master_password", params.Master)
+	if e.IsValid() {
+		bailWithError(w, e)
+		return
+	}
+
+	//TODO: Replace path with config.VaultPath / similar
+	err := core.vault.Init("vault/config.crypt", params.Master)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+
+	if sealed, err := core.vault.IsSealed(); sealed == true || err != nil {
+		bail(w, errors.New("Shield failed to initialize key database"))
+		return
+	}
+	fmt.Printf("Vault token:%s\n", core.vault.Token) //TODO REMOVE THIS
+	JSONLiteral(w, `{"ok":"Initialized Key Database"}`)
 }

@@ -124,6 +124,10 @@ func cliListArchives(opts *commands.Options, args ...string) error {
 		if *opts.Store != "" && archive.StoreUUID != *opts.Store {
 			continue
 		}
+		var enc_type string = archive.EncryptionType
+		if enc_type == "" {
+			enc_type = "(unencrypted)"
+		}
 
 		t.Row(archive, archive.UUID,
 			fmt.Sprintf("%s (%s)", target[archive.TargetUUID].Name, archive.TargetPlugin),
@@ -131,7 +135,7 @@ func cliListArchives(opts *commands.Options, args ...string) error {
 			fmt.Sprintf("%s (%s)", store[archive.StoreUUID].Name, archive.StorePlugin),
 			archive.TakenAt.Format(time.RFC1123Z),
 			archive.ExpiresAt.Format(time.RFC1123Z),
-			archive.EncryptionType,
+			enc_type,
 			archive.Status, archive.Notes)
 	}
 	t.Output(os.Stdout)

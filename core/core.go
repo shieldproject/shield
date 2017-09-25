@@ -53,7 +53,8 @@ type Core struct {
 	motd    string
 
 	/* vault */
-	vault Vault
+	vault          Vault
+	encryptionType string
 
 	DB *db.DB
 }
@@ -96,6 +97,10 @@ func NewCore(file string) (*Core, error) {
 		auth:    config.Auth,
 		motd:    config.MOTD,
 
+		/* encryption */
+		encryptionType: config.EncryptionType,
+
+		/* db */
 		DB: &db.DB{
 			Driver: config.DBType,
 			DSN:    config.DBPath,
@@ -114,10 +119,9 @@ func (core *Core) Run() error {
 	core.cleanup()
 
 	core.vault = Vault{
-		URL:            "http://127.0.0.1:8200",
-		Token:          "",
-		EncryptionType: "",
-		Insecure:       true,
+		URL:      "http://127.0.0.1:8200",
+		Token:    "",
+		Insecure: true,
 	}
 	core.vault.HTTP = &http.Client{
 		Transport: &http.Transport{
@@ -133,10 +137,12 @@ func (core *Core) Run() error {
 			return nil
 		},
 	}
-	//TODO: Replace path with config.VaultPath / similar
-	if err := core.vault.Init("vault/config.crypt"); err != nil {
-		log.Errorf("vault failed to initialize: %s", err)
-		os.Exit(2)
+
+	if vault_status, err := core.vault.status(); err != nil || vault_status != "unsealed" {
+		if err != nil {
+			return err
+		}
+		log.Errorf("Vault is currently %s, please initialize or unseal the vault via the WebUI or CLI", vault_status)
 	}
 
 	core.api()
@@ -154,7 +160,6 @@ func (core *Core) Run() error {
 				if err != nil || initErr != nil {
 					log.Errorf("Failed to schedule tasks due to Vault error: %s %s", err, initErr)
 				}
-				log.Errorf("Failed to schedule tasks due to Sealed Vault")
 			}
 
 		case <-core.slowloop.C:
@@ -447,30 +452,18 @@ func (core *Core) worker(id int) {
 
 		if task.Op == db.BackupOperation {
 			task.ArchiveUUID = uuid.NewRandom()
-			//Keys/IVs are twice as long as they are treated as hex encoded for OpenSSL compatibility
-			encIV, err := core.vault.Gen(32)
-			if err != nil {
-				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption IV: %s\n", id, err)
-				core.handleFailure(task)
-				continue
-			}
 
-			encKey := ""
-			if strings.Contains(core.vault.EncryptionType, "128") {
-				encKey, err = core.vault.Gen(32)
-			} else {
-				encKey, err = core.vault.Gen(64)
-			}
+			enc_key, enc_iv, err := core.vault.CreateBackupEncryptionConfig(core.encryptionType)
 			if err != nil {
-				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption key: %s\n", id, err)
+				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption key/iv pair: %s\n", id, err)
 				core.handleFailure(task)
 				continue
 			}
 
 			err = core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
-				"key":  encKey,
-				"iv":   encIV,
-				"type": core.vault.EncryptionType,
+				"key":  core.vault.ASCIIHexEncode(enc_key, 4),
+				"iv":   core.vault.ASCIIHexEncode(enc_iv, 4),
+				"type": core.encryptionType,
 				"uuid": task.ArchiveUUID.String(),
 			})
 
@@ -492,8 +485,8 @@ func (core *Core) worker(id int) {
 		var encType, encKey, encIV string
 		if exists {
 			encType = data["type"].(string)
-			encKey = strings.Replace(data["key"].(string), "-", "", -1)
-			encIV = strings.Replace(data["iv"].(string), "-", "", -1)
+			encKey = data["key"].(string)
+			encIV = data["iv"].(string)
 		}
 
 		/* connect to the remote SSH agent for this specific request
@@ -531,7 +524,7 @@ func (core *Core) worker(id int) {
 			} else {
 				if v.Key != "" {
 					log.Infof("  %s: restore key is %s", task.UUID, v.Key)
-					if id, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.vault.EncryptionType); err != nil {
+					if id, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType); err != nil {
 						log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 					} else if failed {
 						core.DB.InvalidateArchive(id)
