@@ -1,0 +1,115 @@
+---
+jobs:
+- name: test-unit
+  public: true
+  plan:
+    - get: bosh-agent
+      trigger: true
+    - task: test-unit
+      file: bosh-agent/ci/tasks/test-unit.yml
+
+- name: test-integration
+  public: false
+  plan:
+    - get: bosh-agent
+      trigger: true
+    - task: test-integration
+      privileged: true
+      file: bosh-agent/ci/tasks/test-integration.yml
+      params:
+        BOSH_AWS_ACCESS_KEY_ID: {{BOSH_AWS_ACCESS_KEY_ID}}
+        BOSH_AWS_SECRET_ACCESS_KEY: {{BOSH_AWS_SECRET_ACCESS_KEY}}
+        BOSH_LITE_KEYPAIR: {{BOSH_LITE_KEYPAIR}}
+        BOSH_LITE_SUBNET_ID: {{BOSH_LITE_SUBNET_ID}}
+        BOSH_LITE_NAME: {{BOSH_LITE_NAME}}
+        BOSH_LITE_SECURITY_GROUP: {{BOSH_LITE_SECURITY_GROUP}}
+        BOSH_LITE_PRIVATE_KEY: {{BOSH_LITE_PRIVATE_KEY}}
+
+- name: windows-test-unit
+  serial: true
+  plan:
+  - get: bosh-agent
+    trigger: true
+  - put: bosh-agent-zip-version
+    params:
+      bump: patch
+  - task: test-unit
+    file: bosh-agent/ci/tasks/test-unit-windows.yml
+  - task: compile-agent
+    privileged: true
+    file: bosh-agent/ci/tasks/compile-agent-windows.yml
+  - put: windows-zip
+    params:
+      file: compiled-agent-zip/bosh-windows-integration-v*.zip
+
+- name: windows-test-integration
+  serial: true
+  plan:
+  - get: bosh-agent
+    passed:
+    - windows-test-unit
+  - get: bosh-agent-zip
+    resource: windows-zip
+    passed:
+    - windows-test-unit
+    trigger: true
+  - get: bosh-agent-deps-zip
+    resource: windows-deps-zip
+  - task: test-integration
+    privileged: true
+    file: bosh-agent/ci/tasks/test-integration-windows.yml
+    params:
+      AWS_ACCESS_KEY: {{WINDOWS_AWS_ACCESS_KEY}}
+      AWS_SECRET_KEY: {{WINDOWS_AWS_SECRET_KEY}}
+      AWS_SUBNET: subnet-110fae67
+      AWS_SSH_KEY: {{WINDOWS_AWS_SSH_KEY}}
+      KEYPAIR_NAME: agent-integration
+      NATS_ELASTIC_IP: 52.23.114.20
+      VAGRANT_PROVIDER: aws
+      WINRM_PASSWORD: {{WINRM_PASSWORD}}
+
+- name: promote
+  public: true
+  serial: true
+  plan:
+    - trigger: true
+      passed: [test-unit, test-integration, windows-test-integration]
+      get: bosh-agent
+    - put: bosh-agent-master
+      params:
+        repository: bosh-agent
+
+resources:
+- name: bosh-agent
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry/bosh-agent
+    branch: develop
+
+- name: bosh-agent-master
+  type: git
+  source:
+    uri: git@github.com:cloudfoundry/bosh-agent.git
+    branch: master
+    private_key: {{BOSH_GITHUB_DEPLOYMENT_KEY}}
+- name: bosh-agent-zip-version
+  type: semver
+  source:
+    bucket: windows-bosh-integration
+    key: versions/bosh-agent-version
+    access_key_id: {{WINDOWS_AWS_ACCESS_KEY}}
+    secret_access_key: {{WINDOWS_AWS_SECRET_KEY}}
+- name: windows-zip
+  type: s3
+  source:
+    bucket: windows-bosh-integration
+    regexp: bosh-agent-windows-v(.*).zip
+    access_key_id: {{WINDOWS_AWS_ACCESS_KEY}}
+    secret_access_key: {{WINDOWS_AWS_SECRET_KEY}}
+- name: windows-deps-zip
+  type: s3
+  source:
+    bucket: bosh-windows-dependencies
+    regexp: agent-dependencies-v(.*).zip
+    access_key_id: {{WINDOWS_AWS_ACCESS_KEY}}
+    secret_access_key: {{WINDOWS_AWS_SECRET_KEY}}

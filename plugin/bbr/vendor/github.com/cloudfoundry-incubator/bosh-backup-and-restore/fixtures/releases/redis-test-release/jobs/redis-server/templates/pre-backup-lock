@@ -1,0 +1,4 @@
+#!/bin/bash -e
+
+echo "output from pre-backup-lock" > /tmp/pre-backup-lock.out
+date >> /tmp/pre-backup-lock.out

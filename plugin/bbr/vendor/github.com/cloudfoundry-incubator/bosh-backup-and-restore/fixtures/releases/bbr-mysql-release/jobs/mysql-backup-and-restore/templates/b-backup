@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+sudo /var/vcap/jobs/streaming-mysql-backup-client/bin/client

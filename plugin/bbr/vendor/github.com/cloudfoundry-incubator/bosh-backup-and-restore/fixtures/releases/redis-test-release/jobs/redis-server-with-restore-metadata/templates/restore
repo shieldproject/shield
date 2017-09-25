@@ -1,0 +1,9 @@
+#!/bin/bash -e
+
+cp -r $BBR_ARTIFACT_DIRECTORY* /var/vcap/store/
+
+/var/vcap/bosh/bin/monit restart all
+
+while [[ $(/var/vcap/bosh/bin/monit summary) == *restart\ pending* ]]; do
+    sleep 1
+done

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+base=$( cd $(dirname $0)/.. && pwd )
+
+if [ ! -d $base/tmp/bosh ]; then
+  echo -e "\n Cloning BOSH..."
+  rm -rf $base/tmp
+  mkdir -p $base/tmp
+  git clone --recursive --depth 1 --branch master https://github.com/cloudfoundry/bosh.git $base/tmp/bosh
+else
+  echo -e "\n Updating BOSH to origin/master..."
+  (
+    cd $base/tmp/bosh
+    git clean -dfx
+    git fetch https://github.com/cloudfoundry/bosh.git master
+    git reset --hard FETCH_HEAD
+  )
+fi
+
+cd $base/tmp/bosh
+
+echo -e "\n Installing BOSH dependencies..."
+bundle install
+
+echo -e "\n Linking bosh agent..."
+rm -rf go/src/github.com/cloudfoundry/bosh-agent
+ln -s $base go/src/github.com/cloudfoundry/bosh-agent
+
+echo -e "\n Running integration tests..."
+bundle exec rake spec:integration

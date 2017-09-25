@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/utils
+    tag: latest
+
+inputs:
+- name: bosh-utils
+  path: gopath/src/github.com/cloudfoundry/bosh-utils
+- name: version-semver
+
+outputs:
+- name: out
+
+params:
+  GOOS:   linux
+  GOARCH: amd64
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-utils/ci/tasks/build-multidigest-binary.sh

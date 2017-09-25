@@ -1,0 +1,21 @@
+trap {
+	write-error $_
+		exit 1
+}
+
+function foo
+{
+	return "i'm a compiled package!"
+}
+
+$message = foo
+$counter = 1
+$longPath = "\"
+DO {
+	$longPath+="hellohellohello"+$counter+"\"
+		$counter++
+} While ($counter -le 20)
+
+$longPath=$Env:BOSH_COMPILE_TARGET + $longPath
+Add-Content output.txt $message
+robocopy /CREATE . $longPath output.txt

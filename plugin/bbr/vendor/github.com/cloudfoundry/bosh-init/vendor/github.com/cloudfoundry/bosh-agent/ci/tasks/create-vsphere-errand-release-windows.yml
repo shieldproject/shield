@@ -1,0 +1,28 @@
+---
+platform: linux
+
+image: docker:///bosh/windows
+
+inputs:
+- name: bosh-agent
+  path: gopath/src/github.com/cloudfoundry/bosh-agent
+
+outputs:
+- name: vsphere-errand-release
+
+run:
+  path: 'gopath/src/github.com/cloudfoundry/bosh-agent/ci/tasks/create-vsphere-errand-release-windows.sh'
+
+params:
+  DIRECTOR_UUID: replace-me
+  DEPLOYMENT_NAME: replace-me
+  RELEASE_NAME: replace-me
+  BOSH_USER: replace-me
+  BOSH_PASSWORD: replace-me
+  BOSH_RANGE: replace-me
+  BOSH_GATEWAY: replace-me
+  BOSH_DNS: replace-me
+  BOSH_RESERVED: replace-me
+  BOSH_STATIC: replace-me
+  BOSH_NETWORK_NAME: replace-me
+

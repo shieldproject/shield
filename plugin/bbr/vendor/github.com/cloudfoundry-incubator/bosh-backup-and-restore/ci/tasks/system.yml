@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: cloudfoundrylondon/backup-and-restore}
+
+inputs:
+- name: bosh-backup-and-restore
+  path: src/github.com/cloudfoundry-incubator/bosh-backup-and-restore
+- name: bosh-backup-and-restore-meta
+
+params:
+  BOSH_CLIENT_SECRET:
+  BOSH_HOST:
+  TEAM_GPG_KEY:
+
+run:
+  path: src/github.com/cloudfoundry-incubator/bosh-backup-and-restore/ci/scripts/system.sh

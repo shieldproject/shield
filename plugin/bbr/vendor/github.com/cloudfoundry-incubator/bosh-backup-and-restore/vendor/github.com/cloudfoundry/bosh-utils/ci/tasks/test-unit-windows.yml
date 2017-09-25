@@ -1,0 +1,14 @@
+---
+platform: windows
+
+inputs:
+- name: bosh-utils
+  path: gopath/src/github.com/cloudfoundry/bosh-utils
+
+run:
+  path: powershell
+  args:
+  - "-ExecutionPolicy"
+  - "Bypass"
+  - "-File"
+  - gopath/src/github.com/cloudfoundry/bosh-utils/ci/tasks/test-unit.ps1

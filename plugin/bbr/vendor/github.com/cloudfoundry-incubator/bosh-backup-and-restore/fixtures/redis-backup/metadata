@@ -1,0 +1,22 @@
+instances:
+- name: other-redis
+  index: "0"
+  artifacts:
+  - name: redis-server
+    checksums:
+      ./redis-server/appendonly.aof: be1b7e4e577b7cbcd556ec75f2f4b2e2d3afca1e40f8ce5a2b748b462cf4bd53
+      ./redis-server/dump.rdb: 3f1baf2147d8e9bc91fdbf21f7d384601d0c20130064a1f02d5d096ccf94a3fe
+- name: redis
+  index: "0"
+  artifacts:
+  - name: redis-server
+    checksums:
+      ./redis-server/appendonly.aof: be1b7e4e577b7cbcd556ec75f2f4b2e2d3afca1e40f8ce5a2b748b462cf4bd53
+      ./redis-server/dump.rdb: ba3589985f5f4869fe62d155faee8e59c328b42875cb7e3fbb18c7b8152a92d2
+- name: redis
+  index: "1"
+  artifacts:
+  - name: redis-server
+    checksums:
+      ./redis-server/appendonly.aof: be1b7e4e577b7cbcd556ec75f2f4b2e2d3afca1e40f8ce5a2b748b462cf4bd53
+      ./redis-server/dump.rdb: 66f7f1c19210f601eb7e087f510cbf6c045ca70654dc4c323902204dc4c38108

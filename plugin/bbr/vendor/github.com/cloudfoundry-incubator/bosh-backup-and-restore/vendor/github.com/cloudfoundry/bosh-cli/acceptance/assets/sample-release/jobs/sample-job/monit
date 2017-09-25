@@ -1,0 +1,5 @@
+check process sample-job
+  with pidfile /var/vcap/sys/run/sample-job/pid
+  start program "/var/vcap/jobs/sample-job/bin/ctl start"
+  stop program "/var/vcap/jobs/sample-job/bin/ctl stop"
+  group vcap

@@ -1,0 +1,9 @@
+{
+  "processes": [
+    {
+      "name": "say-hello",
+      "executable": "powershell",
+      "args": [ "/var/vcap/jobs/say-hello/bin/start.ps1" ]
+    }
+  ]
+}

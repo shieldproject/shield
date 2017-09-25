@@ -1,0 +1,290 @@
+nats_private_ip = "172.31.180.3"
+
+winrm_username = "vagrant"
+winrm_password = ENV.fetch "WINRM_PASSWORD" do
+  puts "WINRM_PASSWORD not set, using 'vagrant'"
+  "vagrant"
+end
+
+access_key_id = ENV.fetch "AWS_ACCESS_KEY" do
+  puts "AWS_ACCESS_KEY not set"
+  nil
+end
+secret_key_id = ENV.fetch "AWS_SECRET_KEY" do
+  puts "AWS_SECRET_KEY not set"
+  nil
+end
+nats_elastic_ip = ENV.fetch "NATS_ELASTIC_IP" do
+  puts "NATS_ELASTIC_IP not set"
+  nil
+end
+subnet_id = ENV.fetch "AWS_SUBNET" do
+  puts "AWS_SUBNET not set"
+  nil
+end
+agent_zip_url = ENV.fetch "AGENT_ZIP_URL" do
+  puts "AGENT_ZIP_URL not set. Will not download."
+  nil
+end
+agent_deps_zip_url = ENV.fetch "AGENT_DEPS_ZIP_URL" do
+  puts "AGENT_DEPS_ZIP_URL not set. Will not download."
+  nil
+end
+keypair_name = ENV.fetch "KEYPAIR_NAME" do
+  puts "KEYPAIR_NAME not set"
+  nil
+end
+private_key_path = ENV.fetch "PRIVATE_KEY_PATH" do
+	puts "PRIVATE_KEY_PATH not set"
+	nil
+end
+
+configure_security_settings = <<-SHELL
+  Set-ExecutionPolicy -ExecutionPolicy Bypass
+SHELL
+
+remove_agent_service = <<-SHELL
+  if ((Test-Path c:\\bosh\\service_wrapper.exe) -And ($(C:\\bosh\\service_wrapper.exe status) -ne "NonExistent")) {
+    if ($(C:\\bosh\\service_wrapper.exe status) -eq "Started") {
+      C:\\bosh\\service_wrapper.exe stop
+    }
+
+    C:\\bosh\\service_wrapper.exe uninstall
+  }
+SHELL
+
+setup_bosh_directory = <<-SHELL
+  if (Test-Path C:\\bosh){
+    Remove-Item -Recurse C:\\bosh
+  }
+
+  if (Test-Path C:\\var\\vcap\\bosh\\bin){
+    Remove-Item -Recurse C:\\var\\vcap\\bosh\\bin
+  }
+
+  if (Test-Path C:\\var\\vcap\\bosh\\log){
+    Remove-Item -Recurse C:\\var\\vcap\\bosh\\log
+  }
+
+  mkdir C:\\bosh
+  mkdir C:\\var\\vcap\\bosh\\bin
+  mkdir C:\\var\\vcap\\bosh\\log
+SHELL
+
+add_bosh_to_path = <<-SHELL
+if ((Get-Command "tar.exe" -ErrorAction SilentlyContinue) -eq $null)
+{
+  $OldPath=(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\Environment' -Name PATH).Path
+  $AddedFolder='C:\\bosh'
+  $NewPath=$OldPath+';'+$AddedFolder
+  Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\\System\\CurrentControlSet\\Control\\Session Manager\\Environment' -Name PATH -Value $newPath
+}
+SHELL
+
+download_agent = <<-SHELL
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  function Unzip
+  {
+      param([string]$zipfile, [string]$outpath)
+
+      [System.IO.Compression.ZipFile]::ExtractToDirectory($zipfile, $outpath)
+  }
+
+  Invoke-WebRequest "#{agent_deps_zip_url}" -Verbose -OutFile C:\\bosh\\agent_deps.zip
+  Unzip C:\\bosh\\agent_deps.zip C:\\bosh\\
+
+  Invoke-WebRequest "#{agent_zip_url}" -Verbose -OutFile C:\\bosh\\agent.zip
+
+  Unzip C:\\bosh\\agent.zip C:\\bosh\\
+SHELL
+
+write_agent_configs = <<-SHELL
+New-Item -ItemType file -path "C:\\bosh\\agent.json" -Value @"
+{
+  "Platform": {
+    "Linux": {
+      "DevicePathResolutionType": "scsi"
+    }
+  },
+  "Infrastructure": {
+    "Settings": {
+      "Sources": [
+        {
+          "Type": "File",
+          "SettingsPath": "C:\\\\bosh\\\\settings.json"
+        }
+      ],
+      "UseRegistry": true
+    }
+  }
+}
+"@
+
+New-Item -ItemType file -path "C:\\bosh\\settings.json" -Value @"
+{
+  "agent_id": "123-456-789",
+  "blobstore": {
+    "provider": "dav",
+    "options": {
+      "endpoint": "http://#{nats_private_ip}:25250"
+		}
+	},
+  "disks": {
+    "system": "/dev/xvda",
+    "ephemeral": "/dev/sdb",
+    "persistent": {},
+    "raw_ephemeral": null
+  },
+  "env": {
+    "bosh": {
+      "password": ""
+    }
+  },
+  "networks": {
+    "diego1": {
+      "type": "",
+      "ip": "10.10.10.11",
+      "netmask": "255.255.255.0",
+      "gateway": "10.10.10.1",
+      "resolved": false,
+      "use_dhcp": true,
+      "default": ["dns", "gateway"],
+      "mac": "",
+      "preconfigured": false
+    }
+  },
+  "mbus": "nats://#{nats_private_ip}:4222",
+  "vm": {
+    "name": "vm-1f1aaed4-b479-4cf5-b73e-a7cbf0abf4ae"
+  },
+  "trusted_certs": ""
+}
+"@
+
+SHELL
+
+copy_agent_from_vagrant = <<-SHELL
+  cd C:\\vagrant\\fixtures
+  cp bosh-agent.exe c:\\bosh\\
+  cp service_wrapper.exe c:\\bosh\\
+  cp service_wrapper.xml c:\\bosh\\
+  cp bosh-blobstore-dav.exe c:\\bosh\\
+  cp tar.exe c:\\bosh\\
+  cp zlib1.dll c:\\bosh\\
+  cp job-service-wrapper.exe c:\\bosh
+SHELL
+initialize_agent_service = <<-SHELL
+  Move-Item C:\\bosh\\job-service-wrapper.exe C:\\var\\vcap\\bosh\\bin\\job-service-wrapper.exe -Force
+
+  C:\\bosh\\service_wrapper.exe install
+  C:\\bosh\\service_wrapper.exe start
+SHELL
+
+setup_aws_winrm_user = <<-SHELL
+  <powershell>
+  net user #{winrm_username} #{winrm_password} /ADD
+  net localgroup administrators #{winrm_username} /ADD
+  net localgroup WinRMRemoteWMIUsers__ #{winrm_username} /ADD
+
+  winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+  winrm set winrm/config/service/auth '@{Basic="true"}'
+  netsh advfirewall set publicprofile state off
+  </powershell>
+SHELL
+
+start_nats = <<-SHELL
+  rm -f gnatsd-v0.7.2-linux-amd64.tar.gz
+  curl -JLO --silent https://github.com/nats-io/gnatsd/releases/download/v0.7.2/gnatsd-v0.7.2-linux-amd64.tar.gz
+  tar -xvf gnatsd-v0.7.2-linux-amd64.tar.gz
+  ./gnatsd -V 2> gnatsd.stderr.log 1> gnatsd.stdout.log &
+SHELL
+
+install_blobstore_server = <<-SHELL
+#!/bin/bash
+
+  useradd vagrant || true # exists on virtualbox already
+  if [ ! -e "/etc/init.d/nginx" ]; then
+    apt-get -y update
+    apt-get -y install nginx-full
+  fi
+
+  rm -f /etc/nginx/sites-enabled/default
+  cat >/etc/nginx/nginx.conf <<EOL
+#{File.read("fixtures/nginx.conf")}
+EOL
+
+  cat >/etc/nginx/sites-enabled/blobstore.conf <<EOL
+#{File.read("fixtures/blobstore.conf")}
+EOL
+
+  /etc/init.d/nginx restart
+SHELL
+
+Vagrant.configure(2) do |config|
+  config.vm.provider :aws do |aws, override|
+    aws.instance_type = "m3.medium"
+    override.vm.synced_folder ".", "/vagrant", disabled: true
+  end
+
+  config.vm.define "agent" do |agent|
+    agent.vm.guest = :windows
+    agent.vm.communicator = "winrm"
+
+    agent.vm.provider :virtualbox do |v, override|
+      # Private bucket: https://s3.amazonaws.com/windows-bosh-private/bosh-agent.windows-integration.box
+      override.vm.box = "windows-integration"
+      v.cpus = 4
+    end
+
+    agent.vm.provider :aws do |aws, override|
+      aws.ami = "ami-c8a9baa2"
+      override.vm.box = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
+      override.winrm.password = winrm_password
+      override.winrm.username = winrm_username
+      aws.access_key_id = access_key_id
+      aws.secret_access_key = secret_key_id
+      aws.keypair_name = keypair_name
+      aws.subnet_id = subnet_id
+      aws.user_data = setup_aws_winrm_user
+      aws.associate_public_ip = true
+    end
+
+    agent.vm.provision "shell", inline: configure_security_settings
+    agent.vm.provision "shell", inline: remove_agent_service
+    agent.vm.provision "shell", inline: setup_bosh_directory
+    agent.vm.provision "shell", inline: add_bosh_to_path
+    if agent_zip_url
+      agent.vm.provision "shell", inline: download_agent
+    else
+      agent.vm.provision "shell", inline: copy_agent_from_vagrant
+    end
+    agent.vm.provision "shell", inline: write_agent_configs
+    agent.vm.provision "shell", inline: initialize_agent_service
+  end
+
+  config.vm.define "nats" do |nats|
+    nats.vm.provider :virtualbox do |v, override|
+      override.vm.box = "ubuntu/trusty64"
+      override.vm.network "private_network", ip: nats_private_ip
+      override.vm.provision "shell", inline: install_blobstore_server
+    end
+
+    nats.vm.provider :aws do |aws, override|
+      override.vm.box = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
+      aws.ami = "ami-d05e75b8"
+      aws.access_key_id = access_key_id
+      aws.secret_access_key = secret_key_id
+      aws.keypair_name = keypair_name
+      aws.subnet_id = subnet_id
+      aws.elastic_ip = nats_elastic_ip
+      aws.private_ip_address = nats_private_ip
+      aws.user_data = install_blobstore_server
+
+
+      override.ssh.username = "ubuntu"
+      override.ssh.private_key_path = private_key_path
+    end
+
+    nats.vm.provision "shell", inline: start_nats, privileged: false
+  end
+end

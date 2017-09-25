@@ -1,0 +1,5 @@
+github.com/cloudfoundry/bosh-utils/...:17e3d1e
+github.com/nu7hatch/gouuid:179d4d0
+github.com/onsi/ginkgo:5437a97
+github.com/onsi/gomega:c73e516
+github.com/pivotal-golang/clock:3fd3c19

@@ -1,0 +1,15 @@
+#!/bin/bash 
+
+set -e
+
+bin=$(dirname $0)
+
+export GOROOT=/usr/local/gccgo
+export PATH=$GOROOT/bin:$PATH
+export LD_LIBRARY_PATH=$GOROOT/lib64
+export build_options="-compiler gccgo -gccgoflags '-static-libgo'"
+
+# we need following steps to make gccgo work
+cp -f $GOROOT/lib64/libgo.so.7 /lib/powerpc64le-linux-gnu
+
+$bin/go build $build_options -o $bin/../out/bosh-agent github.com/cloudfoundry/bosh-agent/main

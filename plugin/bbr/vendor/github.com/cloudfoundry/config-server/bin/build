@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+$bin/go build -o $bin/../out/config-server github.com/cloudfoundry/config-server

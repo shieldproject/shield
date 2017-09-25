@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<monit>
+	<services>
+		<service name="test-service">
+			<monitor>0</monitor>
+			<status>0</status>
+			<pendingaction>3</pendingaction>
+		</service>
+	</services>
+	<servicegroups>
+		<servicegroup name="vcap">
+			<service>test-service</service>
+		</servicegroup>
+	</servicegroups>
+</monit>

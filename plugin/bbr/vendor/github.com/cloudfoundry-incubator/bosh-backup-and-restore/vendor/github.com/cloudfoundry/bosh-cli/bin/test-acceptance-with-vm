@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -ex
+
+base=${base:-$( cd "$( dirname "$( dirname "$0" )")" && pwd )}
+acceptance_assets_dir=$base/acceptance/tmp
+
+cpi_release_version=21
+cpi_release_sha1=dafcf251469562c1bf8edbba0da1a9775fdd201b
+stemcell_file=registry-test-warden-stemcell.tgz
+stemcell_sha1=9c318db741302e08be6db0acb1a1293f98a519c8
+
+cleanup() {
+  ( cd $base && vagrant destroy -f )
+
+  if [ -f "$tmpfile" ]; then
+    rm -rf $tmpfile
+  fi
+
+  if [ -f "$config_file" ]; then
+    rm -rf $config_file
+  fi
+
+  if [ ! -z "$OLD_BOSH_LITE_PRIVATE_KEY" ]; then
+    export BOSH_LITE_PRIVATE_KEY=$OLD_BOSH_LITE_PRIVATE_KEY
+  fi
+}
+trap cleanup EXIT
+
+if [ ! -z ${BOSH_INIT_CPI_RELEASE_URL+x} ]; then
+  cpi_release_url=$BOSH_INIT_CPI_RELEASE_URL
+else
+  cpi_release_url=https://bosh.io/d/github.com/cppforlife/bosh-warden-cpi-release?v=$cpi_release_version
+fi
+
+if [ ! -z ${BOSH_INIT_CPI_RELEASE_SHA1+x} ]; then
+  cpi_release_sha1=$BOSH_INIT_CPI_RELEASE_SHA1
+fi
+
+if [ ! -z ${BOSH_INIT_STEMCELL_URL+x} ]; then
+  stemcell_url=$BOSH_INIT_STEMCELL_URL
+else
+  stemcell_url=https://s3.amazonaws.com/bosh-dependencies/$stemcell_file
+fi
+
+if [ ! -z ${BOSH_INIT_STEMCELL_SHA1+x} ]; then
+  stemcell_sha1=$BOSH_INIT_STEMCELL_SHA1
+fi
+
+dummy_release_path=${BOSH_INIT_DUMMY_RELEASE_PATH:-./assets/dummy-release.tgz}
+dummy_too_release_path=${BOSH_INIT_DUMMY_TOO_RELEASE_PATH:-./assets/dummy-too-release.tgz}
+dummy_compiled_release_path=${BOSH_INIT_DUMMY_COMPILED_RELEASE_PATH:-./assets/sample-release-compiled.tgz}
+
+# Vagrant needs ubuntu to own the private key if aws provider
+if [ ! -z "$BOSH_LITE_PRIVATE_KEY" ]; then
+  tmpfile=`mktemp -t bosh-init-tests-XXXXXXXX`
+  cat $BOSH_LITE_PRIVATE_KEY > $tmpfile
+  export OLD_BOSH_LITE_PRIVATE_KEY=$BOSH_LITE_PRIVATE_KEY
+  export BOSH_LITE_PRIVATE_KEY=$tmpfile
+fi
+
+cd $base
+vagrant up $@
+
+vm_username=`vagrant ssh-config | grep "User " | awk '{print $2}'`
+vm_ip=`vagrant ssh-config 2>/dev/null | grep HostName | awk '{print $2}'`
+vm_port=`vagrant ssh-config 2>/dev/null | grep Port | awk '{print $2}'`
+private_key_path=${BOSH_LITE_PRIVATE_KEY:-`vagrant ssh-config 2>/dev/null | grep IdentityFile | awk '{print $2}'`}
+
+config_file=`mktemp -t bosh-init-config-XXXXXXXX`
+cat > $config_file <<EOF
+{
+  "vm_username": "${vm_username}",
+  "vm_ip": "${vm_ip}",
+  "vm_port": "${vm_port}",
+  "private_key_path": "${private_key_path}",
+  "stemcell_path": "${BOSH_INIT_STEMCELL_PATH}",
+  "stemcell_url": "${stemcell_url}",
+  "stemcell_sha1": "${stemcell_sha1}",
+  "cpi_release_path": "${BOSH_INIT_CPI_RELEASE_PATH}",
+  "cpi_release_url": "${cpi_release_url}",
+  "cpi_release_sha1": "${cpi_release_sha1}",
+  "dummy_release_path": "${dummy_release_path}",
+  "dummy_too_release_path": "${dummy_too_release_path}",
+  "dummy_compiled_release_path": "${dummy_compiled_release_path}"
+}
+EOF
+
+export BOSH_INIT_CONFIG_PATH=$config_file
+
+./bin/test-acceptance

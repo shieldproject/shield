@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -e
+
+bin=$(dirname $0)
+
+echo -e "\n Installing ginkgo..."
+$bin/go get -u github.com/onsi/ginkgo/ginkgo
+echo -e "\n Install gomega..."
+$bin/go get -u github.com/onsi/gomega

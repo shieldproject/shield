@@ -1,0 +1,16 @@
+---
+platform: linux
+
+image: docker:///bosh/init
+
+inputs:
+- name: bosh-agent-zip-version
+- name: bosh-agent
+  path: gopath/src/github.com/cloudfoundry/bosh-agent
+
+outputs:
+- name: compiled-agent-zip
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-agent/ci/tasks/compile-agent-windows.sh
+

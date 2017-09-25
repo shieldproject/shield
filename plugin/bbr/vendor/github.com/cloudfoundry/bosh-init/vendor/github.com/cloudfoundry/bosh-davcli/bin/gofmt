@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+$bin/go fmt $($bin/go list github.com/cloudfoundry/bosh-davcli/... | grep -v /vendor/)

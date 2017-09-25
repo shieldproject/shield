@@ -1,0 +1,23 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/init
+    tag: latest
+
+inputs:
+- name: bosh-init
+  path: gopath/src/github.com/cloudfoundry/bosh-init
+- name: version-semver
+
+outputs:
+- name: compiled-darwin
+
+params:
+  GOOS:   darwin
+  GOARCH: amd64
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-init/ci/tasks/build.sh

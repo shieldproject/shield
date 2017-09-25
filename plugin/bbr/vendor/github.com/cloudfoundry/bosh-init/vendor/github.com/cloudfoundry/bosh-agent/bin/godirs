@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+cd $(dirname $0)/..
+
+find * -type d -maxdepth 0 \
+    | grep -v '^\.'                 \
+    | grep -v '^Godeps'             \
+    | grep -v '^bin'                \
+    | grep -v '^ci'                 \
+    | grep -v '^out'                \
+    | grep -v '^tmp'                \
+    | grep -v '^gobin'              \
+    | xargs $@

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+echo -e "\n Running unit tests..."
+$bin/env ginkgo -r $race -trace -skipPackage="acceptance,integration,vendor" $@

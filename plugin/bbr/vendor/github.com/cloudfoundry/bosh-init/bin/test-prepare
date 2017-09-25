@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+echo -e "\n Formatting packages..."
+$bin/go fmt $($bin/go list github.com/cloudfoundry/bosh-init/... | grep -v /vendor/)
+
+echo -e "\n Vetting packages for potential issues..."
+$bin/govet
+
+# skipping check for unhandled errors until https://github.com/kisielk/errcheck/issues/75 is resolved
+#$bin/test-unhandled-errors

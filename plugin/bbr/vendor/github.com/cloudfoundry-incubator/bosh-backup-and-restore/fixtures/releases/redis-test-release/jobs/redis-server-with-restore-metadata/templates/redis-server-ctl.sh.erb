@@ -1,0 +1,55 @@
+#!/bin/bash -e
+
+log_facility=user
+log_tag="$(basename "$0" .sh)"
+log_dir=/var/vcap/sys/log/redis-server
+log_file=$log_dir/redis-server-ctl.log
+
+pidfile=<%= p('redis.pidfile') %>
+redis_workdir=<%= p('redis.workdir') %>
+
+mkdir -p $log_dir $pid_dir $(dirname $pidfile) $redis_workdir
+chmod 755 /var/vcap/store
+chmod 700 $redis_workdir
+chown -R vcap:vcap $log_dir $pid_dir $(dirname $pidfile) $redis_workdir
+
+log() {
+  log_level=$1
+  shift
+  echo "$(date): $*" | logger -p $log_facility.$log_level -t $log_tag -s 2>> $log_file
+}
+
+case $1 in
+
+  start)
+    log info "starting redis"
+    su -c "/var/vcap/packages/redis/bin/redis-server /var/vcap/jobs/redis-server-with-restore-metadata/conf/redis.conf" -m vcap \
+      >> $log_dir/redis-stdout.log \
+      2>> $log_dir/redis-stderr.log
+    ;;
+
+  stop)
+    log info "stopping redis"
+    redis_pid=$(cat $pidfile)
+    if [ -z "$redis_pid" ]
+    then
+      log info "!redis.pid was empty!"
+      exit 1
+    fi
+
+    kill $redis_pid
+    while ps -p $redis_pid
+    do
+      log info "waiting for redis to stop..."
+      sleep 1
+    done
+    rm -f $pidfile
+    ;;
+
+  *)
+    log warning "operation '$1' is not supported"
+    echo "Usage: redis-server-ctl.sh start/stop" >&2
+    exit 1
+    ;;
+
+esac

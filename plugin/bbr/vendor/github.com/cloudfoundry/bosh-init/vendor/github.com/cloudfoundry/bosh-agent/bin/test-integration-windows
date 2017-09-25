@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -ex
+
+bin=$(dirname $0)
+
+base=$( cd ${bin}/.. && pwd )
+if [ ! -d $base/tmp ]; then
+  mkdir -p $base/tmp
+fi
+
+cleanup() {
+	echo "Cleaning up"
+
+  (cd integration/windows && vagrant destroy -f)
+
+  if [ -f "$tmpfile" ]; then
+    rm -rf $tmpfile
+  fi
+}
+
+trap cleanup EXIT
+
+# Vagrant needs ubuntu to own the private key if aws provider
+# if [ ! -z "$AWS_PRIVATE_KEY" ]; then
+  tmpfile=`mktemp -t bosh-agent-tests-XXXXXXXX`
+  echo "${AWS_SSH_KEY}" > $tmpfile
+  export PRIVATE_KEY_PATH=$tmpfile
+# fi
+
+cd $base
+echo -e "\n Running agent integration tests..."
+$bin/env go clean -r github.com/cloudfoundry/bosh-agent/
+
+# vagrant ssh-config > $base/tmp/vagrant-config
+
+echo -e "\n Installing ginkgo..."
+$bin/go install ./vendor/github.com/onsi/ginkgo/ginkgo
+
+echo -e "\n Running tests..."
+focus=""
+if [ ! -z "$BOSH_AGENT_INTEGRATION_FOCUS" ]; then
+  focus="-focus=$BOSH_AGENT_INTEGRATION_FOCUS"
+fi
+bin/env ginkgo "$focus" -v -race -trace integration/windows/
+
+exit 0

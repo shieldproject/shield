@@ -1,0 +1,8 @@
+ {
+   "instance-id": "instance-id",
+   "public-keys": {
+    "0": {
+       "openssh-key": "fake-openssh-key"
+     }
+  }
+ }

@@ -1,0 +1,9 @@
+#!/bin/bash -e
+
+cp -R /var/vcap/store/backup/* /var/vcap/store/redis/
+
+/var/vcap/bosh/bin/monit restart all
+
+while [[ $(/var/vcap/bosh/bin/monit summary) == *restart\ pending* ]]; do
+    sleep 1
+done

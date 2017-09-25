@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+goversion=`$bin/go version | awk '{print $3}'`
+
+if [ "$goversion" ==  "devel" ]; then
+  echo "Using 'devel' version, make sure it's go1.7.3 or greater"
+else
+  MINOR=`echo $goversion | cut -f2 -d.`
+  if [ $MINOR -lt 5 ]; then
+    echo "Currently using go version $goversion, must be using go1.7.3 or greater"
+    exit 1
+  fi
+fi
+
+if [[ "$GOOS" == 'linux' ]] && [[ "$GOARCH" == 'amd64' ]]; then
+  export GOTOOLDIR=$(go env GOROOT)/pkg/linux_amd64
+fi
+
+$bin/go build -o $bin/../out/verify-multidigest github.com/cloudfoundry/bosh-utils/main

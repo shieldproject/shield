@@ -1,0 +1,7 @@
+{
+  "port": 9000,
+  "store": "memory",
+  "certificate_file_path":      "./assets/ssl.crt",
+  "private_key_file_path":      "./assets/ssl.key",
+  "jwt_verification_key_path":  "./assets/uaa.pub"
+}
