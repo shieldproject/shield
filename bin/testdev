@@ -66,6 +66,7 @@ max_timeout:   10
 web_root:      ./web2/htdocs
 slow_loop:     20
 fast_loop:     2
+vault_keyfile: ${workdir}/var/vault.crypt
 auth:
   - name: Github
     type: github
