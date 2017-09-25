@@ -1,7 +1,9 @@
 language: go
 go:
-  - 1.4
-  
+  - 1.6
+  - 1.7
+  - 1.8
+
 install:
   - go get -v ./...
   - go get github.com/onsi/ginkgo
