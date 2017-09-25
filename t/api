@@ -15,6 +15,7 @@ SHIELD_AGENT_ADDR="$SHIELD_AGENT_HOST:$SHIELD_AGENT_PORT"
 SHIELD_WEB_USER=admin
 SHIELD_WEB_PASS=secret
 SHIELD_NAME="T.E.S.T. S.H.I.E.L.D."
+SHIELD_MASTER_PASSWORD="master-chief-117"
 
 # TEST HARNESS APPARATUS {{{
 export PATH SHIELD_NAME SHIELD_API_TOKEN
@@ -89,15 +90,14 @@ EOF
 
   echo ">> RUNNING SHIELDD"
   ./shieldd -c ${WORKDIR}/etc/shieldd.conf --log-level debug &
-  set +e
-}
+  echo
 
-spin_agent() {
-  agent_up="1"
+  echo ">> WAITING FOR SHIELD CORE TO COME ONLINE"
+  up="1"
   n=60
-  while [ $agent_up -eq 1 ]; do
+  while [ $up -eq 1 ]; do
       sleep 1
-      agent_up=$(nc -z ${SHIELD_DAEMON_HOST} ${SHIELD_DAEMON_PORT} &>/dev/null; echo $?)
+      up=$(nc -z ${SHIELD_DAEMON_HOST} ${SHIELD_DAEMON_PORT} &>/dev/null; echo $?)
       n=$(( n - 1 ))
       if [[ $n -eq 0 ]]; then
         echo >&2 "SHIELD core did not spin up within 60s; aborting"
@@ -109,10 +109,19 @@ spin_agent() {
       fi
   done
 
+  echo ">> INITIALIZING SHIELD CORE"
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+
+  echo ">> UNLOCKING SHIELD CORE"
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  set +e
+}
+
+spin_agent() {
   ssh-keygen -t rsa -f ${WORKDIR}/var/shield-agent_key -N '' >/dev/null
   rm ${WORKDIR}/var/shield-agent_key.pub
 
-  `curl -Lsk -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys`
+  curl -Lsk -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys
   cat >${WORKDIR}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${WORKDIR}/var/authorized_keys
