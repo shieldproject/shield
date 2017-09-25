@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if ! go version | grep -q " go$GO_VERSION " ; then
+  echo -n "DEBUG: " ; go version
+  echo "ERROR: expected version to be $GO_VERSION" >&2
+  exit 1
+fi
+

@@ -1,0 +1,7 @@
+instances:
+- name: bosh
+  index: "0"
+  artifacts:
+  - name: bosh
+    checksums:
+      ./backup: 26e17765aa93724bebd8675aeaef0dc27ac7b778003a8094dffdf9b0ffe2deba

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e
+
+bin=$(dirname $0)
+
+echo -e "\n Installing ginkgo..."
+$bin/go install ./vendor/github.com/onsi/ginkgo/ginkgo

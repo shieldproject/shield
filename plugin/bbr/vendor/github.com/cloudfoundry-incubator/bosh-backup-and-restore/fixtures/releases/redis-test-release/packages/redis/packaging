@@ -1,0 +1,16 @@
+set -e
+
+REDIS_VERSION=3.0.6
+
+tar -xvzf redis/redis-${REDIS_VERSION}.tar.gz
+
+cd redis-${REDIS_VERSION}
+make
+
+BIN_TARGET=$BOSH_INSTALL_TARGET/bin
+mkdir $BIN_TARGET
+cp src/redis-server ${BIN_TARGET}
+cp src/redis-cli ${BIN_TARGET}
+cp src/redis-benchmark ${BIN_TARGET}
+cp src/redis-check-aof ${BIN_TARGET}
+cp src/redis-check-dump ${BIN_TARGET}

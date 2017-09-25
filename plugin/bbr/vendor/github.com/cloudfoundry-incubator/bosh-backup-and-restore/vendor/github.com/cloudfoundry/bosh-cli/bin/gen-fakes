@@ -1,0 +1,73 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+counterfeiter cmd Session
+counterfeiter cmd SessionContext
+counterfeiter cmd Downloader
+counterfeiter cmd LoginStrategy
+counterfeiter cmd ReleaseUploadingCmd
+counterfeiter cmd ReleaseCreatingCmd
+counterfeiter cmd ReleaseUploader
+counterfeiter cmd/config Config
+
+counterfeiter deployment/manifest Parser
+counterfeiter deployment/template DeploymentTemplateFactory
+
+counterfeiter director Adjustment
+counterfeiter director AdjustedClient
+counterfeiter director Director
+counterfeiter director Deployment
+counterfeiter director Release
+counterfeiter director ReleaseSeries
+counterfeiter director ReleaseArchive
+counterfeiter director Stemcell
+counterfeiter director StemcellArchive
+counterfeiter director Task
+counterfeiter director OrphanDisk
+counterfeiter director FileReporter
+counterfeiter director TaskReporter
+counterfeiter director Event
+
+counterfeiter uaa UAA
+counterfeiter uaa Token
+counterfeiter uaa AccessToken
+
+counterfeiter releasedir Config
+counterfeiter releasedir Generator
+counterfeiter releasedir GitRepo
+#do not gen releasedir due to import conflict bug in counterfeiter
+#counterfeiter releasedir ReleaseDir
+counterfeiter releasedir ReleaseIndex
+counterfeiter releasedir ReleaseIndexReporter
+counterfeiter releasedir BlobsDir
+counterfeiter releasedir BlobsDirReporter
+counterfeiter releasedir/index Index
+counterfeiter releasedir/index IndexBlobs
+counterfeiter releasedir/index Reporter
+
+counterfeiter release Reader
+counterfeiter release Writer
+counterfeiter release Release
+counterfeiter release/resource Archive
+counterfeiter release/resource ArchiveIndex
+counterfeiter release/resource Resource
+counterfeiter release/resource Fingerprinter
+counterfeiter release/job ArchiveReader
+counterfeiter release/job DirReader
+counterfeiter release/pkg ArchiveReader
+counterfeiter release/pkg DirReader
+counterfeiter release/pkg Compilable
+counterfeiter release/license DirReader
+
+counterfeiter stemcell ExtractedStemcell
+
+counterfeiter ssh Runner
+counterfeiter ssh SCPRunner
+counterfeiter ssh Session
+
+counterfeiter ui/task Reporter
+
+$bin/go fmt $($bin/go list github.com/cloudfoundry/bosh-cli/... | grep -v /vendor/)

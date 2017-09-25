@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e
+bin=$(dirname $0)
+
+rootPackage=github.com/cloudfoundry/bosh-cli
+
+srcFiles=(
+  config/LegacyDeploymentStateMigrator
+  cloud/Cloud,Factory
+  cmd/DeploymentDeleter
+  installation/Installation,Installer,InstallerFactory,Uninstaller,JobResolver,PackageCompiler,JobRenderer
+  installation/tarball/Provider
+  deployment/Deployment,Factory,Deployer,Manager,ManagerFactory
+  deployment/instance/Instance,Manager
+  deployment/instance/state/BuilderFactory,Builder,State
+  deployment/disk/Disk,Manager
+  deployment/vm/ManagerFactory
+  deployment/release/JobResolver
+  registry/Server,ServerManager
+  release/Manager,Extractor
+  state/job/DependencyCompiler
+  state/pkg/Compiler,CompiledPackageRepo
+  stemcell/CloudStemcell,Manager
+  templatescompiler/JobRenderer,JobListRenderer,RenderedJob,RenderedJobList,RenderedJobListArchive,RenderedJobListCompressor
+  blobstore/Factory,Blobstore
+  test_support/Spy
+)
+
+for srcFile in ${srcFiles[*]}; do
+  package=`dirname $srcFile`
+  class=`basename $srcFile`
+
+  srcDir=`dirname $srcFile`
+  srcFilename=`basename $srcFile`
+  destFile=$srcDir/mocks/mocks.go
+
+  mkdir -p $srcDir/mocks
+  echo $bin/env mockgen -package mocks -destination $destFile $rootPackage/$package $class
+  $bin/env mockgen -package mocks -destination $destFile $rootPackage/$package $class
+  sed -i "" -e "s%github.com/cloudfoundry/bosh-cli/vendor/%%" $destFile
+  $bin/go fmt $destFile
+done
+
+
+
+# Until gomock has support for mocking a vendored dependency, we have to generate the mock manually.
+(
+
+  initRootDir=$PWD
+  echo "Generating agentclient mocks."
+
+  echo "mkdir -p agentclient/mocks"
+  mkdir -p agentclient/mocks
+
+  echo "cd vendor/github.com/cloudfoundry/bosh-agent"
+  cd vendor/github.com/cloudfoundry/bosh-agent
+
+  echo "mockgen -package mocks -destination $initRootDir/agentclient/mocks/mocks.go github.com/cloudfoundry/bosh-agent/agentclient AgentClient"
+  mockgen -package mocks -destination $initRootDir/agentclient/mocks/mocks.go github.com/cloudfoundry/bosh-agent/agentclient AgentClient
+)

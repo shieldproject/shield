@@ -1,0 +1,22 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: pcfservicesenablement/services-enablement-ci}
+
+inputs:
+- name: redis-service-release
+  path: release-to-upload
+- name: services-enablement-meta
+
+run:
+  path: services-enablement-meta/ci-scripts/upload-release.sh
+
+params:
+  BOSH_URL:
+  BOSH_CA_CERT:
+  BOSH_USERNAME:
+  BOSH_PASSWORD:
+  RELEASE_NAME:
+  AUTH_TYPE:

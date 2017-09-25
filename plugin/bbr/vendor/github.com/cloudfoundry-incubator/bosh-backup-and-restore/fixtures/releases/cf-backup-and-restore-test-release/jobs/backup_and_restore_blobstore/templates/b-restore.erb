@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -x
+
+rm -rf /var/vcap/store/shared/<%= p("cc.buildpacks.buildpack_directory_key") %>
+rm -rf /var/vcap/store/shared/<%= p("cc.droplets.droplet_directory_key") %>
+rm -rf /var/vcap/store/shared/<%= p("cc.packages.app_package_directory_key") %>
+
+cp -r /var/vcap/store/backup/<%= p("cc.buildpacks.buildpack_directory_key") %> /var/vcap/store/shared
+cp -r /var/vcap/store/backup/<%= p("cc.droplets.droplet_directory_key") %> /var/vcap/store/shared
+cp -r /var/vcap/store/backup/<%= p("cc.packages.app_package_directory_key") %> /var/vcap/store/shared
+
+chown -R vcap:vcap /var/vcap/store/shared/<%= p("cc.buildpacks.buildpack_directory_key") %>
+chown -R vcap:vcap /var/vcap/store/shared/<%= p("cc.droplets.droplet_directory_key") %>
+chown -R vcap:vcap /var/vcap/store/shared/<%= p("cc.packages.app_package_directory_key") %>

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -e
+
+echo "Checking for unhandled errors..."
+echo ""
+
+go get github.com/kisielk/errcheck
+
+packages_to_check=$(go list ./... \
+  | grep -v "github.com/cloudfoundry/bosh-cli/acceptance" \
+  | grep -v "github.com/cloudfoundry/bosh-cli/integration" \
+  | grep -v "github.com/cloudfoundry/bosh-cli/vendor" \
+  | xargs
+)
+
+set +e
+all_errors=$($GOPATH/bin/errcheck $packages_to_check)
+
+# exits 0 if no unhandled errors, 1 if there are unhandled errors, 2 if checking failed
+if [ "$?" -eq 2 ]
+then
+  echo ""
+  echo "Failed."
+  exit 1
+fi
+set -e
+
+set +e
+errors=$(echo "$all_errors" | grep -v "_test.go") # hopefully errcheck will add a flag to ignore tests and we won't have to do this: https://github.com/kisielk/errcheck/issues/66
+# exits 0 if any lines weren't excluded, 1 if all lines were excluded
+if [ "$?" -eq 1 ]
+then
+  echo "All good."
+  exit 0
+fi
+set -e
+
+num_errors=$(echo "$errors" | wc -l | awk {'print $1'})
+echo "$errors"
+echo ""
+echo "$num_errors unhandled errors found."
+exit 1

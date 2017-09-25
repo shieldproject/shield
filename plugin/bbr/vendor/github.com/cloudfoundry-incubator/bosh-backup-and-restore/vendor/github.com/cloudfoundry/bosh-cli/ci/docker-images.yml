@@ -1,0 +1,56 @@
+jobs:
+  - name: build-bosh-cli
+    public: true
+    serial: true
+    plan:
+      - get: bosh-cli-src
+        trigger: true
+      - task: write-metadata-file
+        file: bosh-cli-src/ci/docker/write-metadata-file.yml
+        params:
+          GO_VERSION: 1.7.1
+          GO_SHA: 43ad621c9b014cde8db17393dc108378d37bc853aa351a6c74bf6432c1bbd182
+          DOCKER_IMAGE_TAG: latest
+      - put: bosh-cli
+        params:
+          build: "docker-files"
+          tag: "docker-files/tag"
+        get_params:
+          skip_download: true
+
+  - name: build-bosh-cli-go-1-8
+    public: true
+    serial: true
+    plan:
+      - get: bosh-cli-src
+        trigger: true
+      - task: write-metadata-file
+        file: bosh-cli-src/ci/docker/write-metadata-file.yml
+        params:
+          GO_VERSION: 1.8.1
+          GO_SHA: a579ab19d5237e263254f1eac5352efcf1d70b9dacadb6d6bb12b0911ede8994
+          DOCKER_IMAGE_TAG: go-1.8
+      - put: bosh-cli
+        params:
+          build: "docker-files"
+          tag: "docker-files/tag"
+        get_params:
+          skip_download: true
+
+resources:
+  - name: bosh-cli-src
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-cli.git
+      branch: develop
+      paths:
+        - "ci/docker"
+
+  - name: bosh-cli
+    type: docker-image
+    source:
+      repository: bosh/cli
+      email: {{dockerhub_email}}
+      username: {{dockerhub_username}}
+      password: {{dockerhub_password}}
+

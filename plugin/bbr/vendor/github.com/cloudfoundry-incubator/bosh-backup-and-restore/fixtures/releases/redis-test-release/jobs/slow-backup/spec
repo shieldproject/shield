@@ -1,0 +1,9 @@
+---
+name: slow-backup
+
+templates:
+  slow-backup: bin/bbr/backup
+
+packages: []
+
+properties: {}
