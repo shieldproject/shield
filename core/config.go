@@ -31,6 +31,7 @@ type Config struct {
 	MOTD          string `yaml:"motd"`
 
 	EncryptionType string `yaml:"encryption_type"`
+	VaultKeyfile   string `yaml:"vault_keyfile"`
 
 	Auth []AuthConfig `yaml:"auth"`
 }
@@ -48,6 +49,7 @@ func ReadConfig(file string) (Config, error) {
 		Timeout:        12,
 		WebRoot:        "web",
 		EncryptionType: "aes256-ctr",
+		VaultKeyfile:   "vault/config.crypt",
 	}
 
 	/* optionally read configuration from a file */
@@ -77,6 +79,9 @@ func ReadConfig(file string) (Config, error) {
 	}
 	if config.EncryptionType == "" {
 		return config, fmt.Errorf("encryption type '%s' is invalid (see documentation for supported ciphers and modes)", config.EncryptionType)
+	}
+	if config.VaultKeyfile == "" {
+		return config, fmt.Errorf("vault keyfile path '%s' is invalid (must be a valid path)", config.VaultKeyfile)
 	}
 	// FIXME: check existence of WebRoot
 	for i, auth := range config.Auth {

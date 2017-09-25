@@ -1984,8 +1984,7 @@ func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//TODO: Replace path with config.VaultPath / similar
-	sealCreds, err := core.vault.ReadConfig("vault/config.crypt", params.Master)
+	sealCreds, err := core.vault.ReadConfig(core.vaultKeyfile, params.Master)
 	if err != nil {
 		bail(w, err)
 		return
@@ -2001,7 +2000,6 @@ func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
 		bail(w, errors.New("Shield failed to unlock key database"))
 		return
 	}
-	fmt.Printf("Vault token:%s\n", core.vault.Token) //TODO REMOVE THIS
 	JSONLiteral(w, `{"ok":"Unlocked Key Database"}`)
 }
 
@@ -2024,8 +2022,7 @@ func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//TODO: Replace path with config.VaultPath / similar
-	err := core.vault.Init("vault/config.crypt", params.Master)
+	err := core.vault.Init(core.vaultKeyfile, params.Master)
 	if err != nil {
 		bail(w, err)
 		return
@@ -2035,6 +2032,5 @@ func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
 		bail(w, errors.New("Shield failed to initialize key database"))
 		return
 	}
-	fmt.Printf("Vault token:%s\n", core.vault.Token) //TODO REMOVE THIS
 	JSONLiteral(w, `{"ok":"Initialized Key Database"}`)
 }

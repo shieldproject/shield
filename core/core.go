@@ -55,6 +55,7 @@ type Core struct {
 	/* vault */
 	vault          Vault
 	encryptionType string
+	vaultKeyfile   string
 
 	DB *db.DB
 }
@@ -99,6 +100,7 @@ func NewCore(file string) (*Core, error) {
 
 		/* encryption */
 		encryptionType: config.EncryptionType,
+		vaultKeyfile:   config.VaultKeyfile,
 
 		/* db */
 		DB: &db.DB{
