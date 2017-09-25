@@ -27,11 +27,11 @@ done
 echo targetdir=$targetdir
 echo storedir=$storedir
 
-echo "Unlocking shield vault"
-$shield unlock password
-
 $shield create-backend localdev $shieldbackend
 echo "backend created"
+
+echo "Unlocking shield vault"
+$shield unlock password
 
 webui() {
 s3_store=$($shield create-store <<EOF | $jq .uuid

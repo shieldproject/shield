@@ -35,6 +35,22 @@ export DATABASE_DSN=${DATABASE_DSN:-$workdir/var/shield.db}
 export SHIELD_API_TOKEN=LETMEIN
 
 case "${1}" in
+(vault)
+  cat >${workdir}/etc/vault.conf <<EOF
+storage "inmem" {}
+disable_mlock = true
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = true
+}
+EOF
+  echo ">> Spinning up a local (loopback) Vault"
+  vault server -config ${workdir}/etc/vault.conf
+  echo
+  echo "vault exited."
+  echo "Press enter to close this session."
+  read JUNK
+  ;;
 (shieldd)
   ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
   rm ${workdir}/var/shieldd_key.pub
@@ -51,22 +67,9 @@ web_root:      ./web2/htdocs
 slow_loop:     20
 fast_loop:     2
 auth:
-auth:
-#  api_tokens:
-#    test: ${SHIELD_API_TOKEN}
-#  basic:
-#    user: testuser
-#    password: testpass
-##  oauth:
-##    provider: github
-##    key: Fill this in with the github Client ID after creating a dev oauth app
-##    secret: Fill this in with the github secret after creating a dev oath app
-##    base_url: http://localhost:8181
-##    orgs:
-##    - Fill this in with a real github group you want to restrict access to
-##    sessions:
-##      type: sqlite3
-##      dsn: ${workdir}/var/sessions.db
+  - name: Github
+    type: github
+    identifier: github
 EOF
 
   echo ">> Setting up SHIELD schema"
@@ -114,6 +117,7 @@ EOF
   ;;
 ("")
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
+       new-window -n vault ./bin/testdev vault ${workdir} \; \
        new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
        new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
        new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ${SHIELD_ENV}; read JUNK" \; \

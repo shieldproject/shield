@@ -7,7 +7,7 @@ DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
 DATABASE_DSN=${DATABASE_DSN:-$WORKDIR/var/shield.db}
 SHIELD_API_TOKEN=LETMEIN
 SHIELD_DAEMON_HOST=127.0.0.1
-SHIELD_DAEMON_PORT=8182
+SHIELD_DAEMON_PORT=8181
 SHIELD_DAEMON_ADDR="$SHIELD_DAEMON_HOST:$SHIELD_DAEMON_PORT"
 SHIELD_AGENT_HOST=127.0.0.1
 SHIELD_AGENT_PORT=5441
@@ -30,6 +30,22 @@ mkdir ${WORKDIR}/etc
 mkdir ${WORKDIR}/var
 mkdir ${WORKDIR}/data
 
+spin_vault() {
+  cat >${WORKDIR}/etc/vault.conf <<EOF
+storage "inmem" {}
+disable_mlock = true
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = true
+}
+EOF
+
+  set -e
+  echo ">> Setting up a local (loopback) Vault"
+  vault server -config ${WORKDIR}/etc/vault.conf &
+  set +e
+}
+
 spin_shieldd() {
   ssh-keygen -t rsa -f ${WORKDIR}/var/shieldd_key -N '' >/dev/null
 
@@ -43,11 +59,14 @@ workers:       3
 max_timeout:   10
 web_root: ./webui
 auth:
-  api_tokens:
-    test: ${SHIELD_API_TOKEN}
-  basic:
-    user:     ${SHIELD_WEB_USER}
-    password: ${SHIELD_WEB_PASS}
+  - type: github
+    identifier: github
+    name: github
+#  api_tokens:
+#    test: ${SHIELD_API_TOKEN}
+#  basic:
+#    user:     ${SHIELD_WEB_USER}
+#    password: ${SHIELD_WEB_PASS}
 EOF
 
   set -e
@@ -135,6 +154,7 @@ done_testing() {
 }
 # }}}
 
+spin_vault   2>&1 > ${WORKDIR}/vault.log
 spin_shieldd 2>&1 > ${WORKDIR}/daemon.log
 spin_agent   2>&1 > ${WORKDIR}/agent.log
 
