@@ -29,7 +29,8 @@ target=$($shield create-target <<EOF | $jq .uuid
   "plugin"   : "fs",
   "summary"  : "The working directory of the dev environment."
 }
-EOF )
+EOF
+)
 if [[ "$target" = "null" ]]; then
   echo >&2 "Failed to create the DevTarget target"
   exit 1
@@ -43,7 +44,8 @@ store=$($shield create-store <<EOF | $jq .uuid
   "plugin"   : "fs",
   "summary"  : "A temporary store for the dev environment."
 }
-EOF )
+EOF
+)
 if [[ "$store" = "null" ]]; then
   echo >&2 "Failed to create the DevStore store"
   exit 1
@@ -56,7 +58,8 @@ policy=$($shield create-policy <<EOF | $jq .uuid
   "summary" : "A Test Policy",
   "expires" : 86400
 }
-EOF )
+EOF
+)
 if [[ "$policy" = "null" ]]; then
   echo >&2 "Failed to create the DevPolicy retention policy"
   exit 1
@@ -70,7 +73,8 @@ schedule=$($shield create-schedule <<EOF | $jq .uuid
   "summary" : "A Test Schedule",
   "when"    : "daily 4am"
 }
-EOF )
+EOF
+)
 if [[ "$schedule" = "null" ]]; then
   echo >&2 "Failed to create the DevSchedule schedule"
   exit 1
