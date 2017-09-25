@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<monit>
+	<services>
+		<service name="test-service">
+			<monitor>0</monitor>
+			<status>4096</status>
+			<status_message><![CDATA[Oops]]></status_message>
+			<pendingaction>0</pendingaction>
+		</service>
+	</services>
+	<servicegroups>
+		<servicegroup name="vcap">
+			<service>test-service</service>
+		</servicegroup>
+	</servicegroups>
+</monit>

@@ -1,0 +1,187 @@
+---
+jobs:
+- name: test-unit
+  public: true
+  plan:
+    - get: bosh-agent
+      trigger: true
+    - task: test-unit
+      file: bosh-agent/ci/tasks/test-unit.yml
+
+- name: test-integration
+  public: false
+  plan:
+    - get: bosh-agent
+      trigger: true
+    - task: test-integration
+      privileged: true
+      file: bosh-agent/ci/tasks/test-integration.yml
+      params:
+        BOSH_AWS_ACCESS_KEY_ID: {{BOSH_AWS_ACCESS_KEY_ID}}
+        BOSH_AWS_SECRET_ACCESS_KEY: {{BOSH_AWS_SECRET_ACCESS_KEY}}
+        BOSH_LITE_KEYPAIR: {{BOSH_LITE_KEYPAIR}}
+        BOSH_LITE_SUBNET_ID: {{BOSH_LITE_SUBNET_ID}}
+        BOSH_LITE_NAME: {{BOSH_LITE_NAME}}
+        BOSH_LITE_SECURITY_GROUP: {{BOSH_LITE_SECURITY_GROUP}}
+        BOSH_LITE_PRIVATE_KEY: {{BOSH_LITE_PRIVATE_KEY}}
+
+- name: windows-test-unit
+  serial: true
+  plan:
+  - get: bosh-agent
+    trigger: true
+  - task: test-unit
+    file: bosh-agent/ci/tasks/test-unit-windows.yml
+
+- name: windows-test-integration
+  serial: true
+  plan:
+  - get: windows-ami
+  - get: bosh-agent
+    trigger: true
+  - task: test-integration
+    privileged: true
+    file: bosh-agent/ci/tasks/test-integration-windows.yml
+    params:
+      AWS_ACCESS_KEY: {{WINDOWS_AWS_ACCESS_KEY}}
+      AWS_SECRET_KEY: {{WINDOWS_AWS_SECRET_KEY}}
+      AWS_SUBNET: {{WINDOWS_AWS_SUBNET}}
+      AWS_SSH_KEY: {{WINDOWS_AWS_SSH_KEY}}
+      KEYPAIR_NAME: {{WINDOWS_AWS_KEYPAIR_NAME}}
+      NATS_ELASTIC_IP: {{NATS_ELASTIC_IP}}
+      NATS_PRIVATE_IP: {{NATS_PRIVATE_IP}}
+      VAGRANT_PROVIDER: aws
+      WINRM_PASSWORD: {{WINRM_PASSWORD}}
+
+- name: promote
+  public: true
+  serial: true
+  plan:
+    - aggregate:
+      - trigger: true
+        passed: [test-unit, test-integration, windows-test-unit, windows-test-integration]
+        get: bosh-agent
+      - get: version-semver
+        params: {bump: minor}
+    - task: assert-version-aligns
+      file: bosh-agent/ci/tasks/assert-version-aligns.yml
+    - put: version-semver
+      params:
+        file: version-semver/number
+    - put: bosh-agent-commit-status
+      params:
+        state: success
+        commit: bosh-agent
+    - put: bosh-agent-master
+      params:
+        repository: bosh-agent
+        tag: version-semver/number
+        tag_prefix: v
+    - aggregate:
+      - task: build-linux
+        file: bosh-agent/ci/tasks/build-linux.yml
+      - task: build-linux-ppc64le
+        file: bosh-agent/ci/tasks/build-linux-ppc64le.yml
+      - task: build-windows
+        file: bosh-agent/ci/tasks/build-windows.yml
+    - aggregate:
+      - put: release-bucket-linux
+        params:
+          file: compiled-linux-amd64/bosh-agent-*-linux-amd64
+      - put: release-bucket-linux-ppc64le
+        params:
+          file: compiled-linux-ppc64le/bosh-agent-*-linux-ppc64le
+      - put: release-bucket-windows
+        params:
+          file: compiled-windows-amd64/bosh-agent-*-windows-amd64.exe
+
+resources:
+- name: bosh-agent
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry/bosh-agent
+    branch: develop
+
+- name: bosh-agent-master
+  type: git
+  source:
+    uri: git@github.com:cloudfoundry/bosh-agent.git
+    branch: master
+    private_key: {{BOSH_GITHUB_DEPLOYMENT_KEY}}
+
+- name: bosh-agent-commit-status
+  type: github-status
+  source:
+    repository: cloudfoundry/bosh-agent
+    access_token: {{repo_github_token}}
+    branch: develop
+    context: ci/published
+
+- name: windows-ami
+  type: ami-resource
+  source:
+    access_key_id: {{WINDOWS_AWS_ACCESS_KEY}}
+    secret_access_key: {{WINDOWS_AWS_SECRET_KEY}}
+    region: us-east-1
+    search_options:
+      filters:
+      - name: name
+        values:
+        - Windows_Server-2012-R2_RTM-English-64Bit-Base*
+      - name: state
+        values:
+        - available
+      owners:
+      - amazon
+
+- name: release-bucket-linux
+  type: s3
+  source:
+    bucket: releases
+    regexp: bosh-agent-(.*)-linux-amd64
+    bucket: {{RELEASE_BUCKET_AGENT}}
+    region_name: {{AWS_S3_BUCKET_REGION}}
+    access_key_id: {{AWS_S3_BUCKET_ACCESS_KEY}}
+    secret_access_key: {{AWS_S3_BUCKET_SECRET_KEY}}
+
+- name: release-bucket-linux-ppc64le
+  type: s3
+  source:
+    bucket: releases
+    regexp: bosh-agent-(.*)-linux-ppc64le
+    bucket: {{RELEASE_BUCKET_AGENT}}
+    region_name: {{AWS_S3_BUCKET_REGION}}
+    access_key_id: {{AWS_S3_BUCKET_ACCESS_KEY}}
+    secret_access_key: {{AWS_S3_BUCKET_SECRET_KEY}}
+
+- name: release-bucket-windows
+  type: s3
+  source:
+    bucket: releases
+    regexp: bosh-agent-(.*)-windows-amd64.exe
+    bucket: {{RELEASE_BUCKET_AGENT}}
+    region_name: {{AWS_S3_BUCKET_REGION}}
+    access_key_id: {{AWS_S3_BUCKET_ACCESS_KEY}}
+    secret_access_key: {{AWS_S3_BUCKET_SECRET_KEY}}
+
+- name: version-semver
+  type: semver
+  source:
+    initial_version: 0.0.1
+    key: agent-current-version
+    bucket: {{SEMVER_BUCKET}}
+    region_name: {{AWS_S3_BUCKET_REGION}}
+    access_key_id: {{AWS_S3_BUCKET_ACCESS_KEY}}
+    secret_access_key: {{AWS_S3_BUCKET_SECRET_KEY}}
+
+resource_types:
+- name: ami-resource
+  type: docker-image
+  source:
+    repository: pivotalgreenhouse/ami-resource
+    tag: latest
+- name: github-status
+  type: docker-image
+  source:
+    repository: dpb587/github-status-resource
+    tag: master

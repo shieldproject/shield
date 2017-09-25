@@ -1,0 +1,22 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/agent
+
+inputs:
+- name: bosh-agent
+  path: gopath/src/github.com/cloudfoundry/bosh-agent
+- name: version-semver
+
+outputs:
+- name: compiled-linux-amd64
+
+params:
+  GOARCH: amd64
+  GOOS:   linux
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-agent/ci/tasks/build.sh

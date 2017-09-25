@@ -1,0 +1,9 @@
+{
+  "processes": [
+    {
+      "name": "unmonitor-hello",
+      "executable": "powershell",
+      "args": [ "/var/vcap/jobs/unmonitor-hello/bin/start.ps1" ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<monit>
+    <services>
+        <service name="unmonitored-start-pending">
+            <status>0</status>
+            <monitor>0</monitor>
+            <pendingaction>6</pendingaction>
+        </service>
+        <service name="initializing">
+            <status>0</status>
+            <monitor>2</monitor>
+            <pendingaction>0</pendingaction>
+        </service>
+        <service name="running">
+            <status>0</status>
+            <monitor>1</monitor>
+            <pendingaction>0</pendingaction>
+        </service>
+        <service name="running-stop-pending">
+            <status>0</status>
+            <monitor>1</monitor>
+            <pendingaction>3</pendingaction>
+        </service>
+        <service name="unmonitored-stop-pending">
+            <status>0</status>
+            <monitor>0</monitor>
+            <pendingaction>3</pendingaction>
+        </service>
+        <service name="unmonitored">
+            <status>0</status>
+            <monitor>0</monitor>
+            <pendingaction>0</pendingaction>
+        </service>
+        <service name="stopped">
+            <status>0</status>
+            <monitor>0</monitor>
+            <pendingaction>0</pendingaction>
+        </service>
+        <service name="failing">
+            <status>512</status>
+            <monitor>1</monitor>
+            <pendingaction>0</pendingaction>
+        </service>
+        <service name="system_test.local">
+            <status>0</status>
+            <monitor>1</monitor>
+        </service>
+    </services>
+    <servicegroups>
+        <servicegroup name="vcap">
+            <service>unmonitored-start-pending</service>
+            <service>initializing</service>
+            <service>running</service>
+            <service>running-stop-pending</service>
+            <service>unmonitored-stop-pending</service>
+            <service>unmonitored</service>
+            <service>stopped</service>
+            <service>failing</service>
+        </servicegroup>
+    </servicegroups>
+</monit>

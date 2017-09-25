@@ -1,0 +1,120 @@
+---
+jobs:
+  - name: test-unit
+    public: true
+    plan:
+      - get: bosh-utils
+        trigger: true
+      - task: test-unit
+        file: bosh-utils/ci/tasks/test-unit.yml
+      - task: test-unit-windows
+        file: bosh-utils/ci/tasks/test-unit-windows.yml
+      - put: bosh-utils-commit-status
+        params:
+          state: success
+          commit: bosh-utils
+      - put: bosh-utils-promoted
+        params:
+          repository: bosh-utils
+
+  - name: publish-multidigest-binary
+    public: true
+    plan:
+      - get: bosh-utils
+        trigger: true
+        passed: [test-unit]
+      - get: version-semver
+        params: {bump: patch}
+      - put: version-semver
+        params: {file: version-semver/number}
+      - aggregate:
+        - task: build-multidigest-binary-darwin
+          file: bosh-utils/ci/tasks/build-multidigest-binary.yml
+          output_mapping: { out: compiled-darwin }
+          params:
+            GOOS: darwin
+            GOARCH: amd64
+        - task: build-multidigest-binary-linux
+          file: bosh-utils/ci/tasks/build-multidigest-binary.yml
+          output_mapping: { out: compiled-linux }
+          params:
+            GOOS: linux
+            GOARCH: amd64
+        - task: build-multidigest-binary-linux-ppc64le
+          file: bosh-utils/ci/tasks/build-multidigest-binary.yml
+          output_mapping: { out: compiled-linux-ppc64le }
+          params:
+            GOOS: linux
+            GOARCH: ppc64le
+      - aggregate:
+        - put: release-bucket-linux
+          params: {file: compiled-linux/verify-multidigest-*-linux-amd64}
+        - put: release-bucket-darwin
+          params: {file: compiled-darwin/verify-multidigest-*-darwin-amd64}
+        - put: release-bucket-linux-ppc64le
+          params: {file: compiled-linux-ppc64le/verify-multidigest-*-linux-ppc64le}
+
+resources:
+  - name: bosh-utils
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-utils
+      branch: develop
+
+  - name: bosh-utils-promoted
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/bosh-utils.git
+      branch: master
+      private_key: {{concourse_github_private_key}}
+
+  - name: bosh-utils-commit-status
+    type: github-status
+    source:
+      repository: cloudfoundry/bosh-utils
+      access_token: {{repo_github_token}}
+      branch: develop
+      context: ci/unit-tests
+
+  - name: release-bucket-darwin
+    type: s3
+    source:
+      regexp: verify-multidigest-(.*)-darwin-amd64
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: release-bucket-linux
+    type: s3
+    source:
+      regexp: verify-multidigest-(.*)-linux-amd64
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: release-bucket-linux-ppc64le
+    type: s3
+    source:
+      regexp: verify-multidigest-(.*)-linux-ppc64le
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: version-semver
+    type: semver
+    source:
+      initial_version: 0.0.1
+      key: verify-multidigest-current-version
+      bucket: {{aws_s3_release_bucket}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+resource_types:
+  - name: github-status
+    type: docker-image
+    source:
+      repository: dpb587/github-status-resource
+      tag: master

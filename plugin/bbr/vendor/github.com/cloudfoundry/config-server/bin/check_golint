@@ -1,0 +1,32 @@
+#!/bin/bash
+set -e
+
+bin=$(dirname $0)
+
+go get -u github.com/golang/lint/golint
+
+if [ $# -eq 0 ]; then
+  gofiles="$($bin/gofiles)"
+else
+  gofiles="$1"
+fi
+
+errors=$(
+  echo "${gofiles}" | xargs -L 1 golint \
+    | grep -v '/mocks/' \
+    | grep -v '/*fakes/' \
+    | grep -v 'should have comment.* or be unexported' \
+    | grep -v 'should not be capitalized' \
+    | grep -v 'underscore in package name' \
+    | xargs # If grep returns no results, it exits with exit code 1
+)
+
+[ -z "${errors}" ] && exit 0
+
+echo -e "\ngolint failed with errors... "
+for err in "${errors}"; do
+	echo "${err}"
+done
+
+echo
+exit 1

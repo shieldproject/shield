@@ -1,0 +1,21 @@
+#!/bin/bash 
+
+set -e
+
+bin=$(dirname $0)
+
+goversion=`$bin/go version | awk '{print $3}'`
+
+if [ "$goversion" ==  "devel" ]; then
+  echo "Using 'devel' version, make sure it's go1.5.1 or greater"
+else
+  MINOR=`echo $goversion | cut -f2 -d.`
+  if [ $MINOR -lt 5 ]; then
+    echo "Currently using go version $goversion, must be using go1.5.1 or greater"
+    exit 1
+  fi
+fi
+
+$bin/go build -o $bin/../out/bosh-agent github.com/cloudfoundry/bosh-agent/main
+# $bin/go build -o $bin/../out/dav-cli    github.com/cloudfoundry/bosh-utils/davcli/main
+# $bin/go build -o $bin/../out/bosh-bootstrapper github.com/cloudfoundry/bosh-agent/bootstrapper/main

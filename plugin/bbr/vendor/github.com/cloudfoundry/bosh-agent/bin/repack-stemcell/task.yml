@@ -1,0 +1,21 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/os-image-stemcell-builder
+
+inputs:
+  - name: agent-src
+
+outputs:
+  - name: stemcell
+
+run:
+  path: agent-src/bin/repack-stemcell/repack.sh
+
+params:
+  STEMCELL_URL: "https://s3.amazonaws.com/bosh-core-stemcells/aws/bosh-stemcell-3312.15-aws-xen-ubuntu-trusty-go_agent.tgz"
+  STEMCELL_SHA1: "d5252cdd6b07763ed989fcfeff47d06afa164065"
+  BOSH_DEBUG_PUB_KEY: ""

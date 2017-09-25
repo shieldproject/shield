@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+set -e
+
+bin=$(dirname $0)
+testdir="./tmp"
+
+setup_test_dir (){
+  rm -rf ${testdir}
+  mkdir ${testdir}
+
+  cp -p $bin/start_server.sh ${testdir}
+  cp -p $bin/stop_server.sh ${testdir}
+  cp -p $bin/setup_db.sh ${testdir}
+  cp -r ./integration/assets ${testdir}/assets
+
+  echo 'Building config-server'
+  $bin/build
+  cp -p ./out/config-server ${testdir}/config-server
+
+  $bin/env ginkgo build -r -race integration
+
+  mv ./integration/integration.test ${testdir}
+  pushd ${testdir}
+}
+
+setup_test_dir
+
+
+run_tests (){
+  export DB=$1
+  echo -e "\n\nRunning Integration tests for $DB\n\n"
+  #Copy DB file to config.json
+  cp ./assets/config.$DB.json ./assets/config.json
+
+  ./integration.test
+}
+
+case $1 in
+    memory  )
+     run_tests memory ;;
+    mysql  )
+     run_tests mysql ;;
+    postgresql  )
+     run_tests postgresql ;;
+    * )
+     if [ -n "$1" ]; then
+        echo "usage test-integration.sh [memory|postgresql|mysql] Defaults to all"
+        exit 1
+     fi
+     run_tests memory
+     run_tests mysql
+     run_tests postgresql
+     ;;
+esac
+
+popd

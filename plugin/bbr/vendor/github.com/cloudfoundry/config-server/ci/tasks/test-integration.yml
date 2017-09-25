@@ -1,0 +1,17 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/main
+
+inputs:
+- name: config-server
+  path: src/github.com/cloudfoundry/config-server
+
+run:
+  path: src/github.com/cloudfoundry/config-server/ci/tasks/test-integration.sh
+
+params:
+  DB: replace-me

@@ -1,0 +1,26 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/agent
+
+inputs:
+- name: bosh-agent
+  path: gopath/src/github.com/cloudfoundry/bosh-agent
+- name: windows-ami
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-agent/ci/tasks/test-integration-windows.sh
+
+params:
+  AWS_ACCESS_KEY: replace-me
+  AWS_SECRET_KEY: replace-me
+  AWS_SUBNET: replace-me
+  AWS_SSH_KEY: replace-me
+  KEYPAIR_NAME: replace-me
+  NATS_ELASTIC_IP: replace-me
+  NATS_PRIVATE_IP: replace-me
+  VAGRANT_PROVIDER: aws
+  WINRM_PASSWORD: replace-me

@@ -1,0 +1,113 @@
+---
+# fly -t cpi set-pipeline -p davcli -c ci/pipeline.yml -l <(lpass show -G "davcli concourse secrets" --notes) -l <(lpass show --notes "pivotal-tracker-resource-keys")
+groups:
+  - name: davcli
+    jobs:
+      - test
+      - promote
+
+jobs:
+  - name: test
+    serial: true
+    plan:
+      - {trigger: true, get: davcli-src}
+
+      - task: test
+        file: davcli-src/ci/tasks/run-test.yml
+
+  - name: promote
+    plan:
+      - aggregate:
+        - get: davcli-src
+          trigger: true
+          passed:
+            - test
+      - get: version-semver
+        params:
+          bump: patch
+
+      - aggregate:
+        - task: build-linux
+          file: davcli-src/ci/tasks/build.yml
+          output_mapping: { out: out-linux }
+          params:
+            GOOS: linux
+            GOARCH: amd64
+        - task: build-linux-ppc64le
+          file: davcli-src/ci/tasks/build.yml
+          output_mapping: { out: out-linux-ppc64le }
+          params:
+            GOOS: linux
+            GOARCH: ppc64le
+        - task: build-windows
+          file: davcli-src/ci/tasks/build.yml
+          output_mapping: { out: out-windows }
+          params:
+            GOOS: windows
+            GOARCH: amd64
+
+      - aggregate:
+        - put: release-bucket-linux
+          params: {file: out-linux/davcli-*-linux-amd64}
+        - put: release-bucket-linux-ppc64le
+          params: {file: out-linux-ppc64le/davcli-*-linux-ppc64le}
+        - put: release-bucket-windows
+          params: {file: out-windows/davcli-*-windows-amd64.exe}
+
+      - put: version-semver
+        params:
+          file: version-semver/number
+      - put: davcli-src
+        params: {repository: davcli-src, tag: version-semver/number, tag_prefix: v}
+      - put: tracker-output
+        params:
+          repos:
+          - davcli-src
+
+resources:
+  - name: davcli-src
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/bosh-davcli.git
+      branch: master
+      private_key: {{davcli_github_deploy_key}}
+
+  - name: version-semver
+    type: semver
+    source:
+      initial_version: 0.0.1
+      key: current-version
+      bucket: {{davcli_release_bucket}}
+      access_key_id: {{davcli_release_bucket_access_key}}
+      secret_access_key: {{davcli_release_bucket_secret_key}}
+
+  - name: release-bucket-linux
+    type: s3
+    source:
+      regexp: davcli-(.*)-linux-amd64
+      bucket: {{davcli_release_bucket}}
+      access_key_id: {{davcli_release_bucket_access_key}}
+      secret_access_key: {{davcli_release_bucket_secret_key}}
+
+  - name: release-bucket-linux-ppc64le
+    type: s3
+    source:
+      regexp: davcli-(.*)-linux-ppc64le
+      bucket: {{davcli_release_bucket}}
+      access_key_id: {{davcli_release_bucket_access_key}}
+      secret_access_key: {{davcli_release_bucket_secret_key}}
+
+  - name: release-bucket-windows
+    type: s3
+    source:
+      regexp: davcli-(.*)-windows-amd64.exe
+      bucket: {{davcli_release_bucket}}
+      access_key_id: {{davcli_release_bucket_access_key}}
+      secret_access_key: {{davcli_release_bucket_secret_key}}
+
+  - name: tracker-output
+    type: tracker
+    source:
+      token: {{tracker_api_token}}
+      project_id: {{tracker_project_id}}
+      tracker_url: https://www.pivotaltracker.com

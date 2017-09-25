@@ -1,0 +1,247 @@
+#fly -t production set-pipeline -p config-server -c ci/pipeline.yml --load-vars-from <(lpass show -G "config-server concourse secrets" --notes)
+---
+jobs:
+  - name: test-gofmt
+    public: true
+    plan:
+      - get: config-server
+        trigger: true
+      - task: test-gofmt
+        file: config-server/ci/tasks/test-gofmt.yml
+        on_failure: &slack-alert
+          put: slack-alert
+          params:
+            channel: {{slack_channel_name}}
+            icon_url: http://cl.ly/image/3e1h0H3H2s0P/concourse-logo.png
+            text: {{slack_failure_message}}
+
+  - name: test-golint
+    public: true
+    plan:
+      - get: config-server
+        trigger: true
+      - task: test-golint
+        file: config-server/ci/tasks/test-golint.yml
+        on_failure:
+          <<: *slack-alert
+
+  - name: test-govet
+    public: true
+    plan:
+      - get: config-server
+        trigger: true
+      - task: test-govet
+        file: config-server/ci/tasks/test-govet.yml
+        on_failure:
+          <<: *slack-alert
+
+  - name: test-unit
+    public: true
+    plan:
+      - get: config-server
+        trigger: true
+      - task: test-unit
+        file: config-server/ci/tasks/test-unit.yml
+        on_failure:
+          <<: *slack-alert
+
+  - name: test-integration-in-memory
+    public: true
+    plan:
+      - get: config-server
+        trigger: true
+      - task: test-integration
+        privileged: true
+        file: config-server/ci/tasks/test-integration.yml
+        params:
+          DB: memory
+        on_failure:
+          <<: *slack-alert
+
+  - name: test-integration-mysql
+    public: true
+    plan:
+      - get: config-server
+        trigger: true
+      - task: test-integration
+        privileged: true
+        file: config-server/ci/tasks/test-integration.yml
+        params:
+          DB: mysql
+        on_failure:
+          <<: *slack-alert
+
+
+  - name: test-integration-postgresql
+    public: true
+    plan:
+      - get: config-server
+        trigger: true
+      - task: test-integration
+        privileged: true
+        file: config-server/ci/tasks/test-integration.yml
+        params:
+          DB: postgresql
+        on_failure:
+          <<: *slack-alert
+
+  - name: acceptance-tests
+    public: true
+    serial: true
+    plan:
+      - get: every-sunday
+        trigger: true
+      - get: bosh-cli
+      - get: bosh-deployment
+      - get: config-server
+      - get: config-server-release
+        trigger: true
+        params: { submodules: all }
+      - task: build-bosh-release
+        file: config-server-release/ci/tasks/bosh-release.yml
+        on_failure:
+          <<: *slack-alert
+      - task: run-acceptane-tests
+        file: config-server-release/ci/tasks/acceptance-tests.yml
+        params:
+          access_key_id: {{config_server_acceptance_tests_access_key_id}}
+          az: {{config_server_acceptance_tests_az}}
+          default_key_name: {{config_server_acceptance_tests_default_key_name}}
+          default_security_groups: {{config_server_acceptance_tests_default_security_groups}}
+          internal_cidr: {{config_server_acceptance_tests_internal_cidr}}
+          internal_gw: {{config_server_acceptance_tests_internal_gw}}
+          internal_ip: {{config_server_acceptance_tests_internal_ip}}
+          external_ip: {{config_server_acceptance_tests_external_ip}}
+          private_key: {{config_server_acceptance_tests_private_key}}
+          region: {{config_server_acceptance_tests_region}}
+          secret_access_key: {{config_server_acceptance_tests_secret_access_key}}
+          subnet_id: {{config_server_acceptance_tests_subnet_id}}
+        on_failure:
+          <<: *slack-alert
+
+  - name: bump-config-server-submodule
+    public: true
+    plan:
+      - get: config-server-release
+        params: { submodules: all }
+        passed: [acceptance-tests]
+        trigger: true
+      - get: config-server
+        passed: [build]
+        trigger: true
+      - get: bosh-cli
+      - task: bosh-release
+        file: config-server-release/ci/tasks/bump-submodule.yml
+        on_failure:
+          <<: *slack-alert
+      - put: config-server-release
+        params:
+          repository: config-server-repo/config-server-release
+
+  - name: build
+    public: true
+    plan:
+      - aggregate:
+        - get: config-server
+          passed: [test-gofmt, test-unit, test-integration-in-memory, test-integration-mysql, test-integration-postgresql]
+          trigger: true
+        - get: version-semver
+          params: {bump: patch}
+      - {put: version-semver, params: {file: version-semver/number}}
+      - aggregate:
+        - task: build-linux
+          file: config-server/ci/tasks/build-linux.yml
+        - task: build-darwin
+          file: config-server/ci/tasks/build-darwin.yml
+      - aggregate:
+        - {put: release-bucket-linux, params: {file: compiled-linux/config-server-*-linux-amd64}}
+        - {put: release-bucket-darwin, params: {file: compiled-darwin/config-server-*-darwin-amd64}}
+        - {put: config-server-promoted, params: {repository: config-server, tag: version-semver/number, tag_prefix: v}}
+
+  - name: bump-minor
+    public: true
+    plan:
+      - get: version-semver
+        params: {bump: minor}
+      - {put: version-semver, params: {file: version-semver/number}}
+
+  - name: bump-major
+    public: true
+    plan:
+      - get: version-semver
+        params: {bump: major}
+      - {put: version-semver, params: {file: version-semver/number}}
+
+resources:
+  - name: config-server
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/config-server.git
+      branch: develop
+      private_key: {{config_server_concourse_github_private_key}}
+
+  - name: config-server-promoted
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/config-server.git
+      branch: master
+      private_key: {{config_server_concourse_github_private_key}}
+
+  - name: config-server-release
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/config-server-release.git
+      branch: master
+      private_key: {{config_server_release_concourse_github_private_key}}
+
+  - name: bosh-deployment
+    type: git
+    source:
+      branch: master
+      uri: https://github.com/cloudfoundry/bosh-deployment.git
+      version: f1ee4f5bdd2c4d26ae1f7e937a1cf46c1cac9b53
+
+  - name: release-bucket-linux
+    type: s3
+    source:
+      regexp: config-server-(.*)-linux-amd64
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: release-bucket-darwin
+    type: s3
+    source:
+      regexp: config-server-(.*)-darwin-amd64
+      bucket: {{aws_s3_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: version-semver
+    type: semver
+    source:
+      initial_version: 0.0.20
+      key: current-version
+      bucket: {{aws_s3_release_bucket}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: bosh-cli
+    type: s3
+    source:
+      bucket: bosh-cli-artifacts
+      regexp: bosh-cli-(.*)-linux-amd64
+
+  - name: slack-alert
+    type: slack-notification
+    source:
+      url: {{slack_hook_url}}
+
+  - name: every-sunday
+    type: time
+    source:
+      start: 1:00 PM
+      stop: 9:00 PM
+      days: [Sunday]

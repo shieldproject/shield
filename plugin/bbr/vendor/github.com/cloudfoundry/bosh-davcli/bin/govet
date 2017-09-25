@@ -1,0 +1,12 @@
+#!/bin/bash
+
+result=0
+
+bin=$(dirname $0)
+
+while IFS= read -r line ; do
+  $line
+  let "result+=$?"
+done < <($bin/go vet `go list ./... | grep -v github.com/cloudfoundry/bosh-davcli/vendor | xargs`)
+
+exit $result

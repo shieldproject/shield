@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+echo "Formatting packages..."
+go fmt $(go list github.com/cloudfoundry/bosh-utils/... | grep -v vendor)
+
+$bin/install-ginkgo
+$bin/test-unit

@@ -1,0 +1,19 @@
+{
+      "port": 9000,
+      "store": "database",
+      "database": {
+        "adapter": "postgres",
+        "user": "postgres",
+        "password": "password",
+        "host": "127.0.0.1",
+        "port": 5432,
+        "db_name": "config_server",
+        "connection_options": {
+            "max_open_connections": 32,
+            "max_idle_connections": 10
+        }
+      },
+      "certificate_file_path":      "./assets/ssl.crt",
+      "private_key_file_path":      "./assets/ssl.key",
+      "jwt_verification_key_path":  "./assets/uaa.pub"
+}

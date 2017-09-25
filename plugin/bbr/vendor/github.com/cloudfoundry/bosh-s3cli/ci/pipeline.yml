@@ -1,0 +1,240 @@
+---
+groups:
+  - name: s3cli
+    jobs:
+      - unit
+      - aws-s3-us-integration
+      - aws-s3-china-integration
+      - aws-s3-frankfurt-integration
+      - aws-s3-public-read-integration
+      - s3-compatible-integration
+      - gcs-s3-compatible-integration
+      - promote
+
+jobs:
+  - name: unit
+    serial: true
+    plan:
+      - {trigger: true, get: s3cli-src, resource: s3cli-in}
+
+      - task: test
+        file: s3cli-src/ci/tasks/run-unit.yml
+
+  - name: aws-s3-us-integration
+    serial: true
+    plan:
+      - {trigger: true, get: s3cli-src, passed: [unit], resource: s3cli-in}
+
+      - task: setup
+        file: s3cli-src/ci/tasks/setup-aws-infrastructure.yml
+        params: &aws-us-infrastructure-params
+          access_key_id:     {{access_key_id__aws_us}}
+          secret_access_key: {{secret_access_key__aws_us}}
+          region_name:       us-east-1
+          stack_name:        s3cli-iam
+
+      - aggregate:
+        - task: test-static-credentials
+          file: s3cli-src/ci/tasks/run-integration-aws.yml
+          params:
+            <<: *aws-us-infrastructure-params
+            focus_regex:      "GENERAL AWS|AWS V2 REGION|AWS V4 REGION|AWS US-EAST-1"
+            s3_endpoint_host: s3.amazonaws.com
+        - task: test-env-or-profile
+          file: s3cli-src/ci/tasks/run-integration-aws-iam.yml
+          params:
+            <<: *aws-us-infrastructure-params
+            s3_endpoint_host: s3.amazonaws.com
+        ensure:
+          task: teardown
+          file: s3cli-src/ci/tasks/teardown-infrastructure.yml
+          params: *aws-us-infrastructure-params
+
+  - name: aws-s3-public-read-integration
+    serial: true
+    plan:
+      - {trigger: true, get: s3cli-src, passed: [unit], resource: s3cli-in}
+
+      - task: setup
+        file: s3cli-src/ci/tasks/setup-aws-infrastructure.yml
+        params: &aws-us-public-read-infrastructure-params
+          access_key_id:     {{access_key_id__aws_us}}
+          secret_access_key: {{secret_access_key__aws_us}}
+          region_name:       us-east-1
+          stack_name:        s3cli-public-bucket
+
+      - task: test
+        file: s3cli-src/ci/tasks/run-integration-aws.yml
+        params:
+          <<: *aws-us-public-read-infrastructure-params
+          focus_regex: "PUBLIC READ ONLY"
+        ensure:
+          task: teardown
+          file: s3cli-src/ci/tasks/teardown-infrastructure.yml
+          params: *aws-us-public-read-infrastructure-params
+
+  - name: aws-s3-china-integration
+    serial: true
+    plan:
+      - {trigger: true, get: s3cli-src, passed: [unit], resource: s3cli-in}
+
+      - task: setup
+        file: s3cli-src/ci/tasks/setup-aws-infrastructure.yml
+        params: &aws-china-infrastructure-params
+          access_key_id:     {{access_key_id__aws_china}}
+          secret_access_key: {{secret_access_key__aws_china}}
+          region_name:       cn-north-1
+          stack_name:        s3cli-private-bucket
+
+      - task: test
+        file: s3cli-src/ci/tasks/run-integration-aws.yml
+        params:
+          <<: *aws-china-infrastructure-params
+          focus_regex:      "GENERAL AWS|AWS V4 REGION|AWS V4 ONLY REGION|AWS ISOLATED REGION"
+          s3_endpoint_host: s3.cn-north-1.amazonaws.com.cn
+        ensure:
+          task: teardown
+          file: s3cli-src/ci/tasks/teardown-infrastructure.yml
+          params: *aws-china-infrastructure-params
+
+  - name: aws-s3-frankfurt-integration
+    serial: true
+    plan:
+      - {trigger: true, get: s3cli-src, passed: [unit], resource: s3cli-in}
+
+      - task: setup
+        file: s3cli-src/ci/tasks/setup-aws-infrastructure.yml
+        params: &aws-frankfurt-infrastructure-params
+          access_key_id:     {{access_key_id__aws_frankfurt}}
+          secret_access_key: {{secret_access_key__aws_frankfurt}}
+          region_name:       eu-central-1
+          stack_name:        s3cli-private-bucket
+
+      - task: test
+        file: s3cli-src/ci/tasks/run-integration-aws.yml
+        params:
+          <<: *aws-frankfurt-infrastructure-params
+          focus_regex:       "GENERAL AWS|AWS V4 REGION|AWS V4 ONLY REGION"
+          s3_endpoint_host:  s3.eu-central-1.amazonaws.com
+        ensure:
+          task: teardown
+          file: s3cli-src/ci/tasks/teardown-infrastructure.yml
+          params: *aws-frankfurt-infrastructure-params
+
+  - name: s3-compatible-integration
+    serial: true
+    plan:
+      - {trigger: true, get: s3cli-src, passed: [unit], resource: s3cli-in}
+
+      - task: test
+        file: s3cli-src/ci/tasks/run-integration-s3-compat.yml
+        params:
+          access_key_id:     {{access_key_id__s3_compat}}
+          secret_access_key: {{secret_access_key__s3_compat}}
+          bucket_name:       {{bucket_name__s3_compat}}
+          s3_endpoint_host:  {{host__s3_compat}}
+          s3_endpoint_port:  {{port__s3_compat}}
+
+  - name: gcs-s3-compatible-integration
+    serial: true
+    plan:
+      - {trigger: true, get: s3cli-src, passed: [unit], resource: s3cli-in}
+
+      - task: test
+        file: s3cli-src/ci/tasks/run-integration-s3-compat.yml
+        params:
+          access_key_id:     {{access_key_id__gcs}}
+          secret_access_key: {{secret_access_key__gcs}}
+          bucket_name:       {{bucket_name__gcs}}
+          s3_endpoint_host:  {{host__gcs}}
+          s3_endpoint_port:  {{port__gcs}}
+
+  - name: promote
+    plan:
+      - aggregate:
+        - get: s3cli-src
+          resource: s3cli-in
+          trigger: true
+          passed: [
+            unit,
+            aws-s3-us-integration,
+            aws-s3-china-integration,
+            aws-s3-frankfurt-integration,
+            s3-compatible-integration,
+            aws-s3-public-read-integration,
+            gcs-s3-compatible-integration
+          ]
+        - put: version-semver
+          params:
+            bump: patch
+      - aggregate:
+        - task: build-linux
+          file: s3cli-src/ci/tasks/build.yml
+          output_mapping: { out: out-linux }
+          params:
+            GOOS: linux
+        - task: build-windows
+          file: s3cli-src/ci/tasks/build.yml
+          output_mapping: { out: out-windows }
+          params:
+            GOOS: windows
+      - aggregate:
+        - put: release-bucket-linux
+          params: {file: out-linux/s3cli-*-linux-amd64}
+        - put: release-bucket-windows
+          params: {file: out-windows/s3cli-*-windows-amd64.exe}
+
+      - put: s3cli-src
+        resource: s3cli-out
+        params: {repository: s3cli-src, tag: version-semver/number, tag_prefix: v}
+      - put: tracker-output
+        params:
+          repos:
+          - s3cli-src
+
+resources:
+  - name: s3cli-in
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/bosh-s3cli.git
+      branch: develop
+      private_key: {{github_deployment_key__s3cli}}
+
+  - name: s3cli-out
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/bosh-s3cli.git
+      branch: master
+      private_key: {{github_deployment_key__s3cli}}
+
+  - name: version-semver
+    type: semver
+    source:
+      initial_version: 0.0.1
+      key: current-version
+      bucket: {{s3cli_release_bucket}}
+      access_key_id: {{s3cli_release_bucket_access_key}}
+      secret_access_key: {{s3cli_release_bucket_secret_key}}
+
+  - name: release-bucket-linux
+    type: s3
+    source:
+      regexp: s3cli-(.*)-linux-amd64
+      bucket: {{s3cli_release_bucket}}
+      access_key_id: {{s3cli_release_bucket_access_key}}
+      secret_access_key: {{s3cli_release_bucket_secret_key}}
+
+  - name: release-bucket-windows
+    type: s3
+    source:
+      regexp: s3cli-(.*)-windows-amd64\.exe
+      bucket: {{s3cli_release_bucket}}
+      access_key_id: {{s3cli_release_bucket_access_key}}
+      secret_access_key: {{s3cli_release_bucket_secret_key}}
+
+  - name: tracker-output
+    type: tracker
+    source:
+      token: {{tracker_api_token}}
+      project_id: {{tracker_project_id}}
+      tracker_url: https://www.pivotaltracker.com

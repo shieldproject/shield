@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+bin=$(dirname $0)
+
+$bin/go build -o $bin/../out/dav-cli github.com/cloudfoundry/bosh-davcli/main
