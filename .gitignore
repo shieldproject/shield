@@ -21,6 +21,7 @@
 /google
 /mock
 /consul-snapshot
+/bbr
 .DS_Store
 
 # ignore release testing output
