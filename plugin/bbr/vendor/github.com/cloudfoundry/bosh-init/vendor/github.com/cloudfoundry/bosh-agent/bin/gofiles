@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+cd $(dirname $0)/..
+
+printf "$(find * -maxdepth 0 -type f -name '*.go')\n$(find $(bin/godirs) -type f -name '*.go')" | xargs -L 1 $@

@@ -1,0 +1,82 @@
+---
+name: test-release
+
+releases:
+- name: bosh-warden-cpi
+  url: {{ .CPIReleaseURL }}
+  sha1: {{ .CPIReleaseSHA1 }}
+- name: dummy
+  url: file://{{ .DummyReleasePath }}
+- name: dummyToo
+  url: file://{{ .DummyTooReleasePath }}
+
+resource_pools:
+- name: fake-resource-pool-name
+  network: fake-network-name
+  env:
+    bosh:
+      password: pjF0EjcwDTvyQ # openssl passwd -crypt sshpassword
+  stemcell:
+    url: {{ .StemcellURL }}
+    sha1: {{ .StemcellSHA1 }}
+
+networks:
+- name: fake-network-name
+  type: manual
+  subnets:
+  - range: 10.244.0.40/30
+    gateway: 10.244.0.41
+    dns: [8.8.8.8]
+    cloud_properties:
+      subnet: fake-subnet
+- name: dynamic-network
+  type: dynamic
+- name: vip-network
+  type: vip
+
+cloud_provider:
+  template:
+    name: warden_cpi
+    release: bosh-warden-cpi
+  ssh_tunnel:
+    host: 10.244.0.42
+    port: 22
+    user: vcap
+    password: c1oudc0w
+  mbus: https://admin:admin@10.244.0.42:6868
+  properties:
+    warden_cpi: &warden_cpi
+      enable_registry: true
+      warden:
+        connect_network: tcp
+        connect_address: 0.0.0.0:7777
+        network_pool: 10.244.0.0/16
+        host_ip: 192.168.54.4
+      agent:
+        mbus: https://admin:admin@0.0.0.0:6868
+        blobstore:
+          provider: local
+          options:
+            blobstore_path: /var/vcap/micro_bosh/data/cache
+
+jobs:
+- name: dummy_job
+  instances: 1
+  templates:
+  - {name: dummy_with_package, release: dummy}
+  - {name: dummy_with_properties, release: dummy}
+  - {name: dummy, release: dummy}
+  - {name: dummyToo, release: dummyToo}
+  resource_pool: fake-resource-pool-name
+  networks:
+  - name: fake-network-name
+    static_ips: [10.244.0.42]
+    default: [dns, gateway]
+  - name: dynamic-network
+  - name: vip-network
+  persistent_disk: 1024
+  properties:
+    cpi: *warden_cpi
+    dummy_with_properties:
+      echo_value: "hi"
+    ntp: []

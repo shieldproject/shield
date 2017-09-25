@@ -1,0 +1,5 @@
+#!/bin/bash
+# prepend line numbers to all lines, starting at 1
+# usage: bin/golint | bin/linenumber
+
+awk '{print NR "\t" $0}'

@@ -1,0 +1,28 @@
+---
+jobs:
+  - name: test-unit
+    public: true
+    plan:
+      - get: bosh-utils
+        trigger: true
+      - task: test-unit
+        file: bosh-utils/ci/tasks/test-unit.yml
+      - task: test-unit-windows
+        file: bosh-utils/ci/tasks/test-unit-windows.yml
+      - put: bosh-utils-promoted
+        params:
+          repository: bosh-utils
+
+resources:
+  - name: bosh-utils
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-utils
+      branch: develop
+
+  - name: bosh-utils-promoted
+    type: git
+    source:
+      uri: git@github.com:cloudfoundry/bosh-utils.git
+      branch: master
+      private_key: {{concourse_github_private_key}}

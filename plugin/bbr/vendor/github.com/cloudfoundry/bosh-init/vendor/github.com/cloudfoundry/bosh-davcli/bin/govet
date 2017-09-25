@@ -1,0 +1,17 @@
+#!/bin/bash
+# Mutate go vet commands to add -printfuncs params
+
+goVetParams=-printfuncs=WrapError:1,WrapErrorf:1,PrintLinef,BeginLinef,EndLinef,ErrorLinef
+
+result=0
+
+bin=$(dirname $0)
+
+go get -u golang.org/x/tools/cmd/vet
+
+while IFS= read -r line ; do
+  $line
+  let "result+=$?"
+done < <($bin/go vet -n github.com/cloudfoundry/bosh-davcli/... | sed -e "s/\/vet /\/vet $goVetParams /")
+
+exit $result

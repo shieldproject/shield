@@ -1,0 +1,29 @@
+{
+  "agent_id": "test-agent",
+  "blobstore": {
+    "provider": "local",
+    "options": {
+      "blobstore_path": "/tmp"
+    }
+  },
+  "ntp": [],
+  "disks": {
+    "persistent": {}
+  },
+  "networks": {
+    "a": {
+      "ip": "192.168.1.7",
+      "netmask": "255.255.255.0",
+      "cloud_properties": {},
+      "default": [ "dns", "gateway" ],
+      "dns": [ "192.168.1.1" ],
+      "gateway": "192.168.1.1",
+      "dns_record_name": "2.fake-name1.a.simple.bosh"
+    }
+  },
+  "vm": {
+    "name": "test-vm-for-agent"
+  },
+  "cert": "",
+  "mbus": "https://localhost:8080"
+}

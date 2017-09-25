@@ -1,0 +1,19 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: bosh/init
+    tag: latest
+
+inputs:
+- name: bosh-init
+  path: gopath/src/github.com/cloudfoundry/bosh-init
+
+params:
+  BOX_TYPE: virtualbox
+  PROVIDER: virtualbox
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-init/ci/tasks/test-integration.sh

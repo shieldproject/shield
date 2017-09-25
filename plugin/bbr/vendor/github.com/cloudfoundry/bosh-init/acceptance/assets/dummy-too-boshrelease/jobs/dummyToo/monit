@@ -1,0 +1,7 @@
+<% name = "dummyToo" %>
+
+check process <%= name %>
+  with pidfile /var/vcap/sys/run/<%= name %>/<%= name %>.pid
+  start program "/var/vcap/jobs/<%= name %>/bin/<%= name %>_ctl start"
+  stop program "/var/vcap/jobs/<%= name %>/bin/<%= name %>_ctl stop"
+  group vcap

@@ -1,0 +1,24 @@
+---
+platform: linux
+
+image: docker:///bosh/init
+
+inputs:
+- name: bosh-agent
+  path: gopath/src/github.com/cloudfoundry/bosh-agent
+- name: bosh-agent-zip
+- name: bosh-agent-deps-zip
+
+run:
+  path: gopath/src/github.com/cloudfoundry/bosh-agent/ci/tasks/test-integration-windows.sh
+
+params:
+  AGENT_ZIP_URL: replace-me
+  AWS_ACCESS_KEY: replace-me
+  AWS_SECRET_KEY: replace-me
+  AWS_SUBNET: replace-me
+  AWS_SSH_KEY: replace-me
+  KEYPAIR_NAME: replace-me
+  NATS_ELASTIC_IP: replace-me
+  VAGRANT_PROVIDER: aws
+  WINRM_PASSWORD: replace-me

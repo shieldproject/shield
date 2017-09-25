@@ -1,0 +1,12 @@
+github.com/cloudfoundry/bosh-agent/...:50d8e5d
+github.com/cloudfoundry/bosh-davcli/...:37f54c6
+github.com/cloudfoundry/bosh-utils/...:eb85431
+github.com/golang/mock/gomock:15f8b22
+github.com/mitchellh/mapstructure:2caf8ef
+github.com/onsi/ginkgo:fbb6632
+github.com/onsi/gomega:f4f1cae
+golang.org/x/crypto/ssh:1e856cb
+gopkg.in/check.v1:8d49746
+github.com/pivotal-golang/yaml:8b09e4a
+github.com/charlievieth/fs/...:1c3b3f1
+github.com/bmatcuk/doublestar/...:ec3b4af

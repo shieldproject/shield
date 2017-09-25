@@ -1,0 +1,19 @@
+#!/bin/bash
+
+result=0
+
+bin=$(dirname $0)
+
+$bin/test-unit -q
+let "result+=$?"
+
+$bin/test-integration
+let "result+=$?"
+
+if [ $result -eq 0 ]; then
+  echo -e "\n\033[0;32mSUITE SUCCESS\033[0m"
+else
+  echo -e "\n\033[0;31mSUITE FAILURE\033[0m"
+fi
+
+exit $result

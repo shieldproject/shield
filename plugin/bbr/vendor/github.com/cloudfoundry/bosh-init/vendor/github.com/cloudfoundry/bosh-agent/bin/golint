@@ -1,0 +1,22 @@
+#!/bin/bash
+
+bin=$(dirname $0)
+
+go get -u github.com/golang/lint/golint
+
+errors=$(
+  $bin/gofiles $bin/env golint                              \
+    | grep -v 'should have comment.* or be unexported'      \
+    | grep -v '/mocks/'                                     \
+    | grep -v '/fakes/'                                     \
+    | grep -v 'vendor/'                                     \
+    | grep -v 'should not be capitalized'                   \
+    | grep -v 'underscore in package name'                  \
+    | grep -v 'bootstrapper/spec/'                          \
+    | grep -v 'platform/cert/fakes/fake_manager.go'
+)
+
+if [ "$(echo -n "$errors")" != "" ]; then
+  echo "$errors"
+  exit 1
+fi

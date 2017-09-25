@@ -1,0 +1,56 @@
+#!/bin/bash
+
+set -e
+
+while getopts ":q:w" opt; do
+  case "$opt" in
+    q) QUIET=true ;;
+    w) WATCH="watch" ;;
+  esac
+done
+shift $(( OPTIND - 1 ))
+
+bin=$(dirname $0)
+
+dir=$bin/..
+if [ -n "$1" ] ; then
+  dir=$1
+fi
+
+echo 'Note: if you want to quickly run tests for just one package, do it like this:'
+echo '  % ginkgo path/to/package'
+
+
+# Travis randomly kills go builds when using -race
+race=$([ "$TRAVIS" != "true" ] && echo "-race")
+
+ignored=(vendor)
+echo -e "\n Formatting packages, other than: ${ignored[*]}..."
+for i in `ls -1` ; do
+  if [ -d "$i" ] && [[ ! ${ignored[*]} =~ "$i" ]] ; then
+    $bin/go fmt github.com/cloudfoundry/bosh-agent/${i}/...
+  fi
+done
+
+echo -e "\n Installing ginkgo..."
+$bin/go install ./vendor/github.com/onsi/ginkgo/ginkgo
+
+echo -e "\n Skipping check for unhandled errors until https://github.com/kisielk/errcheck/issues/75 is resolved"
+# $bin/test-unhandled-errors
+
+echo -e "\n Testing packages..."
+$bin/env ginkgo $WATCH -r $race -skipPackage="integration,vendor" $dir
+
+echo -e "\n Running build script to confirm everything compiles..."
+$bin/build
+
+echo -e "\n Running build script for windows to confirm everything compiles..."
+GOOS=windows $bin/build
+
+echo -e "\n Checking with golint..."
+$bin/golint
+
+echo -e "\n Govetting"
+$bin/govet
+
+echo -e "\n\033[0;32mSUCCESS\033[0m"

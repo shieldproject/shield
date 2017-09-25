@@ -1,0 +1,12 @@
+trap {
+  write-error $_
+  exit 1
+}
+
+function foo
+{
+  return "i'm a compiled package!"
+}
+
+$message = foo
+Add-Content $Env:BOSH_INSTALL_TARGET\output.txt $message
