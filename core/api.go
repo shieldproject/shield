@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/markbates/goth/gothic"
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
 
@@ -24,7 +24,6 @@ import (
 // Supported as of Version 2.
 const APIVersion = "2"
 
-//TODO protect targets, stores, retention, archives, tasks, jobs
 func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case match(req, `POST /auth/login`):
@@ -33,138 +32,138 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.authLogout(w, req)
 	case match(req, `GET /auth/id`):
 		core.authID(w, req)
-	case match(req, `GET /auth/github`):
-		q := req.URL.Query()
-		q.Add("provider", "github")
-		req.URL.RawQuery = q.Encode()
-		gothic.BeginAuthHandler(w, req)
-	case match(req, `GET /auth/github/callback`):
-		q := req.URL.Query()
-		q.Add("provider", "github")
-		req.URL.RawQuery = q.Encode()
-		core.githubOauthHandler(w, req)
 
 	case match(req, `GET /v1/ping`):
 		core.v1Ping(w, req)
 
-	case match(req, `GET /v1/meta/pubkey`):
-		core.v1GetPublicKey(w, req)
-
 	case match(req, `GET /v1/status`):
 		core.v1Status(w, req)
-	case match(req, `GET /v1/status/internal`):
-		core.v1DetailedStatus(w, req)
-	case match(req, `GET /v1/status/jobs`):
-		core.v1JobsStatus(w, req)
-
-	case match(req, `GET /v1/archives`):
-		core.v1GetArchives(w, req)
-	case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
-		core.v1RestoreArchive(w, req)
-	case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
-		core.v1GetArchive(w, req)
-	case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
-		core.v1UpdateArchive(w, req)
-	case match(req, `DELETE /v1/archive/[a-fA-F0-9-]+`):
-		core.v1DeleteArchive(w, req)
-
-	case match(req, `GET /v1/jobs`):
-		core.v1GetJobs(w, req)
-	case match(req, `POST /v1/jobs`):
-		core.v1CreateJob(w, req)
-	case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
-		core.v1PauseJob(w, req)
-	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
-		core.v1UnpauseJob(w, req)
-	case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
-		core.v1RunJob(w, req)
-	case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
-		core.v1GetJob(w, req)
-	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
-		core.v1UpdateJob(w, req)
-	case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
-		core.v1DeleteJob(w, req)
-
-	case match(req, `GET /v1/retention`):
-		core.v1GetRetentionPolicies(w, req)
-	case match(req, `POST /v1/retention`):
-		core.v1CreateRetentionPolicy(w, req)
-	case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
-		core.v1GetRetentionPolicy(w, req)
-	case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
-		core.v1UpdateRetentionPolicy(w, req)
-	case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
-		core.v1DeleteRetentionPolicy(w, req)
-
-	case match(req, `GET /v1/stores`):
-		core.v1GetStores(w, req)
-	case match(req, `POST /v1/stores`):
-		core.v1CreateStore(w, req)
-	case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
-		core.v1GetStore(w, req)
-	case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
-		core.v1UpdateStore(w, req)
-	case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
-		core.v1DeleteStore(w, req)
-
-	case match(req, `GET /v1/targets`):
-		core.v1GetTargets(w, req)
-	case match(req, `POST /v1/targets`):
-		core.v1CreateTarget(w, req)
-	case match(req, `GET /v1/target/[a-fA-F0-9-]+`):
-		core.v1GetTarget(w, req)
-	case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
-		core.v1UpdateTarget(w, req)
-	case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
-		core.v1DeleteTarget(w, req)
-
-	case match(req, `GET /v1/tasks`):
-		core.v1GetTasks(w, req)
-	case match(req, `GET /v1/task/[a-fA-F0-9-]+`):
-		core.v1GetTask(w, req)
-	case match(req, `DELETE /v1/task/[a-fA-F0-9-]+`):
-		core.v1CancelTask(w, req)
 
 	case match(req, `GET /v2/health`):
 		core.v2GetHealth(w, req)
 
-	case match(req, `GET /v2/agents`):
-		core.v2GetAgents(w, req)
-	case match(req, `POST /v2/agents`):
-		core.v2PostAgents(w, req)
+	case match(req, `POST /v2/unlock`):
+		core.v2Unlock(w, req)
 
-	case match(req, `GET /v2/systems`):
-		core.v2GetSystems(w, req)
-	case match(req, `POST /v2/systems`):
-		core.v2PostSystem(w, req)
-	case match(req, `GET /v2/systems/:uuid`):
-		core.v2GetSystem(w, req)
-	case match(req, `PUT /v2/systems/:uuid`):
-		core.v2PutSystem(w, req)
-	case match(req, `PATCH /v2/systems/:uuid`):
-		core.v2PatchSystem(w, req)
-	case match(req, `DELETE /v2/systems/:uuid`):
-		core.v2DeleteSystem(w, req)
+	case match(req, `POST /v2/init`):
+		core.v2Init(w, req)
 
-	//tenancy endpoints
+	}
 
-	case match(req, `GET /v2/archives`):
-		core.v2GetArchives(w, req)
+	if sealed, _ := core.vault.IsSealed(); sealed == false {
+		switch {
+		case match(req, `GET /v1/meta/pubkey`):
+			core.v1GetPublicKey(w, req)
 
-	case match(req, `GET /v2/tenants`):
-		core.v2GetTenants(w, req)
-	case match(req, `POST /v2/tenants`):
-		core.v2CreateTenant(w, req)
-	case match(req, `PUT /v2/tenant`):
-		core.v2UpdateTenant(w, req)
-	case match(req, `GET /v2/tenant/:uuid`):
-		core.v2GetTenant(w, req)
-	case match(req, `PATCH /v2/tenant/:uuid`):
-		core.v2PatchTenant(w, req)
+		case match(req, `GET /v1/status/internal`):
+			core.v1DetailedStatus(w, req)
+		case match(req, `GET /v1/status/jobs`):
+			core.v1JobsStatus(w, req)
 
-	default:
+		case match(req, `GET /v1/archives`):
+			core.v1GetArchives(w, req)
+		case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
+			core.v1RestoreArchive(w, req)
+		case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
+			core.v1GetArchive(w, req)
+		case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
+			core.v1UpdateArchive(w, req)
+		case match(req, `DELETE /v1/archive/[a-fA-F0-9-]+`):
+			core.v1DeleteArchive(w, req)
+
+		case match(req, `GET /v1/jobs`):
+			core.v1GetJobs(w, req)
+		case match(req, `POST /v1/jobs`):
+			core.v1CreateJob(w, req)
+		case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
+			core.v1PauseJob(w, req)
+		case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
+			core.v1UnpauseJob(w, req)
+		case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
+			core.v1RunJob(w, req)
+		case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
+			core.v1GetJob(w, req)
+		case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
+			core.v1UpdateJob(w, req)
+		case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
+			core.v1DeleteJob(w, req)
+
+		case match(req, `GET /v1/retention`):
+			core.v1GetRetentionPolicies(w, req)
+		case match(req, `POST /v1/retention`):
+			core.v1CreateRetentionPolicy(w, req)
+		case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
+			core.v1GetRetentionPolicy(w, req)
+		case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
+			core.v1UpdateRetentionPolicy(w, req)
+		case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
+			core.v1DeleteRetentionPolicy(w, req)
+
+		case match(req, `GET /v1/stores`):
+			core.v1GetStores(w, req)
+		case match(req, `POST /v1/stores`):
+			core.v1CreateStore(w, req)
+		case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
+			core.v1GetStore(w, req)
+		case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
+			core.v1UpdateStore(w, req)
+		case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
+			core.v1DeleteStore(w, req)
+
+		case match(req, `GET /v1/targets`):
+			core.v1GetTargets(w, req)
+		case match(req, `POST /v1/targets`):
+			core.v1CreateTarget(w, req)
+		case match(req, `GET /v1/target/[a-fA-F0-9-]+`):
+			core.v1GetTarget(w, req)
+		case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
+			core.v1UpdateTarget(w, req)
+		case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
+			core.v1DeleteTarget(w, req)
+
+		case match(req, `GET /v1/tasks`):
+			core.v1GetTasks(w, req)
+		case match(req, `GET /v1/task/[a-fA-F0-9-]+`):
+			core.v1GetTask(w, req)
+		case match(req, `DELETE /v1/task/[a-fA-F0-9-]+`):
+			core.v1CancelTask(w, req)
+
+		case match(req, `GET /v2/agents`):
+			core.v2GetAgents(w, req)
+		case match(req, `POST /v2/agents`):
+			core.v2PostAgents(w, req)
+
+		case match(req, `GET /v2/systems`):
+			core.v2GetSystems(w, req)
+		case match(req, `POST /v2/systems`):
+			core.v2PostSystem(w, req)
+		case match(req, `GET /v2/systems/:uuid`):
+			core.v2GetSystem(w, req)
+		case match(req, `PUT /v2/systems/:uuid`):
+			core.v2PutSystem(w, req)
+		case match(req, `PATCH /v2/systems/:uuid`):
+			core.v2PatchSystem(w, req)
+		case match(req, `DELETE /v2/systems/:uuid`):
+			core.v2DeleteSystem(w, req)
+
+		case match(req, `GET /v2/tenants`):
+			core.v2GetTenants(w, req)
+		case match(req, `POST /v2/tenants`):
+			core.v2CreateTenant(w, req)
+		case match(req, `PUT /v2/tenant`):
+			core.v2UpdateTenant(w, req)
+		case match(req, `GET /v2/tenant/:uuid`):
+			core.v2GetTenant(w, req)
+		case match(req, `PATCH /v2/tenant/:uuid`):
+			core.v2PatchTenant(w, req)
+
+		}
+	}
+
+	if len(w.Header()) == 0 {
 		w.WriteHeader(501)
 	}
+
 }
 
 func match(req *http.Request, pattern string) bool {
@@ -1360,9 +1359,10 @@ type v2Health struct {
 		Color   string `json:"color"`
 	} `json:"shield"`
 	Health struct {
-		API     bool `json:"api_ok"`
-		Storage bool `json:"storage_ok"`
-		Jobs    bool `json:"jobs_ok"`
+		API         bool   `json:"api_ok"`
+		Storage     bool   `json:"storage_ok"`
+		Jobs        bool   `json:"jobs_ok"`
+		VaultStatus string `json:"vault_status"`
 	} `json:"health"`
 
 	Storage []v2StorageHealth `json:"storage"`
@@ -1420,6 +1420,11 @@ func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	health.Stats.Jobs = len(jobs)
+
+	if health.Health.VaultStatus, err = core.vault.status(); err != nil {
+		bail(w, err)
+		return
+	}
 
 	if health.Stats.Systems, err = core.DB.CountTargets(nil); err != nil {
 		bail(w, err)
@@ -1953,4 +1958,79 @@ func (core *Core) v2UpdateTenant(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v2PatchTenant(w http.ResponseWriter, req *http.Request) {
+}
+
+func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
+	if req.Body == nil {
+		w.WriteHeader(400)
+		return
+	}
+	var params struct {
+		Master string `json:"master_password"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+		return
+	}
+	e := MissingParameters()
+	e.Check("master_password", params.Master)
+	if e.IsValid() {
+		bailWithError(w, e)
+		return
+	}
+
+	if init, err := core.vault.IsInitialized(); init == false || err != nil {
+		bail(w, errors.New("Vault uninitialized, failed to unseal"))
+		return
+	}
+
+	sealCreds, err := core.vault.ReadConfig(core.vaultKeyfile, params.Master)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+	core.vault.Token = sealCreds.RootToken
+	err = core.vault.Unseal(sealCreds.SealKey)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+
+	if sealed, err := core.vault.IsSealed(); sealed == true || err != nil {
+		bail(w, errors.New("Shield failed to unlock key database"))
+		return
+	}
+	JSONLiteral(w, `{"ok":"Unlocked Key Database"}`)
+}
+
+func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
+	if req.Body == nil {
+		w.WriteHeader(400)
+		return
+	}
+	var params struct {
+		Master string `json:"master_password"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+		return
+	}
+	e := MissingParameters()
+	e.Check("master_password", params.Master)
+	if e.IsValid() {
+		bailWithError(w, e)
+		return
+	}
+
+	err := core.vault.Init(core.vaultKeyfile, params.Master)
+	if err != nil {
+		bail(w, err)
+		return
+	}
+
+	if sealed, err := core.vault.IsSealed(); sealed == true || err != nil {
+		bail(w, errors.New("Shield failed to initialize key database"))
+		return
+	}
+	JSONLiteral(w, `{"ok":"Initialized Key Database"}`)
 }

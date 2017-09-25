@@ -18,6 +18,9 @@ type AgentCommand struct {
 	StorePlugin    string `json:"store_plugin,omitempty"`
 	StoreEndpoint  string `json:"store_endpoint,omitempty"`
 	RestoreKey     string `json:"restore_key,omitempty"`
+	EncryptType    string `json:"encrypt_type,omitempty"`
+	EncryptKey     string `json:"encrypt_key,omitempty"`
+	EncryptIV      string `json:"encrypt_iv,omitempty"`
 }
 
 type AgentClient struct {

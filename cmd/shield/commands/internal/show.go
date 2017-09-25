@@ -115,6 +115,11 @@ func ShowArchive(archive api.Archive) {
 	t.Add("Backup Key", archive.StoreKey)
 	t.Add("Target", fmt.Sprintf("%s %s", archive.TargetPlugin, archive.TargetEndpoint))
 	t.Add("Store", fmt.Sprintf("%s %s", archive.StorePlugin, archive.StoreEndpoint))
+	var enc_type string = archive.EncryptionType
+	if enc_type == "" {
+		enc_type = "(unencrypted)"
+	}
+	t.Add("Encryption Type", enc_type)
 	t.Break()
 
 	t.Add("Taken at", archive.TakenAt.Format(time.RFC1123Z))

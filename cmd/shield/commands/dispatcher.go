@@ -33,6 +33,7 @@ var (
 	PoliciesGroup  = &HelpGroup{name: "POLICIES"}
 	JobsGroup      = &HelpGroup{name: "JOBS"}
 	ArchivesGroup  = &HelpGroup{name: "ARCHIVES"}
+	AccessGroup    = &HelpGroup{name: "ACCESS"}
 	TasksGroup     = &HelpGroup{name: "TASKS"}
 )
 
@@ -74,6 +75,7 @@ func CommandString() string {
 		StoresGroup,
 		JobsGroup,
 		TasksGroup,
+		AccessGroup,
 		ArchivesGroup,
 	}
 

@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/starkandwayne/goutils/log"
 	"io"
 	"log/syslog"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
+
+	"github.com/starkandwayne/goutils/log"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -22,6 +23,9 @@ type Command struct {
 	StorePlugin    string `json:"store_plugin,omitempty"`
 	StoreEndpoint  string `json:"store_endpoint,omitempty"`
 	RestoreKey     string `json:"restore_key,omitempty"`
+	EncryptType    string `json:"encrypt_type,omitempty"`
+	EncryptKey     string `json:"encrypt_key,omitempty"`
+	EncryptIV      string `json:"encrypt_iv,omitempty"`
 }
 
 func ParseCommand(b []byte) (*Command, error) {
@@ -137,6 +141,9 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		fmt.Sprintf("SHIELD_PLUGINS_PATH=%s", strings.Join(agent.PluginPaths, ":")),
 		fmt.Sprintf("SHIELD_AGENT_NAME=%s", agent.Name),
 		fmt.Sprintf("SHIELD_AGENT_VERSION=%s", agent.Version),
+		fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", c.EncryptType),
+		fmt.Sprintf("SHIELD_ENCRYPT_KEY=%s", c.EncryptKey),
+		fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", c.EncryptIV),
 	}
 
 	if log.LogLevel() == syslog.LOG_DEBUG {

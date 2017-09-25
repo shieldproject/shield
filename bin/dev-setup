@@ -27,6 +27,9 @@ done
 echo targetdir=$targetdir
 echo storedir=$storedir
 
+echo "Unlocking shield vault"
+$shield unlock password
+
 $shield create-backend localdev $shieldbackend
 echo "backend created"
 
@@ -237,22 +240,22 @@ user_uuid=$( sqlite3 $targetdir/var/shield.db "$user_query" )
 ../cmd/shield-umc/main invite $user_uuid --role DevRole --tenant $tenant_uuid --type sqlite3 --dsn $targetdir/var/shield.db
 sqlite3 $targetdir/var/shield.db "INSERT INTO org_team_tenant_role VALUES ('starkandwayne', 'Engineering', '$tenant_uuid', 'Site_Administrator')"
 
-# $shield run DevJob
-# sleep 2
-# $shield run DevJob
+$shield run DevJob
+sleep 2
+$shield run DevJob
 $shield edit-target DevTarget<<EOF
 {
-  "agent"    : "127.0.0.1:5444",
-  "endpoint" : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\"}",
-  "name"     : "DevTarget",
-  "plugin"   : "fs",
-  "summary"  : "The working directory of the dev environment."
+ "agent"    : "127.0.0.1:5444",
+ "endpoint" : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\"}",
+ "name"     : "DevTarget",
+ "plugin"   : "fs",
+ "summary"  : "The working directory of the dev environment."
 }
 EOF
-# sleep 3
-# $shield run DevJob
-# sleep 3
-# $shield run DevJob
+sleep 3
+$shield run DevJob
+sleep 3
+$shield run DevJob
 
 
 echo "FINISHED SETTING UP FOR SHIELD DEVELOPMENT"

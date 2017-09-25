@@ -12,6 +12,11 @@ import (
 )
 
 var _ = Describe("Plugin Commands", func() {
+	BeforeEach(func() {
+		os.Setenv("SHIELD_ENCRYPTION_KEY", "DEADBEEFDECAFBADDEADBEEFDECAFBAD")
+		os.Setenv("SHIELD_ENCRYPTION_IV", "DEADBEEFDECAFBADDEADBEEFDECAFBAD")
+		os.Setenv("SHIELD_ENCRYPTION_TYPE", "aes256-ctr")
+	})
 
 	drain := func(file *os.File, output chan string) {
 		data, err := ioutil.ReadAll(file)

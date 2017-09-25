@@ -116,13 +116,17 @@ func cliListArchives(opts *commands.Options, args ...string) error {
 		store[s.UUID] = s
 	}
 
-	t := tui.NewTable("UUID", "Target", "Restore IP", "Store", "Taken at", "Expires at", "Status", "Notes")
+	t := tui.NewTable("UUID", "Target", "Restore IP", "Store", "Taken at", "Expires at", "Encryption Type", "Status", "Notes")
 	for _, archive := range archives {
 		if *opts.Target != "" && archive.TargetUUID != *opts.Target {
 			continue
 		}
 		if *opts.Store != "" && archive.StoreUUID != *opts.Store {
 			continue
+		}
+		var enc_type string = archive.EncryptionType
+		if enc_type == "" {
+			enc_type = "(unencrypted)"
 		}
 
 		t.Row(archive, archive.UUID,
@@ -131,6 +135,7 @@ func cliListArchives(opts *commands.Options, args ...string) error {
 			fmt.Sprintf("%s (%s)", store[archive.StoreUUID].Name, archive.StorePlugin),
 			archive.TakenAt.Format(time.RFC1123Z),
 			archive.ExpiresAt.Format(time.RFC1123Z),
+			enc_type,
 			archive.Status, archive.Notes)
 	}
 	t.Output(os.Stdout)

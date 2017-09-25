@@ -1,11 +1,17 @@
 package plugin
 
 import (
+	"crypto/cipher"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/mattn/go-shellwords"
+	"io"
 	"os"
 	"os/exec"
 	"syscall"
+
+	"github.com/mattn/go-shellwords"
+	"github.com/starkandwayne/shield/crypter"
 )
 
 const NOPIPE = 0
@@ -13,8 +19,8 @@ const STDIN = 1
 const STDOUT = 2
 
 type ExecOptions struct {
-	Stdout   *os.File
-	Stdin    *os.File
+	Stdout   io.Writer
+	Stdin    io.Reader
 	Stderr   *os.File
 	Cmd      string
 	ExpectRC []int
@@ -27,15 +33,53 @@ func ExecWithOptions(opts ExecOptions) error {
 	}
 	DEBUG("Executing '%s' with arguments %v", cmdArgs[0], cmdArgs[1:])
 
+	//Encryption data is passed from the shield-pipe on fd 3
+	var encStream, decStream cipher.Stream
+	var data struct {
+		EncryptionKey  string `json:"enc_key"`
+		EncrypyionIV   string `json:"enc_iv"`
+		EncrypyionType string `json:"enc_type"`
+	}
+	decoder := json.NewDecoder(os.NewFile(uintptr(3), "encConfig"))
+	if err := decoder.Decode(&data); err == nil {
+		keyRaw, err := hex.DecodeString(data.EncryptionKey)
+		if err != nil {
+			return err
+		}
+		ivRaw, err := hex.DecodeString(data.EncrypyionIV)
+		if err != nil {
+			return err
+		}
+
+		if data.EncrypyionType != "" {
+			encStream, decStream, err = crypter.Stream(data.EncrypyionType, keyRaw, ivRaw)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	if opts.Stdout != nil {
 		cmd.Stdout = opts.Stdout
+		if encStream != nil {
+			cmd.Stdout = cipher.StreamWriter{
+				S: encStream,
+				W: opts.Stdout,
+			}
+		}
 	}
 	if opts.Stderr != nil {
 		cmd.Stderr = opts.Stderr
 	}
 	if opts.Stdin != nil {
 		cmd.Stdin = opts.Stdin
+		if decStream != nil {
+			cmd.Stdin = cipher.StreamReader{
+				S: decStream,
+				R: opts.Stdin,
+			}
+		}
 	}
 
 	if len(opts.ExpectRC) == 0 {
@@ -78,6 +122,5 @@ func Exec(cmdString string, flags int) error {
 	if flags&STDIN == STDIN {
 		opts.Stdin = os.Stdin
 	}
-
 	return ExecWithOptions(opts)
 }

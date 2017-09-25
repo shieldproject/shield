@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"sort"
 	"reflect"
 	"regexp"
+	"sort"
 
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/log"
@@ -170,7 +170,7 @@ func List() (backends []*api.Backend) {
 		}
 		backends = append(backends, thisBackend)
 	}
-	sort.Slice(backends, func (i, j int) bool {
+	sort.Slice(backends, func(i, j int) bool {
 		return backends[i].Name < backends[j].Name
 	})
 	return backends

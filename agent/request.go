@@ -23,6 +23,9 @@ type Request struct {
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
 	RestoreKey     string `json:"restore_key"`
+	EncryptionMode string `json:"encryption_mode"`
+	EncryptionKey  string `json:"encryption_key"`
+	EncryptionIV   string `json:"encryption_iv"`
 }
 
 func ParseRequestValue(value []byte) (*Request, error) {
@@ -96,6 +99,12 @@ func (req *Request) Run(output chan string) error {
 	}
 
 	log.Debugf("ENV: %s", strings.Join(cmd.Env, ","))
+
+	// set potentially sensitive things
+	// FIXME this is not secure and needs to be ripped out before we merge
+	cmd.Env = append(cmd.Env, "SHIELD_ENCRYPTION_MODE=%s", req.EncryptionMode)
+	cmd.Env = append(cmd.Env, "SHIELD_ENCRYPTION_KEY=%x", req.EncryptionKey)
+	cmd.Env = append(cmd.Env, "SHIELD_ENCRYPTION_IV=%x", req.EncryptionIV)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

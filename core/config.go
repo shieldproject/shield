@@ -30,6 +30,9 @@ type Config struct {
 	WebRoot       string `yaml:"web_root"`
 	MOTD          string `yaml:"motd"`
 
+	EncryptionType string `yaml:"encryption_type"`
+	VaultKeyfile   string `yaml:"vault_keyfile"`
+
 	Auth []AuthConfig `yaml:"auth"`
 }
 
@@ -38,13 +41,15 @@ func ReadConfig(file string) (Config, error) {
 		FastLoop: 1,
 		SlowLoop: 60 * 5,
 
-		DBPath:  "shield.db",
-		Addr:    "*:8888",
-		KeyFile: "worker.key",
-		Workers: 2,
-		Purge:   "localhost:5444",
-		Timeout: 12,
-		WebRoot: "web",
+		DBPath:         "shield.db",
+		Addr:           "*:8888",
+		KeyFile:        "worker.key",
+		Workers:        2,
+		Purge:          "localhost:5444",
+		Timeout:        12,
+		WebRoot:        "web",
+		EncryptionType: "aes256-ctr",
+		VaultKeyfile:   "vault/config.crypt",
 	}
 
 	/* optionally read configuration from a file */
@@ -61,19 +66,24 @@ func ReadConfig(file string) (Config, error) {
 
 	/* validate configuration */
 	if config.FastLoop <= 0 {
-		return config, fmt.Errorf("fast_loop value '%d' is invalid (must be greater than zero)")
+		return config, fmt.Errorf("fast_loop value '%d' is invalid (must be greater than zero)", config.FastLoop)
 	}
 	if config.SlowLoop <= 0 {
-		return config, fmt.Errorf("slow_loop value '%d' is invalid (must be greater than zero)")
+		return config, fmt.Errorf("slow_loop value '%d' is invalid (must be greater than zero)", config.SlowLoop)
 	}
 	if config.Timeout <= 0 {
-		return config, fmt.Errorf("timeout value '%d' is invalid (must be greater than zero)")
+		return config, fmt.Errorf("timeout value '%d' is invalid (must be greater than zero)", config.Timeout)
 	}
 	if config.Workers <= 0 {
-		return config, fmt.Errorf("number of workers '%d' is invalid (must be greater than zero)")
+		return config, fmt.Errorf("number of workers '%d' is invalid (must be greater than zero)", config.Workers)
+	}
+	if config.EncryptionType == "" {
+		return config, fmt.Errorf("encryption type '%s' is invalid (see documentation for supported ciphers and modes)", config.EncryptionType)
+	}
+	if config.VaultKeyfile == "" {
+		return config, fmt.Errorf("vault keyfile path '%s' is invalid (must be a valid path)", config.VaultKeyfile)
 	}
 	// FIXME: check existence of WebRoot
-
 	for i, auth := range config.Auth {
 		if auth.Name == "local" {
 			return config, fmt.Errorf("auth backend configuration #%d is named 'local', which is reserved for internal use by SHIELD itself;please rename this auth backend", i+1)
