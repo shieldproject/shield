@@ -1,0 +1,16 @@
+---
+jobs:
+- name: test
+  public: true
+  plan:
+    - get: yagnats
+      trigger: true
+    - task: test
+      file: yagnats/ci/tasks/test.yml
+
+resources:
+- name: yagnats
+  type: git
+  source:
+    uri: https://github.com/cloudfoundry/yagnats
+    branch: master
