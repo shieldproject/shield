@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "tcKAvEWzcRBQn9AiGxc34LKukr8=",
+			"path": "golang.org/x/crypto/twofish",
+			"revision": "7d9177d70076375b9a59c8fde23d52d9c4a7ecd5",
+			"revisionTime": "2017-09-15T19:08:28Z"
+		}
+	],
+	"rootPath": "github.com/starkandwayne/shield"
+}
