@@ -8,6 +8,7 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 	"github.com/starkandwayne/shield/cmd/shield/log"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 //Init - Initializes the encryption key database
@@ -27,7 +28,7 @@ func cliInit(opts *commands.Options, args ...string) error {
 		a := SecurePrompt("%s @Y{[hidden]:} ", "master_password")
 		b := SecurePrompt("%s @C{[confirm]:} ", "master_password")
 
-		if a == b && a != "" {
+		if a != "" && (a == b || !terminal.IsTerminal(int(os.Stdin.Fd()))) {
 			ansi.Fprintf(os.Stderr, "\n")
 			master = a
 			break
