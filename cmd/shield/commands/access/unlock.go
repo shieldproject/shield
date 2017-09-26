@@ -10,24 +10,17 @@ import (
 //Unlock - Unlock the encryption key database
 var Unlock = &commands.Command{
 	Summary: "Unlock the encryption key database",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "master_password", Positional: true, Mandatory: true,
-				Desc: "The master password for unlocking the key database",
-			},
-		},
-	},
-	RunFn: cliUnlock,
-	Group: commands.AccessGroup,
+	Help:    &commands.HelpInfo{},
+	RunFn:   cliUnlock,
+	Group:   commands.AccessGroup,
 }
 
 func cliUnlock(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'unseal' command")
 
-	internal.Require(len(args) == 1, "USAGE: shield unseal <master_password>")
-	master := args[0]
+	internal.Require(len(args) == 0, "USAGE: shield unseal")
 
+	master := SecurePrompt("%s @Y{[hidden]:} ", "master_password")
 	if err := api.Unlock(master); err != nil {
 		return err
 	}

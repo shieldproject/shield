@@ -31,8 +31,19 @@ $shield create-backend localdev $shieldbackend
 echo "backend created"
 
 echo "Initializing this dev SHIELD core"
-$shield init   master-password-yo
-$shield unlock master-password-yo
+/usr/bin/expect <<EOF
+set timeout -1
+spawn $shield init
+match_max 100000
+expect "master_password"
+send -- "master-password-yo\r"
+expect "\r
+master_password"
+send -- "master-password-yo\r"
+expect eof
+EOF
+
+echo "master-password-yo" | $shield unlock
 
 webui() {
 s3_store=$($shield create-store <<EOF | $jq .uuid
