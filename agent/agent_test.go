@@ -104,19 +104,19 @@ var _ = Describe("Agent", func() {
 		})
 	})
 
-	Describe("SSH Request Parser", func() {
+	Describe("SSH Command Parser", func() {
 		It("errors for an empty payload", func() {
-			_, err := ParseRequestValue([]byte(""))
+			_, err := ParseCommand([]byte(""))
 			Ω(err).Should(HaveOccurred())
 		})
 
 		It("errors for an non-JSON payload", func() {
-			_, err := ParseRequestValue([]byte("not json"))
+			_, err := ParseCommand([]byte("not json"))
 			Ω(err).Should(HaveOccurred())
 		})
 
 		It("errors for a payload missing required 'operation' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"target_plugin":"plugin",
 					"target_endpoint":"endpoint",
@@ -128,7 +128,7 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("errors for a payload missing required 'target_plugin' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"operation":"backup",
 					"target_endpoint":"endpoint",
@@ -141,7 +141,7 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("errors for a payload missing required 'target_endpoint' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"operation":"backup",
 					"target_plugin":"plugin",
@@ -154,7 +154,7 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("errors for a payload missing required 'store_plugin' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"operation":"backup",
 					"target_plugin":"plugin",
@@ -167,7 +167,7 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("errors for a payload missing required 'store_endpoint' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"operation":"backup",
 					"target_plugin":"plugin",
@@ -180,7 +180,7 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("errors for a restore payload missing required 'restore_key' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"operation":"restore",
 					"target_plugin":"plugin",
@@ -194,7 +194,7 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("errors for a purge payload missing required 'restore_key' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"operation":"purge",
 					"store_plugin":"plugin",
@@ -206,7 +206,7 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("errors for a payload with unsupported 'operation' field", func() {
-			_, err := ParseRequestValue([]byte(`
+			_, err := ParseCommand([]byte(`
 				{
 					"operation":"XYZZY",
 					"target_plugin":"plugin",
@@ -219,8 +219,8 @@ var _ = Describe("Agent", func() {
 			Ω(err.Error()).Should(MatchRegexp(`unsupported operation.*XYZZY`))
 		})
 
-		It("returns a Request object for a valid backup operation", func() {
-			req, err := ParseRequestValue([]byte(`
+		It("returns a Command object for a valid backup operation", func() {
+			cmd, err := ParseCommand([]byte(`
 				{
 					"operation":"backup",
 					"target_plugin":"t.plugin",
@@ -230,17 +230,17 @@ var _ = Describe("Agent", func() {
 				}
 			`))
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(req).ShouldNot(BeNil())
-			Ω(req.Operation).Should(Equal("backup"))
-			Ω(req.TargetPlugin).Should(Equal("t.plugin"))
-			Ω(req.TargetEndpoint).Should(Equal("t.endpoint"))
-			Ω(req.StorePlugin).Should(Equal("s.plugin"))
-			Ω(req.StoreEndpoint).Should(Equal("s.endpoint"))
-			Ω(req.RestoreKey).Should(Equal(""))
+			Ω(cmd).ShouldNot(BeNil())
+			Ω(cmd.Op).Should(Equal("backup"))
+			Ω(cmd.TargetPlugin).Should(Equal("t.plugin"))
+			Ω(cmd.TargetEndpoint).Should(Equal("t.endpoint"))
+			Ω(cmd.StorePlugin).Should(Equal("s.plugin"))
+			Ω(cmd.StoreEndpoint).Should(Equal("s.endpoint"))
+			Ω(cmd.RestoreKey).Should(Equal(""))
 		})
 
-		It("returns a Request object for a valid restore operation", func() {
-			req, err := ParseRequestValue([]byte(`
+		It("returns a Command object for a valid restore operation", func() {
+			cmd, err := ParseCommand([]byte(`
 				{
 					"operation":"restore",
 					"target_plugin":"t.plugin",
@@ -251,25 +251,26 @@ var _ = Describe("Agent", func() {
 				}
 			`))
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(req).ShouldNot(BeNil())
-			Ω(req.Operation).Should(Equal("restore"))
-			Ω(req.TargetPlugin).Should(Equal("t.plugin"))
-			Ω(req.TargetEndpoint).Should(Equal("t.endpoint"))
-			Ω(req.StorePlugin).Should(Equal("s.plugin"))
-			Ω(req.StoreEndpoint).Should(Equal("s.endpoint"))
-			Ω(req.RestoreKey).Should(Equal("r.key"))
+			Ω(cmd).ShouldNot(BeNil())
+			Ω(cmd.Op).Should(Equal("restore"))
+			Ω(cmd.TargetPlugin).Should(Equal("t.plugin"))
+			Ω(cmd.TargetEndpoint).Should(Equal("t.endpoint"))
+			Ω(cmd.StorePlugin).Should(Equal("s.plugin"))
+			Ω(cmd.StoreEndpoint).Should(Equal("s.endpoint"))
+			Ω(cmd.RestoreKey).Should(Equal("r.key"))
 		})
 	})
 
 	Describe("Command Runner", func() {
-		var req *Request
+		var cmd *Command
 		var out chan string
+		var a *Agent
 
 		BeforeEach(func() {
 			out = make(chan string)
 
 			var err error
-			req, err = ParseRequestValue([]byte(`{
+			cmd, err = ParseCommand([]byte(`{
 				"operation"       : "backup",
 				"target_plugin"   : "test/bin/dummy",
 				"target_endpoint" : "{mode:target,endpoint:config}",
@@ -277,7 +278,11 @@ var _ = Describe("Agent", func() {
 				"store_endpoint"  : "{mode:store,endpoint:config}"
 			}`))
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(req).ShouldNot(BeNil())
+			Ω(cmd).ShouldNot(BeNil())
+
+			a = &Agent{
+				PluginPaths: []string{"test/plugins/dir", "test/plugins"},
+			}
 		})
 
 		collect := func(out chan string, in chan string) {
@@ -310,7 +315,7 @@ var _ = Describe("Agent", func() {
 			c := make(chan string)
 
 			go collect(out, c)
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			var s string
@@ -320,15 +325,15 @@ var _ = Describe("Agent", func() {
 		})
 
 		It("works with purge commands", func() {
-			req.Operation = "purge"
-			req.RestoreKey = "fakeKey"
+			cmd.Op = "purge"
+			cmd.RestoreKey = "fakeKey"
 
 			out := make(chan string)
 			c := make(chan string)
 
 			go collect(out, c)
 
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			var s string
@@ -349,7 +354,7 @@ var _ = Describe("Agent", func() {
 			c := make(chan string)
 
 			go collect(out, c)
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			var s string
@@ -374,9 +379,9 @@ var _ = Describe("Agent", func() {
 			go collect(out, c)
 
 			// big_dummy outputs > 16384 bytes of data
-			req.TargetPlugin = "test/bin/big_dummy"
+			cmd.TargetPlugin = "test/bin/big_dummy"
 
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			var s string
@@ -396,11 +401,11 @@ var _ = Describe("Agent", func() {
 			go collect(out, c)
 
 			// big_dummy outputs > 16384 bytes of data
-			req.TargetPlugin = "test/bin/big_dummy"
-			req.Operation = "restore"
-			req.RestoreKey = "some.key"
+			cmd.TargetPlugin = "test/bin/big_dummy"
+			cmd.Op = "restore"
+			cmd.RestoreKey = "some.key"
 
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			var s string
@@ -419,10 +424,10 @@ var _ = Describe("Agent", func() {
 
 			go collect(out, c)
 
-			req.TargetPlugin = "test/bin/enoent"
-			req.StorePlugin = "test/bin/enoent"
+			cmd.TargetPlugin = "test/bin/enoent"
+			cmd.StorePlugin = "test/bin/enoent"
 
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Ω(err).Should(HaveOccurred())
 
 			var s string
@@ -440,9 +445,9 @@ var _ = Describe("Agent", func() {
 
 			go collect(out, c)
 
-			req.StorePlugin = "test/bin/enoent"
+			cmd.StorePlugin = "test/bin/enoent"
 
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Ω(err).Should(HaveOccurred())
 
 			var s string
@@ -460,9 +465,9 @@ var _ = Describe("Agent", func() {
 
 			go collect(out, c)
 
-			req.TargetPlugin = "test/bin/enoent"
+			cmd.TargetPlugin = "test/bin/enoent"
 
-			err := req.Run(c)
+			err := a.Execute(cmd, c)
 			Ω(err).Should(HaveOccurred())
 
 			var s string
