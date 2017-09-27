@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 )
 
 var curBackend *Backend
+var backendCertPool *x509.CertPool
 
 //Backend is all the information about a backend. It's split into
 // different maps in the config, so this is all of that information
@@ -21,14 +23,23 @@ type Backend struct {
 	Name              string `json:"name"`
 	Address           string `json:"uri"`
 	Token             string `json:"-"`
+	CACert            string `json:"ca_cert"`
 	SkipSSLValidation bool   `json:"skip_ssl_validation"`
 
 	resolvedAddr string
 }
 
 //SetBackend makes all of the API calls target the given backend
-func SetBackend(b *Backend) {
+func SetBackend(b *Backend) error {
 	curBackend = b
+	if curBackend.CACert != "" {
+		backendCertPool = x509.NewCertPool()
+		ok := backendCertPool.AppendCertsFromPEM([]byte(curBackend.CACert))
+		if !ok {
+			return fmt.Errorf("ca cert could not be added to cert pool")
+		}
+	}
+	return nil
 }
 
 //Canonize formats the backend data such that differently formatted backend datas
@@ -56,6 +67,7 @@ func (b *Backend) SecureBackendURI() (string, error) {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: skipSSL,
+				RootCAs:            backendCertPool,
 			},
 			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,

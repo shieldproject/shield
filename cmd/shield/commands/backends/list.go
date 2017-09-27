@@ -1,10 +1,12 @@
 package backends
 
 import (
+	"fmt"
 	"os"
 	"sort"
 
 	"github.com/starkandwayne/goutils/ansi"
+	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 	"github.com/starkandwayne/shield/cmd/shield/config"
@@ -16,6 +18,11 @@ import (
 var List = &commands.Command{
 	Summary: "List configured SHIELD backend aliases",
 	Help: &commands.HelpInfo{
+		Flags: []commands.FlagInfo{
+			commands.FlagInfo{
+				Name: "full", Desc: "Display verbose information about all backends",
+			},
+		},
 		JSONOutput: `[{
 			"name":"mybackend",
 			"uri":"https://10.244.2.2:443",
@@ -37,7 +44,21 @@ func cliListBackends(opts *commands.Options, args ...string) error {
 		return nil
 	}
 
+	var t *tui.Table
+	if *opts.Full {
+		t = verboseList(backends)
+	} else {
+		t = conciseList(backends)
+	}
+
+	t.Output(os.Stdout)
+
+	return nil
+}
+
+func conciseList(backends []*api.Backend) *tui.Table {
 	t := tui.NewTable("Name", "Backend URI")
+
 	for _, backend := range backends {
 		isCurrent := config.Current() != nil && backend.Name == config.Current().Name
 
@@ -46,13 +67,46 @@ func cliListBackends(opts *commands.Options, args ...string) error {
 		}
 
 		if isCurrent {
-			backend.Name = ansi.Sprintf("@G{%s}", backend.Name)
-			backend.Address = ansi.Sprintf("@G{%s}", backend.Address)
+			backend.Name = greenify(backend.Name)
+			backend.Address = greenify(backend.Address)
 		}
 
 		t.Row(backend, backend.Name, backend.Address)
 	}
-	t.Output(os.Stdout)
 
-	return nil
+	return &t
+}
+
+func verboseList(backends []*api.Backend) *tui.Table {
+	t := tui.NewTable("Name", "Backend URI", "Insecure", "Token", "CA Cert")
+
+	for _, backend := range backends {
+		isCurrent := config.Current() != nil && backend.Name == config.Current().Name
+
+		isInsecure := fmt.Sprintf("%t", backend.SkipSSLValidation)
+
+		if isCurrent {
+			backend.Name = greenify(backend.Name)
+			backend.Address = greenify(backend.Address)
+			backend.Token = greenify(backend.Token)
+			backend.CACert = greenify(backend.CACert)
+			isInsecure = greenify(isInsecure)
+		}
+
+		if backend.SkipSSLValidation {
+			isInsecure = redify(isInsecure)
+		}
+
+		t.Row(backend, backend.Name, backend.Address, isInsecure, backend.Token, backend.CACert)
+	}
+
+	return &t
+}
+
+func greenify(s string) string {
+	return ansi.Sprintf("@G{%s}", s)
+}
+
+func redify(s string) string {
+	return ansi.Sprintf("@R{%s}", s)
 }
