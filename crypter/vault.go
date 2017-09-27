@@ -33,32 +33,30 @@ type VaultCreds struct {
 	RootToken string `json:"root_token"`
 }
 
-var Status struct {
+var status struct {
 	Sealed bool `json:"sealed"`
 }
 
 func NewVault() (Vault, error) {
-	new_vault := Vault{
+	return Vault{
 		URL:      "http://127.0.0.1:8200",
 		Token:    "",
 		Insecure: true,
-	}
-	new_vault.HTTP = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: new_vault.Insecure,
+		HTTP: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) > 10 {
+					return fmt.Errorf("stopped after 10 redirects")
+				}
+				req.Header.Add("X-Vault-Token", "")
+				return nil
 			},
 		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) > 10 {
-				return fmt.Errorf("stopped after 10 redirects")
-			}
-			req.Header.Add("X-Vault-Token", new_vault.Token)
-			return nil
-		},
-	}
-
-	return new_vault, nil
+	}, nil
 }
 
 func (vault *Vault) Init(store string, master string) error {
@@ -153,13 +151,13 @@ func (vault *Vault) Unseal(key string) error {
 		return err
 	}
 
-	err = json.Unmarshal(b, &Status)
+	err = json.Unmarshal(b, &status)
 	if err != nil {
 		log.Errorf("failed to parse response from the vault, concerning our unseal attempt: %s", err)
 		return err
 	}
 
-	if Status.Sealed {
+	if status.Sealed {
 		err = fmt.Errorf("vault is still sealed after unseal attempt")
 		log.Errorf("%s", err)
 		return err
@@ -399,13 +397,13 @@ func (vault *Vault) IsSealed() (bool, error) {
 		return true, err
 	}
 
-	err = json.Unmarshal(b, &Status)
+	err = json.Unmarshal(b, &status)
 	if err != nil {
 		log.Errorf("failed to parse response from the vault, concerning current seal status: %s", err)
 		return true, err
 	}
 	//Treat unauthorized/missing root token as sealed - token needs to be read from encrypted config
-	seal_status := Status.Sealed || vault.Token == ""
+	seal_status := status.Sealed || vault.Token == ""
 
 	return seal_status, err
 }
