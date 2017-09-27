@@ -1,4 +1,4 @@
-package core
+package crypter
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/starkandwayne/goutils/log"
+	"golang.org/x/net/lex/httplex"
 )
 
 type Vault struct {
@@ -31,8 +33,32 @@ type VaultCreds struct {
 	RootToken string `json:"root_token"`
 }
 
-var status struct {
+var Status struct {
 	Sealed bool `json:"sealed"`
+}
+
+func NewVault() (Vault, error) {
+	new_vault := Vault{
+		URL:      "http://127.0.0.1:8200",
+		Token:    "",
+		Insecure: true,
+	}
+	new_vault.HTTP = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: new_vault.Insecure,
+			},
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) > 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			req.Header.Add("X-Vault-Token", new_vault.Token)
+			return nil
+		},
+	}
+
+	return new_vault, nil
 }
 
 func (vault *Vault) Init(store string, master string) error {
@@ -127,13 +153,13 @@ func (vault *Vault) Unseal(key string) error {
 		return err
 	}
 
-	err = json.Unmarshal(b, &status)
+	err = json.Unmarshal(b, &Status)
 	if err != nil {
 		log.Errorf("failed to parse response from the vault, concerning our unseal attempt: %s", err)
 		return err
 	}
 
-	if status.Sealed {
+	if Status.Sealed {
 		err = fmt.Errorf("vault is still sealed after unseal attempt")
 		log.Errorf("%s", err)
 		return err
@@ -228,11 +254,19 @@ func (vault *Vault) ReadConfig(store string, master string) (VaultCreds, error) 
 		log.Errorf("Failed to encrypt sealkey for longterm storage: %s", err)
 		return VaultCreds{}, err
 	}
+	if !httplex.ValidHeaderFieldValue(plainSeal) {
+		log.Errorf("Failed to decrypt vault credentials: Incorrect Password")
+		return VaultCreds{}, errors.New("Failed to decrypt vault credentials: Incorrect Password")
+	}
 
 	plainRoot, err := vault.decrypt(key[:], []byte(creds.RootToken))
 	if err != nil {
 		log.Errorf("Failed to encrypt root token for longterm storage: %s", err)
 		return VaultCreds{}, err
+	}
+	if !httplex.ValidHeaderFieldValue(plainRoot) {
+		log.Errorf("Failed to decrypt vault credentials: Incorrect Password")
+		return VaultCreds{}, errors.New("Failed to decrypt vault credentials: Incorrect Password")
 	}
 
 	plainCreds := VaultCreds{
@@ -365,13 +399,13 @@ func (vault *Vault) IsSealed() (bool, error) {
 		return true, err
 	}
 
-	err = json.Unmarshal(b, &status)
+	err = json.Unmarshal(b, &Status)
 	if err != nil {
 		log.Errorf("failed to parse response from the vault, concerning current seal status: %s", err)
 		return true, err
 	}
 	//Treat unauthorized/missing root token as sealed - token needs to be read from encrypted config
-	seal_status := status.Sealed || vault.Token == ""
+	seal_status := Status.Sealed || vault.Token == ""
 
 	return seal_status, err
 }
@@ -397,7 +431,7 @@ func (vault *Vault) IsInitialized() (bool, error) {
 	return init.Initialized, err
 }
 
-func (vault *Vault) status() (string, error) {
+func (vault *Vault) Status() (string, error) {
 	vaultSealed, err := vault.IsSealed()
 	if err != nil {
 		return "", err
