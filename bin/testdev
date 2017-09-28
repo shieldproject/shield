@@ -74,21 +74,30 @@ auth:
     properties:
       client_id:     7760ef75ba49c9699114
       client_secret: 9833e0d2f10df1c77eff41adfb07d6084b238349
-#  api_tokens:
-#    test: ${SHIELD_API_TOKEN}
-#  basic:
-#    user: testuser
-#    password: testpass
-##  oauth:
-##    provider: github
-##    key: Fill this in with the github Client ID after creating a dev oauth app
-##    secret: Fill this in with the github secret after creating a dev oath app
-##    base_url: http://localhost:8181
-##    orgs:
-##    - Fill this in with a real github group you want to restrict access to
-##    sessions:
-##      type: sqlite3
-##      dsn: ${workdir}/var/sessions.db
+  - name:       UAA
+    identifier: uaa1
+    backend:    uaa
+    properties:
+      client_id:       shield-dev
+      client_secret:   s.h.i.e.l.d.
+      uaa_endpoint:    https://uaa.shield.10.244.156.2.netip.cc:8443
+      skip_verify_tls: true
+      mapping:
+        - tenant: UAA          # <-- shield tenant name
+          rights:
+            - scim: uaa.admin  # <-- uaa scim right
+              role: admin      # <-- shield role
+                               #   (first match wins)
+            - scim: cloud_controller.write
+              role: engineer
+
+            - role: operator   # = (default match)
+
+        - tenant: UAA Admins Club
+          rights:
+            - scim: uaa.admin
+              role: admin
+
 EOF
 
   echo ">> Setting up SHIELD schema"
