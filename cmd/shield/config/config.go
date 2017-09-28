@@ -21,9 +21,13 @@ var current *api.Backend
 
 //Config has information about the backends the SHIELD CLI knows about
 type config struct {
-	Backend    string                 `yaml:"backend"`
-	Backends   map[string]string      `yaml:"backends"`
-	Aliases    map[string]string      `yaml:"aliases"`
+	//The name of the currently selected backend
+	Backend string `yaml:"backend"`
+	//The map of URIs to stored auth tokens
+	Backends map[string]string `yaml:"backends"`
+	//The map of alias names to URIs
+	Aliases map[string]string `yaml:"aliases"`
+	//The map of URIs to additional properties as found in backendInfo
 	Properties map[string]backendInfo `yaml:"properties"`
 
 	dirty bool   //True if the config has been changed since saving
@@ -164,6 +168,13 @@ func Get(name string) *api.Backend {
 	}
 
 	return ret
+}
+
+//TokenForURI returns the auth token registered with the URI given. Empty string
+// if there's no token or that URI is not registered
+func TokenForURI(uri string) string {
+	uri = api.CanonizeURI(uri)
+	return cfg.Backends[uri]
 }
 
 //List returns a slice of backend objects representing each of the backends known

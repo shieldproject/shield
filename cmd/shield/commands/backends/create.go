@@ -48,9 +48,12 @@ func cliCreateBackend(opts *commands.Options, args ...string) error {
 	}
 
 	name := args[0]
+	uri := args[1]
+
 	toCommit := &api.Backend{
 		Name:              name,
-		Address:           args[1],
+		Address:           uri,
+		Token:             config.TokenForURI(uri),
 		SkipSSLValidation: *opts.SkipSSLValidation,
 	}
 
