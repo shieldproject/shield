@@ -76,7 +76,7 @@ func conciseList(backends []*api.Backend) *tui.Table {
 		}
 
 		if isCurrent {
-			backend.Name = greenify(backend.Name)
+			backend.Name = ansi.Sprintf("@G{%s}", backend.Name)
 		}
 
 		t.Row(backend, backend.Name, backend.Address)
@@ -102,25 +102,17 @@ func verboseList(backends []*api.Backend) (*tui.Table, error) {
 		}
 
 		if isCurrent {
-			backend.Name = greenify(backend.Name)
+			backend.Name = ansi.Sprintf("@G{%s}", backend.Name)
 		}
 
 		if backend.SkipSSLValidation {
-			isInsecure = redify(isInsecure)
+			isInsecure = ansi.Sprintf("@R{%s}", isInsecure)
 		}
 
 		t.Row(backend, backend.Name, backend.Address, isInsecure, backend.Token, backend.CACert)
 	}
 
 	return &t, nil
-}
-
-func greenify(s string) string {
-	return ansi.Sprintf("@G{%s}", s)
-}
-
-func redify(s string) string {
-	return ansi.Sprintf("@R{%s}", s)
 }
 
 func certInfoString(pemcert string) (string, error) {
