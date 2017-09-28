@@ -41,6 +41,7 @@ func main() {
 		UpdateIfExists:    getopt.BoolLong("update-if-exists", 0, "Create will update record if another exists with same name"),
 		Fuzzy:             getopt.BoolLong("fuzzy", 0, "In RAW mode, perform fuzzy (inexact) searching"),
 		SkipSSLValidation: getopt.BoolLong("skip-ssl-validation", 'k', "Disable SSL Certificate Validation"),
+		CACert:            getopt.StringLong("ca-cert", 0, "", "Path to file to set as trusted root CA for requests"),
 
 		Status:    getopt.StringLong("status", 'S', "", "Only show archives/tasks with the given status"),
 		Target:    getopt.StringLong("target", 't', "", "Only show things for the target with this UUID"),
@@ -51,6 +52,8 @@ func main() {
 		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
 		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
+
+		Full: getopt.BoolLong("full", 0, "Show all backend information when listing backends"),
 
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
@@ -77,10 +80,6 @@ func main() {
 	log.ToggleTrace(*cmds.Opts.Trace)
 
 	log.DEBUG("shield cli starting up")
-
-	if *cmds.Opts.SkipSSLValidation {
-		os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
-	}
 
 	if *cmds.Opts.Version {
 		if Version == "" {
@@ -113,13 +112,40 @@ func main() {
 	}
 
 	currentBackend := config.Current()
+	var curCACert string
+	var shouldResetCACert bool
 	// only check for backends + creds if we aren't manipulating backends/help
 	if cmd != info.Usage && cmd.Group != cmds.BackendsGroup {
 		if currentBackend == nil {
 			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
 			os.Exit(1)
 		}
-		api.SetBackend(currentBackend)
+
+		if *cmds.Opts.SkipSSLValidation {
+			os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
+			if *cmds.Opts.CACert != "" {
+				ansi.Fprintf(os.Stderr, "@R{Can't skip validation with a specified CA cert}\n")
+				os.Exit(1)
+			}
+		}
+
+		//If overriding the ca-cert on an individual command, save the current
+		//ca-cert for later, and load in the specified CA cert file
+		if *cmds.Opts.CACert != "" {
+			curCACert = currentBackend.CACert
+			currentBackend.CACert, err = backends.ParseCACertFlag(*cmds.Opts.CACert)
+			if err != nil {
+				ansi.Fprintf(os.Stderr, "@R{Could not parse --ca-cert flag: %s}\n", err.Error())
+				os.Exit(1)
+			}
+			shouldResetCACert = true
+		}
+
+		err = api.SetBackend(currentBackend)
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{Could not set current backend: %s}\n", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	if err := cmd.Run(args...); err != nil {
@@ -136,6 +162,9 @@ func main() {
 	} else {
 		//Save the config changes if everything worked out
 		if currentBackend != nil {
+			if shouldResetCACert { //Reset CACert to configured if we overrode with flag
+				currentBackend.CACert = curCACert
+			}
 			err = config.Commit(currentBackend)
 			if err != nil {
 				ansi.Fprintf(os.Stderr, "@R{%s}\n", err)

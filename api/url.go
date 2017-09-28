@@ -178,6 +178,7 @@ func makeRequest(req *http.Request) (*http.Response, error) {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: skipSSL,
+				RootCAs:            backendCertPool,
 			},
 			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
