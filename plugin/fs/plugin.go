@@ -123,11 +123,11 @@ func main() {
 				Help:  "Only files that match this pattern will be included in the backup archive.  If not specified, all files will be included.",
 			},
 			plugin.Field{
-				Mode: "target",
-				Name: "exclude",
-				Type: "abspath",
+				Mode:  "target",
+				Name:  "exclude",
+				Type:  "abspath",
 				Title: "Files to Exclude",
-				Help: "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded.",
+				Help:  "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded.",
 			},
 
 			plugin.Field{

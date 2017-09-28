@@ -83,13 +83,13 @@ func main() {
 `,
 		Fields: []plugin.Field{
 			plugin.Field{
-				Mode:     "target",
-				Name:     "host",
-				Type:     "string",
-				Title:    "Consul Host/Port",
-				Help:     "The hostname or IP address port of your consul endpoint.",
-				Example:  "my.consul.tld:8500",
-				Default:  "127.0.0.1:8500",
+				Mode:    "target",
+				Name:    "host",
+				Type:    "string",
+				Title:   "Consul Host/Port",
+				Help:    "The hostname or IP address port of your consul endpoint.",
+				Example: "my.consul.tld:8500",
+				Default: "127.0.0.1:8500",
 			},
 			plugin.Field{
 				Mode:  "target",

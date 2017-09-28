@@ -102,11 +102,11 @@ func main() {
 
 		Fields: []plugin.Field{
 			plugin.Field{
-				Mode:     "store",
-				Name:     "json_key",
-				Type:     "string",
-				Title:    "Google Cloud JSON key",
-				Help:     "Your Google Cloud Store JSON key, which should be available via the Google Cloud Platform web UI.",
+				Mode:  "store",
+				Name:  "json_key",
+				Type:  "string",
+				Title: "Google Cloud JSON key",
+				Help:  "Your Google Cloud Store JSON key, which should be available via the Google Cloud Platform web UI.",
 			},
 			plugin.Field{
 				Mode:     "store",
