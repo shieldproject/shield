@@ -447,6 +447,7 @@ func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
 	status, err := core.vault.status()
 	if err != nil {
 		bail(w, err)
+		return true
 	}
 	if status == "unsealed" {
 		return false
