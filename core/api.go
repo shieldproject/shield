@@ -53,8 +53,10 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	case match(req, `GET /v2/auth/providers`):
 		core.v2GetAuthProviders(w, req)
+		return
 	case match(req, `GET /v2/auth/provider/.+`):
 		core.v2GetAuthProvider(w, req)
+		return
 
 	case match(req, `POST /v2/unlock`):
 		core.v2Unlock(w, req)
@@ -64,163 +66,301 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v2Init(w, req)
 		return
 
-	}
-
-	if sealed, _ := core.vault.IsSealed(); sealed == false {
-		switch {
-		case match(req, `GET /v1/meta/pubkey`):
-			core.v1GetPublicKey(w, req)
+	//All api endpoints below have the mustBeUnlocked requirement such that if vault
+	//	is sealed or uninitialized they will return a 403
+	case match(req, `GET /v1/meta/pubkey`):
+		if locked := core.mustBeUnlocked(w); locked {
 			return
-
-		case match(req, `GET /v1/status/internal`):
-			core.v1DetailedStatus(w, req)
-			return
-		case match(req, `GET /v1/status/jobs`):
-			core.v1JobsStatus(w, req)
-			return
-
-		case match(req, `GET /v1/archives`):
-			core.v1GetArchives(w, req)
-			return
-		case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
-			core.v1RestoreArchive(w, req)
-			return
-		case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
-			core.v1GetArchive(w, req)
-			return
-		case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
-			core.v1UpdateArchive(w, req)
-			return
-		case match(req, `DELETE /v1/archive/[a-fA-F0-9-]+`):
-			core.v1DeleteArchive(w, req)
-			return
-
-		case match(req, `GET /v1/jobs`):
-			core.v1GetJobs(w, req)
-			return
-		case match(req, `POST /v1/jobs`):
-			core.v1CreateJob(w, req)
-			return
-		case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
-			core.v1PauseJob(w, req)
-			return
-		case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
-			core.v1UnpauseJob(w, req)
-			return
-		case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
-			core.v1RunJob(w, req)
-			return
-		case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
-			core.v1GetJob(w, req)
-			return
-		case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
-			core.v1UpdateJob(w, req)
-			return
-		case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
-			core.v1DeleteJob(w, req)
-			return
-
-		case match(req, `GET /v1/retention`):
-			core.v1GetRetentionPolicies(w, req)
-			return
-		case match(req, `POST /v1/retention`):
-			core.v1CreateRetentionPolicy(w, req)
-			return
-		case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
-			core.v1GetRetentionPolicy(w, req)
-			return
-		case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
-			core.v1UpdateRetentionPolicy(w, req)
-			return
-		case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
-			core.v1DeleteRetentionPolicy(w, req)
-			return
-
-		case match(req, `GET /v1/stores`):
-			core.v1GetStores(w, req)
-			return
-		case match(req, `POST /v1/stores`):
-			core.v1CreateStore(w, req)
-			return
-		case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
-			core.v1GetStore(w, req)
-			return
-		case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
-			core.v1UpdateStore(w, req)
-			return
-		case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
-			core.v1DeleteStore(w, req)
-			return
-
-		case match(req, `GET /v1/targets`):
-			core.v1GetTargets(w, req)
-			return
-		case match(req, `POST /v1/targets`):
-			core.v1CreateTarget(w, req)
-			return
-		case match(req, `GET /v1/target/[a-fA-F0-9-]+`):
-			core.v1GetTarget(w, req)
-			return
-		case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
-			core.v1UpdateTarget(w, req)
-			return
-		case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
-			core.v1DeleteTarget(w, req)
-			return
-
-		case match(req, `GET /v1/tasks`):
-			core.v1GetTasks(w, req)
-			return
-		case match(req, `GET /v1/task/[a-fA-F0-9-]+`):
-			core.v1GetTask(w, req)
-			return
-		case match(req, `DELETE /v1/task/[a-fA-F0-9-]+`):
-			core.v1CancelTask(w, req)
-			return
-
-		case match(req, `GET /v2/agents`):
-			core.v2GetAgents(w, req)
-			return
-		case match(req, `POST /v2/agents`):
-			core.v2PostAgents(w, req)
-			return
-
-		case match(req, `GET /v2/systems`):
-			core.v2GetSystems(w, req)
-			return
-		case match(req, `POST /v2/systems`):
-			core.v2PostSystem(w, req)
-			return
-		case match(req, `GET /v2/systems/:uuid`):
-			core.v2GetSystem(w, req)
-			return
-		case match(req, `PUT /v2/systems/:uuid`):
-			core.v2PutSystem(w, req)
-			return
-		case match(req, `PATCH /v2/systems/:uuid`):
-			core.v2PatchSystem(w, req)
-			return
-		case match(req, `DELETE /v2/systems/:uuid`):
-			core.v2DeleteSystem(w, req)
-			return
-
-		case match(req, `GET /v2/tenants`):
-			core.v2GetTenants(w, req)
-			return
-		case match(req, `POST /v2/tenants`):
-			core.v2CreateTenant(w, req)
-			return
-		case match(req, `PUT /v2/tenant`):
-			core.v2UpdateTenant(w, req)
-			return
-		case match(req, `GET /v2/tenant/:uuid`):
-			core.v2GetTenant(w, req)
-			return
-		case match(req, `PATCH /v2/tenant/:uuid`):
-			core.v2PatchTenant(w, req)
-			return
-
 		}
+		core.v1GetPublicKey(w, req)
+		return
+
+	case match(req, `GET /v1/status/internal`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1DetailedStatus(w, req)
+		return
+	case match(req, `GET /v1/status/jobs`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1JobsStatus(w, req)
+		return
+
+	case match(req, `GET /v1/archives`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetArchives(w, req)
+		return
+	case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1RestoreArchive(w, req)
+		return
+	case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetArchive(w, req)
+		return
+	case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1UpdateArchive(w, req)
+		return
+	case match(req, `DELETE /v1/archive/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1DeleteArchive(w, req)
+		return
+
+	case match(req, `GET /v1/jobs`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetJobs(w, req)
+		return
+	case match(req, `POST /v1/jobs`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1CreateJob(w, req)
+		return
+	case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1PauseJob(w, req)
+		return
+	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1UnpauseJob(w, req)
+		return
+	case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1RunJob(w, req)
+		return
+	case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetJob(w, req)
+		return
+	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1UpdateJob(w, req)
+		return
+	case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1DeleteJob(w, req)
+		return
+
+	case match(req, `GET /v1/retention`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetRetentionPolicies(w, req)
+		return
+	case match(req, `POST /v1/retention`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1CreateRetentionPolicy(w, req)
+		return
+	case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetRetentionPolicy(w, req)
+		return
+	case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1UpdateRetentionPolicy(w, req)
+		return
+	case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1DeleteRetentionPolicy(w, req)
+		return
+
+	case match(req, `GET /v1/stores`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetStores(w, req)
+		return
+	case match(req, `POST /v1/stores`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1CreateStore(w, req)
+		return
+	case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetStore(w, req)
+		return
+	case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1UpdateStore(w, req)
+		return
+	case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1DeleteStore(w, req)
+		return
+
+	case match(req, `GET /v1/targets`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetTargets(w, req)
+		return
+	case match(req, `POST /v1/targets`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1CreateTarget(w, req)
+		return
+	case match(req, `GET /v1/target/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetTarget(w, req)
+		return
+	case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1UpdateTarget(w, req)
+		return
+	case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1DeleteTarget(w, req)
+		return
+
+	case match(req, `GET /v1/tasks`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetTasks(w, req)
+		return
+	case match(req, `GET /v1/task/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1GetTask(w, req)
+		return
+	case match(req, `DELETE /v1/task/[a-fA-F0-9-]+`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v1CancelTask(w, req)
+		return
+
+	case match(req, `GET /v2/agents`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2GetAgents(w, req)
+		return
+	case match(req, `POST /v2/agents`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2PostAgents(w, req)
+		return
+
+	case match(req, `GET /v2/systems`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2GetSystems(w, req)
+		return
+	case match(req, `POST /v2/systems`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2PostSystem(w, req)
+		return
+	case match(req, `GET /v2/systems/:uuid`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2GetSystem(w, req)
+		return
+	case match(req, `PUT /v2/systems/:uuid`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2PutSystem(w, req)
+		return
+	case match(req, `PATCH /v2/systems/:uuid`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2PatchSystem(w, req)
+		return
+	case match(req, `DELETE /v2/systems/:uuid`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2DeleteSystem(w, req)
+		return
+
+	case match(req, `GET /v2/tenants`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2GetTenants(w, req)
+		return
+	case match(req, `POST /v2/tenants`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2CreateTenant(w, req)
+		return
+	case match(req, `PUT /v2/tenant`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2UpdateTenant(w, req)
+		return
+	case match(req, `GET /v2/tenant/:uuid`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2GetTenant(w, req)
+		return
+	case match(req, `PATCH /v2/tenant/:uuid`):
+		if locked := core.mustBeUnlocked(w); locked {
+			return
+		}
+		core.v2PatchTenant(w, req)
+		return
+
 	}
 
 	w.WriteHeader(501)
@@ -301,6 +441,22 @@ func invalidlimit(limit string) bool {
 		}
 	}
 	return false
+}
+
+func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
+	status, err := core.vault.status()
+	if err != nil {
+		bail(w, err)
+		return true
+	}
+	if status == "unsealed" {
+		return false
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	w.Write([]byte(ClientErrorf("Shield is currently locked").JSON()))
+	return true
 }
 
 func (core *Core) authLogin(w http.ResponseWriter, req *http.Request) {
