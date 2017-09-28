@@ -1,8 +1,9 @@
 package api
 
 type Status struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name       string `json:"name"`
+	Version    string `json:"version"`
+	APIVersion int    `json:"api_version"`
 }
 
 func GetStatus() (Status, error) {
@@ -11,7 +12,7 @@ func GetStatus() (Status, error) {
 		return Status{}, err
 	}
 
-	var data Status
+	data := Status{APIVersion: 1}
 	return data, uri.Get(&data)
 }
 

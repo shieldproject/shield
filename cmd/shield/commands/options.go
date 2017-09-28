@@ -40,6 +40,8 @@ type Options struct {
 	Config   *string
 	User     *string
 	Password *string
+
+	APIVersion int
 }
 
 //Opts is the options flag struct to be used by all commands
