@@ -15,10 +15,10 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/starkandwayne/goutils/log"
-	"golang.org/x/net/lex/httplex"
 )
 
 type Vault struct {
@@ -233,6 +233,11 @@ func (vault *Vault) Put(path string, data interface{}) error {
 }
 
 func (vault *Vault) ReadConfig(store string, master string) (VaultCreds, error) {
+	if !regexp.MustCompile(`^[\x20-\x7e]+$`).Match([]byte(master)) {
+		log.Errorf("Failed to decrypt vault credentials: Master Password must contain only printable chars")
+		return VaultCreds{}, errors.New("Failed to decrypt vault credentials: Master Password must contain only printable chars")
+	}
+
 	key := sha256.Sum256([]byte(master))
 	log.Debugf("reading credentials files from %s", store)
 	b, err := ioutil.ReadFile(store)
@@ -240,69 +245,50 @@ func (vault *Vault) ReadConfig(store string, master string) (VaultCreds, error) 
 		log.Errorf("failed to read vault credentials from %s: %s", store, err)
 		return VaultCreds{}, err
 	}
-	creds := VaultCreds{}
-	err = json.Unmarshal(b, &creds)
+
+	jsonCreds, err := vault.decrypt(key[:], b)
 	if err != nil {
-		log.Errorf("failed to parse vault credentials from %s: %s", store, err)
+		log.Errorf("Failed to decrypt sealkey for longterm storage: %s", err)
 		return VaultCreds{}, err
 	}
 
-	plainSeal, err := vault.decrypt(key[:], []byte(creds.SealKey))
+	plainCreds := VaultCreds{}
+	err = json.Unmarshal([]byte(jsonCreds), &plainCreds)
 	if err != nil {
-		log.Errorf("Failed to encrypt sealkey for longterm storage: %s", err)
-		return VaultCreds{}, err
-	}
-	if !httplex.ValidHeaderFieldValue(plainSeal) {
 		log.Errorf("Failed to decrypt vault credentials: Incorrect Password")
 		return VaultCreds{}, errors.New("Failed to decrypt vault credentials: Incorrect Password")
-	}
-
-	plainRoot, err := vault.decrypt(key[:], []byte(creds.RootToken))
-	if err != nil {
-		log.Errorf("Failed to encrypt root token for longterm storage: %s", err)
-		return VaultCreds{}, err
-	}
-	if !httplex.ValidHeaderFieldValue(plainRoot) {
-		log.Errorf("Failed to decrypt vault credentials: Incorrect Password")
-		return VaultCreds{}, errors.New("Failed to decrypt vault credentials: Incorrect Password")
-	}
-
-	plainCreds := VaultCreds{
-		SealKey:   plainSeal,
-		RootToken: plainRoot,
 	}
 
 	return plainCreds, err
 }
 
 func (vault *Vault) WriteConfig(store string, master string, creds VaultCreds) error {
+	if !regexp.MustCompile(`^[\x20-\x7e]+$`).Match([]byte(master)) {
+		log.Errorf("Failed to encrypt vault credentials: Master Password must contain only printable chars")
+		return errors.New("Failed to encrypt vault credentials: Master Password must contain only printable chars")
+	}
 
 	key := sha256.Sum256([]byte(master))
-	encSeal, err := vault.encrypt(key[:], []byte(creds.SealKey))
-	if err != nil {
-		log.Errorf("Failed to encrypt sealkey for longterm storage: %s", err)
-		return err
-	}
-
-	encRoot, err := vault.encrypt(key[:], []byte(creds.RootToken))
-	if err != nil {
-		log.Errorf("Failed to encrypt root token for longterm storage: %s", err)
-		return err
-	}
-
 	encryptedCreds := VaultCreds{
-		SealKey:   encSeal,
-		RootToken: encRoot,
+		SealKey:   creds.SealKey,
+		RootToken: creds.RootToken,
 	}
 
 	log.Debugf("marshaling credentials for longterm storage")
-	b, err := json.Marshal(encryptedCreds)
+	jsonCreds, err := json.Marshal(encryptedCreds)
 	if err != nil {
 		log.Errorf("failed to marshal vault root token / seal key for longterm storage: %s", err)
 		return err
 	}
+
+	encCreds, err := vault.encrypt(key[:], jsonCreds)
+	if err != nil {
+		log.Errorf("Failed to encrypt vault credentials for longterm storage: %s", err)
+		return err
+	}
+
 	log.Debugf("storing credentials at %s (mode 0600)", store)
-	err = ioutil.WriteFile(store, b, 0600)
+	err = ioutil.WriteFile(store, []byte(encCreds), 0600)
 	if err != nil {
 		log.Errorf("failed to write credentials to longterm storage file %s: %s", store, err)
 		return err
