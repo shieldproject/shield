@@ -93,9 +93,9 @@ func (c *Client) Lookup(token string) (string, string, []string, error) {
 	}
 
 	u := struct {
-		ID string `json:"user_id"`
-		Username   string `json:"user_name"`
-		Name       string `json:"name"`
+		ID       string `json:"user_id"`
+		Username string `json:"user_name"`
+		Name     string `json:"name"`
 	}{}
 	if err = json.Unmarshal(b, &u); err != nil {
 		return "", "", nil, fmt.Errorf("GET /userinfo: failed to unmarshal JSON [%s]: %s", string(b), err)
@@ -129,9 +129,9 @@ func (c *Client) Lookup(token string) (string, string, []string, error) {
 
 	info := struct {
 		Groups []struct {
-			Type string `json:"type"`
+			Type    string `json:"type"`
 			Display string `json:"display"`
-			Value string `json:"value"`
+			Value   string `json:"value"`
 		} `json:"groups"`
 	}{}
 	if err = json.Unmarshal(b, &info); err != nil {

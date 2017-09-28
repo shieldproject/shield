@@ -31,11 +31,11 @@ type UAAAuthProvider struct {
 	UAAEndpoint   string `json:"uaa_endpoint"`
 	SkipVerifyTLS bool   `json:"skip_verify_tls"`
 
-	Mapping       []struct {
+	Mapping []struct {
 		Tenant string `json:"tenant"`
 		Rights []struct {
-			SCIM  string `json:"scim"`
-			Role  string `json:"role"`
+			SCIM string `json:"scim"`
+			Role string `json:"role"`
 		} `json:"rights"`
 	} `json:"mapping"`
 
@@ -43,7 +43,7 @@ type UAAAuthProvider struct {
 	Identifier string
 	core       *Core
 	uaa        *uaa.Client
-	http *http.Client
+	http       *http.Client
 }
 
 func (p *UAAAuthProvider) DisplayName() string {
@@ -155,11 +155,11 @@ func (p *UAAAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Reques
 	w.WriteHeader(302)
 }
 
-func (p UAAAuthProvider) resolveSCIM(scims []string) (map[string]string) {
-	rights := make(map[string] string)
+func (p UAAAuthProvider) resolveSCIM(scims []string) map[string]string {
+	rights := make(map[string]string)
 
 	for _, mapping := range p.Mapping {
-Rights:
+	Rights:
 		for _, right := range mapping.Rights {
 			for _, scim := range scims {
 				if right.SCIM == "" || scim == right.SCIM {
