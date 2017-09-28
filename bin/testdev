@@ -74,6 +74,20 @@ auth:
     properties:
       client_id:     7760ef75ba49c9699114
       client_secret: 9833e0d2f10df1c77eff41adfb07d6084b238349
+      mapping:
+        starkandwayne:           # <-- github org name
+          tenant: starkandwayne  # <-- shield tenant name
+          rights:
+            - team: Owners       # <-- github team name
+              role: admin        # <-- shield role name
+            - team: Engineering  #   (first match wins)
+              role: engineer
+            - role: operator     # = (default match)
+        cloudfoundry-community:
+          tenant: CF Community
+          rights:
+            - role: engineer
+
   - name:       UAA
     identifier: uaa1
     backend:    uaa
