@@ -53,6 +53,18 @@ type Plugin interface {
 	Meta() PluginInfo
 }
 
+type Field struct {
+	Mode     string   `json:"mode"`
+	Name     string   `json:"name"`
+	Type     string   `json:"type"`
+	Title    string   `json:"title,omitempty"`
+	Help     string   `json:"help,omitempty"`
+	Example  string   `json:"example,omitempty"`
+	Default  string   `json:"default,omitempty"`
+	Enum     []string `json:"enum,omitempty"`
+	Required bool     `json:"required,omitempty"`
+}
+
 type PluginInfo struct {
 	Name     string         `json:"name"`
 	Author   string         `json:"author"`
@@ -61,6 +73,8 @@ type PluginInfo struct {
 
 	Example  string `json:"-"`
 	Defaults string `json:"-"`
+
+	Fields []Field `json:"fields"`
 }
 
 type PluginFeatures struct {
@@ -203,6 +217,52 @@ STORAGE COMMANDS
 
 	switch command {
 	case "info":
+		if os.Getenv("SHIELD_PEDANTIC_INFO") != "" {
+			/* validate the plugin info with great pedantry */
+			ok := true
+			for i, f := range info.Fields {
+				name := f.Name
+				if f.Name == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: field #%d has no name\n", info.Name, i+1)
+					name = fmt.Sprintf("field #%d", i+1)
+					ok = false
+				}
+
+				if f.Type == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: %s has no type\n", info.Name, name)
+					ok = false
+				}
+
+				if f.Title == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: %s has no title\n", info.Name, name)
+					ok = false
+				}
+
+				if f.Help == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: %s has no help\n", info.Name, name)
+					ok = false
+				} else if !strings.HasSuffix(f.Help, ".") {
+					fmt.Fprintf(os.Stderr, "!! %s: %s help field does not end in a period.\n", info.Name, name)
+					ok = false
+				}
+
+				if f.Type == "enum" {
+					if len(f.Enum) == 0 {
+						fmt.Fprintf(os.Stderr, "!! %s: %s is defined as an enum, but specifies no allowed values.\n", info.Name, name)
+						ok = false
+					}
+				} else {
+					if len(f.Enum) != 0 {
+						fmt.Fprintf(os.Stderr, "!! %s: %s is not defined as an enum, but has the following allowed values: [%s]\n", info.Name, name, f.Enum)
+						ok = false
+					}
+				}
+			}
+
+			if !ok {
+				os.Exit(1)
+			}
+		}
 		json, err := json.MarshalIndent(info, "", "    ")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)

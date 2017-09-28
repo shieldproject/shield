@@ -91,6 +91,40 @@ func main() {
   "skip_ssl_validation" : false
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "target",
+				Name:     "rmq_url",
+				Type:     "string",
+				Title:    "RabbitMQ URL",
+				Help:     "The URL of your RabbitMQ management UI, usually run on port 15672.",
+				Example:  "http://1.2.3.4:15672",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "rmq_username",
+				Type:     "string",
+				Title:    "RabbitMQ Username",
+				Help:     "Username to use when authenticating to RabbitMQ.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "rmq_password",
+				Type:     "password",
+				Title:    "RabbitMQ Password",
+				Help:     "Password to use when authenticating to RabbitMQ.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "skip_ssl_validation",
+				Type:  "bool",
+				Title: "Skip SSL Validation",
+				Help:  "If your RabbitMQ installation has an invalid or expired SSL/TLS certificate, you can ignore those errors by disabling SSL validation.  This is not recommended from a security perspective, however.",
+			},
+		},
 	}
 
 	plugin.Run(p)

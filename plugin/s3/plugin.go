@@ -98,7 +98,7 @@ func validSigVersion(v string) bool {
 
 func main() {
 	p := S3Plugin{
-		Name:    "S3 Backup + Storage Plugin",
+		Name:    "S3 Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -126,6 +126,78 @@ func main() {
   "skip_ssl_validation" : false
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "store",
+				Name:     "access_key_id",
+				Type:     "string",
+				Title:    "Access Key ID",
+				Help:     "The Access Key ID to use when authenticating against S3.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "secret_access_key",
+				Type:     "password",
+				Title:    "Secret Access Key",
+				Help:     "The Secret Access Key to use when authenticating against S3.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "bucket",
+				Type:     "string",
+				Title:    "Bucket Name",
+				Help:     "Name of the bucket to store backup archives in.",
+				Example:  "my-aws-backups",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "prefix",
+				Type:  "string",
+				Title: "Bucket Path Prefix",
+				Help:  "An optional sub-path of the bucket to use for storing archives.  By default, archives are stored in the root of the bucket.",
+			},
+			plugin.Field{
+				Mode:    "store",
+				Name:    "s3_host",
+				Type:    "string",
+				Title:   "S3 Host",
+				Help:    "An alternative hostname or IP address for S3 work-alike implementations.  For AWS S3, leave this blank to auto-select the correct value.",
+				Default: DefaultS3Host,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "s3_port",
+				Type:  "port",
+				Title: "S3 Port",
+				Help:  "An alternative TCP port to use for S3 work-alike implementations.  For AWS S3, leave this blank to auto-select the correct value.",
+			},
+			plugin.Field{
+				Mode:    "store",
+				Name:    "signature_version",
+				Type:    "enum",
+				Enum:    []string{"4", "2"},
+				Title:   "AWS Signature Version",
+				Help:    "Specify an alternate signature version.  For AWS S3, leave this blank to auto-select the correct value.",
+				Default: DefaultSigVersion,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "socks5_proxy",
+				Type:  "string",
+				Title: "SOCKS5 Proxy",
+				Help:  "The host:port address of a SOCKS5 proxy to relay HTTP through when accessing S3 work-alikes.",
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "skip_ssl_validation",
+				Type:  "bool",
+				Title: "Skip SSL Validation",
+				Help:  "If your S3 work-alike certificate is invalid, expired, or signed by an unknown Certificate Authority, you can disable SSL validation.  This is not recommended from a security standpoint, however.",
+			},
+		},
 	}
 
 	plugin.Run(p)

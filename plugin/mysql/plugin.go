@@ -74,7 +74,7 @@ import (
 
 	"github.com/starkandwayne/goutils/ansi"
 
-	. "github.com/starkandwayne/shield/plugin"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 var (
@@ -87,7 +87,7 @@ func main() {
 		Name:    "MySQL Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
-		Features: PluginFeatures{
+		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
@@ -110,12 +110,78 @@ func main() {
   "mysql_bindir" : "/var/vcap/packages/shield-mysql/bin"
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_host",
+				Type: "string",
+				Title: "MySQL Host",
+				Help: "The hostname or IP address of your MySQL server.",
+				Default: "127.0.0.1",
+				Required: true,
+			},
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_port",
+				Type: "port",
+				Title: "MySQL Port",
+				Help: "The TCP port that MySQL is bound to, listening for incoming connections.",
+				Default: "3306",
+				Required: true,
+			},
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_user",
+				Type: "string",
+				Title: "MySQL Username",
+				Help: "Username to authenticate to MySQL as.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_pass",
+				Type: "password",
+				Title: "MySQL Password",
+				Help: "Password to authenticate to MySQL as.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_database",
+				Type: "string",
+				Title: "Database to Backup",
+				Help: "Limit scope of the backup to include only this database.  By default, all databases will be backed up.",
+			},
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_options",
+				Type: "string",
+				Title: "Additional `mysqldump` options",
+				Help: "You can tune `mysqldump` (which performs the backup) by specifying additional options and command-line arguments.  If you don't know why you might need this, leave it blank.",
+				Example: "--quick",
+			},
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_read_replica",
+				Type: "string",
+				Title: "MySQL Read Replica",
+				Help: "An optional MySQL replica (possibly readonly) to use for backups, instead of the canonical host.  Restore operations will still be conducted against the real database host.",
+			},
+			plugin.Field{
+				Mode: "target",
+				Name: "mysql_bindir",
+				Type: "abspath",
+				Title: "Path to MySQL bin/ directory",
+				Help: "The absolute path to the bin/ directory that contains the `mysql` and `mysqldump` commands.",
+				Default: "/var/vcap/packages/shield-mysql/bin",
+			},
+		},
 	}
 
-	Run(p)
+	plugin.Run(p)
 }
 
-type MySQLPlugin PluginInfo
+type MySQLPlugin plugin.PluginInfo
 
 type MySQLConnectionInfo struct {
 	Host     string
@@ -128,11 +194,11 @@ type MySQLConnectionInfo struct {
 	Options  string
 }
 
-func (p MySQLPlugin) Meta() PluginInfo {
-	return PluginInfo(p)
+func (p MySQLPlugin) Meta() plugin.PluginInfo {
+	return plugin.PluginInfo(p)
 }
 
-func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
+func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -211,7 +277,7 @@ func (p MySQLPlugin) Validate(endpoint ShieldEndpoint) error {
 }
 
 // Backup mysql database
-func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
+func (p MySQLPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	mysql, err := mysqlConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -222,32 +288,32 @@ func (p MySQLPlugin) Backup(endpoint ShieldEndpoint) error {
 	}
 
 	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
-	DEBUG("Executing: `%s`", cmd)
-	return Exec(cmd, STDOUT)
+	plugin.DEBUG("Executing: `%s`", cmd)
+	return plugin.Exec(cmd, plugin.STDOUT)
 }
 
 // Restore mysql database
-func (p MySQLPlugin) Restore(endpoint ShieldEndpoint) error {
+func (p MySQLPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	mysql, err := mysqlConnectionInfo(endpoint)
 	if err != nil {
 		return err
 	}
 
 	cmd := fmt.Sprintf("%s/mysql %s", mysql.Bin, connectionString(mysql, false))
-	DEBUG("Exec: %s", cmd)
-	return Exec(cmd, STDIN)
+	plugin.DEBUG("Exec: %s", cmd)
+	return plugin.Exec(cmd, plugin.STDIN)
 }
 
-func (p MySQLPlugin) Store(endpoint ShieldEndpoint) (string, error) {
-	return "", UNIMPLEMENTED
+func (p MySQLPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+	return "", plugin.UNIMPLEMENTED
 }
 
-func (p MySQLPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p MySQLPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p MySQLPlugin) Purge(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p MySQLPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
 func connectionString(info *MySQLConnectionInfo, backup bool) string {
@@ -264,54 +330,54 @@ func connectionString(info *MySQLConnectionInfo, backup bool) string {
 	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
 }
 
-func mysqlConnectionInfo(endpoint ShieldEndpoint) (*MySQLConnectionInfo, error) {
+func mysqlConnectionInfo(endpoint plugin.ShieldEndpoint) (*MySQLConnectionInfo, error) {
 	user, err := endpoint.StringValue("mysql_user")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_USER: '%s'", user)
+	plugin.DEBUG("MYSQL_USER: '%s'", user)
 
 	password, err := endpoint.StringValue("mysql_password")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_PWD: '%s'", password)
+	plugin.DEBUG("MYSQL_PWD: '%s'", password)
 
 	host, err := endpoint.StringValueDefault("mysql_host", DefaultHost)
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_HOST: '%s'", host)
+	plugin.DEBUG("MYSQL_HOST: '%s'", host)
 
 	port, err := endpoint.StringValueDefault("mysql_port", DefaultPort)
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_PORT: '%s'", port)
+	plugin.DEBUG("MYSQL_PORT: '%s'", port)
 
 	replica, err := endpoint.StringValueDefault("mysql_read_replica", "")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_READ_REPLICA: '%s'", replica)
+	plugin.DEBUG("MYSQL_READ_REPLICA: '%s'", replica)
 
 	options, err := endpoint.StringValueDefault("mysql_options", "")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_OPTIONS: '%s'", options)
+	plugin.DEBUG("MYSQL_OPTIONS: '%s'", options)
 
 	db, err := endpoint.StringValueDefault("mysql_database", "")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_DB: '%s'", db)
+	plugin.DEBUG("MYSQL_DB: '%s'", db)
 
 	bin, err := endpoint.StringValueDefault("mysql_bindir", "/var/vcap/packages/shield-mysql/bin")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("MYSQL_BINDIR: '%s'", bin)
+	plugin.DEBUG("MYSQL_BINDIR: '%s'", bin)
 
 	return &MySQLConnectionInfo{
 		Host:     host,

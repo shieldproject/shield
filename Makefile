@@ -11,8 +11,14 @@ format:
 	go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
-test:
+tests: go-tests api-tests plugin-tests
+plugin-tests: plugins
+	go build ./plugin/mock
+	./t/plugins
+	@rm -f mock
+go-tests:
 	go list ./... | grep -v vendor | xargs go test
+api-tests:
 	./t/api
 
 # Running Tests for race conditions
