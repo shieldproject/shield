@@ -17,8 +17,8 @@ import (
 	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/util"
 	"github.com/starkandwayne/shield/timespec"
+	"github.com/starkandwayne/shield/util"
 )
 
 //APIVersion is the maximum supported version of the core Shield Daemon API.
@@ -51,9 +51,9 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case match(req, `GET /v2/health`):
 		core.v2GetHealth(w, req)
 		return
-	case match (req, `GET /v2/auth/providers`):
+	case match(req, `GET /v2/auth/providers`):
 		core.v2GetAuthProviders(w, req)
-  case match (req, `GET /v2/auth/provider/.+`):
+	case match(req, `GET /v2/auth/provider/.+`):
 		core.v2GetAuthProvider(w, req)
 
 	case match(req, `POST /v2/unlock`):
@@ -1470,7 +1470,7 @@ func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
 	}
 	health.Stats.Jobs = len(jobs)
 
-	if health.Health.VaultStatus, err = core.vault.status(); err != nil {
+	if health.Health.VaultStatus, err = core.vault.Status(); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1496,18 +1496,18 @@ func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
 }
 
 type v2AuthProvider struct {
-	Name string `json:"name"`
+	Name       string `json:"name"`
 	Identifier string `json:"identifier"`
-	Type string `json:"type"`
+	Type       string `json:"type"`
 }
 
 func (core *Core) v2GetAuthProviders(w http.ResponseWriter, req *http.Request) {
 	l := make([]v2AuthProvider, 0)
 	for _, auth := range core.auth {
 		l = append(l, v2AuthProvider{
-			Name: auth.Name,
+			Name:       auth.Name,
 			Identifier: auth.Identifier,
-			Type: auth.Backend,
+			Type:       auth.Backend,
 		})
 	}
 
@@ -1520,6 +1520,7 @@ type v2AuthProviderFull struct {
 	Type       string                 `json:"type"`
 	Properties map[string]interface{} `json:"properties"`
 }
+
 func (core *Core) v2GetAuthProvider(w http.ResponseWriter, req *http.Request) {
 	re := regexp.MustCompile(`/v2/auth/provider/(.+)`)
 	m := re.FindStringSubmatch(req.URL.Path)
@@ -1527,9 +1528,9 @@ func (core *Core) v2GetAuthProvider(w http.ResponseWriter, req *http.Request) {
 	for _, a := range core.auth {
 		if a.Identifier == m[1] {
 			JSON(w, &v2AuthProviderFull{
-				Name: a.Name,
+				Name:       a.Name,
 				Identifier: a.Identifier,
-				Type: a.Backend,
+				Type:       a.Backend,
 				Properties: util.StringifyKeys(a.Properties).(map[string]interface{}),
 			})
 			return
@@ -2079,7 +2080,7 @@ func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
 
 	sealCreds, err := core.vault.ReadConfig(core.vaultKeyfile, params.Master)
 	if err != nil {
-		bail(w, err)
+		bailWithError(w, ClientErrorf("%s", err))
 		return
 	}
 	core.vault.Token = sealCreds.RootToken
@@ -2115,7 +2116,18 @@ func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := core.vault.Init(core.vaultKeyfile, params.Master)
+	initialized, err := core.vault.IsInitialized()
+	if err != nil {
+		bail(w, err)
+		return
+	}
+
+	if initialized {
+		bailWithError(w, ClientErrorf("Vault is already initialized, please use `shield unlock` to unseal the vault"))
+		return
+	}
+
+	err = core.vault.Init(core.vaultKeyfile, params.Master)
 	if err != nil {
 		bail(w, err)
 		return

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/goutils/timestamp"
+	"github.com/starkandwayne/shield/crypter"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
 )
@@ -53,7 +53,7 @@ type Core struct {
 	motd    string
 
 	/* vault */
-	vault          Vault
+	vault          crypter.Vault
 	encryptionType string
 	vaultKeyfile   string
 
@@ -111,36 +111,23 @@ func NewCore(file string) (*Core, error) {
 }
 
 func (core *Core) Run() error {
-	if err := core.DB.Connect(); err != nil {
+	var err error
+	if err = core.DB.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to database: %s", err)
 	}
-	if err := core.DB.CheckCurrentSchema(); err != nil {
+	if err = core.DB.CheckCurrentSchema(); err != nil {
 		return fmt.Errorf("database failed schema version check: %s", err)
 	}
 
 	core.cleanup()
 
-	core.vault = Vault{
-		URL:      "http://127.0.0.1:8200",
-		Token:    "",
-		Insecure: true,
-	}
-	core.vault.HTTP = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: core.vault.Insecure,
-			},
-		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) > 10 {
-				return fmt.Errorf("stopped after 10 redirects")
-			}
-			req.Header.Add("X-Vault-Token", core.vault.Token)
-			return nil
-		},
+	core.vault, err = crypter.NewVault()
+	if err != nil {
+		log.Errorf("Failed to create core vault instance with error: %s", err)
+		os.Exit(2)
 	}
 
-	if vault_status, err := core.vault.status(); err != nil || vault_status != "unsealed" {
+	if vault_status, err := core.vault.Status(); err != nil || vault_status != "unsealed" {
 		if err != nil {
 			return err
 		}
