@@ -33,7 +33,8 @@ type config struct {
 //BackendInfo contains all info about a backend that isn't the endpoint or the
 // auth token, which are already stored in different tables
 type backendInfo struct {
-	SkipSSLValidation bool `yaml:"skip_ssl_validation"`
+	SkipSSLValidation bool   `yaml:"skip_ssl_validation"`
+	CACert            string `yaml:"ca_cert"`
 }
 
 //Initialize makes a fresh new blank config object
@@ -122,7 +123,11 @@ func Current() *api.Backend {
 	if cfg.Backend == "" {
 		current = nil
 	} else {
-		current = Get(cfg.Backend)
+		if current == nil { //Try to keep the pointer the same throughout
+			current = Get(cfg.Backend)
+		} else {
+			*current = *Get(cfg.Backend)
+		}
 		current.Canonize()
 	}
 	return current
@@ -155,6 +160,7 @@ func Get(name string) *api.Backend {
 		Address:           uri,
 		Token:             cfg.Backends[uri],
 		SkipSSLValidation: cfg.Properties[uri].SkipSSLValidation,
+		CACert:            cfg.Properties[uri].CACert,
 	}
 
 	return ret
@@ -214,12 +220,11 @@ func Commit(b *api.Backend) error {
 	cfg.Backends[b.Address] = b.Token
 	cfg.Properties[b.Address] = backendInfo{
 		SkipSSLValidation: b.SkipSSLValidation,
+		CACert:            b.CACert,
 	}
 
 	if cfg.Backend == b.Name {
-		current.Address = b.Address
-		current.Token = b.Token
-		current.SkipSSLValidation = b.SkipSSLValidation
+		Current()
 	}
 
 	cfg.dirty = true
@@ -235,11 +240,7 @@ func Delete(name string) error {
 
 	if cfg.Backend == name {
 		cfg.Backend = ""
-		//Make current into an empty config
-		current.Name = ""
-		current.Address = ""
-		current.Token = ""
-		current.SkipSSLValidation = false
+		*current = api.Backend{}
 	}
 
 	cfg.dirty = true

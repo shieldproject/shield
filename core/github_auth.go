@@ -162,7 +162,7 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 				gh.fail(w)
 				return
 			}
-			gh.log("user = %v; tenant = %s\n", user, tenant)
+			gh.log("user = %v; tenant = %v\n", user, tenant)
 			gh.log("assigning %s (user %s) to tenant '%s' as role '%s'\n", account, user.UUID, tenant.UUID, role)
 			err = gh.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
 			if err != nil {

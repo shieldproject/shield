@@ -1625,7 +1625,7 @@ func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
 	}
 	health.Stats.Jobs = len(jobs)
 
-	if health.Health.VaultStatus, err = core.vault.status(); err != nil {
+	if health.Health.VaultStatus, err = core.vault.Status(); err != nil {
 		bail(w, err)
 		return
 	}
@@ -2235,7 +2235,7 @@ func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
 
 	sealCreds, err := core.vault.ReadConfig(core.vaultKeyfile, params.Master)
 	if err != nil {
-		bail(w, err)
+		bailWithError(w, ClientErrorf("%s", err))
 		return
 	}
 	core.vault.Token = sealCreds.RootToken
@@ -2271,7 +2271,18 @@ func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := core.vault.Init(core.vaultKeyfile, params.Master)
+	initialized, err := core.vault.IsInitialized()
+	if err != nil {
+		bail(w, err)
+		return
+	}
+
+	if initialized {
+		bailWithError(w, ClientErrorf("Vault is already initialized, please use `shield unlock` to unseal the vault"))
+		return
+	}
+
+	err = core.vault.Init(core.vaultKeyfile, params.Master)
 	if err != nil {
 		bail(w, err)
 		return

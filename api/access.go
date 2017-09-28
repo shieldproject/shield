@@ -1,7 +1,8 @@
 package api
 
 import (
-	"fmt"
+	"encoding/json"
+	"errors"
 )
 
 func Unlock(master string) error {
@@ -10,9 +11,20 @@ func Unlock(master string) error {
 		return err
 	}
 
+	creds := struct {
+		Master string `json:"master_password"`
+	}{
+		Master: master,
+	}
+	contentJSON, err := json.Marshal(creds)
+	if err != nil {
+		return err
+	}
 	respMap := make(map[string]string)
-	contentJSON := fmt.Sprintf("{\"master_password\": \"%s\"}", master)
-	if err := uri.Post(&respMap, contentJSON); err != nil {
+	if err := uri.Post(&respMap, string(contentJSON)); err != nil {
+		if init_error, present := respMap["error"]; present {
+			return errors.New(init_error)
+		}
 		return err
 	}
 
@@ -26,8 +38,19 @@ func Init(master string) error {
 	}
 
 	respMap := make(map[string]string)
-	contentJSON := fmt.Sprintf("{\"master_password\": \"%s\"}", master)
-	if err := uri.Post(&respMap, contentJSON); err != nil {
+	creds := struct {
+		Master string `json:"master_password"`
+	}{
+		Master: master,
+	}
+	contentJSON, err := json.Marshal(creds)
+	if err != nil {
+		return err
+	}
+	if err := uri.Post(&respMap, string(contentJSON)); err != nil {
+		if init_error, present := respMap["error"]; present {
+			return errors.New(init_error)
+		}
 		return err
 	}
 
