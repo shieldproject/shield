@@ -146,6 +146,13 @@ func main() {
 			ansi.Fprintf(os.Stderr, "@R{Could not set current backend: %s}\n", err.Error())
 			os.Exit(1)
 		}
+
+		cmds.Opts.APIVersion, err = apiVersion()
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{Could not contact backend: %s}\n", err.Error())
+			os.Exit(1)
+		}
+		log.DEBUG("Using API Version %d", cmds.Opts.APIVersion)
 	}
 
 	if err := cmd.Run(args...); err != nil {
@@ -257,4 +264,9 @@ func addGlobalFlags() {
 			Desc: "Takes any input and gives any output as a JSON object",
 		},
 	}
+}
+
+func apiVersion() (int, error) {
+	status, err := api.GetStatus()
+	return status.APIVersion, err
 }
