@@ -11,7 +11,7 @@ format:
 	go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
-tests: go-tests api-tests plugin-tests
+test: go-tests api-tests plugin-tests
 plugin-tests: plugins
 	go build ./plugin/mock
 	./t/plugins

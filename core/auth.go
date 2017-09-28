@@ -76,8 +76,6 @@ func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
 					Identifier: identifier,
 					core:       core,
 				}
-			case "local":
-				return nil, fmt.Errorf("local auth provider not yet implemented")
 			default:
 				return nil, fmt.Errorf("unrecognized auth provider type '%s'", auth.Backend)
 			}

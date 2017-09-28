@@ -9,6 +9,10 @@ then
   pushd .. && make shield-cli
   popd
 fi
+# if no umc, make umc
+if [[ ! -f "../shield-umc" ]]; then
+  (cd ..; go build ./cmd/shield-umc)
+fi
 
 shieldbackend="http://localhost:8181"
 shield="../shield -k --raw -D"
@@ -206,41 +210,20 @@ $shield create-job <<EOF
 }
 EOF
 
+# set up administrative user
+umc="../shield-umc --type sqlite3 --dsn $targetdir/var/shield.db"
+echo "creating local admin user (admin:admin)"
+$umc new-user --username admin --password admin
+$umc invite admin --system --role admin
 
-# populate roles based on spec from docs, using static uuids for now
-# Site Administrator - super user
-# Site Manager - able to manage tenants and assignments
-# Site Engineer - site-level configuration management (i.e. shared cloud storage definitions, retention policy templates, etc.)
-# Tenant Administrator - manages tenant membership and roles
-# Tenant Engineer - manages configuration of tenant systems and backup jobs.
-# Tenant Operator - day-to-day operation; run / restore / pause / unpause / view access.
-sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Site Administrator',   'f')"
-sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Site Manager',         'f')"
-sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Site Engineer',        'f')"
-sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Tenant Administrator', 'f')"
-sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Tenant Engineer',      'f')"
-sqlite3 $targetdir/var/shield.db "INSERT INTO shield_roles (name, right) VALUES ('Tenant Operator',      'f')"
+# set up local test environment
+echo "creating developer tenant 'Acme, Inc'"
+$umc new-tenant --name 'Acme, Inc.'
+echo "creating local developer user (dev:coyote)"
+$umc new-user --username dev --password coyote
+$umc invite dev --tenant 'Acme, Inc' --role engineer
 
-
-
-
-#set up local test environment
-echo "CREATING TENANT DevTenant"
-../cmd/shield-umc/main new-tenant --name DevTenant --type sqlite3 --dsn $targetdir/var/shield.db
-echo "CREATING USER DevUser WITH PASSWORD DevPassword"
-../cmd/shield-umc/main new-user --username DevUser --password DevPassword --type sqlite3 --dsn $targetdir/var/shield.db
-
-#get the uuid of the tenant so that you can add the user to it
-tenant_query="select uuid from tenants where name='DevTenant'"
-tenant_uuid=$( sqlite3 $targetdir/var/shield.db "$tenant_query" )
-
-#get the uuid of the user so that you can add the user to the tenant
-user_query="select uuid from users where name='DevUser'"
-user_uuid=$( sqlite3 $targetdir/var/shield.db "$user_query" )
-
-../cmd/shield-umc/main invite $user_uuid --role DevRole --tenant $tenant_uuid --type sqlite3 --dsn $targetdir/var/shield.db
-sqlite3 $targetdir/var/shield.db "INSERT INTO org_team_tenant_role VALUES ('starkandwayne', 'Engineering', '$tenant_uuid', 'Site_Administrator')"
-
+echo "running some jobs"
 $shield run DevJob
 sleep 2
 $shield run DevJob

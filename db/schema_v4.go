@@ -326,27 +326,6 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	switch db.Driver {
-	case "mysql":
-		err = db.Exec(`CREATE TABLE shield_roles (
-						 role_id    INT NOT NULL AUTO_INCREMENT,
-						 name	 	VARCHAR(36) NOT NULL,
-						 right   	VARCHAR(36) NOT NULL,
-
-		                 PRIMARY KEY (role_id)
-		               )`)
-
-	case "postgres", "sqlite3":
-		err = db.Exec(`CREATE TABLE shield_roles (
-						 role_id   	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-						 name		VARCHAR(36) NOT NULL,
-						 right 		VARCHAR(36) NOT NULL
-		               )`)
-	}
-	if err != nil {
-		return err
-	}
-
 	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err

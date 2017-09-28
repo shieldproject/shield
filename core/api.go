@@ -399,13 +399,17 @@ func (core *Core) authID(w http.ResponseWriter, req *http.Request) {
 	answer.User.Name = userInfo.User.Name
 	answer.User.Account = userInfo.User.Account
 
-	provider, err := core.FindAuthProvider(userInfo.User.Backend)
-	/* FIXME ^^ does not handle local provider users terribly well */
-	if err != nil {
-		bailWithError(w, ClientErrorf(err.Error()))
-		return
+	if userInfo.User.Backend == "local" {
+		answer.User.Backend = "SHIELD"
+
+	} else {
+		provider, err := core.FindAuthProvider(userInfo.User.Backend)
+		if err != nil {
+			bailWithError(w, ClientErrorf(err.Error()))
+			return
+		}
+		answer.User.Backend = provider.DisplayName()
 	}
-	answer.User.Backend = provider.DisplayName()
 
 	memberships, err := core.DB.GetMembershipsForUser(uuid.Parse(userInfo.User.UUID))
 	if err != nil {
