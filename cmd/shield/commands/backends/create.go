@@ -27,7 +27,12 @@ var Create = &commands.Command{
 			commands.FlagInfo{
 				Name: "skip-ssl-validation", Short: 'k',
 				Desc: `If this flag is specified, SSL validation will always be skipped
-				when using this backend`,
+        when using this backend. Not compatible with --ca-cert`,
+			},
+			commands.FlagInfo{
+				Name: "ca-cert",
+				Desc: `If this flag is given, this backend will always trust the root CA
+        cert found in the given file. Not compatible with --skip-ssl-validation`,
 			},
 		},
 	},
@@ -43,12 +48,25 @@ func cliCreateBackend(opts *commands.Options, args ...string) error {
 	}
 
 	name := args[0]
-	uri := args[1]
-	err := config.Commit(&api.Backend{
+	toCommit := &api.Backend{
 		Name:              name,
-		Address:           uri,
+		Address:           args[1],
 		SkipSSLValidation: *opts.SkipSSLValidation,
-	})
+	}
+
+	if *opts.CACert != "" {
+		var err error
+		toCommit.CACert, err = ParseCACertFlag(*opts.CACert)
+		if err != nil {
+			return fmt.Errorf("could not use CA Cert: %s", err.Error())
+		}
+
+		if *opts.SkipSSLValidation {
+			return fmt.Errorf("cannot use CA Cert flag and Skip SSL Validation flag")
+		}
+	}
+
+	err := config.Commit(toCommit)
 	if err != nil {
 		return err
 	}

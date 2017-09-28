@@ -74,6 +74,8 @@ var _ = Describe("Config dirtiness", func() {
 					Address:           "http://thing",
 					Token:             "basic thing",
 					SkipSSLValidation: true,
+					CACert: `-----BEGIN CERTIFICATE---
+-----END CERTIFICATE-----`,
 				}
 			})
 
@@ -89,6 +91,8 @@ var _ = Describe("Config dirtiness", func() {
 					Address:           "http://thing",
 					Token:             "basic thing",
 					SkipSSLValidation: true,
+					CACert: `-----BEGIN CERTIFICATE---
+-----END CERTIFICATE-----`,
 				}
 				Expect(Commit(original)).To(Succeed())
 				cycleConfig()
@@ -142,6 +146,8 @@ var _ = Describe("Config dirtiness", func() {
 					Name:    "thing",
 					Address: "http://thing",
 					Token:   "basic thing",
+					CACert: `-----BEGIN CERTIFICATE---
+-----END CERTIFICATE-----`,
 				}
 				Expect(Commit(original)).To(Succeed())
 				toUse = original.Name
@@ -156,12 +162,16 @@ var _ = Describe("Config dirtiness", func() {
 					Name:    "thing",
 					Address: "http://thing",
 					Token:   "basic thing",
+					CACert: `-----BEGIN CERTIFICATE---
+-----END CERTIFICATE-----`,
 				}
 				Expect(Commit(first)).To(Succeed())
 				second := &api.Backend{
 					Name:    "thing2",
 					Address: "http://thing2",
 					Token:   "basic thing2",
+					CACert: `-----BEGIN CERTIFICATE---
+-----END CERTIFICATE-----`,
 				}
 				Expect(Commit(second)).To(Succeed())
 
@@ -186,6 +196,8 @@ var _ = Describe("Config dirtiness", func() {
 				Name:    "thing",
 				Address: "http://thing",
 				Token:   "basic token",
+				CACert: `-----BEGIN CERTIFICATE---
+-----END CERTIFICATE-----`,
 			}
 			Expect(Commit(inserted)).To(Succeed())
 			cycleConfig()
