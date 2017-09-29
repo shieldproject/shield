@@ -36,20 +36,30 @@ export SHIELD_API_TOKEN=LETMEIN
 
 case "${1}" in
 (vault)
+  mkdir -p ${workdir}/var/vault
   cat >${workdir}/etc/vault.conf <<EOF
-storage "inmem" {}
+storage "file" {
+  path = "${workdir}/var/vault"
+}
 disable_mlock = true
 listener "tcp" {
   address = "127.0.0.1:8200"
   tls_disable = true
 }
 EOF
-  echo ">> Spinning up a local (loopback) Vault"
-  vault server -config ${workdir}/etc/vault.conf
-  echo
-  echo "vault exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> Spinning up a local (loopback) Vault"
+    vault server -config ${workdir}/etc/vault.conf
+    echo
+
+    echo "vault exited."
+    echo "Do you want to restart it (sealed)?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
 (shieldd)
   ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
