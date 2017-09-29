@@ -444,7 +444,7 @@ func invalidlimit(limit string) bool {
 }
 
 func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
-	status, err := core.vault.status()
+	status, err := core.vault.Status()
 	if err != nil {
 		bail(w, err)
 		return true
