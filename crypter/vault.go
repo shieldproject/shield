@@ -117,7 +117,10 @@ func (vault *Vault) Init(store string, master string) error {
 		RootToken: keys.RootToken,
 	}
 
-	vault.WriteConfig(store, master, creds)
+	err = vault.WriteConfig(store, master, creds)
+	if err != nil {
+		return err
+	}
 
 	vault.Token = creds.RootToken
 	return vault.Unseal(creds.SealKey)

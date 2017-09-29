@@ -66,6 +66,10 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v2Init(w, req)
 		return
 
+	case match(req, `POST /v2/rotate-keys`):
+		core.v2RotateKeys(w, req)
+		return
+
 	//All api endpoints below have the mustBeUnlocked requirement such that if vault
 	//	is sealed or uninitialized they will return a 403
 	case match(req, `GET /v1/meta/pubkey`):
@@ -444,7 +448,7 @@ func invalidlimit(limit string) bool {
 }
 
 func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
-	status, err := core.vault.status()
+	status, err := core.vault.Status()
 	if err != nil {
 		bail(w, err)
 		return true
@@ -2298,4 +2302,41 @@ func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	JSONLiteral(w, `{"ok":"Initialized Key Database"}`)
+}
+
+func (core *Core) v2RotateKeys(w http.ResponseWriter, req *http.Request) {
+	if req.Body == nil {
+		w.WriteHeader(400)
+		return
+	}
+	var params struct {
+		CurMaster string `json:"current_master_password"`
+		NewMaster string `json:"new_master_password"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
+		return
+	}
+	fmt.Printf("Updating... %s:%s\n", params.CurMaster, params.NewMaster)
+	e := MissingParameters()
+	e.Check("current_master_password", params.CurMaster)
+	e.Check("new_master_password", params.NewMaster)
+	if e.IsValid() {
+		bailWithError(w, e)
+		return
+	}
+
+	sealCreds, err := core.vault.ReadConfig(core.vaultKeyfile, params.CurMaster)
+	if err != nil {
+		bailWithError(w, ClientErrorf("%s", err))
+		return
+	}
+
+	err = core.vault.WriteConfig(core.vaultKeyfile, params.NewMaster, sealCreds)
+	if err != nil {
+		bailWithError(w, ClientErrorf("%s", err))
+		return
+	}
+
+	JSONLiteral(w, `{"ok":"Keys have been rotated successfully"}`)
 }
