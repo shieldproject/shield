@@ -2810,6 +2810,16 @@ function dispatch(page) {
   } else if (!page || page == "") {
     page = "#!/systems";
   }
+
+  if ($global.auth.user.sysrole != "" && $global.hud) {
+    /* process 'system' team diverts */
+    if ($global.hud.health.core == "uninitialized") {
+      page = "#!/init";
+    } else if ($global.hud.health.core == "sealed" || $global.hud.health.core == "locked") {
+      page = "#!/unlock";
+    }
+  }
+
   var argv = page.split(':');
   page = argv.shift();
   var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
