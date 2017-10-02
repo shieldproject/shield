@@ -2317,7 +2317,6 @@ func (core *Core) v2RotateKeys(w http.ResponseWriter, req *http.Request) {
 		bailWithError(w, ClientErrorf("bad JSON payload: %s", err))
 		return
 	}
-	fmt.Printf("Updating... %s:%s\n", params.CurMaster, params.NewMaster)
 	e := MissingParameters()
 	e.Check("current_master_password", params.CurMaster)
 	e.Check("new_master_password", params.NewMaster)
