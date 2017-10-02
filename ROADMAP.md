@@ -1,11 +1,11 @@
 SHIELD Roadmap
 ==============
 
-This document contains the current SHIELD Roadmap, a set of things
+This document contains the current SHIELD Roadmap. It is a set of things
 we hope to accomplish, features we hope to implement, and code
 management / maintenance efforts we hope to undertake in 2017/18.
 
-Roadmap items are listed in order of importance, roughly.  If you
+Roughly, the Roadmap items are listed in order of importance.  If you
 would like to see ammendments to this Roadmap, please discuss them
 in the [#shield Slack channel][1]
 
@@ -37,13 +37,13 @@ proposition for review and management of jobs, tasks, archives,
 schedules, etc.
 
 We would like to move to a more robust access model that permits
-individual customers, be they operators or develoeprs, to view and
+individual customers, either operators or develoeprs, to view and
 control a limited subset of the data set, and effect backup and
 restore operations on owned jobs and target systems.
 
 Ideally, non-administrator users will be able to:
 
-  - Create stores, targets, schedules, and retention policies
+  - Create stores, targets, schedules and retention policies
   - Schedule and run backup jobs
   - Restore their data from their backup archives
   - Review logs for scheduled and ad hoc tasks
@@ -84,7 +84,7 @@ reader can actually see the restore working.
 
 **Supported Data Systems** - A more thorough treatment of the
 available backup/restore plugins, what they can and cannot do, and
-how they operate.  Readers should go away with a firm grasp on the
+how they operate. Readers should go away with a firm grasp on the
 capabilities of target- and store-plugins, and be well-equipped to
 solve problems in the real world.
 
@@ -101,10 +101,10 @@ repository.
 Visual Aesthetic
 ----------------
 
-The SHIELD web UI is barely serviceable.  It requires an overhaul
+The SHIELD web UI is barely serviceable. It requires an overhaul
 of the UI/UX and visual elements to make it both handsome and
-usable.  UX areas to focus on include navigation, embedded help,
-and feedback loops.  UI areas to focus on include logo work,
+usable. UX areas to focus on include navigation, embedded help
+and feedback loops. UI areas to focus on include logo work,
 consistent color usage, and mobile presentation.
 
 Web Presence / Branding
@@ -117,13 +117,13 @@ Archive Download
 
 Often, operators would like to manually inspect and verify a
 backup archive before they restore it to the target system.
-Insofar as this is supported, it requires specialized knowledge of
+So far this is supported, it requires specialized knowledge of
 both SHIELD internals, and the storage system holding the backup
 archives.
 
 Ideally, there should be a means for an authenticated and entitled
 user to retrieve the contents of the backup archive via either the
-CLI (`shield download ...`) or the web interface.  With the
+CLI (`shield download ...`) or the web interface. With the
 introduction of encryption (see above), we will need to ensure
 that archives can be downloaded in both encyphered and decyphered
 forms.
@@ -135,7 +135,7 @@ Integrate SHIELD into major monitoring platforms, to ensure that
 operators can detect _immediate failures_ and _brewing problems_.
 "Immediate failures" include failing jobs, paused jobs that ought
 not be paused, and (if possible) target systems that are not
-scheduled for backup.  "Brewing problems" are more
+scheduled for backup. "Brewing problems" are more
 metric-oriented, including things like storage used,
 time-to-backup, etc.
 
@@ -144,13 +144,13 @@ Agent Discovery and Capabilities
 
 SHIELD supports remote agent backup / restore execution, whereby a
 backup / restore operation can be exeucted on the host holding the
-data system.  To utilize this currently requires _a priori_
+data system. Currently, to utilize this requires _a priori_
 knowledge of the network presence of agents, their IP addresses
 and TCP ports.
 
 Ideally, the CLI and web interface would be able to show the
 operator the available agents, by hostname, UUID, or some other
-human-friendly identifier.  From there, an operator should be able
+human-friendly identifier. From there, an operator should be able
 to view what local SHIELD plugins are installed, at what versions,
 and what their capabilities are.
 
@@ -168,9 +168,9 @@ they configure a target or store.
 
 For example, when configuring the `fs` plugin, the web interface
 currently presents a textarea into which the operator must input
-well-formed JSON.  It would be preferable to present a form that
+well-formed JSON. It would be preferable to present a form that
 asks for the base directory to backup, include and exclude
-patterns, etc.  These form elements can be accompanied both by
+patterns, etc. These form elements can be accompanied both by
 validation routines (paths must be absolute; ports, numeric) and
 embedded help / examples.
 
@@ -178,14 +178,14 @@ Plugin PATH Environments
 ------------------------
 
 Several plugins have developed a nasty pattern of specifying
-explicit paths to binaries used by the plugin.  For example, the
+explicit paths to binaries used by the plugin. For example, the
 `fs` plugin has a `bsdtar` configuration option that holds the
-path to the BSD distribution of `tar`.  This defaults to a value
+path to the BSD distribution of `tar`. This defaults to a value
 that is useful for BOSH-deployed SHIELD agents, but has little
 chance of working in other environments.
 
 The original impetus for this design decision was to ensure that
-the agent was not dependent on wonky `$PATH` configurations.  In
+the agent was not dependent on wonky `$PATH` configurations. In
 hindishgt, a better approach is to have the agent configure its
 `$PATH` explicitly, from configuration, and expose the correct
 paths that way.
