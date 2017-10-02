@@ -53,10 +53,12 @@ EOF
     echo
 
     echo "vault exited."
-    echo "Do you want to restart it (sealed)?"
-    read -p "[y/N] " CONTINUE
+    echo "Do you want to [r]estart it (sealed)"
+    echo "or re-[i]nitialize it?"
+    read -p "[r/i/N] " CONTINUE
     case "${CONTINUE}" in
-    y*|Y*) ;;
+    i*|I*) rm -rf ${workdir}/var/vault ;;
+    r*|r*) ;;
     *) exit 0 ;;
     esac
   done
