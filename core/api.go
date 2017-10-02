@@ -478,12 +478,12 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 			fmt.Fprintf(w, "// failed to determine health of SHIELD core...\n")
 			fmt.Fprintf(w, "$global.hud = {\"health\":{\"shield\":{\"core\":\"down\"}}};\n")
 		} else {
-			fmt.Fprintf(w, "$global.hud = %s;\n", string(b));
+			fmt.Fprintf(w, "$global.hud = %s;\n", string(b))
 		}
 	}
 
 	id, _ := core.checkAuth(req)
-	if (id == nil) {
+	if id == nil {
 		fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
 	} else {
 		b, err := json.Marshal(id)
