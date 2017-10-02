@@ -2005,6 +2005,7 @@ func (core *Core) v2PatchSystem(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v2DeleteSystem(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(501)
 
 }
 
@@ -2012,6 +2013,7 @@ func (core *Core) v2GetTenants(w http.ResponseWriter, req *http.Request) {
 	tenants, err := core.DB.GetAllTenants()
 	if err != nil {
 		bail(w, err)
+		return
 	}
 	JSON(w, tenants)
 }
@@ -2067,6 +2069,7 @@ func (core *Core) v2CreateTenant(w http.ResponseWriter, req *http.Request) {
 	}
 	JSON(w, t)
 }
+
 func (core *Core) v2UpdateTenant(w http.ResponseWriter, req *http.Request) {
 	if req.Body == nil {
 		w.WriteHeader(400)
@@ -2098,6 +2101,7 @@ func (core *Core) v2UpdateTenant(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v2PatchTenant(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(501)
 }
 
 func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {
