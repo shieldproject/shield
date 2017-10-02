@@ -24,6 +24,7 @@ import (
 )
 
 var Version = "(development)"
+const SessionCookieName = "shield7"
 
 type Core struct {
 	fastloop *time.Ticker

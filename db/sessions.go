@@ -42,7 +42,7 @@ func (db *DB) GetSession(sid interface{}) (*Session, error) {
 
 func (db *DB) GetUserForSession(sid string) (*User, error) {
 	r, err := db.Query(`
-	    SELECT u.uuid, u.name, u.account, u.backend
+	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole
 	      FROM sessions s INNER JOIN users u ON u.uuid = s.user_uuid
 	     WHERE s.uuid = ?`, sid)
 	// note: we specifically skip u.pwhash...
@@ -57,7 +57,7 @@ func (db *DB) GetUserForSession(sid string) (*User, error) {
 
 	var this NullUUID
 	u := &User{}
-	if err := r.Scan(&this, &u.Name, &u.Account, &u.Backend); err != nil {
+	if err := r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole); err != nil {
 		return nil, err
 	}
 	u.UUID = this.UUID
