@@ -1239,6 +1239,65 @@ button[rel^="run:"] {
   height: 40vh;
   padding: 16px;
 }
+
+
+.init-shield,
+.unlock-shield {
+    display: block;
+    margin: 4em;
+}
+.init-shield label,
+.unlock-shield label {
+  display: block;
+  font-size: 16pt;
+  font-weight: bold;
+  margin: 16pt 0 4pt 0;
+}
+.init-shield input,
+.unlock-shield input {
+  font-size: 18pt;
+  width: 80%;
+  border-radius: 4px 0 0 4px;
+  border: 1px solid #ccc;
+  height: 36px;
+  margin: 0;
+  padding: 0 6pt;
+  box-sizing: border-box;
+}
+.init-shield button,
+.unlock-shield button {
+  font-size: 16pt;
+  height: 36px;
+  border-radius: 4px;
+  padding: 0 0.6em;
+  margin: 0;
+  box-sizing: border-box;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.unlock-shield input {
+  display: inline-block;
+}
+.unlock-shield button {
+  background-color: #0071BC;
+  border: 1px solid #0071BC;
+  color: #fff;
+
+  border-radius: 0 4px 4px 0;
+
+  display: inline-block;
+  position: relative;
+  top: -1px;
+}
+
+.init-shield button {
+  display: block;
+  margin: 12pt 0 8pt 0;
+  background-color: #ba1f1f;
+  border: 1px solid #a31d1d;
+  color: #fff;
+}
 /* }}} */</style>
 </head>
 <body>
@@ -1555,10 +1614,14 @@ consequuntur magni.</p>
 
     <div class="x5"><div class="health">
       <ul>
-        [[ if (_.health.api_ok) { ]]
-        <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD API is <span>up</span></li>
+        [[ if (_.health.core == "unsealed" || _.health.core == "unlocked") { ]]
+        <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
+        [[ } else if (_.health.core == "sealed" || _.health.core == "locked") { ]]
+        <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>LOCKED</span></li>
+        [[ } else if (_.health.core == "uninitialized") { ]]
+        <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>UNINITIALIZED</span></li>
         [[ } else { ]]
-        <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD API is <span>failing</span></li>
+        <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>down</span></li>
         [[ } ]]
         [[ if (_.health.storage_ok) { ]]
         <li class="ok"><object type="image/svg+xml" data="i/cloud-ok.svg"></object> Cloud Storage is <span>connected</span></li>
@@ -1622,6 +1685,47 @@ into your Github issue:
       <form>
         <p><label for="name">Display</label>
         <input type="text" value="" /></p>
+      </form>
+    </div>
+<!-- }}} --></script>
+<script type="text/html" id="tpl--init"><!-- {{{ -->
+[[#
+  {init} template
+
+  Renders a form allowing administrators (sys_role = admin) to initialize
+  this SHIELD core.
+]]
+    <div class="gutter blk">
+      <h2>This SHIELD Core is UNINITIALIZED</h2>
+      <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
+         tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
+         voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
+
+      <form class="init-shield">
+        <label for="init-master">Create a SHIELD Master Password</label>
+        <input type="password" id="init-master" name="master">
+        <label for="init-confirm">Type it again, for good measure...</label>
+        <input type="password" id="init-confirm" name="confirm">
+        <button>Initialize</button>
+      </form>
+    </div>
+<!-- }}} --></script>
+<script type="text/html" id="tpl--unlock"><!-- {{{ -->
+[[#
+  {unlock} template
+
+  Renders a form allowing anyone with knowledge of the SHIELD master
+  password to unlock the SHIELD core, and resume normal operations.
+]]
+    <div class="gutter blk">
+      <h2>This SHIELD Core is LOCKED</h2>
+      <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
+         tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
+         voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
+
+      <form class="unlock-shield">
+        <label for="unlock-master">Enter your SHIELD Master Password</label>
+        <input type="password" id="unlock-master" name="master"><button>Unlock</button>
       </form>
     </div>
 <!-- }}} --></script>
@@ -2206,7 +2310,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
 <!-- }}} --></script>
 
 <!-- FIXME: colo jquery / lensjs with our assets -->
-<script script" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="/init.js"></script>
 <script type="text/javascript">
 /*
   When the viewer scrolls the browser window, check to see if we
@@ -2741,14 +2846,31 @@ function template(name, data) {
   return Templates[name](data);
 }
 
-var $global = { auth: { unauthenticated: 1 } };
 var referer = undefined;
 function dispatch(page) {
   if ($global.auth.unauthenticated) {
+    console.log('session not authenticated; diverting to #!/login page...');
     page = "#!/login";
-  } else if (!page || page == "") {
+
+  } else if ($global.auth && $global.auth.user && $global.auth.user.sysrole != "" && $global.hud) {
+    console.log($global.hud.health.core);
+
+    /* process 'system' team diverts */
+    if ($global.hud.health.core == "uninitialized") {
+      console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
+      page = "#!/init";
+
+    } else if ($global.hud.health.core == "sealed" || $global.hud.health.core == "locked") {
+      console.log('system user detected, and this SHIELD core is locked; diverting to #!/unlock page...');
+      page = "#!/unlock";
+    }
+  }
+  if (!page || page == "") {
+    console.log('no specific page specified; diverting to #!/systems page...');
     page = "#!/systems";
   }
+  console.log('dispatching to page "%s"...', page);
+
   var argv = page.split(':');
   page = argv.shift();
   var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
@@ -2991,6 +3113,10 @@ function dispatch(page) {
     });
     break; /* #!/admin/auth */
     // }}}
+
+  case "#!/unlock": $('#main').html(template('unlock', {})); break;
+  case "#!/init":   $('#main').html(template('init',   {})); break;
+
   default:
     $('#main').html(template('404', {
       wanted:  page,
@@ -3008,15 +3134,7 @@ function reload() {
 }
 
 $(function () {
-  $.ajax({
-    type: 'GET',
-    url:  '/auth/id',
-    async: false,
-    success: function (response) {
-      $global.auth = response;
-      $('#viewport').html(template('layout'));
-    }
-  });
+  $('#viewport').html(template('layout'));
 
   $(window).on('hashchange', function (event) {
     dispatch(document.location.hash);
@@ -3033,9 +3151,10 @@ $(function () {
         type: 'GET',
         url:  '/v2/health',
         success: function (data) {
+          $global.hud = data;
           var json = JSON.stringify(data);
           if (json != last) {
-            $('#hud').html(template('hud', data));
+            $('#hud').html(template('hud', $global.hud));
             $('.top-bar').html(template('top-bar', {
               shield: {
                 env: 'DEMO',
@@ -3138,6 +3257,58 @@ $(function () {
           banner("restore operation started");
         }
       });
+    });
+  });
+
+  $('#main').on('submit', '.init-shield', function (event) {
+    event.preventDefault();
+    var master1 = $('.init-shield [name=master]').val();
+    var master2 = $('.init-shield [name=confirm]').val();
+
+    if (master1 != master2) {
+      banner("Passwords do not match.", 'error');
+      return;
+    }
+
+    if (master1 == '') {
+      banner("Please specify a master password", 'error');
+      return;
+    }
+
+    $.ajax({
+      type: 'POST',
+      url:  '/v2/init',
+
+      contentType: 'application/json',
+      data:        JSON.stringify({ "master_password": master1 }),
+      success: function (data) {
+        $global.hud.health.core = "unlocked";
+        $('#hud').html(template('hud', $global.hud));
+        dispatch("");
+      },
+      error: function (xhr) {
+        banner("Failed to initialize the SHIELD Core", 'error');
+      }
+    });
+  });
+
+  $('#main').on('submit', '.unlock-shield', function (event) {
+    event.preventDefault();
+    var master = $('.unlock-shield [name=master]').val();
+    $.ajax({
+      type: 'POST',
+      url:  '/v2/unlock',
+
+      contentType: 'application/json',
+      data:        JSON.stringify({ "master_password": master }),
+      success: function (data) {
+        $global.hud.health.core = "unlocked";
+        $('#hud').html(template('hud', $global.hud));
+        dispatch("");
+      },
+      error: function (xhr) {
+        banner("Failed to unlock the SHIELD Core", 'error');
+      }
     });
   });
 
