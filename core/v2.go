@@ -94,7 +94,7 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{
 		health, err := core.checkHealth()
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to check SHIELD health"))
+			r.Fail(route.Oops(err, "Unable to check SHIELD health"))
 			return
 		}
 		r.OK(health)
@@ -119,15 +119,15 @@ func (core *Core) v2API() *route.Router {
 
 		init, err := core.Initialize(in.Master)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to initialize the SHIELD core"))
+			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
 		}
 		if !init {
-			r.Fail(route.Bad(nil, "this SHIELD core has already been initialized"))
+			r.Fail(route.Bad(nil, "this SHIELD Core has already been initialized"))
 			return
 		}
 
-		r.Success("Successfully initialzied the SHIELD core")
+		r.Success("Successfully initialized the SHIELD Core")
 	})
 	// }}}
 	r.Dispatch("POST /v2/unlock", func(r *route.Request) { // {{{
@@ -148,15 +148,15 @@ func (core *Core) v2API() *route.Router {
 
 		init, err := core.Unlock(in.Master)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to unlock the SHIELD core"))
+			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core"))
 			return
 		}
 		if !init {
-			r.Fail(route.Bad(nil, "this SHIELD core has not yet been initialized"))
+			r.Fail(route.Bad(nil, "this SHIELD Core has not yet been initialized"))
 			return
 		}
 
-		r.Success("Successfully unlocked the SHIELD core")
+		r.Success("Successfully unlocked the SHIELD Core")
 	})
 	// }}}
 	r.Dispatch("POST /v2/rekey", func(r *route.Request) { // {{{
@@ -179,11 +179,11 @@ func (core *Core) v2API() *route.Router {
 
 		err := core.Rekey(in.CurMaster, in.NewMaster)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to rekey the SHIELD core"))
+			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
 			return
 		}
 
-		r.Success("Successfully rekeyed the SHIELD core")
+		r.Success("Successfully rekeyed the SHIELD Core")
 	})
 	// }}}
 
@@ -211,7 +211,7 @@ func (core *Core) v2API() *route.Router {
 				return
 			}
 		}
-		r.Fail(route.NotFound(nil, "no such authentication provider: '%s'", r.Args[1]))
+		r.Fail(route.NotFound(nil, "No such authentication provider: '%s'", r.Args[1]))
 	})
 	// }}}
 
@@ -226,7 +226,7 @@ func (core *Core) v2API() *route.Router {
 			},
 		)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to retrieve systems information"))
+			r.Fail(route.Oops(err, "Unable to retrieve systems information"))
 			return
 		}
 
@@ -234,7 +234,7 @@ func (core *Core) v2API() *route.Router {
 		for i, target := range targets {
 			err := core.v2copyTarget(&systems[i], target)
 			if err != nil {
-				r.Fail(route.Oops(err, "failed to retrieve systems information"))
+				r.Fail(route.Oops(err, "Unable to retrieve systems information"))
 				return
 			}
 		}
@@ -246,7 +246,7 @@ func (core *Core) v2API() *route.Router {
 		log.Debugf("%s: got args [%v]", r, r.Args)
 		target, err := core.DB.GetTarget(uuid.Parse(r.Args[1]))
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to retrieve system information"))
+			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
 
@@ -258,7 +258,7 @@ func (core *Core) v2API() *route.Router {
 		var system v2System
 		err = core.v2copyTarget(&system, target)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to retrieve system information"))
+			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
 
@@ -271,7 +271,7 @@ func (core *Core) v2API() *route.Router {
 			},
 		)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to retrieve system information"))
+			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
 		for _, archive := range aa {
@@ -285,7 +285,7 @@ func (core *Core) v2API() *route.Router {
 			},
 		)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to retrieve system information"))
+			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
 		system.Tasks = make([]v2SystemTask, len(tasks))
@@ -354,7 +354,7 @@ func (core *Core) v2API() *route.Router {
 					},
 				)
 				if err != nil {
-					r.Fail(route.Oops(err, "failed to annotate task %s", ann.UUID))
+					r.Fail(route.Oops(err, "Unable to annotate task %s", ann.UUID))
 					return
 				}
 
@@ -365,7 +365,7 @@ func (core *Core) v2API() *route.Router {
 					ann.Notes,
 				)
 				if err != nil {
-					r.Fail(route.Oops(err, "failed to annotate archive %s", ann.UUID))
+					r.Fail(route.Oops(err, "Unable to annotate archive %s", ann.UUID))
 					return
 				}
 
@@ -386,7 +386,7 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("GET /v2/agents", func(r *route.Request) { // {{{
 		agents, err := core.DB.GetAllAgents(nil)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to retrieve agent information"))
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
 		}
 
@@ -425,22 +425,22 @@ func (core *Core) v2API() *route.Router {
 
 		peer := regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.RemoteAddr, "")
 		if peer == "" {
-			r.Fail(route.Oops(nil, "unable to determine remote peer address from '%s'", r.Req.RemoteAddr))
+			r.Fail(route.Oops(nil, "Unable to determine remote peer address from '%s'", r.Req.RemoteAddr))
 			return
 		}
 
 		if in.Name == "" {
-			r.Fail(route.Bad(nil, "no `name' provided with pre-registration request"))
+			r.Fail(route.Bad(nil, "No `name' provided with pre-registration request"))
 			return
 		}
 		if in.Port == 0 {
-			r.Fail(route.Bad(nil, "no `port' provided with pre-registration request"))
+			r.Fail(route.Bad(nil, "No `port' provided with pre-registration request"))
 			return
 		}
 
 		err := core.DB.PreRegisterAgent(peer, in.Name, in.Port)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to pre-register agent %s at %s:%i", in.Name, peer, in.Port))
+			r.Fail(route.Oops(err, "Unable to pre-register agent %s at %s:%i", in.Name, peer, in.Port))
 			return
 		}
 		r.Success("pre-registered agent %s at %s:%i", in.Name, peer, in.Port)
@@ -450,7 +450,7 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("GET /v2/tenants", func(r *route.Request) { // {{{
 		tenants, err := core.DB.GetAllTenants()
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to retrieve tenants information"))
+			r.Fail(route.Oops(err, "Unable to retrieve tenants information"))
 			return
 		}
 		r.OK(tenants)
@@ -480,7 +480,7 @@ func (core *Core) v2API() *route.Router {
 
 		t, err := core.DB.CreateTenant(in.UUID, in.Name)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to create new tenant '%s'", in.Name))
+			r.Fail(route.Oops(err, "Unable to create new tenant '%s'", in.Name))
 			return
 		}
 		r.OK(t)
@@ -506,7 +506,7 @@ func (core *Core) v2API() *route.Router {
 
 		t, err := core.DB.UpdateTenant(in.UUID, in.Name)
 		if err != nil {
-			r.Fail(route.Oops(err, "failed to update tenant '%s'", in.Name))
+			r.Fail(route.Oops(err, "Unable to update tenant '%s'", in.Name))
 			return
 		}
 		r.OK(t)

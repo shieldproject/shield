@@ -1394,64 +1394,6 @@ func (core *Core) v1CancelTask(w http.ResponseWriter, req *http.Request) {
 
 /*
 
-  GET /v2/health
-
-  Returns health information about the SHIELD core,
-  connected storage accounts, and general metrics.
-
-  {
-    "shield": {
-      "version" : "6.7.2",
-      "ip"      : "10.0.0.5",
-      "fqdn"    : "shield.example.com",
-      "env"     : "PRODUCTION",
-      "color"   : ""
-    },
-    "health": {
-      "api_ok"     : true,
-      "storage_ok" : true,
-      "jobs_ok"    : true
-    },
-    "storage": [
-      { "name": "s3", "healthy": true },
-      { "name": "fs", "healthy": true } ],
-    "jobs": [
-      { "target": "BOSH DB", "job": "daily",  "healthy": true },
-      { "target": "BOSH DB", "job": "weekly", "healthy": true } ],
-    "stats": {
-      "jobs"    : 8,
-      "systems" : 7,
-      "archives": 124,
-      "storage" : 243567112,
-      "daily"   : 12345000
-    }
-  }
-
-*/
-
-/*
-
-  POST /v2/agents
-
-  Initiate agent registration.  The client must supply a POST body in
-  the form of:
-
-  {
-    "name" : "some-identifier",
-    "port" : "5444"
-  }
-
-  The SHIELD core will then schedule a "pingback", connecting to the
-  agent using its remote peer address (from the registration HTTP
-  conversation) and the given port.  This pingback occurs via the SSH
-  protocol, with an op type of "ping".  The agent must respond with
-  the same _name_ that it sent in the registration.
-
-  This exchange allows the core to validate registration requests,
-  using a weak form of authentication.
-*/
-/*
-
   GET /v2/systems
 
   Retrieves a list of all protected systems, their job configurations,
