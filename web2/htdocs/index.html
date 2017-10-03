@@ -1332,83 +1332,83 @@
       }
     /* }}} */</style>
   </head>
-<body>
-<div class="top-bar"><h1>SHIELD</h1>
-    
-</div>
-<div id="viewport" class="full"></div>
+  <body>
+    <div class="top-bar"><h1>SHIELD</h1>
+        
+    </div>
+    <div id="viewport" class="full"></div>
 
-<script type="text/html" id="tpl--layout"><!-- {{{ -->
-[[#
-  {layout}
+    <script type="text/html" id="tpl--layout"><!-- {{{ -->
+    [[#
+      {layout}
 
-  The main (authenticated) layout for the UI
-]]
-<div class="story-sidebar">
-  <nav>
-    <li><a href="#!/do/backup">Perform an ad hoc backup</a>
-        <p>Run a backup job whenever you need to, regardless of the job's
-        schedule.</p></li>
+      The main (authenticated) layout for the UI
+    ]]
+    <div class="story-sidebar">
+      <nav>
+        <li><a href="#!/do/backup">Perform an ad hoc backup</a>
+            <p>Run a backup job whenever you need to, regardless of the job's
+            schedule.</p></li>
 
-    <li><a href="#">Restore data from a backup</a>
-        <p>Restore a protected system back to the state it was in when a
-        backup archive was taken.</p></li>
+        <li><a href="#">Restore data from a backup</a>
+            <p>Restore a protected system back to the state it was in when a
+            backup archive was taken.</p></li>
 
-    <li><a href="#">Configure a new backup job</a>
-        <p>Set up a new protected system, and configure the how, when,
-        and for how long of managing its backup archives.</p></li>
-  </nav>
-</div>
-<div class="pane">
-  <div class="hud blk" id="hud">
-    <div class="x5"><div class="inst">
-      <ul>
-        <li class="shield">SHIELD &hellip;</li>
-      </ul>
-    </div></div>
+        <li><a href="#">Configure a new backup job</a>
+            <p>Set up a new protected system, and configure the how, when,
+            and for how long of managing its backup archives.</p></li>
+      </nav>
+    </div>
+    <div class="pane">
+      <div class="hud blk" id="hud">
+        <div class="x5"><div class="inst">
+          <ul>
+            <li class="shield">SHIELD &hellip;</li>
+          </ul>
+        </div></div>
 
-    <div class="x5"><div class="health">
-      <div class="fill"></div>
-    </div></div>
+        <div class="x5"><div class="health">
+          <div class="fill"></div>
+        </div></div>
 
-    <div class="x6"><div class="prot">
-      <div class="fill"></div>
-    </div></div>
-  </div>
+        <div class="x6"><div class="prot">
+          <div class="fill"></div>
+        </div></div>
+      </div>
 
-  <div class="nav sticky" id="sticky-nav">
-    <nav>
-      <li><a href="#!/systems">Systems</a></li>
-      <li class="current"><a href="#!/stores">Storage</a></li>
-      <li><a href="#!/policies">Retention</a></li>
-      <li><a href="#!/admin">Admin</a></li>
-    </nav>
-  </div>
+      <div class="nav sticky" id="sticky-nav">
+        <nav>
+          <li><a href="#!/systems">Systems</a></li>
+          <li class="current"><a href="#!/stores">Storage</a></li>
+          <li><a href="#!/policies">Retention</a></li>
+          <li><a href="#!/admin">Admin</a></li>
+        </nav>
+      </div>
 
-  <div class="nav">
-    <nav>
-      <li><a href="#!/systems">Systems</a></li>
-      <li class="current"><a href="#!/stores">Storage</a></li>
-      <li><a href="#!/policies">Retention</a></li>
-      <li><a href="#!/admin">Admin</a></li>
-    </nav>
-  </div>
+      <div class="nav">
+        <nav>
+          <li><a href="#!/systems">Systems</a></li>
+          <li class="current"><a href="#!/stores">Storage</a></li>
+          <li><a href="#!/policies">Retention</a></li>
+          <li><a href="#!/admin">Admin</a></li>
+        </nav>
+      </div>
 
-  <div class="field" id="main">
-  <!--
-    <div class="gutter blk">
-      <h2>Configure A New Backup Job</h2>
-      <form>
+      <div class="field" id="main">
+      <!--
+        <div class="gutter blk">
+          <h2>Configure A New Backup Job</h2>
+          <form>
 
-        <div class="band">
-          <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
-          <div class="ctl">
-            <label>Label</label>
-            <input type="text" placeholder="Placeholder">
-            <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
-            <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
-          </div>
-        </div>
+            <div class="band">
+              <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+              <div class="ctl">
+                <label>Label</label>
+                <input type="text" placeholder="Placeholder">
+                <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+              </div>
+            </div>
 
 
               <div class="band">
@@ -1595,40 +1595,38 @@
                 </div>
               </div>
             </div>
-        <!-- }}} --></script>
-        <script type="text/html" id="tpl--top-bar"><!-- {{{ -->
-        [[#
-          {top-bar} template
-        
-          Renders the top-most bar, with the SHIELD name / environment, and the
-          current users name / tenant and "personal settings" menu.
-        ]]
-            <h1><a href="#!/systems">SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></a></h1>
-            [[ if (_.user) { ]]
-            <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
-            <div class="flyout">
-              <div class="menu">
-                <div class="header">Signed in as [[= _.user.account ]]
-                  <span>[[= _.user.backend ]]</span>
-                </div>
-                <div class="divider"></div>
-                [[ if (_.tenants.length == 0) { ]]
-                <span class="dropdown odd">you have no tenants</span>
-                [[ } else { ]]
-                [[   $.each(_.tenants, function (i, tenant) { ]]
-                <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="#!/tenant/[[= tenant.uuid ]]">[[= tenant.name ]]</a>
-                [[   }); ]]
-                [[ } ]]
-                <div class="divider"></div>
-                <a class="dropdown" href="#!/account">Settings</a>
-                <a class="dropdown" href="/auth/logout">Sign Out</a>
-              </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--top-bar"><!-- {{{ -->
+      [[#
+        {top-bar} template
+      
+        Renders the top-most bar, with the SHIELD name / environment, and the
+        current users name / tenant and "personal settings" menu.
+      ]]
+        <h1><a href="#!/systems">SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></a></h1>
+        [[ if (_.user) { ]]
+        <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
+        <div class="flyout">
+          <div class="menu">
+            <div class="header">Signed in as [[= _.user.account ]]
+              <span>[[= _.user.backend ]]</span>
             </div>
+            <div class="divider"></div>
+            [[ if (_.tenants.length == 0) { ]]
+            <span class="dropdown odd">you have no tenants</span>
+            [[ } else { ]]
+            [[   $.each(_.tenants, function (i, tenant) { ]]
+            <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="#!/tenant/[[= tenant.uuid ]]">[[= tenant.name ]]</a>
+            [[   }); ]]
             [[ } ]]
-        
-        
-        <!-- }}} --></script>
-        <script type="text/html" id="tpl--hud"><!-- {{{ -->
+            <div class="divider"></div>
+            <a class="dropdown" href="#!/account">Settings</a>
+            <a class="dropdown" href="/auth/logout">Sign Out</a>
+          </div>
+        </div>
+        [[ } ]]
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--hud"><!-- {{{ -->
         [[#
           {hud} template
         
@@ -1678,263 +1676,263 @@
                 <li class="ok">Daily Storage Increase <span>[[= _.stats.daily ]]</span></li>
               </ul>
             </div></div>
-        <!-- }}} --></script>
-        <script type="text/html" id="tpl--404"><!-- {{{ -->
-        [[#
-          {404} template
-        
-          Help a lost traveller on their way.
-        ]]
-            <div class="gutter blk e404">
-              <h2>Oops.  We Couldn't Find That...</h2>
-              <img src="/i/404.png" width="30%">
-              <p>Looks like someone or some<em>thing</em> directed you to a part of the SHIELD
-              web interface that just doesn't exist.  Bummer.  If you are sure this is SHIELD's
-              fault (and it very well could be), please report an issues over at our
-              <a href="https://github.com/starkandwayne/shield/issues/new" target="_blank">Github
-              Page</a>.</p>
-        
-              <pre>You can paste this additional information
-        into your Github issue:
-        
-        - **Wanted URL**: [[= _.wanted ]]
-        - **Arguments**:  ([[= _.args.join(', ') ]])
-        - **Referer**:    [[= maybe(_.referer, '_none_') ]]
-        </pre>
-            </div>
-        <!-- }}} --></script>
-        <script type="text/html" id="tpl--account"><!-- {{{ -->
-        [[#
-          {account}
-        
-          Shows the user their current account information,
-          including a form for changing their name (and, if
-          local, their password), and a list of all tenants
-          that they belong to, and their roles therein.
-        ]]
-            <div class="gutter blk account">
-              <h2>My Account</h2>
-        
-              <form>
-                <p><label for="name">Display</label>
-                <input type="text" value="" /></p>
-              </form>
-            </div>
-        <!-- }}} --></script>
-        <script type="text/html" id="tpl--init"><!-- {{{ -->
-        [[#
-          {init} template
-        
-          Renders a form allowing administrators (sys_role = admin) to initialize
-          this SHIELD core.
-        ]]
-            <div class="gutter blk">
-              <h2>This SHIELD Core is UNINITIALIZED</h2>
-              <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
-                 tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
-                 voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
-        
-              <form class="init-shield">
-                <label for="init-master">Create a SHIELD Master Password</label>
-                <input type="password" id="init-master" name="master">
-                <label for="init-confirm">Type it again, for good measure...</label>
-                <input type="password" id="init-confirm" name="confirm">
-                <button>Initialize</button>
-              </form>
-            </div>
-        <!-- }}} --></script>
-        <script type="text/html" id="tpl--unlock"><!-- {{{ -->
-        [[#
-          {unlock} template
-        
-          Renders a form allowing anyone with knowledge of the SHIELD master
-          password to unlock the SHIELD core, and resume normal operations.
-        ]]
-            <div class="gutter blk">
-              <h2>This SHIELD Core is LOCKED</h2>
-              <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
-                 tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
-                 voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
-        
-              <form class="unlock-shield">
-                <label for="unlock-master">Enter your SHIELD Master Password</label>
-                <input type="password" id="unlock-master" name="master"><button>Unlock</button>
-              </form>
-            </div>
-        <!-- }}} --></script>
-        <script type="text/html" id="tpl--do-backup"><!-- {{{ -->
-        [[#
-          {do-backup}
-        
-        ]]
-        [[
-          var stores = {};
-          if (!_.system) {
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--404"><!-- {{{ -->
+      [[#
+        {404} template
+      
+        Help a lost traveller on their way.
+      ]]
+          <div class="gutter blk e404">
+            <h2>Oops.  We Couldn't Find That...</h2>
+            <img src="/i/404.png" width="30%">
+            <p>Looks like someone or some<em>thing</em> directed you to a part of the SHIELD
+            web interface that just doesn't exist.  Bummer.  If you are sure this is SHIELD's
+            fault (and it very well could be), please report an issues over at our
+            <a href="https://github.com/starkandwayne/shield/issues/new" target="_blank">Github
+            Page</a>.</p>
+      
+            <pre>You can paste this additional information
+      into your Github issue:
+      
+      - **Wanted URL**: [[= _.wanted ]]
+      - **Arguments**:  ([[= _.args.join(', ') ]])
+      - **Referer**:    [[= maybe(_.referer, '_none_') ]]
+      </pre>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--account"><!-- {{{ -->
+      [[#
+        {account}
+      
+        Shows the user their current account information,
+        including a form for changing their name (and, if
+        local, their password), and a list of all tenants
+        that they belong to, and their roles therein.
+      ]]
+          <div class="gutter blk account">
+            <h2>My Account</h2>
+      
+            <form>
+              <p><label for="name">Display</label>
+              <input type="text" value="" /></p>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--init"><!-- {{{ -->
+      [[#
+        {init} template
+      
+        Renders a form allowing administrators (sys_role = admin) to initialize
+        this SHIELD core.
+      ]]
+        <div class="gutter blk">
+          <h2>This SHIELD Core is UNINITIALIZED</h2>
+          <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
+              tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
+              voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
+    
+          <form class="init-shield">
+            <label for="init-master">Create a SHIELD Master Password</label>
+            <input type="password" id="init-master" name="master">
+            <label for="init-confirm">Type it again, for good measure...</label>
+            <input type="password" id="init-confirm" name="confirm">
+            <button>Initialize</button>
+          </form>
+        </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--unlock"><!-- {{{ -->
+      [[#
+        {unlock} template
+      
+        Renders a form allowing anyone with knowledge of the SHIELD master
+        password to unlock the SHIELD core, and resume normal operations.
+      ]]
+        <div class="gutter blk">
+          <h2>This SHIELD Core is LOCKED</h2>
+          <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
+              tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
+              voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
+    
+          <form class="unlock-shield">
+            <label for="unlock-master">Enter your SHIELD Master Password</label>
+            <input type="password" id="unlock-master" name="master"><button>Unlock</button>
+          </form>
+        </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--do-backup"><!-- {{{ -->
+      [[#
+        {do-backup}
+      
+      ]]
+      [[
+        var stores = {};
+        if (!_.system) {
+          _.store = undefined;
+          _.policy = undefined;
+        }
+      
+        if (_.system && !_.store) {
+          _.policy = undefined;
+          $.each(_.system.jobs, function (i, job) {
+            _.store = stores[job.store.uuid] = job.store;
+            job.store.plugin = job.to;
+          });
+          if (_.noauto || Object.keys(stores).length != 1) {
             _.store = undefined;
-            _.policy = undefined;
           }
-        
-          if (_.system && !_.store) {
-            _.policy = undefined;
-            $.each(_.system.jobs, function (i, job) {
-              _.store = stores[job.store.uuid] = job.store;
-              job.store.plugin = job.to;
-            });
-            if (_.noauto || Object.keys(stores).length != 1) {
-              _.store = undefined;
-            }
-          }
+        }
 
-          var policies = {};
-          if (_.system && _.store && !_.policy) {
-            $.each(_.system.jobs, function(i, job) {
-              if (job.store.uuid = _.store.uuid) {
-                _.policy = policies[job.retention.uuid] = job.retention;
-              }
-            });
-            if (_.noauto || Object.keys(policies).length != 1) {
-              _.policy = undefined;
+        var policies = {};
+        if (_.system && _.store && !_.policy) {
+          $.each(_.system.jobs, function(i, job) {
+            if (job.store.uuid = _.store.uuid) {
+              _.policy = policies[job.retention.uuid] = job.retention;
             }
+          });
+          if (_.noauto || Object.keys(policies).length != 1) {
+            _.policy = undefined;
           }
-        ]]
-          <div class="gutter blk do-backup">
-            <p class="do-caption">Performing an Ad Hoc Backup</p>
-            <div class="picks">
-              [[ if (_.system) { ]]
-              <div class="job card [[ if (!_.system.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-              <a href="do-backup:unpick">
-                <img src="i/shield-[[= _.system.ok ? 'ok' : 'fail' ]].svg">
-                <h3>[[= _.system.name ]]</h3>
-                <div class="notes">[[= _.system.notes ]]</div>
-              </a>
-              </div>
-              [[ } else { ]]
-              <div class="job card empty">Protected System</div>
-              [[ } ]]
-              [[ if (_.store) { ]]
-              <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-              <a href="do-backup:unpick">
-                <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
-                <h3>[[= _.store.name ]]</h3>
-                <div class="notes">[[ if (_.store.summary) { ]]
-                  [[= _.store.summary ]]
-                [[ } else { ]]
-                  <div class="no-data">No summary provided.  Too bad.</div>
-                [[ } ]]</div>
-                <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
-                  <div class="to">[[= _.store.plugin ]]</div>
-                </div>
-              </a>
-              </div>
-              [[ } else { ]]
-              <div class="store card empty">Cloud Storage</div>
-              [[ } ]]
-              [[ if (_.policy) { ]]
-              <div class="policy card">
-              <a href="do-backup:unpick">
-                <h3>[[= _.policy.name ]]</h3>
-                <ul class="details">
-                  <li>keep for [[= _.policy.days ]] days</li>
-                </ul>
-                <div class="notes">[[= _.policy.summary ]]</div>
-              </a>
-              </div>
-              [[ } else { ]]
-              <div class="store card empty">Retention Policy</div>
-              [[ } ]]
+        }
+      ]]
+      <div class="gutter blk do-backup">
+        <p class="do-caption">Performing an Ad Hoc Backup</p>
+        <div class="picks">
+          [[ if (_.system) { ]]
+          <div class="job card [[ if (!_.system.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <a href="do-backup:unpick">
+            <img src="i/shield-[[= _.system.ok ? 'ok' : 'fail' ]].svg">
+            <h3>[[= _.system.name ]]</h3>
+            <div class="notes">[[= _.system.notes ]]</div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="job card empty">Protected System</div>
+          [[ } ]]
+          [[ if (_.store) { ]]
+          <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <a href="do-backup:unpick">
+            <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+            <h3>[[= _.store.name ]]</h3>
+            <div class="notes">[[ if (_.store.summary) { ]]
+              [[= _.store.summary ]]
+            [[ } else { ]]
+              <div class="no-data">No summary provided.  Too bad.</div>
+            [[ } ]]</div>
+            <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+              <div class="to">[[= _.store.plugin ]]</div>
             </div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="store card empty">Cloud Storage</div>
+          [[ } ]]
+          [[ if (_.policy) { ]]
+          <div class="policy card">
+          <a href="do-backup:unpick">
+            <h3>[[= _.policy.name ]]</h3>
+            <ul class="details">
+              <li>keep for [[= _.policy.days ]] days</li>
+            </ul>
+            <div class="notes">[[= _.policy.summary ]]</div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="store card empty">Retention Policy</div>
+          [[ } ]]
+        </div>
 
-            [[ if (!_.system) { ]]
-            <div class="step pick-a-system">
-              <h3>1. Pick What You Want To Back Up</h3>
-              <p>Which protected system you want to back up?</p>
+        [[ if (!_.system) { ]]
+        <div class="step pick-a-system">
+          <h3>1. Pick What You Want To Back Up</h3>
+          <p>Which protected system you want to back up?</p>
 
-              <div>
-              [[ $.each(_.systems, function (i, target) { ]]
-              <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-                <a href="do-backup:pick:target:[[= target.uuid ]]">
-                <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
-                <h3>[[= target.name ]]</h3>
-                <div class="notes">[[= target.notes ]]</div>
+          <div>
+          [[ $.each(_.systems, function (i, target) { ]]
+          <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <a href="do-backup:pick:target:[[= target.uuid ]]">
+            <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
+            <h3>[[= target.name ]]</h3>
+            <div class="notes">[[= target.notes ]]</div>
+            </a>
+          </div>
+          [[ }); ]]
+          </div>
+        </div>
+        [[ } ]]
+
+        [[ if (_.system && !_.store) { ]]
+        <div class="step pick-a-store">
+          <h3>2. Select Cloud Storage</h3>
+          <p>Where would you like to store this backup archive?</p>
+
+          <div>
+            [[ $.each(stores, function (uuid, store) { ]]
+                <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+                  <a href="do-backup:pick:store:[[= store.uuid ]]">
+                  <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+                  <h3>[[= store.name ]]</h3>
+                  <div class="notes">[[ if (store.summary) { ]]
+                    [[= store.summary ]]
+                  [[ } else { ]]
+                    <div class="no-data">No summary provided.  Too bad.</div>
+                  [[ } ]]</div>
+                  <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+                    <div class="to">[[= store.plugin ]]</div>
+                  </div>
+                  </a>
+                </div>
+            [[ }); ]]
+          </div>
+        </div>
+        [[ } ]]
+
+        [[ if (_.system && _.store && !_.policy) { ]]
+        <div class="step pick-a-retention-policy" style="display: block">
+          <h3>3. Choose a Retention Policy</h3>
+          <p>How long should we keep this backup?</p>
+
+          <div>
+            [[ $.each(policies, function (uuid, retention) { ]]
+              <div class="policy card">
+                <a href="do-backup:pick:policy:[[= retention.uuid ]]">
+                <h3>[[= retention.name ]]</h3>
+                <ul class="details">
+                  <li>keep for [[= retention.days ]] days</li>
+                </ul>
+                <div class="notes">[[= retention.summary ]]</div>
                 </a>
               </div>
-              [[ }); ]]
-              </div>
-            </div>
-            [[ } ]]
-
-            [[ if (_.system && !_.store) { ]]
-            <div class="step pick-a-store">
-              <h3>2. Select Cloud Storage</h3>
-              <p>Where would you like to store this backup archive?</p>
-
-              <div>
-                [[ $.each(stores, function (uuid, store) { ]]
-                    <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-                      <a href="do-backup:pick:store:[[= store.uuid ]]">
-                      <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
-                      <h3>[[= store.name ]]</h3>
-                      <div class="notes">[[ if (store.summary) { ]]
-                        [[= store.summary ]]
-                      [[ } else { ]]
-                        <div class="no-data">No summary provided.  Too bad.</div>
-                      [[ } ]]</div>
-                      <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
-                        <div class="to">[[= store.plugin ]]</div>
-                      </div>
-                      </a>
-                    </div>
-                [[ }); ]]
-              </div>
-            </div>
-            [[ } ]]
-
-            [[ if (_.system && _.store && !_.policy) { ]]
-            <div class="step pick-a-retention-policy" style="display: block">
-              <h3>3. Choose a Retention Policy</h3>
-              <p>How long should we keep this backup?</p>
-
-              <div>
-                [[ $.each(policies, function (uuid, retention) { ]]
-                  <div class="policy card">
-                    <a href="do-backup:pick:policy:[[= retention.uuid ]]">
-                    <h3>[[= retention.name ]]</h3>
-                    <ul class="details">
-                      <li>keep for [[= retention.days ]] days</li>
-                    </ul>
-                    <div class="notes">[[= retention.summary ]]</div>
-                    </a>
-                  </div>
-                [[ }); ]]
-              </div>
-              </div>
-            </div>
-            [[ } ]]
-
-            [[ if (_.system && _.store && _.policy) { ]]
-            [[
-              var uuid;
-              for (var i = 0; i < _.system.jobs.length; i++) {
-                var job = _.system.jobs[i];
-                if (job.store.uuid == _.store.uuid
-                  && job.retention.uuid == _.policy.uuid) {
-
-                  uuid = job.uuid;
-                  break;
-                }
-              }
-            ]]
-            <div class="step run-the-backup" style="display: block">
-              <h3>4. Review Your Choices</h3>
-              <p>If everything looks correct, click the big button to
-              initiate a manual backup of <strong>[[= _.system.name ]]</strong>
-              to <strong>[[= _.store.name ]]</strong> &mdash; backup archive will be kept
-              for <strong>[[= _.policy.days ]] days</strong>.</p>
-
-              <button rel="run:[[= uuid ]]">Run Backup &raquo;</button>
-            </div>
-            [[ } ]]
+            [[ }); ]]
           </div>
+          </div>
+        </div>
+        [[ } ]]
+
+        [[ if (_.system && _.store && _.policy) { ]]
+        [[
+          var uuid;
+          for (var i = 0; i < _.system.jobs.length; i++) {
+            var job = _.system.jobs[i];
+            if (job.store.uuid == _.store.uuid
+              && job.retention.uuid == _.policy.uuid) {
+
+              uuid = job.uuid;
+              break;
+            }
+          }
+        ]]
+        <div class="step run-the-backup" style="display: block">
+          <h3>4. Review Your Choices</h3>
+          <p>If everything looks correct, click the big button to
+          initiate a manual backup of <strong>[[= _.system.name ]]</strong>
+          to <strong>[[= _.store.name ]]</strong> &mdash; backup archive will be kept
+          for <strong>[[= _.policy.days ]] days</strong>.</p>
+
+          <button rel="run:[[= uuid ]]">Run Backup &raquo;</button>
+        </div>
+        [[ } ]]
+      </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--systems"><!-- {{{ -->
       [[#
