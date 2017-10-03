@@ -58,7 +58,7 @@ func Init(master string) error {
 }
 
 func Rekey(curmaster string, newmaster string) error {
-	uri, err := ShieldURI("/v2/rekey-master")
+	uri, err := ShieldURI("/v2/rekey")
 	if err != nil {
 		return err
 	}

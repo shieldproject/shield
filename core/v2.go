@@ -159,7 +159,7 @@ func (core *Core) v2API() *route.Router {
 		r.Success("Successfully unlocked the SHIELD core")
 	})
 	// }}}
-	r.Dispatch("POST /v2/rekey-master", func(r *route.Request) { // {{{
+	r.Dispatch("POST /v2/rekey", func(r *route.Request) { // {{{
 		var in struct {
 			CurMaster string `json:"current_master_password"`
 			NewMaster string `json:"new_master_password"`
