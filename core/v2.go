@@ -88,6 +88,20 @@ type v2PatchAnnotation struct {
 	Clear       string `json:"clear"`
 }
 
+type v2LocalTenant struct {
+	UUID string `json:"uuid"`
+	Name string `json:"name"`
+	Role string `json:"role"`
+}
+type v2LocalUser struct {
+	UUID    string `json:"uuid"`
+	Name    string `json:"name"`
+	Account string `json:"account"`
+	SysRole string `json:"sysrole"`
+
+	Tenants []v2LocalTenant `json:"tenants"`
+}
+
 func (core *Core) v2API() *route.Router {
 	r := &route.Router{}
 
@@ -212,6 +226,166 @@ func (core *Core) v2API() *route.Router {
 			}
 		}
 		r.Fail(route.NotFound(nil, "No such authentication provider: '%s'", r.Args[1]))
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/auth/local/users", func(r *route.Request) { // {{{
+		l, err := core.DB.GetAllUsers(&db.UserFilter{
+			Backend: "local",
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve local users information"))
+			return
+		}
+
+		users := make([]v2LocalUser, len(l))
+		for i, user := range l {
+			memberships, err := core.DB.GetMembershipsForUser(user.UUID)
+			if err != nil {
+				log.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
+					user.Account, user.Backend, user.UUID.String(), err)
+				r.Fail(route.Oops(err, "Unable to retrieve local users information"))
+				return
+			}
+
+			users[i] = v2LocalUser{
+				UUID:    user.UUID.String(),
+				Name:    user.Name,
+				Account: user.Account,
+				SysRole: user.SysRole,
+				Tenants: make([]v2LocalTenant, len(memberships)),
+			}
+			for j, membership := range memberships {
+				users[i].Tenants[j].UUID = membership.TenantUUID.String()
+				users[i].Tenants[j].Name = membership.TenantName
+				users[i].Tenants[j].Role = membership.Role
+			}
+		}
+
+		r.OK(users)
+	})
+	// }}}
+	r.Dispatch("GET /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
+		user, err := core.DB.GetUserByID(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve local user information"))
+			return
+		}
+
+		if user == nil {
+			r.Fail(route.NotFound(nil, "user '%s' not found (for local auth provider)", r.Args[1]))
+			return
+		}
+
+		r.OK(user)
+	})
+	// }}}
+	r.Dispatch("POST /v2/auth/local/users", func(r *route.Request) { // {{{
+		var in struct {
+			UUID     string `json:"uuid"`
+			Name     string `json:"name"`
+			Account  string `json:"account"`
+			Password string `json:"password"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		/* FIXME: need a better way of doing Missing Parameters */
+		e := MissingParameters()
+		e.Check("name", in.Name)
+		e.Check("account", in.Account)
+		e.Check("password", in.Password)
+		if e.IsValid() {
+			r.Fail(route.Bad(e, "%s", e))
+			return
+		}
+
+		var id uuid.UUID
+		if in.UUID != "" {
+			id = uuid.Parse(in.UUID)
+		}
+
+		u := &db.User{
+			UUID:    id,
+			Name:    in.Name,
+			Account: in.Account,
+			Backend: "local",
+			SysRole: "",
+		}
+		u.SetPassword(in.Password)
+
+		id, err := core.DB.CreateUser(u)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create local user '%s' (local auth provider)", in.Name))
+			return
+		}
+		r.OK(id)
+	})
+	// }}}
+	r.Dispatch("PATCH /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
+		/* FIXME rules for updating accounts:
+		     1. you can update your own account (except for sysrole)
+		     2. managers can update technicians and ''
+		     3. admins can update managers, technicians and ''
+		 */
+		var in struct {
+			Name     string `json:"name"`
+			Password string `json:"password"`
+			SysRole  string `json:"sysrole"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		/* FIXME: need a better way of doing Missing Parameters */
+		e := MissingParameters()
+		e.Check("name", in.Name)
+		if e.IsValid() {
+			r.Fail(route.Bad(e, "%s", e))
+			return
+		}
+
+		u := &db.User{
+			UUID: uuid.Parse(r.Args[1]),
+			Name: in.Name,
+			SysRole: in.SysRole,
+		}
+		if in.Password != "" {
+			u.SetPassword(in.Password)
+		}
+
+		err := core.DB.UpdateUser(u)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to update local user '%s' (local auth provider)", in.Name))
+			return
+		}
+
+		r.Success("Updated")
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
+		/* FIXME rules for deleting accounts:
+		     1. you cannot delete your own account
+		     2. managers can delete technicians and ''
+		     3. admins can delete managers, technicians and ''
+		 */
+		user, err := core.DB.GetUserByID(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve local user information"))
+			return
+		}
+		if user == nil || user.Backend != "local" {
+			r.Fail(route.NotFound(nil, "Local User '%s' not found", r.Args[1]))
+			return
+		}
+
+		err = core.DB.DeleteUser(user)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete local user '%s' (%s)", r.Args[1], user.Account))
+			return
+		}
+		r.Success("Successfully deleted user '%s' (%s@local)", r.Args[1], user.Account)
 	})
 	// }}}
 
@@ -380,6 +554,8 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/systems/:uuid", func(r *route.Request) { // {{{
+		/* FIXME */
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 

@@ -292,16 +292,21 @@ run 'shield-umc -h command-name'
 
 		} else {
 			tenant := findtenant(database, opt.Invite.Tenant)
-			for _, id := range args {
-				uid := finduser(database, id)
-				err := database.AddUserToTenant(uid, tenant, opt.Invite.Role)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "@R{failed to invite %s to be a %s on %s: %s}\n",
-						id, opt.Invite.Role, opt.Invite.Tenant, err)
-					rc = 1
-					continue
+			if tenant == "" {
+				fmt.Fprintf(os.Stderr, "@R{failed to invite users to tenant '%s': no such tenant}\n", opt.Invite.Tenant)
+				rc = 1
+			} else {
+				for _, id := range args {
+					uid := finduser(database, id)
+					err := database.AddUserToTenant(uid, tenant, opt.Invite.Role)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "@R{failed to invite %s to be a %s on %s: %s}\n",
+							id, opt.Invite.Role, opt.Invite.Tenant, err)
+						rc = 1
+						continue
+					}
+					fmt.Fprintf(os.Stderr, "Added @C{%s} as a %s on @C{%s}\n", id, opt.Invite.Role, opt.Invite.Tenant)
 				}
-				fmt.Fprintf(os.Stderr, "Added @C{%s} as a %s on @C{%s}\n", id, opt.Invite.Role, opt.Invite.Tenant)
 			}
 		}
 		os.Exit(rc)

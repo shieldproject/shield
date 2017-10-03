@@ -186,3 +186,9 @@ func (db *DB) UpdateUser(user *User) error {
 		user.Name, user.Account, user.Backend, user.SysRole, user.pwhash,
 		user.UUID.String())
 }
+
+func (db *DB) DeleteUser(user *User) error {
+	return db.Exec(`
+		DELETE FROM users
+		      WHERE uuid = ?`, user.UUID.String())
+}
