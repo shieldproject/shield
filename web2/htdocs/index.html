@@ -2371,36 +2371,6 @@
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--auth-providers"><!-- {{{ -->
-      [[#
-        {auth-providers} template
-      
-        Renders the list of configured authentication providers, including
-        details about how to integrate with their respective 3rd party auth
-        systems, i.e. Github oauth App registration, CF/UAA client creation,
-        etc.
-      ]]
-          <div class="gutter blk" id="auth-providers">
-            <h2>Authentication Providers</h2>
-            <table>
-              <thead><tr>
-                <th>Name</th>
-                <th>Identifier</th>
-                <th>Type</th>
-              </tr></thead>
-              <tbody>
-              [[ $.each(_.providers, function (i, provider) { ]]
-                <tr>
-                  <td>[[= provider.name ]]</td>
-                  <td><span class="tag">[[= provider.identifier ]]</span></td>
-                  <td>[[= provider.type ]] (<a href="#">configuration</a>)</td>
-                </tr>
-              [[ }); ]]
-              </tbody>
-            </table>
-          </div>
-    <!-- }}} --></script>
-
     <script type="text/html" id="tpl--"><!-- {{{ -->
     <!-- }}} --></script>
 
