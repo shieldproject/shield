@@ -27,6 +27,10 @@ const APIVersion = 2
 
 func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
+	case match(req, `GET /init.js`):
+		core.initJS(w, req)
+		return
+
 	case match(req, `POST /auth/login`):
 		core.authLogin(w, req)
 		return
@@ -463,6 +467,41 @@ func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
 	return true
 }
 
+func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "// init.js\n")
+	fmt.Fprintf(w, "var $global = {}\n")
+
+	health, err := core.checkHealth()
+	if err != nil {
+		log.Errorf("init.js: failed to check health of SHIELD core: %s", err)
+		fmt.Fprintf(w, "// failed to determine health of SHIELD core...\n")
+	} else {
+		b, err := json.Marshal(health)
+		if err != nil {
+			log.Errorf("init.js: failed to marshal health data into JSON: %s", err)
+			fmt.Fprintf(w, "// failed to determine health of SHIELD core...\n")
+			fmt.Fprintf(w, "$global.hud = {\"health\":{\"shield\":{\"core\":\"down\"}}};\n")
+		} else {
+			fmt.Fprintf(w, "$global.hud = %s;\n", string(b))
+		}
+	}
+
+	id, _ := core.checkAuth(req)
+	if id == nil {
+		fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
+	} else {
+		b, err := json.Marshal(id)
+		if err != nil {
+			log.Errorf("init.js: failed to marhsal auth id data into JSON: %s", err)
+			fmt.Fprintf(w, "// failed to determine user authentication state...\n")
+			fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
+		} else {
+			fmt.Fprintf(w, "$global.auth = %s;\n", string(b))
+		}
+	}
+	w.WriteHeader(200)
+}
+
 func (core *Core) authLogin(w http.ResponseWriter, req *http.Request) {
 	// only applies to the local backend configuration
 	// so we can assume that `username` and `password` are set in the
@@ -495,17 +534,14 @@ func (core *Core) authLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:  "shield7",
-		Value: session.UUID.String(),
-	})
+	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
 	w.Header().Set("Location", "/")
 	w.WriteHeader(302)
 }
 
 func (core *Core) authLogout(w http.ResponseWriter, req *http.Request) {
 	// unset the session cookie
-	cookie, err := req.Cookie("shield7")
+	cookie, err := req.Cookie(SessionCookieName)
 	if err != http.ErrNoCookie {
 		if err != nil {
 			w.Header().Set("Location", "/#!err")
@@ -526,68 +562,15 @@ func (core *Core) authLogout(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(302)
 }
 
-type authResponse struct {
-	User struct {
-		Name    string `json:"name"`
-		Account string `json:"account"`
-		Backend string `json:"backend"`
-	} `json:"user"`
-
-	Tenants []userTenancyInfo `json:"tenants"`
-}
-
 func (core *Core) authID(w http.ResponseWriter, req *http.Request) {
-
-	userInfo, err := core.getUserInfoFromRequest(req)
-	if err != nil && err != http.ErrNoCookie {
-		bailWithError(w, ClientErrorf(err.Error()))
-		return
-	}
-
-	if err == http.ErrNoCookie {
+	id, _ := core.checkAuth(req)
+	if id == nil {
 		JSONLiteral(w, `{"unauthenticated":true}`)
-		bailWithError(w, ClientErrorf(err.Error()))
-		return
-	}
-	if userInfo == nil {
-		JSONLiteral(w, `{"unauthenticated":true}`)
-		w.WriteHeader(500)
+		w.WriteHeader(200)
 		return
 	}
 
-	answer := authResponse{}
-	answer.User.Name = userInfo.User.Name
-	answer.User.Account = userInfo.User.Account
-
-	if userInfo.User.Backend == "local" {
-		answer.User.Backend = "SHIELD"
-
-	} else {
-		provider, err := core.FindAuthProvider(userInfo.User.Backend)
-		if err != nil {
-			bailWithError(w, ClientErrorf(err.Error()))
-			return
-		}
-		answer.User.Backend = provider.DisplayName()
-	}
-
-	memberships, err := core.DB.GetMembershipsForUser(uuid.Parse(userInfo.User.UUID))
-	if err != nil {
-		bailWithError(w, ClientErrorf(err.Error()))
-		return
-	}
-
-	answer.Tenants = make([]userTenancyInfo, len(memberships))
-	for i, membership := range memberships {
-		answer.Tenants[i].UUID = membership.TenantUUID
-		answer.Tenants[i].Name = membership.TenantName
-		answer.Tenants[i].Role = membership.Role
-	}
-	if err != nil {
-		bailWithError(w, ClientErrorf("%v", err))
-		return
-	}
-	JSON(w, answer)
+	JSON(w, id)
 }
 
 func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
@@ -1552,109 +1535,12 @@ func (core *Core) v1CancelTask(w http.ResponseWriter, req *http.Request) {
   }
 
 */
-type v2StorageHealth struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Name    string    `json:"name"`
-	Healthy bool      `json:"healthy"`
-}
-type v2JobHealth struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Target  string    `json:"target"`
-	Job     string    `json:"job"`
-	Healthy bool      `json:"healthy"`
-}
-type v2Health struct {
-	SHIELD struct {
-		Version string `json:"version"`
-		IP      string `json:"ip"`
-		FQDN    string `json:"fqdn"`
-		Env     string `json:"env"`
-		Color   string `json:"color"`
-	} `json:"shield"`
-	Health struct {
-		API         bool   `json:"api_ok"`
-		Storage     bool   `json:"storage_ok"`
-		Jobs        bool   `json:"jobs_ok"`
-		VaultStatus string `json:"vault_status"`
-	} `json:"health"`
-
-	Storage []v2StorageHealth `json:"storage"`
-	Jobs    []v2JobHealth     `json:"jobs"`
-
-	Stats struct {
-		Jobs     int `json:"jobs"`
-		Systems  int `json:"systems"`
-		Archives int `json:"archives"`
-		Storage  int `json:"storage"`
-		Daily    int `json:"daily"`
-	} `json:"stats"`
-}
-
 func (core *Core) v2GetHealth(w http.ResponseWriter, req *http.Request) {
-	var health v2Health
-
-	health.Health.API = true
-	health.SHIELD.Version = Version
-	health.SHIELD.Env = os.Getenv("SHIELD_NAME")
-	health.SHIELD.IP = core.ip
-	health.SHIELD.FQDN = core.fqdn
-
-	health.Health.Storage = true
-	stores, err := core.DB.GetAllStores(nil)
+	health, err := core.checkHealth()
 	if err != nil {
 		bail(w, err)
 		return
 	}
-	health.Storage = make([]v2StorageHealth, len(stores))
-	for i, store := range stores {
-		health.Storage[i].UUID = store.UUID
-		health.Storage[i].Name = store.Name
-		health.Storage[i].Healthy = true // FIXME
-		if !health.Storage[i].Healthy {
-			health.Health.Storage = false
-		}
-	}
-
-	health.Health.Jobs = true
-	jobs, err := core.DB.GetAllJobs(nil)
-	if err != nil {
-		bail(w, err)
-		return
-	}
-	health.Jobs = make([]v2JobHealth, len(jobs))
-	for i, job := range jobs {
-		health.Jobs[i].UUID = job.UUID
-		health.Jobs[i].Target = job.TargetName
-		health.Jobs[i].Job = job.Name
-		health.Jobs[i].Healthy = job.Healthy()
-
-		if !health.Jobs[i].Healthy {
-			health.Health.Jobs = false
-		}
-	}
-	health.Stats.Jobs = len(jobs)
-
-	if health.Health.VaultStatus, err = core.vault.Status(); err != nil {
-		bail(w, err)
-		return
-	}
-
-	if health.Stats.Systems, err = core.DB.CountTargets(nil); err != nil {
-		bail(w, err)
-		return
-	}
-
-	if health.Stats.Archives, err = core.DB.CountArchives(nil); err != nil {
-		bail(w, err)
-		return
-	}
-
-	if health.Stats.Storage, err = core.DB.ArchiveStorageFootprint(nil); err != nil {
-		bail(w, err)
-		return
-	}
-
-	health.Stats.Daily = 0 // FIXME
 
 	JSON(w, health)
 }
@@ -2123,6 +2009,7 @@ func (core *Core) v2PatchSystem(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v2DeleteSystem(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(501)
 
 }
 
@@ -2130,6 +2017,7 @@ func (core *Core) v2GetTenants(w http.ResponseWriter, req *http.Request) {
 	tenants, err := core.DB.GetAllTenants()
 	if err != nil {
 		bail(w, err)
+		return
 	}
 	JSON(w, tenants)
 }
@@ -2185,6 +2073,7 @@ func (core *Core) v2CreateTenant(w http.ResponseWriter, req *http.Request) {
 	}
 	JSON(w, t)
 }
+
 func (core *Core) v2UpdateTenant(w http.ResponseWriter, req *http.Request) {
 	if req.Body == nil {
 		w.WriteHeader(400)
@@ -2216,6 +2105,7 @@ func (core *Core) v2UpdateTenant(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v2PatchTenant(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(501)
 }
 
 func (core *Core) v2Unlock(w http.ResponseWriter, req *http.Request) {

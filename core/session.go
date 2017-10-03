@@ -23,7 +23,7 @@ func (core *Core) createSession(user *db.User) (*db.Session, error) {
 
 func SessionCookie(value string, valid bool) *http.Cookie {
 	c := &http.Cookie{
-		Name:  "shield7",
+		Name:  SessionCookieName,
 		Value: value,
 		Path:  "/",
 	}

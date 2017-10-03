@@ -25,6 +25,8 @@ import (
 
 var Version = "(development)"
 
+const SessionCookieName = "shield7"
+
 type Core struct {
 	fastloop *time.Ticker
 	slowloop *time.Ticker
@@ -164,6 +166,7 @@ func (core *Core) api() {
 	http.Handle("/v1/", core)
 	http.Handle("/v2/", core)
 	http.Handle("/auth/", core)
+	http.Handle("/init.js", core)
 	http.Handle("/", http.FileServer(http.Dir(core.webroot)))
 
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
