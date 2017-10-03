@@ -54,6 +54,9 @@ func (r *Request) Fail(e Error) {
 		return
 	}
 
+	if e.e != nil {
+		log.Errorf("%s errored: %s", r, e.e)
+	}
 	r.w.Header().Set("Content-Type", "application/json")
 
 	b, err := json.Marshal(e)
