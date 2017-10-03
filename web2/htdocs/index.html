@@ -2236,19 +2236,19 @@
             </table>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--rotate-keys"><!-- {{{ -->
+    <script type="text/html" id="tpl--rekey-master"><!-- {{{ -->
       [[#
-        {rotate-keys} template
+        {rekey-master} template
       
         Renders the list of configured authentication providers, including
         details about how to integrate with their respective 3rd party auth
         systems, i.e. Github oauth App registration, CF/UAA client creation,
         etc.
       ]]
-          <div class="gutter blk" id="rotate-keys">
-            <h2>Rotate Keys</h2>
+          <div class="gutter blk" id="rekey-master">
+            <h2>Rekey Shield Master Password</h2>
             <br>
-            <form class='rotate-keys form-group'>
+            <form class='rekey-master form-group'>
                 <dl class="form-group">
                     <dt><label for="current_password">Current Master Password</label></dt>
                     <dd><input name='current_master_password' class="form-group form-control" required="required" type='password'></dd>
@@ -3057,9 +3057,9 @@
         });
         break; /* #!/admin/auth */
         // }}}
-      case '#!/admin/rotate-keys': /* {{{ */
-        $('#main').html(template('rotate-keys'));
-        break; /* #!/admin/rotate-keys */
+      case '#!/admin/rekey-master': /* {{{ */
+        $('#main').html(template('rekey-master'));
+        break; /* #!/admin/rekey-master */
         // }}}
       default:
         $('#main').html(template('404', {
@@ -3255,39 +3255,39 @@
         }
       });
 
-      /* rotate shield master encryption keys. */
-      $('#main').on('submit', 'form.rotate-keys', function (event) {
+      /* rekey shield master encryption keys. */
+      $('#main').on('submit', 'form.rekey-master', function (event) {
         event.preventDefault();
         var creds = {};
-        $.each($('form.rotate-keys').serializeArray(), function(i, v) {
+        $.each($('form.rekey-master').serializeArray(), function(i, v) {
           creds[v.name] = v.value;
         });
 
         if(creds['confirm_new_master_password'] != creds['new_master_password']){
           banner("Passwords do not match!", 'error');
-          $('form.rotate-keys').find("input[type=password]").val("")
+          $('form.rekey-master').find("input[type=password]").val("")
           return;
         }
 
         if(creds['new_master_password'] == ''){
           banner("Master Password cannot be blank!", 'error');
-          $('form.rotate-keys').find("input[type=password]").val("")
+          $('form.rekey-master').find("input[type=password]").val("")
           return;
         }
 
         $.ajax({
           type: 'POST',
-          url:  '/v2/rotate-keys',
+          url:  '/v2/rekey-master',
           contentType: 'application/json',
           data: JSON.stringify(creds),
           success: function (data) {
             banner(data['ok']);
             //TODO: Potentially redirect to home screen/admin panel here?
-            $('form.rotate-keys').find("input[type=password]").val("")
+            $('form.rekey-master').find("input[type=password]").val("")
           },
           error: function (xhr) {
             banner(xhr.responseJSON['error'], 'error');
-            $('form.rotate-keys').find("input[type=password]").val("")
+            $('form.rekey-master').find("input[type=password]").val("")
           }
         });
       });

@@ -57,8 +57,8 @@ func Init(master string) error {
 	return nil
 }
 
-func Rotate(curmaster string, newmaster string) error {
-	uri, err := ShieldURI("/v2/rotate-keys")
+func Rekey(curmaster string, newmaster string) error {
+	uri, err := ShieldURI("/v2/rekey-master")
 	if err != nil {
 		return err
 	}
@@ -76,8 +76,8 @@ func Rotate(curmaster string, newmaster string) error {
 		return err
 	}
 	if err := uri.Post(&respMap, string(contentJSON)); err != nil {
-		if rotate_error, present := respMap["error"]; present {
-			return errors.New(rotate_error)
+		if rekey_error, present := respMap["error"]; present {
+			return errors.New(rekey_error)
 		}
 		return err
 	}

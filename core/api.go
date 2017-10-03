@@ -66,8 +66,8 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v2Init(w, req)
 		return
 
-	case match(req, `POST /v2/rotate-keys`):
-		core.v2RotateKeys(w, req)
+	case match(req, `POST /v2/rekey-master`):
+		core.v2Rekey(w, req)
 		return
 
 	//All api endpoints below have the mustBeUnlocked requirement such that if vault
@@ -2304,7 +2304,7 @@ func (core *Core) v2Init(w http.ResponseWriter, req *http.Request) {
 	JSONLiteral(w, `{"ok":"Initialized Key Database"}`)
 }
 
-func (core *Core) v2RotateKeys(w http.ResponseWriter, req *http.Request) {
+func (core *Core) v2Rekey(w http.ResponseWriter, req *http.Request) {
 	if req.Body == nil {
 		w.WriteHeader(400)
 		return
@@ -2337,5 +2337,5 @@ func (core *Core) v2RotateKeys(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	JSONLiteral(w, `{"ok":"Keys have been rotated successfully"}`)
+	JSONLiteral(w, `{"ok":"Shield encryption database has been rekeyed successfully"}`)
 }

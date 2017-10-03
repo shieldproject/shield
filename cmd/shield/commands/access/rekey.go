@@ -11,18 +11,18 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-//Rotate - Rotates the encryption database keys
-var Rotate = &commands.Command{
-	Summary: "Rotate the encryption database keys",
+//Rekey - Rekeys the encryption database keys
+var Rekey = &commands.Command{
+	Summary: "Rekey the encryption database keys",
 	Help:    &commands.HelpInfo{},
-	RunFn:   cliRotate,
+	RunFn:   cliRekey,
 	Group:   commands.AccessGroup,
 }
 
-func cliRotate(opts *commands.Options, args ...string) error {
-	log.DEBUG("running 'rotate' command")
+func cliRekey(opts *commands.Options, args ...string) error {
+	log.DEBUG("running 'rekey' command")
 
-	internal.Require(len(args) == 0, "USAGE: shield rotate")
+	internal.Require(len(args) == 0, "USAGE: shield rekey")
 
 	curmaster := SecurePrompt("%s @Y{[hidden]:} ", "current_master_password")
 
@@ -38,10 +38,10 @@ func cliRotate(opts *commands.Options, args ...string) error {
 		}
 		ansi.Fprintf(os.Stderr, "\n@Y{oops, passwords do not match: try again }(Ctrl-C to cancel)\n\n")
 	}
-	if err := api.Rotate(curmaster, newmaster); err != nil {
+	if err := api.Rekey(curmaster, newmaster); err != nil {
 		return err
 	}
 
-	commands.OK("Successfully rotated the encryption database keys")
+	commands.OK("Successfully rekeyed the encryption database")
 	return nil
 }

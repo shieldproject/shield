@@ -242,7 +242,7 @@ func addCommands() {
 
 	cmds.Add("unlock", access.Unlock).AKA("unseal")
 	cmds.Add("init", access.Init).AKA("initialize")
-	cmds.Add("rotate", access.Rotate).AKA("rotate-keys")
+	cmds.Add("rekey", access.Rekey).AKA("rekey-master")
 
 }
 
