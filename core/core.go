@@ -164,7 +164,7 @@ func (core *Core) Run() error {
 
 func (core *Core) api() {
 	http.Handle("/v1/", core)
-	http.Handle("/v2/", core)
+	http.Handle("/v2/", core.v2API())
 	http.Handle("/auth/", core)
 	http.Handle("/init.js", core)
 	http.Handle("/", http.FileServer(http.Dir(core.webroot)))
