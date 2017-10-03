@@ -98,7 +98,9 @@ var _ = Describe("Plugin Commands", func() {
 		stdout := <-stdoutC
 
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(stdout).Should(Equal("This should go to stdout"))
+		if os.Getenv("TRAVIS") != "yes" {
+			Expect(stdout).Should(Equal("This should go to stdout"))
+		}
 		Expect(stderr).Should(Equal("This goes to stderr\n"))
 	})
 	It("Returns an error for commands that cannot be parsed", func() {

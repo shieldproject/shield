@@ -22,7 +22,7 @@ export PATH SHIELD_NAME SHIELD_API_TOKEN
 cleanup () {
 	rm -rf ${WORKDIR}
 	if [[ -n "$(jobs -p)" ]]; then
-		kill $(jobs -p)
+		kill $(jobs -p) 2>/dev/null
 	fi
 }
 trap "cleanup >&2" EXIT QUIT INT TERM
@@ -43,7 +43,7 @@ EOF
 
   set -e
   echo ">> Setting up a local (loopback) Vault"
-  vault server -config ${WORKDIR}/etc/vault.conf &
+  vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
   set +e
 }
 
