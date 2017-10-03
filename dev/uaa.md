@@ -10,21 +10,23 @@ This configuration gives you a single admin user with the password "PASSWORD"
 
 Deploy the uaa-release with the manifest in the SHIELD repo, at `dev/uaa.yml`
 
-```
+```shell
+
 bosh -e env upload release ...
 bosh -e env deploy -d shield-test-uaa dev/uaa.yml
+
 ```
 
 ## Install cf-uaac Gem
 
-```
+```shell
 gem install cf-uaac
 uaac version
 ```
 
 ## Authenticate to UAA
 
-```
+```shell
 uaac target --skip-ssl-validation https://uaa.shield.10.244.156.2.netip.cc:8443
 
 uaac token client get admin
@@ -34,7 +36,7 @@ uaac token client get admin
 
 ## Create a new UAA Client for SHIELD
 
-```
+```shell
 uaac client add shield-dev \
   --name S.H.I.E.L.D. \
   --scope openid \
