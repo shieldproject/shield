@@ -199,7 +199,7 @@ func (core *Core) v2API() *route.Router {
 		r.OK(l)
 	})
 	// }}}
-	r.Dispatch("GET /v2/auth/provider/:name", func(r *route.Request) { // {{{
+	r.Dispatch("GET /v2/auth/providers/:name", func(r *route.Request) { // {{{
 		for _, a := range core.auth {
 			if a.Identifier == r.Args[1] {
 				r.OK(&v2AuthProviderFull{
@@ -242,7 +242,7 @@ func (core *Core) v2API() *route.Router {
 		r.OK(systems)
 	})
 	// }}}
-	r.Dispatch("GET /v2/system/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("GET /v2/systems/:uuid", func(r *route.Request) { // {{{
 		log.Debugf("%s: got args [%v]", r, r.Args)
 		target, err := core.DB.GetTarget(uuid.Parse(r.Args[1]))
 		if err != nil {
@@ -322,12 +322,12 @@ func (core *Core) v2API() *route.Router {
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PUT /v2/system/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PUT /v2/systems/:uuid", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PATCH /v2/system/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PATCH /v2/systems/:uuid", func(r *route.Request) { // {{{
 		var in struct {
 			Annotations []v2PatchAnnotation `json:"annotations"`
 		}
@@ -379,7 +379,7 @@ func (core *Core) v2API() *route.Router {
 		r.Success("annotated successfully")
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/system/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/systems/:uuid", func(r *route.Request) { // {{{
 	})
 	// }}}
 
@@ -486,7 +486,7 @@ func (core *Core) v2API() *route.Router {
 		r.OK(t)
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenant/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PUT /v2/tenants/:uuid", func(r *route.Request) { // {{{
 		var in struct {
 			UUID string `json:"uuid"`
 			Name string `json:"name"`
@@ -512,12 +512,12 @@ func (core *Core) v2API() *route.Router {
 		r.OK(t)
 	})
 	// }}}
-	r.Dispatch("PATCH /v2/tenant/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PATCH /v2/tenants/:uuid", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PATCH /v2/tenant/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PATCH /v2/tenants/:uuid", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
