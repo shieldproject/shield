@@ -156,7 +156,34 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.Success("Successfully unlocked the SHIELD core success")
+		r.Success("Successfully unlocked the SHIELD core")
+	})
+	// }}}
+	r.Dispatch("POST /v2/rekey-master", func(r *route.Request) { // {{{
+		var in struct {
+			CurMaster string `json:"current_master_password"`
+			NewMaster string `json:"new_master_password"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		/* FIXME: need a better way of doing Missing Parameters */
+		e := MissingParameters()
+		e.Check("current_master_password", in.CurMaster)
+		e.Check("new_master_password", in.NewMaster)
+		if e.IsValid() {
+			r.Fail(route.Bad(e, "%s", e))
+			return
+		}
+
+		err := core.Rekey(in.CurMaster, in.NewMaster)
+		if err != nil {
+			r.Fail(route.Oops(err, "failed to rekey the SHIELD core"))
+			return
+		}
+
+		r.Success("Successfully rekeyed the SHIELD core")
 	})
 	// }}}
 

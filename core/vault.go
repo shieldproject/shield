@@ -37,3 +37,17 @@ func (core *Core) Unlock(master string) (bool, error) {
 
 	return true, nil
 }
+
+func (core *Core) Rekey(current, proposed string) error {
+	creds, err := core.vault.ReadConfig(core.vaultKeyfile, current)
+	if err != nil {
+		return err
+	}
+
+	err = core.vault.WriteConfig(core.vaultKeyfile, proposed, creds)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
