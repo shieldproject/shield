@@ -9,11 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/markbates/goth/gothic"
-
-	"github.com/gorilla/sessions"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/github"
 	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/goutils/log"
@@ -168,12 +163,6 @@ func (core *Core) api() {
 	http.Handle("/auth/", core)
 	http.Handle("/init.js", core)
 	http.Handle("/", http.FileServer(http.Dir(core.webroot)))
-
-	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
-
-	goth.UseProviders(
-		github.New(os.Getenv("GITHUB_KEY"), os.Getenv("GITHUB_SECRET"), "http://localhost:8181/auth/github/callback"),
-	)
 
 	log.Infof("starting up api listener on %s", core.listen)
 	go func() {
