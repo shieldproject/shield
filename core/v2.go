@@ -325,10 +325,10 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("PATCH /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
 		/* FIXME rules for updating accounts:
-		     1. you can update your own account (except for sysrole)
-		     2. managers can update technicians and ''
-		     3. admins can update managers, technicians and ''
-		 */
+		   1. you can update your own account (except for sysrole)
+		   2. managers can update technicians and ''
+		   3. admins can update managers, technicians and ''
+		*/
 		var in struct {
 			Name     string `json:"name"`
 			Password string `json:"password"`
@@ -347,8 +347,8 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		u := &db.User{
-			UUID: uuid.Parse(r.Args[1]),
-			Name: in.Name,
+			UUID:    uuid.Parse(r.Args[1]),
+			Name:    in.Name,
 			SysRole: in.SysRole,
 		}
 		if in.Password != "" {
@@ -366,10 +366,10 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("DELETE /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
 		/* FIXME rules for deleting accounts:
-		     1. you cannot delete your own account
-		     2. managers can delete technicians and ''
-		     3. admins can delete managers, technicians and ''
-		 */
+		   1. you cannot delete your own account
+		   2. managers can delete technicians and ''
+		   3. admins can delete managers, technicians and ''
+		*/
 		user, err := core.DB.GetUserByID(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve local user information"))
