@@ -38,7 +38,7 @@ func cliDeleteArchive(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		internal.ShowArchive(archive)
+		Show(archive)
 		if !tui.Confirm("Really delete this archive?") {
 			return internal.ErrCanceled
 		}

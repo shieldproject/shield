@@ -30,7 +30,7 @@ func cliDeleteJob(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		internal.ShowJob(job)
+		Show(job, opts.APIVersion == 1)
 		if !tui.Confirm("Really delete this backup job?") {
 			return internal.ErrCanceled
 		}
@@ -38,6 +38,10 @@ func cliDeleteJob(opts *commands.Options, args ...string) error {
 
 	if err := api.DeleteJob(id); err != nil {
 		return err
+	}
+
+	if opts.APIVersion == 1 {
+		maybeGCSchedule(job.ScheduleUUID)
 	}
 
 	commands.OK("Deleted job")

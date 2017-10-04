@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/pborman/getopt/v2"
 	"github.com/starkandwayne/goutils/ansi"
@@ -15,7 +16,6 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/info"
 	"github.com/starkandwayne/shield/cmd/shield/commands/jobs"
 	"github.com/starkandwayne/shield/cmd/shield/commands/policies"
-	"github.com/starkandwayne/shield/cmd/shield/commands/schedules"
 	"github.com/starkandwayne/shield/cmd/shield/commands/stores"
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tasks"
@@ -108,6 +108,11 @@ func main() {
 	//Check if user gave a valid command
 	if cmd == nil {
 		ansi.Fprintf(os.Stderr, "@R{unrecognized command `%s'}\n", cmdname)
+
+		re := regexp.MustCompile("schedule")
+		if re.MatchString(cmdname) {
+			warnScheduleDeprecation()
+		}
 		os.Exit(1)
 	}
 
@@ -210,12 +215,6 @@ func addCommands() {
 	cmds.Add("edit-store", stores.Edit).AKA("edit store")
 	cmds.Add("delete-store", stores.Delete).AKA("delete store")
 
-	cmds.Add("schedules", schedules.List)
-	cmds.Add("schedule", schedules.Get)
-	cmds.Add("create-schedule", schedules.Create).AKA("create schedule")
-	cmds.Add("edit-schedule", schedules.Edit).AKA("edit schedule")
-	cmds.Add("delete-schedule", schedules.Delete).AKA("delete schedule")
-
 	cmds.Add("policies", policies.List).AKA("retention policies", "retention-policies")
 	cmds.Add("policy", policies.Get).AKA("retention policy", "retention-policy")
 	cmds.Add("create-policy", policies.Create).AKA("create retention policy", "create-retention-policy", "create policy")
@@ -270,4 +269,14 @@ func addGlobalFlags() {
 func apiVersion() (int, error) {
 	status, err := api.GetStatus()
 	return status.APIVersion, err
+}
+
+func warnScheduleDeprecation() {
+	output := `
+As of SHIELD v8, schedules are no longer objects in the job flow, and have been
+reduced to simply the timespec string (e.g. daily 4am), which is now attached
+directly to a job. Therefore, schedule commands have been removed from the CLI.
+The CLI is still backward-compatible, and when contacting SHIELD deployments
+which still expect a SHIELD, it will manage schedules for you transparently.`
+	ansi.Fprintf(os.Stderr, "@R{%s}\n", output)
 }

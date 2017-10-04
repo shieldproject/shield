@@ -1,14 +1,35 @@
 package api
 
 import (
+	"encoding/json"
+
 	"github.com/pborman/uuid"
 )
 
 type Schedule struct {
-	UUID    string `json:"uuid"`
+	UUID    string `json:"uuid,omitempty"`
 	Name    string `json:"name"`
 	Summary string `json:"summary"`
 	When    string `json:"when"`
+}
+
+//Create sends a request to the SHIELD core to create a new schedule object.
+// Returns the UUID of the created schedule
+func (s *Schedule) Create() (string, error) {
+	data := struct {
+		UUID string `json:"uuid"`
+	}{}
+	uri, err := ShieldURI("/v1/schedules")
+	if err != nil {
+		return "", err
+	}
+
+	contentJSON, err := json.Marshal(s)
+	if err != nil {
+		panic("Schedule given to Create was nil")
+	}
+	err = uri.Post(&data, string(contentJSON))
+	return data.UUID, err
 }
 
 type ScheduleFilter struct {

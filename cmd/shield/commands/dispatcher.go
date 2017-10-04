@@ -25,16 +25,15 @@ type HelpGroup struct {
 
 //Enumeration for HelpGroupTypes
 var (
-	InfoGroup      = &HelpGroup{name: "INFO"}
-	BackendsGroup  = &HelpGroup{name: "BACKENDS"}
-	TargetsGroup   = &HelpGroup{name: "TARGETS"}
-	StoresGroup    = &HelpGroup{name: "STORES"}
-	SchedulesGroup = &HelpGroup{name: "SCHEDULES"}
-	PoliciesGroup  = &HelpGroup{name: "POLICIES"}
-	JobsGroup      = &HelpGroup{name: "JOBS"}
-	ArchivesGroup  = &HelpGroup{name: "ARCHIVES"}
-	AccessGroup    = &HelpGroup{name: "ACCESS"}
-	TasksGroup     = &HelpGroup{name: "TASKS"}
+	InfoGroup     = &HelpGroup{name: "INFO"}
+	BackendsGroup = &HelpGroup{name: "BACKENDS"}
+	TargetsGroup  = &HelpGroup{name: "TARGETS"}
+	StoresGroup   = &HelpGroup{name: "STORES"}
+	PoliciesGroup = &HelpGroup{name: "POLICIES"}
+	JobsGroup     = &HelpGroup{name: "JOBS"}
+	ArchivesGroup = &HelpGroup{name: "ARCHIVES"}
+	AccessGroup   = &HelpGroup{name: "ACCESS"}
+	TasksGroup    = &HelpGroup{name: "TASKS"}
 )
 
 func (h *HelpGroup) addCommand(c *Command) {
@@ -70,7 +69,6 @@ func CommandString() string {
 		InfoGroup,
 		BackendsGroup,
 		TargetsGroup,
-		SchedulesGroup,
 		PoliciesGroup,
 		StoresGroup,
 		JobsGroup,
@@ -131,6 +129,8 @@ func AliasesFor(command *Command) []string {
 //of the input array to be used as Command args. Returns nil, "the bad command", nil if no
 //match can be found
 func ParseCommand(userInput ...string) (cmd *Command, givenName string, args []string) {
+	givenName = strings.Join(userInput, " ")
+
 	if len(userInput) == 0 {
 		userInput = []string{"help"}
 	}
