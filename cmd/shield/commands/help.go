@@ -81,7 +81,7 @@ func (f FlagInfo) formatLong() (formatted string) {
 	if f.Positional {
 		return fmt.Sprintf("<%s>", f.Name)
 	} else if f.Valued {
-		return fmt.Sprintf("--%s=value", f.Name)
+		return fmt.Sprintf("--%s VALUE", f.Name)
 	}
 	return fmt.Sprintf("--%s", f.Name)
 }
@@ -107,7 +107,11 @@ func (f FlagInfo) lenShort() (length int) {
 
 func (f FlagInfo) lenLong() (length int) {
 	if f.Name != "" {
-		return len(f.Name) + 2
+		var additionalLength int
+		if f.Valued {
+			additionalLength = 6
+		}
+		return len(f.Name) + 2 + additionalLength
 	}
 	panic("flag name not set")
 }
