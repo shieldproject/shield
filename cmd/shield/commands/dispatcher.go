@@ -26,6 +26,7 @@ type HelpGroup struct {
 //Enumeration for HelpGroupTypes
 var (
 	InfoGroup     = &HelpGroup{name: "INFO"}
+	MiscGroup     = &HelpGroup{name: "MISCELLANEOUS"}
 	BackendsGroup = &HelpGroup{name: "BACKENDS"}
 	TargetsGroup  = &HelpGroup{name: "TARGETS"}
 	StoresGroup   = &HelpGroup{name: "STORES"}
@@ -67,6 +68,7 @@ func CommandString() string {
 	var helpLines []string
 	groupList := []*HelpGroup{
 		InfoGroup,
+		MiscGroup,
 		BackendsGroup,
 		TargetsGroup,
 		PoliciesGroup,

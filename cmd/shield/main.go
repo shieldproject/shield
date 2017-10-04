@@ -15,6 +15,7 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/backends"
 	"github.com/starkandwayne/shield/cmd/shield/commands/info"
 	"github.com/starkandwayne/shield/cmd/shield/commands/jobs"
+	"github.com/starkandwayne/shield/cmd/shield/commands/misc"
 	"github.com/starkandwayne/shield/cmd/shield/commands/policies"
 	"github.com/starkandwayne/shield/cmd/shield/commands/stores"
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
@@ -196,6 +197,8 @@ func main() {
 func addCommands() {
 	cmds.Add("help", info.Usage).AKA("usage", "commands")
 	cmds.Add("status", info.Status)
+
+	cmds.Add("curl", misc.Curl)
 
 	cmds.Add("backends", backends.List)
 	cmds.Add("backend", backends.Use).AKA("use backend", "use-backend")
