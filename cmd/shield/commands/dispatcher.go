@@ -129,6 +129,8 @@ func AliasesFor(command *Command) []string {
 //of the input array to be used as Command args. Returns nil, "the bad command", nil if no
 //match can be found
 func ParseCommand(userInput ...string) (cmd *Command, givenName string, args []string) {
+	givenName = strings.Join(userInput, " ")
+
 	if len(userInput) == 0 {
 		userInput = []string{"help"}
 	}
