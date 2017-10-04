@@ -1330,6 +1330,24 @@
         border-radius: 3px;
         box-shadow: inset 0 1px 2px rgba(27,31,35,0.075);
       }
+
+      #admin-home ul li {
+        margin: 2em 0 1em 2em;
+        width: 60%;
+      }
+      #admin-home ul a {
+        display: block;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 16pt;
+        margin: 0 0 0.5em 0;
+        color: #0071BC;
+      }
+      #admin-home ul p {
+        font-size: 11pt;
+        color: #333;
+        margin-bottom: 3em;
+      }
     /* }}} */</style>
   </head>
   <body>
@@ -2262,32 +2280,29 @@
 
         Renders the administrator control panel.
       ]]
-          <div class="gutter blk">
+          <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
-              <li><a href="#!/agents">Agents of SHIELD</a>
-                <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
-                adipisci velit, sed. Ut enim ad minima veniam, quis nostrum exercitationem ullam.
-                Et harum quidem rerum facilis est. Sed ut perspiciatis unde omnis iste natus.
-                Excepteur sint occaecat cupidatat non proident, sunt in.</p>
+              <li><a href="#!/admin/agents">Agents of SHIELD</a>
+                <p>SHIELD performs backup and restore operations through <em>agents</em> that run
+                on other machines.  These agents register with the SHIELD Core, and provide
+                metadata that is essential to the configuration of your data protection jobs.</p>
               </li>
               <li><a href="#!/admin/auth">Authentication Providers</a>
-                <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
-                adipisci velit, sed. Ut enim ad minima veniam, quis nostrum exercitationem ullam.
-                Et harum quidem rerum facilis est. Sed ut perspiciatis unde omnis iste natus.
-                Excepteur sint occaecat cupidatat non proident, sunt in.</p>
+                <p>SHIELD can authenticate (and authorize) users against 3rd party OAuth2
+                implementations like Github and UAA.  These authentication <em>providers</em>
+                are configured in the SHIELD Core configuration file, but you can review their
+                configuration here.</p>
               </li>
               <li><a href="#!/admin/users">Local User Management</a>
-                <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
-                adipisci velit, sed. Ut enim ad minima veniam, quis nostrum exercitationem ullam.
-                Et harum quidem rerum facilis est. Sed ut perspiciatis unde omnis iste natus.
-                Excepteur sint occaecat cupidatat non proident, sunt in.</p>
+                <p>Local SHIELD user accounts can be set up to provide access to your SHIELD if
+                you do not want to use a 3rd party authentication provider.  Local users can be
+                granted system roles and be given roles on tenants.</p>
               </li>
-              <li><a href="#!/admin/reke">Rekey SHIELD Core</a>
-                <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur,
-                adipisci velit, sed. Ut enim ad minima veniam, quis nostrum exercitationem ullam.
-                Et harum quidem rerum facilis est. Sed ut perspiciatis unde omnis iste natus.
-                Excepteur sint occaecat cupidatat non proident, sunt in.</p>
+              <li><a href="#!/admin/rekey">Rekey SHIELD Core</a>
+                <p>The SHIELD Core stores all of the archive encryption keys in a secure storage
+                vault, which is protected by the SHIELD <em>master password</em>.  If you need or
+                want to, you can rekey this SHIELD Core and pick a new master password.</p>
               </li>
             </ul>
           </div>
@@ -2373,19 +2388,19 @@
             </table>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--rekey-master"><!-- {{{ -->
+    <script type="text/html" id="tpl--rekey"><!-- {{{ -->
       [[#
-        {rekey-master} template
+        {rekey} template
       
         Renders the list of configured authentication providers, including
         details about how to integrate with their respective 3rd party auth
         systems, i.e. Github oauth App registration, CF/UAA client creation,
         etc.
       ]]
-          <div class="gutter blk" id="rekey-master">
+          <div class="gutter blk" id="rekey">
             <h2>Rekey Shield Master Password</h2>
             <br>
-            <form class='rekey-master form-group'>
+            <form class='rekey form-group'>
                 <dl class="form-group">
                     <dt><label for="current_password">Current Master Password</label></dt>
                     <dd><input name='current_master_password' class="form-group form-control" required="required" type='password'></dd>
@@ -3298,9 +3313,9 @@
         });
         break; /* #!/admin/auth */
         // }}}
-      case '#!/admin/rekey-master': /* {{{ */
-        $('#main').html(template('rekey-master'));
-        break; /* #!/admin/rekey-master */
+      case '#!/admin/rekey': /* {{{ */
+        $('#main').html(template('rekey'));
+        break; /* #!/admin/rekey */
         // }}}
       case '#!/admin/users': /* {{{ */
         $.ajax({
@@ -3601,38 +3616,38 @@
       });
 
       /* rekey shield master encryption keys. */
-      $('#main').on('submit', 'form.rekey-master', function (event) {
+      $('#main').on('submit', 'form.rekey', function (event) {
         event.preventDefault();
         var creds = {};
-        $.each($('form.rekey-master').serializeArray(), function(i, v) {
+        $.each($('form.rekey').serializeArray(), function(i, v) {
           creds[v.name] = v.value;
         });
 
         if(creds['confirm_new_master_password'] != creds['new_master_password']){
           banner("Passwords do not match!", 'error');
-          $('form.rekey-master').find("input[type=password]").val("")
+          $('form.rekey').find("input[type=password]").val("")
           return;
         }
 
         if(creds['new_master_password'] == ''){
           banner("Master Password cannot be blank!", 'error');
-          $('form.rekey-master').find("input[type=password]").val("")
+          $('form.rekey').find("input[type=password]").val("")
           return;
         }
 
         $.ajax({
           type: 'POST',
-          url:  '/v2/rekey-master',
+          url:  '/v2/rekey',
           contentType: 'application/json',
           data: JSON.stringify(creds),
           success: function (data) {
             banner(data['ok']);
             //TODO: Potentially redirect to home screen/admin panel here?
-            $('form.rekey-master').find("input[type=password]").val("")
+            $('form.rekey').find("input[type=password]").val("")
           },
           error: function (xhr) {
             banner(xhr.responseJSON['error'], 'error');
-            $('form.rekey-master').find("input[type=password]").val("")
+            $('form.rekey').find("input[type=password]").val("")
           }
         });
       });
