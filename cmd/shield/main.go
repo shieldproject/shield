@@ -15,7 +15,6 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/info"
 	"github.com/starkandwayne/shield/cmd/shield/commands/jobs"
 	"github.com/starkandwayne/shield/cmd/shield/commands/policies"
-	"github.com/starkandwayne/shield/cmd/shield/commands/schedules"
 	"github.com/starkandwayne/shield/cmd/shield/commands/stores"
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tasks"
@@ -209,12 +208,6 @@ func addCommands() {
 	cmds.Add("create-store", stores.Create).AKA("create store")
 	cmds.Add("edit-store", stores.Edit).AKA("edit store")
 	cmds.Add("delete-store", stores.Delete).AKA("delete store")
-
-	cmds.Add("schedules", schedules.List)
-	cmds.Add("schedule", schedules.Get)
-	cmds.Add("create-schedule", schedules.Create).AKA("create schedule")
-	cmds.Add("edit-schedule", schedules.Edit).AKA("edit schedule")
-	cmds.Add("delete-schedule", schedules.Delete).AKA("delete schedule")
 
 	cmds.Add("policies", policies.List).AKA("retention policies", "retention-policies")
 	cmds.Add("policy", policies.Get).AKA("retention policy", "retention-policy")

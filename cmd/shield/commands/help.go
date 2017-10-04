@@ -175,12 +175,6 @@ var (
 		Desc: `A string partially matching the name of a single target
 				or a UUID exactly matching the UUID of a target.`,
 	}
-	//ScheduleNameFlag <schedulename>
-	ScheduleNameFlag = FlagInfo{
-		Name: "schedulename", Positional: true, Mandatory: true,
-		Desc: `A string partially matching the name of a single schedule
-				or a UUID exactly matching the UUID of a schedule.`,
-	}
 	//PolicyNameFlag <policyname>
 	PolicyNameFlag = FlagInfo{
 		Name: "policyname", Positional: true, Mandatory: true,
