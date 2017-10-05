@@ -21,8 +21,7 @@ type Options struct {
 	Version bool   `cli:"-v, --version"`
 	Config  string `cli:"-c, --config"`
 
-	Driver string `cli:"-T, --type" env:"SHIELD_DB_TYPE"`
-	DSN    string `cli:"-d, --dsn"  env:"SHIELD_DB_DSN"`
+	Database string `cli:"-d, --database"  env:"SHIELD_DB"`
 
 	Tenants struct {
 	} `cli:"tenants"`
@@ -111,18 +110,14 @@ run 'shield-umc -h command-name'
 		os.Exit(0)
 	}
 
-	if opt.Driver == "" {
-		fmt.Fprintf(os.Stderr, "@R{missing required --type option}\n")
-		os.Exit(1)
-	}
-	if opt.DSN == "" {
-		fmt.Fprintf(os.Stderr, "@R{missing required --dsn option}\n")
+	if opt.Database == "" {
+		fmt.Fprintf(os.Stderr, "@R{missing required --database option}\n")
 		os.Exit(1)
 	}
 
 	database := &db.DB{
-		Driver: opt.Driver,
-		DSN:    opt.DSN,
+		Driver: "sqlite3",
+		DSN:    opt.Database,
 	}
 	if err := database.Connect(); err != nil {
 		fmt.Fprintf(os.Stderr, "@R{%s}\n", err)

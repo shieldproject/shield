@@ -18,8 +18,7 @@ type Config struct {
 	SlowLoop int `yaml:"slow_loop"`
 	FastLoop int `yaml:"fast_loop"`
 
-	DBType string `yaml:"database_type"`
-	DBPath string `yaml:"database_dsn"`
+	DBPath string `yaml:"database"`
 
 	Addr          string `yaml:"listen_addr"`
 	KeyFile       string `yaml:"private_key"`
