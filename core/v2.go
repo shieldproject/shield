@@ -131,12 +131,13 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		log.Infof("%s: initializing the SHIELD Core...", r)
 		init, err := core.Initialize(in.Master)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
 		}
-		if !init {
+		if init {
 			r.Fail(route.Bad(nil, "this SHIELD Core has already been initialized"))
 			return
 		}

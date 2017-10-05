@@ -43,8 +43,8 @@ func (r *Request) OK(resp interface{}) {
 	}
 
 	log.Debugf("%s responding with HTTP 200, payload [%s]", r, string(b))
-	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.w.WriteHeader(200)
+	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.done = true
 }
 
@@ -67,8 +67,8 @@ func (r *Request) Fail(e Error) {
 	}
 
 	log.Debugf("%s responding with HTTP %d, payload [%s]", r, e.code, string(b))
-	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.w.WriteHeader(e.code)
+	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.done = true
 }
 
