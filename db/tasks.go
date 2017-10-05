@@ -16,11 +16,12 @@ const (
 	RestoreOperation = "restore"
 	PurgeOperation   = "purge"
 
-	PendingStatus  = "pending"
-	RunningStatus  = "running"
-	CanceledStatus = "canceled"
-	FailedStatus   = "failed"
-	DoneStatus     = "done"
+	PendingStatus   = "pending"
+	ScheduledStatus = "scheduled"
+	RunningStatus   = "running"
+	CanceledStatus  = "canceled"
+	FailedStatus    = "failed"
+	DoneStatus      = "done"
 )
 
 type Task struct {
@@ -43,6 +44,9 @@ type Task struct {
 	RestoreKey     string         `json:"-"`
 	Agent          string         `json:"-"`
 	Log            string         `json:"log"`
+	OK             bool           `json:"ok"`
+	Notes          string         `json:"notes"`
+	Clear          string         `json:"clear"`
 	TaskUUIDChan   chan *TaskInfo `json:"-"`
 }
 
@@ -55,9 +59,13 @@ type TaskFilter struct {
 	UUID         string
 	SkipActive   bool
 	SkipInactive bool
+	OnlyRelevant bool
+	ForOp        string
+	ForTarget    string
 	ForStatus    string
+	ForArchive   string
 	Limit        string
-	// FIXME: add options for store / target
+	// FIXME: add options for store
 }
 
 func ValidateEffectiveUnix(effective time.Time) int64 {
@@ -81,9 +89,29 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		}
 	}
 
+	if f.OnlyRelevant {
+		wheres = append(wheres, "relevant = ?")
+		args = append(args, true)
+	}
+
 	if f.UUID != "" {
 		wheres = append(wheres, "uuid = ?")
 		args = append(args, f.UUID)
+	}
+
+	if f.ForArchive != "" {
+		wheres = append(wheres, "archive_uuid = ?")
+		args = append(args, f.ForArchive)
+	}
+
+	if f.ForOp != "" {
+		wheres = append(wheres, "op = ?")
+		args = append(args, f.ForOp)
+	}
+
+	if f.ForTarget != "" {
+		wheres = append(wheres, "target_uuid = ?")
+		args = append(args, f.ForTarget)
 	}
 
 	limit := ""
@@ -96,7 +124,8 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		       t.store_uuid,  t.store_plugin,  t.store_endpoint,
 		       t.target_uuid, t.target_plugin, t.target_endpoint,
 		       t.status, t.started_at, t.stopped_at, t.timeout_at,
-		       t.restore_key, t.attempts, t.agent, t.log
+		       t.restore_key, t.attempts, t.agent, t.log,
+		       t.ok, t.notes, t.clear
 
 		FROM tasks t
 
@@ -130,7 +159,8 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 			&store, &ann.StorePlugin, &ann.StoreEndpoint,
 			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&ann.Status, &started, &stopped, &deadline,
-			&ann.RestoreKey, &ann.Attempts, &ann.Agent, &log); err != nil {
+			&ann.RestoreKey, &ann.Attempts, &ann.Agent, &log,
+			&ann.OK, &ann.Notes, &ann.Clear); err != nil {
 			return l, err
 		}
 		ann.UUID = this.UUID
@@ -277,25 +307,30 @@ func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	)
 }
 
-func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64) error {
+func (db *DB) ScheduledTask(id uuid.UUID) error {
 	return db.Exec(
-		`UPDATE tasks SET status = ?, stopped_at = ? WHERE uuid = ?`,
-		status, effective, id.String(),
-	)
+		`UPDATE tasks SET status = ? WHERE uuid = ?`,
+		ScheduledStatus, id.String())
+}
+
+func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64, ok int) error {
+	return db.Exec(
+		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
+		status, effective, ok, id.String())
 }
 func (db *DB) CancelTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, CanceledStatus, validtime)
+	return db.updateTaskStatus(id, CanceledStatus, validtime, 1)
 }
 
 func (db *DB) FailTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, FailedStatus, validtime)
+	return db.updateTaskStatus(id, FailedStatus, validtime, 0)
 }
 
 func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, DoneStatus, validtime)
+	return db.updateTaskStatus(id, DoneStatus, validtime, 1)
 }
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
@@ -305,7 +340,7 @@ func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	)
 }
 
-func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (uuid.UUID, error) {
+func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string) (uuid.UUID, error) {
 	// fail on empty store_key, as '' seems to satisfy the NOT NULL constraint in postgres
 	if key == "" {
 		return nil, fmt.Errorf("cannot create an archive without a store_key")
@@ -335,18 +370,17 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 	r.Close()
 
 	// insert an archive with all proper references, expiration, etc.
-	archive_id := uuid.NewRandom()
 	validtime := ValidateEffectiveUnix(effective)
 	err = db.Exec(
 		`INSERT INTO archives
-			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
-			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, ''
+			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, job, encryption_type)
+			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, '', j.Name, ?
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = ?`,
-		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", id.String(),
+		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, id.String(),
 	)
 	if err != nil {
 		return nil, err
@@ -357,4 +391,66 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, key string, effective time.Time) (
 		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
 		archive_id.String(), id.String(),
 	)
+}
+
+type TaskAnnotation struct {
+	Disposition string
+	Notes       string
+	Clear       string
+}
+
+func (db *DB) AnnotateTargetTask(target uuid.UUID, id string, ann *TaskAnnotation) error {
+	updates := []string{}
+	args := []interface{}{}
+
+	updates = append(updates, "ok = ?")
+	args = append(args, ann.Disposition == "ok")
+
+	if ann.Notes != "" {
+		updates = append(updates, "notes = ?")
+		args = append(args, ann.Notes)
+	}
+
+	if ann.Clear != "" {
+		updates = append(updates, "clear = ?")
+		args = append(args, ann.Clear)
+	}
+
+	args = append(args, target.String(), id)
+	return db.Exec(
+		`UPDATE tasks SET `+strings.Join(updates, ", ")+
+			`WHERE target_uuid = ? AND uuid = ?`, args...)
+}
+
+func (db *DB) MarkTasksIrrelevant() error {
+	err := db.Exec(
+		`UPDATE tasks SET relevant = 0
+		  WHERE relevant = 1
+		    AND clear = 'immediate'`)
+
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(
+		`UPDATE tasks SET relevant = 0
+		  WHERE relevant = 1 AND clear = 'normal'
+		    AND uuid IN (
+		      SELECT tasks.uuid FROM tasks
+		        INNER JOIN jobs      ON jobs.uuid = tasks.job_uuid
+		        INNER JOIN retention ON retention.uuid = jobs.retention_uuid
+		             WHERE retention.expiry + tasks.started_at < ?`, time.Now().Unix())
+
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(
+		`UPDATE tasks SET relevant = 1
+		  WHERE relevant = 0 AND clear = 'manual'`)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

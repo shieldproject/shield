@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/shield.css" />
+  </head>
+  <body>
+    <div class="top-bar"><h1>SHIELD</h1></div>
+    <div id="viewport" class="full"></div>
+
+    <script type="text/html" id="tpl--layout"><!-- {{{ -->
+    [[#
+      {layout}
+
+      The main (authenticated) layout for the UI
+    ]]
+    <div class="story-sidebar">
+      <nav>
+        <li><a href="#!/do/backup">Perform an ad hoc backup</a>
+            <p>Run a backup job whenever you need to, regardless of the job's
+            schedule.</p></li>
+
+        <li><a href="#">Restore data from a backup</a>
+            <p>Restore a protected system back to the state it was in when a
+            backup archive was taken.</p></li>
+
+        <li><a href="#">Configure a new backup job</a>
+            <p>Set up a new protected system, and configure the how, when,
+            and for how long of managing its backup archives.</p></li>
+      </nav>
+    </div>
+    <div class="pane">
+      <div class="hud blk" id="hud">
+        <div class="x5"><div class="inst">
+          <ul>
+            <li class="shield">SHIELD &hellip;</li>
+          </ul>
+        </div></div>
+
+        <div class="x5"><div class="health">
+          <div class="fill"></div>
+        </div></div>
+
+        <div class="x6"><div class="prot">
+          <div class="fill"></div>
+        </div></div>
+      </div>
+
+      <div class="nav sticky" id="sticky-nav">
+        <nav>
+          <li><a href="#!/systems">Systems</a></li>
+          <li class="current"><a href="#!/stores">Storage</a></li>
+          <li><a href="#!/policies">Retention</a></li>
+          <li><a href="#!/admin">Admin</a></li>
+        </nav>
+      </div>
+
+      <div class="nav">
+        <nav>
+          <li><a href="#!/systems">Systems</a></li>
+          <li class="current"><a href="#!/stores">Storage</a></li>
+          <li><a href="#!/policies">Retention</a></li>
+          <li><a href="#!/admin">Admin</a></li>
+        </nav>
+      </div>
+
+      <div class="field" id="main">
+      <!--
+        <div class="gutter blk">
+          <h2>Configure A New Backup Job</h2>
+          <form>
+
+            <div class="band">
+              <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+              <div class="ctl">
+                <label>Label</label>
+                <input type="text" placeholder="Placeholder">
+                <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+              </div>
+            </div>
+
+
+              <div class="band">
+                <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+                <div class="ctl">
+                  <label>Label</label>
+                  <select>
+                    <option>Apples</option>
+                    <option>Bananas</option>
+                  </select>
+                  <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                  <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+                </div>
+              </div>
+
+              <div class="band">
+                <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+                <div class="ctl">
+                  <input type="checkbox"> <label>Label</label>
+                  <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                  <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+                </div>
+              </div>
+
+              <div class="band">
+                <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+                <div class="ctl">
+                  <label>Label</label>
+                  <textarea placeholder="your code goes here..."></textarea>
+                  <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                  <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+                </div>
+              </div>
+            </form>
+          </div>
+          -->
+          <img id="loading" src="/i/loading.svg"/>
+        </div>
+      </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--loading"><!-- {{{ -->
+      [[#
+        {loading} template
+
+        A simple SVG loading screen that keeps the viewer entertained while we
+        go talk to SHIELD over AJAX, asynchronously.
+      ]]
+      <img id="loading" src="/i/loading.svg"/>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--overlay"><!-- {{{ -->
+      [[#
+        {overlay}
+
+        A page overlay washes out the main page, makes the viewport fixed
+        and non-scrollable, and then displays a message, warning, notice,
+        or update to ensure that the viewer sees it.
+      ]]
+      <div id="overlay">
+        <div class="header"><h2>[[= maybe(_.title, "SHIELD") ]]</h2></div>
+        <div class="frame">
+      <p>Neque porro quisquam est, qui dolorem ipsum quia dolor. Nam libero tempore,
+      cum soluta nobis est. Duis aute irure dolor in reprehenderit in voluptate velit
+      esse cillum dolore eu fugiat nulla. Ut enim ad minim veniam, quis nostrud
+      exercitation ullamco laboris. Quis autem vel eum iure reprehenderit qui in ea
+      voluptate velit esse quam nihil molestiae consequatur, vel.</p>
+
+      <p>Nemo enim ipsam voluptatem quia. Nam libero tempore, cum soluta nobis est
+      eligendi optio cumque. Duis aute irure dolor in reprehenderit in voluptate velit
+      esse cillum dolore eu fugiat nulla pariatur. Et harum quidem rerum facilis est et
+      expedita distinctio. Ut enim ad minima veniam, quis.</p>
+
+      <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit,
+      sed quia consequuntur magni. Excepteur sint occaecat cupidatat non proident, sunt
+      in culpa qui officia deserunt mollit. Duis aute irure dolor in reprehenderit in
+      voluptate velit esse. Et harum quidem. Ut enim ad minim veniam, quis nostrud
+      exercitation ullamco laboris nisi ut aliquip ex ea commodo.</p>
+
+      <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+      eu fugiat nulla pariatur. Sed ut perspiciatis unde omnis iste natus error sit
+      voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae.
+      Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+      aliquip ex ea commodo consequat. At vero eos et accusamus et iusto odio
+      dignissimos ducimus qui blanditiis praesentium voluptatum deleniti. Nemo enim
+      ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia
+      consequuntur magni.</p>
+
+          [[= _.html ]]
+        </div>
+      </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--banner"><!-- {{{ -->
+      [[#
+        {banner} template
+
+        Displays a message at the top of the viewport
+      ]]
+      <p class="[[= _.type ]]">[[= _.message ]]</p>
+      <!-- }}} --></script>
+      <script type="text/html" id="tpl--error"><!-- {{{ -->
+      [[#
+        {error} template
+
+        Displays a page-wide error, for failures involving AJAX requests,
+        unhandled exceptions, etc.
+      ]]
+          <div class="gutter blk error">
+            <h2>Uh-oh &mdash; Something broke.</h2>
+            <p id="message">[[= _.message ]]</p>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--restore-are-you-sure"><!-- {{{ -->
+      [[#
+        {restore-are-you-sure}
+
+        A modal interaction screen that requires the oeprator to acknowledge
+        that what they are about to do is in fact to restore data, that it
+        might be dangerous, and it might not work out.
+      ]]
+          <div class="confirm">
+            <h2>You Are About To Restore Data</h2>
+            <p>You have requested that S.H.I.E.L.D. restore <em>[[= _.target ]]</em>
+            from a backup that was taken <em>[[= strftime("on %A, %B %d, %Y at %H:%M%P", _.taken) ]]</em> ([[= duration(tdiff(_.taken, new Date())) ]] ago).
+            Any new data created after that point in time <em>will be lost</em>.</p>
+
+            <p>Addtionally, the target system may be <em>offline or non-operational</em>
+            while the restore operation is carried out.</p>
+
+            <p class="q">Are you sure you want to restore <em>[[= _.target ]]</em>?</p>
+            <div class="a">
+              <button class="danger" rel="yes">Yes, Initiate Restore</button>
+              <button class="safe" rel="close">No, Cancel This Operation</button>
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--login"><!-- {{{ -->
+      [[#
+        {login} template
+
+        Displays the login screen, which is a slightly different layout than
+        most of the interface.  If OAuth2 backends have been configured, those
+        are displayed as links to kick off the necessary OAuth2 flows (although
+        they are styled as buttons)
+      ]]
+          <div id="login" class="frontdoor">
+            <div[[ if (_.oauth.length == 0) { ]] class="local-only"[[ } ]]>
+              <h1>SHIELD<span>Production<span></h1>
+              <div class="dialog">
+                <p class="motd">Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi.</p>
+
+                [[ if (_.oauth.length > 0) { ]]
+                <div class="oauth2">
+                  <h2>Sign in using...</h2>
+
+                  <ul>
+                    [[ $.each(_.oauth, function (i, oauth) { ]]
+                    <li class="oauth-[[= oauth.type ]]"><a href="/auth/oauth/[[= oauth.identifier ]]">[[= oauth.name ]]</a></li>
+                    [[ }); ]]
+                </div>
+                [[ } ]]
+                <div class="local">
+                  <h2>Sign in with your SHIELD account</h2>
+                  <p class="divert">Need an account? <a href="#">Sign up for one today.</a></p>
+
+                  <form method="post" action="/auth/login">
+                    <div class="ctl">
+                      <label for="local-login-username">Username</label>
+                      <input type="text" id="local-login-username" name="username">
+                    </div>
+                    <div class="ctl">
+                      <label for="local-login-password">Password</label>
+                      <input type="password" id="local-login-password" name="password">
+                      <a class="forgotpw" href="#">Forgot your password?</a>
+                    </div>
+                    <div class="ctl cb">
+                      <div class="cbdark">
+                        <input type="checkbox" id="local-login-remember-me" name="remember-me">
+                        <label for="local-login-remember-me"></label>
+                      </div>
+                      <label for="local-login-remember-me">Remember me</label>
+                    </div>
+                    <button>Sign in</button>
+                  <form>
+                </div>
+              </div>
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--BOOM"><!-- {{{ -->
+      [[#
+        {BOOM} template
+
+        Displays a viewport-bound error message (without the hud/sidebar chrome)
+        when SHIELD fails to boot up properly.  Typically, this means that we
+        failed in our AJAX request to get the Authentication Providers to render
+        the login page.
+      ]]
+          <div id="BOOM" class="frontdoor">
+            <div>
+              <h1>SHIELD<span>Production<span></h1>
+              <div class="dialog">
+                <h2>SOMETHING BROKE</h2>
+                <img src="/i/boom.png" class="highlight">
+                <p>An error has occurred, and SHIED was unable to recover from it.
+                Your SHIELD site administrator may be able to peruse the SHIELD
+                logs on this installation to shed some light on this conundrum.</p>
+
+                <p>Most of the time, this is related to an inability to retrieve
+                the authentication parameters for this SHIELD instance.  You may
+                want to check to make sure you are connected to the internet, and
+                if you need to hook up to any VPNs to access SHIELD, ensure that
+                they too are connected.</p>
+              </div>
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--top-bar"><!-- {{{ -->
+      [[#
+        {top-bar} template
+
+        Renders the top-most bar, with the SHIELD name / environment, and the
+        current users name / tenant and "personal settings" menu.
+      ]]
+        <h1><a href="#!/systems">SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></a></h1>
+        [[ if (_.user) { ]]
+        <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
+        <div class="flyout">
+          <div class="menu">
+            <div class="header">Signed in as [[= _.user.account ]]
+              <span>[[= _.user.backend ]]</span>
+            </div>
+            <div class="divider"></div>
+            [[ if (_.tenants.length == 0) { ]]
+            <span class="dropdown odd">you have no tenants</span>
+            [[ } else { ]]
+            [[   $.each(_.tenants, function (i, tenant) { ]]
+            <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="#!/tenant/[[= tenant.uuid ]]">[[= tenant.name ]]</a>
+            [[   }); ]]
+            [[ } ]]
+            <div class="divider"></div>
+            <a class="dropdown" href="#!/account">Settings</a>
+            <a class="dropdown" href="/auth/logout">Sign Out</a>
+          </div>
+        </div>
+        [[ } ]]
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--hud"><!-- {{{ -->
+        [[#
+          {hud} template
+
+          Renders the "health and wellness" heads-up display (HUD), with more
+          information about this SHIELD instance (name / env / IP / version),
+          health and key metrics.
+        ]]
+            <div class="x5"><div class="inst">
+              <ul>
+                <li class="shield">SHIELD <span class="v">[[= _.shield.version ]]</span></li>
+                <li class="ip">[[= _.shield.ip ]]</li>
+                <li class="fqdn">[[= _.shield.fqdn ]]</li>
+                <li class="env"><span style="color: [[= maybe(_.shield.color, "#8CC63F") ]]">[[= _.shield.env ]]</span></li>
+              </ul>
+            </div></div>
+
+            <div class="x5"><div class="health">
+              <ul>
+                [[ if (_.health.core == "unsealed" || _.health.core == "unlocked") { ]]
+                <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
+                [[ } else if (_.health.core == "sealed" || _.health.core == "locked") { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>LOCKED</span></li>
+                [[ } else if (_.health.core == "uninitialized") { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>UNINITIALIZED</span></li>
+                [[ } else { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>down</span></li>
+                [[ } ]]
+                [[ if (_.health.storage_ok) { ]]
+                <li class="ok"><object type="image/svg+xml" data="i/cloud-ok.svg"></object> Cloud Storage is <span>connected</span></li>
+                [[ } else { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/cloud-fail.svg"></object> Cloud Storage is <span>failing</span></li>
+                [[ } ]]
+                [[ if (_.health.jobs_ok) { ]]
+                <li class="ok"><object type="image/svg+xml" data="i/jobs-ok.svg"></object> All Jobs <span>succeeding</span></li>
+                [[ } else { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/jobs-fail.svg"></object> Jobs are <span>failing</span></li>
+                [[ } ]]
+              </ul>
+            </div></div>
+
+            <div class="x6"><div class="prot">
+              <h3>Data Protection Summary</h3>
+              <ul>
+                <li>Scheduled Backup Jobs <span>[[= _.stats.jobs ]]</span></li>
+                <li>Backup Archives <span>[[= _.stats.archives ]]</span></li>
+                <li class="warn">Cloud Storage Used <span>[[= _.stats.storage ]]</span></li>
+                <li class="ok">Daily Storage Increase <span>[[= _.stats.daily ]]</span></li>
+              </ul>
+            </div></div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--404"><!-- {{{ -->
+      [[#
+        {404} template
+
+        Help a lost traveller on their way.
+      ]]
+          <div class="gutter blk e404">
+            <h2>Oops.  We Couldn't Find That...</h2>
+            <img src="/i/404.png" width="30%">
+            <p>Looks like someone or some<em>thing</em> directed you to a part of the SHIELD
+            web interface that just doesn't exist.  Bummer.  If you are sure this is SHIELD's
+            fault (and it very well could be), please report an issues over at our
+            <a href="https://github.com/starkandwayne/shield/issues/new" target="_blank">Github
+            Page</a>.</p>
+
+            <pre>You can paste this additional information
+      into your Github issue:
+
+      - **Wanted URL**: [[= _.wanted ]]
+      - **Arguments**:  ([[= _.args.join(', ') ]])
+      - **Referer**:    [[= maybe(_.referer, '_none_') ]]
+      </pre>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--account"><!-- {{{ -->
+      [[#
+        {account}
+
+        Shows the user their current account information,
+        including a form for changing their name (and, if
+        local, their password), and a list of all tenants
+        that they belong to, and their roles therein.
+      ]]
+          <div class="gutter blk account">
+            <h2>My Account</h2>
+
+            <form>
+              <p><label for="name">Display</label>
+              <input type="text" value="" /></p>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--init"><!-- {{{ -->
+      [[#
+        {init} template
+
+        Renders a form allowing administrators (sys_role = admin) to initialize
+        this SHIELD core.
+      ]]
+        <div class="gutter blk">
+          <h2>This SHIELD Core is UNINITIALIZED</h2>
+          <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
+              tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
+              voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
+
+          <form class="init-shield">
+            <label for="init-master">Create a SHIELD Master Password</label>
+            <input type="password" id="init-master" name="master">
+            <label for="init-confirm">Type it again, for good measure...</label>
+            <input type="password" id="init-confirm" name="confirm">
+            <button>Initialize</button>
+          </form>
+        </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--unlock"><!-- {{{ -->
+      [[#
+        {unlock} template
+
+        Renders a form allowing anyone with knowledge of the SHIELD master
+        password to unlock the SHIELD core, and resume normal operations.
+      ]]
+        <div class="gutter blk">
+          <h2>This SHIELD Core is LOCKED</h2>
+          <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
+              tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
+              voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
+
+          <form class="unlock-shield">
+            <label for="unlock-master">Enter your SHIELD Master Password</label>
+            <input type="password" id="unlock-master" name="master"><button>Unlock</button>
+          </form>
+        </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--do-backup"><!-- {{{ -->
+      [[#
+        {do-backup}
+
+      ]]
+      [[
+        var stores = {};
+        if (!_.system) {
+          _.store = undefined;
+          _.policy = undefined;
+        }
+
+        if (_.system && !_.store) {
+          _.policy = undefined;
+          $.each(_.system.jobs, function (i, job) {
+            _.store = stores[job.store.uuid] = job.store;
+            job.store.plugin = job.to;
+          });
+          if (_.noauto || Object.keys(stores).length != 1) {
+            _.store = undefined;
+          }
+        }
+
+        var policies = {};
+        if (_.system && _.store && !_.policy) {
+          $.each(_.system.jobs, function(i, job) {
+            if (job.store.uuid = _.store.uuid) {
+              _.policy = policies[job.retention.uuid] = job.retention;
+            }
+          });
+          if (_.noauto || Object.keys(policies).length != 1) {
+            _.policy = undefined;
+          }
+        }
+      ]]
+      <div class="gutter blk do-backup">
+        <p class="do-caption">Performing an Ad Hoc Backup</p>
+        <div class="picks">
+          [[ if (_.system) { ]]
+          <div class="job card [[ if (!_.system.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <a href="do-backup:unpick">
+            <img src="i/shield-[[= _.system.ok ? 'ok' : 'fail' ]].svg">
+            <h3>[[= _.system.name ]]</h3>
+            <div class="notes">[[= _.system.notes ]]</div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="job card empty">Protected System</div>
+          [[ } ]]
+          [[ if (_.store) { ]]
+          <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <a href="do-backup:unpick">
+            <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+            <h3>[[= _.store.name ]]</h3>
+            <div class="notes">[[ if (_.store.summary) { ]]
+              [[= _.store.summary ]]
+            [[ } else { ]]
+              <div class="no-data">No summary provided.  Too bad.</div>
+            [[ } ]]</div>
+            <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+              <div class="to">[[= _.store.plugin ]]</div>
+            </div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="store card empty">Cloud Storage</div>
+          [[ } ]]
+          [[ if (_.policy) { ]]
+          <div class="policy card">
+          <a href="do-backup:unpick">
+            <h3>[[= _.policy.name ]]</h3>
+            <ul class="details">
+              <li>keep for [[= _.policy.days ]] day[[ if (_.policy.days != 1) { ]]s[[ } ]]</li>
+            </ul>
+            <div class="notes">[[= _.policy.summary ]]</div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="store card empty">Retention Policy</div>
+          [[ } ]]
+        </div>
+
+        [[ if (!_.system) { ]]
+        <div class="step pick-a-system">
+          <h3>1. Pick What You Want To Back Up</h3>
+          <p>Which protected system you want to back up?</p>
+
+          <div>
+          [[ $.each(_.systems, function (i, target) { ]]
+          <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <a href="do-backup:pick:target:[[= target.uuid ]]">
+            <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
+            <h3>[[= target.name ]]</h3>
+            <div class="notes">[[= target.notes ]]</div>
+            </a>
+          </div>
+          [[ }); ]]
+          </div>
+        </div>
+        [[ } ]]
+
+        [[ if (_.system && !_.store) { ]]
+        <div class="step pick-a-store">
+          <h3>2. Select Cloud Storage</h3>
+          <p>Where would you like to store this backup archive?</p>
+
+          <div>
+            [[ $.each(stores, function (uuid, store) { ]]
+                <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+                  <a href="do-backup:pick:store:[[= store.uuid ]]">
+                  <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+                  <h3>[[= store.name ]]</h3>
+                  <div class="notes">[[ if (store.summary) { ]]
+                    [[= store.summary ]]
+                  [[ } else { ]]
+                    <div class="no-data">No summary provided.  Too bad.</div>
+                  [[ } ]]</div>
+                  <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+                    <div class="to">[[= store.plugin ]]</div>
+                  </div>
+                  </a>
+                </div>
+            [[ }); ]]
+          </div>
+        </div>
+        [[ } ]]
+
+        [[ if (_.system && _.store && !_.policy) { ]]
+        <div class="step pick-a-retention-policy" style="display: block">
+          <h3>3. Choose a Retention Policy</h3>
+          <p>How long should we keep this backup?</p>
+
+          <div>
+            [[ $.each(policies, function (uuid, retention) { ]]
+              <div class="policy card">
+                <a href="do-backup:pick:policy:[[= retention.uuid ]]">
+                <h3>[[= retention.name ]]</h3>
+                <ul class="details">
+                  <li>keep for [[= retention.days ]] days</li>
+                </ul>
+                <div class="notes">[[= retention.summary ]]</div>
+                </a>
+              </div>
+            [[ }); ]]
+          </div>
+          </div>
+        </div>
+        [[ } ]]
+
+        [[ if (_.system && _.store && _.policy) { ]]
+        [[
+          var uuid;
+          for (var i = 0; i < _.system.jobs.length; i++) {
+            var job = _.system.jobs[i];
+            if (job.store.uuid == _.store.uuid
+              && job.retention.uuid == _.policy.uuid) {
+
+              uuid = job.uuid;
+              break;
+            }
+          }
+        ]]
+        <div class="step run-the-backup" style="display: block">
+          <h3>4. Review Your Choices</h3>
+          <p>If everything looks correct, click the big button to
+          initiate a manual backup of <strong>[[= _.system.name ]]</strong>
+          to <strong>[[= _.store.name ]]</strong> &mdash; backup archive will be kept
+          for <strong>[[= _.policy.days ]] days</strong>.</p>
+
+          <button rel="run:[[= uuid ]]">Run Backup &raquo;</button>
+        </div>
+        [[ } ]]
+      </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--systems"><!-- {{{ -->
+      [[#
+        {systems} template
+
+        Renders all targets visible to / manageable by the current user.
+      ]]
+          <div class="gutter blk">
+            [[ $.each(_.systems, function (i, target) { ]]
+            <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+              <a href="#!/systems/system:uuid:[[= target.uuid ]]">
+              <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
+              <h3>[[= target.name ]]</h3>
+              [[ $.each(target.jobs, function (j, job) { ]]
+              <ul class="details">
+                <li>runs [[= job.schedule ]]</li>
+                <li>keep [[= job.keep.n ]] backups ([[= job.keep.days ]] days)</li>
+              </ul>
+              <div class="graph[[ if (!job.ok) { ]] fail[[ } ]]">
+                <div class="from">[[= job.from ]]</div>
+                <div class="bar"></div>
+                <div class="to">[[= job.to ]]</div>
+              </div>
+              [[ }); ]]
+              </a>
+            </div>
+            [[ }); ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--system"><!-- {{{ -->
+      [[#
+        {system} template
+
+        Renders all of the jobs and backup archives for a single target.
+        Enables operators to easily see when a given system is backed up,
+        and facilitates quick and easy access to restore valid archives.
+      ]]
+          <div class="gutter" data-system-uuid="[[= _.target.uuid ]]" data-system-name="[[= _.target.name ]]">
+            <div class="job card [[= _.target.ok ? 'ok' : 'fail' ]]">
+              <img src="i/shield-[[= _.target.ok ? 'ok' : 'fail' ]].svg">
+              <h3>[[= _.target.name ]]</h3>
+              [[ $.each(_.target.jobs, function (i, job) { ]]
+              <ul class="details">
+                <li>runs [[= job.schedule ]] &mdash; <a href="run:[[= job.uuid ]]">run now</a></li>
+                <li>keep [[= job.keep.n ]] backups ([[= job.keep.days ]] days)</li>
+              </ul>
+              <div class="graph[[ if (!job.ok) { ]] fail[[ } ]]">
+                <div class="from">[[= job.from ]]</div>
+                <div class="bar"></div>
+                <div class="to">[[= job.to ]]</div>
+              </div>
+              [[ }); ]]
+            </div>
+
+            <div class="job summary">
+              <h2>Notes</h2>
+              <p>[[= html(_.target.notes) ]]</p>
+            </div>
+
+            <h2>Timeline</h2>
+            <div class="timeline">
+                [[ $.each(_.target.tasks, function (i, task) { ]]
+                <div class="event [[= task.type ]] [[= (task.status == 'done' ? 'ok' : task.status) ]][[ if (task.notes != "") { ]] noted[[ } ]][[ if (task.status != 'done' && task.ok) { ]] handled[[ } ]]" data-task-uuid="[[= task.uuid ]]"[[ if (task.archive) { ]] data-archive-uuid="[[= task.archive.uuid ]]" data-archive-taken="[[= task.started_at ]]"[[ } ]]>
+                  <ul>
+                    <li class="date">[[ if (task.status == 'scheduled') { ]]
+                      <em>scheduled / pending</em>
+                    [[ } else { ]]
+                      [[= strftime("%b %d %Y", task.started_at) ]]</li>
+                    [[ } ]]
+                    [[ if (task.archive) { ]]<li class="tag">[[= task.type ]]</li>[[ } ]]
+                    [[ if (task.type == "backup") { ]]
+                      [[ if (task.owner == "") { ]]
+                      <li class="desc">[[= maybe(task.archive.schedule, 'Scheduled Backup') ]]</li>
+                      <li class="meta">run automatically per job schedule</li>
+                      [[ } else { ]]
+                      <li class="desc">Ad Hoc Backup</li>
+                      <li class="meta">run by [[= task.owner ]] at [[= strftime("%l:%M%P", task.started_at) ]]</li>
+                      [[ } ]]
+                    [[ } else if (task.type == "restore") { ]]
+                      <li class="desc">Manual Restore</li>
+                      <li class="meta">run by [[= task.owner ]]</li>
+                    [[ } else if (task.type == "purge") { ]]
+                      <li class="desc">Purge Expired Archive</li>
+                      <li class="meta">...</li>
+                    [[ } else { ]]
+                      <li class="desc">[[= task.type ]] Task</li>
+                    [[ } ]]
+                    [[ if (task.notes != "") { ]]
+                    <li class="note"><strong>Note:</strong> [[= html(task.notes) ]]</li>
+                    [[ } ]]
+                    <li class="expand"><a href="task:[[= task.uuid ]]">full task log</a></li>
+                  </ul>
+                  <div class="task"></div>
+                </div>
+                [[ }); ]]
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--task"><!-- {{{ -->
+      [[#
+        {task} template
+
+        Displays the details of a single task, including the task log.
+        Optionally, if this is being displayed in the {system} view,
+        also display a big RESTORE button in the task output.
+      ]]
+      <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
+      <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
+
+      <form class="annotate">
+        <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
+        [[ if (_.task.status == "failed") { ]]
+        <p><input type="checkbox" name="disposition"
+                  id="annotask-ok"[[ if (_.task.ok) { ]] checked[[ } ]]><label for="annotask-ok">Nothing to worry about</label></p>
+        [[ } ]]
+        <p><textarea name="notes" id="notes"
+                    placeholder="no notes recorded yet...">[[= maybe(_.task.notes, '') ]]</textarea></p>
+        <button>Save</button>
+      </form>
+
+      </div><em>task <em>[[= _.task.uuid ]]</em></em>
+      <em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
+      if (_.task.type == "purge") { ]]
+      purging archive <em>[[= _.task.archive_uuid ]]</em>[[
+      } else if (_.task.type == "restore") { ]]
+      restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
+      } ]]
+      initiated by <em>[[= _.task.owner ]]</em></em>
+
+      [[= _.task.log ]]
+
+      <em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
+      ]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
+      [[ }
+
+      if (_.task.type == 'backup') {
+        if (_.task.archive_uuid != "") {
+          ]]generated archive <em>[[= _.task.archive_uuid ]]</em>
+      for job <em>[[= _.task.job_uuid ]]</em>
+      [[
+        } else {
+        ]]no archive was generated.
+      [[
+        }
+      } ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
+      </em></code></pre>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--stores"><!-- {{{ -->
+      [[#
+        {stores} template
+
+        Renders the currently defined (visible) storage endpoints,
+        and in some cases allows for user-management of their configurations.
+      ]]
+          <div class="gutter blk">
+            [[ $.each(_.stores, function (i, store) { ]]
+            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+              <a href="#!/stores/store:uuid:[[= store.uuid ]]">
+              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <h3>[[= store.name ]]</h3>
+              <div class="notes">[[ if (store.summary) { ]]
+                [[= store.summary ]]
+              [[ } else { ]]
+                <div class="no-data">No summary provided.  Too bad.</div>
+              [[ } ]]</div>
+              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+                <div class="to">[[= store.plugin ]]</div>
+              </div>
+              </a>
+            </div>
+            [[ }); ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--store"><!-- {{{ -->
+      [[#
+        {store} template
+
+        Renders a single storage endpoint configuration, including its
+        usage information and provide management capabilities.
+      ]]
+          <div class="gutter blk">
+            <h2><div class="plugin">[[= _.store.plugin ]]</div>[[= _.store.name ]]</h2>
+
+            <div class="meter">
+              <svg width="500" height="400" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <style>
+                    rect.outer    { fill: #ccc; }
+                    rect.fill     { fill: #0071bc; }
+                    circle.marker { fill: #333; }
+                    line.marker { stroke: #333; stroke-width: 1px; }
+
+                    text.label      { font-size: 20px; font-family: sans-serif; }
+                    text.size       { font-size: 40px; font-family: sans-serif; }
+                    text.size tspan { font-size: 20px; font-weight: bold; }
+
+                    g.current      .size { fill: #7ac943; }
+                    g.current.warn .size { fill: orange; }
+                    g.threshold    .size { fill: #0071bc; }
+                    g.projected    .size { fill: #ff1d25; }
+                  </style>
+                </defs>
+
+                [[
+                    var total = Math.max(_.store.used, _.store.threshold, _.store.projected, _.store.total);
+                ]]
+                <rect class="outer" x="0" y="200" width="100%" height="36"></rect>
+                <rect class="fill" x="2" y="202" width="[[= 100.0 * _.store.used / total ]]%" height="32"></rect>
+
+                [[ if (_.store.threshold > _.store.used) { ]]
+                <!-- "current" marker -->
+                <g class="current" transform="translate(2)">
+                  <line class="marker" x1="[[= 100.0 * _.store.used / total ]]%" x2="[[= 100.0 * _.store.used / total ]]%" y1="198" y2="53"></line>
+                  <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="53" r="3"></circle>
+                  <g transform="translate(6)">
+                    <text x="[[= 100.0 * _.store.used / total ]]%" y="60" class="label">Current</text>
+                    <text x="[[= 100.0 * _.store.used / total ]]%" y="100" class="size">[[= _.store.used ]]<tspan>GB</tspan></text>
+                  </g>
+                </g>
+
+                <!-- "threshold" marker -->
+                <g class="threshold" transform="translate(2)">
+                  <line class="marker" x1="[[= 100.0 * _.store.threshold / total ]]%" x2="[[= 100.0 * _.store.threshold / total ]]%" y1="198" y2="133"></line>
+                  <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="133" r="3"></circle>
+                  <g transform="translate(6)">
+                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="140" class="label">Threshold</text>
+                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="180" class="size">[[= _.store.threshold ]]<tspan>GB</tspan></text>
+                  </g>
+                </g>
+                [[ } else { ]]
+
+                <!-- "threshold" marker -->
+                <g class="threshold" transform="translate(2)">
+                  <line class="marker" x1="[[= 100.0 * _.store.threshold / total ]]%" x2="[[= 100.0 * _.store.threshold / total ]]%" y1="198" y2="53"></line>
+                  <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="53" r="3"></circle>
+                  <g transform="translate(6)">
+                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="60" class="label">Threshold</text>
+                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="100" class="size">[[= _.store.threshold ]]<tspan>GB</tspan></text>
+                  </g>
+                </g>
+
+                <!-- "current" marker -->
+                <g class="current warn" transform="translate(2)">
+                  <line class="marker" x1="[[= 100.0 * _.store.used / total ]]%" x2="[[= 100.0 * _.store.used / total ]]%" y1="198" y2="133"></line>
+                  <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="133" r="3"></circle>
+                  <g transform="translate(6)">
+                    <text x="[[= 100.0 * _.store.used / total ]]%" y="140" class="label">Current</text>
+                    <text x="[[= 100.0 * _.store.used / total ]]%" y="180" class="size">[[= _.store.used ]]<tspan>GB</tspan></text>
+                  </g>
+                </g>
+                [[ } ]]
+
+                <!-- "projected" marker -->
+                <g class="projected" transform="translate(-3)">
+                  <line class="marker" x1="[[= 100.0 * _.store.projected / total ]]%" x2="[[= 100.0 * _.store.projected / total ]]%" y1="238" y2="293"></line>
+                  <circle class="marker" cx="[[= 100.0 * _.store.projected / total ]]%" cy="293" r="3"></circle>
+                  <g transform="translate(-6)"><text x="[[= 100.0 * _.store.projected / total ]]%" y="260" class="label" text-anchor="end">Projected</text>
+                    <text x="[[= 100.0 * _.store.projected / total ]]%" y="300" class="size" text-anchor="end">[[= _.store.projected ]]<tspan>GB</tspan></text>
+                  </g>
+                </g>
+              </svg>
+            </div>
+            <!-- #################################### -->
+
+            <div class="side-by-side">
+              <h3>Storage Details</h3>
+              <dl>
+                <dt>Backup Archives</dt>
+                <dd>[[= _.store.archives ]]</dd>
+
+                <dt>Storage Used</dt>
+                <dd>[[= _.store.used ]]GB</dd>
+
+                <dt>Daily Delta</dt>
+                <dd>[[= _.store.daily_delta ]]GB</dd>
+              </dl>
+            </div>
+
+            <div class="side-by-side">
+              <h3>Configuration</h3>
+              <dl>
+                <dt>S3 Host</dt>
+                <dd>fixme</dd>
+
+                <dt>Access Key</dt>
+                <dd>fixme</dd>
+
+                <dt>Prefix Path</dt>
+                <dd>/fix/me</dd>
+              </dl>
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--policies"><!-- {{{ -->
+      [[#
+        {policies} template
+
+        Renders the list of all retention policies
+      ]]
+          <div class="gutter blk">
+            <h2>Retention Policies</h2>
+            <a href="#!/policies/new">Create a New Retention Policy</a>
+            [[ if (_.policies.length == 0) { ]]
+            <div class="no-data">No Retention Policies have been created yet.</div>
+            [[ } else { ]]
+            <table>
+              <thead><tr>
+                <th>Name</th>
+                <th>Retention Period</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                [[ $.each(_.policies, function (i, policy) { ]]
+                <tr>
+                  <td>[[= policy.name ]]</td>
+                  <td>[[= policy.days ]] day[[ if (policy.days != 1) { ]]s[[ } ]]</td>
+                  <td></td>
+                </tr>
+                [[ }); ]]
+              </tbody>
+            </table>
+            [[ } ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--policies-new"><!-- {{{ -->
+      [[#
+        {policies-new} template
+
+        Renders a form for createing a new retention policy.
+      ]]
+          <div class="gutter blk">
+            <h2>New Retention Policy</h2>
+            <form class="crud">
+              <div class="ctl" data-field="name">
+                <label for="policy-name">Name</label>
+                <input type="text" id="policy-name" name="name" />
+                <span class="if-missing">You must provide a name for this new retention policy.</span>
+              </div>
+              <div class="ctl" data-field="expires">
+                <label for="policy-days">Expiry (in days)</label>
+                <input type="text" id="policy-days" name="days" />
+                <span class="if-missing">You must specify an expiry of at least 1 day.</span>
+              </div>
+              <button>Create Retention Policy</button>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--admin"><!-- {{{ -->
+      [[#
+        {admin} template
+
+        Renders the administrator control panel.
+      ]]
+          <div class="gutter blk" id="admin-home">
+            <h2>SHIELD Administration</h2>
+            <ul>
+              <li><a href="#!/admin/agents">Agents of SHIELD</a>
+                <p>SHIELD performs backup and restore operations through <em>agents</em> that run
+                on other machines.  These agents register with the SHIELD Core, and provide
+                metadata that is essential to the configuration of your data protection jobs.</p>
+              </li>
+              <li><a href="#!/admin/auth">Authentication Providers</a>
+                <p>SHIELD can authenticate (and authorize) users against 3rd party OAuth2
+                implementations like Github and UAA.  These authentication <em>providers</em>
+                are configured in the SHIELD Core configuration file, but you can review their
+                configuration here.</p>
+              </li>
+              <li><a href="#!/admin/users">Local User Management</a>
+                <p>Local SHIELD user accounts can be set up to provide access to your SHIELD if
+                you do not want to use a 3rd party authentication provider.  Local users can be
+                granted system roles and be given roles on tenants.</p>
+              </li>
+              <li><a href="#!/admin/rekey">Rekey SHIELD Core</a>
+                <p>The SHIELD Core stores all of the archive encryption keys in a secure storage
+                vault, which is protected by the SHIELD <em>master password</em>.  If you need or
+                want to, you can rekey this SHIELD Core and pick a new master password.</p>
+              </li>
+            </ul>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--agents"><!-- {{{ -->
+      [[#
+        {agents} template
+
+        Renders the list of registered agents, with information about each
+        registered agent, its version, health, etc.
+      ]]
+          <div class="gutter blk">
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <h2>Agents of SHIELD</h2>
+            [[ if (_.agents.length == 0) { ]]
+            <div class="no-data">No Agents have registered with this S.H.I.E.L.D. instance yet.</div>
+            [[ } else { ]]
+            <table>
+              <thead><tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Last Seen</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                [[ $.each(_.agents, function (i, agent) { ]]
+                    [[ var problems = _.problems[agent.uuid]; ]]
+                <tr[[ if (problems.length != 0) { ]] class="noted fail"[[ } ]]>
+                  <td class="k">[[= agent.name ]]</td>
+                  <td>[[= agent.address ]]</td>
+                  <td>[[= agent.version ]]</td>
+                  <td>[[ if (agent.status == "ok") { ]]
+                    <span class="ok">[[= agent.status ]]</span>
+                  [[ } else { ]]
+                    <span class="fail">[[= agent.status ]]</span>
+                  [[ } ]]
+                  </td>
+                  <td>[[= trelative(agent.last_seen_at, 90*86400) ]]</td>
+                  <td></td>
+                </tr>
+                [[ if (problems.length != 0) { ]]
+                <tr class="note fail">
+                  <td colspan="6">
+                    [[ $.each(problems, function (j, problem) { ]]
+                    <strong>Note:</strong><div>[[= problem ]]</div>
+                    [[ }); ]]
+                  </td>
+                </tr>
+                [[ } ]]
+                [[ }); ]]
+              </tbody>
+            </table>
+            [[ } ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--auth-providers"><!-- {{{ -->
+      [[#
+        {auth-providers} template
+
+        Renders the list of configured authentication providers, including
+        details about how to integrate with their respective 3rd party auth
+        systems, i.e. Github oauth App registration, CF/UAA client creation,
+        etc.
+      ]]
+          <div class="gutter blk" id="auth-providers">
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <h2>Authentication Providers</h2>
+            <table>
+              <thead><tr>
+                <th>Name</th>
+                <th>Identifier</th>
+                <th>Type</th>
+              </tr></thead>
+              <tbody>
+              [[ $.each(_.providers, function (i, provider) { ]]
+                <tr>
+                  <td>[[= provider.name ]]</td>
+                  <td><span class="tag">[[= provider.identifier ]]</span></td>
+                  <td>[[= provider.type ]] (<a href="#!/admin/auth/config:name:[[= provider.identifier ]]">configuration</a>)</td>
+                </tr>
+              [[ }); ]]
+              </tbody>
+            </table>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--auth-provider-config"><!-- {{{ -->
+      [[#
+        {auth-provider-config} template
+
+        Renders the configuration of a single authentication provider,
+        to help administrators set up the external endpoints, i.e. by
+        showing the uaac commands to run to configure UAA, or the fields
+        to fill out in the Github OAuth UI.
+      ]]
+          <div class="gutter blk" id="auth-provider">
+            <a class="breadcrumb" href="#!/admin/auth">&laquo; Back to Authentication Providers</a>
+            <h2>[[= _.provider.name ]] Authentication Provider ([[= _.provider.identifier ]])</h2>
+            [[ var p = _.provider.properties; ]]
+            [[ if (_.provider.type == 'github') { ]]
+            <p>This is a <strong>Github</strong>-backed authentication provider, targeting
+            [[ if (!p.github_endpoint || p.github_endpoint == "" || p.github_endpoint.match(/github\.com/)) { ]]
+            public Github.
+            [[ } else { ]]
+            a private, on-premise Github Enterprise (<a href="[[= p.github_endpoint ]]">[[= p.github_endpoint ]]</a>).
+            [[ } ]]</p>
+            <h3>Configuring Github</h3>
+            <p>First, you will need
+            to <a href="https://github.com/settings/applications/new">register a new
+            OAuth2 application</a> for this SHIELD:</p>
+
+            <div class="github-auth-overlay-register">
+              <span class="appname">SHIELD</span>
+              <span class="homepage">[[= website() ]]</span>
+              <span class="callback">[[= website() ]]auth/[[= _.provider.identifier ]]/redir</span>
+            </div>
+
+            <p>Once your application is registered, Github will provide you
+            with a new Client ID and Client Secret:</p>
+
+            <div class="github-auth-overlay-app">
+              <span class="client-id"></span>
+              <span class="client-secret"></span>
+            </div>
+
+            <p>These <strong>must</strong> match the values you configure
+            in the SHIELD Core configuration YAML file.</p>
+
+            [[ } else { ]]
+            <p>This is a <strong>UAA</strong>-backed authentication provider.</p>
+
+            <h3>Configuring Your UAA Client</h2>
+            <p>In order for this authentication provider to function, you may need
+            to add a new UAA client for this SHIELD.  The following commands should
+            suffice:</p>
+
+            <pre><code>$ uaac target <span class="hi">[[= p.uaa_endpoint ]]</span>
+$ uaac token client get admin
+
+$ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
+                  --name S.H.I.E.L.D. \
+                  --scope openid \
+                  --authorities uaa.none \
+                  --authorized_grant_types authorization_code \
+                  --redirect_uri <span class="hi">[[= website() ]]auth/oauth/[[= _.provider.identifier ]]/redir</span> \
+                  --access_token_validity  180 \
+                  --refresh_token_validity 180 \
+                  --secret '<span class="hi">[[= p.client_secret ]]</span>'</code></pre>
+
+            [[ } ]]
+            <h3>Raw Configuration</h3>
+            <pre><code>[[= JSON.stringify(_.provider, null, 2) ]]</code></pre>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--rekey"><!-- {{{ -->
+      [[#
+        {rekey} template
+
+        Renders the list of configured authentication providers, including
+        details about how to integrate with their respective 3rd party auth
+        systems, i.e. Github oauth App registration, CF/UAA client creation,
+        etc.
+      ]]
+          <div class="gutter blk" id="rekey">
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <h2>Rekey Shield Master Password</h2>
+            <br>
+            <form class='rekey form-group'>
+                <dl class="form-group">
+                    <dt><label for="current_password">Current Master Password</label></dt>
+                    <dd><input name='current_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
+                </dl>
+
+                <dl class="form-group">
+                    <dt><label for="new_password">New Master Password</label></dt>
+                    <dd><input name='new_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
+                </dl>
+
+                <dl class="form-group">
+                    <dt><label for="confirm_new_password">Confirm New Master Password</label></dt>
+                    <dd><input name='confirm_new_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
+                </dl>
+                <button>Update</button>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--admin-users"><!-- {{{ -->
+      [[#
+        {admin-users} template
+
+        Renders the list of local users, in the SHIELD database, allowing
+        administrators to manage them, assigne them to tenants, etc.
+      ]]
+          <div class="gutter blk" id="admin-users">
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <h2>Local User Management</h2>
+            [[ if (_.users.length == 0) { ]]
+            <div class="no-data">No local SHIELD users have been created yet.</div>
+            [[ } else { ]]
+            <a href="#!/admin/users/new">Create a New Local User</a>
+            <table>
+              <thead><tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>System Role</th>
+                <th>Tenants</th>
+              </tr></thead>
+              <tbody>
+                [[ $.each(_.users, function (i, user) { ]]
+                <tr>
+                  <td><a href="#">[[= user.name ]]</a></td>
+                  <td>[[= user.account ]]</td>
+                  <td>[[ if (user.sysrole == "") { ]]<span class="none">none</span>[[ } else { ]][[= user.sysrole ]][[ } ]]</td>
+                  <td>
+                    [[ if ((user.tenants || []).length == 0) { ]]
+                    <span class="none">none</span>
+                    [[ } else { ]]
+                    <ul>
+                      [[ $.each(user.tenants || [], function (j, tenant) { ]]
+                      <li><strong>[[= tenant.name ]]</strong> ([[= tenant.role ]])</li>
+                      [[ }); ]]
+                    </ul>
+                    [[ } ]]
+                  </td>
+                </tr>
+                [[ }); ]]
+              </tbody>
+            </table>
+            [[ } ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--admin-users-new"><!-- {{{ -->
+      [[#
+        {admin-users-new} template
+
+        Renders a form that administrators can use to create new local
+        SHIELD user accounts, specifying their passwords and system roles.
+      ]]
+          <div class="gutter blk" id="admin-users">
+            <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
+            <h2>New SHIELD User</h2>
+            <form rel="new:user">
+              <div class="ctl">
+                <label for="new-user-name">Display Name</label>
+                <input type="text" name="name" id="new-user-name">
+              </div>
+              <div class="ctl">
+                <label for="new-user-account">Username</label>
+                <input type="text" name="account" id="new-user-account">
+              </div>
+              <div class="ctl">
+                <label for="new-user-password">Password</label>
+                <input type="password" name="password" id="new-user-password">
+              </div>
+              <div class="ctl">
+                <label for="new-user-confirm">Confirm</label>
+                <input type="password" name="confirm" id="new-user-confirm">
+              </div>
+              <div class="ctl">
+                <label for="new-user-sysrole">System Role</label>
+                <select name="sysrole" id="new-user-sysrole">
+                  <option value="">None</option>
+                  <option value="engineer">Engineer</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+              <button>Create User</button>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--"><!-- {{{ -->
+    <!-- }}} --></script>
+
+    <!-- FIXME: colo jquery / lensjs with our assets -->
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="/init.js"></script>
+    <script src="/js/lib.js"></script>
+    <script src="/js/sticky-nav.js"></script>
+    <script type="text/javascript">
+    var referer = undefined;
+    function dispatch(page) {
+      if ($global.auth.unauthenticated) {
+        console.log('session not authenticated; diverting to #!/login page...');
+        page = "#!/login";
+
+      } else if ($global.auth && $global.auth.user && $global.auth.user.sysrole != "" && $global.hud) {
+        console.log($global.hud.health.core);
+
+        /* process 'system' team diverts */
+        if ($global.hud.health.core == "uninitialized") {
+          console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
+          page = "#!/init";
+
+        } else if ($global.hud.health.core == "sealed" || $global.hud.health.core == "locked") {
+          console.log('system user detected, and this SHIELD core is locked; diverting to #!/unlock page...');
+          page = "#!/unlock";
+        }
+      }
+      if (!page || page == "") {
+        console.log('no specific page specified; diverting to #!/systems page...');
+        page = "#!/systems";
+      }
+      console.log('dispatching to page "%s"...', page);
+
+      var argv = page.split(':');
+      page = argv.shift();
+      var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
+
+      args = {};
+      for (var i = 0; i < argv.length; i += 2) {
+        args[argv[0+i]] = argv[1+i]
+      }
+      $('nav li.current').removeClass('current');
+      $('nav a[href="'+top+'"]').closest('li').addClass('current');
+
+      switch (page) {
+      case "#!/login": /* {{{ */
+        (function () {
+          api({
+            type: 'GET',
+            url:  '/v2/auth/providers',
+            success: function (data) {
+              $('#viewport').html(template('login', { oauth: data }));
+            },
+            error: function (xhr) {
+              $('#viewport').html(template('BOOM'));
+            }
+          })
+        })();
+        break; /* #!/login */
+        // }}}
+      case "#!/do/backup": /* {{{ */
+        (function () {
+          $('#main').html(template('loading'));
+          var data = {};
+
+          api({
+            type: 'GET',
+            url:  '/v2/systems',
+            error: "Failed retrieving the list of protected systems from the SHIELD API.",
+            success: function (systems) {
+              data = { systems: systems };
+              $('#main').html(template('do-backup', data))
+                .on('click', "a[href^=\"do-backup:\"]", function (event) {
+                  event.preventDefault();
+                  l = $(event.target).closest('a[href^="do-backup:"]').attr('href').split(':');
+                  if (l[1] == "unpick") {
+                    var $card = $(event.target).closest('.card');
+                    if ($card.is('.job'))    { data.system = data.store = data.policy = undefined; }
+                    if ($card.is('.store'))  {               data.store = data.policy = undefined; }
+                    if ($card.is('.policy')) {                            data.policy = undefined; }
+
+                    data.noauto = true;
+                    $('#main').html(template('do-backup', data));
+                    data.noauto = false;
+                    return;
+                  }
+
+                  if (l[1] == "pick" && l[2] == "target") {
+                    for (var i = 0; i < data.systems.length; i++) {
+                      if (data.systems[i].uuid == l[3]) {
+                        data.system = data.systems[i];
+                        break;
+                      }
+                    }
+                    $('#main').html(template('do-backup', data));
+                    return;
+                  }
+
+                  if (l[1] == "pick" && l[2] == "store") {
+                    for (var i = 0; i < data.system.jobs.length; i++) {
+                      if (data.system.jobs[i].store.uuid == l[3]) {
+                        data.store = data.system.jobs[i].store;
+                        break;
+                      }
+                    }
+                    $('#main').html(template('do-backup', data));
+                    return;
+                  }
+
+                  if (l[1] == "pick" && l[2] == "policy") {
+                    for (var i = 0; i < data.system.jobs.length; i++) {
+                      if (data.system.jobs[i].store.uuid == data.store.uuid
+                      && data.system.jobs[i].retention.uuid == l[3]) {
+                        data.policy = data.system.jobs[i].retention;
+                        break;
+                      }
+                    }
+                    $('#main').html(template('do-backup', data));
+                    return;
+                  }
+                });
+            }
+          });
+        })();
+        break; /* #!/do/backup */
+        // }}}
+      case "#!/systems": /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/systems',
+          error: "Failed retrieving the list of protected systems from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('systems', { systems: data }));
+          }
+        });
+        break; /* #!/systems */
+        // }}}
+      case '#!/systems/system': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/systems/'+args.uuid, /* FIXME: handle missing uuid */
+          error: "Failed retrieving metadata for protected system from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('system', { target: data }));
+          }
+        });
+        break; /* #!/systems/system */
+        // }}}
+      case '#!/stores': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v1/stores',
+          error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
+          success: function (data) {
+            /* FIXME fixups that need to migrate into the SHIELD code */
+            for (key in data) {
+              if (!('ok' in data[key])) {
+                data[key].ok = true;
+              }
+            }
+            $('#main').html(template('stores', { stores: data }));
+          }
+        });
+        break; /* #!/stores */
+        // }}}
+      case '#!/stores/store': /* {{{ */
+        var used = 200.1;
+        var projected = 201.7;
+        var threshold = 180;
+        $('#main').html(template('store', {
+          store: {
+            uuid: '4a013967-9295-499a-8cc4-ace60f721704',
+            name: 'Scality (On-Premise)',
+            ok: false,
+            plugin: 'scality',
+            archives: 224,
+            used: 200.1,
+            threshold: 180,
+            projected: 600.7,
+            total: 201.7,
+            daily_delta: '+1.3',
+            notes: 'On-premise Scality storage, to be used for short-term, high-volume backup archives.  These go to to the <kbd>xyzy</kbd> bucket.'
+          }
+        }));
+        break; /* #!/stores/store */
+        // }}}
+      case '#!/policies': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v1/retention',
+          error: 'Failed to retrieve retention policy information from the SHIELD API.',
+          success: function (data) {
+            /* FIXME: data fixups that should probably migrate back to API */
+            for (var i = 0; i < data.length; i++) {
+              /* convert seconds -> days */
+              data[i].days = data[i].expires / 86400;
+            }
+
+            $('#main').html(template('policies', { policies: data }));
+          }
+        });
+        break; /* #!/policies */
+        // }}}
+      case '#!/policies/new': /* {{{ */
+        $('#main').html(template('policies-new'))
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+
+            var data = $(event.target).serializeObject();
+
+            if (data.days != "") {
+              var e = 'Invalid retention policy expiry';
+              if (!parseInt(data.days)) {
+                if (parseFloat(data.days) != NaN) {
+                  e += ': "'+data.days+'" is not an integer';
+                } else {
+                  e += ': "'+data.days+'" is not a number';
+                }
+              } else if (parseInt(data.days) < 0) {
+                e += ': "'+data.days+'" is less than zero';
+              } else {
+                e = null;
+              }
+              if (e) {
+                banner(e, "error");
+                return;
+              }
+            }
+
+            data.expires = data.days * 86400; /* FIXME fixup for API */
+            delete data.days;
+
+            $(event.target).find('.if-missing').hide();
+
+            api({
+              type: 'POST',
+              url:  '/v1/retention',
+              data: data,
+              success: function () {
+                goto("#!/policies");
+              },
+              error: function (xhr) {
+                console.log(xhr);
+                var res = xhr.responseJSON;
+                if (res) {
+                  if ('missing' in res) {
+                    for (var i = 0; i < res.missing.length; i++) {
+                      $(event.target)
+                        .find('.ctl[data-field="'+res.missing[i]+'"] .if-missing')
+                          .show();
+                    }
+                  } else if ('error' in res) {
+                    banner(res.error, "error");
+                  }
+                }
+              }
+            });
+          });
+
+        break; /* #!/policies */
+        // }}}
+      case '#!/admin': /* {{{ */
+        $('#main').html(template('admin'));
+        break; /* #!/admin */
+        // }}}
+      case '#!/admin/agents': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/agents',
+          error: "Failed retrieving the list of agents from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('agents', data));
+          }
+        });
+        break; /* #!/admin/agents */
+        // }}}
+      case '#!/admin/auth': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/auth/providers',
+          error: "Failed retrieving the list of configured authentication providers from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('auth-providers', { providers: data }));
+          }
+        });
+        break; /* #!/admin/auth */
+        // }}}
+      case '#!/admin/auth/config': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/auth/providers/'+args.name,
+          error: "Failed retrieving the authentication provider configuration from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('auth-provider-config', { provider: data }));
+          }
+        });
+        break; /* #!/admin/auth */
+        // }}}
+      case '#!/admin/rekey': /* {{{ */
+        $('#main').html(template('rekey'));
+        break; /* #!/admin/rekey */
+        // }}}
+      case '#!/admin/users': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/auth/local/users',
+          error: "Failed retrieving the list of local SHIELD users from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('admin-users', { users: data }));
+          }
+        });
+        break; /* #!/admin/users */
+        // }}}
+      case "#!/admin/users/new": /* {{{ */
+        $('#main').html(template('admin-users-new', {}))
+          .on('submit', 'form[rel="new:user"]', function (event) {
+            event.preventDefault();
+            var $form = $(event.target);
+
+            var payload = {
+              name:     $form.find('[name=name]').val(),
+              account:  $form.find('[name=account]').val(),
+              password: $form.find('[name=password]').val()
+            };
+
+            if ($form.find('[name=confirm]').val() != payload.password) {
+              banner("Passwords don't match", "error");
+              return;
+            }
+
+            banner("Creating new user...", "info");
+            api({
+              type: 'POST',
+              url:  '/v2/auth/local/users',
+              data: payload,
+              success: function (data) {
+                banner('New user created successfully.');
+                goto("#!/admin/users");
+              },
+              error: function (xhr) {
+                banner("Failed to create new user", "error");
+              }
+            });
+          });
+        break; // #!/admin/users/new
+        // }}}
+
+      case "#!/unlock": $('#main').html(template('unlock', {})); break;
+      case "#!/init":   $('#main').html(template('init',   {})); break;
+
+      default:
+        $('#main').html(template('404', {
+          wanted:  page,
+          args:    argv,
+          referer: referer,
+        }));
+        return; /* 404 */
+      }
+      referer = page;
+    }
+
+    function reload() {
+      dispatch(document.location.hash);
+    }
+    function goto(page) {
+      document.location.hash = page;
+    }
+
+    $(function () {
+      $('#viewport').html(template('layout'));
+
+      $(window).on('hashchange', function (event) {
+        dispatch(document.location.hash);
+      }).trigger('hashchange');
+
+      (function (s) {
+        var RUNNING = false;
+        var last = "";
+
+        var ping = function () {
+          if (RUNNING) { return; }
+          RUNNING = true;
+          $.ajax({
+            type: 'GET',
+            url:  '/v2/health',
+            success: function (data) {
+              $global.hud = data;
+              var json = JSON.stringify(data);
+              if (json != last) {
+                $('#hud').html(template('hud', $global.hud));
+
+                var tenant = null;
+                if ($global.auth.tenants && $global.auth.tenants.length > 0) {
+                  tenant = $global.auth.tenants[0];
+                }
+                $('.top-bar').html(template('top-bar', {
+                  shield: {
+                    env: 'DEMO',
+                    ip:  data.shield.ip
+                  },
+                  user:    $global.auth.user,
+                  tenants: $global.auth.tenants,
+                  tenant:  tenant
+                }));
+              }
+              last = json;
+            },
+            complete: function () {
+              RUNNING = false;
+            }
+          });
+        }
+        ping();
+        window.setInterval(ping, s * 1000);
+      })(5);
+
+      /* handle the account flyout */
+      $(document.body).on('click', '.top-bar a[rel=account]', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        $('.top-bar .flyout').toggle();
+      });
+      $(document.body).on('click', function (event) {
+        if (!$('.top-bar .flyout').is(':visible')) { return; }
+        if ($(event.target).is('.top-bar .flyout, .top-bar .flyout *')
+          && !$(event.target).is('a')) { return; }
+        $('.top-bar .flyout').hide();
+      });
+
+      /* show a task in the next row down. */
+      $('#main').on('click', 'a[href^="task:"]', function (event) {
+        event.preventDefault();
+        var uuid  = $(event.target).closest('a[href^="task:"]').attr('href').replace(/^task:/, '');
+        var $ev   = $(event.target).closest('.event');
+        var $task = $ev.find('.task');
+
+        if ($task.is(':visible')) {
+          $task.hide();
+          return;
+        }
+
+        $task = $task.show()
+                    .html(template('loading'));
+
+        api({
+          type: 'GET',
+          url:  '/v1/task/'+uuid,
+          error: "Failed to retrieve task information from the SHIELD API.",
+          success: function (data) {
+            $task.html(template('task', {
+              task: data,
+              restorable: data.archive_uuid != "" && data.status == "done",
+            }));
+          }
+        });
+      });
+
+      /* show an annotation form, in a task log */
+      $('#main').on('click', '.task button[rel^="annotate:"]', function (event) {
+        console.log('annotating!');
+        $(event.target).closest('.task').find('form.annotate').toggle();
+      });
+
+      $('#main').on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) {
+        event.preventDefault();
+        var uuid;
+        if ($(event.target).is('button')) {
+          uuid = $(event.target).attr('rel');
+        } else {
+          uuid  = $(event.target).closest('a[href^="run:"]').attr('href');
+        }
+        uuid = uuid.replace(/^run:/, '');
+
+        banner('scheduling ad hoc backup...', 'progress');
+        api({
+          type: 'POST',
+          url:  '/v1/job/'+uuid+'/run',
+          success: function () {
+            banner('ad hoc backup job scheduled');
+            reload();
+          },
+          error: function () {
+            banner('unable to schedule ad hoc backup job', 'error');
+          }
+        });
+      });
+
+      $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
+        var uuid   = $(event.target).closest('[data-archive-uuid]').data('archive-uuid');
+        var target = $(event.target).closest('[data-system-name]').data('system-name');
+        var taken  = $(event.target).closest('[data-archive-taken]').data('archive-taken');
+        console.log('restoring archive %s!', uuid);
+
+        modal(template('restore-are-you-sure', {
+            target: target,
+            taken:  taken
+          })).on('click', '[rel=yes]', function(event) {
+          event.preventDefault();
+          api({
+            type: 'POST',
+            url:  '/v1/archive/'+uuid+'/restore',
+            success: function() {
+              banner("restore operation started");
+            },
+            error: function () {
+              banner("unable to schedule restore operation", "error");
+            }
+          });
+        });
+      });
+
+      $('#main').on('submit', '.init-shield', function (event) {
+        event.preventDefault();
+        var master1 = $('.init-shield [name=master]').val();
+        var master2 = $('.init-shield [name=confirm]').val();
+
+        if (master1 != master2) {
+          banner("Passwords do not match.", 'error');
+          return;
+        }
+
+        if (master1 == '') {
+          banner("Please specify a master password", 'error');
+          return;
+        }
+
+        api({
+          type: 'POST',
+          url:  '/v2/init',
+          data: { "master_password": master1 },
+          error: "Unable to initialize the SHIELD Core.",
+          success: function (data) {
+            $global.hud.health.core = "unlocked";
+            $('#hud').html(template('hud', $global.hud));
+            goto("");
+          }
+        });
+      });
+
+      $('#main').on('submit', '.unlock-shield', function (event) {
+        event.preventDefault();
+        var master = $('.unlock-shield [name=master]').val();
+        api({
+          type: 'POST',
+          url:  '/v2/unlock',
+          data: { "master_password": master },
+          error: "Unable to unlock the SHIELD Core.",
+          success: function (data) {
+            $global.hud.health.core = "unlocked";
+            $('#hud').html(template('hud', $global.hud));
+            goto("");
+          }
+        });
+      });
+
+      /* submit the annotation form */
+      $('#main').on('submit', '.task form.annotate', function (event) {
+        event.preventDefault();
+
+        var $form = $(event.target);
+        var uuid = $form.closest('[data-system-uuid]').data('system-uuid');
+
+        if ($form.is('[data-system-uuid] [data-task-uuid] *')) {
+          var ann = {
+            type  : "task",
+            uuid  : $form.find('[name=uuid]').val(),
+            notes : $form.find('[name=notes]').val()
+          };
+          if ($form.find('input[name=disposition]').length > 0) {
+            ann.disposition = $form.find('input[name=disposition]').is(':checked')
+                            ? "ok" : "failed";
+          }
+          ann.clear = $form.find('[optgroup=clear]:checked').val();
+          if (ann.clear == '') {
+            ann.clear = "normal";
+          }
+
+          api({
+            type: 'PATCH',
+            url:  '/v2/systems/'+uuid,
+            data: { "annotations": [ann] },
+            success: function (data) {
+              $form.hide();
+              banner("task annotation saved.");
+              reload();
+            },
+            error: function (xhr) {
+              $form.hide();
+              banner("task annotation failed to save.", 'error');
+            }
+          });
+
+        } else {
+          throw 'unexpected annotation form (not a .tasks or .archives descendent)'
+        }
+      });
+
+      /* rekey shield master encryption keys. */
+      $('#main').on('submit', 'form.rekey', function (event) {
+        event.preventDefault();
+        var creds = $(event.target).serializeObject();
+
+        if (creds.confirm_new_master_password != creds.new_master_password) {
+          banner("Passwords do not match!", 'error');
+          $(event.target).clearForm();
+          return;
+        }
+
+        if (creds.new_master_password == '') {
+          banner("Master Password cannot be blank!", 'error');
+          $(event.target).clearForm();
+          return;
+        }
+
+        api({
+          type: 'POST',
+          url:  '/v2/rekey',
+          data: creds,
+          success: function () {
+            banner('Succcessfully rekeyed the SHIELD Core.');
+            goto("");
+          },
+          error: function (xhr) {
+            banner(xhr.responseJSON.error, 'error');
+            $(event.target).clearForm();
+          }
+        });
+      });
+    });
+    </script>
+
+    <script type="text/javascript">
+    $('form').on('click', '.ctl', function (event) {
+      $(event.target).closest('form').find('.band.active').removeClass('active');
+      $(event.target).closest('.band').addClass('active');
+    });
+    $('form').on('focus', 'input, textarea, select', function (event) {
+      $(event.target).closest('form').find('.band.active').removeClass('active');
+      $(event.target).closest('.band').addClass('active');
+    });
+    </script>
+
+  </body>
+</html>

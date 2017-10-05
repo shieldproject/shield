@@ -81,7 +81,7 @@ func (f FlagInfo) formatLong() (formatted string) {
 	if f.Positional {
 		return fmt.Sprintf("<%s>", f.Name)
 	} else if f.Valued {
-		return fmt.Sprintf("--%s=value", f.Name)
+		return fmt.Sprintf("--%s VALUE", f.Name)
 	}
 	return fmt.Sprintf("--%s", f.Name)
 }
@@ -107,7 +107,11 @@ func (f FlagInfo) lenShort() (length int) {
 
 func (f FlagInfo) lenLong() (length int) {
 	if f.Name != "" {
-		return len(f.Name) + 2
+		var additionalLength int
+		if f.Valued {
+			additionalLength = 6
+		}
+		return len(f.Name) + 2 + additionalLength
 	}
 	panic("flag name not set")
 }
@@ -174,12 +178,6 @@ var (
 		Name: "targetname", Positional: true, Mandatory: true,
 		Desc: `A string partially matching the name of a single target
 				or a UUID exactly matching the UUID of a target.`,
-	}
-	//ScheduleNameFlag <schedulename>
-	ScheduleNameFlag = FlagInfo{
-		Name: "schedulename", Positional: true, Mandatory: true,
-		Desc: `A string partially matching the name of a single schedule
-				or a UUID exactly matching the UUID of a schedule.`,
 	}
 	//PolicyNameFlag <policyname>
 	PolicyNameFlag = FlagInfo{

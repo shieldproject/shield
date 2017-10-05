@@ -3,15 +3,31 @@ package tui
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
+	"unicode"
 )
 
 type Cell []string
 
+func visibleLen(s string) (length int) {
+	s = removeAnsiEscapes(s)
+	for _, char := range s {
+		if unicode.IsGraphic(char) {
+			length++
+		}
+	}
+	return
+}
+
+func removeAnsiEscapes(s string) string {
+	return regexp.MustCompile("\033\\[[0-9;]+m").ReplaceAllString(s, "")
+}
+
 func (c Cell) Width() int {
 	n := 0
 	for _, s := range c {
-		if l := len(s); l > n {
+		if l := visibleLen(s); l > n {
 			n = l
 		}
 	}
@@ -123,7 +139,7 @@ func (t *Grid) prepare() {
 		return
 	}
 
-	g := [][]string{}
+	g := [][]string{} //Grid
 	i := 0
 	ww := make([]int, t.Columns())
 	ix := make([]int, 0)
@@ -150,11 +166,32 @@ func (t *Grid) prepare() {
 		i += h
 	}
 
-	ff := make([]string, len(ww))
-	for i, w := range ww {
-		ff[i] = fmt.Sprintf("%%-%ds", w)
+	fml := make([]string, len(g)) //Format string for each line
+	//Determine the format string for each cell. Start with the expected width of
+	// a column, and alter if non-printing characters are found
+	var rowLineNum int
+	for _, row := range t.rows {
+		ffml := make([][]string, row.Height()) //Array of format strings for this row
+		//Initialize inner slices to default column width values.
+		// This corrects cases for multiple line cells, because it will fill in values for
+		// the cells of the grid that don't actually have a cell line associated with it
+		for i := range ffml {
+			ffml[i] = make([]string, len(row))
+			for j := range ffml[i] {
+				ffml[i][j] = fmt.Sprintf("%%-%ds", ww[j])
+			}
+		}
+		for cellNum, cell := range row {
+			for lineNum, cellLine := range cell {
+				offset := len(cellLine) - visibleLen(cellLine)
+				ffml[lineNum][cellNum] = fmt.Sprintf("%%-%ds", ww[cellNum]+offset)
+			}
+		}
+		for lineNum, lineFormat := range ffml { //Put each format line into fml
+			fml[rowLineNum+lineNum] = strings.Join(lineFormat, "  ") //Format string for an entire line
+		}
+		rowLineNum += row.Height()
 	}
-	f := strings.Join(ff, "  ")
 
 	t.index = ix
 	t.data = make([]string, len(g))
@@ -163,7 +200,7 @@ func (t *Grid) prepare() {
 		for n, s := range ss {
 			ii[n] = s
 		}
-		t.data[i] = strings.TrimRight(fmt.Sprintf(f, ii...), " ") + "\n"
+		t.data[i] = strings.TrimRight(fmt.Sprintf(fml[i], ii...), " ") + "\n"
 	}
 
 	t.prepared = true

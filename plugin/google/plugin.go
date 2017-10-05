@@ -99,9 +99,34 @@ func main() {
   # there are no defaults.
 }
 `,
-	}
 
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:  "store",
+				Name:  "json_key",
+				Type:  "string",
+				Title: "Google Cloud JSON key",
+				Help:  "Your Google Cloud Store JSON key, which should be available via the Google Cloud Platform web UI.",
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "bucket",
+				Type:     "string",
+				Title:    "Bucket Name",
+				Help:     "Name of the bucket to store backup archives in.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "prefix",
+				Type:  "string",
+				Title: "Bucket Path Prefix",
+				Help:  "An optional sub-path of the bucket to use for storing archives.  By default, archives are stored in the root of the bucket.",
+			},
+		},
+	}
 	plugin.Run(p)
+
 }
 
 type GooglePlugin plugin.PluginInfo

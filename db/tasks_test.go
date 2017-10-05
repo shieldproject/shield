@@ -29,7 +29,6 @@ var _ = Describe("Task Management", func() {
 		SomeTarget    *Target
 		SomeStore     *Store
 		SomeRetention *RetentionPolicy
-		SomeSchedule  *Schedule
 		SomeArchive   *Archive
 	)
 
@@ -51,7 +50,6 @@ var _ = Describe("Task Management", func() {
 		SomeTarget = &Target{UUID: uuid.NewRandom()}
 		SomeStore = &Store{UUID: uuid.NewRandom()}
 		SomeRetention = &RetentionPolicy{UUID: uuid.NewRandom()}
-		SomeSchedule = &Schedule{UUID: uuid.NewRandom()}
 		SomeArchive = &Archive{UUID: uuid.NewRandom()}
 
 		db, err = Database(
@@ -67,16 +65,12 @@ var _ = Describe("Task Management", func() {
 			`INSERT INTO retention (uuid, name, summary, expiry)
 			   VALUES ("`+SomeRetention.UUID.String()+`", "Some Retention", "", 3600)`,
 
-			// need a schedule
-			`INSERT INTO schedules (uuid, name, summary, timespec)
-			   VALUES ("`+SomeSchedule.UUID.String()+`", "Some Schedule", "", "daily 4am")`,
-
 			// need a job
 			`INSERT INTO jobs (uuid, name, summary, paused,
-			                   target_uuid, store_uuid, retention_uuid, schedule_uuid)
+			                   target_uuid, store_uuid, retention_uuid, schedule)
 			   VALUES ("`+SomeJob.UUID.String()+`", "Some Job", "just a job...", 0,
 			           "`+SomeTarget.UUID.String()+`", "`+SomeStore.UUID.String()+`",
-			           "`+SomeRetention.UUID.String()+`", "`+SomeSchedule.UUID.String()+`")`,
+			           "`+SomeRetention.UUID.String()+`", "daily 3am")`,
 
 			// need an archive
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
@@ -101,10 +95,6 @@ var _ = Describe("Task Management", func() {
 		SomeRetention, err = db.GetRetentionPolicy(SomeRetention.UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(SomeRetention).ShouldNot(BeNil())
-
-		SomeSchedule, err = db.GetSchedule(SomeSchedule.UUID)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(SomeSchedule).ShouldNot(BeNil())
 
 		SomeArchive, err = db.GetArchive(SomeArchive.UUID)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -241,7 +231,7 @@ var _ = Describe("Task Management", func() {
 
 		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Ω(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, "SOME-KEY", time.Now())
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "SOME-KEY", time.Now(), "aes-256-ctr")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(archive_id).ShouldNot(BeNil())
 
@@ -263,7 +253,7 @@ var _ = Describe("Task Management", func() {
 
 		Expect(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Expect(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, "", time.Now())
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "", time.Now(), "aes-256-ctr")
 		Expect(err).Should(HaveOccurred())
 		Expect(archive_id).Should(BeNil())
 
@@ -350,6 +340,9 @@ var _ = Describe("Task Management", func() {
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
+				OK:          true,
+				Notes:       "",
+				Clear:       "normal",
 			}))
 		})
 		It("Returns an individual task when associated with job/archive", func() {
@@ -365,6 +358,9 @@ var _ = Describe("Task Management", func() {
 				StartedAt:   timestamp.Timestamp{},
 				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
+				OK:          true,
+				Notes:       "",
+				Clear:       "normal",
 			}))
 		})
 	})

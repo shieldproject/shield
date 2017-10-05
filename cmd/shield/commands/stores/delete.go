@@ -32,7 +32,7 @@ func cliDeleteStore(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		internal.ShowStore(store)
+		Show(store)
 		if !tui.Confirm("Really delete this store?") {
 			return internal.ErrCanceled
 		}

@@ -38,6 +38,7 @@ func main() {
   "bool2":   true
 }
 `,
+		Fields: []plugin.Field{},
 	}
 
 	plugin.Run(p)

@@ -1,7 +1,0 @@
-{
-	"operation"       : "backup",
-	"target_plugin"   : "dummy",
-	"target_endpoint" : "{\"data\":\"XYZZY\"}",
-	"store_plugin"    : "dummy",
-	"store_endpoint"  : "{\"directory\":\"/tmp/shield/dummy\"}"
-}

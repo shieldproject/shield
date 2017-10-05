@@ -25,19 +25,29 @@ type HelpGroup struct {
 
 //Enumeration for HelpGroupTypes
 var (
-	InfoGroup      = &HelpGroup{name: "INFO"}
-	BackendsGroup  = &HelpGroup{name: "BACKENDS"}
-	TargetsGroup   = &HelpGroup{name: "TARGETS"}
-	StoresGroup    = &HelpGroup{name: "STORES"}
-	SchedulesGroup = &HelpGroup{name: "SCHEDULES"}
-	PoliciesGroup  = &HelpGroup{name: "POLICIES"}
-	JobsGroup      = &HelpGroup{name: "JOBS"}
-	ArchivesGroup  = &HelpGroup{name: "ARCHIVES"}
-	TasksGroup     = &HelpGroup{name: "TASKS"}
+	InfoGroup     = &HelpGroup{name: "INFO"}
+	MiscGroup     = &HelpGroup{name: "MISCELLANEOUS"}
+	BackendsGroup = &HelpGroup{name: "BACKENDS"}
+	TargetsGroup  = &HelpGroup{name: "TARGETS"}
+	StoresGroup   = &HelpGroup{name: "STORES"}
+	PoliciesGroup = &HelpGroup{name: "POLICIES"}
+	JobsGroup     = &HelpGroup{name: "JOBS"}
+	ArchivesGroup = &HelpGroup{name: "ARCHIVES"}
+	AccessGroup   = &HelpGroup{name: "ACCESS"}
+	TasksGroup    = &HelpGroup{name: "TASKS"}
 )
 
 func (h *HelpGroup) addCommand(c *Command) {
 	h.commands = append(h.commands, c)
+}
+
+//Reset wipes away all of the registered commands and global flags, leaving you
+// with a fresh dispatcher state. Useless for the actual program, but great for
+// testing
+func Reset() {
+	commands = map[string]*Command{}
+	GlobalFlags = []FlagInfo{}
+	maxCmdLen = 0
 }
 
 func (h *HelpGroup) String() string {
@@ -58,13 +68,14 @@ func CommandString() string {
 	var helpLines []string
 	groupList := []*HelpGroup{
 		InfoGroup,
+		MiscGroup,
 		BackendsGroup,
 		TargetsGroup,
-		SchedulesGroup,
 		PoliciesGroup,
 		StoresGroup,
 		JobsGroup,
 		TasksGroup,
+		AccessGroup,
 		ArchivesGroup,
 	}
 
@@ -120,16 +131,17 @@ func AliasesFor(command *Command) []string {
 //of the input array to be used as Command args. Returns nil, "the bad command", nil if no
 //match can be found
 func ParseCommand(userInput ...string) (cmd *Command, givenName string, args []string) {
+	givenName = strings.Join(userInput, " ")
+
 	if len(userInput) == 0 {
 		userInput = []string{"help"}
 	}
 
 	for i := 1; i <= len(userInput); i++ {
-		givenName = strings.Join(userInput[:i], " ")
-		args = userInput[i:]
-		var found bool
-		if cmd, found = commands[givenName]; found {
-			break
+		thisName := strings.Join(userInput[:i], " ")
+		if thisCmd, found := commands[thisName]; found {
+			cmd, givenName = thisCmd, thisName
+			args = userInput[i:]
 		}
 	}
 	return

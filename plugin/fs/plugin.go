@@ -94,6 +94,51 @@ func main() {
   "bsdtar" : "/var/vcap/packages/bsdtar/bin/bsdtar"
 }
 `,
+
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "target",
+				Name:     "base_dir",
+				Type:     "abspath",
+				Title:    "Base Directory",
+				Help:     "Absolute path of the directory to backup.",
+				Example:  "/srv/www/htdocs",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "base_dir",
+				Type:     "abspath",
+				Title:    "Base Directory",
+				Help:     "Where to store the backup archives, on-disk.  This must be an absolute path, and the directory must exist.",
+				Example:  "/var/store/backups",
+				Required: true,
+			},
+
+			plugin.Field{
+				Mode:  "target",
+				Name:  "include",
+				Type:  "string",
+				Title: "Files to Include",
+				Help:  "Only files that match this pattern will be included in the backup archive.  If not specified, all files will be included.",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "exclude",
+				Type:  "abspath",
+				Title: "Files to Exclude",
+				Help:  "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded.",
+			},
+
+			plugin.Field{
+				Mode:    "both",
+				Name:    "bsdtar",
+				Type:    "abspath",
+				Title:   "Path to `bsdtar` Utility",
+				Help:    "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
+				Default: "/var/vcap/packages/bsdtar/bin/bsdtar",
+			},
+		},
 	}
 
 	plugin.DEBUG("fs plugin starting up...")

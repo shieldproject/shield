@@ -1,5 +1,0 @@
-#!/bin/bash
-
-DB="/tmp/db.sqlite3" # hard-coded into shieldd.  tehe
-rm -f "${DB}"
-./shield-schema -t sqlite3 -d "${DB}"

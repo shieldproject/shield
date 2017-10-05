@@ -81,14 +81,14 @@ The following new functionality needs to be added:
 To this end, Agents will need to be able to handle the following
 new request types:
 
-### "metadata"
+### "status"
 
-The SHIELD Core requests metadata by issuing the following
+The SHIELD Core requests Agent status by issuing the following
 Agent-Request:
 
 ```
 {
-  "operation" : "metadata"
+  "operation" : "status"
 }
 ```
 

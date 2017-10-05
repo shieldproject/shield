@@ -173,10 +173,12 @@ func (u *URL) Put(out interface{}, data string) error {
 }
 
 func makeRequest(req *http.Request) (*http.Response, error) {
+	skipSSL := os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "" || curBackend.SkipSSLValidation
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "",
+				InsecureSkipVerify: skipSSL,
+				RootCAs:            backendCertPool,
 			},
 			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
@@ -186,9 +188,8 @@ func makeRequest(req *http.Request) (*http.Response, error) {
 	if os.Getenv("SHIELD_API_TOKEN") != "" {
 		req.Header.Set("X-Shield-Token", os.Getenv("SHIELD_API_TOKEN"))
 	}
-	token := Cfg.BackendToken()
-	if token != "" {
-		req.Header.Set("Authorization", token)
+	if curBackend.Token != "" {
+		req.Header.Set("Authorization", curBackend.Token)
 	}
 	debugRequest(req)
 	r, err := client.Do(req)
@@ -203,7 +204,6 @@ func promptAndAuth(res *http.Response, req *http.Request) (*http.Response, error
 	auth := strings.Split(res.Header.Get("www-authenticate"), " ")
 	if len(auth) > 0 {
 		fmt.Fprintf(os.Stdout, "Authentication Required\n\n")
-		var token string
 		switch strings.ToLower(auth[0]) {
 		case "basic":
 			var user string
@@ -219,28 +219,29 @@ func promptAndAuth(res *http.Response, req *http.Request) (*http.Response, error
 				return nil, err
 			}
 
-			token = BasicAuthToken(user, string(pass))
+			curBackend.Token = basicAuthToken(user, string(pass))
 		case "bearer":
 			var t, s string
-			fmt.Fprintf(os.Stdout, "SHIELD has been protected by an OAuth2 provider. To authenticate on the command line,\n please visit the following URL, and paste in the entirety of the Bearer token provided:\n\n\t%s/v1/auth/cli\n\nToken: ", Cfg.BackendURI())
+			fmt.Fprintf(os.Stdout, `SHIELD has been protected by an OAuth2 provider. To authenticate on the command line,
+please visit the following URL, and paste in the entirety of the Bearer token provided:
+
+	%s/v1/auth/cli
+`, curBackend.Address)
+			fmt.Fprintf(os.Stdout, "Token: ")
 			_, err := fmt.Scanln(&t, &s)
 			if err != nil {
 				return nil, err
 			}
-			token = t + " " + s
+			curBackend.Token = fmt.Sprintf("%s %s", t, s)
 		default:
 			return nil, fmt.Errorf("Unrecognized authentication request type: %s", res.Header.Get("www-authenticate"))
 		}
 		// newline to separate creds from response
 		fmt.Fprintf(os.Stdout, "\n")
 
-		Cfg.UpdateCurrentBackend(token)
 		r, err := makeRequest(req)
 		if err != nil {
 			return nil, err
-		}
-		if r.StatusCode < 400 {
-			Cfg.Save()
 		}
 		return r, nil
 	}

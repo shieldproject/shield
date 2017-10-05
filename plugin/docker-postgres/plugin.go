@@ -63,7 +63,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/starkandwayne/goutils/ansi"
 
-	. "github.com/starkandwayne/shield/plugin"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 const (
@@ -75,7 +75,7 @@ func main() {
 		Name:    "Dockerized PostgreSQL Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
-		Features: PluginFeatures{
+		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
@@ -89,34 +89,36 @@ func main() {
   # this plugin has no configuration
 }
 `,
+
+		Fields: []plugin.Field{},
 	}
 
-	Run(p)
+	plugin.Run(p)
 }
 
-type DockerPostgresPlugin PluginInfo
+type DockerPostgresPlugin plugin.PluginInfo
 
-func (p DockerPostgresPlugin) Meta() PluginInfo {
-	return PluginInfo(p)
+func (p DockerPostgresPlugin) Meta() plugin.PluginInfo {
+	return plugin.PluginInfo(p)
 }
 
-func dockerClient(endpoint ShieldEndpoint) (*docker.Client, error) {
+func dockerClient(endpoint plugin.ShieldEndpoint) (*docker.Client, error) {
 	socket, err := endpoint.StringValue("socket")
 	if err != nil {
 		socket = DefaultSocket
 	}
 
-	DEBUG("connecting to docker at %s", socket)
+	plugin.DEBUG("connecting to docker at %s", socket)
 	c, err := docker.NewClient(socket)
 	if err != nil {
-		DEBUG("connection failed: %s", err)
+		plugin.DEBUG("connection failed: %s", err)
 		return nil, err
 	}
 
 	return c, nil
 }
 
-func (p DockerPostgresPlugin) Validate(endpoint ShieldEndpoint) error {
+func (p DockerPostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s   string
 		err error
@@ -130,19 +132,19 @@ func (p DockerPostgresPlugin) Validate(endpoint ShieldEndpoint) error {
 	return nil
 }
 
-func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {
+func (p DockerPostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	c, err := dockerClient(endpoint)
 	if err != nil {
 		return err
 	}
 
 	// list running containers
-	DEBUG("listing running containers")
+	plugin.DEBUG("listing running containers")
 	registry, err := listContainers(c, false)
 	if err != nil {
 		return err
 	}
-	DEBUG("found %d running containers to backup", len(registry))
+	plugin.DEBUG("found %d running containers to backup", len(registry))
 
 	// start a tar stream
 	archive := NewArchiveWriter(os.Stdout)
@@ -158,14 +160,14 @@ func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 	i := 0
 	for _, info := range registry {
 		i++
-		DEBUG("[%s] attempting to backup container", info.Name)
+		plugin.DEBUG("[%s] attempting to backup container", info.Name)
 		// extract the Postgres URI from the container environment and network settings
 		uri, err := pgURI(info)
 		if err != nil {
 			fail.Appendf("[%s] failed to generate postgres URI: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] connecting to %s", info.Name, uri)
+		plugin.DEBUG("[%s] connecting to %s", info.Name, uri)
 
 		// dump the Postgres database to a temporary file
 		data, err := ioutil.TempFile(tmpdir, "pgdump")
@@ -198,29 +200,29 @@ func (p DockerPostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 		data.Close()
 		os.Remove(data.Name())
 
-		DEBUG("[%s] wrote backup #%d to archive", info.Name, i)
+		plugin.DEBUG("[%s] wrote backup #%d to archive", info.Name, i)
 	}
 	archive.Close()
-	DEBUG("DONE")
+	plugin.DEBUG("DONE")
 	if fail.Valid() {
 		return fail
 	}
 	return nil
 }
 
-func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
+func (p DockerPostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	c, err := dockerClient(endpoint)
 	if err != nil {
 		return err
 	}
 
 	// list running containers
-	DEBUG("listing all containers")
+	plugin.DEBUG("listing all containers")
 	registry, err := listContainers(c, true)
 	if err != nil {
 		return err
 	}
-	DEBUG("found %d running containers", len(registry))
+	plugin.DEBUG("found %d running containers", len(registry))
 
 	fail := MultiError{Message: "failed to restore all postgres containers"}
 
@@ -230,7 +232,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 		var info docker.Container
 		data, err := archive.Next(&info)
 		if err == io.EOF {
-			DEBUG("end of archive reached.  all done!")
+			plugin.DEBUG("end of archive reached.  all done!")
 			break
 		}
 		if err != nil {
@@ -240,7 +242,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 
 		// destroy any existing containers with the same name
 		if existing, ok := registry[info.Name]; ok {
-			DEBUG("[%s] removing existing container %s", info.Name, existing.ID)
+			plugin.DEBUG("[%s] removing existing container %s", info.Name, existing.ID)
 			err = c.RemoveContainer(docker.RemoveContainerOptions{
 				ID:            existing.ID,
 				RemoveVolumes: true,
@@ -260,13 +262,13 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 				continue
 			}
 
-			DEBUG("[%s] removing volume %s (mapped to %s in-container)", info.Name, parts[0], parts[1])
+			plugin.DEBUG("[%s] removing volume %s (mapped to %s in-container)", info.Name, parts[0], parts[1])
 			os.RemoveAll(parts[0])
 			os.Mkdir(parts[0], os.FileMode(0755))
 		}
 
 		// deploy a new container with the correct image / ip / creds
-		DEBUG("[%s] deploying new container", info.Name)
+		plugin.DEBUG("[%s] deploying new container", info.Name)
 		newContainer, err := c.CreateContainer(docker.CreateContainerOptions{
 			Name:       info.Name,
 			Config:     info.Config,
@@ -276,7 +278,7 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			fail.Appendf("[%s] deploy failed: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] starting container", info.Name)
+		plugin.DEBUG("[%s] starting container", info.Name)
 		err = c.StartContainer(newContainer.ID, info.HostConfig)
 		if err != nil {
 			fail.Appendf("[%s] start failed: %s", info.Name, err)
@@ -289,32 +291,32 @@ func (p DockerPostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			fail.Appendf("[%s] failed to generate pg URI: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] connecting to %s", info.Name, uri)
+		plugin.DEBUG("[%s] connecting to %s", info.Name, uri)
 		waitForPostgres(uri, 60)
 		err = pgrestore(uri, data)
 		if err != nil {
 			fail.Appendf("[%s] restore failed: %s", info.Name, err)
 			continue
 		}
-		DEBUG("[%s] successfully restored", info.Name)
+		plugin.DEBUG("[%s] successfully restored", info.Name)
 	}
-	DEBUG("DONE")
+	plugin.DEBUG("DONE")
 	if fail.Valid() {
 		return fail
 	}
 	return nil
 }
 
-func (p DockerPostgresPlugin) Store(endpoint ShieldEndpoint) (string, error) {
-	return "", UNIMPLEMENTED
+func (p DockerPostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+	return "", plugin.UNIMPLEMENTED
 }
 
-func (p DockerPostgresPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p DockerPostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p DockerPostgresPlugin) Purge(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p DockerPostgresPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
 func pgURI(container *docker.Container) (string, error) {
@@ -364,24 +366,24 @@ func pgURI(container *docker.Container) (string, error) {
 }
 
 func waitForPostgres(uri string, seconds int) {
-	DEBUG("waiting up to %d seconds for connection to %s to succeed", seconds, uri)
-	DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/psql %s`)", uri)
+	plugin.DEBUG("waiting up to %d seconds for connection to %s to succeed", seconds, uri)
+	plugin.DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/psql %s`)", uri)
 	for seconds > 0 {
 		cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/psql", uri)
 		err := cmd.Run()
 		if err == nil {
-			DEBUG("connection to %s succeeded!", uri)
+			plugin.DEBUG("connection to %s succeeded!", uri)
 			return
 		}
 		time.Sleep(time.Second)
 		seconds--
 	}
-	DEBUG("connection to %s ultimately failed", uri)
+	plugin.DEBUG("connection to %s ultimately failed", uri)
 }
 
 func pgdump(uri string, file *os.File) error {
 	// FIXME: make it possible to select what version of postgres (9.x, 8.x, etc.)
-	DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/pg_dump -cC --format p -d %s`)", uri)
+	plugin.DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/pg_dump -cC --format p -d %s`)", uri)
 	cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/pg_dump", "-cC", "--format", "p", "-d", uri)
 	cmd.Stdout = file
 
@@ -390,7 +392,7 @@ func pgdump(uri string, file *os.File) error {
 
 func pgrestore(uri string, in io.Reader) error {
 	// FIXME: make it possible to select what version of postgres (9.x, 8.x, etc.)
-	DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/psql %s`)", uri)
+	plugin.DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/psql %s`)", uri)
 	cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/psql", uri)
 	cmd.Stdin = in // what about the call to Close()?
 
@@ -418,7 +420,7 @@ func listContainers(client *docker.Client, all bool) (map[string]*docker.Contain
 	for _, c := range l {
 		info, err := client.InspectContainer(c.ID)
 		if err != nil {
-			DEBUG("failed to inspect container: %s", err)
+			plugin.DEBUG("failed to inspect container: %s", err)
 		}
 		m[info.Name] = info
 	}

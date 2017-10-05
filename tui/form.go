@@ -57,6 +57,17 @@ func (f *Form) NewField(label string, name string, value interface{}, showas str
 	return nil
 }
 
+//GetField retrieves the reference to the Field with the Name attribute given
+//to this function. Returns nil if no such Field was found.
+func (f *Form) GetField(name string) *Field {
+	for _, field := range f.Fields {
+		if field.Name == name {
+			return field
+		}
+	}
+	return nil
+}
+
 func (field *Field) PromptString() string {
 	if field.ShowAs != "" {
 		return fmt.Sprintf("%s (%s)", field.Label, field.ShowAs)

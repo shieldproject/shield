@@ -25,10 +25,6 @@ var List = &commands.Command{
 				Desc: "Show only jobs using the specified store",
 			},
 			{
-				Name: "schedule", Short: 'w', Valued: true,
-				Desc: "Show only jobs using the specified schedule",
-			},
-			{
 				Name: "policy", Short: 'p', Valued: true,
 				Desc: "Show only jobs using the specified retention policy",
 			},
@@ -43,9 +39,7 @@ var List = &commands.Command{
 			"retention_name":"AnotherPolicy",
 			"retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
 			"expiry":31536000,
-			"schedule_name":"AnotherSched",
-			"schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
-			"schedule_when":"daily 4am",
+			"schedule":"daily 4am",
 			"paused":true,
 			"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
 			"store_name":"AnotherStore",
@@ -66,7 +60,6 @@ func cliListJobs(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'list jobs' command")
 	log.DEBUG("  for target:      '%s'", *opts.Target)
 	log.DEBUG("  for store:       '%s'", *opts.Store)
-	log.DEBUG("  for schedule:    '%s'", *opts.Schedule)
 	log.DEBUG("  for ret. policy: '%s'", *opts.Retention)
 	log.DEBUG("  show paused?      %v", *opts.Paused)
 	log.DEBUG("  show unpaused?    %v", *opts.Unpaused)
@@ -79,7 +72,6 @@ func cliListJobs(opts *commands.Options, args ...string) error {
 		Paused:     api.MaybeBools(*opts.Paused, *opts.Unpaused),
 		Target:     *opts.Target,
 		Store:      *opts.Store,
-		Schedule:   *opts.Schedule,
 		Retention:  *opts.Retention,
 		ExactMatch: api.Opposite(api.MaybeBools(*opts.Fuzzy, *opts.Raw)),
 	})
@@ -94,8 +86,12 @@ func cliListJobs(opts *commands.Options, args ...string) error {
 
 	t := tui.NewTable("Name", "P?", "Summary", "Retention Policy", "Schedule", "Remote IP", "Target")
 	for _, job := range jobs {
+		timespec := job.Schedule
+		if opts.APIVersion == 1 {
+			timespec = job.ScheduleWhen
+		}
 		t.Row(job, job.Name, boolString(job.Paused), job.Summary,
-			job.RetentionName, job.ScheduleName, job.Agent, internal.PrettyJSON(job.TargetEndpoint))
+			job.RetentionName, timespec, job.Agent, internal.PrettyJSON(job.TargetEndpoint))
 	}
 	t.Output(os.Stdout)
 	return nil

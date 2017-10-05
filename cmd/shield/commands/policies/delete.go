@@ -32,7 +32,7 @@ func cliDeletePolicy(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		internal.ShowRetentionPolicy(policy)
+		Show(policy)
 		if !tui.Confirm("Really delete this retention policy?") {
 			return internal.ErrCanceled
 		}

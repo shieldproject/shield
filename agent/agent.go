@@ -3,14 +3,16 @@ package agent
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/starkandwayne/goutils/log"
 	"io"
 	"net"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 
 	"golang.org/x/crypto/ssh"
+
+	"github.com/starkandwayne/goutils/log"
 )
 
 type Agent struct {
@@ -19,6 +21,16 @@ type Agent struct {
 	config *ssh.ServerConfig
 
 	Listen net.Listener
+
+	Name    string
+	Version string
+	Port    int
+
+	Registration struct {
+		URL        string
+		Interval   int
+		SkipVerify bool
+	}
 }
 
 func NewAgent() *Agent {
@@ -47,6 +59,8 @@ func (agent *Agent) ResolveBinary(name string) (string, error) {
 }
 
 func (agent *Agent) Run() {
+	go agent.Ping()
+
 	for {
 		agent.ServeOne(agent.Listen, true)
 	}
@@ -98,21 +112,24 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 				continue
 			}
 
-			request, err := ParseRequest(req)
+			req.Reply(true, nil)
+
+			command, err := ParseCommandFromSSHRequest(req)
 			if err != nil {
 				log.Errorf("%s\n", err)
-				req.Reply(false, nil)
+				fmt.Fprintf(channel, "E:failed: %s\n", err)
+				channel.SendRequest("exit-status", false, encodeExitCode(1))
+				channel.Close()
 				continue
 			}
 
-			if err = request.ResolvePaths(agent); err != nil {
+			if err = agent.ResolvePathsIn(command); err != nil {
 				log.Errorf("%s\n", err)
-				req.Reply(false, nil)
+				fmt.Fprintf(channel, "E:failed: %s\n", err)
+				channel.SendRequest("exit-status", false, encodeExitCode(1))
+				channel.Close()
 				continue
 			}
-
-			//log.Errorf("got an agent-request [%s]\n", request.JSON)
-			req.Reply(true, nil)
 
 			// drain output to the SSH channel stream
 			output := make(chan string)
@@ -124,13 +141,12 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 						break
 					}
 					fmt.Fprintf(out, "%s", s)
-					log.Debugf("%s", s)
+					log.Debugf("%s", strings.Trim(s, "\n"))
 				}
 				close(done)
 			}(channel, output, done)
 
-			// run the agent request
-			err = request.Run(output)
+			err = agent.Execute(command, output)
 			<-done
 			var rc int
 			if exitErr, ok := err.(*exec.ExitError); ok {
@@ -180,9 +196,7 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 			}
 
 			log.Infof("Task completed with rc=%d", rc)
-			byteCode := make([]byte, 4)
-			binary.BigEndian.PutUint32(byteCode, uint32(rc)) // SSH protocol is big-endian byte ordering
-			channel.SendRequest("exit-status", false, byteCode)
+			channel.SendRequest("exit-status", false, encodeExitCode(rc))
 			channel.Close()
 		}
 	}
@@ -203,4 +217,10 @@ var SIGSTRING = map[syscall.Signal]string{
 	syscall.SIGTERM: "TERM",
 	syscall.SIGUSR1: "USR1",
 	syscall.SIGUSR2: "USR2",
+}
+
+func encodeExitCode(rc int) []byte {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(rc))
+	return b
 }

@@ -18,7 +18,7 @@
 // redis VM to back up. Your endpoint JSON should look something like this:
 //
 //    {
-//        "redis_type":<dedicated|broker>"
+//        "redis_type":<dedicated|shared>"
 //    }
 //
 // Default Configuration
@@ -37,7 +37,7 @@
 // Restoration steps for the `redis-broker` plugin depend on the type of redis being backed
 // up.
 //
-// If `redis_type` is set to `broker`, the restoration stops the redis service-broker process,
+// If `redis_type` is set to `shared`, the restoration stops the redis service-broker process,
 // kills all instances of `redis-server`, and untars the backup into /var/vcap/store. Once
 // complete, it runs `redis-check-aof --fix` against all appendonly.aof files, to resolve any
 // potential corruption caused by backups happening mid-write. Lastly, it starts up the
@@ -80,7 +80,7 @@ func main() {
 		},
 		Example: `
 {
-  "redis_type" : "broker"    # Type of Redis Broker backups to run.
+  "redis_type" : "shared"    # Type of Redis Broker backups to run.
                              # Must be either 'shared' or 'dedicated'
 }
 `,
@@ -90,6 +90,20 @@ func main() {
   # all keys are required.
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode: "target",
+				Name: "redis_type",
+				Type: "enum",
+				Enum: []string{
+					"shared",
+					"dedicated",
+				},
+				Title:    "Type of Redis Broker",
+				Help:     "The CF Redis Broker can run in either `shared` or `dedicated` mode, which affects how it gets backed up.",
+				Required: true,
+			},
+		},
 	}
 
 	plugin.Run(p)

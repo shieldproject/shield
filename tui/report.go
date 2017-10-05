@@ -37,7 +37,7 @@ func (r *Report) Output(out io.Writer) {
 
 	for _, p := range r.values {
 		if len(p) != 2 {
-			fmt.Printf("got the wrong num balues\n")
+			fmt.Printf("got the wrong num values\n")
 		}
 		if p[0] != "" {
 			fmt.Fprintf(out, keyf, p[0]+":", p[1])

@@ -30,7 +30,7 @@ func cliDeleteTarget(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		internal.ShowTarget(target)
+		Show(target)
 		if !tui.Confirm("Really delete this target?") {
 			return internal.ErrCanceled
 		}

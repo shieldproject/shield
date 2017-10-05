@@ -8,11 +8,9 @@ import (
 	"github.com/voxelbrain/goptions"
 
 	// sql drivers
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/starkandwayne/shield/supervisor"
+	"github.com/starkandwayne/shield/core"
 )
 
 type ShielddOpts struct {
@@ -25,7 +23,7 @@ type ShielddOpts struct {
 var Version = ""
 
 func main() {
-	supervisor.Version = Version
+	core.Version = Version
 	var opts ShielddOpts
 	opts.Log = "Info"
 	if err := goptions.Parse(&opts); err != nil {
@@ -53,19 +51,18 @@ func main() {
 	}
 
 	log.SetupLogging(log.LogConfig{Type: "console", Level: opts.Log})
-	log.Infof("starting shield daemon")
+	log.Infof("starting up shield core")
 
-	s := supervisor.NewSupervisor()
-	if err := s.ReadConfig(opts.ConfigFile); err != nil {
-		log.Errorf("Failed to load config: %s", err)
-		return
+	daemon, err := core.NewCore(opts.ConfigFile)
+	if err != nil {
+		log.Errorf("shield core failed to start up: %s", err)
+		os.Exit(1)
 	}
 
-	s.SpawnAPI()
-	s.SpawnWorkers()
-
-	if err := s.Run(); err != nil {
-		log.Errorf("shield daemon failed: %s", err)
+	if err := daemon.Run(); err != nil {
+		log.Errorf("shield core failed to run: %s", err)
+		os.Exit(1)
 	}
-	log.Infof("stopping daemon")
+
+	log.Infof("shutting down shield core")
 }

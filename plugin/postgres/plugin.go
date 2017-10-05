@@ -30,7 +30,7 @@
 //
 //    {
 //        "pg_port"  : "5432",
-//        "pg_bindir": "/var/vcap/packages/postgres/bin"
+//        "pg_bindir": "/var/vcap/packages/postgres-9.4/bin"
 //    }
 //
 // The `pg_port` field is optional. If specified, the plugin will connect to the
@@ -90,7 +90,7 @@ import (
 
 	"github.com/starkandwayne/goutils/ansi"
 
-	. "github.com/starkandwayne/shield/plugin"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 var (
@@ -102,7 +102,7 @@ func main() {
 		Name:    "PostgreSQL Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
-		Features: PluginFeatures{
+		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
@@ -120,15 +120,64 @@ func main() {
 		Defaults: `
 {
   "pg_port"  : "5432",
-  "pg_bindir": "/var/vcap/packages/postgres/bin"
+  "pg_bindir": "/var/vcap/packages/postgres-9.4/bin"
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "target",
+				Name:     "pg_host",
+				Type:     "string",
+				Title:    "PostgreSQL Host",
+				Help:     "The hostname or IP address of your PostgreSQL server.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "pg_port",
+				Type:    "port",
+				Title:   "PostgreSQL Port",
+				Help:    "The TCP port that PostgreSQL is bound to, listening for incoming connections.",
+				Default: "5432",
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "pg_user",
+				Type:     "string",
+				Title:    "PostgreSQL Username",
+				Help:     "Username to authenticate to PostgreSQL as.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "pg_password",
+				Type:     "password",
+				Title:    "PostgreSQL Password",
+				Help:     "Password to authenticate to PostgreSQL as.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "pg_database",
+				Type:  "string",
+				Title: "Database to Backup",
+				Help:  "Limit scope of the backup to include only this database.  By default, all databases will be backed up.",
+			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "pg_bindir",
+				Type:    "abspath",
+				Title:   "Path to PostgreSQL bin/ directory",
+				Help:    "The absolute path to the bin/ directory that contains the `psql` command.",
+				Default: "/var/vcap/packages/postgres-9.4/bin",
+			},
+		},
 	}
 
-	Run(p)
+	plugin.Run(p)
 }
 
-type PostgresPlugin PluginInfo
+type PostgresPlugin plugin.PluginInfo
 
 type PostgresConnectionInfo struct {
 	Host     string
@@ -139,11 +188,11 @@ type PostgresConnectionInfo struct {
 	Database string
 }
 
-func (p PostgresPlugin) Meta() PluginInfo {
-	return PluginInfo(p)
+func (p PostgresPlugin) Meta() plugin.PluginInfo {
+	return plugin.PluginInfo(p)
 }
 
-func (p PostgresPlugin) Validate(endpoint ShieldEndpoint) error {
+func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -199,7 +248,7 @@ func (p PostgresPlugin) Validate(endpoint ShieldEndpoint) error {
 	return nil
 }
 
-func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
+func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	pg, err := pgConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -215,11 +264,11 @@ func (p PostgresPlugin) Backup(endpoint ShieldEndpoint) error {
 		// Else run dump on all
 		cmd = fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
 	}
-	DEBUG("Executing: `%s`", cmd)
-	return Exec(cmd, STDOUT)
+	plugin.DEBUG("Executing: `%s`", cmd)
+	return plugin.Exec(cmd, plugin.STDOUT)
 }
 
-func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
+func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	pg, err := pgConnectionInfo(endpoint)
 	if err != nil {
 		return err
@@ -228,8 +277,8 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	setupEnvironmentVariables(pg)
 
 	cmd := exec.Command(fmt.Sprintf("%s/psql", pg.Bin), "-d", "postgres")
-	DEBUG("Exec: %s/psql -d postgres", pg.Bin)
-	DEBUG("Redirecting stdout and stderr to stderr")
+	plugin.DEBUG("Exec: %s/psql -d postgres", pg.Bin)
+	plugin.DEBUG("Redirecting stdout and stderr to stderr")
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	stdin, err := cmd.StdinPipe()
@@ -238,7 +287,7 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	}
 	scanErr := make(chan error)
 	go func(out io.WriteCloser, in io.Reader, errChan chan<- error) {
-		DEBUG("Starting to read SQL statements from stdin...")
+		plugin.DEBUG("Starting to read SQL statements from stdin...")
 		r := bufio.NewReader(in)
 		reg := regexp.MustCompile("^DROP DATABASE (.*);$")
 		i := 0
@@ -260,20 +309,20 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 			}
 			m := reg.FindStringSubmatch(string(thisLine))
 			if len(m) > 0 {
-				DEBUG("Found dropped database '%s' on line %d", m[1], i)
+				plugin.DEBUG("Found dropped database '%s' on line %d", m[1], i)
 				out.Write([]byte(fmt.Sprintf("UPDATE pg_database SET datallowconn = 'false' WHERE datname = '%s';\n", m[1])))
 				out.Write([]byte(fmt.Sprintf("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';\n", m[1])))
 			}
 			_, err = out.Write([]byte(string(thisLine) + "\n"))
 			if err != nil {
-				DEBUG("Error when writing to output: %s", err)
+				plugin.DEBUG("Error when writing to output: %s", err)
 				errChan <- err
 				return
 			}
 			i++
 		}
 	eof:
-		DEBUG("Completed restore with %d lines of SQL", i)
+		plugin.DEBUG("Completed restore with %d lines of SQL", i)
 		out.Close()
 		errChan <- nil
 	}(stdin, os.Stdin, scanErr)
@@ -284,20 +333,20 @@ func (p PostgresPlugin) Restore(endpoint ShieldEndpoint) error {
 	return <-scanErr
 }
 
-func (p PostgresPlugin) Store(endpoint ShieldEndpoint) (string, error) {
-	return "", UNIMPLEMENTED
+func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+	return "", plugin.UNIMPLEMENTED
 }
 
-func (p PostgresPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p PostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p PostgresPlugin) Purge(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p PostgresPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
 func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
-	DEBUG("Setting up env:\n   PGUSER=%s, PGPASSWORD=%s, PGHOST=%s, PGPORT=%s", pg.User, pg.Password, pg.Host, pg.Port)
+	plugin.DEBUG("Setting up env:\n   PGUSER=%s, PGPASSWORD=%s, PGHOST=%s, PGPORT=%s", pg.User, pg.Password, pg.Host, pg.Port)
 
 	os.Setenv("PGUSER", pg.User)
 	os.Setenv("PGPASSWORD", pg.Password)
@@ -305,42 +354,42 @@ func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
 	os.Setenv("PGPORT", pg.Port)
 }
 
-func pgConnectionInfo(endpoint ShieldEndpoint) (*PostgresConnectionInfo, error) {
+func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, error) {
 	user, err := endpoint.StringValue("pg_user")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("PGUSER: '%s'", user)
+	plugin.DEBUG("PGUSER: '%s'", user)
 
 	password, err := endpoint.StringValue("pg_password")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("PGPASSWORD: '%s'", password)
+	plugin.DEBUG("PGPASSWORD: '%s'", password)
 
 	host, err := endpoint.StringValue("pg_host")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("PGHOST: '%s'", host)
+	plugin.DEBUG("PGHOST: '%s'", host)
 
 	port, err := endpoint.StringValueDefault("pg_port", DefaultPort)
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("PGPORT: '%s'", port)
+	plugin.DEBUG("PGPORT: '%s'", port)
 
 	database, err := endpoint.StringValueDefault("pg_database", "")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("PGDATABASE: '%s'", database)
+	plugin.DEBUG("PGDATABASE: '%s'", database)
 
 	bin, err := endpoint.StringValueDefault("pg_bindir", "/var/vcap/packages/postgres-9.4/bin")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("PGBINDIR: '%s'", bin)
+	plugin.DEBUG("PGBINDIR: '%s'", bin)
 
 	return &PostgresConnectionInfo{
 		Host:     host,

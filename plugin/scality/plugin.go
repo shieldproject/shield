@@ -113,6 +113,61 @@ func main() {
   "socks5_proxy"        : ""      # don't use a proxy
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "store",
+				Name:     "scality_host",
+				Type:     "string",
+				Title:    "Scality Host",
+				Help:     "The hostname or IP address fo the Scality host to store archives in.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "access_key_id",
+				Type:     "string",
+				Title:    "Access Key ID",
+				Help:     "The Access Key ID to use when authenticating against Scality's S3-like API.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "secret_access_key",
+				Type:     "password",
+				Title:    "Secret Access Key",
+				Help:     "The Secret Access Key to use when authenticating against Scality's S3-like API.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "bucket",
+				Type:     "string",
+				Title:    "Bucket Name",
+				Help:     "Name of the AWS-style bucket to store backup archives in.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "prefix",
+				Type:  "string",
+				Title: "Bucket Path Prefix",
+				Help:  "An optional sub-path of the bucket to use for storing archives.  By default, archives are stored in the root of the bucket.",
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "socks5_proxy",
+				Type:  "string",
+				Title: "SOCKS5 Proxy",
+				Help:  "The host:port address of a SOCKS5 proxy to relay HTTP through when accessing Scality.",
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "skip_ssl_validation",
+				Type:  "bool",
+				Title: "Skip SSL Validation",
+				Help:  "If your Scality certificate is invalid, expired, or signed by an unknown Certificate Authority, you can disable SSL validation.  This is not recommended from a security standpoint, however.",
+			},
+		},
 	}
 
 	plugin.Run(p)

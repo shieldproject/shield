@@ -29,6 +29,7 @@ type Archive struct {
 	StoreUUID      string `json:"store_uuid"`
 	StorePlugin    string `json:"store_plugin"`
 	StoreEndpoint  string `json:"store_endpoint"`
+	EncryptionType string `json:"encryption_type"`
 }
 
 func GetArchives(filter ArchiveFilter) ([]Archive, error) {

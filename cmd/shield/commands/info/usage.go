@@ -33,12 +33,7 @@ func cliUsage(opts *commands.Options, args ...string) error {
 
 		printCommandList()
 		lineBreak()
-		lineBreak()
 
-		//This message should go away in v8, along with the deprecated aliases
-		ansi.Fprintf(os.Stderr, "@R{The verbose, multi-word commands (such as `list schedules`) are now deprecated}\n"+
-			"@R{in favor of, for example, the shorter `schedules`. Other long commands have had their}\n"+
-			"@R{spaces replaced with dashes. Check `commands` for the new canonical names.}\n")
 		return nil
 	}
 

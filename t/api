@@ -3,11 +3,10 @@ set -u
 
 PATH=$(pwd):$(pwd)/bin:${PATH}
 WORKDIR=$(mktemp -d /tmp/shield.test.XXXXXXX)
-DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
-DATABASE_DSN=${DATABASE_DSN:-$WORKDIR/var/shield.db}
+DATABASE=${DATABASE:-$WORKDIR/var/shield.db}
 SHIELD_API_TOKEN=LETMEIN
 SHIELD_DAEMON_HOST=127.0.0.1
-SHIELD_DAEMON_PORT=8182
+SHIELD_DAEMON_PORT=8181
 SHIELD_DAEMON_ADDR="$SHIELD_DAEMON_HOST:$SHIELD_DAEMON_PORT"
 SHIELD_AGENT_HOST=127.0.0.1
 SHIELD_AGENT_PORT=5441
@@ -15,13 +14,14 @@ SHIELD_AGENT_ADDR="$SHIELD_AGENT_HOST:$SHIELD_AGENT_PORT"
 SHIELD_WEB_USER=admin
 SHIELD_WEB_PASS=secret
 SHIELD_NAME="T.E.S.T. S.H.I.E.L.D."
+SHIELD_MASTER_PASSWORD="master-chief-117"
 
 # TEST HARNESS APPARATUS {{{
 export PATH SHIELD_NAME SHIELD_API_TOKEN
 cleanup () {
 	rm -rf ${WORKDIR}
 	if [[ -n "$(jobs -p)" ]]; then
-		kill $(jobs -p)
+		kill $(jobs -p) 2>/dev/null
 	fi
 }
 trap "cleanup >&2" EXIT QUIT INT TERM
@@ -30,42 +30,73 @@ mkdir ${WORKDIR}/etc
 mkdir ${WORKDIR}/var
 mkdir ${WORKDIR}/data
 
+spin_vault() {
+  cat >${WORKDIR}/etc/vault.conf <<EOF
+storage "inmem" {}
+disable_mlock = true
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = true
+}
+EOF
+
+  set -e
+  echo ">> Setting up a local (loopback) Vault"
+  vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
+  set +e
+}
+
 spin_shieldd() {
   ssh-keygen -t rsa -f ${WORKDIR}/var/shieldd_key -N '' >/dev/null
 
   cat >${WORKDIR}/etc/shieldd.conf <<EOF
 ---
 listen_addr:   ${SHIELD_DAEMON_ADDR}
-database_type: ${DATABASE_TYPE}
-database_dsn:  ${DATABASE_DSN}
+database:      ${DATABASE}
 private_key:   ${WORKDIR}/var/shieldd_key
+vault_keyfile: ${WORKDIR}/var/vault
 workers:       3
 max_timeout:   10
 web_root: ./webui
 auth:
-  api_tokens:
-    test: ${SHIELD_API_TOKEN}
-  basic:
-    user:     ${SHIELD_WEB_USER}
-    password: ${SHIELD_WEB_PASS}
+  - identifier: public-github
+    backend:    github
+    name:       Github
+    properties:
+      client_id:     KJSEHRKJWEHRKJHWER
+      client_secret: KLJWREKJWELKRJWLER
+      # use default github_endpoint
+
+  - identifier: corp-github
+    backend:    github
+    name:       Corporate Github
+    properties:
+      client_id:       FOO
+      client_secret:   BAR
+      github_endpoint: https://git.corporate.internal
+
+# api_tokens:
+#   test: ${SHIELD_API_TOKEN}
+# basic:
+#   user:     ${SHIELD_WEB_USER}
+#   password: ${SHIELD_WEB_PASS}
 EOF
 
   set -e
   echo ">> Setting up SHIELD schema"
-  ./shield-schema -t ${DATABASE_TYPE} -d "${DATABASE_DSN}"
+  ./shield-schema -d "${DATABASE}"
   echo
 
   echo ">> RUNNING SHIELDD"
   ./shieldd -c ${WORKDIR}/etc/shieldd.conf --log-level debug &
-  set +e
-}
+  echo
 
-spin_agent() {
-  agent_up="1"
+  echo ">> WAITING FOR SHIELD CORE TO COME ONLINE"
+  up="1"
   n=60
-  while [ $agent_up -eq 1 ]; do
+  while [ $up -eq 1 ]; do
       sleep 1
-      agent_up=$(nc -z ${SHIELD_DAEMON_HOST} ${SHIELD_DAEMON_PORT} &>/dev/null; echo $?)
+      up=$(nc -z ${SHIELD_DAEMON_HOST} ${SHIELD_DAEMON_PORT} &>/dev/null; echo $?)
       n=$(( n - 1 ))
       if [[ $n -eq 0 ]]; then
         echo >&2 "SHIELD core did not spin up within 60s; aborting"
@@ -77,10 +108,19 @@ spin_agent() {
       fi
   done
 
+  echo ">> INITIALIZING SHIELD CORE"
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+
+  echo ">> UNLOCKING SHIELD CORE"
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  set +e
+}
+
+spin_agent() {
   ssh-keygen -t rsa -f ${WORKDIR}/var/shield-agent_key -N '' >/dev/null
   rm ${WORKDIR}/var/shield-agent_key.pub
 
-  `curl -Lsk -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys`
+  curl -Lsk -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys
   cat >${WORKDIR}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${WORKDIR}/var/authorized_keys
@@ -135,6 +175,7 @@ done_testing() {
 }
 # }}}
 
+spin_vault   2>&1 > ${WORKDIR}/vault.log
 spin_shieldd 2>&1 > ${WORKDIR}/daemon.log
 spin_agent   2>&1 > ${WORKDIR}/agent.log
 
@@ -392,7 +433,6 @@ try "Connecting to our test SHIELD instance" # {{{
 try "Checking that initial database is empty" # {{{
 (run targets   ; none "Initial targets list should be empty"
  run stores    ; none "Initial stores list should be empty"
- run schedules ; none "Initial schedules list should be empty"
  run policies  ; none "Initial policies list should be empty"
  run jobs      ; none "Initial jobs list should be empty"
 ) 2>&1 | indent
@@ -402,14 +442,14 @@ try "Checking that initial database is empty" # {{{
 #
 try "Checking that unimplemented HTTP methods return 501s" # {{{
 (for method in PUT DELETE PATCH OPTIONS TRACE; do
-   for type in targets stores schedules retention jobs archives tasks \
+   for type in targets stores retention jobs archives tasks \
                meta/pubkey status ping; do
      is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type")" \
         "501" "/v1/$type should HTTP 501 (not implemented) on a $method request"
    done
  done
  for method in GET HEAD POST PATCH OPTIONS TRACE; do
-   for type in target{,s} store{,s} schedule{,s} retention job{,s} archive{,s} task{,s} \
+   for type in target{,s} store{,s} retention job{,s} archive{,s} task{,s} \
                meta status; do
      is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/sub/requests")" \
         "501" "/v1/$type/sub/requests should HTTP 501 (not implemented) on a $method request"
@@ -422,7 +462,7 @@ try "Checking that unimplemented HTTP methods return 501s" # {{{
 try "Checking that various API endpoints validate UUIDs" # {{{
 (for uuid in malformed-uuid-01234 "" "(abcdef-01234-56-789)"; do
    for method in GET PUT; do
-     for type in target store schedule retention archive job task; do
+     for type in target store retention archive job task; do
        is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/$uuid")" \
           "501" "$method /v1/$type/$uuid should HTTP 501 (not implemented) on a malformed UUID"
      done
@@ -441,11 +481,11 @@ try "Checking that various API endpoints validate UUIDs" # {{{
 try "Checking that various API endpoints require JSON payloads" # {{{
 (uuid=053d66fd-441d-4801-9d26-3e11b99d34a7
  badjson="}"
- for type in targets stores schedules retention jobs; do
+ for type in targets stores retention jobs; do
    is "$(httpstat POST "http://$SHIELD_DAEMON_ADDR/v1/$type" "$badjson")" \
       "400" "POST /v1/$type should HTTP 400 (bad request) on a malformed JSON payload"
  done
- for type in target store schedule retention job archive; do
+ for type in target store retention job archive; do
    is "$(httpstat PUT "http://$SHIELD_DAEMON_ADDR/v1/$type/$uuid" "$badjson")" \
       "400" "PUT /v1/$type/$uuid should HTTP 400 (bad request) on a malformed JSON payload"
  done
@@ -463,7 +503,7 @@ try "Checking that various API endpoints require JSON payloads" # {{{
 # }}}
 
 try "Creating invalid things (validation)" # {{{
-(for type in target store schedule policy job; do
+(for type in target store policy job; do
    ! shield -k --raw create-$type <<<'{}' > $WORKDIR/out
    ok $? "\`shield create-$type' should fail if validation fails"
    # FIXME this is a terrible error message
@@ -471,19 +511,6 @@ try "Creating invalid things (validation)" # {{{
       "Error 400 Bad Request" \
       "shield CLI should print an error message when fields are missing"
  done
-
- ! shield -k --raw create-schedule <<EOF > $WORKDIR/out
-{
-  "name"    : "invalid",
-  "summary" : "An invalid time spec test",
-  "when"    : "this should fail"
-}
-EOF
- ok $? "\`shield create-schedule' should fail when the timespec is invalid"
- # FIXME this is a terrible error message
- is "$(jq -r .error < $WORKDIR/out)" \
-    "Error 500 Internal Server Error" \
-    "shield CLI should print an error message when the timespec is invalid"
 
  ! shield -k --raw create-policy <<EOF > $WORKDIR/out
 {
@@ -562,30 +589,6 @@ EOF
 }
 EOF
 
- create schedule weekly <<EOF
-{
-  "name"    : "weekly",
-  "summary" : "A schedule for weekly backups, during normal maintenance windows",
-  "when"    : "sundays at 3:15am"
-}
-EOF
-
- create schedule daily <<EOF
-{
-  "name"    : "daily",
-  "summary" : "Use for daily (11-something-at-night) backups",
-  "when"    : "daily at 11:24pm"
-}
-EOF
-
- create schedule shield <<EOF
-{
-  "name"    : "shield",
-  "summary" : "SHIELD schedule",
-  "when"    : "tuesdays at 11am"
-}
-EOF
-
  create policy short-term <<EOF
 {
   "name"    : "short-term",
@@ -615,7 +618,7 @@ EOF
   "name"      : "redis-daily-to-fs",
   "summary"   : "Daily Backups of Redis to the local fs",
   "retention" : "$(uuidof policy short-term)",
-  "schedule"  : "$(uuidof schedule daily)",
+  "schedule"  : "daily at 11:24pm",
   "store"     : "$(uuidof store fs)",
   "target"    : "$(uuidof target redis-shared)",
   "paused"    : true
@@ -627,7 +630,7 @@ EOF
   "name"      : "shield-itself",
   "summary"   : "Backing up SHIELDs database, via SHIELD...",
   "retention" : "$(uuidof policy shield)",
-  "schedule"  : "$(uuidof schedule shield)",
+  "schedule"  : "tuesdays at 11am",
   "store"     : "$(uuidof store shield)",
   "target"    : "$(uuidof target shield)",
   "paused"    : false
@@ -778,58 +781,6 @@ try "Listing stores" # {{{
 
 # }}}
 
-try "Finding a single schedule" # {{{
-(run schedule $(uuidof schedule daily)
- context 'a single schedule'
- attr name    'daily'
- attr summary 'Use for daily (11-something-at-night) backups'
- attr when    'daily at 11:24pm'
-) 2>&1 | indent
-
-
-# }}}
-try "Listing schedules" # {{{
-(run schedules
- context 'all schedules'
- includes schedule weekly
- includes schedule daily
-
- pick weekly
- attr summary 'A schedule for weekly backups, during normal maintenance windows'
- attr when    'sundays at 3:15am'
-
- run schedules daily
- context 'schedules named "daily"'
- includes schedule daily
- excludes schedule weekly
-
- run schedules --fuzzy d
- context 'schedules named "*d*"'
- includes schedule daily
- excludes schedule weekly
-
- run schedules --fuzzy ly
- context 'schedules named "*ly*"'
- includes schedule daily
- includes schedule weekly
-
- run schedules --fuzzy xyzzy
- none 'no schedules are named "*xyzzy*"'
-
- run schedules --used
- context 'schedules in use'
- excludes schedule weekly
- includes schedule daily
-
- run schedules --unused
- context 'unused schedules'
- includes schedule weekly
- excludes schedule daily
-) 2>&1 | indent
-
-
-# }}}
-
 try "Finding a single policy" # {{{
 (run policy $(uuidof policy short-term)
  context 'a single retention policy'
@@ -892,9 +843,7 @@ try "Finding a single job" # {{{
  attr retention_name  short-term
  attr retention_uuid  "$(uuidof policy short-term)"
 
- attr schedule_uuid   "$(uuidof schedule daily)"
- attr schedule_name   daily
- attr schedule_when   'daily at 11:24pm'
+ attr schedule        'daily at 11:24pm'
 
  attr store_uuid      "$(uuidof store fs)"
  attr store_name      fs
@@ -927,9 +876,7 @@ try "Listing jobs" # {{{
  attr retention_name  short-term
  attr retention_uuid  "$(uuidof policy short-term)"
 
- attr schedule_uuid   "$(uuidof schedule daily)"
- attr schedule_name   daily
- attr schedule_when   'daily at 11:24pm'
+ attr schedule        'daily at 11:24pm'
 
  attr store_uuid      "$(uuidof store fs)"
  attr store_name      fs
@@ -977,11 +924,6 @@ try "Listing jobs" # {{{
 
  run jobs --policy $(uuidof policy shield)
  context 'jobs for the "shield" retention policy'
- includes job shield-itself
- excludes job redis-daily-to-fs
-
- run jobs --schedule $(uuidof schedule shield)
- context 'list of jobs for the "shield" schedule'
  includes job shield-itself
  excludes job redis-daily-to-fs
 
@@ -1036,19 +978,6 @@ EOF
  attr uuid $(uuidof store s3)
  attr summary 'A New, Different AWS'
 
-  update schedule weekly <<EOF
-{
-  "name"    : "weekly",
-  "summary" : "Weekly, on Saturdays (now)",
-  "when"    : "saturdays at 10:11am"
-}
-EOF
- context 'post-update of schedule weekly'
- run schedule weekly
- attr uuid $(uuidof schedule weekly)
- attr summary 'Weekly, on Saturdays (now)'
- attr when    'saturdays at 10:11am'
-
  update policy long-term <<EOF
 {
   "name"    : "long-term",
@@ -1067,7 +996,7 @@ EOF
   "name"      : "shield-itself",
   "summary"   : "SHIELD or something",
   "retention" : "$(uuidof policy long-term)",
-  "schedule"  : "$(uuidof schedule weekly)",
+  "schedule"  : "sundays at 3:15am",
   "store"     : "$(uuidof store s3)",
   "target"    : "$(uuidof target shield)"
 }
@@ -1078,8 +1007,7 @@ EOF
  attr summary 'SHIELD or something'
  attr retention_uuid $(uuidof policy long-term)
  attr retention_name long-term
- attr schedule_uuid  $(uuidof schedule weekly)
- attr schedule_name  weekly
+ attr schedule       "sundays at 3:15am"
  attr store_uuid     $(uuidof store s3)
  attr store_name     s3
  attr target_uuid    $(uuidof target shield)
@@ -1091,7 +1019,7 @@ EOF
   "name"      : "shield-itself",
   "summary"   : "SHIELD or something",
   "retention" : "$(uuidof policy shield)",
-  "schedule"  : "$(uuidof schedule shield)",
+  "schedule"  : "tuesdays at 11am",
   "store"     : "$(uuidof store shield)",
   "target"    : "$(uuidof target shield)",
   "paused"    : false
@@ -1103,13 +1031,11 @@ try "Deleting things" # {{{
 (context 'it is in use by at least one job'
  cannot_delete target   redis-shared
  cannot_delete store    fs
- cannot_delete schedule daily
  cannot_delete policy   short-term
 
  context 'it is not in use by any job'
  can_delete target   s3
  can_delete store    s3
- can_delete schedule weekly
  can_delete policy   long-term
 
  context 'jobs can always be deleted'
@@ -1118,7 +1044,6 @@ try "Deleting things" # {{{
  context 'we deleted the job it was used by'
  can_delete target   redis-shared
  can_delete store    fs
- can_delete schedule daily
  can_delete policy   short-term
 ) 2>&1 | indent
 

@@ -71,8 +71,17 @@ func SetupLogging(cfg LogConfig) {
 func write(msg string, args ...interface{}) {
 	msg = fmt.Sprintf(msg, args...)
 	if log.ltype != "syslog" {
-		msg = fmt.Sprintf("%s %s: %s\n", time.Now().String(), os.Args[0], msg)
+		now := time.Now()
+		zone, offset := now.Zone()
+
+		// 2017-06-14 17:46:34.172571867 -0400 EDT
+		msg = fmt.Sprintf("%04d-%02d-%02d %02d:%02d:%02d.%09d %+02d%02d %s %s: %s\n",
+			now.Year(), now.Month(), now.Day(),
+			now.Hour(), now.Minute(), now.Second(), now.Nanosecond(),
+			offset / 3600, offset / 60 % 60, zone,
+			os.Args[0], msg)
 	}
+
 	if log != nil && log.out != nil {
 		log.out.Write([]byte(msg))
 	} else {
@@ -92,7 +101,7 @@ func Debugf(msg string, args ...interface{}) {
 // Supports fmt.Sprintf style arguments.
 func Infof(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_INFO {
-		write("INFO: "+msg, args...)
+		write("INFO:  "+msg, args...)
 	}
 }
 
@@ -100,7 +109,7 @@ func Infof(msg string, args ...interface{}) {
 // Supports fmt.Sprintf style arguments.
 func Noticef(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_NOTICE {
-		write("NOTICE: "+msg, args...)
+		write("NOTE:  "+msg, args...)
 	}
 }
 
@@ -108,7 +117,7 @@ func Noticef(msg string, args ...interface{}) {
 // Supports fmt.Sprintf style arguments.
 func Warnf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_WARNING {
-		write("WARNING: "+msg, args...)
+		write("WARN:  "+msg, args...)
 	}
 }
 
@@ -124,7 +133,7 @@ func Errorf(msg string, args ...interface{}) {
 // Supports fmt.Sprintf style arguments.
 func Critf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_CRIT {
-		write("CRITICAL: "+msg, args...)
+		write("CRIT:  "+msg, args...)
 	}
 }
 
@@ -140,7 +149,7 @@ func Alertf(msg string, args ...interface{}) {
 // Supports fmt.Sprintf style arguments.
 func Emergf(msg string, args ...interface{}) {
 	if log.level >= syslog.LOG_EMERG {
-		write("EMERGENCY: "+msg, args...)
+		write("EMERG: "+msg, args...)
 	}
 }
 

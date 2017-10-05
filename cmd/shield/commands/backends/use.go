@@ -3,8 +3,8 @@ package backends
 import (
 	"fmt"
 
-	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
+	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
@@ -27,19 +27,18 @@ func cliUseBackend(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'backend' command")
 
 	if len(args) == 0 {
-		Display(api.Cfg)
+		DisplayCurrent()
 		return nil
 	}
 
 	if len(args) != 1 {
 		return fmt.Errorf("Invalid 'backend' syntax: `shield backend <name>`")
 	}
-	err := api.Cfg.UseBackend(args[0])
+	err := config.Use(args[0])
 	if err != nil {
 		return err
 	}
-	api.Cfg.Save()
 
-	Display(api.Cfg)
+	DisplayCurrent()
 	return nil
 }

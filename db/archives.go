@@ -27,6 +27,8 @@ type Archive struct {
 	StoreName      string    `json:"store_name"`
 	StorePlugin    string    `json:"store_plugin"`
 	StoreEndpoint  string    `json:"store_endpoint"`
+	Job            string    `json:"job"`
+	EncryptionType string    `json:"encryption_type"`
 }
 
 type ArchiveFilter struct {
@@ -38,6 +40,7 @@ type ArchiveFilter struct {
 	WithStatus    []string
 	WithOutStatus []string
 	Limit         string
+	TenantUUID    []string
 }
 
 func (f *ArchiveFilter) Query() (string, []interface{}) {
@@ -79,6 +82,14 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "expires_at < ?")
 		args = append(args, f.ExpiresBefore.Unix())
 	}
+	if len(f.TenantUUID) > 0 {
+		var params []string
+		for _, e := range f.TenantUUID {
+			params = append(params, "?")
+			args = append(args, e)
+		}
+		wheres = append(wheres, fmt.Sprintf("tenant_uuid IN (%s)", strings.Join(params, ", ")))
+	}
 	limit := ""
 	if f.Limit != "" {
 		limit = " LIMIT ?"
@@ -90,7 +101,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint,
-		       a.status, a.purge_reason
+		       a.status, a.purge_reason, a.job, a.encryption_type
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -99,6 +110,31 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY a.taken_at DESC, a.uuid ASC
 	` + limit, args
+}
+
+func (db *DB) CountArchives(filter *ArchiveFilter) (int, error) {
+	if filter == nil {
+		filter = &ArchiveFilter{}
+	}
+
+	var i int
+	if filter.Limit != "" {
+		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
+			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
+		}
+	}
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
+	if err != nil {
+		return i, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		i++
+	}
+
+	return i, nil
 }
 
 func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
@@ -129,7 +165,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 			&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.Status, &ann.PurgeReason); err != nil {
+			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType); err != nil {
 
 			return l, err
 		}
@@ -160,11 +196,12 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
-		       s.uuid, s.name, s.plugin, s.endpoint, a.status, a.purge_reason
+		       s.uuid, s.name, s.plugin, s.endpoint, a.status,
+		       a.purge_reason, a.job, a.encryption_type
 
 		FROM archives a
-			INNER JOIN targets t   ON t.uuid = a.target_uuid
-			INNER JOIN stores  s   ON s.uuid = a.store_uuid
+		   INNER JOIN targets t   ON t.uuid = a.target_uuid
+		   INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
 		WHERE a.uuid = ?`, id.String())
 	if err != nil {
@@ -184,7 +221,7 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 		&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-		&ann.Status, &ann.PurgeReason); err != nil {
+		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType); err != nil {
 
 		return nil, err
 	}
@@ -211,6 +248,13 @@ func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
 	return db.Exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ?`,
 		notes, id.String(),
+	)
+}
+
+func (db *DB) AnnotateTargetArchive(target uuid.UUID, id string, notes string) error {
+	return db.Exec(
+		`UPDATE archives SET notes = ? WHERE uuid = ? AND target_uuid = ?`,
+		notes, id, target.String(),
 	)
 }
 
@@ -261,4 +305,85 @@ func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
 		`DELETE FROM archives WHERE uuid = ?`,
 		id.String(),
 	)
+}
+
+func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
+	var i int
+
+	if filter == nil {
+		filter = &ArchiveFilter{}
+	}
+	if filter.Limit != "" {
+		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
+			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
+		}
+	}
+
+	wheres := []string{"a.uuid = a.uuid"}
+	var args []interface{}
+	if filter.ForTarget != "" {
+		wheres = append(wheres, "target_uuid = ?")
+		args = append(args, filter.ForTarget)
+	}
+	if filter.ForStore != "" {
+		wheres = append(wheres, "store_uuid = ?")
+		args = append(args, filter.ForStore)
+	}
+	if filter.Before != nil {
+		wheres = append(wheres, "taken_at <= ?")
+		args = append(args, filter.Before.Unix())
+	}
+	if filter.After != nil {
+		wheres = append(wheres, "taken_at >= ?")
+		args = append(args, filter.After.Unix())
+	}
+	if len(filter.WithStatus) > 0 {
+		var params []string
+		for _, e := range filter.WithStatus {
+			params = append(params, "?")
+			args = append(args, e)
+		}
+		wheres = append(wheres, fmt.Sprintf("status IN (%s)", strings.Join(params, ", ")))
+	}
+	if len(filter.WithOutStatus) > 0 {
+		var params []string
+		for _, e := range filter.WithOutStatus {
+			params = append(params, "?")
+			args = append(args, e)
+		}
+		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
+	}
+	if filter.ExpiresBefore != nil {
+		wheres = append(wheres, "expires_at < ?")
+		args = append(args, filter.ExpiresBefore.Unix())
+	}
+	limit := ""
+	if filter.Limit != "" {
+		limit = " LIMIT ?"
+		args = append(args, filter.Limit)
+	}
+
+	r, err := db.Query(`
+		SELECT SUM(a.size)
+		FROM archives a
+			INNER JOIN targets t   ON t.uuid = a.target_uuid
+			INNER JOIN stores  s   ON s.uuid = a.store_uuid
+		WHERE `+strings.Join(wheres, " AND ")+limit, args...)
+	if err != nil {
+		return i, err
+	}
+	defer r.Close()
+
+	var p *int
+	for r.Next() {
+		if err = r.Scan(&p); err != nil {
+			return i, err
+		}
+		if p != nil {
+			i = *p
+		}
+		return i, nil
+	}
+
+	return i, fmt.Errorf("no results from SUM(size) query...")
 }

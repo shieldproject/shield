@@ -9,51 +9,6 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 )
 
-//Options contains all the possible command line options that commands may
-//possibly use
-type Options struct {
-	Shield *string
-
-	Used     *bool
-	Unused   *bool
-	Paused   *bool
-	Unpaused *bool
-	All      *bool
-
-	Debug             *bool
-	Trace             *bool
-	Raw               *bool
-	ShowUUID          *bool
-	UpdateIfExists    *bool
-	Fuzzy             *bool
-	SkipSSLValidation *bool
-	Version           *bool
-	Help              *bool
-
-	Status *string
-
-	Target    *string
-	Store     *string
-	Schedule  *string
-	Retention *string
-
-	Plugin *string
-
-	After  *string
-	Before *string
-
-	To *string
-
-	Limit *string
-
-	Config   *string
-	User     *string
-	Password *string
-}
-
-//Opts is the options flag struct to be used by all commands
-var Opts *Options
-
 type commandFn func(opts *Options, args ...string) error
 
 //Command holds all the information about a command that the Dispatcher, well...
@@ -74,6 +29,10 @@ func (c *Command) GetAliases() []string {
 //AKA registers alterative names for this command with the Dispatcher
 func (c *Command) AKA(aliases ...string) {
 	for _, alias := range aliases {
+		if _, found := commands[alias]; found {
+			panic(fmt.Sprintf("Attempting to register duplicate alias `%s'", alias))
+		}
+
 		commands[alias] = c
 	}
 }

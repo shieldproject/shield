@@ -1,6 +1,0 @@
----
-auth:
-  oauth:
-    provider: github
-    base_url: https://localhost/
-    signing_key: t/etc/jwt/missing.pem
