@@ -640,4 +640,36 @@
     return document.location.toString().replace(/#.*/, '');
   }
   // }}}
+  //
+
+  /***************************************************
+    $(...).serializeObject()
+
+    Given a <form> object, `serializeObject()` will return a simple
+    Javascript object (suitable for passing to api()), based on the
+    fields present in the form.
+
+   ***************************************************/
+  exported.jQuery.fn.serializeObject = function () { // {{{
+    var a = this.serializeArray();
+    var o = {};
+    for (var i = 0; i < a.length; i++) {
+      o[a[i].name] = a[i].value;
+    }
+    return o;
+  };
+  // }}}
+
+
+  /***************************************************
+    $(...).clearForm()
+
+    Given a <form> object, `clearForm()` will clear all of the
+    fields that are marked with `class="clearable"`.
+
+   ***************************************************/
+  exported.jQuery.fn.clearForm = function () { // {{{
+    this.find('.clearable').val('');
+  };
+  // }}}
 })(window, document);

@@ -530,7 +530,7 @@
           <a href="do-backup:unpick">
             <h3>[[= _.policy.name ]]</h3>
             <ul class="details">
-              <li>keep for [[= _.policy.days ]] days</li>
+              <li>keep for [[= _.policy.days ]] day[[ if (_.policy.days != 1) { ]]s[[ } ]]</li>
             </ul>
             <div class="notes">[[= _.policy.summary ]]</div>
           </a>
@@ -932,6 +932,7 @@
       ]]
           <div class="gutter blk">
             <h2>Retention Policies</h2>
+            <a href="#!/policies/new">Create a New Retention Policy</a>
             [[ if (_.policies.length == 0) { ]]
             <div class="no-data">No Retention Policies have been created yet.</div>
             [[ } else { ]]
@@ -944,14 +945,37 @@
               <tbody>
                 [[ $.each(_.policies, function (i, policy) { ]]
                 <tr>
-                  <td><a href="#">[[= policy.name ]]</a></td>
-                  <td>[[= policy.expiry ]] days</td>
+                  <td>[[= policy.name ]]</td>
+                  <td>[[= policy.days ]] day[[ if (policy.days != 1) { ]]s[[ } ]]</td>
                   <td></td>
                 </tr>
                 [[ }); ]]
               </tbody>
             </table>
             [[ } ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--policies-new"><!-- {{{ -->
+      [[#
+        {policies-new} template
+
+        Renders a form for createing a new retention policy.
+      ]]
+          <div class="gutter blk">
+            <h2>New Retention Policy</h2>
+            <form class="crud">
+              <div class="ctl" data-field="name">
+                <label for="policy-name">Name</label>
+                <input type="text" id="policy-name" name="name" />
+                <span class="if-missing">You must provide a name for this new retention policy.</span>
+              </div>
+              <div class="ctl" data-field="expires">
+                <label for="policy-days">Expiry (in days)</label>
+                <input type="text" id="policy-days" name="days" />
+                <span class="if-missing">You must specify an expiry of at least 1 day.</span>
+              </div>
+              <button>Create Retention Policy</button>
+            </form>
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--admin"><!-- {{{ -->
@@ -1154,17 +1178,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             <form class='rekey form-group'>
                 <dl class="form-group">
                     <dt><label for="current_password">Current Master Password</label></dt>
-                    <dd><input name='current_master_password' class="form-group form-control" required="required" type='password'></dd>
+                    <dd><input name='current_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
                 </dl>
 
                 <dl class="form-group">
                     <dt><label for="new_password">New Master Password</label></dt>
-                    <dd><input name='new_master_password' class="form-group form-control" required="required" type='password'></dd>
+                    <dd><input name='new_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
                 </dl>
 
                 <dl class="form-group">
                     <dt><label for="confirm_new_password">Confirm New Master Password</label></dt>
-                    <dd><input name='confirm_new_master_password' class="form-group form-control" required="required" type='password'></dd>
+                    <dd><input name='confirm_new_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
                 </dl>
                 <button>Update</button>
             </form>
@@ -1446,14 +1470,79 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/stores/store */
         // }}}
       case '#!/policies': /* {{{ */
-        $('#main').html(template('policies', {
-          policies: [
-            {
-              name: 'Long-term',
-              expiry: 90
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v1/retention',
+          error: 'Failed to retrieve retention policy information from the SHIELD API.',
+          success: function (data) {
+            /* FIXME: data fixups that should probably migrate back to API */
+            for (var i = 0; i < data.length; i++) {
+              /* convert seconds -> days */
+              data[i].days = data[i].expires / 86400;
             }
-          ]
-        }));
+
+            $('#main').html(template('policies', { policies: data }));
+          }
+        });
+        break; /* #!/policies */
+        // }}}
+      case '#!/policies/new': /* {{{ */
+        $('#main').html(template('policies-new'))
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+
+            var data = $(event.target).serializeObject();
+
+            if (data.days != "") {
+              var e = 'Invalid retention policy expiry';
+              if (!parseInt(data.days)) {
+                if (parseFloat(data.days) != NaN) {
+                  e += ': "'+data.days+'" is not an integer';
+                } else {
+                  e += ': "'+data.days+'" is not a number';
+                }
+              } else if (parseInt(data.days) < 0) {
+                e += ': "'+data.days+'" is less than zero';
+              } else {
+                e = null;
+              }
+              if (e) {
+                banner(e, "error");
+                return;
+              }
+            }
+
+            data.expires = data.days * 86400; /* FIXME fixup for API */
+            delete data.days;
+
+            $(event.target).find('.if-missing').hide();
+
+            api({
+              type: 'POST',
+              url:  '/v1/retention',
+              data: data,
+              success: function () {
+                goto("#!/policies");
+              },
+              error: function (xhr) {
+                console.log(xhr);
+                var res = xhr.responseJSON;
+                if (res) {
+                  if ('missing' in res) {
+                    for (var i = 0; i < res.missing.length; i++) {
+                      $(event.target)
+                        .find('.ctl[data-field="'+res.missing[i]+'"] .if-missing')
+                          .show();
+                    }
+                  } else if ('error' in res) {
+                    banner(res.error, "error");
+                  }
+                }
+              }
+            });
+          });
+
         break; /* #!/policies */
         // }}}
       case '#!/admin': /* {{{ */
@@ -1798,20 +1887,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* rekey shield master encryption keys. */
       $('#main').on('submit', 'form.rekey', function (event) {
         event.preventDefault();
-        var creds = {};
-        $.each($('form.rekey').serializeArray(), function(i, v) {
-          creds[v.name] = v.value;
-        });
+        var creds = $(event.target).serializeObject();
 
-        if(creds['confirm_new_master_password'] != creds['new_master_password']){
+        if (creds.confirm_new_master_password != creds.new_master_password) {
           banner("Passwords do not match!", 'error');
-          $('form.rekey').find("input[type=password]").val("")
+          $(event.target).clearForm();
           return;
         }
 
-        if(creds['new_master_password'] == ''){
+        if (creds.new_master_password == '') {
           banner("Master Password cannot be blank!", 'error');
-          $('form.rekey').find("input[type=password]").val("")
+          $(event.target).clearForm();
           return;
         }
 
@@ -1825,12 +1911,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           },
           error: function (xhr) {
             banner(xhr.responseJSON.error, 'error');
-            $('form.rekey').find("input[type=password]").val("")
+            $(event.target).clearForm();
           }
         });
       });
     });
-
     </script>
 
     <script type="text/javascript">

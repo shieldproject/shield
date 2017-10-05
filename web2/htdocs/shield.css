@@ -783,6 +783,14 @@ form .ctl p strong {
   font-weight: bold;
 }
 
+form .ctl .help {
+}
+form .ctl .if-missing {
+  color: darkred;
+  font-size: 13px;
+  display: none;
+}
+
 .e404 {
   max-width: 800px;
 }
