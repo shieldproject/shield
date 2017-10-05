@@ -485,7 +485,7 @@ body { font-family: sans-serif; }
 }
 .story-sidebar li p {
   font-size: 14px;
-  margin-left: 7px;
+  margin: 0 0 0 7px;
 }
 
 .pane {
@@ -660,6 +660,23 @@ body { font-family: sans-serif; }
 .gutter > h4 { font-size: 18px; font-weight: bold; }
 .gutter > h2, .gutter > h3, .gutter > h4
 { line-height: 1.6em; margin-top: 0.6em; }
+
+.field p {
+  margin: 1em 0;
+}
+.field p a {
+  text-decoration: none;
+  border: 1px dotted #0071bc;
+  border-width: 0 0 1px 0;
+  color: #0071bc;
+}
+
+.field a.breadcrumb {
+  text-decoration: none;
+  color: #0071bc;
+  font-size: 11pt;
+  border-bottom: 1px dotted #0071bc;
+}
 
 .field table {
   width: 96%;

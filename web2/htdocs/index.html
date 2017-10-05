@@ -995,6 +995,7 @@
         registered agent, its version, health, etc.
       ]]
           <div class="gutter blk">
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2>Agents of SHIELD</h2>
             [[ if (_.agents.length == 0) { ]]
             <div class="no-data">No Agents have registered with this S.H.I.E.L.D. instance yet.</div>
@@ -1049,6 +1050,7 @@
         etc.
       ]]
           <div class="gutter blk" id="auth-providers">
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2>Authentication Providers</h2>
             <table>
               <thead><tr>
@@ -1078,6 +1080,7 @@
         etc.
       ]]
           <div class="gutter blk" id="rekey">
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2>Rekey Shield Master Password</h2>
             <br>
             <form class='rekey form-group'>
@@ -1107,7 +1110,8 @@
         administrators to manage them, assigne them to tenants, etc.
       ]]
           <div class="gutter blk" id="admin-users">
-            <h2>SHIELD Users</h2>
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <h2>Local User Management</h2>
             [[ if (_.users.length == 0) { ]]
             <div class="no-data">No local SHIELD users have been created yet.</div>
             [[ } else { ]]
@@ -1151,6 +1155,7 @@
         SHIELD user accounts, specifying their passwords and system roles.
       ]]
           <div class="gutter blk" id="admin-users">
+            <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
             <h2>New SHIELD User</h2>
             <form rel="new:user">
               <div class="ctl">
