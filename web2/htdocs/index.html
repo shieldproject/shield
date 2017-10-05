@@ -1063,11 +1063,79 @@
                 <tr>
                   <td>[[= provider.name ]]</td>
                   <td><span class="tag">[[= provider.identifier ]]</span></td>
-                  <td>[[= provider.type ]] (<a href="#">configuration</a>)</td>
+                  <td>[[= provider.type ]] (<a href="#!/admin/auth/config:name:[[= provider.identifier ]]">configuration</a>)</td>
                 </tr>
               [[ }); ]]
               </tbody>
             </table>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--auth-provider-config"><!-- {{{ -->
+      [[#
+        {auth-provider-config} template
+
+        Renders the configuration of a single authentication provider,
+        to help administrators set up the external endpoints, i.e. by
+        showing the uaac commands to run to configure UAA, or the fields
+        to fill out in the Github OAuth UI.
+      ]]
+          <div class="gutter blk" id="auth-provider">
+            <a class="breadcrumb" href="#!/admin/auth">&laquo; Back to Authentication Providers</a>
+            <h2>[[= _.provider.name ]] Authentication Provider ([[= _.provider.identifier ]])</h2>
+            [[ var p = _.provider.properties; ]]
+            [[ if (_.provider.type == 'github') { ]]
+            <p>This is a <strong>Github</strong>-backed authentication provider, targeting
+            [[ if (!p.github_endpoint || p.github_endpoint == "" || p.github_endpoint.match(/github\.com/)) { ]]
+            public Github.
+            [[ } else { ]]
+            a private, on-premise Github Enterprise (<a href="[[= p.github_endpoint ]]">[[= p.github_endpoint ]]</a>).
+            [[ } ]]</p>
+            <h3>Configuring Github</h3>
+            <p>First, you will need
+            to <a href="https://github.com/settings/applications/new">register a new
+            OAuth2 application</a> for this SHIELD:</p>
+
+            <div class="github-auth-overlay-register">
+              <span class="appname">SHIELD</span>
+              <span class="homepage">[[= website() ]]</span>
+              <span class="callback">[[= website() ]]auth/[[= _.provider.identifier ]]/redir</span>
+            </div>
+
+            <p>Once your application is registered, Github will provide you
+            with a new Client ID and Client Secret:</p>
+
+            <div class="github-auth-overlay-app">
+              <span class="client-id"></span>
+              <span class="client-secret"></span>
+            </div>
+
+            <p>These <strong>must</strong> match the values you configure
+            in the SHIELD Core configuration YAML file.</p>
+
+            [[ } else { ]]
+            <p>This is a <strong>UAA</strong>-backed authentication provider.</p>
+
+            <h3>Configuring Your UAA Client</h2>
+            <p>In order for this authentication provider to function, you may need
+            to add a new UAA client for this SHIELD.  The following commands should
+            suffice:</p>
+
+            <pre><code>$ uaac target <span class="hi">[[= p.uaa_endpoint ]]</span>
+$ uaac token client get admin
+
+$ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
+                  --name S.H.I.E.L.D. \
+                  --scope openid \
+                  --authorities uaa.none \
+                  --authorized_grant_types authorization_code \
+                  --redirect_uri <span class="hi">[[= website() ]]auth/oauth/[[= _.provider.identifier ]]/redir</span> \
+                  --access_token_validity  180 \
+                  --refresh_token_validity 180 \
+                  --secret '<span class="hi">[[= p.client_secret ]]</span>'</code></pre>
+
+            [[ } ]]
+            <h3>Raw Configuration</h3>
+            <pre><code>[[= JSON.stringify(_.provider, null, 2) ]]</code></pre>
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--rekey"><!-- {{{ -->
@@ -1412,6 +1480,18 @@
           error: "Failed retrieving the list of configured authentication providers from the SHIELD API.",
           success: function (data) {
             $('#main').html(template('auth-providers', { providers: data }));
+          }
+        });
+        break; /* #!/admin/auth */
+        // }}}
+      case '#!/admin/auth/config': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/auth/providers/'+args.name,
+          error: "Failed retrieving the authentication provider configuration from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('auth-provider-config', { provider: data }));
           }
         });
         break; /* #!/admin/auth */

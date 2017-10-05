@@ -868,6 +868,7 @@ pre code {
   padding: 1em;
   white-space: pre-wrap;
 }
+pre code .hi { color: yellow; font-weight: bold; }
 pre code em { color: lightblue; }
 pre code em em { color: #ccc; }
 
@@ -1369,3 +1370,53 @@ button[rel^="run:"] {
   color: #333;
   margin-bottom: 3em;
 }
+
+
+.github-auth-overlay-register,
+.github-auth-overlay-app {
+  margin: 2em auto;
+  display: block;
+
+  position: relative;
+  border: 1px solid #ccc;
+
+  border: 1px solid #ccc;
+  box-shadow: 2px 2px 5px 1px rgba(0,0,0, 0.3);
+}
+.github-auth-overlay-register {
+  width: 600px; height: 600px;
+  background: transparent url(/i/auth/github1.png) no-repeat 0 0 scroll;
+}
+.github-auth-overlay-register > * {
+  display: block;
+  position: absolute;
+  box-sizing: border-box;
+  padding: 10px;
+
+  width: 466px; height: 35px;
+  left: 19px;
+
+  line-height: 21px;
+  font-size: 18px;
+  color: blue;
+  font-weight: bold;
+}
+.github-auth-overlay-register .appname  { top: 106px; font-size: 21px; }
+.github-auth-overlay-register .homepage { top: 211px; }
+.github-auth-overlay-register .callback { top: 438px; }
+
+.github-auth-overlay-app {
+  width: 600px; height: 340px;
+  background: transparent url(/i/auth/github2.png) no-repeat 0 0 scroll;
+}
+.github-auth-overlay-app > * {
+  display: block;
+  position: absolute;
+  box-sizing: border-box;
+
+  background: rgba(255, 255, 0, 0.5);
+  height: 20px;
+  left: 5px;
+}
+.github-auth-overlay-app .client-id     { top: 215px; width: 141px; }
+.github-auth-overlay-app .client-secret { top: 256px; width: 273px; }
