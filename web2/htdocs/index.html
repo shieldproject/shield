@@ -2,1358 +2,10 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <style type="text/css">/* {{{ */
-      html, body, div, span, applet, object, iframe,
-      h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-      a, abbr, acronym, address, big, cite, code,
-      del, dfn, em, img, ins, kbd, q, s, samp,
-      small, strike, strong, sub, sup, tt, var,
-      b, u, i, center,
-      dl, dt, dd, ol, ul, li,
-      fieldset, form, label, legend,
-      table, caption, tbody, tfoot, thead, tr, th, td,
-      article, aside, canvas, details, embed,
-      figure, figcaption, footer, header, hgroup,
-      menu, nav, output, ruby, section, summary,
-      time, mark, audio, video {
-        margin: 0;
-        padding: 0;
-        border: 0;
-        font-size: 100%;
-        font: inherit;
-        vertical-align: baseline;
-      }
-      /* HTML5 display-role reset for older browsers */
-      article, aside, details, figcaption, figure,
-      footer, header, hgroup, menu, nav, section {
-        display: block;
-      }
-      body {
-        line-height: 1;
-        position: absolute; top: 0;
-        width: 100%;
-      }
-      ol, ul, li {
-        list-style: none;
-      }
-      blockquote, q {
-        quotes: none;
-      }
-      blockquote:before, blockquote:after,
-      q:before, q:after {
-        content: '';
-        content: none;
-      }
-      table {
-        border-collapse: collapse;
-        border-spacing: 0;
-      }
-
-      /********************************** {{ grid }} *****/
-      .blk {
-        width: 100%;
-        margin: 0; padding: 0;
-        overflow: hidden;
-      }
-      .gutter {
-        position: relative;
-        width: 100%;
-        max-width: 960;
-        margin: 0 auto;
-        padding: 0 20;
-        box-sizing: border-box;
-      }
-      .blk:after,
-      .gutter:after {
-        content: "";
-        display: table;
-        clear: both;
-      }
-      @media (min-width: 400px) {
-        /*
-        .gutter { width: 85%; padding: 0 };
-        */
-      }
-
-      .x1, .x2,  .x3,  .x4,  .x5,  .x6,  .x7,  .x8,
-      .x9, .x10, .x11, .x12, .x13, .x14, .x15, .x16 {
-        display: block; float: left;
-        margin: 0; padding: 0;
-        width: 100%;
-      }
-
-      .c12 .x13, .c12 .x14, .c12 .x15, .c12 .x16 {
-        display: none;
-      }
-
-      @media (min-width: 550px) {
-        .x1   { width:  6.25%; }
-        .x2   { width: 12.5%;  }
-        .x3   { width: 18.75%; }
-        .x4   { width: 25%;    }
-        .x5   { width: 31.25%; }
-        .x6   { width: 37.5%;  }
-        .x7   { width: 43.75%; }
-        .x8   { width: 50%;    }
-        .x9   { width: 56.25%; }
-        .x10  { width: 62.5%;  }
-        .x11  { width: 68.75%; }
-        .x12  { width: 75%;    }
-        .x13  { width: 81.25%; }
-        .x14  { width: 87.5%;  }
-        .x15  { width: 93.75%; }
-        .x16  { width: 100%;   }
-
-        .l1   { margin-left:  6.25%; }
-        .l2   { margin-left: 12.5%;  }
-        .l3   { margin-left: 18.75%; }
-        .l4   { margin-left: 25%;    }
-        .l5   { margin-left: 31.25%; }
-        .l6   { margin-left: 37.5%;  }
-        .l7   { margin-left: 43.75%; }
-        .l8   { margin-left: 50%;    }
-        .l9   { margin-left: 56.25%; }
-        .l10  { margin-left: 62.5%;  }
-        .l11  { margin-left: 68.75%; }
-        .l12  { margin-left: 75%;    }
-        .l13  { margin-left: 81.25%; }
-        .l14  { margin-left: 87.5%;  }
-        .l15  { margin-left: 93.75%; }
-        .l16  { margin-left: 100%;   }
-
-        .r1   { margin-right:  6.25%; }
-        .r2   { margin-right: 12.5%;  }
-        .r3   { margin-right: 18.75%; }
-        .r4   { margin-right: 25%;    }
-        .r5   { margin-right: 31.25%; }
-        .r6   { margin-right: 37.5%;  }
-        .r7   { margin-right: 43.75%; }
-        .r8   { margin-right: 50%;    }
-        .r9   { margin-right: 56.25%; }
-        .r10  { margin-right: 62.5%;  }
-        .r11  { margin-right: 68.75%; }
-        .r12  { margin-right: 75%;    }
-        .r13  { margin-right: 81.25%; }
-        .r14  { margin-right: 87.5%;  }
-        .r15  { margin-right: 93.75%; }
-        .r16  { margin-right: 100%;   }
-
-
-        .c12 .x1   { width:  8.3333333%; }
-        .c12 .x2   { width: 16.6666667%; }
-        .c12 .x3   { width: 25%;         }
-        .c12 .x4   { width: 33.3333333%; }
-        .c12 .x5   { width: 41.6666667%; }
-        .c12 .x6   { width: 50%;         }
-        .c12 .x7   { width: 58.3333333%; }
-        .c12 .x8   { width: 66.6666667%; }
-        .c12 .x9   { width: 75%;         }
-        .c12 .x10  { width: 83.3333333%; }
-        .c12 .x11  { width: 91.6666667%; }
-        .c12 .x12  { width: 100%;        }
-        .c12 .x13,
-        .c12 .x14,
-        .c12 .x15,
-        .c12 .x16  { width: 100%; }
-
-        .c12 .l1   { margin-left:  8.3333333%; }
-        .c12 .l2   { margin-left: 16.6666667%; }
-        .c12 .l3   { margin-left: 25%;         }
-        .c12 .l4   { margin-left: 33.3333333%; }
-        .c12 .l5   { margin-left: 41.6666667%; }
-        .c12 .l6   { margin-left: 50%;         }
-        .c12 .l7   { margin-left: 58.3333333%; }
-        .c12 .l8   { margin-left: 66.6666667%; }
-        .c12 .l9   { margin-left: 75%;         }
-        .c12 .l10  { margin-left: 83.3333333%; }
-        .c12 .l11  { margin-left: 91.6666667%; }
-        .c12 .l12  { margin-left: 100%;        }
-        .c12 .l13,
-        .c12 .l14,
-        .c12 .l15,
-        .c12 .l16  { margin-left: 0; }
-
-        .c12 .r1   { margin-right:  8.3333333%; }
-        .c12 .r2   { margin-right: 16.6666667%; }
-        .c12 .r3   { margin-right: 25%;         }
-        .c12 .r4   { margin-right: 33.3333333%; }
-        .c12 .r5   { margin-right: 41.6666667%; }
-        .c12 .r6   { margin-right: 50%;         }
-        .c12 .r7   { margin-right: 58.3333333%; }
-        .c12 .r8   { margin-right: 66.6666667%; }
-        .c12 .r9   { margin-right: 75%;         }
-        .c12 .r10  { margin-right: 83.3333333%; }
-        .c12 .r11  { margin-right: 91.6666667%; }
-        .c12 .r12  { margin-right: 100%;        }
-        .c12 .r13,
-        .c12 .r14,
-        .c12 .r15,
-        .c12 .r16  { margin-right: 0; }
-
-        .c15 .x1   { width:  6.6666667%; }
-        .c15 .x2   { width: 13.3333333%; }
-        .c15 .x3   { width: 20%;         }
-        .c15 .x4   { width: 26.6666667%; }
-        .c15 .x5   { width: 33.3333333%; }
-        .c15 .x6   { width: 40%;         }
-        .c15 .x7   { width: 46.6666667%; }
-        .c15 .x8   { width: 53.3333333%; }
-        .c15 .x9   { width: 60%;         }
-        .c15 .x10  { width: 66.6666667%; }
-        .c15 .x11  { width: 73.3333333%; }
-        .c15 .x12  { width: 80%;         }
-        .c15 .x13  { width: 86.6666667%; }
-        .c15 .x14  { width: 93.3333333%; }
-        .c15 .x15,
-        .c15 .x16  { width: 100%; }
-
-        .c15 .l1   { margin-left:  6.6666667%; }
-        .c15 .l2   { margin-left: 13.3333333%; }
-        .c15 .l3   { margin-left: 20%;         }
-        .c15 .l4   { margin-left: 26.6666667%; }
-        .c15 .l5   { margin-left: 33.3333333%; }
-        .c15 .l6   { margin-left: 40%;         }
-        .c15 .l7   { margin-left: 46.6666667%; }
-        .c15 .l8   { margin-left: 53.3333333%; }
-        .c15 .l9   { margin-left: 60%;         }
-        .c15 .l10  { margin-left: 66.6666667%; }
-        .c15 .l11  { margin-left: 73.3333333%; }
-        .c15 .l12  { margin-left: 80%;         }
-        .c15 .l13  { margin-left: 86.6666667%; }
-        .c15 .l14  { margin-left: 93.3333333%; }
-        .c15 .l15,
-        .c15 .l16  { margin-left: 0; }
-
-        .c15 .r1   { margin-right:  6.6666667%; }
-        .c15 .r2   { margin-right: 13.3333333%; }
-        .c15 .r3   { margin-right: 20%;         }
-        .c15 .r4   { margin-right: 26.6666667%; }
-        .c15 .r5   { margin-right: 33.3333333%; }
-        .c15 .r6   { margin-right: 40%;         }
-        .c15 .r7   { margin-right: 46.6666667%; }
-        .c15 .r8   { margin-right: 53.3333333%; }
-        .c15 .r9   { margin-right: 60%;         }
-        .c15 .r10  { margin-right: 66.6666667%; }
-        .c15 .r11  { margin-right: 73.3333333%; }
-        .c15 .r15  { margin-right: 80%;         }
-        .c15 .r13  { margin-right: 86.6666667%; }
-        .c15 .r14  { margin-right: 93.3333333%; }
-        .c15 .r15,
-        .c15 .r16  { margin-right: 0; }
-      }
-
-
-
-      body { height: 100%; }
-      .pane { height: 100%; }
-      .full { height: 100%; }
-      .full #login { padding-top: 40px; }
-      .story-sidebar nav,
-      .hud > div {
-        margin-top: 40px;
-      }
-
-      body { font-family: sans-serif; }
-
-      #loading {
-        display: block;
-        max-width: 240px;
-        margin: 3em auto 1em auto;
-      }
-
-      .top-bar {
-        background-color: #0071BC;
-        color: #fff;
-        box-shadow: 0px 4px 5px rgba(0,0,0,0.25);
-
-        font: normal normal normal 15px/15px sans-serif;
-
-        position: fixed;
-        top: 0px; let: 0px;
-        width: 100%;
-        z-index: 100;
-      }
-      .top-bar > * { display: block; padding: 7px; }
-      .top-bar h1 { float: left; }
-      .top-bar a  { text-decoration: none; color: inherit; }
-      .top-bar a[rel=account]  { float: right; }
-
-      .top-bar h1 { font-weight: bold; }
-      .top-bar h1 span { font-weight: normal; font-size: 10px; vertical-align: text-top }
-
-      #login {
-        background: #4d4d4d url(/i/shield-logo.svg) no-repeat 30% 60%;
-        background-size: auto 90vh;
-        box-sizing: border-box;
-        position: fixed;
-        height: 100%;
-        width: 100%;
-      }
-      #login > div {
-        display: block;
-        width: 600px;
-        margin: 10vh auto;
-      }
-      #login > div.local-only { width: 400px; }
-      #login h1,
-      #login .dialog { width: 580px; }
-      #login h1 {
-        font-size: 40pt;
-        font-weight: bold;
-        color: white;
-        text-shadow: 3px 3px 4px #333;
-        text-transform: uppercase;
-      }
-      #login h1 span {
-        color: #8CC63F;
-        font-size: 16pt;
-        padding-left: 0.3em;
-      }
-      #login .dialog {
-        background-color: #E6E6E6;
-        border: none;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
-        overflow: hidden;
-      }
-      #login .motd {
-        font-size: 10pt;
-        line-height: 1.1em;
-        margin-bottom: 2em;
-      }
-      #login .oauth2,
-      #login .local {
-        width: 50%;
-        margin: 0;
-        box-sizing: border-box;
-        float: left;
-      }
-      #login .oauth2 { width: 45%; padding-right: 10px; }
-      #login .local  { width: 55%; padding-left:  20px; border-left: 1px solid #aaa; }
-      #login > div.local-only .local { width: 100%; padding: 0; border: none; }
-      #login h2 {
-        font-size: 12pt;
-        font-weight: bold;
-        white-space: pre;
-      }
-
-      #login .oauth2 li a {
-        display: block;
-        font-size: 12pt;
-        background-color: #0071bc;
-        color: #fff;
-        padding: 8px 10px;
-        border: none;
-        margin-bottom: 12px;
-        margin-right: 6px;
-        cursor: pointer;
-        text-decoration: none;
-      }
-      #login .oauth2 ul {
-        margin: 20px 0;
-      }
-      #login .local a {
-        color: #0071bc;
-        text-decoration: none;
-      }
-      #login .local p.divert {
-        font-size: 10pt;
-        margin-top: 0.4em;
-        margin-bottom: 1em;
-      }
-      #login .local .ctl {
-        width: 100%;
-        margin-bottom: 0.5em;
-      }
-      #login .local label {
-        font-weight: normal;
-      }
-      #login .local input[type=text],
-      #login .local input[type=password] {
-        border: none;
-        width: 100%;
-        font-size: 14pt;
-        background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
-        color: #fff;
-
-        box-sizing: border-box;
-        padding: 8px;
-      }
-      #login .local .cbdark {
-        width: 16px;
-        position: relative;
-      }
-      #login .local .cbdark label {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-        position: absolute;
-        left: 0px; top: 0px;
-        background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
-        border-radius: 4px;
-        box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
-      }
-      #login .local .cbdark label::after {
-        content: '';
-        width: 8px;
-        height: 4px;
-        position: absolute;
-        top: 4px;
-        left: 4px;
-        border: 3px solid #fcfff4;
-        border-top: none;
-        border-right: none;
-        background: transparent;
-        opacity: 0;
-        transform: rotate(-45deg);
-      }
-      #login .local .cbdark label:hover::after {
-        opacity: 0.3;
-      }
-      #login .local .cbdark input {
-        visibility: hidden;
-      }
-      #login .local .cbdark input:checked + label:after {
-        opacity: 1;
-      }
-      #login .local a.forgotpw {
-        font-size: 10pt;
-        float: right;
-      }
-      #login .local button {
-        display: block;
-        font-size: 12pt;
-        background-color: #0071bc;
-        color: #fff;
-        padding: 8px 10px;
-        border: none;
-        margin-bottom: 6px;
-        margin-right: 6px;
-        cursor: pointer;
-      }
-
-      .banner-top {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100vw;
-        text-align: center;
-        z-index: 200;
-      }
-      .banner-top p {
-        display: inline-block;
-        width: auto;
-        text-align: center;
-        padding: 1ex;
-        margin: 1em;
-        box-shadow: 0px 0px 8px #333;
-        border-radius: 0.75ex;
-        background-color: #ccc;
-        color: #000;
-      }
-      .banner-top p.info     { color: #fff; background-color: #729849; }
-      .banner-top p.error    { color: #fff; background-color: #ff1d25; }
-      .banner-top p.progress { color: #fff; background-color: #0071bc; }
-
-      .story-sidebar {
-        background-color: #F2F2F2;
-        color: #000;
-        box-shadow: 4px 0px 5px rgba(0,0,0,0.25);
-
-        position: fixed;
-        top: 0px; left: 0px;
-        z-index: 80;
-        height: 100%;
-        width: 25%;
-      }
-
-      .story-sidebar li {
-        padding: 15px;
-        border-bottom: 1px solid #B3B3B3;
-      }
-      .story-sidebar li a {
-        font-size: 18.5px;
-        line-height: 22.5px;
-        font-weight: bold;
-        color: #0071BC;
-        text-decoration: none;
-      }
-      .story-sidebar li p {
-        font-size: 14px;
-        margin-left: 7px;
-      }
-
-      .pane {
-        width:  75%;
-        margin-left: 25%;
-      }
-
-      .hud {
-        background-color: #4D4D4D;
-        color: #fff;
-        xheight: 240px;
-
-        z-index: 60;
-      }
-      /* 24px = 15px (standard margin) + 9px (inner padding on .prot / .health) */
-      .hud .inst { margin: 24px; line-height: 18.5px; }
-      .hud .inst .shield { font-size: 22.5px; line-height: 24px; font-weight: bold; }
-      .hud .inst .shield span { font-size: 15px; color: #29ABE2; }
-      .hud .inst .env { font-weight: bold; }
-
-      .hud .health,
-      .hud .prot {
-        background-color: #1A1A1A;
-        color: #fff;
-        border-radius: 7px;
-        padding: 9px;
-        margin: 15px;
-
-        font-size: 15px;
-      }
-      .hud .health .fill,
-      .hud .prot   .fill {
-        height: 80px;
-      }
-
-      .hud .health { line-height: 25px; }
-      .hud .health object { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
-
-      .hud .prot { line-height: 18.5px; }
-      .hud .prot li span { float: right; }
-      .hud .prot h3 { font-weight: bold; }
-      .hud .prot ul { padding-left: 7px; }
-
-      .hud .ok span { color: #8CC63F; }
-      .hud .warn span { color: #FCEE21; }
-      .hud .fail span { color: #FF6161; text-transform: uppercase }
-
-
-      .nav {
-        background-color: #000;
-        color: #fff;
-        height: 40px;
-
-        box-shadow: 0px 4px 5px rgba(0,0,0,0.25);
-
-        position: relative;
-        z-index: 40;
-
-        text-align: right;
-      }
-      .nav a {
-        color: inherit;
-        text-decoration: none;
-        font-weight: bold;
-      }
-      .nav .current a { color: #FFFF00; }
-      .nav li {
-        display: inline-block;
-        padding-right: 22.5px;
-        line-height: 40px;
-      }
-
-      .nav.sticky {
-        display: none;
-        position: fixed;
-        top: 29px;
-        width: 75%;
-        z-index: 100;
-      }
-      .nav.sticky.on { display: block; }
-
-      .gutter { padding: 1.5em; }
-      .gutter.blk { width: auto; }
-
-      .field .card {
-        background-color: #F2F2F2;
-        box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
-      }
-      .field .card h3 {
-        font-size: 18px;
-        font-weight: bold;
-      }
-
-      .no-data {
-        font-style: italic;
-        text-align: center;
-        opacity: 0.5;
-        font-size: 120%;
-        padding: 2.5em 0 4em 0;
-      }
-
-      .card,
-      .summary {
-        padding: 1%;
-        width: 42%;
-        margin: 2% 0 10% 2%;
-        float: left;
-      }
-      .card:nth-child(2n+1) {
-        clear: both;
-        margin: 2% 2% 2% 0;
-      }
-      .card > a { color: inherit; text-decoration: none; }
-
-      .card .details {
-        font-size: 14px;
-        padding: 7px;
-      }
-      .card img {
-        width: 24px;
-        float: right;
-      }
-      .card.fail img { width: 36px; }
-      .card.fail h3 { color: #FF1D25; }
-
-      .card .graph {
-        height: 30px;
-        position: relative;
-        margin-bottom: 2em;
-      }
-      .card .graph:last-child {
-        margin-bottom: 0em;
-      }
-      .card .from,
-      .card .to {
-        background-color: #0071BC;
-        color: #fff;
-        border-radius: 7px;
-        padding: 7px;
-        position: relative;
-        z-index: 50;
-      }
-      .card .graph.fail > div { background-color: #FF1D25; }
-      .card .from { float: left; }
-      .card .to   { float: right; }
-      .card .bar {
-        background-color: #0071BC;
-        height: 4px;
-        width: 100%;
-        position: absolute;
-        top: 50%;
-        margin-top: -2px;
-        z-index: 49;
-      }
-      .card .notes {
-        font-size: 14px;
-        padding: 1em;
-        font-style: italic;
-        line-height: 1.2em;
-      }
-
-      .summary h2 {
-        font-size: 18px;
-        font-weight: bold;
-      }
-      .summary p {
-        margin: 0.5em;
-      }
-
-      .gutter > h2 { font-size: 28px; font-weight: bold; clear: both; }
-      .gutter > h3 { font-size: 22px; font-weight: bold; }
-      .gutter > h4 { font-size: 18px; font-weight: bold; }
-      .gutter > h2, .gutter > h3, .gutter > h4
-      { line-height: 1.6em; margin-top: 0.6em; }
-
-      .field table {
-        width: 96%;
-        margin: 2% 2% 6% 2%;
-      }
-      .field table th,
-      .field table td {
-        padding: 0.75em;
-        font-size: 15px;
-        text-align: left;
-      }
-      .field table thead th {
-        border-bottom: 2px dotted #ccc;
-        font-weight: bold;
-        text-align: left;
-      }
-      .field table a {
-        color: #0071BC;
-        text-decoration: none;
-      }
-      .field table td span.fail { color: #ED1C24; }
-
-      .field table .noted td { font-weight: bold; }
-      .field table .note + .noted { border-top: 12px solid #fff; }
-
-      .field table .note strong {
-        font-weight: bold;
-        display: block;
-        font-variant: small-caps;
-      }
-      .field table .note div {
-        white-space: pre-wrap;
-        margin: 1%;
-        line-height: 1.3em;
-      }
-
-      .field table .noted td,
-      .field table .note td
-      { background-color: rgba(0,113,188,0.125); }
-
-      .field table .noted.fail td,
-      .field table .note.fail td
-      { background-color: rgba(255,29,37,0.125); }
-
-      .field table .noted.ok td,
-      .field table .note.ok td
-      { background-color: rgba(140,198,63,0.125); }
-
-      .field table tr.task { display: none; }
-
-
-      form .ctl { width: 50%; }
-      form .info { width: 45%; float: right; clear: right; }
-      form .info {
-        border-radius: 8px;
-        background-color: rgba(0, 118, 188, 0.2);
-        padding: 16px;
-        box-sizing: border-box;
-        font-size: 14px;
-      }
-      form .info { display: none; }
-      form .band.active .info { display: block; }
-
-      form .ctl {
-        margin-bottom: 1em;
-      }
-      form .ctl label {
-        font-weight: bold;
-        font-size: 16px;
-        line-height: 20px;
-        display: block;
-      }
-      form .ctl input,
-      form .ctl select,
-      form .ctl textarea {
-        font-size: 18px;
-        display: block;
-        margin-bottom: 4px;
-      }
-      form .ctl select,
-      form .ctl input[type=text] {
-        width: 100%;
-      }
-      form .ctl input[type=text],
-      form .ctl input[type=password],
-      form .ctl input[type=file] {
-        border: 1px solid #ccc;
-        border-width: 0 0 1px 0;
-      }
-      form .ctl input[type=checkbox] {
-        float: left;
-      }
-      form .ctl textarea {
-        min-height: 6em;
-        width: 100%;
-      }
-      form .ctl p {
-        font-size: 13px;
-        padding: 4px 0;
-        font-style: italic;
-      }
-      form .ctl p strong {
-        color: #0071BC;
-        font-weight: bold;
-      }
-
-      .e404 {
-        max-width: 800px;
-      }
-      .e404 h2 {
-        margin-bottom: 2em;
-      }
-      .e404 img {
-        float: right;
-        margin: 0 0 2em 4em;
-      }
-      .e404 p {
-        padding: 0 2em 3em 2em;
-        font-size: 16px;
-        line-height: 1.4em;
-      }
-      .e404 p a {
-        font-weight: bold;
-        color: #0071bc;
-      }
-      .e404 pre {
-        opacity: 0.1;
-        white-space: pre;
-        font-family: monospace;
-        font-size: 16px;
-        padding: 0 0 0 2em;
-      }
-      .e404 pre:hover {
-        opacity: 1;
-        cursor: i-beam;
-      }
-
-
-      .meter svg {
-        width: 100%;
-        min-width: 540px;
-      }
-
-      .plugin {
-        background-color: #0071BC;
-        color: #fff;
-        border-radius: 7px;
-        padding: 10px;
-
-        font-size: 70%;
-        float: right;
-        line-height: 1em;
-      }
-
-      .side-by-side {
-        box-sizing: border-box;
-        width: 50%;
-        padding: 2%;
-        float: left;
-      }
-      .side-by-side h3 {
-        font-size: 22px; font-weight: bold;
-        border-bottom: 1px solid #ccc;
-        margin: 1em 0;
-      }
-
-      dl {
-        overflow: hidden;
-      }
-      dl dt {
-        clear: left;
-        float: left;
-        display: block;
-        width: 40%;
-        padding: 0 0 0.5em 0;
-      }
-      dl dd {
-        float: left;
-        font-weight: bold;
-        padding: 0 0 0.5em 0;
-      }
-
-
-      pre code {
-        display: block;
-        background-color: #003d63;
-        color: white;
-        font: 10pt/16pt Monaco, monospace;
-        padding: 1em;
-        white-space: pre-wrap;
-      }
-      pre code em { color: lightblue; }
-      pre code em em { color: #ccc; }
-
-      pre code button {
-        float: right;
-        color: #fff;
-        background-color: #0071BC;
-        box-shadow: 2px 2px 5px 1px rgba(0,0,0, 0.3);
-        border: none;
-        border-radius: 3px;
-        font: 12pt/16pt Monaco, monospace;
-        text-transform: uppercase;
-
-        padding: 4pt 9pt;
-        cursor: pointer;
-        margin-left: 0.75em;
-      }
-      pre code button.restore:hover { background-color: #8CC63F; }
-      pre code button.annotate:hover { background-color: purple; }
-
-      pre code div {
-        white-space: normal;
-      }
-      pre code div form {
-        clear: both;
-        float: right;
-        width: 40%;
-        padding-top: 1ex;
-      }
-      pre code div form.annotate { display: none; }
-
-      pre code label,
-      pre code input,
-      pre code select,
-      pre code textarea {
-        width: 100%;
-        display: block;
-        box-sizing: border-box;
-
-        font: inherit;
-        color: inherit;
-        background-color: inherit;
-      }
-      pre code input[type=radio],
-      pre code input[type=checkbox] {
-        display: inline-block;
-        width: auto;
-      }
-      pre code input + label {
-        padding-left: 1ex;
-        display: inline-block;
-        width: auto;
-        cursor: pointer;
-      }
-      pre code ul {
-        padding-left: 1em;
-      }
-      pre code textarea {
-        border: 1px solid white;
-        height: 140px;
-        margin-bottom: 1ex;
-      }
-      pre code form ul {
-        margin: 1em 0;
-      }
-
-      pre.task-failed code { background-color: #5e0000; }
-      pre.task-failed code em { color: #eee; }
-      pre.task-failed code em em { color: salmon; }
-      pre.task-failed code button { background-color: #222; }
-
-      pre.task-failed.override code { background-color: #333; }
-
-
-      .timeline {
-        /*
-        border-left: 3px solid #777;
-        padding-left: 6px;
-        margin-left: 6px;
-          */
-      }
-      .timeline .event {
-        position: relative;
-        border-left: 3px solid #777;
-        padding-left: 10px;
-        margin-left: 6px;
-        padding-bottom: 24px;
-      }
-      .timeline .event::before {
-        content: '';
-        display: block;
-        width: 12px;
-        height: 12px;
-        background-color: #777;
-        border: 3px solid #fff;
-        border-radius: 12px;
-
-        position: absolute;
-        top: 0px;
-        left: -10.5px;
-      }
-
-      .timeline .event.ok               { border-left-color: #8cc63f; }
-      .timeline .event.ok::before       { background-color:  #8cc63f; }
-      .timeline .event.failed           { border-left-color: #ff1d25; }
-      .timeline .event.failed::before   { background-color:  #ff1d25; }
-      .timeline .event.handled          { border-left-color: #0071bc; }
-      .timeline .event.handled::before  { background-color:  #0071bc; }
-
-      .timeline .event .date {
-        display: inline-block;
-        font-size: 14pt;
-      }
-      .timeline .event .tag{
-        background-color: #ccc;
-        border-radius: 4px;
-        font-size: 8pt;
-        font-weight: bold;
-        padding: 4px 8px;
-        display: inline-block;
-
-        position: relative;
-        top: -3px;
-        left: 3px;
-      }
-      .timeline .event.failed .tag { display: none; }
-      .timeline .event.backup .tag {
-        color: #fff;
-        background-color: #8CC63F;
-      }
-      .timeline .event.restore .tag {
-        color: #fff;
-        background-color: darkviolet;
-      }
-      .timeline .event .desc {
-        font-size: 18pt;
-        line-height: 24pt;
-        font-weight: bold;
-      }
-      .timeline .event.failed  .desc        { color: #ff1d25; }
-      .timeline .event.failed  .desc::after { content: " — FAILED"; }
-      .timeline .event.handled .desc        { color: inherit; }
-      .timeline .event.handled .desc::after { content: " — handled"; }
-
-      .timeline .event .meta {
-      }
-
-      .timeline .event .note {
-        display: block;
-        max-width: 40em;
-        margin: 1em 0;
-        background-color: #fffac7;
-        padding: 1em;
-        border: 1px dashed #ccc;
-      }
-      .timeline .event .note a {
-        text-decoration: none;
-        border-bottom: 1px dashed #ccc;
-        color: blue;
-      }
-      .timeline .event .note strong {
-        font-weight: bold;
-        text-transform: uppercase;
-      }
-
-      .timeline .event .task { display: none; }
-
-      .timeline .event .expand {
-        visibility: hidden;
-        display: block;
-        margin-top: 4px;
-        font-size: 10pt;
-      }
-      .timeline .event:hover .expand {
-        visibility: visible;
-      }
-      .timeline .event .expand a {
-        text-decoration: none;
-        color: #0071bc;
-      }
-
-
-      #modal.modal-wash {
-        position: fixed;
-        top: 0px;
-        left: 0px;
-        width: 100vw;
-        height: 100vw;
-        background-color: rgba(16,16,16,0.85);
-        z-index: 140;
-      }
-      #modal > .confirm {
-        box-sizing: border-box;
-        width: 70vw;
-        height: 70vh;
-        margin: 15vh 15vw;
-        padding: 20px;
-        overflow: scroll;
-
-        background-color: #111;
-        border: 1px solid #777;
-        color: #fff;
-      }
-      #modal > .confirm h2 {
-        font-size: 250%;
-        color: yellow;
-        font-variant: small-caps;
-        font-weight: bold;
-        text-align: center;
-      }
-      #modal > .confirm p {
-        margin: 1em auto;
-        font-size: 120%;
-        line-height: 1.2em;
-        max-width: 680px;
-      }
-      #modal > .confirm p em {
-        font-weight: bold;
-        color: yellow;
-      }
-      #modal > .confirm p.q {
-        font-size: 160%;
-        margin: 1em auto;
-      }
-      #modal .confirm .a {
-        max-width: 680px;
-        text-align: center;
-        margin: 1em auto;
-      }
-      #modal > .confirm button {
-        display: inline-block;
-        border: none;
-        border-radius: 2px;
-        font-size: 140%;
-        padding: 8px 16px;
-        cursor: pointer;
-      }
-      #modal > .confirm button.danger {
-        background-color: yellow;
-        color: #000;
-      }
-      #modal > .confirm button.safe {
-        background-color: transparent;
-        color: palegreen;
-      }
-
-      button[rel^="run:"] {
-        display: block;
-        float: right;
-        font-size: 14pt;
-        background-color: #0071bc;
-        color: #fff;
-        padding: 12px 20px;
-        border-radius: 8px;
-        border: none;
-        margin-bottom: 6px;
-        margin-right: 6px;
-        box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
-        cursor: pointer;
-      }
-
-      .do-caption {
-        font-style: italic;
-        font-size: 11pt;
-        margin-bottom: 2em;
-        color: #0071bc;
-      }
-      .do-backup .picks {
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 20px;
-        margin-bottom: 20px;
-      }
-      .do-backup .picks {
-        overflow: hidden;
-      }
-      .do-backup .picks > div {
-        width: 29%;
-        margin: 0 2% 2% 0;
-      }
-      .do-backup .picks > div:nth-child(2n+1) { clear: none; }
-      .do-backup .picks > div:nth-child(3n+3) { margin: 0 0 2% 0; }
-      .do-backup .picks > div:nth-child(3n+1) { clear: both; }
-      .do-backup .picks .empty {
-        border: 2px dashed #777;
-        padding: 10px;
-        background-color: #eee;
-        opacity: 0.5;
-      }
-
-      .do-backup .step > h3 {
-        font-size: 24px;
-        line-height: 64px;
-        font-weight: bold;
-      }
-      .do-backup .step {
-        clear: both;
-        overflow: hidden;
-      }
-      .do-backup .step p {
-        width: 70%;
-          line-height: 1.2em;
-      }
-      .do-backup .step p strong {
-        font-weight: bold;
-        color: #0071bc;
-        font-size: 110%;
-      }
-      .do-backup .run-the-backup p {
-        float: left;
-      }
-
-
-      .flyout {
-        position: absolute;
-        top: 38px;
-        right: 8px;
-
-        color: #000;
-        background-color: #F2F2F2;
-        min-width: 200px;
-        padding: 0px;
-        box-shadow: 0px 4px 5px rgba(0,0,0,0.25);
-
-        display: none;
-      }
-      .flyout::before {
-        content: "";
-        border: 6px solid transparent;
-        border-bottom-color: transparent;
-        border-bottom-color: #f2f2f2;
-        position: absolute;
-        top: -12px;
-        right: 8px;
-      }
-      .flyout .menu {
-        padding: 8px 0;
-      }
-      .flyout .menu .header,
-      .flyout .menu .dropdown {
-        padding: 4px 8px;
-        display: block;
-      }
-      .flyout .menu .header {
-        font-weight: bold;
-      }
-      .flyout .menu .header span {
-        font-size: 80%;
-        font-weight: normal;
-        display: block;
-      }
-      .flyout .menu .divider {
-        display: block;
-        margin: 8px 0;
-        height: 1px;
-        background-color: #ccc;
-      }
-      .flyout .menu .dropdown:hover {
-        background-color: #0071bc;
-        color: #fff !important;
-      }
-      .flyout .menu .dropdown.odd {
-        font-style: italic;
-        font-size: 95%;
-      }
-      .flyout .menu .dropdown.current-tenant {
-      }
-      .flyout .menu .dropdown.current-tenant::after {
-        content: " (current)";
-      }
-
-      #overlay {
-        background-color: #e6e6e6;
-        width: 40vw;
-        position: absolute;
-        top: 30vh;
-        left: 30vw;
-        border-radius: 8px;
-        box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
-      }
-      #overlay .header {
-        border-radius: 8px 8px 0 0;
-        background-color: #0071bc;
-        color: #fff;
-        padding: 16px 16px 12px 16px;
-        border-bottom: 1px solid #666;
-      }
-      #overlay .frame {
-        overflow: auto;
-        height: 40vh;
-        padding: 16px;
-      }
-
-
-      .init-shield,
-      .unlock-shield {
-          display: block;
-          margin: 4em;
-      }
-      .init-shield label,
-      .unlock-shield label {
-        display: block;
-        font-size: 16pt;
-        font-weight: bold;
-        margin: 16pt 0 4pt 0;
-      }
-      .init-shield input,
-      .unlock-shield input {
-        font-size: 18pt;
-        width: 80%;
-        border-radius: 4px 0 0 4px;
-        border: 1px solid #ccc;
-        height: 36px;
-        margin: 0;
-        padding: 0 6pt;
-        box-sizing: border-box;
-      }
-      .init-shield button,
-      .unlock-shield button {
-        font-size: 16pt;
-        height: 36px;
-        border-radius: 4px;
-        padding: 0 0.6em;
-        margin: 0;
-        box-sizing: border-box;
-        font-weight: bold;
-        cursor: pointer;
-      }
-
-      .unlock-shield input {
-        display: inline-block;
-      }
-      .unlock-shield button {
-        background-color: #0071BC;
-        border: 1px solid #0071BC;
-        color: #fff;
-
-        border-radius: 0 4px 4px 0;
-
-        display: inline-block;
-        position: relative;
-        top: -1px;
-      }
-
-      .init-shield button {
-        display: block;
-        margin: 12pt 0 8pt 0;
-        background-color: #ba1f1f;
-        border: 1px solid #a31d1d;
-        color: #fff;
-      }
-
-      .form-group {
-        width: 440px;
-        max-width: 100%;
-        margin: 7px 5px 7px 0;
-      }
-
-      .form-group button {
-        color: #fff;
-        background-color: #0071BC;
-        box-shadow: 2px 2px 5px 1px rgba(0,0,0, 0.3);
-        border: none;
-        border-radius: 3px;
-        font: 12pt/16pt Monaco, monospace;
-        text-transform: uppercase;
-        padding: 5pt 10pt;
-        cursor: pointer;
-      }
-
-      .form-group dt {
-        width: 100%;
-        padding: 0;
-      }
-
-      .form-control {
-        width: 400px;
-        min-height: 20px;
-        padding: 6px 8px;
-        font-size: 14px;
-        border: 1px solid #d1d5da;
-        border-radius: 3px;
-        box-shadow: inset 0 1px 2px rgba(27,31,35,0.075);
-      }
-
-      #admin-home ul li {
-        margin: 2em 0 1em 2em;
-        width: 60%;
-      }
-      #admin-home ul a {
-        display: block;
-        text-decoration: none;
-        font-weight: bold;
-        font-size: 16pt;
-        margin: 0 0 0.5em 0;
-        color: #0071BC;
-      }
-      #admin-home ul p {
-        font-size: 11pt;
-        color: #333;
-        margin-bottom: 3em;
-      }
-    /* }}} */</style>
+    <link rel="stylesheet" href="/shield.css" />
   </head>
   <body>
-    <div class="top-bar"><h1>SHIELD</h1>
-        
-    </div>
+    <div class="top-bar"><h1>SHIELD</h1></div>
     <div id="viewport" class="full"></div>
 
     <script type="text/html" id="tpl--layout"><!-- {{{ -->
@@ -1570,7 +222,7 @@
         are displayed as links to kick off the necessary OAuth2 flows (although
         they are styled as buttons)
       ]]
-          <div id="login">
+          <div id="login" class="frontdoor">
             <div[[ if (_.oauth.length == 0) { ]] class="local-only"[[ } ]]>
               <h1>SHIELD<span>Production<span></h1>
               <div class="dialog">
@@ -1608,16 +260,44 @@
                       <label for="local-login-remember-me">Remember me</label>
                     </div>
                     <button>Sign in</button>
-                    <form>
-                  </div>
+                  <form>
                 </div>
               </div>
             </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--BOOM"><!-- {{{ -->
+      [[#
+        {BOOM} template
+
+        Displays a viewport-bound error message (without the hud/sidebar chrome)
+        when SHIELD fails to boot up properly.  Typically, this means that we
+        failed in our AJAX request to get the Authentication Providers to render
+        the login page.
+      ]]
+          <div id="BOOM" class="frontdoor">
+            <div>
+              <h1>SHIELD<span>Production<span></h1>
+              <div class="dialog">
+                <h2>SOMETHING BROKE</h2>
+                <img src="/i/boom.png" class="highlight">
+                <p>An error has occurred, and SHIED was unable to recover from it.
+                Your SHIELD site administrator may be able to peruse the SHIELD
+                logs on this installation to shed some light on this conundrum.</p>
+
+                <p>Most of the time, this is related to an inability to retrieve
+                the authentication parameters for this SHIELD instance.  You may
+                want to check to make sure you are connected to the internet, and
+                if you need to hook up to any VPNs to access SHIELD, ensure that
+                they too are connected.</p>
+              </div>
+            </div>
+          </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--top-bar"><!-- {{{ -->
       [[#
         {top-bar} template
-      
+
         Renders the top-most bar, with the SHIELD name / environment, and the
         current users name / tenant and "personal settings" menu.
       ]]
@@ -1647,7 +327,7 @@
     <script type="text/html" id="tpl--hud"><!-- {{{ -->
         [[#
           {hud} template
-        
+
           Renders the "health and wellness" heads-up display (HUD), with more
           information about this SHIELD instance (name / env / IP / version),
           health and key metrics.
@@ -1660,7 +340,7 @@
                 <li class="env"><span style="color: [[= maybe(_.shield.color, "#8CC63F") ]]">[[= _.shield.env ]]</span></li>
               </ul>
             </div></div>
-        
+
             <div class="x5"><div class="health">
               <ul>
                 [[ if (_.health.core == "unsealed" || _.health.core == "unlocked") { ]]
@@ -1684,7 +364,7 @@
                 [[ } ]]
               </ul>
             </div></div>
-        
+
             <div class="x6"><div class="prot">
               <h3>Data Protection Summary</h3>
               <ul>
@@ -1698,7 +378,7 @@
     <script type="text/html" id="tpl--404"><!-- {{{ -->
       [[#
         {404} template
-      
+
         Help a lost traveller on their way.
       ]]
           <div class="gutter blk e404">
@@ -1709,10 +389,10 @@
             fault (and it very well could be), please report an issues over at our
             <a href="https://github.com/starkandwayne/shield/issues/new" target="_blank">Github
             Page</a>.</p>
-      
+
             <pre>You can paste this additional information
       into your Github issue:
-      
+
       - **Wanted URL**: [[= _.wanted ]]
       - **Arguments**:  ([[= _.args.join(', ') ]])
       - **Referer**:    [[= maybe(_.referer, '_none_') ]]
@@ -1722,7 +402,7 @@
     <script type="text/html" id="tpl--account"><!-- {{{ -->
       [[#
         {account}
-      
+
         Shows the user their current account information,
         including a form for changing their name (and, if
         local, their password), and a list of all tenants
@@ -1730,7 +410,7 @@
       ]]
           <div class="gutter blk account">
             <h2>My Account</h2>
-      
+
             <form>
               <p><label for="name">Display</label>
               <input type="text" value="" /></p>
@@ -1740,7 +420,7 @@
     <script type="text/html" id="tpl--init"><!-- {{{ -->
       [[#
         {init} template
-      
+
         Renders a form allowing administrators (sys_role = admin) to initialize
         this SHIELD core.
       ]]
@@ -1749,7 +429,7 @@
           <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
               tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
               voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
-    
+
           <form class="init-shield">
             <label for="init-master">Create a SHIELD Master Password</label>
             <input type="password" id="init-master" name="master">
@@ -1762,7 +442,7 @@
     <script type="text/html" id="tpl--unlock"><!-- {{{ -->
       [[#
         {unlock} template
-      
+
         Renders a form allowing anyone with knowledge of the SHIELD master
         password to unlock the SHIELD core, and resume normal operations.
       ]]
@@ -1771,7 +451,7 @@
           <p>Et harum quidem rerum. Neque porro quisquam est, qui dolorem ipsum. Nam libero
               tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
               voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
-    
+
           <form class="unlock-shield">
             <label for="unlock-master">Enter your SHIELD Master Password</label>
             <input type="password" id="unlock-master" name="master"><button>Unlock</button>
@@ -1781,7 +461,7 @@
     <script type="text/html" id="tpl--do-backup"><!-- {{{ -->
       [[#
         {do-backup}
-      
+
       ]]
       [[
         var stores = {};
@@ -1789,7 +469,7 @@
           _.store = undefined;
           _.policy = undefined;
         }
-      
+
         if (_.system && !_.store) {
           _.policy = undefined;
           $.each(_.system.jobs, function (i, job) {
@@ -2391,7 +1071,7 @@
     <script type="text/html" id="tpl--rekey"><!-- {{{ -->
       [[#
         {rekey} template
-      
+
         Renders the list of configured authentication providers, including
         details about how to integrate with their respective 3rd party auth
         systems, i.e. Github oauth App registration, CF/UAA client creation,
@@ -2410,7 +1090,7 @@
                     <dt><label for="new_password">New Master Password</label></dt>
                     <dd><input name='new_master_password' class="form-group form-control" required="required" type='password'></dd>
                 </dl>
-               
+
                 <dl class="form-group">
                     <dt><label for="confirm_new_password">Confirm New Master Password</label></dt>
                     <dd><input name='confirm_new_master_password' class="form-group form-control" required="required" type='password'></dd>
@@ -2508,540 +1188,9 @@
     <!-- FIXME: colo jquery / lensjs with our assets -->
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script src="/init.js"></script>
+    <script src="/js/lib.js"></script>
+    <script src="/js/sticky-nav.js"></script>
     <script type="text/javascript">
-    /*
-      When the viewer scrolls the browser window, check to see if we
-      need to "stick" the navigation header to the top of the viewport,
-      or re-attach it back to its relative position in the document flow.
-    */
-    document.addEventListener('scroll', function(event) {
-      var nav = document.getElementById("sticky-nav");
-      var hud = document.getElementById("hud");
-      var y = hud.clientHeight + hud.offsetTop;
-
-      if (y - 29 <= window.scrollY) {
-        nav.className = 'nav sticky on';
-      } else if (y - 29 > window.scrollY) {
-        nav.className = 'nav sticky';
-      }
-    });
-
-    function tparse(d) {
-      if (typeof d == "string") {
-        // because we insist on doing bad things with date formatting in the API...
-        m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(d);
-        if (!m) {
-          console.log("'%s' doesn't look like a date/time string...", d);
-          return ""
-        }
-
-        d = new Date();
-        d.setTime(Date.UTC(parseInt(m[1]),   // year
-                          parseInt(m[2])-1, // month
-                          parseInt(m[3]),   // day
-                          parseInt(m[4]),   // hour
-                          parseInt(m[5]),   // minute
-                          parseInt(m[6]))); // second
-        return d;
-      }
-
-      if (!(d instanceof Date)) {
-        var _d = new Date()
-        if (!isNaN(d)) {
-          _d.setTime(d * 1000);
-        }
-        return _d;
-      }
-
-      return d;
-    }
-    function tdiff(t1, t2) {
-      return parseInt(tparse(t2).getTime() / 1000) - (tparse(t1).getTime() / 1000);
-    }
-
-    function duration(t) {
-        t = parseInt(t);
-        if (t < 0) { t = 0; }
-        if (t < 60) {
-          return t.toString() + "s";
-        }
-        if (t < 60 * 60) {
-          return parseInt(t / 60).toString() + "m";
-        }
-        if (t < 60 * 60 * 24) {
-          h = parseInt(t / (60 * 60));
-          m = (t - h*(60 * 60)) / 60;
-          return parseInt(h).toString() + "h " + parseInt(m).toString() + "m";
-        }
-        if (t < 60 * 60 * 24 * 7) {
-          d = parseInt(t / (60 * 60 * 24));
-          h = (t - d*(60 * 60 * 24)) / (60 * 60);
-          return parseInt(d).toString() + "d " + parseInt(h).toString() + "h";
-        }
-        return parseInt(t / (60 * 60 * 24)).toString() + "d";
-    }
-
-    function trelative(d, threshold, fmt) {
-      d = tparse(d);
-      var now = new Date()
-
-      if (threshold > 0 && now.getTime() - d.getTime() < threshold) {
-        return duration(tdiff(d, now)) + " ago";
-      }
-
-      return strftime(fmt || "%x %X", d);
-    }
-
-    function strftime(fmt, d) {
-      d = tparse(d);
-      if (typeof(d) === 'undefined') {
-        return "";
-      }
-
-      en_US = {
-        pref: {
-          /* %c */ datetime: function (d) { return strftime("%a %b %e %H:%M:%S %Y", d); },
-          /* %x */ date:     function (d) { return strftime("%m/%d/%Y", d); },
-          /* %X */ time:     function (d) { return strftime("%H:%M:%S", d); }
-        },
-        weekday: {
-          abbr: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-          full: ['Sunday',
-                'Monday',
-                'Tuesday',
-                'Wednesday',
-                'Thursday',
-                'Friday',
-                'Saturday']
-        },
-        month: {
-          abbr: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-          full: ['January',
-                'February',
-                'March',
-                'April',
-                'May',
-                'June',
-                'July',
-                'August',
-                'September',
-                'October',
-                'November',
-                'December']
-        },
-        AM: "AM", am: "am", PM: "PM", pm: "pm",
-        ordinal: ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th', 'th', //  1 - 10
-                        'th', 'th', 'th', 'th', 'th', 'th', 'th', 'th', 'th', 'th', // 11 - 20
-                        'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th', 'th', // 21 - 30
-                        'st'],
-        zero:  ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09',
-                '10', '11', '12', '13', '14', '15', '16', '17', '18', '19',
-                '20', '21', '22', '23', '24', '25', '26', '27', '28', '29',
-                '30', '31', '32', '33', '34', '35', '36', '37', '38', '39',
-                '40', '41', '42', '43', '44', '45', '46', '47', '48', '49',
-                '50', '51', '52', '53', '54', '55', '56', '57', '58', '59'],
-
-        space: [' 0', ' 1', ' 2', ' 3', ' 4', ' 5', ' 6', ' 7', ' 8', ' 9',
-                '10', '11', '12', '13', '14', '15', '16', '17', '18', '19',
-                '20', '21', '22', '23', '24', '25', '26', '27', '28', '29',
-                '30', '31', '32', '33', '34', '35', '36', '37', '38', '39',
-                '40', '41', '42', '43', '44', '45', '46', '47', '48', '49',
-                '50', '51', '52', '53', '54', '55', '56', '57', '58', '59'],
-      };
-
-      var lc = en_US;
-
-      var inspec = false;
-      var alt_o  = false;
-
-      var s = '';
-      for (var i = 0; i < fmt.length; i++) {
-        var c = fmt.charCodeAt(i);
-        if (inspec) {
-          switch (c) {
-          // %%   A literal '%' character
-          case 37:
-            s += '%';
-            break;
-
-          // %a   The abbreviated name of the day of the week according to the
-          //      current locale.
-          case 97:
-            s += lc.weekday.abbr[d.getDay()];
-            break;
-
-          // %A   The full name of the day of the week according to the current
-          //      locale.
-          case 65:
-            s += lc.weekday.full[d.getDay()];
-            break;
-
-          // %b   The abbreviated month name according to the current locale.
-          case 98:
-            s += lc.month.abbr[d.getMonth()];
-            break;
-
-          // %h   Equivalent to %b.
-          case 104:
-            s += lc.month.abbr[d.getMonth()];
-            break;
-
-          // %B   The full month name according to the current locale.
-          case 66:
-            s += lc.month.full[d.getMonth()];
-            break;
-
-          // %c   The preferred date and time representation for the current
-          //      locale.
-          case 99:
-            s += lc.pref.datetime(d);
-            break;
-
-          // %C   The century number (year/100) as a 2-digit integer
-          case 67:
-            s += d.getFullYear() / 100;
-            break;
-
-          // %d   The day of the month as a decimal number (range 01 to 31).
-          case 100:
-            s += lc.zero[d.getDate()];
-            break;
-
-          // %D   Equivalent to %m/%d/%y.  (Yecch—for Americans only.  Americans
-          //      should note that in other countries %d/%m/%y is rather common.
-          //      This means that in international context this format is
-          //      ambiguous and should not be used.)
-          case 68:
-            s += strftime("%m/%d/%y", d);
-            break;
-
-          // %e   Like %d, the day of the month as a decimal number, but a
-          //      leading zero is replaced by a space.
-          case 101:
-            s += d.getDate().toString()+(alt_o ? lc.ordinal[d.getDate()] : '');
-            break;
-
-          // %E   Modifier: use alternative format, see below.
-          case 69:
-            // not supported; just skip it
-            continue;
-
-          // %F   Equivalent to %Y-%m-%d (the ISO 8601 date format).
-          case 70:
-            s += strftime("%Y-%m-%d", d);
-            break;
-
-          // %G   The ISO 8601 week-based year (see NOTES) with century as a
-          //      decimal number.  The 4-digit year corresponding to the ISO
-          //      week number (see %V).  This has the same format and value as
-          //      %Y, except that if the ISO week number belongs to the previous
-          //      or next year, that year is used instead.
-          case 71:
-            throw "this strftime() does not support '%G'"; // FIXME
-
-          // %g   Like %G, but without century, that is, with a 2-digit year
-          //      (00-99).
-          case 103:
-            throw "this strftime() does not support '%g'"; // FIXME
-
-          // %H   The hour as a decimal number using a 24-hour clock (range 00 to 23).
-          case 72:
-            s += lc.zero[d.getHours()]
-            break;
-
-          // %I   The hour as a decimal number using a 12-hour clock (range 01 to 12)
-          case 73:
-            s += lc.zero[d.getHours() % 12 == 0 ? 12 : d.getHours() % 12];
-            break;
-
-          // %j   The day of the year as a decimal number (range 001 to 366).
-          case 106:
-            throw "this strftime() does not support '%j'"; // FIXME
-
-          // %k   The hour (24-hour clock) as a decimal number (range 0 to 23);
-          //      single digits are preceded by a blank.  (See also %H.)
-          case 107:
-            s += lc.space[d.getHours()];
-            break;
-
-          // %l   The hour (12-hour clock) as a decimal number (range 1 to 12);
-          //      single digits are preceded by a blank.  (See also %I.)
-          case 108:
-            s += lc.space[d.getHours() % 12 == 0 ? 12 : d.getHours() % 12];
-            break;
-
-          // %m   The month as a decimal number (range 01 to 12).
-          case 109:
-            s += lc.zero[d.getMonth()+1];
-            break;
-
-          // %M   The minute as a decimal number (range 00 to 59).
-          case 77:
-            s += lc.zero[d.getMinutes()];
-            break;
-
-          // %n   A newline character.
-          case 110:
-            s += "\n";
-            break;
-
-          // %O   Modifier: use alternative format, see below.
-          case 79:
-            alt_o = true;
-            continue;
-
-          // %p   Either "AM" or "PM" according to the given time value, or the
-          //      corresponding strings for the current locale.  Noon is treated
-          //      as "PM" and midnight as "AM".
-          case 112:
-            s += (d.getHours() < 12 ? lc.AM : lc.PM);
-            break;
-
-          // %P   Like %p but in lowercase: "am" or "pm" or a corresponding
-          //      string for the current locale.
-          case 80:
-            s += (d.getHours() < 12 ? lc.am : lc.pm);
-            break;
-
-          // %r   The time in a.m. or p.m. notation.  In the POSIX locale this
-          //      is equivalent to %I:%M:%S %p.
-          case 114:
-            s += lc.zero[d.getHours() % 12 == 0 ? 12 : d.getHours() % 12] + ":" +
-                lc.zero[d.getMinutes()]                                  + ":" +
-                lc.zero[d.getSeconds()]                                  + " " +
-                (d.getHours() < 12 ? lc.AM : lc.PM);
-            break;
-
-          // %R   The time in 24-hour notation (%H:%M).  For a version
-          //      including the seconds, see %T below.
-          case 82:
-            s += lc.zero[d.getHours()] + ":" +
-                lc.zero[d.getMinutes()];
-            break;
-
-          // %s   The number of seconds since the Epoch,
-          //      1970-01-01 00:00:00+0000 (UTC).
-          case 115:
-            s += d.getTime().toString();
-            break;
-
-          // %S   The second as a decimal number (range 00 to 60).  (The range
-          //      is up to 60 to allow for occasional leap seconds.)
-          case 83:
-            s += lc.zero[d.getSeconds()];
-            break;
-
-          // %t   A tab character.
-          case 116:
-            s += "\t";
-            break;
-
-          // %T   The time in 24-hour notation (%H:%M:%S).
-          case 84:
-            s += lc.zero[d.getHours()]   + ":" +
-                lc.zero[d.getMinutes()] + ":" +
-                lc.zero[d.getSeconds()];
-            break;
-
-          // %u   The day of the week as a decimal, range 1 to 7, Monday being 1.
-          //       See also %w.
-          case 117:
-            s += (d.getDay()+1).toString()+(alt_o ? lc.ordinal[d.getDay()+1] : '');
-            break;
-
-          // %U   The week number of the current year as a decimal number, range
-          //      00 to 53, starting with the first Sunday as the first day of
-          //      week 01.  See also %V and %W.
-          case 85:
-            throw "this strftime() does not support '%U'"; // FIXME
-
-          // %V   The ISO 8601 week number (see NOTES) of the current year as a
-          //      decimal number, range 01 to 53, where week 1 is the first week
-          //      that has at least 4 days in the new year.  See also %U and %W.
-          case 86:
-            throw "this strftime() does not support '%V'"; // FIXME
-
-          // %w   The day of the week as a decimal, range 0 to 6, Sunday being 0
-          //      See also %u.
-          case 119:
-            s += (d.getDay()).toString();
-            break;
-
-          // %W   The week number of the current year as a decimal number, range
-          //      00 to 53, starting with the first Monday as the first day of
-          //      week 01.
-          case 87:
-            throw "this strftime() does not support '%W'"; // FIXME
-
-          // %x   The preferred date representation for the current locale
-          //      without the time.
-          case 120:
-            s += lc.pref.date(d);
-            break;
-
-          // %X   The preferred time representation for the current locale
-          //      without the date.
-          case 88:
-            s += lc.pref.time(d);
-            break;
-
-          // %y   The year as a decimal number without a century (range 00 to 99).
-          case 121:
-            s += lc.zero[d.getFullYear() % 100];
-            break;
-
-          // %Y   The year as a decimal number including the century.
-          case 89:
-            s += d.getFullYear();
-            break;
-
-          // %z   The +hhmm or -hhmm numeric timezone (that is, the hour and
-          //      minute offset from UTC).
-          case 122:
-            throw "this strftime() does not support '%z'"; // FIXME
-
-          // %Z   The timezone name or abbreviation.
-          case 90:
-            throw "this strftime() does not support '%Z'"; // FIXME
-
-          default:
-            throw "unrecognized strftime sequence '%"+fmt[i]+"'";
-          }
-
-          inspec = false;
-          alt_o  = false;
-          continue;
-        }
-
-        if (c == 37) { // %
-          inspec = true
-          continue;
-        }
-
-        s += fmt[i];
-      }
-      return s;
-    }
-
-    /*
-      task_id() - Truncate a Task UUID, maintaining identifiability
-    */
-    function task_id(t) {
-      if (t instanceof Object) {
-        if (!'uuid' in t) { return "[unknown]" }
-        t = t.uuid;
-      }
-      return t.toString().substr(0,7);
-    }
-
-    /*
-      banner() - Display a small banner at the top of the viewport
-    */
-    var banner = (function () {
-      var timer = undefined;
-      var $banner = null;
-
-      return function (message, type) {
-        if (typeof timer !== 'undefined') {
-          window.cancelTimeout(timer);
-          timer = undefined;
-        }
-
-        if (!$banner) { $(document.body).append( $banner = $('<div class="banner-top">').hide() ); }
-        if (typeof type == 'undefined') { type = 'info' }
-        $banner.show('fade').html(template('banner', {
-          type:    type,
-          message: message
-        }));
-        time = window.setTimeout(function () {
-          $banner.hide('fade');
-        }, 7000);
-      };
-    }());
-
-    /*
-      modal() - Display a modal dialog that the user must interact with
-    */
-    var modal = (function () {
-      var $wash = $('<div id="modal" class="modal-wash"></div>').hide();
-      $(document.body).append($wash);
-
-      $wash.on('click', '[rel="close"]', function (event) {
-        event.preventDefault();
-        $wash.hide();
-      });
-
-      return function (html) {
-        var $window = $(html);
-        $wash.hide().empty().append($window).show();
-        return $window;
-      }
-    }());
-
-    /*
-      compile() - Compile a <script> template into a JS function
-
-      The resulting function can be passed a data object and it will
-      execute the logic in the template to produce a string of HTML
-      (hopefully) for inclusion in some part of the page DOM.
-
-      The template language is javascript, embedded in HTML:
-
-        [[= expr ]]   Evaluate expression and concatenate the result
-                      to the output string.
-
-        [[ stmt ]]    Execute stmt; if it produces a value, discard
-                      the value.  Useful for embedding control-flow
-                      into the template.
-    */
-    function compile(src) {
-      var tokenizer = new RegExp('([\\s\\S]*?)\\[\\[([\\s\\S]*?)\\]\\]([\\s\\S]*)');
-      var str = function (s) {
-        if (!s) { return "''"; }
-        return "'"+s.replace(/(['\\])/g, '\\$1').replace(/\n/g, "\\n")+"'";
-      };
-
-      var code = [];
-      for (;;) {
-        var tokens = tokenizer.exec(src)
-        if (!tokens) {
-          code.push('__ += '+str(src)+';');
-          break;
-        }
-        code.push('__ += '+str(tokens[1])+';');
-        if (tokens[2][0] == '=') {
-          code.push('__ += ('+tokens[2].replace(/^=\s*/, '')+');');
-        } else if (tokens[2][0] != '#') { /* skip comments */
-          code.push(tokens[2]);
-        }
-        src = tokens[3];
-      }
-      code = code.join('');
-      return function (_) {
-        var __ = '';
-        var maybe = function (a,b) { return typeof(a) !== 'undefined' ? a : b; };
-        var html  = function (s) {
-          return $('<textarea>').text(s).html()
-            .replace(/&lt;(https?:.+?)&gt;/g, '<a target="_blank" href="$1">$1</a>')
-            .replace(/\n/g, '<br>'); };
-
-        eval(code);
-        return __;
-      };
-    }
-
-    /*
-      Set up Template handlers for the dynamic parts of the page
-    */
-    var Templates = {};
-    function template(name, data) {
-      if (!(name in Templates)) {
-        Templates[name] = compile($('script#tpl--'+name).html());
-      }
-      return Templates[name](data);
-    }
-
     var referer = undefined;
     function dispatch(page) {
       if ($global.auth.unauthenticated) {
@@ -3081,11 +1230,14 @@
       switch (page) {
       case "#!/login": /* {{{ */
         (function () {
-          $.ajax({
+          api({
             type: 'GET',
             url:  '/v2/auth/providers',
             success: function (data) {
               $('#viewport').html(template('login', { oauth: data }));
+            },
+            error: function (xhr) {
+              $('#viewport').html(template('BOOM'));
             }
           })
         })();
@@ -3096,9 +1248,10 @@
           $('#main').html(template('loading'));
           var data = {};
 
-          $.ajax({
+          api({
             type: 'GET',
             url:  '/v2/systems',
+            error: "Failed retrieving the list of protected systems from the SHIELD API.",
             success: function (systems) {
               data = { systems: systems };
               $('#main').html(template('do-backup', data))
@@ -3151,13 +1304,6 @@
                     return;
                   }
                 });
-            },
-            error: function (xhr) {
-              $('#main').html(template('error', {
-                http:     xhr.status + ' ' + xhr.statusText,
-                response: xhr.responseText,
-                message:  "Failed retrieving the list of protected systems from the SHIELD API."
-              }));
             }
           });
         })();
@@ -3165,56 +1311,35 @@
         // }}}
       case "#!/systems": /* {{{ */
         $('#main').html(template('loading'));
-        $.ajax({
+        api({
           type: 'GET',
           url:  '/v2/systems',
+          error: "Failed retrieving the list of protected systems from the SHIELD API.",
           success: function (data) {
             $('#main').html(template('systems', { systems: data }));
-          },
-          error: function (xhr) {
-            $('#main').html(template('error', {
-              http:     xhr.status + ' ' + xhr.statusText,
-              response: xhr.responseText,
-              message:  "Failed retrieving the list of protected systems from the SHIELD API."
-            }));
           }
         });
         break; /* #!/systems */
         // }}}
       case '#!/systems/system': /* {{{ */
         $('#main').html(template('loading'));
-        $.ajax({
+        api({
           type: 'GET',
           url:  '/v2/systems/'+args.uuid, /* FIXME: handle missing uuid */
+          error: "Failed retrieving metadata for protected system from the SHIELD API.",
           success: function (data) {
             $('#main').html(template('system', { target: data }));
-          },
-          error: function (xhr) {
-            console.log(arguments);
-            $('#main').html(template('error', {
-              http:     xhr.status + ' ' + xhr.statusText,
-              response: xhr.responseText,
-              message:  "Failed retrieving metadata for protected system from the SHIELD API."
-            }));
           }
         });
         break; /* #!/systems/system */
         // }}}
       case '#!/stores': /* {{{ */
         $('#main').html(template('loading'));
-        $.ajax({
+        api({
           type: 'GET',
           url:  '/v1/stores',
+          error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
           success: function (data) {
-            /*
-              {
-                uuid: '4a013967-9295-499a-8cc4-ace60f721704',
-                name: 'Scality (On-Premise)',
-                ok: false,
-                plugin: 'scality',
-                summary: 'On-premise storage, to be used for short-term...'
-              }
-            */
             /* FIXME fixups that need to migrate into the SHIELD code */
             for (key in data) {
               if (!('ok' in data[key])) {
@@ -3222,14 +1347,6 @@
               }
             }
             $('#main').html(template('stores', { stores: data }));
-          },
-          error: function (xhr) {
-            console.log(arguments);
-            $('#main').html(template('error', {
-              http:     xhr.status + ' ' + xhr.statusText,
-              response: xhr.responseText,
-              message:  "Failed retrieving the list of storage endpoints from the SHIELD API."
-            }));
           }
         });
         break; /* #!/stores */
@@ -3272,43 +1389,24 @@
         // }}}
       case '#!/admin/agents': /* {{{ */
         $('#main').html(template('loading'));
-        $.ajax({
+        api({
           type: 'GET',
           url:  '/v2/agents',
+          error: "Failed retrieving the list of agents from the SHIELD API.",
           success: function (data) {
-          /*
-          [{
-              problems: []
-            }]
-          */
             $('#main').html(template('agents', data));
-          },
-          error: function (xhr) {
-            console.log(arguments);
-            $('#main').html(template('error', {
-              http:     xhr.status + ' ' + xhr.statusText,
-              response: xhr.responseText,
-              message:  "Failed retrieving the list of agents from the SHIELD API."
-            }));
           }
         });
         break; /* #!/admin/agents */
         // }}}
       case '#!/admin/auth': /* {{{ */
         $('#main').html(template('loading'));
-        $.ajax({
+        api({
           type: 'GET',
           url:  '/v2/auth/providers',
+          error: "Failed retrieving the list of configured authentication providers from the SHIELD API.",
           success: function (data) {
             $('#main').html(template('auth-providers', { providers: data }));
-          },
-          error: function (xhr) {
-            console.log(arguments);
-            $('#main').html(template('error', {
-              http:     xhr.status + ' ' + xhr.statusText,
-              response: xhr.responseText,
-              message:  "Failed retrieving the list of configured authentication providers from the SHIELD API."
-            }));
           }
         });
         break; /* #!/admin/auth */
@@ -3318,19 +1416,12 @@
         break; /* #!/admin/rekey */
         // }}}
       case '#!/admin/users': /* {{{ */
-        $.ajax({
+        api({
           type: 'GET',
           url:  '/v2/auth/local/users',
+          error: "Failed retrieving the list of local SHIELD users from the SHIELD API.",
           success: function (data) {
             $('#main').html(template('admin-users', { users: data }));
-          },
-          error: function (xhr) {
-            console.log(arguments);
-            $('#main').html(template('error', {
-              http:     xhr.status + ' ' + xhr.statusText,
-              response: xhr.responseText,
-              message:  "Failed retrieving the list of local SHIELD users from the SHIELD API."
-            }));
           }
         });
         break; /* #!/admin/users */
@@ -3353,12 +1444,10 @@
             }
 
             banner("Creating new user...", "info");
-            $.ajax({
+            api({
               type: 'POST',
               url:  '/v2/auth/local/users',
-
-              contentType: 'application/json',
-              data:        JSON.stringify(payload),
+              data: payload,
               success: function (data) {
                 banner('New user created successfully.');
                 goto("#!/admin/users");
@@ -3414,6 +1503,11 @@
               var json = JSON.stringify(data);
               if (json != last) {
                 $('#hud').html(template('hud', $global.hud));
+
+                var tenant = null;
+                if ($global.auth.tenants && $global.auth.tenants.length > 0) {
+                  tenant = $global.auth.tenants[0];
+                }
                 $('.top-bar').html(template('top-bar', {
                   shield: {
                     env: 'DEMO',
@@ -3421,7 +1515,7 @@
                   },
                   user:    $global.auth.user,
                   tenants: $global.auth.tenants,
-                  tenant:  $global.auth.tenants[0]
+                  tenant:  tenant
                 }));
               }
               last = json;
@@ -3438,7 +1532,14 @@
       /* handle the account flyout */
       $(document.body).on('click', '.top-bar a[rel=account]', function (event) {
         event.preventDefault();
+        event.stopPropagation();
         $('.top-bar .flyout').toggle();
+      });
+      $(document.body).on('click', function (event) {
+        if (!$('.top-bar .flyout').is(':visible')) { return; }
+        if ($(event.target).is('.top-bar .flyout, .top-bar .flyout *')
+          && !$(event.target).is('a')) { return; }
+        $('.top-bar .flyout').hide();
       });
 
       /* show a task in the next row down. */
@@ -3456,17 +1557,15 @@
         $task = $task.show()
                     .html(template('loading'));
 
-        $.ajax({
+        api({
           type: 'GET',
           url:  '/v1/task/'+uuid,
+          error: "Failed to retrieve task information from the SHIELD API.",
           success: function (data) {
             $task.html(template('task', {
               task: data,
               restorable: data.archive_uuid != "" && data.status == "done",
             }));
-          },
-          error: function (xhr) {
-            throw "oops"; // FIXME
           }
         });
       });
@@ -3488,13 +1587,16 @@
         uuid = uuid.replace(/^run:/, '');
 
         banner('scheduling ad hoc backup...', 'progress');
-        $.ajax({
+        api({
           type: 'POST',
           url:  '/v1/job/'+uuid+'/run',
-          success: function (data) {
+          success: function () {
             banner('ad hoc backup job scheduled');
             reload();
           },
+          error: function () {
+            banner('unable to schedule ad hoc backup job', 'error');
+          }
         });
       });
 
@@ -3509,11 +1611,14 @@
             taken:  taken
           })).on('click', '[rel=yes]', function(event) {
           event.preventDefault();
-          $.ajax({
+          api({
             type: 'POST',
             url:  '/v1/archive/'+uuid+'/restore',
             success: function() {
               banner("restore operation started");
+            },
+            error: function () {
+              banner("unable to schedule restore operation", "error");
             }
           });
         });
@@ -3534,19 +1639,15 @@
           return;
         }
 
-        $.ajax({
+        api({
           type: 'POST',
           url:  '/v2/init',
-
-          contentType: 'application/json',
-          data:        JSON.stringify({ "master_password": master1 }),
+          data: { "master_password": master1 },
+          error: "Unable to initialize the SHIELD Core.",
           success: function (data) {
             $global.hud.health.core = "unlocked";
             $('#hud').html(template('hud', $global.hud));
             goto("");
-          },
-          error: function (xhr) {
-            banner("Failed to initialize the SHIELD Core", 'error');
           }
         });
       });
@@ -3554,19 +1655,15 @@
       $('#main').on('submit', '.unlock-shield', function (event) {
         event.preventDefault();
         var master = $('.unlock-shield [name=master]').val();
-        $.ajax({
+        api({
           type: 'POST',
           url:  '/v2/unlock',
-
-          contentType: 'application/json',
-          data:        JSON.stringify({ "master_password": master }),
+          data: { "master_password": master },
+          error: "Unable to unlock the SHIELD Core.",
           success: function (data) {
             $global.hud.health.core = "unlocked";
             $('#hud').html(template('hud', $global.hud));
             goto("");
-          },
-          error: function (xhr) {
-            banner("Failed to unlock the SHIELD Core", 'error');
           }
         });
       });
@@ -3593,12 +1690,10 @@
             ann.clear = "normal";
           }
 
-          $.ajax({
+          api({
             type: 'PATCH',
             url:  '/v2/systems/'+uuid,
-
-            contentType: 'application/json',
-            data: JSON.stringify({ "annotations": [ann] }),
+            data: { "annotations": [ann] },
             success: function (data) {
               $form.hide();
               banner("task annotation saved.");
@@ -3635,18 +1730,16 @@
           return;
         }
 
-        $.ajax({
+        api({
           type: 'POST',
           url:  '/v2/rekey',
-          contentType: 'application/json',
-          data: JSON.stringify(creds),
-          success: function (data) {
-            banner(data['ok']);
-            //TODO: Potentially redirect to home screen/admin panel here?
-            $('form.rekey').find("input[type=password]").val("")
+          data: creds,
+          success: function () {
+            banner('Succcessfully rekeyed the SHIELD Core.');
+            goto("");
           },
           error: function (xhr) {
-            banner(xhr.responseJSON['error'], 'error');
+            banner(xhr.responseJSON.error, 'error');
             $('form.rekey').find("input[type=password]").val("")
           }
         });
