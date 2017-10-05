@@ -49,12 +49,13 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/consul-snapshot
 	go $(BUILD_TYPE) ./plugin/mongo
 	go $(BUILD_TYPE) ./plugin/google
+	go $(BUILD_TYPE) ./plugin/bbr
 
 clean:
-	rm shieldd shield-agent shield-schema shield
-	rm fs docker-postgres dummy postgres redis-broker
-	rm s3 swift azure mysql xtrabackup rabbitmq-broker
-	rm consul consul-snapshot mongo scality google
+	rm -f shieldd shield-agent shield-schema shield
+	rm -f fs docker-postgres dummy postgres redis-broker
+	rm -f s3 swift azure mysql xtrabackup rabbitmq-broker
+	rm -f consul consul-snapshot mongo scality google bbr
 
 
 # Run tests with coverage tracking, writing output to coverage/
