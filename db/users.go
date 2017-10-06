@@ -53,10 +53,12 @@ func (u *User) SetPassword(password string) error {
 }
 
 type UserFilter struct {
-	UUID    string
-	Backend string
-	Account string
-	Limit   string
+	UUID       string
+	Backend    string
+	Account    string
+	Limit      string
+	SysRole    string
+	ExactMatch bool
 }
 
 func (f *UserFilter) Query() (string, []interface{}) {
@@ -74,8 +76,19 @@ func (f *UserFilter) Query() (string, []interface{}) {
 	}
 
 	if f.Account != "" {
-		wheres = append(wheres, "u.account = ?")
-		args = append(args, f.Account)
+		comparator := "LIKE"
+		toAdd := Pattern(f.Account)
+		if f.ExactMatch {
+			comparator = "="
+			toAdd = f.Account
+		}
+		wheres = append(wheres, fmt.Sprintf("u.account %s ?", comparator))
+		args = append(args, toAdd)
+	}
+
+	if f.SysRole != "" {
+		wheres = append(wheres, "sysrole = ?")
+		args = append(args, f.SysRole)
 	}
 
 	limit := ""
@@ -167,7 +180,7 @@ func (db *DB) GetUser(account string, backend string) (*User, error) {
 	return u, nil
 }
 
-func (db *DB) CreateUser(user *User) (uuid.UUID, error) {
+func (db *DB) CreateUser(user *User) (*User, error) {
 	if user.UUID == nil {
 		user.UUID = uuid.NewRandom()
 	}
@@ -175,7 +188,7 @@ func (db *DB) CreateUser(user *User) (uuid.UUID, error) {
 	    INSERT INTO users (uuid, name, account, backend, sysrole, pwhash)
 	               VALUES (?, ?, ?, ?, ?, ?)
 	`, user.UUID.String(), user.Name, user.Account, user.Backend, user.SysRole, user.pwhash)
-	return user.UUID, err
+	return user, err
 }
 
 func (db *DB) UpdateUser(user *User) error {

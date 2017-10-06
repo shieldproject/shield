@@ -41,6 +41,10 @@ type Options struct {
 	User     *string
 	Password *string
 
+	Backend *string
+	SysRole *string
+	Account *string
+
 	APIVersion int
 }
 

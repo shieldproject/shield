@@ -129,6 +129,18 @@ func ShowArchive(archive api.Archive) {
 	t.Output(os.Stdout)
 }
 
+func ShowUser(user api.User, showTennantUUID bool) {
+	t := tui.NewReport()
+	t.Add("UUID", user.UUID)
+	t.Add("Name", user.Name)
+	t.Add("Account", user.Account)
+	t.Add("Backend", user.Backend)
+	t.Add("System Role", user.SysRole)
+	t.Add("Tennants", api.LocalTenantsToString(user.Tenants, showTennantUUID))
+
+	t.Output(os.Stdout)
+}
+
 func boolString(tf bool) string {
 	if tf {
 		return "Y"

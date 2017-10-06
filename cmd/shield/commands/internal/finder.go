@@ -389,3 +389,61 @@ func FindTenant(search string, strict bool) (Tenant, uuid.UUID, error) {
 		return want.(Tenant), uuid.Parse(want.(Tenant).UUID), nil
 	}
 }
+
+func FindUser(search string, strict bool) (User, uuid.UUID, error) {
+	id := uuid.Parse(search)
+	if id != nil {
+		u, err := GetUser(id)
+		if err == nil {
+			return u, uuid.Parse(u.UUID), err
+		}
+		return u, nil, err
+	}
+
+	// test if 'search' is actually a JSON user
+	user := User{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&user)
+
+	if err == nil {
+		if user.UUID != "" {
+			var want User
+			want, err = GetUser(id)
+			if err != nil {
+				return User{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if user.Name != "" {
+			search = user.Name
+		}
+	}
+
+	users, err := GetUsers(UserFilter{
+		Account:    search,
+		ExactMatch: MaybeBools(strict, false),
+	})
+	if err != nil {
+		return User{}, nil, fmt.Errorf("Failed to retrieve list of users: %s", err)
+	}
+
+	switch len(users) {
+	case 0:
+		return User{}, nil, fmt.Errorf("no matching users found")
+
+	case 1:
+		return users[0], uuid.Parse(users[0].UUID), nil
+
+	default:
+		if strict {
+			return User{}, nil, fmt.Errorf("more than one matching user found")
+		}
+		t := tui.NewTable("Account", "Name", "System Role", "Tenants")
+		for _, user := range users {
+			t.Row(user, user.Account, user.Name, user.SysRole, user.Tenants)
+		}
+		want := tui.Menu(
+			fmt.Sprintf("More than one user matched your search for '%s':", search),
+			&t, "Which user do you want?")
+		return want.(User), uuid.Parse(want.(User).UUID), nil
+	}
+}

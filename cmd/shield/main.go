@@ -19,6 +19,7 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/stores"
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tasks"
+	"github.com/starkandwayne/shield/cmd/shield/commands/users"
 	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
@@ -51,9 +52,13 @@ func main() {
 		After:     getopt.StringLong("after", 'A', "", "Only show archives that were taken after the given date, in YYYYMMDD format."),
 		Before:    getopt.StringLong("before", 'B', "", "Only show archives that were taken before the given date, in YYYYMMDD format."),
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
-		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks or archives"),
+		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks, archives, or users"),
 
 		Full: getopt.BoolLong("full", 0, "Show all backend information when listing backends"),
+
+		Backend: getopt.StringLong("backend", 'b', "", "Only show users with the specified backend."),
+		SysRole: getopt.StringLong("sysrole", 'r', "", "Show only users with the specified system role."),
+		Account: getopt.StringLong("account", 0, "", "Show only users with the specified account."),
 
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
@@ -243,6 +248,13 @@ func addCommands() {
 	cmds.Add("unlock", access.Unlock).AKA("unseal")
 	cmds.Add("init", access.Init).AKA("initialize")
 	cmds.Add("rekey", access.Rekey).AKA("rekey-master")
+
+	cmds.Add("create-user", users.Create)
+	cmds.Add("user", users.Get)
+	cmds.Add("users", users.List)
+	cmds.Add("delete-user", users.Delete).AKA("delete user")
+	cmds.Add("edit-user", users.Edit).AKA("edit user")
+	cmds.Add("passwd", users.Passwd)
 
 }
 

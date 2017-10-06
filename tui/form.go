@@ -38,6 +38,7 @@ type Field struct {
 	ShowAs    string
 	Value     interface{}
 	Processor FieldProcessor
+	Hidden    bool
 }
 
 // NewForm creates and returns a pointer to a new Form object.
@@ -46,15 +47,17 @@ func NewForm() *Form {
 }
 
 // NewField appends a new Field to the Form.
-func (f *Form) NewField(label string, name string, value interface{}, showas string, fn FieldProcessor) error {
-	f.Fields = append(f.Fields, &Field{
+func (f *Form) NewField(label string, name string, value interface{}, showas string, fn FieldProcessor) (*Field, error) {
+	tmpField := Field{
 		Label:     label,
 		Name:      name,
 		ShowAs:    showas,
 		Value:     value,
 		Processor: fn,
-	})
-	return nil
+		Hidden:    false,
+	}
+	f.Fields = append(f.Fields, &tmpField)
+	return &tmpField, nil
 }
 
 func (field *Field) PromptString() string {
@@ -99,9 +102,11 @@ func (field *Field) OrDefault(v string) string {
 
 func (f *Form) Show() error {
 	for _, field := range f.Fields {
-		err := field.Prompt()
-		if err != nil {
-			return fmt.Errorf("%s", err)
+		if !field.Hidden {
+			err := field.Prompt()
+			if err != nil {
+				return fmt.Errorf("%s", err)
+			}
 		}
 	}
 	return nil
@@ -110,10 +115,12 @@ func (f *Form) Show() error {
 func (f *Form) Confirm(prompt string) bool {
 	r := NewReport()
 	for _, field := range f.Fields {
-		if v, ok := field.Value.(ComplexValue); ok {
-			r.Add(field.Label, v.HumanReadable())
-		} else {
-			r.Add(field.Label, fmt.Sprintf("%v", field.Value))
+		if !field.Hidden {
+			if v, ok := field.Value.(ComplexValue); ok {
+				r.Add(field.Label, v.HumanReadable())
+			} else {
+				r.Add(field.Label, fmt.Sprintf("%v", field.Value))
+			}
 		}
 	}
 

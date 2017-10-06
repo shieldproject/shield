@@ -199,6 +199,12 @@ var (
 		Desc: `A string partially matching the name of a single job
 				or a UUID exactly matching the UUID of a job.`,
 	}
+	//AccountFlag <account>
+	AccountFlag = FlagInfo{
+		Name: "account", Positional: true, Mandatory: true,
+		Desc: `A string partially matching the name of a single account
+				or a UUID exactly matching the UUID of an account.`,
+	}
 
 	//UpdateIfExistsFlag --update-if-exists
 	UpdateIfExistsFlag = FlagInfo{
