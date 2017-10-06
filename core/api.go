@@ -370,13 +370,14 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	id, _ := core.checkAuth(req)
+	sessionID := getSessionID(req)
+	id, _ := core.checkAuth(sessionID)
 	if id == nil {
 		fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
 	} else {
 		b, err := json.Marshal(id)
 		if err != nil {
-			log.Errorf("init.js: failed to marhsal auth id data into JSON: %s", err)
+			log.Errorf("init.js: failed to marshal auth id data into JSON: %s", err)
 			fmt.Fprintf(w, "// failed to determine user authentication state...\n")
 			fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
 		} else {

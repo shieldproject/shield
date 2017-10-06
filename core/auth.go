@@ -69,13 +69,7 @@ func getSessionID(req *http.Request) string {
 	return sessionID
 }
 
-func (core *Core) checkAuth(req *http.Request) (*authResponse, error) {
-	sessionID := getSessionID(req)
-	if sessionID == "" {
-		log.Debugf("No session ID was found in request")
-		return nil, nil
-	}
-
+func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 	log.Debugf("retrieving user account for session '%s'", sessionID)
 	user, err := core.DB.GetUserForSession(sessionID)
 	if err != nil {

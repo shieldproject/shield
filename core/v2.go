@@ -719,7 +719,12 @@ func (core *Core) v2API() *route.Router {
 		r.SetCookie(SessionCookie(session.UUID.String(), true))
 		r.SetHeader("X-Shield-Session", session.UUID.String())
 
-		r.Success("Logged in as user %s", auth.Username)
+		id, _ := core.checkAuth(session.UUID.String())
+		if id == nil {
+			r.Fail(route.Oops(fmt.Errorf("Failed to lookup session ID after login"), "An unknown error occurred"))
+		}
+
+		r.OK(id)
 	})
 
 	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) {
@@ -745,7 +750,11 @@ func (core *Core) v2API() *route.Router {
 	})
 
 	r.Dispatch("GET /v2/auth/id", func(r *route.Request) {
-		id, _ := core.checkAuth(r.Req)
+		sessionID := getSessionID(r.Req)
+		if sessionID == "" {
+			r.Fail(route.Bad(fmt.Errorf("Request contained invalid session ID"), "Unable to get user information"))
+		}
+		id, _ := core.checkAuth(sessionID)
 		if id == nil {
 			r.OK(struct {
 				Unauthenticated bool `json:"unauthenticated"`
