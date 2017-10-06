@@ -24,12 +24,12 @@ func cliRekey(opts *commands.Options, args ...string) error {
 
 	internal.Require(len(args) == 0, "USAGE: shield rekey")
 
-	curmaster := SecurePrompt("%s @Y{[hidden]:} ", "current_master_password")
+	curmaster := SecurePrompt("%s @Y{[hidden]:} ", "Current Master Password")
 
 	newmaster := ""
 	for {
-		a := SecurePrompt("%s @Y{[hidden]:} ", "master_password")
-		b := SecurePrompt("%s @C{[confirm]:} ", "master_password")
+		a := SecurePrompt("%s @Y{[hidden]:} ", "New Master Password")
+		b := SecurePrompt("%s @C{[confirm]:} ", "New Master Password")
 
 		if a != "" && (a == b || !terminal.IsTerminal(int(os.Stdin.Fd()))) {
 			ansi.Fprintf(os.Stderr, "\n")

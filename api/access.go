@@ -12,7 +12,7 @@ func Unlock(master string) error {
 	}
 
 	creds := struct {
-		Master string `json:"master_password"`
+		Master string `json:"master"`
 	}{
 		Master: master,
 	}
@@ -39,7 +39,7 @@ func Init(master string) error {
 
 	respMap := make(map[string]string)
 	creds := struct {
-		Master string `json:"master_password"`
+		Master string `json:"master"`
 	}{
 		Master: master,
 	}

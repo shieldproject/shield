@@ -82,13 +82,13 @@ curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -X POST https://shield.host/v2/init -d '
 {
-  "master_password" : "your secret master password"
+  "master" : "your secret master password"
 }'
 ```
 
 Where:
 
-- **master_password** is the plaintext master password to use for
+- **master** is the plaintext master password to use for
   encrypting the credentials to the SHIELD Core storage vault.
 
 #### Response
@@ -125,11 +125,11 @@ curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -X POST https://shield.host/v2/unlock -d '
 {
-  "master_password" : "your secret master password"
+  "master" : "your secret master password"
 }'
 ```
 
-- **master_password** is the plaintext master password that was
+- **master** is the plaintext master password that was
   created when you initialized this SHIELD Core (or whatever you
   last rekeyed it to be).
 
@@ -166,8 +166,8 @@ curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -X POST https://shield.host/v2/unlock -d '
 {
-  "current_master_password" : "your CURRENT master password",
-  "new_master_password"     : "what you want to change it to"
+  "current" : "your CURRENT master password",
+  "new"     : "what you want to change it to"
 }'
 ```
 
