@@ -197,7 +197,8 @@ policy=$($shield create-policy <<EOF | $jq .uuid
   "summary" : "A Test Policy",
   "expires" : 86400
 }
-EOF )
+EOF
+)
 if [[ "$policy" = "null" ]]; then
   echo >&2 "Failed to create the DevPolicy retention policy"
   exit 1
