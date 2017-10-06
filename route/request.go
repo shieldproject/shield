@@ -43,8 +43,8 @@ func (r *Request) OK(resp interface{}) {
 	}
 
 	log.Debugf("%s responding with HTTP 200, payload [%s]", r, string(b))
-	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.w.WriteHeader(200)
+	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.done = true
 }
 
@@ -67,8 +67,8 @@ func (r *Request) Fail(e Error) {
 	}
 
 	log.Debugf("%s responding with HTTP %d, payload [%s]", r, e.code, string(b))
-	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.w.WriteHeader(e.code)
+	fmt.Fprintf(r.w, "%s\n", string(b))
 	r.done = true
 }
 
@@ -97,4 +97,26 @@ func (r *Request) Param(name, def string) string {
 func (r *Request) ParamIs(name, want string) bool {
 	v, set := r.Req.URL.Query()[name]
 	return set && v[0] == want
+}
+
+func (r *Request) Missing(params ...string) bool {
+	e := Error{code: 400}
+
+	for len(params) > 1 {
+		if params[1] == "" {
+			e.Missing = append(e.Missing, params[0])
+		}
+		params = params[2:]
+	}
+
+	if len(params) > 0 {
+		log.Errorf("%s called Missing() with an odd number of arguments")
+	}
+
+	if len(e.Missing) > 0 {
+		r.Fail(e)
+		return true
+	}
+
+	return false
 }

@@ -1,11 +1,14 @@
 package stores
 
 import (
+	"os"
 	"strings"
 
+	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 	"github.com/starkandwayne/shield/cmd/shield/log"
+	"github.com/starkandwayne/shield/tui"
 )
 
 //Get - Print detailed information about a specific archive store
@@ -44,6 +47,18 @@ func cliGetStore(opts *commands.Options, args ...string) error {
 		return nil
 	}
 
-	internal.ShowStore(store)
+	Show(store)
 	return nil
+}
+
+//Show displays information about the given Store to stdout
+func Show(store api.Store) {
+	t := tui.NewReport()
+	t.Add("Name", store.Name)
+	t.Add("Summary", store.Summary)
+	t.Break()
+
+	t.Add("Plugin", store.Plugin)
+	t.Add("Configuration", store.Endpoint)
+	t.Output(os.Stdout)
 }

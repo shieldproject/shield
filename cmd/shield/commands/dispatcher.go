@@ -26,6 +26,7 @@ type HelpGroup struct {
 //Enumeration for HelpGroupTypes
 var (
 	InfoGroup      = &HelpGroup{name: "INFO"}
+	MiscGroup      = &HelpGroup{name: "MISCELLANEOUS"}
 	BackendsGroup  = &HelpGroup{name: "BACKENDS"}
 	TargetsGroup   = &HelpGroup{name: "TARGETS"}
 	StoresGroup    = &HelpGroup{name: "STORES"}
@@ -69,9 +70,9 @@ func CommandString() string {
 	var helpLines []string
 	groupList := []*HelpGroup{
 		InfoGroup,
+		MiscGroup,
 		BackendsGroup,
 		TargetsGroup,
-		SchedulesGroup,
 		PoliciesGroup,
 		StoresGroup,
 		JobsGroup,
@@ -133,6 +134,8 @@ func AliasesFor(command *Command) []string {
 //of the input array to be used as Command args. Returns nil, "the bad command", nil if no
 //match can be found
 func ParseCommand(userInput ...string) (cmd *Command, givenName string, args []string) {
+	givenName = strings.Join(userInput, " ")
+
 	if len(userInput) == 0 {
 		userInput = []string{"help"}
 	}

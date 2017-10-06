@@ -57,10 +57,10 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/google
 
 clean:
-	rm shieldd shield-agent shield-schema shield
-	rm fs docker-postgres dummy postgres redis-broker
-	rm s3 swift azure mysql xtrabackup rabbitmq-broker
-	rm consul consul-snapshot mongo scality google
+	rm -f shieldd shield-agent shield-schema shield
+	rm -f fs docker-postgres dummy postgres redis-broker
+	rm -f s3 swift azure mysql xtrabackup rabbitmq-broker
+	rm -f consul consul-snapshot mongo scality google
 
 
 # Run tests with coverage tracking, writing output to coverage/

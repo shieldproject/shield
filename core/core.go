@@ -101,7 +101,7 @@ func NewCore(file string) (*Core, error) {
 
 		/* db */
 		DB: &db.DB{
-			Driver: config.DBType,
+			Driver: "sqlite3",
 			DSN:    config.DBPath,
 		},
 	}, nil

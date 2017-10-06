@@ -36,7 +36,7 @@ func cliCancelTask(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		internal.ShowTask(task)
+		Show(task)
 		if !tui.Confirm("Really cancel this task?") {
 			return fmt.Errorf("Task '%s' was not canceled", id)
 		}

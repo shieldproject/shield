@@ -54,3 +54,10 @@ func RawJSON(raw interface{}) {
 func RawUUID(uuid string) {
 	fmt.Println(uuid)
 }
+
+func boolString(tf bool) string {
+	if tf {
+		return "Y"
+	}
+	return "N"
+}

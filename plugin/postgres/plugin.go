@@ -126,7 +126,7 @@ func main() {
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
-				Name:     "ph_host",
+				Name:     "pg_host",
 				Type:     "string",
 				Title:    "PostgreSQL Host",
 				Help:     "The hostname or IP address of your PostgreSQL server.",
