@@ -100,11 +100,6 @@
 			"revision": "d750ee8aff39bca4ccf0b362db4f04510145d678"
 		},
 		{
-			"comment": "v1.2-196-g3654d25",
-			"path": "github.com/go-sql-driver/mysql",
-			"revision": "3654d25ec346ee8ce71a68431025458d52a38ac0"
-		},
-		{
 			"path": "github.com/google/go-github/github",
 			"revision": "af17a5fa8537e159dfa73f1dd1d3f08e34dea200"
 		},
@@ -134,11 +129,6 @@
 			"comment": "sqlx-v1.1-71-gbdae0c3",
 			"path": "github.com/jmoiron/sqlx/reflectx",
 			"revision": "bdae0c3219c3bdb92f3d7c70825018712787c933"
-		},
-		{
-			"comment": "go1.0-cutoff-59-gb269bd0",
-			"path": "github.com/lib/pq",
-			"revision": "b269bd035a727d6c1081f76e7a239a1b00674c40"
 		},
 		{
 			"comment": "go1.0-cutoff-59-gb269bd0",

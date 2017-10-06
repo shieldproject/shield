@@ -630,4 +630,138 @@
     };
   })();
   // }}}
+
+
+  /***************************************************
+    website() - Return the base URL of this SHIELD, per document.location
+
+   ***************************************************/
+  exported.website = function () { // {{{
+    return document.location.toString().replace(/#.*/, '');
+  }
+  // }}}
+  //
+
+  /***************************************************
+    $(...).serializeObject()
+
+    Given a <form> object, `serializeObject()` will return a simple
+    Javascript object (suitable for passing to api()), based on the
+    fields present in the form.
+
+   ***************************************************/
+  exported.jQuery.fn.serializeObject = function () { // {{{
+    var a = this.serializeArray();
+    var o = {};
+    for (var i = 0; i < a.length; i++) {
+      o[a[i].name] = a[i].value;
+    }
+    return o;
+  };
+  // }}}
+
+
+  /***************************************************
+    autofocus() - Set focus to the first '.autofocus' element
+
+   ***************************************************/
+  exported.jQuery.fn.autofocus = function () { // {{{
+    this.find('.autofocus').focus();
+    return this;
+  };
+  // }}}
+
+
+  /***************************************************
+    $(...).reset()
+
+    Given a <form> object, `reset()` will reset the form back
+    to a pre-validation state, but leave all of the entered
+    data intact.
+
+   ***************************************************/
+  exported.jQuery.fn.reset = function () { // {{{
+    this.find('.error, [data-error]').hide();
+  };
+  // }}}
+
+
+  /***************************************************
+    $(...).missing(lst)
+
+    Given a <form> object, `missing(lst)` will walk the `lst`
+    argument, a list of field names, and activate the "missing"
+    error for each.  Other errors will be suppressed.
+
+   ***************************************************/
+  exported.jQuery.fn.missing = function (fields) { // {{{
+    for (var i = 0; i < fields.length; i++) {
+      this.error(fields[i], 'missing');
+    }
+  };
+  // }}}
+
+
+  /***************************************************
+    $(...).error(message)
+    $(...).error(object)
+    $(...).error(field, type)
+
+    Given a <form> object, `error()` shows and hides error
+    messages, on a per-field basis, or form-wide.
+
+    If only one argument, a string, is given, it is treated as
+    an error message string, and placed in the form-wide error
+    container.
+
+    If instead the argument is an object, it will interpret
+    the top-level keys thusly:
+
+        "error"    A form-wide error will be issued.
+        "missing"  The 'missing' error for each field in the
+                   value (a list) will be activated.
+
+    In the two-argument version, the errors will be activated
+    on the named field.  This mode only operates on a single
+    field at a time.
+
+    In both cases, other errors messages at the same level
+    will be suppressed.
+
+   ***************************************************/
+  exported.jQuery.fn.error = function () { // {{{
+    if (arguments.length == 1 && typeof(arguments[0]) === 'string') {
+      this.find('.error').html(arguments[0]).show();
+
+    } else if (arguments.length == 1 && typeof(arguments[0]) === 'object') {
+      var what = arguments[0];
+      if ('error'   in what) { this.error(what.error);     }
+      if ('missing' in what) { this.missing(what.missing); }
+
+    } else if (arguments.length == 2) {
+      var what = arguments[1];
+      this.find('.ctl[data-field="'+arguments[0]+'"] [data-error]').each(function (i, e) {
+        var $e = $(e);
+        $e.toggle($e.is('[data-error="'+what+'"]'));
+      });
+
+    } else {
+      throw '$(...).error() given the wrong number of arguments';
+    }
+  };
+  // }}}
+
+
+  /***************************************************
+    $(...).isOK()
+
+    Given a <form> object, `isOK()` returns true if there are
+    no visible error messages, and the form can be submitted.
+
+   ***************************************************/
+  exported.jQuery.fn.isOK = function () { // {{{
+    return this.find('[data-error]:visible').length == 0;
+  }; // }}}
+
+
 })(window, document);

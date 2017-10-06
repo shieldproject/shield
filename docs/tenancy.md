@@ -159,10 +159,6 @@ failing backup jobs, but not be allowed to change any
 configuration, or see the credentials stored in target / storage
 endpoints.  This is where roles come into play.
 
-A **Right** is a token that governs one single aspect of the
-system.  The ability to view backup archives would be a right; so
-would the ability to run an ad hoc backup job.
-
 A **Role** represents a given level of access to either a tenant
 ("Tenant Roles") or the system itself ("System Roles").  These
 roles are defined by the SHIELD software itself.  They are:
@@ -211,7 +207,7 @@ safely backup (and restore!) the authentication data itself,
 without running into primacy problems.
 
 What follows are rough sketches of how each proposed
-authentication backend interacts with Roles &amp; Rights, and how
+authentication backend interacts with Roles, and how
 the SHIELD UI / CLI must adapt to accommodate.
 
 ### Local Authentication Backend

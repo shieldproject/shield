@@ -485,7 +485,7 @@ body { font-family: sans-serif; }
 }
 .story-sidebar li p {
   font-size: 14px;
-  margin-left: 7px;
+  margin: 0 0 0 7px;
 }
 
 .pane {
@@ -661,6 +661,28 @@ body { font-family: sans-serif; }
 .gutter > h2, .gutter > h3, .gutter > h4
 { line-height: 1.6em; margin-top: 0.6em; }
 
+.field p {
+  margin: 1em 0;
+}
+.field p a {
+  text-decoration: none;
+  border: 1px dotted #0071bc;
+  border-width: 0 0 1px 0;
+  color: #0071bc;
+}
+
+.field a.breadcrumb,
+.field a.new {
+  text-decoration: none;
+  color: #0071bc;
+  font-size: 11pt;
+  border-bottom: 1px dotted #0071bc;
+}
+.field a.new {
+  display: block;
+  float: right;
+}
+
 .field table {
   width: 96%;
   margin: 2% 2% 6% 2%;
@@ -711,7 +733,7 @@ body { font-family: sans-serif; }
 .field table tr.task { display: none; }
 
 
-form .ctl { width: 50%; }
+form .ctl { width: 70%; margin: 1em 0 2em 0; }
 form .info { width: 45%; float: right; clear: right; }
 form .info {
   border-radius: 8px;
@@ -724,13 +746,20 @@ form .info { display: none; }
 form .band.active .info { display: block; }
 
 form .ctl {
-  margin-bottom: 1em;
+  margin-bottom: 2em;
 }
 form .ctl label {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 20px;
   display: block;
+
+  width: 40%;
+  float: left;
+}
+form .ctl .widget {
+  display: block;
+  clear: both;
 }
 form .ctl input,
 form .ctl select,
@@ -740,7 +769,8 @@ form .ctl textarea {
   margin-bottom: 4px;
 }
 form .ctl select,
-form .ctl input[type=text] {
+form .ctl input[type=text],
+form .ctl input[type=password] {
   width: 100%;
 }
 form .ctl input[type=text],
@@ -764,6 +794,45 @@ form .ctl p {
 form .ctl p strong {
   color: #0071BC;
   font-weight: bold;
+}
+
+form .ctl .help {
+}
+form .ctl .if-missing {
+  color: darkred;
+  font-size: 13px;
+  display: none;
+}
+
+form .error,
+form .ctl span.errors {
+  color: crimson;
+  font-size: 13px;
+}
+form .ctl span.errors {
+  width: 60%;
+  display: block;
+  float: right;
+  text-align: right;
+}
+form .error,
+form .ctl span[data-error] {
+  display: none;
+}
+
+form button.go {
+  background-color: #0071BC;
+  border: 1px solid #0071BC;
+  color: #fff;
+
+  font-size: 16pt;
+  height: 36px;
+  border-radius: 4px;
+  padding: 0 0.6em;
+  margin: 0;
+  box-sizing: border-box;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .e404 {
@@ -851,6 +920,7 @@ pre code {
   padding: 1em;
   white-space: pre-wrap;
 }
+pre code .hi { color: yellow; font-weight: bold; }
 pre code em { color: lightblue; }
 pre code em em { color: #ccc; }
 
@@ -1352,3 +1422,53 @@ button[rel^="run:"] {
   color: #333;
   margin-bottom: 3em;
 }
+
+
+.github-auth-overlay-register,
+.github-auth-overlay-app {
+  margin: 2em auto;
+  display: block;
+
+  position: relative;
+  border: 1px solid #ccc;
+
+  border: 1px solid #ccc;
+  box-shadow: 2px 2px 5px 1px rgba(0,0,0, 0.3);
+}
+.github-auth-overlay-register {
+  width: 600px; height: 600px;
+  background: transparent url(/i/auth/github1.png) no-repeat 0 0 scroll;
+}
+.github-auth-overlay-register > * {
+  display: block;
+  position: absolute;
+  box-sizing: border-box;
+  padding: 10px;
+
+  width: 466px; height: 35px;
+  left: 19px;
+
+  line-height: 21px;
+  font-size: 18px;
+  color: blue;
+  font-weight: bold;
+}
+.github-auth-overlay-register .appname  { top: 106px; font-size: 21px; }
+.github-auth-overlay-register .homepage { top: 211px; }
+.github-auth-overlay-register .callback { top: 438px; }
+
+.github-auth-overlay-app {
+  width: 600px; height: 340px;
+  background: transparent url(/i/auth/github2.png) no-repeat 0 0 scroll;
+}
+.github-auth-overlay-app > * {
+  display: block;
+  position: absolute;
+  box-sizing: border-box;
+
+  background: rgba(255, 255, 0, 0.5);
+  height: 20px;
+  left: 5px;
+}
+.github-auth-overlay-app .client-id     { top: 215px; width: 141px; }
+.github-auth-overlay-app .client-secret { top: 256px; width: 273px; }

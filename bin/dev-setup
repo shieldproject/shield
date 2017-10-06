@@ -219,7 +219,7 @@ $shield create-job <<EOF
 EOF
 
 # set up administrative user
-umc="../shield-umc --type sqlite3 --dsn $targetdir/var/shield.db"
+umc="../shield-umc --database $targetdir/var/shield.db"
 echo "creating local admin user (admin:admin)"
 $umc new-user --username admin --password admin
 $umc invite admin --system --role admin
