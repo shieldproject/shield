@@ -306,7 +306,7 @@ func (core *Core) v2API() *route.Router {
 			Name     string `json:"name"`
 			Account  string `json:"account"`
 			Password string `json:"password"`
-			Sysrole  string `json:"sysrole"`
+			SysRole  string `json:"sysrole"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -321,12 +321,24 @@ func (core *Core) v2API() *route.Router {
 			id = uuid.Parse(in.UUID)
 		}
 
+		if in.SysRole != "" {
+			switch in.SysRole {
+			case
+				"admin",
+				"manager",
+				"technician":
+			default:
+				r.Fail(route.Bad(nil, "System Role '%s' is invalid", in.SysRole))
+				return
+			}
+		}
+
 		u := &db.User{
 			UUID:    id,
 			Name:    in.Name,
 			Account: in.Account,
 			Backend: "local",
-			SysRole: in.Sysrole,
+			SysRole: in.SysRole,
 		}
 		u.SetPassword(in.Password)
 
@@ -378,7 +390,16 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if in.SysRole != "" {
-			user.SysRole = in.SysRole
+			switch in.SysRole {
+			case
+				"admin",
+				"manager",
+				"technician":
+				user.SysRole = in.SysRole
+			default:
+				r.Fail(route.Bad(nil, "System Role '%s' is invalid", in.SysRole))
+				return
+			}
 		}
 
 		if in.Password != "" {

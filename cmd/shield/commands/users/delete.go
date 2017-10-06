@@ -32,7 +32,7 @@ func cliDeleteUser(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		internal.ShowUser(user, *opts.ShowUUID)
+		ShowUser(user, *opts.ShowUUID)
 		if !tui.Confirm("Really delete this user?") {
 			return internal.ErrCanceled
 		}

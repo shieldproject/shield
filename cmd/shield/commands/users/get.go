@@ -1,11 +1,14 @@
 package users
 
 import (
+	"os"
+
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 	"github.com/starkandwayne/shield/cmd/shield/log"
+	"github.com/starkandwayne/shield/tui"
 )
 
 //Get - Print detailed information about a local user
@@ -46,6 +49,18 @@ func cliGetUser(opts *commands.Options, args ...string) error {
 		return nil
 	}
 
-	internal.ShowUser(user, *opts.ShowUUID)
+	ShowUser(user, *opts.ShowUUID)
 	return nil
+}
+
+func ShowUser(user api.User, showTennantUUID bool) {
+	t := tui.NewReport()
+	t.Add("UUID", user.UUID)
+	t.Add("Name", user.Name)
+	t.Add("Account", user.Account)
+	t.Add("Backend", user.Backend)
+	t.Add("System Role", user.SysRole)
+	t.Add("Tennants", api.LocalTenantsToString(user.Tenants, showTennantUUID))
+
+	t.Output(os.Stdout)
 }

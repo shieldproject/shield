@@ -46,7 +46,6 @@ func CreateUser(contentJSON string) (User, error) {
 		}
 		return User{}, err
 	}
-	fmt.Println(respMap)
 
 	return GetUser(uuid.Parse(respMap["uuid"]))
 }
@@ -87,7 +86,11 @@ func UpdateUser(id uuid.UUID, contentJSON string) (User, error) {
 	if err != nil {
 		return User{}, err
 	}
-	if err := uri.Patch(nil, contentJSON); err != nil {
+	respMap := make(map[string]string)
+	if err := uri.Patch(&respMap, contentJSON); err != nil {
+		if update_error, present := respMap["error"]; present {
+			return User{}, errors.New(update_error)
+		}
 		return User{}, err
 	}
 	return GetUser(id)
