@@ -721,37 +721,37 @@ func (core *Core) v2API() *route.Router {
 
 		user, err := core.DB.GetUser(auth.Username, "local")
 		if err != nil {
-			r.Fail(route.Oops(err, "an unknown error occurred when authenticating local user '%s'", auth.Username))
+			r.Fail(route.Oops(err, "An unknown error occurred when authenticating local user '%s'", auth.Username))
 			return
 		}
 
 		if user == nil || !user.Authenticate(auth.Password) {
-			r.Fail(route.Errorf(http.StatusForbidden, nil, "incorrect username or password given"))
+			r.Fail(route.Errorf(http.StatusForbidden, nil, "Incorrect username or password"))
 			return
 		}
 
 		session, err := core.createSession(user)
 		if err != nil {
-			r.Fail(route.Oops(err, "an unknown error occurred when authenticating local user '%s'", auth.Username))
+			r.Fail(route.Oops(err, "An unknown error occurred when authenticating local user '%s'", auth.Username))
 			return
 		}
 
 		r.SetCookie(SessionCookie(session.UUID.String(), true))
 		r.SetHeader("X-Shield-Session", session.UUID.String())
 
-		r.Success("logged in as user %s", auth.Username)
+		r.Success("Logged in as user %s", auth.Username)
 	})
 
 	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) {
 		sessionID := getSessionID(r.Req)
 		if sessionID == "" {
 			//I guess we're okay with not getting a session to logout?...
-			r.Success("no user to logout")
+			r.Success("No user to logout")
 		}
 
 		id := uuid.Parse(sessionID)
 		if id == nil {
-			r.Fail(route.Bad(nil, "invalid session ID received"))
+			r.Fail(route.Bad(nil, "Invalid session ID received"))
 		}
 		err := core.DB.ClearSession(id)
 		if err != nil {
@@ -761,7 +761,7 @@ func (core *Core) v2API() *route.Router {
 
 		// unset the session cookie
 		r.SetCookie(SessionCookie("-", false))
-		r.Success("successfully logged out")
+		r.Success("Successfully logged out")
 	})
 
 	r.Dispatch("GET /v2/auth/id", func(r *route.Request) {
