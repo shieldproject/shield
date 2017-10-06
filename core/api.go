@@ -43,29 +43,17 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	//All api endpoints below have the mustBeUnlocked requirement such that if vault
 	//	is sealed or uninitialized they will return a 403
 	case match(req, `GET /v1/meta/pubkey`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetPublicKey(w, req)
 		return
 
 	case match(req, `GET /v1/status/internal`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DetailedStatus(w, req)
 		return
 	case match(req, `GET /v1/status/jobs`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1JobsStatus(w, req)
 		return
 
 	case match(req, `GET /v1/archives`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetArchives(w, req)
 		return
 	case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
@@ -75,9 +63,6 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v1RestoreArchive(w, req)
 		return
 	case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetArchive(w, req)
 		return
 	case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
@@ -94,27 +79,15 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 
 	case match(req, `GET /v1/jobs`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetJobs(w, req)
 		return
 	case match(req, `POST /v1/jobs`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateJob(w, req)
 		return
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1PauseJob(w, req)
 		return
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UnpauseJob(w, req)
 		return
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
@@ -124,15 +97,9 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v1RunJob(w, req)
 		return
 	case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetJob(w, req)
 		return
 	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateJob(w, req)
 		return
 	case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
@@ -143,95 +110,50 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 
 	case match(req, `GET /v1/retention`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetRetentionPolicies(w, req)
 		return
 	case match(req, `POST /v1/retention`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateRetentionPolicy(w, req)
 		return
 	case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetRetentionPolicy(w, req)
 		return
 	case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateRetentionPolicy(w, req)
 		return
 	case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DeleteRetentionPolicy(w, req)
 		return
 
 	case match(req, `GET /v1/stores`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetStores(w, req)
 		return
 	case match(req, `POST /v1/stores`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateStore(w, req)
 		return
 	case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetStore(w, req)
 		return
 	case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateStore(w, req)
 		return
 	case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DeleteStore(w, req)
 		return
 
 	case match(req, `GET /v1/targets`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetTargets(w, req)
 		return
 	case match(req, `POST /v1/targets`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateTarget(w, req)
 		return
 	case match(req, `GET /v1/target/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetTarget(w, req)
 		return
 	case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateTarget(w, req)
 		return
 	case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DeleteTarget(w, req)
 		return
 
