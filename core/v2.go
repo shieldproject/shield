@@ -1,7 +1,7 @@
 package core
 
 import (
-	"net/http"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -691,12 +691,12 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if auth.Username == "" {
-			r.Fail(route.Errorf(http.StatusForbidden, nil, "no username given"))
+			r.Fail(route.Errorf(403, nil, "no username given"))
 			return
 		}
 
 		if auth.Password == "" {
-			r.Fail(route.Errorf(http.StatusForbidden, nil, "no password given"))
+			r.Fail(route.Errorf(403, nil, "no password given"))
 		}
 
 		user, err := core.DB.GetUser(auth.Username, "local")
@@ -706,7 +706,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if user == nil || !user.Authenticate(auth.Password) {
-			r.Fail(route.Errorf(http.StatusForbidden, nil, "Incorrect username or password"))
+			r.Fail(route.Errorf(403, nil, "Incorrect username or password"))
 			return
 		}
 
@@ -731,11 +731,11 @@ func (core *Core) v2API() *route.Router {
 
 		id := uuid.Parse(sessionID)
 		if id == nil {
-			r.Fail(route.Bad(nil, "Invalid session ID received"))
+			r.Fail(route.Bad(fmt.Errorf("Invalid session ID received"), "Unable to log out"))
 		}
 		err := core.DB.ClearSession(id)
 		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred when logging out of the session"))
+			r.Fail(route.Oops(err, "An unknown error occurred"))
 			return
 		}
 

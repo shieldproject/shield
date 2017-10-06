@@ -1500,17 +1500,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         (function () {
           api({
             type: 'GET',
-            url: '/v2/auth/providers',
+            url:  '/v2/auth/providers',
             success: function (data) {
               $('#viewport').html(template('login', { oauth: data }))
                 .on("submit", "form", function (event) {
                 event.preventDefault()
                 api({
+                  type: "POST",
                   url: "/v2/auth/login",
-                  method: "POST",
                   data: $(event.target).serializeObject(),
                   success: function () {
-                    document.location.href = "/";
+                    goto("/");
                   },
                   error: function (xhr) {
                     $(event.target).error(xhr.responseJSON.error);
@@ -1529,15 +1529,16 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       case "#!/logout": // {{{
         (function () {
           api({
+            type: "GET",
             url: "/v2/auth/logout",
             success: function () {
-              document.location.href = "/";
+              goto("/");
             },
             error: function (xhr) {
               if (xhr.status >= 500) {
                 $('#viewport').html(template('BOOM'));
               } else {
-                document.location.href = "/";
+                goto("/");
               }
             },
           });
