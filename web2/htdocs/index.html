@@ -417,6 +417,7 @@
             </form>
           </div>
     <!-- }}} --></script>
+
     <script type="text/html" id="tpl--init"><!-- {{{ -->
       [[#
         {init} template
@@ -430,12 +431,33 @@
               tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
               voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
 
-          <form class="init-shield">
-            <label for="init-master">Create a SHIELD Master Password</label>
-            <input type="password" id="init-master" name="master">
-            <label for="init-confirm">Type it again, for good measure...</label>
-            <input type="password" id="init-confirm" name="confirm">
-            <button>Initialize</button>
+          <form>
+            <div class="error"></div>
+
+            <div class="ctl" data-field="master">
+              <label for="init-master">Pick a Master Password</label>
+              <span class="errors">
+                <span data-error="missing">You must specify a master password</span>
+              </span>
+              <div class="widget">
+                <input type="password" id="init-master" name="master">
+              </div>
+            </div>
+
+            <div class="ctl" data-field="confirm">
+              <label for="init-confirm">Confirm</label>
+              <span class="errors">
+                <span data-error="missing">You must confirm your master password</span>
+                <span data-error="mismatch">Your passwords don't match</span>
+              </span>
+              <div class="widget">
+                <input type="password" id="init-confirm" name="confirm">
+                <p class="help">SHIELD will encrypt the secure storage Vault using
+                the master password you choose, and then promptly forget it.</p>
+              </div>
+            </div>
+
+            <button class="go">Initialize</button>
           </form>
         </div>
     <!-- }}} --></script>
@@ -452,12 +474,13 @@
               tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
               voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
 
-          <form class="unlock-shield">
+          <form>
             <label for="unlock-master">Enter your SHIELD Master Password</label>
             <input type="password" id="unlock-master" name="master"><button>Unlock</button>
           </form>
         </div>
     <!-- }}} --></script>
+
     <script type="text/html" id="tpl--do-backup"><!-- {{{ -->
       [[#
         {do-backup}
@@ -632,6 +655,7 @@
         [[ } ]]
       </div>
     <!-- }}} --></script>
+
     <script type="text/html" id="tpl--systems"><!-- {{{ -->
       [[#
         {systems} template
@@ -778,6 +802,7 @@
       } ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
       </em></code></pre>
     <!-- }}} --></script>
+
     <script type="text/html" id="tpl--stores"><!-- {{{ -->
       [[#
         {stores} template
@@ -924,6 +949,7 @@
             </div>
           </div>
     <!-- }}} --></script>
+
     <script type="text/html" id="tpl--policies"><!-- {{{ -->
       [[#
         {policies} template
@@ -931,8 +957,8 @@
         Renders the list of all retention policies
       ]]
           <div class="gutter blk">
+            <a class="new" href="#!/policies/new">Create a New Retention Policy &raquo;</a>
             <h2>Retention Policies</h2>
-            <a href="#!/policies/new">Create a New Retention Policy</a>
             [[ if (_.policies.length == 0) { ]]
             <div class="no-data">No Retention Policies have been created yet.</div>
             [[ } else { ]]
@@ -947,7 +973,7 @@
                 <tr>
                   <td>[[= policy.name ]]</td>
                   <td>[[= policy.days ]] day[[ if (policy.days != 1) { ]]s[[ } ]]</td>
-                  <td></td>
+                  <td><a href="#!/policies/edit:uuid:[[= policy.uuid ]]">edit</a></td>
                 </tr>
                 [[ }); ]]
               </tbody>
@@ -955,29 +981,52 @@
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--policies-new"><!-- {{{ -->
+    <script type="text/html" id="tpl--policies-form"><!-- {{{ -->
       [[#
-        {policies-new} template
+        {policies-form} template
 
-        Renders a form for createing a new retention policy.
+        Renders a form for creating new retention policies, and
+        editing existing retention policies.
       ]]
           <div class="gutter blk">
+            <a class="breadcrumb" href="#!/policies">&laquo; Back to Retention Policies</a>
             <h2>New Retention Policy</h2>
-            <form class="crud">
+
+            <form>
+              <div class="error"></div>
+
               <div class="ctl" data-field="name">
                 <label for="policy-name">Name</label>
-                <input type="text" id="policy-name" name="name" />
-                <span class="if-missing">You must provide a name for this new retention policy.</span>
+                <span class="errors">
+                  <span data-error="missing">You must provide a name for this new retention policy.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" id="policy-name" name="name" class="autofocus"
+                    [[ if (_.policy) { ]]value="[[= _.policy.name ]]"[[ } ]]/>
+                  <p class="help">Pick a memorable or descriptive name for this retention policy,
+                  so that other operators can determine what to use it for.</p>
+                </div>
               </div>
+
               <div class="ctl" data-field="expires">
                 <label for="policy-days">Expiry (in days)</label>
-                <input type="text" id="policy-days" name="days" />
-                <span class="if-missing">You must specify an expiry of at least 1 day.</span>
+                <span class="errors">
+                  <span data-error="missing">You must specify an expiry of at least 1 day.</span>
+                  <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" id="policy-days" name="days"
+                    [[ if (_.policy) { ]]value="[[= _.policy.days ]]"[[ } ]]/>
+                  <p class="help">How long should archives be kept, under this retention policy.
+                  At a minimum, archives must be kept for one day.</p>
+                </div>
               </div>
-              <button>Create Retention Policy</button>
+
+              <button class="go">[[ if (_.policy) { ]]Save[[ } else { ]]Create[[ } ]]</button>
             </form>
           </div>
     <!-- }}} --></script>
+
     <script type="text/html" id="tpl--admin"><!-- {{{ -->
       [[#
         {admin} template
@@ -1174,23 +1223,48 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           <div class="gutter blk" id="rekey">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2>Rekey Shield Master Password</h2>
-            <br>
-            <form class='rekey form-group'>
-                <dl class="form-group">
-                    <dt><label for="current_password">Current Master Password</label></dt>
-                    <dd><input name='current_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
-                </dl>
 
-                <dl class="form-group">
-                    <dt><label for="new_password">New Master Password</label></dt>
-                    <dd><input name='new_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
-                </dl>
+            <form class="rekey">
+              <div class="error"></div>
 
-                <dl class="form-group">
-                    <dt><label for="confirm_new_password">Confirm New Master Password</label></dt>
-                    <dd><input name='confirm_new_master_password' class="form-group form-control clearable" required="required" type='password'></dd>
-                </dl>
-                <button>Update</button>
+              <div class="ctl" data-field="current">
+                <label for="rekey-current">Current Master Password</label>
+                <span class="errors">
+                  <span data-error="missing">You must supply the current SHIELD master password</span>
+                </span>
+                <div class="widget">
+                  <input type="password" id="rekey-current" name="current"
+                         class="autofocus">
+                  <p class="help">In order to rekey this SHIELD core, you must specify your
+                  current master password so that SHIELD can temporarily decrypt the secure
+                  storage credentials.</p>
+                </div>
+              </div>
+
+              <div class="ctl" data-field="new">
+                <label for="rekey-new">New Master Password</label>
+                <span class="errors">
+                  <span data-error="missing">You must supply a new master password</span>
+                </span>
+                <div class="widget">
+                  <input type="password" id="rekey-new" name="new">
+                </div>
+              </div>
+
+              <div class="ctl" data-field="confirm">
+                <label for="rekey-confirm">Confirm</label>
+                <span class="errors">
+                  <span data-error="missing">You must confirm your new master password</span>
+                  <span data-error="mismatch">Your passwords do not match</span>
+                </span>
+                <div class="widget">
+                  <input type="password" id="rekey-confirm" name="confirm">
+                  <p class="help">Once your SHIELD is rekeyed, you will have to use the
+                  <strong>new master password</strong> to unlock it.</p>
+                </div>
+              </div>
+
+              <button class="go">Rekey</button>
             </form>
           </div>
     <!-- }}} --></script>
@@ -1203,11 +1277,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       ]]
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <a class="new" href="#!/admin/users/new">Create a New Local User &raquo;</a>
             <h2>Local User Management</h2>
             [[ if (_.users.length == 0) { ]]
             <div class="no-data">No local SHIELD users have been created yet.</div>
             [[ } else { ]]
-            <a href="#!/admin/users/new">Create a New Local User</a>
             <table>
               <thead><tr>
                 <th>Name</th>
@@ -1249,33 +1323,62 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
             <h2>New SHIELD User</h2>
-            <form rel="new:user">
-              <div class="ctl">
+            <form>
+              <div class="ctl" data-field="name">
                 <label for="new-user-name">Display Name</label>
-                <input type="text" name="name" id="new-user-name">
+                <span class="errors">
+                  <span data-error="missing">Please provide a display name.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" name="name" id="new-user-name">
+                  <p class="help"></p>
+                </div>
               </div>
-              <div class="ctl">
+
+              <div class="ctl" data-field="account">
                 <label for="new-user-account">Username</label>
-                <input type="text" name="account" id="new-user-account">
+                <span class="errors">
+                  <span data-error="missing">Please provide a username.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" name="account" id="new-user-account">
+                </div>
               </div>
-              <div class="ctl">
+
+              <div class="ctl" data-field="password">
                 <label for="new-user-password">Password</label>
-                <input type="password" name="password" id="new-user-password">
+                <span class="errors">
+                  <span data-error="missing">Please provide a password for this new user.</span>
+                </span>
+                <div class="widget">
+                  <input type="password" name="password" id="new-user-password">
+                </div>
               </div>
-              <div class="ctl">
+
+              <div class="ctl" data-field="confirm">
                 <label for="new-user-confirm">Confirm</label>
-                <input type="password" name="confirm" id="new-user-confirm">
+                <span class="errors">
+                  <span data-error="missing">Please confirm this new user's password.</span>
+                  <span data-error="mismatch">These passwords don't match.</span>
+                </span>
+                <div class="widget">
+                  <input type="password" name="confirm" id="new-user-confirm">
+                </div>
               </div>
-              <div class="ctl">
+
+              <div class="ctl" data-field="sysrole">
                 <label for="new-user-sysrole">System Role</label>
-                <select name="sysrole" id="new-user-sysrole">
-                  <option value="">None</option>
-                  <option value="engineer">Engineer</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Administrator</option>
-                </select>
+                <div class="widget">
+                  <select name="sysrole" id="new-user-sysrole">
+                    <option value="">None</option>
+                    <option value="engineer">Engineer</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </div>
               </div>
-              <button>Create User</button>
+
+              <button class="go">Create</button>
             </form>
           </div>
     <!-- }}} --></script>
@@ -1325,6 +1428,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       $('nav a[href="'+top+'"]').closest('li').addClass('current');
 
       switch (page) {
+
       case "#!/login": /* {{{ */
         (function () {
           api({
@@ -1340,6 +1444,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         })();
         break; /* #!/login */
         // }}}
+
       case "#!/do/backup": /* {{{ */
         (function () {
           $('#main').html(template('loading'));
@@ -1406,6 +1511,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         })();
         break; /* #!/do/backup */
         // }}}
+
       case "#!/systems": /* {{{ */
         $('#main').html(template('loading'));
         api({
@@ -1430,6 +1536,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         });
         break; /* #!/systems/system */
         // }}}
+
       case '#!/stores': /* {{{ */
         $('#main').html(template('loading'));
         api({
@@ -1469,6 +1576,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         }));
         break; /* #!/stores/store */
         // }}}
+
       case '#!/policies': /* {{{ */
         $('#main').html(template('loading'));
         api({
@@ -1488,35 +1596,24 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/policies */
         // }}}
       case '#!/policies/new': /* {{{ */
-        $('#main').html(template('policies-new'))
+        $('#main').html(template('policies-form', { policy: null }))
+          .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
 
-            var data = $(event.target).serializeObject();
+            var $form = $(event.target);
+            var data = $form.serializeObject();
 
-            if (data.days != "") {
-              var e = 'Invalid retention policy expiry';
-              if (!parseInt(data.days)) {
-                if (parseFloat(data.days) != NaN) {
-                  e += ': "'+data.days+'" is not an integer';
-                } else {
-                  e += ': "'+data.days+'" is not a number';
-                }
-              } else if (parseInt(data.days) < 0) {
-                e += ': "'+data.days+'" is less than zero';
-              } else {
-                e = null;
-              }
-              if (e) {
-                banner(e, "error");
-                return;
-              }
+            $form.reset();
+            if (!parseInt(data.days) || parseInt(data.days) < 0) {
+              $form.error('expires', 'invalid');
+            }
+            if (!$form.isOK()) {
+              return;
             }
 
             data.expires = data.days * 86400; /* FIXME fixup for API */
             delete data.days;
-
-            $(event.target).find('.if-missing').hide();
 
             api({
               type: 'POST',
@@ -1526,25 +1623,57 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 goto("#!/policies");
               },
               error: function (xhr) {
-                console.log(xhr);
-                var res = xhr.responseJSON;
-                if (res) {
-                  if ('missing' in res) {
-                    for (var i = 0; i < res.missing.length; i++) {
-                      $(event.target)
-                        .find('.ctl[data-field="'+res.missing[i]+'"] .if-missing')
-                          .show();
-                    }
-                  } else if ('error' in res) {
-                    banner(res.error, "error");
-                  }
-                }
+                $form.error(xhr.responseJSON);
               }
             });
           });
 
         break; /* #!/policies */
         // }}}
+      case '#!/policies/edit': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v1/retention/'+args.uuid,
+          error: "Failed to retrieve retention policy information from the SHIELD API.",
+          success: function (data) {
+            data.days = parseInt(data.expires / 86400);
+            $('#main').html(template('policies-form', { policy: data }))
+              .autofocus()
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
+
+                var $form = $(event.target);
+                var data = $form.serializeObject();
+
+                $form.reset();
+                if (!parseInt(data.days) || parseInt(data.days) < 0) {
+                  $form.error('expires', 'invalid');
+                }
+                if (!$form.isOK()) {
+                  return;
+                }
+
+                data.expires = data.days * 86400; /* FIXME fixup for API */
+                delete data.days;
+
+                api({
+                  type: 'PUT',
+                  url:  '/v1/retention/'+args.uuid,
+                  data: data,
+                  success: function () {
+                    goto("#!/policies");
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              });
+          }
+        });
+
+        break; /* #!/policies */
+        // }}}
+
       case '#!/admin': /* {{{ */
         $('#main').html(template('admin'));
         break; /* #!/admin */
@@ -1586,7 +1715,48 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/auth */
         // }}}
       case '#!/admin/rekey': /* {{{ */
-        $('#main').html(template('rekey'));
+        $('#main').html(template('rekey'))
+          .autofocus()
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+
+            $form.reset();
+            if (data.current == "") {
+              $form.error('current', 'missing');
+            }
+
+            if (data.new == "") {
+              $form.error('new', 'missing');
+
+            } else if (data.confirm == "") {
+              $form.error('confirm', 'missing');
+
+            } else if (data.new != data.confirm) {
+              $form.error('confirm', 'mismatch');
+            }
+
+            if (!$form.isOK()) {
+              return;
+            }
+
+            delete data.confirm;
+            api({
+              type: 'POST',
+              url:  '/v2/rekey',
+              data: data,
+              success: function () {
+                banner('Succcessfully rekeyed the SHIELD Core.');
+                goto("#!/admin");
+              },
+              error: function (xhr) {
+                $form.error(xhr.responseJSON);
+              }
+            });
+          });
+
         break; /* #!/admin/rekey */
         // }}}
       case '#!/admin/users': /* {{{ */
@@ -1602,7 +1772,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
       case "#!/admin/users/new": /* {{{ */
         $('#main').html(template('admin-users-new', {}))
-          .on('submit', 'form[rel="new:user"]', function (event) {
+          .autofocus()
+          .on('submit', 'form', function (event) {
             event.preventDefault();
             var $form = $(event.target);
 
@@ -1634,16 +1805,77 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; // #!/admin/users/new
         // }}}
 
-      case "#!/unlock": $('#main').html(template('unlock', {})); break;
-      case "#!/init":   $('#main').html(template('init',   {})); break;
+      case "#!/unlock": /* {{{ */
+        $('#main').html(template('unlock', {}))
+          .autofocus()
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
 
-      default:
+            var data = $(event.target).serializeObject();
+
+            api({
+              type: 'POST',
+              url:  '/v2/unlock',
+              data: data,
+              error: "Unable to unlock the SHIELD Core.",
+              success: function (data) {
+                $global.hud.health.core = "unlocked";
+                $('#hud').html(template('hud', $global.hud));
+                goto("");
+              }
+            });
+          });
+        break;
+        // }}}
+      case "#!/init": /* {{{ */
+        $('#main').html(template('init', {}))
+          .autofocus()
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+
+            $form.reset();
+            if (data.master == "") {
+              $form.error('master', 'missing');
+
+            } else if (data.confirm == "") {
+              $form.error('confirm', 'missing');
+
+            } else if (data.master != data.confirm) {
+              $form.error('confirm', 'mismatch');
+            }
+
+            if (!$form.isOK()) {
+              return;
+            }
+
+            api({
+              type: 'POST',
+              url:  '/v2/init',
+              data: { "master_password": data.master },
+              success: function (data) {
+                $global.hud.health.core = "unlocked";
+                $('#hud').html(template('hud', $global.hud));
+                goto("");
+              },
+              error: function (xhr) {
+                $form.error(xhr.responseJSON);
+              }
+            });
+          });
+        break;
+        // }}}
+
+      default: /* 404 {{{ */
         $('#main').html(template('404', {
           wanted:  page,
           args:    argv,
           referer: referer,
         }));
         return; /* 404 */
+        // }}}
       }
       referer = page;
     }
@@ -1658,10 +1890,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     $(function () {
       $('#viewport').html(template('layout'));
 
+      /* ... watch the document hash for changes {{{ */
       $(window).on('hashchange', function (event) {
         dispatch(document.location.hash);
       }).trigger('hashchange');
-
+      /* }}} */
+      /* ... ping /v2/health every X seconds, and update the HUD {{{ */
       (function (s) {
         var RUNNING = false;
         var last = "";
@@ -1702,8 +1936,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         ping();
         window.setInterval(ping, s * 1000);
       })(5);
-
-      /* handle the account flyout */
+      /* }}} */
+      /* ... handle the account menu {{{ */
       $(document.body).on('click', '.top-bar a[rel=account]', function (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -1715,8 +1949,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           && !$(event.target).is('a')) { return; }
         $('.top-bar .flyout').hide();
       });
+      /* }}} */
 
-      /* show a task in the next row down. */
+      /* global: show a task in the next row down {{{ */
       $('#main').on('click', 'a[href^="task:"]', function (event) {
         event.preventDefault();
         var uuid  = $(event.target).closest('a[href^="task:"]').attr('href').replace(/^task:/, '');
@@ -1743,106 +1978,14 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           }
         });
       });
-
-      /* show an annotation form, in a task log */
+      /* }}} */
+      /* global: show an annotation form, in a task log {{{ */
       $('#main').on('click', '.task button[rel^="annotate:"]', function (event) {
         console.log('annotating!');
         $(event.target).closest('.task').find('form.annotate').toggle();
       });
-
-      $('#main').on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) {
-        event.preventDefault();
-        var uuid;
-        if ($(event.target).is('button')) {
-          uuid = $(event.target).attr('rel');
-        } else {
-          uuid  = $(event.target).closest('a[href^="run:"]').attr('href');
-        }
-        uuid = uuid.replace(/^run:/, '');
-
-        banner('scheduling ad hoc backup...', 'progress');
-        api({
-          type: 'POST',
-          url:  '/v1/job/'+uuid+'/run',
-          success: function () {
-            banner('ad hoc backup job scheduled');
-            reload();
-          },
-          error: function () {
-            banner('unable to schedule ad hoc backup job', 'error');
-          }
-        });
-      });
-
-      $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
-        var uuid   = $(event.target).closest('[data-archive-uuid]').data('archive-uuid');
-        var target = $(event.target).closest('[data-system-name]').data('system-name');
-        var taken  = $(event.target).closest('[data-archive-taken]').data('archive-taken');
-        console.log('restoring archive %s!', uuid);
-
-        modal(template('restore-are-you-sure', {
-            target: target,
-            taken:  taken
-          })).on('click', '[rel=yes]', function(event) {
-          event.preventDefault();
-          api({
-            type: 'POST',
-            url:  '/v1/archive/'+uuid+'/restore',
-            success: function() {
-              banner("restore operation started");
-            },
-            error: function () {
-              banner("unable to schedule restore operation", "error");
-            }
-          });
-        });
-      });
-
-      $('#main').on('submit', '.init-shield', function (event) {
-        event.preventDefault();
-        var master1 = $('.init-shield [name=master]').val();
-        var master2 = $('.init-shield [name=confirm]').val();
-
-        if (master1 != master2) {
-          banner("Passwords do not match.", 'error');
-          return;
-        }
-
-        if (master1 == '') {
-          banner("Please specify a master password", 'error');
-          return;
-        }
-
-        api({
-          type: 'POST',
-          url:  '/v2/init',
-          data: { "master_password": master1 },
-          error: "Unable to initialize the SHIELD Core.",
-          success: function (data) {
-            $global.hud.health.core = "unlocked";
-            $('#hud').html(template('hud', $global.hud));
-            goto("");
-          }
-        });
-      });
-
-      $('#main').on('submit', '.unlock-shield', function (event) {
-        event.preventDefault();
-        var master = $('.unlock-shield [name=master]').val();
-        api({
-          type: 'POST',
-          url:  '/v2/unlock',
-          data: { "master_password": master },
-          error: "Unable to unlock the SHIELD Core.",
-          success: function (data) {
-            $global.hud.health.core = "unlocked";
-            $('#hud').html(template('hud', $global.hud));
-            goto("");
-          }
-        });
-      });
-
-      /* submit the annotation form */
+      /* }}} */
+      /* global: submit the annotation form {{{ */
       $('#main').on('submit', '.task form.annotate', function (event) {
         event.preventDefault();
 
@@ -1883,49 +2026,58 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           throw 'unexpected annotation form (not a .tasks or .archives descendent)'
         }
       });
+      /* }}} */
 
-      /* rekey shield master encryption keys. */
-      $('#main').on('submit', 'form.rekey', function (event) {
+      /* global: handle "run:job-uuid" links {{{ */
+      $('#main').on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) {
         event.preventDefault();
-        var creds = $(event.target).serializeObject();
-
-        if (creds.confirm_new_master_password != creds.new_master_password) {
-          banner("Passwords do not match!", 'error');
-          $(event.target).clearForm();
-          return;
+        var uuid;
+        if ($(event.target).is('button')) {
+          uuid = $(event.target).attr('rel');
+        } else {
+          uuid  = $(event.target).closest('a[href^="run:"]').attr('href');
         }
+        uuid = uuid.replace(/^run:/, '');
 
-        if (creds.new_master_password == '') {
-          banner("Master Password cannot be blank!", 'error');
-          $(event.target).clearForm();
-          return;
-        }
-
+        banner('scheduling ad hoc backup...', 'progress');
         api({
           type: 'POST',
-          url:  '/v2/rekey',
-          data: creds,
+          url:  '/v1/job/'+uuid+'/run',
           success: function () {
-            banner('Succcessfully rekeyed the SHIELD Core.');
-            goto("");
+            banner('ad hoc backup job scheduled');
+            reload();
           },
-          error: function (xhr) {
-            banner(xhr.responseJSON.error, 'error');
-            $(event.target).clearForm();
+          error: function () {
+            banner('unable to schedule ad hoc backup job', 'error');
           }
         });
       });
-    });
-    </script>
+      /* }}} */
+      /* global: handle "restore:archive-uuid" buttons {{{ */
+      $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
+        var uuid   = $(event.target).closest('[data-archive-uuid]').data('archive-uuid');
+        var target = $(event.target).closest('[data-system-name]').data('system-name');
+        var taken  = $(event.target).closest('[data-archive-taken]').data('archive-taken');
+        console.log('restoring archive %s!', uuid);
 
-    <script type="text/javascript">
-    $('form').on('click', '.ctl', function (event) {
-      $(event.target).closest('form').find('.band.active').removeClass('active');
-      $(event.target).closest('.band').addClass('active');
-    });
-    $('form').on('focus', 'input, textarea, select', function (event) {
-      $(event.target).closest('form').find('.band.active').removeClass('active');
-      $(event.target).closest('.band').addClass('active');
+        modal(template('restore-are-you-sure', {
+            target: target,
+            taken:  taken
+          })).on('click', '[rel=yes]', function(event) {
+          event.preventDefault();
+          api({
+            type: 'POST',
+            url:  '/v1/archive/'+uuid+'/restore',
+            success: function() {
+              banner("restore operation started");
+            },
+            error: function () {
+              banner("unable to schedule restore operation", "error");
+            }
+          });
+        });
+      });
+      /* }}} */
     });
     </script>
 

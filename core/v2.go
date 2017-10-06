@@ -176,8 +176,8 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("POST /v2/rekey", func(r *route.Request) { // {{{
 		var in struct {
-			CurMaster string `json:"current_master_password"`
-			NewMaster string `json:"new_master_password"`
+			Current string `json:"current"`
+			New     string `json:"new"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -185,14 +185,14 @@ func (core *Core) v2API() *route.Router {
 
 		/* FIXME: need a better way of doing Missing Parameters */
 		e := MissingParameters()
-		e.Check("current_master_password", in.CurMaster)
-		e.Check("new_master_password", in.NewMaster)
+		e.Check("current", in.Current)
+		e.Check("new", in.New)
 		if e.IsValid() {
 			r.Fail(route.Bad(e, "%s", e))
 			return
 		}
 
-		err := core.Rekey(in.CurMaster, in.NewMaster)
+		err := core.Rekey(in.Current, in.New)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
 			return

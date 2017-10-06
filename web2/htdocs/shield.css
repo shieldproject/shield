@@ -671,11 +671,16 @@ body { font-family: sans-serif; }
   color: #0071bc;
 }
 
-.field a.breadcrumb {
+.field a.breadcrumb,
+.field a.new {
   text-decoration: none;
   color: #0071bc;
   font-size: 11pt;
   border-bottom: 1px dotted #0071bc;
+}
+.field a.new {
+  display: block;
+  float: right;
 }
 
 .field table {
@@ -728,7 +733,7 @@ body { font-family: sans-serif; }
 .field table tr.task { display: none; }
 
 
-form .ctl { width: 50%; }
+form .ctl { width: 70%; margin: 1em 0 2em 0; }
 form .info { width: 45%; float: right; clear: right; }
 form .info {
   border-radius: 8px;
@@ -741,13 +746,20 @@ form .info { display: none; }
 form .band.active .info { display: block; }
 
 form .ctl {
-  margin-bottom: 1em;
+  margin-bottom: 2em;
 }
 form .ctl label {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 20px;
   display: block;
+
+  width: 40%;
+  float: left;
+}
+form .ctl .widget {
+  display: block;
+  clear: both;
 }
 form .ctl input,
 form .ctl select,
@@ -757,7 +769,8 @@ form .ctl textarea {
   margin-bottom: 4px;
 }
 form .ctl select,
-form .ctl input[type=text] {
+form .ctl input[type=text],
+form .ctl input[type=password] {
   width: 100%;
 }
 form .ctl input[type=text],
@@ -789,6 +802,37 @@ form .ctl .if-missing {
   color: darkred;
   font-size: 13px;
   display: none;
+}
+
+form .error,
+form .ctl span.errors {
+  color: crimson;
+  font-size: 13px;
+}
+form .ctl span.errors {
+  width: 60%;
+  display: block;
+  float: right;
+  text-align: right;
+}
+form .error,
+form .ctl span[data-error] {
+  display: none;
+}
+
+form button.go {
+  background-color: #0071BC;
+  border: 1px solid #0071BC;
+  color: #fff;
+
+  font-size: 16pt;
+  height: 36px;
+  border-radius: 4px;
+  padding: 0 0.6em;
+  margin: 0;
+  box-sizing: border-box;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .e404 {
