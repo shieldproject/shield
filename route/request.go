@@ -112,3 +112,25 @@ func (r *Request) GetHeader(header string) string {
 func (r *Request) SetCookie(cookie *http.Cookie) {
 	http.SetCookie(r.w, cookie)
 }
+
+func (r *Request) Missing(params ...string) bool {
+	e := Error{code: 400}
+
+	for len(params) > 1 {
+		if params[1] == "" {
+			e.Missing = append(e.Missing, params[0])
+		}
+		params = params[2:]
+	}
+
+	if len(params) > 0 {
+		log.Errorf("%s called Missing() with an odd number of arguments")
+	}
+
+	if len(e.Missing) > 0 {
+		r.Fail(e)
+		return true
+	}
+
+	return false
+}

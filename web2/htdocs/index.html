@@ -991,7 +991,7 @@
       ]]
           <div class="gutter blk">
             <a class="breadcrumb" href="#!/policies">&laquo; Back to Retention Policies</a>
-            <h2>New Retention Policy</h2>
+            <h2>[[ if (_.policy) { ]]Edit[[ } else { ]]New[[ } ]] Retention Policy</h2>
 
             <form>
               <div class="error"></div>
@@ -1028,6 +1028,66 @@
           </div>
     <!-- }}} --></script>
 
+    <script type="text/html" id="tpl--tenants"><!-- {{{ -->
+      [[#
+        {tenants} template
+
+        Renders the list of all tenants (for site managers)
+      ]]
+          <div class="gutter blk">
+            <a class="new" href="#!/tenants/new">Create a New Tenant &raquo;</a>
+            <h2>Tenants</h2>
+            [[ if (_.tenants.length == 0) { ]]
+            <div class="no-data">No Tenants have been created yet.</div>
+            [[ } else { ]]
+            <table>
+              <thead><tr>
+                <th>Name</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                [[ $.each(_.tenants, function (i, tenant) { ]]
+                <tr>
+                  <td>[[= tenant.name ]]</td>
+                  <td><a href="#!/tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
+                </tr>
+                [[ }); ]]
+              </tbody>
+            </table>
+            [[ } ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--tenants-form"><!-- {{{ -->
+      [[#
+        {tenants-form} template
+
+        Renders a form for creating new tenants, and editing
+        existing tenants.
+      ]]
+          <div class="gutter blk">
+            <a class="breadcrumb" href="#!/tenants">&laquo; Back to Tenants</a>
+            <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
+
+            <form>
+              <div class="error"></div>
+
+              <div class="ctl" data-field="name">
+                <label for="tenant-name">Name</label>
+                <span class="errors">
+                  <span data-error="missing">You must provide a name for this new tenant.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" id="tenant-name" name="name" class="autofocus"
+                    [[ if (_.tenant) { ]]value="[[= _.tenant.name ]]"[[ } ]]/>
+                  <p class="help">Pick a memorable or descriptive name for this tenant.</p>
+                </div>
+              </div>
+
+              <button class="go">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
+            </form>
+          </div>
+    <!-- }}} --></script>
+
     <script type="text/html" id="tpl--admin"><!-- {{{ -->
       [[#
         {admin} template
@@ -1037,6 +1097,11 @@
           <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
+              <li><a href="#!/tenants">Tenants</a>
+                <p>Tenants separate and isolate subsets of your users from one another, so that
+                they can neither see nor affect the systems, storage, and retention policies
+                of one another.</p>
+              </li>
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
                 on other machines.  These agents register with the SHIELD Core, and provide
@@ -1640,7 +1705,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             var data = $form.serializeObject();
 
             $form.reset();
-            if (!parseInt(data.days) || parseInt(data.days) < 0) {
+            if (!parseInt(data.days) || parseInt(data.days) < 1) {
               $form.error('expires', 'invalid');
             }
             if (!$form.isOK()) {
@@ -1707,6 +1772,78 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         });
 
         break; /* #!/policies */
+        // }}}
+
+      case '#!/tenants': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/tenants',
+          error: 'Failed to retrieve tenant information from the SHIELD API.',
+          success: function (data) {
+            $('#main').html(template('tenants', { tenants: data }));
+          }
+        });
+        break; /* #!/tenants */
+        // }}}
+      case '#!/tenants/new': /* {{{ */
+        $('#main').html(template('tenants-form', { policy: null }))
+          .autofocus()
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+
+            $form.reset();
+
+            api({
+              type: 'POST',
+              url:  '/v2/tenants',
+              data: data,
+              success: function () {
+                goto("#!/tenants");
+              },
+              error: function (xhr) {
+                $form.error(xhr.responseJSON);
+              }
+            });
+          });
+
+        break; /* #!/tenants */
+        // }}}
+      case '#!/tenants/edit': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/tenants/'+args.uuid,
+          error: "Failed to retrieve tenant information from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('tenants-form', { tenant: data }))
+              .autofocus()
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
+
+                var $form = $(event.target);
+                var data = $form.serializeObject();
+
+                $form.reset();
+
+                api({
+                  type: 'PUT',
+                  url:  '/v2/tenants/'+args.uuid,
+                  data: data,
+                  success: function () {
+                    goto("#!/tenants");
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              });
+          }
+        });
+
+        break; /* #!/tenants */
         // }}}
 
       case '#!/admin': /* {{{ */

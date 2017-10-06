@@ -760,7 +760,7 @@
 
    ***************************************************/
   exported.jQuery.fn.isOK = function () { // {{{
-    return this.find('[data-error]:visible').length == 0;
+    return this.find('.error:visible, [data-error]:visible').length == 0;
   }; // }}}
 
 

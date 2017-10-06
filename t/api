@@ -109,10 +109,10 @@ EOF
   done
 
   echo ">> INITIALIZING SHIELD CORE"
-  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master":"'$SHIELD_MASTER_PASSWORD'"}'
 
   echo ">> UNLOCKING SHIELD CORE"
-  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master":"'$SHIELD_MASTER_PASSWORD'"}'
   set +e
 }
 

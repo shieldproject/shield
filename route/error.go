@@ -5,7 +5,8 @@ import (
 )
 
 type Error struct {
-	Message string `json:"error"`
+	Message string   `json:"error,omitempty"`
+	Missing []string `json:"missing,omitempty"`
 
 	code int
 	e    error

@@ -118,17 +118,13 @@ func (core *Core) v2API() *route.Router {
 
 	r.Dispatch("POST /v2/init", func(r *route.Request) { // {{{
 		var in struct {
-			Master string `json:"master_password"`
+			Master string `json:"master"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
-		/* FIXME: need a better way of doing Missing Parameters */
-		e := MissingParameters()
-		e.Check("master_password", in.Master)
-		if e.IsValid() {
-			r.Fail(route.Bad(e, "%s", e))
+		if r.Missing("master", in.Master) {
 			return
 		}
 
@@ -148,17 +144,13 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("POST /v2/unlock", func(r *route.Request) { // {{{
 		var in struct {
-			Master string `json:"master_password"`
+			Master string `json:"master"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
-		/* FIXME: need a better way of doing Missing Parameters */
-		e := MissingParameters()
-		e.Check("master_password", in.Master)
-		if e.IsValid() {
-			r.Fail(route.Bad(e, "%s", e))
+		if r.Missing("master", in.Master) {
 			return
 		}
 
@@ -184,12 +176,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: need a better way of doing Missing Parameters */
-		e := MissingParameters()
-		e.Check("current", in.Current)
-		e.Check("new", in.New)
-		if e.IsValid() {
-			r.Fail(route.Bad(e, "%s", e))
+		if r.Missing("current", in.Current, "new", in.New) {
 			return
 		}
 
@@ -293,13 +280,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: need a better way of doing Missing Parameters */
-		e := MissingParameters()
-		e.Check("name", in.Name)
-		e.Check("account", in.Account)
-		e.Check("password", in.Password)
-		if e.IsValid() {
-			r.Fail(route.Bad(e, "%s", e))
+		if r.Missing("name", in.Name, "account", in.Account, "password", in.Password) {
 			return
 		}
 
@@ -340,11 +321,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: need a better way of doing Missing Parameters */
-		e := MissingParameters()
-		e.Check("name", in.Name)
-		if e.IsValid() {
-			r.Fail(route.Bad(e, "%s", e))
+		if r.Missing("name", in.Name) {
 			return
 		}
 
@@ -634,6 +611,19 @@ func (core *Core) v2API() *route.Router {
 		r.OK(tenants)
 	})
 	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid", func(r *route.Request) { // {{{
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tenant information"))
+			return
+		}
+		if tenant == nil {
+			r.Fail(route.NotFound(nil, "No such tenant"))
+			return
+		}
+		r.OK(tenant)
+	})
+	// }}}
 	r.Dispatch("POST /v2/tenants", func(r *route.Request) { // {{{
 		var in struct {
 			UUID string `json:"uuid"`
@@ -643,11 +633,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: need a better way of doing Missing Parameters */
-		e := MissingParameters()
-		e.Check("name", in.Name)
-		if e.IsValid() {
-			r.Fail(route.Bad(e, "%s", e))
+		if !r.Missing("name", in.Name) {
 			return
 		}
 
@@ -666,23 +652,17 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid", func(r *route.Request) { // {{{
 		var in struct {
-			UUID string `json:"uuid"`
 			Name string `json:"name"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
-		/* FIXME: need a better way of doing Missing Parameters */
-		e := MissingParameters()
-		e.Check("uuid", in.UUID)
-		e.Check("name", in.Name)
-		if e.IsValid() {
-			r.Fail(route.Bad(e, "%s", e))
+		if r.Missing("name", in.Name) {
 			return
 		}
 
-		t, err := core.DB.UpdateTenant(in.UUID, in.Name)
+		t, err := core.DB.UpdateTenant(r.Args[1], in.Name)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to update tenant '%s'", in.Name))
 			return
@@ -695,7 +675,7 @@ func (core *Core) v2API() *route.Router {
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PATCH /v2/tenants/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/tenants/:uuid", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
