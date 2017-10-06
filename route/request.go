@@ -72,6 +72,8 @@ func (r *Request) Fail(e Error) {
 	r.done = true
 }
 
+//Payload unmarshals the JSON body of this request into the given interface.
+// Returns true if successful and false otherwise.
 func (r *Request) Payload(v interface{}) bool {
 	if r.Req.Body == nil {
 		r.Fail(Bad(nil, "no JSON input payload present in request"))
@@ -97,4 +99,16 @@ func (r *Request) Param(name, def string) string {
 func (r *Request) ParamIs(name, want string) bool {
 	v, set := r.Req.URL.Query()[name]
 	return set && v[0] == want
+}
+
+func (r *Request) SetHeader(header, value string) {
+	r.w.Header().Add(header, value)
+}
+
+func (r *Request) GetHeader(header string) string {
+	return r.w.Header().Get(header)
+}
+
+func (r *Request) SetCookie(cookie *http.Cookie) {
+	http.SetCookie(r.w, cookie)
 }

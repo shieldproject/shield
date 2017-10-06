@@ -1,6 +1,7 @@
 package core
 
 import (
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -697,6 +698,84 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("PATCH /v2/tenants/:uuid", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+
+	r.Dispatch("POST /v2/auth/login", func(r *route.Request) {
+		auth := struct {
+			Username string
+			Password string
+		}{}
+
+		if !r.Payload(&auth) { //Payload reports its own errors
+			return
+		}
+
+		if auth.Username == "" {
+			r.Fail(route.Errorf(http.StatusForbidden, nil, "no username given"))
+			return
+		}
+
+		if auth.Password == "" {
+			r.Fail(route.Errorf(http.StatusForbidden, nil, "no password given"))
+		}
+
+		user, err := core.DB.GetUser(auth.Username, "local")
+		if err != nil {
+			r.Fail(route.Oops(err, "an unknown error occurred when authenticating local user '%s'", auth.Username))
+			return
+		}
+
+		if user == nil || !user.Authenticate(auth.Password) {
+			r.Fail(route.Errorf(http.StatusForbidden, nil, "incorrect username or password given"))
+			return
+		}
+
+		session, err := core.createSession(user)
+		if err != nil {
+			r.Fail(route.Oops(err, "an unknown error occurred when authenticating local user '%s'", auth.Username))
+			return
+		}
+
+		r.SetCookie(SessionCookie(session.UUID.String(), true))
+		r.SetHeader("X-Shield-Session", session.UUID.String())
+
+		r.Success("logged in as user %s", auth.Username)
+	})
+
+	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) {
+		sessionID := getSessionID(r.Req)
+		if sessionID == "" {
+			//I guess we're okay with not getting a session to logout?...
+			r.Success("no user to logout")
+		}
+
+		id := uuid.Parse(sessionID)
+		if id == nil {
+			r.Fail(route.Bad(nil, "invalid session ID received"))
+		}
+		err := core.DB.ClearSession(id)
+		if err != nil {
+			r.Fail(route.Oops(err, "An unknown error occurred when logging out of the session"))
+			return
+		}
+
+		// unset the session cookie
+		r.SetCookie(SessionCookie("-", false))
+		r.Success("successfully logged out")
+	})
+
+	r.Dispatch("GET /v2/auth/id", func(r *route.Request) {
+		id, _ := core.checkAuth(r.Req)
+		if id == nil {
+			r.OK(struct {
+				Unauthenticated bool `json:"unauthenticated"`
+			}{
+				Unauthenticated: true,
+			})
+			return
+		}
+
+		r.OK(id)
 	})
 	// }}}
 

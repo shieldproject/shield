@@ -56,25 +56,34 @@ type authResponse struct {
 	Tenants []authTenant `json:"tenants"`
 }
 
-func (core *Core) checkAuth(req *http.Request) (*authResponse, error) {
-	cookie, err := req.Cookie(SessionCookieName)
-	if err != nil {
-		if err == http.ErrNoCookie {
-			log.Debugf("no session cookie ('%s') found in request; treating as unauthenticated", SessionCookieName)
-		} else {
-			log.Debugf("failed to extract session cookie ('%s') from request: %s", SessionCookieName, err)
+//Gets the session ID from the request. Returns "" if not given.
+func getSessionID(req *http.Request) string {
+	sessionID := req.Header.Get("X-Shield-Session")
+
+	if sessionID == "" { //If not in header, check for cookie
+		cookie, err := req.Cookie(SessionCookieName)
+		if err == nil { //ErrNoCookie is the only error returned from Cookie()
+			sessionID = cookie.Value
 		}
+	}
+	return sessionID
+}
+
+func (core *Core) checkAuth(req *http.Request) (*authResponse, error) {
+	sessionID := getSessionID(req)
+	if sessionID == "" {
+		log.Debugf("No session ID was found in request")
 		return nil, nil
 	}
 
-	log.Debugf("retrieving user account for session '%s'", cookie.Value)
-	user, err := core.DB.GetUserForSession(cookie.Value)
+	log.Debugf("retrieving user account for session '%s'", sessionID)
+	user, err := core.DB.GetUserForSession(sessionID)
 	if err != nil {
-		log.Debugf("failed to retrieve user account for session '%s': %s", cookie.Value, err)
+		log.Debugf("failed to retrieve user account for session '%s': %s", sessionID, err)
 		return nil, err
 	}
 	if user == nil {
-		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", cookie.Value)
+		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", sessionID)
 		return nil, nil
 	}
 
