@@ -28,15 +28,6 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.initJS(w, req)
 		return
 
-	case match(req, `POST /auth/login`):
-		core.authLogin(w, req)
-		return
-	case match(req, `GET /auth/logout`):
-		core.authLogout(w, req)
-		return
-	case match(req, `GET /auth/id`):
-		core.authID(w, req)
-		return
 	case match(req, `GET /auth/oauth/.+`):
 		core.oauth2(w, req)
 		return
@@ -379,13 +370,14 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	id, _ := core.checkAuth(req)
+	sessionID := getSessionID(req)
+	id, _ := core.checkAuth(sessionID)
 	if id == nil {
 		fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
 	} else {
 		b, err := json.Marshal(id)
 		if err != nil {
-			log.Errorf("init.js: failed to marhsal auth id data into JSON: %s", err)
+			log.Errorf("init.js: failed to marshal auth id data into JSON: %s", err)
 			fmt.Fprintf(w, "// failed to determine user authentication state...\n")
 			fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
 		} else {
@@ -393,77 +385,6 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	w.WriteHeader(200)
-}
-
-func (core *Core) authLogin(w http.ResponseWriter, req *http.Request) {
-	// only applies to the local backend configuration
-	// so we can assume that `username` and `password` are set in the
-	// POST body.
-
-	if req.ParseForm() != nil {
-		w.WriteHeader(400) // FIXME
-		return
-	}
-
-	username := req.PostFormValue("username")
-	password := req.PostFormValue("password")
-
-	user, err := core.DB.GetUser(username, "local")
-	if err != nil {
-		bailWithError(w, ClientErrorf("failed authentication attempt for local user '%s' (database error: %s)", username, err))
-		return
-	}
-	if user == nil {
-		bailWithError(w, ClientErrorf("failed authentication attempt for local user '%s' (no such local account)", username))
-		return
-	}
-	if !user.Authenticate(password) {
-		bailWithError(w, ClientErrorf("failed authentication attempt for local user '%s' (incorrect password)", username))
-		return
-	}
-	session, err := core.createSession(user)
-	if err != nil {
-		bailWithError(w, ClientErrorf(err.Error()))
-		return
-	}
-
-	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
-	w.Header().Set("Location", "/")
-	w.WriteHeader(302)
-}
-
-func (core *Core) authLogout(w http.ResponseWriter, req *http.Request) {
-	// unset the session cookie
-	cookie, err := req.Cookie(SessionCookieName)
-	if err != http.ErrNoCookie {
-		if err != nil {
-			w.Header().Set("Location", "/#!err")
-			w.WriteHeader(302)
-			return
-		}
-
-		err := core.DB.ClearSession(uuid.Parse(cookie.Value))
-		if err != nil {
-			w.Header().Set("Location", "/#!err")
-			w.WriteHeader(302)
-			return
-		}
-
-		http.SetCookie(w, SessionCookie("-", false))
-	}
-	w.Header().Set("Location", "/#!/login")
-	w.WriteHeader(302)
-}
-
-func (core *Core) authID(w http.ResponseWriter, req *http.Request) {
-	id, _ := core.checkAuth(req)
-	if id == nil {
-		JSONLiteral(w, `{"unauthenticated":true}`)
-		w.WriteHeader(200)
-		return
-	}
-
-	JSON(w, id)
 }
 
 func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {

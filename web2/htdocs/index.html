@@ -242,7 +242,8 @@
                   <h2>Sign in with your SHIELD account</h2>
                   <p class="divert">Need an account? <a href="#">Sign up for one today.</a></p>
 
-                  <form method="post" action="/auth/login">
+                  <form>
+                    <div class="error"></div>
                     <div class="ctl">
                       <label for="local-login-username">Username</label>
                       <input type="text" id="local-login-username" name="username">
@@ -319,7 +320,7 @@
             [[ } ]]
             <div class="divider"></div>
             <a class="dropdown" href="#!/account">Settings</a>
-            <a class="dropdown" href="/auth/logout">Sign Out</a>
+            <a class="dropdown" href="#!/logout">Sign Out</a>
           </div>
         </div>
         [[ } ]]
@@ -1458,9 +1459,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/javascript">
     var referer = undefined;
     function dispatch(page) {
-      if ($global.auth.unauthenticated) {
+      if (page != "#!/login" && $global.auth.unauthenticated) {
         console.log('session not authenticated; diverting to #!/login page...');
-        page = "#!/login";
+        goto("#!/login");
+        return
 
       } else if ($global.auth && $global.auth.user && $global.auth.user.sysrole != "" && $global.hud) {
         console.log($global.hud.health.core);
@@ -1500,8 +1502,27 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             type: 'GET',
             url:  '/v2/auth/providers',
             success: function (data) {
-              $('#viewport').html(template('login', { oauth: data }));
-            },
+              $('#viewport').html(template('login', { oauth: data }))
+                .on("submit", "form", function (event) {
+                event.preventDefault()
+                api({
+                  type: "POST",
+                  url: "/v2/auth/login",
+                  data: $(event.target).serializeObject(),
+                  success: function (_, _, xhr) {
+                    /*
+                    $global.auth = xhr.responseJSON;
+                    $("#viewport").html(template("layout"))
+                    goto("");
+                    */
+                    document.location.href = "/"
+                  },
+                  error: function (xhr) {
+                    $(event.target).error(xhr.responseJSON.error);
+                  },
+                });
+              });
+             },
             error: function (xhr) {
               $('#viewport').html(template('BOOM'));
             }
@@ -1509,6 +1530,27 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         })();
         break; /* #!/login */
         // }}}
+
+      case "#!/logout": // {{{
+        (function () {
+          api({
+            type: "GET",
+            url: "/v2/auth/logout",
+            success: function () {
+              $global.auth = { unauthenticated: true };
+              goto("");
+            },
+            error: function (xhr) {
+              if (xhr.status >= 500) {
+                $('#viewport').html(template('BOOM'));
+              } else {
+                goto("");
+              }
+            },
+          });
+        })()
+        break;
+      // }}}
 
       case "#!/do/backup": /* {{{ */
         (function () {
