@@ -1070,10 +1070,10 @@ try "Listing users" # {{{
  includes user exampleuser
  includes user admin
 
- run users --fuzzy m
- context 'users with account "*m*"'
+ run users --fuzzy ex
+ context 'users with account "*ex*"'
  includes user exampleuser
- includes user admin
+ excludes user admin
 
  run users --fuzzy xyzzy
  none 'no users with account "*xyzzy*"'
