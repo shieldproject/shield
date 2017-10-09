@@ -68,6 +68,7 @@ func GetUsers(filter UserFilter) ([]User, error) {
 	uri.MaybeAddParameter("account", filter.Account)
 	uri.MaybeAddParameter("sysrole", filter.SysRole)
 	uri.MaybeAddParameter("limit", filter.Limit)
+	uri.MaybeAddParameter("exact", filter.ExactMatch)
 
 	var data []User
 	return data, uri.Get(&data)

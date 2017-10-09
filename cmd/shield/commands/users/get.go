@@ -24,7 +24,7 @@ var Get = &commands.Command{
 		JSONOutput: `{
 			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
 			"name":"Example User",
-			"account":"exampleuser"
+			"account":"exampleuser",
 			"sysrole":"admin/manager/technician"
 		}`,
 	},

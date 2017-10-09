@@ -19,14 +19,14 @@ var Edit = &commands.Command{
 		JSONInput: `{
 			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
 			"name":"Example User",
-			"account":"exampleuser"
-			"password":"foobar"
+			"account":"exampleuser",
+			"password":"foobar",
 			"sysrole":"admin/manager/technician"
 		}`,
 		JSONOutput: `{
 			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
 			"name":"Example User",
-			"account":"exampleuser"
+			"account":"exampleuser",
 			"sysrole":"admin/manager/technician"
 		}`,
 	},

@@ -225,11 +225,12 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		l, err := core.DB.GetAllUsers(&db.UserFilter{
-			UUID:    paramValue(r.Req, "uuid", ""),
-			Account: paramValue(r.Req, "account", ""),
-			SysRole: paramValue(r.Req, "sysrole", ""),
-			Backend: "local",
-			Limit:   limit,
+			UUID:       paramValue(r.Req, "uuid", ""),
+			Account:    paramValue(r.Req, "account", ""),
+			SysRole:    paramValue(r.Req, "sysrole", ""),
+			ExactMatch: paramEquals(r.Req, "exact", "t"),
+			Backend:    "local",
+			Limit:      limit,
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve local users information"))

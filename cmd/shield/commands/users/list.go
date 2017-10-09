@@ -2,6 +2,7 @@ package users
 
 import (
 	"os"
+	"strings"
 
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
@@ -19,15 +20,12 @@ var List = &commands.Command{
 				Name: "sysrole", Short: 'r', Valued: true,
 				Desc: "Show only users with the specified system role.",
 			},
-			commands.FlagInfo{
-				Name: "account", Valued: true,
-				Desc: "Show only users with the specified account.",
-			},
+			commands.FuzzyFlag,
 		},
 		JSONOutput: `[{
 			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
 			"name":"Example User",
-			"account":"exampleuser"
+			"account":"exampleuser",
 			"sysrole":"admin/manager/technician"
 		}]`,
 	},
@@ -42,11 +40,15 @@ func cliListUsers(opts *commands.Options, args ...string) error {
 		*opts.Limit = "20"
 	}
 	log.DEBUG("  for limit: '%s'", *opts.Limit)
+	if *opts.Raw {
+		log.DEBUG(" fuzzy search? %v", api.MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
+	}
 
 	users, err := api.GetUsers(api.UserFilter{
-		SysRole: *opts.SysRole,
-		Account: *opts.Account,
-		Limit:   *opts.Limit,
+		SysRole:    *opts.SysRole,
+		Account:    strings.Join(args, " "),
+		Limit:      *opts.Limit,
+		ExactMatch: api.Opposite(api.MaybeBools(*opts.Fuzzy, *opts.Raw)),
 	})
 	if err != nil {
 		return err
