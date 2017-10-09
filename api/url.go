@@ -172,6 +172,16 @@ func (u *URL) Put(out interface{}, data string) error {
 	return u.Request(out, r)
 }
 
+func (u *URL) Patch(out interface{}, data string) error {
+	r, err := http.NewRequest("PATCH", u.String(),
+		bytes.NewBufferString(data))
+	if err != nil {
+		return err
+	}
+	r.Header.Set("Content-Type", "application/json")
+	return u.Request(out, r)
+}
+
 func makeRequest(req *http.Request) (*http.Response, error) {
 	skipSSL := os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "" || curBackend.SkipSSLValidation
 	client := &http.Client{

@@ -219,8 +219,19 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/auth/local/users", func(r *route.Request) { // {{{
+		limit := paramValue(r.Req, "limit", "")
+		if invalidlimit(limit) {
+			r.Fail(route.Bad(nil, "Invalid limit supplied: '%d'", limit))
+			return
+		}
+
 		l, err := core.DB.GetAllUsers(&db.UserFilter{
-			Backend: "local",
+			UUID:       paramValue(r.Req, "uuid", ""),
+			Account:    paramValue(r.Req, "account", ""),
+			SysRole:    paramValue(r.Req, "sysrole", ""),
+			ExactMatch: paramEquals(r.Req, "exact", "t"),
+			Backend:    "local",
+			Limit:      limit,
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve local users information"))
@@ -266,7 +277,29 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.OK(user)
+		memberships, err := core.DB.GetMembershipsForUser(user.UUID)
+		if err != nil {
+			log.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
+				user.Account, user.Backend, user.UUID.String(), err)
+			r.Fail(route.Oops(err, "Unable to retrieve local users information"))
+			return
+		}
+
+		local_user := v2LocalUser{
+			UUID:    user.UUID.String(),
+			Name:    user.Name,
+			Account: user.Account,
+			SysRole: user.SysRole,
+			Tenants: make([]v2LocalTenant, len(memberships)),
+		}
+
+		for j, membership := range memberships {
+			local_user.Tenants[j].UUID = membership.TenantUUID.String()
+			local_user.Tenants[j].Name = membership.TenantName
+			local_user.Tenants[j].Role = membership.Role
+		}
+
+		r.OK(local_user)
 	})
 	// }}}
 	r.Dispatch("POST /v2/auth/local/users", func(r *route.Request) { // {{{
@@ -275,6 +308,7 @@ func (core *Core) v2API() *route.Router {
 			Name     string `json:"name"`
 			Account  string `json:"account"`
 			Password string `json:"password"`
+			SysRole  string `json:"sysrole"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -289,21 +323,44 @@ func (core *Core) v2API() *route.Router {
 			id = uuid.Parse(in.UUID)
 		}
 
+		if in.SysRole != "" {
+			switch in.SysRole {
+			case
+				"admin",
+				"manager",
+				"technician":
+			default:
+				r.Fail(route.Bad(nil, "System Role '%s' is invalid", in.SysRole))
+				return
+			}
+		}
+
 		u := &db.User{
 			UUID:    id,
 			Name:    in.Name,
 			Account: in.Account,
 			Backend: "local",
-			SysRole: "",
+			SysRole: in.SysRole,
 		}
 		u.SetPassword(in.Password)
 
-		id, err := core.DB.CreateUser(u)
+		exists, err := core.DB.GetUser(u.Account, "local")
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to create local user '%s' (local auth provider)", in.Name))
 			return
 		}
-		r.OK(id)
+
+		if exists != nil {
+			r.Fail(route.Bad(nil, "user '%s' already exists (for local auth provider)", u.Account))
+			return
+		}
+
+		new_user, err := core.DB.CreateUser(u)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create local user '%s' (local auth provider)", in.Name))
+			return
+		}
+		r.OK(new_user)
 	})
 	// }}}
 	r.Dispatch("PATCH /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
@@ -321,20 +378,37 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		if r.Missing("name", in.Name) {
+		user, err := core.DB.GetUserByID(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to update local user information"))
 			return
 		}
-
-		u := &db.User{
-			UUID:    uuid.Parse(r.Args[1]),
-			Name:    in.Name,
-			SysRole: in.SysRole,
+		if user == nil || user.Backend != "local" {
+			r.Fail(route.NotFound(nil, "Local User '%s' not found", r.Args[1]))
+			return
 		}
+		if in.Name != "" {
+			user.Name = in.Name
+		}
+
+		if in.SysRole != "" {
+			switch in.SysRole {
+			case
+				"admin",
+				"manager",
+				"technician":
+				user.SysRole = in.SysRole
+			default:
+				r.Fail(route.Bad(nil, "System Role '%s' is invalid", in.SysRole))
+				return
+			}
+		}
+
 		if in.Password != "" {
-			u.SetPassword(in.Password)
+			user.SetPassword(in.Password)
 		}
 
-		err := core.DB.UpdateUser(u)
+		err = core.DB.UpdateUser(user)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to update local user '%s' (local auth provider)", in.Name))
 			return

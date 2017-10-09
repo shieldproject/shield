@@ -223,6 +223,10 @@ echo "creating local developer user (dev:coyote)"
 $umc new-user --username dev --password coyote
 $umc invite dev --tenant 'Acme, Inc.' --role engineer
 
+echo "creating developer tenant 'Umbrella Corporation'"
+$umc new-tenant --name 'Umbrella Corporation'
+$umc invite dev --tenant 'Umbrella Corporation' --role admin
+
 echo "running some jobs"
 $shield run DevJob
 sleep 2
