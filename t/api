@@ -202,6 +202,20 @@ ok() {
 	fi
 }
 # }}}
+
+# }}}
+# notok $? "what should have happened..." {{{
+notok() {
+	local rc=$1
+	local msg=$2
+
+	if [[ $rc != 0 ]]; then
+		pass "$msg"
+	else
+		fail "$msg"
+	fi
+}
+# }}}
 # is $got $expected "why it should have been that way..." {{{
 is() {
 	local got=$1
@@ -314,6 +328,12 @@ attr() {
 run() {
 	shield -k --raw "$@" > $WORKDIR/out
 	ok $? "\`shield $*' should succeed"
+}
+# }}}
+# runerr command --plus --arg u ments {{{
+runerr() {
+	shield -k --raw "$@" > $WORKDIR/out
+	notok $? "\`shield $*' should not succeed"
 }
 # }}}
 # none "why the last list retrieved should be empty" {{{
@@ -505,7 +525,7 @@ try "Checking that various API endpoints require JSON payloads" # {{{
 
 # }}}
 #
-try "Checking that unimplemented v2HTTP methods return 501s" # {{{
+try "Checking that unimplemented v2 HTTP methods return 501s" # {{{
 (for method in PUT DELETE PATCH OPTIONS TRACE; do
    for type in auth/local/users; do
      is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type")" \
@@ -522,7 +542,7 @@ try "Checking that unimplemented v2HTTP methods return 501s" # {{{
 
 
 # }}}
-try "Checking that various v2API endpoints validate UUIDs" # {{{
+try "Checking that various v2 API endpoints validate UUIDs" # {{{
 (for uuid in malformed-uuid-01234 "" "(abcdef-01234-56-789)"; do
    for method in GET PUT; do
      for type in auth/local/users; do
@@ -535,7 +555,7 @@ try "Checking that various v2API endpoints validate UUIDs" # {{{
 
 
 # }}}
-try "Checking that various v2API endpoints require JSON payloads" # {{{
+try "Checking that various v2 API endpoints require JSON payloads" # {{{
 (uuid=053d66fd-441d-4801-9d26-3e11b99d34a7
  badjson="}"
  for type in auth/local/users; do
@@ -690,7 +710,7 @@ EOF
  create user exampleuser <<EOF
 {
   "uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-	"name":"exampleuser",
+  "name":"exampleuser",
   "account":"exampleuser",
   "password":"foobar",
   "sysrole":"technician"
@@ -700,7 +720,7 @@ EOF
  create user admin <<EOF
 {
   "uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0ce",
-	"name":"admin",
+  "name":"admin",
   "account":"admin",
   "password":"notpassword",
   "sysrole":"admin"
@@ -1157,7 +1177,7 @@ EOF
 update user admin <<EOF
 {
   "uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0ce",
-	"name":"nobody",
+  "name":"nobody",
   "account":"admin",
   "password":"notpassword",
   "sysrole":"manager"
@@ -1195,6 +1215,10 @@ try "Deleting things" # {{{
  context 'users can always be deleted'
  can_delete user admin
  can_delete user exampleuser
+
+ context 'can not delete nonexistant user'
+ runerr delete-user nonexistant
+ attr error 'no matching users found'
 
 ) 2>&1 | indent
 
