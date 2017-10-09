@@ -25,18 +25,17 @@ type HelpGroup struct {
 
 //Enumeration for HelpGroupTypes
 var (
-	InfoGroup      = &HelpGroup{name: "INFO"}
-	MiscGroup      = &HelpGroup{name: "MISCELLANEOUS"}
-	BackendsGroup  = &HelpGroup{name: "BACKENDS"}
-	TargetsGroup   = &HelpGroup{name: "TARGETS"}
-	StoresGroup    = &HelpGroup{name: "STORES"}
-	SchedulesGroup = &HelpGroup{name: "SCHEDULES"}
-	PoliciesGroup  = &HelpGroup{name: "POLICIES"}
-	JobsGroup      = &HelpGroup{name: "JOBS"}
-	ArchivesGroup  = &HelpGroup{name: "ARCHIVES"}
-	AccessGroup    = &HelpGroup{name: "ACCESS"}
-	TasksGroup     = &HelpGroup{name: "TASKS"}
-	UsersGroup     = &HelpGroup{name: "USERS"}
+	InfoGroup     = &HelpGroup{name: "INFO"}
+	MiscGroup     = &HelpGroup{name: "MISCELLANEOUS"}
+	BackendsGroup = &HelpGroup{name: "BACKENDS"}
+	TargetsGroup  = &HelpGroup{name: "TARGETS"}
+	StoresGroup   = &HelpGroup{name: "STORES"}
+	PoliciesGroup = &HelpGroup{name: "POLICIES"}
+	JobsGroup     = &HelpGroup{name: "JOBS"}
+	ArchivesGroup = &HelpGroup{name: "ARCHIVES"}
+	AccessGroup   = &HelpGroup{name: "ACCESS"}
+	TasksGroup    = &HelpGroup{name: "TASKS"}
+	UsersGroup    = &HelpGroup{name: "USERS"}
 )
 
 func (h *HelpGroup) addCommand(c *Command) {
