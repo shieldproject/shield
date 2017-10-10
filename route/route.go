@@ -38,7 +38,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			request.Args = args
 			rt.handler(request)
 			if !request.done {
-				log.Errorf("%s handler bug: failed to call either OK() or Fail()")
+				log.Errorf("%s handler bug: failed to call either OK() or Fail()", request)
 				request.Fail(Oops(nil, "an unknown error has occurred"))
 			}
 			return
