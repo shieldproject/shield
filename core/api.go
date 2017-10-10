@@ -810,18 +810,17 @@ func (core *Core) v1CreateRetentionPolicy(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	id, err := core.DB.CreateRetentionPolicy(params.Expires)
+	policy, err := core.DB.CreateRetentionPolicy(&db.RetentionPolicy{
+		Name:    params.Name,
+		Summary: params.Summary,
+		Expires: params.Expires,
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
 
-	if err := core.DB.AnnotateRetentionPolicy(id, params.Name, params.Summary); err != nil {
-		bail(w, err)
-		return
-	}
-
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, policy.UUID.String()))
 }
 
 func (core *Core) v1GetRetentionPolicy(w http.ResponseWriter, req *http.Request) {
@@ -882,11 +881,17 @@ func (core *Core) v1UpdateRetentionPolicy(w http.ResponseWriter, req *http.Reque
 
 	re := regexp.MustCompile("^/v1/retention/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateRetentionPolicy(id, params.Expires); err != nil {
+
+	policy, err := core.DB.GetRetentionPolicy(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateRetentionPolicy(id, params.Name, params.Summary); err != nil {
+
+	policy.Name = params.Name
+	policy.Summary = params.Summary
+	policy.Expires = params.Expires
+	if err := core.DB.UpdateRetentionPolicy(policy); err != nil {
 		bail(w, err)
 		return
 	}
