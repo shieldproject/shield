@@ -234,7 +234,7 @@
 
                   <ul>
                     [[ $.each(_.oauth, function (i, oauth) { ]]
-                    <li class="oauth-[[= oauth.type ]]"><a href="/auth/oauth/[[= oauth.identifier ]]">[[= oauth.name ]]</a></li>
+                    <li class="oauth-[[= oauth.type ]]"><a class="login" href="/auth/oauth/[[= oauth.identifier ]]">[[= oauth.name ]]</a></li>
                     [[ }); ]]
                 </div>
                 [[ } ]]
@@ -266,6 +266,19 @@
               </div>
             </div>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--logging-in"><!-- {{{ -->
+      [[#
+        {logging-in} template
+
+        A simple loading screen that keeps the viewer apprised of
+        our login efforts, while the browser processes the actual
+        login and/or redirection.
+      ]]
+      <div id="logging-in">
+        <p><img src="/i/loading-icon.svg"/>
+           Signing into <span>SHIELD</span> via <span>[[= _.auth ]]</span>...</p>
+      </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--BOOM"><!-- {{{ -->
       [[#
@@ -1616,30 +1629,39 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
       case "#!/login": /* {{{ */
         (function () {
+          var progress = function (how) {
+            $('#viewport').find('#logging-in').remove();
+            $('#viewport').append(template('logging-in', {auth: how}));
+          }
+
           api({
             type: 'GET',
             url:  '/v2/auth/providers',
             success: function (data) {
               $('#viewport').html(template('login', { oauth: data }))
+                .on("click", ".login", function (event) {
+                  progress($(event.target).text());
+                })
                 .on("submit", "form", function (event) {
-                event.preventDefault()
-                api({
-                  type: "POST",
-                  url: "/v2/auth/login",
-                  data: $(event.target).serializeObject(),
-                  success: function (_, _, xhr) {
-                    /*
-                    $global.auth = xhr.responseJSON;
-                    $("#viewport").html(template("layout"))
-                    goto("");
-                    */
-                    document.location.href = "/"
-                  },
-                  error: function (xhr) {
-                    $(event.target).error(xhr.responseJSON.error);
-                  },
+                  event.preventDefault()
+                  progress('local SHIELD authentication');
+                  api({
+                    type: "POST",
+                    url: "/v2/auth/login",
+                    data: $(event.target).serializeObject(),
+                    success: function (_, _, xhr) {
+                      /*
+                      $global.auth = xhr.responseJSON;
+                      $("#viewport").html(template("layout"))
+                      goto("");
+                      */
+                      document.location.href = "/"
+                    },
+                    error: function (xhr) {
+                      $(event.target).error(xhr.responseJSON);
+                    },
+                  });
                 });
-              });
              },
             error: function (xhr) {
               $('#viewport').html(template('BOOM'));
