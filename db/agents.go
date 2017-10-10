@@ -19,7 +19,7 @@ type Agent struct {
 	LastSeenAt Timestamp `json:"last_seen_at"`
 	LastError  string    `json:"last_error"`
 	Status     string    `json:"status"`
-	Metadata   string    `json:"metadata"`
+	Metadata   string    `json:"-"`
 }
 
 type AgentFilter struct {
@@ -125,7 +125,7 @@ func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
 	var this NullUUID
 
 	if err = r.Scan(
-		&agent.UUID, &agent.Name, &agent.Address, &agent.Version,
+		&this, &agent.Name, &agent.Address, &agent.Version,
 		&hidden, &lastSeenAt, &agent.LastError, &agent.Status,
 		&agent.Metadata); err != nil {
 

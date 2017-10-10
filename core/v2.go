@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -190,7 +191,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("POST /v2/ui/users", func (r *route.Request) { // {{{
+	r.Dispatch("POST /v2/ui/users", func(r *route.Request) { // {{{
 		var in struct {
 			Search string `json:"search"`
 		}
@@ -203,8 +204,8 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		users, err := core.DB.GetAllUsers(&db.UserFilter{
-			Backend: "local",
-			Account: in.Search,
+			Backend:    "local",
+			Account:    in.Search,
 			ExactMatch: false,
 		})
 		if err != nil {
@@ -212,7 +213,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 		r.OK(users)
-	});
+	})
 	// }}}
 
 	r.Dispatch("GET /v2/auth/providers", func(r *route.Request) { // {{{
@@ -668,6 +669,51 @@ func (core *Core) v2API() *route.Router {
 		r.OK(resp)
 	})
 	// }}}
+
+	r.Dispatch("GET /v2/agents/:uuid", func(r *route.Request) { // {{{
+		agentID := uuid.Parse(r.Args[1])
+		if agentID == nil {
+			r.Fail(route.Bad(nil, "Invalid Agent UUID"))
+			return
+		}
+
+		agent, err := core.DB.GetAgent(agentID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+		if agent == nil {
+			r.Fail(route.NotFound(nil, "No such agent"))
+			return
+		}
+
+		var raw map[string]interface{}
+		if err = json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+
+		resp := struct {
+			Agent    db.Agent               `json:"agent"`
+			Metadata map[string]interface{} `json:"metadata"`
+			Problems []string               `json:"problems"`
+		}{
+			Agent:    *agent,
+			Metadata: raw,
+			Problems: make([]string, 0),
+		}
+
+		if agent.Version == "" {
+			resp.Problems = append(resp.Problems, Problems["legacy-shield-agent-version"])
+		}
+		if agent.Version == "dev" {
+			resp.Problems = append(resp.Problems, Problems["dev-shield-agent-version"])
+		}
+
+		r.OK(resp)
+	})
+	// }}}
+
 	r.Dispatch("POST /v2/agents", func(r *route.Request) { // {{{
 		var in struct {
 			Name string `json:"name"`
@@ -745,7 +791,7 @@ func (core *Core) v2API() *route.Router {
 			Users []struct {
 				UUID    string `json:"uuid"`
 				Account string `json:"account"`
-				Role string `json:"role"`
+				Role    string `json:"role"`
 			} `json:"users"`
 		}
 		if !r.Payload(&in) {
@@ -776,7 +822,7 @@ func (core *Core) v2API() *route.Router {
 			}
 		}
 
-		r.Success("Invitations sent");
+		r.Success("Invitations sent")
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/banish", func(r *route.Request) { // {{{
@@ -824,7 +870,7 @@ func (core *Core) v2API() *route.Router {
 			}
 		}
 
-		r.Success("Banishments served.");
+		r.Success("Banishments served.")
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants", func(r *route.Request) { // {{{
@@ -835,7 +881,7 @@ func (core *Core) v2API() *route.Router {
 			Users []struct {
 				UUID    string `json:"uuid"`
 				Account string `json:"account"`
-				Role string `json:"role"`
+				Role    string `json:"role"`
 			} `json:"users"`
 		}
 		if !r.Payload(&in) {
