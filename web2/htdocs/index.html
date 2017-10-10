@@ -2002,6 +2002,20 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   user.role = 'operator';
                   $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
                   members[user.uuid] = user;
+
+                  api({
+                    type: 'POST',
+                    url:  '/v2/tenants/'+args.uuid+'/invite',
+                    data: {users:[user]},
+                    error: "Unable to save tenant role assignment.",
+                    success: function () {
+                      banner('User "'+user.account+'" is now '+{
+                          admin    : 'an administrator',
+                          engineer : 'an engineer',
+                          operator : 'an operator'
+                        }[user.role]+' on this tenant.');
+                    }
+                  });
                 }
               })
               .roles('.role', function (e, role) {
