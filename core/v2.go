@@ -959,8 +959,9 @@ func (core *Core) v2API() *route.Router {
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
+	// }}}
 
-	r.Dispatch("POST /v2/auth/login", func(r *route.Request) {
+	r.Dispatch("POST /v2/auth/login", func(r *route.Request) { // {{{
 		auth := struct {
 			Username string
 			Password string
@@ -1006,8 +1007,8 @@ func (core *Core) v2API() *route.Router {
 
 		r.OK(id)
 	})
-
-	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) {
+	// }}}
+	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) { // {{{
 		sessionID := getSessionID(r.Req)
 		if sessionID == "" {
 			//I guess we're okay with not getting a session to logout?...
@@ -1028,8 +1029,8 @@ func (core *Core) v2API() *route.Router {
 		r.SetCookie(SessionCookie("-", false))
 		r.Success("Successfully logged out")
 	})
-
-	r.Dispatch("GET /v2/auth/id", func(r *route.Request) {
+	// }}}
+	r.Dispatch("GET /v2/auth/id", func(r *route.Request) { // {{{
 		sessionID := getSessionID(r.Req)
 		if sessionID == "" {
 			r.Fail(route.Bad(fmt.Errorf("Request contained invalid session ID"), "Unable to get user information"))
