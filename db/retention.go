@@ -126,13 +126,6 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 	return p, nil
 }
 
-func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
-	return db.Exec(
-		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`,
-		name, summary, id.String(),
-	)
-}
-
 func (db *DB) CreateRetentionPolicy(p *RetentionPolicy) (*RetentionPolicy, error) {
 	p.UUID = uuid.NewRandom()
 	return p, db.Exec(`

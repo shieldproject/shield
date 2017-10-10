@@ -154,13 +154,6 @@ func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 	return t, nil
 }
 
-func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
-	return db.Exec(
-		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`,
-		name, summary, id.String(),
-	)
-}
-
 func (db *DB) CreateTarget(in *Target) (*Target, error) {
 	in.UUID = uuid.NewRandom()
 	return in, db.Exec(`
