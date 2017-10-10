@@ -1261,7 +1261,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/jobs", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
 		jobs, err := core.DB.GetAllJobs(
 			&db.JobFilter{
 				ForTenant:    r.Args[1],
@@ -1284,24 +1284,209 @@ func (core *Core) v2API() *route.Router {
 		r.OK(jobs)
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/jobs", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("POST /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Schedule string `json:"schedule"`
+			Paused   bool   `json:"paused"`
+
+			StoreUUID     string `json:"store"`
+			TargetUUID    string `json:"target"`
+			RetentionUUID string `json:"retention"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if r.Missing("name", in.Name, "store", in.StoreUUID, "target", in.TargetUUID, "schedule", in.Schedule, "retention", in.RetentionUUID) {
+			return
+		}
+
+		job, err := core.DB.CreateJob(&db.Job{
+			TenantUUID:    uuid.Parse(r.Args[1]),
+			Name:          in.Name,
+			Summary:       in.Summary,
+			Schedule:      in.Schedule,
+			Paused:        in.Paused,
+			StoreUUID:     uuid.Parse(in.StoreUUID),
+			TargetUUID:    uuid.Parse(in.TargetUUID),
+			RetentionUUID: uuid.Parse(in.RetentionUUID),
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create new job"))
+			return
+		}
+
+		r.OK(job)
 	})
 	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("GET /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		r.OK(job)
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("PUT /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Schedule string `json:"schedule"`
+
+			StoreUUID     string `json:"store"`
+			TargetUUID    string `json:"target"`
+			RetentionUUID string `json:"retention"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		if in.Name != "" {
+			job.Name = in.Name
+		}
+		if in.Summary != "" {
+			job.Summary = in.Summary
+		}
+		if in.Schedule != "" {
+			job.Schedule = in.Schedule
+		}
+		if in.TargetUUID != "" {
+			job.TargetUUID = uuid.Parse(in.TargetUUID)
+		}
+		if in.StoreUUID != "" {
+			job.StoreUUID = uuid.Parse(in.StoreUUID)
+		}
+		if in.RetentionUUID != "" {
+			job.RetentionUUID = uuid.Parse(in.RetentionUUID)
+		}
+
+		if err := core.DB.UpdateJob(job); err != nil {
+			r.Fail(route.Oops(err, "Unable to update job"))
+			return
+		}
+
+		r.Success("Updated job successfully")
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("DELETE /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteJob(job.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete job"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Forbidden(nil, "The job cannot be deleted at this time"))
+			return
+		}
+
+		r.Success("Job deleted successfully")
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/:action", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/run", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		var in struct {
+			Owner string `json:"owner"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if in.Owner == "" {
+			in.Owner = "anon"
+		}
+
+		task, err := core.DB.CreateBackupTask(in.Owner, job)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to schedule ad hoc backup job run"))
+			return
+		}
+
+		var out struct {
+			OK       string    `json:"ok"`
+			TaskUUID uuid.UUID `json:"task_uuid"`
+		}
+
+		out.OK = "Scheduled ad hoc backup job run"
+		out.TaskUUID = task.UUID
+		r.OK(out)
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/pause", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		if _, err = core.DB.PauseJob(job.UUID); err != nil {
+			r.Fail(route.Oops(err, "Unable to pause job"))
+			return
+		}
+		r.Success("Paused job successfully")
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/unpause", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		if _, err = core.DB.UnpauseJob(job.UUID); err != nil {
+			r.Fail(route.Oops(err, "Unable to unpause job"))
+			return
+		}
+		r.Success("Unpaused job successfully")
 	})
 	// }}}
 

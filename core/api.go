@@ -589,18 +589,21 @@ func (core *Core) v1CreateJob(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateJob(params.Target, params.Store, params.Schedule, params.Retention, params.Paused)
+	job, err := core.DB.CreateJob(&db.Job{
+		Name:          params.Name,
+		Summary:       params.Summary,
+		Schedule:      params.Schedule,
+		Paused:        params.Paused,
+		TargetUUID:    uuid.Parse(params.Target),
+		StoreUUID:     uuid.Parse(params.Store),
+		RetentionUUID: uuid.Parse(params.Retention),
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
 
-	err = core.DB.AnnotateJob(id, params.Name, params.Summary)
-	if err != nil {
-		bail(w, err)
-		return
-	}
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, job.UUID.String()))
 }
 
 func (core *Core) v1PauseJob(w http.ResponseWriter, req *http.Request) {
@@ -725,11 +728,20 @@ func (core *Core) v1UpdateJob(w http.ResponseWriter, req *http.Request) {
 	re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)`)
 	id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-	if err := core.DB.UpdateJob(id, params.Target, params.Store, params.Schedule, params.Retention); err != nil {
+	job, err := core.DB.GetJob(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateJob(id, params.Name, params.Summary); err != nil {
+
+	job.Name = params.Name
+	job.Summary = params.Summary
+	job.Schedule = params.Schedule
+	job.TargetUUID = uuid.Parse(params.Target)
+	job.StoreUUID = uuid.Parse(params.Store)
+	job.RetentionUUID = uuid.Parse(params.Retention)
+
+	if err := core.DB.UpdateJob(job); err != nil {
 		bail(w, err)
 		return
 	}
