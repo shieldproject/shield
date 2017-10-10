@@ -671,7 +671,6 @@ func (core *Core) v2API() *route.Router {
 		r.OK(resp)
 	})
 	// }}}
-
 	r.Dispatch("GET /v2/agents/:uuid", func(r *route.Request) { // {{{
 		agentID := uuid.Parse(r.Args[1])
 		if agentID == nil {
@@ -715,7 +714,6 @@ func (core *Core) v2API() *route.Router {
 		r.OK(resp)
 	})
 	// }}}
-
 	r.Dispatch("POST /v2/agents", func(r *route.Request) { // {{{
 		var in struct {
 			Name string `json:"name"`
