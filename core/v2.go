@@ -707,7 +707,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		if !r.Missing("name", in.Name) {
+		if r.Missing("name", in.Name) {
 			return
 		}
 
