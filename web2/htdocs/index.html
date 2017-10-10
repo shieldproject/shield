@@ -305,7 +305,7 @@
         <h1><a href="#!/systems">SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></a></h1>
         [[ if (_.user) { ]]
         <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
-        <div class="flyout">
+        <div class="flyout ephemeral">
           <div class="menu">
             <div class="header">Signed in as [[= _.user.account ]]
               <span>[[= _.user.backend ]]</span>
@@ -417,6 +417,48 @@
               <input type="text" value="" /></p>
             </form>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--roles-menu"><!-- {{{ -->
+      [[#
+        {roles-menu}
+
+        A flyout menu for selecting roles, on either tenants
+        (if given {type: "tenant"}) or the system ({type: "system"}).
+      ]]
+      <div class="roles-menu ephemeral">
+        [[ if (_.type == 'tenant') { ]]
+        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
+          <strong>Administrator</strong>
+          <p>Full control over this tenant.</p>
+        </div>
+        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+          <strong>Engineer</strong>
+          <p>Can do everything except manage other peoples
+             access to this tenant.</p>
+        </div>
+        <div[[ if (_.current == "operator") { ]] class="current"[[ } ]] data-role="operator">
+          <strong>Operator</strong>
+          <p>View access to most things, with the ability to
+             pause and unpause jobs, run ad hoc backups, and
+             perform restore operations.</p>
+        </div>
+        [[ } else { ]]
+        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
+          <strong>Administrator</strong>
+          <p>Full control over SHIELD.</p>
+        </div>
+        <div[[ if (_.current == "manager") { ]] class="current"[[ } ]] data-role="manager">
+          <strong>Manager</strong>
+          <p>Can create and edit tenants, manage tenant/user
+             memberships, and manage user accounts and access rights.</p>
+        </div>
+        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+          <strong>Engineer</strong>
+          <p>Manages global configuration, including shared cloud
+             storage configurations and retention policy templates.</p>
+        </div>
+        [[ } ]]
+      </div>
     <!-- }}} --></script>
 
     <script type="text/html" id="tpl--init"><!-- {{{ -->
@@ -1083,9 +1125,75 @@
                 </div>
               </div>
 
+              <div class="ctl">
+                <label for="tenant-invite">People In This Tenant</label>
+                <div class="widget">
+                  <input type="text" name="invite" id="tenant-invite" autocomplete="off"
+                         class="invite" placeholder="Invite people to join..." />
+
+                  <table class="tenant-members">
+                    <thead><tr>
+                      <th></th>
+                      <th>Display Name</th>
+                      <th>Username</th>
+                      <th>Role</th>
+                    </tr></thead>
+                    <tbody data-type="tenant">
+                      [[ if (_.tenant) { ]]
+                        [[ $.each(_.tenant.members, function (i, user) { ]]
+                        <tr data-uuid="[[= user.uuid ]]" data-account="[[= user.account ]]">
+                          <td><a href="banish:user"><img src="/i/delete.png"></a></td>
+                          <td>[[= user.name ]]</td>
+                          <td>[[= user.account ]]</td>
+                          <td><span class="role" data-role="[[= user.role ]]">
+                          [[= { admin      : "Administrator",
+                                engineer   : "Engineer",
+                                operator   : "Operator" }[user.role] ]]
+                          </span></td>
+                        </tr>
+                        [[ }); ]]
+                      [[ } ]]
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <button class="go">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
             </form>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--tenants-form-invitee"><!-- {{{ -->
+      [[#
+        {tenants-form-invitee} template
+
+        Renders a table row in the invitee management UI control.
+      ]]
+                      <tr data-uuid="[[= _.user.uuid ]]" data-account="[[= _.user.account ]]">
+                        <td><a href="banish:user"><img src="/i/delete.png"></a></td>
+                        <td>[[= _.user.name ]]</td>
+                        <td>[[= _.user.account ]]</td>
+                        <td><span class="role" data-role="[[= _.user.role ]]">
+                        [[= { admin      : "Administrator",
+                              engineer   : "Engineer",
+                              operator   : "Operator" }[_.user.role] ]]
+                        </span></td>
+                      </tr>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--userlookup-results"><!-- {{{ -->
+      [[#
+        {userlookup-results} template
+
+        Displays the "dropdown" list of user information,
+        after the /v2/ui/users endpoint has fired in a
+        userlookup control.
+      ]]
+      <div class="userlookup-results">
+        <ul>
+          [[ $.each(_, function (i, user) { ]]
+          <li data-idx="[[= i ]]" data-uuid="[[= user.uuid ]]"><strong>[[= user.name ]]</strong><p>[[= user.account ]]</p></li>
+          [[ }); ]]
+        </ul>
+      </div>
     <!-- }}} --></script>
 
     <script type="text/html" id="tpl--admin"><!-- {{{ -->
@@ -1794,13 +1902,52 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/tenants */
         // }}}
       case '#!/tenants/new': /* {{{ */
-        $('#main').html(template('tenants-form', { policy: null }))
+        var members = {};
+
+        $('#main').html($(template('tenants-form', { policy: null }))
+          .userlookup('input[name=invite]', {
+            // {{{
+            filter: function (users) {
+              var lst = [];
+              $.each(users, function (i, user) {
+                if (!(user.uuid in members)) {
+                  lst.push(user);
+                }
+              });
+              return lst;
+            },
+            onclick: function (user) {
+              user.role = 'operator';
+              $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+              members[user.uuid] = user.role;
+            }
+            // }}}
+          })
+          .roles('.role', function (e, role) {
+            members[e.extract('uuid')] = role;
+          })
           .autofocus()
+          .on('click', 'a[href="banish:user"]', function (event) {
+            // {{{
+            event.preventDefault();
+            delete members[$(event.target).extract('uuid')];
+            $(event.target).closest('tr').remove();
+            // }}}
+          })
           .on('submit', 'form', function (event) {
+            // {{{
             event.preventDefault();
 
             var $form = $(event.target);
             var data = $form.serializeObject();
+            data.users = [];
+            for (uuid in members) {
+              data.users.push({
+                uuid: uuid,
+                role: members[uuid]
+              });
+            }
+            console.log(data);
 
             $form.reset();
 
@@ -1815,7 +1962,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 $form.error(xhr.responseJSON);
               }
             });
-          });
+            // }}}
+          }));
 
         break; /* #!/tenants */
         // }}}
@@ -1825,8 +1973,68 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           url:  '/v2/tenants/'+args.uuid,
           error: "Failed to retrieve tenant information from the SHIELD API.",
           success: function (data) {
-            $('#main').html(template('tenants-form', { tenant: data }))
+            var members = {};
+            $.each(data.members, function (i, user) {
+              members[user.uuid] = user;
+            });
+            $('#main').html($(template('tenants-form', { tenant: data }))
+              .userlookup('input[name=invite]', {
+                filter: function (users) {
+                  var lst = [];
+                  $.each(users, function (i, user) {
+                    if (!(user.uuid in members)) {
+                      lst.push(user);
+                    }
+                  });
+                  return lst;
+                },
+                onclick: function (user) {
+                  user.role = 'operator';
+                  $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+                  members[user.uuid] = user;
+                }
+              })
+              .roles('.role', function (e, role) {
+                var data = {
+                  uuid    : e.extract('uuid'),
+                  account : e.extract('account'),
+                  role    : e.extract('role')
+                };
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+args.uuid+'/invite',
+                  data: {users:[data]},
+                  error: "Unable to save tenant role assignment.",
+                  success: function () {
+                    banner('User "'+data.account+'" is now '+{
+                        admin    : 'an administrator',
+                        engineer : 'an engineer',
+                        operator : 'an operator'
+                      }[data.role]+' on this tenant.');
+                  }
+                });
+              })
               .autofocus()
+              .on('click', 'a[href="banish:user"]', function (event) {
+                event.preventDefault();
+
+                var e = $(event.target);
+                var data = {
+                  uuid    : e.extract('uuid'),
+                  account : e.extract('account')
+                };
+                delete members[data.uuid];
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+args.uuid+'/banish',
+                  data: {users:[data]},
+                  error: "Unable to save tenant role assignment.",
+                  success: function () {
+                    banner('User "'+data.account+'" is no longer associated with this tenant.');
+                  }
+                })
+                $(event.target).closest('tr').remove();
+              })
               .on('submit', 'form', function (event) {
                 event.preventDefault();
 
@@ -1846,7 +2054,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     $form.error(xhr.responseJSON);
                   }
                 });
-              });
+              }));
           }
         });
 
@@ -2122,11 +2330,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         event.stopPropagation();
         $('.top-bar .flyout').toggle();
       });
+      $(document.body).on('click', '.top-bar .fly-out', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      });
       $(document.body).on('click', function (event) {
-        if (!$('.top-bar .flyout').is(':visible')) { return; }
-        if ($(event.target).is('.top-bar .flyout, .top-bar .flyout *')
-          && !$(event.target).is('a')) { return; }
-        $('.top-bar .flyout').hide();
+        $('.ephemeral').hide();
       });
       /* }}} */
 
@@ -2169,7 +2378,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         event.preventDefault();
 
         var $form = $(event.target);
-        var uuid = $form.closest('[data-system-uuid]').data('system-uuid');
+        var uuid = $form.extract('system-uuid');
 
         if ($form.is('[data-system-uuid] [data-task-uuid] *')) {
           var ann = {
@@ -2234,9 +2443,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
       /* global: handle "restore:archive-uuid" buttons {{{ */
       $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
-        var uuid   = $(event.target).closest('[data-archive-uuid]').data('archive-uuid');
-        var target = $(event.target).closest('[data-system-name]').data('system-name');
-        var taken  = $(event.target).closest('[data-archive-taken]').data('archive-taken');
+        var uuid   = $(event.target).extract('archive-uuid');
+        var target = $(event.target).extract('system-name');
+        var taken  = $(event.target).extract('archive-taken');
         console.log('restoring archive %s!', uuid);
 
         modal(template('restore-are-you-sure', {

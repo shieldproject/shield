@@ -190,6 +190,31 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("POST /v2/ui/users", func (r *route.Request) { // {{{
+		var in struct {
+			Search string `json:"search"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+		if len(in.Search) < 3 {
+			r.OK([]string{})
+			return
+		}
+
+		users, err := core.DB.GetAllUsers(&db.UserFilter{
+			Backend: "local",
+			Account: in.Search,
+			ExactMatch: false,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve users from the database."))
+			return
+		}
+		r.OK(users)
+	});
+	// }}}
+
 	r.Dispatch("GET /v2/auth/providers", func(r *route.Request) { // {{{
 		l := make([]v2AuthProvider, 0)
 		for _, auth := range core.auth {
@@ -695,13 +720,123 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.NotFound(nil, "No such tenant"))
 			return
 		}
+
+		tenant.Members, err = core.DB.GetUsersForTenant(tenant.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tenant memberships information"))
+			return
+		}
+
 		r.OK(tenant)
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/invite", func(r *route.Request) { // {{{
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to update tenant memberships information"))
+			return
+		}
+		if tenant == nil {
+			r.Fail(route.NotFound(nil, "No such tenant"))
+			return
+		}
+
+		var in struct {
+			Users []struct {
+				UUID    string `json:"uuid"`
+				Account string `json:"account"`
+				Role string `json:"role"`
+			} `json:"users"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		for _, u := range in.Users {
+			user, err := core.DB.GetUserByID(u.UUID)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unrecognized user account '%s'", user))
+				return
+			}
+
+			if user == nil {
+				r.Fail(route.Oops(err, "Unrecognized user account '%s'", user))
+				return
+			}
+
+			if user.Backend != "local" {
+				r.Fail(route.Oops(nil, "Unable to invite '%s@%s' to tenant '%s' - only local users can be invited.", user.Account, user.Backend, tenant.Name))
+				return
+			}
+
+			err = core.DB.AddUserToTenant(u.UUID, tenant.UUID.String(), u.Role)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to invite '%s' to tenant '%s'", user.Account, tenant.Name))
+				return
+			}
+		}
+
+		r.Success("Invitations sent");
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/banish", func(r *route.Request) { // {{{
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to update tenant memberships information"))
+			return
+		}
+		if tenant == nil {
+			r.Fail(route.NotFound(nil, "No such tenant"))
+			return
+		}
+
+		var in struct {
+			Users []struct {
+				UUID    string `json:"uuid"`
+				Account string `json:"account"`
+			} `json:"users"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		for _, u := range in.Users {
+			user, err := core.DB.GetUserByID(u.UUID)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unrecognized user account '%s'", user))
+				return
+			}
+
+			if user == nil {
+				r.Fail(route.Oops(err, "Unrecognized user account '%s'", user))
+				return
+			}
+
+			if user.Backend != "local" {
+				r.Fail(route.Oops(nil, "Unable to banish '%s@%s' from tenant '%s' - only local users can be banished.", user.Account, user.Backend, tenant.Name))
+				return
+			}
+
+			err = core.DB.RemoveUserFromTenant(u.UUID, tenant.UUID.String())
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to banish '%s' from tenant '%s'", user.Account, tenant.Name))
+				return
+			}
+		}
+
+		r.Success("Banishments served.");
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants", func(r *route.Request) { // {{{
 		var in struct {
 			UUID string `json:"uuid"`
 			Name string `json:"name"`
+
+			Users []struct {
+				UUID    string `json:"uuid"`
+				Account string `json:"account"`
+				Role string `json:"role"`
+			} `json:"users"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -721,6 +856,31 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to create new tenant '%s'", in.Name))
 			return
 		}
+
+		for _, u := range in.Users {
+			user, err := core.DB.GetUserByID(u.UUID)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unrecognized user account '%s'", user))
+				return
+			}
+
+			if user == nil {
+				r.Fail(route.Oops(err, "Unrecognized user account '%s'", user))
+				return
+			}
+
+			if user.Backend != "local" {
+				r.Fail(route.Oops(nil, "Unable to invite '%s@%s' to tenant '%s' - only local users can be invited.", user.Account, user.Backend, t.Name))
+				return
+			}
+
+			err = core.DB.AddUserToTenant(u.UUID, t.UUID.String(), u.Role)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to invite '%s' to tenant '%s'", user.Account, t.Name))
+				return
+			}
+		}
+
 		r.OK(t)
 	})
 	// }}}

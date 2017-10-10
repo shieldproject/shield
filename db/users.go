@@ -20,6 +20,8 @@ type User struct {
 	Backend string    `json:"backend"`
 	SysRole string    `json:"sysrole"`
 
+	Role    string    `json:"role,omitempty"`
+
 	pwhash string
 }
 

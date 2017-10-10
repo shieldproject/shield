@@ -7,8 +7,9 @@ import (
 )
 
 type Tenant struct {
-	UUID uuid.UUID `json:"uuid"`
-	Name string    `json:"name"`
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Members []*User   `json:"members,omitempty"`
 }
 
 func (db *DB) GetAllTenants() ([]*Tenant, error) {
