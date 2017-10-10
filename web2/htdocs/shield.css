@@ -564,7 +564,7 @@ body { font-family: sans-serif; }
   position: fixed;
   top: 29px;
   width: 75%;
-  z-index: 100;
+  z-index: 99;
 }
 .nav.sticky.on { display: block; }
 
@@ -1236,9 +1236,10 @@ button[rel^="run:"] {
 
 
 .flyout {
-  position: absolute;
+  position: fixed;
   top: 38px;
   right: 8px;
+  z-index: 110;
 
   color: #000;
   background-color: #F2F2F2;
