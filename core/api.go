@@ -1206,8 +1206,8 @@ func (core *Core) v1DeleteTarget(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1GetTasks(w http.ResponseWriter, req *http.Request) {
-	limit := paramValue(req, "limit", "")
-	if invalidlimit(limit) {
+	limit, err := strconv.Atoi(paramValue(req, "limit", "0"))
+	if err != nil {
 		bailWithError(w, ClientErrorf("invalid limit supplied"))
 		return
 	}

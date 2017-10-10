@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
@@ -1490,16 +1492,61 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/tasks", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("GET /v2/tenants/:uuid/tasks", func(r *route.Request) { // {{{
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit <= 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
+			return
+		}
+
+		tasks, err := core.DB.GetAllTasks(
+			&db.TaskFilter{
+				SkipActive:   r.ParamIs("active", "f"),
+				SkipInactive: r.ParamIs("active", "t"),
+				ForStatus:    r.Param("status", ""),
+				ForTenant:    r.Args[1],
+				Limit:        limit,
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+
+		r.OK(tasks)
 	})
 	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/tasks/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("GET /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
+		task, err := core.DB.GetTask(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+		if task == nil || task.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(err, "No such task"))
+			return
+		}
+
+		r.OK(task)
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
+		task, err := core.DB.GetTask(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+		if task == nil || task.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(err, "No such task"))
+			return
+		}
+
+		if err = core.DB.CancelTask(task.UUID, time.Now()); err != nil {
+			r.Fail(route.Oops(err, "Unable to cancel task"))
+			return
+		}
+
+		r.Success("Canceled task successfully")
 	})
 	// }}}
 
