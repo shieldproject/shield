@@ -961,7 +961,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/targets", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
 				ForTenant:  r.Args[1],
@@ -980,20 +980,133 @@ func (core *Core) v2API() *route.Router {
 		r.OK(targets)
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/targets", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("POST /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tenant information"))
+			return
+		}
+		if tenant == nil {
+			r.Fail(route.NotFound(nil, "No such tenant"))
+			return
+		}
+
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Plugin   string `json:"plugin"`
+			Endpoint string `json:"endpoint"`
+			Agent    string `json:"agent"`
+		}
+
+		if !r.Payload(&in) {
+			return
+		}
+		if r.Missing("name", in.Name, "plugin", in.Plugin, "endpoint", in.Endpoint, "agent", in.Agent) {
+			return
+		}
+
+		target, err := core.DB.CreateTarget(&db.Target{
+			Name:     in.Name,
+			Summary:  in.Summary,
+			Plugin:   in.Plugin,
+			Endpoint: in.Endpoint,
+			Agent:    in.Agent,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create new data target"))
+			return
+		}
+
+		r.OK(target)
 	})
 	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("GET /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve target information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such target"))
+			return
+		}
+
+		r.OK(target)
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("PUT /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve target information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such target"))
+			return
+		}
+
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Plugin   string `json:"plugin"`
+			Endpoint string `json:"endpoint"`
+			Agent    string `json:"agent"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if in.Name != "" {
+			target.Name = in.Name
+		}
+		if in.Summary != "" {
+			target.Summary = in.Summary
+		}
+		if in.Plugin != "" {
+			target.Plugin = in.Plugin
+		}
+		if in.Endpoint != "" {
+			target.Endpoint = in.Endpoint
+		}
+		if in.Agent != "" {
+			target.Agent = in.Agent
+		}
+
+		if err := core.DB.UpdateTarget(target); err != nil {
+			r.Fail(route.Oops(err, "Unable to update target"))
+			return
+		}
+
+		r.Success("Updated target successfully")
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve target information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such target"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteTarget(target.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete target"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Forbidden(nil, "The target cannot be deleted at this time"))
+			return
+		}
+
+		r.Success("Target deleted successfully")
 	})
 	// }}}
 

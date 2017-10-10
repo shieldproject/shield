@@ -1090,17 +1090,18 @@ func (core *Core) v1CreateTarget(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateTarget(params.Plugin, params.Endpoint, params.Agent)
+	t, err := core.DB.CreateTarget(&db.Target{
+		Name: params.Name, Summary: params.Summary,
+		Plugin:   params.Plugin,
+		Endpoint: params.Endpoint,
+		Agent:    params.Agent,
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateTarget(id, params.Name, params.Summary); err != nil {
-		bail(w, err)
-		return
-	}
 
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, t.UUID.String()))
 }
 
 func (core *Core) v1GetTarget(w http.ResponseWriter, req *http.Request) {
@@ -1152,11 +1153,17 @@ func (core *Core) v1UpdateTarget(w http.ResponseWriter, req *http.Request) {
 
 	re := regexp.MustCompile("^/v1/target/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateTarget(id, params.Plugin, params.Endpoint, params.Agent); err != nil {
+
+	target, err := core.DB.GetTarget(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateTarget(id, params.Name, params.Summary); err != nil {
+	target.Name = params.Name
+	target.Plugin = params.Plugin
+	target.Endpoint = params.Endpoint
+	target.Agent = params.Agent
+	if err := core.DB.UpdateTarget(target); err != nil {
 		bail(w, err)
 		return
 	}
