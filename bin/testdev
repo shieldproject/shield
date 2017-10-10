@@ -173,13 +173,21 @@ EOF
   ./shield-schema -d "${DATABASE}"
   echo
 
-  echo ">> RUNNING SHIELDD"
-  ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
-  echo
-  echo "shieldd exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> RUNNING SHIELDD"
+    trap ":" INT # ignore Ctrl-C
+    ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
+    echo
+    echo "shieldd exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
+
 (shieldagent)
   shield_up="1"
   while [ $shield_up -eq 1 ]; do
@@ -205,12 +213,19 @@ registration:
   interval: 15
 EOF
 
-  echo ">> RUNNING SHIELD AGENT"
-  ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
-  echo
-  echo "shield-agent exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> RUNNING SHIELD AGENT"
+    trap ":" INT # ignore Ctrl-C
+    ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
+    echo
+    echo "shield-agent exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
 ("")
   preflight >&2
