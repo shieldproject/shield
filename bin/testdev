@@ -13,6 +13,47 @@ setup_workdir() {
   mkdir ${workdir}/var
 }
 
+preflight() {
+  echo "RUNNING testdev PRE-FLIGHT CHECKS"
+  echo
+
+  echo "checking for tmux..."
+  if ! type tmux &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires tmux (https://tmux.github.io)"
+    echo "You will need to install tmux to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install tmux\` and be on your way."
+    esac
+    exit 1
+  fi
+
+  echo "checking for vault..."
+  if ! type vault &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires vault (https://vaultproject.io)"
+    echo "You will need to install vault to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install vault\` and be on your way."
+    esac
+    exit 1
+  fi
+  v=$(vault -v | awk '{print $2}')
+  case $v in
+  v0.8.*) ;;
+  *) echo
+     echo "The installed version of vault ($v) has not been verified"
+     echo "to work with this version of SHIELD testdev.  Please try v0.8.3"
+     exit 1;
+     ;;
+  esac
+
+  echo
+  echo "PRE-FLIGHT CHECKS OK"
+}
+
 # If a work directory is not supplied as a parameter,
 # create one.
 if [ $# -lt 2 ]; then
@@ -168,6 +209,7 @@ EOF
   read JUNK
   ;;
 ("")
+  preflight >&2
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
        new-window -n vault ./bin/testdev vault ${workdir} \; \
        new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
