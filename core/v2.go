@@ -980,6 +980,64 @@ func (core *Core) v2API() *route.Router {
 		r.OK(targets)
 	})
 	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/targets", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("PUT /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/tenants/:uuid/policies", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/policies", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/policies/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("PUT /v2/tenants/:uuid/policies/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/policies/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/tenants/:uuid/stores", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/stores", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("PUT /v2/tenants/:uuid/stores/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/stores/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/jobs", func (r *route.Request) { // {{{
 		jobs, err := core.DB.GetAllJobs(
@@ -1002,6 +1060,60 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		r.OK(jobs)
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/jobs", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("PUT /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/:action", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/tenants/:uuid/tasks", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/tasks/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/tenants/:uuid/archives", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/archives/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("PUT /v2/tenants/:uuid/archives/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/archives/:uuid", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/archives/:uuid/restore", func (r *route.Request) { // {{{
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 
