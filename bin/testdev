@@ -46,6 +46,10 @@ preflight() {
   *) echo
      echo "The installed version of vault ($v) has not been verified"
      echo "to work with this version of SHIELD testdev.  Please try v0.8.3"
+      case $OSTYPE in
+      *darwin*) echo
+                echo "On macOS ($OSTYPE), you can \`brew upgrade vault\` and be on your way."
+      esac
      exit 1;
      ;;
   esac
