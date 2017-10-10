@@ -20,6 +20,7 @@ type TargetFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
 	SearchName string
+	ForTenant  string
 	ForPlugin  string
 	ExactMatch bool
 }
@@ -39,6 +40,10 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 		args = append(args, toAdd)
 	}
 
+	if f.ForTenant != "" {
+		wheres = append(wheres, "t.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
+	}
 	if f.ForPlugin != "" {
 		wheres = append(wheres, "t.plugin LIKE ?")
 		args = append(args, f.ForPlugin)

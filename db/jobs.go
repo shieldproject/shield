@@ -44,8 +44,6 @@ func (j Job) Healthy() bool {
 }
 
 type JobFilter struct {
-	TenantID string
-
 	SkipPaused   bool
 	SkipUnpaused bool
 
@@ -53,6 +51,7 @@ type JobFilter struct {
 
 	SearchName string
 
+	ForTenant    string
 	ForTarget    string
 	ForStore     string
 	ForRetention string
@@ -72,6 +71,10 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 		}
 		wheres = append(wheres, fmt.Sprintf("j.name %s ?", comparator))
 		args = append(args, toAdd)
+	}
+	if f.ForTenant != "" {
+		wheres = append(wheres, "j.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
 	}
 	if f.ForTarget != "" {
 		wheres = append(wheres, "j.target_uuid = ?")

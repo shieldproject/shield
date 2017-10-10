@@ -961,6 +961,50 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("GET /v2/tenants/:uuid/targets", func (r *route.Request) { // {{{
+		targets, err := core.DB.GetAllTargets(
+			&db.TargetFilter{
+				ForTenant:  r.Args[1],
+				SkipUsed:   r.ParamIs("unused", "t"),
+				SkipUnused: r.ParamIs("unused", "f"),
+				SearchName: r.Param("name", ""),
+				ForPlugin:  r.Param("plugin", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		r.OK(targets)
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/tenants/:uuid/jobs", func (r *route.Request) { // {{{
+		jobs, err := core.DB.GetAllJobs(
+			&db.JobFilter{
+				ForTenant:    r.Args[1],
+				SkipPaused:   r.ParamIs("paused", "f"),
+				SkipUnpaused: r.ParamIs("paused", "t"),
+
+				SearchName: r.Param("name", ""),
+
+				ForTarget:    r.Param("target", ""),
+				ForStore:     r.Param("store", ""),
+				ForRetention: r.Param("retention", ""),
+				ExactMatch:   r.ParamIs("exact", "t"),
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tenant job information."))
+			return
+		}
+
+		r.OK(jobs)
+	})
+	// }}}
+
 	r.Dispatch("POST /v2/auth/login", func(r *route.Request) { // {{{
 		auth := struct {
 			Username string
