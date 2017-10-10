@@ -343,6 +343,14 @@
             </div></div>
 
             <div class="x5"><div class="health">
+              <div class="preload" style="display: none">
+                <object type="image/svg+xml" data="i/api-ok.svg"></object>
+                <object type="image/svg+xml" data="i/api-fail.svg"></object>
+                <object type="image/svg+xml" data="i/cloud-ok.svg"></object>
+                <object type="image/svg+xml" data="i/cloud-fail.svg"></object>
+                <object type="image/svg+xml" data="i/job-ok.svg"></object>
+                <object type="image/svg+xml" data="i/job-fail.svg"></object>
+              </div>
               <ul>
                 [[ if (_.health.core == "unsealed" || _.health.core == "unlocked") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
@@ -350,8 +358,10 @@
                 <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>LOCKED</span></li>
                 [[ } else if (_.health.core == "uninitialized") { ]]
                 <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>UNINITIALIZED</span></li>
+                [[ } else if (_.health.core == "unreachable") { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unreachable</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>down</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unknown</span></li>
                 [[ } ]]
                 [[ if (_.health.storage_ok) { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/cloud-ok.svg"></object> Cloud Storage is <span>connected</span></li>
@@ -2284,44 +2294,67 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
       /* ... ping /v2/health every X seconds, and update the HUD {{{ */
       (function (s) {
-        var RUNNING = false;
-        var last = "";
+        var last = "",
+            every = 5,
+            backoff = {
+              0:   5,    /* on success */
+              5:   6,    /* +1  */
+              6:   7,    /* +1  */
+              7:   9,    /* +2  */
+              9:  11,    /* +3  */
+              11: 16,    /* +5  */
+              16: 24,    /* +8  */
+              24: 37,    /* +13 */
+              37: 60,    /* +21 (round to 60) */
+              60: 60     /* max out at 1min */
+            };
 
+        var rehud = function (data) {
+          $global.hud = data;
+          var json = JSON.stringify(data);
+          if (json != last) {
+            $('#hud').html(template('hud', $global.hud));
+
+            var tenant = null;
+            if ($global.auth.tenants && $global.auth.tenants.length > 0) {
+              tenant = $global.auth.tenants[0];
+            }
+            $('.top-bar').html(template('top-bar', {
+              shield: {
+                env: 'DEMO',
+                ip:  data.shield.ip
+              },
+              user:    $global.auth.user,
+              tenants: $global.auth.tenants,
+              tenant:  tenant
+            }));
+          }
+          last = json;
+        };
         var ping = function () {
-          if (RUNNING) { return; }
-          RUNNING = true;
           $.ajax({
             type: 'GET',
             url:  '/v2/health',
             success: function (data) {
-              $global.hud = data;
-              var json = JSON.stringify(data);
-              if (json != last) {
-                $('#hud').html(template('hud', $global.hud));
-
-                var tenant = null;
-                if ($global.auth.tenants && $global.auth.tenants.length > 0) {
-                  tenant = $global.auth.tenants[0];
-                }
-                $('.top-bar').html(template('top-bar', {
-                  shield: {
-                    env: 'DEMO',
-                    ip:  data.shield.ip
-                  },
-                  user:    $global.auth.user,
-                  tenants: $global.auth.tenants,
-                  tenant:  tenant
-                }));
+              every = backoff[0]; /* reset backoff */
+              rehud(data);
+            },
+            error: function (xhr) {
+              var old = every;
+              every = backoff[every];
+              if (every != backoff[every]) {
+                console.log('/v2/health check failed; backing off to check every %d seconds', every);
               }
-              last = json;
+
+              $global.hud.health.core = 'unreachable';
+              rehud($global.hud);
             },
             complete: function () {
-              RUNNING = false;
+              window.setTimeout(ping, every * 1000);
             }
           });
         }
         ping();
-        window.setInterval(ping, s * 1000);
       })(5);
       /* }}} */
       /* ... handle the account menu {{{ */
