@@ -8,11 +8,12 @@ import (
 )
 
 type Store struct {
-	UUID     uuid.UUID `json:"uuid"`
-	Name     string    `json:"name"`
-	Summary  string    `json:"summary"`
-	Plugin   string    `json:"plugin"`
-	Endpoint string    `json:"endpoint"`
+	UUID       uuid.UUID `json:"uuid"`
+	Name       string    `json:"name"`
+	Summary    string    `json:"summary"`
+	Plugin     string    `json:"plugin"`
+	Endpoint   string    `json:"endpoint"`
+	TenantUUID uuid.UUID `json:"tenant_uuid"`
 }
 
 type StoreFilter struct {
@@ -20,6 +21,7 @@ type StoreFilter struct {
 	SkipUnused bool
 	SearchName string
 	ForPlugin  string
+	ForTenant  string
 	ExactMatch bool
 }
 
@@ -40,10 +42,14 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "s.plugin = ?")
 		args = append(args, f.ForPlugin)
 	}
+	if f.ForTenant != "" {
+		wheres = append(wheres, "s.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
+	}
 
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint, -1 AS n
+			SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint, s.tenant_uuid, -1 AS n
 				FROM stores s
 				WHERE ` + strings.Join(wheres, " AND ") + `
 				ORDER BY s.name, s.uuid ASC
@@ -58,7 +64,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-		SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, COUNT(j.uuid) AS n
+		SELECT DISTINCT s.uuid, s.name, s.summary, s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n
 			FROM stores s
 				LEFT JOIN jobs j
 					ON j.store_uuid = s.uuid
@@ -85,12 +91,12 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		ann := &Store{}
 		var n int
-		var this NullUUID
-		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &n); err != nil {
+		var this, tenant NullUUID
+		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &tenant, &n); err != nil {
 			return l, err
 		}
 		ann.UUID = this.UUID
-
+		ann.TenantUUID = tenant.UUID
 		l = append(l, ann)
 	}
 
@@ -99,7 +105,7 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 
 func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	r, err := db.Query(`
-		SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint
+		SELECT s.uuid, s.name, s.summary, s.plugin, s.endpoint, s.tenant_uuid
 			FROM stores s
 				LEFT JOIN jobs j
 					ON j.store_uuid = s.uuid
@@ -114,34 +120,28 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	ann := &Store{}
-	var this NullUUID
-	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint); err != nil {
+	var this, tenant NullUUID
+	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &tenant); err != nil {
 		return nil, err
 	}
 	ann.UUID = this.UUID
+	ann.TenantUUID = tenant.UUID
 
 	return ann, nil
 }
 
-func (db *DB) AnnotateStore(id uuid.UUID, name string, summary string) error {
-	return db.Exec(
-		`UPDATE stores SET name = ?, summary = ? WHERE uuid = ?`,
-		name, summary, id.String(),
-	)
-}
-
-func (db *DB) CreateStore(plugin string, endpoint interface{}) (uuid.UUID, error) {
+func (db *DB) CreateStore(new_store *Store) (uuid.UUID, error) {
 	id := uuid.NewRandom()
 	return id, db.Exec(
-		`INSERT INTO stores (uuid, plugin, endpoint) VALUES (?, ?, ?)`,
-		id.String(), plugin, endpoint,
+		`INSERT INTO stores (uuid, plugin, endpoint, tenant_uuid, name, summary) VALUES (?, ?, ?, ?, ?, ?)`,
+		id.String(), new_store.Plugin, new_store.Endpoint, new_store.TenantUUID.String(), new_store.Name, new_store.Summary,
 	)
 }
 
-func (db *DB) UpdateStore(id uuid.UUID, plugin string, endpoint interface{}) error {
+func (db *DB) UpdateStore(update *Store) error {
 	return db.Exec(
-		`UPDATE stores SET plugin = ?, endpoint = ? WHERE uuid = ?`,
-		plugin, endpoint, id.String(),
+		`UPDATE stores SET plugin = ?, endpoint = ?, name = ?, summary = ? WHERE uuid = ?`,
+		update.Plugin, update.Endpoint, update.Name, update.Summary, update.UUID.String(),
 	)
 }
 

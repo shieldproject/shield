@@ -513,10 +513,31 @@ func (core *Core) v1UpdateArchive(w http.ResponseWriter, req *http.Request) {
 	re := regexp.MustCompile(`^/v1/archive/([a-fA-F0-9-]+)`)
 	id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-	if err := core.DB.AnnotateArchive(id, params.Notes); err != nil {
+	archive, err := core.DB.GetArchive(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
+
+	if archive == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bail(w, err)
+		return
+	}
+
+	if params.Notes != "" {
+		archive.Notes = params.Notes
+	}
+
+	if err := core.DB.UpdateArchive(archive); err != nil {
+		bail(w, err)
+		return
+	}
+
 	JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 }
 
@@ -955,13 +976,13 @@ func (core *Core) v1CreateStore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateStore(params.Plugin, params.Endpoint)
+	id, err := core.DB.CreateStore(&db.Store{
+		Name:     params.Name,
+		Plugin:   params.Plugin,
+		Endpoint: params.Endpoint,
+		Summary:  params.Summary,
+	})
 	if err != nil {
-		bail(w, err)
-		return
-	}
-
-	if err := core.DB.AnnotateStore(id, params.Name, params.Summary); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1015,11 +1036,34 @@ func (core *Core) v1UpdateStore(w http.ResponseWriter, req *http.Request) {
 
 	re := regexp.MustCompile("^/v1/store/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateStore(id, params.Plugin, params.Endpoint); err != nil {
+
+	store, err := core.DB.GetStore(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateStore(id, params.Name, params.Summary); err != nil {
+	if store == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	if params.Name != "" {
+		store.Name = params.Name
+	}
+
+	if params.Summary != "" {
+		store.Summary = params.Summary
+	}
+
+	if params.Plugin != "" {
+		store.Plugin = params.Plugin
+	}
+
+	if params.Endpoint != "" {
+		store.Endpoint = params.Endpoint
+	}
+
+	if err := core.DB.UpdateStore(store); err != nil {
 		bail(w, err)
 		return
 	}

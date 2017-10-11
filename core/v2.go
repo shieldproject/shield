@@ -2,7 +2,9 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -961,7 +963,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/targets", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
 				ForTenant:  r.Args[1],
@@ -980,66 +982,222 @@ func (core *Core) v2API() *route.Router {
 		r.OK(targets)
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/targets", func (r *route.Request) { // {{{
+	r.Dispatch("POST /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("PUT /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/targets/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-
-	r.Dispatch("GET /v2/tenants/:uuid/policies", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/policies", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/policies/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/policies/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/policies/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/stores", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/stores", func (r *route.Request) { // {{{
+	r.Dispatch("POST /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/stores/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("PUT /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/stores/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/jobs", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
+		stores, err := core.DB.GetAllStores(
+			&db.StoreFilter{
+				SkipUsed:   r.ParamIs("unused", "t"),
+				SkipUnused: r.ParamIs("unused", "f"),
+				SearchName: r.Param("name", ""),
+				ForPlugin:  r.Param("plugin", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
+				ForTenant:  r.Args[1],
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		r.OK(stores)
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
+		tennant_id := uuid.Parse(r.Args[1])
+		store_id := uuid.Parse(r.Args[2])
+		if store_id == nil || tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+		store, err := core.DB.GetStore(store_id)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		if store == nil || strings.Compare(store.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Store Not Found"))
+			return
+		}
+
+		r.OK(store)
+	})
+	// }}}""
+	r.Dispatch("POST /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
+		if r.Req.Body == nil {
+			r.Fail(route.Bad(nil, "FIXME need an error message"))
+			return
+		}
+		tennant_id := uuid.Parse(r.Args[1])
+		if tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+
+		var params struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Plugin   string `json:"plugin"`
+			Endpoint string `json:"endpoint"`
+		}
+		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		e := MissingParameters()
+		e.Check("name", params.Name)
+		e.Check("plugin", params.Plugin)
+		e.Check("endpoint", params.Endpoint)
+		if e.IsValid() {
+			r.Fail(route.Oops(errors.New(e.Error()), e.Error()))
+			return
+		}
+
+		id, err := core.DB.CreateStore(&db.Store{
+			Name:       params.Name,
+			Plugin:     params.Plugin,
+			Endpoint:   params.Endpoint,
+			Summary:    params.Summary,
+			TenantUUID: tennant_id,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		r.OK(fmt.Sprintf("\"created\", \"uuid\":\"%s\"", id.String()))
+	})
+	// }}}
+	r.Dispatch("PUT /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
+		if r.Req.Body == nil {
+			r.Fail(route.Bad(nil, "FIXME need an error message"))
+			return
+		}
+
+		tennant_id := uuid.Parse(r.Args[1])
+		store_id := uuid.Parse(r.Args[2])
+		if store_id == nil || tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+
+		var params struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Plugin   string `json:"plugin"`
+			Endpoint string `json:"endpoint"`
+		}
+		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		store, err := core.DB.GetStore(store_id)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+		if store == nil || strings.Compare(store.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Store Not Found"))
+			return
+		}
+
+		if params.Name != "" {
+			store.Name = params.Name
+		}
+
+		if params.Summary != "" {
+			store.Summary = params.Summary
+		}
+
+		if params.Plugin != "" {
+			store.Plugin = params.Plugin
+		}
+
+		if params.Endpoint != "" {
+			store.Endpoint = params.Endpoint
+		}
+
+		if err := core.DB.UpdateStore(store); err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		r.OK(fmt.Sprintf("updated"))
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
+		tennant_id := uuid.Parse(r.Args[1])
+		store_id := uuid.Parse(r.Args[2])
+		if store_id == nil || tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+
+		store, err := core.DB.GetStore(store_id)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+		if store == nil || strings.Compare(store.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Store Not Found"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteStore(store.UUID)
+
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Bad(err, "FIXME need an error message"))
+			return
+		}
+
+		r.OK("deleted")
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
 		jobs, err := core.DB.GetAllJobs(
 			&db.JobFilter{
 				ForTenant:    r.Args[1],
@@ -1062,58 +1220,224 @@ func (core *Core) v2API() *route.Router {
 		r.OK(jobs)
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/jobs", func (r *route.Request) { // {{{
+	r.Dispatch("POST /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("PUT /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/jobs/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/:action", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-
-	r.Dispatch("GET /v2/tenants/:uuid/tasks", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/tasks/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/:action", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/archives", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/tasks", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/archives/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/archives/:uuid", func (r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/archives/:uuid", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+
+	r.Dispatch("GET /v2/tenants/:uuid/archives", func(r *route.Request) { // {{{
+		status := []string{}
+		if s := r.Param("status", ""); s != "" {
+			status = append(status, s)
+		}
+
+		limit := r.Param("limit", "")
+		if invalidlimit(limit) {
+			r.Fail(route.Bad(nil, "FIXME need an error message"))
+			return
+		}
+
+		archives, err := core.DB.GetAllArchives(
+			&db.ArchiveFilter{
+				ForTenant:  r.Args[1],
+				ForTarget:  r.Param("target", ""),
+				ForStore:   r.Param("store", ""),
+				Before:     paramDate(r.Req, "before"),
+				After:      paramDate(r.Req, "after"),
+				WithStatus: status,
+				Limit:      limit,
+			},
+		)
+
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		r.OK(archives)
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/archives/:uuid/restore", func (r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("GET /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
+		tennant_id := uuid.Parse(r.Args[1])
+		archive_id := uuid.Parse(r.Args[2])
+		if archive_id == nil || tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+
+		archive, err := core.DB.GetArchive(archive_id)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Archive Not Found"))
+			return
+		}
+
+		r.OK(archive)
+	})
+	// }}}
+	r.Dispatch("PUT /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
+		if r.Req.Body == nil {
+			r.Fail(route.Bad(nil, "FIXME need an error message"))
+			return
+		}
+		tennant_id := uuid.Parse(r.Args[1])
+		archive_id := uuid.Parse(r.Args[2])
+		if archive_id == nil || tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+
+		archive, err := core.DB.GetArchive(archive_id)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Archive Not Found"))
+			return
+		}
+
+		var params struct {
+			Notes string `json:"notes"`
+		}
+		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		if params.Notes == "" {
+			r.Fail(route.Bad(nil, "No notes were supplied"))
+		}
+		archive.Notes = params.Notes
+		if err := core.DB.UpdateArchive(archive); err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+		r.OK("updated")
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
+		tennant_id := uuid.Parse(r.Args[1])
+		archive_id := uuid.Parse(r.Args[2])
+		if archive_id == nil || tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+
+		archive, err := core.DB.GetArchive(archive_id)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Archive Not Found"))
+			return
+		}
+
+		if deleted, err := core.DB.DeleteArchive(archive.UUID); err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		} else if !deleted {
+			r.Fail(route.Bad(err, "FIXME need an error message"))
+		} else {
+			r.OK("deleted")
+		}
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/archives/:uuid/restore", func(r *route.Request) { // {{{
+		if r.Req.Body == nil {
+			r.Fail(route.Bad(nil, "FIXME need an error message"))
+			return
+		}
+
+		tennant_id := uuid.Parse(r.Args[1])
+		archive_id := uuid.Parse(r.Args[2])
+		if archive_id == nil || tennant_id == nil {
+			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+			return
+		}
+
+		var params struct {
+			Target string `json:"target"`
+			Owner  string `json:"owner"`
+		}
+		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+
+		if params.Owner == "" {
+			params.Owner = "anon"
+		}
+
+		// find the archive
+		archive, err := core.DB.GetArchive(archive_id)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Archive Not Found"))
+			return
+		}
+
+		var target *db.Target
+		if params.Target == "" {
+			target, err = core.DB.GetTarget(archive.TargetUUID)
+		} else {
+			target, err = core.DB.GetTarget(uuid.Parse(params.Target))
+		}
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+		//FIXME: Add check once targets have tenantUUIDs
+		//if target == nil || strings.Compare(target.TenantUUID.String(), tennant_id.String()) != 0 {
+		//	r.Fail(route.NotFound(nil, "Archive Not Found"))
+		//	return
+		//}
+
+		task, err := core.DB.CreateRestoreTask(params.Owner, archive, target)
+		if err != nil {
+			r.Fail(route.Oops(err, "FIXME need an error message"))
+			return
+		}
+		r.OK(fmt.Sprintf(`{"ok":"scheduled","task_uuid":"%s"}`, task.UUID))
 	})
 	// }}}
 
