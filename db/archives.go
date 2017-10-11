@@ -29,6 +29,7 @@ type Archive struct {
 	StoreEndpoint  string    `json:"store_endpoint"`
 	Job            string    `json:"job"`
 	EncryptionType string    `json:"encryption_type"`
+	TenantUUID     uuid.UUID `json:"tenant_uuid"`
 }
 
 type ArchiveFilter struct {
@@ -40,7 +41,7 @@ type ArchiveFilter struct {
 	WithStatus    []string
 	WithOutStatus []string
 	Limit         string
-	TenantUUID    []string
+	ForTenant     string
 }
 
 func (f *ArchiveFilter) Query() (string, []interface{}) {
@@ -82,13 +83,10 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "expires_at < ?")
 		args = append(args, f.ExpiresBefore.Unix())
 	}
-	if len(f.TenantUUID) > 0 {
-		var params []string
-		for _, e := range f.TenantUUID {
-			params = append(params, "?")
-			args = append(args, e)
-		}
-		wheres = append(wheres, fmt.Sprintf("tenant_uuid IN (%s)", strings.Join(params, ", ")))
+
+	if f.ForTenant != "" {
+		wheres = append(wheres, "a.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
 	}
 	limit := ""
 	if f.Limit != "" {
@@ -101,7 +99,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint,
-		       a.status, a.purge_reason, a.job, a.encryption_type
+		       a.status, a.purge_reason, a.job, a.encryption_type, a.tenant_uuid
 
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -160,18 +158,19 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 
 		var takenAt, expiresAt *int64
 		var targetName, storeName *string
-		var this, target, store NullUUID
+		var this, target, store, tenant NullUUID
 		if err = r.Scan(
 			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 			&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType); err != nil {
+			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType, &tenant); err != nil {
 
 			return l, err
 		}
 		ann.UUID = this.UUID
 		ann.TargetUUID = target.UUID
 		ann.StoreUUID = store.UUID
+		ann.TenantUUID = tenant.UUID
 		if takenAt != nil {
 			ann.TakenAt = parseEpochTime(*takenAt)
 		}
@@ -197,7 +196,7 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint, a.status,
-		       a.purge_reason, a.job, a.encryption_type
+		       a.purge_reason, a.job, a.encryption_type, a.tenant_uuid
 
 		FROM archives a
 		   INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -216,18 +215,19 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 
 	var takenAt, expiresAt *int64
 	var targetName, storeName *string
-	var this, target, store NullUUID
+	var this, target, store, tenant NullUUID
 	if err = r.Scan(
 		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 		&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType); err != nil {
+		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType, &tenant); err != nil {
 
 		return nil, err
 	}
 	ann.UUID = this.UUID
 	ann.TargetUUID = target.UUID
 	ann.StoreUUID = store.UUID
+	ann.TenantUUID = tenant.UUID
 	if takenAt != nil {
 		ann.TakenAt = parseEpochTime(*takenAt)
 	}
@@ -244,10 +244,10 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	return ann, nil
 }
 
-func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
+func (db *DB) UpdateArchive(update *Archive) error {
 	return db.Exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ?`,
-		notes, id.String(),
+		update.Notes, update.UUID.String(),
 	)
 }
 

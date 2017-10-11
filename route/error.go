@@ -28,6 +28,10 @@ func NotFound(e error, msg string, args ...interface{}) Error {
 	return Errorf(404, e, msg, args...)
 }
 
+func Forbidden(e error, msg string, args ...interface{}) Error {
+	return Errorf(403, e, msg, args...)
+}
+
 func Errorf(code int, e error, msg string, args ...interface{}) Error {
 	return Error{
 		code:    code,

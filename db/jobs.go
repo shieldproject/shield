@@ -16,6 +16,7 @@ type Job struct {
 	UUID             uuid.UUID `json:"uuid"`
 	Name             string    `json:"name"`
 	Summary          string    `json:"summary"`
+	TenantUUID       uuid.UUID `json:"tenant_uuid"`
 	RetentionName    string    `json:"retention_name"`
 	RetentionSummary string    `json:"retention_summary"`
 	RetentionUUID    uuid.UUID `json:"retention_uuid"`
@@ -44,8 +45,6 @@ func (j Job) Healthy() bool {
 }
 
 type JobFilter struct {
-	TenantID string
-
 	SkipPaused   bool
 	SkipUnpaused bool
 
@@ -53,6 +52,7 @@ type JobFilter struct {
 
 	SearchName string
 
+	ForTenant    string
 	ForTarget    string
 	ForStore     string
 	ForRetention string
@@ -72,6 +72,10 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 		}
 		wheres = append(wheres, fmt.Sprintf("j.name %s ?", comparator))
 		args = append(args, toAdd)
+	}
+	if f.ForTenant != "" {
+		wheres = append(wheres, "j.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
 	}
 	if f.ForTarget != "" {
 		wheres = append(wheres, "j.target_uuid = ?")
@@ -255,27 +259,39 @@ func (db *DB) UnpauseJob(id uuid.UUID) (bool, error) {
 	return db.PauseOrUnpauseJob(id, false)
 }
 
-func (db *DB) AnnotateJob(id uuid.UUID, name string, summary string) error {
-	return db.Exec(
-		`UPDATE jobs SET name = ?, summary = ? WHERE uuid = ?`,
-		name, summary, id.String(),
-	)
+func (db *DB) CreateJob(job *Job) (*Job, error) {
+	job.UUID = uuid.NewRandom()
+
+	err := db.Exec(`
+	   INSERT INTO jobs (uuid, tenant_uuid,
+	                     name, summary, schedule, paused,
+	                     target_uuid, store_uuid, retention_uuid)
+	             VALUES (?, ?,
+	                     ?, ?, ?, ?,
+	                     ?, ?, ?)`,
+		job.UUID.String(), job.TenantUUID.String(),
+		job.Name, job.Summary, job.Schedule, job.Paused,
+		job.TargetUUID.String(), job.StoreUUID.String(), job.RetentionUUID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return db.GetJob(job.UUID)
 }
 
-func (db *DB) CreateJob(target, store, schedule, retention string, paused bool) (uuid.UUID, error) {
-	id := uuid.NewRandom()
-	return id, db.Exec(
-		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule, retention_uuid, paused)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-		id.String(), target, store, schedule, retention, paused,
-	)
-}
-
-func (db *DB) UpdateJob(id uuid.UUID, target, store, schedule, retention string) error {
-	return db.Exec(
-		`UPDATE jobs SET target_uuid = ?, store_uuid = ?, schedule = ?, retention_uuid = ? WHERE uuid = ?`,
-		target, store, schedule, retention, id.String(),
-	)
+func (db *DB) UpdateJob(job *Job) error {
+	return db.Exec(`
+	   UPDATE jobs
+	      SET name           = ?,
+	          summary        = ?,
+	          schedule       = ?,
+	          target_uuid    = ?,
+	          store_uuid     = ?,
+	          retention_uuid = ?
+	    WHERE uuid = ?`,
+		job.Name, job.Summary, job.Schedule,
+		job.TargetUUID.String(), job.StoreUUID.String(), job.RetentionUUID.String(),
+		job.UUID.String())
 }
 
 func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {

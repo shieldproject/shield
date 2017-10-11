@@ -513,10 +513,31 @@ func (core *Core) v1UpdateArchive(w http.ResponseWriter, req *http.Request) {
 	re := regexp.MustCompile(`^/v1/archive/([a-fA-F0-9-]+)`)
 	id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-	if err := core.DB.AnnotateArchive(id, params.Notes); err != nil {
+	archive, err := core.DB.GetArchive(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
+
+	if archive == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bail(w, err)
+		return
+	}
+
+	if params.Notes != "" {
+		archive.Notes = params.Notes
+	}
+
+	if err := core.DB.UpdateArchive(archive); err != nil {
+		bail(w, err)
+		return
+	}
+
 	JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 }
 
@@ -589,18 +610,21 @@ func (core *Core) v1CreateJob(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateJob(params.Target, params.Store, params.Schedule, params.Retention, params.Paused)
+	job, err := core.DB.CreateJob(&db.Job{
+		Name:          params.Name,
+		Summary:       params.Summary,
+		Schedule:      params.Schedule,
+		Paused:        params.Paused,
+		TargetUUID:    uuid.Parse(params.Target),
+		StoreUUID:     uuid.Parse(params.Store),
+		RetentionUUID: uuid.Parse(params.Retention),
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
 
-	err = core.DB.AnnotateJob(id, params.Name, params.Summary)
-	if err != nil {
-		bail(w, err)
-		return
-	}
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, job.UUID.String()))
 }
 
 func (core *Core) v1PauseJob(w http.ResponseWriter, req *http.Request) {
@@ -725,11 +749,20 @@ func (core *Core) v1UpdateJob(w http.ResponseWriter, req *http.Request) {
 	re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)`)
 	id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-	if err := core.DB.UpdateJob(id, params.Target, params.Store, params.Schedule, params.Retention); err != nil {
+	job, err := core.DB.GetJob(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateJob(id, params.Name, params.Summary); err != nil {
+
+	job.Name = params.Name
+	job.Summary = params.Summary
+	job.Schedule = params.Schedule
+	job.TargetUUID = uuid.Parse(params.Target)
+	job.StoreUUID = uuid.Parse(params.Store)
+	job.RetentionUUID = uuid.Parse(params.Retention)
+
+	if err := core.DB.UpdateJob(job); err != nil {
 		bail(w, err)
 		return
 	}
@@ -810,18 +843,17 @@ func (core *Core) v1CreateRetentionPolicy(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	id, err := core.DB.CreateRetentionPolicy(params.Expires)
+	policy, err := core.DB.CreateRetentionPolicy(&db.RetentionPolicy{
+		Name:    params.Name,
+		Summary: params.Summary,
+		Expires: params.Expires,
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
 
-	if err := core.DB.AnnotateRetentionPolicy(id, params.Name, params.Summary); err != nil {
-		bail(w, err)
-		return
-	}
-
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, policy.UUID.String()))
 }
 
 func (core *Core) v1GetRetentionPolicy(w http.ResponseWriter, req *http.Request) {
@@ -882,11 +914,17 @@ func (core *Core) v1UpdateRetentionPolicy(w http.ResponseWriter, req *http.Reque
 
 	re := regexp.MustCompile("^/v1/retention/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateRetentionPolicy(id, params.Expires); err != nil {
+
+	policy, err := core.DB.GetRetentionPolicy(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateRetentionPolicy(id, params.Name, params.Summary); err != nil {
+
+	policy.Name = params.Name
+	policy.Summary = params.Summary
+	policy.Expires = params.Expires
+	if err := core.DB.UpdateRetentionPolicy(policy); err != nil {
 		bail(w, err)
 		return
 	}
@@ -955,13 +993,13 @@ func (core *Core) v1CreateStore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateStore(params.Plugin, params.Endpoint)
+	id, err := core.DB.CreateStore(&db.Store{
+		Name:     params.Name,
+		Plugin:   params.Plugin,
+		Endpoint: params.Endpoint,
+		Summary:  params.Summary,
+	})
 	if err != nil {
-		bail(w, err)
-		return
-	}
-
-	if err := core.DB.AnnotateStore(id, params.Name, params.Summary); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1015,11 +1053,34 @@ func (core *Core) v1UpdateStore(w http.ResponseWriter, req *http.Request) {
 
 	re := regexp.MustCompile("^/v1/store/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateStore(id, params.Plugin, params.Endpoint); err != nil {
+
+	store, err := core.DB.GetStore(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateStore(id, params.Name, params.Summary); err != nil {
+	if store == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	if params.Name != "" {
+		store.Name = params.Name
+	}
+
+	if params.Summary != "" {
+		store.Summary = params.Summary
+	}
+
+	if params.Plugin != "" {
+		store.Plugin = params.Plugin
+	}
+
+	if params.Endpoint != "" {
+		store.Endpoint = params.Endpoint
+	}
+
+	if err := core.DB.UpdateStore(store); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1090,17 +1151,18 @@ func (core *Core) v1CreateTarget(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateTarget(params.Plugin, params.Endpoint, params.Agent)
+	t, err := core.DB.CreateTarget(&db.Target{
+		Name: params.Name, Summary: params.Summary,
+		Plugin:   params.Plugin,
+		Endpoint: params.Endpoint,
+		Agent:    params.Agent,
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateTarget(id, params.Name, params.Summary); err != nil {
-		bail(w, err)
-		return
-	}
 
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, t.UUID.String()))
 }
 
 func (core *Core) v1GetTarget(w http.ResponseWriter, req *http.Request) {
@@ -1152,11 +1214,21 @@ func (core *Core) v1UpdateTarget(w http.ResponseWriter, req *http.Request) {
 
 	re := regexp.MustCompile("^/v1/target/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateTarget(id, params.Plugin, params.Endpoint, params.Agent); err != nil {
+
+	target, err := core.DB.GetTarget(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateTarget(id, params.Name, params.Summary); err != nil {
+	target.Name = params.Name
+	target.Plugin = params.Plugin
+	target.Endpoint = params.Endpoint
+	target.Agent = params.Agent
+
+	if params.Summary != "" {
+		target.Summary = params.Summary
+	}
+	if err := core.DB.UpdateTarget(target); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1182,8 +1254,8 @@ func (core *Core) v1DeleteTarget(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1GetTasks(w http.ResponseWriter, req *http.Request) {
-	limit := paramValue(req, "limit", "")
-	if invalidlimit(limit) {
+	limit, err := strconv.Atoi(paramValue(req, "limit", "0"))
+	if err != nil {
 		bailWithError(w, ClientErrorf("invalid limit supplied"))
 		return
 	}

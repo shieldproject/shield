@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-func Curl(method, url, body string) (map[string]interface{}, error) {
-	var data map[string]interface{}
+func Curl(method, url, body string) (interface{}, error) {
+	var data interface{}
 
 	u, err := ShieldURI("%s", url)
 	if err != nil {
