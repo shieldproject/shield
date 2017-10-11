@@ -1970,8 +1970,9 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("GET /v2/auth/id", func(r *route.Request) { // {{{
 		sessionID := getSessionID(r.Req)
+		//Once auth is in place this check shouldn't trigger, so consider panicking here instead
 		if sessionID == "" {
-			r.Fail(route.Bad(fmt.Errorf("Request contained invalid session ID"), "Unable to get user information"))
+			r.Fail(route.Errorf(401, fmt.Errorf("Request contained invalid session ID"), "Unable to get user information"))
 		}
 		id, _ := core.checkAuth(sessionID)
 		if id == nil {
@@ -1985,6 +1986,10 @@ func (core *Core) v2API() *route.Router {
 
 		r.OK(id)
 	})
+
+	if core.debug {
+		core.dispatchDebug(r)
+	}
 	// }}}
 
 	return r

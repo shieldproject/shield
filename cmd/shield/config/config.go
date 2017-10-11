@@ -39,6 +39,9 @@ type config struct {
 type backendInfo struct {
 	SkipSSLValidation bool   `yaml:"skip_ssl_validation"`
 	CACert            string `yaml:"ca_cert"`
+	//APIVersion included for having all information an api.Backend can have,
+	// but we don't actually want to save it in the config
+	APIVersion int `yaml:"-"`
 }
 
 //Initialize makes a fresh new blank config object
@@ -165,6 +168,7 @@ func Get(name string) *api.Backend {
 		Token:             cfg.Backends[uri],
 		SkipSSLValidation: cfg.Properties[uri].SkipSSLValidation,
 		CACert:            cfg.Properties[uri].CACert,
+		APIVersion:        cfg.Properties[uri].APIVersion,
 	}
 
 	return ret
@@ -223,8 +227,18 @@ func Commit(b *api.Backend) error {
 		return fmt.Errorf("Invalid backend format. Expecting `protocol://hostname:port/`. Got `%s`", b.Address)
 	}
 
-	if _, found := cfg.Aliases[b.Name]; found && reflect.DeepEqual(b, Get(b.Name)) {
+	currentB := Get(b.Name)
+	if _, found := cfg.Aliases[b.Name]; found && reflect.DeepEqual(b, currentB) {
 		return nil
+	}
+
+	//Only dirty if something other than APIVersion changed
+	bCopy := *b
+	curBCopy := *currentB
+	bCopy.APIVersion = 0
+	curBCopy.APIVersion = 0
+	if _, found := cfg.Aliases[b.Name]; !(found && reflect.DeepEqual(&bCopy, &curBCopy)) {
+		cfg.dirty = true
 	}
 
 	cfg.Aliases[b.Name] = b.Address
@@ -232,13 +246,13 @@ func Commit(b *api.Backend) error {
 	cfg.Properties[b.Address] = backendInfo{
 		SkipSSLValidation: b.SkipSSLValidation,
 		CACert:            b.CACert,
+		APIVersion:        b.APIVersion,
 	}
 
 	if cfg.Backend == b.Name {
 		Current()
 	}
 
-	cfg.dirty = true
 	return nil
 }
 
