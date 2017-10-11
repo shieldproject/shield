@@ -31,6 +31,7 @@ type GithubAuthProvider struct {
 
 	Name       string
 	Identifier string
+	Usage      string
 	core       *Core
 }
 

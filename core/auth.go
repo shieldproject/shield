@@ -18,11 +18,22 @@ func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
 				provider = &GithubAuthProvider{
 					Name:       auth.Name,
 					Identifier: identifier,
+					Usage:      auth.Usage,
 					core:       core,
 				}
 			case "uaa":
 				provider = &UAAAuthProvider{
 					Identifier: identifier,
+					Usage:      auth.Usage,
+					core:       core,
+				}
+			case "token":
+				if auth.Usage != "cli" {
+					return nil, fmt.Errorf("The 'token' auth provider can ONLY be used for `usage: \"cli\"`")
+				}
+				provider = &TokenAuthProvider{
+					Identifier: identifier,
+					Usage:      auth.Usage,
 					core:       core,
 				}
 			default:
