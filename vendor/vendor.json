@@ -337,11 +337,6 @@
 			"revision": "84dd430f98ca7c34d673046dc7757bc828d3388b"
 		},
 		{
-			"comment": "2.5.10",
-			"path": "github.com/voxelbrain/goptions",
-			"revision": "68583de33d9209ba795a0a334dad27418e4c18f5"
-		},
-		{
 			"path": "golang.org/x/crypto/bcrypt",
 			"revision": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},
