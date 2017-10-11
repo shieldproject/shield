@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
@@ -671,7 +673,6 @@ func (core *Core) v2API() *route.Router {
 		r.OK(resp)
 	})
 	// }}}
-
 	r.Dispatch("GET /v2/agents/:uuid", func(r *route.Request) { // {{{
 		agentID := uuid.Parse(r.Args[1])
 		if agentID == nil {
@@ -715,7 +716,6 @@ func (core *Core) v2API() *route.Router {
 		r.OK(resp)
 	})
 	// }}}
-
 	r.Dispatch("POST /v2/agents", func(r *route.Request) { // {{{
 		var in struct {
 			Name string `json:"name"`
@@ -983,40 +983,262 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tenant information"))
+			return
+		}
+		if tenant == nil {
+			r.Fail(route.NotFound(nil, "No such tenant"))
+			return
+		}
+
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Plugin   string `json:"plugin"`
+			Endpoint string `json:"endpoint"`
+			Agent    string `json:"agent"`
+		}
+
+		if !r.Payload(&in) {
+			return
+		}
+		if r.Missing("name", in.Name, "plugin", in.Plugin, "endpoint", in.Endpoint, "agent", in.Agent) {
+			return
+		}
+
+		target, err := core.DB.CreateTarget(&db.Target{
+			Name:     in.Name,
+			Summary:  in.Summary,
+			Plugin:   in.Plugin,
+			Endpoint: in.Endpoint,
+			Agent:    in.Agent,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create new data target"))
+			return
+		}
+
+		r.OK(target)
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve target information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such target"))
+			return
+		}
+
+		r.OK(target)
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve target information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such target"))
+			return
+		}
+
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Plugin   string `json:"plugin"`
+			Endpoint string `json:"endpoint"`
+			Agent    string `json:"agent"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if in.Name != "" {
+			target.Name = in.Name
+		}
+		if in.Summary != "" {
+			target.Summary = in.Summary
+		}
+		if in.Plugin != "" {
+			target.Plugin = in.Plugin
+		}
+		if in.Endpoint != "" {
+			target.Endpoint = in.Endpoint
+		}
+		if in.Agent != "" {
+			target.Agent = in.Agent
+		}
+
+		if err := core.DB.UpdateTarget(target); err != nil {
+			r.Fail(route.Oops(err, "Unable to update target"))
+			return
+		}
+
+		r.Success("Updated target successfully")
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve target information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such target"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteTarget(target.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete target"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Forbidden(nil, "The target cannot be deleted at this time"))
+			return
+		}
+
+		r.Success("Target deleted successfully")
 	})
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		policies, err := core.DB.GetAllRetentionPolicies(
+			&db.RetentionFilter{
+				ForTenant:  r.Args[1],
+				SkipUsed:   r.ParamIs("unused", "t"),
+				SkipUnused: r.ParamIs("unused", "f"),
+				SearchName: r.Param("name", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policies information"))
+			return
+		}
+
+		r.OK(policies)
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Expires uint   `json:"expires"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if r.Missing("name", in.Name) {
+			return
+		}
+
+		/* FIXME: for v2, flip expires over to days, not seconds */
+		if in.Expires < 86400 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
+			return
+		}
+
+		policy, err := core.DB.CreateRetentionPolicy(&db.RetentionPolicy{
+			Name:    in.Name,
+			Summary: in.Summary,
+			Expires: in.Expires,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create retention policy"))
+			return
+		}
+
+		r.OK(policy)
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		policy, err := core.DB.GetRetentionPolicy(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
+			return
+		}
+
+		if policy == nil || policy.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such retention policy"))
+			return
+		}
+
+		r.OK(policy)
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Expires uint   `json:"expires"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		policy, err := core.DB.GetRetentionPolicy(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
+			return
+		}
+
+		if policy == nil || policy.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such retention policy"))
+			return
+		}
+
+		if in.Name != "" {
+			policy.Name = in.Name
+		}
+		if in.Summary != "" {
+			policy.Summary = in.Name
+		}
+		if in.Expires != 0 {
+			policy.Expires = in.Expires
+		}
+
+		if err := core.DB.UpdateRetentionPolicy(policy); err != nil {
+			r.Fail(route.Oops(err, "Unable to update retention policy"))
+			return
+		}
+
+		r.Success("Updated retention policy successfully")
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		policy, err := core.DB.GetRetentionPolicy(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
+			return
+		}
+
+		if policy == nil || policy.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such retention policy"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteRetentionPolicy(policy.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete retention policy"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Forbidden(nil, "The retention policy cannot be deleted at this time"))
+			return
+		}
+
+		r.Success("Retention policy deleted successfully")
 	})
 	// }}}
 
@@ -1221,36 +1443,266 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Schedule string `json:"schedule"`
+			Paused   bool   `json:"paused"`
+
+			StoreUUID     string `json:"store"`
+			TargetUUID    string `json:"target"`
+			RetentionUUID string `json:"retention"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if r.Missing("name", in.Name, "store", in.StoreUUID, "target", in.TargetUUID, "schedule", in.Schedule, "retention", in.RetentionUUID) {
+			return
+		}
+
+		job, err := core.DB.CreateJob(&db.Job{
+			TenantUUID:    uuid.Parse(r.Args[1]),
+			Name:          in.Name,
+			Summary:       in.Summary,
+			Schedule:      in.Schedule,
+			Paused:        in.Paused,
+			StoreUUID:     uuid.Parse(in.StoreUUID),
+			TargetUUID:    uuid.Parse(in.TargetUUID),
+			RetentionUUID: uuid.Parse(in.RetentionUUID),
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create new job"))
+			return
+		}
+
+		r.OK(job)
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		r.OK(job)
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		var in struct {
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Schedule string `json:"schedule"`
+
+			StoreUUID     string `json:"store"`
+			TargetUUID    string `json:"target"`
+			RetentionUUID string `json:"retention"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		if in.Name != "" {
+			job.Name = in.Name
+		}
+		if in.Summary != "" {
+			job.Summary = in.Summary
+		}
+		if in.Schedule != "" {
+			job.Schedule = in.Schedule
+		}
+		if in.TargetUUID != "" {
+			job.TargetUUID = uuid.Parse(in.TargetUUID)
+		}
+		if in.StoreUUID != "" {
+			job.StoreUUID = uuid.Parse(in.StoreUUID)
+		}
+		if in.RetentionUUID != "" {
+			job.RetentionUUID = uuid.Parse(in.RetentionUUID)
+		}
+
+		if err := core.DB.UpdateJob(job); err != nil {
+			r.Fail(route.Oops(err, "Unable to update job"))
+			return
+		}
+
+		r.Success("Updated job successfully")
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteJob(job.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete job"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Forbidden(nil, "The job cannot be deleted at this time"))
+			return
+		}
+
+		r.Success("Job deleted successfully")
 	})
 	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/:action", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/run", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		var in struct {
+			Owner string `json:"owner"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if in.Owner == "" {
+			in.Owner = "anon"
+		}
+
+		task, err := core.DB.CreateBackupTask(in.Owner, job)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to schedule ad hoc backup job run"))
+			return
+		}
+
+		var out struct {
+			OK       string    `json:"ok"`
+			TaskUUID uuid.UUID `json:"task_uuid"`
+		}
+
+		out.OK = "Scheduled ad hoc backup job run"
+		out.TaskUUID = task.UUID
+		r.OK(out)
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/pause", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		if _, err = core.DB.PauseJob(job.UUID); err != nil {
+			r.Fail(route.Oops(err, "Unable to pause job"))
+			return
+		}
+		r.Success("Paused job successfully")
+	})
+	// }}}
+	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/unpause", func(r *route.Request) { // {{{
+		job, err := core.DB.GetJob(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve job information"))
+			return
+		}
+
+		if job == nil || job.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such job"))
+			return
+		}
+
+		if _, err = core.DB.UnpauseJob(job.UUID); err != nil {
+			r.Fail(route.Oops(err, "Unable to unpause job"))
+			return
+		}
+		r.Success("Unpaused job successfully")
 	})
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/tasks", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit <= 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
+			return
+		}
+
+		tasks, err := core.DB.GetAllTasks(
+			&db.TaskFilter{
+				SkipActive:   r.ParamIs("active", "f"),
+				SkipInactive: r.ParamIs("active", "t"),
+				ForStatus:    r.Param("status", ""),
+				ForTenant:    r.Args[1],
+				Limit:        limit,
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+
+		r.OK(tasks)
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		task, err := core.DB.GetTask(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+		if task == nil || task.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(err, "No such task"))
+			return
+		}
+
+		r.OK(task)
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		task, err := core.DB.GetTask(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+		if task == nil || task.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(err, "No such task"))
+			return
+		}
+
+		if err = core.DB.CancelTask(task.UUID, time.Now()); err != nil {
+			r.Fail(route.Oops(err, "Unable to cancel task"))
+			return
+		}
+
+		r.Success("Canceled task successfully")
 	})
 	// }}}
 
@@ -1426,11 +1878,11 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "FIXME need an error message"))
 			return
 		}
-		//FIXME: Add check once targets have tenantUUIDs
-		//if target == nil || strings.Compare(target.TenantUUID.String(), tennant_id.String()) != 0 {
-		//	r.Fail(route.NotFound(nil, "Archive Not Found"))
-		//	return
-		//}
+
+		if target == nil || strings.Compare(target.TenantUUID.String(), tennant_id.String()) != 0 {
+			r.Fail(route.NotFound(nil, "Archive Not Found"))
+			return
+		}
 
 		task, err := core.DB.CreateRestoreTask(params.Owner, archive, target)
 		if err != nil {
