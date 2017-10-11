@@ -41,6 +41,7 @@ type UAAAuthProvider struct {
 
 	Name       string
 	Identifier string
+	Usage      string
 	core       *Core
 	uaa        *uaa.Client
 	http       *http.Client

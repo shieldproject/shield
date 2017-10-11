@@ -123,9 +123,21 @@ slow_loop:     20
 fast_loop:     2
 vault_keyfile: ${workdir}/var/vault.crypt
 auth:
+  - name:       Token
+    identifier: token
+    backend:    token
+    usage:      cli
+    properties:
+      4E7E8965-9DB0-4D3A-B920-2537F3321B3D:
+        - tenant: starkandwayne
+          role:   engineer
+        - tenant: CF Commuity
+          role:   engineer
+
   - name:       Github
     identifier: public-gh
     backend:    github
+    usage:      web
     properties:
       client_id:     7760ef75ba49c9699114
       client_secret: 9833e0d2f10df1c77eff41adfb07d6084b238349
@@ -146,6 +158,7 @@ auth:
   - name:       UAA
     identifier: uaa1
     backend:    uaa
+    usage:      web
     properties:
       client_id:       shield-dev
       client_secret:   s.h.i.e.l.d.

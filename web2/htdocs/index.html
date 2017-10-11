@@ -1327,6 +1327,7 @@
                 <th>Name</th>
                 <th>Identifier</th>
                 <th>Type</th>
+                <th>Usage</th>
               </tr></thead>
               <tbody>
               [[ $.each(_.providers, function (i, provider) { ]]
@@ -1334,6 +1335,7 @@
                   <td>[[= provider.name ]]</td>
                   <td><span class="tag">[[= provider.identifier ]]</span></td>
                   <td>[[= provider.type ]] (<a href="#!/admin/auth/config:name:[[= provider.identifier ]]">configuration</a>)</td>
+                  <td>[[= provider.usage ]]</td>
                 </tr>
               [[ }); ]]
               </tbody>
@@ -1636,7 +1638,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
           api({
             type: 'GET',
-            url:  '/v2/auth/providers',
+            url:  '/v2/auth/providers?usage=web',
             success: function (data) {
               $('#viewport').html(template('login', { oauth: data }))
                 .on("click", ".login", function (event) {
