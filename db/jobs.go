@@ -281,7 +281,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 
 func (db *DB) UpdateJob(job *Job) error {
 	return db.Exec(`
-	   UPDATE job
+	   UPDATE jobs
 	      SET name           = ?,
 	          summary        = ?,
 	          schedule       = ?,

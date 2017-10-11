@@ -165,7 +165,7 @@ func (db *DB) CreateTarget(in *Target) (*Target, error) {
 func (db *DB) UpdateTarget(t *Target) error {
 	return db.Exec(`
 	  UPDATE targets
-	     SET name     = ?
+	     SET name     = ?,
 	         summary  = ?,
 	         plugin   = ?,
 	         endpoint = ?,

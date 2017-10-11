@@ -19,6 +19,7 @@ var _ = Describe("Archive Management", func() {
 	TARGET_UUID := uuid.NewRandom()
 	STORE_UUID := uuid.NewRandom()
 	ARCHIVE_UUID := uuid.NewRandom()
+	TENANT_UUID := uuid.NewRandom()
 
 	var db *DB
 
@@ -44,9 +45,9 @@ var _ = Describe("Archive Management", func() {
 			// need a store
 			`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES ("`+STORE_UUID.String()+`", "store_plugin", "store_endpoint", "store_name")`,
 			// need an ARCHIVE
-			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status, notes, purge_reason)
+			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status, notes, purge_reason, tenant_uuid)
 				VALUES ("`+ARCHIVE_UUID.String()+`", "`+TARGET_UUID.String()+`",
-				        "`+STORE_UUID.String()+`", "key", 0, 0, "valid", "my_notes", "")`,
+				        "`+STORE_UUID.String()+`", "key", 0, 0, "valid", "my_notes", "", "`+TENANT_UUID.String()+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())
@@ -141,6 +142,7 @@ var _ = Describe("Archive Management", func() {
 				Expect(a).ShouldNot(BeNil())
 				Expect(a).Should(BeEquivalentTo(&Archive{
 					UUID:           ARCHIVE_UUID,
+					TenantUUID:     TENANT_UUID,
 					StoreKey:       "key",
 					TakenAt:        NewTimestamp(time.Unix(0, 0).UTC()),
 					ExpiresAt:      NewTimestamp(time.Unix(0, 0).UTC()),

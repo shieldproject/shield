@@ -1224,6 +1224,10 @@ func (core *Core) v1UpdateTarget(w http.ResponseWriter, req *http.Request) {
 	target.Plugin = params.Plugin
 	target.Endpoint = params.Endpoint
 	target.Agent = params.Agent
+
+	if params.Summary != "" {
+		target.Summary = params.Summary
+	}
 	if err := core.DB.UpdateTarget(target); err != nil {
 		bail(w, err)
 		return

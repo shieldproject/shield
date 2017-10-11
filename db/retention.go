@@ -104,7 +104,7 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 
 func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 	r, err := db.Query(`
-		SELECT uuid, tenmant_uuid, name, summary, expiry
+		SELECT uuid, tenant_uuid, name, summary, expiry
 			FROM retention WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
