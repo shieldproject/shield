@@ -152,24 +152,42 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 		gh.fail(w)
 		return
 	}
+
+	/* We must pre-determine who we're going to assign this Github user
+		   to, and what role to give them, in case we have overalpping
+		   mappings -- two orgs map to the same tenant, with different roles.
+
+	       This way, we can silently 'ugrade' a role to a more powerful
+		   one if we see a later assignment to the same tenant. */
+	assign := make(map[string]string)
 	for org, teams := range orgs {
 		tname, role, assigned := gh.resolveOrgAndTeam(org, teams)
 		if assigned {
-			gh.log("ensuring tenant '%s' for Github org '%s'\n", tname, org)
-			tenant, err := gh.core.DB.EnsureTenant(tname)
-			if err != nil {
-				gh.log("failed to find/create tenant '%s' for Github org '%s': %s\n", tname, org, err)
-				gh.fail(w)
-				return
+			if existing, already := assign[tname]; already {
+				if (existing == "operator" && existing != role) || (existing == "engineer" && role == "admin") {
+					gh.log("upgrading %s (%s org) assignment on tenant '%s' to %s\n", account, org, tname, role)
+					assign[tname] = role
+				}
+			} else {
+				gh.log("assigning %s (%s org) to tenant '%s' as %s\n", account, org, tname, role)
+				assign[tname] = role
 			}
-			gh.log("user = %v; tenant = %v\n", user, tenant)
-			gh.log("assigning %s (user %s) to tenant '%s' as role '%s'\n", account, user.UUID, tenant.UUID, role)
-			err = gh.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
-			if err != nil {
-				gh.log("failed to assign %s to tenant '%s' as role '%s': %s\n", account, tname, role, err)
-				gh.fail(w)
-				return
-			}
+		}
+	}
+	for tname, role := range assign {
+		gh.log("ensuring that tenant '%s' exists\n", tname)
+		tenant, err := gh.core.DB.EnsureTenant(tname)
+		if err != nil {
+			gh.log("failed to find/create tenant '%s': %s\n", tname, err)
+			gh.fail(w)
+			return
+		}
+		gh.log("inviting %s [%s] to tenant '%s' [%s] as '%s'\n", account, user.UUID, tenant.Name, tenant.UUID, role)
+		err = gh.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
+		if err != nil {
+			gh.log("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s\n", account, user.UUID, tenant.Name, tenant.UUID, role, err)
+			gh.fail(w)
+			return
 		}
 	}
 
