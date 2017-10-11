@@ -233,12 +233,16 @@ func Commit(b *api.Backend) error {
 	}
 
 	//Only dirty if something other than APIVersion changed
-	bCopy := *b
-	curBCopy := *currentB
-	bCopy.APIVersion = 0
-	curBCopy.APIVersion = 0
-	if _, found := cfg.Aliases[b.Name]; !(found && reflect.DeepEqual(&bCopy, &curBCopy)) {
+	if currentB == nil {
 		cfg.dirty = true
+	} else {
+		bCopy := *b
+		curBCopy := *currentB
+		bCopy.APIVersion = 0
+		curBCopy.APIVersion = 0
+		if _, found := cfg.Aliases[b.Name]; !(found && reflect.DeepEqual(&bCopy, &curBCopy)) {
+			cfg.dirty = true
+		}
 	}
 
 	cfg.Aliases[b.Name] = b.Address
