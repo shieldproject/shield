@@ -180,8 +180,11 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 func (gh GithubAuthProvider) resolveOrgAndTeam(org string, teams []string) (string, string, bool) {
 	if candidate, ok := gh.Mapping[org]; ok {
 		for _, match := range candidate.Rights {
+			if match.Team == "" {
+				return candidate.Tenant, match.Role, true
+			}
 			for _, team := range teams {
-				if match.Team == "" || match.Team == team {
+				if match.Team == team {
 					return candidate.Tenant, match.Role, true
 				}
 			}
