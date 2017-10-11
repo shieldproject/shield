@@ -100,14 +100,10 @@ func (u *URL) Request(out interface{}, req *http.Request) error {
 			}
 		}
 	} else {
-		if curBackend.APIVersion == 1 {
-			err = getV1Error(r)
-		} else {
-			err = getV2Error(r)
-		}
+		return getAPIError(r)
 	}
 
-	return err
+	return nil
 }
 
 func (u *URL) Get(out interface{}) error {

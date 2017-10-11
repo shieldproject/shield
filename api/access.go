@@ -133,7 +133,7 @@ func Login(username, password string) (sessionID string, user *AuthIDOutput, err
 		user = &AuthIDOutput{}
 		err = json.Unmarshal(body, user)
 	} else {
-		err = getV2Error(r)
+		err = getAPIError(r)
 	}
 
 	return
@@ -170,7 +170,7 @@ func LogoutSession(sessionID string) error {
 	}
 
 	if r.StatusCode != 200 {
-		err = getV2Error(r)
+		err = getAPIError(r)
 	}
 
 	return err

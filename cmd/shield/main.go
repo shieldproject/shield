@@ -169,6 +169,13 @@ func main() {
 	}
 
 	if err := cmd.Run(args...); err != nil {
+		if _, unauthorized := err.(api.ErrUnauthorized); unauthorized && cmd != access.Login {
+			err = fmt.Errorf("You are not authenticated to the SHIELD backend. Please run `shield login'")
+		} else if _, forbidden := err.(api.ErrForbidden); forbidden {
+			err = fmt.Errorf("The currently authenticated user is forbidden from accessing this resource")
+		} else if _, badrequest := err.(api.ErrBadRequest); badrequest {
+			err = fmt.Errorf("Error 400 Bad Request")
+		}
 		if *cmds.Opts.Raw {
 			j, err := json.Marshal(map[string]string{"error": err.Error()})
 			if err != nil {
@@ -176,13 +183,7 @@ func main() {
 			}
 			fmt.Println(string(j))
 		} else {
-			if _, unauthorized := err.(api.ErrUnauthorized); unauthorized && cmd != access.Login {
-				ansi.Fprintf(os.Stderr, "@R{You are not authenticated to the SHIELD backend. Please run `shield login'}\n")
-			} else if _, forbidden := err.(api.ErrForbidden); forbidden {
-				ansi.Fprintf(os.Stderr, "@R{The currently authenticated user is forbidden from accessing this resource}")
-			} else {
-				ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
-			}
+			ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
 		}
 		os.Exit(1)
 	} else {
