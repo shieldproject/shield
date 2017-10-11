@@ -380,13 +380,70 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+{
+  "agents": [
+    {
+      "name"         : "prod/web/42",
+      "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+      "address"      : "127.0.0.1:5444",
+      "version"      : "dev",
+      "status"       : "ok",
+      "hidden"       : false,
+      "last_error"   : "",
+      "last_seen_at" : "2017-10-11 18:54:00"
+    }
+  ],
+  "problems": {
+    "1869e296-4aac-4a17-848d-04f73f743326": [
+      "This SHIELD agent is reporting ..."
+    ]
+  }
+}
+```
+
+The top-level `agents` key is a list of object describing each registered agent:
+
+- **name** - The name of the SHIELD Agent, as set by the local system
+  administrator (which may not be the SHIELD site administrator).
+
+- **uuid** - The internal UUID assigned to this agent by the SHIELD Core.
+
+- **address** - The `host:port` of the agent, from the point-of-view of the
+  SHIELD Core.
+
+- **version** - The version of the remote SHIELD Agent's software.
+
+- **status** - The health status of the remote SHIELD Agent, one of `ok` or
+  `failing`.
+
+- **hidden** - Whether or not this agent has been administratively hidden.
+
+- **last\_error** - TBD
+
+- **last\_seen\_at** - When the remote SHIELD Agent last made contact with
+  the SHIELD Core to refresh its registration and its metadata.  Date is
+  formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+
+The top-level `problems` key maps agent UUIDs to a list of errors detected
+statically by the SHIELD Core software.  Each problem is represented as an
+English-language description of the underlying issue.  SHIELD reports these
+problems to assist site administrators who may be running heterogenous
+versions of the SHIELD Core and SHIELD Agent software.  In these
+environments, issues may arise due to version incompatibility.  Newer
+versions of the SHIELD Core may also be able to inform administrators about
+known deficiencies in older version of the SHIELD Agent and SHIELD plugins.
+
+**Note:** `problems` are reported by the SHIELD Core; it is perfectly
+acceptable for an agent to report itself as healthy, but for the SHIELD Core
+to assert that a problem exists.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve agent information** - An internal error occurred
+  and should be investigated by the site administrators.
 
 
 ### POST /v2/agents
@@ -457,7 +514,9 @@ The following error messages can be returned:
 
 ### GET /v2/agents/:uuid
 
-TBD
+Retrieve extended information about a single SHIELD Agent, including its
+plugin metadata (what plugins are present, what configuration they accept or
+require, etc.)
 
 **Request**
 
@@ -468,13 +527,72 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+{
+  "agent": {
+    "name"         : "prod/web/42",
+    "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+    "address"      : "127.0.0.1:5444",
+    "version"      : "dev",
+    "status"       : "ok",
+    "hidden"       : false,
+    "last_error"   : "",
+    "last_seen_at" : "2017-10-11 18:54:00"
+  },
+  "metadata": {
+    "name"    : "prod/web/42",
+    "version" : "dev"
+    "health"  : "ok",
+
+    "plugins": {
+      "fs": {
+        "author"   : "Stark & Wayne",
+        "features" : {
+          "store"  : "yes",
+          "target" : "no"
+        },
+
+        "fields": [
+          {
+            "mode"     : "store",
+            "name"     : "storage_account",
+            "title"    : "Storage Account",
+            "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
+            "type"     : "string",
+            "required" : true
+          },
+          ...
+        ]
+      },
+      ...
+    }
+  },
+  "problems": [
+    "This SHIELD agent is reporting ..."
+  ]
+}
+```
+
+The top-level `agents` key contains the same agent information that the
+`GET /v2/agents` endpoint returns.  Similarly, the `problems` key
+contains the list of issues the SHIELD Core detected, based on
+this agent's configuration / version.
+
+The `metadata` key is exclusive to this endpoint, and contains all
+of the agent metadata.  Of particular interest is the `plugins`
+key, which contains a map of plugin metadata, keyed by the plugin
+name.  The format of this metadata is documented in **TBD**.
+
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve agent information** - An internal error
+  occurred and shoud be investigated by the site administrators.
+
+- **No such agent** - The requested agent UUID was not found in
+  the list of registered agents.
 
 
 
@@ -486,14 +604,15 @@ TBD
 
 ### GET /v2/tenants
 
+TBD
+
+**Request**
+
 ```sh
 curl -H 'Accept: application/json' \
      -X POST https://shield.host/v2/tenants
 ```
 
-**Request**
-
-TBD
 
 **Response**
 
