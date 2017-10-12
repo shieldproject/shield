@@ -29,6 +29,8 @@ type Core struct {
 	timeout int
 	agent   *AgentClient
 
+	debug bool //For exposing debug API endpoints
+
 	/* cached for /v2/health */
 	ip   string
 	fqdn string
@@ -78,6 +80,8 @@ func NewCore(file string) (*Core, error) {
 
 		ip:   ip,
 		fqdn: fqdn,
+
+		debug: config.Debug,
 
 		/* foreman */
 		numWorkers: config.Workers,

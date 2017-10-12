@@ -87,12 +87,12 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v1Status(w, req)
 		return
 
-	//All api endpoints below have the mustBeUnlocked requirement such that if vault
-	//	is sealed or uninitialized they will return a 403
 	case match(req, `GET /v1/meta/pubkey`):
 		core.v1GetPublicKey(w, req)
 		return
 
+	//All api endpoints below have the mustBeUnlocked requirement such that if vault
+	//	is sealed or uninitialized they will return a 401
 	case match(req, `GET /v1/status/internal`):
 		core.v1DetailedStatus(w, req)
 		return
@@ -357,7 +357,11 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
-	JSONLiteral(w, `{"ok":"pong"}`)
+	JSON(w, struct {
+		OK string `json:"ok"`
+	}{
+		OK: "pong",
+	})
 }
 
 func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
@@ -367,15 +371,21 @@ func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
-	JSON(w, struct {
-		Version    string `json:"version"`
+	stat := struct {
+		Version    string `json:"version,omitempty"`
 		Name       string `json:"name"`
 		APIVersion int    `json:"api_version"`
 	}{
-		Version:    Version,
 		Name:       os.Getenv("SHIELD_NAME"),
 		APIVersion: APIVersion,
-	})
+	}
+
+	sessionID := getSessionID(req)
+	if id, _ := core.checkAuth(sessionID); id != nil {
+		stat.Version = Version
+	}
+
+	JSON(w, &stat)
 }
 
 func (core *Core) v1DetailedStatus(w http.ResponseWriter, req *http.Request) {

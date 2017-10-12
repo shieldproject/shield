@@ -19,6 +19,8 @@ type Config struct {
 	SlowLoop int `yaml:"slow_loop"`
 	FastLoop int `yaml:"fast_loop"`
 
+	Debug bool `yaml:"debug"`
+
 	DBPath string `yaml:"database"`
 
 	Addr          string `yaml:"listen_addr"`

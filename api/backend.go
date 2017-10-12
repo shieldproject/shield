@@ -3,7 +3,6 @@ package api
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,10 +10,15 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
-var curBackend *Backend
-var backendCertPool *x509.CertPool
+var (
+	curBackend      *Backend
+	backendCertPool *x509.CertPool
+	curClient       *http.Client
+)
 
 //Backend is all the information about a backend. It's split into
 // different maps in the config, so this is all of that information
@@ -25,6 +29,7 @@ type Backend struct {
 	Token             string `json:"-"`
 	CACert            string `json:"ca_cert"`
 	SkipSSLValidation bool   `json:"skip_ssl_validation"`
+	APIVersion        int    `json:"-"`
 
 	resolvedAddr string
 }
@@ -39,6 +44,23 @@ func SetBackend(b *Backend) error {
 			return fmt.Errorf("ca cert could not be added to cert pool")
 		}
 	}
+
+	skipSSL := os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "" || curBackend.SkipSSLValidation
+
+	curClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: skipSSL,
+				RootCAs:            backendCertPool,
+			},
+			Proxy:             http.ProxyFromEnvironment,
+			DisableKeepAlives: true,
+		},
+		Timeout: 30 * time.Second,
+	}
+
+	log.DEBUG("Setting API backend: %+v", *b)
+
 	return nil
 }
 
@@ -89,8 +111,4 @@ func (b *Backend) SecureBackendURI() (string, error) {
 	defer res.Body.Close()
 	io.Copy(ioutil.Discard, res.Body)
 	return final, err
-}
-
-func basicAuthToken(user, password string) string {
-	return "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"+password))
 }

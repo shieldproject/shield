@@ -12,11 +12,14 @@ import (
 )
 
 func backendAtIndex(index int) *api.Backend {
+	i := index + 1
 	return &api.Backend{
-		Name:              fmt.Sprintf("backend%d", index+1),
-		Address:           fmt.Sprintf("http://addr%d", index+1),
-		Token:             fmt.Sprintf("basic mytoken%d", index+1),
+		Name:              fmt.Sprintf("backend%d", i),
+		Address:           fmt.Sprintf("http://addr%d", i),
+		Token:             fmt.Sprintf("basic mytoken%d", i),
 		SkipSSLValidation: true,
+		CACert:            fmt.Sprintf("-----BEGIN CERTIFICATE-----\n%d\n-----END CERTIFICATE-----", i),
+		APIVersion:        1,
 	}
 }
 

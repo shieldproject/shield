@@ -153,20 +153,34 @@ func main() {
 		}
 
 		err = api.SetBackend(currentBackend)
-		if err != nil {
-			ansi.Fprintf(os.Stderr, "@R{Could not set current backend: %s}\n", err.Error())
-			os.Exit(1)
-		}
-
-		cmds.Opts.APIVersion, err = apiVersion()
+		cmds.Opts.APIVersion, err = fetchAPIVersion()
 		if err != nil {
 			ansi.Fprintf(os.Stderr, "@R{Could not contact backend: %s}\n", err.Error())
 			os.Exit(1)
 		}
+
+		currentBackend.APIVersion = cmds.Opts.APIVersion
+		err = config.Commit(currentBackend)
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{Could not update config: %s}\n", err.Error())
+			os.Exit(1)
+		}
+		err = api.SetBackend(currentBackend)
 		log.DEBUG("Using API Version %d", cmds.Opts.APIVersion)
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{Could not set current backend: %s}\n", err.Error())
+			os.Exit(1)
+		}
 	}
 
 	if err := cmd.Run(args...); err != nil {
+		if _, unauthorized := err.(api.ErrUnauthorized); unauthorized && cmd != access.Login {
+			err = fmt.Errorf("You are not authenticated to the SHIELD backend. Please run `shield login'")
+		} else if _, forbidden := err.(api.ErrForbidden); forbidden {
+			err = fmt.Errorf("The currently authenticated user is forbidden from accessing this resource")
+		} else if _, badrequest := err.(api.ErrBadRequest); badrequest {
+			err = fmt.Errorf("Error 400 Bad Request")
+		}
 		if *cmds.Opts.Raw {
 			j, err := json.Marshal(map[string]string{"error": err.Error()})
 			if err != nil {
@@ -178,16 +192,8 @@ func main() {
 		}
 		os.Exit(1)
 	} else {
-		//Save the config changes if everything worked out
-		if currentBackend != nil {
-			if shouldResetCACert { //Reset CACert to configured if we overrode with flag
-				currentBackend.CACert = curCACert
-			}
-			err = config.Commit(currentBackend)
-			if err != nil {
-				ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
-				os.Exit(1)
-			}
+		if shouldResetCACert { //Reset CACert to configured if we overrode with flag
+			currentBackend.CACert = curCACert
 		}
 		err = config.Save()
 		if err != nil {
@@ -247,6 +253,9 @@ func addCommands() {
 	cmds.Add("task", tasks.Get)
 	cmds.Add("cancel", tasks.Cancel).AKA("cancel-task", "cancel task")
 
+	cmds.Add("login", access.Login).AKA("log-in")
+	cmds.Add("logout", access.Logout).AKA("log-out")
+	cmds.Add("whoami", access.Whoami)
 	cmds.Add("unlock", access.Unlock).AKA("unseal")
 	cmds.Add("init", access.Init).AKA("initialize")
 	cmds.Add("rekey", access.Rekey).AKA("rekey-master")
@@ -281,9 +290,15 @@ func addGlobalFlags() {
 	}
 }
 
-func apiVersion() (int, error) {
-	status, err := api.GetStatus()
-	return status.APIVersion, err
+func fetchAPIVersion() (int, error) {
+	stat, err := api.GetStatus()
+	if err != nil {
+		if _, unauthorized := err.(api.ErrUnauthorized); unauthorized {
+			stat.APIVersion = 1
+			err = nil
+		}
+	}
+	return stat.APIVersion, err
 }
 
 func warnScheduleDeprecation() {
