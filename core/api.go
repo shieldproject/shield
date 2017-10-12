@@ -28,8 +28,55 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.initJS(w, req)
 		return
 
-	case match(req, `GET /auth/oauth/.+`):
-		core.oauth2(w, req)
+	case match(req, `GET /auth/([^/]+)/(redir|web|cli)`):
+		re := regexp.MustCompile("/auth/([^/]+)/(redir|web|cli)")
+		m := re.FindStringSubmatch(req.URL.Path)
+
+		name := m[1]
+		provider, err := core.FindAuthProvider(name)
+		if err != nil {
+			w.WriteHeader(404)
+			fmt.Fprintf(w, "couldn't find that auth provider...: %s", err)
+			return
+		}
+
+		if m[2] == "redir" {
+			via := "web"
+			if cookie, err := req.Cookie("via"); err == nil {
+				via = cookie.Value
+			}
+
+			user := provider.HandleRedirect(req)
+			if user == nil {
+				fmt.Fprintf(w, "The authentication process broke down\n")
+				w.WriteHeader(500)
+			}
+
+			session, err := core.createSession(user)
+			if err != nil {
+				log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
+				w.Header().Set("Location", "/")
+			} else if via == "cli" {
+				w.Header().Set("Location", fmt.Sprintf("/#!/cliauth:s:%s", session.UUID.String()))
+			} else {
+				w.Header().Set("Location", "/")
+
+				if session, err := core.createSession(user); err != nil {
+					log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
+				} else {
+					http.SetCookie(w, SessionCookie(session.UUID.String(), true))
+				}
+			}
+			w.WriteHeader(302)
+
+		} else {
+			http.SetCookie(w, &http.Cookie{
+				Name:  "via",
+				Value: m[2],
+				Path:  "/auth",
+			})
+			provider.Initiate(w, req)
+		}
 		return
 
 	case match(req, `GET /v1/ping`):

@@ -126,7 +126,6 @@ auth:
   - name:       Token
     identifier: token
     backend:    token
-    usage:      cli
     properties:
       4E7E8965-9DB0-4D3A-B920-2537F3321B3D:
         - tenant: starkandwayne
@@ -135,12 +134,11 @@ auth:
           role:   engineer
 
   - name:       Github
-    identifier: public-gh
+    identifier: github
     backend:    github
-    usage:      web
     properties:
-      client_id:     7760ef75ba49c9699114
-      client_secret: 9833e0d2f10df1c77eff41adfb07d6084b238349
+      client_id:     35f670b0ee9c9b4bc37c
+      client_secret: b33d1309ea69e75c0ccd51f2caac9493e9326830
       mapping:
         starkandwayne:           # <-- github org name
           tenant: starkandwayne  # <-- shield tenant name
@@ -158,7 +156,6 @@ auth:
   - name:       UAA
     identifier: uaa1
     backend:    uaa
-    usage:      web
     properties:
       client_id:       shield-dev
       client_secret:   s.h.i.e.l.d.

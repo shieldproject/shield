@@ -1574,3 +1574,12 @@ td span.role {
   display: inline;
   height: 1em;
 }
+
+#cliauth #creds {
+  display: inline-block;
+  background-color: #000;
+  font-family: monospace;
+  padding: 1em;
+  font-size: 16px;
+  color: yellow;
+}

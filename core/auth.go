@@ -16,25 +16,30 @@ func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
 			switch auth.Backend {
 			case "github":
 				provider = &GithubAuthProvider{
-					Name:       auth.Name,
-					Identifier: identifier,
-					Usage:      auth.Usage,
-					core:       core,
+					AuthProviderBase: AuthProviderBase{
+						Name:       auth.Name,
+						Identifier: identifier,
+						Type:       auth.Backend,
+					},
+					core: core,
 				}
 			case "uaa":
 				provider = &UAAAuthProvider{
-					Identifier: identifier,
-					Usage:      auth.Usage,
-					core:       core,
+					AuthProviderBase: AuthProviderBase{
+						Name:       auth.Name,
+						Identifier: identifier,
+						Type:       auth.Backend,
+					},
+					core: core,
 				}
 			case "token":
-				if auth.Usage != "cli" {
-					return nil, fmt.Errorf("The 'token' auth provider can ONLY be used for `usage: \"cli\"`")
-				}
 				provider = &TokenAuthProvider{
-					Identifier: identifier,
-					Usage:      auth.Usage,
-					core:       core,
+					AuthProviderBase: AuthProviderBase{
+						Name:       auth.Name,
+						Identifier: identifier,
+						Type:       auth.Backend,
+					},
+					core: core,
 				}
 			default:
 				return nil, fmt.Errorf("unrecognized auth provider type '%s'", auth.Backend)

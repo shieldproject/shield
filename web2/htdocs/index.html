@@ -223,18 +223,18 @@
         they are styled as buttons)
       ]]
           <div id="login" class="frontdoor">
-            <div[[ if (_.oauth.length == 0) { ]] class="local-only"[[ } ]]>
+            <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
               <h1>SHIELD<span>Production<span></h1>
               <div class="dialog">
                 <p class="motd">Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi.</p>
 
-                [[ if (_.oauth.length > 0) { ]]
+                [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
                   <h2>Sign in using...</h2>
 
                   <ul>
-                    [[ $.each(_.oauth, function (i, oauth) { ]]
-                    <li class="oauth-[[= oauth.type ]]"><a class="login" href="/auth/oauth/[[= oauth.identifier ]]">[[= oauth.name ]]</a></li>
+                    [[ $.each(_.providers, function (i, provider) { ]]
+                    <li class="provider-[[= provider.type ]]"><a class="login" href="[[= provider.web_entry ]]">[[= provider.name ]]</a></li>
                     [[ }); ]]
                 </div>
                 [[ } ]]
@@ -263,6 +263,33 @@
                     <button>Sign in</button>
                   <form>
                 </div>
+              </div>
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--cliauth"><!-- {{{ -->
+      [[#
+        {cliauth} template
+
+        Displays the session ID for an authenticated session, so that the CLI
+        can be told what that session ID is.
+      ]]
+          <div id="cliauth" class="frontdoor">
+            <div>
+              <h1>SHIELD<span>Production<span></h1>
+              <div class="dialog">
+                <h2>CLI Authentication Credentials</h2>
+                <img src="/i/terminal.png" class="highlight">
+
+                <p>Here are your SHIELD CLI authentication
+                credentials:</p>
+
+                <pre id="creds">[[= _.s ]]</pre>
+
+                <p>You will need to copy-and-paste those into
+                the terminal session where you ran the SHIELD
+                command-line interface, to complete the
+                authentication process.</p>
               </div>
             </div>
           </div>
@@ -1316,7 +1343,7 @@
 
         Renders the list of configured authentication providers, including
         details about how to integrate with their respective 3rd party auth
-        systems, i.e. Github oauth App registration, CF/UAA client creation,
+        systems, i.e. Github OAuth2 App registration, CF/UAA client creation,
         etc.
       ]]
           <div class="gutter blk" id="auth-providers">
@@ -1400,7 +1427,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   --scope openid \
                   --authorities uaa.none \
                   --authorized_grant_types authorization_code \
-                  --redirect_uri <span class="hi">[[= website() ]]auth/oauth/[[= _.provider.identifier ]]/redir</span> \
+                  --redirect_uri <span class="hi">[[= website() ]][[= _.provider.redirect ]]</span> \
                   --access_token_validity  180 \
                   --refresh_token_validity 180 \
                   --secret '<span class="hi">[[= p.client_secret ]]</span>'</code></pre>
@@ -1416,7 +1443,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
         Renders the list of configured authentication providers, including
         details about how to integrate with their respective 3rd party auth
-        systems, i.e. Github oauth App registration, CF/UAA client creation,
+        systems, i.e. Github OAuth2 App registration, CF/UAA client creation,
         etc.
       ]]
           <div class="gutter blk" id="rekey">
@@ -1592,14 +1619,21 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/javascript">
     var referer = undefined;
     function dispatch(page) {
-      if (page != "#!/login" && $global.auth.unauthenticated) {
-        console.log('session not authenticated; diverting to #!/login page...');
-        goto("#!/login");
-        return
+      var argv = page.split(/[:+]/);
+      page = argv.shift();
+      args = {};
+      for (var i = 0; i < argv.length; i += 2) {
+        args[argv[0+i]] = argv[1+i]
+      }
+
+      if ($global.auth.unauthenticated) {
+        if (page != "#!/login" && page != "#!/cliauth") {
+          console.log('session not authenticated; diverting to #!/login page...');
+          goto("#!/login");
+          return
+        }
 
       } else if ($global.auth && $global.auth.user && $global.auth.user.sysrole != "" && $global.hud) {
-        console.log($global.hud.health.core);
-
         /* process 'system' team diverts */
         if ($global.hud.health.core == "uninitialized") {
           console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
@@ -1616,14 +1650,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       }
       console.log('dispatching to page "%s"...', page);
 
-      var argv = page.split(':');
-      page = argv.shift();
       var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
-
-      args = {};
-      for (var i = 0; i < argv.length; i += 2) {
-        args[argv[0+i]] = argv[1+i]
-      }
       $('nav li.current').removeClass('current');
       $('nav a[href="'+top+'"]').closest('li').addClass('current');
 
@@ -1638,9 +1665,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
           api({
             type: 'GET',
-            url:  '/v2/auth/providers?usage=web',
+            url:  '/v2/auth/providers?for=web',
             success: function (data) {
-              $('#viewport').html($(template('login', { oauth: data })))
+              $('#viewport').html($(template('login', { providers: data })))
                 .on("click", ".login", function (event) {
                   progress($(event.target).text());
                 })
@@ -1672,8 +1699,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         })();
         break; /* #!/login */
         // }}}
-
-      case "#!/logout": // {{{
+      case "#!/cliauth": /* {{{ */
+        $('#viewport').html(template('cliauth', args));
+        break; /* #!/cliauth */
+        // }}}
+      case "#!/logout": /* {{{ */
         (function () {
           api({
             type: "GET",
@@ -1691,7 +1721,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           });
         })()
         break;
-      // }}}
+        // }}}
 
       case "#!/do/backup": /* {{{ */
         (function () {
