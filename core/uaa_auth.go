@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/lib/uaa"
@@ -137,14 +137,14 @@ func (p *UAAAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Reques
 		return
 	}
 	for tname, role := range p.resolveSCIM(scims) {
-		p.log("ensuring that tenant '%s' exists", tname)
+		log.Errorf("auth provider %s (uaa): ensuring that tenant '%s' exists", p.Identifier, tname)
 		tenant, err := p.core.DB.EnsureTenant(tname)
 		if err != nil {
 			p.fail(w, fmt.Errorf("failed to find/create tenant '%s': %s", tname, err))
 			return
 		}
-		p.log("user = %v; tenant = %s", user, tname)
-		p.log("assigning %s (user %s) to tenant '%s' as role '%s'", account, user.UUID, tenant.UUID, role)
+		log.Errorf("auth provider %s (uaa): user = %v; tenant = %s", p.Identifier, user, tname)
+		log.Errorf("auth provider %s (uaa): assigning %s (user %s) to tenant '%s' as role '%s'", p.Identifier, account, user.UUID, tenant.UUID, role)
 		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
 		if err != nil {
 			p.fail(w, fmt.Errorf("failed to assign %s to tenant '%s' as role '%s': %s", account, tname, role, err))
@@ -174,12 +174,8 @@ func (p UAAAuthProvider) resolveSCIM(scims []string) map[string]string {
 	return rights
 }
 
-func (p UAAAuthProvider) log(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "uaa auth provider [%s]: %s\n", p.Identifier, fmt.Sprintf(msg, args...))
-}
-
 func (p UAAAuthProvider) fail(w http.ResponseWriter, err error) {
-	p.log("%s", err)
+	log.Errorf("auth provider %s (uaa): %s", p.Identifier, err)
 	w.Header().Set("Location", "/fail/e500")
 	w.WriteHeader(302)
 }

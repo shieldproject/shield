@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/lib/github"
@@ -84,32 +84,33 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 
 	b, err := json.Marshal(input)
 	if err != nil {
-		gh.log("failed to marshal access token request: %s\n", err)
+		log.Errorf("auth provider %s (github): failed to marshal access token request: %s", gh.Identifier, err)
 		gh.fail(w)
 		return
 	}
 
-	res, err := http.Post(gh.accessTokenURL(), "application/json", bytes.NewBuffer(b))
+	uri := gh.accessTokenURL()
+	res, err := http.Post(uri, "application/json", bytes.NewBuffer(b))
 	if err != nil {
-		gh.log("failed to POST to Github access_token endpoint %s: %s\n", gh.accessTokenURL(), err)
+		log.Errorf("auth provider %s (github): failed to POST to Github access_token endpoint %s: %s", gh.Identifier, uri, err)
 		gh.fail(w)
 		return
 	}
 	b, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		gh.log("failed to read response from POST %s: %s\n", gh.accessTokenURL(), err)
+		log.Errorf("auth provider %s (github): failed to read response from POST %s: %s", gh.Identifier, uri, err)
 		gh.fail(w)
 		return
 	}
 	u, err := url.Parse("?" + string(b))
 	if err != nil {
-		gh.log("failed to parse response '%s' from POST %s: %s\n", string(b), gh.accessTokenURL(), err)
+		log.Errorf("auth provider %s (github): failed to parse response '%s' from POST %s: %s", gh.Identifier, string(b), uri, err)
 		gh.fail(w)
 		return
 	}
 	token := u.Query().Get("access_token")
 	if token == "" {
-		gh.log("no access_token found in response '%s'\n", string(b))
+		log.Errorf("auth provider %s (github): no access_token found in response '%s' from POST %s", gh.Identifier, string(b), u)
 		gh.fail(w)
 		return
 	}
@@ -117,7 +118,7 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 	client := github.NewClient(token)
 	account, name, orgs, err := client.Lookup()
 	if err != nil {
-		gh.log("failed to perform lookup against Github: %s\n", err)
+		log.Errorf("auth provider %s (github): failed to perform lookup against Github: %s", gh.Identifier, err)
 		gh.fail(w)
 		return
 	}
@@ -125,7 +126,7 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 	//Check if the user that logged in via github already exists
 	user, err := gh.core.DB.GetUser(account, gh.Identifier)
 	if err != nil {
-		gh.log("failed to retrieve user %s@%s from database: %s\n", account, gh.Identifier, err)
+		log.Errorf("auth provider %s (github): failed to retrieve user %s@%s from database: %s", gh.Identifier, account, gh.Identifier, err)
 		gh.fail(w)
 		return
 	}
@@ -141,7 +142,7 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 	}
 	session, err := gh.core.createSession(user)
 	if err != nil {
-		gh.log("failed to create a session for user %s: %s\n", account, err)
+		log.Errorf("auth provider %s (github): failed to create a session for user %s: %s", gh.Identifier, account, err)
 		gh.fail(w)
 		return
 	}
@@ -149,7 +150,7 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
 
 	if err := gh.core.DB.ClearMembershipsFor(user); err != nil {
-		gh.log("failed to clear memberships for user %s: %s\n", account, err)
+		log.Errorf("auth provider %s (github): failed to clear memberships for user %s: %s", gh.Identifier, account, err)
 		gh.fail(w)
 		return
 	}
@@ -166,27 +167,27 @@ func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Re
 		if assigned {
 			if existing, already := assign[tname]; already {
 				if (existing == "operator" && existing != role) || (existing == "engineer" && role == "admin") {
-					gh.log("upgrading %s (%s org) assignment on tenant '%s' to %s\n", account, org, tname, role)
+					log.Infof("auth provider %s (github): upgrading %s (%s org) assignment on tenant '%s' to %s", gh.Identifier, account, org, tname, role)
 					assign[tname] = role
 				}
 			} else {
-				gh.log("assigning %s (%s org) to tenant '%s' as %s\n", account, org, tname, role)
+				log.Infof("auth provider %s (github): assigning %s (%s org) to tenant '%s' as %s", gh.Identifier, account, org, tname, role)
 				assign[tname] = role
 			}
 		}
 	}
 	for tname, role := range assign {
-		gh.log("ensuring that tenant '%s' exists\n", tname)
+		log.Infof("auth provider %s (github): ensuring that tenant '%s' exists", gh.Identifier, tname)
 		tenant, err := gh.core.DB.EnsureTenant(tname)
 		if err != nil {
-			gh.log("failed to find/create tenant '%s': %s\n", tname, err)
+			log.Errorf("auth provider %s (github): failed to find/create tenant '%s': %s", gh.Identifier, tname, err)
 			gh.fail(w)
 			return
 		}
-		gh.log("inviting %s [%s] to tenant '%s' [%s] as '%s'\n", account, user.UUID, tenant.Name, tenant.UUID, role)
+		log.Infof("auth provider %s (github): inviting %s [%s] to tenant '%s' [%s] as '%s'", gh.Identifier, account, user.UUID, tenant.Name, tenant.UUID, role)
 		err = gh.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
 		if err != nil {
-			gh.log("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s\n", account, user.UUID, tenant.Name, tenant.UUID, role, err)
+			log.Errorf("auth provider %s (github): failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", gh.Identifier, account, user.UUID, tenant.Name, tenant.UUID, role, err)
 			gh.fail(w)
 			return
 		}
@@ -218,11 +219,6 @@ func (gh GithubAuthProvider) accessTokenURL() string {
 
 func (gh GithubAuthProvider) authorizeURL(scope string) string {
 	return fmt.Sprintf("%s/login/oauth/authorize?scope=%s&client_id=%s", gh.GithubEndpoint, scope, gh.ClientID)
-}
-
-func (gh GithubAuthProvider) log(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "github-auth[%s]: ", gh.Identifier)
-	fmt.Fprintf(os.Stderr, msg, args...)
 }
 
 func (gh GithubAuthProvider) fail(w http.ResponseWriter) {
