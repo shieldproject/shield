@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
@@ -14,28 +13,23 @@ import (
 )
 
 type TokenAuthProvider struct {
+	AuthProviderBase
+
 	Tokens map[string][]struct {
 		Tenant string `json:"tenant"`
 		Role   string `json:"role"`
 	} `json:"tokens"`
 
-	Name       string
-	Identifier string
-	Usage      string
-	core       *Core
+	core *Core
 }
 
-func (t *TokenAuthProvider) DisplayName() string {
-	return t.Name
-}
-
-func (t *TokenAuthProvider) Configure(raw map[interface{}]interface{}) error {
+func (p *TokenAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	b, err := json.Marshal(util.StringifyKeys(raw))
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(b, t)
+	err = json.Unmarshal(b, p)
 	if err != nil {
 		return err
 	}
@@ -43,22 +37,21 @@ func (t *TokenAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	return nil
 }
 
-func (t *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
+func (p *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	token := req.Header.Get("X-Shield-Token")
 	log.Debugf("X-Shield-Token is [%s]", token)
 
-	assignments, ok := t.Tokens[token]
+	assignments, ok := p.Tokens[token]
 	if !ok {
-		t.log("authentication via token '%s' failed", token)
-		t.fail(w)
+		p.Errorf("authentication via token '%s' failed", token)
+		p.Fail(w)
 		return
 	}
 
-	user, err := t.core.DB.GetUser(token, t.Identifier)
+	user, err := p.core.DB.GetUser(token, p.Identifier)
 	if err != nil {
-		t.log("failed to retrieve user %s@%s from database: %s\n", token, t.Identifier, err)
-		t.log("failed to retrieve user %s@%s from database: %s\n", token, t.Identifier, err)
-		t.fail(w)
+		p.Errorf("failed to retrieve user %s@%s from database: %s\n", token, p.Identifier, err)
+		p.Fail(w)
 		return
 	}
 	if user == nil {
@@ -66,39 +59,38 @@ func (t *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 			UUID:    uuid.NewRandom(),
 			Name:    token,
 			Account: token,
-			Backend: t.Identifier,
+			Backend: p.Identifier,
 			SysRole: "",
 		}
-		t.core.DB.CreateUser(user)
+		p.core.DB.CreateUser(user)
 	}
-	session, err := t.core.createSession(user)
+	session, err := p.core.createSession(user)
 	if err != nil {
-		t.log("failed to create a session for user %s: %s\n", token, err)
-		t.fail(w)
+		p.Errorf("failed to create a session for user %s: %s\n", token, err)
+		p.Fail(w)
 		return
 	}
 
 	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
 
-	if err := t.core.DB.ClearMembershipsFor(user); err != nil {
-		t.log("failed to clear memberships for user %s: %s\n", token, err)
-		t.fail(w)
+	if err := p.core.DB.ClearMembershipsFor(user); err != nil {
+		p.Errorf("failed to clear memberships for user %s: %s\n", token, err)
+		p.Fail(w)
 		return
 	}
 	for _, assignment := range assignments {
-		t.log("ensuring tenant '%s'\n", assignment.Tenant)
-		tenant, err := t.core.DB.EnsureTenant(assignment.Tenant)
+		p.Infof("ensuring tenant '%s'\n", assignment.Tenant)
+		tenant, err := p.core.DB.EnsureTenant(assignment.Tenant)
 		if err != nil {
-			t.log("failed to find/create tenant '%s': %s\n", assignment.Tenant, err)
-			t.fail(w)
+			p.Errorf("failed to find/create tenant '%s': %s\n", assignment.Tenant, err)
+			p.Fail(w)
 			return
 		}
-		t.log("user = %v; tenant = %v\n", user, tenant)
-		t.log("assigning %s (user %s) to tenant '%s' as role '%s'\n", token, user.UUID, tenant.UUID, assignment.Role)
-		err = t.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), assignment.Role)
+		p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", token, user.UUID, tenant.Name, tenant.UUID, assignment.Role)
+		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), assignment.Role)
 		if err != nil {
-			t.log("failed to assign %s to tenant '%s' as role '%s': %s\n", token, assignment.Tenant, assignment.Role, err)
-			t.fail(w)
+			p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", token, user.UUID, tenant.Name, tenant.UUID, assignment.Role, err)
+			p.Fail(w)
 			return
 		}
 	}
@@ -107,17 +99,7 @@ func (t *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(302)
 }
 
-func (t *TokenAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Request) {
+func (p *TokenAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(500)
 	fmt.Fprintf(w, "token auth provider should never get this far\n")
-}
-
-func (t TokenAuthProvider) log(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "token-auth[%s]: ", t.Identifier)
-	fmt.Fprintf(os.Stderr, msg, args...)
-}
-
-func (t TokenAuthProvider) fail(w http.ResponseWriter) {
-	w.Header().Set("Location", "/fail/e500")
-	w.WriteHeader(302)
 }
