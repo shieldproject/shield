@@ -1218,13 +1218,33 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+[
+  {
+    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+    "name"    : "Cloud Storage Name",
+    "summary" : "A longer description of the storage configuration",
+    "agent"   : "127.0.0.1:5444",
+    "plugin"  : "fs",
+    "config"  : {
+      "base_dir" : "/var/data/root",
+      "bsdtar"   : "bsdtar"
+    }
+  }
+]
+```
+
+The values under `config` will depend entirely on what the
+operator specified when they initially configured the storage
+system.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve storage systems information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
 
 
 ### POST /v2/tenants/:tenant/stores
@@ -1233,25 +1253,49 @@ Create a new store on a tenant.
 
 **Request**
 
-TBD
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -X POST https://shield.host/v2/tenants/$uuid/stores -d '
 {
-  TBD
+  "name"    : "Storage System Name",
+  "summary" : "A longer description for this storage system.",
+  "plugin"  : "plugin-name",
+  "agent"   : "127.0.0.1:5444",
+  "config"  : {
+    "plugin-specific": "configuration"
+  }
 }'
 ```
 
+The values under `config` will depend entirely on which `plugin`
+has been selected; no validation will be done by the SHIELD Core,
+until the storage system is used in a job.
+
 **Response**
 
-TBD
+```json
+{
+  "name"    : "Storage System Name",
+  "summary" : "A longer description for this storage system.",
+  "plugin"  : "plugin-name",
+  "agent"   : "127.0.0.1:5444",
+  "config"  : {
+    "plugin-specific": "configuration"
+  }
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **Unable to create new storage system** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### GET /v2/tenants/:tenant/stores/:uuid
@@ -1267,13 +1311,34 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+{
+  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+  "name"    : "Cloud Storage Name",
+  "summary" : "A longer description of the storage configuration",
+  "plugin"  : "fs",
+  "agent"   : "127.0.0.1:5444",
+  "config"  : {
+    "base_dir" : "/var/data/root",
+    "bsdtar"   : "bsdtar"
+  }
+}
+```
+
+The values under `config` will depend entirely on what the
+operator specified when they initially configured the storage
+system.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **No such storage system** - No storage system with the given
+  UUID exists on the specified tenant.
 
 
 ### PUT /v2/tenants/:tenant/stores/:uuid
@@ -1282,17 +1347,57 @@ Update an existing store on a tenant.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PUT https://shield.host/v2/tenants/$tenant/stores/$uuid -d '
+{
+  "name"    : "Updated Store Name",
+  "summary" : "A longer description of the storage system",
+  "agent"   : "127.0.0.1:5444",
+  "plugin"  : "plugin",
+  "config"  : {
+    "new": "plugin configuration"
+  }
+}'
+```
+
+You can specify as many or few of these fields as you want;
+omitted fields will be left at their previous values.  If `config`
+is supplied, it will overwrite the value currently in the
+database.
+
+The values under `config` will depend entirely on which `plugin`
+has been selected; no validation will be done by the SHIELD Core,
+until the storage system is used in a job.
 
 **Response**
 
-TBD
+```json
+{
+  "name"    : "Updated Store Name",
+  "summary" : "A longer description of the storage system",
+  "agent"   : "127.0.0.1:5444",
+  "plugin"  : "plugin",
+  "config"  : {
+    "new": "plugin configuration"
+  }
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **Unable to update storage system** - An internal error occurred
+  and should be investigated by the site administrators.
+
+- **No such storage system** - No storage system with the given
+  UUID exists on the specified tenant.
 
 
 ### DELETE /v2/tenants/:tenant/stores/:uuid
@@ -1310,16 +1415,28 @@ curl -H 'Accept: application/json' \
 
 ```json
 {
-  "ok": "Store delete successfully"
+  "ok": "Storage system deleted successfully"
 }
 ```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
 
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **Unable to update storage system** - An internal error occurred
+  and should be investigated by the site administrators.
+
+- **Unable to delete storage system** - An internal error occurred
+  and should be investigated by the site administrators.
+
+- **The storage system cannot be deleted at this time** - This
+  storage system is referenced by one or more extant job
+  configuration; deleting it would lead to an incomplete (and
+  unusable) setup.
 
 
 

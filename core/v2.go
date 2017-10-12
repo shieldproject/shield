@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -1262,28 +1261,43 @@ func (core *Core) v2API() *route.Router {
 			},
 		)
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
 			return
+		}
+
+		/* resolve string configurations to real objects */
+		for _, store := range stores {
+			if err := store.Resolve(); err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
+				return
+			}
+			store.Endpoint = ""
 		}
 
 		r.OK(stores)
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		tennant_id := uuid.Parse(r.Args[1])
-		store_id := uuid.Parse(r.Args[2])
-		if store_id == nil || tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
-			return
-		}
-		store, err := core.DB.GetStore(store_id)
+		store, err := core.DB.GetStore(uuid.Parse(r.Args[2]))
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
 
-		if store == nil || strings.Compare(store.TenantUUID.String(), tennant_id.String()) != 0 {
-			r.Fail(route.NotFound(nil, "Store Not Found"))
+		if store == nil || store.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such storage system"))
+			return
+		}
+
+		if err := store.Resolve(); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		store.Endpoint = ""
+
+		/* FIXME: we also have to handle public, for operators */
+		if err = store.DisplayPublic(); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
 			return
 		}
 
@@ -1291,139 +1305,146 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}""
 	r.Dispatch("POST /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
-		if r.Req.Body == nil {
-			r.Fail(route.Bad(nil, "FIXME need an error message"))
-			return
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Agent   string `json:"agent"`
+			Plugin  string `json:"plugin"`
+
+			Config map[string]interface{} `json:"config"`
+
+			endpoint string
 		}
-		tennant_id := uuid.Parse(r.Args[1])
-		if tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
+
+		if !r.Payload(&in) {
 			return
 		}
 
-		var params struct {
-			Name     string `json:"name"`
-			Summary  string `json:"summary"`
-			Plugin   string `json:"plugin"`
-			Endpoint string `json:"endpoint"`
-		}
-		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin) {
 			return
 		}
 
-		e := MissingParameters()
-		e.Check("name", params.Name)
-		e.Check("plugin", params.Plugin)
-		e.Check("endpoint", params.Endpoint)
-		if e.IsValid() {
-			r.Fail(route.Oops(errors.New(e.Error()), e.Error()))
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if tenant == nil || err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
 
-		id, err := core.DB.CreateStore(&db.Store{
-			Name:       params.Name,
-			Plugin:     params.Plugin,
-			Endpoint:   params.Endpoint,
-			Summary:    params.Summary,
-			TenantUUID: tennant_id,
+		/* FIXME: move this into (s *Store) itself ... */
+		b, err := json.Marshal(in.Config)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create new storage system"))
+			return
+		}
+		in.endpoint = string(b)
+
+		store, err := core.DB.CreateStore(&db.Store{
+			TenantUUID: tenant.UUID,
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Agent:      in.Agent,
+			Plugin:     in.Plugin,
+			Endpoint:   in.endpoint,
+			Config:     in.Config,
 		})
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to create new storage system"))
 			return
 		}
 
-		r.OK(fmt.Sprintf("\"created\", \"uuid\":\"%s\"", id.String()))
+		store.Config = in.Config
+		store.Endpoint = ""
+		r.OK(store)
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		if r.Req.Body == nil {
-			r.Fail(route.Bad(nil, "FIXME need an error message"))
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Agent   string `json:"agent"`
+			Plugin  string `json:"plugin"`
+
+			Config map[string]interface{} `json:"config"`
+		}
+		if !r.Payload(&in) {
+			r.Fail(route.Bad(nil, "Unable to update storage system"))
 			return
 		}
 
-		tennant_id := uuid.Parse(r.Args[1])
-		store_id := uuid.Parse(r.Args[2])
-		if store_id == nil || tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
-			return
-		}
-
-		var params struct {
-			Name     string `json:"name"`
-			Summary  string `json:"summary"`
-			Plugin   string `json:"plugin"`
-			Endpoint string `json:"endpoint"`
-		}
-		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
-			return
-		}
-
-		store, err := core.DB.GetStore(store_id)
+		store, err := core.DB.GetStore(uuid.Parse(r.Args[2]))
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if store == nil || strings.Compare(store.TenantUUID.String(), tennant_id.String()) != 0 {
-			r.Fail(route.NotFound(nil, "Store Not Found"))
+		if store == nil || store.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.Oops(err, "No such storage system"))
 			return
 		}
 
-		if params.Name != "" {
-			store.Name = params.Name
+		if in.Name != "" {
+			store.Name = in.Name
 		}
-
-		if params.Summary != "" {
-			store.Summary = params.Summary
+		if in.Summary != "" {
+			store.Summary = in.Summary
 		}
-
-		if params.Plugin != "" {
-			store.Plugin = params.Plugin
+		if in.Agent != "" {
+			store.Agent = in.Agent
 		}
-
-		if params.Endpoint != "" {
-			store.Endpoint = params.Endpoint
+		if in.Plugin != "" {
+			store.Plugin = in.Plugin
+		}
+		if in.Config != nil {
+			store.Config = in.Config
+			/* FIXME: move this into (s *Store) itself ... */
+			b, err := json.Marshal(in.Config)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to update storage system"))
+				return
+			}
+			store.Endpoint = string(b)
 		}
 
 		if err := core.DB.UpdateStore(store); err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to update storage system"))
 			return
 		}
 
-		r.OK(fmt.Sprintf("updated"))
+		store, err = core.DB.GetStore(store.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		if err := store.Resolve(); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		store.Endpoint = ""
+
+		r.OK(store)
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		tennant_id := uuid.Parse(r.Args[1])
-		store_id := uuid.Parse(r.Args[2])
-		if store_id == nil || tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
-			return
-		}
-
-		store, err := core.DB.GetStore(store_id)
+		store, err := core.DB.GetStore(uuid.Parse(r.Args[2]))
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if store == nil || strings.Compare(store.TenantUUID.String(), tennant_id.String()) != 0 {
-			r.Fail(route.NotFound(nil, "Store Not Found"))
+		if store == nil || store.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.Oops(err, "No such storage system"))
 			return
 		}
 
 		deleted, err := core.DB.DeleteStore(store.UUID)
-
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to delete storage system"))
 			return
 		}
 		if !deleted {
-			r.Fail(route.Bad(err, "FIXME need an error message"))
+			r.Fail(route.Bad(nil, "The storage system cannot be deleted at this time"))
 			return
 		}
 
-		r.OK("deleted")
+		r.Success("Storage system deleted successfully")
 	})
 	// }}}
 

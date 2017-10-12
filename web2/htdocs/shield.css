@@ -595,6 +595,12 @@ body { font-family: sans-serif; }
   margin: 2% 0 10% 2%;
   float: left;
 }
+.store .summary {
+  width: 100%;
+  margin: 1em;
+  float: none;
+  font-style: italic;
+}
 .card:nth-child(2n+1) {
   clear: both;
   margin: 2% 2% 2% 0;
@@ -673,15 +679,24 @@ body { font-family: sans-serif; }
 }
 
 .field a.breadcrumb,
-.field a.new {
+.field a.new, .field a.edit, .field a.delete {
   text-decoration: none;
   color: #0071bc;
   font-size: 11pt;
   border-bottom: 1px dotted #0071bc;
+  display: inline-block;
 }
 .field a.new {
   display: block;
   float: right;
+}
+.field a.edit, .field a.delete {
+  margin-left: 1ex;
+  font-weight: bold;
+}
+.field a.delete {
+  color: #FF6161;
+  border-color: #FF6161;
 }
 
 .field table {
@@ -800,6 +815,13 @@ form .ctl p strong {
 
 form .ctl .help {
 }
+form .ctl tt {
+  font-family: monospace;
+  color: #0071bc;
+  font-weight: bold;
+  font-style: normal;
+  padding: 2px 4px;
+}
 form .ctl .if-missing {
   color: darkred;
   font-size: 13px;
@@ -820,6 +842,21 @@ form .ctl span.errors {
 form .error,
 form .ctl span[data-error] {
   display: none;
+}
+.ctl.required label span {
+  font-size: 10pt;
+  font-weight: normal;
+  color: #0071bc;
+  vertical-align: top;
+}
+
+form .subform .ctl {
+  margin-left: 1em;
+}
+form .subform h2 {
+  font-size: 18pt;
+  font-weight: bold;
+  color: #0071bc;
 }
 
 form button.go {
@@ -912,7 +949,11 @@ dl dd {
   font-weight: bold;
   padding: 0 0 0.5em 0;
 }
-
+dl dd em {
+  color: crimson;
+}
+dl dd em:before { content: "«"; }
+dl dd em:after  { content: "»"; }
 
 pre code {
   display: block;
@@ -1582,4 +1623,16 @@ td span.role {
   padding: 1em;
   font-size: 16px;
   color: yellow;
+}
+
+.notice {
+  background-color: #b2e1ff;
+  padding: 1em;
+  border-radius: 0.5em;
+  font-size: 11pt;
+}
+h2 strong,
+.notice strong {
+  font-weight: bold;
+  color: #0071bc;
 }

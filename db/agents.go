@@ -1,13 +1,15 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
-
 	. "github.com/starkandwayne/goutils/timestamp"
+
+	"github.com/starkandwayne/shield/plugin"
 )
 
 type Agent struct {
@@ -137,6 +139,41 @@ func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
 	}
 
 	return agent, nil
+}
+
+func (db *DB) GetAgentPluginMetadata(addr, name string) (*plugin.PluginInfo, error) {
+	r, err := db.Query(`SELECT metadata FROM agents WHERE address = ?`, addr)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, nil
+	}
+
+	var (
+		raw  []byte
+		meta struct {
+			Plugins map[string]plugin.PluginInfo `json:"plugins"`
+		}
+	)
+	if err = r.Scan(&raw); err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(raw, &meta); err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("start of plugin list\n")
+	for n := range meta.Plugins {
+		fmt.Printf("found plugin %s\n", n)
+	}
+	fmt.Printf("end of plugin list\n")
+	if p, ok := meta.Plugins[name]; ok {
+		return &p, nil
+	}
+	return nil, nil
 }
 
 func (db *DB) PreRegisterAgent(host, name string, port int) error {

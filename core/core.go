@@ -120,6 +120,9 @@ func (core *Core) Run() error {
 		return fmt.Errorf("database failed schema version check: %s", err)
 	}
 
+	if err = core.fixups(); err != nil {
+		return fmt.Errorf("failed to run (idempotent) fixups against database: %s", err)
+	}
 	core.cleanup()
 
 	core.vault, err = crypter.NewVault()
