@@ -65,6 +65,7 @@ type authUser struct {
 type authResponse struct {
 	User    authUser     `json:"user"`
 	Tenants []authTenant `json:"tenants"`
+	Tenant  *authTenant  `json:"tenant,omitempty"`
 }
 
 //Gets the session ID from the request. Returns "" if not given.
@@ -113,6 +114,9 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 		answer.Tenants[i].UUID = membership.TenantUUID
 		answer.Tenants[i].Name = membership.TenantName
 		answer.Tenants[i].Role = membership.Role
+	}
+	if len(answer.Tenants) > 0 {
+		answer.Tenant = &answer.Tenants[0]
 	}
 
 	if answer.User.Backend == "local" {
