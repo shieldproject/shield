@@ -1,7 +1,15 @@
-# SHIELD API
+# SHIELD v2 API
 
+This document specifies the behavior of the SHIELD API, version 2,
+in its entirety.  This is a specification, not merely
+documentation &mdash; it is the authoritative source.  If this
+document is unclear, it will be amended.  If the SHIELD codebase
+disagrees with this specification, the code is incorrect and
+should be treated as such.
 
-
+The purpose of this document is to allow 3rd party integrators to
+inter-operate with the SHIELD API without resorting to spelunking
+through its implementation.
 
 ## Error Handling
 
@@ -75,7 +83,8 @@ The order of the fields is inconsequential.
 
 ## Health
 
-TBD
+The health endpoints give you a glimpse into the well-being of a
+SHIELD Core, for monitoring purposes.
 
 ### GET /v2/health
 
@@ -129,14 +138,16 @@ payload in the response body:
 The following error messages can be returned:
 
 - **failed to check SHIELD health** - an internal error occurred
-  and shoud be investigated by the site administrators.
+  and should be investigated by the site administrators.
 
 
 
 
 ## SHIELD Authentication
 
-TBD
+The Authentication endpoints allow clients to authenticate to a
+SHIELD Core, providing credentials to prove their identity and
+their authorization to perform other tasks inside of SHIELD.
 
 ### POST /v2/auth/login
 
@@ -198,11 +209,14 @@ The following error messages can be returned:
 
 ### GET /v2/auth/logout
 
-TBD
+Destroy the current session and log the user out.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -X GET https://shield.host/v2/auth/logout
+```
 
 **Response**
 
@@ -217,11 +231,16 @@ The following error messages can be returned:
 
 ### GET /v2/auth/id
 
-TBD
+Retrieve identity and authorization information about the
+currently authenticated session.  If the requester has not
+authenticated, a suitable response will be returned.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -X GET https://shield.host/v2/auth/id
+```
 
 **Response**
 
@@ -238,7 +257,8 @@ The following error messages can be returned:
 
 ## SHIELD Core
 
-TBD
+These endpoints allow clients to initialize brand new SHIELD
+Cores, and unlock or rekey existing ones.
 
 ### POST /v2/init
 
@@ -365,7 +385,7 @@ The following error messages can be returned:
 
 ## SHIELD Agents
 
-TBD
+These endpoints expose information about registered SHIELD Agents.
 
 ### GET /v2/agents
 
@@ -502,7 +522,7 @@ The following error messages can be returned:
   request was missing the required `port` argument.  Re-attempt
   with the `port` argument.
 - **Unable to pre-register agent \<name\> at \<host\>:\<port\>** -
-  An internal error occurred and shoud be investigated by the site
+  An internal error occurred and should be investigated by the site
   administrators.
 - **Unable to determine remote peer address from '\<peer\>'** -
   SHIELD was unable to parse the HTTP connection's peer address as
@@ -589,7 +609,7 @@ name.  The format of this metadata is documented in **TBD**.
 The following error messages can be returned:
 
 - **Unable to retrieve agent information** - An internal error
-  occurred and shoud be investigated by the site administrators.
+  occurred and should be investigated by the site administrators.
 
 - **No such agent** - The requested agent UUID was not found in
   the list of registered agents.
@@ -599,12 +619,16 @@ The following error messages can be returned:
 
 ## SHIELD Tenants
 
-TBD
-
+Tenants serve to insulate groups of SHIELD users from one another,
+providing them a virtual view of SHIELD resources.  Each tenant
+has their own targets, stores, and retention policy definitions,
+as well as their own job configurations.  Each tenants archives
+and tasks are visible only to members of that tenant, pursuant to
+their assigned roles.
 
 ### GET /v2/tenants
 
-TBD
+Retrieve the list of all tenants currently defined.
 
 **Request**
 
@@ -616,137 +640,299 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+[
+  {
+    "name": "A Tenant",
+    "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c"
+  },
+  {
+    "name": "Some Other Tenant",
+    "uuid": "4b6f6e2a-6ac6-443e-a910-aa412744165e"
+  }
+]
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenants information** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### POST /v2/tenants
 
-TBD
-
-**Request**
-
-TBD
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### GET /v2/tenants/:uuid
-
-TBD
+Creates a new tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants -d '
+{
+  "name"  : "New Tenant Name",
+  "users" : [
+    {
+      "uuid"    : "989b724b-bd3d-4799-bfbd-75b2fb5b41f3",
+      "account" : "juser",
+      "role"    : "engineer"
+    },
+    {
+      "uuid"    : "96d24e33-8e57-4431-95fb-f18b9dfa319a",
+      "account" : "jhunt",
+      "role"    : "operator"
+    },
+  ]
+}'
+```
+
+The `name` field is required.
+
+The `users` list contains a list of initial tenant role assignments.  The
+`account` key of each user object is optional, but can assist site
+administrators when troubleshooting assignment issues (since it will be
+printed to the log) -- integrations are encouraged to always send it.
+
+The `role` field indicates what level of access to grant each invitee, and
+must be one of:
+
+  - **admin** - Full administrative control, including the ability to add
+    and remove users from the tenant, and change role assignments.  Use with
+    caution.
+
+  - **engineer** - Full configuration control, including the ability to
+    create, update, and delete targets, stores, and retention policies.
+
+  - **operator** - Operational access for running ad hoc backup jobs,
+    pausing and unpausing defined jobs, and performing restores.
+
+
+**Response**
+
+```json
+{
+  "name": "A New Tenant",
+  "uuid": "52d20ef4-f154-431e-a5bb-bb3a200976bb"
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to creeate new tenant** - An internal error occurred and should be
+  investigated by the site administrators.
+
+- **Unrecognized user account** - The request indicated a tenant invitation
+  to a user account that was not found in the SHIELD database.  The request
+  should not be retried.
+
+- **Unable to invite $user to tenant $tenant - only local users can be
+  invited** - The request indicated a tenant invitation to a user account
+  that was created by a non-local authentication provider (i.e. Github).
+  Tenant assignments for 3rd party accounts are governed solely by their
+  corresponding authentication provider configuration.  The request should
+  not be retried.
+
+- **Unable to invite $user to tenant $tenant** - An internal error occurred
+  and should be investigated by the site administrators.
+
+
+### GET /v2/tenants/:uuid
+
+Request more detailed information about a single tenant.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     https://shield.host/v2/tenants/$uuid
 ```
 
 **Response**
 
-TBD
+```json
+{
+  "name": "A Tenant",
+  "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c",
+
+  "members": [
+    {
+      "uuid"    : "5cb299bf-217f-4756-8eaa-e8a47865869e",
+      "account" : "jhunt",
+      "name"    : "James Hunt",
+      "backend" : "local",
+      "role"    : "admin",
+      "sysrole" : ""
+    }
+  ],
+}
+```
+
+The `members` key will be absent if this tenant has no members.
+
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenant information** - An internal error occurred and
+  should be investigated by the site administrators.
+
+- **Unable to retrieve tenant memberships information** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### PUT /v2/tenants/:uuid
 
-FIXME: is this just a PATCH?
-
-TBD
+Update a tenant with new attributes.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PUT https://shield.host/v2/tenants/$uuid -d '
+{
+  "name" : "A New Name"
+}'
+```
 
 **Response**
 
-TBD
+```json
+{
+  "name" : "A New Name",
+  "uuid" : "adcfee48-8b43-4ba3-9438-e0da55b8e9df"
+}'
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
 
-
-### PATCH /v2/tenants/:uuid
-
-TBD
-
-**Request**
-
-TBD
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
+- **Unable to update tenant** - An internal error occurred and should be
+  investigated by the site administrators.
 
 
 ### POST /v2/tenants/:uuid/invite
 
-TBD
+Invite one or more local users to a tenant.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/invite -d '
+{
+  "users": [
+    {
+      "uuid"    : "5cb299bf-217f-4756-8eaa-e8a47865869e",
+      "account" : "jhunt",
+      "role"    : "operator"
+    },
+    {
+      "uuid"    : "c608cc65-b134-4581-9bdc-1fa3d0367961",
+      "account" : "tmitchell",
+      "role"    : "engineer"
+    }
+  ]
+}'
+```
+
+Even if you only need to invite a single user, you must specify a list of
+user objects.
 
 **Response**
 
-TBD
+```json
+{
+  "ok" : "Invitations sent"
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenant information** - An internal error occurred and
+  should be investigated by the site administrators.
+
+- **Unrecognized user account** - The request indicated a tenant invitation
+  to a user account that was not found in the SHIELD database.  The request
+  should not be retried.
+
+- **Unable to invite $user to tenant $tenant - only local users can be
+  invited** - The request indicated a tenant invitation to a user account
+  that was created by a non-local authentication provider (i.e. Github).
+  Tenant assignments for 3rd party accounts are governed solely by their
+  corresponding authentication provider configuration.  The request should
+  not be retried.
+
+- **Unable to invite $user to tenant $tenant** - An internal error occurred
+  and should be investigated by the site administrators.
 
 
 ### POST /v2/tenants/:uuid/banish
 
-TBD
+Remove a user from a tenant they currently belong to.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/banish -d '
+{
+  "users": [
+    {
+      "uuid"    : "20d5bd91-9f7b-4551-9279-8571b8292003",
+      "account" : "gfranks"
+    },
+    {
+      "uuid"    : "c608cc65-b134-4581-9bdc-1fa3d0367961",
+      "account" : "tmitchell"
+    }
+}'
+```
 
 **Response**
 
-TBD
+```json
+{
+  "ok" : "Banishments served."
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenant information** - An internal error
+  occurred and should be investigated by the site administrators.
+
+- **Unrecognized user account** - The request indicated a tenant
+  banishment of a user account that was not found in the SHIELD
+  database.  The request should not be retried.
+
+- **Unable to banish $user to tenant $tenant - only local users
+  can be banished** - The request indicated a tenant banishment of
+  a user account that was created by a non-local authentication
+  provider (i.e. Github).  Tenant assignments for 3rd party
+  accounts are governed solely by their corresponding
+  authentication provider configuration.  The request should not
+  be retried.
+
+- **Unable to banish $user to tenant $tenant** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### DELETE /v2/tenants/:uuid
 
-TBD
+Remove a tenant.
 
 **Request**
 
@@ -756,6 +942,8 @@ curl -H 'Accept: application/json' \
 ```
 
 **Response**
+
+This endpoint has not been implemented yet, and currently returns a 501.
 
 TBD
 
@@ -770,53 +958,112 @@ The following error messages can be returned:
 
 ## SHIELD Targets
 
-TBD
-
+Targets represent the data systems that SHIELD runs backup and
+restore operations against as course of normal function.
 
 ### GET /v2/tenants/:tenant/targets
 
-TBD
+Retrieve all defined targets for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/targets
+     -X GET https://shield.host/v2/tenants/$tenant/targets
 ```
 
 **Response**
 
-TBD
+```json
+[
+  {
+    "uuid"     : "b4400ee0-dce9-4277-9948-02a56ad51b17",
+    "name"     : "Some Target",
+    "summary"  : "The operator-supplied description of this target",
+    "agent"    : "127.0.0.1:5444",
+    "endpoint" : "{}",
+    "plugin"   : "fs"
+  }
+]
+```
+
+Note: the `endpoint` key is currently a string of JSON, which
+means that it contains lots of escape sequences.  Future versions
+of the v2 API (prior to launch) may alter this to be the full
+JSON, inline, for both readability and sanity's sake.
+
+FIXME: Fix target.endpoint string -> JSON problem.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve targets information** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### POST /v2/tenants/:tenant/targets
 
-TBD
+Create a new target in a tenant.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/targets -d '
+{
+  "name"     : "New Target Name",
+  "summary"  : "A longer description of the target",
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{}",
+  "plugin"   : "plugin"
+}'
+```
+
+Note: the `endpoint` key is currently a string of JSON, which
+means that it contains lots of escape sequences.  Future versions
+of the v2 API (prior to launch) may alter this to be the full
+JSON, inline, for both readability and sanity's sake.
+
+FIXME: Fix target.endpoint string -> JSON problem.
 
 **Response**
 
-TBD
+```json
+{
+  "uuid"     : "b6d03df5-6978-43d8-ad9e-a22f8ec8457a",
+  "name"     : "New Target Name",
+  "summary"  : "A longer description of the target",
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{}",
+  "plugin"   : "plugin"
+}
+```
+
+Note: the `endpoint` key is currently a string of JSON, which
+means that it contains lots of escape sequences.  Future versions
+of the v2 API (prior to launch) may alter this to be the full
+JSON, inline, for both readability and sanity's sake.
+
+FIXME: Fix target.endpoint string -> JSON problem.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenant information** - An internal error
+  occurred and should be investigated by the site administrators.
+
+- **No such tenant** - No tenant was found with the given UUID.
+
+- **Unable to create new data target** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### GET /v2/tenants/:tenant/targets/:uuid
 
-TBD
+Retrieve a single target for a tenant.
 
 **Request**
 
@@ -827,37 +1074,89 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+{
+  "uuid"     : "b4400ee0-dce9-4277-9948-02a56ad51b17",
+  "name"     : "Some Target",
+  "summary"  : "The operator-supplied description of this target",
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{}",
+  "plugin"   : "fs"
+}
+```
+
+Note: the `endpoint` key is currently a string of JSON, which
+means that it contains lots of escape sequences.  Future versions
+of the v2 API (prior to launch) may alter this to be the full
+JSON, inline, for both readability and sanity's sake.
+
+FIXME: Fix target.endpoint string -> JSON problem.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenant information** - An internal error
+  occurred and should be investigated by the site administrators.
+
+- **No such target** - No target with the given UUID exists on the
+  specified tenant.
 
 
 ### PUT /v2/tenants/:tenant/targets/:uuid
 
-TBD
+Update an existing target on a tenant.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PUT https://shield.host/v2/tenants/$tenant/targets/$uuid -d '
+{
+  "name"     : "Updated Target Name",
+  "summary"  : "A longer description of the target",
+  "agent"    : "127.0.0.1:5444",
+  "endpoint" : "{}",
+  "plugin"   : "plugin"
+}'
+```
+
+You can specify as many or few of these fields as you want;
+omitted fields will be left at their previous values.
+
+Note: the `endpoint` key is currently a string of JSON, which
+means that it contains lots of escape sequences.  Future versions
+of the v2 API (prior to launch) may alter this to be the full
+JSON, inline, for both readability and sanity's sake.
+
+FIXME: Fix target.endpoint string -> JSON problem.
 
 **Response**
 
-TBD
+```json
+{
+  "ok" : "Updated target successfully"
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenant information** - An internal error
+  occurred and should be investigated by the site administrators.
+
+- **No such target** - No target with the given UUID exists on the
+  specified tenant.
+
+- **Unable to update target** - No target with the given UUID
+  exists on the specified tenant.
 
 
 ### DELETE /v2/tenants/:tenant/targets/:uuid
 
-TBD
+Remove a target from a tenant.
 
 **Request**
 
@@ -870,33 +1169,46 @@ curl -H 'Accept: application/json' \
 
 ```json
 {
-  "ok": "Target delete successfully"
+  "ok": "Target deleted successfully"
 }
 ```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve tenant information** - An internal error
+  occurred and should be investigated by the site administrators.
+
+- **No such target** - No target with the given UUID exists on the
+  specified tenant.
+
+- **Unable to delete target** - An internal error occurred and
+  should be investigated by the site administrators.
+
+- **The target cannot be deleted at this time** - This target is
+  referenced by one or more extant job configuration; deleting it
+  would lead to an incomplete (and unusable) setup.
 
 
 
 
 ## SHIELD Stores
 
-TBD
-
+Storage systems are essential to any data protection efforts,
+since the protected data must reside elsewhere, on another system
+in order to be truly safe.  Stores provide definitions of external
+storage system where backup archives will be kept.
 
 ### GET /v2/tenants/:tenant/stores
 
-TBD
+Retrieve all defined stores for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/stores
+     -X GET https://shield.host/v2/tenants/$tenant/stores
 ```
 
 **Response**
@@ -912,11 +1224,19 @@ The following error messages can be returned:
 
 ### POST /v2/tenants/:tenant/stores
 
-TBD
+Create a new store on a tenant.
 
 **Request**
 
 TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/stores -d '
+{
+  TBD
+}'
+```
 
 **Response**
 
@@ -931,13 +1251,13 @@ The following error messages can be returned:
 
 ### GET /v2/tenants/:tenant/stores/:uuid
 
-TBD
+Retrieve a single store for the given tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/stores/$uuid
+     -X GET https://shield.host/v2/tenants/$tenant/stores/$uuid
 ```
 
 **Response**
@@ -953,7 +1273,7 @@ The following error messages can be returned:
 
 ### PUT /v2/tenants/:tenant/stores/:uuid
 
-TBD
+Update an existing store on a tenant.
 
 **Request**
 
@@ -972,7 +1292,7 @@ The following error messages can be returned:
 
 ### DELETE /v2/tenants/:tenant/stores/:uuid
 
-TBD
+Remove a store from a tenant.
 
 **Request**
 
@@ -1000,18 +1320,18 @@ The following error messages can be returned:
 
 ## SHIELD Retention Policies
 
-TBD
-
+Retention Policies govern how long backup archives are kept, to
+ensure that storage usage doesn't continue to increase inexorably.
 
 ### GET /v2/tenants/:tenant/policies
 
-TBD
+Retrieve all defined retention policies for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/policies
+     -X GET https://shield.host/v2/tenants/$tenant/policies
 ```
 
 **Response**
@@ -1032,6 +1352,14 @@ TBD
 **Request**
 
 TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/policies -d '
+{
+  TBD
+}'
+```
 
 **Response**
 
@@ -1046,13 +1374,13 @@ The following error messages can be returned:
 
 ### GET /v2/tenants/:tenant/policies/:uuid
 
-TBD
+Retrieve a single retention policy for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/policies/$uuid
+     -X GET https://shield.host/v2/tenants/$tenant/policies/$uuid
 ```
 
 **Response**
@@ -1068,7 +1396,7 @@ The following error messages can be returned:
 
 ### PUT /v2/tenants/:tenant/policies/:uuid
 
-TBD
+Update a single retention policy on a tenant.
 
 **Request**
 
@@ -1087,7 +1415,7 @@ The following error messages can be returned:
 
 ### DELETE /v2/tenants/:tenant/policies/:uuid
 
-TBD
+Remove a retention policy from a tenant.
 
 **Request**
 
@@ -1120,13 +1448,13 @@ TBD
 
 ### GET /v2/tenants/:tenant/jobs
 
-TBD
+Retrieve all defined jobs for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/jobs
+     -X GET https://shield.host/v2/tenants/$tenant/jobs
 ```
 
 **Response**
@@ -1147,6 +1475,14 @@ TBD
 **Request**
 
 TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/jobs -d '
+{
+  TBD
+}'
+```
 
 **Response**
 
@@ -1161,13 +1497,13 @@ The following error messages can be returned:
 
 ### GET /v2/tenants/:tenant/jobs/:uuid
 
-TBD
+Retrieve a single job for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/jobs/$uuid
+     -X GET https://shield.host/v2/tenants/$tenant/jobs/$uuid
 ```
 
 **Response**
@@ -1183,7 +1519,7 @@ The following error messages can be returned:
 
 ### PUT /v2/tenants/:tenant/jobs/:uuid
 
-TBD
+Update a single job on a tenant.
 
 **Request**
 
@@ -1202,7 +1538,7 @@ The following error messages can be returned:
 
 ### DELETE /v2/tenants/:tenant/jobs/:uuid
 
-TBD
+Remove a job from a tenant.
 
 **Request**
 
@@ -1235,13 +1571,13 @@ TBD
 
 ### GET /v2/tenants/:tenant/tasks
 
-TBD
+Retrieve all tasks for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/tasks
+     -X GET https://shield.host/v2/tenants/$tenant/tasks
 ```
 
 **Response**
@@ -1262,6 +1598,14 @@ TBD
 **Request**
 
 TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/tasks -d '
+{
+  TBD
+}'
+```
 
 **Response**
 
@@ -1276,13 +1620,13 @@ The following error messages can be returned:
 
 ### GET /v2/tenants/:tenant/tasks/:uuid
 
-TBD
+Retrieve a single task.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/tasks/$uuid
+     -X GET https://shield.host/v2/tenants/$tenant/tasks/$uuid
 ```
 
 **Response**
@@ -1298,7 +1642,7 @@ The following error messages can be returned:
 
 ### PUT /v2/tenants/:tenant/tasks/:uuid
 
-TBD
+Update a single task on a tenant.
 
 **Request**
 
@@ -1317,7 +1661,7 @@ The following error messages can be returned:
 
 ### DELETE /v2/tenants/:tenant/tasks/:uuid
 
-TBD
+Cancel a task.
 
 **Request**
 
@@ -1350,13 +1694,13 @@ TBD
 
 ### GET /v2/tenants/:tenant/archives
 
-TBD
+Retrieve all archives for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/archives
+     -X GET https://shield.host/v2/tenants/$tenant/archives
 ```
 
 **Response**
@@ -1377,6 +1721,14 @@ TBD
 **Request**
 
 TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/$uuid/archives -d '
+{
+  TBD
+}'
+```
 
 **Response**
 
@@ -1391,13 +1743,13 @@ The following error messages can be returned:
 
 ### GET /v2/tenants/:tenant/archives/:uuid
 
-TBD
+Retrieve a single archive for a tenant.
 
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/archives/$uuid
+     -X GET https://shield.host/v2/tenants/$tenant/archives/$uuid
 ```
 
 **Response**
@@ -1413,7 +1765,7 @@ The following error messages can be returned:
 
 ### PUT /v2/tenants/:tenant/archives/:uuid
 
-TBD
+Update a single archive on a tenant.
 
 **Request**
 
@@ -1432,7 +1784,8 @@ The following error messages can be returned:
 
 ### DELETE /v2/tenants/:tenant/archives/:uuid
 
-TBD
+Remove an archive from a tenant, and purge the archive data from
+the backing storage system.
 
 **Request**
 

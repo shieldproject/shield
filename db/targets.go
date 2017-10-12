@@ -8,8 +8,9 @@ import (
 )
 
 type Target struct {
+	TenantUUID uuid.UUID `json:"-"`
+
 	UUID       uuid.UUID `json:"uuid"`
-	TenantUUID uuid.UUID `json:"tenant_uuid"`
 	Name       string    `json:"name"`
 	Summary    string    `json:"summary"`
 	Plugin     string    `json:"plugin"`
