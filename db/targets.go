@@ -10,12 +10,12 @@ import (
 type Target struct {
 	TenantUUID uuid.UUID `json:"-"`
 
-	UUID       uuid.UUID `json:"uuid"`
-	Name       string    `json:"name"`
-	Summary    string    `json:"summary"`
-	Plugin     string    `json:"plugin"`
-	Endpoint   string    `json:"endpoint"`
-	Agent      string    `json:"agent"`
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Summary  string    `json:"summary"`
+	Plugin   string    `json:"plugin"`
+	Endpoint string    `json:"endpoint"`
+	Agent    string    `json:"agent"`
 }
 
 type TargetFilter struct {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/log"
 	"github.com/jhunt/go-cli"
+	"github.com/starkandwayne/goutils/log"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
