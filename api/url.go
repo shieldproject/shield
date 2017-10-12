@@ -9,8 +9,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-
-	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
 type URL struct {
@@ -160,7 +158,6 @@ func makeRequest(req *http.Request) (*http.Response, error) {
 	}
 
 	if curBackend.Token != "" {
-		log.DEBUG("API Using Token: %s", curBackend.Token)
 		if curBackend.APIVersion == 1 {
 			req.Header.Set("Authorization", curBackend.Token)
 		} else {
