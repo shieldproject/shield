@@ -69,7 +69,7 @@ func (p *GithubAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) 
 	w.WriteHeader(302)
 }
 
-func (p *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Request) {
+func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	var input = struct {
 		ClientID     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
@@ -83,50 +83,43 @@ func (p *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Req
 	b, err := json.Marshal(input)
 	if err != nil {
 		p.Errorf("failed to marshal access token request: %s", err)
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	uri := p.accessTokenURL()
 	res, err := http.Post(uri, "application/json", bytes.NewBuffer(b))
 	if err != nil {
 		p.Errorf("failed to POST to Github access_token endpoint %s: %s", uri, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	b, err = ioutil.ReadAll(res.Body)
 	if err != nil {
 		p.Errorf("failed to read response from POST %s: %s", uri, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	u, err := url.Parse("?" + string(b))
 	if err != nil {
 		p.Errorf("failed to parse response '%s' from POST %s: %s", string(b), uri, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	token := u.Query().Get("access_token")
 	if token == "" {
 		p.Errorf("no access_token found in response '%s' from POST %s", string(b), u)
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	client := github.NewClient(token)
 	account, name, orgs, err := client.Lookup()
 	if err != nil {
 		p.Errorf("failed to perform lookup against Github: %s", err)
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	//Check if the user that logged in via github already exists
 	user, err := p.core.DB.GetUser(account, p.Identifier)
 	if err != nil {
 		p.Errorf("failed to retrieve user %s@%s from database: %s", account, p.Identifier, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	if user == nil {
 		user = &db.User{
@@ -138,19 +131,10 @@ func (p *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Req
 		}
 		p.core.DB.CreateUser(user)
 	}
-	session, err := p.core.createSession(user)
-	if err != nil {
-		p.Errorf("failed to create a session for user %s: %s", account, err)
-		p.Fail(w)
-		return
-	}
-
-	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
 
 	if err := p.core.DB.ClearMembershipsFor(user); err != nil {
 		p.Errorf("failed to clear memberships for user %s: %s", account, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	/* We must pre-determine who we're going to assign this Github user
@@ -179,20 +163,17 @@ func (p *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Req
 		tenant, err := p.core.DB.EnsureTenant(tname)
 		if err != nil {
 			p.Errorf("failed to find/create tenant '%s': %s", tname, err)
-			p.Fail(w)
-			return
+			return nil
 		}
 		p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", account, user.UUID, tenant.Name, tenant.UUID, role)
 		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
 		if err != nil {
 			p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", account, user.UUID, tenant.Name, tenant.UUID, role, err)
-			p.Fail(w)
-			return
+			return nil
 		}
 	}
 
-	w.Header().Set("Location", "/")
-	w.WriteHeader(302)
+	return user
 }
 
 func (p GithubAuthProvider) resolveOrgAndTeam(org string, teams []string) (string, string, bool) {

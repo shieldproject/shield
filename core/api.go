@@ -41,7 +41,34 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if m[2] == "redir" {
-			provider.HandleRedirect(w, req)
+			via := "web"
+			if cookie, err := req.Cookie("via"); err == nil {
+				via = cookie.Value
+			}
+
+			user := provider.HandleRedirect(req)
+			if user == nil {
+				fmt.Fprintf(w, "The authentication process broke down\n")
+				w.WriteHeader(500)
+			}
+
+			session, err := core.createSession(user)
+			if err != nil {
+				log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
+				w.Header().Set("Location", "/")
+			} else if via == "cli" {
+				w.Header().Set("Location", fmt.Sprintf("/#!/cliauth:s:%s", session.UUID.String()))
+			} else {
+				w.Header().Set("Location", "/")
+
+				if session, err := core.createSession(user); err != nil {
+					log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
+				} else {
+					http.SetCookie(w, SessionCookie(session.UUID.String(), true))
+				}
+			}
+			w.WriteHeader(302)
+
 		} else {
 			http.SetCookie(w, &http.Cookie{
 				Name:  "via",

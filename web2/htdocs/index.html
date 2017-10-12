@@ -267,6 +267,33 @@
             </div>
           </div>
     <!-- }}} --></script>
+    <script type="text/html" id="tpl--cliauth"><!-- {{{ -->
+      [[#
+        {cliauth} template
+
+        Displays the session ID for an authenticated session, so that the CLI
+        can be told what that session ID is.
+      ]]
+          <div id="cliauth" class="frontdoor">
+            <div>
+              <h1>SHIELD<span>Production<span></h1>
+              <div class="dialog">
+                <h2>CLI Authentication Credentials</h2>
+                <img src="/i/terminal.png" class="highlight">
+
+                <p>Here are your SHIELD CLI authentication
+                credentials:</p>
+
+                <pre id="creds">[[= _.s ]]</pre>
+
+                <p>You will need to copy-and-paste those into
+                the terminal session where you ran the SHIELD
+                command-line interface, to complete the
+                authentication process.</p>
+              </div>
+            </div>
+          </div>
+    <!-- }}} --></script>
     <script type="text/html" id="tpl--logging-in"><!-- {{{ -->
       [[#
         {logging-in} template
@@ -1592,14 +1619,21 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/javascript">
     var referer = undefined;
     function dispatch(page) {
-      if (page != "#!/login" && $global.auth.unauthenticated) {
-        console.log('session not authenticated; diverting to #!/login page...');
-        goto("#!/login");
-        return
+      var argv = page.split(/[:+]/);
+      page = argv.shift();
+      args = {};
+      for (var i = 0; i < argv.length; i += 2) {
+        args[argv[0+i]] = argv[1+i]
+      }
+
+      if ($global.auth.unauthenticated) {
+        if (page != "#!/login" && page != "#!/cliauth") {
+          console.log('session not authenticated; diverting to #!/login page...');
+          goto("#!/login");
+          return
+        }
 
       } else if ($global.auth && $global.auth.user && $global.auth.user.sysrole != "" && $global.hud) {
-        console.log($global.hud.health.core);
-
         /* process 'system' team diverts */
         if ($global.hud.health.core == "uninitialized") {
           console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
@@ -1616,14 +1650,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       }
       console.log('dispatching to page "%s"...', page);
 
-      var argv = page.split(':');
-      page = argv.shift();
       var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
-
-      args = {};
-      for (var i = 0; i < argv.length; i += 2) {
-        args[argv[0+i]] = argv[1+i]
-      }
       $('nav li.current').removeClass('current');
       $('nav a[href="'+top+'"]').closest('li').addClass('current');
 
@@ -1672,8 +1699,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         })();
         break; /* #!/login */
         // }}}
-
-      case "#!/logout": // {{{
+      case "#!/cliauth": /* {{{ */
+        $('#viewport').html(template('cliauth', args));
+        break; /* #!/cliauth */
+        // }}}
+      case "#!/logout": /* {{{ */
         (function () {
           api({
             type: "GET",
@@ -1691,7 +1721,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           });
         })()
         break;
-      // }}}
+        // }}}
 
       case "#!/do/backup": /* {{{ */
         (function () {

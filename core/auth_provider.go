@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/starkandwayne/goutils/log"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 type AuthProvider interface {
@@ -11,7 +13,7 @@ type AuthProvider interface {
 
 	Configure(map[interface{}]interface{}) error
 	Initiate(http.ResponseWriter, *http.Request)
-	HandleRedirect(http.ResponseWriter, *http.Request)
+	HandleRedirect(*http.Request) *db.User
 }
 
 type AuthProviderBase struct {

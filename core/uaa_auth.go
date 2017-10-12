@@ -73,33 +73,29 @@ func (p *UAAAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(302)
 }
 
-func (p *UAAAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Request) {
+func (p *UAAAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	code := req.URL.Query().Get("code")
 	if code == "" {
 		p.Errorf("no code parameter was supplied by the remote UAA")
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	token, err := p.uaa.GetAccessToken(code)
 	if err != nil {
 		p.Errorf("unable to fetch access token: %s", err)
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	account, name, scims, err := p.uaa.Lookup(token)
 	if err != nil {
 		p.Errorf("unable to retrieve user information: %s", err)
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	user, err := p.core.DB.GetUser(account, p.Identifier)
 	if err != nil {
 		p.Errorf("failed to retrieve user %s@%s from database: %s", account, p.Identifier, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	if user == nil {
 		user = &db.User{
@@ -111,39 +107,27 @@ func (p *UAAAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Reques
 		}
 		p.core.DB.CreateUser(user)
 	}
-	session, err := p.core.createSession(user)
-	if err != nil {
-		p.Errorf("failed to create a session for user %s: %s", account, err)
-		p.Fail(w)
-		return
-	}
-
-	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
 
 	if err := p.core.DB.ClearMembershipsFor(user); err != nil {
 		p.Errorf("failed to clear memberships for user %s: %s", account, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	for tname, role := range p.resolveSCIM(scims) {
 		p.Infof("ensuring that tenant '%s' exists", tname)
 		tenant, err := p.core.DB.EnsureTenant(tname)
 		if err != nil {
 			p.Errorf("failed to find/create tenant '%s': %s", tname, err)
-			p.Fail(w)
-			return
+			return nil
 		}
 		p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", account, user.UUID, tenant.Name, tenant.UUID, role)
 		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
 		if err != nil {
 			p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", account, user.UUID, tenant.Name, tenant.UUID, role, err)
-			p.Fail(w)
-			return
+			return nil
 		}
 	}
 
-	w.Header().Set("Location", "/")
-	w.WriteHeader(302)
+	return user
 }
 
 func (p UAAAuthProvider) resolveSCIM(scims []string) map[string]string {

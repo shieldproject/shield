@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/util"
@@ -38,21 +37,25 @@ func (p *TokenAuthProvider) Configure(raw map[interface{}]interface{}) error {
 }
 
 func (p *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
+	/* just go straight to the redirector */
+	w.Header().Set("Location", fmt.Sprintf("/auth/%s/redir", p.Identifier))
+	w.WriteHeader(302)
+}
+
+func (p *TokenAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	token := req.Header.Get("X-Shield-Token")
-	log.Debugf("X-Shield-Token is [%s]", token)
+	p.Debugf("X-Shield-Token is [%s]", token)
 
 	assignments, ok := p.Tokens[token]
 	if !ok {
 		p.Errorf("authentication via token '%s' failed", token)
-		p.Fail(w)
-		return
+		return nil
 	}
 
 	user, err := p.core.DB.GetUser(token, p.Identifier)
 	if err != nil {
 		p.Errorf("failed to retrieve user %s@%s from database: %s\n", token, p.Identifier, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	if user == nil {
 		user = &db.User{
@@ -64,42 +67,25 @@ func (p *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 		}
 		p.core.DB.CreateUser(user)
 	}
-	session, err := p.core.createSession(user)
-	if err != nil {
-		p.Errorf("failed to create a session for user %s: %s\n", token, err)
-		p.Fail(w)
-		return
-	}
-
-	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
 
 	if err := p.core.DB.ClearMembershipsFor(user); err != nil {
 		p.Errorf("failed to clear memberships for user %s: %s\n", token, err)
-		p.Fail(w)
-		return
+		return nil
 	}
 	for _, assignment := range assignments {
 		p.Infof("ensuring tenant '%s'\n", assignment.Tenant)
 		tenant, err := p.core.DB.EnsureTenant(assignment.Tenant)
 		if err != nil {
 			p.Errorf("failed to find/create tenant '%s': %s\n", assignment.Tenant, err)
-			p.Fail(w)
-			return
+			return nil
 		}
 		p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", token, user.UUID, tenant.Name, tenant.UUID, assignment.Role)
 		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), assignment.Role)
 		if err != nil {
 			p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", token, user.UUID, tenant.Name, tenant.UUID, assignment.Role, err)
-			p.Fail(w)
-			return
+			return nil
 		}
 	}
 
-	w.Header().Set("Location", "/")
-	w.WriteHeader(302)
-}
-
-func (p *TokenAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(500)
-	fmt.Fprintf(w, "token auth provider should never get this far\n")
+	return user
 }
