@@ -30,9 +30,7 @@ type GithubAuthProvider struct {
 		} `json:"rights"`
 	} `json:"mapping"`
 
-	Name  string
-	Usage string
-	core  *Core
+	core *Core
 }
 
 func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
