@@ -34,8 +34,6 @@ type GithubAuthProvider struct {
 }
 
 func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
-	p.Type = "github"
-
 	b, err := json.Marshal(util.StringifyKeys(raw))
 	if err != nil {
 		return err
