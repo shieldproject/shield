@@ -22,13 +22,11 @@ type v2AuthProvider struct {
 	Name       string `json:"name"`
 	Identifier string `json:"identifier"`
 	Type       string `json:"type"`
-}
+	WebEntry   string `json:"web_entry"`
+	CLIEntry   string `json:"cli_entry"`
+	Redirect   string `json:"redirect"`
 
-type v2AuthProviderFull struct {
-	Name       string                 `json:"name"`
-	Identifier string                 `json:"identifier"`
-	Type       string                 `json:"type"`
-	Properties map[string]interface{} `json:"properties"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
 type v2SystemArchive struct {
@@ -232,6 +230,9 @@ func (core *Core) v2API() *route.Router {
 				Name:       auth.Name,
 				Identifier: auth.Identifier,
 				Type:       auth.Backend,
+				WebEntry:   fmt.Sprintf("/auth/%s/web", auth.Identifier),
+				CLIEntry:   fmt.Sprintf("/auth/%s/cli", auth.Identifier),
+				Redirect:   fmt.Sprintf("/auth/%s/redir", auth.Identifier),
 			})
 		}
 		r.OK(l)
@@ -240,10 +241,14 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("GET /v2/auth/providers/:name", func(r *route.Request) { // {{{
 		for _, a := range core.auth {
 			if a.Identifier == r.Args[1] {
-				r.OK(&v2AuthProviderFull{
+				r.OK(&v2AuthProvider{
 					Name:       a.Name,
 					Identifier: a.Identifier,
 					Type:       a.Backend,
+					WebEntry:   fmt.Sprintf("/auth/%s/web", a.Identifier),
+					CLIEntry:   fmt.Sprintf("/auth/%s/cli", a.Identifier),
+					Redirect:   fmt.Sprintf("/auth/%s/redir", a.Identifier),
+
 					Properties: util.StringifyKeys(a.Properties).(map[string]interface{}),
 				})
 				return
