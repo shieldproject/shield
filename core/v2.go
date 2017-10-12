@@ -22,14 +22,12 @@ type v2AuthProvider struct {
 	Name       string `json:"name"`
 	Identifier string `json:"identifier"`
 	Type       string `json:"type"`
-	Usage      string `json:"usage"`
 }
 
 type v2AuthProviderFull struct {
 	Name       string                 `json:"name"`
 	Identifier string                 `json:"identifier"`
 	Type       string                 `json:"type"`
-	Usage      string                 `json:"usage"`
 	Properties map[string]interface{} `json:"properties"`
 }
 
@@ -225,16 +223,16 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("GET /v2/auth/providers", func(r *route.Request) { // {{{
 		l := make([]v2AuthProvider, 0)
 
-		usage := r.Param("usage", "")
+		typ := r.Param("for", "cli")
 		for _, auth := range core.auth {
-			if usage == "" || auth.Usage == usage {
-				l = append(l, v2AuthProvider{
-					Name:       auth.Name,
-					Identifier: auth.Identifier,
-					Type:       auth.Backend,
-					Usage:      auth.Usage,
-				})
+			if auth.Backend == "token" && typ != "cli" {
+				continue
 			}
+			l = append(l, v2AuthProvider{
+				Name:       auth.Name,
+				Identifier: auth.Identifier,
+				Type:       auth.Backend,
+			})
 		}
 		r.OK(l)
 	})
@@ -246,7 +244,6 @@ func (core *Core) v2API() *route.Router {
 					Name:       a.Name,
 					Identifier: a.Identifier,
 					Type:       a.Backend,
-					Usage:      a.Usage,
 					Properties: util.StringifyKeys(a.Properties).(map[string]interface{}),
 				})
 				return

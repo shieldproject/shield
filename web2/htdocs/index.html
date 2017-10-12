@@ -1638,7 +1638,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
           api({
             type: 'GET',
-            url:  '/v2/auth/providers?usage=web',
+            url:  '/v2/auth/providers?for=web',
             success: function (data) {
               $('#viewport').html(template('login', { oauth: data }))
                 .on("click", ".login", function (event) {
