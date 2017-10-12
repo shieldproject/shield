@@ -524,6 +524,10 @@
     });
 
     return function (html) {
+      if (html === true) {
+        $wash.hide();
+        return;
+      }
       var $window = $(html);
       $wash.hide().empty().append($window).show();
       return $window;
@@ -649,12 +653,22 @@
     Javascript object (suitable for passing to api()), based on the
     fields present in the form.
 
+    Any fields with dotted names (like config.host) will be expanded
+    into multi-level javascript objects, like: { config: { host: x }}
+
    ***************************************************/
   exported.jQuery.fn.serializeObject = function () { // {{{
     var a = this.serializeArray();
     var o = {};
     for (var i = 0; i < a.length; i++) {
-      o[a[i].name] = a[i].value;
+      var parts = a[i].name.split(/\./);
+      t = o;
+      while (parts.length > 1) {
+        if (!(parts[0] in t)) { t[parts[0]] = {}; }
+        t = t[parts[0]];
+        parts.shift();
+      }
+      t[parts[0]] = a[i].value;
     }
     return o;
   };
@@ -682,6 +696,7 @@
    ***************************************************/
   exported.jQuery.fn.reset = function () { // {{{
     this.find('.error, [data-error]').hide();
+    return this;
   };
   // }}}
 
@@ -919,4 +934,43 @@
   // }}}
 
 
+  /***************************************************
+     $(...).validate(data) - Validate a Plugin configuration form.
+
+   ***************************************************/
+  exported.jQuery.fn.validate = function (data) { // {{{
+    var $form = this;
+    $form.find('.ctl').each(function (i, ctl) {
+      var $ctl  = $(ctl);
+      var type  = $ctl.data('type');
+      var field = $ctl.data('field');
+      var key   = field.replace(/^config\./, '');
+
+      if ($ctl.is('.required') && data.config[key] == "") {
+        $form.error(field, 'missing');
+
+      } else if (data.config[key] != "") {
+        switch (type) {
+        case "abspath":
+          if (!data.config[key].match(/^\//)) {
+            $form.error(field, 'invalid');
+          }
+          break;
+
+        case "port":
+          if (!data.config[key].match(/^[0-9]+/)) {
+            $form.error(field, 'invalid');
+          } else {
+            var n = parseInt(data.config[key]);
+            if (n < 1 || n > 65535) {
+              $form.error(field, 'invalid');
+            }
+          }
+          break;
+        }
+      }
+    });
+    return this;
+  };
+  // }}}
 })(window, document);

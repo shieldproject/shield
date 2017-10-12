@@ -43,6 +43,7 @@ s3_store=$($shield create-store <<EOF | $jq .uuid
 {
   "endpoint" : "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
   "name"     : "S3",
+  "agent"    : "127.0.0.1:5444",
   "plugin"   : "fs",
   "summary"  : "A fake S3 store for pretending and web UI development."
 }
@@ -58,6 +59,7 @@ scality_store=$($shield create-store <<EOF | $jq .uuid
 {
   "endpoint" : "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
   "name"     : "Scality (On-Prem)",
+  "agent"    : "127.0.0.1:5444",
   "plugin"   : "fs",
   "summary"  : "A fake Scality (On-Premise) store for pretending and web UI development."
 }
@@ -180,6 +182,7 @@ store=$($shield create-store <<EOF | $jq .uuid
 {
   "endpoint" : "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
   "name"     : "DevStore",
+  "agent"    : "127.0.0.1:5444",
   "plugin"   : "fs",
   "summary"  : "A temporary store for the dev environment."
 }

@@ -45,6 +45,7 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if cookie, err := req.Cookie("via"); err == nil {
 				via = cookie.Value
 			}
+			log.Debugf("handling redirection for authentication provider flow; via='%s'", via)
 
 			user := provider.HandleRedirect(req)
 			if user == nil {
@@ -1050,8 +1051,9 @@ func (core *Core) v1CreateStore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateStore(&db.Store{
+	store, err := core.DB.CreateStore(&db.Store{
 		Name:     params.Name,
+		Agent:    core.purgeAgent,
 		Plugin:   params.Plugin,
 		Endpoint: params.Endpoint,
 		Summary:  params.Summary,
@@ -1061,7 +1063,7 @@ func (core *Core) v1CreateStore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, store.UUID.String()))
 }
 
 func (core *Core) v1GetStore(w http.ResponseWriter, req *http.Request) {

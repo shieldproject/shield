@@ -20,6 +20,21 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD agent TEXT NOT NULL DEFAULT ''"))
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD public_config TEXT NOT NULL DEFAULT '[]'"))
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD private_config TEXT NOT NULL DEFAULT '[]'"))
+	if err != nil {
+		return err
+	}
+
 	tenant := uuid.NewRandom()
 	err = db.Exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant.String(), "tenant1")
 	if err != nil {

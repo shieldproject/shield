@@ -904,9 +904,22 @@
         and in some cases allows for user-management of their configurations.
       ]]
           <div class="gutter blk">
+            <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/new">Configure a New Cloud Storage System&raquo;</a>
+            [[ if (_.admin) { ]]
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <h2><strong>Global</strong> Cloud Storage Systems</h2>
+            <p class="notice">These are <strong>global</strong> definitions; these storage
+            configurations can be used by any tenant, although they will be unable to see
+            any of the sensitive details.</p>
+            [[ } else { ]]
+            <h2>Cloud Storage Systems</h2>
+            [[ } ]]
+            [[ if (_.stores.length == 0) { ]]
+            <div class="no-data">No Cloud Storage Systems have been configured yet.</div>
+            [[ } else { ]]
             [[ $.each(_.stores, function (i, store) { ]]
             <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-              <a href="#!/stores/store:uuid:[[= store.uuid ]]">
+              <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
               <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
@@ -920,6 +933,7 @@
               </a>
             </div>
             [[ }); ]]
+            [[ } ]]
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--store"><!-- {{{ -->
@@ -929,8 +943,42 @@
         Renders a single storage endpoint configuration, including its
         usage information and provide management capabilities.
       ]]
-          <div class="gutter blk">
+          <div class="gutter blk store">
+            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
             <h2><div class="plugin">[[= _.store.plugin ]]</div>[[= _.store.name ]]</h2>
+
+            <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= _.store.uuid ]]">Edit</a>
+            <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= _.store.uuid ]]">Delete</a>
+
+            <div class="summary">[[= _.store.summary ]]</div>
+
+            <div class="side-by-side">
+              <h3>Storage Details</h3>
+              <dl>
+                <dt>Backup Archives</dt>
+                <dd>[[= _.store.archives ]]</dd>
+
+                <dt>Storage Used</dt>
+                <dd>[[= _.store.used ]]GB</dd>
+
+                <dt>Daily Delta</dt>
+                <dd>[[= _.store.daily_delta ]]GB</dd>
+              </dl>
+            </div>
+
+            <div class="side-by-side">
+              <h3>Configuration</h3>
+              <dl>
+                <dt>SHIELD Agent</dt>
+                <dd>[[= _.store.agent ]]</dd>
+
+                [[ $.each(_.store.display_config, function (i, kv) {
+                     if (kv.value == "" || kv.value == false) { return; } ]]
+                <dt>[[= kv.label ]]</dt>
+                <dd>[[= kv.value ]]</dd>
+                [[ }); ]]
+              </dl>
+            </div>
 
             <div class="meter">
               <svg width="500" height="400" xmlns="http://www.w3.org/2000/svg">
@@ -959,7 +1007,7 @@
                 <rect class="fill" x="2" y="202" width="[[= 100.0 * _.store.used / total ]]%" height="32"></rect>
 
                 [[ if (_.store.threshold > _.store.used) { ]]
-                <!-- "current" marker -->
+                [[# "current" marker ]]
                 <g class="current" transform="translate(2)">
                   <line class="marker" x1="[[= 100.0 * _.store.used / total ]]%" x2="[[= 100.0 * _.store.used / total ]]%" y1="198" y2="53"></line>
                   <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="53" r="3"></circle>
@@ -969,7 +1017,7 @@
                   </g>
                 </g>
 
-                <!-- "threshold" marker -->
+                [[# "threshold" marker ]]
                 <g class="threshold" transform="translate(2)">
                   <line class="marker" x1="[[= 100.0 * _.store.threshold / total ]]%" x2="[[= 100.0 * _.store.threshold / total ]]%" y1="198" y2="133"></line>
                   <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="133" r="3"></circle>
@@ -980,7 +1028,7 @@
                 </g>
                 [[ } else { ]]
 
-                <!-- "threshold" marker -->
+                [[# "threshold" marker ]]
                 <g class="threshold" transform="translate(2)">
                   <line class="marker" x1="[[= 100.0 * _.store.threshold / total ]]%" x2="[[= 100.0 * _.store.threshold / total ]]%" y1="198" y2="53"></line>
                   <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="53" r="3"></circle>
@@ -990,7 +1038,7 @@
                   </g>
                 </g>
 
-                <!-- "current" marker -->
+                [[# "current" marker ]]
                 <g class="current warn" transform="translate(2)">
                   <line class="marker" x1="[[= 100.0 * _.store.used / total ]]%" x2="[[= 100.0 * _.store.used / total ]]%" y1="198" y2="133"></line>
                   <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="133" r="3"></circle>
@@ -1001,7 +1049,7 @@
                 </g>
                 [[ } ]]
 
-                <!-- "projected" marker -->
+                [[# "projected" marker ]]
                 <g class="projected" transform="translate(-3)">
                   <line class="marker" x1="[[= 100.0 * _.store.projected / total ]]%" x2="[[= 100.0 * _.store.projected / total ]]%" y1="238" y2="293"></line>
                   <circle class="marker" cx="[[= 100.0 * _.store.projected / total ]]%" cy="293" r="3"></circle>
@@ -1011,34 +1059,193 @@
                 </g>
               </svg>
             </div>
-            <!-- #################################### -->
+            [[# #################################### ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--stores-form"><!-- {{{ -->
+      [[#
+        {stores-form} template
 
-            <div class="side-by-side">
-              <h3>Storage Details</h3>
-              <dl>
-                <dt>Backup Archives</dt>
-                <dd>[[= _.store.archives ]]</dd>
+        Renders a form for creating new storage endpoints, and
+        editing existing stores.
+      ]]
+          <div class="gutter blk">
+            [[ if (_.store) { ]]
+            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= _.store.uuid ]]">&laquo; Back to "[[= _.store.name ]]" Cloud Storage System</a>
+            [[ } else { ]]
+            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
+            [[ } ]]
+            <h2>[[ if (_.store) { ]]Edit[[ } else { ]]New[[ } ]] Storage System</h2>
 
-                <dt>Storage Used</dt>
-                <dd>[[= _.store.used ]]GB</dd>
+            <form>
+              <div class="error"></div>
 
-                <dt>Daily Delta</dt>
-                <dd>[[= _.store.daily_delta ]]GB</dd>
-              </dl>
+              <div class="ctl" data-field="name">
+                <label for="store-name">Name</label>
+                <span class="errors">
+                  <span data-error="missing">You must provide a name for this new storage system.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" id="store-name" name="name" class="autofocus"
+                    [[ if (_.store) { ]]value="[[= _.store.name ]]"[[ } ]]/>
+                  <p class="help">Pick a memorable or descriptive name for this storage system,
+                  so that other operators can determine when to use it.</p>
+                </div>
+              </div>
+
+              <div class="ctl" data-field="summary">
+                <label for="store-summary">Description</label>
+                <div class="widget">
+                  <textarea id="store-summary" name="summary">[[= _.store ? _.store.summary : '' ]]</textarea>
+                  <p class="help">If you want, you can add a longer description.</p>
+                </div>
+              </div>
+
+              <div class="ctl" data-field="agent">
+                <label for="store-agent">Agent</label>
+                <span class="errors">
+                  <span data-error="missing">You must select which SHIELD Agent to use to access this storage system.</span>
+                </span>
+                <div class="widget">
+                  <select id="store-agent" name="agent" value="[[= _.store ? _.store.agent : '' ]]">
+                    <option></option>
+                    [[ var found = false; ]]
+                    [[ $.each(_.agents, function (i, agent) { ]]
+                    [[   if (_.store && _.store.agent == agent.address) { ]]
+                    <option selected value="[[= agent.uuid ]]|[[= agent.address ]]">[[= agent.name ]] (at [[= agent.address ]])</option>
+                    [[   } else { ]]
+                    <option value="[[= agent.uuid ]]|[[= agent.address ]]">[[= agent.name ]] (at [[= agent.address ]])</option>
+                    [[   } ]]
+                    [[ }); ]]
+                  </select>
+                </div>
+              </div>
+
+              <div id="choose-plugin"></div>
+              <div id="configure-plugin"></div>
+
+              <button class="go">[[ if (_.store) { ]]Save[[ } else { ]]Create[[ } ]]</button>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--stores-form-choose-plugin"><!-- {{{ -->
+      [[#
+        {stores-form-choose-plugin} template
+
+        Renders the plugin choice dropdown
+      ]]
+          <div class="ctl" data-field="plugin">
+            <label for="store-plugin">Storage Plugin</label>
+            <span class="errors">
+              <span data-error="missing">You must select a storage plugin to use.</span>
+            </span>
+            <div class="widget">
+              <select id="store-plugin" name="plugin">
+                <option></option>
+                [[
+                    var plugins = [];
+                    $.each(_.metadata.plugins, function (plugin, metadata) {
+                      if (metadata.features.store == 'yes') {
+                        plugins.push([plugin, metadata.name + " ("+plugin+")"])
+                      }
+                    });
+                    plugins = plugins.sort(function (a, b) {
+                      return a[1] > b[1] ?  1
+                           : a[1] < b[1] ? -1 : 0;
+                    });
+                ]]
+                [[ $.each(plugins, function (i, plugin) { ]]
+                <option value="[[= plugin[0] ]]">[[= plugin[1] ]]</option>
+                [[ }); ]]
+              </select>
             </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--stores-form-configure-plugin"><!-- {{{ -->
+      [[#
+        {stores-form-configure-plugin} template
 
-            <div class="side-by-side">
-              <h3>Configuration</h3>
-              <dl>
-                <dt>S3 Host</dt>
-                <dd>fixme</dd>
+        Renders the plugin / endpoint configuration sub-form
+      ]][[
 
-                <dt>Access Key</dt>
-                <dd>fixme</dd>
+            var esc = function (s) { return s.replace(/`([^`]*)`/g, '<tt>$1</tt>'); }
 
-                <dt>Prefix Path</dt>
-                <dd>/fix/me</dd>
-              </dl>
+          ]]
+          <div class="subform">
+            <h2>Storage Plugin Options</h2>
+          [[ var n = 0; ]]
+          [[ $.each(_.plugin.fields, function (i, field) { ]]
+            [[ if (field.mode == 'target') { return; } ]]
+              [[ n++; ]]
+              <div class="ctl[[ if (field.required) { ]] required[[ } ]]" data-field="config.[[= field.name ]]" data-type="[[= field.type ]]">
+                <label for="store-plugin-[[= field.name ]]">[[= esc(field.title) ]][[ if (field.required) { ]] <span>(required)</span>[[ } ]]</label>
+                <span class="errors">
+                  <span data-error="missing">You must provide a value for this plugin configuration.</span>
+                  [[ if (field.type == "port") { ]]
+                  <span data-error="invalid">Please supply a valid port number, between 1 and 65535 (inclusive).</span>
+                  [[ } else if (field.type == "abspath") { ]]
+                  <span data-error="invalid">Please supply an absolute filesystem path, starting with a forward slash.</span>
+                  [[ } ]]
+                </span>
+                <div class="widget">
+                  [[ if (field.type == 'bool') { ]]
+                  <input type="checkbox" id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]" />
+                  [[ } else if (field.type == 'enum') { ]]
+                  <select id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]">
+                    [[ if (!field.required || field.default) { ]]<option></option>[[ } ]]
+                    [[ $.each(field.enum, function (i, value) { ]]
+                    [[   if (_.config && _.config[field.name] == value) { ]]
+                    <option selected value="[[= value ]]">[[= value ]]</option>
+                    [[   } else { ]]
+                    <option value="[[= value ]]">[[= value ]]</option>
+                    [[   } ]]
+                    [[ }); ]]
+                  </select>
+                  [[ } else if (field.type == 'password') { ]]
+                  <!-- FIXME: this needs to be a smudge field -->
+                  <input type="password" id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]"
+                    [[ if (_.config && (field.name in _.config)) { ]]value="[[= _.config[field.name] ]]"[[ } ]]
+                    [[ if (field.placeholder && field.placeholder != "") { ]]placeholder="[[= field.placeholder ]]"[[ } ]]/>
+                  [[ } else { ]]
+                  <input type="text" id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]"
+                    [[ if (_.config && (field.name in _.config)) { ]]value="[[= _.config[field.name] ]]"[[ } ]]
+                    [[ if (field.placeholder && field.placeholder != "") { ]]placeholder="[[= field.placeholder ]]"[[ } ]]/>
+                  [[ } ]]
+                  [[ if (field.help && field.help != '') { ]]
+                  <p class="help">[[= esc(field.help) ]]</p>
+                  [[ } ]]
+                  [[ if (field.example && field.example != '') { ]]
+                  <p class="example">For example: [[= esc(field.example) ]]</p>
+                  [[ } ]]
+                </div>
+              </div>
+          [[ }); ]]
+          [[ if (n == 0) { ]]
+          <div class="no-data">
+            <p>This storage plugin is zero-conf, and should just work.</p>
+          </div>
+          [[ } ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--stores-delete"><!-- {{{ -->
+      [[#
+        {stores-delete}
+
+        A modal interaction screen that requires the oeprator to acknowledge
+        that what they are about to do will result in the destruction of
+        configuration data.
+      ]]
+          <div class="confirm">
+            <h2>Delete The <em>[[= _.store.name ]]</em> Cloud Storage System?</h2>
+
+            <p>You have requested that S.H.I.E.L.D. remove the configuration for
+            the cloud storage system "[[= _.store.name ]]".  <em>This is a
+            irreversible action; it cannot be undone.</em></p>
+
+            <p class="q">Are you sure you want to delete <em>[[= _.store.name ]]</em>?</p>
+            <div class="a">
+              <button class="danger" rel="yes">Yes, Delete It</button>
+              <button class="safe" rel="close">No, Cancel This Operation</button>
             </div>
           </div>
     <!-- }}} --></script>
@@ -1260,6 +1467,13 @@
                 they can neither see nor affect the systems, storage, and retention policies
                 of one another.</p>
               </li>
+
+              <li><a href="#!/admin/stores">Global Storage Systems</a>
+                <p>You may elect to configure some global storage systems, which can be used,
+                but not modified, by all tenants; only SHIELD technicians, engineers, and
+                admins are able to view and edit their configuration.</p>
+              </li>
+
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
                 on other machines.  These agents register with the SHIELD Core, and provide
@@ -1626,8 +1840,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         args[argv[0+i]] = argv[1+i]
       }
 
+      /* handle diverts and authentication stuff {{{ */
       if ($global.auth.unauthenticated) {
-        if (page != "#!/login" && page != "#!/cliauth") {
+        if (!page.match(/^#!\/(login|logout|cliauth)$/)) {
           console.log('session not authenticated; diverting to #!/login page...');
           goto("#!/login");
           return
@@ -1648,6 +1863,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         console.log('no specific page specified; diverting to #!/systems page...');
         page = "#!/systems";
       }
+      /* }}} */
       console.log('dispatching to page "%s"...', page);
 
       var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
@@ -1834,25 +2050,192 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/stores */
         // }}}
       case '#!/stores/store': /* {{{ */
-        var used = 200.1;
-        var projected = 201.7;
-        var threshold = 180;
-        $('#main').html(template('store', {
-          store: {
-            uuid: '4a013967-9295-499a-8cc4-ace60f721704',
-            name: 'Scality (On-Premise)',
-            ok: false,
-            plugin: 'scality',
-            archives: 224,
-            used: 200.1,
-            threshold: 180,
-            projected: 600.7,
-            total: 201.7,
-            daily_delta: '+1.3',
-            notes: 'On-premise Scality storage, to be used for short-term, high-volume backup archives.  These go to to the <kbd>xyzy</kbd> bucket.'
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
+          error: "Unable to retrieve storage systems from SHIELD API.",
+          success: function (data) {
+            /* FIXME fixups that need to migrate into the SHIELD code */
+            data.ok = true;
+            data.archives = 224;
+            data.used = 200.1;
+            data.threshold = 180;
+            data.projected = 600.7;
+            data.total = 201.7;
+            data.daily_delta = '+1.3';
+            $('#main').html(template('store', { store: data }));
           }
-        }));
+        });
         break; /* #!/stores/store */
+        // }}}
+      case '#!/stores/new': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/agents',
+          error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
+          success: function (data) {
+            var cache = {};
+
+            $('#main').html($(template('stores-form', {
+                store:  null,
+                agents: data.agents,
+              }))
+              .autofocus()
+              .on('change', 'select#store-agent', function (event) {
+                var uuid = $(event.target).val().replace(/\|.*/, '');
+                if (uuid == "") { return; }
+
+                $('#main #choose-plugin').html(template('loading'));
+                api({
+                  type: 'GET',
+                  url:  '/v2/agents/'+uuid,
+                  success: function (data) {
+                    cache = data;
+                    $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
+                  }
+                });
+              })
+              .on('change', 'select#store-plugin', function (event) {
+                var plugin = $(event.target).val();
+                if (plugin == '') { return; }
+
+                $('#main #configure-plugin').html(
+                  template('stores-form-configure-plugin', {
+                    plugin: cache.metadata.plugins[plugin]
+                  }));
+              })
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
+
+                var $form = $(event.target);
+                var data = $form.serializeObject();
+                data.agent = data.agent.replace(/.*\|/, '');
+
+                if (!$form.reset().validate(data).isOK()) { return; }
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores',
+                  data: data,
+                  success: function () {
+                    goto("#!/stores");
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              }));
+          }
+        });
+        break; /* #!/stores */
+        // }}}
+      case '#!/stores/edit': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
+          error: "Failed to retrieve storage system information from the SHIELD API.",
+          success: function (store) {
+            api({
+              type: 'GET',
+              url:  '/v2/agents',
+              error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
+              success: function (agents) {
+
+                $('#main').html($(template('stores-form', { store: store, agents: agents.agents }))
+                  .autofocus()
+                  .on('change', 'select#store-agent', function (event) {
+                    var uuid = $(event.target).val().replace(/\|.*/, '');
+                    if (uuid == "") { return; }
+
+                    $('#main #choose-plugin').html(template('loading'));
+                    api({
+                      type: 'GET',
+                      url:  '/v2/agents/'+uuid,
+                      success: function (data) {
+                        cache = data;
+                        $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
+                        $('#main select[name="plugin"]').val(store.plugin).trigger('change');
+                      }
+                    });
+                  })
+                  .on('change', 'select#store-plugin', function (event) {
+                    var plugin = $(event.target).val();
+                    if (plugin == '') { return; }
+
+                    $('#main #configure-plugin').html(
+                      template('stores-form-configure-plugin', {
+                        config: store.config,
+                        plugin: cache.metadata.plugins[plugin]
+                      }));
+                  })
+                  .on('submit', 'form', function (event) {
+                    event.preventDefault();
+
+                    var $form = $(event.target);
+                    var data = $form.serializeObject();
+
+                    data.config = {};
+                    for (key in data) {
+                      if (key.match(/^config\./)) {
+                        data.config[key.replace(/^config\./, '')] = data[key];
+                        delete data[key];
+                      }
+                    }
+
+                    data.agent = data.agent.replace(/.*\|/, '');
+
+                    if (!$form.reset().validate(data).isOK()) { return; }
+                    api({
+                      type: 'PUT',
+                      url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
+                      data: data,
+                      success: function () {
+                        goto("#!/stores/store:uuid:"+args.uuid);
+                      },
+                      error: function (xhr) {
+                        $form.error(xhr.responseJSON);
+                      }
+                    });
+                  }));
+                $('#main select[name="agent"]').trigger('change');
+              }
+            });
+          }
+        });
+
+        break; /* #!/stores/edit */
+        // }}}
+      case '#!/stores/delete': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
+          error: "Failed to retrieve storage system information from the SHIELD API.",
+          success: function (store) {
+            modal($(template('stores-delete', { store: store }))
+              .on('click', '[rel="yes"]', function (event) {
+                event.preventDefault();
+                api({
+                  type: 'DELETE',
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
+                  error: "Unable to delete storage system",
+                  complete: function () {
+                    modal(true);
+                  },
+                  success: function (event) {
+                    goto('#!/stores');
+                  }
+                });
+              })
+              .on('click', '[rel="close"]', function (event) {
+                modal(true);
+                goto('#!/stores/store:uuid:'+args.uuid);
+              })
+            );
+          }
+        });
+
+        break; /* #!/stores/delete */
         // }}}
 
       case '#!/policies': /* {{{ */
@@ -1906,7 +2289,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             });
           }));
 
-        break; /* #!/policies */
+        break; /* #!/policies/new */
         // }}}
       case '#!/policies/edit': /* {{{ */
         api({
@@ -1949,7 +2332,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           }
         });
 
-        break; /* #!/policies */
+        break; /* #!/policies/edit */
         // }}}
 
       case '#!/tenants': /* {{{ */
@@ -2266,6 +2649,209 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             });
           });
         break; // #!/admin/users/new
+        // }}}
+
+      case '#!/admin/stores': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/global/stores',
+          error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
+          success: function (data) {
+            /* FIXME fixups that need to migrate into the SHIELD code */
+            for (key in data) {
+              if (!('ok' in data[key])) {
+                data[key].ok = true;
+              }
+            }
+            $('#main').html(template('stores', { stores: data, admin: true }));
+          }
+        });
+        break; /* #!/admin/stores */
+        // }}}
+      case '#!/admin/stores/store': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/global/stores/'+args.uuid,
+          error: "Unable to retrieve storage systems from SHIELD API.",
+          success: function (data) {
+            /* FIXME fixups that need to migrate into the SHIELD code */
+            data.ok = true;
+            data.archives = 224;
+            data.used = 200.1;
+            data.threshold = 180;
+            data.projected = 600.7;
+            data.total = 201.7;
+            data.daily_delta = '+1.3';
+            $('#main').html(template('store', { store: data, admin: true }));
+          }
+        });
+        break; /* #!/admin/stores/store */
+        // }}}
+      case '#!/admin/stores/new': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/agents',
+          error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
+          success: function (data) {
+            var cache = {};
+
+            $('#main').html($(template('stores-form', {
+                store:  null,
+                agents: data.agents,
+                admin:  true,
+              }))
+              .autofocus()
+              .on('change', 'select#store-agent', function (event) {
+                var uuid = $(event.target).val().replace(/\|.*/, '');
+                if (uuid == "") { return; }
+
+                $('#main #choose-plugin').html(template('loading'));
+                api({
+                  type: 'GET',
+                  url:  '/v2/agents/'+uuid,
+                  success: function (data) {
+                    cache = data;
+                    $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
+                  }
+                });
+              })
+              .on('change', 'select#store-plugin', function (event) {
+                var plugin = $(event.target).val();
+                if (plugin == '') { return; }
+
+                $('#main #configure-plugin').html(
+                  template('stores-form-configure-plugin', {
+                    plugin: cache.metadata.plugins[plugin]
+                  }));
+              })
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
+
+                var $form = $(event.target);
+                var data = $form.serializeObject();
+                data.agent = data.agent.replace(/.*\|/, '');
+
+                if (!$form.reset().validate(data).isOK()) { return; }
+                api({
+                  type: 'POST',
+                  url:  '/v2/global/stores',
+                  data: data,
+                  success: function () {
+                    goto("#!/admin/stores");
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              }));
+          }
+        });
+        break; /* #!/admin/stores */
+        // }}}
+      case '#!/admin/stores/edit': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/global/stores/'+args.uuid,
+          error: "Failed to retrieve storage system information from the SHIELD API.",
+          success: function (store) {
+            api({
+              type: 'GET',
+              url:  '/v2/agents',
+              error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
+              success: function (agents) {
+
+                $('#main').html($(template('stores-form', {
+                  store:  store,
+                  agents: agents.agents,
+                  admin:  true
+                }))
+                  .autofocus()
+                  .on('change', 'select#store-agent', function (event) {
+                    var uuid = $(event.target).val().replace(/\|.*/, '');
+                    if (uuid == "") { return; }
+
+                    $('#main #choose-plugin').html(template('loading'));
+                    api({
+                      type: 'GET',
+                      url:  '/v2/agents/'+uuid,
+                      success: function (data) {
+                        cache = data;
+                        $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
+                        $('#main select[name="plugin"]').val(store.plugin).trigger('change');
+                      }
+                    });
+                  })
+                  .on('change', 'select#store-plugin', function (event) {
+                    var plugin = $(event.target).val();
+                    if (plugin == '') { return; }
+
+                    $('#main #configure-plugin').html(
+                      template('stores-form-configure-plugin', {
+                        config: store.config,
+                        plugin: cache.metadata.plugins[plugin]
+                      }));
+                  })
+                  .on('submit', 'form', function (event) {
+                    event.preventDefault();
+
+                    var $form = $(event.target);
+                    var data = $form.serializeObject();
+                    data.agent = data.agent.replace(/.*\|/, '');
+
+                    if (!$form.reset().validate(data).isOK()) { return; }
+                    api({
+                      type: 'PUT',
+                      url:  '/v2/global/stores/'+args.uuid,
+                      data: data,
+                      success: function () {
+                        goto("#!/admin/stores/store:uuid:"+args.uuid);
+                      },
+                      error: function (xhr) {
+                        $form.error(xhr.responseJSON);
+                      }
+                    });
+                  }));
+                $('#main select[name="agent"]').trigger('change');
+              }
+            });
+          }
+        });
+
+        break; /* #!/admin/stores/edit */
+        // }}}
+      case '#!/admin/stores/delete': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/global/stores/'+args.uuid,
+          error: "Failed to retrieve storage system information from the SHIELD API.",
+          success: function (store) {
+            modal($(template('stores-delete', { store: store }))
+              .on('click', '[rel="yes"]', function (event) {
+                event.preventDefault();
+                api({
+                  type: 'DELETE',
+                  url:  '/v2/global/stores/'+args.uuid,
+                  error: "Unable to delete storage system",
+                  complete: function () {
+                    modal(true);
+                  },
+                  success: function (event) {
+                    goto('#!/admin/stores');
+                  }
+                });
+              })
+              .on('click', '[rel="close"]', function (event) {
+                modal(true);
+                goto('#!/admin/stores/store:uuid:'+args.uuid);
+              })
+            );
+          }
+        });
+
+        break; /* #!/admin/stores/delete */
         // }}}
 
       case "#!/unlock": /* {{{ */
