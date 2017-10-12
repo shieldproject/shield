@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/starkandwayne/shield/cmd/shield/log"
 )
 
 var (
@@ -56,6 +58,8 @@ func SetBackend(b *Backend) error {
 		},
 		Timeout: 30 * time.Second,
 	}
+
+	log.DEBUG("Setting API backend: %+v", *b)
 
 	return nil
 }

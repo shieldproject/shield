@@ -358,11 +358,9 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 
 func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
 	JSON(w, struct {
-		OK         string `json:"ok"`
-		APIVersion int    `json:"api_version"`
+		OK string `json:"ok"`
 	}{
-		OK:         "pong",
-		APIVersion: APIVersion,
+		OK: "pong",
 	})
 }
 
@@ -373,13 +371,21 @@ func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
-	JSON(w, struct {
-		Version string `json:"version"`
-		Name    string `json:"name"`
+	stat := struct {
+		Version    string `json:"version,omitempty"`
+		Name       string `json:"name"`
+		APIVersion int    `json:"api_version"`
 	}{
-		Version: Version,
-		Name:    os.Getenv("SHIELD_NAME"),
-	})
+		Name:       os.Getenv("SHIELD_NAME"),
+		APIVersion: APIVersion,
+	}
+
+	sessionID := getSessionID(req)
+	if id, _ := core.checkAuth(sessionID); id != nil {
+		stat.Version = Version
+	}
+
+	JSON(w, &stat)
 }
 
 func (core *Core) v1DetailedStatus(w http.ResponseWriter, req *http.Request) {

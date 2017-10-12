@@ -3,7 +3,6 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 
@@ -27,9 +26,6 @@ func Unlock(master string) error {
 	}
 	respMap := make(map[string]string)
 	if err := uri.Post(&respMap, string(contentJSON)); err != nil {
-		if initError, present := respMap["error"]; present {
-			return errors.New(initError)
-		}
 		return err
 	}
 
@@ -53,9 +49,6 @@ func Init(master string) error {
 		return err
 	}
 	if err := uri.Post(&respMap, string(contentJSON)); err != nil {
-		if initError, present := respMap["error"]; present {
-			return errors.New(initError)
-		}
 		return err
 	}
 
@@ -81,9 +74,6 @@ func Rekey(current, proposed string) error {
 		return err
 	}
 	if err := uri.Post(&respMap, string(b)); err != nil {
-		if rekeyError, present := respMap["error"]; present {
-			return errors.New(rekeyError)
-		}
 		return err
 	}
 
@@ -178,23 +168,17 @@ func LogoutSession(sessionID string) error {
 
 //AuthIDOutput contains all the information from a call to /v2/auth/id
 type AuthIDOutput struct {
-	User    AuthUser     `json:"user"`
-	Tenants []AuthTenant `json:"tenants"`
-}
-
-//AuthUser contains information about a user as returned by the v2 API
-type AuthUser struct {
-	Name    string `json:"name"`
-	Account string `json:"account"`
-	Backend string `json:"backend"`
-	Sysrole string `json:"admin"`
-}
-
-//AuthTenant contains information about an authentication provider
-type AuthTenant struct {
-	UUID uuid.UUID `json:"uuid"`
-	Name string    `json:"name"`
-	Role string    `json:"role"`
+	User struct {
+		Name    string `json:"name"`
+		Account string `json:"account"`
+		Backend string `json:"backend"`
+		Sysrole string `json:"admin"`
+	} `json:"user"`
+	Tenants []struct {
+		UUID uuid.UUID `json:"uuid"`
+		Name string    `json:"name"`
+		Role string    `json:"role"`
+	} `json:"tenants"`
 }
 
 //AuthID hits the /v2/auth/id endpoint to retrieve data about the current user

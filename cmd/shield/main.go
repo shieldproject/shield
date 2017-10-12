@@ -158,10 +158,15 @@ func main() {
 			ansi.Fprintf(os.Stderr, "@R{Could not contact backend: %s}\n", err.Error())
 			os.Exit(1)
 		}
-		currentBackend.APIVersion = cmds.Opts.APIVersion
-		config.Commit(currentBackend)
-		log.DEBUG("Using API Version %d", cmds.Opts.APIVersion)
 
+		currentBackend.APIVersion = cmds.Opts.APIVersion
+		err = config.Commit(currentBackend)
+		if err != nil {
+			ansi.Fprintf(os.Stderr, "@R{Could not update config: %s}\n", err.Error())
+			os.Exit(1)
+		}
+		err = api.SetBackend(currentBackend)
+		log.DEBUG("Using API Version %d", cmds.Opts.APIVersion)
 		if err != nil {
 			ansi.Fprintf(os.Stderr, "@R{Could not set current backend: %s}\n", err.Error())
 			os.Exit(1)
@@ -286,8 +291,14 @@ func addGlobalFlags() {
 }
 
 func fetchAPIVersion() (int, error) {
-	apiVersion, err := api.Ping()
-	return apiVersion, err
+	stat, err := api.GetStatus()
+	if err != nil {
+		if _, unauthorized := err.(api.ErrUnauthorized); unauthorized {
+			stat.APIVersion = 1
+			err = nil
+		}
+	}
+	return stat.APIVersion, err
 }
 
 func warnScheduleDeprecation() {

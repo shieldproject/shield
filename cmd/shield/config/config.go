@@ -130,11 +130,7 @@ func Current() *api.Backend {
 	if cfg.Backend == "" {
 		current = nil
 	} else {
-		if current == nil { //Try to keep the pointer the same throughout
-			current = Get(cfg.Backend)
-		} else {
-			*current = *Get(cfg.Backend)
-		}
+		current = Get(cfg.Backend)
 		current.Canonize()
 	}
 	return current
@@ -252,6 +248,9 @@ func Commit(b *api.Backend) error {
 		CACert:            b.CACert,
 		APIVersion:        b.APIVersion,
 	}
+
+	log.DEBUG("Committing: %+v", b)
+	log.DEBUG("Dirty save: %t", cfg.dirty)
 
 	if cfg.Backend == b.Name {
 		Current()

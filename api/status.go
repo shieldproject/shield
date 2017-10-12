@@ -7,8 +7,9 @@ import (
 )
 
 type Status struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name       string `json:"name"`
+	Version    string `json:"version"`
+	APIVersion int    `json:"api_version"`
 }
 
 func GetStatus() (Status, error) {
@@ -41,22 +42,14 @@ func GetJobsStatus() (JobsStatus, error) {
 	return data, uri.Get(&data)
 }
 
-//Ping hits the /v1/ping endpoint and returns the APIVersion if present.
-// Returns 1 if api_version is not in the response (aka v1 APIs)
-func Ping() (apiVersion int, err error) {
+//Ping hits the /v1/ping endpoint and returns nil if it was successful
+func Ping() (err error) {
 	uri, err := ShieldURI("/v1/ping")
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	pingBody := struct {
-		APIVersion int `json:"api_version"`
-	}{
-		APIVersion: 1,
-	}
-
-	err = uri.Get(&pingBody)
-	return pingBody.APIVersion, err
+	return uri.Get(nil)
 }
 
 //AuthType is an enumeration type that represents different types of auth that

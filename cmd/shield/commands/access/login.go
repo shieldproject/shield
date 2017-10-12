@@ -26,8 +26,12 @@ func cliLogin(opts *commands.Options, args ...string) error {
 
 	internal.Require(len(args) == 0, "USAGE: shield login")
 
-	wipeCurrentToken()
-	curBackendCopy := *config.Current()
+	err := Logout.RunFn(opts)
+	if err != nil {
+		return err
+	}
+
+	curBackend := config.Current()
 	authType, err := api.FetchAuthType("")
 
 	var token string
@@ -54,9 +58,15 @@ func cliLogin(opts *commands.Options, args ...string) error {
 	}
 
 	log.DEBUG("Token: %s", token)
-	config.Current().Token = token
+	curBackend.Token = token
+	err = api.SetBackend(curBackend)
+	if err != nil {
+		return err
+	}
 
-	if curBackendCopy.APIVersion == 2 {
+	log.DEBUG("curToken: %s", config.Current().Token)
+
+	if curBackend.APIVersion == 2 {
 		err = Whoami.RunFn(opts)
 	} else {
 		_, err = api.GetStatus()
@@ -69,8 +79,7 @@ func cliLogin(opts *commands.Options, args ...string) error {
 		return err
 	}
 
-	curBackendCopy.Token = token
-	return config.Commit(&curBackendCopy)
+	return config.Commit(curBackend)
 }
 
 func promptCreds() (username, password string, err error) {
