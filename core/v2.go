@@ -1155,9 +1155,10 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		policy, err := core.DB.CreateRetentionPolicy(&db.RetentionPolicy{
-			Name:    in.Name,
-			Summary: in.Summary,
-			Expires: in.Expires,
+			TenantUUID: uuid.Parse(r.Args[1]),
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Expires:    in.Expires,
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to create retention policy"))

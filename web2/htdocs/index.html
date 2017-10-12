@@ -355,7 +355,7 @@
             <span class="dropdown odd">you have no tenants</span>
             [[ } else { ]]
             [[   $.each(_.tenants, function (i, tenant) { ]]
-            <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="#!/tenant/[[= tenant.uuid ]]">[[= tenant.name ]]</a>
+            <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
             [[   }); ]]
             [[ } ]]
             <div class="divider"></div>
@@ -1667,7 +1667,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             type: 'GET',
             url:  '/v2/auth/providers?for=web',
             success: function (data) {
-              $('#viewport').html(template('login', { providers: data }))
+              $('#viewport').html($(template('login', { providers: data })))
                 .on("click", ".login", function (event) {
                   progress($(event.target).text());
                 })
@@ -1681,7 +1681,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     success: function (_, _, xhr) {
                       /*
                       $global.auth = xhr.responseJSON;
-                      $("#viewport").html(template("layout"))
+                      $("#viewport").html(template("layout"));
                       goto("");
                       */
                       document.location.href = "/"
@@ -1734,7 +1734,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             error: "Failed retrieving the list of protected systems from the SHIELD API.",
             success: function (systems) {
               data = { systems: systems };
-              $('#main').html(template('do-backup', data))
+              $('#main').html($(template('do-backup', data)))
                 .on('click', "a[href^=\"do-backup:\"]", function (event) {
                   event.preventDefault();
                   l = $(event.target).closest('a[href^="do-backup:"]').attr('href').split(':');
@@ -1819,7 +1819,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v1/stores',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores',
           error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
           success: function (data) {
             /* FIXME fixups that need to migrate into the SHIELD code */
@@ -1859,7 +1859,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v1/retention',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies',
           error: 'Failed to retrieve retention policy information from the SHIELD API.',
           success: function (data) {
             /* FIXME: data fixups that should probably migrate back to API */
@@ -1874,7 +1874,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/policies */
         // }}}
       case '#!/policies/new': /* {{{ */
-        $('#main').html(template('policies-form', { policy: null }))
+        $('#main').html($(template('policies-form', { policy: null }))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -1895,7 +1895,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
             api({
               type: 'POST',
-              url:  '/v1/retention',
+              url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies',
               data: data,
               success: function () {
                 goto("#!/policies");
@@ -1904,18 +1904,18 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 $form.error(xhr.responseJSON);
               }
             });
-          });
+          }));
 
         break; /* #!/policies */
         // }}}
       case '#!/policies/edit': /* {{{ */
         api({
           type: 'GET',
-          url:  '/v1/retention/'+args.uuid,
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
           error: "Failed to retrieve retention policy information from the SHIELD API.",
           success: function (data) {
             data.days = parseInt(data.expires / 86400);
-            $('#main').html(template('policies-form', { policy: data }))
+            $('#main').html($(template('policies-form', { policy: data }))
               .autofocus()
               .on('submit', 'form', function (event) {
                 event.preventDefault();
@@ -1936,7 +1936,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
                 api({
                   type: 'PUT',
-                  url:  '/v1/retention/'+args.uuid,
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
                   data: data,
                   success: function () {
                     goto("#!/policies");
@@ -1945,7 +1945,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     $form.error(xhr.responseJSON);
                   }
                 });
-              });
+              }));
           }
         });
 
@@ -2010,7 +2010,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 role: members[uuid]
               });
             }
-            console.log(data);
 
             $form.reset();
 
@@ -2179,7 +2178,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/auth */
         // }}}
       case '#!/admin/rekey': /* {{{ */
-        $('#main').html(template('rekey'))
+        $('#main').html($(template('rekey')))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -2235,7 +2234,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/users */
         // }}}
       case "#!/admin/users/new": /* {{{ */
-        $('#main').html(template('admin-users-new', {}))
+        $('#main').html($(template('admin-users-new', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -2270,7 +2269,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case "#!/unlock": /* {{{ */
-        $('#main').html(template('unlock', {}))
+        $('#main').html($(template('unlock', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -2292,7 +2291,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break;
         // }}}
       case "#!/init": /* {{{ */
-        $('#main').html(template('init', {}))
+        $('#main').html($(template('init', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -2347,6 +2346,15 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     function reload() {
       dispatch(document.location.hash);
     }
+    function redraw() {
+      $('#hud').html(template('hud', $global.hud));
+      $('.top-bar').html(template('top-bar', {
+        shield: $global.hud.shield,
+        user:    $global.auth.user,
+        tenants: $global.auth.tenants,
+        tenant:  $global.auth.tenant
+      }));
+    }
     function goto(page) {
       document.location.hash = page;
     }
@@ -2379,23 +2387,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         var rehud = function (data) {
           $global.hud = data;
           var json = JSON.stringify(data);
-          if (json != last) {
-            $('#hud').html(template('hud', $global.hud));
-
-            var tenant = null;
-            if ($global.auth.tenants && $global.auth.tenants.length > 0) {
-              tenant = $global.auth.tenants[0];
-            }
-            $('.top-bar').html(template('top-bar', {
-              shield: {
-                env: 'DEMO',
-                ip:  data.shield.ip
-              },
-              user:    $global.auth.user,
-              tenants: $global.auth.tenants,
-              tenant:  tenant
-            }));
-          }
+          if (json != last) { redraw(); }
           last = json;
         };
         var ping = function () {
@@ -2429,6 +2421,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         event.preventDefault();
         event.stopPropagation();
         $('.top-bar .flyout').toggle();
+      });
+      $(document.body).on('click', '.top-bar a[href^="switchto:"]', function (event) {
+        event.preventDefault();
+        var uuid = $(event.target).attr('href').replace(/^switchto:/, '');
+        for (var i = 0; i < $global.auth.tenants.length; i++) {
+          if ($global.auth.tenants[i].uuid == uuid) {
+            $global.auth.tenant = $global.auth.tenants[i];
+            redraw();
+            reload();
+          }
+        }
       });
       $(document.body).on('click', '.top-bar .fly-out', function (event) {
         event.preventDefault();

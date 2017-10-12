@@ -129,9 +129,9 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 func (db *DB) CreateRetentionPolicy(p *RetentionPolicy) (*RetentionPolicy, error) {
 	p.UUID = uuid.NewRandom()
 	return p, db.Exec(`
-	   INSERT INTO retention (uuid, name, summary, expiry)
-	                  VALUES (?,    ?,    ?,       ?)`,
-		p.UUID.String(), p.Name, p.Summary, p.Expires)
+	   INSERT INTO retention (uuid, tenant_uuid, name, summary, expiry)
+	                  VALUES (?,    ?,           ?,    ?,       ?)`,
+		p.UUID.String(), p.TenantUUID.String(), p.Name, p.Summary, p.Expires)
 }
 
 func (db *DB) UpdateRetentionPolicy(p *RetentionPolicy) error {
