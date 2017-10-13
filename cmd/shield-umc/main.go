@@ -127,7 +127,7 @@ run 'shield-umc -h command-name'
 
 	switch command {
 	case "tenants":
-		tenants, err := database.GetAllTenants()
+		tenants, err := database.GetAllTenants(&db.TenantFilter{})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "@R{failed to list tenants: %s}\n", err)
 			os.Exit(2)

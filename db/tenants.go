@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pborman/uuid"
 )
@@ -12,14 +13,60 @@ type Tenant struct {
 	Members []*User   `json:"members,omitempty"`
 }
 
-func (db *DB) GetAllTenants() ([]*Tenant, error) {
-	r, err := db.Query(`SELECT t.uuid, t.name FROM tenants t`)
+type TenantFilter struct {
+	Name       string
+	ExactMatch bool
+	UUID       string
+	Limit      string
+}
+
+func (f *TenantFilter) Query() (string, []interface{}) {
+	wheres := []string{"t.uuid = t.uuid"}
+	var args []interface{}
+
+	if f.UUID != "" {
+		wheres = append(wheres, "t.uuid = ?")
+		args = append(args, f.UUID)
+	}
+
+	if f.Name != "" {
+		comparator := "LIKE"
+		toAdd := Pattern(f.Name)
+		if f.ExactMatch {
+			comparator = "="
+			toAdd = f.Name
+		}
+		wheres = append(wheres, fmt.Sprintf("t.name %s ?", comparator))
+		args = append(args, toAdd)
+	}
+
+	limit := ""
+	if f.Limit != "" {
+		limit = " LIMIT ?"
+		args = append(args, f.Limit)
+	}
+
+	return `
+	    SELECT t.uuid, t.name
+	      FROM tenants t
+	     WHERE ` + strings.Join(wheres, " AND ") + `
+	` + limit, args
+}
+
+func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
+	if filter == nil {
+		filter = &TenantFilter{}
+	}
+
+	l := make([]*Tenant, 0)
+
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
 	if err != nil {
-		return nil, err
+		return l, err
 	}
 	defer r.Close()
 
-	l := make([]*Tenant, 0)
 	for r.Next() {
 		var id NullUUID
 		t := &Tenant{}
@@ -135,4 +182,10 @@ func (db *DB) GetTenantRole(org string, team string) (uuid.UUID, string, error) 
 		return nil, "", err
 	}
 	return uuid.Parse(tenantUUID), role, nil
+}
+
+func (db *DB) DeleteTenant(tenant *Tenant) error {
+	return db.Exec(`
+		DELETE FROM tenants
+		      WHERE uuid = ?`, tenant.UUID.String())
 }

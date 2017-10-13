@@ -24,7 +24,7 @@ func findtenant(database *db.DB, name_or_uuid string) string {
 		return name_or_uuid
 	}
 
-	tenants, err := database.GetAllTenants()
+	tenants, err := database.GetAllTenants(&db.TenantFilter{})
 	if err != nil {
 		return ""
 	}
