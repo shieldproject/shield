@@ -77,6 +77,7 @@ func Show(archive api.Archive) {
 	if archive.EncryptionType == "" {
 		archive.EncryptionType = "(unencrypted)"
 	}
+	t.Add("Size", fmt.Sprintf("%d", archive.Size))
 	t.Add("Encryption Type", archive.EncryptionType)
 	t.Break()
 

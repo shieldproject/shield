@@ -20,7 +20,7 @@ func cliUnlock(opts *commands.Options, args ...string) error {
 
 	internal.Require(len(args) == 0, "USAGE: shield unseal")
 
-	master := SecurePrompt("%s @Y{[hidden]:} ", "master_password")
+	master := SecurePrompt("%s @Y{[hidden]:} ", "Master Password")
 	if err := api.Unlock(master); err != nil {
 		return err
 	}

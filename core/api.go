@@ -28,17 +28,55 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.initJS(w, req)
 		return
 
-	case match(req, `POST /auth/login`):
-		core.authLogin(w, req)
-		return
-	case match(req, `GET /auth/logout`):
-		core.authLogout(w, req)
-		return
-	case match(req, `GET /auth/id`):
-		core.authID(w, req)
-		return
-	case match(req, `GET /auth/oauth/.+`):
-		core.oauth2(w, req)
+	case match(req, `GET /auth/([^/]+)/(redir|web|cli)`):
+		re := regexp.MustCompile("/auth/([^/]+)/(redir|web|cli)")
+		m := re.FindStringSubmatch(req.URL.Path)
+
+		name := m[1]
+		provider, err := core.FindAuthProvider(name)
+		if err != nil {
+			w.WriteHeader(404)
+			fmt.Fprintf(w, "couldn't find that auth provider...: %s", err)
+			return
+		}
+
+		if m[2] == "redir" {
+			via := "web"
+			if cookie, err := req.Cookie("via"); err == nil {
+				via = cookie.Value
+			}
+
+			user := provider.HandleRedirect(req)
+			if user == nil {
+				fmt.Fprintf(w, "The authentication process broke down\n")
+				w.WriteHeader(500)
+			}
+
+			session, err := core.createSession(user)
+			if err != nil {
+				log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
+				w.Header().Set("Location", "/")
+			} else if via == "cli" {
+				w.Header().Set("Location", fmt.Sprintf("/#!/cliauth:s:%s", session.UUID.String()))
+			} else {
+				w.Header().Set("Location", "/")
+
+				if session, err := core.createSession(user); err != nil {
+					log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
+				} else {
+					http.SetCookie(w, SessionCookie(session.UUID.String(), true))
+				}
+			}
+			w.WriteHeader(302)
+
+		} else {
+			http.SetCookie(w, &http.Cookie{
+				Name:  "via",
+				Value: m[2],
+				Path:  "/auth",
+			})
+			provider.Initiate(w, req)
+		}
 		return
 
 	case match(req, `GET /v1/ping`):
@@ -49,32 +87,20 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v1Status(w, req)
 		return
 
-	//All api endpoints below have the mustBeUnlocked requirement such that if vault
-	//	is sealed or uninitialized they will return a 403
 	case match(req, `GET /v1/meta/pubkey`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetPublicKey(w, req)
 		return
 
+	//All api endpoints below have the mustBeUnlocked requirement such that if vault
+	//	is sealed or uninitialized they will return a 401
 	case match(req, `GET /v1/status/internal`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DetailedStatus(w, req)
 		return
 	case match(req, `GET /v1/status/jobs`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1JobsStatus(w, req)
 		return
 
 	case match(req, `GET /v1/archives`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetArchives(w, req)
 		return
 	case match(req, `POST /v1/archive/[a-fA-F0-9-]+/restore`):
@@ -84,9 +110,6 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v1RestoreArchive(w, req)
 		return
 	case match(req, `GET /v1/archive/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetArchive(w, req)
 		return
 	case match(req, `PUT /v1/archive/[a-fA-F0-9-]+`):
@@ -103,27 +126,15 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 
 	case match(req, `GET /v1/jobs`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetJobs(w, req)
 		return
 	case match(req, `POST /v1/jobs`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateJob(w, req)
 		return
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/pause`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1PauseJob(w, req)
 		return
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/unpause`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UnpauseJob(w, req)
 		return
 	case match(req, `POST /v1/job/[a-fA-F0-9-]+/run`):
@@ -133,15 +144,9 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		core.v1RunJob(w, req)
 		return
 	case match(req, `GET /v1/job/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetJob(w, req)
 		return
 	case match(req, `PUT /v1/job/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateJob(w, req)
 		return
 	case match(req, `DELETE /v1/job/[a-fA-F0-9-]+`):
@@ -152,95 +157,50 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 
 	case match(req, `GET /v1/retention`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetRetentionPolicies(w, req)
 		return
 	case match(req, `POST /v1/retention`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateRetentionPolicy(w, req)
 		return
 	case match(req, `GET /v1/retention/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetRetentionPolicy(w, req)
 		return
 	case match(req, `PUT /v1/retention/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateRetentionPolicy(w, req)
 		return
 	case match(req, `DELETE /v1/retention/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DeleteRetentionPolicy(w, req)
 		return
 
 	case match(req, `GET /v1/stores`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetStores(w, req)
 		return
 	case match(req, `POST /v1/stores`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateStore(w, req)
 		return
 	case match(req, `GET /v1/store/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetStore(w, req)
 		return
 	case match(req, `PUT /v1/store/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateStore(w, req)
 		return
 	case match(req, `DELETE /v1/store/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DeleteStore(w, req)
 		return
 
 	case match(req, `GET /v1/targets`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetTargets(w, req)
 		return
 	case match(req, `POST /v1/targets`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1CreateTarget(w, req)
 		return
 	case match(req, `GET /v1/target/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1GetTarget(w, req)
 		return
 	case match(req, `PUT /v1/target/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1UpdateTarget(w, req)
 		return
 	case match(req, `DELETE /v1/target/[a-fA-F0-9-]+`):
-		if locked := core.mustBeUnlocked(w); locked {
-			return
-		}
 		core.v1DeleteTarget(w, req)
 		return
 
@@ -379,13 +339,14 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	id, _ := core.checkAuth(req)
+	sessionID := getSessionID(req)
+	id, _ := core.checkAuth(sessionID)
 	if id == nil {
 		fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
 	} else {
 		b, err := json.Marshal(id)
 		if err != nil {
-			log.Errorf("init.js: failed to marhsal auth id data into JSON: %s", err)
+			log.Errorf("init.js: failed to marshal auth id data into JSON: %s", err)
 			fmt.Fprintf(w, "// failed to determine user authentication state...\n")
 			fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
 		} else {
@@ -395,79 +356,12 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(200)
 }
 
-func (core *Core) authLogin(w http.ResponseWriter, req *http.Request) {
-	// only applies to the local backend configuration
-	// so we can assume that `username` and `password` are set in the
-	// POST body.
-
-	if req.ParseForm() != nil {
-		w.WriteHeader(400) // FIXME
-		return
-	}
-
-	username := req.PostFormValue("username")
-	password := req.PostFormValue("password")
-
-	user, err := core.DB.GetUser(username, "local")
-	if err != nil {
-		bailWithError(w, ClientErrorf("failed authentication attempt for local user '%s' (database error: %s)", username, err))
-		return
-	}
-	if user == nil {
-		bailWithError(w, ClientErrorf("failed authentication attempt for local user '%s' (no such local account)", username))
-		return
-	}
-	if !user.Authenticate(password) {
-		bailWithError(w, ClientErrorf("failed authentication attempt for local user '%s' (incorrect password)", username))
-		return
-	}
-	session, err := core.createSession(user)
-	if err != nil {
-		bailWithError(w, ClientErrorf(err.Error()))
-		return
-	}
-
-	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
-	w.Header().Set("Location", "/")
-	w.WriteHeader(302)
-}
-
-func (core *Core) authLogout(w http.ResponseWriter, req *http.Request) {
-	// unset the session cookie
-	cookie, err := req.Cookie(SessionCookieName)
-	if err != http.ErrNoCookie {
-		if err != nil {
-			w.Header().Set("Location", "/#!err")
-			w.WriteHeader(302)
-			return
-		}
-
-		err := core.DB.ClearSession(uuid.Parse(cookie.Value))
-		if err != nil {
-			w.Header().Set("Location", "/#!err")
-			w.WriteHeader(302)
-			return
-		}
-
-		http.SetCookie(w, SessionCookie("-", false))
-	}
-	w.Header().Set("Location", "/#!/login")
-	w.WriteHeader(302)
-}
-
-func (core *Core) authID(w http.ResponseWriter, req *http.Request) {
-	id, _ := core.checkAuth(req)
-	if id == nil {
-		JSONLiteral(w, `{"unauthenticated":true}`)
-		w.WriteHeader(200)
-		return
-	}
-
-	JSON(w, id)
-}
-
 func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
-	JSONLiteral(w, `{"ok":"pong"}`)
+	JSON(w, struct {
+		OK string `json:"ok"`
+	}{
+		OK: "pong",
+	})
 }
 
 func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
@@ -477,15 +371,21 @@ func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
-	JSON(w, struct {
-		Version    string `json:"version"`
+	stat := struct {
+		Version    string `json:"version,omitempty"`
 		Name       string `json:"name"`
 		APIVersion int    `json:"api_version"`
 	}{
-		Version:    Version,
 		Name:       os.Getenv("SHIELD_NAME"),
 		APIVersion: APIVersion,
-	})
+	}
+
+	sessionID := getSessionID(req)
+	if id, _ := core.checkAuth(sessionID); id != nil {
+		stat.Version = Version
+	}
+
+	JSON(w, &stat)
 }
 
 func (core *Core) v1DetailedStatus(w http.ResponseWriter, req *http.Request) {
@@ -670,10 +570,31 @@ func (core *Core) v1UpdateArchive(w http.ResponseWriter, req *http.Request) {
 	re := regexp.MustCompile(`^/v1/archive/([a-fA-F0-9-]+)`)
 	id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-	if err := core.DB.AnnotateArchive(id, params.Notes); err != nil {
+	archive, err := core.DB.GetArchive(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
+
+	if archive == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&params); err != nil && err != io.EOF {
+		bail(w, err)
+		return
+	}
+
+	if params.Notes != "" {
+		archive.Notes = params.Notes
+	}
+
+	if err := core.DB.UpdateArchive(archive); err != nil {
+		bail(w, err)
+		return
+	}
+
 	JSONLiteral(w, fmt.Sprintf(`{"ok":"updated"}`))
 }
 
@@ -746,18 +667,21 @@ func (core *Core) v1CreateJob(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateJob(params.Target, params.Store, params.Schedule, params.Retention, params.Paused)
+	job, err := core.DB.CreateJob(&db.Job{
+		Name:          params.Name,
+		Summary:       params.Summary,
+		Schedule:      params.Schedule,
+		Paused:        params.Paused,
+		TargetUUID:    uuid.Parse(params.Target),
+		StoreUUID:     uuid.Parse(params.Store),
+		RetentionUUID: uuid.Parse(params.Retention),
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
 
-	err = core.DB.AnnotateJob(id, params.Name, params.Summary)
-	if err != nil {
-		bail(w, err)
-		return
-	}
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, job.UUID.String()))
 }
 
 func (core *Core) v1PauseJob(w http.ResponseWriter, req *http.Request) {
@@ -882,11 +806,20 @@ func (core *Core) v1UpdateJob(w http.ResponseWriter, req *http.Request) {
 	re := regexp.MustCompile(`^/v1/job/([a-fA-F0-9-]+)`)
 	id := uuid.Parse(re.FindStringSubmatch(req.URL.Path)[1])
 
-	if err := core.DB.UpdateJob(id, params.Target, params.Store, params.Schedule, params.Retention); err != nil {
+	job, err := core.DB.GetJob(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateJob(id, params.Name, params.Summary); err != nil {
+
+	job.Name = params.Name
+	job.Summary = params.Summary
+	job.Schedule = params.Schedule
+	job.TargetUUID = uuid.Parse(params.Target)
+	job.StoreUUID = uuid.Parse(params.Store)
+	job.RetentionUUID = uuid.Parse(params.Retention)
+
+	if err := core.DB.UpdateJob(job); err != nil {
 		bail(w, err)
 		return
 	}
@@ -967,18 +900,17 @@ func (core *Core) v1CreateRetentionPolicy(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	id, err := core.DB.CreateRetentionPolicy(params.Expires)
+	policy, err := core.DB.CreateRetentionPolicy(&db.RetentionPolicy{
+		Name:    params.Name,
+		Summary: params.Summary,
+		Expires: params.Expires,
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
 
-	if err := core.DB.AnnotateRetentionPolicy(id, params.Name, params.Summary); err != nil {
-		bail(w, err)
-		return
-	}
-
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, policy.UUID.String()))
 }
 
 func (core *Core) v1GetRetentionPolicy(w http.ResponseWriter, req *http.Request) {
@@ -1039,11 +971,17 @@ func (core *Core) v1UpdateRetentionPolicy(w http.ResponseWriter, req *http.Reque
 
 	re := regexp.MustCompile("^/v1/retention/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateRetentionPolicy(id, params.Expires); err != nil {
+
+	policy, err := core.DB.GetRetentionPolicy(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateRetentionPolicy(id, params.Name, params.Summary); err != nil {
+
+	policy.Name = params.Name
+	policy.Summary = params.Summary
+	policy.Expires = params.Expires
+	if err := core.DB.UpdateRetentionPolicy(policy); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1112,13 +1050,13 @@ func (core *Core) v1CreateStore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateStore(params.Plugin, params.Endpoint)
+	id, err := core.DB.CreateStore(&db.Store{
+		Name:     params.Name,
+		Plugin:   params.Plugin,
+		Endpoint: params.Endpoint,
+		Summary:  params.Summary,
+	})
 	if err != nil {
-		bail(w, err)
-		return
-	}
-
-	if err := core.DB.AnnotateStore(id, params.Name, params.Summary); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1172,11 +1110,34 @@ func (core *Core) v1UpdateStore(w http.ResponseWriter, req *http.Request) {
 
 	re := regexp.MustCompile("^/v1/store/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateStore(id, params.Plugin, params.Endpoint); err != nil {
+
+	store, err := core.DB.GetStore(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateStore(id, params.Name, params.Summary); err != nil {
+	if store == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	if params.Name != "" {
+		store.Name = params.Name
+	}
+
+	if params.Summary != "" {
+		store.Summary = params.Summary
+	}
+
+	if params.Plugin != "" {
+		store.Plugin = params.Plugin
+	}
+
+	if params.Endpoint != "" {
+		store.Endpoint = params.Endpoint
+	}
+
+	if err := core.DB.UpdateStore(store); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1247,17 +1208,18 @@ func (core *Core) v1CreateTarget(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := core.DB.CreateTarget(params.Plugin, params.Endpoint, params.Agent)
+	t, err := core.DB.CreateTarget(&db.Target{
+		Name: params.Name, Summary: params.Summary,
+		Plugin:   params.Plugin,
+		Endpoint: params.Endpoint,
+		Agent:    params.Agent,
+	})
 	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateTarget(id, params.Name, params.Summary); err != nil {
-		bail(w, err)
-		return
-	}
 
-	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, id.String()))
+	JSONLiteral(w, fmt.Sprintf(`{"ok":"created","uuid":"%s"}`, t.UUID.String()))
 }
 
 func (core *Core) v1GetTarget(w http.ResponseWriter, req *http.Request) {
@@ -1309,11 +1271,21 @@ func (core *Core) v1UpdateTarget(w http.ResponseWriter, req *http.Request) {
 
 	re := regexp.MustCompile("^/v1/target/")
 	id := uuid.Parse(re.ReplaceAllString(req.URL.Path, ""))
-	if err := core.DB.UpdateTarget(id, params.Plugin, params.Endpoint, params.Agent); err != nil {
+
+	target, err := core.DB.GetTarget(id)
+	if err != nil {
 		bail(w, err)
 		return
 	}
-	if err := core.DB.AnnotateTarget(id, params.Name, params.Summary); err != nil {
+	target.Name = params.Name
+	target.Plugin = params.Plugin
+	target.Endpoint = params.Endpoint
+	target.Agent = params.Agent
+
+	if params.Summary != "" {
+		target.Summary = params.Summary
+	}
+	if err := core.DB.UpdateTarget(target); err != nil {
 		bail(w, err)
 		return
 	}
@@ -1339,8 +1311,8 @@ func (core *Core) v1DeleteTarget(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1GetTasks(w http.ResponseWriter, req *http.Request) {
-	limit := paramValue(req, "limit", "")
-	if invalidlimit(limit) {
+	limit, err := strconv.Atoi(paramValue(req, "limit", "0"))
+	if err != nil {
 		bailWithError(w, ClientErrorf("invalid limit supplied"))
 		return
 	}

@@ -637,10 +637,10 @@
 
    ***************************************************/
   exported.website = function () { // {{{
-    return document.location.toString().replace(/#.*/, '');
+    return document.location.toString().replace(/#.*/, '').replace(/\/$/, '');
   }
   // }}}
-  //
+
 
   /***************************************************
     $(...).serializeObject()
@@ -760,8 +760,163 @@
 
    ***************************************************/
   exported.jQuery.fn.isOK = function () { // {{{
-    return this.find('[data-error]:visible').length == 0;
+    return this.find('.error:visible, [data-error]:visible').length == 0;
   }; // }}}
+
+
+  /***************************************************
+     $(...).roles(sel) - show a role selection menu
+
+     A new role selection menu element will be created,
+     based off of the attributes of the target element,
+     and then added into the DOM, positioned absolutely
+     so as to appear at the (x,y) coordinate of the top
+     left point of the target element (effectively
+     obscuring the initiating UI widget).
+
+     The target may have the following data attributes:
+
+      - data-type  Either "system" or "tenant"
+      - data-role  The internal name of the pre-selected
+                   role.  Valid values are based on the value
+                   of data-tyep:
+
+                     system: admin, engineer, or technician
+                     tenant: admin, manager, or operator
+
+   ***************************************************/
+  exported.jQuery.fn.roles = (function () { /// {{{
+    var elem, menu, fn;
+    fn = function () { }
+    $(document.body).on('click', '.roles-menu', function (event) {
+      event.stopPropagation();
+      event.preventDefault();
+
+      var $role = $(event.target).closest('div[data-role]');
+      if ($role.length == 1) {
+        elem.data('role', $role.data('role'));
+        elem.html($role.find('strong').html());
+        menu.remove();
+        fn(elem, $role.data('role'));
+        menu = elem = undefined;
+        fn = function () { };
+      }
+    });
+
+    return function (sel, callback) {
+      this.on('click', sel, function (event) {
+        event.stopPropagation();
+        event.preventDefault();
+
+        fn = callback;
+        elem = $(event.target);
+        var type = elem.extract('type') || 'system';
+        var role = elem.extract('role');
+
+        if (menu) { menu.remove(); }
+        elem = elem;
+        menu = $(exported.template('roles-menu', {
+            type    : type,
+            current : role
+          })).css({
+            display  : 'block',
+            position : 'absolute',
+            top      : elem.offset().top + 4,
+            left     : elem.offset().left + 4
+          });
+        $(document.body).append(menu);
+      });
+      return this;
+    };
+  })();
+  // }}}
+
+
+  /***************************************************
+     $(...).userlookup(sel) - wire up a user lookup field
+
+     
+
+   ***************************************************/
+  exported.jQuery.fn.userlookup = function (sel, opts) { // {{{
+    opts = $.extend({}, {
+      filter: function (l) { return l },
+      onclick: function () { }
+    }, opts);
+
+    var first = undefined;
+    var timer;
+
+    this.on('keydown', sel, function (event) {
+      var $field = $(event.target);
+
+      if (event.which == 13) { /* ENTER */
+        event.preventDefault();
+
+        if ($('.userlookup-results li').length > 0) {
+          opts.onclick(first);
+        }
+        $('.userlookup-results').remove();
+        $field.val('');
+      }
+    }).on('keyup', sel, function (event) {
+      var $field = $(event.target);
+
+      if (timer) { window.clearTimeout(timer) }
+      var search = $field.val();
+      console.log("search: '%s'", search);
+      if (search.length >= 3) {
+        timer = window.setTimeout(function () {
+          api({
+            type: 'POST',
+            url:  '/v2/ui/users',
+            data: {search: search},
+            success: function (data) {
+              if (typeof(opts.filter) == 'function') { data = opts.filter(data); }
+              first = data[0];
+
+              $('.userlookup-results').remove();
+              $(event.target).after(
+                $(template('userlookup-results', data))
+                  .on('click', 'li', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    opts.onclick(data[$(event.target).extract('idx')]);
+
+                    $('.userlookup-results').remove();
+                    $field.val('');
+                  })
+              );
+            }
+          });
+        }, 400);
+      } else {
+        console.log('removed');
+              $('.userlookup-results').remove();
+      }
+    });
+    return this;
+  };
+  // }}}
+
+
+  /***************************************************
+     $(...).extract(key) - find and extract data
+
+     This helper wraps up the common idiom:
+
+       $target.closes(['data-x']).data('x')
+
+     To find the nearest ancestor (or self) that has a
+     data-something attribute set, and then extract that
+     value via jQuery's .data()
+
+   ***************************************************/
+  exported.jQuery.fn.extract = function (key) { // {{{
+    return this.closest('[data-'+key+']').data(key);
+  };
+  // }}}
 
 
 })(window, document);

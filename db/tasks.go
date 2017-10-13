@@ -26,6 +26,7 @@ const (
 
 type Task struct {
 	UUID           uuid.UUID      `json:"uuid"`
+	TenantUUID     uuid.UUID      `json:"tenant_uuid"`
 	Owner          string         `json:"owner"`
 	Op             string         `json:"type"`
 	JobUUID        uuid.UUID      `json:"job_uuid"`
@@ -61,10 +62,11 @@ type TaskFilter struct {
 	SkipInactive bool
 	OnlyRelevant bool
 	ForOp        string
+	ForTenant    string
 	ForTarget    string
 	ForStatus    string
 	ForArchive   string
-	Limit        string
+	Limit        int
 	// FIXME: add options for store
 }
 
@@ -78,49 +80,54 @@ func ValidateEffectiveUnix(effective time.Time) int64 {
 func (f *TaskFilter) Query() (string, []interface{}) {
 	wheres := []string{"t.uuid = t.uuid"}
 	var args []interface{}
+	if f.ForTenant != "" {
+		wheres = append(wheres, "t.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
+	}
 	if f.ForStatus != "" {
-		wheres = append(wheres, "status = ?")
+		wheres = append(wheres, "t.status = ?")
 		args = append(args, f.ForStatus)
 	} else {
 		if f.SkipActive {
-			wheres = append(wheres, "stopped_at IS NOT NULL")
+			wheres = append(wheres, "t.stopped_at IS NOT NULL")
 		} else if f.SkipInactive {
-			wheres = append(wheres, "stopped_at IS NULL")
+			wheres = append(wheres, "t.stopped_at IS NULL")
 		}
 	}
 
 	if f.OnlyRelevant {
-		wheres = append(wheres, "relevant = ?")
+		wheres = append(wheres, "t.relevant = ?")
 		args = append(args, true)
 	}
 
 	if f.UUID != "" {
-		wheres = append(wheres, "uuid = ?")
+		wheres = append(wheres, "t.uuid = ?")
 		args = append(args, f.UUID)
 	}
 
 	if f.ForArchive != "" {
-		wheres = append(wheres, "archive_uuid = ?")
+		wheres = append(wheres, "t.archive_uuid = ?")
 		args = append(args, f.ForArchive)
 	}
 
 	if f.ForOp != "" {
-		wheres = append(wheres, "op = ?")
+		wheres = append(wheres, "t.op = ?")
 		args = append(args, f.ForOp)
 	}
 
 	if f.ForTarget != "" {
-		wheres = append(wheres, "target_uuid = ?")
+		wheres = append(wheres, "t.target_uuid = ?")
 		args = append(args, f.ForTarget)
 	}
 
 	limit := ""
-	if f.Limit != "" {
+	if f.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, f.Limit)
 	}
 	return `
-		SELECT t.uuid, t.owner, t.op, t.job_uuid, t.archive_uuid,
+		SELECT t.uuid, t.tenant_uuid, t.owner, t.op,
+		       t.job_uuid, t.archive_uuid,
 		       t.store_uuid,  t.store_plugin,  t.store_endpoint,
 		       t.target_uuid, t.target_plugin, t.target_endpoint,
 		       t.status, t.started_at, t.stopped_at, t.timeout_at,
@@ -148,49 +155,50 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	defer r.Close()
 
 	for r.Next() {
-		ann := &Task{}
+		t := &Task{}
 		var (
-			log                               sql.NullString
-			this, archive, job, store, target NullUUID
-			started, stopped, deadline        *int64
+			log                                       sql.NullString
+			this, tenant, archive, job, store, target NullUUID
+			started, stopped, deadline                *int64
 		)
 		if err = r.Scan(
-			&this, &ann.Owner, &ann.Op, &job, &archive,
-			&store, &ann.StorePlugin, &ann.StoreEndpoint,
-			&target, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.Status, &started, &stopped, &deadline,
-			&ann.RestoreKey, &ann.Attempts, &ann.Agent, &log,
-			&ann.OK, &ann.Notes, &ann.Clear); err != nil {
+			&this, &tenant, &t.Owner, &t.Op, &job, &archive,
+			&store, &t.StorePlugin, &t.StoreEndpoint,
+			&target, &t.TargetPlugin, &t.TargetEndpoint,
+			&t.Status, &started, &stopped, &deadline,
+			&t.RestoreKey, &t.Attempts, &t.Agent, &log,
+			&t.OK, &t.Notes, &t.Clear); err != nil {
 			return l, err
 		}
-		ann.UUID = this.UUID
+		t.UUID = this.UUID
+		t.TenantUUID = tenant.UUID
 
 		if job.Valid {
-			ann.JobUUID = job.UUID
+			t.JobUUID = job.UUID
 		}
 		if archive.Valid {
-			ann.ArchiveUUID = archive.UUID
+			t.ArchiveUUID = archive.UUID
 		}
 		if store.Valid {
-			ann.StoreUUID = store.UUID
+			t.StoreUUID = store.UUID
 		}
 		if target.Valid {
-			ann.TargetUUID = target.UUID
+			t.TargetUUID = target.UUID
 		}
 		if log.Valid {
-			ann.Log = log.String
+			t.Log = log.String
 		}
 		if started != nil {
-			ann.StartedAt = parseEpochTime(*started)
+			t.StartedAt = parseEpochTime(*started)
 		}
 		if stopped != nil {
-			ann.StoppedAt = parseEpochTime(*stopped)
+			t.StoppedAt = parseEpochTime(*stopped)
 		}
 		if deadline != nil {
-			ann.TimeoutAt = parseEpochTime(*deadline)
+			t.TimeoutAt = parseEpochTime(*deadline)
 		}
 
-		l = append(l, ann)
+		l = append(l, t)
 	}
 
 	return l, nil
@@ -340,7 +348,7 @@ func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	)
 }
 
-func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string) (uuid.UUID, error) {
+func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string, archive_size int64) (uuid.UUID, error) {
 	// fail on empty store_key, as '' seems to satisfy the NOT NULL constraint in postgres
 	if key == "" {
 		return nil, fmt.Errorf("cannot create an archive without a store_key")
@@ -373,14 +381,14 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 	validtime := ValidateEffectiveUnix(effective)
 	err = db.Exec(
 		`INSERT INTO archives
-			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, job, encryption_type)
-			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, '', j.Name, ?
+			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, job, encryption_type, size)
+			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, '', j.Name, ?, ?
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = ?`,
-		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, id.String(),
+		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, archive_size, id.String(),
 	)
 	if err != nil {
 		return nil, err

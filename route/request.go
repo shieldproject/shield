@@ -13,8 +13,9 @@ type Request struct {
 	Req  *http.Request
 	Args []string
 
-	w    http.ResponseWriter
-	done bool
+	w     http.ResponseWriter
+	done  bool
+	debug bool
 }
 
 func (r *Request) String() string {
@@ -58,6 +59,9 @@ func (r *Request) Fail(e Error) {
 		log.Errorf("%s errored: %s", r, e.e)
 	}
 	r.w.Header().Set("Content-Type", "application/json")
+	if r.debug {
+		e.ProvideDiagnostic()
+	}
 
 	b, err := json.Marshal(e)
 	if err != nil {
@@ -72,6 +76,8 @@ func (r *Request) Fail(e Error) {
 	r.done = true
 }
 
+//Payload unmarshals the JSON body of this request into the given interface.
+// Returns true if successful and false otherwise.
 func (r *Request) Payload(v interface{}) bool {
 	if r.Req.Body == nil {
 		r.Fail(Bad(nil, "no JSON input payload present in request"))
@@ -97,4 +103,38 @@ func (r *Request) Param(name, def string) string {
 func (r *Request) ParamIs(name, want string) bool {
 	v, set := r.Req.URL.Query()[name]
 	return set && v[0] == want
+}
+
+func (r *Request) SetHeader(header, value string) {
+	r.w.Header().Add(header, value)
+}
+
+func (r *Request) GetHeader(header string) string {
+	return r.w.Header().Get(header)
+}
+
+func (r *Request) SetCookie(cookie *http.Cookie) {
+	http.SetCookie(r.w, cookie)
+}
+
+func (r *Request) Missing(params ...string) bool {
+	e := Error{code: 400}
+
+	for len(params) > 1 {
+		if params[1] == "" {
+			e.Missing = append(e.Missing, params[0])
+		}
+		params = params[2:]
+	}
+
+	if len(params) > 0 {
+		log.Errorf("%s called Missing() with an odd number of arguments")
+	}
+
+	if len(e.Missing) > 0 {
+		r.Fail(e)
+		return true
+	}
+
+	return false
 }

@@ -13,6 +13,51 @@ setup_workdir() {
   mkdir ${workdir}/var
 }
 
+preflight() {
+  echo "RUNNING testdev PRE-FLIGHT CHECKS"
+  echo
+
+  echo "checking for tmux..."
+  if ! type tmux &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires tmux (https://tmux.github.io)"
+    echo "You will need to install tmux to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install tmux\` and be on your way."
+    esac
+    exit 1
+  fi
+
+  echo "checking for vault..."
+  if ! type vault &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires vault (https://vaultproject.io)"
+    echo "You will need to install vault to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install vault\` and be on your way."
+    esac
+    exit 1
+  fi
+  v=$(vault -v | awk '{print $2}')
+  case $v in
+  v0.8.*) ;;
+  *) echo
+     echo "The installed version of vault ($v) has not been verified"
+     echo "to work with this version of SHIELD testdev.  Please try v0.8.3"
+      case $OSTYPE in
+      *darwin*) echo
+                echo "On macOS ($OSTYPE), you can \`brew upgrade vault\` and be on your way."
+      esac
+     exit 1;
+     ;;
+  esac
+
+  echo
+  echo "PRE-FLIGHT CHECKS OK"
+}
+
 # If a work directory is not supplied as a parameter,
 # create one.
 if [ $# -lt 2 ]; then
@@ -77,13 +122,24 @@ web_root:      ./web2/htdocs
 slow_loop:     20
 fast_loop:     2
 vault_keyfile: ${workdir}/var/vault.crypt
+debug: true
 auth:
+  - name:       Token
+    identifier: token
+    backend:    token
+    properties:
+      4E7E8965-9DB0-4D3A-B920-2537F3321B3D:
+        - tenant: starkandwayne
+          role:   engineer
+        - tenant: CF Commuity
+          role:   engineer
+
   - name:       Github
-    identifier: public-gh
+    identifier: github
     backend:    github
     properties:
-      client_id:     7760ef75ba49c9699114
-      client_secret: 9833e0d2f10df1c77eff41adfb07d6084b238349
+      client_id:     35f670b0ee9c9b4bc37c
+      client_secret: b33d1309ea69e75c0ccd51f2caac9493e9326830
       mapping:
         starkandwayne:           # <-- github org name
           tenant: starkandwayne  # <-- shield tenant name
@@ -128,13 +184,21 @@ EOF
   ./shield-schema -d "${DATABASE}"
   echo
 
-  echo ">> RUNNING SHIELDD"
-  ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
-  echo
-  echo "shieldd exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> RUNNING SHIELDD"
+    trap ":" INT # ignore Ctrl-C
+    ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
+    echo
+    echo "shieldd exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
+
 (shieldagent)
   shield_up="1"
   while [ $shield_up -eq 1 ]; do
@@ -160,14 +224,22 @@ registration:
   interval: 15
 EOF
 
-  echo ">> RUNNING SHIELD AGENT"
-  ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
-  echo
-  echo "shield-agent exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> RUNNING SHIELD AGENT"
+    trap ":" INT # ignore Ctrl-C
+    ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
+    echo
+    echo "shield-agent exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
 ("")
+  preflight >&2
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
        new-window -n vault ./bin/testdev vault ${workdir} \; \
        new-window -n daemon ./bin/testdev shieldd ${workdir} \; \

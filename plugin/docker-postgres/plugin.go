@@ -307,8 +307,8 @@ func (p DockerPostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p DockerPostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p DockerPostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p DockerPostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

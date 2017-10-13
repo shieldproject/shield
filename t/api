@@ -109,10 +109,10 @@ EOF
   done
 
   echo ">> INITIALIZING SHIELD CORE"
-  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master":"'$SHIELD_MASTER_PASSWORD'"}'
 
   echo ">> UNLOCKING SHIELD CORE"
-  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master":"'$SHIELD_MASTER_PASSWORD'"}'
   set +e
 }
 
@@ -196,6 +196,20 @@ ok() {
 	local msg=$2
 
 	if [[ $rc == 0 ]]; then
+		pass "$msg"
+	else
+		fail "$msg"
+	fi
+}
+# }}}
+
+# }}}
+# notok $? "what should have happened..." {{{
+notok() {
+	local rc=$1
+	local msg=$2
+
+	if [[ $rc != 0 ]]; then
 		pass "$msg"
 	else
 		fail "$msg"
@@ -314,6 +328,12 @@ attr() {
 run() {
 	shield -k --raw "$@" > $WORKDIR/out
 	ok $? "\`shield $*' should succeed"
+}
+# }}}
+# runerr command --plus --arg u ments {{{
+runerr() {
+	shield -k --raw "$@" > $WORKDIR/out
+	notok $? "\`shield $*' should not succeed"
 }
 # }}}
 # none "why the last list retrieved should be empty" {{{
@@ -435,6 +455,7 @@ try "Checking that initial database is empty" # {{{
  run stores    ; none "Initial stores list should be empty"
  run policies  ; none "Initial policies list should be empty"
  run jobs      ; none "Initial jobs list should be empty"
+ run users     ; none "Initial users list should be empty"
 ) 2>&1 | indent
 
 
@@ -502,8 +523,57 @@ try "Checking that various API endpoints require JSON payloads" # {{{
 
 # }}}
 
+# }}}
+#
+try "Checking that unimplemented v2 HTTP methods return 501s" # {{{
+(for method in PUT DELETE PATCH OPTIONS TRACE; do
+   for type in auth/local/users; do
+     is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type")" \
+        "501" "/v2/$type should HTTP 501 (not implemented) on a $method request"
+   done
+ done
+ for method in GET HEAD POST PATCH OPTIONS TRACE; do
+   for type in auth/local/users; do
+     is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/sub/requests")" \
+        "501" "/v2/$type/sub/requests should HTTP 501 (not implemented) on a $method request"
+   done
+ done
+) 2>&1 | indent
+
+
+# }}}
+try "Checking that various v2 API endpoints validate UUIDs" # {{{
+(for uuid in malformed-uuid-01234 "" "(abcdef-01234-56-789)"; do
+   for method in GET PUT; do
+     for type in auth/local/users; do
+       is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/$uuid")" \
+          "501" "$method /v2/$type/$uuid should HTTP 501 (not implemented) on a malformed UUID"
+     done
+   done
+ done
+) 2>&1 | indent
+
+
+# }}}
+try "Checking that various v2 API endpoints require JSON payloads" # {{{
+(uuid=053d66fd-441d-4801-9d26-3e11b99d34a7
+ badjson="}"
+ for type in auth/local/users; do
+   is "$(httpstat POST "http://$SHIELD_DAEMON_ADDR/v2/$type" "$badjson")" \
+      "400" "POST /v2/$type should HTTP 400 (bad request) on a malformed JSON payload"
+ done
+ for type in auth/local/users; do
+   is "$(httpstat PATCH "http://$SHIELD_DAEMON_ADDR/v2/$type/$uuid" "$badjson")" \
+      "400" "PATCH /v2/$type/$uuid should HTTP 400 (bad request) on a malformed JSON payload"
+ done
+) 2>&1 | indent
+
+
+# }}}
+
+
 try "Creating invalid things (validation)" # {{{
-(for type in target store policy job; do
+(for type in target store policy job user; do
    ! shield -k --raw create-$type <<<'{}' > $WORKDIR/out
    ok $? "\`shield create-$type' should fail if validation fails"
    # FIXME this is a terrible error message
@@ -634,6 +704,26 @@ EOF
   "store"     : "$(uuidof store shield)",
   "target"    : "$(uuidof target shield)",
   "paused"    : false
+}
+EOF
+
+ create user exampleuser <<EOF
+{
+  "uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
+  "name":"exampleuser",
+  "account":"exampleuser",
+  "password":"foobar",
+  "sysrole":"technician"
+}
+EOF
+
+ create user admin <<EOF
+{
+  "uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0ce",
+  "name":"admin",
+  "account":"admin",
+  "password":"notpassword",
+  "sysrole":"admin"
 }
 EOF
 ) 2>&1 | indent
@@ -949,6 +1039,64 @@ try "Pausing and unpausing jobs" # {{{
 
 # }}}
 
+
+try "Finding a single user" # {{{
+(run user $(uuidof user admin)
+ context 'a single user'
+ attr uuid    '355ccd3f-1d2f-49d5-937b-f4a12033a0ce'
+ attr name    'admin'
+ attr account 'admin'
+ attr sysrole 'admin'
+) 2>&1 | indent
+
+
+# }}}
+
+
+try "Listing users" # {{{
+(run users
+ context 'all users'
+ includes user admin
+ includes user exampleuser
+
+ pick exampleuser
+ attr uuid    '355ccd3f-1d2f-49d5-937b-f4a12033a0cf'
+ attr name    'exampleuser'
+ attr account 'exampleuser'
+ attr sysrole 'technician'
+
+ run users --fuzzy a
+ context 'users with account "*a*"'
+ includes user exampleuser
+ includes user admin
+
+ run users --fuzzy ex
+ context 'users with account "*ex*"'
+ includes user exampleuser
+ excludes user admin
+
+ run users --fuzzy xyzzy
+ none 'no users with account "*xyzzy*"'
+
+ run users --sysrole admin
+ context 'users with sysrole admin'
+ excludes user exampleuser
+ includes user admin
+
+ run users --sysrole technician
+ context 'users with sysrole technician'
+ includes user exampleuser
+ excludes user admin
+
+ run users --sysrole manager
+ context 'users with sysrole manager'
+ none 'no users with sysrole "manager"'
+
+) 2>&1 | indent
+
+
+# }}}
+
 try "Updating things" # {{{
 (update target s3 <<EOF
 {
@@ -1025,6 +1173,24 @@ EOF
   "paused"    : false
 }
 EOF
+
+update user admin <<EOF
+{
+  "uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0ce",
+  "name":"nobody",
+  "account":"admin",
+  "password":"notpassword",
+  "sysrole":"manager"
+}
+EOF
+ context 'post-update of user admin'
+ run user $(uuidof user admin)
+ context 'a single user'
+ attr uuid    '355ccd3f-1d2f-49d5-937b-f4a12033a0ce'
+ attr name    'nobody'
+ attr account 'admin'
+ attr sysrole 'manager'
+
 ) 2>&1 | indent
 # }}}
 try "Deleting things" # {{{
@@ -1045,6 +1211,15 @@ try "Deleting things" # {{{
  can_delete target   redis-shared
  can_delete store    fs
  can_delete policy   short-term
+
+ context 'users can always be deleted'
+ can_delete user admin
+ can_delete user exampleuser
+
+ context 'can not delete nonexistant user'
+ runerr delete-user nonexistant
+ attr error 'no matching users found'
+
 ) 2>&1 | indent
 
 

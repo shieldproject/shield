@@ -223,18 +223,18 @@
         they are styled as buttons)
       ]]
           <div id="login" class="frontdoor">
-            <div[[ if (_.oauth.length == 0) { ]] class="local-only"[[ } ]]>
+            <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
               <h1>SHIELD<span>Production<span></h1>
               <div class="dialog">
                 <p class="motd">Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi.</p>
 
-                [[ if (_.oauth.length > 0) { ]]
+                [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
                   <h2>Sign in using...</h2>
 
                   <ul>
-                    [[ $.each(_.oauth, function (i, oauth) { ]]
-                    <li class="oauth-[[= oauth.type ]]"><a href="/auth/oauth/[[= oauth.identifier ]]">[[= oauth.name ]]</a></li>
+                    [[ $.each(_.providers, function (i, provider) { ]]
+                    <li class="provider-[[= provider.type ]]"><a class="login" href="[[= provider.web_entry ]]">[[= provider.name ]]</a></li>
                     [[ }); ]]
                 </div>
                 [[ } ]]
@@ -242,7 +242,8 @@
                   <h2>Sign in with your SHIELD account</h2>
                   <p class="divert">Need an account? <a href="#">Sign up for one today.</a></p>
 
-                  <form method="post" action="/auth/login">
+                  <form>
+                    <div class="error"></div>
                     <div class="ctl">
                       <label for="local-login-username">Username</label>
                       <input type="text" id="local-login-username" name="username">
@@ -265,6 +266,46 @@
               </div>
             </div>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--cliauth"><!-- {{{ -->
+      [[#
+        {cliauth} template
+
+        Displays the session ID for an authenticated session, so that the CLI
+        can be told what that session ID is.
+      ]]
+          <div id="cliauth" class="frontdoor">
+            <div>
+              <h1>SHIELD<span>Production<span></h1>
+              <div class="dialog">
+                <h2>CLI Authentication Credentials</h2>
+                <img src="/i/terminal.png" class="highlight">
+
+                <p>Here are your SHIELD CLI authentication
+                credentials:</p>
+
+                <pre id="creds">[[= _.s ]]</pre>
+
+                <p>You will need to copy-and-paste those into
+                the terminal session where you ran the SHIELD
+                command-line interface, to complete the
+                authentication process.</p>
+              </div>
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--logging-in"><!-- {{{ -->
+      [[#
+        {logging-in} template
+
+        A simple loading screen that keeps the viewer apprised of
+        our login efforts, while the browser processes the actual
+        login and/or redirection.
+      ]]
+      <div id="logging-in">
+        <p><img src="/i/loading-icon.svg"/>
+           Signing into <span>SHIELD</span> via <span>[[= _.auth ]]</span>...</p>
+      </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--BOOM"><!-- {{{ -->
       [[#
@@ -304,7 +345,7 @@
         <h1><a href="#!/systems">SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></a></h1>
         [[ if (_.user) { ]]
         <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
-        <div class="flyout">
+        <div class="flyout ephemeral">
           <div class="menu">
             <div class="header">Signed in as [[= _.user.account ]]
               <span>[[= _.user.backend ]]</span>
@@ -314,12 +355,12 @@
             <span class="dropdown odd">you have no tenants</span>
             [[ } else { ]]
             [[   $.each(_.tenants, function (i, tenant) { ]]
-            <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="#!/tenant/[[= tenant.uuid ]]">[[= tenant.name ]]</a>
+            <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
             [[   }); ]]
             [[ } ]]
             <div class="divider"></div>
             <a class="dropdown" href="#!/account">Settings</a>
-            <a class="dropdown" href="/auth/logout">Sign Out</a>
+            <a class="dropdown" href="#!/logout">Sign Out</a>
           </div>
         </div>
         [[ } ]]
@@ -342,6 +383,14 @@
             </div></div>
 
             <div class="x5"><div class="health">
+              <div class="preload" style="display: none">
+                <object type="image/svg+xml" data="i/api-ok.svg"></object>
+                <object type="image/svg+xml" data="i/api-fail.svg"></object>
+                <object type="image/svg+xml" data="i/cloud-ok.svg"></object>
+                <object type="image/svg+xml" data="i/cloud-fail.svg"></object>
+                <object type="image/svg+xml" data="i/job-ok.svg"></object>
+                <object type="image/svg+xml" data="i/job-fail.svg"></object>
+              </div>
               <ul>
                 [[ if (_.health.core == "unsealed" || _.health.core == "unlocked") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
@@ -349,8 +398,10 @@
                 <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>LOCKED</span></li>
                 [[ } else if (_.health.core == "uninitialized") { ]]
                 <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>UNINITIALIZED</span></li>
+                [[ } else if (_.health.core == "unreachable") { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unreachable</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>down</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unknown</span></li>
                 [[ } ]]
                 [[ if (_.health.storage_ok) { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/cloud-ok.svg"></object> Cloud Storage is <span>connected</span></li>
@@ -416,6 +467,48 @@
               <input type="text" value="" /></p>
             </form>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--roles-menu"><!-- {{{ -->
+      [[#
+        {roles-menu}
+
+        A flyout menu for selecting roles, on either tenants
+        (if given {type: "tenant"}) or the system ({type: "system"}).
+      ]]
+      <div class="roles-menu ephemeral">
+        [[ if (_.type == 'tenant') { ]]
+        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
+          <strong>Administrator</strong>
+          <p>Full control over this tenant.</p>
+        </div>
+        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+          <strong>Engineer</strong>
+          <p>Can do everything except manage other peoples
+             access to this tenant.</p>
+        </div>
+        <div[[ if (_.current == "operator") { ]] class="current"[[ } ]] data-role="operator">
+          <strong>Operator</strong>
+          <p>View access to most things, with the ability to
+             pause and unpause jobs, run ad hoc backups, and
+             perform restore operations.</p>
+        </div>
+        [[ } else { ]]
+        <div[[ if (_.current == "admin") { ]] class="current"[[ } ]] data-role="admin">
+          <strong>Administrator</strong>
+          <p>Full control over SHIELD.</p>
+        </div>
+        <div[[ if (_.current == "manager") { ]] class="current"[[ } ]] data-role="manager">
+          <strong>Manager</strong>
+          <p>Can create and edit tenants, manage tenant/user
+             memberships, and manage user accounts and access rights.</p>
+        </div>
+        <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
+          <strong>Engineer</strong>
+          <p>Manages global configuration, including shared cloud
+             storage configurations and retention policy templates.</p>
+        </div>
+        [[ } ]]
+      </div>
     <!-- }}} --></script>
 
     <script type="text/html" id="tpl--init"><!-- {{{ -->
@@ -990,7 +1083,7 @@
       ]]
           <div class="gutter blk">
             <a class="breadcrumb" href="#!/policies">&laquo; Back to Retention Policies</a>
-            <h2>New Retention Policy</h2>
+            <h2>[[ if (_.policy) { ]]Edit[[ } else { ]]New[[ } ]] Retention Policy</h2>
 
             <form>
               <div class="error"></div>
@@ -1027,6 +1120,132 @@
           </div>
     <!-- }}} --></script>
 
+    <script type="text/html" id="tpl--tenants"><!-- {{{ -->
+      [[#
+        {tenants} template
+
+        Renders the list of all tenants (for site managers)
+      ]]
+          <div class="gutter blk">
+            <a class="new" href="#!/tenants/new">Create a New Tenant &raquo;</a>
+            <h2>Tenants</h2>
+            [[ if (_.tenants.length == 0) { ]]
+            <div class="no-data">No Tenants have been created yet.</div>
+            [[ } else { ]]
+            <table>
+              <thead><tr>
+                <th>Name</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                [[ $.each(_.tenants, function (i, tenant) { ]]
+                <tr>
+                  <td>[[= tenant.name ]]</td>
+                  <td><a href="#!/tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
+                </tr>
+                [[ }); ]]
+              </tbody>
+            </table>
+            [[ } ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--tenants-form"><!-- {{{ -->
+      [[#
+        {tenants-form} template
+
+        Renders a form for creating new tenants, and editing
+        existing tenants.
+      ]]
+          <div class="gutter blk">
+            <a class="breadcrumb" href="#!/tenants">&laquo; Back to Tenants</a>
+            <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
+
+            <form>
+              <div class="error"></div>
+
+              <div class="ctl" data-field="name">
+                <label for="tenant-name">Name</label>
+                <span class="errors">
+                  <span data-error="missing">You must provide a name for this new tenant.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" id="tenant-name" name="name" class="autofocus"
+                    [[ if (_.tenant) { ]]value="[[= _.tenant.name ]]"[[ } ]]/>
+                  <p class="help">Pick a memorable or descriptive name for this tenant.</p>
+                </div>
+              </div>
+
+              <div class="ctl">
+                <label for="tenant-invite">People In This Tenant</label>
+                <div class="widget">
+                  <input type="text" name="invite" id="tenant-invite" autocomplete="off"
+                         class="invite" placeholder="Invite people to join..." />
+
+                  <table class="tenant-members">
+                    <thead><tr>
+                      <th></th>
+                      <th>Display Name</th>
+                      <th>Username</th>
+                      <th>Role</th>
+                    </tr></thead>
+                    <tbody data-type="tenant">
+                      [[ if (_.tenant) { ]]
+                        [[ $.each(_.tenant.members, function (i, user) { ]]
+                        <tr data-uuid="[[= user.uuid ]]" data-account="[[= user.account ]]">
+                          <td><a href="banish:user"><img src="/i/delete.png"></a></td>
+                          <td>[[= user.name ]]</td>
+                          <td>[[= user.account ]]</td>
+                          <td><span class="role" data-role="[[= user.role ]]">
+                          [[= { admin      : "Administrator",
+                                engineer   : "Engineer",
+                                operator   : "Operator" }[user.role] ]]
+                          </span></td>
+                        </tr>
+                        [[ }); ]]
+                      [[ } ]]
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <button class="go">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--tenants-form-invitee"><!-- {{{ -->
+      [[#
+        {tenants-form-invitee} template
+
+        Renders a table row in the invitee management UI control.
+      ]]
+                      <tr data-uuid="[[= _.user.uuid ]]" data-account="[[= _.user.account ]]">
+                        <td><a href="banish:user"><img src="/i/delete.png"></a></td>
+                        <td>[[= _.user.name ]]</td>
+                        <td>[[= _.user.account ]]</td>
+                        <td><span class="role" data-role="[[= _.user.role ]]">
+                        [[= { admin      : "Administrator",
+                              engineer   : "Engineer",
+                              operator   : "Operator" }[_.user.role] ]]
+                        </span></td>
+                      </tr>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--userlookup-results"><!-- {{{ -->
+      [[#
+        {userlookup-results} template
+
+        Displays the "dropdown" list of user information,
+        after the /v2/ui/users endpoint has fired in a
+        userlookup control.
+      ]]
+      <div class="userlookup-results">
+        <ul>
+          [[ $.each(_, function (i, user) { ]]
+          <li data-idx="[[= i ]]" data-uuid="[[= user.uuid ]]"><strong>[[= user.name ]]</strong><p>[[= user.account ]]</p></li>
+          [[ }); ]]
+        </ul>
+      </div>
+    <!-- }}} --></script>
+
     <script type="text/html" id="tpl--admin"><!-- {{{ -->
       [[#
         {admin} template
@@ -1036,6 +1255,11 @@
           <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
+              <li><a href="#!/tenants">Tenants</a>
+                <p>Tenants separate and isolate subsets of your users from one another, so that
+                they can neither see nor affect the systems, storage, and retention policies
+                of one another.</p>
+              </li>
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
                 on other machines.  These agents register with the SHIELD Core, and provide
@@ -1119,7 +1343,7 @@
 
         Renders the list of configured authentication providers, including
         details about how to integrate with their respective 3rd party auth
-        systems, i.e. Github oauth App registration, CF/UAA client creation,
+        systems, i.e. Github OAuth2 App registration, CF/UAA client creation,
         etc.
       ]]
           <div class="gutter blk" id="auth-providers">
@@ -1130,6 +1354,7 @@
                 <th>Name</th>
                 <th>Identifier</th>
                 <th>Type</th>
+                <th>Usage</th>
               </tr></thead>
               <tbody>
               [[ $.each(_.providers, function (i, provider) { ]]
@@ -1137,6 +1362,7 @@
                   <td>[[= provider.name ]]</td>
                   <td><span class="tag">[[= provider.identifier ]]</span></td>
                   <td>[[= provider.type ]] (<a href="#!/admin/auth/config:name:[[= provider.identifier ]]">configuration</a>)</td>
+                  <td>[[= provider.usage ]]</td>
                 </tr>
               [[ }); ]]
               </tbody>
@@ -1201,7 +1427,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   --scope openid \
                   --authorities uaa.none \
                   --authorized_grant_types authorization_code \
-                  --redirect_uri <span class="hi">[[= website() ]]auth/oauth/[[= _.provider.identifier ]]/redir</span> \
+                  --redirect_uri <span class="hi">[[= website() ]][[= _.provider.redirect ]]</span> \
                   --access_token_validity  180 \
                   --refresh_token_validity 180 \
                   --secret '<span class="hi">[[= p.client_secret ]]</span>'</code></pre>
@@ -1217,7 +1443,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
         Renders the list of configured authentication providers, including
         details about how to integrate with their respective 3rd party auth
-        systems, i.e. Github oauth App registration, CF/UAA client creation,
+        systems, i.e. Github OAuth2 App registration, CF/UAA client creation,
         etc.
       ]]
           <div class="gutter blk" id="rekey">
@@ -1393,13 +1619,21 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/javascript">
     var referer = undefined;
     function dispatch(page) {
+      var argv = page.split(/[:+]/);
+      page = argv.shift();
+      args = {};
+      for (var i = 0; i < argv.length; i += 2) {
+        args[argv[0+i]] = argv[1+i]
+      }
+
       if ($global.auth.unauthenticated) {
-        console.log('session not authenticated; diverting to #!/login page...');
-        page = "#!/login";
+        if (page != "#!/login" && page != "#!/cliauth") {
+          console.log('session not authenticated; diverting to #!/login page...');
+          goto("#!/login");
+          return
+        }
 
       } else if ($global.auth && $global.auth.user && $global.auth.user.sysrole != "" && $global.hud) {
-        console.log($global.hud.health.core);
-
         /* process 'system' team diverts */
         if ($global.hud.health.core == "uninitialized") {
           console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
@@ -1416,14 +1650,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       }
       console.log('dispatching to page "%s"...', page);
 
-      var argv = page.split(':');
-      page = argv.shift();
       var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
-
-      args = {};
-      for (var i = 0; i < argv.length; i += 2) {
-        args[argv[0+i]] = argv[1+i]
-      }
       $('nav li.current').removeClass('current');
       $('nav a[href="'+top+'"]').closest('li').addClass('current');
 
@@ -1431,18 +1658,69 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
       case "#!/login": /* {{{ */
         (function () {
+          var progress = function (how) {
+            $('#viewport').find('#logging-in').remove();
+            $('#viewport').append(template('logging-in', {auth: how}));
+          }
+
           api({
             type: 'GET',
-            url:  '/v2/auth/providers',
+            url:  '/v2/auth/providers?for=web',
             success: function (data) {
-              $('#viewport').html(template('login', { oauth: data }));
-            },
+              $('#viewport').html($(template('login', { providers: data })))
+                .on("click", ".login", function (event) {
+                  progress($(event.target).text());
+                })
+                .on("submit", "form", function (event) {
+                  event.preventDefault()
+                  progress('local SHIELD authentication');
+                  api({
+                    type: "POST",
+                    url: "/v2/auth/login",
+                    data: $(event.target).serializeObject(),
+                    success: function (_, _, xhr) {
+                      /*
+                      $global.auth = xhr.responseJSON;
+                      $("#viewport").html(template("layout"));
+                      goto("");
+                      */
+                      document.location.href = "/"
+                    },
+                    error: function (xhr) {
+                      $(event.target).error(xhr.responseJSON);
+                    },
+                  });
+                });
+             },
             error: function (xhr) {
               $('#viewport').html(template('BOOM'));
             }
           })
         })();
         break; /* #!/login */
+        // }}}
+      case "#!/cliauth": /* {{{ */
+        $('#viewport').html(template('cliauth', args));
+        break; /* #!/cliauth */
+        // }}}
+      case "#!/logout": /* {{{ */
+        (function () {
+          api({
+            type: "GET",
+            url: "/v2/auth/logout",
+            success: function () {
+              document.location.href = '/';
+            },
+            error: function (xhr) {
+              if (xhr.status >= 500) {
+                $('#viewport').html(template('BOOM'));
+              } else {
+                document.location.href = '/';
+              }
+            }
+          });
+        })()
+        break;
         // }}}
 
       case "#!/do/backup": /* {{{ */
@@ -1456,7 +1734,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             error: "Failed retrieving the list of protected systems from the SHIELD API.",
             success: function (systems) {
               data = { systems: systems };
-              $('#main').html(template('do-backup', data))
+              $('#main').html($(template('do-backup', data)))
                 .on('click', "a[href^=\"do-backup:\"]", function (event) {
                   event.preventDefault();
                   l = $(event.target).closest('a[href^="do-backup:"]').attr('href').split(':');
@@ -1541,7 +1819,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v1/stores',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores',
           error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
           success: function (data) {
             /* FIXME fixups that need to migrate into the SHIELD code */
@@ -1581,7 +1859,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v1/retention',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies',
           error: 'Failed to retrieve retention policy information from the SHIELD API.',
           success: function (data) {
             /* FIXME: data fixups that should probably migrate back to API */
@@ -1596,7 +1874,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/policies */
         // }}}
       case '#!/policies/new': /* {{{ */
-        $('#main').html(template('policies-form', { policy: null }))
+        $('#main').html($(template('policies-form', { policy: null }))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -1605,7 +1883,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             var data = $form.serializeObject();
 
             $form.reset();
-            if (!parseInt(data.days) || parseInt(data.days) < 0) {
+            if (!parseInt(data.days) || parseInt(data.days) < 1) {
               $form.error('expires', 'invalid');
             }
             if (!$form.isOK()) {
@@ -1617,7 +1895,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
             api({
               type: 'POST',
-              url:  '/v1/retention',
+              url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies',
               data: data,
               success: function () {
                 goto("#!/policies");
@@ -1626,18 +1904,18 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 $form.error(xhr.responseJSON);
               }
             });
-          });
+          }));
 
         break; /* #!/policies */
         // }}}
       case '#!/policies/edit': /* {{{ */
         api({
           type: 'GET',
-          url:  '/v1/retention/'+args.uuid,
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
           error: "Failed to retrieve retention policy information from the SHIELD API.",
           success: function (data) {
             data.days = parseInt(data.expires / 86400);
-            $('#main').html(template('policies-form', { policy: data }))
+            $('#main').html($(template('policies-form', { policy: data }))
               .autofocus()
               .on('submit', 'form', function (event) {
                 event.preventDefault();
@@ -1658,7 +1936,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
                 api({
                   type: 'PUT',
-                  url:  '/v1/retention/'+args.uuid,
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
                   data: data,
                   success: function () {
                     goto("#!/policies");
@@ -1667,11 +1945,196 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     $form.error(xhr.responseJSON);
                   }
                 });
-              });
+              }));
           }
         });
 
         break; /* #!/policies */
+        // }}}
+
+      case '#!/tenants': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/tenants',
+          error: 'Failed to retrieve tenant information from the SHIELD API.',
+          success: function (data) {
+            $('#main').html(template('tenants', { tenants: data }));
+          }
+        });
+        break; /* #!/tenants */
+        // }}}
+      case '#!/tenants/new': /* {{{ */
+        var members = {};
+
+        $('#main').html($(template('tenants-form', { policy: null }))
+          .userlookup('input[name=invite]', {
+            // {{{
+            filter: function (users) {
+              var lst = [];
+              $.each(users, function (i, user) {
+                if (!(user.uuid in members)) {
+                  lst.push(user);
+                }
+              });
+              return lst;
+            },
+            onclick: function (user) {
+              user.role = 'operator';
+              $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+              members[user.uuid] = user.role;
+            }
+            // }}}
+          })
+          .roles('.role', function (e, role) {
+            members[e.extract('uuid')] = role;
+          })
+          .autofocus()
+          .on('click', 'a[href="banish:user"]', function (event) {
+            // {{{
+            event.preventDefault();
+            delete members[$(event.target).extract('uuid')];
+            $(event.target).closest('tr').remove();
+            // }}}
+          })
+          .on('submit', 'form', function (event) {
+            // {{{
+            event.preventDefault();
+
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+            data.users = [];
+            for (uuid in members) {
+              data.users.push({
+                uuid: uuid,
+                role: members[uuid]
+              });
+            }
+
+            $form.reset();
+
+            api({
+              type: 'POST',
+              url:  '/v2/tenants',
+              data: data,
+              success: function () {
+                goto("#!/tenants");
+              },
+              error: function (xhr) {
+                $form.error(xhr.responseJSON);
+              }
+            });
+            // }}}
+          }));
+
+        break; /* #!/tenants */
+        // }}}
+      case '#!/tenants/edit': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/tenants/'+args.uuid,
+          error: "Failed to retrieve tenant information from the SHIELD API.",
+          success: function (data) {
+            var members = {};
+            $.each(data.members, function (i, user) {
+              members[user.uuid] = user;
+            });
+            $('#main').html($(template('tenants-form', { tenant: data }))
+              .userlookup('input[name=invite]', {
+                filter: function (users) {
+                  var lst = [];
+                  $.each(users, function (i, user) {
+                    if (!(user.uuid in members)) {
+                      lst.push(user);
+                    }
+                  });
+                  return lst;
+                },
+                onclick: function (user) {
+                  user.role = 'operator';
+                  $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+                  members[user.uuid] = user;
+
+                  api({
+                    type: 'POST',
+                    url:  '/v2/tenants/'+args.uuid+'/invite',
+                    data: {users:[user]},
+                    error: "Unable to save tenant role assignment.",
+                    success: function () {
+                      banner('User "'+user.account+'" is now '+{
+                          admin    : 'an administrator',
+                          engineer : 'an engineer',
+                          operator : 'an operator'
+                        }[user.role]+' on this tenant.');
+                    }
+                  });
+                }
+              })
+              .roles('.role', function (e, role) {
+                var data = {
+                  uuid    : e.extract('uuid'),
+                  account : e.extract('account'),
+                  role    : e.extract('role')
+                };
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+args.uuid+'/invite',
+                  data: {users:[data]},
+                  error: "Unable to save tenant role assignment.",
+                  success: function () {
+                    banner('User "'+data.account+'" is now '+{
+                        admin    : 'an administrator',
+                        engineer : 'an engineer',
+                        operator : 'an operator'
+                      }[data.role]+' on this tenant.');
+                  }
+                });
+              })
+              .autofocus()
+              .on('click', 'a[href="banish:user"]', function (event) {
+                event.preventDefault();
+
+                var e = $(event.target);
+                var data = {
+                  uuid    : e.extract('uuid'),
+                  account : e.extract('account')
+                };
+                delete members[data.uuid];
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+args.uuid+'/banish',
+                  data: {users:[data]},
+                  error: "Unable to save tenant role assignment.",
+                  success: function () {
+                    banner('User "'+data.account+'" is no longer associated with this tenant.');
+                  }
+                })
+                $(event.target).closest('tr').remove();
+              })
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
+
+                var $form = $(event.target);
+                var data = $form.serializeObject();
+
+                $form.reset();
+
+                api({
+                  type: 'PUT',
+                  url:  '/v2/tenants/'+args.uuid,
+                  data: data,
+                  success: function () {
+                    goto("#!/tenants");
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              }));
+          }
+        });
+
+        break; /* #!/tenants */
         // }}}
 
       case '#!/admin': /* {{{ */
@@ -1715,7 +2178,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/auth */
         // }}}
       case '#!/admin/rekey': /* {{{ */
-        $('#main').html(template('rekey'))
+        $('#main').html($(template('rekey')))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -1771,7 +2234,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/users */
         // }}}
       case "#!/admin/users/new": /* {{{ */
-        $('#main').html(template('admin-users-new', {}))
+        $('#main').html($(template('admin-users-new', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -1806,7 +2269,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case "#!/unlock": /* {{{ */
-        $('#main').html(template('unlock', {}))
+        $('#main').html($(template('unlock', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -1828,7 +2291,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break;
         // }}}
       case "#!/init": /* {{{ */
-        $('#main').html(template('init', {}))
+        $('#main').html($(template('init', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -1883,6 +2346,15 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     function reload() {
       dispatch(document.location.hash);
     }
+    function redraw() {
+      $('#hud').html(template('hud', $global.hud));
+      $('.top-bar').html(template('top-bar', {
+        shield: $global.hud.shield,
+        user:    $global.auth.user,
+        tenants: $global.auth.tenants,
+        tenant:  $global.auth.tenant
+      }));
+    }
     function goto(page) {
       document.location.hash = page;
     }
@@ -1897,44 +2369,51 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
       /* ... ping /v2/health every X seconds, and update the HUD {{{ */
       (function (s) {
-        var RUNNING = false;
-        var last = "";
+        var last = "",
+            every = 5,
+            backoff = {
+              0:   5,    /* on success */
+              5:   6,    /* +1  */
+              6:   7,    /* +1  */
+              7:   9,    /* +2  */
+              9:  11,    /* +3  */
+              11: 16,    /* +5  */
+              16: 24,    /* +8  */
+              24: 37,    /* +13 */
+              37: 60,    /* +21 (round to 60) */
+              60: 60     /* max out at 1min */
+            };
 
+        var rehud = function (data) {
+          $global.hud = data;
+          var json = JSON.stringify(data);
+          if (json != last) { redraw(); }
+          last = json;
+        };
         var ping = function () {
-          if (RUNNING) { return; }
-          RUNNING = true;
           $.ajax({
             type: 'GET',
             url:  '/v2/health',
             success: function (data) {
-              $global.hud = data;
-              var json = JSON.stringify(data);
-              if (json != last) {
-                $('#hud').html(template('hud', $global.hud));
-
-                var tenant = null;
-                if ($global.auth.tenants && $global.auth.tenants.length > 0) {
-                  tenant = $global.auth.tenants[0];
-                }
-                $('.top-bar').html(template('top-bar', {
-                  shield: {
-                    env: 'DEMO',
-                    ip:  data.shield.ip
-                  },
-                  user:    $global.auth.user,
-                  tenants: $global.auth.tenants,
-                  tenant:  tenant
-                }));
+              every = backoff[0]; /* reset backoff */
+              rehud(data);
+            },
+            error: function (xhr) {
+              var old = every;
+              every = backoff[every];
+              if (every != backoff[every]) {
+                console.log('/v2/health check failed; backing off to check every %d seconds', every);
               }
-              last = json;
+
+              $global.hud.health.core = 'unreachable';
+              rehud($global.hud);
             },
             complete: function () {
-              RUNNING = false;
+              window.setTimeout(ping, every * 1000);
             }
           });
         }
         ping();
-        window.setInterval(ping, s * 1000);
       })(5);
       /* }}} */
       /* ... handle the account menu {{{ */
@@ -1943,11 +2422,23 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         event.stopPropagation();
         $('.top-bar .flyout').toggle();
       });
+      $(document.body).on('click', '.top-bar a[href^="switchto:"]', function (event) {
+        event.preventDefault();
+        var uuid = $(event.target).attr('href').replace(/^switchto:/, '');
+        for (var i = 0; i < $global.auth.tenants.length; i++) {
+          if ($global.auth.tenants[i].uuid == uuid) {
+            $global.auth.tenant = $global.auth.tenants[i];
+            redraw();
+            reload();
+          }
+        }
+      });
+      $(document.body).on('click', '.top-bar .fly-out', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      });
       $(document.body).on('click', function (event) {
-        if (!$('.top-bar .flyout').is(':visible')) { return; }
-        if ($(event.target).is('.top-bar .flyout, .top-bar .flyout *')
-          && !$(event.target).is('a')) { return; }
-        $('.top-bar .flyout').hide();
+        $('.ephemeral').hide();
       });
       /* }}} */
 
@@ -1990,7 +2481,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         event.preventDefault();
 
         var $form = $(event.target);
-        var uuid = $form.closest('[data-system-uuid]').data('system-uuid');
+        var uuid = $form.extract('system-uuid');
 
         if ($form.is('[data-system-uuid] [data-task-uuid] *')) {
           var ann = {
@@ -2055,9 +2546,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
       /* global: handle "restore:archive-uuid" buttons {{{ */
       $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
-        var uuid   = $(event.target).closest('[data-archive-uuid]').data('archive-uuid');
-        var target = $(event.target).closest('[data-system-name]').data('system-name');
-        var taken  = $(event.target).closest('[data-archive-taken]').data('archive-taken');
+        var uuid   = $(event.target).extract('archive-uuid');
+        var target = $(event.target).extract('system-name');
+        var taken  = $(event.target).extract('archive-taken');
         console.log('restoring archive %s!', uuid);
 
         modal(template('restore-are-you-sure', {

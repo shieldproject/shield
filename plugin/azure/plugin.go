@@ -190,19 +190,19 @@ func (p AzurePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	az, err := getAzureConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	client, err := az.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	created, err := client.CreateContainerIfNotExists(az.StorageContainer, azure.ContainerAccessTypePrivate)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	if created {
 		plugin.DEBUG("Created new storage container: %s", az.StorageContainer)
@@ -214,31 +214,31 @@ func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	plugin.DEBUG("Creating new backup blob: %s", path)
 	err = client.PutAppendBlob(az.StorageContainer, path, nil)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	uploaded := 0
+	var uploaded int64
 	for {
 		buf := make([]byte, 4*1024*1024)
 		n, err := io.ReadFull(os.Stdin, buf)
 		plugin.DEBUG("Uploading %d bytes for a total of %d", n, uploaded)
 		if n > 0 {
-			uploaded += n
+			uploaded += int64(n)
 			err := client.AppendBlock(az.StorageContainer, path, buf[:n], nil)
 			if err != nil {
-				return "", err
+				return "", 0, err
 			}
 		}
 		if err != nil {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				break
 			}
-			return "", err
+			return "", 0, err
 		}
 	}
 	plugin.DEBUG("Successfully uploaded %d bytes of data", uploaded)
 
-	return path, nil
+	return path, uploaded, nil
 }
 
 func (p AzurePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,10 +9,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"strings"
-	"time"
-
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type URL struct {
@@ -87,53 +82,28 @@ func debugResponse(res *http.Response) {
 }
 
 func (u *URL) Request(out interface{}, req *http.Request) error {
-	var bodyBytes []byte
-	var err error
-	if req.Body != nil {
-		bodyBytes, err = ioutil.ReadAll(req.Body)
-		if err != nil {
-			return err
-		}
-		req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
-		if err != nil {
-			return err
-		}
-	}
-
 	r, err := makeRequest(req)
 	if err != nil {
 		return err
 	}
-	defer r.Body.Close()
 
-	if r.StatusCode == 401 {
-		if req.Body != nil {
-			req.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+	if r.StatusCode == 200 {
+		if out != nil {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				return err
+			}
+
+			err = json.Unmarshal(body, out)
+			if err != nil {
+				return err
+			}
 		}
-		r, err = promptAndAuth(r, req)
-		if err != nil {
-			return err
-		}
+	} else {
+		return getAPIError(r)
 	}
 
-	var final error = nil
-	if r.StatusCode != 200 {
-		final = fmt.Errorf("Error %s", r.Status)
-	}
-
-	if out != nil {
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			return err
-		}
-
-		err = json.Unmarshal(body, out)
-		if err != nil && final == nil {
-			return err
-		}
-	}
-
-	return final
+	return nil
 }
 
 func (u *URL) Get(out interface{}) error {
@@ -172,79 +142,35 @@ func (u *URL) Put(out interface{}, data string) error {
 	return u.Request(out, r)
 }
 
-func makeRequest(req *http.Request) (*http.Response, error) {
-	skipSSL := os.Getenv("SHIELD_SKIP_SSL_VERIFY") != "" || curBackend.SkipSSLValidation
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: skipSSL,
-				RootCAs:            backendCertPool,
-			},
-			Proxy:             http.ProxyFromEnvironment,
-			DisableKeepAlives: true,
-		},
-		Timeout: 30 * time.Second,
+func (u *URL) Patch(out interface{}, data string) error {
+	r, err := http.NewRequest("PATCH", u.String(),
+		bytes.NewBufferString(data))
+	if err != nil {
+		return err
 	}
+	r.Header.Set("Content-Type", "application/json")
+	return u.Request(out, r)
+}
+
+func makeRequest(req *http.Request) (*http.Response, error) {
 	if os.Getenv("SHIELD_API_TOKEN") != "" {
 		req.Header.Set("X-Shield-Token", os.Getenv("SHIELD_API_TOKEN"))
 	}
+
 	if curBackend.Token != "" {
-		req.Header.Set("Authorization", curBackend.Token)
+		if curBackend.APIVersion == 1 {
+			req.Header.Set("Authorization", curBackend.Token)
+		} else {
+			req.Header.Set("X-Shield-Session", curBackend.Token)
+		}
 	}
+
 	debugRequest(req)
-	r, err := client.Do(req)
+	r, err := curClient.Do(req)
 	debugResponse(r)
 	if err != nil {
 		return nil, err
 	}
+
 	return r, err
-}
-
-func promptAndAuth(res *http.Response, req *http.Request) (*http.Response, error) {
-	auth := strings.Split(res.Header.Get("www-authenticate"), " ")
-	if len(auth) > 0 {
-		fmt.Fprintf(os.Stdout, "Authentication Required\n\n")
-		switch strings.ToLower(auth[0]) {
-		case "basic":
-			var user string
-			fmt.Fprintf(os.Stdout, "User: ")
-			_, err := fmt.Scanln(&user)
-			if err != nil {
-				return nil, err
-			}
-			fmt.Fprintf(os.Stdout, "\nPassword: ")
-			pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-			fmt.Fprintf(os.Stdout, "\n") // newline to line-break after the password prompt
-			if err != nil {
-				return nil, err
-			}
-
-			curBackend.Token = basicAuthToken(user, string(pass))
-		case "bearer":
-			var t, s string
-			fmt.Fprintf(os.Stdout, `SHIELD has been protected by an OAuth2 provider. To authenticate on the command line,
-please visit the following URL, and paste in the entirety of the Bearer token provided:
-
-	%s/v1/auth/cli
-`, curBackend.Address)
-			fmt.Fprintf(os.Stdout, "Token: ")
-			_, err := fmt.Scanln(&t, &s)
-			if err != nil {
-				return nil, err
-			}
-			curBackend.Token = fmt.Sprintf("%s %s", t, s)
-		default:
-			return nil, fmt.Errorf("Unrecognized authentication request type: %s", res.Header.Get("www-authenticate"))
-		}
-		// newline to separate creds from response
-		fmt.Fprintf(os.Stdout, "\n")
-
-		r, err := makeRequest(req)
-		if err != nil {
-			return nil, err
-		}
-		return r, nil
-	}
-	// if no authorization header, fall back to returning the orignal response, unprocessed
-	return res, nil
 }

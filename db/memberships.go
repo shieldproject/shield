@@ -74,9 +74,9 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 
 func (db *DB) RemoveUserFromTenant(user, tenant string) error {
 	return db.Exec(`
-	    DELETE FROM memberships m
-	          WHERE m.user_uuid = ?
-	            AND m.tenant_uuid = ?`, user, tenant)
+	    DELETE FROM memberships
+	          WHERE user_uuid = ?
+	            AND tenant_uuid = ?`, user, tenant)
 }
 
 //GetTenantsForUser given a user's uuid returns a slice of Tenants that the user has membership with
@@ -105,6 +105,34 @@ func (db *DB) GetTenantsForUser(user uuid.UUID) ([]*Tenant, error) {
 			UUID: id.UUID,
 			Name: name,
 		})
+	}
+
+	return l, nil
+}
+
+func (db *DB) GetUsersForTenant(tenant uuid.UUID) ([]*User, error) {
+	r, err := db.Query(`
+	    SELECT u.uuid, u.name, u.account, u.backend,
+	           m.role
+	      FROM users u INNER JOIN memberships m
+	        ON u.uuid = m.user_uuid
+	     WHERE m.tenant_uuid = ?`, tenant.String())
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	l := make([]*User, 0)
+	for r.Next() {
+
+		u := &User{}
+		var this NullUUID
+		if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.Role); err != nil {
+			return nil, err
+		}
+		u.UUID = this.UUID
+
+		l = append(l, u)
 	}
 
 	return l, nil

@@ -333,8 +333,8 @@ func (p PostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return <-scanErr
 }
 
-func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p PostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p PostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

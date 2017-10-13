@@ -304,8 +304,8 @@ func (p MySQLPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.Exec(cmd, plugin.STDIN)
 }
 
-func (p MySQLPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p MySQLPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p MySQLPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

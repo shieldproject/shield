@@ -8,15 +8,18 @@ import (
 )
 
 type AuthConfig struct {
-	Name       string                      `yaml:"name"`
-	Identifier string                      `yaml:"identifier"`
-	Backend    string                      `yaml:"backend"`
+	Name       string `yaml:"name"`
+	Identifier string `yaml:"identifier"`
+	Backend    string `yaml:"backend"`
+
 	Properties map[interface{}]interface{} `yaml:"properties"`
 }
 
 type Config struct {
 	SlowLoop int `yaml:"slow_loop"`
 	FastLoop int `yaml:"fast_loop"`
+
+	Debug bool `yaml:"debug"`
 
 	DBPath string `yaml:"database"`
 

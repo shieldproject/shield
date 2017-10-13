@@ -403,35 +403,6 @@
 			"revision": "84dd430f98ca7c34d673046dc7757bc828d3388b"
 		},
 		{
-			"checksumSHA1": "z2kAtVle4NFV2OExI85fZoTcsI4=",
-			"path": "github.com/ulikunitz/xz",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
-		},
-		{
-			"checksumSHA1": "vjnTkzNrMs5Xj6so/fq0mQ6dT1c=",
-			"path": "github.com/ulikunitz/xz/internal/hash",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
-		},
-		{
-			"checksumSHA1": "m0pm57ASBK/CTdmC0ppRHO17mBs=",
-			"path": "github.com/ulikunitz/xz/internal/xlog",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
-		},
-		{
-			"checksumSHA1": "2vZw6zc8xuNlyVz2QKvdlNSZQ1U=",
-			"path": "github.com/ulikunitz/xz/lzma",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
-		},
-		{
-			"comment": "2.5.10",
-			"path": "github.com/voxelbrain/goptions",
-			"revision": "68583de33d9209ba795a0a334dad27418e4c18f5"
-		},
-		{
 			"path": "golang.org/x/crypto/bcrypt",
 			"revision": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},

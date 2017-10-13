@@ -231,7 +231,7 @@ var _ = Describe("Task Management", func() {
 
 		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Ω(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "SOME-KEY", time.Now(), "aes-256-ctr")
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "SOME-KEY", time.Now(), "aes-256-ctr", 0)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(archive_id).ShouldNot(BeNil())
 
@@ -253,7 +253,7 @@ var _ = Describe("Task Management", func() {
 
 		Expect(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Expect(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "", time.Now(), "aes-256-ctr")
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "", time.Now(), "aes-256-ctr", 0)
 		Expect(err).Should(HaveOccurred())
 		Expect(archive_id).Should(BeNil())
 
@@ -283,7 +283,7 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks`)
 
 		filter := TaskFilter{
-			Limit: "2",
+			Limit: 2,
 		}
 		tasks, err := db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
@@ -293,7 +293,7 @@ var _ = Describe("Task Management", func() {
 
 		filter = TaskFilter{
 			ForStatus: DoneStatus,
-			Limit:     "2",
+			Limit:     2,
 		}
 		tasks, err = db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
@@ -303,7 +303,7 @@ var _ = Describe("Task Management", func() {
 
 		// Negative values return all tasks, these are prevented in the API
 		filter = TaskFilter{
-			Limit: "-1",
+			Limit: -1,
 		}
 		tasks, err = db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
@@ -313,18 +313,20 @@ var _ = Describe("Task Management", func() {
 	Describe("GetTask", func() {
 		TASK1_UUID := uuid.NewRandom()
 		TASK2_UUID := uuid.NewRandom()
+		TENANT1_UUID := uuid.NewRandom()
+		TENANT2_UUID := uuid.NewRandom()
 
 		BeforeEach(func() {
-			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at)`+
-				`VALUES('%s', '%s', '%s', '%s', %d)`,
-				TASK1_UUID.String(), "system", BackupOperation, PendingStatus, 0))
+			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, tenant_uuid)`+
+				`VALUES('%s', '%s', '%s', '%s', %d, '%s')`,
+				TASK1_UUID.String(), "system", BackupOperation, PendingStatus, 0, TENANT1_UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = db.Exec(
-				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid)`+
-					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s')`,
+				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid, tenant_uuid)`+
+					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s', '%s')`,
 					TASK2_UUID.String(), "system", RestoreOperation, PendingStatus, 2,
-					SomeArchive.UUID.String(), SomeJob.UUID.String()))
+					SomeArchive.UUID.String(), SomeJob.UUID.String(), TENANT2_UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Returns an individual task even when not associated with anything", func() {
@@ -332,6 +334,7 @@ var _ = Describe("Task Management", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK1_UUID,
+				TenantUUID:  TENANT1_UUID,
 				Owner:       "system",
 				Op:          BackupOperation,
 				JobUUID:     nil,
@@ -350,6 +353,7 @@ var _ = Describe("Task Management", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK2_UUID,
+				TenantUUID:  TENANT2_UUID,
 				Owner:       "system",
 				Op:          RestoreOperation,
 				JobUUID:     SomeJob.UUID,

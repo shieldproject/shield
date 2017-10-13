@@ -16,14 +16,30 @@ func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
 			switch auth.Backend {
 			case "github":
 				provider = &GithubAuthProvider{
-					Name:       auth.Name,
-					Identifier: identifier,
-					core:       core,
+					AuthProviderBase: AuthProviderBase{
+						Name:       auth.Name,
+						Identifier: identifier,
+						Type:       auth.Backend,
+					},
+					core: core,
 				}
 			case "uaa":
 				provider = &UAAAuthProvider{
-					Identifier: identifier,
-					core:       core,
+					AuthProviderBase: AuthProviderBase{
+						Name:       auth.Name,
+						Identifier: identifier,
+						Type:       auth.Backend,
+					},
+					core: core,
+				}
+			case "token":
+				provider = &TokenAuthProvider{
+					AuthProviderBase: AuthProviderBase{
+						Name:       auth.Name,
+						Identifier: identifier,
+						Type:       auth.Backend,
+					},
+					core: core,
 				}
 			default:
 				return nil, fmt.Errorf("unrecognized auth provider type '%s'", auth.Backend)
@@ -54,27 +70,31 @@ type authUser struct {
 type authResponse struct {
 	User    authUser     `json:"user"`
 	Tenants []authTenant `json:"tenants"`
+	Tenant  *authTenant  `json:"tenant,omitempty"`
 }
 
-func (core *Core) checkAuth(req *http.Request) (*authResponse, error) {
-	cookie, err := req.Cookie(SessionCookieName)
-	if err != nil {
-		if err == http.ErrNoCookie {
-			log.Debugf("no session cookie ('%s') found in request; treating as unauthenticated", SessionCookieName)
-		} else {
-			log.Debugf("failed to extract session cookie ('%s') from request: %s", SessionCookieName, err)
-		}
-		return nil, nil
-	}
+//Gets the session ID from the request. Returns "" if not given.
+func getSessionID(req *http.Request) string {
+	sessionID := req.Header.Get("X-Shield-Session")
 
-	log.Debugf("retrieving user account for session '%s'", cookie.Value)
-	user, err := core.DB.GetUserForSession(cookie.Value)
+	if sessionID == "" { //If not in header, check for cookie
+		cookie, err := req.Cookie(SessionCookieName)
+		if err == nil { //ErrNoCookie is the only error returned from Cookie()
+			sessionID = cookie.Value
+		}
+	}
+	return sessionID
+}
+
+func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
+	log.Debugf("retrieving user account for session '%s'", sessionID)
+	user, err := core.DB.GetUserForSession(sessionID)
 	if err != nil {
-		log.Debugf("failed to retrieve user account for session '%s': %s", cookie.Value, err)
+		log.Debugf("failed to retrieve user account for session '%s': %s", sessionID, err)
 		return nil, err
 	}
 	if user == nil {
-		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", cookie.Value)
+		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", sessionID)
 		return nil, nil
 	}
 
@@ -99,6 +119,9 @@ func (core *Core) checkAuth(req *http.Request) (*authResponse, error) {
 		answer.Tenants[i].UUID = membership.TenantUUID
 		answer.Tenants[i].Name = membership.TenantName
 		answer.Tenants[i].Role = membership.Role
+	}
+	if len(answer.Tenants) > 0 {
+		answer.Tenant = &answer.Tenants[0]
 	}
 
 	if answer.User.Backend == "local" {
