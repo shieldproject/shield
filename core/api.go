@@ -295,16 +295,6 @@ func paramDate(req *http.Request, name string) *time.Time {
 	return &t
 }
 
-func invalidlimit(limit string) bool {
-	if limit != "" {
-		limint, err := strconv.Atoi(limit)
-		if err != nil || limint <= 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
 	status, err := core.vault.Status()
 	if err != nil {
@@ -458,8 +448,8 @@ func (core *Core) v1GetArchives(w http.ResponseWriter, req *http.Request) {
 		status = append(status, s)
 	}
 
-	limit := paramValue(req, "limit", "")
-	if invalidlimit(limit) {
+	limit, err := strconv.Atoi(paramValue(req, "limit", "0"))
+	if err != nil || limit <= 0 {
 		bailWithError(w, ClientErrorf("invalid limit supplied"))
 		return
 	}

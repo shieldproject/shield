@@ -58,9 +58,9 @@ type UserFilter struct {
 	UUID       string
 	Backend    string
 	Account    string
-	Limit      string
 	SysRole    string
 	ExactMatch bool
+	Limit      int
 }
 
 func (f *UserFilter) Query() (string, []interface{}) {
@@ -94,7 +94,7 @@ func (f *UserFilter) Query() (string, []interface{}) {
 	}
 
 	limit := ""
-	if f.Limit != "" {
+	if f.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, f.Limit)
 	}

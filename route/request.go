@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/starkandwayne/goutils/log"
 )
@@ -98,6 +99,19 @@ func (r *Request) Param(name, def string) string {
 		return v[0]
 	}
 	return def
+}
+
+func (r *Request) ParamDate(name string) *time.Time {
+	v, set := r.Req.URL.Query()[name]
+	if !set {
+		return nil
+	}
+
+	t, err := time.Parse("20060102", v[0])
+	if err != nil {
+		return nil
+	}
+	return &t
 }
 
 func (r *Request) ParamIs(name, want string) bool {

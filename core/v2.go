@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -260,17 +259,17 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/auth/local/users", func(r *route.Request) { // {{{
-		limit := paramValue(r.Req, "limit", "")
-		if invalidlimit(limit) {
-			r.Fail(route.Bad(nil, "Invalid limit supplied: '%d'", limit))
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit <= 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}
 
 		l, err := core.DB.GetAllUsers(&db.UserFilter{
-			UUID:       paramValue(r.Req, "uuid", ""),
-			Account:    paramValue(r.Req, "account", ""),
-			SysRole:    paramValue(r.Req, "sysrole", ""),
-			ExactMatch: paramEquals(r.Req, "exact", "t"),
+			UUID:       r.Param("uuid", ""),
+			Account:    r.Param("account", ""),
+			SysRole:    r.Param("sysrole", ""),
+			ExactMatch: r.ParamIs("exact", "t"),
 			Backend:    "local",
 			Limit:      limit,
 		})
@@ -1736,15 +1735,15 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/archives", func(r *route.Request) { // {{{
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit <= 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
+			return
+		}
+
 		status := []string{}
 		if s := r.Param("status", ""); s != "" {
 			status = append(status, s)
-		}
-
-		limit := r.Param("limit", "")
-		if invalidlimit(limit) {
-			r.Fail(route.Bad(nil, "FIXME need an error message"))
-			return
 		}
 
 		archives, err := core.DB.GetAllArchives(
@@ -1752,15 +1751,14 @@ func (core *Core) v2API() *route.Router {
 				ForTenant:  r.Args[1],
 				ForTarget:  r.Param("target", ""),
 				ForStore:   r.Param("store", ""),
-				Before:     paramDate(r.Req, "before"),
-				After:      paramDate(r.Req, "after"),
+				Before:     r.ParamDate("before"),
+				After:      r.ParamDate("after"),
 				WithStatus: status,
 				Limit:      limit,
 			},
 		)
-
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve backup archives information"))
 			return
 		}
 
@@ -1777,7 +1775,7 @@ func (core *Core) v2API() *route.Router {
 
 		archive, err := core.DB.GetArchive(archive_id)
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
@@ -1790,135 +1788,107 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
-		if r.Req.Body == nil {
-			r.Fail(route.Bad(nil, "FIXME need an error message"))
-			return
-		}
-		tennant_id := uuid.Parse(r.Args[1])
-		archive_id := uuid.Parse(r.Args[2])
-		if archive_id == nil || tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
-			return
-		}
-
-		archive, err := core.DB.GetArchive(archive_id)
-		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
-			return
-		}
-
-		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
-			r.Fail(route.NotFound(nil, "Archive Not Found"))
-			return
-		}
-
-		var params struct {
+		var in struct {
 			Notes string `json:"notes"`
 		}
-		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+		if !r.Payload(&in) {
 			return
 		}
 
-		if params.Notes == "" {
-			r.Fail(route.Bad(nil, "No notes were supplied"))
-		}
-		archive.Notes = params.Notes
-		if err := core.DB.UpdateArchive(archive); err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+		archive, err := core.DB.GetArchive(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
-		r.OK("updated")
+
+		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such backup archive"))
+			return
+		}
+
+		if r.Missing("notes", in.Notes) {
+			return
+		}
+
+		archive.Notes = in.Notes
+		if err := core.DB.UpdateArchive(archive); err != nil {
+			r.Fail(route.Oops(err, "Unable to update backup archive"))
+			return
+		}
+
+		r.OK(archive)
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
-		tennant_id := uuid.Parse(r.Args[1])
-		archive_id := uuid.Parse(r.Args[2])
-		if archive_id == nil || tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
-			return
-		}
-
-		archive, err := core.DB.GetArchive(archive_id)
+		archive, err := core.DB.GetArchive(uuid.Parse(r.Args[2]))
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
-		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
-			r.Fail(route.NotFound(nil, "Archive Not Found"))
+		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
 
-		if deleted, err := core.DB.DeleteArchive(archive.UUID); err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+		deleted, err := core.DB.DeleteArchive(archive.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete backup archive"))
 			return
-		} else if !deleted {
-			r.Fail(route.Bad(err, "FIXME need an error message"))
-		} else {
-			r.OK("deleted")
 		}
+		if !deleted {
+			r.Fail(route.Bad(err, "The backup archive could not be deleted at this time."))
+			return
+		}
+
+		r.OK("Archive deleted successfully")
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/archives/:uuid/restore", func(r *route.Request) { // {{{
-		if r.Req.Body == nil {
-			r.Fail(route.Bad(nil, "FIXME need an error message"))
-			return
-		}
-
-		tennant_id := uuid.Parse(r.Args[1])
-		archive_id := uuid.Parse(r.Args[2])
-		if archive_id == nil || tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
-			return
-		}
-
-		var params struct {
+		var in struct {
 			Target string `json:"target"`
 			Owner  string `json:"owner"`
 		}
-		if err := json.NewDecoder(r.Req.Body).Decode(&params); err != nil && err != io.EOF {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+		if !r.Payload(&in) {
 			return
 		}
 
-		if params.Owner == "" {
-			params.Owner = "anon"
-		}
-
-		// find the archive
-		archive, err := core.DB.GetArchive(archive_id)
+		archive, err := core.DB.GetArchive(uuid.Parse(r.Args[2]))
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
-		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
-			r.Fail(route.NotFound(nil, "Archive Not Found"))
+		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
 
-		var target *db.Target
-		if params.Target == "" {
-			target, err = core.DB.GetTarget(archive.TargetUUID)
-		} else {
-			target, err = core.DB.GetTarget(uuid.Parse(params.Target))
+		/* FIXME: remove owner, and use the authenticated session */
+		if in.Owner == "" {
+			in.Owner = "anon"
 		}
+		if in.Target == "" {
+			in.Target = archive.TargetUUID.String()
+		}
+
+		target, err := core.DB.GetTarget(uuid.Parse(in.Target))
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
-		if target == nil || strings.Compare(target.TenantUUID.String(), tennant_id.String()) != 0 {
-			r.Fail(route.NotFound(nil, "Archive Not Found"))
+		if target == nil || archive.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such archive"))
 			return
 		}
 
-		task, err := core.DB.CreateRestoreTask(params.Owner, archive, target)
+		task, err := core.DB.CreateRestoreTask(in.Owner, archive, target)
 		if err != nil {
-			r.Fail(route.Oops(err, "FIXME need an error message"))
+			r.Fail(route.Oops(err, "Unable to schedule a restore task"))
 			return
 		}
-		r.OK(fmt.Sprintf(`{"ok":"scheduled","task_uuid":"%s"}`, task.UUID))
+
+		r.OK(task)
 	})
 	// }}}
 

@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -41,8 +40,8 @@ type ArchiveFilter struct {
 	ExpiresBefore *time.Time
 	WithStatus    []string
 	WithOutStatus []string
-	Limit         string
 	ForTenant     string
+	Limit         int
 }
 
 func (f *ArchiveFilter) Query() (string, []interface{}) {
@@ -90,7 +89,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		args = append(args, f.ForTenant)
 	}
 	limit := ""
-	if f.Limit != "" {
+	if f.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, f.Limit)
 	}
@@ -117,23 +116,17 @@ func (db *DB) CountArchives(filter *ArchiveFilter) (int, error) {
 		filter = &ArchiveFilter{}
 	}
 
-	var i int
-	if filter.Limit != "" {
-		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
-			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
-		}
-	}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
-		return i, err
+		return 0, err
 	}
 	defer r.Close()
 
+	i := 0
 	for r.Next() {
 		i++
 	}
-
 	return i, nil
 }
 
@@ -143,11 +136,6 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	}
 
 	l := []*Archive{}
-	if filter.Limit != "" {
-		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
-			return l, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
-		}
-	}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -324,11 +312,6 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
 	if filter == nil {
 		filter = &ArchiveFilter{}
 	}
-	if filter.Limit != "" {
-		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
-			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
-		}
-	}
 
 	wheres := []string{"a.uuid = a.uuid"}
 	var args []interface{}
@@ -369,7 +352,7 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
 		args = append(args, filter.ExpiresBefore.Unix())
 	}
 	limit := ""
-	if filter.Limit != "" {
+	if filter.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, filter.Limit)
 	}
