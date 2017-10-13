@@ -325,8 +325,8 @@ func (p BbrPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Called when you want to store backup data. Examine the plugin.ShieldEndpoint passed in, and perform actions accordingly
-func (p BbrPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p BbrPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 // Called when you want to retreive backup data. Examine the plugin.ShieldEndpoint passed in, and perform actions accordingly
