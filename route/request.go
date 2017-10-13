@@ -13,8 +13,9 @@ type Request struct {
 	Req  *http.Request
 	Args []string
 
-	w    http.ResponseWriter
-	done bool
+	w     http.ResponseWriter
+	done  bool
+	debug bool
 }
 
 func (r *Request) String() string {
@@ -58,6 +59,9 @@ func (r *Request) Fail(e Error) {
 		log.Errorf("%s errored: %s", r, e.e)
 	}
 	r.w.Header().Set("Content-Type", "application/json")
+	if r.debug {
+		e.ProvideDiagnostic()
+	}
 
 	b, err := json.Marshal(e)
 	if err != nil {
