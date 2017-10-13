@@ -5,8 +5,9 @@ import (
 )
 
 type Error struct {
-	Message string   `json:"error,omitempty"`
-	Missing []string `json:"missing,omitempty"`
+	Diagnostic string   `json:"diagnostic,omitempty"`
+	Message    string   `json:"error,omitempty"`
+	Missing    []string `json:"missing,omitempty"`
 
 	code int
 	e    error
@@ -14,6 +15,10 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.Error()
+}
+
+func (e *Error) ProvideDiagnostic() {
+	e.Diagnostic = fmt.Sprintf("server-side error: %s", e.e)
 }
 
 func Bad(e error, msg string, args ...interface{}) Error {
