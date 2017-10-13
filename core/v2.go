@@ -107,7 +107,9 @@ type v2LocalUser struct {
 }
 
 func (core *Core) v2API() *route.Router {
-	r := &route.Router{}
+	r := &route.Router{
+		Debug: core.debug,
+	}
 
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{
 		health, err := core.checkHealth()
