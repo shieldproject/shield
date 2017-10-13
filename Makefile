@@ -55,12 +55,15 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/consul-snapshot
 	go $(BUILD_TYPE) ./plugin/mongo
 	go $(BUILD_TYPE) ./plugin/google
+	go $(BUILD_TYPE) ./plugin/bbr-director
+	go $(BUILD_TYPE) ./plugin/bbr-deployment
 
 clean:
 	rm -f shieldd shield-agent shield-schema shield
 	rm -f fs docker-postgres dummy postgres redis-broker
 	rm -f s3 swift azure mysql xtrabackup rabbitmq-broker
 	rm -f consul consul-snapshot mongo scality google
+	rm -f bbr-director bbr-deployment
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -111,6 +114,8 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul-snapshot"   ./plugin/consul-snapshot
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/xtrabackup"        ./plugin/xtrabackup
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/google"            ./plugin/google
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/bbr-director"      ./plugin/bbr-director
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/bbr-deployment"    ./plugin/bbr-deployment
 
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
 

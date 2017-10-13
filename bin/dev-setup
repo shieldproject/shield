@@ -46,7 +46,8 @@ s3_store=$($shield create-store <<EOF | $jq .uuid
   "plugin"   : "fs",
   "summary"  : "A fake S3 store for pretending and web UI development."
 }
-EOF )
+EOF
+)
 if [[ "$s3_store" = "null" ]]; then
   echo >&2 "Failed to create the S3 store"
   exit 1
@@ -60,7 +61,8 @@ scality_store=$($shield create-store <<EOF | $jq .uuid
   "plugin"   : "fs",
   "summary"  : "A fake Scality (On-Premise) store for pretending and web UI development."
 }
-EOF )
+EOF
+)
 if [[ "$scality_store" = "null" ]]; then
   echo >&2 "Failed to create the Scality store"
   exit 1
@@ -74,7 +76,8 @@ short_policy=$($shield create-policy <<EOF | $jq .uuid
   "summary" : "For frequent backups, only kept for a few days at most.",
   "expires" : 86400
 }
-EOF )
+EOF
+)
 if [[ "$short_policy" = "null" ]]; then
   echo >&2 "Failed to create the Short-Term retention policy"
   exit 1
@@ -87,7 +90,8 @@ long_policy=$($shield create-policy <<EOF | $jq .uuid
   "summary" : "For infrequent backups, to be kept for at least two weeks.",
   "expires" : 1209600
 }
-EOF )
+EOF
+)
 if [[ "$long_policy" = "null" ]]; then
   echo >&2 "Failed to create the Long-Term retention policy"
   exit 1
@@ -104,7 +108,8 @@ for i in $(seq 1 5); do
   "plugin"   : "fs",
   "summary"  : "A test system for generating lots of web UI output and pushing the limits of the new UI."
 }
-EOF )
+EOF
+)
 	if [[ "$target" = "null" ]]; then
 	  echo >&2 "Failed to create the #$i'th target"
 	  exit 1
@@ -163,7 +168,8 @@ target=$($shield create-target <<EOF | $jq .uuid
   "plugin"   : "fs",
   "summary"  : "The working directory of the dev environment."
 }
-EOF )
+EOF
+)
 if [[ "$target" = "null" ]]; then
   echo >&2 "Failed to create the DevTarget target"
   exit 1
@@ -177,7 +183,8 @@ store=$($shield create-store <<EOF | $jq .uuid
   "plugin"   : "fs",
   "summary"  : "A temporary store for the dev environment."
 }
-EOF )
+EOF
+)
 if [[ "$store" = "null" ]]; then
   echo >&2 "Failed to create the DevStore store"
   exit 1
@@ -190,7 +197,8 @@ policy=$($shield create-policy <<EOF | $jq .uuid
   "summary" : "A Test Policy",
   "expires" : 86400
 }
-EOF )
+EOF
+)
 if [[ "$policy" = "null" ]]; then
   echo >&2 "Failed to create the DevPolicy retention policy"
   exit 1

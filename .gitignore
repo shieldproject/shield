@@ -7,6 +7,8 @@
 
 # ignore the plugin
 /azure
+/bbr-deployment
+/bbr-director
 /consul
 /consul-snapshot
 /docker-postgres*
