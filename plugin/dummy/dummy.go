@@ -98,8 +98,12 @@ func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 	file := plugin.GenUUID()
 
 	err = plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), plugin.STDIN)
-	//FIXME: Size not implemented for dummy plugin
-	return file, 0, err
+	info, e := os.Stat(fmt.Sprintf("%s/%s", directory, file))
+	if e != nil {
+		return file, 0, e
+	}
+
+	return file, info.Size(), err
 }
 
 // Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
