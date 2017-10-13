@@ -1994,5 +1994,198 @@ func (core *Core) v2API() *route.Router {
 	}
 	// }}}
 
+	r.Dispatch("GET /v2/global/stores", func(r *route.Request) { // {{{
+		stores, err := core.DB.GetAllStores(
+			&db.StoreFilter{
+				SkipUsed:   r.ParamIs("unused", "t"),
+				SkipUnused: r.ParamIs("unused", "f"),
+				SearchName: r.Param("name", ""),
+				ForPlugin:  r.Param("plugin", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
+				ForTenant:  uuid.NIL.String(),
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
+			return
+		}
+
+		/* resolve string configurations to real objects */
+		for _, store := range stores {
+			if err := store.Resolve(); err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
+				return
+			}
+			store.Endpoint = ""
+		}
+
+		r.OK(stores)
+	})
+	// }}}
+	r.Dispatch("GET /v2/global/stores/:uuid", func(r *route.Request) { // {{{
+		store, err := core.DB.GetStore(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+
+		if store == nil || !uuid.Equal(store.TenantUUID, uuid.NIL) {
+			r.Fail(route.NotFound(nil, "No such storage system"))
+			return
+		}
+
+		if err := store.Resolve(); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		store.Endpoint = ""
+
+		/* FIXME: we also have to handle public, for operators */
+		if err = store.DisplayPublic(); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
+			return
+		}
+
+		r.OK(store)
+	})
+	// }}}""
+	r.Dispatch("POST /v2/global/stores", func(r *route.Request) { // {{{
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Agent   string `json:"agent"`
+			Plugin  string `json:"plugin"`
+
+			Config map[string]interface{} `json:"config"`
+
+			endpoint string
+		}
+
+		if !r.Payload(&in) {
+			return
+		}
+
+		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin) {
+			return
+		}
+
+		/* FIXME: move this into (s *Store) itself ... */
+		b, err := json.Marshal(in.Config)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create new storage system"))
+			return
+		}
+		in.endpoint = string(b)
+
+		store, err := core.DB.CreateStore(&db.Store{
+			TenantUUID: uuid.NIL,
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Agent:      in.Agent,
+			Plugin:     in.Plugin,
+			Endpoint:   in.endpoint,
+			Config:     in.Config,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create new storage system"))
+			return
+		}
+
+		store.Config = in.Config
+		store.Endpoint = ""
+		r.OK(store)
+	})
+	// }}}
+	r.Dispatch("PUT /v2/global/stores/:uuid", func(r *route.Request) { // {{{
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Agent   string `json:"agent"`
+			Plugin  string `json:"plugin"`
+
+			Config map[string]interface{} `json:"config"`
+		}
+		if !r.Payload(&in) {
+			r.Fail(route.Bad(nil, "Unable to update storage system"))
+			return
+		}
+
+		store, err := core.DB.GetStore(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		if store == nil || !uuid.Equal(store.TenantUUID, uuid.NIL) {
+			r.Fail(route.Oops(err, "No such storage system"))
+			return
+		}
+
+		if in.Name != "" {
+			store.Name = in.Name
+		}
+		if in.Summary != "" {
+			store.Summary = in.Summary
+		}
+		if in.Agent != "" {
+			store.Agent = in.Agent
+		}
+		if in.Plugin != "" {
+			store.Plugin = in.Plugin
+		}
+		if in.Config != nil {
+			store.Config = in.Config
+			/* FIXME: move this into (s *Store) itself ... */
+			b, err := json.Marshal(in.Config)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to update storage system"))
+				return
+			}
+			store.Endpoint = string(b)
+		}
+
+		if err := core.DB.UpdateStore(store); err != nil {
+			r.Fail(route.Oops(err, "Unable to update storage system"))
+			return
+		}
+
+		store, err = core.DB.GetStore(store.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		if err := store.Resolve(); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		store.Endpoint = ""
+
+		r.OK(store)
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/global/stores/:uuid", func(r *route.Request) { // {{{
+		store, err := core.DB.GetStore(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		if store == nil || !uuid.Equal(store.TenantUUID, uuid.NIL) {
+			r.Fail(route.Oops(err, "No such storage system"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteStore(store.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete storage system"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Bad(nil, "The storage system cannot be deleted at this time"))
+			return
+		}
+
+		r.Success("Storage system deleted successfully")
+	})
+	// }}}
+
 	return r
 }

@@ -167,7 +167,7 @@ curl -H 'Accept: application/json' \
 }'
 ```
 
-Note: `password` is sent in cleartext, so SHIELD should aways be
+**NOTE:** `password` is sent in cleartext, so SHIELD should aways be
 communicating over TLS (HTTPS).
 
 Both fields, `username`, and `password`, are required.
@@ -454,7 +454,7 @@ environments, issues may arise due to version incompatibility.  Newer
 versions of the SHIELD Core may also be able to inform administrators about
 known deficiencies in older version of the SHIELD Agent and SHIELD plugins.
 
-**Note:** `problems` are reported by the SHIELD Core; it is perfectly
+**NOTE:** `problems` are reported by the SHIELD Core; it is perfectly
 acceptable for an agent to report itself as healthy, but for the SHIELD Core
 to assert that a problem exists.
 
@@ -987,7 +987,7 @@ curl -H 'Accept: application/json' \
 ]
 ```
 
-Note: the `endpoint` key is currently a string of JSON, which
+**NOTE:** the `endpoint` key is currently a string of JSON, which
 means that it contains lots of escape sequences.  Future versions
 of the v2 API (prior to launch) may alter this to be the full
 JSON, inline, for both readability and sanity's sake.
@@ -1199,6 +1199,11 @@ Storage systems are essential to any data protection efforts,
 since the protected data must reside elsewhere, on another system
 in order to be truly safe.  Stores provide definitions of external
 storage system where backup archives will be kept.
+
+**NOTE:** the API endpoints in this section deal exclusively with
+tenant-scoped storage systems.  For information on the endpoints
+for managing global storage solutions, see the section titled
+**SHIELD Global Resources**.
 
 ### GET /v2/tenants/:tenant/stores
 
@@ -1811,3 +1816,242 @@ The following error messages can be returned:
 
 
 
+## SHIELD Global Resources
+
+Some resources are shared between tenants, either implicitly via
+copying (like retention policies), or explicitly (like shared
+storage system definitions).
+
+### GET /v2/global/stores
+
+Retrieve all globally-defined stores.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X GET https://shield.host/v2/global/stores
+```
+
+**Response**
+
+```json
+[
+  {
+    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+    "name"    : "Cloud Storage Name",
+    "summary" : "A longer description of the storage configuration",
+    "agent"   : "127.0.0.1:5444",
+    "plugin"  : "fs",
+    "config"  : {
+      "base_dir" : "/var/data/root",
+      "bsdtar"   : "bsdtar"
+    }
+  }
+]
+```
+
+The values under `config` will depend entirely on what the
+operator specified when they initially configured the storage
+system.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve storage systems information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+
+### POST /v2/global/stores
+
+Create a new shared storage system.  This storage will be visible
+to all tenants.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/global/stores -d '
+{
+  "name"    : "Storage System Name",
+  "summary" : "A longer description for this storage system.",
+  "plugin"  : "plugin-name",
+  "agent"   : "127.0.0.1:5444",
+  "config"  : {
+    "plugin-specific": "configuration"
+  }
+}'
+```
+
+The values under `config` will depend entirely on which `plugin`
+has been selected; no validation will be done by the SHIELD Core,
+until the storage system is used in a job.
+
+**Response**
+
+```json
+{
+  "name"    : "Storage System Name",
+  "summary" : "A longer description for this storage system.",
+  "plugin"  : "plugin-name",
+  "agent"   : "127.0.0.1:5444",
+  "config"  : {
+    "plugin-specific": "configuration"
+  }
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **Unable to create new storage system** - An internal error
+  occurred and should be investigated by the site administrators.
+
+
+### GET /v2/global/stores/:uuid
+
+Retrieve a single globally-defined storage system.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X GET https://shield.host/v2/global/stores/$uuid
+```
+
+**Response**
+
+```json
+{
+  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+  "name"    : "Cloud Storage Name",
+  "summary" : "A longer description of the storage configuration",
+  "plugin"  : "fs",
+  "agent"   : "127.0.0.1:5444",
+  "config"  : {
+    "base_dir" : "/var/data/root",
+    "bsdtar"   : "bsdtar"
+  }
+}
+```
+
+The values under `config` will depend entirely on what the
+operator specified when they initially configured the storage
+system.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **No such storage system** - No storage system with the given
+  UUID exists (globally).
+
+
+### PUT /v2/global/stores/:uuid
+
+Update an existing globally-defined storage system.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PUT https://shield.host/v2/global/stores/$uuid -d '
+{
+  "name"    : "Updated Store Name",
+  "summary" : "A longer description of the storage system",
+  "agent"   : "127.0.0.1:5444",
+  "plugin"  : "plugin",
+  "config"  : {
+    "new": "plugin configuration"
+  }
+}'
+```
+
+You can specify as many or few of these fields as you want;
+omitted fields will be left at their previous values.  If `config`
+is supplied, it will overwrite the value currently in the
+database.
+
+The values under `config` will depend entirely on which `plugin`
+has been selected; no validation will be done by the SHIELD Core,
+until the storage system is used in a job.
+
+**Response**
+
+```json
+{
+  "name"    : "Updated Store Name",
+  "summary" : "A longer description of the storage system",
+  "agent"   : "127.0.0.1:5444",
+  "plugin"  : "plugin",
+  "config"  : {
+    "new": "plugin configuration"
+  }
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **Unable to update storage system** - An internal error occurred
+  and should be investigated by the site administrators.
+
+- **No such storage system** - No storage system with the given
+  UUID exists (globally).
+
+
+### DELETE /v2/global/stores/:uuid
+
+Remove a globally-defined storage system.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/global/stores/$uuid
+```
+
+**Response**
+
+```json
+{
+  "ok": "Storage system deleted successfully"
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve storage system information** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+- **Unable to update storage system** - An internal error occurred
+  and should be investigated by the site administrators.
+
+- **Unable to delete storage system** - An internal error occurred
+  and should be investigated by the site administrators.
+
+- **The storage system cannot be deleted at this time** - This
+  storage system is referenced by one or more extant job
+  configuration; deleting it would lead to an incomplete (and
+  unusable) setup.
