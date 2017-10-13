@@ -205,11 +205,12 @@ func (p GooglePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, erro
 	path := gcs.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
 
-	if _, err := client.Objects.Insert(gcs.Bucket, &storage.Object{Name: path}).Media(os.Stdin).Do(); err != nil {
+	object, err := client.Objects.Insert(gcs.Bucket, &storage.Object{Name: path}).Media(os.Stdin).Do()
+	if err != nil {
 		return "", 0, err
 	}
-	//FIXME: Size unimplemented for GCP Plugin
-	return path, 0, nil
+
+	return path, int64(object.Size), nil
 }
 
 func (p GooglePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
