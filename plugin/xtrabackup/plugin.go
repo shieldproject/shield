@@ -369,8 +369,8 @@ func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return os.RemoveAll(xtrabackup.TargetDir)
 }
 
-func (p XtraBackupPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p XtraBackupPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p XtraBackupPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

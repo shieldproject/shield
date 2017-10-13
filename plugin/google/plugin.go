@@ -191,25 +191,25 @@ func (p GooglePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p GooglePlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p GooglePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	gcs, err := getGoogleConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	client, err := gcs.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	path := gcs.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
 
 	if _, err := client.Objects.Insert(gcs.Bucket, &storage.Object{Name: path}).Media(os.Stdin).Do(); err != nil {
-		return "", err
+		return "", 0, err
 	}
-
-	return path, nil
+	//FIXME: Size unimplemented for GCP Plugin
+	return path, 0, nil
 }
 
 func (p GooglePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

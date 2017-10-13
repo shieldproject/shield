@@ -329,14 +329,15 @@ func (p S3Plugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	var size int64
 	s3, err := getS3ConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	client, err := s3.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	path := s3.genBackupPath()
@@ -344,12 +345,12 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 
 	// FIXME: should we do something with the size of the write performed?
 	// Removing leading slash until https://github.com/minio/minio/issues/3256 is fixed
-	_, err = client.PutObject(s3.Bucket, strings.TrimPrefix(path, "/"), os.Stdin, "application/x-gzip")
+	size, err = client.PutObject(s3.Bucket, strings.TrimPrefix(path, "/"), os.Stdin, "application/x-gzip")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return path, nil
+	return path, size, nil
 }
 
 func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

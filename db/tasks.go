@@ -348,7 +348,7 @@ func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	)
 }
 
-func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string) (uuid.UUID, error) {
+func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string, archive_size int64) (uuid.UUID, error) {
 	// fail on empty store_key, as '' seems to satisfy the NOT NULL constraint in postgres
 	if key == "" {
 		return nil, fmt.Errorf("cannot create an archive without a store_key")
@@ -381,14 +381,14 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 	validtime := ValidateEffectiveUnix(effective)
 	err = db.Exec(
 		`INSERT INTO archives
-			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, job, encryption_type)
-			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, '', j.Name, ?
+			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, job, encryption_type, size)
+			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, '', j.Name, ?, ?
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = ?`,
-		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, id.String(),
+		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, archive_size, id.String(),
 	)
 	if err != nil {
 		return nil, err
