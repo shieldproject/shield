@@ -227,8 +227,8 @@ func (p RabbitMQBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p RabbitMQBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p RabbitMQBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p RabbitMQBrokerPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

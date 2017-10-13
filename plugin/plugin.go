@@ -47,7 +47,7 @@ type Plugin interface {
 	Validate(ShieldEndpoint) error
 	Backup(ShieldEndpoint) error
 	Restore(ShieldEndpoint) error
-	Store(ShieldEndpoint) (string, error)
+	Store(ShieldEndpoint) (string, int64, error)
 	Retrieve(ShieldEndpoint, string) error
 	Purge(ShieldEndpoint, string) error
 	Meta() PluginInfo
@@ -293,6 +293,7 @@ STORAGE COMMANDS
 func dispatch(p Plugin, mode string, opt Opt) error {
 	var err error
 	var key string
+	var size int64
 	var endpoint ShieldEndpoint
 
 	DEBUG("'%s' action requested with options %#v", mode, opt)
@@ -324,13 +325,15 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 		if err != nil {
 			return err
 		}
-		key, err = p.Store(endpoint)
+
+		key, size, err = p.Store(endpoint)
 		if opt.Text {
 			fmt.Printf("%s\n", key)
 		} else {
 			output, jsonErr := json.MarshalIndent(struct {
-				Key string `json:"key"`
-			}{Key: key}, "", "    ")
+				Key  string `json:"key"`
+				Size int64  `json:"archive_size"`
+			}{Key: key, Size: size}, "", "    ")
 			if jsonErr != nil {
 				return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
 			}

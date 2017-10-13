@@ -279,10 +279,11 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	var size int64
 	cfg, err := getFSConfig(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	t := time.Now()
@@ -295,20 +296,20 @@ func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 
 	err = os.MkdirAll(fmt.Sprintf("%s/%s", cfg.BasePath, dir), 0777) // umask will lower...
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	f, err := os.Create(fmt.Sprintf("%s/%s/%s", cfg.BasePath, dir, file))
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	defer f.Close()
 
-	if _, err = io.Copy(f, os.Stdin); err != nil {
-		return "", err
+	if size, err = io.Copy(f, os.Stdin); err != nil {
+		return "", 0, err
 	}
 
-	return fmt.Sprintf("%s/%s", dir, file), nil
+	return fmt.Sprintf("%s/%s", dir, file), size, nil
 }
 
 func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

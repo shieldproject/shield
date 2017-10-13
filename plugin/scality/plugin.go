@@ -272,14 +272,15 @@ func (p ScalityPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p ScalityPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p ScalityPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	var size int64
 	scal, err := getScalityConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	client, err := scal.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	path := scal.genBackupPath()
@@ -289,10 +290,10 @@ func (p ScalityPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	// FIXME: should we do something with the size of the write performed?
 	_, err = client.PutObject(scal.Bucket, path, os.Stdin, "application/x-gzip")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return path, nil
+	return path, size, nil
 }
 
 func (p ScalityPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

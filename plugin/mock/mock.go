@@ -154,8 +154,8 @@ func (p MockPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return err
 }
 
-func (p MockPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "fake-storage-key", nil
+func (p MockPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "fake-storage-key", 0, nil
 }
 
 func (p MockPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

@@ -156,16 +156,16 @@ func (p SwiftPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	openstack.Debug = &swift.Debug
 
 	baseURL, session, err := swift.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	path := swift.genBackupPath()
@@ -174,17 +174,17 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	r := bufio.NewReader(os.Stdin)
 	contents, err := ioutil.ReadAll(r)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	headers := http.Header{}
 	url := baseURL + "/" + swift.Container + "/" + path
 	err = objectstorage.PutObject(session, &contents, url, headers)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return path, nil
+	return path, int64(len(contents)), nil
 }
 
 func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (err error) {

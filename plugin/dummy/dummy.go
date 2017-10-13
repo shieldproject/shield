@@ -89,16 +89,17 @@ func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Called when you want to store backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	file := plugin.GenUUID()
 
 	err = plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), plugin.STDIN)
-	return file, err
+	//FIXME: Size not implemented for dummy plugin
+	return file, 0, err
 }
 
 // Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
