@@ -17,7 +17,7 @@ type TenantFilter struct {
 	Name       string
 	ExactMatch bool
 	UUID       string
-	Limit      string
+	Limit      int
 }
 
 func (f *TenantFilter) Query() (string, []interface{}) {
@@ -41,7 +41,7 @@ func (f *TenantFilter) Query() (string, []interface{}) {
 	}
 
 	limit := ""
-	if f.Limit != "" {
+	if f.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, f.Limit)
 	}

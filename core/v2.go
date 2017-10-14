@@ -760,9 +760,9 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants", func(r *route.Request) { // {{{
-		limit := paramValue(r.Req, "limit", "")
-		if invalidlimit(limit) {
-			r.Fail(route.Bad(nil, "Invalid limit supplied: '%d'", limit))
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit < 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}
 
