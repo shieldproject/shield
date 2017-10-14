@@ -1962,6 +1962,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     error: function (xhr) {
                       $(event.target).error(xhr.responseJSON);
                     },
+                    complete: function () {
+                      $('#viewport').find('#logging-in').remove();
+                    }
                   });
                 });
              },
