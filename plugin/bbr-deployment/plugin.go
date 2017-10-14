@@ -56,7 +56,7 @@ func main() {
 	// Create an object representing this plugin, which is a type conforming to the Plugin interface
 	bbr := BbrPlugin{
 		// give it some authorship info
-		Name:    "Bbr Plugin",
+		Name:    "BOSH BBR Deployment Plugin",
 		Author:  "Stark & Wayne",
 		Version: "1.0.0",
 		Features: plugin.PluginFeatures{

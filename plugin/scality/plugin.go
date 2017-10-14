@@ -87,7 +87,7 @@ const (
 
 func main() {
 	p := ScalityPlugin{
-		Name:    "Scality Backup + Storage Plugin",
+		Name:    "Scality Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{

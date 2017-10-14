@@ -59,7 +59,7 @@ var (
 
 func main() {
 	p := ConsulPlugin{
-		Name:    "Consul Backup Plugin",
+		Name:    "Consul Snapshot Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{

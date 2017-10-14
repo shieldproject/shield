@@ -83,7 +83,7 @@ const (
 
 func main() {
 	p := SwiftPlugin{
-		Name:    "OpenStack Swift Backup + Storage Plugin",
+		Name:    "OpenStack Swift Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{

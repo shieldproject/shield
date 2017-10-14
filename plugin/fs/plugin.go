@@ -71,7 +71,7 @@ var (
 
 func main() {
 	p := FSPlugin{
-		Name:    "FS Plugin",
+		Name:    "Local Filesystem Plugin",
 		Author:  "Stark & Wayne",
 		Version: "1.0.0",
 		Features: plugin.PluginFeatures{

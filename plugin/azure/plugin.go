@@ -65,7 +65,7 @@ import (
 
 func main() {
 	p := AzurePlugin{
-		Name:    "Azure Blobstore Storage Plugin",
+		Name:    "Microsoft Azure Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{

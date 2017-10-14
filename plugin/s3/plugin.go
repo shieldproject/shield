@@ -98,7 +98,7 @@ func validSigVersion(v string) bool {
 
 func main() {
 	p := S3Plugin{
-		Name:    "S3 Storage Plugin",
+		Name:    "Amazon S3 Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{

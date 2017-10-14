@@ -82,7 +82,7 @@ var (
 
 func main() {
 	p := MongoPlugin{
-		Name:    "Mongo Backup Plugin",
+		Name:    "MongoDB Backup Plugin",
 		Author:  "Szlachta, Jacek",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
