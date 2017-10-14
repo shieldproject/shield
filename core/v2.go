@@ -260,7 +260,7 @@ func (core *Core) v2API() *route.Router {
 
 	r.Dispatch("GET /v2/auth/local/users", func(r *route.Request) { // {{{
 		limit, err := strconv.Atoi(r.Param("limit", "0"))
-		if err != nil || limit <= 0 {
+		if err != nil || limit < 0 {
 			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}
@@ -1691,7 +1691,7 @@ func (core *Core) v2API() *route.Router {
 
 	r.Dispatch("GET /v2/tenants/:uuid/tasks", func(r *route.Request) { // {{{
 		limit, err := strconv.Atoi(r.Param("limit", "0"))
-		if err != nil || limit <= 0 {
+		if err != nil || limit < 0 {
 			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}
@@ -1749,7 +1749,7 @@ func (core *Core) v2API() *route.Router {
 
 	r.Dispatch("GET /v2/tenants/:uuid/archives", func(r *route.Request) { // {{{
 		limit, err := strconv.Atoi(r.Param("limit", "0"))
-		if err != nil || limit <= 0 {
+		if err != nil || limit < 0 {
 			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}

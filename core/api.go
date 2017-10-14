@@ -449,7 +449,7 @@ func (core *Core) v1GetArchives(w http.ResponseWriter, req *http.Request) {
 	}
 
 	limit, err := strconv.Atoi(paramValue(req, "limit", "0"))
-	if err != nil || limit <= 0 {
+	if err != nil || limit < 0 {
 		bailWithError(w, ClientErrorf("invalid limit supplied"))
 		return
 	}
