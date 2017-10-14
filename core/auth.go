@@ -67,10 +67,25 @@ type authUser struct {
 	Backend string `json:"backend"`
 	SysRole string `json:"sysrole"`
 }
+type authTenantGrant struct {
+	Admin    bool `json:"admin"`
+	Engineer bool `json:"engineer"`
+	Operator bool `json:"operator"`
+}
+type authGrants struct {
+	System struct {
+		Admin    bool `json:"admin"`
+		Manager  bool `json:"manager"`
+		Engineer bool `json:"engineer"`
+	} `json:"system"`
+	Tenants map[string]authTenantGrant `json:"tenant"`
+}
 type authResponse struct {
 	User    authUser     `json:"user"`
 	Tenants []authTenant `json:"tenants"`
 	Tenant  *authTenant  `json:"tenant,omitempty"`
+
+	Grants authGrants `json:"is"`
 }
 
 //Gets the session ID from the request. Returns "" if not given.
@@ -107,6 +122,18 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 		},
 	}
 
+	switch user.SysRole {
+	case "admin":
+		answer.Grants.System.Admin = true
+		answer.Grants.System.Manager = true
+		answer.Grants.System.Engineer = true
+	case "manager":
+		answer.Grants.System.Manager = true
+		answer.Grants.System.Engineer = true
+	case "engineer":
+		answer.Grants.System.Engineer = true
+	}
+
 	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		log.Debugf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
@@ -115,10 +142,25 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 	}
 
 	answer.Tenants = make([]authTenant, len(memberships))
+	answer.Grants.Tenants = make(map[string]authTenantGrant)
 	for i, membership := range memberships {
 		answer.Tenants[i].UUID = membership.TenantUUID
 		answer.Tenants[i].Name = membership.TenantName
 		answer.Tenants[i].Role = membership.Role
+
+		grant := authTenantGrant{}
+		switch membership.Role {
+		case "admin":
+			grant.Admin = true
+			grant.Engineer = true
+			grant.Operator = true
+		case "engineer":
+			grant.Engineer = true
+			grant.Operator = true
+		case "operator":
+			grant.Operator = true
+		}
+		answer.Grants.Tenants[membership.TenantUUID.String()] = grant
 	}
 	if len(answer.Tenants) > 0 {
 		answer.Tenant = &answer.Tenants[0]

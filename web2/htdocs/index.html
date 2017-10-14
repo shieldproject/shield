@@ -51,7 +51,7 @@
           <li><a href="#!/systems">Systems</a></li>
           <li class="current"><a href="#!/stores">Storage</a></li>
           <li><a href="#!/policies">Retention</a></li>
-          <li><a href="#!/admin">Admin</a></li>
+          [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
         </nav>
       </div>
 
@@ -60,7 +60,7 @@
           <li><a href="#!/systems">Systems</a></li>
           <li class="current"><a href="#!/stores">Storage</a></li>
           <li><a href="#!/policies">Retention</a></li>
-          <li><a href="#!/admin">Admin</a></li>
+          [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
         </nav>
       </div>
 
@@ -193,7 +193,7 @@
       [[#
         {restore-are-you-sure}
 
-        A modal interaction screen that requires the oeprator to acknowledge
+        A modal interaction screen that requires the operator to acknowledge
         that what they are about to do is in fact to restore data, that it
         might be dangerous, and it might not work out.
       ]]
@@ -536,6 +536,59 @@
             you ought to just be automagically assigned to one by the system.</p>
           </div>
     <!-- }}} --></script>
+    <script type="text/html" id="tpl--access-denied"><!-- {{{ -->
+      [[#
+        {access-denied} template
+
+        What do you do when someone tries to access the parts of
+        SHIELD that require a certain level of access that is above
+        their role assignment?  Try this screen!
+
+        The following data can be provided to tailor the message:
+
+          level: "system"    What level is access being denied at.
+                             The value 'system' applies to global,
+                             administrative contexts; 'tenant'
+                             indicates a per-tenant ACL violation.
+
+          need: "role"       What role is needed to gain access to
+                             the given resource.
+
+      ]]
+          <div class="gutter blk">
+            <h2>Access Denied</h2>
+            [[ var want = _.level + '/' + _.need; ]]
+            [[ if (want == 'system/admin') { ]]
+                 <p>This part of SHIELD requires site-level <strong>administator</strong> access.</p>
+                 <p>Only SHIELD site administrators can grant this level of access.</p>
+            [[ } else if (want == 'system/manager') { ]]
+                 <p>This part of SHIELD requires site-level <strong>manager</strong> access.</p>
+                 <p>Only SHIELD site administrators can grant this level of access.</p>
+            [[ } else if (want == 'system/engineer') { ]]
+                 <p>This part of SHIELD requires site-level <strong>engineer</strong> access.</p>
+                 <p>Only SHIELD site administrators can grant this level of access.</p>
+            [[ } else if (want == 'tenant/admin') { ]]
+                 <p>In order to access this part of SHIELD, you need to be
+                 an <strong>administrator</strong> on this tenant.</p>
+                 <p>Please contact your SHIELD site operators if you believe
+                 you should have this level of access.</p>
+            [[ } else if (want == 'tenant/engineer') { ]]
+                 <p>In order to modify the configuration of resources on this
+                 tenant, you need to be granted <strong>engineer</strong>-level
+                 access.</p>
+                 <p>Please consult your tenant administrators if you believe
+                 you should have this level of access.</p>
+            [[ } else if (want == 'tenant/operator') { ]]
+                 <p>In order to operate on this tenant, you will need to be
+                 granted <strong>operator</strong>-level access.</p>
+                 <p>Please consult your tenant administrators if you believe
+                 you should have this level of access.</p>
+            [[ } else { ]]
+                 <p>This part of SHIELD requires <strong>[[= _.level ]]/[[= _.need ]]</strong>
+                    access, which seems to be an invalid role.  Please submit a bug report.</p>
+            [[ } ]]
+          </div>
+    <!-- }}} --></script>
 
     <script type="text/html" id="tpl--init"><!-- {{{ -->
       [[#
@@ -550,7 +603,7 @@
               tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
               voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
 
-          <form>
+          <form class="init-shield">
             <div class="error"></div>
 
             <div class="ctl" data-field="master">
@@ -593,7 +646,7 @@
               tempore. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis
               voluptatibus maiores alias. At vero eos et accusamus et iusto odio dignissimos.</p>
 
-          <form>
+          <form class="unlock-shield">
             <label for="unlock-master">Enter your SHIELD Master Password</label>
             <input type="password" id="unlock-master" name="master"><button>Unlock</button>
           </form>
@@ -935,7 +988,10 @@
         and in some cases allows for user-management of their configurations.
       ]]
           <div class="gutter blk">
+            [[ if ((_.admin  && $global.auth.is.system.engineer)
+                || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
             <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/new">Configure a New Cloud Storage System&raquo;</a>
+            [[ } ]]
             [[ if (_.admin) { ]]
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2><strong>Global</strong> Cloud Storage Systems</h2>
@@ -978,8 +1034,11 @@
             <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
             <h2><div class="plugin">[[= _.store.plugin ]]</div>[[= _.store.name ]]</h2>
 
+            [[ if ((_.admin && $global.auth.is.engineer)
+                || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
             <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= _.store.uuid ]]">Edit</a>
             <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= _.store.uuid ]]">Delete</a>
+            [[ } ]]
 
             <div class="summary">[[= _.store.summary ]]</div>
 
@@ -1262,7 +1321,7 @@
       [[#
         {stores-delete}
 
-        A modal interaction screen that requires the oeprator to acknowledge
+        A modal interaction screen that requires the operator to acknowledge
         that what they are about to do will result in the destruction of
         configuration data.
       ]]
@@ -1288,7 +1347,10 @@
         Renders the list of all retention policies
       ]]
           <div class="gutter blk">
+            [[ if ((_.admin  && $global.auth.is.system.engineer)
+                || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
             <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]policies/new">Create a New Retention Policy [[= _.admin ? 'Template ' : '' ]]&raquo;</a>
+            [[ } ]]
             [[ if (_.admin) { ]]
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2>Retention Policy <strong>Templates</strong></h2>
@@ -1371,7 +1433,7 @@
       [[#
         {policies-delete}
 
-        A modal interaction screen that requires the oeprator to acknowledge
+        A modal interaction screen that requires the operator to acknowledge
         that what they are about to do will result in the destruction of
         configuration data.
       ]]
@@ -1389,14 +1451,14 @@
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--tenants"><!-- {{{ -->
+    <script type="text/html" id="tpl--admin-tenants"><!-- {{{ -->
       [[#
-        {tenants} template
+        {admin-tenants} template
 
         Renders the list of all tenants (for site managers)
       ]]
           <div class="gutter blk">
-            <a class="new" href="#!/tenants/new">Create a New Tenant &raquo;</a>
+            <a class="new" href="#!/admin/tenants/new">Create a New Tenant &raquo;</a>
             <h2>Tenants</h2>
             [[ if (_.tenants.length == 0) { ]]
             <div class="no-data">No Tenants have been created yet.</div>
@@ -1410,7 +1472,7 @@
                 [[ $.each(_.tenants, function (i, tenant) { ]]
                 <tr>
                   <td>[[= tenant.name ]]</td>
-                  <td><a href="#!/tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
+                  <td><a href="#!/admin/tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
                 </tr>
                 [[ }); ]]
               </tbody>
@@ -1418,7 +1480,7 @@
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--tenants-form"><!-- {{{ -->
+    <script type="text/html" id="tpl--admin-tenants-form"><!-- {{{ -->
       [[#
         {tenants-form} template
 
@@ -1426,7 +1488,7 @@
         existing tenants.
       ]]
           <div class="gutter blk">
-            <a class="breadcrumb" href="#!/tenants">&laquo; Back to Tenants</a>
+            <a class="breadcrumb" href="#!/admin/tenants">&laquo; Back to Tenants</a>
             <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
 
             <form>
@@ -1524,7 +1586,7 @@
           <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
-              <li><a href="#!/tenants">Tenants</a>
+              <li><a href="#!/admin/tenants">Tenants</a>
                 <p>Tenants separate and isolate subsets of your users from one another, so that
                 they can neither see nor affect the systems, storage, and retention policies
                 of one another.</p>
@@ -1899,40 +1961,45 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script src="/js/lib.js"></script>
     <script src="/js/sticky-nav.js"></script>
     <script type="text/javascript">
+
     var referer = undefined;
+    function divert(page) { // {{{
+      if ($global.auth.unauthenticated && !page.match(/^#!\/(login|logout|cliauth)$/)) {
+        console.log('session not authenticated; diverting to #!/login page...');
+        return "#!/login";
+
+      } else if (page == '#!/logout') {
+        return page;
+
+      } else if ($global.auth.is.system.engineer && $global.hud) {
+        /* process 'system' team diverts */
+        if ($global.hud.health.core == "uninitialized") {
+          console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
+          return "#!/init";
+
+        } else if ($global.hud.health.core == "sealed" || $global.hud.health.core == "locked") {
+          console.log('system user detected, and this SHIELD core is locked; diverting to #!/unlock page...');
+          return "#!/unlock";
+        }
+      }
+      if (!page || page == "") {
+        return $global.auth.is.system.engineer ? '#!/admin' : '#!/systems';
+      }
+
+      return page;
+    }
+    // }}}
+
     function dispatch(page) {
       var argv = page.split(/[:+]/);
-      page = argv.shift();
+      dest = argv.shift();
+      page = divert(dest);
       args = {};
       for (var i = 0; i < argv.length; i += 2) {
         args[argv[0+i]] = argv[1+i]
       }
 
-      /* handle diverts and authentication stuff {{{ */
-      if ($global.auth.unauthenticated) {
-        if (!page.match(/^#!\/(login|logout|cliauth)$/)) {
-          console.log('session not authenticated; diverting to #!/login page...');
-          goto("#!/login");
-          return
-        }
-
-      } else if ($global.auth && $global.auth.user && $global.auth.user.sysrole != "" && $global.hud) {
-        /* process 'system' team diverts */
-        if ($global.hud.health.core == "uninitialized") {
-          console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
-          page = "#!/init";
-
-        } else if ($global.hud.health.core == "sealed" || $global.hud.health.core == "locked") {
-          console.log('system user detected, and this SHIELD core is locked; diverting to #!/unlock page...');
-          page = "#!/unlock";
-        }
-      }
-      if (!page || page == "") {
-        console.log('no specific page specified; diverting to #!/systems page...');
-        page = "#!/systems";
-      }
-      /* }}} */
-      console.log('dispatching to page "%s"...', page);
+      console.log('dispatching to %s (from %s)...', page, dest);
 
       var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
       $('nav li.current').removeClass('current');
@@ -2166,6 +2233,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           $('#main').html(template('you-have-no-tenants'));
           break;
         }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].engineer) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2229,6 +2300,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       case '#!/stores/edit': /* {{{ */
         if (!$global.auth.tenant) {
           $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].engineer) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
           break;
         }
         api({
@@ -2311,6 +2386,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           $('#main').html(template('you-have-no-tenants'));
           break;
         }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].engineer) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
@@ -2369,6 +2448,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           $('#main').html(template('you-have-no-tenants'));
           break;
         }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].engineer) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+          break;
+        }
         $('#main').html($(template('policies-form', { policy: null }))
           .autofocus()
           .on('submit', 'form', function (event) {
@@ -2406,6 +2489,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       case '#!/policies/edit': /* {{{ */
         if (!$global.auth.tenant) {
           $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].engineer) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
           break;
         }
         api({
@@ -2455,6 +2542,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           $('#main').html(template('you-have-no-tenants'));
           break;
         }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].engineer) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
@@ -2486,19 +2577,133 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/policies/delete */
         // }}}
 
-      case '#!/tenants': /* {{{ */
+      case '#!/admin': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
+        $('#main').html(template('admin'));
+        break; /* #!/admin */
+        // }}}
+      case '#!/admin/agents': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/agents',
+          error: "Failed retrieving the list of agents from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('agents', data));
+          }
+        });
+        break; /* #!/admin/agents */
+        // }}}
+      case '#!/admin/auth': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/auth/providers',
+          error: "Failed retrieving the list of configured authentication providers from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('auth-providers', { providers: data }));
+          }
+        });
+        break; /* #!/admin/auth */
+        // }}}
+      case '#!/admin/auth/config': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/auth/providers/'+args.name,
+          error: "Failed retrieving the authentication provider configuration from the SHIELD API.",
+          success: function (data) {
+            $('#main').html(template('auth-provider-config', { provider: data }));
+          }
+        });
+        break; /* #!/admin/auth */
+        // }}}
+      case '#!/admin/rekey': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
+        $('#main').html($(template('rekey')))
+          .autofocus()
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+
+            $form.reset();
+            if (data.current == "") {
+              $form.error('current', 'missing');
+            }
+
+            if (data.new == "") {
+              $form.error('new', 'missing');
+
+            } else if (data.confirm == "") {
+              $form.error('confirm', 'missing');
+
+            } else if (data.new != data.confirm) {
+              $form.error('confirm', 'mismatch');
+            }
+
+            if (!$form.isOK()) {
+              return;
+            }
+
+            delete data.confirm;
+            api({
+              type: 'POST',
+              url:  '/v2/rekey',
+              data: data,
+              success: function () {
+                banner('Succcessfully rekeyed the SHIELD Core.');
+                goto("#!/admin");
+              },
+              error: function (xhr) {
+                $form.error(xhr.responseJSON);
+              }
+            });
+          });
+
+        break; /* #!/admin/rekey */
+        // }}}
+
+      case '#!/admin/tenants': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
           url:  '/v2/tenants',
           error: 'Failed to retrieve tenant information from the SHIELD API.',
           success: function (data) {
-            $('#main').html(template('tenants', { tenants: data }));
+            $('#main').html(template('admin-tenants', { tenants: data }));
           }
         });
-        break; /* #!/tenants */
+        break; /* #!/admin/tenants */
         // }}}
-      case '#!/tenants/new': /* {{{ */
+      case '#!/admin/tenants/new': /* {{{ */
+        if (!$global.auth.is.system.manager) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+          break;
+        }
         var members = {};
 
         $('#main').html($(template('tenants-form', { policy: null }))
@@ -2552,7 +2757,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               url:  '/v2/tenants',
               data: data,
               success: function () {
-                goto("#!/tenants");
+                goto("#!/admin/tenants");
               },
               error: function (xhr) {
                 $form.error(xhr.responseJSON);
@@ -2561,9 +2766,13 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             // }}}
           }));
 
-        break; /* #!/tenants */
+        break; /* #!/admin/tenants/new */
         // }}}
-      case '#!/tenants/edit': /* {{{ */
+      case '#!/admin/tenants/edit': /* {{{ */
+        if (!$global.auth.is.system.manager) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/tenants/'+args.uuid,
@@ -2658,7 +2867,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   url:  '/v2/tenants/'+args.uuid,
                   data: data,
                   success: function () {
-                    goto("#!/tenants");
+                    goto("#!/admin/tenants");
                   },
                   error: function (xhr) {
                     $form.error(xhr.responseJSON);
@@ -2668,95 +2877,14 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           }
         });
 
-        break; /* #!/tenants */
+        break; /* #!/admin/tenants/edit */
         // }}}
 
-      case '#!/admin': /* {{{ */
-        $('#main').html(template('admin'));
-        break; /* #!/admin */
-        // }}}
-      case '#!/admin/agents': /* {{{ */
-        $('#main').html(template('loading'));
-        api({
-          type: 'GET',
-          url:  '/v2/agents',
-          error: "Failed retrieving the list of agents from the SHIELD API.",
-          success: function (data) {
-            $('#main').html(template('agents', data));
-          }
-        });
-        break; /* #!/admin/agents */
-        // }}}
-      case '#!/admin/auth': /* {{{ */
-        $('#main').html(template('loading'));
-        api({
-          type: 'GET',
-          url:  '/v2/auth/providers',
-          error: "Failed retrieving the list of configured authentication providers from the SHIELD API.",
-          success: function (data) {
-            $('#main').html(template('auth-providers', { providers: data }));
-          }
-        });
-        break; /* #!/admin/auth */
-        // }}}
-      case '#!/admin/auth/config': /* {{{ */
-        $('#main').html(template('loading'));
-        api({
-          type: 'GET',
-          url:  '/v2/auth/providers/'+args.name,
-          error: "Failed retrieving the authentication provider configuration from the SHIELD API.",
-          success: function (data) {
-            $('#main').html(template('auth-provider-config', { provider: data }));
-          }
-        });
-        break; /* #!/admin/auth */
-        // }}}
-      case '#!/admin/rekey': /* {{{ */
-        $('#main').html($(template('rekey')))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
-
-            var $form = $(event.target);
-            var data = $form.serializeObject();
-
-            $form.reset();
-            if (data.current == "") {
-              $form.error('current', 'missing');
-            }
-
-            if (data.new == "") {
-              $form.error('new', 'missing');
-
-            } else if (data.confirm == "") {
-              $form.error('confirm', 'missing');
-
-            } else if (data.new != data.confirm) {
-              $form.error('confirm', 'mismatch');
-            }
-
-            if (!$form.isOK()) {
-              return;
-            }
-
-            delete data.confirm;
-            api({
-              type: 'POST',
-              url:  '/v2/rekey',
-              data: data,
-              success: function () {
-                banner('Succcessfully rekeyed the SHIELD Core.');
-                goto("#!/admin");
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          });
-
-        break; /* #!/admin/rekey */
-        // }}}
       case '#!/admin/users': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/auth/local/users',
@@ -2768,6 +2896,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/users */
         // }}}
       case "#!/admin/users/new": /* {{{ */
+        if (!$global.auth.is.system.manager) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+          break;
+        }
         $('#main').html($(template('admin-users-new', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
@@ -2803,6 +2935,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case '#!/admin/stores': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2821,6 +2957,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/stores */
         // }}}
       case '#!/admin/stores/store': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2841,6 +2981,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/stores/store */
         // }}}
       case '#!/admin/stores/new': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2903,6 +3047,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/stores */
         // }}}
       case '#!/admin/stores/edit': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/global/stores/'+args.uuid,
@@ -2974,6 +3122,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/stores/edit */
         // }}}
       case '#!/admin/stores/delete': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/global/stores/'+args.uuid,
@@ -3006,6 +3158,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case '#!/admin/policies': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -3024,6 +3180,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/policies */
         // }}}
       case '#!/admin/policies/new': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html($(template('policies-form', { policy: null, admin: true }))
           .autofocus()
           .on('submit', 'form', function (event) {
@@ -3058,6 +3218,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/admin/policies/new */
         // }}}
       case '#!/admin/policies/edit': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/global/policies/'+args.uuid,
@@ -3100,6 +3264,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           break; /* #!/admin/policies/edit */
         // }}}
       case '#!/admin/policies/delete': /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/global/policies/'+args.uuid,
@@ -3132,6 +3300,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case "#!/unlock": /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html($(template('unlock', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
@@ -3154,6 +3326,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break;
         // }}}
       case "#!/init": /* {{{ */
+        if (!$global.auth.is.system.engineer) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+          break;
+        }
         $('#main').html($(template('init', {})))
           .autofocus()
           .on('submit', 'form', function (event) {
@@ -3223,7 +3399,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     }
 
     $(function () {
-      $('#viewport').html(template('layout'));
+      if (!$global.auth.unauthenticated) {
+        $('#viewport').html(template('layout'));
+      }
 
       /* ... watch the document hash for changes {{{ */
       $(window).on('hashchange', function (event) {
