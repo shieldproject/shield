@@ -976,4 +976,23 @@
     return this;
   };
   // }}}
+
+
+  /***************************************************
+     $(...).bytes(x) - Format a file size
+
+     Given an integer number of bytes, formats and returns a more
+     human-readable string using units of n*1024b, to make sizes
+     more manageable.
+
+   ***************************************************/
+  exported.bytes = function (x) { // {{{
+    var units = ["b", "K", "M", "G", "T"];
+    while (units.length > 1 && x > 1024) {
+      units.shift();
+      x /= 1024;
+    }
+    return (Math.round(x * 10) / 10).toString() + units[0];
+  };
+  // }}}
 })(window, document);

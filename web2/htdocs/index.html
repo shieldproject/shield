@@ -427,7 +427,7 @@
               <ul>
                 <li>Scheduled Backup Jobs <span>[[= _.stats.jobs ]]</span></li>
                 <li>Backup Archives <span>[[= _.stats.archives ]]</span></li>
-                <li class="warn">Cloud Storage Used <span>[[= _.stats.storage ]]</span></li>
+                <li class="warn">Cloud Storage Used <span>[[= bytes(_.stats.storage) ]]</span></li>
                 <li class="ok">Daily Storage Increase <span>[[= _.stats.daily ]]</span></li>
               </ul>
             </div></div>
