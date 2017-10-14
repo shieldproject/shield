@@ -482,7 +482,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/systems", func(r *route.Request) { // {{{
+	r.Dispatch("GET /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
 				SkipUsed:   r.ParamIs("unused", "t"),
@@ -490,6 +490,7 @@ func (core *Core) v2API() *route.Router {
 				SearchName: r.Param("name", ""),
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
+				ForTenant:  r.Args[1],
 			},
 		)
 		if err != nil {
@@ -509,16 +510,15 @@ func (core *Core) v2API() *route.Router {
 		r.OK(systems)
 	})
 	// }}}
-	r.Dispatch("GET /v2/systems/:uuid", func(r *route.Request) { // {{{
-		log.Debugf("%s: got args [%v]", r, r.Args)
-		target, err := core.DB.GetTarget(uuid.Parse(r.Args[1]))
+	r.Dispatch("GET /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
 
-		if target == nil {
-			r.Fail(route.NotFound(err, "system %s not found", r.Args[1]))
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(err, "No such system"))
 			return
 		}
 
@@ -584,17 +584,17 @@ func (core *Core) v2API() *route.Router {
 		r.OK(system)
 	})
 	// }}}
-	r.Dispatch("POST /v2/systems", func(r *route.Request) { // {{{
+	r.Dispatch("POST /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PUT /v2/systems/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PUT /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
-	r.Dispatch("PATCH /v2/systems/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PATCH /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
 		var in struct {
 			Annotations []v2PatchAnnotation `json:"annotations"`
 		}
@@ -602,9 +602,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		target, err := core.DB.GetTarget(uuid.Parse(r.Args[1]))
+		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
 		if err != nil {
-			r.Fail(route.Bad(err, "invalid or malformed target UUID: '%s'", r.Args[1]))
+			r.Fail(route.Oops(err, "Unable to retrieve system information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID.String() != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such system"))
 			return
 		}
 

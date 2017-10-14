@@ -782,6 +782,10 @@
         Renders all targets visible to / manageable by the current user.
       ]]
           <div class="gutter blk">
+            <h2>Protected Data Systems</h2>
+            [[ if (_.systems.length == 0) { ]]
+            <div class="no-data">You have not yet configured any data systems to protect.</div>
+            [[ } else { ]]
             [[ $.each(_.systems, function (i, target) { ]]
             <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="#!/systems/system:uuid:[[= target.uuid ]]">
@@ -801,6 +805,7 @@
               </a>
             </div>
             [[ }); ]]
+            [[ } ]]
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--system"><!-- {{{ -->
@@ -2008,12 +2013,16 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
       case "#!/do/backup": /* {{{ */
         (function () {
+          if (!$global.auth.tenant) {
+            $('#main').html(template('you-have-no-tenants'));
+            return;
+          }
           $('#main').html(template('loading'));
           var data = {};
 
           api({
             type: 'GET',
-            url:  '/v2/systems',
+            url:  '/v2/tenants/'+$global.auth.tenant+'/systems',
             error: "Failed retrieving the list of protected systems from the SHIELD API.",
             success: function (systems) {
               data = { systems: systems };
@@ -2081,7 +2090,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v2/systems',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/systems',
           error: "Failed retrieving the list of protected systems from the SHIELD API.",
           success: function (data) {
             $('#main').html(template('systems', { systems: data }));
@@ -2097,7 +2106,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v2/systems/'+args.uuid, /* FIXME: handle missing uuid */
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/systems/'+args.uuid,
           error: "Failed retrieving metadata for protected system from the SHIELD API.",
           success: function (data) {
             $('#main').html(template('system', { target: data }));
@@ -3354,7 +3363,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
           api({
             type: 'PATCH',
-            url:  '/v2/systems/'+uuid,
+            url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/systems/'+uuid,
             data: { "annotations": [ann] },
             success: function (data) {
               $form.hide();
