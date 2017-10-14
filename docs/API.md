@@ -601,7 +601,8 @@ this agent's configuration / version.
 The `metadata` key is exclusive to this endpoint, and contains all
 of the agent metadata.  Of particular interest is the `plugins`
 key, which contains a map of plugin metadata, keyed by the plugin
-name.  The format of this metadata is documented in **TBD**.
+name.  The format of this metadata is documented in
+[/docs/plugins.md](/docs/plugins.md).
 
 
 **Errors**
@@ -1458,13 +1459,27 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+[
+  {
+    "uuid"    : "f4dedf80-cdb2-4c81-9a58-b3a8282e3202",
+    "name"    : "Long-Term Storage",
+    "summary" : "A long-term solution, for infrequent backups only.",
+    "expires" : 7776000
+  }
+]
+```
+
+The `expires` key is specified in seconds, but must always be a
+multiple of 86400 (1 day).
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve retention policies information** - An
+  internal error occurred and should be investigated by the site
+  administrators.
 
 
 ### POST /v2/tenants/:tenant/policies
@@ -1473,25 +1488,45 @@ TBD
 
 **Request**
 
-TBD
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -X POST https://shield.host/v2/tenants/$uuid/policies -d '
 {
-  TBD
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
 }'
 ```
 
+The `expires` value must be specified in seconds, and must be at
+least 86,400 (1 day) and be a multiple of 86,400.
+
 **Response**
 
-TBD
+```json
+{
+  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Retention policy expiry must be greater than 1 day** - You
+  supplied an `expires` value less than 86,400.  Please re-try the
+  request with a higher value.
+
+- **Retention policy expire must be a multiple of 1 day** - You
+  supplied an `expires` value that was not a multiple of 86,400.
+  Please re-try the request with a different value.
+
+- **Unable to create retention policy** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### GET /v2/tenants/:tenant/policies/:uuid
@@ -1507,13 +1542,25 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+{
+  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to retrieve retention policy information** - An
+  internal error occurred and should be investigated by the site
+  administrators.
+
+- **No such retention policy** - No retention policy with the
+  given UUID exists on the specified tenant.
 
 
 ### PUT /v2/tenants/:tenant/policies/:uuid
@@ -1522,17 +1569,45 @@ Update a single retention policy on a tenant.
 
 **Request**
 
-TBD
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PUT https://shield.host/v2/tenants/$tenant/policies/$uuid -d '
+{
+  "name"    : "Updated Retention Policy Name",
+  "summary" : "A longer description of the retention policy",
+  "expires" : 86400
+}'
+```
+
+You can specify as many or few of these fields as you want;
+omitted fields will be left at their previous values.
 
 **Response**
 
-TBD
+```json
+{
+  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
+}
+```
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Retention policy expiry must be greater than 1 day** - You
+  supplied an `expires` value less than 86,400.  Please re-try the
+  request with a higher value.
+
+- **Retention policy expire must be a multiple of 1 day** - You
+  supplied an `expires` value that was not a multiple of 86,400.
+  Please re-try the request with a different value.
+
+- **Unable to update retention policy** - An internal error
+  occurred and should be investigated by the site administrators.
 
 
 ### DELETE /v2/tenants/:tenant/policies/:uuid
@@ -1550,7 +1625,7 @@ curl -H 'Accept: application/json' \
 
 ```json
 {
-  "ok": "Retention policy delete successfully"
+  "ok": "Retention policy deleted successfully"
 }
 ```
 
@@ -1559,6 +1634,21 @@ curl -H 'Accept: application/json' \
 TBD
 
 The following error messages can be returned:
+
+- **Unable to retrieve retention policy information** - An
+  internal error has occurred and should be investigated by the site
+  administrators.
+
+- **No such retention policy** - No retention policy with the
+  given UUID exists on the specified tenant.
+
+- **Unable to delete retention policy** - An internal error has
+  occurred and should be investigated by the site administrators.
+
+- **The retention policy cannot be deleted at this time** - This
+  retention policy is referenced by one or more extant job
+  configuration; deleting it would lead to an incomplete (and
+  unusable) setup.
 
 
 
@@ -1673,7 +1763,7 @@ curl -H 'Accept: application/json' \
 
 ```json
 {
-  "ok": "Job delete successfully"
+  "ok": "Job deleted successfully"
 }
 ```
 
@@ -1920,7 +2010,7 @@ curl -H 'Accept: application/json' \
 
 ```json
 {
-  "ok": "Archive delete successfully"
+  "ok": "Archive deleted successfully"
 }
 ```
 

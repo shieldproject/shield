@@ -1153,6 +1153,10 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
 			return
 		}
+		if in.Expires % 86400 != 0 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
+			return
+		}
 
 		policy, err := core.DB.CreateRetentionPolicy(&db.RetentionPolicy{
 			TenantUUID: uuid.Parse(r.Args[1]),
@@ -1211,6 +1215,15 @@ func (core *Core) v2API() *route.Router {
 			policy.Summary = in.Name
 		}
 		if in.Expires != 0 {
+			/* FIXME: for v2, flip expires over to days, not seconds */
+			if in.Expires < 86400 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
+				return
+			}
+			if in.Expires % 86400 != 0 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
+				return
+			}
 			policy.Expires = in.Expires
 		}
 

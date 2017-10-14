@@ -8,11 +8,12 @@ import (
 )
 
 type RetentionPolicy struct {
-	UUID       uuid.UUID `json:"uuid"`
-	TenantUUID uuid.UUID `json:"tenant_uuid"`
-	Name       string    `json:"name"`
-	Summary    string    `json:"summary"`
-	Expires    uint      `json:"expires"`
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Summary string    `json:"summary"`
+	Expires uint      `json:"expires"`
+
+	TenantUUID uuid.UUID `json:"-"`
 }
 
 type RetentionFilter struct {
