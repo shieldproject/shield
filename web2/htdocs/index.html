@@ -510,6 +510,26 @@
         [[ } ]]
       </div>
     <!-- }}} --></script>
+    <script type="text/html" id="tpl--you-have-no-tenants"><!-- {{{ -->
+      [[#
+        {you-have-no-tenants} template
+
+        What do you do when someone tries to access the parts of
+        SHIELD that require a tenancy context, yet they have no
+        tenants to speak of?  Why, you show them this little screen,
+        of course!
+      ]]
+          <div class="gutter blk e404">
+            <h2>Hrmm.  You Don't Seem To Belong To Any Tenants</h2>
+            <p>This part of SHIELD only makes sense in the context of a tenant.
+            However, it seems that your account has not been invited to participate
+            in any tenants yet.</p>
+
+            <p>You may want to reach out to your SHIELD administrator and ask them
+            to assign you to a tenant, or check their configuration if they believe
+            you ought to just be automagically assigned to one by the system.</p>
+          </div>
+    <!-- }}} --></script>
 
     <script type="text/html" id="tpl--init"><!-- {{{ -->
       [[#
@@ -2044,6 +2064,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case "#!/systems": /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2056,6 +2080,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/systems */
         // }}}
       case '#!/systems/system': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2069,6 +2097,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case '#!/stores': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2087,6 +2119,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/stores */
         // }}}
       case '#!/stores/store': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2107,6 +2143,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/stores/store */
         // }}}
       case '#!/stores/new': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2168,6 +2208,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/stores */
         // }}}
       case '#!/stores/edit': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
@@ -2244,6 +2288,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/stores/edit */
         // }}}
       case '#!/stores/delete': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
@@ -2276,6 +2324,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case '#!/policies': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         $('#main').html(template('loading'));
         api({
           type: 'GET',
@@ -2294,6 +2346,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/policies */
         // }}}
       case '#!/policies/new': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         $('#main').html($(template('policies-form', { policy: null }))
           .autofocus()
           .on('submit', 'form', function (event) {
@@ -2329,6 +2385,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/policies/new */
         // }}}
       case '#!/policies/edit': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
@@ -2372,6 +2432,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         break; /* #!/policies/edit */
         // }}}
       case '#!/policies/delete': /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
