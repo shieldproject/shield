@@ -20,6 +20,7 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/stores"
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tasks"
+	"github.com/starkandwayne/shield/cmd/shield/commands/tenants"
 	"github.com/starkandwayne/shield/cmd/shield/commands/users"
 	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
@@ -267,6 +268,13 @@ func addCommands() {
 	cmds.Add("edit-user", users.Edit).AKA("edit user")
 	cmds.Add("passwd", users.Passwd)
 
+	cmds.Add("tenants", tenants.List)
+	cmds.Add("tenant", tenants.Get)
+	cmds.Add("create-tenant", tenants.Create).AKA("create tenant")
+	cmds.Add("edit-tenant", tenants.Edit).AKA("edit tenant")
+	cmds.Add("delete-tenant", tenants.Delete).AKA("delete tenant")
+	cmds.Add("invite", tenants.Invite)
+	cmds.Add("banish", tenants.Banish)
 }
 
 func addGlobalFlags() {

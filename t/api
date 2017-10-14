@@ -341,6 +341,13 @@ none() {
 	local why=$1
 	is "$(cat $WORKDIR/out)" "[]" "$why"
 }
+
+# or not empty
+notnone() {
+ local why=$1
+	isnt "$(cat $WORKDIR/out)" "[]" "$why" 
+}
+
 # }}}
 # include $type $name "optional description of the list" {{{
 includes() {
@@ -456,6 +463,7 @@ try "Checking that initial database is empty" # {{{
  run policies  ; none "Initial policies list should be empty"
  run jobs      ; none "Initial jobs list should be empty"
  run users     ; none "Initial users list should be empty"
+ run tenants   ; notnone "Initial tenants list shouldn't be empty"
 ) 2>&1 | indent
 
 
@@ -523,29 +531,34 @@ try "Checking that various API endpoints require JSON payloads" # {{{
 
 # }}}
 
-# }}}
-#
 try "Checking that unimplemented v2 HTTP methods return 501s" # {{{
-(for method in PUT DELETE PATCH OPTIONS TRACE; do
+(for method in PUT DELETE PATCH OPTIONS TRACE HEAD CONNECT; do
    for type in auth/local/users; do
      is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type")" \
         "501" "/v2/$type should HTTP 501 (not implemented) on a $method request"
    done
  done
- for method in GET HEAD POST PATCH OPTIONS TRACE; do
+
+ for method in PUT HEAD OPTIONS TRACE CONNECT; do
    for type in auth/local/users; do
+     is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type")" \
+        "501" "/v2/$type should HTTP 501 (not implemented) on a $method request"
+   done
+ done
+
+ for method in GET HEAD POST PUT PATCH OPTIONS TRACE CONNECT; do
+   for type in auth/local/users tenants; do
      is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/sub/requests")" \
         "501" "/v2/$type/sub/requests should HTTP 501 (not implemented) on a $method request"
    done
  done
+ 
 ) 2>&1 | indent
-
-
 # }}}
 try "Checking that various v2 API endpoints validate UUIDs" # {{{
 (for uuid in malformed-uuid-01234 "" "(abcdef-01234-56-789)"; do
    for method in GET PUT; do
-     for type in auth/local/users; do
+     for type in auth/local/users tenants; do
        is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/$uuid")" \
           "501" "$method /v2/$type/$uuid should HTTP 501 (not implemented) on a malformed UUID"
      done
@@ -558,11 +571,11 @@ try "Checking that various v2 API endpoints validate UUIDs" # {{{
 try "Checking that various v2 API endpoints require JSON payloads" # {{{
 (uuid=053d66fd-441d-4801-9d26-3e11b99d34a7
  badjson="}"
- for type in auth/local/users; do
+ for type in auth/local/users tenants; do
    is "$(httpstat POST "http://$SHIELD_DAEMON_ADDR/v2/$type" "$badjson")" \
       "400" "POST /v2/$type should HTTP 400 (bad request) on a malformed JSON payload"
  done
- for type in auth/local/users; do
+ for type in auth/local/users tenants; do
    is "$(httpstat PATCH "http://$SHIELD_DAEMON_ADDR/v2/$type/$uuid" "$badjson")" \
       "400" "PATCH /v2/$type/$uuid should HTTP 400 (bad request) on a malformed JSON payload"
  done
@@ -573,7 +586,7 @@ try "Checking that various v2 API endpoints require JSON payloads" # {{{
 
 
 try "Creating invalid things (validation)" # {{{
-(for type in target store policy job user; do
+(for type in target store policy job user tenant; do
    ! shield -k --raw create-$type <<<'{}' > $WORKDIR/out
    ok $? "\`shield create-$type' should fail if validation fails"
    # FIXME this is a terrible error message
@@ -726,8 +739,19 @@ EOF
   "sysrole":"admin"
 }
 EOF
-) 2>&1 | indent
 
+create tenant exampleTenant <<EOF
+{
+  "name":"exampleTenant"
+}
+EOF
+
+create tenant adminTenant <<EOF
+{
+  "name":"adminTenant"
+}
+EOF
+) 2>&1 | indent
 
 # }}}
 
@@ -1052,6 +1076,16 @@ try "Finding a single user" # {{{
 
 # }}}
 
+try "Finding a single tenant" # {{{
+(run tenant $(uuidof tenant adminTenant)
+ context 'a single tenant'
+ attr uuid    "$(uuidof tenant adminTenant)"
+ attr name    'adminTenant'
+) 2>&1 | indent
+
+
+# }}}
+
 
 try "Listing users" # {{{
 (run users
@@ -1091,6 +1125,21 @@ try "Listing users" # {{{
  run users --sysrole manager
  context 'users with sysrole manager'
  none 'no users with sysrole "manager"'
+
+) 2>&1 | indent
+
+
+# }}}
+
+try "Listing tenants" # {{{
+(run tenants
+ context 'all tenants'
+ includes tenant adminTenant
+ includes tenant exampleTenant
+
+ pick exampleTenant
+ attr uuid    "$(uuidof tenant exampleTenant)"
+ attr name    'exampleTenant'
 
 ) 2>&1 | indent
 
@@ -1191,6 +1240,24 @@ EOF
  attr account 'admin'
  attr sysrole 'manager'
 
+update tenant adminTenant <<EOF
+{
+  "name":"newAdminTenant"
+}
+EOF
+ context 'post-update of tenant adminTenant'
+ run tenant $(uuidof tenant adminTenant)
+ context 'a single tenant'
+ attr uuid    "$(uuidof tenant adminTenant)"
+ attr name    'newAdminTenant'
+
+#undo changes
+update tenant adminTenant <<EOF
+{
+  "name":"adminTenant"
+}
+EOF
+
 ) 2>&1 | indent
 # }}}
 try "Deleting things" # {{{
@@ -1216,9 +1283,18 @@ try "Deleting things" # {{{
  can_delete user admin
  can_delete user exampleuser
 
- context 'can not delete nonexistant user'
- runerr delete-user nonexistant
+ context 'can not delete nonexistent user'
+ runerr delete-user nonexistent
  attr error 'no matching users found'
+
+
+ context 'tenants can always be deleted'
+ can_delete tenant adminTenant
+ can_delete tenant exampleTenant
+
+ context 'can not delete nonexistent tenant'
+ runerr delete-tenant nonexistent
+ attr error 'no matching tenants found'
 
 ) 2>&1 | indent
 
