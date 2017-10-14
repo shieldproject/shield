@@ -1257,15 +1257,24 @@
         Renders the list of all retention policies
       ]]
           <div class="gutter blk">
-            <a class="new" href="#!/policies/new">Create a New Retention Policy &raquo;</a>
+            <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]policies/new">Create a New Retention Policy [[= _.admin ? 'Template ' : '' ]]&raquo;</a>
+            [[ if (_.admin) { ]]
+            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            <h2>Retention Policy <strong>Templates</strong></h2>
+            <p class="notice">These are <strong>template</strong> definitions; they will be
+            copied into new tenants as they are created.  Changes here will <strong>not</strong>
+            take effect on pre-existing tenants.</p>
+            [[ } else { ]]
             <h2>Retention Policies</h2>
+            [[ } ]]
             [[ if (_.policies.length == 0) { ]]
-            <div class="no-data">No Retention Policies have been created yet.</div>
+            <div class="no-data">No Retention [[= _.admin ? 'Policy Templates' : 'Policies' ]] have been created yet.</div>
             [[ } else { ]]
             <table>
               <thead><tr>
                 <th>Name</th>
                 <th>Retention Period</th>
+                <th></th>
                 <th></th>
               </tr></thead>
               <tbody>
@@ -1273,7 +1282,8 @@
                 <tr>
                   <td>[[= policy.name ]]</td>
                   <td>[[= policy.days ]] day[[ if (policy.days != 1) { ]]s[[ } ]]</td>
-                  <td><a href="#!/policies/edit:uuid:[[= policy.uuid ]]">edit</a></td>
+                  <td><a href="#!/[[= _.admin ? 'admin/' : '']]policies/edit:uuid:[[= policy.uuid ]]">edit</a></td>
+                  <td><a href="#!/[[= _.admin ? 'admin/' : '']]policies/delete:uuid:[[= policy.uuid ]]">delete</a></td>
                 </tr>
                 [[ }); ]]
               </tbody>
@@ -1289,8 +1299,8 @@
         editing existing retention policies.
       ]]
           <div class="gutter blk">
-            <a class="breadcrumb" href="#!/policies">&laquo; Back to Retention Policies</a>
-            <h2>[[ if (_.policy) { ]]Edit[[ } else { ]]New[[ } ]] Retention Policy</h2>
+            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]policies">&laquo; Back to Retention [[= _.admin ? 'Policy Templates' : 'Policies' ]]</a>
+            <h2>[[ if (_.policy) { ]]Edit[[ } else { ]]New[[ } ]] Retention Policy[[= _.admin ? ' Template' : '' ]]</h2>
 
             <form>
               <div class="error"></div>
@@ -1301,7 +1311,7 @@
                   <span data-error="missing">You must provide a name for this new retention policy.</span>
                 </span>
                 <div class="widget">
-                  <input type="text" id="policy-name" name="name" class="autofocus"
+                  <input type="text" id="policy-name" name="name" class="autofocus" tabindex="0"
                     [[ if (_.policy) { ]]value="[[= _.policy.name ]]"[[ } ]]/>
                   <p class="help">Pick a memorable or descriptive name for this retention policy,
                   so that other operators can determine what to use it for.</p>
@@ -1324,6 +1334,27 @@
 
               <button class="go">[[ if (_.policy) { ]]Save[[ } else { ]]Create[[ } ]]</button>
             </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--policies-delete"><!-- {{{ -->
+      [[#
+        {policies-delete}
+
+        A modal interaction screen that requires the oeprator to acknowledge
+        that what they are about to do will result in the destruction of
+        configuration data.
+      ]]
+          <div class="confirm">
+            <h2>Delete The <em>[[= _.policy.name ]]</em> Retention Policy[[= _.admin ? ' Template' : '' ]]?</h2>
+
+            <p>You have requested that S.H.I.E.L.D. remove the configuration for
+            the retention policy[[= _.admin ? ' template' : '' ]] "[[= _.policy.name ]]".</p>
+
+            <p class="q">Are you sure you want to delete <em>[[= _.policy.name ]]</em>?</p>
+            <div class="a">
+              <button class="danger" rel="yes">Yes, Delete It</button>
+              <button class="safe" rel="close">No, Cancel This Operation</button>
+            </div>
           </div>
     <!-- }}} --></script>
 
@@ -1472,6 +1503,12 @@
                 <p>You may elect to configure some global storage systems, which can be used,
                 but not modified, by all tenants; only SHIELD technicians, engineers, and
                 admins are able to view and edit their configuration.</p>
+              </li>
+
+              <li><a href="#!/admin/policies">Retention Policy Templates</a>
+                <p>You can define retention policy templates that will be copied into each
+                new tenant as they are created.  This can be handy for getting people started
+                quickly, and using your best practices for data retention.</p>
               </li>
 
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
@@ -2297,7 +2334,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
           error: "Failed to retrieve retention policy information from the SHIELD API.",
           success: function (data) {
-            data.days = parseInt(data.expires / 86400);
+            data.days = parseInt(data.expires / 86400); /* FIXME fix this in API */
             $('#main').html($(template('policies-form', { policy: data }))
               .autofocus()
               .on('submit', 'form', function (event) {
@@ -2333,6 +2370,37 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         });
 
         break; /* #!/policies/edit */
+        // }}}
+      case '#!/policies/delete': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
+          error: "Failed to retrieve retention policy information from the SHIELD API.",
+          success: function (data) {
+            modal($(template('policies-delete', { policy: data }))
+              .on('click', '[rel="yes"]', function (event) {
+                event.preventDefault();
+                api({
+                  type: 'DELETE',
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
+                  error: "Unable to delete retention policy",
+                  complete: function () {
+                    modal(true);
+                  },
+                  success: function (event) {
+                    goto('#!/policies');
+                  }
+                });
+              })
+              .on('click', '[rel="close"]', function (event) {
+                modal(true);
+                goto('#!/policies');
+              })
+            );
+          }
+        });
+
+        break; /* #!/admin/policies/delete */
         // }}}
 
       case '#!/tenants': /* {{{ */
@@ -2852,6 +2920,132 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         });
 
         break; /* #!/admin/stores/delete */
+        // }}}
+
+      case '#!/admin/policies': /* {{{ */
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/global/policies',
+          error: "Failed retrieving the list of retention policy templates from the SHIELD API.",
+          success: function (data) {
+            /* FIXME: data fixups that should probably migrate back to API */
+            for (var i = 0; i < data.length; i++) {
+              /* convert seconds -> days */
+              data[i].days = data[i].expires / 86400;
+            }
+
+            $('#main').html(template('policies', { policies: data, admin: true }));
+          }
+        });
+        break; /* #!/admin/policies */
+        // }}}
+      case '#!/admin/policies/new': /* {{{ */
+        $('#main').html($(template('policies-form', { policy: null, admin: true }))
+          .autofocus()
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+
+            $form.reset();
+            if (!parseInt(data.days) || parseInt(data.days) < 1) {
+              $form.error('expires', 'invalid');
+            }
+            if (!$form.isOK()) {
+              return;
+            }
+
+            data.expires = data.days * 86400; /* FIXME fixup for API */
+            delete data.days;
+
+            api({
+              type: 'POST',
+              url:  '/v2/global/policies',
+              data: data,
+              success: function () {
+                goto("#!/admin/policies");
+              },
+              error: function (xhr) {
+                $form.error(xhr.responseJSON);
+              }
+            });
+          }));
+        break; /* #!/admin/policies/new */
+        // }}}
+      case '#!/admin/policies/edit': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/global/policies/'+args.uuid,
+          error: "Failed to retrieve retention policy template information from the SHIELD API.",
+          success: function (data) {
+            data.days = parseInt(data.expires / 86400); /* FIXME fix this in API */
+            $('#main').html($(template('policies-form', { policy: data, admin: true }))
+              .autofocus()
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
+
+                var $form = $(event.target);
+                var data = $form.serializeObject();
+
+                $form.reset();
+                if (!parseInt(data.days) || parseInt(data.days) < 1) {
+                  $form.error('expires', 'invalid');
+                }
+                if (!$form.isOK()) {
+                  return;
+                }
+
+                data.expires = data.days * 86400; /* FIXME fixup for API */
+                delete data.days;
+
+                api({
+                  type: 'PUT',
+                  url:  '/v2/global/policies/'+args.uuid,
+                  data: data,
+                  success: function () {
+                    goto("#!/admin/policies");
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              }));
+            }
+          });
+          break; /* #!/admin/policies/edit */
+        // }}}
+      case '#!/admin/policies/delete': /* {{{ */
+        api({
+          type: 'GET',
+          url:  '/v2/global/policies/'+args.uuid,
+          error: "Failed to retrieve retention policy template information from the SHIELD API.",
+          success: function (data) {
+            modal($(template('policies-delete', { policy: data, admin: true }))
+              .on('click', '[rel="yes"]', function (event) {
+                event.preventDefault();
+                api({
+                  type: 'DELETE',
+                  url:  '/v2/global/policies/'+args.uuid,
+                  error: "Unable to delete retention policy template",
+                  complete: function () {
+                    modal(true);
+                  },
+                  success: function (event) {
+                    goto('#!/admin/policies');
+                  }
+                });
+              })
+              .on('click', '[rel="close"]', function (event) {
+                modal(true);
+                goto('#!/admin/policies');
+              })
+            );
+          }
+        });
+
+        break; /* #!/admin/policies/delete */
         // }}}
 
       case "#!/unlock": /* {{{ */
