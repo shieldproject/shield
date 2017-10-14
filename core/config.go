@@ -30,7 +30,10 @@ type Config struct {
 	Timeout       int    `yaml:"max_timeout"`
 	SkipSSLVerify bool   `yaml:"skip_ssl_verify"`
 	WebRoot       string `yaml:"web_root"`
-	MOTD          string `yaml:"motd"`
+
+	Environment string `yaml:"env"`
+	Color       string `yaml:"color"`
+	MOTD        string `yaml:"motd"`
 
 	EncryptionType string `yaml:"encryption_type"`
 	VaultKeyfile   string `yaml:"vault_keyfile"`

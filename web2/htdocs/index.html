@@ -224,9 +224,9 @@
       ]]
           <div id="login" class="frontdoor">
             <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
-              <h1>SHIELD<span>Production<span></h1>
+              <h1>SHIELD<span style="color: [[= $global.hud.shield.color || 'green' ]]">[[= $global.hud.shield.env ]]<span></h1>
               <div class="dialog">
-                <p class="motd">Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis dolore te feugait nulla facilisi.</p>
+                <p class="motd">[[= $global.hud.shield.motd ]]</p>
 
                 [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
@@ -348,7 +348,7 @@
         Renders the top-most bar, with the SHIELD name / environment, and the
         current users name / tenant and "personal settings" menu.
       ]]
-        <h1><a href="#!/systems">SHIELD [[= _.shield.env ]] <span>[[= _.shield.ip ]]</span></a></h1>
+        <h1><a href="#!/systems">SHIELD [[ if (_.shield.color) { ]]<span style="color:[[= _.shield.color ]]">[[ } ]][[= _.shield.env ]]</span> <span>[[= _.shield.ip ]]</span></a></h1>
         [[ if (_.user) { ]]
         <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
         <div class="flyout ephemeral">
@@ -3212,7 +3212,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     function redraw() {
       $('#hud').html(template('hud', $global.hud));
       $('.top-bar').html(template('top-bar', {
-        shield: $global.hud.shield,
+        shield:  $global.hud.shield,
         user:    $global.auth.user,
         tenants: $global.auth.tenants,
         tenant:  $global.auth.tenant

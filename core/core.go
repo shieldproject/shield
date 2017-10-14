@@ -49,6 +49,8 @@ type Core struct {
 	webroot string
 	listen  string
 	auth    []AuthConfig
+	env     string
+	color   string
 	motd    string
 
 	/* vault */
@@ -97,6 +99,8 @@ func NewCore(file string) (*Core, error) {
 		webroot: config.WebRoot,
 		listen:  config.Addr,
 		auth:    config.Auth,
+		env:     config.Environment,
+		color:   config.Color,
 		motd:    config.MOTD,
 
 		/* encryption */

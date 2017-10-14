@@ -123,6 +123,12 @@ slow_loop:     20
 fast_loop:     2
 vault_keyfile: ${workdir}/var/vault.crypt
 debug: true
+
+env:   TESTDEV
+color: yellow
+motd: |
+  Welcome to the testdev S.H.I.E.L.D. environment!
+
 auth:
   - name:       Token
     identifier: token

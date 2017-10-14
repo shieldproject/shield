@@ -1,8 +1,6 @@
 package core
 
 import (
-	"os"
-
 	"github.com/pborman/uuid"
 )
 
@@ -24,6 +22,7 @@ type Health struct {
 		FQDN    string `json:"fqdn"`
 		Env     string `json:"env"`
 		Color   string `json:"color"`
+		MOTD    string `json:"motd"`
 	} `json:"shield"`
 	Health struct {
 		Core    string `json:"core"`
@@ -47,9 +46,11 @@ func (core *Core) checkHealth() (Health, error) {
 	var health Health
 
 	health.SHIELD.Version = Version
-	health.SHIELD.Env = os.Getenv("SHIELD_NAME")
+	health.SHIELD.Env = core.env
 	health.SHIELD.IP = core.ip
 	health.SHIELD.FQDN = core.fqdn
+	health.SHIELD.MOTD = core.motd
+	health.SHIELD.Color = core.color
 
 	health.Health.Storage = true
 	stores, err := core.DB.GetAllStores(nil)
