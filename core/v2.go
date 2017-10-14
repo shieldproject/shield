@@ -2063,7 +2063,7 @@ func (core *Core) v2API() *route.Router {
 
 		user, err := core.DB.GetUser(in.Username, "local")
 		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred when authenticating local user '%s'", in.Username))
+			r.Fail(route.Oops(err, "Unable to log you in"))
 			return
 		}
 
@@ -2074,7 +2074,7 @@ func (core *Core) v2API() *route.Router {
 
 		session, err := core.createSession(user)
 		if err != nil {
-			r.Fail(route.Oops(err, "Unable to process login session"))
+			r.Fail(route.Oops(err, "Unable to log you in"))
 			return
 		}
 
@@ -2083,7 +2083,7 @@ func (core *Core) v2API() *route.Router {
 
 		id, err := core.checkAuth(session.UUID.String())
 		if err != nil || id == nil {
-			r.Fail(route.Oops(err, "Unable to process login session"))
+			r.Fail(route.Oops(err, "Unable to log you in"))
 		}
 
 		r.OK(id)
@@ -2092,47 +2092,36 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) { // {{{
 		sessionID := getSessionID(r.Req)
 		if sessionID == "" {
-			//I guess we're okay with not getting a session to logout?...
-			r.Success("No user to logout")
+			r.Success("Successfully logged out")
 		}
 
-		id := uuid.Parse(sessionID)
-		if id == nil {
-			r.Fail(route.Bad(fmt.Errorf("Invalid session ID received"), "Unable to log out"))
-		}
-		err := core.DB.ClearSession(id)
-		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred"))
+		if err := core.DB.ClearSession(uuid.Parse(sessionID)); err != nil {
+			r.Fail(route.Oops(err, "Unable to log you out"))
 			return
 		}
 
-		// unset the session cookie
 		r.SetCookie(SessionCookie("-", false))
 		r.Success("Successfully logged out")
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/id", func(r *route.Request) { // {{{
 		sessionID := getSessionID(r.Req)
-		//Once auth is in place this check shouldn't trigger, so consider panicking here instead
+		/* once auth is in place this check shouldn't trigger,
+		   so consider panicking here instead */
 		if sessionID == "" {
-			r.Fail(route.Errorf(401, fmt.Errorf("Request contained invalid session ID"), "Unable to get user information"))
-		}
-		id, _ := core.checkAuth(sessionID)
-		if id == nil {
-			r.OK(struct {
-				Unauthenticated bool `json:"unauthenticated"`
-			}{
-				Unauthenticated: true,
-			})
+			r.Fail(route.Errorf(401, fmt.Errorf("no session id found in request"), "Authentication failed"))
 			return
 		}
 
-		r.OK(id)
-	})
+		if id, _ := core.checkAuth(sessionID); id != nil {
+			r.OK(id)
+			return
+		}
 
-	if core.debug {
-		core.dispatchDebug(r)
-	}
+		r.OK(struct {
+			Unauthenticated bool `json:"unauthenticated"`
+		}{true})
+	})
 	// }}}
 
 	r.Dispatch("GET /v2/global/stores", func(r *route.Request) { // {{{
@@ -2473,5 +2462,8 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	if core.debug {
+		core.dispatchDebug(r)
+	}
 	return r
 }

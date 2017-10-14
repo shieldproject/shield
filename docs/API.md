@@ -189,22 +189,12 @@ the `X-Shield-Session` request header.
 
 The following error messages can be returned:
 
-- **no username given** - The required field `username` was not
-  supplied.  Note that this is errant behavior, inconsistent with
-  the rest of the SHIELD API.  It should be FIXME'd before v8.
-- **no password given** - The required field `password` was not
-  supplied.  Note that this is errant behavior, inconsistent with
-  the rest of the SHIELD API.  It should be FIXME'd before v8.
-- **Unable to authenticate** - An internal error occurred and
-  should be investigated by the site administrators.
+- **Unable to log you in** - An internal error occurred and should
+  be investigated by the site administrators.
+
 - **Incorrect username or password** - The supplied credentials
   were incorrect; either the user doesn't exist, or the password
   was wrong.
-- **Unable to create session** - An internal error occurred and
-  should be investigated by the site administrators.
-- FIXME - one more error, but waiting on Tom to submit a PR.
-
-
 
 
 ### GET /v2/auth/logout
@@ -220,13 +210,22 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+{
+  "ok" : "Successfully logged out"
+}
+```
+
+**NOTE:** The same behavior is exhibited when an authenticated
+session successfully logs out, as is seen when an unauthenticated
+session attempts to log out.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Unable to log you out** - An internal error occurred and
+  should be investigated by the site administrators.
 
 
 ### GET /v2/auth/id
@@ -244,13 +243,53 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-TBD
+```json
+{
+  "user": {
+    "name"    : "Your Full Name",
+    "account" : "username",
+    "backend" : "SHIELD",
+    "sysrole" : ""
+  },
+  "tenants": [
+    {
+      "uuid": "63a8f402-31e6-4503-8fab-66cbcf411ed3",
+      "name": "Some Random Tenant",
+      "role": "admin"
+    },
+    {
+      "uuid": "860f7685-c311-4ae5-b34d-6991fc721a37",
+      "name": "Another Tenant",
+      "role": "engineer"
+    }
+  ],
+  "tenant": {
+    "uuid": "63a8f402-31e6-4503-8fab-66cbcf411ed3",
+    "name": "Some Random Tenant",
+    "role": "admin"
+  }
+}
+```
+
+The top-level `user` key contains information about the current
+authenticated user, including their name and what authentication
+provider they came from.
+
+The `tenants` key lists _all_ of the tenants that this user
+belongs to, along with the role assigned on each.  The session is
+free to switch between any of these tenants as they see fit.
+
+The `tenant` key contains the tenant definition for the currently
+selected tenant, based on user preferences.
 
 **Errors**
 
-TBD
-
 The following error messages can be returned:
+
+- **Authentication failed** - The request either lacked a session
+  cookie (or an `X-Shield-Session` header), or some other internal
+  error has occurred, and SHIELD administrators should
+  investigate.
 
 
 
