@@ -680,8 +680,11 @@
 
    ***************************************************/
   exported.jQuery.fn.autofocus = function () { // {{{
-    this.find('.autofocus').focus();
-    return this;
+    var $self = this;
+    window.setTimeout(function () {
+      $self.find('.autofocus').focus();
+    }, 150);
+    return $self;
   };
   // }}}
 
