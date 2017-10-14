@@ -244,12 +244,18 @@
 
                   <form>
                     <div class="error"></div>
-                    <div class="ctl">
+                    <div class="ctl" data-field="username">
                       <label for="local-login-username">Username</label>
+                      <div class="errors">
+                        <span data-error="missing">Please supply your username.</span>
+                      </div>
                       <input type="text" id="local-login-username" name="username">
                     </div>
-                    <div class="ctl">
+                    <div class="ctl" data-field="password">
                       <label for="local-login-password">Password</label>
+                      <div class="errors">
+                        <span data-error="missing">Please supply your password.</span>
+                      </div>
                       <input type="password" id="local-login-password" name="password">
                       <a class="forgotpw" href="#">Forgot your password?</a>
                     </div>
@@ -1947,16 +1953,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 .on("submit", "form", function (event) {
                   event.preventDefault()
                   progress('local SHIELD authentication');
+
+                  var $form = $(event.target);
+                  var data = $form.serializeObject();
+                  $form.reset();
+
                   api({
                     type: "POST",
-                    url: "/v2/auth/login",
-                    data: $(event.target).serializeObject(),
-                    success: function (_, _, xhr) {
-                      /*
-                      $global.auth = xhr.responseJSON;
-                      $("#viewport").html(template("layout"));
-                      goto("");
-                      */
+                    url:  "/v2/auth/login",
+                    data: data,
+                    success: function () {
+                      /* this makes the chrome re-render unnecessary */
                       document.location.href = "/"
                     },
                     error: function (xhr) {

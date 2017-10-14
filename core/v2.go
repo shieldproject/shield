@@ -2049,47 +2049,41 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("POST /v2/auth/login", func(r *route.Request) { // {{{
-		auth := struct {
+		var in struct {
 			Username string
 			Password string
-		}{}
-
-		if !r.Payload(&auth) { //Payload reports its own errors
+		}
+		if !r.Payload(&in) {
 			return
 		}
 
-		if auth.Username == "" {
-			r.Fail(route.Errorf(403, nil, "no username given"))
+		if r.Missing("username", in.Username, "password", in.Password) {
 			return
 		}
 
-		if auth.Password == "" {
-			r.Fail(route.Errorf(403, nil, "no password given"))
-		}
-
-		user, err := core.DB.GetUser(auth.Username, "local")
+		user, err := core.DB.GetUser(in.Username, "local")
 		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred when authenticating local user '%s'", auth.Username))
+			r.Fail(route.Oops(err, "An unknown error occurred when authenticating local user '%s'", in.Username))
 			return
 		}
 
-		if user == nil || !user.Authenticate(auth.Password) {
+		if user == nil || !user.Authenticate(in.Password) {
 			r.Fail(route.Errorf(403, nil, "Incorrect username or password"))
 			return
 		}
 
 		session, err := core.createSession(user)
 		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred when authenticating local user '%s'", auth.Username))
+			r.Fail(route.Oops(err, "Unable to process login session"))
 			return
 		}
 
 		r.SetCookie(SessionCookie(session.UUID.String(), true))
 		r.SetHeader("X-Shield-Session", session.UUID.String())
 
-		id, _ := core.checkAuth(session.UUID.String())
-		if id == nil {
-			r.Fail(route.Oops(fmt.Errorf("Failed to lookup session ID after login"), "An unknown error occurred"))
+		id, err := core.checkAuth(session.UUID.String())
+		if err != nil || id == nil {
+			r.Fail(route.Oops(err, "Unable to process login session"))
 		}
 
 		r.OK(id)

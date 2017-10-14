@@ -425,6 +425,10 @@ body { font-family: sans-serif; }
   font-size: 10pt;
   float: right;
 }
+#login .local .errors {
+  color: crimson;
+  font-size: 13px;
+}
 #login .local button {
   display: block;
   font-size: 12pt;
