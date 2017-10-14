@@ -664,7 +664,7 @@ The following error messages can be returned:
 
 ### POST /v2/tenants
 
-Creates a new tenant.
+Create a new tenant.
 
 **Request**
 
@@ -1484,7 +1484,7 @@ The following error messages can be returned:
 
 ### POST /v2/tenants/:tenant/policies
 
-TBD
+Create a new retention policy in a tenant.
 
 **Request**
 
@@ -1630,8 +1630,6 @@ curl -H 'Accept: application/json' \
 ```
 
 **Errors**
-
-TBD
 
 The following error messages can be returned:
 
@@ -2262,3 +2260,221 @@ The following error messages can be returned:
   storage system is referenced by one or more extant job
   configuration; deleting it would lead to an incomplete (and
   unusable) setup.
+
+
+### GET /v2/global/policies
+
+Retrieve all defined retention policy templates.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X GET https://shield.host/v2/global/policies
+```
+
+**Response**
+
+```json
+[
+  {
+    "uuid"    : "f4dedf80-cdb2-4c81-9a58-b3a8282e3202",
+    "name"    : "Long-Term Storage",
+    "summary" : "A long-term solution, for infrequent backups only.",
+    "expires" : 7776000
+  }
+]
+```
+
+The `expires` key is specified in seconds, but must always be a
+multiple of 86400 (1 day).
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve retention policy templates information** -
+  An internal error occurred and should be investigated by the
+  site administrators.
+
+
+### POST /v2/global/policies
+
+Create a new retention policy template.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/global/policies -d '
+{
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
+}'
+```
+
+The `expires` value must be specified in seconds, and must be at
+least 86,400 (1 day) and be a multiple of 86,400.
+
+**Response**
+
+```json
+{
+  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Retention policy expiry must be greater than 1 day** - You
+  supplied an `expires` value less than 86,400.  Please re-try the
+  request with a higher value.
+
+- **Retention policy expire must be a multiple of 1 day** - You
+  supplied an `expires` value that was not a multiple of 86,400.
+  Please re-try the request with a different value.
+
+- **Unable to create retention policy template** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+
+### GET /v2/global/policies/:uuid
+
+Retrieve a single retention policy template.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X GET https://shield.host/v2/global/policies/$uuid
+```
+
+**Response**
+
+```json
+{
+  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve retention policy template information** -
+  An internal error occurred and should be investigated by the
+  site administrators.
+
+- **No such retention policy template** - No retention policy
+  template with the given UUID exists globally.
+
+
+### PUT /v2/global/policies/:uuid
+
+Update a single retention policy template.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PUT https://shield.host/v2/global/policies/$uuid -d '
+{
+  "name"    : "Updated Retention Policy Name",
+  "summary" : "A longer description of the retention policy",
+  "expires" : 86400
+}'
+```
+
+You can specify as many or few of these fields as you want;
+omitted fields will be left at their previous values.
+
+**NOTE:** Updating a retention policy template will not affect any
+tenants created prior to the update; updates will apply to new,
+future tenants.
+
+**Response**
+
+```json
+{
+  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+  "name"    : "Retention Policy Name",
+  "summary" : "A longer description of the policy",
+  "expires" : 86400
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve retention policy template information** -
+  An internal error occurred and should be investigated by the
+  site administrators.
+
+- **Retention policy expiry must be greater than 1 day** - You
+  supplied an `expires` value less than 86,400.  Please re-try the
+  request with a higher value.
+
+- **Retention policy expire must be a multiple of 1 day** - You
+  supplied an `expires` value that was not a multiple of 86,400.
+  Please re-try the request with a different value.
+
+- **Unable to update retention policy template** - An internal
+  error occurred and should be investigated by the site
+  administrators.
+
+
+### DELETE /v2/global/policies/:uuid
+
+Remove a retention policy template.
+
+**NOTE:** Removing a retention policy template will not affect any
+tenants created prior to the removal; the template will not be
+copied into any future tenants.
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/global/policies/$uuid
+```
+
+**Response**
+
+```json
+{
+  "ok": "Retention policy template deleted successfully"
+}
+```
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve retention policy template information** - An
+  internal error has occurred and should be investigated by the site
+  administrators.
+
+- **No such retention policy template** - No retention policy with
+  the given UUID exists on the specified tenant.
+
+- **Unable to delete retention policy template** - An internal
+  error has occurred and should be investigated by the site
+  administrators.
+
+- **The retention policy template cannot be deleted at this time**
+  This retention policy is referenced by one or more extant job
+  configuration; deleting it would lead to an incomplete (and
+  unusable) setup.  Note that this error should never happen.

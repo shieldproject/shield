@@ -1232,7 +1232,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.Success("Updated retention policy successfully")
+		r.OK(policy)
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
@@ -2188,6 +2188,151 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		r.Success("Storage system deleted successfully")
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/global/policies", func(r *route.Request) { // {{{
+		policies, err := core.DB.GetAllRetentionPolicies(
+			&db.RetentionFilter{
+				ForTenant:  uuid.NIL.String(),
+				SkipUsed:   r.ParamIs("unused", "t"),
+				SkipUnused: r.ParamIs("unused", "f"),
+				SearchName: r.Param("name", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policy templates information"))
+			return
+		}
+
+		r.OK(policies)
+	})
+	// }}}
+	r.Dispatch("POST /v2/global/policies", func(r *route.Request) { // {{{
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Expires uint   `json:"expires"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		if r.Missing("name", in.Name) {
+			return
+		}
+
+		/* FIXME: for v2, flip expires over to days, not seconds */
+		if in.Expires < 86400 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
+			return
+		}
+		if in.Expires % 86400 != 0 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
+			return
+		}
+
+		policy, err := core.DB.CreateRetentionPolicy(&db.RetentionPolicy{
+			TenantUUID: uuid.Parse(uuid.NIL.String()),
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Expires:    in.Expires,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to create retention policy template"))
+			return
+		}
+
+		r.OK(policy)
+	})
+	// }}}
+	r.Dispatch("GET /v2/global/policies/:uuid", func(r *route.Request) { // {{{
+		policy, err := core.DB.GetRetentionPolicy(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
+			return
+		}
+
+		if policy == nil || policy.TenantUUID.String() != uuid.NIL.String() {
+			r.Fail(route.NotFound(nil, "No such retention policy template"))
+			return
+		}
+
+		r.OK(policy)
+	})
+	// }}}
+	r.Dispatch("PUT /v2/global/policies/:uuid", func(r *route.Request) { // {{{
+		var in struct {
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Expires uint   `json:"expires"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		policy, err := core.DB.GetRetentionPolicy(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
+			return
+		}
+
+		if policy == nil || policy.TenantUUID.String() != uuid.NIL.String() {
+			r.Fail(route.NotFound(nil, "No such retention policy template"))
+			return
+		}
+
+		if in.Name != "" {
+			policy.Name = in.Name
+		}
+		if in.Summary != "" {
+			policy.Summary = in.Name
+		}
+		if in.Expires != 0 {
+			/* FIXME: for v2, flip expires over to days, not seconds */
+			if in.Expires < 86400 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
+				return
+			}
+			if in.Expires % 86400 != 0 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
+				return
+			}
+			policy.Expires = in.Expires
+		}
+
+		if err := core.DB.UpdateRetentionPolicy(policy); err != nil {
+			r.Fail(route.Oops(err, "Unable to update retention policy template"))
+			return
+		}
+
+		r.OK(policy)
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/global/policies/:uuid", func(r *route.Request) { // {{{
+		policy, err := core.DB.GetRetentionPolicy(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
+			return
+		}
+
+		if policy == nil || policy.TenantUUID.String() != uuid.NIL.String() {
+			r.Fail(route.NotFound(nil, "No such retention policy template"))
+			return
+		}
+
+		deleted, err := core.DB.DeleteRetentionPolicy(policy.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete retention policy template"))
+			return
+		}
+		if !deleted {
+			r.Fail(route.Forbidden(nil, "The retention policy template cannot be deleted at this time"))
+			return
+		}
+
+		r.Success("Retention policy deleted successfully")
 	})
 	// }}}
 
