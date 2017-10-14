@@ -2022,7 +2022,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
           api({
             type: 'GET',
-            url:  '/v2/tenants/'+$global.auth.tenant+'/systems',
+            url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/systems',
             error: "Failed retrieving the list of protected systems from the SHIELD API.",
             success: function (systems) {
               data = { systems: systems };
