@@ -113,17 +113,21 @@ func (p *UAAAuthProvider) HandleRedirect(req *http.Request) *db.User {
 		return nil
 	}
 	for tname, role := range p.resolveSCIM(scims) {
-		p.Infof("ensuring that tenant '%s' exists", tname)
-		tenant, err := p.core.DB.EnsureTenant(tname)
-		if err != nil {
-			p.Errorf("failed to find/create tenant '%s': %s", tname, err)
-			return nil
-		}
-		p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", account, user.UUID, tenant.Name, tenant.UUID, role)
-		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
-		if err != nil {
-			p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", account, user.UUID, tenant.Name, tenant.UUID, role, err)
-			return nil
+		if tname == "SYSTEM" {
+			user.SysRole = role
+		} else {
+			p.Infof("ensuring that tenant '%s' exists", tname)
+			tenant, err := p.core.DB.EnsureTenant(tname)
+			if err != nil {
+				p.Errorf("failed to find/create tenant '%s': %s", tname, err)
+				return nil
+			}
+			p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", account, user.UUID, tenant.Name, tenant.UUID, role)
+			err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
+			if err != nil {
+				p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", account, user.UUID, tenant.Name, tenant.UUID, role, err)
+				return nil
+			}
 		}
 	}
 

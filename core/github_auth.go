@@ -22,7 +22,8 @@ type GithubAuthProvider struct {
 	ClientID       string `json:"client_id"`
 	ClientSecret   string `json:"client_secret"`
 	GithubEndpoint string `json:"github_endpoint"`
-	Mapping        map[string]struct {
+	Mapping        []struct {
+		Github string `json:"github"`
 		Tenant string `json:"tenant"`
 		Rights []struct {
 			Team string `json:"team"`
@@ -143,18 +144,25 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	for org, teams := range orgs {
 		tname, role, assigned := p.resolveOrgAndTeam(org, teams)
 		if assigned {
-			if existing, already := assign[tname]; already {
-				if (existing == "operator" && existing != role) || (existing == "engineer" && role == "admin") {
-					p.Infof("upgrading %s (%s org) assignment on tenant '%s' to %s", account, org, tname, role)
+			if tname == "SYSTEM" {
+				user.SysRole = role
+			} else {
+				if existing, already := assign[tname]; already {
+					if (existing == "operator" && existing != role) || (existing == "engineer" && role == "admin") {
+						p.Infof("upgrading %s (%s org) assignment on tenant '%s' to %s", account, org, tname, role)
+						assign[tname] = role
+					}
+				} else {
+					p.Infof("assigning %s (%s org) to tenant '%s' as %s", account, org, tname, role)
 					assign[tname] = role
 				}
-			} else {
-				p.Infof("assigning %s (%s org) to tenant '%s' as %s", account, org, tname, role)
-				assign[tname] = role
 			}
 		}
 	}
 	for tname, role := range assign {
+		if tname == "SYSTEM" {
+			continue
+		}
 		p.Infof("ensuring that tenant '%s' exists", tname)
 		tenant, err := p.core.DB.EnsureTenant(tname)
 		if err != nil {
@@ -173,7 +181,10 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 }
 
 func (p GithubAuthProvider) resolveOrgAndTeam(org string, teams []string) (string, string, bool) {
-	if candidate, ok := p.Mapping[org]; ok {
+	for _, candidate := range p.Mapping {
+		if candidate.Github != org {
+			continue
+		}
 		for _, match := range candidate.Rights {
 			if match.Team == "" {
 				return candidate.Tenant, match.Role, true
