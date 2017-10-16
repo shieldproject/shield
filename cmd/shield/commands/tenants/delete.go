@@ -29,7 +29,7 @@ func cliDeleteTenant(opts *commands.Options, args ...string) error {
 	}
 
 	if !*opts.Raw {
-		ShowTenant(tenant, *opts.ShowUUID)
+		Show(tenant, *opts.ShowUUID)
 		if !tui.Confirm("Really delete this tenant?") {
 			return internal.ErrCanceled
 		}

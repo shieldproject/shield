@@ -2,6 +2,7 @@ package tenants
 
 import (
 	"os"
+	"strings"
 
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
@@ -12,13 +13,10 @@ import (
 
 //List - List shield users
 var List = &commands.Command{
-	Summary: "List shield tenants",
+	Summary: "List tenants",
 	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "name", Short: 'n', Valued: true,
-				Desc: "Show only tenants with the specified name",
-			},
+			commands.FuzzyFlag,
 		},
 		JSONOutput: `[{ 
 		"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf", 
@@ -31,6 +29,9 @@ var List = &commands.Command{
 
 func cliListTenants(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'tenants' command")
+	if *opts.Raw {
+		log.DEBUG(" fuzzy search? %v", api.MaybeBools(*opts.Fuzzy, *opts.Raw).Yes)
+	}
 
 	if *opts.Limit == "" {
 		*opts.Limit = "20"
@@ -38,7 +39,9 @@ func cliListTenants(opts *commands.Options, args ...string) error {
 	log.DEBUG("  for limit: '%s'", *opts.Limit)
 
 	tenants, err := api.GetTenants(api.TenantFilter{
-		Limit: *opts.Limit,
+		Name:       strings.Join(args, " "),
+		Limit:      *opts.Limit,
+		ExactMatch: api.Opposite(api.MaybeBools(*opts.Fuzzy, *opts.Raw)),
 	})
 	if err != nil {
 		return err
