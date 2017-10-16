@@ -18,7 +18,11 @@ func (e Error) Error() string {
 }
 
 func (e *Error) ProvideDiagnostic() {
-	e.Diagnostic = fmt.Sprintf("server-side error: %s", e.e)
+	if e.e != nil {
+		e.Diagnostic = fmt.Sprintf("server-side error: %s", e.e)
+	} else {
+		e.Diagnostic = "no further diagnostic information available"
+	}
 }
 
 func Bad(e error, msg string, args ...interface{}) Error {
