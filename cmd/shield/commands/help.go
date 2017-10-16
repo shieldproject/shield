@@ -202,6 +202,11 @@ var (
 		Desc: `A string partially matching the name of a single tenant
 				or a UUID exactly matching the UUID of a tenant.`,
 	}
+	UserNameFlag = FlagInfo{
+		Name: "username", Positional: true, Mandatory: true,
+		Desc: `A string partially matching the account of a single (local) user
+				or a UUID exactly matching the UUID of a (local) user.`,
+	}
 	//AccountFlag <account>
 	AccountFlag = FlagInfo{
 		Name: "account", Positional: true, Mandatory: true,
