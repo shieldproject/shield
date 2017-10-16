@@ -38,6 +38,7 @@ type ArchiveFilter struct {
 	Before        *time.Time
 	After         *time.Time
 	ExpiresBefore *time.Time
+	ExpiresAfter  *time.Time
 	WithStatus    []string
 	WithOutStatus []string
 	ForTenant     string
@@ -306,8 +307,8 @@ func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
 	)
 }
 
-func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
-	var i int
+func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
+	var i int64
 
 	if filter == nil {
 		filter = &ArchiveFilter{}
@@ -348,8 +349,16 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
 		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
 	}
 	if filter.ExpiresBefore != nil {
-		wheres = append(wheres, "expires_at < ?")
+		wheres = append(wheres, "expires_at <= ?")
 		args = append(args, filter.ExpiresBefore.Unix())
+	}
+	if filter.ExpiresAfter != nil {
+		wheres = append(wheres, "expires_at >= ?")
+		args = append(args, filter.ExpiresAfter.Unix())
+	}
+	if filter.ForTenant != "" {
+		wheres = append(wheres, "a.tenant_uuid = ?")
+		args = append(args, filter.ForTenant)
 	}
 	limit := ""
 	if filter.Limit > 0 {
@@ -368,7 +377,7 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
 	}
 	defer r.Close()
 
-	var p *int
+	var p *int64
 	for r.Next() {
 		if err = r.Scan(&p); err != nil {
 			return i, err

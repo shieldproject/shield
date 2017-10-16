@@ -27,7 +27,8 @@ type Store struct {
 	Config        map[string]interface{} `json:"config,omitempty"`
 	DisplayConfig []StoreConfigItem      `json:"display_config,omitempty"`
 
-	TenantUUID uuid.UUID `json:"-"`
+	TenantUUID    uuid.UUID `json:"-"`
+	DailyIncrease int64     `json:"daily_increase"`
 }
 
 func (s *Store) Resolve() error {
@@ -143,7 +144,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 		return `
 		   SELECT s.uuid, s.name, s.summary, s.agent,
 		          s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
-		          s.private_config, s.public_config
+		          s.private_config, s.public_config, s.daily_increase
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
@@ -159,7 +160,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	return `
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
 	                   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
-	                   s.private_config, s.public_config
+	                   s.private_config, s.public_config, s.daily_increase
 	              FROM stores s
 	         LEFT JOIN jobs j
 	                ON j.store_uuid = s.uuid
@@ -185,9 +186,13 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		s := &Store{}
 		var n int
+		var dailyIncrease *int64
 		var this, tenant NullUUID
-		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &n, &s.PrivateConfig, &s.PublicConfig); err != nil {
+		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &n, &s.PrivateConfig, &s.PublicConfig, &dailyIncrease); err != nil {
 			return l, err
+		}
+		if dailyIncrease != nil {
+			s.DailyIncrease = *dailyIncrease
 		}
 		s.UUID = this.UUID
 		s.TenantUUID = tenant.UUID
@@ -201,7 +206,7 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	r, err := db.Query(`
 	   SELECT s.uuid, s.name, s.summary, s.agent,
 	          s.plugin, s.endpoint, s.tenant_uuid,
-	          s.private_config, s.public_config
+	          s.private_config, s.public_config, s.daily_increase
 	     FROM stores s
 	LEFT JOIN jobs j
 	       ON j.store_uuid = s.uuid
@@ -216,9 +221,13 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	s := &Store{}
+	var dailyIncrease *int64
 	var this, tenant NullUUID
-	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &s.PrivateConfig, &s.PublicConfig); err != nil {
+	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &s.PrivateConfig, &s.PublicConfig, &dailyIncrease); err != nil {
 		return nil, err
+	}
+	if dailyIncrease != nil {
+		s.DailyIncrease = *dailyIncrease
 	}
 	s.UUID = this.UUID
 	s.TenantUUID = tenant.UUID
@@ -251,8 +260,9 @@ func (db *DB) UpdateStore(s *Store) error {
 	          plugin         = ?,
 	          endpoint       = ?,
 	          private_config = ?,
-	          public_config  = ?
-	    WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.UUID.String(),
+			  public_config  = ?,
+			  daily_increase = ?
+	    WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.DailyIncrease, s.UUID.String(),
 	)
 }
 

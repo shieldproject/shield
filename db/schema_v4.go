@@ -208,5 +208,10 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN daily_increase INTEGER DEFAULT NULL`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

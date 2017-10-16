@@ -34,11 +34,11 @@ type Health struct {
 	Jobs    []JobHealth     `json:"jobs"`
 
 	Stats struct {
-		Jobs     int `json:"jobs"`
-		Systems  int `json:"systems"`
-		Archives int `json:"archives"`
-		Storage  int `json:"storage"`
-		Daily    int `json:"daily"`
+		Jobs     int   `json:"jobs"`
+		Systems  int   `json:"systems"`
+		Archives int   `json:"archives"`
+		Storage  int64 `json:"storage"`
+		Daily    int   `json:"daily"`
 	} `json:"stats"`
 }
 
