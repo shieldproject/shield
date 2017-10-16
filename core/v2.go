@@ -2085,13 +2085,12 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.SetCookie(SessionCookie(session.UUID.String(), true))
-		r.SetHeader("X-Shield-Session", session.UUID.String())
-
-		id, err := core.checkAuth(session.UUID.String())
-		if err != nil || id == nil {
-			r.Fail(route.Oops(err, "Unable to log you in"))
+		id, _ := core.checkAuth(session.UUID.String())
+		if id == nil {
+			r.Fail(route.Oops(fmt.Errorf("Failed to lookup session ID after login"), "An unknown error occurred"))
 		}
+
+		SetAuthHeaders(r, session.UUID)
 
 		r.OK(id)
 	})

@@ -19,6 +19,16 @@ type Request struct {
 	debug bool
 }
 
+//NewRequest initializes and returns a new request object. Setting debug to
+// true will cause errors to be logged.
+func NewRequest(w http.ResponseWriter, r *http.Request, debug bool) *Request {
+	return &Request{
+		Req:   r,
+		w:     w,
+		debug: debug,
+	}
+}
+
 func (r *Request) String() string {
 	return fmt.Sprintf("%s %s", r.Req.Method, r.Req.URL.Path)
 }

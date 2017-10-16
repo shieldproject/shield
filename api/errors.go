@@ -56,6 +56,24 @@ func (e ErrForbidden) Error() string {
 	return e.message
 }
 
+//ErrNotFound is returned from the API if a request returns a 404 status code
+type ErrNotFound struct {
+	message string
+}
+
+//NewErrNotFound returns a new instance of ErrNotFound, like fmt.Errorf
+func NewErrNotFound(format string, args ...interface{}) error {
+	return ErrNotFound{
+		message: fmt.Sprintf(format, args...),
+	}
+	//it was at this point that Tom wished there were preprocessor macros in Go,
+	// and was sad at the amount of shit he would have to write to use go generate
+}
+
+func (e ErrNotFound) Error() string {
+	return e.message
+}
+
 func getV1Error(r *http.Response) error {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -94,6 +112,8 @@ func getAPIError(r *http.Response) error {
 		err = NewErrUnauthorized(errorString)
 	case 403:
 		err = NewErrForbidden(errorString)
+	case 404:
+		err = NewErrNotFound(errorString)
 	default:
 		err = fmt.Errorf(errorString)
 	}

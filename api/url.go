@@ -87,6 +87,21 @@ func (u *URL) Request(out interface{}, req *http.Request) error {
 		return err
 	}
 
+	return parseResponse(out, r)
+}
+
+//HeaderRequest runs the request and returns the http response Headers and an
+//error, if any
+func (u *URL) HeaderRequest(out interface{}, req *http.Request) (http.Header, error) {
+	r, err := makeRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Header, parseResponse(out, r)
+}
+
+func parseResponse(out interface{}, r *http.Response) error {
 	if r.StatusCode == 200 {
 		if out != nil {
 			body, err := ioutil.ReadAll(r.Body)
@@ -153,7 +168,7 @@ func (u *URL) Patch(out interface{}, data string) error {
 }
 
 func makeRequest(req *http.Request) (*http.Response, error) {
-	if os.Getenv("SHIELD_API_TOKEN") != "" {
+	if os.Getenv("SHIELD_API_TOKEN") != "" && req.Header.Get("X-Shield-Token") == "" {
 		req.Header.Set("X-Shield-Token", os.Getenv("SHIELD_API_TOKEN"))
 	}
 
