@@ -9,10 +9,6 @@ then
   pushd .. && make shield-cli
   popd
 fi
-# if no umc, make umc
-if [[ ! -f "../shield-umc" ]]; then
-  (cd ..; go build ./cmd/shield-umc)
-fi
 
 shieldbackend="http://localhost:8181"
 shield="../shield -k --raw -D"
@@ -222,21 +218,76 @@ $shield create-job <<EOF
 EOF
 
 # set up administrative user
-umc="../shield-umc --database $targetdir/var/shield.db"
-echo "creating local admin user (admin:admin)"
-$umc new-user --username admin --password admin
-$umc invite admin --system --role admin
+$shield create-user <<EOF
+{
+  "name"     : "Administrator",
+  "account"  : "admin",
+  "password" : "admin",
+  "sysrole"  : "admin"
+}
+EOF
 
 # set up local test environment
-echo "creating developer tenant 'Acme, Inc'"
-$umc new-tenant --name 'Acme, Inc.'
-echo "creating local developer user (dev:coyote)"
-$umc new-user --username dev --password coyote
-$umc invite dev --tenant 'Acme, Inc.' --role engineer
+echo "creating Acme tenant"
+$shield create-tenant <<EOF
+{ "name" : "Acme, Inc." }
+EOF
+acme=$($shield tenant 'Acme, Inc.' | jq -r .uuid)
+if [[ -z "$acme" ]]; then
+  echo >&2 "!! unable to find tenant 'Acme, Inc.'"
+  exit 1
+fi
 
-echo "creating developer tenant 'Umbrella Corporation'"
-$umc new-tenant --name 'Umbrella Corporation'
-$umc invite dev --tenant 'Umbrella Corporation' --role admin
+echo "creating test admin-level account (rrunner:password)"
+$shield create-user <<EOF
+{
+  "name"     : "Road Runner",
+  "account"  : "rrunner",
+  "password" : "password"
+}
+EOF
+rrunner=$($shield user rrunner | jq -r .uuid)
+if [[ -z "$acme" ]]; then
+  echo >&2 "!! unable to find user 'rrunner'"
+  exit 1
+fi
+
+echo "creating test engineer-level account (wcoyote:password)"
+$shield create-user <<EOF
+{
+  "name"     : "Wile E. Coyote",
+  "account"  : "wcoyote",
+  "password" : "password"
+}
+EOF
+wcoyote=$($shield user wcoyote | jq -r .uuid)
+if [[ -z "$acme" ]]; then
+  echo >&2 "!! unable to find user 'wcoyote'"
+  exit 1
+fi
+
+echo "creating test operator-level account (cjones:password)"
+$shield create-user <<EOF
+{
+  "name"     : "Chuck Jones",
+  "account"  : "cjones",
+  "password" : "password"
+}
+EOF
+cjones=$($shield user cjones | jq -r .uuid)
+if [[ -z "$acme" ]]; then
+  echo >&2 "!! unable to find user 'cjones'"
+  exit 1
+fi
+
+echo "inviting users to join the 'Acme, Inc.' tenant"
+$shield invite $acme <<EOF
+{"users":[
+  {"uuid":"$rrunner", "role":"admin"},
+  {"uuid":"$wcoyote", "role":"engineer"},
+  {"uuid":"$cjones",  "role":"operator"}
+]}
+EOF
 
 echo "running some jobs"
 $shield run DevJob
