@@ -956,6 +956,8 @@ func (core *Core) v2API() *route.Router {
 			}
 		}
 
+		err = core.DB.InheritRetentionTemplates(t)
+
 		r.OK(t)
 	})
 	// }}}
