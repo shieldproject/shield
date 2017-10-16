@@ -180,15 +180,16 @@ func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 }
 
 //InheritRetentionTemplates gives a tenant the global (templated) retention policies
-func (db *DB) InheritRetentionTemplates(tenantUUID uuid.UUID) error {
+func (db *DB) InheritRetentionTemplates(tenant *Tenant) error {
 
-	policies, err := db.GetAllRetentionPolicies(&RetentionFilter{ForTenant: "00000000-0000-0000-0000-000000000000"})
+	//all of the global tenants are defined with a nil UUID
+	policies, err := db.GetAllRetentionPolicies(&RetentionFilter{ForTenant: uuid.NIL.String()})
 	if err != nil {
 		return err
 	}
 
 	for _, policy := range policies {
-		policy.TenantUUID = tenantUUID
+		policy.TenantUUID = tenant.UUID
 		db.CreateRetentionPolicy(policy)
 	}
 	return nil
