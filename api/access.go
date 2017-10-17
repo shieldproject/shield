@@ -103,8 +103,7 @@ func Login(username, password string) (sessionID string, user *AuthIDOutput, err
 		panic("Could not marshal auth struct that we JUST made")
 	}
 
-	var req *http.Request
-	req, err = http.NewRequest("POST", uri.String(), bytes.NewReader(j))
+	req, err := http.NewRequest("POST", uri.String(), bytes.NewReader(j))
 	if err != nil {
 		return
 	}
