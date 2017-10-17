@@ -3430,9 +3430,15 @@
           last = json;
         };
         var ping = function () {
+          var uri = ""
+          if ($global.auth.tenant) {
+            uri = '/v2/tenants/'+$global.auth.tenant.uuid+'/health'
+          }else{
+            uri = '/v2/health'
+          }
           $.ajax({
             type: 'GET',
-            url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/health',
+            url:  uri,
             success: function (data) {
               every = backoff[0]; /* reset backoff */
               rehud(data);
