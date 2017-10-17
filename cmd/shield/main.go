@@ -56,6 +56,9 @@ func main() {
 		To:        getopt.StringLong("to", 0, "", "Restore the archive in question to a different target, specified by UUID"),
 		Limit:     getopt.StringLong("limit", 0, "", "Display only the X most recent tasks, archives, or users"),
 
+		Provider: getopt.StringLong("provider", 0, "", "Auth provider to target when logging into v8+ SHIELD"),
+		Token:    getopt.StringLong("token", 0, "", "Token to use when logging into a token backend in v8+ SHIELD"),
+
 		Full: getopt.BoolLong("full", 0, "Show all backend information when listing backends"),
 
 		Backend: getopt.StringLong("backend", 'b', "", "Only show users with the specified backend."),

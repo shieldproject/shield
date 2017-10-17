@@ -13,7 +13,6 @@ import (
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
-	"github.com/starkandwayne/shield/util"
 )
 
 type v2AuthProvider struct {
@@ -229,42 +228,25 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/auth/providers", func(r *route.Request) { // {{{
-		l := make([]v2AuthProvider, 0)
+		l := make([]AuthProviderConfig, 0)
 
 		typ := r.Param("for", "cli")
 		for _, auth := range core.auth {
-			if auth.Backend == "token" && typ != "cli" {
+			cfg := auth.Configuration(false)
+			if cfg.Type == "token" && typ != "cli" {
 				continue
 			}
-			l = append(l, v2AuthProvider{
-				Name:       auth.Name,
-				Identifier: auth.Identifier,
-				Type:       auth.Backend,
-				WebEntry:   fmt.Sprintf("/auth/%s/web", auth.Identifier),
-				CLIEntry:   fmt.Sprintf("/auth/%s/cli", auth.Identifier),
-				Redirect:   fmt.Sprintf("/auth/%s/redir", auth.Identifier),
-			})
+			l = append(l, cfg)
 		}
 		r.OK(l)
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/providers/:name", func(r *route.Request) { // {{{
-		for _, a := range core.auth {
-			if a.Identifier == r.Args[1] {
-				r.OK(&v2AuthProvider{
-					Name:       a.Name,
-					Identifier: a.Identifier,
-					Type:       a.Backend,
-					WebEntry:   fmt.Sprintf("/auth/%s/web", a.Identifier),
-					CLIEntry:   fmt.Sprintf("/auth/%s/cli", a.Identifier),
-					Redirect:   fmt.Sprintf("/auth/%s/redir", a.Identifier),
-
-					Properties: util.StringifyKeys(a.Properties).(map[string]interface{}),
-				})
-				return
-			}
+		a, ok := core.auth[r.Args[1]]
+		if !ok {
+			r.Fail(route.NotFound(nil, "No such authentication provider: '%s'", r.Args[1]))
 		}
-		r.Fail(route.NotFound(nil, "No such authentication provider: '%s'", r.Args[1]))
+		r.OK(a.Configuration(true))
 	})
 	// }}}
 
@@ -965,6 +947,8 @@ func (core *Core) v2API() *route.Router {
 				return
 			}
 		}
+
+		err = core.DB.InheritRetentionTemplates(t)
 
 		r.OK(t)
 	})
@@ -2118,13 +2102,12 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.SetCookie(SessionCookie(session.UUID.String(), true))
-		r.SetHeader("X-Shield-Session", session.UUID.String())
-
-		id, err := core.checkAuth(session.UUID.String())
-		if err != nil || id == nil {
-			r.Fail(route.Oops(err, "Unable to log you in"))
+		id, _ := core.checkAuth(session.UUID.String())
+		if id == nil {
+			r.Fail(route.Oops(fmt.Errorf("Failed to lookup session ID after login"), "An unknown error occurred"))
 		}
+
+		SetAuthHeaders(r, session.UUID)
 
 		r.OK(id)
 	})

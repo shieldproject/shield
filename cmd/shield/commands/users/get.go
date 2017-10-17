@@ -2,8 +2,8 @@ package users
 
 import (
 	"os"
+	"strings"
 
-	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
@@ -16,10 +16,7 @@ var Get = &commands.Command{
 	Summary: "Print detailed information about a local user",
 	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "uuid", Positional: true, Mandatory: true,
-				Desc: "A UUID assigned to a single local user",
-			},
+			commands.UserNameFlag,
 		},
 		JSONOutput: `{
 			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
@@ -35,11 +32,7 @@ var Get = &commands.Command{
 func cliGetUser(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'user' command")
 
-	internal.Require(len(args) == 1, "shield user <UUID>")
-	id := uuid.Parse(args[0])
-	log.DEBUG("  user UUID = '%s'", id)
-
-	user, err := api.GetUser(id)
+	user, _, err := internal.FindUser(strings.Join(args, " "), *opts.Raw)
 	if err != nil {
 		return err
 	}
@@ -49,11 +42,11 @@ func cliGetUser(opts *commands.Options, args ...string) error {
 		return nil
 	}
 
-	ShowUser(user, *opts.ShowUUID)
+	Show(user, *opts.ShowUUID)
 	return nil
 }
 
-func ShowUser(user api.User, showTennantUUID bool) {
+func Show(user api.User, showTennantUUID bool) {
 	t := tui.NewReport()
 	t.Add("UUID", user.UUID)
 	t.Add("Name", user.Name)

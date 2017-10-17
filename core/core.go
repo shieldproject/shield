@@ -48,7 +48,7 @@ type Core struct {
 	/* api */
 	webroot string
 	listen  string
-	auth    []AuthConfig
+	auth    map[string] AuthProvider
 	env     string
 	color   string
 	motd    string
@@ -73,7 +73,7 @@ func NewCore(file string) (*Core, error) {
 
 	ip, fqdn := networkIdentity()
 
-	return &Core{
+	core := &Core{
 		fastloop: time.NewTicker(time.Second * time.Duration(config.FastLoop)),
 		slowloop: time.NewTicker(time.Second * time.Duration(config.SlowLoop)),
 
@@ -98,7 +98,6 @@ func NewCore(file string) (*Core, error) {
 		/* api */
 		webroot: config.WebRoot,
 		listen:  config.Addr,
-		auth:    config.Auth,
 		env:     config.Environment,
 		color:   config.Color,
 		motd:    config.MOTD,
@@ -112,7 +111,60 @@ func NewCore(file string) (*Core, error) {
 			Driver: "sqlite3",
 			DSN:    config.DBPath,
 		},
-	}, nil
+	}
+
+
+	core.auth = make(map[string] AuthProvider)
+	for i, auth := range config.Auth {
+		if auth.Identifier == "" {
+			return nil, fmt.Errorf("provider #%d lacks the required `identifier' field", i+1)
+		}
+		if auth.Name == "" {
+			return nil, fmt.Errorf("%s provider lacks the required `name' field", auth.Identifier)
+		}
+		if auth.Backend == "" {
+			return nil, fmt.Errorf("%s provider lacks the required `backend' field", auth.Identifier)
+		}
+
+		switch auth.Backend {
+		case "github":
+			core.auth[auth.Identifier] = &GithubAuthProvider{
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: auth.Identifier,
+					Type:       auth.Backend,
+				},
+				core: core,
+			}
+		case "uaa":
+			core.auth[auth.Identifier] = &UAAAuthProvider{
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: auth.Identifier,
+					Type:       auth.Backend,
+				},
+				core: core,
+			}
+		case "token":
+			core.auth[auth.Identifier] = &TokenAuthProvider{
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: auth.Identifier,
+					Type:       auth.Backend,
+				},
+				core: core,
+			}
+		default:
+			return nil, fmt.Errorf("%s provider has an unrecognized `backend' of '%s'; must be one of github, uaa, or token", auth.Identifier, auth.Backend)
+		}
+
+		if err := core.auth[auth.Identifier].Configure(auth.Properties); err != nil {
+			return nil, fmt.Errorf("failed to configure '%s' auth provider '%s': %s",
+				auth.Backend, auth.Identifier, err)
+		}
+	}
+
+	return core, nil
 }
 
 func (core *Core) Run() error {
@@ -122,6 +174,20 @@ func (core *Core) Run() error {
 	}
 	if err = core.DB.CheckCurrentSchema(); err != nil {
 		return fmt.Errorf("database failed schema version check: %s", err)
+	}
+
+	tenants := make(map[string] bool)
+	for _, auth := range core.auth {
+		for _, tenant := range auth.ReferencedTenants() {
+			if tenant != "SYSTEM" {
+				tenants[tenant] = true
+			}
+		}
+	}
+	for tenant := range tenants {
+		if _, err := core.DB.EnsureTenant(tenant); err != nil {
+			return fmt.Errorf("unable to pre-create tenant '%s' (referenced in authentication providers): %s", err)
+		}
 	}
 
 	if err = core.fixups(); err != nil {

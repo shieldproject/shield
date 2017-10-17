@@ -22,7 +22,8 @@ type GithubAuthProvider struct {
 	ClientID       string `json:"client_id"`
 	ClientSecret   string `json:"client_secret"`
 	GithubEndpoint string `json:"github_endpoint"`
-	Mapping        map[string]struct {
+	Mapping        []struct {
+		Github string `json:"github"`
 		Tenant string `json:"tenant"`
 		Rights []struct {
 			Team string `json:"team"`
@@ -58,6 +59,14 @@ func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	p.GithubEndpoint = strings.TrimSuffix(p.GithubEndpoint, "/")
 
 	return nil
+}
+
+func (p *GithubAuthProvider) ReferencedTenants() []string {
+	ll := make([]string, 0)
+	for _, m := range p.Mapping {
+		ll = append(ll, m.Tenant)
+	}
+	return ll
 }
 
 func (p *GithubAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
@@ -128,52 +137,25 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 		p.core.DB.CreateUser(user)
 	}
 
-	if err := p.core.DB.ClearMembershipsFor(user); err != nil {
-		p.Errorf("failed to clear memberships for user %s: %s", account, err)
-		return nil
-	}
-
-	/* We must pre-determine who we're going to assign this Github user
-		   to, and what role to give them, in case we have overalpping
-		   mappings -- two orgs map to the same tenant, with different roles.
-
-	       This way, we can silently 'ugrade' a role to a more powerful
-		   one if we see a later assignment to the same tenant. */
-	assign := make(map[string]string)
+	p.ClearAssignments()
 	for org, teams := range orgs {
-		tname, role, assigned := p.resolveOrgAndTeam(org, teams)
-		if assigned {
-			if existing, already := assign[tname]; already {
-				if (existing == "operator" && existing != role) || (existing == "engineer" && role == "admin") {
-					p.Infof("upgrading %s (%s org) assignment on tenant '%s' to %s", account, org, tname, role)
-					assign[tname] = role
-				}
-			} else {
-				p.Infof("assigning %s (%s org) to tenant '%s' as %s", account, org, tname, role)
-				assign[tname] = role
-			}
+		tenant, role, assigned := p.resolveOrgAndTeam(org, teams)
+		if assigned && !p.Assign(user, tenant, role) {
+			return nil
 		}
 	}
-	for tname, role := range assign {
-		p.Infof("ensuring that tenant '%s' exists", tname)
-		tenant, err := p.core.DB.EnsureTenant(tname)
-		if err != nil {
-			p.Errorf("failed to find/create tenant '%s': %s", tname, err)
-			return nil
-		}
-		p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", account, user.UUID, tenant.Name, tenant.UUID, role)
-		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
-		if err != nil {
-			p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", account, user.UUID, tenant.Name, tenant.UUID, role, err)
-			return nil
-		}
+	if !p.SaveAssignments(p.core.DB, user) {
+		return nil
 	}
 
 	return user
 }
 
 func (p GithubAuthProvider) resolveOrgAndTeam(org string, teams []string) (string, string, bool) {
-	if candidate, ok := p.Mapping[org]; ok {
+	for _, candidate := range p.Mapping {
+		if candidate.Github != org {
+			continue
+		}
 		for _, match := range candidate.Rights {
 			if match.Team == "" {
 				return candidate.Tenant, match.Role, true

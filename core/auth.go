@@ -1,59 +1,19 @@
 package core
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
+	"github.com/starkandwayne/shield/route"
 )
 
-func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
-	var provider AuthProvider
+func IsValidTenantRole(role string) bool {
+	return role == "admin" || role == "engineer" || role == "operator"
+}
 
-	for _, auth := range core.auth {
-		if auth.Identifier == identifier {
-			switch auth.Backend {
-			case "github":
-				provider = &GithubAuthProvider{
-					AuthProviderBase: AuthProviderBase{
-						Name:       auth.Name,
-						Identifier: identifier,
-						Type:       auth.Backend,
-					},
-					core: core,
-				}
-			case "uaa":
-				provider = &UAAAuthProvider{
-					AuthProviderBase: AuthProviderBase{
-						Name:       auth.Name,
-						Identifier: identifier,
-						Type:       auth.Backend,
-					},
-					core: core,
-				}
-			case "token":
-				provider = &TokenAuthProvider{
-					AuthProviderBase: AuthProviderBase{
-						Name:       auth.Name,
-						Identifier: identifier,
-						Type:       auth.Backend,
-					},
-					core: core,
-				}
-			default:
-				return nil, fmt.Errorf("unrecognized auth provider type '%s'", auth.Backend)
-			}
-
-			if err := provider.Configure(auth.Properties); err != nil {
-				return nil, fmt.Errorf("failed to configure '%s' auth provider '%s': %s",
-					auth.Backend, auth.Identifier, err)
-			}
-			return provider, nil
-		}
-	}
-
-	return nil, fmt.Errorf("auth provider %s not defined", identifier)
+func IsValidSystemRole(role string) bool {
+	return role == "admin" || role == "manager" || role == "engineer"
 }
 
 type authTenant struct {
@@ -67,10 +27,25 @@ type authUser struct {
 	Backend string `json:"backend"`
 	SysRole string `json:"sysrole"`
 }
+type authTenantGrant struct {
+	Admin    bool `json:"admin"`
+	Engineer bool `json:"engineer"`
+	Operator bool `json:"operator"`
+}
+type authGrants struct {
+	System struct {
+		Admin    bool `json:"admin"`
+		Manager  bool `json:"manager"`
+		Engineer bool `json:"engineer"`
+	} `json:"system"`
+	Tenants map[string]authTenantGrant `json:"tenant"`
+}
 type authResponse struct {
 	User    authUser     `json:"user"`
 	Tenants []authTenant `json:"tenants"`
 	Tenant  *authTenant  `json:"tenant,omitempty"`
+
+	Grants authGrants `json:"is"`
 }
 
 //Gets the session ID from the request. Returns "" if not given.
@@ -107,6 +82,18 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 		},
 	}
 
+	switch user.SysRole {
+	case "admin":
+		answer.Grants.System.Admin = true
+		answer.Grants.System.Manager = true
+		answer.Grants.System.Engineer = true
+	case "manager":
+		answer.Grants.System.Manager = true
+		answer.Grants.System.Engineer = true
+	case "engineer":
+		answer.Grants.System.Engineer = true
+	}
+
 	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		log.Debugf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
@@ -115,10 +102,25 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 	}
 
 	answer.Tenants = make([]authTenant, len(memberships))
+	answer.Grants.Tenants = make(map[string]authTenantGrant)
 	for i, membership := range memberships {
 		answer.Tenants[i].UUID = membership.TenantUUID
 		answer.Tenants[i].Name = membership.TenantName
 		answer.Tenants[i].Role = membership.Role
+
+		grant := authTenantGrant{}
+		switch membership.Role {
+		case "admin":
+			grant.Admin = true
+			grant.Engineer = true
+			grant.Operator = true
+		case "engineer":
+			grant.Engineer = true
+			grant.Operator = true
+		case "operator":
+			grant.Operator = true
+		}
+		answer.Grants.Tenants[membership.TenantUUID.String()] = grant
 	}
 	if len(answer.Tenants) > 0 {
 		answer.Tenant = &answer.Tenants[0]
@@ -128,11 +130,17 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 		answer.User.Backend = "SHIELD"
 
 	} else {
-		log.Debugf("looking up auth provider configuration for '%s'", user.Backend)
-		if p, err := core.FindAuthProvider(answer.User.Backend); err == nil {
-			answer.User.Backend = p.DisplayName()
+		if p, ok := core.auth[answer.User.Backend]; ok {
+			answer.User.Backend = p.Configuration(false).Name
 		}
 	}
 
 	return &answer, nil
+}
+
+//SetAuthHeaders sets the appropriate HTTP headers in the given request object
+// to send back the session information in a login request
+func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
+	r.SetCookie(SessionCookie(sessionID.String(), true))
+	r.SetHeader("X-Shield-Session", sessionID.String())
 }

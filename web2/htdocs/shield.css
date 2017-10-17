@@ -493,6 +493,24 @@ body { font-family: sans-serif; }
   margin: 0 0 0 7px;
 }
 
+footer {
+  position: fixed;
+  bottom: 0;
+  padding: 4px;
+}
+
+footer a {
+  display: inline-block;
+  width: 20px;
+}
+footer a object,
+footer a img {
+  width: 100%;
+}
+footer p {
+  font-size: 9pt;
+}
+
 .pane {
   width:  75%;
   margin-left: 25%;

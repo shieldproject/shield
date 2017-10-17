@@ -134,11 +134,16 @@ auth:
     identifier: token
     backend:    token
     properties:
-      4E7E8965-9DB0-4D3A-B920-2537F3321B3D:
-        - tenant: starkandwayne
-          role:   engineer
-        - tenant: CF Commuity
-          role:   engineer
+      tokens:
+        initio:
+          - tenant: SYSTEM
+            role:   admin
+
+        4z7z8965-9zz0-4z3a-z920-2537z3321z3z:
+          - tenant: starkandwayne
+            role:   engineer
+          - tenant: CF Community
+            role:   engineer
 
   - name:       Github
     identifier: github
@@ -147,7 +152,7 @@ auth:
       client_id:     35f670b0ee9c9b4bc37c
       client_secret: b33d1309ea69e75c0ccd51f2caac9493e9326830
       mapping:
-        starkandwayne:           # <-- github org name
+        - github: starkandwayne  # <-- github org name
           tenant: starkandwayne  # <-- shield tenant name
           rights:
             - team: Owners       # <-- github team name
@@ -155,7 +160,14 @@ auth:
             - team: Engineering  #   (first match wins)
               role: engineer
             - role: operator     # = (default match)
-        cloudfoundry-community:
+
+        - github: starkandwayne
+          tenant: SYSTEM
+          rights:
+            - team: Owners
+              role: admin
+
+        - github: cloudfoundry-community
           tenant: CF Community
           rights:
             - role: engineer
