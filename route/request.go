@@ -33,6 +33,20 @@ func (r *Request) String() string {
 	return fmt.Sprintf("%s %s", r.Req.Method, r.Req.URL.Path)
 }
 
+func (r *Request) SessionID() string {
+	// FIXME: extract the header name constant
+	if s := r.Req.Header.Get("X-Shield-Token"); s != "" {
+		return s
+	}
+
+	// FIXME: extract the cookie name constant
+	if cookie, err := r.Req.Cookie("shield7"); err == nil {
+		return cookie.Value
+	}
+
+	return ""
+}
+
 func (r *Request) Success(msg string, args ...interface{}) {
 	r.OK(struct {
 		Ok string `json:"ok"`

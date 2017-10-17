@@ -144,3 +144,104 @@ func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
 	r.SetCookie(SessionCookie(sessionID.String(), true))
 	r.SetHeader("X-Shield-Session", sessionID.String())
 }
+
+func (core *Core) hasTenantRole(session, tenant string, roles ...string) bool {
+	if session == "" {
+		return false
+	}
+
+	user, err := core.DB.GetUserForSession(session)
+	if err != nil {
+		log.Debugf("failed to retrieve user account for session '%s': %s", session, err)
+		return false
+	}
+	if user == nil {
+		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session)
+		return false
+	}
+
+	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
+	if err != nil {
+		log.Debugf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
+			user.Account, user.Backend, user.UUID.String(), err)
+		return false
+	}
+
+	for _, m := range memberships {
+		if m.TenantUUID.String() == tenant {
+			for _, role := range roles {
+				if role == m.Role {
+					return true
+				}
+			}
+			break
+		}
+	}
+
+	return false
+}
+
+func (core *Core) hasSystemRole(session string, roles ...string) bool {
+	if session == "" {
+		return false
+	}
+
+	user, err := core.DB.GetUserForSession(session)
+	if err != nil {
+		log.Debugf("failed to retrieve user account for session '%s': %s", session, err)
+		return false
+	}
+	if user == nil {
+		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session)
+		return false
+	}
+
+	for _, role := range roles {
+		if user.SysRole == role {
+			return true
+		}
+	}
+	return false
+}
+
+func (core *Core) IsNotAuthenticated(session string) bool {
+	if session == "" {
+		return true
+	}
+
+	user, err := core.DB.GetUserForSession(session)
+	if err != nil {
+		log.Debugf("failed to retrieve user account for session '%s': %s", session, err)
+		return true
+	}
+	if user == nil {
+		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session)
+		return true
+	}
+
+	return false
+}
+
+func (core *Core) IsNotSystemAdmin(session string) bool {
+	return !core.hasSystemRole(session, "admin")
+}
+
+func (core *Core) IsNotSystemManager(session string) bool {
+	return !core.hasSystemRole(session, "manager", "admin")
+}
+
+func (core *Core) IsNotSystemEngineer(session string) bool {
+	return !core.hasSystemRole(session, "engineer", "manager", "admin")
+}
+
+func (core *Core) IsNotTenantAdmin(session, tenant string) bool {
+	return !core.hasTenantRole(session, tenant, "admin")
+}
+
+func (core *Core) IsNotTenantEngineer(session, tenant string) bool {
+	return !core.hasTenantRole(session, tenant, "engineer", "admin")
+}
+
+func (core *Core) IsNotTenantOperator(session, tenant string) bool {
+	return !core.hasTenantRole(session, tenant, "operator", "engineer", "admin")
+}

@@ -1125,6 +1125,14 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
+		if core.IsNotAuthenticated(r.SessionID()) {
+			r.Fail(route.Unauthorized(nil, "Authorization required"))
+			return
+		}
+		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
+			r.Fail(route.Forbidden(nil, "Access denied"))
+			return
+		}
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
 				ForTenant:  r.Args[1],

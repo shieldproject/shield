@@ -41,6 +41,10 @@ func Forbidden(e error, msg string, args ...interface{}) Error {
 	return Errorf(403, e, msg, args...)
 }
 
+func Unauthorized(e error, msg string, args ...interface{}) Error {
+	return Errorf(401, e, msg, args...)
+}
+
 func Errorf(code int, e error, msg string, args ...interface{}) Error {
 	return Error{
 		code:    code,
