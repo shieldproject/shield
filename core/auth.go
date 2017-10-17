@@ -6,6 +6,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
+	"github.com/starkandwayne/shield/route"
 )
 
 func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
@@ -177,4 +178,11 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 	}
 
 	return &answer, nil
+}
+
+//SetAuthHeaders sets the appropriate HTTP headers in the given request object
+// to send back the session information in a login request
+func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
+	r.SetCookie(SessionCookie(sessionID.String(), true))
+	r.SetHeader("X-Shield-Session", sessionID.String())
 }
