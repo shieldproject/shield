@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/pborman/uuid"
@@ -15,54 +14,6 @@ func IsValidTenantRole(role string) bool {
 
 func IsValidSystemRole(role string) bool {
 	return role == "admin" || role == "manager" || role == "engineer"
-}
-
-func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
-	var provider AuthProvider
-
-	for _, auth := range core.auth {
-		if auth.Identifier == identifier {
-			switch auth.Backend {
-			case "github":
-				provider = &GithubAuthProvider{
-					AuthProviderBase: AuthProviderBase{
-						Name:       auth.Name,
-						Identifier: identifier,
-						Type:       auth.Backend,
-					},
-					core: core,
-				}
-			case "uaa":
-				provider = &UAAAuthProvider{
-					AuthProviderBase: AuthProviderBase{
-						Name:       auth.Name,
-						Identifier: identifier,
-						Type:       auth.Backend,
-					},
-					core: core,
-				}
-			case "token":
-				provider = &TokenAuthProvider{
-					AuthProviderBase: AuthProviderBase{
-						Name:       auth.Name,
-						Identifier: identifier,
-						Type:       auth.Backend,
-					},
-					core: core,
-				}
-			default:
-				return nil, fmt.Errorf("unrecognized auth provider type '%s'", auth.Backend)
-			}
-
-			if err := provider.Configure(auth.Properties); err != nil {
-				return nil, fmt.Errorf("failed to configure '%s' auth provider '%s': %s",
-					auth.Backend, auth.Identifier, err)
-			}
-			return provider, nil
-		}
-	}
-
-	return nil, fmt.Errorf("auth provider %s not defined", identifier)
 }
 
 type authTenant struct {
@@ -179,9 +130,8 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 		answer.User.Backend = "SHIELD"
 
 	} else {
-		log.Debugf("looking up auth provider configuration for '%s'", user.Backend)
-		if p, err := core.FindAuthProvider(answer.User.Backend); err == nil {
-			answer.User.Backend = p.DisplayName()
+		if p, ok := core.auth[answer.User.Backend]; ok {
+			answer.User.Backend = p.Configuration(false).Name
 		}
 	}
 

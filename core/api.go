@@ -33,10 +33,10 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		m := re.FindStringSubmatch(req.URL.Path)
 
 		name := m[1]
-		provider, err := core.FindAuthProvider(name)
-		if err != nil {
+		provider, ok := core.auth[name]
+		if !ok {
 			w.WriteHeader(404)
-			fmt.Fprintf(w, "couldn't find that auth provider...: %s", err)
+			fmt.Fprintf(w, "Unrecognized authentication provider %s", name)
 			return
 		}
 

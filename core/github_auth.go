@@ -61,6 +61,14 @@ func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	return nil
 }
 
+func (p *GithubAuthProvider) ReferencedTenants() []string {
+	ll := make([]string, 0)
+	for _, m := range p.Mapping {
+		ll = append(ll, m.Tenant)
+	}
+	return ll
+}
+
 func (p *GithubAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Location", p.authorizeURL("read:org"))
 	w.WriteHeader(302)

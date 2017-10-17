@@ -42,6 +42,16 @@ func (p *TokenAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	return nil
 }
 
+func (p *TokenAuthProvider) ReferencedTenants() []string {
+	ll := make([]string, 0)
+	for _, mapping := range p.Tokens {
+		for _, m := range mapping {
+			ll = append(ll, m.Tenant)
+		}
+	}
+	return ll
+}
+
 func (p *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	r := route.NewRequest(w, req, false)
 

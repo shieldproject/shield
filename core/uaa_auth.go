@@ -68,6 +68,14 @@ func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	return nil
 }
 
+func (p *UAAAuthProvider) ReferencedTenants() []string {
+	ll := make([]string, 0)
+	for _, m := range p.Mapping {
+		ll = append(ll, m.Tenant)
+	}
+	return ll
+}
+
 func (p *UAAAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Location", p.uaa.AuthorizationURL(uaa.DefaultScopes))
 	w.WriteHeader(302)

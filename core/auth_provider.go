@@ -7,6 +7,7 @@ import (
 	"github.com/starkandwayne/goutils/log"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/util"
 )
 
 const (
@@ -26,10 +27,24 @@ func init() {
 	}
 }
 
-type AuthProvider interface {
-	DisplayName() string
+type AuthProviderConfig struct {
+	Name       string `json:"name"`
+	Identifier string `json:"identifier"`
+	Type       string `json:"type"`
 
+	WebEntry string `json:"web_entry"`
+	CLIEntry string `json:"cli_entry"`
+	Redirect string `json:"redirect"`
+
+	Properties map[string]interface{} `json:"properties,omitempty"`
+}
+
+type AuthProvider interface {
 	Configure(map[interface{}]interface{}) error
+	Configuration(bool) AuthProviderConfig
+
+	ReferencedTenants() []string
+
 	Initiate(http.ResponseWriter, *http.Request)
 	HandleRedirect(*http.Request) *db.User
 }
@@ -39,11 +54,27 @@ type AuthProviderBase struct {
 	Identifier string
 	Type       string
 
+	properties map[string]interface{}
+
 	assignments map[string]string
 }
 
-func (p AuthProviderBase) DisplayName() string {
-	return p.Name
+func (p AuthProviderBase) Configuration(private bool) AuthProviderConfig {
+	cfg := AuthProviderConfig{
+		Name:       p.Name,
+		Identifier: p.Identifier,
+		Type:       p.Type,
+
+		WebEntry: fmt.Sprintf("/auth/%s/web", p.Identifier),
+		CLIEntry: fmt.Sprintf("/auth/%s/cli", p.Identifier),
+		Redirect: fmt.Sprintf("/auth/%s/redir", p.Identifier),
+	}
+
+	if private {
+		cfg.Properties = util.StringifyKeys(p.properties).(map[string]interface{})
+	}
+
+	return cfg
 }
 
 func (p AuthProviderBase) Errorf(m string, args ...interface{}) {
