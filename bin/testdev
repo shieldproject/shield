@@ -134,11 +134,12 @@ auth:
     identifier: token
     backend:    token
     properties:
-      4E7E8965-9DB0-4D3A-B920-2537F3321B3D:
-        - tenant: starkandwayne
-          role:   engineer
-        - tenant: CF Community
-          role:   engineer
+      tokens:
+        4E7E8965-9DB0-4D3A-B920-2537F3321B3D:
+          - tenant: starkandwayne
+            role:   engineer
+          - tenant: CF Community
+            role:   engineer
 
   - name:       Github
     identifier: github

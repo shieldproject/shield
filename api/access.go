@@ -3,8 +3,9 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/pborman/uuid"
 )
@@ -102,30 +103,20 @@ func Login(username, password string) (sessionID string, user *AuthIDOutput, err
 		panic("Could not marshal auth struct that we JUST made")
 	}
 
-	req, err := http.NewRequest("POST", uri.String(), bytes.NewReader(j))
+	var req *http.Request
+	req, err = http.NewRequest("POST", uri.String(), bytes.NewReader(j))
 	if err != nil {
 		return
 	}
 
-	r, err := makeRequest(req)
+	user = &AuthIDOutput{}
+	var header http.Header
+	header, err = uri.HeaderRequest(user, req)
 	if err != nil {
 		return
 	}
 
-	if r.StatusCode == 200 {
-		sessionID = r.Header.Get("X-Shield-Session")
-		var body []byte
-		body, err = ioutil.ReadAll(r.Body)
-		if err != nil {
-			return
-		}
-
-		user = &AuthIDOutput{}
-		err = json.Unmarshal(body, user)
-	} else {
-		err = getAPIError(r)
-	}
-
+	sessionID = header.Get("X-Shield-Session")
 	return
 }
 
@@ -172,7 +163,7 @@ type AuthIDOutput struct {
 		Name    string `json:"name"`
 		Account string `json:"account"`
 		Backend string `json:"backend"`
-		Sysrole string `json:"admin"`
+		Sysrole string `json:"sysrole"`
 	} `json:"user"`
 	Tenants []struct {
 		UUID uuid.UUID `json:"uuid"`
@@ -191,5 +182,90 @@ func AuthID() (out *AuthIDOutput, err error) {
 
 	out = &AuthIDOutput{}
 	err = uri.Get(out)
+	return
+}
+
+//AuthType is an enumeration type that represents different types of auth that
+// which a provider may be
+type AuthType int
+
+const (
+	//AuthUnknown is the zero value of AuthType
+	AuthUnknown AuthType = iota
+	//AuthV1Basic represents a v1 backend providing basic auth
+	AuthV1Basic
+	//AuthV1OAuth represents a v1 backend providing an OAuth authentication backend
+	AuthV1OAuth
+	//AuthV2Local represents a v2 backend, and you're targeting a local authentication
+	//user
+	AuthV2Local
+	//AuthV2Token represents a v2 backend in which the desired auth provider is a
+	// token provider
+	AuthV2Token
+)
+
+//FetchAuthType returns the auth type of the SHIELD backend auth provider that
+//you request. If the backend is v1, the provided providerID is ignored, and
+//the status endpoint is hit without authentication, and the headers are read
+//to determine the auth type. If the backend is v2, if the providerID is empty,
+//then AuthV2Local is returned, and otherwise the provider is looked up in the
+//v2 API for its auth type. If there is no provider with the given identifier in
+//the SHIELD backend, ErrNotFound is returned.
+//Returns AuthProvider if requested type of auth has a provider.
+func FetchAuthType(providerID string) (authType AuthType, provider *AuthProvider, err error) {
+	if curBackend.APIVersion == 1 {
+		authType, err = fetchV1AuthType()
+		return
+	}
+	return fetchV2AuthType(providerID)
+}
+
+func fetchV1AuthType() (authType AuthType, err error) {
+	var uri *URL
+	uri, err = ShieldURI("/v1/status")
+	if err != nil {
+		return
+	}
+
+	var r *http.Response
+	r, err = curClient.Get(uri.String())
+	if err != nil {
+		return
+	}
+
+	auth := strings.Split(r.Header.Get("www-authenticate"), " ")
+	var a string
+	if len(auth) > 0 {
+		a = strings.ToLower(auth[0])
+	}
+
+	switch a {
+	case "basic":
+		authType = AuthV1Basic
+	case "bearer":
+		authType = AuthV1OAuth
+	default:
+		err = fmt.Errorf("Unable to determine auth type from v1 backend")
+	}
+
+	return
+}
+
+func fetchV2AuthType(providerID string) (authType AuthType, provider *AuthProvider, err error) {
+	if providerID == "" {
+		return AuthV2Local, nil, nil
+	}
+
+	provider, err = GetProvider(providerID)
+	if err != nil {
+		return
+	}
+
+	switch provider.Type {
+	case "token":
+		authType = AuthV2Token
+	default:
+		err = fmt.Errorf("Unknown auth type `%s'", provider.Type)
+	}
 	return
 }

@@ -16,15 +16,26 @@ import (
 //Login - Authenticate with the currently targeted SHIELD backend for future commands
 var Login = &commands.Command{
 	Summary: "Authenticate with the currently targeted SHIELD backend for future commands",
-	Help:    &commands.HelpInfo{},
-	RunFn:   cliLogin,
-	Group:   commands.AccessGroup,
+	Help: &commands.HelpInfo{
+		Flags: []commands.FlagInfo{
+			commands.FlagInfo{
+				Name: "provider", Desc: "Provider to authenticate against. Uses local user auth if not given",
+			},
+			commands.FlagInfo{
+				Name: "token", Desc: "Token to use when prompting against a token auth backend",
+			},
+		},
+	},
+	RunFn: cliLogin,
+	Group: commands.AccessGroup,
 }
 
 func cliLogin(opts *commands.Options, args ...string) error {
 	log.DEBUG("running 'login' command")
 
-	internal.Require(len(args) == 0, "USAGE: shield login")
+	internal.Require(len(args) == 0, "USAGE: shield login [--provider=VALUE] [--token=VALUE]")
+
+	os.Setenv("SHIELD_API_TOKEN", *opts.Token)
 
 	err := Logout.RunFn(opts)
 	if err != nil {
@@ -32,7 +43,10 @@ func cliLogin(opts *commands.Options, args ...string) error {
 	}
 
 	curBackend := config.Current()
-	authType, err := api.FetchAuthType("")
+	authType, provider, err := api.FetchAuthType(*opts.Provider)
+	if err != nil {
+		return err
+	}
 
 	var token string
 
@@ -48,6 +62,14 @@ func cliLogin(opts *commands.Options, args ...string) error {
 	case api.AuthV2Local:
 		log.DEBUG("V2 Local User Auth detected")
 		token, err = v2LocalAuthSession()
+
+	case api.AuthV2Token:
+		log.DEBUG("V2 Token Auth detected")
+		token, err = v2TokenAuthSession(provider, os.Getenv("SHIELD_API_TOKEN"))
+
+	default:
+		log.DEBUG("Unknown auth type")
+		return fmt.Errorf("Unable to detect auth type")
 	}
 
 	if err != nil {
@@ -118,5 +140,15 @@ func v2LocalAuthSession() (token string, err error) {
 	}
 
 	token, _, err = api.Login(username, password)
+	return
+}
+
+func v2TokenAuthSession(provider *api.AuthProvider, token string) (sessionID string, err error) {
+	if token == "" {
+		fmt.Fprint(os.Stderr, "API Token: ")
+		fmt.Scanln(&token)
+	}
+
+	sessionID, _, err = provider.TokenAuth(token)
 	return
 }

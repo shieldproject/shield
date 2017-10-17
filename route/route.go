@@ -26,12 +26,7 @@ func (r *Router) Dispatch(match string, handler Handler) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	request := &Request{
-		Req:   req,
-		debug: r.Debug,
-		w:     w,
-		done:  false,
-	}
+	request := NewRequest(w, req, r.Debug)
 
 	for _, rt := range r.routes {
 		if args, ok := rt.matcher(req); ok {
