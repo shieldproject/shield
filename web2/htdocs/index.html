@@ -1458,9 +1458,9 @@
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--admin-tenants"><!-- {{{ -->
+    <script type="text/html" id="tpl--tenants"><!-- {{{ -->
       [[#
-        {admin-tenants} template
+        {tenants} template
 
         Renders the list of all tenants (for site managers)
       ]]
@@ -1487,7 +1487,7 @@
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--admin-tenants-form"><!-- {{{ -->
+    <script type="text/html" id="tpl--tenants-form"><!-- {{{ -->
       [[#
         {tenants-form} template
 
@@ -2701,7 +2701,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           url:  '/v2/tenants',
           error: 'Failed to retrieve tenant information from the SHIELD API.',
           success: function (data) {
-            $('#main').html(template('admin-tenants', { tenants: data }));
+            $('#main').html(template('tenants', { tenants: data }));
           }
         });
         break; /* #!/admin/tenants */
@@ -2870,7 +2870,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 $form.reset();
 
                 api({
-                  type: 'PUT',
+                  type: 'PATCH',
                   url:  '/v2/tenants/'+args.uuid,
                   data: data,
                   success: function () {
