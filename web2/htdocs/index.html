@@ -2356,15 +2356,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
                     var $form = $(event.target);
                     var data = $form.serializeObject();
-
-                    data.config = {};
-                    for (key in data) {
-                      if (key.match(/^config\./)) {
-                        data.config[key.replace(/^config\./, '')] = data[key];
-                        delete data[key];
-                      }
-                    }
-
                     data.agent = data.agent.replace(/.*\|/, '');
 
                     if (!$form.reset().validate(data).isOK()) { return; }
