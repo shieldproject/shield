@@ -1610,7 +1610,7 @@ func (core *Core) v2API() *route.Router {
 
 	r.Dispatch("GET /v2/tenants/:uuid/stores/daily-increase", func(r *route.Request) { // {{{
 		//FIXME: Replace with code that gets the information instead of generating it (slowloop handles this)
-		err := core.DailyStorageIncrease()
+		err := core.DailyStoreStorageAnalytics()
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve store information."))
 			return
