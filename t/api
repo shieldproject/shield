@@ -59,6 +59,15 @@ workers:       3
 max_timeout:   10
 web_root: ./webui
 auth:
+  - identifier: token
+    backend:    token
+    name:       Token
+    properties:
+      tokens:
+        initio:
+          - tenant: SYSTEM
+            role:   admin
+
   - identifier: public-github
     backend:    github
     name:       Github
@@ -446,6 +455,7 @@ echo
 
 try "Connecting to our test SHIELD instance" # {{{
 (shield -k --raw create-backend test http://${SHIELD_DAEMON_ADDR}
+ shield -k --raw login --provider token --token initio
  shield -k --raw status | jq -r .
  is "$(httpstat GET http://$SHIELD_DAEMON_ADDR/v1/ping)" \
     "200" "/v1/ping should ping ok"

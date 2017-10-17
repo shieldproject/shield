@@ -135,7 +135,11 @@ auth:
     backend:    token
     properties:
       tokens:
-        4E7E8965-9DB0-4D3A-B920-2537F3321B3D:
+        initio:
+          - tenant: SYSTEM
+            role:   admin
+
+        4z7z8965-9zz0-4z3a-z920-2537z3321z3z:
           - tenant: starkandwayne
             role:   engineer
           - tenant: CF Community

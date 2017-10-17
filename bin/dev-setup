@@ -34,6 +34,8 @@ echo "Initializing this dev SHIELD core"
 echo "master-password-yo" | $shield init
 echo "master-password-yo" | $shield unlock
 
+$shield login --provider token --token initio
+
 webui() {
 s3_store=$($shield create-store <<EOF | $jq .uuid
 {
