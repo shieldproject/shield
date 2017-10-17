@@ -8,9 +8,12 @@ import (
 )
 
 type Tenant struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Name    string    `json:"name"`
-	Members []*User   `json:"members,omitempty"`
+	UUID          uuid.UUID `json:"uuid"`
+	Name          string    `json:"name"`
+	Members       []*User   `json:"members,omitempty"`
+	DailyIncrease int64     `json:"daily_increase"`
+	StorageUsed   int64     `json:"storage_used"`
+	ArchiveCount  int64     `json:"archive_count"`
 }
 
 type TenantFilter struct {
@@ -152,15 +155,18 @@ func (db *DB) CreateTenant(given_uuid string, given_name string) (*Tenant, error
 	}, nil
 }
 
-func (db *DB) UpdateTenant(given_uuid string, given_name string) (*Tenant, error) {
-	err := db.Exec(`UPDATE tenants SET name = ? WHERE uuid = ?`, given_name, given_uuid)
+func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
+	err := db.Exec(`
+		UPDATE tenants 
+			SET name = ?,
+			daily_increase = ?,
+			archive_count  = ?,
+			storage_used   = ? 
+			WHERE uuid = ?`, t.Name, t.DailyIncrease, t.ArchiveCount, t.StorageUsed, t.UUID.String())
 	if err != nil {
 		return nil, err
 	}
 
-	t := &Tenant{}
-	t.UUID = uuid.Parse(given_uuid)
-	t.Name = given_name
 	return t, nil
 }
 

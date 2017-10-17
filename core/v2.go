@@ -991,7 +991,21 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		t, err := core.DB.UpdateTenant(r.Args[1], in.Name)
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tenant information"))
+			return
+		}
+		if tenant == nil {
+			r.Fail(route.Oops(err, "No such tenant"))
+			return
+		}
+
+		if in.Name != "" {
+			tenant.Name = in.Name
+		}
+
+		t, err := core.DB.UpdateTenant(tenant)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to update tenant '%s'", in.Name))
 			return

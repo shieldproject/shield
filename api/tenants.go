@@ -8,8 +8,11 @@ import (
 
 //Tenant contains the uuid and name fields of a tenant
 type Tenant struct {
-	UUID string `json:"uuid"`
-	Name string `json:"name"`
+	UUID          string `json:"uuid"`
+	Name          string `json:"name"`
+	DailyIncrease int64  `json:"daily_increase"`
+	StorageUsed   int64  `json:"storage_used"`
+	ArchiveCount  int64  `json:"archive_count"`
 }
 
 type TenantFilter struct {
@@ -25,15 +28,15 @@ func CreateTenant(contentJSON string) (Tenant, error) {
 		return Tenant{}, err
 	}
 
-	respMap := make(map[string]string)
+	respMap := make(map[string]interface{})
 	if err := uri.Post(&respMap, string(contentJSON)); err != nil {
 		if create_error, present := respMap["error"]; present {
-			return Tenant{}, errors.New(create_error)
+			return Tenant{}, errors.New(create_error.(string))
 		}
 		return Tenant{}, err
 	}
 
-	return GetTenant(uuid.Parse(respMap["uuid"]))
+	return GetTenant(uuid.Parse(respMap["uuid"].(string)))
 }
 
 //GetTenant given a tenant uuid returns a struct containing the given tenants name and UUID
@@ -72,10 +75,10 @@ func UpdateTenant(id uuid.UUID, contentJSON string) (Tenant, error) {
 	if err != nil {
 		return Tenant{}, err
 	}
-	respMap := make(map[string]string)
+	respMap := make(map[string]interface{})
 	if err := uri.Patch(&respMap, contentJSON); err != nil {
 		if update_error, present := respMap["error"]; present {
-			return Tenant{}, errors.New(update_error)
+			return Tenant{}, errors.New(update_error.(string))
 		}
 		return Tenant{}, err
 	}

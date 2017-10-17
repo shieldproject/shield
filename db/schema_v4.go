@@ -223,5 +223,20 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE tenants ADD COLUMN daily_increase INTEGER DEFAULT NULL`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE tenants ADD COLUMN storage_used INTEGER DEFAULT NULL`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE tenants ADD COLUMN archive_count INTEGER DEFAULT NULL`)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

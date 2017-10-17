@@ -33,6 +33,12 @@ type Store struct {
 	ArchiveCount  int64     `json:"archive_count"`
 }
 
+type StoreStats struct {
+	DailyIncrease int64 `json:"daily_increase"`
+	StorageUsed   int64 `json:"storage_used"`
+	ArchiveCount  int64 `json:"archive_count"`
+}
+
 func (s *Store) Resolve() error {
 	return json.Unmarshal([]byte(s.Endpoint), &s.Config)
 }
