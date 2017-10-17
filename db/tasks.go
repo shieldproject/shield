@@ -222,14 +222,14 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
-		     target_uuid, target_plugin, target_endpoint, restore_key, agent, attempts)
+			 target_uuid, target_plugin, target_endpoint, restore_key, agent, attempts, tenant_uuid)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
-		     ?, ?, ?, ?, ?, ?)`,
+		     ?, ?, ?, ?, ?, ?, ?)`,
 		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		job.StoreUUID.String(), job.StorePlugin, job.StoreEndpoint,
-		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, "", job.Agent, 0,
+		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, "", job.Agent, 0, job.TenantUUID.String(),
 	)
 
 	if err != nil {
@@ -245,16 +245,16 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
 		     target_uuid, target_plugin, target_endpoint,
-		     restore_key, agent, attempts)
+		     restore_key, agent, attempts, tenant_uuid)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
 		     ?, ?, ?,
-		     ?, ?, ?)`,
+		     ?, ?, ?, ?)`,
 		id.String(), owner, RestoreOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
 		target.UUID.String(), target.Plugin, target.Endpoint,
-		archive.StoreKey, target.Agent, 0,
+		archive.StoreKey, target.Agent, 0, archive.TenantUUID.String(),
 	)
 
 	if err != nil {
@@ -270,16 +270,16 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
 		     target_plugin, target_endpoint,
-		     restore_key, agent, attempts)
+		     restore_key, agent, attempts, tenant_uuid)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
 		     ?, ?,
-		     ?, ?, ?)`,
+		     ?, ?, ?, ?)`,
 		id.String(), owner, PurgeOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
 		"", "",
-		archive.StoreKey, agent, 0,
+		archive.StoreKey, agent, 0, archive.TenantUUID.String(),
 	)
 
 	if err != nil {
@@ -348,7 +348,7 @@ func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
 	)
 }
 
-func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string, archive_size int64) (uuid.UUID, error) {
+func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string, archive_size int64, tenant_uuid uuid.UUID) (uuid.UUID, error) {
 	// fail on empty store_key, as '' seems to satisfy the NOT NULL constraint in postgres
 	if key == "" {
 		return nil, fmt.Errorf("cannot create an archive without a store_key")
@@ -381,14 +381,14 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 	validtime := ValidateEffectiveUnix(effective)
 	err = db.Exec(
 		`INSERT INTO archives
-			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, job, encryption_type, size)
-			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, '', j.Name, ?, ?
+			(uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason, job, encryption_type, size, tenant_uuid)
+			SELECT ?, t.uuid, s.uuid, ?, ?, ?, '', ?, '', j.Name, ?, ?, ?
 				FROM tasks
 					INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
 					INNER JOIN targets t     ON t.uuid = j.target_uuid
 					INNER JOIN stores  s     ON s.uuid = j.store_uuid
 				WHERE tasks.uuid = ?`,
-		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, archive_size, id.String(),
+		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, archive_size, tenant_uuid.String(), id.String(),
 	)
 	if err != nil {
 		return nil, err

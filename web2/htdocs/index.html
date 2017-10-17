@@ -428,7 +428,7 @@
                 <li>Scheduled Backup Jobs <span>[[= _.stats.jobs ]]</span></li>
                 <li>Backup Archives <span>[[= _.stats.archives ]]</span></li>
                 <li class="warn">Cloud Storage Used <span>[[= bytes(_.stats.storage) ]]</span></li>
-                <li class="ok">Daily Storage Increase <span>[[= _.stats.daily ]]</span></li>
+                <li class="ok">Daily Storage Increase <span>[[= bytes(_.stats.daily) ]]</span></li>
               </ul>
             </div></div>
     <!-- }}} --></script>
@@ -990,10 +990,10 @@
                 <dd>[[= _.store.archives ]]</dd>
 
                 <dt>Storage Used</dt>
-                <dd>[[= _.store.used ]]GB</dd>
+                <dd>[[= bytes(_.store.used) ]]</dd>
 
                 <dt>Daily Delta</dt>
-                <dd>[[= _.store.daily_delta ]]GB</dd>
+                <dd>[[= bytes(_.store.daily_delta) ]]</dd>
               </dl>
             </div>
 
@@ -2151,11 +2151,11 @@
             /* FIXME fixups that need to migrate into the SHIELD code */
             data.ok = true;
             data.archives = data.archive_count;
-            data.used = (data.storage_used/1073741824).toFixed(3);
+            data.used = data.storage_used;
             data.threshold = 0.1;
             data.projected = 2.1;
             data.total = 0.2;
-            data.daily_delta = (data.daily_increase/1073741824).toFixed(3);
+            data.daily_delta = data.daily_increase;
             $('#main').html(template('store', { store: data }));
           }
         });
@@ -2830,11 +2830,11 @@
             /* FIXME fixups that need to migrate into the SHIELD code */
             data.ok = true;
             data.archives = data.archive_count;
-            data.used = (data.storage_used/1073741824).toFixed(3);
-            data.threshold = 0.1;
-            data.projected = 2.1;
+            data.used = data.storage_used;
+            data.threshold = 0.1; //user sets this
+            data.projected = 2.1; //generating
             data.total = 0.2;
-            data.daily_delta = (data.daily_increase/1073741824).toFixed(3);
+            data.daily_delta = data.daily_increase;
             $('#main').html(template('store', { store: data, admin: true }));
           }
         });
@@ -3256,7 +3256,7 @@
         var ping = function () {
           $.ajax({
             type: 'GET',
-            url:  '/v2/health',
+            url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/health',
             success: function (data) {
               every = backoff[0]; /* reset backoff */
               rehud(data);

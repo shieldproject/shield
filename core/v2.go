@@ -119,6 +119,16 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("GET /v2/tenants/:uuid/health", func(r *route.Request) { // {{{
+		health, err := core.checkTenantHealth(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to check SHIELD health"))
+			return
+		}
+		r.OK(health)
+	})
+	// }}}
+
 	r.Dispatch("POST /v2/init", func(r *route.Request) { // {{{
 		var in struct {
 			Master string `json:"master"`

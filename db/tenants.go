@@ -50,7 +50,7 @@ func (f *TenantFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-	    SELECT t.uuid, t.name
+	    SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
 	      FROM tenants t
 	     WHERE ` + strings.Join(wheres, " AND ") + `
 	` + limit, args
@@ -72,10 +72,20 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 
 	for r.Next() {
 		var id NullUUID
+		var dailyIncrease, storageUsed, archiveCount *int64
 		t := &Tenant{}
 
-		if err := r.Scan(&id, &t.Name); err != nil {
+		if err := r.Scan(&id, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 			return l, err
+		}
+		if dailyIncrease != nil {
+			t.DailyIncrease = *dailyIncrease
+		}
+		if storageUsed != nil {
+			t.StorageUsed = *storageUsed
+		}
+		if archiveCount != nil {
+			t.ArchiveCount = *archiveCount
 		}
 		t.UUID = id.UUID
 		l = append(l, t)
@@ -85,7 +95,10 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 }
 
 func (db *DB) GetTenant(id string) (*Tenant, error) {
-	r, err := db.Query(`SELECT t.uuid, t.name FROM tenants t WHERE t.uuid = ?`, id)
+	r, err := db.Query(`
+		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
+		FROM tenants t 
+		WHERE t.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -96,17 +109,30 @@ func (db *DB) GetTenant(id string) (*Tenant, error) {
 	}
 
 	var this NullUUID
+	var dailyIncrease, storageUsed, archiveCount *int64
 	t := &Tenant{}
 
-	if err := r.Scan(&this, &t.Name); err != nil {
+	if err := r.Scan(&this, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 		return t, err
+	}
+	if dailyIncrease != nil {
+		t.DailyIncrease = *dailyIncrease
+	}
+	if storageUsed != nil {
+		t.StorageUsed = *storageUsed
+	}
+	if archiveCount != nil {
+		t.ArchiveCount = *archiveCount
 	}
 	t.UUID = this.UUID
 	return t, nil
 }
 
 func (db *DB) GetTenantByName(name string) (*Tenant, error) {
-	r, err := db.Query(`SELECT t.uuid, t.name FROM tenants t WHERE t.name = ?`, name)
+	r, err := db.Query(`
+		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
+		FROM tenants t 
+		WHERE t.name = ?`, name)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +143,20 @@ func (db *DB) GetTenantByName(name string) (*Tenant, error) {
 	}
 
 	var this NullUUID
+	var dailyIncrease, storageUsed, archiveCount *int64
 	t := &Tenant{}
 
-	if err := r.Scan(&this, &t.Name); err != nil {
+	if err := r.Scan(&this, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 		return t, err
+	}
+	if dailyIncrease != nil {
+		t.DailyIncrease = *dailyIncrease
+	}
+	if storageUsed != nil {
+		t.StorageUsed = *storageUsed
+	}
+	if archiveCount != nil {
+		t.ArchiveCount = *archiveCount
 	}
 	t.UUID = this.UUID
 	return t, nil

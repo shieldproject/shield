@@ -518,7 +518,7 @@ func (core *Core) worker(id int) {
 			} else {
 				if v.Key != "" {
 					log.Infof("  %s: restore key is %s", task.UUID, v.Key)
-					if id, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Size); err != nil {
+					if id, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Size, task.TenantUUID); err != nil {
 						log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 					} else if failed {
 						core.DB.InvalidateArchive(id)
