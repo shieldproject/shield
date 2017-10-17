@@ -108,27 +108,14 @@ func (p *UAAAuthProvider) HandleRedirect(req *http.Request) *db.User {
 		p.core.DB.CreateUser(user)
 	}
 
-	if err := p.core.DB.ClearMembershipsFor(user); err != nil {
-		p.Errorf("failed to clear memberships for user %s: %s", account, err)
-		return nil
-	}
-	for tname, role := range p.resolveSCIM(scims) {
-		if tname == "SYSTEM" {
-			user.SysRole = role
-		} else {
-			p.Infof("ensuring that tenant '%s' exists", tname)
-			tenant, err := p.core.DB.EnsureTenant(tname)
-			if err != nil {
-				p.Errorf("failed to find/create tenant '%s': %s", tname, err)
-				return nil
-			}
-			p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", account, user.UUID, tenant.Name, tenant.UUID, role)
-			err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
-			if err != nil {
-				p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", account, user.UUID, tenant.Name, tenant.UUID, role, err)
-				return nil
-			}
+	p.ClearAssignments()
+	for tenant, role := range p.resolveSCIM(scims) {
+		if !p.Assign(user, tenant, role) {
+			return nil
 		}
+	}
+	if !p.SaveAssignments(p.core.DB, user) {
+		return nil
 	}
 
 	return user

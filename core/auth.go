@@ -9,6 +9,14 @@ import (
 	"github.com/starkandwayne/shield/route"
 )
 
+func IsValidTenantRole(role string) bool {
+	return role == "admin" || role == "engineer" || role == "operator"
+}
+
+func IsValidSystemRole(role string) bool {
+	return role == "admin" || role == "manager" || role == "engineer"
+}
+
 func (core *Core) FindAuthProvider(identifier string) (AuthProvider, error) {
 	var provider AuthProvider
 

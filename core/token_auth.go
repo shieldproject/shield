@@ -60,7 +60,7 @@ func (p *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	var err error
 	defer func() {
 		if err != nil {
-			r.Fail(route.Oops(nil, "An unknown error occurred"))
+			r.Fail(route.Oops(err, "An unknown error occurred"))
 		}
 	}()
 
@@ -86,26 +86,14 @@ func (p *TokenAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if err = p.core.DB.ClearMembershipsFor(user); err != nil {
-		p.Errorf("failed to clear memberships for user %s: %s\n", token, err)
-		return
+	p.ClearAssignments()
+	for _, a := range assignments {
+		if !p.Assign(user, a.Tenant, a.Role) {
+			return
+		}
 	}
-
-	for _, assignment := range assignments {
-		p.Infof("ensuring tenant '%s'\n", assignment.Tenant)
-		var tenant *db.Tenant
-		tenant, err = p.core.DB.EnsureTenant(assignment.Tenant)
-		if err != nil {
-			p.Errorf("failed to find/create tenant '%s': %s\n", assignment.Tenant, err)
-			return
-		}
-
-		p.Infof("inviting %s [%s] to tenant '%s' [%s] as '%s'", token, user.UUID, tenant.Name, tenant.UUID, assignment.Role)
-		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), assignment.Role)
-		if err != nil {
-			p.Errorf("failed to invite %s [%s] to tenant '%s' [%s] as %s: %s", token, user.UUID, tenant.Name, tenant.UUID, assignment.Role, err)
-			return
-		}
+	if !p.SaveAssignments(p.core.DB, user) {
+		return
 	}
 
 	var session *db.Session
