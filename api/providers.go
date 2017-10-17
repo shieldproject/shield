@@ -68,7 +68,7 @@ func (p *AuthProvider) TokenAuth(token string) (sessionID string, user *AuthIDOu
 	user = &AuthIDOutput{}
 
 	var header http.Header
-	header, err = uri.HeaderRequest(user, req)
+	header, err = uri.RequestWithHeaders(user, req)
 	if err != nil {
 		return
 	}

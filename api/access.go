@@ -111,7 +111,7 @@ func Login(username, password string) (sessionID string, user *AuthIDOutput, err
 
 	user = &AuthIDOutput{}
 	var header http.Header
-	header, err = uri.HeaderRequest(user, req)
+	header, err = uri.RequestWithHeaders(user, req)
 	if err != nil {
 		return
 	}

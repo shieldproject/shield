@@ -90,9 +90,9 @@ func (u *URL) Request(out interface{}, req *http.Request) error {
 	return parseResponse(out, r)
 }
 
-//HeaderRequest runs the request and returns the http response Headers and an
-//error, if any
-func (u *URL) HeaderRequest(out interface{}, req *http.Request) (http.Header, error) {
+//RequestWithHeaders runs the request and returns the http response Headers and
+//an error, if any
+func (u *URL) RequestWithHeaders(out interface{}, req *http.Request) (http.Header, error) {
 	r, err := makeRequest(req)
 	if err != nil {
 		return nil, err
