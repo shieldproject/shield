@@ -1097,8 +1097,8 @@
                   </style>
                 </defs>
 
-                [[# Base value of 1byte, add 20% padding for spacing ]]
-                [[ var total = Math.max(_.store.used, _.store.threshold, 1) * 1.2; ]]
+                [[# Base value of 1M, add 20% padding for spacing ]]
+                [[ var total = Math.max(_.store.used, _.store.threshold, readableToBytes("1M")) * 1.2; ]]
                 <rect class="outer" x="0" y="200" width="100%" height="36"></rect>
                 <rect class="fill" x="2" y="202" width="[[= 100.0 * _.store.used / total ]]%" height="32"></rect>
 

@@ -1478,7 +1478,7 @@ func (core *Core) v2API() *route.Router {
 			Summary   string `json:"summary"`
 			Agent     string `json:"agent"`
 			Plugin    string `json:"plugin"`
-			Threshold int    `json:"threshold"`
+			Threshold int64  `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 
@@ -1533,7 +1533,7 @@ func (core *Core) v2API() *route.Router {
 			Summary   string `json:"summary"`
 			Agent     string `json:"agent"`
 			Plugin    string `json:"plugin"`
-			Threshold int    `json:"threshold"`
+			Threshold int64  `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 		}
@@ -2204,7 +2204,7 @@ func (core *Core) v2API() *route.Router {
 			Summary   string `json:"summary"`
 			Agent     string `json:"agent"`
 			Plugin    string `json:"plugin"`
-			Threshold int    `json:"threshold"`
+			Threshold int64  `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 
@@ -2253,7 +2253,7 @@ func (core *Core) v2API() *route.Router {
 			Summary   string `json:"summary"`
 			Agent     string `json:"agent"`
 			Plugin    string `json:"plugin"`
-			Threshold int    `json:"threshold"`
+			Threshold int64  `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 		}

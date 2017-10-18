@@ -30,8 +30,8 @@ type Store struct {
 	TenantUUID    uuid.UUID `json:"-"`
 	DailyIncrease int64     `json:"daily_increase"`
 	StorageUsed   int64     `json:"storage_used"`
+	Threshold     int64     `json:"threshold"`
 	ArchiveCount  int       `json:"archive_count"`
-	Threshold     int       `json:"threshold"`
 }
 
 type StoreStats struct {
@@ -197,8 +197,8 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		s := &Store{}
 		var n int
-		var dailyIncrease, storageUsed *int64
-		var archiveCount, threshold *int
+		var dailyIncrease, storageUsed, threshold *int64
+		var archiveCount *int
 		var this, tenant NullUUID
 		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &n, &s.PrivateConfig,
 			&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount, &threshold); err != nil {
@@ -244,8 +244,8 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	s := &Store{}
-	var dailyIncrease, storageUsed *int64
-	var archiveCount, threshold *int
+	var dailyIncrease, storageUsed, threshold *int64
+	var archiveCount *int
 	var this, tenant NullUUID
 	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &s.PrivateConfig,
 		&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount, &threshold); err != nil {

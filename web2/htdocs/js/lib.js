@@ -987,8 +987,8 @@
 
    ***************************************************/
   exported.bytes = function (x) { // {{{
-    var units = ["b", "Kb", "Mb", "Gb", "Tb"];
-    while (units.length > 1 && x > 1024) {
+    var units = ["b", "K", "M", "G", "T"];
+    while (units.length > 1 && x >= 1024) {
       units.shift();
       x /= 1024;
     }
@@ -1004,10 +1004,10 @@
 
    ***************************************************/
   exported.readableToBytes = function (x) { 
-    var powers = {'k': 1, 'm': 2, 'g': 3, 't': 4};
+    var powers = {'': 0, 'k': 1, 'm': 2, 'g': 3, 't': 4};
     var regex = /(\d+(?:\.\d+)?)\s?(k|m|g|t)?b?/i;
     var res = regex.exec(x);
-    return res[1] * Math.pow(1024, powers[res[2].toLowerCase()]);
+    return res[1] * Math.pow(1024, powers[(res[2]||"").toLowerCase()]);
   };
   // }}}
 })(window, document);
