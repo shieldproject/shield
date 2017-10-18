@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/pborman/uuid"
+
 	"github.com/starkandwayne/shield/db"
 )
 

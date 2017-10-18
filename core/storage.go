@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/starkandwayne/goutils/log"
+
 	"github.com/starkandwayne/shield/db"
 )
 
-func (core *Core) DailyStorageAnalytics() error {
+func (core *Core) DailyStorageAnalytics() {
 	core.DailyStoreStats()
 	core.DailyTenantStats()
-	return nil
 }
 
 // DeltaIncrease calculates the delta in storage space over the period specified.
@@ -108,7 +108,7 @@ func (core *Core) DailyStoreStats() error {
 
 // DailyTenantStats batches updates of daily archive storage space statistics.
 // It stores the number total archives corresponding to each tenant, and the total size of those archives
-// It also agregates the daily increase over all the stores belonging to the tenant
+// It also aggregates the daily increase over all the stores belonging to the tenant
 func (core *Core) DailyTenantStats() error {
 	base := time.Now()
 	threshold := base.Add(0 - time.Duration(24)*time.Hour)

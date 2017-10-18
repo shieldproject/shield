@@ -151,9 +151,9 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 		   SELECT s.uuid, s.name, s.summary, s.agent,
-		          s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
-				  s.private_config, s.public_config, s.daily_increase,
-				  s.storage_used, s.archive_count
+			  s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
+			  s.private_config, s.public_config, s.daily_increase,
+			  s.storage_used, s.archive_count
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
@@ -168,9 +168,9 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 
 	return `
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
-	                   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
-					   s.private_config, s.public_config, s.daily_increase,
-					   s.storage_used, s.archive_count
+			   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n
+			   s.private_config, s.public_config, s.daily_increase,
+			   s.storage_used, s.archive_count
 	              FROM stores s
 	         LEFT JOIN jobs j
 	                ON j.store_uuid = s.uuid

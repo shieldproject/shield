@@ -229,7 +229,7 @@ func (core *Core) Run() error {
 			core.purge()
 			core.markTasks()
 			core.checkAgents()
-			go core.DailyStorageAnalytics()
+			core.DailyStorageAnalytics()
 		}
 	}
 }
