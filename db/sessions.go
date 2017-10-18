@@ -11,14 +11,7 @@ type Session struct {
 	UserUUID uuid.UUID
 }
 
-func (db *DB) GetSession(sid interface{}) (*Session, error) {
-	var id uuid.UUID
-	if x, ok := sid.(uuid.UUID); ok {
-		id = x
-	} else {
-		id = uuid.Parse(fmt.Sprintf("%s", sid))
-	}
-
+func (db *DB) GetSession(id uuid.UUID) (*Session, error) {
 	r, err := db.Query(`SELECT uuid, user_uuid FROM sessions WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
@@ -40,6 +33,9 @@ func (db *DB) GetSession(sid interface{}) (*Session, error) {
 	}, nil
 }
 
+//GetUserForSession returns the User struct associated with the session with the
+// given UUID. If no such session exists, the User pointer returned is nil. An
+// error is only thrown if a database error occurs.
 func (db *DB) GetUserForSession(sid string) (*User, error) {
 	r, err := db.Query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole

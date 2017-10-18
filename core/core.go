@@ -144,15 +144,6 @@ func NewCore(file string) (*Core, error) {
 				},
 				core: core,
 			}
-		case "token":
-			core.auth[auth.Identifier] = &TokenAuthProvider{
-				AuthProviderBase: AuthProviderBase{
-					Name:       auth.Name,
-					Identifier: auth.Identifier,
-					Type:       auth.Backend,
-				},
-				core: core,
-			}
 		default:
 			return nil, fmt.Errorf("%s provider has an unrecognized `backend' of '%s'; must be one of github, uaa, or token", auth.Identifier, auth.Backend)
 		}

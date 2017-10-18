@@ -203,6 +203,16 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`CREATE TABLE tokens (
+                   session_uuid UUID PRIMARY KEY,
+                   label        TEXT,
+									 created_at   INTEGER NOT NULL,
+									 FOREIGN KEY(session_uuid) REFERENCES sessions(uuid)
+               )`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err

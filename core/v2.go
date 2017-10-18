@@ -10,6 +10,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
+	"github.com/starkandwayne/goutils/timestamp"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -471,6 +472,108 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 		r.Success("Successfully deleted user '%s' (%s@local)", r.Args[1], user.Account)
+	})
+	// }}}
+
+	type v2AuthToken struct {
+		Token     string `json:"token,omitempty"`
+		Label     string `json:"label"`
+		CreatedAt string `json:"created_at"`
+	}
+
+	r.Dispatch("GET /v2/auth/tokens", func(r *route.Request) { // {{{
+		sessionID := getSessionID(r.Req)
+		user, err := core.DB.GetUserForSession(sessionID)
+		if err != nil {
+			r.Fail(route.Oops(err, "An unknown error occurred"))
+			return
+		}
+		if user == nil {
+			r.Fail(route.Oops(
+				fmt.Errorf("No user for session %s was found. Did the session disappear?", sessionID),
+				"An unknown error occurred"))
+			return
+		}
+		tokens, err := core.DB.GetTokensForUser(user.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "An unknown error occurred"))
+			return
+		}
+
+		respTokens := make([]v2AuthToken, len(tokens))
+
+		for i, token := range tokens {
+			respTokens[i] = v2AuthToken{
+				Label:     token.Label,
+				CreatedAt: token.CreatedAt.Format(timestamp.Format),
+			}
+		}
+
+		r.OK(&respTokens)
+	})
+	// }}}
+
+	r.Dispatch("POST /v2/auth/tokens", func(r *route.Request) { // {{{
+		var in struct {
+			Label string
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		sessionID := getSessionID(r.Req)
+		user, err := core.DB.GetUserForSession(sessionID)
+		if err != nil {
+			r.Fail(route.Oops(err, "An unknown error occurred"))
+			return
+		}
+		if user == nil {
+			r.Fail(route.Oops(
+				fmt.Errorf("No user for session %s was found. Did the session disappear?", sessionID),
+				"An unknown error occurred"))
+			return
+		}
+
+		token, err := core.DB.CreateToken(&db.Token{
+			Label:    in.Label,
+			UserUUID: user.UUID,
+		})
+
+		if token == nil {
+			r.Fail(route.Oops(
+				fmt.Errorf("No token was retrieved after creation"),
+				"An unknown error occurred",
+			))
+			return
+		}
+
+		r.OK(v2AuthToken{
+			Token:     token.SessionUUID.String(),
+			Label:     token.Label,
+			CreatedAt: token.CreatedAt.Format(timestamp.Format),
+		})
+	})
+	// }}}
+
+	r.Dispatch("DELETE /v2/auth/tokens/:uuid", func(r *route.Request) { // {{{
+		toDelete := uuid.Parse(r.Args[1])
+		if toDelete == nil {
+			r.Fail(route.Bad(nil, fmt.Sprintf("%s is not a valid token", r.Args[1])))
+		}
+
+		//TODO: Once auth is in place, we'll need to restrict who can delete this
+		// token to either the user him/herself or an admin.
+
+		err := core.DB.DeleteToken(toDelete)
+		if err != nil {
+			r.Fail(route.Oops(err, "An unknown error occurred"))
+		}
+
+		r.OK(struct {
+			OK string `json:"ok"`
+		}{
+			OK: "deleted",
+		})
 	})
 	// }}}
 

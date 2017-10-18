@@ -50,7 +50,11 @@ type authResponse struct {
 
 //Gets the session ID from the request. Returns "" if not given.
 func getSessionID(req *http.Request) string {
-	sessionID := req.Header.Get("X-Shield-Session")
+	sessionID := req.Header.Get("X-Shield-Token")
+
+	if sessionID == "" {
+		sessionID = req.Header.Get("X-Shield-Session")
+	}
 
 	if sessionID == "" { //If not in header, check for cookie
 		cookie, err := req.Cookie(SessionCookieName)
@@ -58,6 +62,7 @@ func getSessionID(req *http.Request) string {
 			sessionID = cookie.Value
 		}
 	}
+
 	return sessionID
 }
 
