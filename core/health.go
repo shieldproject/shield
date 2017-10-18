@@ -175,7 +175,7 @@ func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 		return health, nil
 	}
 
-	health.Stats.Archives = int(tenant.ArchiveCount)
+	health.Stats.Archives = tenant.ArchiveCount
 	health.Stats.Storage = tenant.StorageUsed
 	health.Stats.Daily = tenant.DailyIncrease
 

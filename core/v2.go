@@ -1474,10 +1474,11 @@ func (core *Core) v2API() *route.Router {
 	// }}}""
 	r.Dispatch("POST /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
 		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Agent   string `json:"agent"`
-			Plugin  string `json:"plugin"`
+			Name      string `json:"name"`
+			Summary   string `json:"summary"`
+			Agent     string `json:"agent"`
+			Plugin    string `json:"plugin"`
+			Threshold int    `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 
@@ -1488,7 +1489,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin) {
+		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin, "threshold", fmt.Sprint(in.Threshold)) {
 			return
 		}
 
@@ -1514,6 +1515,7 @@ func (core *Core) v2API() *route.Router {
 			Plugin:     in.Plugin,
 			Endpoint:   in.endpoint,
 			Config:     in.Config,
+			Threshold:  in.Threshold,
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))
@@ -1527,10 +1529,11 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
 		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Agent   string `json:"agent"`
-			Plugin  string `json:"plugin"`
+			Name      string `json:"name"`
+			Summary   string `json:"summary"`
+			Agent     string `json:"agent"`
+			Plugin    string `json:"plugin"`
+			Threshold int    `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 		}
@@ -1561,6 +1564,10 @@ func (core *Core) v2API() *route.Router {
 		if in.Plugin != "" {
 			store.Plugin = in.Plugin
 		}
+		if in.Threshold != 0 {
+			store.Threshold = in.Threshold
+		}
+
 		if in.Config != nil {
 			store.Config = in.Config
 			/* FIXME: move this into (s *Store) itself ... */
@@ -2193,10 +2200,11 @@ func (core *Core) v2API() *route.Router {
 	// }}}""
 	r.Dispatch("POST /v2/global/stores", func(r *route.Request) { // {{{
 		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Agent   string `json:"agent"`
-			Plugin  string `json:"plugin"`
+			Name      string `json:"name"`
+			Summary   string `json:"summary"`
+			Agent     string `json:"agent"`
+			Plugin    string `json:"plugin"`
+			Threshold int    `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 
@@ -2207,7 +2215,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin) {
+		if r.Missing("name", in.Name, "agent", in.Agent, "plugin", in.Plugin, "threshold", fmt.Sprint(in.Threshold)) {
 			return
 		}
 
@@ -2227,6 +2235,7 @@ func (core *Core) v2API() *route.Router {
 			Plugin:     in.Plugin,
 			Endpoint:   in.endpoint,
 			Config:     in.Config,
+			Threshold:  in.Threshold,
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))
@@ -2240,10 +2249,11 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("PUT /v2/global/stores/:uuid", func(r *route.Request) { // {{{
 		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Agent   string `json:"agent"`
-			Plugin  string `json:"plugin"`
+			Name      string `json:"name"`
+			Summary   string `json:"summary"`
+			Agent     string `json:"agent"`
+			Plugin    string `json:"plugin"`
+			Threshold int    `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
 		}
@@ -2273,6 +2283,9 @@ func (core *Core) v2API() *route.Router {
 		}
 		if in.Plugin != "" {
 			store.Plugin = in.Plugin
+		}
+		if in.Threshold != 0 {
+			store.Threshold = in.Threshold
 		}
 		if in.Config != nil {
 			store.Config = in.Config
