@@ -95,7 +95,7 @@ func (core *Core) DailyStoreStats() error {
 
 		store.DailyIncrease = delta
 		store.StorageUsed = total_size
-		store.ArchiveCount = int64(total_count)
+		store.ArchiveCount = total_count
 		fmt.Printf("Updating %s:%s with Used:%d, Count:%d, Increase:%d\n", store.Name, store.UUID.String(), store.StorageUsed, store.ArchiveCount, store.DailyIncrease)
 		err = core.DB.UpdateStore(store)
 		if err != nil {
@@ -155,7 +155,7 @@ func (core *Core) DailyTenantStats() error {
 		}
 
 		tenant.StorageUsed = total_size
-		tenant.ArchiveCount = int64(total_count)
+		tenant.ArchiveCount = total_count
 		tenant.DailyIncrease = delta
 
 		fmt.Printf("Updating %s:%s with Used:%d, Count:%d, Increase:%d\n", tenant.Name, tenant.UUID.String(), tenant.StorageUsed, tenant.ArchiveCount, tenant.DailyIncrease)

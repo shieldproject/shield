@@ -1097,9 +1097,8 @@
                   </style>
                 </defs>
 
-                [[
-                    var total = Math.max(_.store.used, _.store.threshold, _.store.projected, _.store.total);
-                ]]
+                [[# Base value of 1M, add 20% padding for spacing ]]
+                [[ var total = Math.max(_.store.used, _.store.threshold, readableToBytes("1M")) * 1.2; ]]
                 <rect class="outer" x="0" y="200" width="100%" height="36"></rect>
                 <rect class="fill" x="2" y="202" width="[[= 100.0 * _.store.used / total ]]%" height="32"></rect>
 
@@ -1110,7 +1109,7 @@
                   <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="53" r="3"></circle>
                   <g transform="translate(6)">
                     <text x="[[= 100.0 * _.store.used / total ]]%" y="60" class="label">Current</text>
-                    <text x="[[= 100.0 * _.store.used / total ]]%" y="100" class="size">[[= _.store.used ]]<tspan>GB</tspan></text>
+                    <text x="[[= 100.0 * _.store.used / total ]]%" y="100" class="size">[[= bytes(_.store.used) ]]</text>
                   </g>
                 </g>
 
@@ -1120,7 +1119,7 @@
                   <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="133" r="3"></circle>
                   <g transform="translate(6)">
                     <text x="[[= 100.0 * _.store.threshold / total ]]%" y="140" class="label">Threshold</text>
-                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="180" class="size">[[= _.store.threshold ]]<tspan>GB</tspan></text>
+                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="180" class="size">[[= bytes(_.store.threshold) ]]</text>
                   </g>
                 </g>
                 [[ } else { ]]
@@ -1131,7 +1130,7 @@
                   <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="53" r="3"></circle>
                   <g transform="translate(6)">
                     <text x="[[= 100.0 * _.store.threshold / total ]]%" y="60" class="label">Threshold</text>
-                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="100" class="size">[[= _.store.threshold ]]<tspan>GB</tspan></text>
+                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="100" class="size">[[= bytes(_.store.threshold) ]]</text>
                   </g>
                 </g>
 
@@ -1141,19 +1140,21 @@
                   <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="133" r="3"></circle>
                   <g transform="translate(6)">
                     <text x="[[= 100.0 * _.store.used / total ]]%" y="140" class="label">Current</text>
-                    <text x="[[= 100.0 * _.store.used / total ]]%" y="180" class="size">[[= _.store.used ]]<tspan>GB</tspan></text>
+                    <text x="[[= 100.0 * _.store.used / total ]]%" y="180" class="size">[[= bytes(_.store.used) ]]</text>
                   </g>
                 </g>
                 [[ } ]]
-
+                
+                [[ if (false) { ]]
                 [[# "projected" marker ]]
                 <g class="projected" transform="translate(-3)">
                   <line class="marker" x1="[[= 100.0 * _.store.projected / total ]]%" x2="[[= 100.0 * _.store.projected / total ]]%" y1="238" y2="293"></line>
                   <circle class="marker" cx="[[= 100.0 * _.store.projected / total ]]%" cy="293" r="3"></circle>
                   <g transform="translate(-6)"><text x="[[= 100.0 * _.store.projected / total ]]%" y="260" class="label" text-anchor="end">Projected</text>
-                    <text x="[[= 100.0 * _.store.projected / total ]]%" y="300" class="size" text-anchor="end">[[= _.store.projected ]]<tspan>GB</tspan></text>
+                    <text x="[[= 100.0 * _.store.projected / total ]]%" y="300" class="size" text-anchor="end">[[= bytes(_.store.projected) ]]</text>
                   </g>
                 </g>
+                [[}]]
               </svg>
             </div>
             [[# #################################### ]]
@@ -1195,6 +1196,18 @@
                 <div class="widget">
                   <textarea id="store-summary" name="summary">[[= _.store ? _.store.summary : '' ]]</textarea>
                   <p class="help">If you want, you can add a longer description.</p>
+                </div>
+              </div>
+
+              <div class="ctl" data-field="threshold">
+                <label for="store-threshold">Threshold</label>
+                <span class="errors">
+                  <span data-error="missing">You must provide a threshold for this new storage system.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" id="store-threshold" name="threshold"
+                    [[ if (_.store) { ]]value="[[= bytes(_.store.threshold) ]]"[[ } ]]/>
+                    <p class="help">Select a reasonable threshold for storage size warnings</p>
                 </div>
               </div>
 
@@ -2226,9 +2239,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             data.ok = true;
             data.archives = data.archive_count;
             data.used = data.storage_used;
-            data.threshold = 0.1;
+            data.threshold = data.threshold;
             data.projected = 2.1;
-            data.total = 0.2;
             data.daily_delta = data.daily_increase;
             $('#main').html(template('store', { store: data }));
           }
@@ -2286,6 +2298,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 var $form = $(event.target);
                 var data = $form.serializeObject();
                 data.agent = data.agent.replace(/.*\|/, '');
+                data.threshold = readableToBytes(data.threshold);
 
                 if (!$form.reset().validate(data).isOK()) { return; }
                 api({
@@ -2357,6 +2370,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     var $form = $(event.target);
                     var data = $form.serializeObject();
                     data.agent = data.agent.replace(/.*\|/, '');
+                    data.threshold = readableToBytes(data.threshold);
 
                     if (!$form.reset().validate(data).isOK()) { return; }
                     api({
@@ -2969,9 +2983,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             data.ok = true;
             data.archives = data.archive_count;
             data.used = data.storage_used;
-            data.threshold = 0.1; //user sets this
-            data.projected = 2.1; //generating
-            data.total = 0.2;
+            data.threshold = data.threshold;
+            data.projected = 2.1;
             data.daily_delta = data.daily_increase;
             $('#main').html(template('store', { store: data, admin: true }));
           }
@@ -3026,6 +3039,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 var $form = $(event.target);
                 var data = $form.serializeObject();
                 data.agent = data.agent.replace(/.*\|/, '');
+                data.threshold = readableToBytes(data.threshold);
 
                 if (!$form.reset().validate(data).isOK()) { return; }
                 api({
@@ -3097,6 +3111,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     var $form = $(event.target);
                     var data = $form.serializeObject();
                     data.agent = data.agent.replace(/.*\|/, '');
+                    data.threshold = readableToBytes(data.threshold);
 
                     if (!$form.reset().validate(data).isOK()) { return; }
                     api({

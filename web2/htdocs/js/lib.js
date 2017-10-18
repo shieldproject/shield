@@ -988,11 +988,26 @@
    ***************************************************/
   exported.bytes = function (x) { // {{{
     var units = ["b", "K", "M", "G", "T"];
-    while (units.length > 1 && x > 1024) {
+    while (units.length > 1 && x >= 1024) {
       units.shift();
       x /= 1024;
     }
     return (Math.round(x * 10) / 10).toString() + units[0];
+  };
+
+  /***************************************************
+     $(...).readableToBytes(x) - Format a file size
+
+     Given a human-readable string using units of n*1024b,
+     formats and returns an integer number of bytes, to make sizes
+     more manageable.
+
+   ***************************************************/
+  exported.readableToBytes = function (x) { 
+    var powers = {'': 0, 'k': 1, 'm': 2, 'g': 3, 't': 4};
+    var regex = /(\d+(?:\.\d+)?)\s?(k|m|g|t)?b?/i;
+    var res = regex.exec(x);
+    return res[1] * Math.pow(1024, powers[(res[2]||"").toLowerCase()]);
   };
   // }}}
 })(window, document);

@@ -30,13 +30,14 @@ type Store struct {
 	TenantUUID    uuid.UUID `json:"-"`
 	DailyIncrease int64     `json:"daily_increase"`
 	StorageUsed   int64     `json:"storage_used"`
-	ArchiveCount  int64     `json:"archive_count"`
+	Threshold     int64     `json:"threshold"`
+	ArchiveCount  int       `json:"archive_count"`
 }
 
 type StoreStats struct {
 	DailyIncrease int64 `json:"daily_increase"`
 	StorageUsed   int64 `json:"storage_used"`
-	ArchiveCount  int64 `json:"archive_count"`
+	ArchiveCount  int   `json:"archive_count"`
 }
 
 func (s *Store) Resolve() error {
@@ -153,7 +154,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 		   SELECT s.uuid, s.name, s.summary, s.agent,
 			  s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
 			  s.private_config, s.public_config, s.daily_increase,
-			  s.storage_used, s.archive_count
+			  s.storage_used, s.archive_count, s.threshold
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
@@ -170,7 +171,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
 			   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
 			   s.private_config, s.public_config, s.daily_increase,
-			   s.storage_used, s.archive_count
+			   s.storage_used, s.archive_count, s.threshold
 	              FROM stores s
 	         LEFT JOIN jobs j
 	                ON j.store_uuid = s.uuid
@@ -196,10 +197,11 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		s := &Store{}
 		var n int
-		var dailyIncrease, archiveCount, storageUsed *int64
+		var dailyIncrease, storageUsed, threshold *int64
+		var archiveCount *int
 		var this, tenant NullUUID
 		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &n, &s.PrivateConfig,
-			&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
+			&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount, &threshold); err != nil {
 			return l, err
 		}
 		if dailyIncrease != nil {
@@ -210,6 +212,9 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 		}
 		if storageUsed != nil {
 			s.StorageUsed = *storageUsed
+		}
+		if threshold != nil {
+			s.Threshold = *threshold
 		}
 		s.UUID = this.UUID
 		s.TenantUUID = tenant.UUID
@@ -224,7 +229,7 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	   SELECT s.uuid, s.name, s.summary, s.agent,
 	          s.plugin, s.endpoint, s.tenant_uuid,
 			  s.private_config, s.public_config, s.daily_increase,
-			  s.storage_used, s.archive_count
+			  s.storage_used, s.archive_count, s.threshold
 	     FROM stores s
 	LEFT JOIN jobs j
 	       ON j.store_uuid = s.uuid
@@ -239,10 +244,11 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	s := &Store{}
-	var dailyIncrease, archiveCount, storageUsed *int64
+	var dailyIncrease, storageUsed, threshold *int64
+	var archiveCount *int
 	var this, tenant NullUUID
 	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &s.PrivateConfig,
-		&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
+		&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount, &threshold); err != nil {
 		return nil, err
 	}
 	if dailyIncrease != nil {
@@ -253,6 +259,9 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 	if storageUsed != nil {
 		s.StorageUsed = *storageUsed
+	}
+	if threshold != nil {
+		s.Threshold = *threshold
 	}
 	s.UUID = this.UUID
 	s.TenantUUID = tenant.UUID
@@ -267,9 +276,9 @@ func (db *DB) CreateStore(s *Store) (*Store, error) {
 
 	s.UUID = uuid.NewRandom()
 	return s, db.Exec(`
-	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config)
-	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?)`,
-		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig)
+	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold)
+	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?)`,
+		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.Threshold)
 }
 
 func (db *DB) UpdateStore(s *Store) error {
@@ -288,9 +297,10 @@ func (db *DB) UpdateStore(s *Store) error {
 			  public_config  = ?,
 			  daily_increase = ?,
 			  archive_count  = ?,
-			  storage_used   = ?
+			  storage_used   = ?,
+			  threshold      = ?
 		WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
-		s.ArchiveCount, s.StorageUsed, s.UUID.String(),
+		s.ArchiveCount, s.StorageUsed, s.Threshold, s.UUID.String(),
 	)
 }
 

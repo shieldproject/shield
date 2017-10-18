@@ -13,7 +13,7 @@ type Tenant struct {
 	Members       []*User   `json:"members,omitempty"`
 	DailyIncrease int64     `json:"daily_increase"`
 	StorageUsed   int64     `json:"storage_used"`
-	ArchiveCount  int64     `json:"archive_count"`
+	ArchiveCount  int       `json:"archive_count"`
 }
 
 type TenantFilter struct {
@@ -72,7 +72,8 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 
 	for r.Next() {
 		var id NullUUID
-		var dailyIncrease, storageUsed, archiveCount *int64
+		var dailyIncrease, storageUsed *int64
+		var archiveCount *int
 		t := &Tenant{}
 
 		if err := r.Scan(&id, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
@@ -109,7 +110,8 @@ func (db *DB) GetTenant(id string) (*Tenant, error) {
 	}
 
 	var this NullUUID
-	var dailyIncrease, storageUsed, archiveCount *int64
+	var dailyIncrease, storageUsed *int64
+	var archiveCount *int
 	t := &Tenant{}
 
 	if err := r.Scan(&this, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
@@ -143,7 +145,8 @@ func (db *DB) GetTenantByName(name string) (*Tenant, error) {
 	}
 
 	var this NullUUID
-	var dailyIncrease, storageUsed, archiveCount *int64
+	var dailyIncrease, storageUsed *int64
+	var archiveCount *int
 	t := &Tenant{}
 
 	if err := r.Scan(&this, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
