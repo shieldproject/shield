@@ -27,7 +27,16 @@ type Store struct {
 	Config        map[string]interface{} `json:"config,omitempty"`
 	DisplayConfig []StoreConfigItem      `json:"display_config,omitempty"`
 
-	TenantUUID uuid.UUID `json:"-"`
+	TenantUUID    uuid.UUID `json:"-"`
+	DailyIncrease int64     `json:"daily_increase"`
+	StorageUsed   int64     `json:"storage_used"`
+	ArchiveCount  int64     `json:"archive_count"`
+}
+
+type StoreStats struct {
+	DailyIncrease int64 `json:"daily_increase"`
+	StorageUsed   int64 `json:"storage_used"`
+	ArchiveCount  int64 `json:"archive_count"`
 }
 
 func (s *Store) Resolve() error {
@@ -142,8 +151,9 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 		   SELECT s.uuid, s.name, s.summary, s.agent,
-		          s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
-		          s.private_config, s.public_config
+			  s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
+			  s.private_config, s.public_config, s.daily_increase,
+			  s.storage_used, s.archive_count
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
@@ -158,8 +168,9 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 
 	return `
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
-	                   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
-	                   s.private_config, s.public_config
+			   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
+			   s.private_config, s.public_config, s.daily_increase,
+			   s.storage_used, s.archive_count
 	              FROM stores s
 	         LEFT JOIN jobs j
 	                ON j.store_uuid = s.uuid
@@ -185,9 +196,20 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		s := &Store{}
 		var n int
+		var dailyIncrease, archiveCount, storageUsed *int64
 		var this, tenant NullUUID
-		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &n, &s.PrivateConfig, &s.PublicConfig); err != nil {
+		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &n, &s.PrivateConfig,
+			&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 			return l, err
+		}
+		if dailyIncrease != nil {
+			s.DailyIncrease = *dailyIncrease
+		}
+		if archiveCount != nil {
+			s.ArchiveCount = *archiveCount
+		}
+		if storageUsed != nil {
+			s.StorageUsed = *storageUsed
 		}
 		s.UUID = this.UUID
 		s.TenantUUID = tenant.UUID
@@ -201,7 +223,8 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	r, err := db.Query(`
 	   SELECT s.uuid, s.name, s.summary, s.agent,
 	          s.plugin, s.endpoint, s.tenant_uuid,
-	          s.private_config, s.public_config
+			  s.private_config, s.public_config, s.daily_increase,
+			  s.storage_used, s.archive_count
 	     FROM stores s
 	LEFT JOIN jobs j
 	       ON j.store_uuid = s.uuid
@@ -216,9 +239,20 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	s := &Store{}
+	var dailyIncrease, archiveCount, storageUsed *int64
 	var this, tenant NullUUID
-	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &s.PrivateConfig, &s.PublicConfig); err != nil {
+	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &s.PrivateConfig,
+		&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 		return nil, err
+	}
+	if dailyIncrease != nil {
+		s.DailyIncrease = *dailyIncrease
+	}
+	if archiveCount != nil {
+		s.ArchiveCount = *archiveCount
+	}
+	if storageUsed != nil {
+		s.StorageUsed = *storageUsed
 	}
 	s.UUID = this.UUID
 	s.TenantUUID = tenant.UUID
@@ -251,8 +285,12 @@ func (db *DB) UpdateStore(s *Store) error {
 	          plugin         = ?,
 	          endpoint       = ?,
 	          private_config = ?,
-	          public_config  = ?
-	    WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.UUID.String(),
+			  public_config  = ?,
+			  daily_increase = ?,
+			  archive_count  = ?,
+			  storage_used   = ?
+		WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
+		s.ArchiveCount, s.StorageUsed, s.UUID.String(),
 	)
 }
 

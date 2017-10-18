@@ -9,121 +9,121 @@
     <div id="viewport" class="full"></div>
 
     <script type="text/html" id="tpl--layout"><!-- {{{ -->
-    [[#
-      {layout}
+      [[#
+        {layout}
 
-      The main (authenticated) layout for the UI
-    ]]
-    <div class="story-sidebar">
-      <nav>
-        <li><a href="#!/do/backup">Perform an ad hoc backup</a>
-            <p>Run a backup job whenever you need to, regardless of the job's
-            schedule.</p></li>
-
-        <li><a href="#">Restore data from a backup</a>
-            <p>Restore a protected system back to the state it was in when a
-            backup archive was taken.</p></li>
-
-        <li><a href="#">Configure a new backup job</a>
-            <p>Set up a new protected system, and configure the how, when,
-            and for how long of managing its backup archives.</p></li>
-      </nav>
-
-      <footer>
-        <a target="_blank" href="https://github.com/starkandwayne/shield"><img src="/i/social/github.png"></a>
-        <a target="_blank" href="https://cloudfoundry.slack.com"><img src="/i/social/slack.png"></a>
-        <a target="_blank" href="https://twitter.com/starkandwayne"><img src="/i/social/twitter.png"></a>
-        <p>SHIELD Copyright &copy; 2017 Stark & Wayne</p>
-      </footer>
-    </div>
-    <div class="pane">
-      <div class="hud blk" id="hud">
-        <div class="x5"><div class="inst">
-          <ul>
-            <li class="shield">SHIELD &hellip;</li>
-          </ul>
-        </div></div>
-
-        <div class="x5"><div class="health">
-          <div class="fill"></div>
-        </div></div>
-
-        <div class="x6"><div class="prot">
-          <div class="fill"></div>
-        </div></div>
-      </div>
-
-      <div class="nav sticky" id="sticky-nav">
+        The main (authenticated) layout for the UI
+      ]]
+      <div class="story-sidebar">
         <nav>
-          <li><a href="#!/systems">Systems</a></li>
-          <li class="current"><a href="#!/stores">Storage</a></li>
-          <li><a href="#!/policies">Retention</a></li>
-          [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+          <li><a href="#!/do/backup">Perform an ad hoc backup</a>
+              <p>Run a backup job whenever you need to, regardless of the job's
+              schedule.</p></li>
+
+          <li><a href="#">Restore data from a backup</a>
+              <p>Restore a protected system back to the state it was in when a
+              backup archive was taken.</p></li>
+
+          <li><a href="#">Configure a new backup job</a>
+              <p>Set up a new protected system, and configure the how, when,
+              and for how long of managing its backup archives.</p></li>
         </nav>
+
+        <footer>
+          <a target="_blank" href="https://github.com/starkandwayne/shield"><img src="/i/social/github.png"></a>
+          <a target="_blank" href="https://cloudfoundry.slack.com"><img src="/i/social/slack.png"></a>
+          <a target="_blank" href="https://twitter.com/starkandwayne"><img src="/i/social/twitter.png"></a>
+          <p>SHIELD Copyright &copy; 2017 Stark & Wayne</p>
+        </footer>
       </div>
+      <div class="pane">
+        <div class="hud blk" id="hud">
+          <div class="x5"><div class="inst">
+            <ul>
+              <li class="shield">SHIELD &hellip;</li>
+            </ul>
+          </div></div>
 
-      <div class="nav">
-        <nav>
-          <li><a href="#!/systems">Systems</a></li>
-          <li class="current"><a href="#!/stores">Storage</a></li>
-          <li><a href="#!/policies">Retention</a></li>
-          [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
-        </nav>
-      </div>
+          <div class="x5"><div class="health">
+            <div class="fill"></div>
+          </div></div>
 
-      <div class="field" id="main">
-      <!--
-        <div class="gutter blk">
-          <h2>Configure A New Backup Job</h2>
-          <form>
-
-            <div class="band">
-              <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
-              <div class="ctl">
-                <label>Label</label>
-                <input type="text" placeholder="Placeholder">
-                <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
-                <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
-              </div>
-            </div>
-
-
-              <div class="band">
-                <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
-                <div class="ctl">
-                  <label>Label</label>
-                  <select>
-                    <option>Apples</option>
-                    <option>Bananas</option>
-                  </select>
-                  <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
-                  <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
-                </div>
-              </div>
-
-              <div class="band">
-                <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
-                <div class="ctl">
-                  <input type="checkbox"> <label>Label</label>
-                  <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
-                  <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
-                </div>
-              </div>
-
-              <div class="band">
-                <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
-                <div class="ctl">
-                  <label>Label</label>
-                  <textarea placeholder="your code goes here..."></textarea>
-                  <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
-                  <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
-                </div>
-              </div>
-            </form>
-          </div>
-          -->
-          <img id="loading" src="/i/loading.svg"/>
+          <div class="x6"><div class="prot">
+            <div class="fill"></div>
+          </div></div>
         </div>
+
+        <div class="nav sticky" id="sticky-nav">
+          <nav>
+            <li><a href="#!/systems">Systems</a></li>
+            <li class="current"><a href="#!/stores">Storage</a></li>
+            <li><a href="#!/policies">Retention</a></li>
+            [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+          </nav>
+        </div>
+
+        <div class="nav">
+          <nav>
+            <li><a href="#!/systems">Systems</a></li>
+            <li class="current"><a href="#!/stores">Storage</a></li>
+            <li><a href="#!/policies">Retention</a></li>
+            [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+          </nav>
+        </div>
+
+        <div class="field" id="main">
+        <!--
+          <div class="gutter blk">
+            <h2>Configure A New Backup Job</h2>
+            <form>
+
+              <div class="band">
+                <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+                <div class="ctl">
+                  <label>Label</label>
+                  <input type="text" placeholder="Placeholder">
+                  <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                  <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+                </div>
+              </div>
+
+
+                <div class="band">
+                  <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+                  <div class="ctl">
+                    <label>Label</label>
+                    <select>
+                      <option>Apples</option>
+                      <option>Bananas</option>
+                    </select>
+                    <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                    <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+                  </div>
+                </div>
+
+                <div class="band">
+                  <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+                  <div class="ctl">
+                    <input type="checkbox"> <label>Label</label>
+                    <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                    <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+                  </div>
+                </div>
+
+                <div class="band">
+                  <div class="info">Lorem ipsum dolor sit amet, cons ectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo conse.</div>
+                  <div class="ctl">
+                    <label>Label</label>
+                    <textarea placeholder="your code goes here..."></textarea>
+                    <p class="hints">(Hints) Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore.</p>
+                    <p class="examples">For example: <strong>example 1</strong>, <strong>example 2</strong>, or <strong>example 3</strong>.</p>
+                  </div>
+                </div>
+              </form>
+            </div>
+            -->
+            <img id="loading" src="/i/loading.svg"/>
+          </div>
       </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--loading"><!-- {{{ -->
@@ -183,8 +183,8 @@
         Displays a message at the top of the viewport
       ]]
       <p class="[[= _.type ]]">[[= _.message ]]</p>
-      <!-- }}} --></script>
-      <script type="text/html" id="tpl--error"><!-- {{{ -->
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--error"><!-- {{{ -->
       [[#
         {error} template
 
@@ -435,7 +435,7 @@
                 <li>Scheduled Backup Jobs <span>[[= _.stats.jobs ]]</span></li>
                 <li>Backup Archives <span>[[= _.stats.archives ]]</span></li>
                 <li class="warn">Cloud Storage Used <span>[[= bytes(_.stats.storage) ]]</span></li>
-                <li class="ok">Daily Storage Increase <span>[[= _.stats.daily ]]</span></li>
+                <li class="ok">Daily Storage Increase <span>[[= bytes(_.stats.daily) ]]</span></li>
               </ul>
             </div></div>
     <!-- }}} --></script>
@@ -1056,10 +1056,10 @@
                 <dd>[[= _.store.archives ]]</dd>
 
                 <dt>Storage Used</dt>
-                <dd>[[= _.store.used ]]GB</dd>
+                <dd>[[= bytes(_.store.used) ]]</dd>
 
                 <dt>Daily Delta</dt>
-                <dd>[[= _.store.daily_delta ]]GB</dd>
+                <dd>[[= bytes(_.store.daily_delta) ]]</dd>
               </dl>
             </div>
 
@@ -2224,12 +2224,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           success: function (data) {
             /* FIXME fixups that need to migrate into the SHIELD code */
             data.ok = true;
-            data.archives = 224;
-            data.used = 200.1;
-            data.threshold = 180;
-            data.projected = 600.7;
-            data.total = 201.7;
-            data.daily_delta = '+1.3';
+            data.archives = data.archive_count;
+            data.used = data.storage_used;
+            data.threshold = 0.1;
+            data.projected = 2.1;
+            data.total = 0.2;
+            data.daily_delta = data.daily_increase;
             $('#main').html(template('store', { store: data }));
           }
         });
@@ -2967,12 +2967,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           success: function (data) {
             /* FIXME fixups that need to migrate into the SHIELD code */
             data.ok = true;
-            data.archives = 224;
-            data.used = 200.1;
-            data.threshold = 180;
-            data.projected = 600.7;
-            data.total = 201.7;
-            data.daily_delta = '+1.3';
+            data.archives = data.archive_count;
+            data.used = data.storage_used;
+            data.threshold = 0.1; //user sets this
+            data.projected = 2.1; //generating
+            data.total = 0.2;
+            data.daily_delta = data.daily_increase;
             $('#main').html(template('store', { store: data, admin: true }));
           }
         });
@@ -3430,9 +3430,15 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           last = json;
         };
         var ping = function () {
+          var uri = ""
+          if ($global.auth.tenant) {
+            uri = '/v2/tenants/'+$global.auth.tenant.uuid+'/health'
+          }else{
+            uri = '/v2/health'
+          }
           $.ajax({
             type: 'GET',
-            url:  '/v2/health',
+            url:  uri,
             success: function (data) {
               every = backoff[0]; /* reset backoff */
               rehud(data);

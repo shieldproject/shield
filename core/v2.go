@@ -118,6 +118,16 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("GET /v2/tenants/:uuid/health", func(r *route.Request) { // {{{
+		health, err := core.checkTenantHealth(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to check SHIELD health"))
+			return
+		}
+		r.OK(health)
+	})
+	// }}}
+
 	r.Dispatch("POST /v2/init", func(r *route.Request) { // {{{
 		var in struct {
 			Master string `json:"master"`
@@ -975,7 +985,21 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		t, err := core.DB.UpdateTenant(r.Args[1], in.Name)
+		tenant, err := core.DB.GetTenant(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tenant information"))
+			return
+		}
+		if tenant == nil {
+			r.Fail(route.Oops(err, "No such tenant"))
+			return
+		}
+
+		if in.Name != "" {
+			tenant.Name = in.Name
+		}
+
+		t, err := core.DB.UpdateTenant(tenant)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to update tenant '%s'", in.Name))
 			return

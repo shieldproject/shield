@@ -8,9 +8,12 @@ import (
 )
 
 type Tenant struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Name    string    `json:"name"`
-	Members []*User   `json:"members,omitempty"`
+	UUID          uuid.UUID `json:"uuid"`
+	Name          string    `json:"name"`
+	Members       []*User   `json:"members,omitempty"`
+	DailyIncrease int64     `json:"daily_increase"`
+	StorageUsed   int64     `json:"storage_used"`
+	ArchiveCount  int64     `json:"archive_count"`
 }
 
 type TenantFilter struct {
@@ -47,7 +50,7 @@ func (f *TenantFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-	    SELECT t.uuid, t.name
+	    SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
 	      FROM tenants t
 	     WHERE ` + strings.Join(wheres, " AND ") + `
 	` + limit, args
@@ -69,10 +72,20 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 
 	for r.Next() {
 		var id NullUUID
+		var dailyIncrease, storageUsed, archiveCount *int64
 		t := &Tenant{}
 
-		if err := r.Scan(&id, &t.Name); err != nil {
+		if err := r.Scan(&id, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 			return l, err
+		}
+		if dailyIncrease != nil {
+			t.DailyIncrease = *dailyIncrease
+		}
+		if storageUsed != nil {
+			t.StorageUsed = *storageUsed
+		}
+		if archiveCount != nil {
+			t.ArchiveCount = *archiveCount
 		}
 		t.UUID = id.UUID
 		l = append(l, t)
@@ -82,7 +95,10 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 }
 
 func (db *DB) GetTenant(id string) (*Tenant, error) {
-	r, err := db.Query(`SELECT t.uuid, t.name FROM tenants t WHERE t.uuid = ?`, id)
+	r, err := db.Query(`
+		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
+		FROM tenants t 
+		WHERE t.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -93,17 +109,30 @@ func (db *DB) GetTenant(id string) (*Tenant, error) {
 	}
 
 	var this NullUUID
+	var dailyIncrease, storageUsed, archiveCount *int64
 	t := &Tenant{}
 
-	if err := r.Scan(&this, &t.Name); err != nil {
+	if err := r.Scan(&this, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 		return t, err
+	}
+	if dailyIncrease != nil {
+		t.DailyIncrease = *dailyIncrease
+	}
+	if storageUsed != nil {
+		t.StorageUsed = *storageUsed
+	}
+	if archiveCount != nil {
+		t.ArchiveCount = *archiveCount
 	}
 	t.UUID = this.UUID
 	return t, nil
 }
 
 func (db *DB) GetTenantByName(name string) (*Tenant, error) {
-	r, err := db.Query(`SELECT t.uuid, t.name FROM tenants t WHERE t.name = ?`, name)
+	r, err := db.Query(`
+		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
+		FROM tenants t 
+		WHERE t.name = ?`, name)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +143,20 @@ func (db *DB) GetTenantByName(name string) (*Tenant, error) {
 	}
 
 	var this NullUUID
+	var dailyIncrease, storageUsed, archiveCount *int64
 	t := &Tenant{}
 
-	if err := r.Scan(&this, &t.Name); err != nil {
+	if err := r.Scan(&this, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
 		return t, err
+	}
+	if dailyIncrease != nil {
+		t.DailyIncrease = *dailyIncrease
+	}
+	if storageUsed != nil {
+		t.StorageUsed = *storageUsed
+	}
+	if archiveCount != nil {
+		t.ArchiveCount = *archiveCount
 	}
 	t.UUID = this.UUID
 	return t, nil
@@ -152,15 +191,18 @@ func (db *DB) CreateTenant(given_uuid string, given_name string) (*Tenant, error
 	}, nil
 }
 
-func (db *DB) UpdateTenant(given_uuid string, given_name string) (*Tenant, error) {
-	err := db.Exec(`UPDATE tenants SET name = ? WHERE uuid = ?`, given_name, given_uuid)
+func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
+	err := db.Exec(`
+		UPDATE tenants 
+			SET name = ?,
+			daily_increase = ?,
+			archive_count  = ?,
+			storage_used   = ? 
+			WHERE uuid = ?`, t.Name, t.DailyIncrease, t.ArchiveCount, t.StorageUsed, t.UUID.String())
 	if err != nil {
 		return nil, err
 	}
 
-	t := &Tenant{}
-	t.UUID = uuid.Parse(given_uuid)
-	t.Name = given_name
 	return t, nil
 }
 
