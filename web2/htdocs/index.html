@@ -662,8 +662,12 @@
 
     <script type="text/html" id="tpl--do-backup"><!-- {{{ -->
       [[#
-        {do-backup}
+        {do-backup} - Backup Wizard Template
 
+        Renders a multi-step, interactive wizard to assist operators in
+        finding the correct backup archive to restore, based on what
+        data system they want to restore, and how fresh the backup needs
+        to be.
       ]]
       [[
         var stores = {};
@@ -695,7 +699,7 @@
           }
         }
       ]]
-      <div class="gutter blk do-backup">
+      <div class="gutter blk wizard do-backup">
         <p class="do-caption">Performing an Ad Hoc Backup</p>
         <div class="picks">
           [[ if (_.system) { ]]

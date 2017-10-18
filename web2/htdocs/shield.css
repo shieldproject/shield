@@ -1253,42 +1253,42 @@ button[rel^="run:"] {
   margin-bottom: 2em;
   color: #0071bc;
 }
-.do-backup .picks {
+.wizard .picks {
   border-bottom: 1px solid #ccc;
   padding-bottom: 20px;
   margin-bottom: 20px;
 }
-.do-backup .picks {
+.wizard .picks {
   overflow: hidden;
 }
-.do-backup .picks > div {
+.wizard .picks > div {
   width: 29%;
   margin: 0 2% 2% 0;
 }
-.do-backup .picks > div:nth-child(2n+1) { clear: none; }
-.do-backup .picks > div:nth-child(3n+3) { margin: 0 0 2% 0; }
-.do-backup .picks > div:nth-child(3n+1) { clear: both; }
-.do-backup .picks .empty {
+.wizard .picks > div:nth-child(2n+1) { clear: none; }
+.wizard .picks > div:nth-child(3n+3) { margin: 0 0 2% 0; }
+.wizard .picks > div:nth-child(3n+1) { clear: both; }
+.wizard .picks .empty {
   border: 2px dashed #777;
   padding: 10px;
   background-color: #eee;
   opacity: 0.5;
 }
 
-.do-backup .step > h3 {
+.wizard .step > h3 {
   font-size: 24px;
   line-height: 64px;
   font-weight: bold;
 }
-.do-backup .step {
+.wizard .step {
   clear: both;
   overflow: hidden;
 }
-.do-backup .step p {
+.wizard .step p {
   width: 70%;
     line-height: 1.2em;
 }
-.do-backup .step p strong {
+.wizard .step p strong {
   font-weight: bold;
   color: #0071bc;
   font-size: 110%;
