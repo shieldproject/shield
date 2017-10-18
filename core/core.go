@@ -48,7 +48,7 @@ type Core struct {
 	/* api */
 	webroot string
 	listen  string
-	auth    map[string] AuthProvider
+	auth    map[string]AuthProvider
 	env     string
 	color   string
 	motd    string
@@ -113,8 +113,7 @@ func NewCore(file string) (*Core, error) {
 		},
 	}
 
-
-	core.auth = make(map[string] AuthProvider)
+	core.auth = make(map[string]AuthProvider)
 	for i, auth := range config.Auth {
 		if auth.Identifier == "" {
 			return nil, fmt.Errorf("provider #%d lacks the required `identifier' field", i+1)
@@ -176,7 +175,7 @@ func (core *Core) Run() error {
 		return fmt.Errorf("database failed schema version check: %s", err)
 	}
 
-	tenants := make(map[string] bool)
+	tenants := make(map[string]bool)
 	for _, auth := range core.auth {
 		for _, tenant := range auth.ReferencedTenants() {
 			if tenant != "SYSTEM" {
@@ -230,7 +229,7 @@ func (core *Core) Run() error {
 			core.purge()
 			core.markTasks()
 			core.checkAgents()
-			go core.DailyStoreStorageAnalytics()
+			go core.DailyStorageAnalytics()
 		}
 	}
 }

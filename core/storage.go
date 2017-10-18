@@ -8,7 +8,7 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
-func (core *Core) DailyStoreStorageAnalytics() error {
+func (core *Core) DailyStorageAnalytics() error {
 	core.DailyStoreStats()
 	core.DailyTenantStats()
 	return nil
