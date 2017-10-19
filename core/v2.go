@@ -246,6 +246,7 @@ func (core *Core) v2API() *route.Router {
 		a, ok := core.auth[r.Args[1]]
 		if !ok {
 			r.Fail(route.NotFound(nil, "No such authentication provider: '%s'", r.Args[1]))
+			return
 		}
 		r.OK(a.Configuration(true))
 	})
@@ -476,27 +477,22 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	type v2AuthToken struct {
-		Token     string `json:"token,omitempty"`
-		Label     string `json:"label"`
-		CreatedAt string `json:"created_at"`
+		ID         string `json:"id"`
+		Token      string `json:"token,omitempty"`
+		Name       string `json:"name"`
+		CreatedAt  string `json:"created_at"`
+		LastUsedAt string `json:"last_used_at,omitempty"`
 	}
 
 	r.Dispatch("GET /v2/auth/tokens", func(r *route.Request) { // {{{
-		sessionID := getSessionID(r.Req)
-		user, err := core.DB.GetUserForSession(sessionID)
-		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred"))
+		var user *db.User
+		if user = core.AuthenticatedUser(r); user == nil {
 			return
 		}
-		if user == nil {
-			r.Fail(route.Oops(
-				fmt.Errorf("No user for session %s was found. Did the session disappear?", sessionID),
-				"An unknown error occurred"))
-			return
-		}
-		tokens, err := core.DB.GetTokensForUser(user.UUID)
+
+		tokens, err := db.TokenFilter{UserUUID: &user.UUID}.List(core.DB)
 		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred"))
+			r.Fail(route.Oops(err, OopsString))
 			return
 		}
 
@@ -504,8 +500,10 @@ func (core *Core) v2API() *route.Router {
 
 		for i, token := range tokens {
 			respTokens[i] = v2AuthToken{
-				Label:     token.Label,
-				CreatedAt: token.CreatedAt.Format(timestamp.Format),
+				ID:         token.UUID.String(),
+				Name:       token.Name,
+				CreatedAt:  token.CreatedAt.Format(timestamp.Format),
+				LastUsedAt: token.LastUsedAt.Format(timestamp.Format),
 			}
 		}
 
@@ -514,66 +512,67 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("POST /v2/auth/tokens", func(r *route.Request) { // {{{
+		var user *db.User
+		if user = core.AuthenticatedUser(r); user == nil {
+			return
+		}
+
 		var in struct {
-			Label string
+			Name string `json:"name"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
+		if r.Missing("name", in.Name) {
+			return
+		}
 
-		sessionID := getSessionID(r.Req)
-		user, err := core.DB.GetUserForSession(sessionID)
+		token, err := core.DB.CreateToken(in.Name, user.UUID)
 		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred"))
+			r.Fail(route.Oops(err, OopsString))
 			return
 		}
-		if user == nil {
-			r.Fail(route.Oops(
-				fmt.Errorf("No user for session %s was found. Did the session disappear?", sessionID),
-				"An unknown error occurred"))
-			return
-		}
-
-		token, err := core.DB.CreateToken(&db.Token{
-			Label:    in.Label,
-			UserUUID: user.UUID,
-		})
-
 		if token == nil {
-			r.Fail(route.Oops(
-				fmt.Errorf("No token was retrieved after creation"),
-				"An unknown error occurred",
-			))
+			r.Fail(route.Oops(fmt.Errorf("No token was retrieved after creation"), OopsString))
 			return
 		}
 
 		r.OK(v2AuthToken{
+			ID:        token.UUID.String(),
 			Token:     token.SessionUUID.String(),
-			Label:     token.Label,
+			Name:      token.Name,
 			CreatedAt: token.CreatedAt.Format(timestamp.Format),
 		})
 	})
 	// }}}
 
 	r.Dispatch("DELETE /v2/auth/tokens/:uuid", func(r *route.Request) { // {{{
+		var user *db.User
+		if user = core.AuthenticatedUser(r); user == nil {
+			return
+		}
+
 		toDelete := uuid.Parse(r.Args[1])
 		if toDelete == nil {
 			r.Fail(route.Bad(nil, fmt.Sprintf("%s is not a valid token", r.Args[1])))
 		}
 
-		//TODO: Once auth is in place, we'll need to restrict who can delete this
-		// token to either the user him/herself or an admin.
+		token, err := db.TokenFilter{SessionUUID: &toDelete}.Get(core.DB)
+		if err != nil {
+			r.Fail(route.Oops(err, OopsString))
+		}
 
-		err := core.DB.DeleteToken(toDelete)
+		if token == nil ||
+			(token.UserUUID.String() != user.UUID.String() && user.SysRole != "admin") {
+			r.Success("No such token")
+		}
+
+		err = core.DB.DeleteToken(toDelete)
 		if err != nil {
 			r.Fail(route.Oops(err, "An unknown error occurred"))
 		}
 
-		r.OK(struct {
-			OK string `json:"ok"`
-		}{
-			OK: "deleted",
-		})
+		r.Success("Deleted")
 	})
 	// }}}
 
@@ -1228,11 +1227,11 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
+		if core.IsNotAuthenticated(r) {
 			r.Fail(route.Unauthorized(nil, "Authorization required"))
 			return
 		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			r.Fail(route.Forbidden(nil, "Access denied"))
 			return
 		}
@@ -2199,7 +2198,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if user == nil || !user.Authenticate(in.Password) {
-			r.Fail(route.Errorf(403, nil, "Incorrect username or password"))
+			r.Fail(route.Errorf(401, nil, "Incorrect username or password"))
 			return
 		}
 
@@ -2209,7 +2208,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		id, _ := core.checkAuth(session.UUID.String())
+		id, _ := core.checkAuth(user)
 		if id == nil {
 			r.Fail(route.Oops(fmt.Errorf("Failed to lookup session ID after login"), "An unknown error occurred"))
 		}
@@ -2220,8 +2219,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) { // {{{
-		sessionID := getSessionID(r.Req)
-		if sessionID == "" {
+		sessionID, isToken := r.SessionID()
+		//If the given auth is a token, we don't want to clear the session in the
+		//database
+		if sessionID == "" || isToken {
 			r.Success("Successfully logged out")
 		}
 
@@ -2235,22 +2236,18 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/id", func(r *route.Request) { // {{{
-		sessionID := getSessionID(r.Req)
-		/* once auth is in place this check shouldn't trigger,
-		   so consider panicking here instead */
-		if sessionID == "" {
-			r.Fail(route.Errorf(401, fmt.Errorf("no session id found in request"), "Authentication failed"))
+		user := core.AuthenticatedUser(r)
+		if user == nil {
 			return
 		}
 
-		if id, _ := core.checkAuth(sessionID); id != nil {
-			r.OK(id)
+		id, err := core.checkAuth(user)
+		if err != nil {
+			r.Fail(route.Oops(err, OopsString))
 			return
 		}
 
-		r.OK(struct {
-			Unauthenticated bool `json:"unauthenticated"`
-		}{true})
+		r.OK(id)
 	})
 	// }}}
 

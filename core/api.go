@@ -312,6 +312,8 @@ func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
 }
 
 func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(200)
+
 	fmt.Fprintf(w, "// init.js\n")
 	fmt.Fprintf(w, "var $global = {}\n")
 
@@ -330,21 +332,36 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	sessionID := getSessionID(req)
-	id, _ := core.checkAuth(sessionID)
-	if id == nil {
-		fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
-	} else {
-		b, err := json.Marshal(id)
-		if err != nil {
-			log.Errorf("init.js: failed to marshal auth id data into JSON: %s", err)
-			fmt.Fprintf(w, "// failed to determine user authentication state...\n")
-			fmt.Fprintf(w, "$global.auth = {\"unauthenticated\":true};\n")
-		} else {
-			fmt.Fprintf(w, "$global.auth = %s;\n", string(b))
-		}
+	const unauthFail = "// failed to determine user authentication state...\n"
+	const unauthJS = "$global.auth = {\"unauthenticated\":true};\n"
+
+	user, err := core.DB.GetUserForSession(getSessionID(req))
+	if err != nil {
+		log.Errorf("init.js: failed to get user from session: %s", err)
+		fmt.Fprintf(w, unauthFail)
+		fmt.Fprintf(w, unauthJS)
+		return
 	}
-	w.WriteHeader(200)
+	if user == nil {
+		fmt.Fprintf(w, unauthJS)
+		return
+	}
+
+	id, err := core.checkAuth(user)
+	if err != nil {
+		log.Errorf("failed to obtain tenancy info about user: %s", err)
+		fmt.Fprintf(w, unauthFail)
+		fmt.Fprintf(w, unauthJS)
+		return
+	}
+	b, err := json.Marshal(id)
+	if err != nil {
+		log.Errorf("init.js: failed to marshal auth id data into JSON: %s", err)
+		fmt.Fprintf(w, unauthFail)
+		fmt.Fprintf(w, unauthJS)
+	} else {
+		fmt.Fprintf(w, "$global.auth = %s;\n", string(b))
+	}
 }
 
 func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
@@ -371,10 +388,8 @@ func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
 		APIVersion: APIVersion,
 	}
 
-	sessionID := getSessionID(req)
-	if id, _ := core.checkAuth(sessionID); id != nil {
-		stat.Version = Version
-	}
+	//TODO: Once this is in v2, lock behind a check for auth
+	stat.Version = Version
 
 	JSON(w, &stat)
 }

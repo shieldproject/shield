@@ -198,9 +198,6 @@ const (
 	//AuthV2Local represents a v2 backend, and you're targeting a local authentication
 	//user
 	AuthV2Local
-	//AuthV2Token represents a v2 backend in which the desired auth provider is a
-	// token provider
-	AuthV2Token
 )
 
 //FetchAuthType returns the auth type of the SHIELD backend auth provider that
@@ -261,8 +258,6 @@ func fetchV2AuthType(providerID string) (authType AuthType, provider *AuthProvid
 	}
 
 	switch provider.Type {
-	case "token":
-		authType = AuthV2Token
 	default:
 		err = fmt.Errorf("Unknown auth type `%s'", provider.Type)
 	}

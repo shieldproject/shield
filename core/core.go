@@ -145,7 +145,7 @@ func NewCore(file string) (*Core, error) {
 				core: core,
 			}
 		default:
-			return nil, fmt.Errorf("%s provider has an unrecognized `backend' of '%s'; must be one of github, uaa, or token", auth.Identifier, auth.Backend)
+			return nil, fmt.Errorf("%s provider has an unrecognized `backend' of '%s'; must be one of github or uaa", auth.Identifier, auth.Backend)
 		}
 
 		if err := core.auth[auth.Identifier].Configure(auth.Properties); err != nil {

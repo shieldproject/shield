@@ -195,19 +195,20 @@ func (s v4Schema) Deploy(db *DB) error {
 
 	err = db.Exec(`CREATE TABLE sessions (
 	                 uuid          UUID PRIMARY KEY,
-	                 user_uuid     UUID NOT NULL,
+	                 user_uuid     UUID NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
 	                 provider      TEXT,
-	                 provider_data TEXT
+									 provider_data TEXT,
+									 last_used_at  INTEGER
 	               )`)
 	if err != nil {
 		return err
 	}
 
 	err = db.Exec(`CREATE TABLE tokens (
-                   session_uuid UUID PRIMARY KEY,
-                   label        TEXT,
-									 created_at   INTEGER NOT NULL,
-									 FOREIGN KEY(session_uuid) REFERENCES sessions(uuid)
+                   uuid         UUID PRIMARY KEY,
+                   session_uuid UUID NOT NULL REFERENCES sessions(uuid) ON DELETE CASCADE,
+                   name         TEXT NOT NULL,
+									 created_at   INTEGER NOT NULL
                )`)
 	if err != nil {
 		return err

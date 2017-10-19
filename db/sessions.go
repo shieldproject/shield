@@ -2,17 +2,20 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/goutils/timestamp"
 )
 
 type Session struct {
-	UUID     uuid.UUID
-	UserUUID uuid.UUID
+	UUID       uuid.UUID
+	UserUUID   uuid.UUID
+	LastUsedAt *timestamp.Timestamp //nil if never used
 }
 
 func (db *DB) GetSession(id uuid.UUID) (*Session, error) {
-	r, err := db.Query(`SELECT uuid, user_uuid FROM sessions WHERE uuid = ?`, id.String())
+	r, err := db.Query(`SELECT uuid, user_uuid, last_used FROM sessions WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -23,13 +26,21 @@ func (db *DB) GetSession(id uuid.UUID) (*Session, error) {
 	}
 
 	var this, user NullUUID
+	var lastUsed *int64
 	if err := r.Scan(&this, &user); err != nil {
 		return nil, err
 	}
 
+	var lastUsedTimestamp *timestamp.Timestamp
+	if lastUsed != nil {
+		tmpLastUsedTimestamp := parseEpochTime(*lastUsed)
+		lastUsedTimestamp = &tmpLastUsedTimestamp
+	}
+
 	return &Session{
-		UUID:     this.UUID,
-		UserUUID: user.UUID,
+		UUID:       this.UUID,
+		UserUUID:   user.UUID,
+		LastUsedAt: lastUsedTimestamp,
 	}, nil
 }
 
@@ -81,4 +92,19 @@ func (db *DB) ClearAllSessions() error {
 
 func (db *DB) ClearSession(sid uuid.UUID) error {
 	return db.Exec(`DELETE FROM sessions WHERE uuid = ?`, sid.String())
+}
+
+//UpdateSessionLastUsed sets the last_used field for the session with the given
+// UUID to the current time
+func (db *DB) UpdateSessionLastUsed(sid uuid.UUID) (err error) {
+	session, err := db.GetSession(sid)
+	if err != nil {
+		return
+	}
+	if session == nil {
+		err = fmt.Errorf("No session exists with UUID: %s", sid)
+	}
+	now := time.Now().Unix()
+
+	return db.Exec(`UPDATE tokens SET last_used_at = ? WHERE uuid = ?`, now, sid.String())
 }
