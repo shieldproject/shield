@@ -52,7 +52,8 @@ type TokenFilter struct {
 //Get runs a List and returns the first item in the list or nil if the list is
 // empty. No err is returned if the item does not exist.
 func (t TokenFilter) Get(db *DB) (ret *Token, err error) {
-	r, err := db.Query(t.Query())
+	q, args := t.Query()
+	r, err := db.Query(q, args...)
 	if err != nil {
 		return
 	}
@@ -68,7 +69,8 @@ func (t TokenFilter) Get(db *DB) (ret *Token, err error) {
 //List runs a select on the tokens table with the given contraints. No
 //constraints will select all.
 func (t TokenFilter) List(db *DB) (ret []*Token, err error) {
-	r, err := db.Query(t.Query())
+	q, args := t.Query()
+	r, err := db.Query(q, args...)
 	if err != nil {
 		return
 	}

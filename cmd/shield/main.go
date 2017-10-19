@@ -65,6 +65,9 @@ func main() {
 		SysRole: getopt.StringLong("sysrole", 'r', "", "Show only users with the specified system role."),
 		Account: getopt.StringLong("account", 0, "", "Show only users with the specified account."),
 
+		User:     getopt.StringLong("username", 'U', "", "Username for login"),
+		Password: getopt.StringLong("password", 0, "", "Password for login"),
+
 		Config:  getopt.StringLong("config", 'c', os.Getenv("HOME")+"/.shield_config", "Overrides ~/.shield_config as the SHIELD config file"),
 		Version: getopt.BoolLong("version", 'v', "Display the SHIELD version"),
 		Help:    getopt.BoolLong("help", 'h'),

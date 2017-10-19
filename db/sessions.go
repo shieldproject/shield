@@ -15,7 +15,7 @@ type Session struct {
 }
 
 func (db *DB) GetSession(id uuid.UUID) (*Session, error) {
-	r, err := db.Query(`SELECT uuid, user_uuid, last_used FROM sessions WHERE uuid = ?`, id.String())
+	r, err := db.Query(`SELECT uuid, user_uuid, last_used_at FROM sessions WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (db *DB) GetSession(id uuid.UUID) (*Session, error) {
 
 	var this, user NullUUID
 	var lastUsed *int64
-	if err := r.Scan(&this, &user); err != nil {
+	if err := r.Scan(&this, &user, &lastUsed); err != nil {
 		return nil, err
 	}
 
@@ -106,5 +106,5 @@ func (db *DB) UpdateSessionLastUsed(sid uuid.UUID) (err error) {
 	}
 	now := time.Now().Unix()
 
-	return db.Exec(`UPDATE tokens SET last_used_at = ? WHERE uuid = ?`, now, sid.String())
+	return db.Exec(`UPDATE sessions SET last_used_at = ? WHERE uuid = ?`, now, sid.String())
 }

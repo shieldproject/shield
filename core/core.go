@@ -58,6 +58,8 @@ type Core struct {
 	encryptionType string
 	vaultKeyfile   string
 
+	failsafe FailsafeConfig
+
 	DB *db.DB
 }
 
@@ -105,6 +107,8 @@ func NewCore(file string) (*Core, error) {
 		/* encryption */
 		encryptionType: config.EncryptionType,
 		vaultKeyfile:   config.VaultKeyfile,
+
+		failsafe: config.Failsafe,
 
 		/* db */
 		DB: &db.DB{
@@ -164,6 +168,27 @@ func (core *Core) Run() error {
 	}
 	if err = core.DB.CheckCurrentSchema(); err != nil {
 		return fmt.Errorf("database failed schema version check: %s", err)
+	}
+
+	//Make failsafe user if no other local users exist
+	existingUsers, err := core.DB.GetAllUsers(&db.UserFilter{Backend: "local"})
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve list of local users: %s", err)
+	}
+
+	failsafeUser := &db.User{
+		Name:    core.failsafe.Username,
+		Account: core.failsafe.Username,
+		Backend: "local",
+		SysRole: "admin",
+	}
+
+	failsafeUser.SetPassword(core.failsafe.Password)
+	if len(existingUsers) == 0 {
+		_, err := core.DB.CreateUser(failsafeUser)
+		if err != nil {
+			return fmt.Errorf("Failed to create failsafe user: %s", err)
+		}
 	}
 
 	tenants := make(map[string]bool)
