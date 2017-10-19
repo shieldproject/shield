@@ -4,7 +4,6 @@ set -u
 PATH=$(pwd):$(pwd)/bin:${PATH}
 WORKDIR=$(mktemp -d /tmp/shield.test.XXXXXXX)
 DATABASE=${DATABASE:-$WORKDIR/var/shield.db}
-SHIELD_API_TOKEN=LETMEIN
 SHIELD_DAEMON_HOST=127.0.0.1
 SHIELD_DAEMON_PORT=8181
 SHIELD_DAEMON_ADDR="$SHIELD_DAEMON_HOST:$SHIELD_DAEMON_PORT"
@@ -17,12 +16,12 @@ SHIELD_NAME="T.E.S.T. S.H.I.E.L.D."
 SHIELD_MASTER_PASSWORD="master-chief-117"
 
 # TEST HARNESS APPARATUS {{{
-export PATH SHIELD_NAME SHIELD_API_TOKEN
+export PATH SHIELD_NAME
 cleanup () {
-	rm -rf ${WORKDIR}
-	if [[ -n "$(jobs -p)" ]]; then
-		kill $(jobs -p) 2>/dev/null
-	fi
+  rm -rf ${WORKDIR}
+  if [[ -n "$(jobs -p)" ]]; then
+    kill $(jobs -p) 2>/dev/null
+  fi
 }
 trap "cleanup >&2" EXIT QUIT INT TERM
 
@@ -59,15 +58,6 @@ workers:       3
 max_timeout:   10
 web_root: ./webui
 auth:
-  - identifier: token
-    backend:    token
-    name:       Token
-    properties:
-      tokens:
-        initio:
-          - tenant: SYSTEM
-            role:   admin
-
   - identifier: public-github
     backend:    github
     name:       Github
@@ -84,8 +74,6 @@ auth:
       client_secret:   BAR
       github_endpoint: https://git.corporate.internal
 
-# api_tokens:
-#   test: ${SHIELD_API_TOKEN}
 # basic:
 #   user:     ${SHIELD_WEB_USER}
 #   password: ${SHIELD_WEB_PASS}
@@ -129,7 +117,7 @@ spin_agent() {
   ssh-keygen -t rsa -f ${WORKDIR}/var/shield-agent_key -N '' >/dev/null
   rm ${WORKDIR}/var/shield-agent_key.pub
 
-  curl -Lsk -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys
+  curl -Lsk -XGET  http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys
   cat >${WORKDIR}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${WORKDIR}/var/authorized_keys
@@ -146,41 +134,41 @@ EOF
 
 CONTEXT=""
 context() {
-	CONTEXT=$1
+  CONTEXT=$1
 }
 
 pass() {
-	local msg=$1
-	echo -e "\033[1;32m[ OK ]\033[0m $msg" | tee -a $WORKDIR/summary
+  local msg=$1
+  echo -e "\033[1;32m[ OK ]\033[0m $msg" | tee -a $WORKDIR/summary
 }
 
 fail() {
-	local msg=$1
-	echo -e "\033[1;31m[FAIL]\033[0m $msg" | tee -a $WORKDIR/summary
+  local msg=$1
+  echo -e "\033[1;31m[FAIL]\033[0m $msg" | tee -a $WORKDIR/summary
 }
 
 nocolor() {
-	sed -e 's,'$(printf "\x1b")'\[[0-9;]*m,,g'
+  sed -e 's,'$(printf "\x1b")'\[[0-9;]*m,,g'
 }
 
 done_testing() {
-	echo
-	if [[ ! -f $WORKDIR/summary ]]; then
-		echo "NO TESTS RUN"
-		exit 2
-	fi
+  echo
+  if [[ ! -f $WORKDIR/summary ]]; then
+    echo "NO TESTS RUN"
+    exit 2
+  fi
 
-	tests=$(wc -l $WORKDIR/summary | awk '{print $1}')
-	fails=$(nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | wc -l | awk '{print $1}')
-	if [[ $fails == 0 ]]; then
-		echo "ALL $tests TESTS PASS"
-		exit 0
-	else
-		echo "$fails/$tests TESTS FAILED"
-		echo
-		nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | sed -e 's/^/   /'
-		exit 1
-	fi
+  tests=$(wc -l $WORKDIR/summary | awk '{print $1}')
+  fails=$(nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | wc -l | awk '{print $1}')
+  if [[ $fails == 0 ]]; then
+    echo "ALL $tests TESTS PASS"
+    exit 0
+  else
+    echo "$fails/$tests TESTS FAILED"
+    echo
+    nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | sed -e 's/^/   /'
+    exit 1
+  fi
 }
 # }}}
 
@@ -190,262 +178,267 @@ spin_agent   2>&1 > ${WORKDIR}/agent.log
 
 # try "A Suite of Tests" {{{
 try() {
-	CONTEXT=""
-	echo ">> $*:"
+  CONTEXT=""
+  echo ">> $*:"
 }
 # }}}
 # (run some tests) 2>&1 | indent {{{
 indent() {
-	sed -e 's/^/   /'
+  sed -e 's/^/   /'
 }
 # }}}
 # ok $? "what should have happened..." {{{
 ok() {
-	local rc=$1
-	local msg=$2
+  local rc=$1
+  local msg=$2
 
-	if [[ $rc == 0 ]]; then
-		pass "$msg"
-	else
-		fail "$msg"
-	fi
+  if [[ $rc == 0 ]]; then
+    pass "$msg"
+  else
+    fail "$msg"
+  fi
 }
 # }}}
 
 # }}}
 # notok $? "what should have happened..." {{{
 notok() {
-	local rc=$1
-	local msg=$2
+  local rc=$1
+  local msg=$2
 
-	if [[ $rc != 0 ]]; then
-		pass "$msg"
-	else
-		fail "$msg"
-	fi
+  if [[ $rc != 0 ]]; then
+    pass "$msg"
+  else
+    fail "$msg"
+  fi
 }
 # }}}
 # is $got $expected "why it should have been that way..." {{{
 is() {
-	local got=$1
-	local want=$2
-	local msg=${3:-}
-	if [[ -z "$msg" ]]; then
-		msg="'${got}' should equal '${want}'"
-	fi
+  local got=$1
+  local want=$2
+  local msg=${3:-}
+  if [[ -z "$msg" ]]; then
+    msg="'${got}' should equal '${want}'"
+  fi
 
-	if [[ "$got" != "$want" ]]; then
-		fail "$msg"
-		echo "     got '${got}'"
-		echo "  wanted '${want}'"
-		echo
-		return
-	fi
+  if [[ "$got" != "$want" ]]; then
+    fail "$msg"
+    echo "     got '${got}'"
+    echo "  wanted '${want}'"
+    echo
+    return
+  fi
 
-	pass "$msg"
+  pass "$msg"
 }
 # }}}
 # isnt $got $expected "why it should not have been that way..." {{{
 isnt(){
-	local got=$1
-	local want=$2
-	local msg=${3:-}
-	if [[ -z "$msg" ]]; then
-		msg="'${got}' should NOT equal '${want}'"
-	fi
+  local got=$1
+  local want=$2
+  local msg=${3:-}
+  if [[ -z "$msg" ]]; then
+    msg="'${got}' should NOT equal '${want}'"
+  fi
 
-	if [[ "$got" == "$want" ]]; then
-		fail "$msg"
-		echo "     got '${got}'"
-		echo "  wanted pretty much anything else."
-		echo
-		return
-	fi
+  if [[ "$got" == "$want" ]]; then
+    fail "$msg"
+    echo "     got '${got}'"
+    echo "  wanted pretty much anything else."
+    echo
+    return
+  fi
 
-	pass "$msg"
+  pass "$msg"
 }
 # }}}
 
 # httpstat $method $url "some optional JSON data, probably" {{{
 httpstat() {
-	local method=$1
-	local url=$2
-	local body=${3:-}
-	opts="-X$method"
-	if [[ ${method} == "HEAD" ]]; then
-		opts="-I"
-	fi
-	if [[ -n "${body}" ]]; then
-		opts="$opts --data-binary ${body} -H Content-type:application/json"
-	fi
-	curl -s -o /dev/null -w '%{http_code}' $opts -H "X-Shield-Token: $SHIELD_API_TOKEN" $url 2>/dev/null
+  local method=$1
+  local url=$2
+  local body=${3:-}
+  opts="-X$method"
+  if [[ ${method} == "HEAD" ]]; then
+    opts="-I"
+  fi
+  if [[ -n "${body}" ]]; then
+    opts="$opts --data-binary ${body} -H Content-type:application/json"
+  fi
+  curl -s -o /dev/null -w '%{http_code}' $opts -H "X-Shield-Token: $SHIELD_API_TOKEN" $url 2>/dev/null
 }
 # }}}
+
+ping() {
+  curl -s -o /dev/null -w '%{http_code}' "http://$SHIELD_DAEMON_ADDR/v1/ping" 2>/dev/null
+}
+
 # create $type $name <<<$JSON {{{
 create() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	run create-$type
-	mkdir -p $WORKDIR/data/$type
-	jq -r '.uuid' < $WORKDIR/out > $WORKDIR/data/$type/$name
-	isnt "$(uuidof $type $name)" "" \
-	     "$type '$name' should have a valid (non-empty) UUID"
+  run create-$type
+  mkdir -p $WORKDIR/data/$type
+  jq -r '.uuid' < $WORKDIR/out > $WORKDIR/data/$type/$name
+  isnt "$(uuidof $type $name)" "" \
+       "$type '$name' should have a valid (non-empty) UUID"
 }
 # }}}
 # update $type $name <<<$JSON {{{
 update() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	run edit-$type $(uuidof $type $name)
+  run edit-$type $(uuidof $type $name)
 }
 # }}}
 # uuidof $type $name {{{
 uuidof() {
-	local type=$1
-	local name=$2
-	uuid=$(cat $WORKDIR/data/$type/$name)
-	if [[ -z $uuid ]]; then
-		echo >&2 "!!! unable to find UUID of $type '$name'"
-		echo "uuid-not-found"
-		exit 77
-	fi
-	echo $uuid
+  local type=$1
+  local name=$2
+  uuid=$(cat $WORKDIR/data/$type/$name)
+  if [[ -z $uuid ]]; then
+    echo >&2 "!!! unable to find UUID of $type '$name'"
+    echo "uuid-not-found"
+    exit 77
+  fi
+  echo $uuid
 }
 # }}}
 # pick $name {{{
 pick() {
-	local name=$1
+  local name=$1
 
-	jq -r '.[] | select(.name == "'$name'") | .' < $WORKDIR/out > $WORKDIR/out.tmp
-	mv $WORKDIR/out.tmp $WORKDIR/out
+  jq -r '.[] | select(.name == "'$name'") | .' < $WORKDIR/out > $WORKDIR/out.tmp
+  mv $WORKDIR/out.tmp $WORKDIR/out
 }
 # }}}
 # attr $name $want "optionally, why $name should be $want" {{{
 attr() {
-	local attr=$1
-	local expect=$2
-	local what=${3:-$CONTEXT}
+  local attr=$1
+  local expect=$2
+  local what=${3:-$CONTEXT}
 
-	is "$(jq -r ".$attr" < $WORKDIR/out)" \
-	   "$expect" \
-	   "'$attr' was present when we asked for $what"
+  is "$(jq -r ".$attr" < $WORKDIR/out)" \
+     "$expect" \
+     "'$attr' was present when we asked for $what"
 }
 # }}}
 # run command --plus --arg u ments {{{
 run() {
-	shield -k --raw "$@" > $WORKDIR/out
-	ok $? "\`shield $*' should succeed"
+  shield -k --raw "$@" > $WORKDIR/out
+  ok $? "\`shield $*' should succeed"
 }
 # }}}
 # runerr command --plus --arg u ments {{{
 runerr() {
-	shield -k --raw "$@" > $WORKDIR/out
-	notok $? "\`shield $*' should not succeed"
+  shield -k --raw "$@" > $WORKDIR/out
+  notok $? "\`shield $*' should not succeed"
 }
 # }}}
 # none "why the last list retrieved should be empty" {{{
 none() {
-	local why=$1
-	is "$(cat $WORKDIR/out)" "[]" "$why"
+  local why=$1
+  is "$(cat $WORKDIR/out)" "[]" "$why"
 }
 
 # or not empty
 notnone() {
  local why=$1
-	isnt "$(cat $WORKDIR/out)" "[]" "$why" 
+  isnt "$(cat $WORKDIR/out)" "[]" "$why"
 }
 
 # }}}
 # include $type $name "optional description of the list" {{{
 includes() {
-	local type=$1
-	local name=$2
-	local list=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local list=${3:-$CONTEXT}
 
-	if [[ "$(uuidof $type $name)" == "" ]]; then
-		fail "$type '$name' is not a thing.  this is a bug in the test"
-		return
-	fi
-	is "$(jq -r '.[] | select(.name == "'"$name"'") | .uuid' < $WORKDIR/out)" \
-	   "$(uuidof $type $name)" \
-	   "$type '$name' should show up in the list of $list"
+  if [[ "$(uuidof $type $name)" == "" ]]; then
+    fail "$type '$name' is not a thing.  this is a bug in the test"
+    return
+  fi
+  is "$(jq -r '.[] | select(.name == "'"$name"'") | .uuid' < $WORKDIR/out)" \
+     "$(uuidof $type $name)" \
+     "$type '$name' should show up in the list of $list"
 }
 # }}}
 # excludes $type $name "optional description of the list" {{{
 excludes() {
-	local type=$1
-	local name=$2
-	local list=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local list=${3:-$CONTEXT}
 
-	if [[ "$(uuidof $type $name)" == "" ]]; then
-		fail "$type '$name' is not a thing.  this is a bug in the test"
-		return
-	fi
-	is "$(jq -r '.[] | select(.name == "'"$name"'") | .uuid' < $WORKDIR/out)" \
-	   "" \
-	   "$type '$name' should NOT show up in the list of $list"
+  if [[ "$(uuidof $type $name)" == "" ]]; then
+    fail "$type '$name' is not a thing.  this is a bug in the test"
+    return
+  fi
+  is "$(jq -r '.[] | select(.name == "'"$name"'") | .uuid' < $WORKDIR/out)" \
+     "" \
+     "$type '$name' should NOT show up in the list of $list"
 }
 # }}}
 # cannot_delete $type $name "optionally, why you shouldn't be able to delete it" {{{
 cannot_delete() {
-	local type=$1
-	local name=$2
-	local why=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local why=${3:-$CONTEXT}
 
-	! shield -k --raw delete-$type $name > $WORKDIR/out
-	ok $? "Should not be allowed to delete $type '$name': $why"
+  ! shield -k --raw delete-$type $name > $WORKDIR/out
+  ok $? "Should not be allowed to delete $type '$name': $why"
 
-	run $type $(uuidof $type $name)
-	attr name "$name" "$type '$name' should be unaffected by failed DELETE attempt"
+  run $type $(uuidof $type $name)
+  attr name "$name" "$type '$name' should be unaffected by failed DELETE attempt"
 }
 # }}}
 # can_delete $type $name "optionally, why you should be able to delete it" {{{
 can_delete() {
-	local type=$1
-	local name=$2
-	local why=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local why=${3:-$CONTEXT}
 
-	shield -k --raw delete-$type $name > $WORKDIR/out
-	ok $? "Should be allowed to delete $type '$name': $why"
+  shield -k --raw delete-$type $name > $WORKDIR/out
+  ok $? "Should be allowed to delete $type '$name': $why"
 
-	! shield -k $type $(uuidof $type $name) > $WORKDIR/out 2>/dev/null
-	ok $? "$type '$name' should not be retrievable after successful delete attempt"
+  ! shield -k $type $(uuidof $type $name) > $WORKDIR/out 2>/dev/null
+  ok $? "$type '$name' should not be retrievable after successful delete attempt"
 }
 # }}}
 # pause job $name {{{
 pause() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	if [[ $type != "job" ]]; then
-		echo >&2 "Attempted to pause a $type (must be a job)"
-		exit 77
-	fi
+  if [[ $type != "job" ]]; then
+    echo >&2 "Attempted to pause a $type (must be a job)"
+    exit 77
+  fi
 
-	context "pausing job '$name'"
-	run pause "$(uuidof $type $name)"
-	run $type "$(uuidof $type $name)"
-	context "paused job ($name)"
-	attr paused true
+  context "pausing job '$name'"
+  run pause "$(uuidof $type $name)"
+  run $type "$(uuidof $type $name)"
+  context "paused job ($name)"
+  attr paused true
 }
 # }}}
 # unpause job $name {{{
 unpause() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	if [[ $type != "job" ]]; then
-		echo >&2 "Attempted to unpause a $type (must be a job)"
-		exit 77
-	fi
+  if [[ $type != "job" ]]; then
+    echo >&2 "Attempted to unpause a $type (must be a job)"
+    exit 77
+  fi
 
-	context "unpausing job '$name'"
-	run unpause "$(uuidof $type $name)"
-	run $type "$(uuidof $type $name)"
-	context "unpaused job ($name)"
-	attr paused false
+  context "unpausing job '$name'"
+  run unpause "$(uuidof $type $name)"
+  run $type "$(uuidof $type $name)"
+  context "unpaused job ($name)"
+  attr paused false
 }
 # }}}
 
@@ -455,12 +448,11 @@ echo
 
 try "Connecting to our test SHIELD instance" # {{{
 (shield -k --raw create-backend test http://${SHIELD_DAEMON_ADDR}
- shield -k --raw login --provider token --token initio
+ shield -k --raw login --username shieldadmin --password shield
  shield -k --raw status | jq -r .
- is "$(httpstat GET http://$SHIELD_DAEMON_ADDR/v1/ping)" \
-    "200" "/v1/ping should ping ok"
+ is "$(ping)" "200" "/v1/ping should ping ok"
 
- is "$(curl -H "X-Shield-Token: $SHIELD_API_TOKEN" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey)" \
+ is "$(curl http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey)" \
     "$(ssh-keygen -yf $WORKDIR/var/shieldd_key)" \
     "/v1/meta/pubkey gives out the daemon PUBLIC key"
 ) 2>&1 | indent
@@ -472,11 +464,20 @@ try "Checking that initial database is empty" # {{{
  run stores    ; none "Initial stores list should be empty"
  run policies  ; none "Initial policies list should be empty"
  run jobs      ; none "Initial jobs list should be empty"
- run users     ; none "Initial users list should be empty"
+ run users     ; notnone "Initial users list should have the failsafe user"
  run tenants   ; notnone "Initial tenants list shouldn't be empty"
+ run tokens    ; none "Initial tokens list should be empty"
 ) 2>&1 | indent
+#}}}
 
-
+try "Creating an API token" # {{{
+(run create-token testtoken
+tmp_token=$(cat "${WORKDIR}/out" | jq -Mr .token)
+isnt "$tmp_token" "" "Returned token was the empty string"
+echo -n $tmp_token >"${WORKDIR}/out"
+) 2>&1 | indent
+export SHIELD_API_TOKEN=$(cat ${WORKDIR}/out)
+echo --------  SHIELD_API_TOKEN is $SHIELD_API_TOKEN -----------
 # }}}
 #
 try "Checking that unimplemented HTTP methods return 501s" # {{{
@@ -562,7 +563,7 @@ try "Checking that unimplemented v2 HTTP methods return 501s" # {{{
         "501" "/v2/$type/sub/requests should HTTP 501 (not implemented) on a $method request"
    done
  done
- 
+
 ) 2>&1 | indent
 # }}}
 try "Checking that various v2 API endpoints validate UUIDs" # {{{
@@ -599,10 +600,6 @@ try "Creating invalid things (validation)" # {{{
 (for type in target store policy job user tenant; do
    ! shield -k --raw create-$type <<<'{}' > $WORKDIR/out
    ok $? "\`shield create-$type' should fail if validation fails"
-   # FIXME this is a terrible error message
-   is "$(jq -r .error < $WORKDIR/out)" \
-      "Error 400 Bad Request" \
-      "shield CLI should print an error message when fields are missing"
  done
 
  ! shield -k --raw create-policy <<EOF > $WORKDIR/out
@@ -613,10 +610,6 @@ try "Creating invalid things (validation)" # {{{
 }
 EOF
  ok $? "\`shield create-policy' should fail if retention period is <1h"
- # FIXME this is a terrible error message
- is "$(jq -r .error < $WORKDIR/out)" \
-    "Error 400 Bad Request" \
-    "shield CLI should print an error message about minimum retention period"
 ) 2>&1 | indent
 
 
