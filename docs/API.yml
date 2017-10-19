@@ -97,7 +97,7 @@ sections:
       SHIELD Core, for monitoring purposes.
 
     endpoints:
-      - name: GET /v2/health
+      - name: GET /v2/health # {{{
         intro: |
           Returns health information about the SHIELD Core, connected
           storage accounts, and general metrics.
@@ -144,6 +144,8 @@ sections:
             summary: *internal
 
 
+      # }}}
+
 
   - name: SHIELD Authentication
     intro: |
@@ -152,7 +154,7 @@ sections:
       their authorization to perform other tasks inside of SHIELD.
 
     endpoints:
-      - name: POST /v2/auth/login
+      - name: POST /v2/auth/login # {{{
         intro: |
           Authenticate against the SHIELD API as a local user, and retrieve
           a session ID that can be used for future, authenticated,
@@ -195,7 +197,9 @@ sections:
               user doesn't exist, or the password was wrong.
 
 
-      - name: GET /v2/auth/logout
+
+      # }}}
+      - name: GET /v2/auth/logout # {{{
         intro: |
           Destroy the current session and log the user out.
 
@@ -216,7 +220,9 @@ sections:
             summary: *internal
 
 
-      - name: GET /v2/auth/id
+
+      # }}}
+      - name: GET /v2/auth/id # {{{
         intro: |
           Retrieve identity and authorization information about the
           currently authenticated session.  If the requester has not
@@ -272,6 +278,7 @@ sections:
               investigate.
 
 
+      # }}}
 
 
   - name: SHIELD Core
@@ -280,7 +287,7 @@ sections:
       Cores, and unlock or rekey existing ones.
 
     endpoints:
-      - name: POST /v2/init
+      - name: POST /v2/init # {{{
         intro: |
           Initializes a new SHIELD Core, to set up the encryption facilities
           for storing backup archive encryption keys safely and securely.
@@ -322,7 +329,8 @@ sections:
               which is not allowed.
 
 
-      - name: POST /v2/unlock
+      # }}}
+      - name: POST /v2/unlock # {{{
         intro: |
           Unlocks a SHIELD Core by providing the master password.  This
           allows SHIELD to decrypt the keys to access its storage vault and
@@ -361,7 +369,10 @@ sections:
               You may re-attempt this request after initializing
               the SHIELD Core.
 
-      - name: POST /v2/rekey
+
+
+      # }}}
+      - name: POST /v2/rekey # {{{
         intro: |
           Changes the master password used for encrypting the credentials
           for the SHIELD Core storage vault (where backup archive encryption
@@ -390,6 +401,7 @@ sections:
             summary: *internal
 
 
+      # }}}
 
 
   - name: SHIELD Agents
@@ -397,7 +409,7 @@ sections:
       These endpoints expose information about registered SHIELD Agents.
 
     endpoints:
-      - name: GET /v2/agents
+      - name: GET /v2/agents # {{{
         intro: |
           Retrieves information about all registered SHIELD Agents.
 
@@ -468,7 +480,8 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/agents
+      # }}}
+      - name: POST /v2/agents # {{{
         intro: |
           Initiate agent registration.  The client must supply a POST body
           with the details of the agent being registered.
@@ -535,8 +548,8 @@ sections:
               development team.
 
 
-
-      - name: GET /v2/agents/:uuid
+      # }}}
+      - name: GET /v2/agents/:uuid # {{{
         intro: |
           Retrieve extended information about a single SHIELD Agent, including its
           plugin metadata (what plugins are present, what configuration they accept or
@@ -613,6 +626,8 @@ sections:
 
 
 
+      # }}}
+
 
   - name: SHIELD Tenants
     intro: |
@@ -624,7 +639,7 @@ sections:
       their assigned roles.
 
     endpoints:
-      - name: GET /v2/tenants
+      - name: GET /v2/tenants # {{{
         intro: |
           Retrieve the list of all tenants currently defined.
 
@@ -646,7 +661,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/tenants
+
+        # }}}
+      - name: POST /v2/tenants # {{{
         intro: |
           Create a new tenant.
 
@@ -726,7 +743,9 @@ sections:
             summary: *internal
 
 
-      - name: GET /v2/tenants/:uuid
+
+        # }}}
+      - name: GET /v2/tenants/:uuid # {{{
         intro: |
           Request more detailed information about a single tenant.
 
@@ -760,7 +779,9 @@ sections:
             summary: *internal
 
 
-      - name: PUT /v2/tenants/:uuid
+
+        # }}}
+      - name: PUT /v2/tenants/:uuid # {{{
         intro: |
           Update a tenant with new attributes.
 
@@ -782,7 +803,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/tenants/:uuid/invite
+
+        # }}}
+      - name: POST /v2/tenants/:uuid/invite # {{{
         intro: |
           Invite one or more local users to a tenant.
 
@@ -842,7 +865,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/tenants/:uuid/banish
+
+        # }}}
+      - name: POST /v2/tenants/:uuid/banish # {{{
         intro: |
           Remove a user from a tenant they currently belong to.
 
@@ -893,7 +918,9 @@ sections:
             summary: *internal
 
 
-      - name: DELETE /v2/tenants/:uuid
+
+        # }}}
+      - name: DELETE /v2/tenants/:uuid # {{{
         FIXME: true
         intro: |
           Remove a tenant.
@@ -904,7 +931,9 @@ sections:
       restore operations against as course of normal function.
 
     endpoints:
-      - name: GET /v2/tenants/:tenant/targets
+
+        # }}}
+      - name: GET /v2/tenants/:tenant/targets # {{{
         intro: |
           Retrieve all defined targets for a tenant.
 
@@ -936,7 +965,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/tenants/:tenant/targets
+
+        # }}}
+      - name: POST /v2/tenants/:tenant/targets # {{{
         intro: |
           Create a new target in a tenant.
 
@@ -1004,7 +1035,8 @@ sections:
             summary: *internal
 
 
-      - name: GET /v2/tenants/:tenant/targets/:uuid
+        # }}}
+      - name: GET /v2/tenants/:tenant/targets/:uuid # {{{
         intro: |
           Retrieve a single target for a tenant.
 
@@ -1039,7 +1071,9 @@ sections:
               specified tenant.
 
 
-      - name: PUT /v2/tenants/:tenant/targets/:uuid
+
+        # }}}
+      - name: PUT /v2/tenants/:tenant/targets/:uuid # {{{
         intro: |
           Update an existing target on a tenant.
 
@@ -1089,7 +1123,9 @@ sections:
               specified tenant.
 
 
-      - name: DELETE /v2/tenants/:tenant/targets/:uuid
+
+        # }}}
+      - name: DELETE /v2/tenants/:tenant/targets/:uuid # {{{
         intro: |
           Remove a target from a tenant.
 
@@ -1121,6 +1157,7 @@ sections:
               incomplete (and unusable) setup.
 
 
+        # }}}
 
 
   - name: SHIELD Stores
@@ -1136,7 +1173,7 @@ sections:
       **SHIELD Global Resources**.
 
     endpoints:
-      - name: GET /v2/tenants/:tenant/stores
+      - name: GET /v2/tenants/:tenant/stores # {{{
         intro: |
           Retrieve all defined stores for a tenant.
 
@@ -1167,7 +1204,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/tenants/:tenant/stores
+
+        # }}}
+      - name: POST /v2/tenants/:tenant/stores # {{{
         intro: |
           Create a new store on a tenant.
 
@@ -1213,7 +1252,9 @@ sections:
             summary: *internal
 
 
-      - name: GET /v2/tenants/:tenant/stores/:uuid
+
+        # }}}
+      - name: GET /v2/tenants/:tenant/stores/:uuid # {{{
         intro: |
           Retrieve a single store for the given tenant.
 
@@ -1247,7 +1288,9 @@ sections:
               specified tenant.
 
 
-      - name: PUT /v2/tenants/:tenant/stores/:uuid
+
+        # }}}
+      - name: PUT /v2/tenants/:tenant/stores/:uuid # {{{
         intro: |
           Update an existing store on a tenant.
 
@@ -1299,7 +1342,9 @@ sections:
               specified tenant.
 
 
-      - name: DELETE /v2/tenants/:tenant/stores/:uuid
+
+        # }}}
+      - name: DELETE /v2/tenants/:tenant/stores/:uuid # {{{
         intro: |
           Remove a store from a tenant.
 
@@ -1326,6 +1371,8 @@ sections:
               an incomplete (and unusable) setup.
 
 
+      # }}}
+
 
   - name: SHIELD Retention Policies
     intro: |
@@ -1334,7 +1381,7 @@ sections:
       inexorably.
 
     endpoints:
-      - name: GET /v2/tenants/:tenant/policies
+      - name: GET /v2/tenants/:tenant/policies # {{{
         intro: |
           Retrieve all defined retention policies for a tenant.
 
@@ -1359,7 +1406,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/tenants/:tenant/policies
+
+        # }}}
+      - name: POST /v2/tenants/:tenant/policies # {{{
         intro: |
           Create a new retention policy in a tenant.
 
@@ -1402,7 +1451,9 @@ sections:
             summary: *internal
 
 
-      - name: GET /v2/tenants/:tenant/policies/:uuid
+
+        # }}}
+      - name: GET /v2/tenants/:tenant/policies/:uuid # {{{
         intro: |
           Retrieve a single retention policy for a tenant.
 
@@ -1425,7 +1476,9 @@ sections:
               the specified tenant.
 
 
-      - name: PUT /v2/tenants/:tenant/policies/:uuid
+
+        # }}}
+      - name: PUT /v2/tenants/:tenant/policies/:uuid # {{{
         intro: |
           Update a single retention policy on a tenant.
 
@@ -1470,7 +1523,9 @@ sections:
             summary: *internal
 
 
-      - name: DELETE /v2/tenants/:tenant/policies/:uuid
+
+        # }}}
+      - name: DELETE /v2/tenants/:tenant/policies/:uuid # {{{
         intro: |
           Remove a retention policy from a tenant.
 
@@ -1500,6 +1555,8 @@ sections:
 
 
 
+        # }}}
+
 
   - name: SHIELD Jobs
     intro: |
@@ -1508,27 +1565,35 @@ sections:
       policies.  Without Jobs, SHIELD cannot actually back anything up.
 
     endpoints:
-      - name: GET /v2/tenants/:tenant/jobs
+      - name: GET /v2/tenants/:tenant/jobs # {{{
         FIXME: true
         intro: |
           Retrieve all defined jobs for a tenant.
 
-      - name: POST /v2/tenants/:tenant/jobs
+
+        # }}}
+      - name: POST /v2/tenants/:tenant/jobs # {{{
         FIXME: true
         intro: |
           Configure a new backup job on a tenant.
 
-      - name: GET /v2/tenants/:tenant/jobs/:uuid
+
+        # }}}
+      - name: GET /v2/tenants/:tenant/jobs/:uuid # {{{
         FIXME: true
         intro: |
           Retrieve a single job for a tenant.
 
-      - name: PUT /v2/tenants/:tenant/jobs/:uuid
+
+        # }}}
+      - name: PUT /v2/tenants/:tenant/jobs/:uuid # {{{
         FIXME: true
         intro: |
           Update a single job on a tenant.
 
-      - name: DELETE /v2/tenants/:tenant/jobs/:uuid
+
+        # }}}
+      - name: DELETE /v2/tenants/:tenant/jobs/:uuid # {{{
         FIXME: true
         intro: |
           Remove a job from a tenant.
@@ -1540,6 +1605,8 @@ sections:
             }
 
 
+
+        # }}}
 
 
   - name: SHIELD Tasks
@@ -1554,17 +1621,21 @@ sections:
       existence and move through its lifecycle.
 
     endpoints:
-      - name: GET /v2/tenants/:tenant/tasks
+      - name: GET /v2/tenants/:tenant/tasks # {{{
         FIXME: true
         intro: |
           Retrieve all tasks for a tenant.
 
-      - name: GET /v2/tenants/:tenant/tasks/:uuid
+
+        # }}}
+      - name: GET /v2/tenants/:tenant/tasks/:uuid # {{{
         FIXME: true
         intro: |
           Retrieve a single task.
 
-      - name: DELETE /v2/tenants/:tenant/tasks/:uuid
+
+        # }}}
+      - name: DELETE /v2/tenants/:tenant/tasks/:uuid # {{{
         intro: |
           Cancel a task.
 
@@ -1575,6 +1646,8 @@ sections:
             }
 
 
+
+        # }}}
 
 
   - name: SHIELD Backup Archives
@@ -1587,29 +1660,37 @@ sections:
       succeed.
 
     endpoints:
-      - name: GET /v2/tenants/:tenant/archives
+      - name: GET /v2/tenants/:tenant/archives # {{{ # {{{
         FIXME: true
         intro: |
           Retrieve all archives for a tenant.
 
-      - name: GET /v2/tenants/:tenant/archives/:uuid
+
+        # }}}
+      - name: GET /v2/tenants/:tenant/archives/:uuid # {{{
         FIXME: true
         intro: |
           Retrieve a single archive for a tenant.
 
-      - name: PUT /v2/tenants/:tenant/archives/:uuid
+
+        # }}}
+      - name: PUT /v2/tenants/:tenant/archives/:uuid # {{{
         FIXME: true
         intro: |
           Update a single archive on a tenant.
 
-      - name: POST /v2/tenants/:tenant/archives/restore
+
+        # }}}
+      - name: POST /v2/tenants/:tenant/archives/restore # {{{
         FIXME: true
         intro: |
           Restore a backup archive for a tenant, either to the original
           target system it was taken from, or against a different target
           owned by the same tenant.
 
-      - name: DELETE /v2/tenants/:tenant/archives/:uuid
+
+        # }}}
+      - name: DELETE /v2/tenants/:tenant/archives/:uuid # {{{
         FIXME: true
         intro: |
           Remove an archive from a tenant, and purge the archive
@@ -1623,6 +1704,8 @@ sections:
 
 
 
+        # }}}
+
 
   - name: SHIELD Global Resources
     intro: |
@@ -1631,7 +1714,7 @@ sections:
       storage system definitions).
 
     endpoints:
-      - name: GET /v2/global/stores
+      - name: GET /v2/global/stores # {{{
         intro: |
           Retrieve all globally-defined stores.
 
@@ -1662,7 +1745,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/global/stores
+
+        # }}}
+      - name: POST /v2/global/stores # {{{
         intro: |
           Create a new shared storage system.  This storage will be visible
           to all tenants.
@@ -1705,7 +1790,9 @@ sections:
             summary: *internal
 
 
-      - name: GET /v2/global/stores/:uuid
+
+        # }}}
+      - name: GET /v2/global/stores/:uuid # {{{
         intro: |
           Retrieve a single globally-defined storage system.
 
@@ -1739,7 +1826,9 @@ sections:
               (globally).
 
 
-      - name: PUT /v2/global/stores/:uuid
+
+        # }}}
+      - name: PUT /v2/global/stores/:uuid # {{{
         intro: |
           Update an existing globally-defined storage system.
 
@@ -1791,7 +1880,9 @@ sections:
               (globally).
 
 
-      - name: DELETE /v2/global/stores/:uuid
+
+        # }}}
+      - name: DELETE /v2/global/stores/:uuid # {{{
         intro: |
           Remove a globally-defined storage system.
 
@@ -1818,7 +1909,9 @@ sections:
               an incomplete (and unusable) setup.
 
 
-      - name: GET /v2/global/policies
+
+        # }}}
+      - name: GET /v2/global/policies # {{{
         intro: |
           Retrieve all defined retention policy templates.
 
@@ -1843,7 +1936,9 @@ sections:
             summary: *internal
 
 
-      - name: POST /v2/global/policies
+
+        # }}}
+      - name: POST /v2/global/policies # {{{
         intro: |
           Create a new retention policy template.
 
@@ -1885,7 +1980,9 @@ sections:
             summary: *internal
 
 
-      - name: GET /v2/global/policies/:uuid
+
+        # }}}
+      - name: GET /v2/global/policies/:uuid # {{{
         intro: |
           Retrieve a single retention policy template.
 
@@ -1908,7 +2005,9 @@ sections:
               exists globally.
 
 
-      - name: PUT /v2/global/policies/:uuid
+
+        # }}}
+      - name: PUT /v2/global/policies/:uuid # {{{
         intro: |
           Update a single retention policy template.
 
@@ -1957,7 +2056,9 @@ sections:
             summary: *internal
 
 
-      - name: DELETE /v2/global/policies/:uuid
+
+        # }}}
+      - name: DELETE /v2/global/policies/:uuid # {{{
         intro: |
           Remove a retention policy template.
 
@@ -1989,3 +2090,7 @@ sections:
               extant job configuration; deleting it would lead to
               an incomplete (and unusable) setup.  Note that this
               error should never happen.
+
+
+
+        # }}}

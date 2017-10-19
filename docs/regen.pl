@@ -14,6 +14,8 @@ for my $section (@{$api->{sections}}) {
 	$N++;
 	$section->{name}
 		or die "Missing section name for section $N\n";
+
+	$section->{name} =~ s/\s+#\s+\{\{\{\s*$//;
 	$section->{intro}
 		or die "Missing section intro for section `$section->{name}`\n";
 	$section->{endpoints}
@@ -26,6 +28,8 @@ for my $section (@{$api->{sections}}) {
 
 		$endpoint->{name}
 			or die "Missing endpoint name for `$section->{name}` endpoint #$n\n";
+
+		$endpoint->{name} =~ s/\s+#\s+\{\{\{\s*$//;
 		$endpoint->{name} =~ m/^(GET|PUT|POST|PATCH|DELETE|TRACE|OPTIONS)/
 			or die "Unrecognized HTTP verb in `$section->{name}` endpoint `$endpoint->{name}`\n";
 
