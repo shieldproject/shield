@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"net/http"
 )
 
 //AuthProvider contains all the info about an auth provider (usually an oauth
@@ -40,39 +39,5 @@ func ListProviders() (rets []AuthProvider, err error) {
 	}
 
 	err = uri.Get(&rets)
-	return
-}
-
-//TokenAuth attempts to perform the token auth flow on the given provider. If
-// this provider is not a token provider, an error is returned. If the token
-// provided is correct and the flow succeeds, a session id is returned.
-func (p *AuthProvider) TokenAuth(token string) (sessionID string, user *AuthIDOutput, err error) {
-	if p.Type != "token" {
-		err = fmt.Errorf("Can't do token auth for non-token provider")
-		return
-	}
-
-	var uri *URL
-	uri, err = ShieldURI(p.CLIEntry)
-	if err != nil {
-		return
-	}
-
-	var req *http.Request
-	req, err = http.NewRequest("GET", uri.String(), nil)
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("X-Shield-Token", token)
-	user = &AuthIDOutput{}
-
-	var header http.Header
-	header, err = uri.RequestWithHeaders(user, req)
-	if err != nil {
-		return
-	}
-
-	sessionID = header.Get("X-Shield-Session")
 	return
 }

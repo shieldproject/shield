@@ -172,7 +172,7 @@ func makeRequest(req *http.Request) (*http.Response, error) {
 		req.Header.Set("X-Shield-Token", os.Getenv("SHIELD_API_TOKEN"))
 	}
 
-	if curBackend.Token != "" {
+	if curBackend.Token != "" && req.Header.Get("X-Shield-Token") == "" {
 		if curBackend.APIVersion == 1 {
 			req.Header.Set("Authorization", curBackend.Token)
 		} else {

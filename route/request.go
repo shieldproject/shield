@@ -10,6 +10,15 @@ import (
 	"github.com/starkandwayne/goutils/log"
 )
 
+const (
+	//SessionHeaderKey is the name of the http header containing a session ID
+	SessionHeaderKey = "X-Shield-Session"
+	//SessionCookieKey is the name of the browser cookie containing a session ID
+	SessionCookieKey = "shield7"
+	//TokenHeaderKey is the name of the http Header containing an auth token
+	TokenHeaderKey = "X-Shield-Token"
+)
+
 type Request struct {
 	Req  *http.Request
 	Args []string
@@ -33,18 +42,23 @@ func (r *Request) String() string {
 	return fmt.Sprintf("%s %s", r.Req.Method, r.Req.URL.Path)
 }
 
-func (r *Request) SessionID() string {
-	// FIXME: extract the header name constant
-	if s := r.Req.Header.Get("X-Shield-Token"); s != "" {
-		return s
+//SessionID returns the session ID found in the request headers, if any. If no
+// session id is found, the empty string is returned. Also returns true
+// if the session ID is found in the X-Shield-Token header and false otherwise.
+func (r *Request) SessionID() (session string, isToken bool) {
+	if session = r.Req.Header.Get(SessionHeaderKey); session != "" {
+		return
 	}
 
-	// FIXME: extract the cookie name constant
-	if cookie, err := r.Req.Cookie("shield7"); err == nil {
-		return cookie.Value
+	if cookie, err := r.Req.Cookie(SessionCookieKey); err == nil {
+		return cookie.Value, false
 	}
 
-	return ""
+	if session = r.Req.Header.Get(TokenHeaderKey); session != "" {
+		isToken = true
+	}
+
+	return
 }
 
 func (r *Request) Success(msg string, args ...interface{}) {
@@ -143,12 +157,8 @@ func (r *Request) ParamIs(name, want string) bool {
 	return set && v[0] == want
 }
 
-func (r *Request) SetHeader(header, value string) {
+func (r *Request) SetRespHeader(header, value string) {
 	r.w.Header().Add(header, value)
-}
-
-func (r *Request) GetHeader(header string) string {
-	return r.w.Header().Get(header)
 }
 
 func (r *Request) SetCookie(cookie *http.Cookie) {

@@ -27,6 +27,12 @@ var Login = &commands.Command{
 			commands.FlagInfo{
 				Name: "password", Desc: "Password to use for local user or basic auth login",
 			},
+			commands.FlagInfo{
+				Name: "username", Short: 'U', Desc: "Username to use for local user or basic auth login",
+			},
+			commands.FlagInfo{
+				Name: "password", Desc: "Password to use for local user or basic auth login",
+			},
 		},
 	},
 	RunFn: cliLogin,

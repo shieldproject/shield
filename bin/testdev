@@ -76,7 +76,6 @@ for x in $(find plugin -maxdepth 1 -type d); do
 done
 
 export DATABASE=${DATABASE:-$workdir/var/shield.db}
-export SHIELD_API_TOKEN=LETMEIN
 
 case "${1}" in
 (vault)
@@ -130,21 +129,6 @@ motd: |
   Welcome to the testdev S.H.I.E.L.D. environment!
 
 auth:
-  - name:       Token
-    identifier: token
-    backend:    token
-    properties:
-      tokens:
-        initio:
-          - tenant: SYSTEM
-            role:   admin
-
-        4z7z8965-9zz0-4z3a-z920-2537z3321z3z:
-          - tenant: starkandwayne
-            role:   engineer
-          - tenant: CF Community
-            role:   engineer
-
   - name:       Github
     identifier: github
     backend:    github

@@ -1,11 +1,20 @@
 package core
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
+	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
+)
+
+const (
+	//UnauthString is the error returned for a 401
+	UnauthString = "Authentication required"
+	//OopsString is a default error returned for a 500
+	OopsString = "An unknown error occurred"
 )
 
 func IsValidTenantRole(role string) bool {
@@ -43,7 +52,8 @@ type authGrants struct {
 type authResponse struct {
 	User    authUser     `json:"user"`
 	Tenants []authTenant `json:"tenants"`
-	Tenant  *authTenant  `json:"tenant,omitempty"`
+	//The currently selected tenant
+	Tenant *authTenant `json:"tenant,omitempty"`
 
 	Grants authGrants `json:"is"`
 }
@@ -58,19 +68,17 @@ func getSessionID(req *http.Request) string {
 			sessionID = cookie.Value
 		}
 	}
+
 	return sessionID
 }
 
-func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
-	log.Debugf("retrieving user account for session '%s'", sessionID)
-	user, err := core.DB.GetUserForSession(sessionID)
-	if err != nil {
-		log.Debugf("failed to retrieve user account for session '%s': %s", sessionID, err)
-		return nil, err
-	}
+func getAuthToken(req *http.Request) string {
+	return req.Header.Get("X-Shield-Token")
+}
+
+func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 	if user == nil {
-		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", sessionID)
-		return nil, nil
+		return nil, fmt.Errorf("No user was given")
 	}
 
 	answer := authResponse{
@@ -128,7 +136,6 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 
 	if answer.User.Backend == "local" {
 		answer.User.Backend = "SHIELD"
-
 	} else {
 		if p, ok := core.auth[answer.User.Backend]; ok {
 			answer.User.Backend = p.Configuration(false).Name
@@ -142,11 +149,12 @@ func (core *Core) checkAuth(sessionID string) (*authResponse, error) {
 // to send back the session information in a login request
 func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
 	r.SetCookie(SessionCookie(sessionID.String(), true))
-	r.SetHeader("X-Shield-Session", sessionID.String())
+	r.SetRespHeader("X-Shield-Session", sessionID.String())
 }
 
-func (core *Core) hasTenantRole(session, tenant string, roles ...string) bool {
-	if session == "" {
+func (core *Core) hasTenantRole(r *route.Request, tenant string, roles ...string) bool {
+	session, _ := r.SessionID()
+	if uuid.Parse(session) == nil {
 		return false
 	}
 
@@ -181,8 +189,9 @@ func (core *Core) hasTenantRole(session, tenant string, roles ...string) bool {
 	return false
 }
 
-func (core *Core) hasSystemRole(session string, roles ...string) bool {
-	if session == "" {
+func (core *Core) hasSystemRole(r *route.Request, roles ...string) bool {
+	session, _ := r.SessionID()
+	if uuid.Parse(session) == nil {
 		return false
 	}
 
@@ -204,44 +213,86 @@ func (core *Core) hasSystemRole(session string, roles ...string) bool {
 	return false
 }
 
-func (core *Core) IsNotAuthenticated(session string) bool {
-	if session == "" {
-		return true
+//AuthenticatedUser gets the session ID out of the Request object and retrieves
+// the user which it authenticates. If the session ID is invalid or no such
+// session exists, nil is returned. Nil will also be returned if the session ID
+// was given as an auth token and the session associated with the ID is not
+// an auth token. The fail handler is called on the given route.Request object
+// if no user is returned
+func (core *Core) AuthenticatedUser(r *route.Request) *db.User {
+	session, isToken := r.SessionID()
+	sessionUUID := uuid.Parse(session)
+	if sessionUUID == nil {
+		r.Fail(route.Unauthorized(fmt.Errorf("No valid session ID was given"), UnauthString))
+		return nil
 	}
 
 	user, err := core.DB.GetUserForSession(session)
 	if err != nil {
-		log.Debugf("failed to retrieve user account for session '%s': %s", session, err)
-		return true
+		r.Fail(route.Oops(
+			fmt.Errorf("failed to retrieve user account for session '%s': %s", session, err),
+			OopsString,
+		))
+		return nil
 	}
 	if user == nil {
-		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session)
-		return true
+		r.Fail(route.Unauthorized(
+			fmt.Errorf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session),
+			UnauthString,
+		))
+		return nil
 	}
 
-	return false
+	//Verify a token is actually a token and a normal session isn't a token
+	token, err := db.TokenFilter{SessionUUID: &sessionUUID}.Get(core.DB)
+	if err != nil {
+		r.Fail(route.Oops(
+			fmt.Errorf("failed to retrieve token for session '%s': %s", session, err),
+			OopsString,
+		))
+		return nil
+	}
+
+	if isToken != (token != nil) {
+		r.Fail(route.Unauthorized(nil, UnauthString))
+		return nil
+	}
+	err = core.DB.UpdateSessionLastUsed(sessionUUID)
+	if err != nil {
+		r.Fail(route.Oops(err, OopsString))
+		return nil
+	}
+
+	return user
 }
 
-func (core *Core) IsNotSystemAdmin(session string) bool {
-	return !core.hasSystemRole(session, "admin")
+//IsNotAuthenticated returns true if no authenticated user is associated with
+// the session ID in the given Request object. See AuthenticatedUser for the
+// semantics of how a user is determined to be associated with a session ID.
+func (core *Core) IsNotAuthenticated(r *route.Request) bool {
+	return core.AuthenticatedUser(r) == nil
 }
 
-func (core *Core) IsNotSystemManager(session string) bool {
-	return !core.hasSystemRole(session, "manager", "admin")
+func (core *Core) IsNotSystemAdmin(r *route.Request) bool {
+	return !core.hasSystemRole(r, "admin")
 }
 
-func (core *Core) IsNotSystemEngineer(session string) bool {
-	return !core.hasSystemRole(session, "engineer", "manager", "admin")
+func (core *Core) IsNotSystemManager(r *route.Request) bool {
+	return !core.hasSystemRole(r, "manager", "admin")
 }
 
-func (core *Core) IsNotTenantAdmin(session, tenant string) bool {
-	return !core.hasTenantRole(session, tenant, "admin")
+func (core *Core) IsNotSystemEngineer(r *route.Request) bool {
+	return !core.hasSystemRole(r, "engineer", "manager", "admin")
 }
 
-func (core *Core) IsNotTenantEngineer(session, tenant string) bool {
-	return !core.hasTenantRole(session, tenant, "engineer", "admin")
+func (core *Core) IsNotTenantAdmin(r *route.Request, tenant string) bool {
+	return !core.hasTenantRole(r, tenant, "admin")
 }
 
-func (core *Core) IsNotTenantOperator(session, tenant string) bool {
-	return !core.hasTenantRole(session, tenant, "operator", "engineer", "admin")
+func (core *Core) IsNotTenantEngineer(r *route.Request, tenant string) bool {
+	return !core.hasTenantRole(r, tenant, "engineer", "admin")
+}
+
+func (core *Core) IsNotTenantOperator(r *route.Request, tenant string) bool {
+	return !core.hasTenantRole(r, tenant, "operator", "engineer", "admin")
 }

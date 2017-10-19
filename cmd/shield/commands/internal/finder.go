@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -446,4 +447,43 @@ func FindUser(search string, strict bool) (User, uuid.UUID, error) {
 			&t, "Which user do you want?")
 		return want.(User), uuid.Parse(want.(User).UUID), nil
 	}
+}
+
+func FindToken(search string, strict bool) (ret Token, u uuid.UUID, err error) {
+	tokens, err := ListTokens()
+	if err != nil {
+		return
+	}
+
+	candidates := []Token{}
+	re := regexp.MustCompile(regexp.QuoteMeta(search))
+
+	for _, token := range tokens {
+		if (strict && token.Name == search) ||
+			(!strict && re.Match([]byte(token.Name))) {
+			candidates = append(candidates, token)
+		}
+	}
+
+	switch len(candidates) {
+	case 0:
+		err = fmt.Errorf("no matching tokens found")
+
+	case 1:
+		ret = candidates[0]
+		u = uuid.Parse(ret.ID)
+
+	default:
+		t := tui.NewTable("Name", "Created At", "Last Used At")
+		for _, token := range candidates {
+			t.Row(token, token.Name, token.CreatedAt, token.LastUsedAt)
+		}
+
+		want := tui.Menu(
+			fmt.Sprintf("More than one token matched your search for '%s':", search),
+			&t, "Which token do you want?")
+		ret = want.(Token)
+		u = uuid.Parse(ret.ID)
+	}
+	return
 }
