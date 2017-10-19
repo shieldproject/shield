@@ -109,10 +109,11 @@ payload in the response body:
     "ip"      : "10.0.0.5",
     "fqdn"    : "shield.example.com",
     "env"     : "PRODUCTION",
-    "color"   : ""
+    "color"   : "",
+    "motd"    : "Welcome to S.H.I.E.L.D."
   },
   "health": {
-    "api_ok"     : true,
+    "core"       : "unsealed",
     "storage_ok" : true,
     "jobs_ok"    : true
   },
@@ -120,8 +121,19 @@ payload in the response body:
     { "name": "s3", "healthy": true },
     { "name": "fs", "healthy": true } ],
   "jobs": [
-    { "target": "BOSH DB", "job": "daily",  "healthy": true },
-    { "target": "BOSH DB", "job": "weekly", "healthy": true } ],
+    {
+      "uuid"    : "3dc875a4-042c-47a1-828c-1d927455c6c7",
+      "target"  : "BOSH DB",
+      "job"     : "daily",
+      "healthy" : true
+    },
+    {
+      "uuid"    : "d9a4547e-c1e7-4869-bb8d-4abb757b2f70",
+      "target"  : "BOSH DB",
+      "job"     : "weekly",
+      "healthy" : true
+    }
+  ],
   "stats": {
     "jobs"    : 8,
     "systems" : 7,
@@ -140,7 +152,7 @@ This endpoint requires no authentication or authorization.
 
 The following error messages can be returned:
 
-- **failed to check SHIELD health**:
+- **Unable to check SHIELD health**:
   an internal error occurred and should be investigated by the
   site administrators
 
@@ -181,7 +193,7 @@ Both fields, `username`, and `password`, are required.
 
 ```json
 {
-  "ok": "a-session-id"
+  "ok": "95cca9ea-d2e6-4966-b071-9df6856a0e55"
 }
 ```
 
@@ -547,7 +559,7 @@ to assert that a problem exists.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
 
 **Errors**
 
@@ -708,7 +720,9 @@ of this metadata is documented in
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
 
 **Errors**
 
@@ -749,19 +763,35 @@ curl -H 'Accept: application/json' https://shield.host/v2/tenants
 ```json
 [
   {
+    "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c",
     "name": "A Tenant",
-    "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c"
+
+    "archive_count"  : 32,
+    "storage_used"   : 140509184,
+    "daily_increase" : 1520435
   },
   {
+    "uuid": "4b6f6e2a-6ac6-443e-a910-aa412744165e",
     "name": "Some Other Tenant",
-    "uuid": "4b6f6e2a-6ac6-443e-a910-aa412744165e"
+
+    "archive_count"  : 2,
+    "storage_used"   : 268435456,
+    "daily_increase" : 268435456
   }
 ]
 ```
 
+For each tenant, SHIELD will also return a handful of tenant
+metrics, including how many backup archives belong to the tenant
+(`archive_count`), the total amount of cloud storage used, in
+bytes (`storage_used`), and a linear-fit daily delta of storage
+usage (`daily_increase`), also in bytes.
+
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
 
 **Errors**
 
@@ -828,19 +858,39 @@ grant each invitee, and must be one of:
 ```json
 {
   "name": "A New Tenant",
-  "uuid": "52d20ef4-f154-431e-a5bb-bb3a200976bb"
+  "uuid": "52d20ef4-f154-431e-a5bb-bb3a200976bb",
+
+  "archive_count"  : 0,
+  "storage_used"   : 0,
+  "daily_increase" : 0
 }
 ```
 
+**NOTE**: You cannot (for obvious reasons) set the
+`archive_count`, `storage_used` and `daily_increase` fields when
+you create a tenant.
+
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
 
 **Errors**
 
 The following error messages can be returned:
 
+- **Tenant name 'system' is reserved**:
+  You attempted to create a tenant named system
+  (case-insensitive), which is not allowed.  SHIELD uses the
+  tenant name "SYSTEM" for its own, internal purposes.
+
 - **Unable to creeate new tenant**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Unable to install template retention policies into new tenant
+**:
   an internal error occurred and should be investigated by the
   site administrators
 
@@ -883,6 +933,10 @@ curl -H 'Accept: application/json' https://shield.host/v2/tenants/:uuid
   "name": "A Tenant",
   "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c",
 
+  "archive_count"  : 32,
+  "storage_used"   : 140509184,
+  "daily_increase" : 1520435,
+
   "members": [
     {
       "uuid"    : "5cb299bf-217f-4756-8eaa-e8a47865869e",
@@ -900,7 +954,9 @@ The `members` key will be absent if this tenant has no members.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
 
 **Errors**
 
@@ -915,7 +971,7 @@ The following error messages can be returned:
   site administrators
 
 
-### PUT /v2/tenants/:uuid
+### PATCH /v2/tenants/:uuid
 
 Update a tenant with new attributes.
 
@@ -925,25 +981,35 @@ Update a tenant with new attributes.
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:uuid \
+     -X PATCH https://shield.host/v2/tenants/:uuid \
      --data-binary '
 {
   "name" : "A New Name"
 }'
 ```
 
+**NOTE**: You cannot (for obvious reasons) set the
+`archive_count`, `storage_used` and `daily_increase` fields when
+you update a tenant.
+
 **Response**
 
 ```json
 {
   "name" : "A New Name",
-  "uuid" : "adcfee48-8b43-4ba3-9438-e0da55b8e9df"
+  "uuid" : "adcfee48-8b43-4ba3-9438-e0da55b8e9df",
+
+  "archive_count"  : 32,
+  "storage_used"   : 140509184,
+  "daily_increase" : 1520435
 }
 ```
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
 
 **Errors**
 
@@ -995,7 +1061,9 @@ user objects.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
 
 **Errors**
 
@@ -1062,7 +1130,9 @@ curl -H 'Accept: application/json' \
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
 
 **Errors**
 
@@ -1434,7 +1504,9 @@ system.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
 
 **Errors**
 
@@ -1488,7 +1560,9 @@ until the storage system is used in a job.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
 
 **Errors**
 
@@ -1536,7 +1610,9 @@ system.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
 
 **Errors**
 
@@ -1599,7 +1675,9 @@ until the storage system is used in a job.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
 
 **Errors**
 
@@ -1640,7 +1718,9 @@ curl -H 'Accept: application/json' \
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
 
 **Errors**
 
@@ -1700,7 +1780,9 @@ always be a multiple of 86400 (1 day).
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
 
 **Errors**
 
@@ -1747,7 +1829,9 @@ must be at least 86,400 (1 day) and be a multiple of
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
 
 **Errors**
 
@@ -1791,7 +1875,9 @@ curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/polici
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
 
 **Errors**
 
@@ -1841,7 +1927,9 @@ omitted fields will be left at their previous values.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
 
 **Errors**
 
@@ -1883,7 +1971,9 @@ curl -H 'Accept: application/json' \
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
 
 **Errors**
 
@@ -1948,7 +2038,9 @@ curl -H 'Accept: application/json' \
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
 
 **Errors**
 
@@ -2006,7 +2098,7 @@ system.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
 
 **Errors**
 
@@ -2061,7 +2153,9 @@ until the storage system is used in a job.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` system role.
 
 **Errors**
 
@@ -2109,7 +2203,7 @@ system.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
 
 **Errors**
 
@@ -2172,7 +2266,9 @@ until the storage system is used in a job.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` system role.
 
 **Errors**
 
@@ -2213,7 +2309,9 @@ curl -H 'Accept: application/json' \
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` system role.
 
 **Errors**
 
@@ -2266,7 +2364,7 @@ multiple of 86400 (1 day).
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
 
 **Errors**
 
@@ -2312,7 +2410,9 @@ least 86,400 (1 day) and be a multiple of 86,400.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` system role.
 
 **Errors**
 
@@ -2356,7 +2456,7 @@ curl -H 'Accept: application/json' https://shield.host/v2/global/policies/:uuid
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
 
 **Errors**
 
@@ -2410,7 +2510,9 @@ future tenants.
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` system role.
 
 **Errors**
 
@@ -2460,7 +2562,9 @@ curl -H 'Accept: application/json' \
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` system role.
 
 **Errors**
 

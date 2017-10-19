@@ -134,6 +134,8 @@ sub access {
 	my $s;
 
 	$s = "You must be authenticated to access this API endpoint.\n\n";
+	return $s if $endpoint->{access} eq 'any';
+
 	if ($endpoint->{access}[0] eq "tenant") {
 		$s .= "You must also have the `$endpoint->{access}[1]` role on the tenant.\n\n";
 
