@@ -22,7 +22,10 @@ var Login = &commands.Command{
 				Name: "provider", Desc: "Provider to authenticate against. Uses local user auth if not given",
 			},
 			commands.FlagInfo{
-				Name: "token", Desc: "Token to use when prompting against a token auth backend",
+				Name: "username", Short: 'U', Desc: "Username to use for local user or basic auth login",
+			},
+			commands.FlagInfo{
+				Name: "password", Desc: "Password to use for local user or basic auth login",
 			},
 		},
 	},
@@ -35,15 +38,13 @@ func cliLogin(opts *commands.Options, args ...string) error {
 
 	internal.Require(len(args) == 0, "USAGE: shield login [--provider=VALUE] [--token=VALUE]")
 
-	os.Setenv("SHIELD_API_TOKEN", *opts.Token)
-
 	err := Logout.RunFn(opts)
 	if err != nil {
 		return err
 	}
 
 	curBackend := config.Current()
-	authType, provider, err := api.FetchAuthType(*opts.Provider)
+	authType, _, err := api.FetchAuthType(*opts.Provider)
 	if err != nil {
 		return err
 	}
@@ -53,7 +54,7 @@ func cliLogin(opts *commands.Options, args ...string) error {
 	switch authType {
 	case api.AuthV1Basic:
 		log.DEBUG("V1 Basic auth detected")
-		token, err = v1BasicAuthToken()
+		token, err = v1BasicAuthToken(*opts.User, *opts.Password)
 
 	case api.AuthV1OAuth:
 		log.DEBUG("V1 OAuth detected")
@@ -61,11 +62,7 @@ func cliLogin(opts *commands.Options, args ...string) error {
 
 	case api.AuthV2Local:
 		log.DEBUG("V2 Local User Auth detected")
-		token, err = v2LocalAuthSession()
-
-	case api.AuthV2Token:
-		log.DEBUG("V2 Token Auth detected")
-		token, err = v2TokenAuthSession(provider, os.Getenv("SHIELD_API_TOKEN"))
+		token, err = v2LocalAuthSession(*opts.User, *opts.Password)
 
 	default:
 		log.DEBUG("Unknown auth type")
@@ -104,51 +101,60 @@ func cliLogin(opts *commands.Options, args ...string) error {
 	return config.Commit(curBackend)
 }
 
-func promptCreds() (username, password string, err error) {
+func promptUser() (username string, err error) {
 	fmt.Fprintf(os.Stdout, "Username: ")
 	_, err = fmt.Scanln(&username)
-	if err != nil {
-		return "", "", err
-	}
-	fmt.Fprintf(os.Stdout, "Password: ")
-	tmpPass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		return "", "", err
-	}
-
-	password = string(tmpPass)
-
-	fmt.Fprintln(os.Stdout, "") // newline to line-break after the password prompt
 	return
 }
 
-func v1BasicAuthToken() (token string, err error) {
-	username, password, err := promptCreds()
+func promptPassword() (password string, err error) {
+	fmt.Fprintf(os.Stdout, "Password: ")
+	tmpPass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
-		return "", err
+		return
 	}
+
+	password = string(tmpPass)
+	return
+}
+
+func v1BasicAuthToken(username, password string) (token string, err error) {
+	if username == "" {
+		username, err = promptUser()
+		if err != nil {
+			return
+		}
+	}
+
+	if password == "" {
+		password, err = promptPassword()
+		if err != nil {
+			return
+		}
+	}
+
+	fmt.Println("")
 
 	b64enc := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
 	return fmt.Sprintf("Basic %s", b64enc), nil
 }
 
-func v2LocalAuthSession() (token string, err error) {
-	var username, password string
-	username, password, err = promptCreds()
-	if err != nil {
-		return
+func v2LocalAuthSession(username, password string) (token string, err error) {
+	if username == "" {
+		username, err = promptUser()
+		if err != nil {
+			return
+		}
 	}
 
+	if password == "" {
+		password, err = promptPassword()
+		if err != nil {
+			return
+		}
+	}
+
+	fmt.Println("")
 	token, _, err = api.Login(username, password)
-	return
-}
-
-func v2TokenAuthSession(provider *api.AuthProvider, token string) (sessionID string, err error) {
-	if token == "" {
-		fmt.Fprint(os.Stderr, "API Token: ")
-		fmt.Scanln(&token)
-	}
-
-	sessionID, _, err = provider.TokenAuth(token)
 	return
 }
