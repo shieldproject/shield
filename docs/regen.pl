@@ -3,22 +3,60 @@ use strict;
 use warnings;
 
 use YAML qw/Load/;
+use JSON qw/decode_json/;
 
 my $api = Load(do { local $/; <STDIN>})
 	or die "$0: $!\n";
 
-print $api->{intro};
+# validate
+my $N = 0;
+for my $section (@{$api->{sections}}) {
+	$N++;
+	$section->{name}
+		or die "Missing section name for section $N\n";
+	$section->{intro}
+		or die "Missing section intro for section `$section->{name}`\n";
+	$section->{endpoints}
+		or die "No endpoints defined for section `$section->{name}`\n";
 
+	my $n = 0;
+	for my $endpoint (@{$section->{endpoints}}) {
+		$n++;
+		next if $endpoint->{FIXME};
+
+		$endpoint->{name}
+			or die "Missing endpoint name for `$section->{name}` endpoint #$n\n";
+		$endpoint->{name} =~ m/^(GET|PUT|POST|PATCH|DELETE|TRACE|OPTIONS)/
+			or die "Unrecognized HTTP verb in `$section->{name}` endpoint `$endpoint->{name}`\n";
+
+		if ($endpoint->{name} =~ m/^(PUT|POST|PATCH)/) {
+			$endpoint->{request}{json}
+				or die "Missing Request JSON in `$section->{name}` endpoint `$endpoint->{name}`\n";
+			eval { decode_json($endpoint->{request}{json}); 1 }
+				or die "Bad Request JSON for `$section->{name}` endpoint `$endpoint->{name}`:\n!!! $@\n";
+		}
+		if ($endpoint->{request}{summary} && $endpoint->{request}{summary} !~ m/\{\{CURL\}\}/) {
+			die "Missing {{CURL}} placeholder in Request Summary for `$section->{name}` endpoint `$endpoint->{name}`\n";
+		}
+
+		$endpoint->{response}{json}
+			or die "Missing Response JSON in `$section->{name}` endpoint `$endpoint->{name}`\n";
+		eval { decode_json($endpoint->{response}{json}); 1 }
+			or die "Bad Response JSON for `$section->{name}` endpoint `$endpoint->{name}`:\n!!! $@\n";
+		if ($endpoint->{response}{summary} && $endpoint->{response}{summary} !~ m/\{\{JSON\}\}/) {
+			die "Missing {{JSON}} placeholder in Response Summary for `$section->{name}` endpoint `$endpoint->{name}`\n";
+		}
+	}
+}
+
+# print
+print $api->{intro};
 for my $section (@{$api->{sections}}) {
 	print "## $section->{name}\n\n";
 	print "$section->{intro}\n\n";
 
-	my $N = 0;
 	for my $endpoint (@{$section->{endpoints}}) {
 		next if $endpoint->{FIXME};
-		$N++;
-		die "No endpoint name given for `$section->{name}` endpoint #$N\n"
-			unless $endpoint->{name};
 
 		print "### $endpoint->{name}\n\n";
 		print "$endpoint->{intro}\n\n";

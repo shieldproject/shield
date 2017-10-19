@@ -557,7 +557,7 @@ sections:
               },
               "metadata": {
                 "name"    : "prod/web/42",
-                "version" : "dev"
+                "version" : "dev",
                 "health"  : "ok",
 
                 "plugins": {
@@ -576,11 +576,9 @@ sections:
                         "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
                         "type"     : "string",
                         "required" : true
-                      },
-                      ...
+                      }
                     ]
-                  },
-                  ...
+                  }
                 }
               },
               "problems": [
@@ -666,7 +664,7 @@ sections:
                   "uuid"    : "96d24e33-8e57-4431-95fb-f18b9dfa319a",
                   "account" : "jhunt",
                   "role"    : "operator"
-                },
+                }
               ]
             }
           summary: |
@@ -747,7 +745,7 @@ sections:
                   "role"    : "admin",
                   "sysrole" : ""
                 }
-              ],
+              ]
             }
           summary: |
             {{JSON}}
@@ -1146,7 +1144,7 @@ sections:
           json: |
             [
               {
-                "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+                "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
                 "name"    : "Cloud Storage Name",
                 "summary" : "A longer description of the storage configuration",
                 "agent"   : "127.0.0.1:5444",
@@ -1222,7 +1220,7 @@ sections:
         response:
           json: |
             {
-              "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+              "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
               "name"    : "Cloud Storage Name",
               "summary" : "A longer description of the storage configuration",
               "plugin"  : "fs",
@@ -1504,7 +1502,10 @@ sections:
 
 
   - name: SHIELD Jobs
-    intro: TBD # FIXME
+    intro: |
+      Jobs are discrete, schedulable backup operations that tie together a
+      target system, a cloud storage system, a schedule, and a retention
+      policies.  Without Jobs, SHIELD cannot actually back anything up.
 
     endpoints:
       - name: GET /v2/tenants/:tenant/jobs
@@ -1515,7 +1516,7 @@ sections:
       - name: POST /v2/tenants/:tenant/jobs
         FIXME: true
         intro: |
-          TBD
+          Configure a new backup job on a tenant.
 
       - name: GET /v2/tenants/:tenant/jobs/:uuid
         FIXME: true
@@ -1543,29 +1544,27 @@ sections:
 
   - name: SHIELD Tasks
     intro: |
-      TBD
+      Tasks represent the context, status, and output of the execution of
+      some operation, be it a scheduled backup job being run, an ad hoc
+      restore operation, etc.
+
+      Since tasks represent internal state, they cannot easily be created or
+      updated via operators.  Instead, the execution of the job, or the
+      triggering of some other action, will cause a task to spring into
+      existence and move through its lifecycle.
+
     endpoints:
       - name: GET /v2/tenants/:tenant/tasks
         FIXME: true
         intro: |
           Retrieve all tasks for a tenant.
 
-      - name: POST /v2/tenants/:tenant/tasks
-        FIXME: true
-        intro: TBD
-
       - name: GET /v2/tenants/:tenant/tasks/:uuid
         FIXME: true
         intro: |
           Retrieve a single task.
 
-      - name: PUT /v2/tenants/:tenant/tasks/:uuid
-        FIXME: true
-        intro: |
-          Update a single task on a tenant.
-
       - name: DELETE /v2/tenants/:tenant/tasks/:uuid
-        FIXME: true
         intro: |
           Cancel a task.
 
@@ -1580,18 +1579,18 @@ sections:
 
   - name: SHIELD Backup Archives
     intro: |
-      TBD
+      Each backup archive contains the complete set of data retrieved from a
+      target system during a single backup job task.
+
+      Archives cannot be created _a priori_ via the API alone.  New archives
+      will be created from scheduled and ad hoc backup jobs, when they
+      succeed.
 
     endpoints:
       - name: GET /v2/tenants/:tenant/archives
         FIXME: true
         intro: |
           Retrieve all archives for a tenant.
-
-      - name: POST /v2/tenants/:tenant/archives
-        FIXME: true
-        intro: |
-          TBD
 
       - name: GET /v2/tenants/:tenant/archives/:uuid
         FIXME: true
@@ -1602,6 +1601,13 @@ sections:
         FIXME: true
         intro: |
           Update a single archive on a tenant.
+
+      - name: POST /v2/tenants/:tenant/archives/restore
+        FIXME: true
+        intro: |
+          Restore a backup archive for a tenant, either to the original
+          target system it was taken from, or against a different target
+          owned by the same tenant.
 
       - name: DELETE /v2/tenants/:tenant/archives/:uuid
         FIXME: true
@@ -1633,7 +1639,7 @@ sections:
           json: |
             [
               {
-                "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+                "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
                 "name"    : "Cloud Storage Name",
                 "summary" : "A longer description of the storage configuration",
                 "agent"   : "127.0.0.1:5444",
@@ -1706,7 +1712,7 @@ sections:
         response:
           json: |
             {
-              "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+              "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
               "name"    : "Cloud Storage Name",
               "summary" : "A longer description of the storage configuration",
               "plugin"  : "fs",

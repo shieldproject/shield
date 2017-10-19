@@ -663,7 +663,7 @@ curl -H 'Accept: application/json' https://shield.host/v2/agents/:uuid
   },
   "metadata": {
     "name"    : "prod/web/42",
-    "version" : "dev"
+    "version" : "dev",
     "health"  : "ok",
 
     "plugins": {
@@ -682,11 +682,9 @@ curl -H 'Accept: application/json' https://shield.host/v2/agents/:uuid
             "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
             "type"     : "string",
             "required" : true
-          },
-          ...
+          }
         ]
-      },
-      ...
+      }
     }
   },
   "problems": [
@@ -798,7 +796,7 @@ curl -H 'Accept: application/json' \
       "uuid"    : "96d24e33-8e57-4431-95fb-f18b9dfa319a",
       "account" : "jhunt",
       "role"    : "operator"
-    },
+    }
   ]
 }'
 ```
@@ -894,7 +892,7 @@ curl -H 'Accept: application/json' https://shield.host/v2/tenants/:uuid
       "role"    : "admin",
       "sysrole" : ""
     }
-  ],
+  ]
 }
 ```
 
@@ -1417,7 +1415,7 @@ curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/stores
 ```json
 [
   {
-    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
     "name"    : "Cloud Storage Name",
     "summary" : "A longer description of the storage configuration",
     "agent"   : "127.0.0.1:5444",
@@ -1520,7 +1518,7 @@ curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/stores
 
 ```json
 {
-  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
   "name"    : "Cloud Storage Name",
   "summary" : "A longer description of the storage configuration",
   "plugin"  : "fs",
@@ -1911,16 +1909,59 @@ The following error messages can be returned:
 
 ## SHIELD Jobs
 
-TBD # FIXME
+Jobs are discrete, schedulable backup operations that tie together a
+target system, a cloud storage system, a schedule, and a retention
+policies.  Without Jobs, SHIELD cannot actually back anything up.
+
 
 ## SHIELD Tasks
 
-TBD
+Tasks represent the context, status, and output of the execution of
+some operation, be it a scheduled backup job being run, an ad hoc
+restore operation, etc.
 
+Since tasks represent internal state, they cannot easily be created or
+updated via operators.  Instead, the execution of the job, or the
+triggering of some other action, will cause a task to spring into
+existence and move through its lifecycle.
+
+
+### DELETE /v2/tenants/:tenant/tasks/:uuid
+
+Cancel a task.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/tenants/:tenant/tasks/:uuid \
+```
+
+**Response**
+
+```json
+{
+  "ok": "Task canceled successfully"
+}
+```
+
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
+**Errors**
+
+This API endpoint does not return any error conditions.
 
 ## SHIELD Backup Archives
 
-TBD
+Each backup archive contains the complete set of data retrieved from a
+target system during a single backup job task.
+
+Archives cannot be created _a priori_ via the API alone.  New archives
+will be created from scheduled and ad hoc backup jobs, when they
+succeed.
 
 
 ## SHIELD Global Resources
@@ -1946,7 +1987,7 @@ curl -H 'Accept: application/json' https://shield.host/v2/global/stores
 ```json
 [
   {
-    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
     "name"    : "Cloud Storage Name",
     "summary" : "A longer description of the storage configuration",
     "agent"   : "127.0.0.1:5444",
@@ -2050,7 +2091,7 @@ curl -H 'Accept: application/json' https://shield.host/v2/global/stores/:uuid
 
 ```json
 {
-  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f"
+  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
   "name"    : "Cloud Storage Name",
   "summary" : "A longer description of the storage configuration",
   "plugin"  : "fs",
