@@ -58,6 +58,10 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/bbr-director
 	go $(BUILD_TYPE) ./plugin/bbr-deployment
 
+docs: docs/API.md
+docs/API.md: docs/API.yml
+	perl ./docs/regen.pl <$+ >$@
+
 clean:
 	rm -f shieldd shield-agent shield-schema shield
 	rm -f fs docker-postgres dummy postgres redis-broker

@@ -78,18 +78,17 @@ Example:
 ```
 
 The order of the fields is inconsequential.
-
-
-
 ## Health
 
 The health endpoints give you a glimpse into the well-being of a
 SHIELD Core, for monitoring purposes.
 
+
 ### GET /v2/health
 
 Returns health information about the SHIELD Core, connected
 storage accounts, and general metrics.
+
 
 **Request**
 
@@ -133,14 +132,17 @@ payload in the response body:
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **failed to check SHIELD health** - an internal error occurred
-  and should be investigated by the site administrators.
-
-
+- **failed to check SHIELD health**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ## SHIELD Authentication
@@ -149,18 +151,21 @@ The Authentication endpoints allow clients to authenticate to a
 SHIELD Core, providing credentials to prove their identity and
 their authorization to perform other tasks inside of SHIELD.
 
+
 ### POST /v2/auth/login
 
 Authenticate against the SHIELD API as a local user, and retrieve
 a session ID that can be used for future, authenticated,
 interactions.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/auth/login -d '
+     -X POST https://shield.host/v2/auth/login \
+     --data-binary '
 {
   "username": "your-username",
   "password": "your-password"
@@ -185,27 +190,32 @@ subsequent requests as proof of authentication.  This can be done
 by setting the `shield7` cookie to the session ID, or by setting
 the `X-Shield-Session` request header.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to log you in** - An internal error occurred and should
-  be investigated by the site administrators.
+- **Unable to log you in**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Incorrect username or password** - The supplied credentials
-  were incorrect; either the user doesn't exist, or the password
-  was wrong.
+- **Incorrect username or password**:
+  The supplied credentials were incorrect; either the
+  user doesn't exist, or the password was wrong.
 
 
 ### GET /v2/auth/logout
 
 Destroy the current session and log the user out.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/auth/logout
+curl -H 'Accept: application/json' https://shield.host/v2/auth/logout
 ```
 
 **Response**
@@ -220,12 +230,17 @@ curl -H 'Accept: application/json' \
 session successfully logs out, as is seen when an unauthenticated
 session attempts to log out.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to log you out** - An internal error occurred and
-  should be investigated by the site administrators.
+- **Unable to log you out**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### GET /v2/auth/id
@@ -234,11 +249,11 @@ Retrieve identity and authorization information about the
 currently authenticated session.  If the requester has not
 authenticated, a suitable response will be returned.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/auth/id
+curl -H 'Accept: application/json' https://shield.host/v2/auth/id
 ```
 
 **Response**
@@ -282,16 +297,19 @@ free to switch between any of these tenants as they see fit.
 The `tenant` key contains the tenant definition for the currently
 selected tenant, based on user preferences.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Authentication failed** - The request either lacked a session
-  cookie (or an `X-Shield-Session` header), or some other internal
+- **Authentication failed**:
+  The request either lacked a session cookie (or an
+  `X-Shield-Session` header), or some other internal
   error has occurred, and SHIELD administrators should
   investigate.
-
-
 
 
 ## SHIELD Core
@@ -299,18 +317,21 @@ The following error messages can be returned:
 These endpoints allow clients to initialize brand new SHIELD
 Cores, and unlock or rekey existing ones.
 
+
 ### POST /v2/init
 
 Initializes a new SHIELD Core, to set up the encryption facilities
 for storing backup archive encryption keys safely and securely.
 Your SHIELD Core can only be initialized once.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/init -d '
+     -X POST https://shield.host/v2/init \
+     --data-binary '
 {
   "master" : "your secret master password"
 }'
@@ -318,8 +339,9 @@ curl -H 'Accept: application/json' \
 
 Where:
 
-- **master** is the plaintext master password to use for
-  encrypting the credentials to the SHIELD Core storage vault.
+  - message: master is the plaintext master password
+    to use for encrypting the credentials to the
+    SHIELD Core storage vault.
 
 **Response**
 
@@ -332,14 +354,22 @@ you will receive a 200 OK, and the following response:
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to initialize the SHIELD Core** - An internal error
-  occurred and should be investigated by the site administrators.
-- **This SHIELD Core has already been initialized** - You are
-  attempting to re-initialize a SHIELD Core, which is not allowed.
+- **Unable to initialize the SHIELD Core**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **This SHIELD Core has already been initialized**:
+  You are attempting to re-initialize a SHIELD Core,
+  which is not allowed.
+
 
 ### POST /v2/unlock
 
@@ -348,25 +378,27 @@ allows SHIELD to decrypt the keys to access its storage vault and
 generate / retrieve backup archvie encryption keys safely and
 securely.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/unlock -d '
+     -X POST https://shield.host/v2/unlock \
+     --data-binary '
 {
   "master" : "your secret master password"
 }'
 ```
 
-- **master** is the plaintext master password that was
-  created when you initialized this SHIELD Core (or whatever you
-  last rekeyed it to be).
+- message: master is the plaintext master password
+  that was created when you initialized this SHIELD
+  Core (or whatever you last rekeyed it to be).
 
 **Response**
 
-On success, you will receive a 200 OK, with the following
-response:
+On success, you will receive a 200 OK, with the
+following response:
 
 ```json
 {
@@ -374,14 +406,22 @@ response:
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to unlock the SHIELD Core** - An internal error
-  occurred and should be investigated by the site administrators.
-- **This SHIELD Core has not yet been initialized** - You may
-  re-attempt this request after initializing the SHIELD Core.
+- **Unable to unlock the SHIELD Core**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **This SHIELD Core has not yet been initialized**:
+  You may re-attempt this request after initializing
+  the SHIELD Core.
+
 
 ### POST /v2/rekey
 
@@ -389,12 +429,14 @@ Changes the master password used for encrypting the credentials
 for the SHIELD Core storage vault (where backup archive encryption
 keys are held).
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/unlock -d '
+     -X POST https://shield.host/v2/rekey \
+     --data-binary '
 {
   "current" : "your CURRENT master password",
   "new"     : "what you want to change it to"
@@ -403,8 +445,8 @@ curl -H 'Accept: application/json' \
 
 **Response**
 
-If all goes well, you will receive a 200 OK, and the following
-response:
+If all goes well, you will receive a 200 OK, and the
+following response:
 
 ```json
 {
@@ -412,29 +454,33 @@ response:
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to rekey the SHIELD Core** - An internal error occurred
-  and should be investigated by the site administrators.
-
-
+- **Unable to rekey the SHIELD Core**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ## SHIELD Agents
 
 These endpoints expose information about registered SHIELD Agents.
 
+
 ### GET /v2/agents
 
 Retrieves information about all registered SHIELD Agents.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/agents
+curl -H 'Accept: application/json' https://shield.host/v2/agents
 ```
 
 **Response**
@@ -463,26 +509,28 @@ curl -H 'Accept: application/json' \
 
 The top-level `agents` key is a list of object describing each registered agent:
 
-- **name** - The name of the SHIELD Agent, as set by the local system
-  administrator (which may not be the SHIELD site administrator).
+- **name** - The name of the SHIELD Agent, as set by
+  the local system administrator (which may not be the
+  SHIELD site administrator).
 
 - **uuid** - The internal UUID assigned to this agent by the SHIELD Core.
 
-- **address** - The `host:port` of the agent, from the point-of-view of the
-  SHIELD Core.
+- **address** - The `host:port` of the agent, from the
+  point-of-view of the SHIELD Core.
 
-- **version** - The version of the remote SHIELD Agent's software.
+- **version - The version of the remote SHIELD Agent's software.
 
-- **status** - The health status of the remote SHIELD Agent, one of `ok` or
-  `failing`.
+- **status - The health status of the remote SHIELD
+  Agent, one of `ok` or `failing`.
 
-- **hidden** - Whether or not this agent has been administratively hidden.
+- **hidden - Whether or not this agent has been administratively hidden.
 
-- **last\_error** - TBD
+- **last\_error - TBD
 
-- **last\_seen\_at** - When the remote SHIELD Agent last made contact with
-  the SHIELD Core to refresh its registration and its metadata.  Date is
-  formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+- **last\_seen\_at - When the remote SHIELD Agent last
+  made contact with the SHIELD Core to refresh its
+  registration and its metadata.  Date is formatted
+  YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
 The top-level `problems` key maps agent UUIDs to a list of errors detected
 statically by the SHIELD Core software.  Each problem is represented as an
@@ -497,12 +545,17 @@ known deficiencies in older version of the SHIELD Agent and SHIELD plugins.
 acceptable for an agent to report itself as healthy, but for the SHIELD Core
 to assert that a problem exists.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve agent information** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to retrieve agent information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/agents
@@ -520,11 +573,14 @@ sent in the registration.
 This exchange allows the SHIELD to validate registration requests,
 using a weak form of authentication.
 
+
 **Request**
 
 ```sh
-curl -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/agents -d '
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/agents \
+     --data-binary '
 {
   "name" : "some-identifier",
   "port" : 5444
@@ -533,12 +589,12 @@ curl -H 'Content-Type: application/json' \
 
 Where:
 
-- **name** is the name of the agent to display in the backend, and
-  in log messages.  Usually, an FQDN or other unique host
-  identifier is preferable here.
-- **port** is the port number that the SHIELD agent is bound to.
-  The remote peer IP will be determined from the HTTP request's
-  peer address.
+- message: name is the name of the agent to display in
+  the backend, and in log messages.  Usually, an FQDN
+  or other unique host identifier is preferable here.
+- message: port is the port number that the SHIELD
+  agent is bound to.  The remote peer IP will be
+  determined from the HTTP request's peer address.
 
 **Response**
 
@@ -550,25 +606,32 @@ On success, you will receive a 200 OK, and the following response:
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **No \`name' provided with pre-registration request** - Your
-  request was missing the required `name` argument.  Re-attempt
-  with the `name` argument.
-- **No \`port' provided with pre-registration request** - Your
-  request was missing the required `port` argument.  Re-attempt
-  with the `port` argument.
-- **Unable to pre-register agent \<name\> at \<host\>:\<port\>** -
-  An internal error occurred and should be investigated by the site
-  administrators.
-- **Unable to determine remote peer address from '\<peer\>'** -
-  SHIELD was unable to parse the HTTP connection's peer address as
-  a valid IP address.  This should be investigated by the site
-  administrators, your local network administrator, and possibly
-  the SHIELD development team.
+- **No \`name' provided with pre-registration request**:
+  Your request was missing the required `name`
+  argument.  Re-attempt with the `name` argument.
 
+- **No \`port' provided with pre-registration request**:
+  Your request was missing the required `port`
+  argument.  Re-attempt with the `port` argument.
+
+- **Unable to pre-register agent \<name\> at \<host\>:\<port\>**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Unable to determine remote peer address from '\<peer\>'**:
+  SHIELD was unable to parse the HTTP connection's
+  peer address as a valid IP address.  This should be
+  investigated by the site administrators, your local
+  network administrator, and possibly the SHIELD
+  development team.
 
 
 ### GET /v2/agents/:uuid
@@ -577,11 +640,11 @@ Retrieve extended information about a single SHIELD Agent, including its
 plugin metadata (what plugins are present, what configuration they accept or
 require, etc.)
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/agents/$uuid
+curl -H 'Accept: application/json' https://shield.host/v2/agents/:uuid
 ```
 
 **Response**
@@ -632,29 +695,34 @@ curl -H 'Accept: application/json' \
 }
 ```
 
-The top-level `agents` key contains the same agent information that the
-`GET /v2/agents` endpoint returns.  Similarly, the `problems` key
-contains the list of issues the SHIELD Core detected, based on
-this agent's configuration / version.
+The top-level `agents` key contains the same agent
+information that the `GET /v2/agents` endpoint
+returns.  Similarly, the `problems` key contains the
+list of issues the SHIELD Core detected, based on this
+agent's configuration / version.
 
-The `metadata` key is exclusive to this endpoint, and contains all
-of the agent metadata.  Of particular interest is the `plugins`
-key, which contains a map of plugin metadata, keyed by the plugin
-name.  The format of this metadata is documented in
+The `metadata` key is exclusive to this endpoint, and
+contains all of the agent metadata.  Of particular
+interest is the `plugins` key, which contains a map of
+plugin metadata, keyed by the plugin name.  The format
+of this metadata is documented in
 [/docs/plugins.md](/docs/plugins.md).
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
 
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve agent information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve agent information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such agent** - The requested agent UUID was not found in
-  the list of registered agents.
-
-
+- **No such agent**:
+  The requested agent UUID was not found in the list
+  of registered agents.
 
 
 ## SHIELD Tenants
@@ -666,17 +734,17 @@ as well as their own job configurations.  Each tenants archives
 and tasks are visible only to members of that tenant, pursuant to
 their assigned roles.
 
+
 ### GET /v2/tenants
 
 Retrieve the list of all tenants currently defined.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants
+curl -H 'Accept: application/json' https://shield.host/v2/tenants
 ```
-
 
 **Response**
 
@@ -693,24 +761,31 @@ curl -H 'Accept: application/json' \
 ]
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenants information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve tenants information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/tenants
 
 Create a new tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants -d '
+     -X POST https://shield.host/v2/tenants \
+     --data-binary '
 {
   "name"  : "New Tenant Name",
   "users" : [
@@ -730,13 +805,15 @@ curl -H 'Accept: application/json' \
 
 The `name` field is required.
 
-The `users` list contains a list of initial tenant role assignments.  The
-`account` key of each user object is optional, but can assist site
-administrators when troubleshooting assignment issues (since it will be
-printed to the log) -- integrations are encouraged to always send it.
+The `users` list contains a list of initial tenant
+role assignments.  The `account` key of each user
+object is optional, but can assist site administrators
+when troubleshooting assignment issues (since it will
+be printed to the log) -- integrations are encouraged
+to always send it.
 
-The `role` field indicates what level of access to grant each invitee, and
-must be one of:
+The `role` field indicates what level of access to
+grant each invitee, and must be one of:
 
   - **admin** - Full administrative control, including the ability to add
     and remove users from the tenant, and change role assignments.  Use with
@@ -748,7 +825,6 @@ must be one of:
   - **operator** - Operational access for running ad hoc backup jobs,
     pausing and unpausing defined jobs, and performing restores.
 
-
 **Response**
 
 ```json
@@ -758,37 +834,48 @@ must be one of:
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to creeate new tenant** - An internal error occurred and should be
-  investigated by the site administrators.
+- **Unable to creeate new tenant**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unrecognized user account** - The request indicated a tenant invitation
-  to a user account that was not found in the SHIELD database.  The request
-  should not be retried.
+- **Unrecognized user account**:
+  The request indicated a tenant invitation to a user
+  account that was not found in the SHIELD database.
+  The request should not be retried.
 
-- **Unable to invite $user to tenant $tenant - only local users can be
-  invited** - The request indicated a tenant invitation to a user account
-  that was created by a non-local authentication provider (i.e. Github).
-  Tenant assignments for 3rd party accounts are governed solely by their
-  corresponding authentication provider configuration.  The request should
-  not be retried.
+- **Unable to invite $user to tenant $tenant - only
+local users can be invited.
+**:
+  The request indicated a tenant invitation to a user
+  account that was created by a non-local
+  authentication provider (i.e. Github).  Tenant
+  assignments for 3rd party accounts are governed
+  solely by their corresponding authentication
+  provider configuration.  The request should not be
+  retried.
 
-- **Unable to invite $user to tenant $tenant** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to invite $user to tenant $tenant**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### GET /v2/tenants/:uuid
 
 Request more detailed information about a single tenant.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     https://shield.host/v2/tenants/$uuid
+curl -H 'Accept: application/json' https://shield.host/v2/tenants/:uuid
 ```
 
 **Response**
@@ -813,28 +900,35 @@ curl -H 'Accept: application/json' \
 
 The `members` key will be absent if this tenant has no members.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
 
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenant information** - An internal error occurred and
-  should be investigated by the site administrators.
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to retrieve tenant memberships information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve tenant memberships information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### PUT /v2/tenants/:uuid
 
 Update a tenant with new attributes.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/$uuid -d '
+     -X PUT https://shield.host/v2/tenants/:uuid \
+     --data-binary '
 {
   "name" : "A New Name"
 }'
@@ -846,27 +940,34 @@ curl -H 'Accept: application/json' \
 {
   "name" : "A New Name",
   "uuid" : "adcfee48-8b43-4ba3-9438-e0da55b8e9df"
-}'
+}
 ```
+
+**Access Control**
+
+This endpoint requires no authentication or authorization.
 
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to update tenant** - An internal error occurred and should be
-  investigated by the site administrators.
+- **Unable to update tenant**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/tenants/:uuid/invite
 
 Invite one or more local users to a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/invite -d '
+     -X POST https://shield.host/v2/tenants/:uuid/invite \
+     --data-binary '
 {
   "users": [
     {
@@ -894,38 +995,51 @@ user objects.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenant information** - An internal error occurred and
-  should be investigated by the site administrators.
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unrecognized user account** - The request indicated a tenant invitation
-  to a user account that was not found in the SHIELD database.  The request
-  should not be retried.
+- **Unrecognized user account**:
+  The request indicated a tenant invitation to a user
+  account that was not found in the SHIELD database.
+  The request should not be retried.
 
-- **Unable to invite $user to tenant $tenant - only local users can be
-  invited** - The request indicated a tenant invitation to a user account
-  that was created by a non-local authentication provider (i.e. Github).
-  Tenant assignments for 3rd party accounts are governed solely by their
-  corresponding authentication provider configuration.  The request should
-  not be retried.
+- **Unable to invite $user to tenant $tenant - only
+local users can be invited
+**:
+  The request indicated a tenant invitation to a user
+  account that was created by a non-local
+  authentication provider (i.e. Github).  Tenant
+  assignments for 3rd party accounts are governed
+  solely by their corresponding authentication
+  provider configuration.  The request should not be
+  retried.
 
-- **Unable to invite $user to tenant $tenant** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to invite $user to tenant $tenant**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/tenants/:uuid/banish
 
 Remove a user from a tenant they currently belong to.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/banish -d '
+     -X POST https://shield.host/v2/tenants/:uuid/banish \
+     --data-binary '
 {
   "users": [
     {
@@ -936,6 +1050,7 @@ curl -H 'Accept: application/json' \
       "uuid"    : "c608cc65-b134-4581-9bdc-1fa3d0367961",
       "account" : "tmitchell"
     }
+  ]
 }'
 ```
 
@@ -947,53 +1062,37 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenant information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unrecognized user account** - The request indicated a tenant
-  banishment of a user account that was not found in the SHIELD
-  database.  The request should not be retried.
+- **Unrecognized user account**:
+  The request indicated a tenant banishment of a user
+  account that was not found in the SHIELD database.
+  The request should not be retried.
 
-- **Unable to banish $user to tenant $tenant - only local users
-  can be banished** - The request indicated a tenant banishment of
-  a user account that was created by a non-local authentication
-  provider (i.e. Github).  Tenant assignments for 3rd party
-  accounts are governed solely by their corresponding
-  authentication provider configuration.  The request should not
-  be retried.
+- **Unable to banish $user to tenant $tenant - only
+local users can be banished
+**:
+  The request indicated a tenant banishment of a user
+  account that was created by a non-local
+  authentication provider (i.e. Github).  Tenant
+  assignments for 3rd party accounts are governed
+  solely by their corresponding authentication
+  provider configuration.  The request should not be
+  retried.
 
-- **Unable to banish $user to tenant $tenant** - An internal error
-  occurred and should be investigated by the site administrators.
-
-
-### DELETE /v2/tenants/:uuid
-
-Remove a tenant.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/$uuid
-```
-
-**Response**
-
-This endpoint has not been implemented yet, and currently returns a 501.
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
+- **Unable to banish $user to tenant $tenant**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ## SHIELD Targets
@@ -1001,15 +1100,16 @@ The following error messages can be returned:
 Targets represent the data systems that SHIELD runs backup and
 restore operations against as course of normal function.
 
+
 ### GET /v2/tenants/:tenant/targets
 
 Retrieve all defined targets for a tenant.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/targets
+curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/targets
 ```
 
 **Response**
@@ -1034,24 +1134,33 @@ JSON, inline, for both readability and sanity's sake.
 
 FIXME: Fix target.endpoint string -> JSON problem.
 
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve targets information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve targets information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/tenants/:tenant/targets
 
 Create a new target in a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/targets -d '
+     -X POST https://shield.host/v2/tenants/:tenant/targets \
+     --data-binary '
 {
   "name"     : "New Target Name",
   "summary"  : "A longer description of the target",
@@ -1088,28 +1197,46 @@ JSON, inline, for both readability and sanity's sake.
 
 FIXME: Fix target.endpoint string -> JSON problem.
 
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenant information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Authorization required**:
+  The request was made without an authenticated
+  session or auth token.  See **Authentication** for
+  more details.  The request may be retried after
+  authentication.
 
-- **No such tenant** - No tenant was found with the given UUID.
+- **Access denied**:
+  The requester lacks sufficient tenant or system role
+  assignment.  The request should not be retried.
 
-- **Unable to create new data target** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such tenant**:
+  No tenant was found with the given UUID.
+- **Unable to create new data target**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### GET /v2/tenants/:tenant/targets/:uuid
 
 Retrieve a single target for a tenant.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/$tenant/targets/$uuid
+curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/targets/:uuid
 ```
 
 **Response**
@@ -1132,14 +1259,22 @@ JSON, inline, for both readability and sanity's sake.
 
 FIXME: Fix target.endpoint string -> JSON problem.
 
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenant information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such target** - No target with the given UUID exists on the
+- **No such target**:
+  No target with the given UUID exists on the
   specified tenant.
 
 
@@ -1147,12 +1282,14 @@ The following error messages can be returned:
 
 Update an existing target on a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/$tenant/targets/$uuid -d '
+     -X PUT https://shield.host/v2/tenants/:tenant/targets/:uuid \
+     --data-binary '
 {
   "name"     : "Updated Target Name",
   "summary"  : "A longer description of the target",
@@ -1180,29 +1317,39 @@ FIXME: Fix target.endpoint string -> JSON problem.
 }
 ```
 
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenant information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such target** - No target with the given UUID exists on the
+- **No such target**:
+  No target with the given UUID exists on the
   specified tenant.
 
-- **Unable to update target** - No target with the given UUID
-  exists on the specified tenant.
+- **Unable to update target**:
+  No target with the given UUID exists on the
+  specified tenant.
 
 
 ### DELETE /v2/tenants/:tenant/targets/:uuid
 
 Remove a target from a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/$tenant/targets/$uuid
+     -X DELETE https://shield.host/v2/tenants/:tenant/targets/:uuid \
 ```
 
 **Response**
@@ -1213,24 +1360,32 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve tenant information** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such target** - No target with the given UUID exists on the
+- **No such target**:
+  No target with the given UUID exists on the
   specified tenant.
 
-- **Unable to delete target** - An internal error occurred and
-  should be investigated by the site administrators.
+- **Unable to delete target**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **The target cannot be deleted at this time** - This target is
-  referenced by one or more extant job configuration; deleting it
-  would lead to an incomplete (and unusable) setup.
-
-
+- **The target cannot be deleted at this time**:
+  This target is referenced by one or more extant job
+  configuration; deleting it would lead to an
+  incomplete (and unusable) setup.
 
 
 ## SHIELD Stores
@@ -1245,15 +1400,16 @@ tenant-scoped storage systems.  For information on the endpoints
 for managing global storage solutions, see the section titled
 **SHIELD Global Resources**.
 
+
 ### GET /v2/tenants/:tenant/stores
 
 Retrieve all defined stores for a tenant.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/stores
+curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/stores
 ```
 
 **Response**
@@ -1278,25 +1434,31 @@ The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
 system.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage systems information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage systems information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/tenants/:tenant/stores
 
 Create a new store on a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/stores -d '
+     -X POST https://shield.host/v2/tenants/:tenant/stores \
+     --data-binary '
 {
   "name"    : "Storage System Name",
   "summary" : "A longer description for this storage system.",
@@ -1326,27 +1488,32 @@ until the storage system is used in a job.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to create new storage system** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to create new storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### GET /v2/tenants/:tenant/stores/:uuid
 
 Retrieve a single store for the given tenant.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/stores/$uuid
+curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/stores/:uuid
 ```
 
 **Response**
@@ -1369,28 +1536,35 @@ The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
 system.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such storage system** - No storage system with the given
-  UUID exists on the specified tenant.
+- **No such storage system**:
+  No storage system with the given UUID exists on the
+  specified tenant.
 
 
 ### PUT /v2/tenants/:tenant/stores/:uuid
 
 Update an existing store on a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/$tenant/stores/$uuid -d '
+     -X PUT https://shield.host/v2/tenants/:tenant/stores/:uuid \
+     --data-binary '
 {
   "name"    : "Updated Store Name",
   "summary" : "A longer description of the storage system",
@@ -1425,30 +1599,37 @@ until the storage system is used in a job.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to update storage system** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to update storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such storage system** - No storage system with the given
-  UUID exists on the specified tenant.
+- **No such storage system**:
+  No storage system with the given UUID exists on the
+  specified tenant.
 
 
 ### DELETE /v2/tenants/:tenant/stores/:uuid
 
 Remove a store from a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/$tenant/stores/$uuid
+     -X DELETE https://shield.host/v2/tenants/:tenant/stores/:uuid \
 ```
 
 **Response**
@@ -1459,41 +1640,48 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to update storage system** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to update storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to delete storage system** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to delete storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **The storage system cannot be deleted at this time** - This
-  storage system is referenced by one or more extant job
-  configuration; deleting it would lead to an incomplete (and
-  unusable) setup.
-
+- **The storage system cannot be deleted at this time**:
+  This storage system is referenced by one or more
+  extant job configuration; deleting it would lead to
+  an incomplete (and unusable) setup.
 
 
 ## SHIELD Retention Policies
 
-Retention Policies govern how long backup archives are kept, to
-ensure that storage usage doesn't continue to increase inexorably.
+Retention Policies govern how long backup archives are kept,
+to ensure that storage usage doesn't continue to increase
+inexorably.
+
 
 ### GET /v2/tenants/:tenant/policies
 
 Retrieve all defined retention policies for a tenant.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/policies
+curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/policies
 ```
 
 **Response**
@@ -1509,28 +1697,34 @@ curl -H 'Accept: application/json' \
 ]
 ```
 
-The `expires` key is specified in seconds, but must always be a
-multiple of 86400 (1 day).
+The `expires` key is specified in seconds, but must
+always be a multiple of 86400 (1 day).
+
+**Access Control**
+
+This endpoint requires no authentication or authorization.
 
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve retention policies information** - An
-  internal error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve retention policies information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/tenants/:tenant/policies
 
 Create a new retention policy in a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/policies -d '
+     -X POST https://shield.host/v2/tenants/:tenant/policies \
+     --data-binary '
 {
   "name"    : "Retention Policy Name",
   "summary" : "A longer description of the policy",
@@ -1538,8 +1732,9 @@ curl -H 'Accept: application/json' \
 }'
 ```
 
-The `expires` value must be specified in seconds, and must be at
-least 86,400 (1 day) and be a multiple of 86,400.
+The `expires` value must be specified in seconds, and
+must be at least 86,400 (1 day) and be a multiple of
+86,400.
 
 **Response**
 
@@ -1552,31 +1747,37 @@ least 86,400 (1 day) and be a multiple of 86,400.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Retention policy expiry must be greater than 1 day** - You
-  supplied an `expires` value less than 86,400.  Please re-try the
-  request with a higher value.
+- **Retention policy expiry must be greater than 1 day**:
+  You supplied an `expires` value less than 86,400.
+  Please re-try the request with a higher value.
 
-- **Retention policy expire must be a multiple of 1 day** - You
-  supplied an `expires` value that was not a multiple of 86,400.
-  Please re-try the request with a different value.
+- **Retention policy expire must be a multiple of 1 day**:
+  You supplied an `expires` value that was not a
+  multiple of 86,400.  Please re-try the request with
+  a different value.
 
-- **Unable to create retention policy** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to create retention policy**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### GET /v2/tenants/:tenant/policies/:uuid
 
 Retrieve a single retention policy for a tenant.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/policies/$uuid
+curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/policies/:uuid
 ```
 
 **Response**
@@ -1590,28 +1791,35 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve retention policy information** - An
-  internal error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve retention policy information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such retention policy** - No retention policy with the
-  given UUID exists on the specified tenant.
+- **No such retention policy**:
+  No retention policy with the given UUID exists on
+  the specified tenant.
 
 
 ### PUT /v2/tenants/:tenant/policies/:uuid
 
 Update a single retention policy on a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/$tenant/policies/$uuid -d '
+     -X PUT https://shield.host/v2/tenants/:tenant/policies/:uuid \
+     --data-binary '
 {
   "name"    : "Updated Retention Policy Name",
   "summary" : "A longer description of the retention policy",
@@ -1633,31 +1841,38 @@ omitted fields will be left at their previous values.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Retention policy expiry must be greater than 1 day** - You
-  supplied an `expires` value less than 86,400.  Please re-try the
-  request with a higher value.
+- **Retention policy expiry must be greater than 1 day**:
+  You supplied an `expires` value less than 86,400.
+  Please re-try the request with a higher value.
 
-- **Retention policy expire must be a multiple of 1 day** - You
-  supplied an `expires` value that was not a multiple of 86,400.
-  Please re-try the request with a different value.
+- **Retention policy expire must be a multiple of 1 day**:
+  You supplied an `expires` value that was not a
+  multiple of 86,400.  Please re-try the request with
+  a different value.
 
-- **Unable to update retention policy** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to update retention policy**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### DELETE /v2/tenants/:tenant/policies/:uuid
 
 Remove a retention policy from a tenant.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/$tenant/policies/$uuid
+     -X DELETE https://shield.host/v2/tenants/:tenant/policies/:uuid \
 ```
 
 **Response**
@@ -1668,396 +1883,44 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve retention policy information** - An
-  internal error has occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve retention policy information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such retention policy** - No retention policy with the
-  given UUID exists on the specified tenant.
+- **No such retention policy**:
+  No retention policy with the given UUID exists on
+  the specified tenant.
 
-- **Unable to delete retention policy** - An internal error has
-  occurred and should be investigated by the site administrators.
+- **Unable to delete retention policy**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **The retention policy cannot be deleted at this time** - This
-  retention policy is referenced by one or more extant job
-  configuration; deleting it would lead to an incomplete (and
-  unusable) setup.
-
-
+- **The retention policy cannot be deleted at this time**:
+  This retention policy is referenced by one or more
+  extant job configuration; deleting it would lead to
+  an incomplete (and unusable) setup.
 
 
 ## SHIELD Jobs
 
-TBD
-
-
-### GET /v2/tenants/:tenant/jobs
-
-Retrieve all defined jobs for a tenant.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/jobs
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### POST /v2/tenants/:tenant/jobs
-
-TBD
-
-**Request**
-
-TBD
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/jobs -d '
-{
-  TBD
-}'
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### GET /v2/tenants/:tenant/jobs/:uuid
-
-Retrieve a single job for a tenant.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/jobs/$uuid
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### PUT /v2/tenants/:tenant/jobs/:uuid
-
-Update a single job on a tenant.
-
-**Request**
-
-TBD
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### DELETE /v2/tenants/:tenant/jobs/:uuid
-
-Remove a job from a tenant.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/$tenant/jobs/$uuid
-```
-
-**Response**
-
-```json
-{
-  "ok": "Job deleted successfully"
-}
-```
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-
+TBD # FIXME
 
 ## SHIELD Tasks
 
 TBD
 
 
-### GET /v2/tenants/:tenant/tasks
-
-Retrieve all tasks for a tenant.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/tasks
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### POST /v2/tenants/:tenant/tasks
-
-TBD
-
-**Request**
-
-TBD
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/tasks -d '
-{
-  TBD
-}'
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### GET /v2/tenants/:tenant/tasks/:uuid
-
-Retrieve a single task.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/tasks/$uuid
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### PUT /v2/tenants/:tenant/tasks/:uuid
-
-Update a single task on a tenant.
-
-**Request**
-
-TBD
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### DELETE /v2/tenants/:tenant/tasks/:uuid
-
-Cancel a task.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/$tenant/tasks/$uuid
-```
-
-**Response**
-
-```json
-{
-  "ok": "Task canceled successfully"
-}
-```
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-
-
 ## SHIELD Backup Archives
 
 TBD
-
-
-### GET /v2/tenants/:tenant/archives
-
-Retrieve all archives for a tenant.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/archives
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### POST /v2/tenants/:tenant/archives
-
-TBD
-
-**Request**
-
-TBD
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/$uuid/archives -d '
-{
-  TBD
-}'
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### GET /v2/tenants/:tenant/archives/:uuid
-
-Retrieve a single archive for a tenant.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/tenants/$tenant/archives/$uuid
-```
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### PUT /v2/tenants/:tenant/archives/:uuid
-
-Update a single archive on a tenant.
-
-**Request**
-
-TBD
-
-**Response**
-
-TBD
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
-### DELETE /v2/tenants/:tenant/archives/:uuid
-
-Remove an archive from a tenant, and purge the archive data from
-the backing storage system.
-
-**Request**
-
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/$tenant/archives/$uuid
-```
-
-**Response**
-
-```json
-{
-  "ok": "Archive deleted successfully"
-}
-```
-
-**Errors**
-
-TBD
-
-The following error messages can be returned:
-
-
 
 
 ## SHIELD Global Resources
@@ -2066,15 +1929,16 @@ Some resources are shared between tenants, either implicitly via
 copying (like retention policies), or explicitly (like shared
 storage system definitions).
 
+
 ### GET /v2/global/stores
 
 Retrieve all globally-defined stores.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/global/stores
+curl -H 'Accept: application/json' https://shield.host/v2/global/stores
 ```
 
 **Response**
@@ -2099,13 +1963,17 @@ The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
 system.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage systems information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage systems information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/global/stores
@@ -2113,12 +1981,14 @@ The following error messages can be returned:
 Create a new shared storage system.  This storage will be visible
 to all tenants.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/global/stores -d '
+     -X POST https://shield.host/v2/global/stores \
+     --data-binary '
 {
   "name"    : "Storage System Name",
   "summary" : "A longer description for this storage system.",
@@ -2148,27 +2018,32 @@ until the storage system is used in a job.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to create new storage system** - An internal error
-  occurred and should be investigated by the site administrators.
+- **Unable to create new storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### GET /v2/global/stores/:uuid
 
 Retrieve a single globally-defined storage system.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/global/stores/$uuid
+curl -H 'Accept: application/json' https://shield.host/v2/global/stores/:uuid
 ```
 
 **Response**
@@ -2191,28 +2066,35 @@ The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
 system.
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such storage system** - No storage system with the given
-  UUID exists (globally).
+- **No such storage system**:
+  No storage system with the given UUID exists
+  (globally).
 
 
 ### PUT /v2/global/stores/:uuid
 
 Update an existing globally-defined storage system.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/global/stores/$uuid -d '
+     -X PUT https://shield.host/v2/global/stores/:uuid \
+     --data-binary '
 {
   "name"    : "Updated Store Name",
   "summary" : "A longer description of the storage system",
@@ -2247,30 +2129,37 @@ until the storage system is used in a job.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to update storage system** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to update storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such storage system** - No storage system with the given
-  UUID exists (globally).
+- **No such storage system**:
+  No storage system with the given UUID exists
+  (globally).
 
 
 ### DELETE /v2/global/stores/:uuid
 
 Remove a globally-defined storage system.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/global/stores/$uuid
+     -X DELETE https://shield.host/v2/global/stores/:uuid \
 ```
 
 **Response**
@@ -2281,35 +2170,41 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve storage system information** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve storage system information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to update storage system** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to update storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to delete storage system** - An internal error occurred
-  and should be investigated by the site administrators.
+- **Unable to delete storage system**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **The storage system cannot be deleted at this time** - This
-  storage system is referenced by one or more extant job
-  configuration; deleting it would lead to an incomplete (and
-  unusable) setup.
+- **The storage system cannot be deleted at this time**:
+  This storage system is referenced by one or more
+  extant job configuration; deleting it would lead to
+  an incomplete (and unusable) setup.
 
 
 ### GET /v2/global/policies
 
 Retrieve all defined retention policy templates.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/global/policies
+curl -H 'Accept: application/json' https://shield.host/v2/global/policies
 ```
 
 **Response**
@@ -2328,25 +2223,31 @@ curl -H 'Accept: application/json' \
 The `expires` key is specified in seconds, but must always be a
 multiple of 86400 (1 day).
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve retention policy templates information** -
-  An internal error occurred and should be investigated by the
-  site administrators.
+- **Unable to retrieve retention policy templates information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### POST /v2/global/policies
 
 Create a new retention policy template.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/global/policies -d '
+     -X POST https://shield.host/v2/global/policies \
+     --data-binary '
 {
   "name"    : "Retention Policy Name",
   "summary" : "A longer description of the policy",
@@ -2368,32 +2269,37 @@ least 86,400 (1 day) and be a multiple of 86,400.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Retention policy expiry must be greater than 1 day** - You
-  supplied an `expires` value less than 86,400.  Please re-try the
-  request with a higher value.
+- **Retention policy expiry must be greater than 1 day**:
+  You supplied an `expires` value less than 86,400.
+  Please re-try the request with a higher value.
 
-- **Retention policy expire must be a multiple of 1 day** - You
-  supplied an `expires` value that was not a multiple of 86,400.
-  Please re-try the request with a different value.
+- **Retention policy expire must be a multiple of 1 day**:
+  You supplied an `expires` value that was not a
+  multiple of 86,400.  Please re-try the request with
+  a different value.
 
-- **Unable to create retention policy template** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to create retention policy template**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### GET /v2/global/policies/:uuid
 
 Retrieve a single retention policy template.
 
+
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' \
-     -X GET https://shield.host/v2/global/policies/$uuid
+curl -H 'Accept: application/json' https://shield.host/v2/global/policies/:uuid
 ```
 
 **Response**
@@ -2407,28 +2313,35 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve retention policy template information** -
-  An internal error occurred and should be investigated by the
-  site administrators.
+- **Unable to retrieve retention policy template information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such retention policy template** - No retention policy
-  template with the given UUID exists globally.
+- **No such retention policy template**:
+  No retention policy template with the given UUID
+  exists globally.
 
 
 ### PUT /v2/global/policies/:uuid
 
 Update a single retention policy template.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/global/policies/$uuid -d '
+     -X PUT https://shield.host/v2/global/policies/:uuid \
+     --data-binary '
 {
   "name"    : "Updated Retention Policy Name",
   "summary" : "A longer description of the retention policy",
@@ -2454,25 +2367,30 @@ future tenants.
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve retention policy template information** -
-  An internal error occurred and should be investigated by the
-  site administrators.
+- **Unable to retrieve retention policy template information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Retention policy expiry must be greater than 1 day** - You
-  supplied an `expires` value less than 86,400.  Please re-try the
-  request with a higher value.
+- **Retention policy expiry must be greater than 1 day**:
+  You supplied an `expires` value less than 86,400.
+  Please re-try the request with a higher value.
 
-- **Retention policy expire must be a multiple of 1 day** - You
-  supplied an `expires` value that was not a multiple of 86,400.
-  Please re-try the request with a different value.
+- **Retention policy expire must be a multiple of 1 day**:
+  You supplied an `expires` value that was not a
+  multiple of 86,400.  Please re-try the request with
+  a different value.
 
-- **Unable to update retention policy template** - An internal
-  error occurred and should be investigated by the site
-  administrators.
+- **Unable to update retention policy template**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ### DELETE /v2/global/policies/:uuid
@@ -2483,11 +2401,12 @@ Remove a retention policy template.
 tenants created prior to the removal; the template will not be
 copied into any future tenants.
 
+
 **Request**
 
 ```sh
 curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/global/policies/$uuid
+     -X DELETE https://shield.host/v2/global/policies/:uuid \
 ```
 
 **Response**
@@ -2498,22 +2417,30 @@ curl -H 'Accept: application/json' \
 }
 ```
 
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
 **Errors**
 
 The following error messages can be returned:
 
-- **Unable to retrieve retention policy template information** - An
-  internal error has occurred and should be investigated by the site
-  administrators.
+- **Unable to retrieve retention policy template information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **No such retention policy template** - No retention policy with
-  the given UUID exists on the specified tenant.
+- **No such retention policy template**:
+  No retention policy with the given UUID exists on
+  the specified tenant.
 
-- **Unable to delete retention policy template** - An internal
-  error has occurred and should be investigated by the site
-  administrators.
+- **Unable to delete retention policy template**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **The retention policy template cannot be deleted at this time**
-  This retention policy is referenced by one or more extant job
-  configuration; deleting it would lead to an incomplete (and
-  unusable) setup.  Note that this error should never happen.
+- **The retention policy template cannot be deleted at this time**:
+  This retention policy is referenced by one or more
+  extant job configuration; deleting it would lead to
+  an incomplete (and unusable) setup.  Note that this
+  error should never happen.
+
+
