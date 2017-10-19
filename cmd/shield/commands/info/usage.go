@@ -71,7 +71,7 @@ func printEnvVars() {
 	header("ENVIRONMENT VARIABLES")
 	contents("SHIELD_TRACE\t\tset to 'true' for trace output.")
 	contents("SHIELD_DEBUG\t\tset to 'true' for debug output.")
-	contents("SHIELD_API_TOKEN\t\tset as your API token to send API token on requests")
+	contents("SHIELD_API_TOKEN\tset as your API token to send API token on requests")
 }
 
 func printGlobalFlags() {

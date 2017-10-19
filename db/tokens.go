@@ -95,7 +95,7 @@ func (t TokenFilter) Query() (query string, args []interface{}) {
 	wheres := []string{"t.uuid = t.uuid"}
 	if t.UUID != nil {
 		wheres = append(wheres, "t.uuid = ?")
-		args = append(args, *t.UUID)
+		args = append(args, t.UUID.String())
 	}
 	if t.Name != nil {
 		wheres = append(wheres, "t.name = ?")
@@ -103,11 +103,11 @@ func (t TokenFilter) Query() (query string, args []interface{}) {
 	}
 	if t.SessionUUID != nil {
 		wheres = append(wheres, "t.session_uuid = ?")
-		args = append(args, *t.SessionUUID)
+		args = append(args, t.SessionUUID.String())
 	}
 	if t.UserUUID != nil {
 		wheres = append(wheres, `s.user_uuid = ?`)
-		args = append(args, *t.UserUUID)
+		args = append(args, t.UserUUID.String())
 	}
 
 	query = fmt.Sprintf(`
@@ -120,14 +120,15 @@ func (t TokenFilter) Query() (query string, args []interface{}) {
 }
 
 func parseToken(r *sql.Rows) (ret *Token, err error) {
-	var sessionUUID, userUUID NullUUID
+	var tokenUUID, sessionUUID, userUUID NullUUID
 	var name sql.NullString
 	var created, lastUsed *int64
-	if err = r.Scan(&sessionUUID, &name, &created, &lastUsed, &userUUID); err != nil {
+	if err = r.Scan(&tokenUUID, &sessionUUID, &name, &created, &lastUsed, &userUUID); err != nil {
 		return
 	}
 
 	ret = &Token{
+		UUID:        tokenUUID.UUID,
 		SessionUUID: sessionUUID.UUID,
 		UserUUID:    userUUID.UUID,
 		Name:        name.String,
@@ -148,20 +149,22 @@ func parseToken(r *sql.Rows) (ret *Token, err error) {
 //CreateToken creates a new Session entry in the database, and then a new Token
 // entry associated with it.
 func (db *DB) CreateToken(name string, userid uuid.UUID) (_ *Token, err error) {
-	insert := &Token{}
-
 	testtoken, err := TokenFilter{Name: &name, UserUUID: &userid}.Get(db)
 	if err != nil {
 		return
 	}
 	if testtoken != nil {
-		err = fmt.Errorf("Refusing to create token with preexisting name and userid combination")
+		err = NewErrExists("Refusing to create token with preexisting name and userid combination")
 		return
 	}
 
-	insert.UUID = uuid.NewRandom()
-	insert.SessionUUID = uuid.NewRandom()
-	insert.CreatedAt = parseEpochTime(time.Now().Unix())
+	insert := &Token{
+		UUID:        uuid.NewRandom(),
+		SessionUUID: uuid.NewRandom(),
+		Name:        name,
+		UserUUID:    userid,
+		CreatedAt:   parseEpochTime(time.Now().Unix()),
+	}
 
 	tx, err := db.connection.Begin()
 	defer func() {
@@ -182,8 +185,8 @@ func (db *DB) CreateToken(name string, userid uuid.UUID) (_ *Token, err error) {
 		return
 	}
 
-	err = db.Exec(`INSERT INTO tokens (uuid, session_uuid, label, created_at) VALUES (?, ?, ?)`,
-		insert.UUID, insert.SessionUUID, insert.Name, insert.CreatedAt.Time().Unix())
+	err = db.Exec(`INSERT INTO tokens (uuid, session_uuid, name, created_at) VALUES (?, ?, ?, ?)`,
+		insert.UUID.String(), insert.SessionUUID.String(), insert.Name, insert.CreatedAt.Time().Unix())
 	if err != nil {
 		return
 	}

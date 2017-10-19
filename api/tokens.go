@@ -18,6 +18,8 @@ func ListTokens() (t []Token, err error) {
 		return
 	}
 
+	t = []Token{}
+
 	err = uri.Get(&t)
 	return
 }
@@ -36,11 +38,24 @@ func CreateToken(name string) (t *Token, err error) {
 	}{
 		Name: name,
 	})
-
 	if err != nil {
 		panic("Could not marshal token creation body")
 	}
 
+	t = &Token{}
+
 	err = uri.Post(t, string(body))
 	return
+}
+
+//DeleteToken makes a call to delete the token with the given identifier. Note
+// that this does not take the token UUID itself, but instead the UUID which is
+// the id of the token.
+func DeleteToken(tokenID string) (err error) {
+	uri, err := ShieldURI("/v2/auth/tokens/%s", tokenID)
+	if err != nil {
+		return
+	}
+
+	return uri.Delete(nil)
 }

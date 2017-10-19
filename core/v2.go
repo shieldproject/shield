@@ -499,11 +499,15 @@ func (core *Core) v2API() *route.Router {
 		respTokens := make([]v2AuthToken, len(tokens))
 
 		for i, token := range tokens {
+			var lastUsedStr string
+			if token.LastUsedAt != nil {
+				lastUsedStr = token.LastUsedAt.Format(timestamp.Format)
+			}
 			respTokens[i] = v2AuthToken{
 				ID:         token.UUID.String(),
 				Name:       token.Name,
 				CreatedAt:  token.CreatedAt.Format(timestamp.Format),
-				LastUsedAt: token.LastUsedAt.Format(timestamp.Format),
+				LastUsedAt: lastUsedStr,
 			}
 		}
 
@@ -529,7 +533,11 @@ func (core *Core) v2API() *route.Router {
 
 		token, err := core.DB.CreateToken(in.Name, user.UUID)
 		if err != nil {
-			r.Fail(route.Oops(err, OopsString))
+			if _, isDup := err.(db.ErrExists); isDup {
+				r.Fail(route.Bad(err, "A token with this name already exists for this user"))
+			} else {
+				r.Fail(route.Oops(err, OopsString))
+			}
 			return
 		}
 		if token == nil {

@@ -76,7 +76,6 @@ for x in $(find plugin -maxdepth 1 -type d); do
 done
 
 export DATABASE=${DATABASE:-$workdir/var/shield.db}
-export SHIELD_API_TOKEN=LETMEIN
 
 case "${1}" in
 (vault)

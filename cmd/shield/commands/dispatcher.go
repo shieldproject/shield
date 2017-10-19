@@ -37,6 +37,7 @@ var (
 	TasksGroup    = &HelpGroup{name: "TASKS"}
 	UsersGroup    = &HelpGroup{name: "USERS"}
 	TenantsGroup  = &HelpGroup{name: "TENANTS"}
+	TokensGroup   = &HelpGroup{name: "AUTH TOKENS"}
 )
 
 func (h *HelpGroup) addCommand(c *Command) {
@@ -81,6 +82,7 @@ func CommandString() string {
 		ArchivesGroup,
 		UsersGroup,
 		TenantsGroup,
+		TokensGroup,
 	}
 
 	for _, group := range groupList {

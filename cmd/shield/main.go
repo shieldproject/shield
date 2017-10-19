@@ -21,6 +21,7 @@ import (
 	"github.com/starkandwayne/shield/cmd/shield/commands/targets"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tasks"
 	"github.com/starkandwayne/shield/cmd/shield/commands/tenants"
+	"github.com/starkandwayne/shield/cmd/shield/commands/tokens"
 	"github.com/starkandwayne/shield/cmd/shield/commands/users"
 	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
@@ -139,6 +140,12 @@ func main() {
 			os.Exit(1)
 		}
 
+		if *cmds.Opts.Token != "" {
+			os.Setenv("SHIELD_API_TOKEN", *cmds.Opts.Token)
+			if token := os.Getenv("SHIELD_API_TOKEN"); token != "" {
+				log.DEBUG("Using auth token: %s", token)
+			}
+		}
 		if *cmds.Opts.SkipSSLValidation {
 			os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
 			if *cmds.Opts.CACert != "" {
@@ -183,10 +190,6 @@ func main() {
 	if err := cmd.Run(args...); err != nil {
 		if _, unauthorized := err.(api.ErrUnauthorized); unauthorized && cmd != access.Login {
 			err = fmt.Errorf("You are not authenticated to the SHIELD backend. Please run `shield login'")
-		} else if _, forbidden := err.(api.ErrForbidden); forbidden {
-			err = fmt.Errorf("The currently authenticated user is forbidden from accessing this resource")
-		} else if _, badrequest := err.(api.ErrBadRequest); badrequest {
-			err = fmt.Errorf("Error 400 Bad Request")
 		}
 		if *cmds.Opts.Raw {
 			j, err := json.Marshal(map[string]string{"error": err.Error()})
@@ -281,6 +284,10 @@ func addCommands() {
 	cmds.Add("delete-tenant", tenants.Delete).AKA("delete tenant")
 	cmds.Add("invite", tenants.Invite)
 	cmds.Add("banish", tenants.Banish)
+
+	cmds.Add("tokens", tokens.List)
+	cmds.Add("create-token", tokens.Create).AKA("create token")
+	cmds.Add("delete-token", tokens.Delete).AKA("delete token")
 }
 
 func addGlobalFlags() {
@@ -300,6 +307,10 @@ func addGlobalFlags() {
 		cmds.FlagInfo{
 			Name: "raw",
 			Desc: "Takes any input and gives any output as a JSON object",
+		},
+		cmds.FlagInfo{
+			Name: "token",
+			Desc: "Auth with an API Token instead of the current backend",
 		},
 	}
 }
