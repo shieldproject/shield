@@ -1658,3 +1658,9 @@ h2 strong,
   font-weight: bold;
   color: #0071bc;
 }
+.notice.failure {
+  background-color: #FF6161;
+  color: #fff;
+  font-size: 120%;
+  line-height 1.4em;
+}

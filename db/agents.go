@@ -95,6 +95,9 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 		if lastSeenAt != nil {
 			agent.LastSeenAt = parseEpochTime(*lastSeenAt)
 		}
+		if hidden != nil {
+			agent.Hidden = *hidden
+		}
 
 		l = append(l, agent)
 	}
@@ -192,10 +195,10 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	}
 
 	id := uuid.NewRandom()
-	return db.Exec(
-		`INSERT INTO agents (uuid, name, address, status, last_seen_at)
-		             VALUES (?, ?, ?, ?, ?)`,
-		id.String(), name, address, "pending", time.Now().Unix(),
+	return db.Exec(`
+	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
+	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
+		id.String(), name, address, false, "pending", time.Now().Unix(),
 	)
 }
 
@@ -205,11 +208,12 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		                   address      = ?,
 		                   version      = ?,
 		                   status       = ?,
+		                   hidden       = ?,
 		                   metadata     = ?,
 		                   last_seen_at = ?,
 		                   last_error   = ?
 		        WHERE uuid = ?`,
-		agent.Name, agent.Address, agent.Version, agent.Status, agent.Metadata,
+		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.Metadata,
 		time.Now().Unix(), agent.LastError,
 		agent.UUID.String())
 }

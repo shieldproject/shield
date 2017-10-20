@@ -1179,6 +1179,12 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } ]]
             <h2>[[ if (_.store) { ]]Edit[[ } else { ]]New[[ } ]] Storage System</h2>
 
+            [[ console.dir("agents", _.agents); ]]
+            [[ if (!_.agents || _.agents.length == 0) { ]]
+            <p class="notice failure">There are currently no Agents registered with
+            this SHIELD Core; you will not be able to configure Storage Systems until
+            that changes.</p>
+            [[ } else { ]]
             <form>
               <div class="error"></div>
 
@@ -1240,6 +1246,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
               <button class="go">[[ if (_.store) { ]]Save[[ } else { ]]Create[[ } ]]</button>
             </form>
+            [[ } ]]
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--stores-form-choose-plugin"><!-- {{{ -->
@@ -1672,12 +1679,13 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 <th>Version</th>
                 <th>Status</th>
                 <th>Last Seen</th>
+                <th>Visible?</th>
                 <th></th>
               </tr></thead>
               <tbody>
                 [[ $.each(_.agents, function (i, agent) { ]]
                     [[ var problems = _.problems[agent.uuid]; ]]
-                <tr[[ if (problems.length != 0) { ]] class="noted fail"[[ } ]]>
+                <tr data-agent-uuid="[[= agent.uuid ]]"[[ if (problems.length != 0) { ]] class="noted fail"[[ } ]]>
                   <td class="k">[[= agent.name ]]</td>
                   <td>[[= agent.address ]]</td>
                   <td>[[= agent.version ]]</td>
@@ -1688,11 +1696,13 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   [[ } ]]
                   </td>
                   <td>[[= trelative(agent.last_seen_at, 90*86400) ]]</td>
-                  <td></td>
+                  <td>[[ if (agent.hidden) { ]]no[[ } else { ]]yes[[ } ]]</td>
+                  <td>[[ if (agent.hidden) { ]]<a href="#" rel="show">show</a>
+                      [[ } else            { ]]<a href="#" rel="hide">hide</a>[[ } ]]</td>
                 </tr>
                 [[ if (problems.length != 0) { ]]
                 <tr class="note fail">
-                  <td colspan="6">
+                  <td colspan="7">
                     [[ $.each(problems, function (j, problem) { ]]
                     <strong>Note:</strong><div>[[= problem ]]</div>
                     [[ }); ]]
@@ -2263,14 +2273,14 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v2/agents',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
           error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
           success: function (data) {
             var cache = {};
 
             $('#main').html($(template('stores-form', {
                 store:  null,
-                agents: data.agents,
+                agents: data,
               }))
               .autofocus()
               .on('change', 'select#store-agent', function (event) {
@@ -2280,7 +2290,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 $('#main #choose-plugin').html(template('loading'));
                 api({
                   type: 'GET',
-                  url:  '/v2/agents/'+uuid,
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
                   success: function (data) {
                     cache = data;
                     $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
@@ -2337,7 +2347,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           success: function (store) {
             api({
               type: 'GET',
-              url:  '/v2/agents',
+              url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
               error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
               success: function (agents) {
 
@@ -2350,7 +2360,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     $('#main #choose-plugin').html(template('loading'));
                     api({
                       type: 'GET',
-                      url:  '/v2/agents/'+uuid,
+                      url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
                       success: function (data) {
                         cache = data;
                         $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
@@ -2612,7 +2622,19 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           url:  '/v2/agents',
           error: "Failed retrieving the list of agents from the SHIELD API.",
           success: function (data) {
-            $('#main').html(template('agents', data));
+            $('#main').html($(template('agents', data))
+              .on('click', 'a[rel]', function (event) {
+                var action = $(event.target).closest('a[rel]').attr('rel');
+                if (action == 'hide' || action == 'show') {
+                  event.preventDefault();
+                  api({
+                    type: 'POST',
+                    url:  '/v2/agents/'+$(event.target).extract('agent-uuid')+'/'+action,
+                    error: "Unable to "+action+" agent via the SHIELD API.",
+                    success: function () { reload(); }
+                  });
+                }
+              }));
           }
         });
         break; /* #!/admin/agents */
@@ -3003,7 +3025,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v2/agents',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
           error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
           success: function (data) {
             var cache = {};
@@ -3021,7 +3043,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 $('#main #choose-plugin').html(template('loading'));
                 api({
                   type: 'GET',
-                  url:  '/v2/agents/'+uuid,
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
                   success: function (data) {
                     cache = data;
                     $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
@@ -3074,7 +3096,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           success: function (store) {
             api({
               type: 'GET',
-              url:  '/v2/agents',
+              url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
               error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
               success: function (agents) {
 
@@ -3091,7 +3113,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     $('#main #choose-plugin').html(template('loading'));
                     api({
                       type: 'GET',
-                      url:  '/v2/agents/'+uuid,
+                      url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
                       success: function (data) {
                         cache = data;
                         $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));

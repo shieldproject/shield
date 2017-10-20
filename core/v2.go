@@ -771,13 +771,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		agentID := uuid.Parse(r.Args[1])
-		if agentID == nil {
-			r.Fail(route.Bad(nil, "Invalid Agent UUID"))
-			return
-		}
-
-		agent, err := core.DB.GetAgent(agentID)
+		agent, err := core.DB.GetAgent(uuid.Parse(r.Args[1]))
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
@@ -843,6 +837,34 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 		r.Success("pre-registered agent %s at %s:%i", in.Name, peer, in.Port)
+	})
+	// }}}
+	r.Dispatch("POST /v2/agents/:uuid/(show|hide)", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+
+		agent, err := core.DB.GetAgent(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+		if agent == nil {
+			r.Fail(route.NotFound(nil, "No such agent"))
+			return
+		}
+
+		agent.Hidden = (r.Args[2] == "hide")
+		if err := core.DB.UpdateAgent(agent); err != nil {
+			r.Fail(route.Oops(err, "Unable to set agent visibility"))
+			return
+		}
+
+		if agent.Hidden {
+			r.Success("Agent is now visible only to SHIELD site engineers")
+		} else {
+			r.Success("Agent is now visible to everyone")
+		}
 	})
 	// }}}
 
@@ -1146,6 +1168,55 @@ func (core *Core) v2API() *route.Router {
 			}
 		}
 		r.Success("Successfully deleted tenant '%s' (%s)", r.Args[1], tenant.Name)
+	})
+	// }}}
+
+	r.Dispatch("GET /v2/tenants/:uuid/agents", func(r *route.Request) { // {{{
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
+		agents, err := core.DB.GetAllAgents(&db.AgentFilter{
+			SkipHidden: true,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+
+		r.OK(agents)
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/agents/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
+		agent, err := core.DB.GetAgent(uuid.Parse(r.Args[2]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+		if agent == nil || agent.Hidden {
+			r.Fail(route.NotFound(nil, "No such agent"))
+			return
+		}
+
+		var raw map[string]interface{}
+		if err = json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+
+		resp := struct {
+			Agent    db.Agent               `json:"agent"`
+			Metadata map[string]interface{} `json:"metadata"`
+		}{
+			Agent:    *agent,
+			Metadata: raw,
+		}
+
+		r.OK(resp)
 	})
 	// }}}
 
@@ -2079,20 +2150,13 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		tennant_id := uuid.Parse(r.Args[1])
-		archive_id := uuid.Parse(r.Args[2])
-		if archive_id == nil || tennant_id == nil {
-			r.Fail(route.Bad(nil, "Invalid UUID speficied"))
-			return
-		}
-
-		archive, err := core.DB.GetArchive(archive_id)
+		archive, err := core.DB.GetArchive(uuid.Parse(r.Args[2]))
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
-		if archive == nil || strings.Compare(archive.TenantUUID.String(), tennant_id.String()) != 0 {
+		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
 			r.Fail(route.NotFound(nil, "Archive Not Found"))
 			return
 		}
