@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	BackupOperation  = "backup"
-	RestoreOperation = "restore"
-	PurgeOperation   = "purge"
+	BackupOperation    = "backup"
+	RestoreOperation   = "restore"
+	PurgeOperation     = "purge"
+	TestStoreOperation = "testStore"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"
@@ -294,6 +295,29 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 	if err != nil {
 		return nil, err
 	}
+	return db.GetTask(id)
+}
+
+func (db *DB) CreateTestStoreTask(owner string, job *Job, agent string) (*Task, error) {
+	id := uuid.NewRandom()
+	err := db.Exec(
+		`INSERT INTO tasks
+			(uuid, owner, op, store_uuid, store_plugin, 
+			 store_endpoint, status, log, requested_at,
+			 agent, attempts, tenant_uuid)
+		 VALUES
+			(?, ?, ?, ?, ?,
+			 ?, ?, ?, ?, 
+			 ?, ?, ?)`,
+		id.String(), owner, TestStoreOperation, job.StoreUUID.String(), job.StorePlugin,
+		job.StoreEndpoint, PendingStatus, "", time.Now().Unix(),
+		agent, 0, job.TenantUUID.String(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return db.GetTask(id)
 }
 
