@@ -55,6 +55,7 @@ func cliCreateToken(opts *commands.Options, args ...string) error {
 	return nil
 }
 
+//Show displays a token
 func Show(token *api.Token) {
 	t := tui.NewReport()
 	if token.Session != "" {
