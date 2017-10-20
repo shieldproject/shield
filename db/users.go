@@ -57,6 +57,7 @@ type UserFilter struct {
 	Account    string
 	SysRole    string
 	ExactMatch bool
+	Search     string
 	Limit      int
 }
 
@@ -88,6 +89,11 @@ func (f *UserFilter) Query() (string, []interface{}) {
 	if f.SysRole != "" {
 		wheres = append(wheres, "sysrole = ?")
 		args = append(args, f.SysRole)
+	}
+
+	if f.Search != "" {
+		wheres = append(wheres, "(u.account LIKE ? OR u.name LIKE ?)")
+		args = append(args, Pattern(f.Search), Pattern(f.Search))
 	}
 
 	limit := ""

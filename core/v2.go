@@ -207,9 +207,8 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		users, err := core.DB.GetAllUsers(&db.UserFilter{
-			Backend:    "local",
-			Account:    in.Search,
-			ExactMatch: false,
+			Search:  in.Search,
+			Backend: "local",
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve users from the database."))
