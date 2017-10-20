@@ -26,7 +26,7 @@ const (
 
 type Task struct {
 	UUID           uuid.UUID      `json:"uuid"`
-	TenantUUID     uuid.UUID      `json:"tenant_uuid"`
+	TenantUUID     uuid.UUID      `json:"-"`
 	Owner          string         `json:"owner"`
 	Op             string         `json:"type"`
 	JobUUID        uuid.UUID      `json:"job_uuid"`
@@ -228,8 +228,8 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		     ?, ?, ?,
 		     ?, ?, ?, ?, ?, ?, ?)`,
 		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
-		job.StoreUUID.String(), job.StorePlugin, job.StoreEndpoint,
-		job.TargetUUID.String(), job.TargetPlugin, job.TargetEndpoint, "", job.Agent, 0, job.TenantUUID.String(),
+		job.Store.UUID.String(), job.Store.Plugin, job.Store.Endpoint,
+		job.Target.UUID.String(), job.Target.Plugin, job.Target.Endpoint, "", job.Agent, 0, job.TenantUUID.String(),
 	)
 
 	if err != nil {
@@ -239,8 +239,13 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 }
 
 func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) (*Task, error) {
+	endpoint, err := target.ConfigJSON()
+	if err != nil {
+		return nil, err
+	}
+
 	id := uuid.NewRandom()
-	err := db.Exec(
+	err = db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
@@ -253,7 +258,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		     ?, ?, ?, ?)`,
 		id.String(), owner, RestoreOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
-		target.UUID.String(), target.Plugin, target.Endpoint,
+		target.UUID.String(), target.Plugin, endpoint,
 		archive.StoreKey, target.Agent, 0, archive.TenantUUID.String(),
 	)
 

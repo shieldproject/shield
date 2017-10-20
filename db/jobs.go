@@ -13,28 +13,48 @@ import (
 )
 
 type Job struct {
-	UUID             uuid.UUID `json:"uuid"`
-	Name             string    `json:"name"`
-	Summary          string    `json:"summary"`
-	TenantUUID       uuid.UUID `json:"tenant_uuid"`
-	RetentionName    string    `json:"retention_name"`
-	RetentionSummary string    `json:"retention_summary"`
-	RetentionUUID    uuid.UUID `json:"retention_uuid"`
-	Expiry           int       `json:"expiry"`
-	Schedule         string    `json:"schedule"`
-	Paused           bool      `json:"paused"`
-	StoreUUID        uuid.UUID `json:"store_uuid"`
-	StoreName        string    `json:"store_name"`
-	StorePlugin      string    `json:"store_plugin"`
-	StoreEndpoint    string    `json:"store_endpoint"`
-	StoreSummary     string    `json:"store_summary"`
-	TargetUUID       uuid.UUID `json:"target_uuid"`
-	TargetName       string    `json:"target_name"`
-	TargetPlugin     string    `json:"target_plugin"`
-	TargetEndpoint   string    `json:"target_endpoint"`
-	Agent            string    `json:"agent"`
-	LastRun          Timestamp `json:"last_run"`
-	LastTaskStatus   string    `json:"last_task_status"`
+	TenantUUID uuid.UUID `json:"-"`
+	TargetUUID uuid.UUID `json:"-"`
+	StoreUUID  uuid.UUID `json:"-"`
+	PolicyUUID uuid.UUID `json:"-"`
+
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Summary  string    `json:"summary"`
+	Expiry   int       `json:"expiry"`
+	Schedule string    `json:"schedule"`
+	Paused   bool      `json:"paused"`
+
+	Target struct {
+		UUID   uuid.UUID `json:"uuid"`
+		Name   string    `json:"name"`
+		Agent  string    `json:"agent"`
+		Plugin string    `json:"plugin"`
+
+		Endpoint string                 `json:"endpoint,omitempty"`
+		Config   map[string]interface{} `json:"config,omitempty"`
+	}
+
+	Store struct {
+		UUID    uuid.UUID `json:"uuid"`
+		Name    string    `json:"name"`
+		Agent   string    `json:"agent"`
+		Plugin  string    `json:"plugin"`
+		Summary string    `json:"summary"`
+
+		Endpoint string                 `json:"endpoint,omitempty"`
+		Config   map[string]interface{} `json:"config,omitempty"`
+	} `json:"store"`
+
+	Policy struct {
+		UUID    uuid.UUID `json:"uuid"`
+		Name    string    `json:"name"`
+		Summary string    `json:"summary"`
+	} `json:"policy"`
+
+	Agent          string    `json:"agent"`
+	LastRun        Timestamp `json:"last_run"`
+	LastTaskStatus string    `json:"last_task_status"`
 
 	Spec    *timespec.Spec `json:"-"`
 	NextRun time.Time      `json:"-"`
@@ -52,11 +72,11 @@ type JobFilter struct {
 
 	SearchName string
 
-	ForTenant    string
-	ForTarget    string
-	ForStore     string
-	ForRetention string
-	ExactMatch   bool
+	ForTenant  string
+	ForTarget  string
+	ForStore   string
+	ForPolicy  string
+	ExactMatch bool
 }
 
 func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
@@ -85,9 +105,9 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 		wheres = append(wheres, "j.store_uuid = ?")
 		args = append(args, f.ForStore)
 	}
-	if f.ForRetention != "" {
+	if f.ForPolicy != "" {
 		wheres = append(wheres, "j.retention_uuid = ?")
-		args = append(args, f.ForRetention)
+		args = append(args, f.ForPolicy)
 	}
 	if f.SkipPaused || f.SkipUnpaused {
 		wheres = append(wheres, "j.paused = ?")
@@ -102,49 +122,28 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 		args = append(args, time.Now().Unix())
 	}
 
-	switch driver {
-	case "postgres", "sqlite3":
-		return `
-		WITH most_recent_job_task_at AS (
-			SELECT job_uuid,  max(requested_at) AS requested_at FROM tasks WHERE status <> 'pending' GROUP BY job_uuid 
-		),
-		most_recent_job_task AS (
-			SELECT t.started_at, t.status, t.job_uuid, t.uuid FROM tasks t, most_recent_job_task_at mr WHERE t.job_uuid = mr.job_uuid AND t.requested_at = mr.requested_at
-		)
-			SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid,
-						 r.name, r.summary, r.uuid, r.expiry,
-						 s.uuid, s.name, s.plugin, s.endpoint, s.summary,
-						 t.uuid, t.name, t.plugin, t.endpoint, t.agent,
-						 k.started_at, k.status
+	return `
+	   WITH recent_tasks AS (
+	           SELECT uuid AS task_uuid, job_uuid, started_at, status
+	             FROM tasks
+	            WHERE stopped_at IS NOT NULL
+	         GROUP BY job_uuid
+	        )
 
-				FROM jobs j
-					INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-					INNER JOIN stores     s  ON  s.uuid = j.store_uuid
-					INNER JOIN targets    t  ON  t.uuid = j.target_uuid
-					LEFT  JOIN most_recent_job_task k  ON  j.uuid = k.job_uuid
+	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid,
+	          r.name, r.summary, r.uuid, r.expiry,
+	          s.uuid, s.name, s.plugin, s.endpoint, s.summary,
+	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
+	          k.started_at, k.status
 
-				WHERE ` + strings.Join(wheres, " AND ") + `
-				ORDER BY j.name, j.uuid ASC
-		`, args, nil
+	     FROM jobs j
+	          INNER JOIN retention    r  ON  r.uuid = j.retention_uuid
+	          INNER JOIN stores       s  ON  s.uuid = j.store_uuid
+	          INNER JOIN targets      t  ON  t.uuid = j.target_uuid
+	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
 
-	default:
-		return `
-			SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid,
-			       r.name, r.summary, r.uuid, r.expiry,
-			       s.uuid, s.name, s.plugin, s.endpoint, s.summary,
-			       t.uuid, t.name, t.plugin, t.endpoint, t.agent,
-			       null AS started_at, '' AS status
-
-				FROM jobs j
-					INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-					INNER JOIN stores     s  ON  s.uuid = j.store_uuid
-					INNER JOIN targets    t  ON  t.uuid = j.target_uuid
-
-				WHERE ` + strings.Join(wheres, " AND ") + `
-				ORDER BY j.name, j.uuid ASC
-		`, args, nil
-	}
-
+	    WHERE ` + strings.Join(wheres, " AND ") + `
+	 ORDER BY j.name, j.uuid ASC`, args, nil
 }
 
 func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
@@ -164,36 +163,36 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	defer r.Close()
 
 	for r.Next() {
-		ann := &Job{}
+		j := &Job{}
 		var (
-			this, retention, store, target, tenant NullUUID
-			last_run                               *int64
-			last_task_status                       sql.NullString
+			this, policy, store, target, tenant NullUUID
+			last_run                            *int64
+			last_task_status                    sql.NullString
 		)
 		if err = r.Scan(
-			&this, &ann.Name, &ann.Summary, &ann.Paused, &ann.Schedule, &tenant,
-			&ann.RetentionName, &ann.RetentionSummary, &retention, &ann.Expiry,
-			&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreSummary,
-			&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.Agent, &last_run, &last_task_status); err != nil {
+			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant,
+			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
+			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
+			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
+			&j.Agent, &last_run, &last_task_status); err != nil {
 			return l, err
 		}
-		ann.UUID = this.UUID
-		ann.RetentionUUID = retention.UUID
-		ann.StoreUUID = store.UUID
-		ann.TargetUUID = target.UUID
-		ann.TenantUUID = tenant.UUID
+		j.UUID = this.UUID
+		j.Policy.UUID = policy.UUID
+		j.Store.UUID = store.UUID
+		j.Target.UUID = target.UUID
+		j.TenantUUID = tenant.UUID
 		if last_run != nil {
-			ann.LastRun = parseEpochTime(*last_run)
+			j.LastRun = parseEpochTime(*last_run)
 			if last_task_status.Valid {
-				ann.LastTaskStatus = last_task_status.String
+				j.LastTaskStatus = last_task_status.String
 			}
 		} else {
-			ann.LastRun = Timestamp{}
-			ann.LastTaskStatus = "pending"
+			j.LastRun = Timestamp{}
+			j.LastTaskStatus = "pending"
 		}
 
-		l = append(l, ann)
+		l = append(l, j)
 	}
 
 	return l, nil
@@ -221,23 +220,23 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 		return nil, nil
 	}
 
-	ann := &Job{}
-	var this, retention, store, target, tenant NullUUID
+	j := &Job{}
+	var this, policy, store, target, tenant NullUUID
 	if err = r.Scan(
-		&this, &ann.Name, &ann.Summary, &ann.Paused, &ann.Schedule, &tenant,
-		&ann.RetentionName, &ann.RetentionSummary, &retention, &ann.Expiry,
-		&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreSummary,
-		&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&ann.Agent); err != nil {
+		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant,
+		&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
+		&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
+		&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
+		&j.Agent); err != nil {
 		return nil, err
 	}
-	ann.UUID = this.UUID
-	ann.RetentionUUID = retention.UUID
-	ann.StoreUUID = store.UUID
-	ann.TargetUUID = target.UUID
-	ann.TenantUUID = tenant.UUID
+	j.UUID = this.UUID
+	j.Policy.UUID = policy.UUID
+	j.Store.UUID = store.UUID
+	j.Target.UUID = target.UUID
+	j.TenantUUID = tenant.UUID
 
-	return ann, nil
+	return j, nil
 }
 
 func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
@@ -273,7 +272,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 	                     ?, ?, ?)`,
 		job.UUID.String(), job.TenantUUID.String(),
 		job.Name, job.Summary, job.Schedule, job.Paused,
-		job.TargetUUID.String(), job.StoreUUID.String(), job.RetentionUUID.String())
+		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +291,7 @@ func (db *DB) UpdateJob(job *Job) error {
 	          retention_uuid = ?
 	    WHERE uuid = ?`,
 		job.Name, job.Summary, job.Schedule,
-		job.TargetUUID.String(), job.StoreUUID.String(), job.RetentionUUID.String(),
+		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),
 		job.UUID.String())
 }
 

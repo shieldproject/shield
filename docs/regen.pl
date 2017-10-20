@@ -34,9 +34,9 @@ for my $section (@{$api->{sections}}) {
 			or die "Unrecognized HTTP verb in `$section->{name}` endpoint `$endpoint->{name}`\n";
 
 		if ($endpoint->{name} =~ m/^(PUT|POST|PATCH)/) {
-			$endpoint->{request}{json}
+			exists $endpoint->{request}{json}
 				or die "Missing Request JSON in `$section->{name}` endpoint `$endpoint->{name}`\n";
-			eval { decode_json($endpoint->{request}{json}); 1 }
+			eval { decode_json($endpoint->{request}{json} || "{}"); 1 }
 				or die "Bad Request JSON for `$section->{name}` endpoint `$endpoint->{name}`:\n!!! $@\n";
 		}
 		if ($endpoint->{request}{summary} && $endpoint->{request}{summary} !~ m/\{\{CURL\}\}/) {
@@ -50,6 +50,10 @@ for my $section (@{$api->{sections}}) {
 		if ($endpoint->{response}{summary} && $endpoint->{response}{summary} !~ m/\{\{JSON\}\}/) {
 			die "Missing {{JSON}} placeholder in Response Summary for `$section->{name}` endpoint `$endpoint->{name}`\n";
 		}
+
+		$endpoint->{errors}
+			or die "Missing Errors list in `$section->{name}` endpoint `$endpoint->{name}`\n".
+			       "(you can use `[]`, the empty list if no errors are possible)\n";
 	}
 }
 
@@ -87,17 +91,18 @@ sub request {
 
 	$curl = "```sh\n";
 	if ($method eq "GET") {
-		$curl .= "curl -H 'Accept: application/json' https://shield.host$url\n";
+		my $example = $endpoint->{request}{example} || $url;
+		$curl .= "curl -H 'Accept: application/json' \\\n";
+		$curl .= "        https://shield.host$example\n";
 
 	} elsif ($method =~ m/^(POST|PUT|PATCH)$/) {
-		$endpoint->{request}{json} or
-			die "No request JSON specified for endpoint `$endpoint->{name}`\n";
-		chomp $endpoint->{request}{json};
-
 		$curl .= "curl -H 'Accept: application/json' \\\n";
-		$curl .= "     -H 'Content-Type: application/json' \\\n";
+		$curl .= "     -H 'Content-Type: application/json' \\\n" if $endpoint->{request}{json};
 		$curl .= "     -X $method https://shield.host$url \\\n";
-		$curl .= "     --data-binary '\n$endpoint->{request}{json}'\n";
+		if ($endpoint->{request}{json}) {
+			chomp $endpoint->{request}{json};
+			$curl .= "     --data-binary '\n$endpoint->{request}{json}'\n";
+		}
 
 	} elsif ($endpoint->{name} =~ m/^DELETE /) {
 		$curl .= "curl -H 'Accept: application/json' \\\n";
@@ -105,9 +110,24 @@ sub request {
 	}
 	$curl .= "```";
 
-	return "$curl\n\n" unless $endpoint->{request}{summary};
+	my $qs = '';
+	for my $param (@{$endpoint->{request}{query} || []}) {
+		$qs .= "- **?$param->{name}=";
+		$qs .= "(t|f)" if $param->{type} eq 'bool';
+		$qs .= "..."   if $param->{type} eq 'string';
+		$qs .= "N"     if $param->{type} eq 'number';
+		$qs .= "**\n";
+		$qs .= "$param->{summary}\n" if $param->{summary};
+		$qs .= "\n";
+	}
+
+	$qs = "This endpoint takes no query string parameters."
+		unless $qs;
+
+	return "$curl\n\n$qs\n\n" unless $endpoint->{request}{summary};
 	my $s = $endpoint->{request}{summary};
 	$s =~ s/\{\{CURL}}/$curl/g;
+	$s =~ s/\{\{QUERY}}/$qs/g;
 	return "$s\n";
 }
 
@@ -155,7 +175,7 @@ sub errors {
 	# FIXME
 
 	return "This API endpoint does not return any error conditions.\n\n"
-		unless $endpoint->{errors} && @{$endpoint->{errors}};
+		unless @{$endpoint->{errors}};
 
 	my $s;
 	$s = "The following error messages can be returned:\n\n";

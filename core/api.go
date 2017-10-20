@@ -626,10 +626,10 @@ func (core *Core) v1GetJobs(w http.ResponseWriter, req *http.Request) {
 
 			SearchName: paramValue(req, "name", ""),
 
-			ForTarget:    paramValue(req, "target", ""),
-			ForStore:     paramValue(req, "store", ""),
-			ForRetention: paramValue(req, "retention", ""),
-			ExactMatch:   paramEquals(req, "exact", "t"),
+			ForTarget:  paramValue(req, "target", ""),
+			ForStore:   paramValue(req, "store", ""),
+			ForPolicy:  paramValue(req, "retention", ""),
+			ExactMatch: paramEquals(req, "exact", "t"),
 		},
 	)
 	if err != nil {
@@ -674,13 +674,13 @@ func (core *Core) v1CreateJob(w http.ResponseWriter, req *http.Request) {
 	}
 
 	job, err := core.DB.CreateJob(&db.Job{
-		Name:          params.Name,
-		Summary:       params.Summary,
-		Schedule:      params.Schedule,
-		Paused:        params.Paused,
-		TargetUUID:    uuid.Parse(params.Target),
-		StoreUUID:     uuid.Parse(params.Store),
-		RetentionUUID: uuid.Parse(params.Retention),
+		Name:       params.Name,
+		Summary:    params.Summary,
+		Schedule:   params.Schedule,
+		Paused:     params.Paused,
+		TargetUUID: uuid.Parse(params.Target),
+		StoreUUID:  uuid.Parse(params.Store),
+		PolicyUUID: uuid.Parse(params.Retention),
 	})
 	if err != nil {
 		bail(w, err)
@@ -823,7 +823,7 @@ func (core *Core) v1UpdateJob(w http.ResponseWriter, req *http.Request) {
 	job.Schedule = params.Schedule
 	job.TargetUUID = uuid.Parse(params.Target)
 	job.StoreUUID = uuid.Parse(params.Store)
-	job.RetentionUUID = uuid.Parse(params.Retention)
+	job.PolicyUUID = uuid.Parse(params.Retention)
 
 	if err := core.DB.UpdateJob(job); err != nil {
 		bail(w, err)
@@ -1056,12 +1056,18 @@ func (core *Core) v1CreateStore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var config map[string]interface{}
+	if err := json.Unmarshal([]byte(params.Endpoint), &config); err != nil {
+		bailWithError(w, e)
+		return
+	}
+
 	store, err := core.DB.CreateStore(&db.Store{
-		Name:     params.Name,
-		Agent:    core.purgeAgent,
-		Plugin:   params.Plugin,
-		Endpoint: params.Endpoint,
-		Summary:  params.Summary,
+		Name:    params.Name,
+		Agent:   core.purgeAgent,
+		Plugin:  params.Plugin,
+		Config:  config,
+		Summary: params.Summary,
 	})
 	if err != nil {
 		bail(w, err)
@@ -1141,7 +1147,10 @@ func (core *Core) v1UpdateStore(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if params.Endpoint != "" {
-		store.Endpoint = params.Endpoint
+		if err := json.Unmarshal([]byte(params.Endpoint), &store.Config); err != nil {
+			bailWithError(w, e)
+			return
+		}
 	}
 
 	if err := core.DB.UpdateStore(store); err != nil {
@@ -1215,11 +1224,17 @@ func (core *Core) v1CreateTarget(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var config map[string]interface{}
+	if err := json.Unmarshal([]byte(params.Endpoint), &config); err != nil {
+		bailWithError(w, e)
+		return
+	}
+
 	t, err := core.DB.CreateTarget(&db.Target{
 		Name: params.Name, Summary: params.Summary,
-		Plugin:   params.Plugin,
-		Endpoint: params.Endpoint,
-		Agent:    params.Agent,
+		Plugin: params.Plugin,
+		Config: config,
+		Agent:  params.Agent,
 	})
 	if err != nil {
 		bail(w, err)
@@ -1286,9 +1301,13 @@ func (core *Core) v1UpdateTarget(w http.ResponseWriter, req *http.Request) {
 	}
 	target.Name = params.Name
 	target.Plugin = params.Plugin
-	target.Endpoint = params.Endpoint
 	target.Agent = params.Agent
-
+	if params.Endpoint != "" {
+		if err := json.Unmarshal([]byte(params.Endpoint), &target.Config); err != nil {
+			bailWithError(w, e)
+			return
+		}
+	}
 	if params.Summary != "" {
 		target.Summary = params.Summary
 	}
@@ -1427,15 +1446,15 @@ func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 	for j, job := range jobs {
 		dst.Jobs[j].UUID = job.UUID
 		dst.Jobs[j].Schedule = job.Schedule
-		dst.Jobs[j].From = job.TargetPlugin
-		dst.Jobs[j].To = job.StorePlugin
+		dst.Jobs[j].From = job.Target.Plugin
+		dst.Jobs[j].To = job.Store.Plugin
 		dst.Jobs[j].OK = job.Healthy()
-		dst.Jobs[j].Store.UUID = job.StoreUUID
-		dst.Jobs[j].Store.Name = job.StoreName
-		dst.Jobs[j].Store.Summary = job.StoreSummary
-		dst.Jobs[j].Retention.UUID = job.RetentionUUID
-		dst.Jobs[j].Retention.Name = job.RetentionName
-		dst.Jobs[j].Retention.Summary = job.RetentionSummary
+		dst.Jobs[j].Store.UUID = job.Store.UUID
+		dst.Jobs[j].Store.Name = job.Store.Name
+		dst.Jobs[j].Store.Summary = job.Store.Summary
+		dst.Jobs[j].Retention.UUID = job.Policy.UUID
+		dst.Jobs[j].Retention.Name = job.Policy.Name
+		dst.Jobs[j].Retention.Summary = job.Policy.Summary
 
 		if !job.Healthy() {
 			dst.OK = false

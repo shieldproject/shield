@@ -11,7 +11,7 @@ import (
 
 type AuthToken struct {
 	UUID      uuid.UUID            `json:"uuid"`
-	Session   uuid.UUID            `json:"session"`
+	Session   uuid.UUID            `json:"session,omitempty"`
 	Name      string               `json:"name"`
 	CreatedAt timestamp.Timestamp  `json:"created_at"`
 	LastSeen  *timestamp.Timestamp `json:"last_seen"`
@@ -118,5 +118,5 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 }
 
 func (db *DB) DeleteAuthToken(id string, user *User) error {
-	return db.Exec(`DELETE FROM sessions WHERE token = ? && user_uuid = ?`, id, user.UUID.String())
+	return db.Exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID.String())
 }

@@ -35,6 +35,7 @@ shield:
 # Building the Shield CLI *only*
 shield-cli:
 	go $(BUILD_TYPE) ./cmd/shield
+	go $(BUILD_TYPE) ./cmd/buckler
 
 # Building Plugins
 plugin: plugins

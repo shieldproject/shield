@@ -1,5 +1,6 @@
 meta:
   errors:
+    none: &none []
     internal: &internal |
       an internal error occurred and should be investigated by the
       site administrators
@@ -87,16 +88,112 @@ intro: |
   The order of the fields is inconsequential.
 
 sections:
-  - name: Health
+  - name: Health & Informational
     intro: |
-      The health endpoints give you a glimpse into the well-being of a
-      SHIELD Core, for monitoring purposes.
+      The health and informational endpoints give you a glimpse into the
+      well-being of a SHIELD Core, for monitoring purposes, at various
+      levels of detail.
 
     endpoints:
+      - name: GET /v2/info # {{{
+        intro: |
+          Returns minimal information necessary for forward-compatibility
+          with different versions of SHIELD Core and clients.
+        access: ~
+
+        response:
+          json: |
+            {
+              "version" : "6.7.2",
+              "env"     : "PRODUCTION",
+              "api"     : 2
+            }
+          summary: |
+            {{JSON}}
+
+            The `version` key only shows up if the request was made in the
+            context of an authenticated session.
+
+            The `env` key is configurable by the SHIELD site administrator,
+            at deployment / boot time.
+
+            The `api` key is a single integer that identifies which version
+            of the SHIELD API this core implements.  Currently, there are
+            two possible values:
+
+              - **2** - The `/v2` endpoints are present, but not `/v1`
+              - **1** - Only the `/v1` endpoints are present (legacy).
+
+        errors: *none
+
+
+      # }}}
       - name: GET /v2/health # {{{
         intro: |
           Returns health information about the SHIELD Core, connected
-          storage accounts, and general metrics.
+          storage accounts, and general metrics, at a global scope.
+        access: ~
+
+        response:
+          summary: |
+            If all goes well, you will receive a 200 OK, with a `Content-Type`
+            of `application/json`, and something similar to the following JSON
+            payload in the response body:
+
+            {{JSON}}
+
+          json: |
+            {
+              "shield": {
+                "version" : "6.7.2",
+                "ip"      : "10.0.0.5",
+                "fqdn"    : "shield.example.com",
+                "env"     : "PRODUCTION",
+                "color"   : "",
+                "motd"    : "Welcome to S.H.I.E.L.D."
+              },
+              "health": {
+                "core"       : "unsealed",
+                "storage_ok" : true,
+                "jobs_ok"    : true
+              },
+              "storage": [
+                { "name": "s3", "healthy": true },
+                { "name": "fs", "healthy": true } ],
+              "jobs": [
+                {
+                  "uuid"    : "3dc875a4-042c-47a1-828c-1d927455c6c7",
+                  "target"  : "BOSH DB",
+                  "job"     : "daily",
+                  "healthy" : true
+                },
+                {
+                  "uuid"    : "d9a4547e-c1e7-4869-bb8d-4abb757b2f70",
+                  "target"  : "BOSH DB",
+                  "job"     : "weekly",
+                  "healthy" : true
+                }
+              ],
+              "stats": {
+                "jobs"    : 8,
+                "systems" : 7,
+                "archives": 124,
+                "storage" : 243567112,
+                "daily"   : 12345000
+              }
+            }
+
+        errors:
+          - message: Unable to check SHIELD health
+            summary: *internal
+
+
+      # }}}
+      - name: GET /v2/tenants/:tenant/health # {{{
+        intro: |
+          Returns health information about the SHIELD Core, connected
+          storage accounts, and general metrics, restricted to the scope
+          visible to a single tenant.
         access: ~
 
         response:
@@ -292,6 +389,411 @@ sections:
 
       # }}}
 
+      - name: GET /v2/auth/providers # {{{
+        intro: |
+          Retrieve public configuration of SHIELD Authentication Providers,
+          which can be used by client systems to initiate authentication
+          against 3rd party systems like Github and Cloud Foundry UAA.
+        access: ~
+
+        response:
+          json: |
+            [
+              {
+                "name"       : "Github(.com)",
+                "identifier" : "gh",
+                "type"       : "github",
+
+                "web_entry"  : "/auth/gh/web",
+                "cli_entry"  : "/auth/gh/cli",
+                "redirect"   : "/auth/gh/redir"
+              }
+            ]
+
+        errors: *none
+
+
+      # }}}
+      - name: GET /v2/auth/providers/:identifier # {{{
+        intro: |
+          Retrieve private configuration of a single SHIELD Authentication
+          Providers, for use by SHIELD administrators.  This includes all of
+          the information from the public endpoint, as well as private
+          properties including things like client secrets.
+        access: [system, admin]
+
+        response:
+          json: |
+            {
+              "name"       : "Github(.com)",
+              "identifier" : "gh",
+              "type"       : "github",
+
+              "web_entry"  : "/auth/gh/web",
+              "cli_entry"  : "/auth/gh/cli",
+              "redirect"   : "/auth/gh/redir",
+
+              "properties" : {
+                "secret"   : "properties",
+                "that"     : "are",
+                "provider" : "specific"
+              }
+            }
+
+        errors:
+          - message: No such authentication provider
+            summary: |
+              No authentication provider was found with the given
+              identifier.
+
+
+      # }}}
+
+      - name: GET /v2/auth/tokens # {{{
+        intro: |
+          Retrieve a list of all authentication tokens that have been
+          generated for use on behalf of the currently authenticated
+          user.  For security reasons, the session ID attached to the
+          authentication token is not returned.
+        access: any
+
+        response:
+          json: |
+            [
+              {
+                "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
+                "name"       : "test",
+                "created_at" : "2017-10-21 00:54:33",
+                "last_seen"  : null
+              }
+            ]
+          summary: |
+            {{JSON}}
+
+            The `uuid` key is used strictly for retrieving and revoking each
+            authentication token; it cannot be used as an authentication token,
+            as it is not the session ID.
+
+        errors:
+          - message: Authentication failed
+            summary: |
+              The request either lacked a session cookie (or an
+              `X-Shield-Session` header), or some other internal
+              error has occurred, and SHIELD administrators should
+              investigate.
+
+          - message: Unable to retrieve tokens information
+            summary: *internal
+
+
+
+      # }}}
+      - name: POST /v2/auth/tokens # {{{
+        intro: |
+          Generate a new authentication token to act on behalf of the
+          currently authenticated user.
+        access: any
+
+        request:
+          json: |
+            {
+              "name": "auth-token-name"
+            }
+          summary: |
+            {{CURL}}
+
+            Each authentication token requires a name that is unique
+            to the parent user account.
+
+        response:
+          json: |
+            {
+              "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
+              "session"    : "8ef409e9-690d-4d91-9f74-6d657f56843e",
+              "name"       : "test",
+              "created_at" : "2017-10-21 00:54:33",
+              "last_seen"  : null
+            }
+          summary: |
+            {{JSON}}
+
+            The `uuid` key is used strictly for retrieving and revoking each
+            authentication token; it cannot be used as an authentication token,
+            as it is not the session ID.
+
+            The `session` key should be used 
+
+        errors:
+          - message: Authentication failed
+            summary: |
+              The request either lacked a session cookie (or an
+              `X-Shield-Session` header), or some other internal
+              error has occurred, and SHIELD administrators should
+              investigate.
+
+          - message: Unable to retrieve tokens information
+            summary: *internal
+
+
+
+      # }}}
+      - name: DELETE /v2/auth/tokens/:uuid # {{{
+        intro: |
+          Revoke an authentication token that belongs to the currently
+          authenticated user (even if its authenticated by the token being
+          revoked).
+        access: any
+
+        response:
+          json: |
+            {
+              "ok": "Token revoked"
+            }
+          summary: |
+            {{JSON}}
+
+            Note that if you have revoked the auth token you were using, all
+            subsequent requests will fail to authenticated.  It makes sense,
+            but it bears repeating.
+
+        errors:
+          - message: Unable to revoke auth token
+            summary: *internal
+
+
+
+      # }}}
+
+  - name: SHIELD Users
+    intro: |
+      SHIELD provides both a local user database, and the ability to
+      map 3rd party systems into the SHIELD tenancy model.  These API
+      endpoints allow you to manage the former, and query the results
+      of the latter.
+
+    endpoints:
+      - name: GET /v2/auth/local/users # {{{
+        intro: |
+        access: [system, manager]
+
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering users, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: uuid
+              type: uuid
+              summary: |
+                Only show the local user that matches the given UUID.
+                This is a FIXME - we probably need to remove this.
+            - name: account
+              type: string
+              summary: |
+                Only show local users whose account names (usernames)
+                match the given value.  Subject to the `exact=(t|f)` query
+                string parameter.
+            - name: sysrole
+              type: string
+              summary: |
+                Only show local users who have been assigned the given
+                system role.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
+
+        response:
+          json: |
+            [
+              {
+                "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+                "name"       : "Full Name",
+                "account"    : "username",
+                "sysrole"    : "engineer",
+
+                "tenants": [
+                  {
+                    "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
+                    "name" : "Tenant Name",
+                    "role" : "operator"
+                  }
+                ]
+              }
+            ]
+
+        errors:
+          - message: Invalid limit parameter given
+            summary: |
+              Request specified a `limit` parameter that was either
+              non-numeric, or was negative.  Note that `0` is a valid limit,
+              standing for _unlimited_.
+
+          - message: Unable to retrieve local users information
+            summary: *internal
+
+
+
+      # }}}
+      - name: GET /v2/auth/local/users/:uuid # {{{
+        intro: |
+        access: [system, manager]
+
+        response:
+          json: |
+            {
+              "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+              "name"       : "Full Name",
+              "account"    : "username",
+              "sysrole"    : "engineer",
+
+              "tenants": [
+                {
+                  "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
+                  "name" : "Tenant Name",
+                  "role" : "operator"
+                }
+              ]
+            }
+
+        errors:
+          - message: Unable to retrieve local user information
+            summary: *internal
+
+
+
+      # }}}
+      - name: POST /v2/auth/local/users # {{{
+        intro: |
+        access: [system, manager]
+
+        request:
+          json: |
+            {
+              "name"     : "Full Name",
+              "account"  : "username",
+              "password" : "cleartext password",
+              "sysrole"  : "engineer"
+            }
+          summary: |
+            {{CURL}}
+
+            The `sysrole` parameter must be either empty (or not specified),
+            or one of the following values: **admin**, **engineer**, or
+            **operator**.
+
+        response:
+          json: |
+            {
+              "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+              "name"       : "Full Name",
+              "account"    : "username",
+              "sysrole"    : "engineer"
+            }
+          summary: |
+            {{JSON}}
+
+            **NOTE** that the user's password (neither in hashed form, or in
+            the clear) is never returned to requesters.
+
+        errors:
+          - message: System role '...' is invalid
+            summary: |
+              Request specified a `sysrole` payload parameter that was
+              outside of the allowable set of values.
+
+          - message: Unable to create local user '...'
+            summary: *internal
+
+          - message: User '...' already exists
+            summary: |
+              You attempted to create a new local user account, but the
+              username was already assigned to a pre-existing account.
+              The request should not be retried.
+
+
+
+      # }}}
+      - name: PATCH /v2/auth/local/users/:uuid # {{{
+        intro: |
+        access: [system, manager]
+
+        request:
+          json: |
+            {
+              "name"     : "Full Name",
+              "password" : "cleartext password",
+              "sysrole"  : "engineer"
+            }
+          summary: |
+            {{CURL}}
+
+            The `sysrole` parameter must be either empty (or not specified),
+            or one of the following values: **admin**, **engineer**, or
+            **operator**.
+
+            **NOTE** that you cannot alter a users `account` after creation.
+
+        response:
+          json: |
+            {
+              "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+              "name"       : "Full Name",
+              "account"    : "username",
+              "sysrole"    : "engineer"
+            }
+
+        errors:
+          - message: No such local user
+            summary: |
+              Either the user given by the URL UUID was not found in the
+              database, or that user was created by an authentication
+              provider, and not SHIELD itself.
+
+          - message: System role '...' is invalid
+            summary: |
+              Request specified a `sysrole` payload parameter that was
+              outside of the allowable set of values.
+
+          - message: Unable to update local user '...'
+            summary: *internal
+
+
+
+      # }}}
+      - name: DELETE /v2/auth/local/users/:uuid # {{{
+        intro: |
+        access: [system, manager]
+
+        response:
+          json: |
+            {
+              "ok" : "Successfully deleted local user"
+            }
+
+        errors:
+          - message: No such local user
+            summary: |
+              Either the user given by the URL UUID was not found in the
+              database, or that user was created by an authentication
+              provider, and not SHIELD itself.
+
+          - message: System role '...' is invalid
+            summary: |
+              Request specified a `sysrole` payload parameter that was
+              outside of the allowable set of values.
+
+          - message: Unable to update local user '...'
+            summary: *internal
+
+
+
+      # }}}
+
 
   - name: SHIELD Core
     intro: |
@@ -427,7 +929,7 @@ sections:
       - name: GET /v2/agents # {{{
         intro: |
           Retrieves information about all registered SHIELD Agents.
-        access: any
+        access: [system, admin]
 
         response:
           json: |
@@ -641,6 +1143,198 @@ sections:
             summary: |
               The requested agent UUID was not found in the list
               of registered agents.
+
+
+
+      # }}}
+      - name: POST /v2/agents/:uuid/show # {{{
+        intro: |
+          Mark a single SHIELD agent as visible to all tenants, and
+          available for configuration.
+        access: [system, admin]
+
+        request:
+          json: ~
+        response:
+          json: |
+            {
+              "ok" : "Agent is now visible to everyone"
+            }
+
+        errors:
+          - message: Unable to retrieve agent information
+            summary: *internal
+
+          - message: Unable to set agent visibility
+            summary: *internal
+
+          - message: No such agent
+            summary: |
+              The requested agent UUID was not found in the list
+              of registered agents.
+
+
+
+      # }}}
+      - name: POST /v2/agents/:uuid/hide # {{{
+        intro: |
+          Hide a single SHIELD agent from all tenants, rendering it unusable
+          in storage and target configuration.  Pre-existing configurations
+          will continue to function; this only affects visibility for future
+          configuration.
+        access: [system, admin]
+
+        request:
+          json: ~
+        response:
+          json: |
+            {
+              "ok" : "Agent is now visible to everyone"
+            }
+
+
+        errors:
+          - message: Unable to retrieve agent information
+            summary: *internal
+
+          - message: Unable to set agent visibility
+            summary: *internal
+
+          - message: No such agent
+            summary: |
+              The requested agent UUID was not found in the list
+              of registered agents.
+
+
+
+      # }}}
+      - name: GET /v2/tenants/:tenant/agents # {{{
+        intro: |
+          Retrieves information about all registered SHIELD Agents,
+          viewable by a given tenant.
+        access: [tenant, operator]
+
+        response:
+          json: |
+            {
+              "agents": [
+                {
+                  "name"         : "prod/web/42",
+                  "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+                  "address"      : "127.0.0.1:5444",
+                  "version"      : "dev",
+                  "status"       : "ok",
+                  "hidden"       : false,
+                  "last_error"   : "",
+                  "last_seen_at" : "2017-10-11 18:54:00"
+                }
+              ]
+            }
+          summary: |
+            {{JSON}}
+
+            The top-level `agents` key is a list of object describing each registered agent:
+
+            - **name** - The name of the SHIELD Agent, as set by
+              the local system administrator (which may not be the
+              SHIELD site administrator).
+
+            - **uuid** - The internal UUID assigned to this agent by the SHIELD Core.
+
+            - **address** - The `host:port` of the agent, from the
+              point-of-view of the SHIELD Core.
+
+            - **version - The version of the remote SHIELD Agent's software.
+
+            - **status - The health status of the remote SHIELD
+              Agent, one of `ok` or `failing`.
+
+            - **hidden - Whether or not this agent has been administratively hidden.
+
+            - **last\_error - TBD
+
+            - **last\_seen\_at - When the remote SHIELD Agent last
+              made contact with the SHIELD Core to refresh its
+              registration and its metadata.  Date is formatted
+              YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+
+        errors:
+          - message: Unable to retrieve agent information
+            summary: *internal
+
+
+      # }}}
+      - name: GET /v2/tenants/:tenant/agents/:uuid # {{{
+        intro: |
+          Retrieve extended information about a single SHIELD Agent,
+          viewable by a given tenant.  This includes plugin metadata, but
+          not problem information (which is accessible via `GET /v2/agents`,
+          but only to SHIELD administrators).
+        access: [tenant, operator]
+
+        response:
+          json: |
+            {
+              "agent": {
+                "name"         : "prod/web/42",
+                "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+                "address"      : "127.0.0.1:5444",
+                "version"      : "dev",
+                "status"       : "ok",
+                "hidden"       : false,
+                "last_error"   : "",
+                "last_seen_at" : "2017-10-11 18:54:00"
+              },
+              "metadata": {
+                "name"    : "prod/web/42",
+                "version" : "dev",
+                "health"  : "ok",
+
+                "plugins": {
+                  "fs": {
+                    "author"   : "Stark & Wayne",
+                    "features" : {
+                      "store"  : "yes",
+                      "target" : "no"
+                    },
+
+                    "fields": [
+                      {
+                        "mode"     : "store",
+                        "name"     : "storage_account",
+                        "title"    : "Storage Account",
+                        "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
+                        "type"     : "string",
+                        "required" : true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          summary: |
+            {{JSON}}
+
+            The top-level `agents` key contains the same agent
+            information that the `GET /v2/tenants/:tenant/agents` endpoint
+            returns.
+
+            The `metadata` key is exclusive to this endpoint, and
+            contains all of the agent metadata.  Of particular
+            interest is the `plugins` key, which contains a map of
+            plugin metadata, keyed by the plugin name.  The format
+            of this metadata is documented in
+            [/docs/plugins.md](/docs/plugins.md).
+
+
+        errors:
+          - message: Unable to retrieve agent information
+            summary: *internal
+
+          - message: No such agent
+            summary: |
+              The requested agent UUID was not found in the list
+              of registered agents visible to this tenant.
 
 
 
@@ -996,7 +1690,6 @@ sections:
 
         # }}}
       - name: DELETE /v2/tenants/:uuid # {{{
-        FIXME: true
         intro: |
           Remove a tenant.
         access: [system, manager]
@@ -1036,19 +1729,14 @@ sections:
                 "name"     : "Some Target",
                 "summary"  : "The operator-supplied description of this target",
                 "agent"    : "127.0.0.1:5444",
-                "endpoint" : "{}",
-                "plugin"   : "fs"
+                "plugin"   : "fs",
+
+                "config" : {
+                  "target"   : "specific",
+                  "settings" : "and configuration"
+                }
               }
             ]
-          summary: |
-            {{JSON}}
-
-            **NOTE:** the `endpoint` key is currently a string of JSON, which
-            means that it contains lots of escape sequences.  Future versions
-            of the v2 API (prior to launch) may alter this to be the full
-            JSON, inline, for both readability and sanity's sake.
-
-            FIXME: Fix target.endpoint string -> JSON problem.
 
         errors:
           - message: Unable to retrieve targets information
@@ -1576,7 +2264,7 @@ sections:
 
 
         # }}}
-      - name: PUT /v2/tenants/:tenant/policies/:uuid # {{{
+      - name: PATCH /v2/tenants/:tenant/policies/:uuid # {{{
         intro: |
           Update a single retention policy on a tenant.
         access: [tenant, engineer]
@@ -1666,11 +2354,98 @@ sections:
 
     endpoints:
       - name: GET /v2/tenants/:tenant/jobs # {{{
-        FIXME: true
         intro: |
           Retrieve all defined jobs for a tenant.
         access: [tenant, operator]
 
+        request:
+          example: /v2/tenants/:tenant/jobs?name=redis&paused=t
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering jobs, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: paused
+              type: bool
+              summary: |
+                Show only paused (`paused=t`) or unpaused (`paused=f`) jobs.
+                If omitted, all jobs are shown, regardless of their
+                pausedness.
+            - name: name
+              type: string
+              summary: |
+                Show only jobs whose names match the given value.
+                Subject to the `exact=(t|f)` query string parameter.
+              # FIXME : handle target name filtering
+            - name: target
+              type: string
+              summary: |
+                Show only jobs whose target UUIDs match the given value.
+                Subject to the `exact=(t|f)` query string parameter.
+              # FIXME : handle store name filtering
+            - name: store
+              type: string
+              summary: |
+                Show only jobs whose store UUIDs match the given value.
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: policy
+              type: string
+              summary: |
+                Show only jobs whose retention policy UUIDs match the given
+                value.  Subject to the `exact=(t|f)` query string parameter.
+          summary: |
+            {{CURL}}
+
+            By default, all jobs for the tenant will be returned.  You can
+            filter down to a subset of that by the following query string
+            parameters:
+
+            {{QUERY}}
+
+        response:
+          json: |
+            {
+              "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+              "name"     : "Job Name",
+              "summary"  : "A longer description",
+              "expiry"   : 604800,
+              "schedule" : "daily 4am",
+              "paused"   : false,
+              "agent"    : "10.0.0.5:5444",
+              "last_run" : "2017-10-19 03:00:00",
+              "status"   : "done",
+
+              "policy" : {
+                "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+                "name"    : "Retention Policy Name",
+                "summary" : "A longer description"
+              },
+
+              "store" : {
+                "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+                "name"    : "Cloud Storage System Name",
+                "summary" : "A longer description",
+                "plugin"  : "s3",
+                "config"  : {
+                  "storage" : "configuration"
+                }
+              },
+
+              "target" : {
+                "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+                "name"   : "Data System Name",
+                "plugin" : "fs",
+                "config" : {
+                  "target" : "configuration"
+                }
+              }
+            }
+
+        errors:
+          - message: Unable to retrieve tenant job information.
+            summary: *internal
 
         # }}}
       - name: POST /v2/tenants/:tenant/jobs # {{{
@@ -1679,6 +2454,26 @@ sections:
           Configure a new backup job on a tenant.
         access: [tenant, engineer]
 
+        request:
+          json: |
+            {
+              "name"     : "New Job Name",
+              "summary"  : "A longer description...",
+              "schedule" : "daily 4am",
+              "paused"   : false,
+
+              "store"    : "af1ad037-c8c1-4036-984a-3cf726b4081d",
+              "target"   : "2c64d9ff-fc9f-4114-8e89-9f7c84fcaac7",
+              "policy"   : "cb6b0503-4741-4cfd-9a1d-11b5a5aaadde"
+            }
+
+          summary: |
+            {{CURL}}
+
+            **NOTE**: As of right now, the `store`, `target`, and `policy`
+            values must be passed as the UUIDs of the related objects.
+
+            FIXME : allow non-UUIDs for all three.
 
         # }}}
       - name: GET /v2/tenants/:tenant/jobs/:uuid # {{{
@@ -1689,11 +2484,32 @@ sections:
 
 
         # }}}
-      - name: PUT /v2/tenants/:tenant/jobs/:uuid # {{{
+      - name: PATCH /v2/tenants/:tenant/jobs/:uuid # {{{
         FIXME: true
         intro: |
           Update a single job on a tenant.
         access: [tenant, engineer]
+
+        request:
+          json: |
+            {
+              "name"     : "New Name",
+              "summary"  : "An updated summary",
+              "schedule" : "daily 4am",
+              "store"    : "a6ef5aea-51f6-4e91-a490-3063395f879b",
+              "target"   : "af1425ed-53fd-4ab6-a425-fb230c383901",
+              "policy"   : "c16a4783-19b8-400d-8b51-f47dcdc11da3"
+            }
+          summary: |
+            {{CURL}}
+
+            Any of the fields in the request payload can be omitted to keep
+            the pre-existing value.
+
+            **NOTE**: As of right now, the `store`, `target`, and `policy`
+            values must be passed as the UUIDs of the related objects.
+
+            FIXME : allow non-UUIDs for all three.
 
 
         # }}}
@@ -1712,7 +2528,7 @@ sections:
 
 
         # }}}
-      - name: POST /v2/tenants/:tenant/jobs/run # {{{
+      - name: POST /v2/tenants/:tenant/jobs/:uuid/run # {{{
         FIXME: true
         intro: |
           Perform an ad hoc backup job run
@@ -1720,7 +2536,7 @@ sections:
 
 
         # }}}
-      - name: POST /v2/tenants/:tenant/jobs/pause # {{{
+      - name: POST /v2/tenants/:tenant/jobs/:uuid/pause # {{{
         FIXME: true
         intro: |
           Pause a job, to prevent it from being scheduled.
@@ -1728,7 +2544,7 @@ sections:
 
 
         # }}}
-      - name: POST /v2/tenants/:tenant/jobs/unpause # {{{
+      - name: POST /v2/tenants/:tenant/jobs/:uuid/unpause # {{{
         FIXME: true
         intro: |
           Unpause a job, allowing it to be scheduled again.
@@ -1756,13 +2572,55 @@ sections:
           Retrieve all tasks for a tenant.
         access: [tenant, operator]
 
+        response:
+          json: |
+            [
+              {
+                "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+                "owner"        : "user@backend",
+                "type"         : "backup",
+                "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+                "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+                "status"       : "running",
+                "started_at"   : "2017-10-17 04:51:16",
+                "stopped_at"   : "",
+                "log"          : "running log...",
+                "notes"        : "Annotated notes about this task",
+                "clear"        : "manual"
+              }
+            ]
+
 
         # }}}
       - name: GET /v2/tenants/:tenant/tasks/:uuid # {{{
-        FIXME: true
         intro: |
           Retrieve a single task.
         access: [tenant, operator]
+
+        response:
+          json: |
+            {
+              "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+              "owner"        : "user@backend",
+              "type"         : "backup",
+              "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+              "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+              "status"       : "running",
+              "started_at"   : "2017-10-17 04:51:16",
+              "stopped_at"   : "",
+              "log"          : "running log...",
+              "notes"        : "Annotated notes about this task",
+              "clear"        : "manual"
+            }
+
+        errors:
+          - message: Unable to retrieve task information
+            summary: *internal
+
+          - message: No such task
+            summary: |
+              You requested details on a task that either doesn't exist, or
+              is not tied to the given tenant.
 
 
         # }}}
@@ -1777,6 +2635,17 @@ sections:
               "ok": "Task canceled successfully"
             }
 
+        errors:
+          - message: Unable to retrieve task information
+            summary: *internal
+
+          - message: No such task
+            summary: |
+              You requested details on a task that either doesn't exist, or
+              is not tied to the given tenant.
+
+          - message: Unable to cancel task
+            summary: *internal
 
 
         # }}}
@@ -1816,13 +2685,63 @@ sections:
 
 
         # }}}
-      - name: POST /v2/tenants/:tenant/archives/restore # {{{
-        FIXME: true
+      - name: POST /v2/tenants/:tenant/archives/:uuid/restore # {{{
         intro: |
           Restore a backup archive for a tenant, either to the original
           target system it was taken from, or against a different target
           owned by the same tenant.
         access: [tenant, operator]
+
+        request:
+          json: |
+            {
+              "target" : "2a1731c0-7d0e-4f31-8860-7d0ae7a34261"
+            }
+          summary: |
+            {{CURL}}
+
+            Here, `target` is an optional UUID of an alternative data system
+            to restore this archive to.  This target must exist inside the
+            same tenant.  By default, if `target` is omitted, the archive
+            will be restored back to the target it was created from.
+
+        response:
+          json: |
+            {
+              "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+              "owner"        : "user@backend",
+              "type"         : "restore",
+              "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+              "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+              "status"       : "running",
+              "started_at"   : "2017-10-17 04:51:16",
+              "stopped_at"   : "",
+              "log"          : "running log...",
+              "notes"        : "Annotated notes about this task",
+              "clear"        : "manual"
+            }
+          summary: |
+            When a restore has been scheduled for execution, it generates a
+            task inside of SHIELD, which is then returned as the result to
+            the requester:
+
+            {{JSON}}
+
+            The `type` of this task will always be `restore`, and usually,
+            `log` will be empty and `stopped_at` will have no value, since
+            the task hasn't had time to run to completion.
+
+        errors:
+          - message: Unable to retrieve backup archive information
+            summary: *internal
+
+          - message: No such backup archive
+            summary: |
+              The requested backup archive was not found in the database, or
+              it was not associated with the given tenant.
+
+          - message: Unable to schedule a restore task
+            summary: *internal
 
 
         # }}}

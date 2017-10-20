@@ -10,10 +10,6 @@ import (
 	"github.com/starkandwayne/shield/util"
 )
 
-const (
-	SystemTenatnName = "SYSTEM"
-)
-
 var (
 	RoleTower map[string]int
 )

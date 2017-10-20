@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pborman/uuid"
+	"github.com/starkandwayne/goutils/log"
 )
 
 type StoreConfigItem struct {
@@ -14,12 +15,11 @@ type StoreConfigItem struct {
 }
 
 type Store struct {
-	UUID     uuid.UUID `json:"uuid"`
-	Name     string    `json:"name"`
-	Summary  string    `json:"summary"`
-	Agent    string    `json:"agent"`
-	Plugin   string    `json:"plugin"`
-	Endpoint string    `json:"endpoint,omitempty"`
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Summary string    `json:"summary"`
+	Agent   string    `json:"agent"`
+	Plugin  string    `json:"plugin"`
 
 	PublicConfig  string `json:"-"`
 	PrivateConfig string `json:"-"`
@@ -40,15 +40,17 @@ type StoreStats struct {
 	ArchiveCount  int   `json:"archive_count"`
 }
 
-func (s *Store) Resolve() error {
-	return json.Unmarshal([]byte(s.Endpoint), &s.Config)
-}
-
 func (s *Store) DisplayPublic() error {
+	if s.PublicConfig == "" {
+		return nil
+	}
 	return json.Unmarshal([]byte(s.PublicConfig), &s.DisplayConfig)
 }
 
 func (s *Store) DisplayPrivate() error {
+	if s.PrivateConfig == "" {
+		return nil
+	}
 	return json.Unmarshal([]byte(s.PrivateConfig), &s.DisplayConfig)
 }
 
@@ -59,11 +61,8 @@ func (s *Store) CacheConfigs(db *DB) error {
 
 	/* get the metadata from the agent, for the given plugin */
 	meta, err := db.GetAgentPluginMetadata(s.Agent, s.Plugin)
-	if err != nil {
-		return err
-	}
-	if meta == nil {
-		return fmt.Errorf("unable to retrieve metadata for plugin '%s' on agent '%s'", s.Plugin, s.Agent)
+	if meta == nil || err != nil {
+		return nil
 	}
 
 	/* fashion two lists of key + value pairs, representing
@@ -131,14 +130,13 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	wheres := []string{"s.uuid = s.uuid"}
 	args := []interface{}{}
 	if f.SearchName != "" {
-		comparator := "LIKE"
-		toAdd := Pattern(f.SearchName)
 		if f.ExactMatch {
-			comparator = "="
-			toAdd = f.SearchName
+			wheres = append(wheres, "s.name = ?")
+			args = append(args, f.SearchName)
+		} else {
+			wheres = append(wheres, "s.name LIKE ?")
+			args = append(args, Pattern(f.SearchName))
 		}
-		wheres = append(wheres, fmt.Sprintf("s.name %s ?", comparator))
-		args = append(args, toAdd)
 	}
 	if f.ForPlugin != "" {
 		wheres = append(wheres, "s.plugin = ?")
@@ -152,26 +150,24 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 		   SELECT s.uuid, s.name, s.summary, s.agent,
-			  s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
-			  s.private_config, s.public_config, s.daily_increase,
-			  s.storage_used, s.archive_count, s.threshold
+		          s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
+		          s.private_config, s.public_config, s.daily_increase,
+		          s.storage_used, s.archive_count, s.threshold
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
 	}
 
-	// by default, show stores with no attached jobs (unused)
 	having := `HAVING COUNT(j.uuid) = 0`
 	if f.SkipUnused {
-		// otherwise, only show stores that have attached jobs
 		having = `HAVING COUNT(j.uuid) > 0`
 	}
 
 	return `
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
-			   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
-			   s.private_config, s.public_config, s.daily_increase,
-			   s.storage_used, s.archive_count, s.threshold
+	                   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
+	                   s.private_config, s.public_config, s.daily_increase,
+	                   s.storage_used, s.archive_count, s.threshold
 	              FROM stores s
 	         LEFT JOIN jobs j
 	                ON j.store_uuid = s.uuid
@@ -196,28 +192,38 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 
 	for r.Next() {
 		s := &Store{}
-		var n int
-		var dailyIncrease, storageUsed, threshold *int64
-		var archiveCount *int
-		var this, tenant NullUUID
-		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &n, &s.PrivateConfig,
-			&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount, &threshold); err != nil {
+		var (
+			this, tenant           NullUUID
+			rawconfig              []byte
+			n                      int
+			daily, used, threshold *int64
+			archives               *int
+		)
+		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &tenant, &n, &s.PrivateConfig,
+			&s.PublicConfig, &daily, &used, &archives, &threshold); err != nil {
 			return l, err
 		}
-		if dailyIncrease != nil {
-			s.DailyIncrease = *dailyIncrease
+		s.UUID = this.UUID
+		s.TenantUUID = tenant.UUID
+
+		if daily != nil {
+			s.DailyIncrease = *daily
 		}
-		if archiveCount != nil {
-			s.ArchiveCount = *archiveCount
+		if archives != nil {
+			s.ArchiveCount = *archives
 		}
-		if storageUsed != nil {
-			s.StorageUsed = *storageUsed
+		if used != nil {
+			s.StorageUsed = *used
 		}
 		if threshold != nil {
 			s.Threshold = *threshold
 		}
-		s.UUID = this.UUID
-		s.TenantUUID = tenant.UUID
+		if rawconfig != nil {
+			if err := json.Unmarshal(rawconfig, &s.Config); err != nil {
+				log.Warnf("failed to parse storage system endpoint json '%s': %s", rawconfig, err)
+			}
+		}
+
 		l = append(l, s)
 	}
 
@@ -228,8 +234,8 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	r, err := db.Query(`
 	   SELECT s.uuid, s.name, s.summary, s.agent,
 	          s.plugin, s.endpoint, s.tenant_uuid,
-			  s.private_config, s.public_config, s.daily_increase,
-			  s.storage_used, s.archive_count, s.threshold
+	          s.private_config, s.public_config, s.daily_increase,
+	          s.storage_used, s.archive_count, s.threshold
 	     FROM stores s
 	LEFT JOIN jobs j
 	       ON j.store_uuid = s.uuid
@@ -244,46 +250,65 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	}
 
 	s := &Store{}
-	var dailyIncrease, storageUsed, threshold *int64
-	var archiveCount *int
-	var this, tenant NullUUID
-	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &s.Endpoint, &tenant, &s.PrivateConfig,
-		&s.PublicConfig, &dailyIncrease, &storageUsed, &archiveCount, &threshold); err != nil {
+	var (
+		this, tenant           NullUUID
+		rawconfig              []byte
+		daily, used, threshold *int64
+		archives               *int
+	)
+	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &tenant, &s.PrivateConfig,
+		&s.PublicConfig, &daily, &used, &archives, &threshold); err != nil {
 		return nil, err
 	}
-	if dailyIncrease != nil {
-		s.DailyIncrease = *dailyIncrease
+	s.UUID = this.UUID
+	s.TenantUUID = tenant.UUID
+
+	if daily != nil {
+		s.DailyIncrease = *daily
 	}
-	if archiveCount != nil {
-		s.ArchiveCount = *archiveCount
+	if archives != nil {
+		s.ArchiveCount = *archives
 	}
-	if storageUsed != nil {
-		s.StorageUsed = *storageUsed
+	if used != nil {
+		s.StorageUsed = *used
 	}
 	if threshold != nil {
 		s.Threshold = *threshold
 	}
-	s.UUID = this.UUID
-	s.TenantUUID = tenant.UUID
+	if rawconfig != nil {
+		if err := json.Unmarshal(rawconfig, &s.Config); err != nil {
+			log.Warnf("failed to parse storage system endpoint json '%s': %s", rawconfig, err)
+		}
+	}
 
 	return s, nil
 }
 
 func (db *DB) CreateStore(s *Store) (*Store, error) {
 	if err := s.CacheConfigs(db); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to cache storage configs: %s", err)
+	}
+
+	rawconfig, err := json.Marshal(s.Config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
 	s.UUID = uuid.NewRandom()
 	return s, db.Exec(`
 	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold)
 	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?)`,
-		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.Threshold)
+		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold)
 }
 
 func (db *DB) UpdateStore(s *Store) error {
 	if err := s.CacheConfigs(db); err != nil {
-		return err
+		return fmt.Errorf("unable to cache storage configs: %s", err)
+	}
+
+	rawconfig, err := json.Marshal(s.Config)
+	if err != nil {
+		return fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
 	return db.Exec(`
@@ -294,12 +319,12 @@ func (db *DB) UpdateStore(s *Store) error {
 	          plugin         = ?,
 	          endpoint       = ?,
 	          private_config = ?,
-			  public_config  = ?,
-			  daily_increase = ?,
-			  archive_count  = ?,
-			  storage_used   = ?,
-			  threshold      = ?
-		WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, s.Endpoint, s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
+	          public_config  = ?,
+	          daily_increase = ?,
+	          archive_count  = ?,
+	          storage_used   = ?,
+	          threshold      = ?
+	    WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
 		s.ArchiveCount, s.StorageUsed, s.Threshold, s.UUID.String(),
 	)
 }
