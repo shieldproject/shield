@@ -782,7 +782,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		var raw map[string]interface{}
-		if err = json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
+		if err := json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
 		}
@@ -1162,7 +1162,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 		if tenant != nil {
-			if err = core.DB.DeleteTenant(tenant); err != nil {
+			if err := core.DB.DeleteTenant(tenant); err != nil {
 				r.Fail(route.Oops(err, "Unable to delete tenant '%s' (%s)", r.Args[1], tenant.Name))
 				return
 			}
@@ -1203,7 +1203,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		var raw map[string]interface{}
-		if err = json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
+		if err := json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
 		}
@@ -1608,7 +1608,7 @@ func (core *Core) v2API() *route.Router {
 		store.Endpoint = ""
 
 		/* FIXME: we also have to handle public, for operators */
-		if err = store.DisplayPublic(); err != nil {
+		if err := store.DisplayPublic(); err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
 			return
 		}
@@ -2101,7 +2101,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		if err = core.DB.CancelTask(task.UUID, time.Now()); err != nil {
+		if err := core.DB.CancelTask(task.UUID, time.Now()); err != nil {
 			r.Fail(route.Oops(err, "Unable to cancel task"))
 			return
 		}
@@ -2397,7 +2397,7 @@ func (core *Core) v2API() *route.Router {
 		store.Endpoint = ""
 
 		/* FIXME: we also have to handle public, for operators */
-		if err = store.DisplayPublic(); err != nil {
+		if err := store.DisplayPublic(); err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
 			return
 		}
