@@ -471,13 +471,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		var user *db.User
-		user, err := core.AuthenticatedUser(r)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retreive tokens information"))
-			return
-		}
-
+		user, _ := core.AuthenticatedUser(r)
 		tokens, err := core.DB.GetAllAuthTokens(&db.AuthTokenFilter{
 			User: user,
 		})
@@ -493,11 +487,7 @@ func (core *Core) v2API() *route.Router {
 		if core.IsNotAuthenticated(r) {
 			return
 		}
-		user, err := core.AuthenticatedUser(r)
-		if user == nil || err != nil {
-			r.Fail(route.Unauthorized(err, "Authorization required"))
-			return
-		}
+		user, _ := core.AuthenticatedUser(r)
 
 		var in struct {
 			Name string `json:"name"`
@@ -535,13 +525,9 @@ func (core *Core) v2API() *route.Router {
 		if core.IsNotAuthenticated(r) {
 			return
 		}
-		user, err := core.AuthenticatedUser(r)
-		if user == nil || err != nil {
-			r.Fail(route.Unauthorized(err, "Authorization required"))
-			return
-		}
 
-		if err = core.DB.DeleteAuthToken(r.Args[1]); err != nil {
+		user, _ := core.AuthenticatedUser(r)
+		if err := core.DB.DeleteAuthToken(r.Args[1], user); err != nil {
 			r.Fail(route.Oops(err, "Unable to revoke auth token"))
 			return
 		}
@@ -1966,18 +1952,8 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		var in struct {
-			Owner string `json:"owner"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		if in.Owner == "" {
-			in.Owner = "anon"
-		}
-
-		task, err := core.DB.CreateBackupTask(in.Owner, job)
+		user, _ := core.AuthenticatedUser(r)
+		task, err := core.DB.CreateBackupTask(fmt.Sprintf("%s@%s", user.Account, user.Backend), job)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to schedule ad hoc backup job run"))
 			return
@@ -2236,7 +2212,6 @@ func (core *Core) v2API() *route.Router {
 
 		var in struct {
 			Target string `json:"target"`
-			Owner  string `json:"owner"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2252,10 +2227,6 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: remove owner, and use the authenticated session */
-		if in.Owner == "" {
-			in.Owner = "anon"
-		}
 		if in.Target == "" {
 			in.Target = archive.TargetUUID.String()
 		}
@@ -2271,7 +2242,8 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		task, err := core.DB.CreateRestoreTask(in.Owner, archive, target)
+		user, _ := core.AuthenticatedUser(r)
+		task, err := core.DB.CreateRestoreTask(fmt.Sprintf("%s@%s", user.Account, user.Backend), archive, target)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to schedule a restore task"))
 			return

@@ -1,8 +1,4 @@
 meta:
-  access:
-    anon: &anon
-      authn: false
-
   errors:
     internal: &internal |
       an internal error occurred and should be investigated by the

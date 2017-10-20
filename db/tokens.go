@@ -117,6 +117,6 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 	return t, token.String(), err
 }
 
-func (db *DB) DeleteAuthToken(id string) error {
-	return db.Exec(`DELETE FROM sessions WHERE token = ?`, id)
+func (db *DB) DeleteAuthToken(id string, user *User) error {
+	return db.Exec(`DELETE FROM sessions WHERE token = ? && user_uuid = ?`, id, user.UUID.String())
 }

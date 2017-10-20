@@ -3550,7 +3550,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
         api({
           type: 'GET',
-          url:  '/v1/task/'+uuid,
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/tasks/'+uuid,
           error: "Failed to retrieve task information from the SHIELD API.",
           success: function (data) {
             $task.html(template('task', {
@@ -3623,7 +3623,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         banner('scheduling ad hoc backup...', 'progress');
         api({
           type: 'POST',
-          url:  '/v1/job/'+uuid+'/run',
+          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs/'+uuid+'/run',
           success: function () {
             banner('ad hoc backup job scheduled');
             reload();
@@ -3648,7 +3648,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           event.preventDefault();
           api({
             type: 'POST',
-            url:  '/v1/archive/'+uuid+'/restore',
+            url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/archives/'+uuid+'/restore',
             success: function() {
               banner("restore operation started");
             },
