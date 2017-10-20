@@ -1179,7 +1179,6 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } ]]
             <h2>[[ if (_.store) { ]]Edit[[ } else { ]]New[[ } ]] Storage System</h2>
 
-            [[ console.dir("agents", _.agents); ]]
             [[ if (!_.agents || _.agents.length == 0) { ]]
             <p class="notice failure">There are currently no Agents registered with
             this SHIELD Core; you will not be able to configure Storage Systems until
@@ -3431,7 +3430,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       }));
     }
     function goto(page) {
-      console.log("goto %s", page);
       if (document.location.hash == page) {
         dispatch(page); // re-dispatch
       } else {
@@ -3565,7 +3563,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
       /* global: show an annotation form, in a task log {{{ */
       $('#main').on('click', '.task button[rel^="annotate:"]', function (event) {
-        console.log('annotating!');
         $(event.target).closest('.task').find('form.annotate').toggle();
       });
       /* }}} */
