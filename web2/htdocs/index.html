@@ -3421,9 +3421,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       referer = page;
     }
 
-    function reload() {
-      dispatch(document.location.hash);
-    }
     function redraw() {
       $('#hud').html(template('hud', $global.hud));
       $('.top-bar').html(template('top-bar', {
@@ -3434,7 +3431,15 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       }));
     }
     function goto(page) {
-      document.location.hash = page;
+      console.log("goto %s", page);
+      if (document.location.hash == page) {
+        dispatch(page); // re-dispatch
+      } else {
+        document.location.hash = page;
+      }
+    }
+    function reload() {
+      goto(document.location.hash)
     }
 
     $(function () {
@@ -3515,7 +3520,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           if ($global.auth.tenants[i].uuid == uuid) {
             $global.auth.tenant = $global.auth.tenants[i];
             redraw();
-            reload();
+            var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
+            if (page == "#!/do") { page = "#!/systems"; }
+            goto(page);
           }
         }
       });
