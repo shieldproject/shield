@@ -129,8 +129,8 @@ motd: |
   Welcome to the testdev S.H.I.E.L.D. environment!
 
 failsafe:
-  username: admin
-  password: failsafe
+  username: failsafe
+  password: sekrit
 
 auth:
   - name:       Github
