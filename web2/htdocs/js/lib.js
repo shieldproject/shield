@@ -605,6 +605,7 @@
 
 
   /***************************************************
+     api(...) - Make a single AJAX call
 
    ***************************************************/
   exported.api = (function () { // {{{
@@ -631,6 +632,59 @@
       }
 
       return $.ajax(options);
+    };
+  })();
+  // }}}
+
+  /***************************************************
+     apis(...) - Combine multiple AJAX calls
+
+   ***************************************************/
+  exported.apis = (function () { // {{{
+    return function (options) {
+      var failed = false;
+      var nwait = 0;
+      var data = {};
+
+      var e = 'An unknown error has occurred.';
+      if (typeof(options.error) === 'string') {
+        e = options.error;
+        delete options.error;
+      }
+
+      if (!('error' in options)) {
+        options.error = function (xhr) {
+          $('#main').html(exported.template('error', {
+            http:     xhr.status + ' ' + xhr.statusText,
+            response: xhr.responseText,
+            message:  e,
+          }));
+        };
+      }
+
+      var done = function () {
+        if (failed) {
+          options.error(failed); /* failed is an xhr */
+        } else {
+          options.success(data);
+        }
+      };
+
+      for (var key in options.multiplex) {
+        (function (k) {
+          nwait++;
+          api({
+            type:  options.multiplex[k].type,
+            url:   options.multiplex[k].url.replace(/^\+/, options.base),
+            data:  options.multiplex[k].data,
+            error:    function (xhr) { failed = xhr; },
+            success:  function (dat) { data[k] = dat; },
+            complete: function () {
+              nwait--; if (nwait <= 0) { done() }
+            }
+          });
+        })(key);
+      }
     };
   })();
   // }}}
