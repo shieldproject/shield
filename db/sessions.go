@@ -98,7 +98,7 @@ func (db *DB) ClearAllSessions() error {
 }
 
 func (db *DB) ClearSession(id string) error {
-	return db.Exec(`DELETE FROM sessions WHERE token_uuid IS NULL AND uuid = ?`, id)
+	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND uuid = ?`, id)
 }
 
 func (db *DB) PokeSession(id string) error {
