@@ -196,20 +196,12 @@ func (s v4Schema) Deploy(db *DB) error {
 	err = db.Exec(`CREATE TABLE sessions (
 	                 uuid          UUID PRIMARY KEY,
 	                 user_uuid     UUID NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
-	                 provider      TEXT,
-									 provider_data TEXT,
-									 last_used_at  INTEGER
-	               )`)
-	if err != nil {
-		return err
-	}
+	                 created_at    INTEGER NOT NULL,
+	                 last_seen     INTEGER,
 
-	err = db.Exec(`CREATE TABLE tokens (
-                   uuid         UUID PRIMARY KEY,
-                   session_uuid UUID NOT NULL REFERENCES sessions(uuid) ON DELETE CASCADE,
-                   name         TEXT NOT NULL,
-									 created_at   INTEGER NOT NULL
-               )`)
+	                 token         UUID DEFAULT NULL, -- the auth token itself
+	                 name          TEXT DEFAULT ''    -- name for auth token
+	               )`)
 	if err != nil {
 		return err
 	}

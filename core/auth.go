@@ -10,13 +10,6 @@ import (
 	"github.com/starkandwayne/shield/route"
 )
 
-const (
-	//UnauthString is the error returned for a 401
-	UnauthString = "Authentication required"
-	//OopsString is a default error returned for a 500
-	OopsString = "An unknown error occurred"
-)
-
 func IsValidTenantRole(role string) bool {
 	return role == "admin" || role == "engineer" || role == "operator"
 }
@@ -78,7 +71,7 @@ func getAuthToken(req *http.Request) string {
 
 func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 	if user == nil {
-		return nil, fmt.Errorf("No user was given")
+		return nil, nil
 	}
 
 	answer := authResponse{
@@ -153,25 +146,17 @@ func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
 }
 
 func (core *Core) hasTenantRole(r *route.Request, tenant string, roles ...string) bool {
-	session, _ := r.SessionID()
-	if uuid.Parse(session) == nil {
-		return false
-	}
-
-	user, err := core.DB.GetUserForSession(session)
-	if err != nil {
-		log.Debugf("failed to retrieve user account for session '%s': %s", session, err)
-		return false
-	}
-	if user == nil {
-		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session)
+	user, err := core.AuthenticatedUser(r)
+	if user == nil || err != nil {
+		r.Fail(route.Unauthorized(err, "Authorization required"))
 		return false
 	}
 
 	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
 	if err != nil {
-		log.Debugf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
+		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
 			user.Account, user.Backend, user.UUID.String(), err)
+		r.Fail(route.Forbidden(err, "Access denied"))
 		return false
 	}
 
@@ -186,22 +171,14 @@ func (core *Core) hasTenantRole(r *route.Request, tenant string, roles ...string
 		}
 	}
 
+	r.Fail(route.Forbidden(nil, "Access denied"))
 	return false
 }
 
 func (core *Core) hasSystemRole(r *route.Request, roles ...string) bool {
-	session, _ := r.SessionID()
-	if uuid.Parse(session) == nil {
-		return false
-	}
-
-	user, err := core.DB.GetUserForSession(session)
-	if err != nil {
-		log.Debugf("failed to retrieve user account for session '%s': %s", session, err)
-		return false
-	}
-	if user == nil {
-		log.Debugf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session)
+	user, err := core.AuthenticatedUser(r)
+	if user == nil || err != nil {
+		r.Fail(route.Unauthorized(err, "Authorization required"))
 		return false
 	}
 
@@ -210,67 +187,28 @@ func (core *Core) hasSystemRole(r *route.Request, roles ...string) bool {
 			return true
 		}
 	}
+
+	r.Fail(route.Forbidden(nil, "Access denied"))
 	return false
 }
 
-//AuthenticatedUser gets the session ID out of the Request object and retrieves
-// the user which it authenticates. If the session ID is invalid or no such
-// session exists, nil is returned. Nil will also be returned if the session ID
-// was given as an auth token and the session associated with the ID is not
-// an auth token. The fail handler is called on the given route.Request object
-// if no user is returned
-func (core *Core) AuthenticatedUser(r *route.Request) *db.User {
-	session, isToken := r.SessionID()
-	sessionUUID := uuid.Parse(session)
-	if sessionUUID == nil {
-		r.Fail(route.Unauthorized(fmt.Errorf("No valid session ID was given"), UnauthString))
-		return nil
-	}
-
+func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
+	session := r.SessionID()
 	user, err := core.DB.GetUserForSession(session)
-	if err != nil {
-		r.Fail(route.Oops(
-			fmt.Errorf("failed to retrieve user account for session '%s': %s", session, err),
-			OopsString,
-		))
-		return nil
-	}
-	if user == nil {
-		r.Fail(route.Unauthorized(
-			fmt.Errorf("failed to retrieve user account for session '%s': database did not throw an error, but returned a nil user", session),
-			UnauthString,
-		))
-		return nil
+	if err != nil || user == nil {
+		return user, err
 	}
 
-	//Verify a token is actually a token and a normal session isn't a token
-	token, err := db.TokenFilter{SessionUUID: &sessionUUID}.Get(core.DB)
-	if err != nil {
-		r.Fail(route.Oops(
-			fmt.Errorf("failed to retrieve token for session '%s': %s", session, err),
-			OopsString,
-		))
-		return nil
-	}
-
-	if isToken != (token != nil) {
-		r.Fail(route.Unauthorized(nil, UnauthString))
-		return nil
-	}
-	err = core.DB.UpdateSessionLastUsed(sessionUUID)
-	if err != nil {
-		r.Fail(route.Oops(err, OopsString))
-		return nil
-	}
-
-	return user
+	_ = core.DB.PokeSession(session)
+	return user, nil
 }
 
-//IsNotAuthenticated returns true if no authenticated user is associated with
-// the session ID in the given Request object. See AuthenticatedUser for the
-// semantics of how a user is determined to be associated with a session ID.
 func (core *Core) IsNotAuthenticated(r *route.Request) bool {
-	return core.AuthenticatedUser(r) == nil
+	if user, err := core.AuthenticatedUser(r); user == nil || err != nil {
+		r.Fail(route.Unauthorized(err, "Authorization required"))
+		return true
+	}
+	return false
 }
 
 func (core *Core) IsNotSystemAdmin(r *route.Request) bool {

@@ -10,7 +10,6 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
-	"github.com/starkandwayne/goutils/timestamp"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -476,48 +475,36 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	type v2AuthToken struct {
-		ID         string `json:"id"`
-		Token      string `json:"token,omitempty"`
-		Name       string `json:"name"`
-		CreatedAt  string `json:"created_at"`
-		LastUsedAt string `json:"last_used_at,omitempty"`
-	}
-
 	r.Dispatch("GET /v2/auth/tokens", func(r *route.Request) { // {{{
+		if core.IsNotAuthenticated(r) {
+			return
+		}
+
 		var user *db.User
-		if user = core.AuthenticatedUser(r); user == nil {
-			return
-		}
-
-		tokens, err := db.TokenFilter{UserUUID: &user.UUID}.List(core.DB)
+		user, err := core.AuthenticatedUser(r)
 		if err != nil {
-			r.Fail(route.Oops(err, OopsString))
+			r.Fail(route.Oops(err, "Unable to retreive tokens information"))
 			return
 		}
 
-		respTokens := make([]v2AuthToken, len(tokens))
-
-		for i, token := range tokens {
-			var lastUsedStr string
-			if token.LastUsedAt != nil {
-				lastUsedStr = token.LastUsedAt.Format(timestamp.Format)
-			}
-			respTokens[i] = v2AuthToken{
-				ID:         token.UUID.String(),
-				Name:       token.Name,
-				CreatedAt:  token.CreatedAt.Format(timestamp.Format),
-				LastUsedAt: lastUsedStr,
-			}
+		tokens, err := core.DB.GetAllAuthTokens(&db.AuthTokenFilter{
+			User: user,
+		})
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve tokens information"))
+			return
 		}
 
-		r.OK(&respTokens)
+		r.OK(tokens)
 	})
 	// }}}
-
 	r.Dispatch("POST /v2/auth/tokens", func(r *route.Request) { // {{{
-		var user *db.User
-		if user = core.AuthenticatedUser(r); user == nil {
+		if core.IsNotAuthenticated(r) {
+			return
+		}
+		user, err := core.AuthenticatedUser(r)
+		if user == nil || err != nil {
+			r.Fail(route.Unauthorized(err, "Authorization required"))
 			return
 		}
 
@@ -531,56 +518,44 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		token, err := core.DB.CreateToken(in.Name, user.UUID)
+		existing, err := core.DB.GetAllAuthTokens(&db.AuthTokenFilter{
+			Name: in.Name,
+			User: user,
+		})
 		if err != nil {
-			if _, isDup := err.(db.ErrExists); isDup {
-				r.Fail(route.Bad(err, "A token with this name already exists for this user"))
-			} else {
-				r.Fail(route.Oops(err, OopsString))
-			}
+			r.Fail(route.Oops(err, "Unable to retrieve tokens information"))
 			return
 		}
-		if token == nil {
-			r.Fail(route.Oops(fmt.Errorf("No token was retrieved after creation"), OopsString))
+		if len(existing) != 0 {
+			r.Fail(route.Bad(err, "A token with this name already exists"))
 			return
 		}
 
-		r.OK(v2AuthToken{
-			ID:        token.UUID.String(),
-			Token:     token.SessionUUID.String(),
-			Name:      token.Name,
-			CreatedAt: token.CreatedAt.Format(timestamp.Format),
-		})
+		token, id, err := core.DB.GenerateAuthToken(in.Name, user)
+		if id == "" || err != nil {
+			r.Fail(route.Oops(err, "Unable to generate new token"))
+			return
+		}
+
+		r.OK(token)
 	})
 	// }}}
-
-	r.Dispatch("DELETE /v2/auth/tokens/:uuid", func(r *route.Request) { // {{{
-		var user *db.User
-		if user = core.AuthenticatedUser(r); user == nil {
+	r.Dispatch("DELETE /v2/auth/tokens/:token", func(r *route.Request) { // {{{
+		if core.IsNotAuthenticated(r) {
+			return
+		}
+		user, err := core.AuthenticatedUser(r)
+		if user == nil || err != nil {
+			r.Fail(route.Unauthorized(err, "Authorization required"))
 			return
 		}
 
-		toDelete := uuid.Parse(r.Args[1])
-		if toDelete == nil {
-			r.Fail(route.Bad(nil, fmt.Sprintf("%s is not a valid token", r.Args[1])))
+		if err = core.DB.DeleteAuthToken(r.Args[1]); err != nil {
+			r.Fail(route.Oops(err, "Unable to revoke auth token"))
+			return
 		}
 
-		token, err := db.TokenFilter{SessionUUID: &toDelete}.Get(core.DB)
-		if err != nil {
-			r.Fail(route.Oops(err, OopsString))
-		}
-
-		if token == nil ||
-			(token.UserUUID.String() != user.UUID.String() && user.SysRole != "admin") {
-			r.Success("No such token")
-		}
-
-		err = core.DB.DeleteToken(toDelete)
-		if err != nil {
-			r.Fail(route.Oops(err, "An unknown error occurred"))
-		}
-
-		r.Success("Deleted")
+		r.Success("Token revoked")
 	})
 	// }}}
 
@@ -760,8 +735,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/agents", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
+		if core.IsNotAuthenticated(r) {
 			return
 		}
 
@@ -796,12 +770,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/agents/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemAdmin(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemAdmin(r) {
 			return
 		}
 
@@ -881,12 +850,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -911,12 +875,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -940,12 +899,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -1012,12 +966,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/invite", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -1070,12 +1019,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/banish", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -1127,12 +1071,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -1156,12 +1095,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PATCH /v2/tenants/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -1199,12 +1133,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemManager(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemManager(r) {
 			return
 		}
 
@@ -1224,12 +1153,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
 		if core.IsNotTenantOperator(r, r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
 			return
 		}
 
@@ -1252,12 +1176,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/targets", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1302,12 +1221,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -1326,12 +1240,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1382,12 +1291,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/targets/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1417,12 +1321,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -1444,12 +1343,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1491,12 +1385,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1515,12 +1404,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1572,12 +1456,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1607,12 +1486,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -1644,12 +1518,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -1680,12 +1549,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}""
 	r.Dispatch("POST /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1744,12 +1608,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1824,12 +1683,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/stores/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1858,12 +1712,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -1890,12 +1739,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/jobs", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -1936,12 +1780,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -1960,12 +1799,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -2020,12 +1854,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/jobs/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantEngineer(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
 
@@ -2054,12 +1883,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/run", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2102,12 +1926,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/pause", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2130,12 +1949,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/jobs/:uuid/unpause", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2159,12 +1973,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/tasks", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2192,12 +2001,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2215,12 +2019,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2244,12 +2043,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/archives", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2284,12 +2078,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2315,12 +2104,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2356,12 +2140,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/archives/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2390,12 +2169,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/archives/:uuid/restore", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotTenantOperator(r.SessionID(), r.Args[1]) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
@@ -2476,25 +2250,17 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		id, _ := core.checkAuth(user)
-		if id == nil {
-			r.Fail(route.Oops(fmt.Errorf("Failed to lookup session ID after login"), "An unknown error occurred"))
+		id, err := core.checkAuth(user)
+		if err != nil || id == nil {
+			r.Fail(route.Oops(err, "Unable to log you in"))
 		}
 
 		SetAuthHeaders(r, session.UUID)
-
 		r.OK(id)
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/logout", func(r *route.Request) { // {{{
-		sessionID, isToken := r.SessionID()
-		//If the given auth is a token, we don't want to clear the session in the
-		//database
-		if sessionID == "" || isToken {
-			r.Success("Successfully logged out")
-		}
-
-		if err := core.DB.ClearSession(uuid.Parse(sessionID)); err != nil {
+		if err := core.DB.ClearSession(r.SessionID()); err != nil {
 			r.Fail(route.Oops(err, "Unable to log you out"))
 			return
 		}
@@ -2504,24 +2270,19 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/id", func(r *route.Request) { // {{{
-		user := core.AuthenticatedUser(r)
-		if user == nil {
-			return
+		user, _ := core.AuthenticatedUser(r)
+		if id, _ := core.checkAuth(user); id != nil {
+			r.OK(id)
 		}
 
-		id, err := core.checkAuth(user)
-		if err != nil {
-			r.Fail(route.Oops(err, OopsString))
-			return
-		}
-
-		r.OK(id)
+		r.OK(struct {
+			Unauthenticated bool `json:"unauthenticated"`
+		}{true})
 	})
 	// }}}
 
 	r.Dispatch("GET /v2/global/stores", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
+		if core.IsNotAuthenticated(r) {
 			return
 		}
 
@@ -2553,8 +2314,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/global/stores/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
+		if core.IsNotAuthenticated(r) {
 			return
 		}
 
@@ -2585,12 +2345,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}""
 	r.Dispatch("POST /v2/global/stores", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemEngineer(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemEngineer(r) {
 			return
 		}
 
@@ -2643,12 +2398,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/global/stores/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemEngineer(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemEngineer(r) {
 			return
 		}
 
@@ -2722,12 +2472,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/global/stores/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemEngineer(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemEngineer(r) {
 			return
 		}
 
@@ -2756,8 +2501,7 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/global/policies", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
+		if core.IsNotAuthenticated(r) {
 			return
 		}
 
@@ -2779,12 +2523,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/global/policies", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemEngineer(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemEngineer(r) {
 			return
 		}
 
@@ -2826,8 +2565,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/global/policies/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
+		if core.IsNotAuthenticated(r) {
 			return
 		}
 
@@ -2846,12 +2584,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("PUT /v2/global/policies/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemEngineer(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemEngineer(r) {
 			return
 		}
 
@@ -2903,12 +2636,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/global/policies/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r.SessionID()) {
-			r.Fail(route.Unauthorized(nil, "Authorization required"))
-			return
-		}
-		if core.IsNotSystemEngineer(r.SessionID()) {
-			r.Fail(route.Forbidden(nil, "Access denied"))
+		if core.IsNotSystemEngineer(r) {
 			return
 		}
 

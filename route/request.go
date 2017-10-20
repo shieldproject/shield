@@ -11,12 +11,9 @@ import (
 )
 
 const (
-	//SessionHeaderKey is the name of the http header containing a session ID
 	SessionHeaderKey = "X-Shield-Session"
-	//SessionCookieKey is the name of the browser cookie containing a session ID
 	SessionCookieKey = "shield7"
-	//TokenHeaderKey is the name of the http Header containing an auth token
-	TokenHeaderKey = "X-Shield-Token"
+	TokenHeaderKey   = "X-Shield-Token"
 )
 
 type Request struct {
@@ -42,23 +39,20 @@ func (r *Request) String() string {
 	return fmt.Sprintf("%s %s", r.Req.Method, r.Req.URL.Path)
 }
 
-//SessionID returns the session ID found in the request headers, if any. If no
-// session id is found, the empty string is returned. Also returns true
-// if the session ID is found in the X-Shield-Token header and false otherwise.
-func (r *Request) SessionID() (session string, isToken bool) {
-	if session = r.Req.Header.Get(SessionHeaderKey); session != "" {
-		return
+func (r *Request) SessionID() string {
+	if s := r.Req.Header.Get(SessionHeaderKey); s != "" {
+		return s
 	}
 
-	if cookie, err := r.Req.Cookie(SessionCookieKey); err == nil {
-		return cookie.Value, false
+	if c, err := r.Req.Cookie(SessionCookieKey); err == nil {
+		return c.Value
 	}
 
-	if session = r.Req.Header.Get(TokenHeaderKey); session != "" {
-		isToken = true
+	if s := r.Req.Header.Get(TokenHeaderKey); s != "" {
+		return s
 	}
 
-	return
+	return ""
 }
 
 func (r *Request) Success(msg string, args ...interface{}) {

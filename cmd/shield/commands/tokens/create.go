@@ -35,9 +35,9 @@ var Create = &commands.Command{
 }
 
 func cliCreateToken(opts *commands.Options, args ...string) error {
-	log.DEBUG("running `create-token' command")
+	log.DEBUG("running `create-auth-token' command")
 
-	internal.Require(len(args) == 1, "shield create-token <tokenname>")
+	internal.Require(len(args) == 1, "shield create-auth-token NAME")
 	token, err := api.CreateToken(args[0])
 	if err != nil {
 		return err
@@ -55,19 +55,18 @@ func cliCreateToken(opts *commands.Options, args ...string) error {
 	return nil
 }
 
-//Show displays information about the given Store to stdout
 func Show(token *api.Token) {
 	t := tui.NewReport()
-	t.Add("Name", token.Name)
-	if token.Token != "" {
-		t.Add("Token", token.Token)
+	if token.Session != "" {
+		t.Add("Token", token.Session)
 	}
+	t.Add("Name", token.Name)
 	t.Add("Created At", token.CreatedAt)
-	if token.Token == "" {
-		if token.LastUsedAt == "" {
-			token.LastUsedAt = "never"
+	if token.Session == "" {
+		if token.LastSeen == "" {
+			token.LastSeen = "never"
 		}
-		t.Add("Last Used At", token.LastUsedAt)
+		t.Add("Last Seen", token.LastSeen)
 	}
 	t.Output(os.Stdout)
 }

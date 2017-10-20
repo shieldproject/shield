@@ -170,22 +170,21 @@ func (core *Core) Run() error {
 		return fmt.Errorf("database failed schema version check: %s", err)
 	}
 
-	//Make failsafe user if no other local users exist
-	existingUsers, err := core.DB.GetAllUsers(&db.UserFilter{Backend: "local"})
+	existing, err := core.DB.GetAllUsers(&db.UserFilter{Backend: "local"})
 	if err != nil {
 		return fmt.Errorf("Failed to retrieve list of local users: %s", err)
 	}
+	if len(existing) == 0 {
+		log.Infof("no local users detected; creating failsafe administrator account '%s'\n", core.failsafe.Username)
+		user := &db.User{
+			Name:    "Administrator",
+			Account: core.failsafe.Username,
+			Backend: "local",
+			SysRole: "admin",
+		}
 
-	failsafeUser := &db.User{
-		Name:    core.failsafe.Username,
-		Account: core.failsafe.Username,
-		Backend: "local",
-		SysRole: "admin",
-	}
-
-	failsafeUser.SetPassword(core.failsafe.Password)
-	if len(existingUsers) == 0 {
-		_, err := core.DB.CreateUser(failsafeUser)
+		user.SetPassword(core.failsafe.Password)
+		_, err := core.DB.CreateUser(user)
 		if err != nil {
 			return fmt.Errorf("Failed to create failsafe user: %s", err)
 		}

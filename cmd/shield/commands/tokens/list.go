@@ -28,7 +28,7 @@ var List = &commands.Command{
 }
 
 func cliListTokens(opts *commands.Options, args ...string) error {
-	log.DEBUG("running `tokens' command")
+	log.DEBUG("running `auth-tokens' command")
 	tokens, err := api.ListTokens()
 	if err != nil {
 		return err
@@ -39,12 +39,12 @@ func cliListTokens(opts *commands.Options, args ...string) error {
 		return nil
 	}
 
-	t := tui.NewTable("Name", "Created At", "Last Used At")
+	t := tui.NewTable("Name", "Created At", "Last Seen")
 	for _, token := range tokens {
-		if token.LastUsedAt == "" {
-			token.LastUsedAt = "never"
+		if token.LastSeen == "" {
+			token.LastSeen = "never"
 		}
-		t.Row(token, token.Name, token.CreatedAt, token.LastUsedAt)
+		t.Row(token, token.Name, token.CreatedAt, token.LastSeen)
 	}
 	t.Output(os.Stdout)
 

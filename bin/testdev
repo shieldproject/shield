@@ -128,6 +128,10 @@ color: yellow
 motd: |
   Welcome to the testdev S.H.I.E.L.D. environment!
 
+failsafe:
+  username: admin
+  password: failsafe
+
 auth:
   - name:       Github
     identifier: github

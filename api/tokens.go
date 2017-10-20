@@ -4,11 +4,11 @@ import "encoding/json"
 
 //Token is a v2 authentication token
 type Token struct {
-	ID         string `json:"id,omitempty"`
-	Token      string `json:"token,omitempty"`
-	Name       string `json:"name"`
-	CreatedAt  string `json:"created_at"`
-	LastUsedAt string `json:"last_used_at,omitempty"`
+	UUID      string `json:"uuid"`
+	Session   string `json:"session,omitempty"`
+	Name      string `json:"name"`
+	CreatedAt string `json:"created_at"`
+	LastSeen  string `json:"last_seen,omitempty"`
 }
 
 //ListTokens returns a list of tokens created by the currently authenticated user

@@ -471,19 +471,19 @@ func FindToken(search string, strict bool) (ret Token, u uuid.UUID, err error) {
 
 	case 1:
 		ret = candidates[0]
-		u = uuid.Parse(ret.ID)
+		u = uuid.Parse(ret.UUID)
 
 	default:
-		t := tui.NewTable("Name", "Created At", "Last Used At")
+		t := tui.NewTable("Name", "Created At", "Last Seen")
 		for _, token := range candidates {
-			t.Row(token, token.Name, token.CreatedAt, token.LastUsedAt)
+			t.Row(token, token.Name, token.CreatedAt, token.LastSeen)
 		}
 
 		want := tui.Menu(
 			fmt.Sprintf("More than one token matched your search for '%s':", search),
 			&t, "Which token do you want?")
 		ret = want.(Token)
-		u = uuid.Parse(ret.ID)
+		u = uuid.Parse(ret.UUID)
 	}
 	return
 }

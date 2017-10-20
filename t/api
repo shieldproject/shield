@@ -10,8 +10,8 @@ SHIELD_DAEMON_ADDR="$SHIELD_DAEMON_HOST:$SHIELD_DAEMON_PORT"
 SHIELD_AGENT_HOST=127.0.0.1
 SHIELD_AGENT_PORT=5441
 SHIELD_AGENT_ADDR="$SHIELD_AGENT_HOST:$SHIELD_AGENT_PORT"
-SHIELD_WEB_USER=admin
-SHIELD_WEB_PASS=secret
+SHIELD_USER=initio
+SHIELD_PASS=sekrit
 SHIELD_NAME="T.E.S.T. S.H.I.E.L.D."
 SHIELD_MASTER_PASSWORD="master-chief-117"
 
@@ -74,9 +74,10 @@ auth:
       client_secret:   BAR
       github_endpoint: https://git.corporate.internal
 
-# basic:
-#   user:     ${SHIELD_WEB_USER}
-#   password: ${SHIELD_WEB_PASS}
+failsafe:
+  username: ${SHIELD_USER}
+  password: ${SHIELD_PASS}
+
 EOF
 
   set -e
@@ -199,8 +200,6 @@ ok() {
   fi
 }
 # }}}
-
-# }}}
 # notok $? "what should have happened..." {{{
 notok() {
   local rc=$1
@@ -253,7 +252,6 @@ isnt(){
   pass "$msg"
 }
 # }}}
-
 # httpstat $method $url "some optional JSON data, probably" {{{
 httpstat() {
   local method=$1
@@ -344,8 +342,9 @@ none() {
   is "$(cat $WORKDIR/out)" "[]" "$why"
 }
 
-# or not empty
-notnone() {
+# }}}
+# some "why the list retrieved should not be empty" {{{
+some() {
  local why=$1
   isnt "$(cat $WORKDIR/out)" "[]" "$why"
 }
@@ -448,7 +447,7 @@ echo
 
 try "Connecting to our test SHIELD instance" # {{{
 (shield -k --raw create-backend test http://${SHIELD_DAEMON_ADDR}
- shield -k --raw login --username shieldadmin --password shield
+ shield -k --raw login --username ${SHIELD_USER} --password ${SHIELD_PASS}
  shield -k --raw status | jq -r .
  is "$(ping)" "200" "/v1/ping should ping ok"
 
@@ -460,23 +459,22 @@ try "Connecting to our test SHIELD instance" # {{{
 
 # }}}
 try "Checking that initial database is empty" # {{{
-(run targets   ; none "Initial targets list should be empty"
- run stores    ; none "Initial stores list should be empty"
- run policies  ; none "Initial policies list should be empty"
- run jobs      ; none "Initial jobs list should be empty"
- run users     ; notnone "Initial users list should have the failsafe user"
- run tenants   ; notnone "Initial tenants list shouldn't be empty"
- run tokens    ; none "Initial tokens list should be empty"
+(run targets     ; none "Initial targets list should be empty"
+ run stores      ; none "Initial stores list should be empty"
+ run policies    ; none "Initial policies list should be empty"
+ run jobs        ; none "Initial jobs list should be empty"
+ run users       ; some "Initial users list should have the failsafe user"
+ run tenants     ; some "Initial tenants list shouldn't be empty"
+ run auth-tokens ; none "Initial tokens list should be empty"
 ) 2>&1 | indent
 #}}}
 
-try "Creating an API token" # {{{
-(run create-token testtoken
-tmp_token=$(cat "${WORKDIR}/out" | jq -Mr .token)
-isnt "$tmp_token" "" "Returned token was the empty string"
-echo -n $tmp_token >"${WORKDIR}/out"
+try "Creating an auth token" # {{{
+(run create-auth-token an-auth-token
+token=$(cat "${WORKDIR}/out" | jq -r .session)
+isnt "$token" "" "create-auth-token should return the auth token session"
 ) 2>&1 | indent
-export SHIELD_API_TOKEN=$(cat ${WORKDIR}/out)
+export SHIELD_API_TOKEN=$(cat "${WORKDIR}/out" | jq -r .session)
 echo --------  SHIELD_API_TOKEN is $SHIELD_API_TOKEN -----------
 # }}}
 #

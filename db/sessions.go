@@ -9,13 +9,19 @@ import (
 )
 
 type Session struct {
-	UUID       uuid.UUID
-	UserUUID   uuid.UUID
-	LastUsedAt *timestamp.Timestamp //nil if never used
+	UUID      uuid.UUID
+	UserUUID  uuid.UUID
+	CreatedAt timestamp.Timestamp
+	LastSeen  *timestamp.Timestamp
+	Token     uuid.UUID
+	Name      string
 }
 
-func (db *DB) GetSession(id uuid.UUID) (*Session, error) {
-	r, err := db.Query(`SELECT uuid, user_uuid, last_used_at FROM sessions WHERE uuid = ?`, id.String())
+func (db *DB) GetSession(id string) (*Session, error) {
+	r, err := db.Query(`
+	   SELECT uuid, user_uuid, created_at, last_seen, token, name
+	     FROM sessions
+	    WHERE uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -25,34 +31,32 @@ func (db *DB) GetSession(id uuid.UUID) (*Session, error) {
 		return nil, nil
 	}
 
-	var this, user NullUUID
-	var lastUsed *int64
-	if err := r.Scan(&this, &user, &lastUsed); err != nil {
+	var (
+		this, user, token  NullUUID
+		created, last_seen *int64
+	)
+	s := &Session{}
+	if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name); err != nil {
 		return nil, err
 	}
 
-	var lastUsedTimestamp *timestamp.Timestamp
-	if lastUsed != nil {
-		tmpLastUsedTimestamp := parseEpochTime(*lastUsed)
-		lastUsedTimestamp = &tmpLastUsedTimestamp
+	if last_seen != nil {
+		ts := parseEpochTime(*last_seen)
+		s.LastSeen = &ts
 	}
+	s.UUID = this.UUID
+	s.Token = token.UUID
+	s.UserUUID = user.UUID
+	s.CreatedAt = parseEpochTime(*created)
 
-	return &Session{
-		UUID:       this.UUID,
-		UserUUID:   user.UUID,
-		LastUsedAt: lastUsedTimestamp,
-	}, nil
+	return s, nil
 }
 
-//GetUserForSession returns the User struct associated with the session with the
-// given UUID. If no such session exists, the User pointer returned is nil. An
-// error is only thrown if a database error occurs.
-func (db *DB) GetUserForSession(sid string) (*User, error) {
+func (db *DB) GetUserForSession(id string) (*User, error) {
 	r, err := db.Query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole
 	      FROM sessions s INNER JOIN users u ON u.uuid = s.user_uuid
-	     WHERE s.uuid = ?`, sid)
-	// note: we specifically skip u.pwhash...
+	     WHERE s.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -78,33 +82,25 @@ func (db *DB) CreateSessionFor(user *User) (*Session, error) {
 	}
 
 	id := uuid.NewRandom()
-	err := db.Exec(`INSERT INTO sessions (uuid, user_uuid) VALUES (?, ?)`,
-		id.String(), user.UUID.String())
+	err := db.Exec(`
+	   INSERT INTO sessions (uuid, user_uuid, created_at)
+	                 VALUES (?,    ?,         ?)`,
+		id.String(), user.UUID.String(), time.Now().Unix())
 	if err != nil {
 		return nil, err
 	}
-	return db.GetSession(id)
+
+	return db.GetSession(id.String())
 }
 
 func (db *DB) ClearAllSessions() error {
 	return db.Exec(`DELETE FROM sessions`)
 }
 
-func (db *DB) ClearSession(sid uuid.UUID) error {
-	return db.Exec(`DELETE FROM sessions WHERE uuid = ?`, sid.String())
+func (db *DB) ClearSession(id string) error {
+	return db.Exec(`DELETE FROM sessions WHERE token_uuid IS NULL AND uuid = ?`, id)
 }
 
-//UpdateSessionLastUsed sets the last_used field for the session with the given
-// UUID to the current time
-func (db *DB) UpdateSessionLastUsed(sid uuid.UUID) (err error) {
-	session, err := db.GetSession(sid)
-	if err != nil {
-		return
-	}
-	if session == nil {
-		err = fmt.Errorf("No session exists with UUID: %s", sid)
-	}
-	now := time.Now().Unix()
-
-	return db.Exec(`UPDATE sessions SET last_used_at = ? WHERE uuid = ?`, now, sid.String())
+func (db *DB) PokeSession(id string) error {
+	return db.Exec(`UPDATE sessions SET last_seen = ? WHERE uuid = ?`, time.Now().Unix(), id)
 }

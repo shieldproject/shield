@@ -285,9 +285,9 @@ func addCommands() {
 	cmds.Add("invite", tenants.Invite)
 	cmds.Add("banish", tenants.Banish)
 
-	cmds.Add("tokens", tokens.List)
-	cmds.Add("create-token", tokens.Create).AKA("create token")
-	cmds.Add("delete-token", tokens.Delete).AKA("delete token")
+	cmds.Add("auth-tokens", tokens.List)
+	cmds.Add("create-auth-token", tokens.Create).AKA("create auth token")
+	cmds.Add("revoke-auth-token", tokens.Delete).AKA("revoke auth token")
 }
 
 func addGlobalFlags() {

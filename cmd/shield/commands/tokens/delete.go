@@ -10,11 +10,11 @@ import (
 
 //Delete - Delete token with the given name
 var Delete = &commands.Command{
-	Summary: "Delete token with the given name",
+	Summary: "Revoke an auth token",
 	Help: &commands.HelpInfo{
 		Flags: []commands.FlagInfo{
 			commands.FlagInfo{
-				Name: "tokenname", Desc: "The name of the token to delete",
+				Name: "NAME", Desc: "The name of the auth token to revoke",
 				Positional: true, Mandatory: true,
 			},
 		},
@@ -32,8 +32,8 @@ var Delete = &commands.Command{
 }
 
 func cliDeleteToken(opts *commands.Options, args ...string) error {
-	log.DEBUG("running `delete-token' command")
-	internal.Require(len(args) == 1, "shield delete-token <tokenname>")
+	log.DEBUG("running `revoke-token' command")
+	internal.Require(len(args) == 1, "shield revoke-token NAME")
 
 	token, uuid, err := internal.FindToken(args[0], *opts.Raw)
 	if err != nil {
@@ -42,7 +42,7 @@ func cliDeleteToken(opts *commands.Options, args ...string) error {
 
 	if !*opts.Raw {
 		Show(&token)
-		if !tui.Confirm("Really delete this token?") {
+		if !tui.Confirm("Really revoke this token?") {
 			return internal.ErrCanceled
 		}
 	}
@@ -52,6 +52,6 @@ func cliDeleteToken(opts *commands.Options, args ...string) error {
 		return err
 	}
 
-	commands.OK("Deleted token")
+	commands.OK("Revoked token")
 	return nil
 }
