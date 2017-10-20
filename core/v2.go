@@ -81,14 +81,6 @@ type v2System struct {
 	Tasks []v2SystemTask `json:"tasks"`
 }
 
-type v2PatchAnnotation struct {
-	Type        string `json:"type"`
-	UUID        string `json:"uuid"`
-	Disposition string `json:"disposition"`
-	Notes       string `json:"notes"`
-	Clear       string `json:"clear"`
-}
-
 type v2LocalTenant struct {
 	UUID string `json:"uuid"`
 	Name string `json:"name"`
@@ -673,7 +665,13 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("PATCH /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
 		var in struct {
-			Annotations []v2PatchAnnotation `json:"annotations"`
+			Annotations []struct {
+				Type        string `json:"type"`
+				UUID        string `json:"uuid"`
+				Disposition string `json:"disposition"`
+				Notes       string `json:"notes"`
+				Clear       string `json:"clear"`
+			} `json:"annotations"`
 		}
 		if !r.Payload(&in) {
 			return
