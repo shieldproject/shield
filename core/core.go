@@ -170,23 +170,26 @@ func (core *Core) Run() error {
 		return fmt.Errorf("database failed schema version check: %s", err)
 	}
 
-	existing, err := core.DB.GetAllUsers(&db.UserFilter{Backend: "local"})
-	if err != nil {
-		return fmt.Errorf("Failed to retrieve list of local users: %s", err)
-	}
-	if len(existing) == 0 {
-		log.Infof("no local users detected; creating failsafe administrator account '%s'\n", core.failsafe.Username)
-		user := &db.User{
-			Name:    "Administrator",
-			Account: core.failsafe.Username,
-			Backend: "local",
-			SysRole: "admin",
-		}
-
-		user.SetPassword(core.failsafe.Password)
-		_, err := core.DB.CreateUser(user)
+	if core.failsafe.Username != "" {
+		log.Infof("checking to see if we should re-instate the failsafe administrator account '%s'", core.failsafe.Username)
+		existing, err := core.DB.GetAllUsers(&db.UserFilter{Backend: "local"})
 		if err != nil {
-			return fmt.Errorf("Failed to create failsafe user: %s", err)
+			return fmt.Errorf("Failed to retrieve list of local users: %s", err)
+		}
+		if len(existing) == 0 {
+			log.Infof("no local users detected; creating failsafe administrator account '%s'", core.failsafe.Username)
+			user := &db.User{
+				Name:    "Administrator",
+				Account: core.failsafe.Username,
+				Backend: "local",
+				SysRole: "admin",
+			}
+
+			user.SetPassword(core.failsafe.Password)
+			_, err := core.DB.CreateUser(user)
+			if err != nil {
+				return fmt.Errorf("Failed to create failsafe administative account '%s': %s", core.failsafe.Username, err)
+			}
 		}
 	}
 

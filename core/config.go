@@ -61,10 +61,6 @@ func ReadConfig(file string) (Config, error) {
 		WebRoot:        "web",
 		EncryptionType: "aes256-ctr",
 		VaultKeyfile:   "vault/config.crypt",
-		Failsafe: FailsafeConfig{
-			Username: "shieldadmin",
-			Password: "shield",
-		},
 	}
 
 	/* optionally read configuration from a file */
@@ -97,12 +93,6 @@ func ReadConfig(file string) (Config, error) {
 	}
 	if config.VaultKeyfile == "" {
 		return config, fmt.Errorf("vault keyfile path '%s' is invalid (must be a valid path)", config.VaultKeyfile)
-	}
-	if config.Failsafe.Username == "" {
-		return config, fmt.Errorf("failsafe username cannot be empty string")
-	}
-	if config.Failsafe.Password == "" {
-		return config, fmt.Errorf("failsafe password cannot be empty string")
 	}
 	// FIXME: check existence of WebRoot
 	for i, auth := range config.Auth {
