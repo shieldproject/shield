@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/starkandwayne/goutils/log"
@@ -41,7 +40,6 @@ func (core *Core) DeltaIncrease(filter *db.ArchiveFilter) (int64, error) {
 		log.Errorf("Failed to get archive stats for daily storage statistics: %s", err)
 		return -1, err
 	}
-	fmt.Printf("Increase %d/Purged %d\n", delta_increase, delta_purged)
 	return (delta_increase - delta_purged), nil
 }
 
@@ -96,7 +94,8 @@ func (core *Core) DailyStoreStats() error {
 		store.DailyIncrease = delta
 		store.StorageUsed = total_size
 		store.ArchiveCount = total_count
-		fmt.Printf("Updating %s:%s with Used:%d, Count:%d, Increase:%d\n", store.Name, store.UUID.String(), store.StorageUsed, store.ArchiveCount, store.DailyIncrease)
+		log.Debugf("updating store '%s' (%s) %d archives, %db storage used, %db increase",
+			store.Name, store.UUID.String(), store.ArchiveCount, store.StorageUsed, store.DailyIncrease)
 		err = core.DB.UpdateStore(store)
 		if err != nil {
 			log.Errorf("Failed to update stores with daily storage statistics: %s", err)
@@ -158,9 +157,9 @@ func (core *Core) DailyTenantStats() error {
 		tenant.ArchiveCount = total_count
 		tenant.DailyIncrease = delta
 
-		fmt.Printf("Updating %s:%s with Used:%d, Count:%d, Increase:%d\n", tenant.Name, tenant.UUID.String(), tenant.StorageUsed, tenant.ArchiveCount, tenant.DailyIncrease)
-		_, err = core.DB.UpdateTenant(tenant)
-		if err != nil {
+		log.Debugf("updating tenant '%s' (%s) %d archives, %db storage used, %db increase",
+			tenant.Name, tenant.UUID.String(), tenant.ArchiveCount, tenant.StorageUsed, tenant.DailyIncrease)
+		if _, err = core.DB.UpdateTenant(tenant); err != nil {
 			log.Errorf("Failed to update tenant with daily storage statistics: %s", err)
 			return err
 		}
