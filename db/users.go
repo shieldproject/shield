@@ -35,9 +35,6 @@ func (u *User) Authenticate(password string) bool {
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(u.pwhash), []byte(password))
-	if err != nil {
-		panic(err)
-	}
 	return err == nil
 }
 
