@@ -949,46 +949,46 @@
         Optionally, if this is being displayed in the {system} view,
         also display a big RESTORE button in the task output.
       ]]
-      <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
-      <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
+<pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
+<button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
 
-      <form class="annotate">
-        <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
-        [[ if (_.task.status == "failed") { ]]
-        <p><input type="checkbox" name="disposition"
-                  id="annotask-ok"[[ if (_.task.ok) { ]] checked[[ } ]]><label for="annotask-ok">Nothing to worry about</label></p>
-        [[ } ]]
-        <p><textarea name="notes" id="notes"
-                    placeholder="no notes recorded yet...">[[= maybe(_.task.notes, '') ]]</textarea></p>
-        <button>Save</button>
-      </form>
+<form class="annotate">
+  <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
+  [[ if (_.task.status == "failed") { ]]
+  <p><input type="checkbox" name="disposition"
+            id="annotask-ok"[[ if (_.task.ok) { ]] checked[[ } ]]><label for="annotask-ok">Nothing to worry about</label></p>
+  [[ } ]]
+  <p><textarea name="notes" id="notes"
+              placeholder="no notes recorded yet...">[[= maybe(_.task.notes, '') ]]</textarea></p>
+  <button>Save</button>
+</form>
 
-      </div><em>task <em>[[= _.task.uuid ]]</em></em>
-      <em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
-      if (_.task.type == "purge") { ]]
-      purging archive <em>[[= _.task.archive_uuid ]]</em>[[
-      } else if (_.task.type == "restore") { ]]
-      restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
-      } ]]
-      initiated by <em>[[= _.task.owner ]]</em></em>
+</div><em>task <em>[[= _.task.uuid ]]</em></em>
+<em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
+if (_.task.type == "purge") { ]]
+purging archive <em>[[= _.task.archive_uuid ]]</em>[[
+} else if (_.task.type == "restore") { ]]
+restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
+} ]]
+initiated by <em>[[= _.task.owner ]]</em></em>
 
-      [[= _.task.log ]]
+[[= _.task.log ]]
 
-      <em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
-      ]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
-      [[ }
+<em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
+]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
+[[ }
 
-      if (_.task.type == 'backup') {
-        if (_.task.archive_uuid != "") {
-          ]]generated archive <em>[[= _.task.archive_uuid ]]</em>
-      for job <em>[[= _.task.job_uuid ]]</em>
-      [[
-        } else {
-        ]]no archive was generated.
-      [[
-        }
-      } ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
-      </em></code></pre>
+if (_.task.type == 'backup') {
+  if (_.task.archive_uuid != "") {
+    ]]generated archive <em>[[= _.task.archive_uuid ]]</em>
+for job <em>[[= _.task.job_uuid ]]</em>
+[[
+  } else {
+  ]]no archive was generated.
+[[
+  }
+} ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
+</em></code></pre>
     <!-- }}} --></script>
 
     <script type="text/html" id="tpl--stores"><!-- {{{ -->
