@@ -97,14 +97,14 @@ func UpdateUser(id uuid.UUID, contentJSON string) (User, error) {
 	return GetUser(id)
 }
 
-func LocalTenantsToString(tennants []v2LocalTenant, showTennantUUID bool) string {
-	tennantString := ""
-	for _, tennant := range tennants {
-		if showTennantUUID {
-			tennantString += fmt.Sprintf("%s  %s (%s)\n", tennant.UUID, tennant.Name, tennant.Role)
+func LocalTenantsToString(tenants []v2LocalTenant, showTenantUUID bool) string {
+	tenantString := ""
+	for _, tenant := range tenants {
+		if showTenantUUID {
+			tenantString += fmt.Sprintf("%s  %s (%s)\n", tenant.UUID, tenant.Name, tenant.Role)
 		} else {
-			tennantString += fmt.Sprintf("%s (%s)\n", tennant.Name, tennant.Role)
+			tenantString += fmt.Sprintf("%s (%s)\n", tenant.Name, tenant.Role)
 		}
 	}
-	return tennantString
+	return tenantString
 }

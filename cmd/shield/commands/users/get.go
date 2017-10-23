@@ -53,7 +53,7 @@ func Show(user api.User, showTennantUUID bool) {
 	t.Add("Account", user.Account)
 	t.Add("Backend", user.Backend)
 	t.Add("System Role", user.SysRole)
-	t.Add("Tennants", api.LocalTenantsToString(user.Tenants, showTennantUUID))
+	t.Add("Tenants", api.LocalTenantsToString(user.Tenants, showTennantUUID))
 
 	t.Output(os.Stdout)
 }
