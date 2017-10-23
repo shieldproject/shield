@@ -14,18 +14,7 @@ import (
 
 var Invite = &commands.Command{
 	Summary: "Invite a user to a tenant",
-	Help: &commands.HelpInfo{
-		JSONInput: `{
-			users: [{
-				"account":"userAccountName",
-				"role":"admin",
-				"uuid":"84751f04-2be2-428d-b6a3-2022c63ffaa3",
-				}],
-		}`,
-		JSONOutput: `{"ok":"Invitations sent"}`,
-	},
-	RunFn: cliInviteUser,
-	Group: commands.TenantsGroup,
+	RunFn:   cliInviteUser,
 }
 
 func cliInviteUser(opts *commands.Options, args ...string) error {

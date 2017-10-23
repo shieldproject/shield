@@ -16,21 +16,14 @@ import (
 //Restore - Restore a backup archive
 var Restore = &commands.Command{
 	Summary: "Restore a backup archive",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "target or uuid", Positional: true, Mandatory: true,
-				Desc: `The name or UUID of a single target to restore. In raw mode, it
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "target or uuid", Positional: true, Mandatory: true,
+			Desc: `The name or UUID of a single target to restore. In raw mode, it
 				  must be a UUID assigned to a single archive instance`,
-			},
 		},
-		JSONOutput: `{
-			"ok": "Scheduled immediate restore of archive '12345678-9abc-def0-1234-56789abcdef0' to target 'targetname',
-			"task_uuid": "6789abcd-ef01-2345-6789-abcdef012345"
-		}`,
 	},
 	RunFn: cliRestoreArchive,
-	Group: commands.ArchivesGroup,
 }
 
 func cliRestoreArchive(opts *commands.Options, args ...string) error {

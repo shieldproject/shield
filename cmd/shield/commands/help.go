@@ -7,12 +7,30 @@ import (
 	"github.com/starkandwayne/goutils/ansi"
 )
 
-//HelpInfo contains information and functions to display help dialogue
-type HelpInfo struct {
-	Flags      []FlagInfo
-	Message    string
-	JSONInput  string
-	JSONOutput string
+//FlagList contains information and functions to display flag help dialogue
+type FlagList []FlagInfo
+
+//HelpStrings returns all of the contained flags' help lines, formatted into
+//columns
+func (f FlagList) HelpStrings() (lines []string) {
+	columnWidth := f.maxFlagLength()
+	for _, flag := range f {
+		lines = append(lines, flag.HelpLines(columnWidth)...)
+	}
+
+	return lines
+}
+
+//Get the longest length of flags in this helpinfo, to be used to determine the
+//buffer width in help formatting
+func (f FlagList) maxFlagLength() (length int) {
+	for _, flag := range f {
+		thisLen := flag.combinedFlagLength()
+		if thisLen > length {
+			length = thisLen
+		}
+	}
+	return
 }
 
 //FlagInfo contains attributes needed to display help for this command's flags
@@ -116,45 +134,9 @@ func (f FlagInfo) lenLong() (length int) {
 	panic("flag name not set")
 }
 
-//FlagHelp returns all of the contained flags' help lines, formatted into
-//columns
-func (h HelpInfo) FlagHelp() (lines []string) {
-	columnWidth := h.maxFlagLength()
-	for _, flag := range h.Flags {
-		lines = append(lines, flag.HelpLines(columnWidth)...)
-	}
-
-	return lines
-}
-
-//Get the longest length of flags in this helpinfo, to be used to determine the
-//buffer width in help formatting
-func (h HelpInfo) maxFlagLength() (length int) {
-	for _, flag := range h.Flags {
-		thisLen := flag.combinedFlagLength()
-		if thisLen > length {
-			length = thisLen
-		}
-	}
-	return
-}
-
 //HelpHeader returns the input string formatted for a help dialogue's header
 func HelpHeader(text string) string {
 	return ansi.Sprintf("\n@G{%s}", text)
-}
-
-//ByFlag sorts FlagInfo objects by their flag. Positional arguments come first.
-// Short flags are only used for sorting if long flags aren't present
-type ByFlag []FlagInfo
-
-func (f ByFlag) Len() int      { return len(f) }
-func (f ByFlag) Swap(i, j int) { f[i], f[j] = f[j], f[i] }
-func (f ByFlag) Less(i, j int) bool {
-	if f[i].Positional != f[j].Positional { //Positional arguments come first
-		return f[i].Positional
-	}
-	return f[i].Name < f[j].Name
 }
 
 var (

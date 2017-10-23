@@ -15,21 +15,12 @@ import (
 //List - List available retention policies
 var List = &commands.Command{
 	Summary: "List available retention policies",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UnusedFlag,
-			commands.UsedFlag,
-			commands.FuzzyFlag,
-		},
-		JSONOutput: `[{
-			"uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec",
-			"name":"apolicy",
-			"summary":"a policy",
-			"expires":5616000
-		}]`,
+	Flags: commands.FlagList{
+		commands.UnusedFlag,
+		commands.UsedFlag,
+		commands.FuzzyFlag,
 	},
 	RunFn: cliListPolicies,
-	Group: commands.PoliciesGroup,
 }
 
 func cliListPolicies(opts *commands.Options, args ...string) error {

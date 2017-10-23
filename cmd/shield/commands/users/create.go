@@ -16,26 +16,10 @@ import (
 //Create - Create a new local user
 var Create = &commands.Command{
 	Summary: "Create a new local user",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UpdateIfExistsFlag,
-		},
-		JSONInput: `{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"Example User",
-			"account":"exampleuser",
-			"password":"foobar",
-			"sysrole":"admin/manager/technician"
-		}`,
-		JSONOutput: `{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"Example User",
-			"account":"exampleuser",
-			"sysrole":"admin/manager/technician"
-		}`,
+	Flags: []commands.FlagInfo{
+		commands.UpdateIfExistsFlag,
 	},
 	RunFn: cliCreateUser,
-	Group: commands.UsersGroup,
 }
 
 func cliCreateUser(opts *commands.Options, args ...string) error {

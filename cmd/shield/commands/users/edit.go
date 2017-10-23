@@ -14,24 +14,8 @@ import (
 //Edit - Modify an existing user
 var Edit = &commands.Command{
 	Summary: "Modify an existing user",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{commands.AccountFlag},
-		JSONInput: `{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"Example User",
-			"account":"exampleuser",
-			"password":"foobar",
-			"sysrole":"admin/manager/technician"
-		}`,
-		JSONOutput: `{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"Example User",
-			"account":"exampleuser",
-			"sysrole":"admin/manager/technician"
-		}`,
-	},
-	RunFn: cliEditUser,
-	Group: commands.UsersGroup,
+	Flags:   commands.FlagList{commands.AccountFlag},
+	RunFn:   cliEditUser,
 }
 
 func cliEditUser(opts *commands.Options, args ...string) error {

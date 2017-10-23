@@ -17,9 +17,7 @@ import (
 //Whoami - Get information about the currently authenticated user
 var Whoami = &commands.Command{
 	Summary: "Get information about the currently authenticated user",
-	Help:    &commands.HelpInfo{},
 	RunFn:   cliWhoami,
-	Group:   commands.AccessGroup,
 }
 
 func cliWhoami(opts *commands.Options, args ...string) error {

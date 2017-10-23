@@ -14,24 +14,10 @@ import (
 //Edit - Modify an existing retention policy
 var Edit = &commands.Command{
 	Summary: "Modify an existing retention policy",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.PolicyNameFlag,
-		},
-		JSONInput: `{
-			"expires":31536000,
-			"name":"AnotherPolicy",
-			"summary":"A Test Policy"
-		}`,
-		JSONOutput: `{
-			"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
-			"name":"AnotherPolicy",
-			"summary":"A Test Policy",
-			"expires":31536000
-		}`,
+	Flags: commands.FlagList{
+		commands.PolicyNameFlag,
 	},
 	RunFn: cliEditPolicy,
-	Group: commands.PoliciesGroup,
 }
 
 func cliEditPolicy(opts *commands.Options, args ...string) error {

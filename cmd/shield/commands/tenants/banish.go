@@ -14,17 +14,7 @@ import (
 
 var Banish = &commands.Command{
 	Summary: "Banish a user from a tenant",
-	Help: &commands.HelpInfo{
-		JSONInput: `{
-			users: [{
-				"account":"userAccountName",
-				"uuid":"84751f04-2be2-428d-b6a3-2022c63ffaa3",
-				}],
-		}`,
-		JSONOutput: `{"ok":"Banishments served."}`,
-	},
-	RunFn: cliBanishUser,
-	Group: commands.TenantsGroup,
+	RunFn:   cliBanishUser,
 }
 
 func cliBanishUser(opts *commands.Options, args ...string) error {

@@ -13,14 +13,10 @@ import (
 //Delete - Delete a local user
 var Delete = &commands.Command{
 	Summary: "Delete a local user",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.AccountFlag,
-		},
-		JSONOutput: `{"ok":"Deleted User"}`,
+	Flags: commands.FlagList{
+		commands.AccountFlag,
 	},
 	RunFn: cliDeleteUser,
-	Group: commands.UsersGroup,
 }
 
 func cliDeleteUser(opts *commands.Options, args ...string) error {

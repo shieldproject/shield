@@ -12,11 +12,8 @@ import (
 //Pause - Pause a backup job
 var Pause = &commands.Command{
 	Summary: "Pause a backup job",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{commands.JobNameFlag},
-	},
-	RunFn: cliPauseJob,
-	Group: commands.JobsGroup,
+	Flags:   commands.FlagList{commands.JobNameFlag},
+	RunFn:   cliPauseJob,
 }
 
 func cliPauseJob(opts *commands.Options, args ...string) error {

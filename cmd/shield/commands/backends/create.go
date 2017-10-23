@@ -14,30 +14,27 @@ import (
 //Create - Create or modify a SHIELD backend
 var Create = &commands.Command{
 	Summary: "Create or modify a SHIELD backend alias",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "name", Mandatory: true, Positional: true,
-				Desc: `The name of the new backend`,
-			},
-			commands.FlagInfo{
-				Name: "uri", Mandatory: true, Positional: true,
-				Desc: `The address at which the new backend can be found`,
-			},
-			commands.FlagInfo{
-				Name: "skip-ssl-validation", Short: 'k',
-				Desc: `If this flag is specified, SSL validation will always be skipped
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "name", Mandatory: true, Positional: true,
+			Desc: `The name of the new backend`,
+		},
+		commands.FlagInfo{
+			Name: "uri", Mandatory: true, Positional: true,
+			Desc: `The address at which the new backend can be found`,
+		},
+		commands.FlagInfo{
+			Name: "skip-ssl-validation", Short: 'k',
+			Desc: `If this flag is specified, SSL validation will always be skipped
         when using this backend. Not compatible with --ca-cert`,
-			},
-			commands.FlagInfo{
-				Name: "ca-cert",
-				Desc: `If this flag is given, this backend will always trust the root CA
+		},
+		commands.FlagInfo{
+			Name: "ca-cert",
+			Desc: `If this flag is given, this backend will always trust the root CA
         cert found in the given file. Not compatible with --skip-ssl-validation`,
-			},
 		},
 	},
 	RunFn: cliCreateBackend,
-	Group: commands.BackendsGroup,
 }
 
 func cliCreateBackend(opts *commands.Options, args ...string) error {

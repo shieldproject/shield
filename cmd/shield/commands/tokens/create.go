@@ -14,24 +14,13 @@ import (
 //Create - Create token for the currently authenticated user
 var Create = &commands.Command{
 	Summary: "Create token for the currently authenticated user",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "tokenname", Desc: "The name of the token to create",
-				Positional: true, Mandatory: true,
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "tokenname", Desc: "The name of the token to create",
+			Positional: true, Mandatory: true,
 		},
-		//TODO: Update this
-		JSONOutput: `[{
-			"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20",
-			"name":"test store",
-			"summary":"a test store named \"test store\"",
-			"plugin":"s3",
-			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
-		}]`,
 	},
 	RunFn: cliCreateToken,
-	Group: commands.TokensGroup,
 }
 
 func cliCreateToken(opts *commands.Options, args ...string) error {

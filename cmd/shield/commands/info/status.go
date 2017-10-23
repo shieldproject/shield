@@ -12,11 +12,7 @@ import (
 //Status - Query the SHIELD backup server for its status and version info
 var Status = &commands.Command{
 	Summary: "Query the SHIELD backup server for its status and version info",
-	Help: &commands.HelpInfo{
-		JSONOutput: `{"name":"MyShield","version":"1.2.3"}`,
-	},
-	RunFn: cliStatus,
-	Group: commands.InfoGroup,
+	RunFn:   cliStatus,
 }
 
 func cliStatus(opts *commands.Options, args ...string) error {

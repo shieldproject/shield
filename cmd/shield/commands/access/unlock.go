@@ -10,9 +10,7 @@ import (
 //Unlock - Unlock the encryption key database
 var Unlock = &commands.Command{
 	Summary: "Unlock the encryption key database",
-	Help:    &commands.HelpInfo{},
 	RunFn:   cliUnlock,
-	Group:   commands.AccessGroup,
 }
 
 func cliUnlock(opts *commands.Options, args ...string) error {

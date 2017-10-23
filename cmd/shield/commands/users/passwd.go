@@ -17,17 +17,14 @@ import (
 //Passwd - Change the password of a given user
 var Passwd = &commands.Command{
 	Summary: "Modify an existing user",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "account", Positional: true, Mandatory: false,
-				Desc: `A string partially matching the name of a single account
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "account", Positional: true, Mandatory: false,
+			Desc: `A string partially matching the name of a single account
 						or a UUID exactly matching the UUID of an account.`,
-			},
 		},
 	},
 	RunFn: cliPasswd,
-	Group: commands.UsersGroup,
 }
 
 //TODO: Update with unique passwd endpoint after cli local auth is a thing

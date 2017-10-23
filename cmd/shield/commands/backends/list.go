@@ -22,20 +22,12 @@ import (
 //List - List configured SHIELD backends
 var List = &commands.Command{
 	Summary: "List configured SHIELD backend aliases",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "full", Desc: "Display verbose information about all backends",
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "full", Desc: "Display verbose information about all backends",
 		},
-		JSONOutput: `[{
-			"name":"mybackend",
-			"uri":"https://10.244.2.2:443",
-			"skip_ssl_validation":false
-		}]`,
 	},
 	RunFn: cliListBackends,
-	Group: commands.BackendsGroup,
 }
 
 func cliListBackends(opts *commands.Options, args ...string) error {

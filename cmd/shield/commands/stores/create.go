@@ -13,26 +13,10 @@ import (
 //Create - Create a new archive store
 var Create = &commands.Command{
 	Summary: "Create a new archive store",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UpdateIfExistsFlag,
-		},
-		JSONInput: `{
-			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"name":"TestStore",
-			"plugin":"s3",
-			"summary":"A Test Store"
-		}`,
-		JSONOutput: `{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"TestStore",
-			"summary":"A Test Store",
-			"plugin":"s3",
-			"endpoint":"{\"endpoint\":\"schmendpoint\"}"
-		}`,
+	Flags: commands.FlagList{
+		commands.UpdateIfExistsFlag,
 	},
 	RunFn: cliCreateStore,
-	Group: commands.StoresGroup,
 }
 
 func cliCreateStore(opts *commands.Options, args ...string) error {

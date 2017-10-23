@@ -14,13 +14,7 @@ import (
 //Cancel - Cancel a running or pending task
 var Cancel = &commands.Command{
 	Summary: "Cancel a running or pending task",
-	Help: &commands.HelpInfo{
-		JSONOutput: `{
-			"ok":"Cancelled task '81746508-bd18-46a8-842e-97911d4b23a3'"
-		}`,
-	},
-	RunFn: cliCancelTask,
-	Group: commands.TasksGroup,
+	RunFn:   cliCancelTask,
 }
 
 func cliCancelTask(opts *commands.Options, args ...string) error {

@@ -14,23 +14,14 @@ import (
 //List - List shield users
 var List = &commands.Command{
 	Summary: "List shield users",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "sysrole", Short: 'r', Valued: true,
-				Desc: "Show only users with the specified system role.",
-			},
-			commands.FuzzyFlag,
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "sysrole", Short: 'r', Valued: true,
+			Desc: "Show only users with the specified system role.",
 		},
-		JSONOutput: `[{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"Example User",
-			"account":"exampleuser",
-			"sysrole":"admin/manager/technician"
-		}]`,
+		commands.FuzzyFlag,
 	},
 	RunFn: cliListUsers,
-	Group: commands.UsersGroup,
 }
 
 func cliListUsers(opts *commands.Options, args ...string) error {

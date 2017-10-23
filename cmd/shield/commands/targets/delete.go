@@ -13,12 +13,8 @@ import (
 //Delete - Delete a backup target
 var Delete = &commands.Command{
 	Summary: "Delete a backup target",
-	Help: &commands.HelpInfo{
-		Flags:      []commands.FlagInfo{commands.TargetNameFlag},
-		JSONOutput: `{"ok":"Deleted target"}`,
-	},
-	RunFn: cliDeleteTarget,
-	Group: commands.TargetsGroup,
+	Flags:   commands.FlagList{commands.TargetNameFlag},
+	RunFn:   cliDeleteTarget,
 }
 
 func cliDeleteTarget(opts *commands.Options, args ...string) error {

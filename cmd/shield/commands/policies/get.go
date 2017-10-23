@@ -15,19 +15,10 @@ import (
 //Get - Print detailed information about a specific retention policy
 var Get = &commands.Command{
 	Summary: "Print detailed information about a specific retention policy",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.PolicyNameFlag,
-		},
-		JSONOutput: `{
-      "uuid":"8c6f894f-9c27-475f-ad5a-8c0db37926ec",
-      "name":"apolicy",
-      "summary":"a policy",
-      "expires":5616000
-    }`,
+	Flags: commands.FlagList{
+		commands.PolicyNameFlag,
 	},
 	RunFn: cliGetPolicy,
-	Group: commands.PoliciesGroup,
 }
 
 func cliGetPolicy(opts *commands.Options, args ...string) error {

@@ -13,21 +13,10 @@ import (
 //Create - Create a new tenant
 var Create = &commands.Command{
 	Summary: "Create a new tenant",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UpdateIfExistsFlag,
-		},
-		JSONInput: `{ 
-		"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf", 
-		"name":"Example User", 
-	  }`,
-		JSONOutput: `{ 
-		"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf", 
-		"name":"Example User", 
-	  }`,
+	Flags: []commands.FlagInfo{
+		commands.UpdateIfExistsFlag,
 	},
 	RunFn: cliCreateTenant,
-	Group: commands.TenantsGroup,
 }
 
 func cliCreateTenant(opts *commands.Options, args ...string) error {

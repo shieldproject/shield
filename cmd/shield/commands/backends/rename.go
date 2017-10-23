@@ -13,20 +13,17 @@ import (
 //Rename - Rename SHIELD backend alias
 var Rename = &commands.Command{
 	Summary: "Rename SHIELD backend alias",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "oldname", Mandatory: true, Positional: true,
-				Desc: `The currentname for the backend`,
-			},
-			commands.FlagInfo{
-				Name: "newname", Mandatory: true, Positional: true,
-				Desc: `The new name for the backend`,
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "oldname", Mandatory: true, Positional: true,
+			Desc: `The currentname for the backend`,
+		},
+		commands.FlagInfo{
+			Name: "newname", Mandatory: true, Positional: true,
+			Desc: `The new name for the backend`,
 		},
 	},
 	RunFn: cliRenameBackend,
-	Group: commands.BackendsGroup,
 }
 
 func cliRenameBackend(opts *commands.Options, args ...string) error {

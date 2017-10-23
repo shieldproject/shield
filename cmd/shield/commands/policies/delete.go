@@ -13,14 +13,10 @@ import (
 //Delete - Delete a retention policy
 var Delete = &commands.Command{
 	Summary: "Delete a retention policy",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.PolicyNameFlag,
-		},
-		JSONOutput: `{"ok":"Deleted policy"}`,
+	Flags: commands.FlagList{
+		commands.PolicyNameFlag,
 	},
 	RunFn: cliDeletePolicy,
-	Group: commands.PoliciesGroup,
 }
 
 func cliDeletePolicy(opts *commands.Options, args ...string) error {

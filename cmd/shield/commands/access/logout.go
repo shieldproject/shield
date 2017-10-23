@@ -9,9 +9,7 @@ import (
 //Logout - End your authentication session with the SHIELD backend manually
 var Logout = &commands.Command{
 	Summary: "End your authentication session with the SHIELD backend manually",
-	Help:    &commands.HelpInfo{},
 	RunFn:   cliLogout,
-	Group:   commands.AccessGroup,
 }
 
 func cliLogout(opts *commands.Options, args ...string) error {

@@ -12,11 +12,7 @@ import (
 //Usage - Get detailed help with a specific command
 var Usage = &commands.Command{
 	Summary: "Get detailed help with a specific command",
-	Help: &commands.HelpInfo{
-		Message: ansi.Sprintf("@R{This is getting a bit too meta, don't you think?}"),
-	},
-	RunFn: cliUsage,
-	Group: commands.InfoGroup,
+	RunFn:   cliUsage,
 }
 
 func cliUsage(opts *commands.Options, args ...string) error {
@@ -76,7 +72,7 @@ func printEnvVars() {
 
 func printGlobalFlags() {
 	header("GLOBAL FLAGS")
-	contents(commands.GlobalFlagHelp())
+	contents(strings.Join(commands.GlobalFlags.HelpStrings(), "\n"))
 }
 
 func printCommandList() {
