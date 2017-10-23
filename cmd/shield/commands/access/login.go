@@ -16,21 +16,18 @@ import (
 //Login - Authenticate with the currently targeted SHIELD backend for future commands
 var Login = &commands.Command{
 	Summary: "Authenticate with the currently targeted SHIELD backend for future commands",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "provider", Desc: "Provider to authenticate against. Uses local user auth if not given",
-			},
-			commands.FlagInfo{
-				Name: "username", Short: 'U', Desc: "Username to use for local user or basic auth login",
-			},
-			commands.FlagInfo{
-				Name: "password", Desc: "Password to use for local user or basic auth login",
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "provider", Desc: "Provider to authenticate against. Uses local user auth if not given",
+		},
+		commands.FlagInfo{
+			Name: "username", Short: 'U', Desc: "Username to use for local user or basic auth login",
+		},
+		commands.FlagInfo{
+			Name: "password", Desc: "Password to use for local user or basic auth login",
 		},
 	},
 	RunFn: cliLogin,
-	Group: commands.AccessGroup,
 }
 
 func cliLogin(opts *commands.Options, args ...string) error {

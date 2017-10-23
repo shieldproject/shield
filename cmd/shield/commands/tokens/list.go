@@ -13,18 +13,7 @@ import (
 //List - List tokens created for the currently authenticated user
 var List = &commands.Command{
 	Summary: "List tokens created for the currently authenticated user",
-	Help: &commands.HelpInfo{
-		//TODO: Update this
-		JSONOutput: `[{
-			"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20",
-			"name":"test store",
-			"summary":"a test store named \"test store\"",
-			"plugin":"s3",
-			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
-		}]`,
-	},
-	RunFn: cliListTokens,
-	Group: commands.TokensGroup,
+	RunFn:   cliListTokens,
 }
 
 func cliListTokens(opts *commands.Options, args ...string) error {

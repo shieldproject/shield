@@ -15,20 +15,18 @@ import (
 
 var Curl = &commands.Command{
 	Summary: "Issue a REST API call and display the output as formatted JSON",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name:   "method",
-				Short:  'm',
-				Valued: true,
-				Desc:   `HTTP request method to use, one of GET, PUT, POST, PATCH, DELETE`,
-			},
-			commands.FlagInfo{
-				Name:       "url",
-				Positional: true,
-				Mandatory:  true,
-				Desc:       `The path component of the URL to curl`,
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name:   "method",
+			Short:  'm',
+			Valued: true,
+			Desc:   `HTTP request method to use, one of GET, PUT, POST, PATCH, DELETE`,
+		},
+		commands.FlagInfo{
+			Name:       "url",
+			Positional: true,
+			Mandatory:  true,
+			Desc:       `The path component of the URL to curl`,
 		},
 	},
 	RunFn: func(opts *commands.Options, args ...string) error {
@@ -77,5 +75,4 @@ var Curl = &commands.Command{
 		fmt.Printf("%s\n", string(out))
 		return nil
 	},
-	Group: commands.MiscGroup,
 }

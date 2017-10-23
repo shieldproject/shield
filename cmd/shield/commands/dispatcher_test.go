@@ -10,8 +10,6 @@ import (
 var _ = Describe("Dispatcher", func() {
 
 	var nop = func(_ *Options, _ ...string) error { return nil }
-	var nopHelp = &HelpInfo{}
-	var nopGroup = &HelpGroup{}
 
 	Context("When commands where one name is a substring of the other are registered", func() {
 		var cmd *Command
@@ -21,16 +19,12 @@ var _ = Describe("Dispatcher", func() {
 		const shortName = "restore"
 		var shortCommand = &Command{
 			Summary: "Restore something",
-			Help:    nopHelp,
 			RunFn:   nop,
-			Group:   nopGroup,
 		}
 		const longName = "restore archive"
 		var longCommand = &Command{
 			Summary: "Restore... archive... something",
-			Help:    nopHelp,
 			RunFn:   nop,
-			Group:   nopGroup,
 		}
 
 		BeforeEach(func() {

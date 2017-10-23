@@ -14,19 +14,10 @@ import (
 //Get - Print detailed information about a local user
 var Get = &commands.Command{
 	Summary: "Print detailed information about a local user",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UserNameFlag,
-		},
-		JSONOutput: `{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"Example User",
-			"account":"exampleuser",
-			"sysrole":"admin/manager/technician"
-		}`,
+	Flags: commands.FlagList{
+		commands.UserNameFlag,
 	},
 	RunFn: cliGetUser,
-	Group: commands.UsersGroup,
 }
 
 func cliGetUser(opts *commands.Options, args ...string) error {

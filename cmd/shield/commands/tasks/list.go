@@ -14,32 +14,17 @@ import (
 //List - List available tasks
 var List = &commands.Command{
 	Summary: "List available tasks",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "status", Short: 'S', Valued: true,
-				Desc: `Only show tasks with the specified status
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "status", Short: 'S', Valued: true,
+			Desc: `Only show tasks with the specified status
 							Valid values are one of ['all', 'running', 'pending', 'cancelled']
 							If not explicitly set, it defaults to 'running'`,
-			},
-			commands.FlagInfo{Name: "all", Short: 'a', Desc: "Show all tasks, regardless of state"},
-			commands.FlagInfo{Name: "limit", Desc: "Show only the <value> most recent tasks"},
 		},
-		JSONOutput: `[{
-			"uuid":"0e3736f3-6905-40ba-9adc-06641a282ff4",
-			"owner":"system",
-			"type":"backup",
-			"job_uuid":"9b39b2ed-04dc-4de4-9ee8-265a3f9000e8",
-			"archive_uuid":"2a4147ea-84a6-40fc-8028-143efabcc49d",
-			"status":"done",
-			"started_at":"2016-05-17 11:00:01",
-			"stopped_at":"2016-05-17 11:00:02",
-			"timeout_at":"",
-			"log":"This is where I would put my plugin output if I had one"
-		}]`,
+		commands.FlagInfo{Name: "all", Short: 'a', Desc: "Show all tasks, regardless of state"},
+		commands.FlagInfo{Name: "limit", Desc: "Show only the <value> most recent tasks"},
 	},
 	RunFn: cliListTasks,
-	Group: commands.TasksGroup,
 }
 
 func cliListTasks(opts *commands.Options, args ...string) error {

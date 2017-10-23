@@ -17,8 +17,7 @@ type Command struct {
 	canonical string    //Canonical name of the command
 	Summary   string    //Summary description of a command (short help)
 	RunFn     commandFn //Function to call to run a command
-	Help      *HelpInfo //Function to call to print help about a command
-	Group     *HelpGroup
+	Flags     FlagList  //Function to call to print help about a command
 }
 
 //GetAliases retrieves all aliases for this command registered with the Dispatcher
@@ -57,11 +56,7 @@ func (c *Command) Run(args ...string) error {
 func (c *Command) DisplayHelp() {
 	//Print Usage Line
 	fmt.Fprintln(os.Stderr, c.usageLine())
-	if c.Help.Message != "" {
-		fmt.Fprintln(os.Stderr, c.Help.Message)
-	} else { //Default to summary unless overridden in help
-		fmt.Fprintln(os.Stderr, c.Summary)
-	}
+	fmt.Fprintln(os.Stderr, c.Summary)
 
 	//Print Aliases, if present
 	aliases := c.GetAliases()
@@ -71,32 +66,20 @@ func (c *Command) DisplayHelp() {
 	}
 
 	//Print flag help if there are any flags for this command
-	if len(c.Help.Flags) > 0 {
+	if len(c.Flags) > 0 {
 		fmt.Fprintln(os.Stderr, HelpHeader("FLAGS"))
-		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(c.Help.FlagHelp()), "\n"))
+		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(c.Flags.HelpStrings()), "\n"))
 	}
 
 	if len(GlobalFlags) != 0 {
 		fmt.Fprintln(os.Stderr, HelpHeader("GLOBAL FLAGS"))
-		fmt.Fprintln(os.Stderr, internal.IndentString(GlobalFlagHelp()))
-	}
-
-	//Print JSON input, if present
-	if c.Help.JSONInput != "" {
-		fmt.Fprintln(os.Stderr, HelpHeader("RAW INPUT"))
-		fmt.Fprintln(os.Stderr, internal.PrettyJSON(c.Help.JSONInput))
-	}
-
-	//Print JSON output, if present
-	if c.Help.JSONOutput != "" {
-		fmt.Fprintln(os.Stderr, HelpHeader("RAW OUTPUT"))
-		fmt.Fprintln(os.Stderr, internal.PrettyJSON(c.Help.JSONOutput))
+		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(GlobalFlags.HelpStrings()), "\n"))
 	}
 }
 
 func (c *Command) usageLine() string {
 	components := []string{ansi.Sprintf("@G{shield %s}", c.canonical)}
-	for _, f := range c.Help.Flags {
+	for _, f := range c.Flags {
 		var flagNotation string
 		if !f.Mandatory {
 			flagNotation = ansi.Sprintf("@G{[%s]}", f.formatShortIfPresent())
@@ -114,19 +97,7 @@ func (c *Command) validate() {
 		panic(fmt.Sprintf("Command missing canonical name: %+v\n", c))
 	}
 
-	if c.Summary == "" && c.Help.Message == "" {
-		panic(fmt.Sprintf("Command missing summary: %+v\n", c))
-	}
-
 	if c.RunFn == nil {
 		panic(fmt.Sprintf("Command missing function: %+v\n", c))
-	}
-
-	if c.Help == nil {
-		panic(fmt.Sprintf("Command missing help: %+v\n", c))
-	}
-
-	if c.Group == nil {
-		panic(fmt.Sprintf("Command not assigned to group: %+v\n", c))
 	}
 }

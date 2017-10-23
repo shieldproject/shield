@@ -14,17 +14,10 @@ import (
 //List - List shield users
 var List = &commands.Command{
 	Summary: "List tenants",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FuzzyFlag,
-		},
-		JSONOutput: `[{ 
-		"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf", 
-		"name":"Example Tenant", 
-	  }]`,
+	Flags: commands.FlagList{
+		commands.FuzzyFlag,
 	},
 	RunFn: cliListTenants,
-	Group: commands.TenantsGroup,
 }
 
 func cliListTenants(opts *commands.Options, args ...string) error {

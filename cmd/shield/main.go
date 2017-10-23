@@ -133,8 +133,9 @@ func main() {
 	currentBackend := config.Current()
 	var curCACert string
 	var shouldResetCACert bool
+
 	// only check for backends + creds if we aren't manipulating backends/help
-	if cmd != info.Usage && cmd.Group != cmds.BackendsGroup {
+	if shouldLoadBackend(cmd) {
 		if currentBackend == nil {
 			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
 			os.Exit(1)
@@ -216,35 +217,42 @@ func main() {
 }
 
 func addCommands() {
+	cmds.HelpGroup("INFO")
 	cmds.Add("help", info.Usage).AKA("usage", "commands")
 	cmds.Add("status", info.Status)
 
+	cmds.HelpGroup("MISCELLANEOUS")
 	cmds.Add("curl", misc.Curl)
 
+	cmds.HelpGroup("BACKENDS")
 	cmds.Add("backends", backends.List)
 	cmds.Add("backend", backends.Use).AKA("use backend", "use-backend")
 	cmds.Add("create-backend", backends.Create).AKA("create backend")
 	cmds.Add("rename-backend", backends.Rename).AKA("rename backend")
 	cmds.Add("delete-backend", backends.Delete).AKA("delete backend")
 
+	cmds.HelpGroup("TARGETS")
 	cmds.Add("targets", targets.List)
 	cmds.Add("target", targets.Get)
 	cmds.Add("create-target", targets.Create).AKA("create target")
 	cmds.Add("edit-target", targets.Edit).AKA("edit target")
 	cmds.Add("delete-target", targets.Delete).AKA("delete target")
 
+	cmds.HelpGroup("STORES")
 	cmds.Add("stores", stores.List)
 	cmds.Add("store", stores.Get)
 	cmds.Add("create-store", stores.Create).AKA("create store")
 	cmds.Add("edit-store", stores.Edit).AKA("edit store")
 	cmds.Add("delete-store", stores.Delete).AKA("delete store")
 
+	cmds.HelpGroup("POLICIES")
 	cmds.Add("policies", policies.List).AKA("retention policies", "retention-policies")
 	cmds.Add("policy", policies.Get).AKA("retention policy", "retention-policy")
 	cmds.Add("create-policy", policies.Create).AKA("create retention policy", "create-retention-policy", "create policy")
 	cmds.Add("edit-policy", policies.Edit).AKA("edit retention policy", "edit policy", "edit-retention-policy")
 	cmds.Add("delete-policy", policies.Delete).AKA("delete retention policy", "delete policy", "delete-retention-policy")
 
+	cmds.HelpGroup("JOBS")
 	cmds.Add("jobs", jobs.List)
 	cmds.Add("job", jobs.Get)
 	cmds.Add("create-job", jobs.Create).AKA("create job")
@@ -254,15 +262,18 @@ func addCommands() {
 	cmds.Add("unpause", jobs.Unpause).AKA("unpause job", "unpause-job")
 	cmds.Add("run", jobs.Run).AKA("run job", "run-job")
 
+	cmds.HelpGroup("ARCHIVES")
 	cmds.Add("archives", archives.List)
 	cmds.Add("archive", archives.Get)
 	cmds.Add("restore", archives.Restore).AKA("restore archive", "restore-archive")
 	cmds.Add("delete-archive", archives.Delete).AKA("delete archive")
 
+	cmds.HelpGroup("TASKS")
 	cmds.Add("tasks", tasks.List)
 	cmds.Add("task", tasks.Get)
 	cmds.Add("cancel", tasks.Cancel).AKA("cancel-task", "cancel task")
 
+	cmds.HelpGroup("ACCESS")
 	cmds.Add("login", access.Login).AKA("log-in")
 	cmds.Add("logout", access.Logout).AKA("log-out")
 	cmds.Add("whoami", access.Whoami)
@@ -270,6 +281,7 @@ func addCommands() {
 	cmds.Add("init", access.Init).AKA("initialize")
 	cmds.Add("rekey", access.Rekey).AKA("rekey-master")
 
+	cmds.HelpGroup("USERS")
 	cmds.Add("create-user", users.Create)
 	cmds.Add("user", users.Get)
 	cmds.Add("users", users.List)
@@ -277,6 +289,7 @@ func addCommands() {
 	cmds.Add("edit-user", users.Edit).AKA("edit user")
 	cmds.Add("passwd", users.Passwd)
 
+	cmds.HelpGroup("TENANTS")
 	cmds.Add("tenants", tenants.List)
 	cmds.Add("tenant", tenants.Get)
 	cmds.Add("create-tenant", tenants.Create).AKA("create tenant")
@@ -285,6 +298,7 @@ func addCommands() {
 	cmds.Add("invite", tenants.Invite)
 	cmds.Add("banish", tenants.Banish)
 
+	cmds.HelpGroup("AUTH TOKENS")
 	cmds.Add("auth-tokens", tokens.List)
 	cmds.Add("create-auth-token", tokens.Create).AKA("create auth token")
 	cmds.Add("revoke-auth-token", tokens.Delete).AKA("revoke auth token")
@@ -313,6 +327,23 @@ func addGlobalFlags() {
 			Desc: "Auth with an API Token instead of the current backend",
 		},
 	}
+}
+
+func shouldLoadBackend(cmd *cmds.Command) bool {
+	noBackendCmds := []*cmds.Command{
+		info.Usage,
+		backends.Create,
+		backends.Delete,
+		backends.List,
+		backends.Rename,
+		backends.Use,
+	}
+	for _, c := range noBackendCmds {
+		if cmd == c {
+			return false
+		}
+	}
+	return true
 }
 
 func fetchAPIVersion() (int, error) {

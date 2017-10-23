@@ -15,42 +15,8 @@ import (
 //Create - Create a new backup job
 var Create = &commands.Command{
 	Summary: "Create a new backup job",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{commands.UpdateIfExistsFlag},
-		JSONInput: `{
-			"name":"TestJob",
-			"paused":true,
-			"retention":"18a446c4-c068-4c09-886c-cb77b6a85274",
-			"schedule":"daily 4am",
-			"store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"summary":"A Test Job",
-			"target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"
-			"tenant":"5c839605-856f-4a1d-97cd-e5f4019c08af"
-		}`,
-		JSONOutput: `{
-			"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588",
-			"name":"TestJob",
-			"summary":"A Test Job",
-			"retention_name":"AnotherPolicy",
-			"retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
-			"expiry":31536000,
-			"schedule":"daily 4am",
-			"paused":true,
-			"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"store_name":"AnotherStore",
-			"store_plugin":"s3",
-			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee",
-			"target_name":"TestTarget",
-			"target_plugin":"postgres",
-			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"agent":"127.0.0.1:1234"
-			"tenant_uuid":"5c839605-856f-4a1d-97cd-e5f4019c08af"
-			"tenant_name":"Engineering"
-		}`,
-	},
-	RunFn: cliCreateJob,
-	Group: commands.JobsGroup,
+	Flags:   commands.FlagList{commands.UpdateIfExistsFlag},
+	RunFn:   cliCreateJob,
 }
 
 func cliCreateJob(opts *commands.Options, args ...string) error {

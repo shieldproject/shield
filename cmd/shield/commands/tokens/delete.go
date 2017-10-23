@@ -11,24 +11,13 @@ import (
 //Delete - Delete token with the given name
 var Delete = &commands.Command{
 	Summary: "Revoke an auth token",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "NAME", Desc: "The name of the auth token to revoke",
-				Positional: true, Mandatory: true,
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "NAME", Desc: "The name of the auth token to revoke",
+			Positional: true, Mandatory: true,
 		},
-		//TODO: Update this
-		JSONOutput: `[{
-			"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20",
-			"name":"test store",
-			"summary":"a test store named \"test store\"",
-			"plugin":"s3",
-			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
-		}]`,
 	},
 	RunFn: cliDeleteToken,
-	Group: commands.TokensGroup,
 }
 
 func cliDeleteToken(opts *commands.Options, args ...string) error {

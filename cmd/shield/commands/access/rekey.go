@@ -14,9 +14,7 @@ import (
 //Rekey - Rekeys the encryption database keys
 var Rekey = &commands.Command{
 	Summary: "Rekey the encryption database keys",
-	Help:    &commands.HelpInfo{},
 	RunFn:   cliRekey,
-	Group:   commands.AccessGroup,
 }
 
 func cliRekey(opts *commands.Options, args ...string) error {

@@ -12,17 +12,13 @@ import (
 //Delete - Delete a backup archive
 var Delete = &commands.Command{
 	Summary: "Delete a backup archive",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "uuid", Positional: true, Mandatory: true,
-				Desc: "A UUID assigned to a single archive instance",
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "uuid", Positional: true, Mandatory: true,
+			Desc: "A UUID assigned to a single archive instance",
 		},
-		JSONOutput: `{"ok":"Deleted archive"}`,
 	},
 	RunFn: cliDeleteArchive,
-	Group: commands.ArchivesGroup,
 }
 
 func cliDeleteArchive(opts *commands.Options, args ...string) error {

@@ -14,27 +14,16 @@ import (
 //List - List available backup targets
 var List = &commands.Command{
 	Summary: "List available backup targets",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "plugin", Short: 'P', Valued: true,
-				Desc: "Only show targets using the named target plugin",
-			},
-			commands.UsedFlag,
-			commands.UnusedFlag,
-			commands.FuzzyFlag,
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "plugin", Short: 'P', Valued: true,
+			Desc: "Only show targets using the named target plugin",
 		},
-		JSONOutput: `[{
-				"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392",
-				"name":"SampleTarget",
-				"summary":"A Sample Target",
-				"plugin":"postgres",
-				"endpoint":"{\"endpoint\":\"127.0.0.1:5432\"}",
-				"agent":"127.0.0.1:1234"
-			}]`,
+		commands.UsedFlag,
+		commands.UnusedFlag,
+		commands.FuzzyFlag,
 	},
 	RunFn: cliListTargets,
-	Group: commands.TargetsGroup,
 }
 
 func cliListTargets(opts *commands.Options, args ...string) error {

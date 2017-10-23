@@ -13,28 +13,10 @@ import (
 //Create - Create a new backup target
 var Create = &commands.Command{
 	Summary: "Create a new backup target",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UpdateIfExistsFlag,
-		},
-		JSONInput: `{
-			"agent":"127.0.0.1:1234",
-			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"name":"TestTarget",
-			"plugin":"postgres",
-			"summary":"A Test Target"
-		}`,
-		JSONOutput: `{
-			"uuid":"77398f3e-2a31-4f20-b3f7-49d3f0998712",
-			"name":"TestTarget",
-			"summary":"A Test Target",
-			"plugin":"postgres",
-			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"agent":"127.0.0.1:1234"
-		}`,
+	Flags: commands.FlagList{
+		commands.UpdateIfExistsFlag,
 	},
 	RunFn: cliCreateTarget,
-	Group: commands.TargetsGroup,
 }
 
 func cliCreateTarget(opts *commands.Options, args ...string) error {

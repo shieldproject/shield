@@ -13,24 +13,10 @@ import (
 //Create - Create a new retention policy
 var Create = &commands.Command{
 	Summary: "Create a new retention policy",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UpdateIfExistsFlag,
-		},
-		JSONInput: `{
-			"expires":31536000,
-			"name":"TestPolicy",
-			"summary":"A Test Policy"
-		}`,
-		JSONOutput: `{
-			"uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
-			"name":"TestPolicy",
-			"summary":"A Test Policy",
-			"expires":31536000
-		}`,
+	Flags: commands.FlagList{
+		commands.UpdateIfExistsFlag,
 	},
 	RunFn: cliCreatePolicy,
-	Group: commands.PoliciesGroup,
 }
 
 func cliCreatePolicy(opts *commands.Options, args ...string) error {

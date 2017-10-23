@@ -14,9 +14,7 @@ import (
 //Init - Initializes the encryption key database
 var Init = &commands.Command{
 	Summary: "Initialize the encryption key database",
-	Help:    &commands.HelpInfo{},
 	RunFn:   cliInit,
-	Group:   commands.AccessGroup,
 }
 
 func cliInit(opts *commands.Options, args ...string) error {

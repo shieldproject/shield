@@ -14,20 +14,10 @@ import (
 //Get - Print detailed information about a specific archive store
 var Get = &commands.Command{
 	Summary: "Print detailed information about a specific archive store",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.StoreNameFlag,
-		},
-		JSONOutput: `{
-			"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20",
-			"name":"test store",
-			"summary":"a test store named \"test store\"",
-			"plugin":"s3",
-			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
-		}`,
+	Flags: commands.FlagList{
+		commands.StoreNameFlag,
 	},
 	RunFn: cliGetStore,
-	Group: commands.StoresGroup,
 }
 
 func cliGetStore(opts *commands.Options, args ...string) error {

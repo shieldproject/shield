@@ -13,16 +13,13 @@ import (
 //Delete - Delete a SHIELD backend
 var Delete = &commands.Command{
 	Summary: "Delete a SHIELD backend alias",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "name", Mandatory: true, Positional: true,
-				Desc: `The name of the backend to delete`,
-			},
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "name", Mandatory: true, Positional: true,
+			Desc: `The name of the backend to delete`,
 		},
 	},
 	RunFn: cliDeleteBackend,
-	Group: commands.BackendsGroup,
 }
 
 func cliDeleteBackend(opts *commands.Options, args ...string) error {

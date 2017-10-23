@@ -14,22 +14,12 @@ import (
 //List - List available archive stores
 var List = &commands.Command{
 	Summary: "List available archive stores",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.UsedFlag,
-			commands.UnusedFlag,
-			commands.FuzzyFlag,
-		},
-		JSONOutput: `[{
-			"uuid":"6e83bfb7-7ae1-4f0f-88a8-84f0fe4bae20",
-			"name":"test store",
-			"summary":"a test store named \"test store\"",
-			"plugin":"s3",
-			"endpoint":"{ \"endpoint\": \"doesntmatter\" }"
-		}]`,
+	Flags: commands.FlagList{
+		commands.UsedFlag,
+		commands.UnusedFlag,
+		commands.FuzzyFlag,
 	},
 	RunFn: cliListStores,
-	Group: commands.StoresGroup,
 }
 
 func cliListStores(opts *commands.Options, args ...string) error {

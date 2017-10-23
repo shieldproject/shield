@@ -14,17 +14,7 @@ import (
 //Edit - Modify an existing tenant
 var Edit = &commands.Command{
 	Summary: "Modify an existing tenant",
-	Help: &commands.HelpInfo{
-		JSONInput: `{ 
-		"name":"Example Tenant", 
-	  }`,
-		JSONOutput: `{ 
-		"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf", 
-		"name":"Example Tenant", 
-	  }`,
-	},
-	RunFn: cliEditTenant,
-	Group: commands.TenantsGroup,
+	RunFn:   cliEditTenant,
 }
 
 func cliEditTenant(opts *commands.Options, args ...string) error {

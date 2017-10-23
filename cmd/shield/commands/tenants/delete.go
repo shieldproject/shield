@@ -13,11 +13,7 @@ import (
 //Delete - Delete a tenant
 var Delete = &commands.Command{
 	Summary: "Delete a tenant",
-	Help: &commands.HelpInfo{
-		JSONOutput: `{"ok":"Deleted Tenant"}`,
-	},
-	RunFn: cliDeleteTenant,
-	Group: commands.TenantsGroup,
+	RunFn:   cliDeleteTenant,
 }
 
 func cliDeleteTenant(opts *commands.Options, args ...string) error {
