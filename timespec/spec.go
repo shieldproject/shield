@@ -78,8 +78,11 @@ func (s *Spec) String() string {
 		if s.Cardinality == 0 {
 			return fmt.Sprintf("hourly at %d after", s.TimeOfHour)
 		}
-		if s.Cardinality < 1 {
-			return fmt.Sprintf("every %0.2f hours from %s", s.Cardinality, t)
+		if s.Cardinality == 0.25 {
+			return fmt.Sprintf("every quarter hour from %s", t)
+		}
+		if s.Cardinality == 0.5 {
+			return fmt.Sprintf("every half hour from %s", t)
 		}
 		return fmt.Sprintf("every %d hours from %s", int(s.Cardinality), t)
 	}

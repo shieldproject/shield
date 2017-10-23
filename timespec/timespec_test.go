@@ -41,7 +41,7 @@ var _ = Describe("Timespec", func() {
 				Cardinality: 0.5,
 			}
 
-			Ω(spec.String()).Should(Equal("every 0.50 hours from 0:15"))
+			Ω(spec.String()).Should(Equal("every half hour from 0:15"))
 		})
 
 		It("can stringify quarter hour specs", func() {
@@ -51,7 +51,7 @@ var _ = Describe("Timespec", func() {
 				Cardinality: 0.25,
 			}
 
-			Ω(spec.String()).Should(Equal("every 0.25 hours from 0:15"))
+			Ω(spec.String()).Should(Equal("every quarter hour from 0:15"))
 		})
 
 		It("can stringify daily specs", func() {
