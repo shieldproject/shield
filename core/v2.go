@@ -10,6 +10,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/log"
+	"github.com/starkandwayne/shield/timespec"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -909,9 +910,9 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		tenants, err := core.DB.GetAllTenants(&db.TenantFilter{
-			UUID:       paramValue(r.Req, "uuid", ""),
-			Name:       paramValue(r.Req, "name", ""),
-			ExactMatch: paramEquals(r.Req, "exact", "t"),
+			UUID:       r.Param("uuid", ""),
+			Name:       r.Param("name", ""),
+			ExactMatch: r.ParamIs("exact", "t"),
 			Limit:      limit,
 		})
 
@@ -2715,4 +2716,56 @@ func (core *Core) v2API() *route.Router {
 		core.dispatchDebug(r)
 	}
 	return r
+}
+
+func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
+	dst.UUID = target.UUID
+	dst.Name = target.Name
+	dst.Notes = target.Summary
+	dst.OK = true /* FIXME */
+
+	jobs, err := core.DB.GetAllJobs(
+		&db.JobFilter{
+			ForTarget: target.UUID.String(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	dst.Jobs = make([]v2SystemJob, len(jobs))
+	for j, job := range jobs {
+		dst.Jobs[j].UUID = job.UUID
+		dst.Jobs[j].Schedule = job.Schedule
+		dst.Jobs[j].From = job.Target.Plugin
+		dst.Jobs[j].To = job.Store.Plugin
+		dst.Jobs[j].OK = job.Healthy()
+		dst.Jobs[j].Store.UUID = job.Store.UUID
+		dst.Jobs[j].Store.Name = job.Store.Name
+		dst.Jobs[j].Store.Summary = job.Store.Summary
+		dst.Jobs[j].Retention.UUID = job.Policy.UUID
+		dst.Jobs[j].Retention.Name = job.Policy.Name
+		dst.Jobs[j].Retention.Summary = job.Policy.Summary
+
+		if !job.Healthy() {
+			dst.OK = false
+		}
+
+		dst.Jobs[j].Keep.Days = job.Expiry / 86400
+		dst.Jobs[j].Retention.Days = dst.Jobs[j].Keep.Days
+
+		tspec, err := timespec.Parse(job.Schedule)
+		if err != nil {
+			return err
+		}
+		switch tspec.Interval {
+		case timespec.Daily:
+			dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days
+		case timespec.Weekly:
+			dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days / 7
+		case timespec.Monthly:
+			dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days / 30
+		}
+	}
+	return nil
 }
