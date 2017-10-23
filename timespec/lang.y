@@ -25,16 +25,18 @@ import (
 %token DAILY
 %token WEEKLY
 %token MONTHLY
+%token FROM
 %token AT
 %token ON
 %token AM
 %token PM
 %token HALF
+%token EVERY
+%token DAY
+%token HOUR
 %token QUARTER
 %token AFTER
 %token TIL
-%token EVERYDAY
-%token EVERYHOUR
 %token SUNDAY
 %token MONDAY
 %token TUESDAY
@@ -53,16 +55,19 @@ timespec : spec {
 spec : hourly_spec | daily_spec | weekly_spec | monthly_spec
      ;
 
-hourly_spec : HOURLY    AT time_in_MM { $$ = hourly($3) }
-            | HOURLY       time_in_MM { $$ = hourly($2) }
-            | EVERYHOUR AT time_in_MM { $$ = hourly($3) }
-            | EVERYHOUR    time_in_MM { $$ = hourly($2) }
+hourly_spec : HOURLY     AT time_in_MM             { $$ = hourly($3, 0) }
+            | HOURLY        time_in_MM             { $$ = hourly($2, 0) }
+            | EVERY QUARTER HOUR FROM time_in_MM     { $$ = hourly($5, 0.25) }
+            | EVERY HALF HOUR FROM time_in_MM        { $$ = hourly($5, 0.5) }
+            | EVERY HOUR AT time_in_MM             { $$ = hourly($4, 0) }
+            | EVERY HOUR time_in_MM                { $$ = hourly($3, 0) }
+            | EVERY NUMBER HOUR FROM time_in_HHMM  { $$ = hourly($5, float32($2)) }
             ;
 
 daily_spec : DAILY    AT time_in_HHMM  { $$ = daily($3) }
            | DAILY       time_in_HHMM  { $$ = daily($2) }
-           | EVERYDAY AT time_in_HHMM  { $$ = daily($3) }
-           | EVERYDAY    time_in_HHMM  { $$ = daily($2) }
+           | EVERY DAY AT time_in_HHMM  { $$ = daily($4) }
+           | EVERY DAY    time_in_HHMM  { $$ = daily($3) }
            ;
 
 anyhour: | 'h' | 'H' | 'x' | 'X' | '*' ;

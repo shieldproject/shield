@@ -1,2 +1,2 @@
 #!/bin/sh
-go tool yacc lang.y
+goyacc lang.y

@@ -24,6 +24,36 @@ var _ = Describe("Timespec", func() {
 			Ω(spec.String()).Should(Equal("hourly at 45 after"))
 		})
 
+		It("can stringify cardinal hourly specs", func() {
+			spec := &Spec{
+				Interval:    Hourly,
+				TimeOfDay:   inMinutes(4, 39),
+				Cardinality: 6,
+			}
+
+			Ω(spec.String()).Should(Equal("every 6 hours from 4:39"))
+		})
+
+		It("can stringify half hour specs", func() {
+			spec := &Spec{
+				Interval:    Hourly,
+				TimeOfDay:   inMinutes(0, 15),
+				Cardinality: 0.5,
+			}
+
+			Ω(spec.String()).Should(Equal("every half hour from 0:15"))
+		})
+
+		It("can stringify quarter hour specs", func() {
+			spec := &Spec{
+				Interval:    Hourly,
+				TimeOfDay:   inMinutes(0, 15),
+				Cardinality: 0.25,
+			}
+
+			Ω(spec.String()).Should(Equal("every quarter hour from 0:15"))
+		})
+
 		It("can stringify daily specs", func() {
 			spec := &Spec{
 				Interval:  Daily,
@@ -91,7 +121,84 @@ var _ = Describe("Timespec", func() {
 					time.Date(1991, 8, 6, 12, 7, 00, 00, tz)))
 			})
 
-			It("throws errors for minute offsets that are inconceivable large", func() {
+			It("can handle every 1 hours from 00:15am", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(00, 15),
+					Cardinality: 1,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 12, 15, 00, 00, tz)))
+			})
+
+			It("can handle every 4 hours from 3:15am", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(03, 15),
+					Cardinality: 4,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 15, 15, 00, 00, tz)))
+			})
+
+			It("can handle every 2 hours from 1:30am", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(01, 30),
+					Cardinality: 2,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 11, 30, 00, 00, tz)))
+			})
+
+			It("can handle every half hour from 00:09am", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(00, 9),
+					Cardinality: 0.5,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 11, 39, 00, 00, tz)))
+			})
+
+			It("can handle every quarter hour from 00:03am", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(00, 3),
+					Cardinality: 0.25,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 11, 18, 00, 00, tz)))
+			})
+
+			It("can handle every quarter hour from 00:00am when now is 11:59pm", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(00, 00),
+					Cardinality: 0.25,
+				}
+				close := time.Date(1991, 8, 6, 23, 59, 42, 100203, tz)
+				Ω(spec.Next(close)).Should(Equal(
+					time.Date(1991, 8, 7, 00, 00, 00, 00, tz)))
+			})
+
+			It("can handle every half hour from 00:00am when now is 11:59pm", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(00, 00),
+					Cardinality: 0.5,
+				}
+				close := time.Date(1991, 8, 6, 23, 59, 42, 100203, tz)
+				Ω(spec.Next(close)).Should(Equal(
+					time.Date(1991, 8, 7, 00, 00, 00, 00, tz)))
+			})
+
+			It("throws errors for minute offsets that are inconceivably large", func() {
 				spec := &Spec{
 					Interval:   Hourly,
 					TimeOfHour: 900,
@@ -100,6 +207,48 @@ var _ = Describe("Timespec", func() {
 				_, err := spec.Next(now)
 				Ω(err).Should(HaveOccurred())
 			})
+
+			It("throws errors for cardinality offsets that are inconceivably large", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(03, 15),
+					Cardinality: 31,
+				}
+				_, err := spec.Next(now)
+				Ω(err).Should(HaveOccurred())
+			})
+
+			It("throws errors for cardinality offsets that are inconceivably large", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(03, 15),
+					Cardinality: -1,
+				}
+				_, err := spec.Next(now)
+				Ω(err).Should(HaveOccurred())
+			})
+
+			It("throws errors for cardinality offsets that are not supported", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(03, 15),
+					Cardinality: 2.5,
+				}
+				_, err := spec.Next(now)
+				Ω(err).Should(HaveOccurred())
+			})
+
+			It("throws errors for FROM offsets that are not reduced", func() {
+				spec := &Spec{
+					Interval:    Hourly,
+					TimeOfDay:   inMinutes(05, 30),
+					Cardinality: 4,
+				}
+
+				_, err := spec.Next(now)
+				Ω(err).Should(HaveOccurred())
+			})
+
 		})
 
 		Context("with a daily interval", func() {

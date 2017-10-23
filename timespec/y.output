@@ -1,737 +1,926 @@
+state 0 //
 
-state 0
-	$accept: .timespec $end 
+    0 $accept: . timespec
 
-	ORDINAL  shift 14
-	HOURLY  shift 7
-	DAILY  shift 9
-	WEEKLY  shift 11
-	MONTHLY  shift 13
-	EVERYDAY  shift 10
-	EVERYHOUR  shift 8
-	SUNDAY  shift 15
-	MONDAY  shift 16
-	TUESDAY  shift 17
-	WEDNESDAY  shift 18
-	THURSDAY  shift 19
-	FRIDAY  shift 20
-	SATURDAY  shift 21
-	.  error
+    DAILY      shift, and goto state 9
+    EVERY      shift, and goto state 8
+    FRIDAY     shift, and goto state 17
+    HOURLY     shift, and goto state 7
+    MONDAY     shift, and goto state 13
+    MONTHLY    shift, and goto state 19
+    ORDINAL    shift, and goto state 20
+    SATURDAY   shift, and goto state 18
+    SUNDAY     shift, and goto state 12
+    THURSDAY   shift, and goto state 16
+    TUESDAY    shift, and goto state 14
+    WEDNESDAY  shift, and goto state 15
+    WEEKLY     shift, and goto state 10
 
-	day_name  goto 12
-	spec  goto 2
-	hourly_spec  goto 3
-	daily_spec  goto 4
-	weekly_spec  goto 5
-	monthly_spec  goto 6
-	timespec  goto 1
+    daily_spec    goto state 4
+    day_name      goto state 11
+    hourly_spec   goto state 3
+    monthly_spec  goto state 6
+    spec          goto state 2
+    timespec      goto state 1
+    weekly_spec   goto state 5
 
-state 1
-	$accept:  timespec.$end 
+state 1 // HOURLY NUMBER [$end]
 
-	$end  accept
-	.  error
+    0 $accept: timespec .  [$end]
 
+    $end  accept
 
-state 2
-	timespec:  spec.    (1)
+state 2 // HOURLY NUMBER [$end]
 
-	.  reduce 1 (src line 48)
+    1 timespec: spec .  [$end]
 
+    $end  reduce using rule 1 (timespec)
 
-state 3
-	spec:  hourly_spec.    (2)
+state 3 // HOURLY NUMBER [$end]
 
-	.  reduce 2 (src line 53)
+    2 spec: hourly_spec .  [$end]
 
+    $end  reduce using rule 2 (spec)
 
-state 4
-	spec:  daily_spec.    (3)
+state 4 // DAILY NUMBER AM [$end]
 
-	.  reduce 3 (src line 53)
+    3 spec: daily_spec .  [$end]
 
+    $end  reduce using rule 3 (spec)
 
-state 5
-	spec:  weekly_spec.    (4)
+state 5 // FRIDAY NUMBER AM [$end]
 
-	.  reduce 4 (src line 53)
+    4 spec: weekly_spec .  [$end]
 
+    $end  reduce using rule 4 (spec)
 
-state 6
-	spec:  monthly_spec.    (5)
+state 6 // MONTHLY NUMBER AM NUMBER [$end]
 
-	.  reduce 5 (src line 53)
+    5 spec: monthly_spec .  [$end]
 
+    $end  reduce using rule 5 (spec)
 
-state 7
-	hourly_spec:  HOURLY.AT time_in_MM 
-	hourly_spec:  HOURLY.time_in_MM 
-	anyhour: .    (14)
+state 7 // HOURLY
 
-	NUMBER  shift 25
-	AT  shift 22
-	HALF  shift 33
-	QUARTER  shift 32
-	'h'  shift 27
-	'H'  shift 28
-	'x'  shift 29
-	'X'  shift 30
-	'*'  shift 31
-	.  reduce 14 (src line 68)
+    6 hourly_spec: HOURLY . AT time_in_MM
+    7 hourly_spec: HOURLY . time_in_MM
+   17 anyhour: .  [':']
 
-	time_in_MM  goto 23
-	minutes  goto 26
-	anyhour  goto 24
+    '*'      shift, and goto state 79
+    ':'      reduce using rule 17 (anyhour)
+    'H'      shift, and goto state 76
+    'X'      shift, and goto state 78
+    'h'      shift, and goto state 75
+    'x'      shift, and goto state 77
+    AT       shift, and goto state 96
+    HALF     shift, and goto state 81
+    NUMBER   shift, and goto state 82
+    QUARTER  shift, and goto state 80
 
-state 8
-	hourly_spec:  EVERYHOUR.AT time_in_MM 
-	hourly_spec:  EVERYHOUR.time_in_MM 
-	anyhour: .    (14)
+    anyhour     goto state 83
+    minutes     goto state 84
+    time_in_MM  goto state 97
 
-	NUMBER  shift 25
-	AT  shift 34
-	HALF  shift 33
-	QUARTER  shift 32
-	'h'  shift 27
-	'H'  shift 28
-	'x'  shift 29
-	'X'  shift 30
-	'*'  shift 31
-	.  reduce 14 (src line 68)
+state 8 // EVERY
 
-	time_in_MM  goto 35
-	minutes  goto 26
-	anyhour  goto 24
+    8 hourly_spec: EVERY . QUARTER HOUR FROM time_in_MM
+    9 hourly_spec: EVERY . HALF HOUR FROM time_in_MM
+   10 hourly_spec: EVERY . HOUR AT time_in_MM
+   11 hourly_spec: EVERY . HOUR time_in_MM
+   12 hourly_spec: EVERY . NUMBER HOUR FROM time_in_HHMM
+   15 daily_spec: EVERY . DAY AT time_in_HHMM
+   16 daily_spec: EVERY . DAY time_in_HHMM
 
-state 9
-	daily_spec:  DAILY.AT time_in_HHMM 
-	daily_spec:  DAILY.time_in_HHMM 
+    DAY      shift, and goto state 66
+    HALF     shift, and goto state 63
+    HOUR     shift, and goto state 64
+    NUMBER   shift, and goto state 65
+    QUARTER  shift, and goto state 62
 
-	NUMBER  shift 38
-	AT  shift 36
-	.  error
+state 9 // DAILY
 
-	time_in_HHMM  goto 37
+   13 daily_spec: DAILY . AT time_in_HHMM
+   14 daily_spec: DAILY . time_in_HHMM
 
-state 10
-	daily_spec:  EVERYDAY.AT time_in_HHMM 
-	daily_spec:  EVERYDAY.time_in_HHMM 
+    AT      shift, and goto state 59
+    NUMBER  shift, and goto state 22
 
-	NUMBER  shift 38
-	AT  shift 39
-	.  error
+    time_in_HHMM  goto state 60
 
-	time_in_HHMM  goto 40
+state 10 // WEEKLY
 
-state 11
-	weekly_spec:  WEEKLY.AT time_in_HHMM ON day_name 
-	weekly_spec:  WEEKLY.time_in_HHMM ON day_name 
-	weekly_spec:  WEEKLY.AT time_in_HHMM day_name 
-	weekly_spec:  WEEKLY.time_in_HHMM day_name 
+   35 weekly_spec: WEEKLY . AT time_in_HHMM ON day_name
+   36 weekly_spec: WEEKLY . time_in_HHMM ON day_name
+   37 weekly_spec: WEEKLY . AT time_in_HHMM day_name
+   38 weekly_spec: WEEKLY . time_in_HHMM day_name
 
-	NUMBER  shift 38
-	AT  shift 41
-	.  error
+    AT      shift, and goto state 50
+    NUMBER  shift, and goto state 22
 
-	time_in_HHMM  goto 42
+    time_in_HHMM  goto state 51
 
-state 12
-	weekly_spec:  day_name.AT time_in_HHMM 
-	weekly_spec:  day_name.time_in_HHMM 
+state 11 // FRIDAY [AT]
 
-	NUMBER  shift 38
-	AT  shift 43
-	.  error
+   39 weekly_spec: day_name . AT time_in_HHMM
+   40 weekly_spec: day_name . time_in_HHMM
 
-	time_in_HHMM  goto 44
+    AT      shift, and goto state 47
+    NUMBER  shift, and goto state 22
 
-state 13
-	monthly_spec:  MONTHLY.AT time_in_HHMM ON month_day 
-	monthly_spec:  MONTHLY.time_in_HHMM ON month_day 
-	monthly_spec:  MONTHLY.AT time_in_HHMM month_day 
-	monthly_spec:  MONTHLY.time_in_HHMM month_day 
+    time_in_HHMM  goto state 48
 
-	NUMBER  shift 38
-	AT  shift 45
-	.  error
+state 12 // SUNDAY
 
-	time_in_HHMM  goto 46
+   43 day_name: SUNDAY .  [$end, AT, NUMBER]
 
-state 14
-	monthly_spec:  ORDINAL.day_name AT time_in_HHMM 
-	monthly_spec:  ORDINAL.day_name time_in_HHMM 
+    $end    reduce using rule 43 (day_name)
+    AT      reduce using rule 43 (day_name)
+    NUMBER  reduce using rule 43 (day_name)
 
-	SUNDAY  shift 15
-	MONDAY  shift 16
-	TUESDAY  shift 17
-	WEDNESDAY  shift 18
-	THURSDAY  shift 19
-	FRIDAY  shift 20
-	SATURDAY  shift 21
-	.  error
+state 13 // MONDAY
 
-	day_name  goto 47
+   44 day_name: MONDAY .  [$end, AT, NUMBER]
 
-state 15
-	day_name:  SUNDAY.    (40)
+    $end    reduce using rule 44 (day_name)
+    AT      reduce using rule 44 (day_name)
+    NUMBER  reduce using rule 44 (day_name)
 
-	.  reduce 40 (src line 100)
+state 14 // TUESDAY
 
+   45 day_name: TUESDAY .  [$end, AT, NUMBER]
 
-state 16
-	day_name:  MONDAY.    (41)
+    $end    reduce using rule 45 (day_name)
+    AT      reduce using rule 45 (day_name)
+    NUMBER  reduce using rule 45 (day_name)
 
-	.  reduce 41 (src line 101)
+state 15 // WEDNESDAY
 
+   46 day_name: WEDNESDAY .  [$end, AT, NUMBER]
 
-state 17
-	day_name:  TUESDAY.    (42)
+    $end    reduce using rule 46 (day_name)
+    AT      reduce using rule 46 (day_name)
+    NUMBER  reduce using rule 46 (day_name)
 
-	.  reduce 42 (src line 102)
+state 16 // THURSDAY
 
+   47 day_name: THURSDAY .  [$end, AT, NUMBER]
 
-state 18
-	day_name:  WEDNESDAY.    (43)
+    $end    reduce using rule 47 (day_name)
+    AT      reduce using rule 47 (day_name)
+    NUMBER  reduce using rule 47 (day_name)
 
-	.  reduce 43 (src line 103)
+state 17 // FRIDAY
 
+   48 day_name: FRIDAY .  [$end, AT, NUMBER]
 
-state 19
-	day_name:  THURSDAY.    (44)
+    $end    reduce using rule 48 (day_name)
+    AT      reduce using rule 48 (day_name)
+    NUMBER  reduce using rule 48 (day_name)
 
-	.  reduce 44 (src line 104)
+state 18 // SATURDAY
 
+   49 day_name: SATURDAY .  [$end, AT, NUMBER]
 
-state 20
-	day_name:  FRIDAY.    (45)
+    $end    reduce using rule 49 (day_name)
+    AT      reduce using rule 49 (day_name)
+    NUMBER  reduce using rule 49 (day_name)
 
-	.  reduce 45 (src line 105)
+state 19 // MONTHLY
 
+   50 monthly_spec: MONTHLY . AT time_in_HHMM ON month_day
+   51 monthly_spec: MONTHLY . time_in_HHMM ON month_day
+   52 monthly_spec: MONTHLY . AT time_in_HHMM month_day
+   53 monthly_spec: MONTHLY . time_in_HHMM month_day
 
-state 21
-	day_name:  SATURDAY.    (46)
+    AT      shift, and goto state 36
+    NUMBER  shift, and goto state 22
 
-	.  reduce 46 (src line 106)
+    time_in_HHMM  goto state 37
 
+state 20 // ORDINAL
 
-state 22
-	hourly_spec:  HOURLY AT.time_in_MM 
-	anyhour: .    (14)
+   54 monthly_spec: ORDINAL . day_name AT time_in_HHMM
+   55 monthly_spec: ORDINAL . day_name time_in_HHMM
 
-	NUMBER  shift 25
-	HALF  shift 33
-	QUARTER  shift 32
-	'h'  shift 27
-	'H'  shift 28
-	'x'  shift 29
-	'X'  shift 30
-	'*'  shift 31
-	.  reduce 14 (src line 68)
+    FRIDAY     shift, and goto state 17
+    MONDAY     shift, and goto state 13
+    SATURDAY   shift, and goto state 18
+    SUNDAY     shift, and goto state 12
+    THURSDAY   shift, and goto state 16
+    TUESDAY    shift, and goto state 14
+    WEDNESDAY  shift, and goto state 15
 
-	time_in_MM  goto 48
-	minutes  goto 26
-	anyhour  goto 24
+    day_name  goto state 21
 
-state 23
-	hourly_spec:  HOURLY time_in_MM.    (7)
+state 21 // ORDINAL FRIDAY [AT]
 
-	.  reduce 7 (src line 57)
+   54 monthly_spec: ORDINAL day_name . AT time_in_HHMM
+   55 monthly_spec: ORDINAL day_name . time_in_HHMM
 
+    AT      shift, and goto state 23
+    NUMBER  shift, and goto state 22
 
-state 24
-	time_in_MM:  anyhour.':' NUMBER 
+    time_in_HHMM  goto state 24
 
-	':'  shift 49
-	.  error
+state 22 // MONTHLY NUMBER
 
+   30 time_in_HHMM: NUMBER . ':' NUMBER
+   31 time_in_HHMM: NUMBER . ':' NUMBER am_or_pm
+   32 time_in_HHMM: NUMBER . ':' NUMBER ' ' am_or_pm
+   33 time_in_HHMM: NUMBER . am_or_pm
+   34 time_in_HHMM: NUMBER . ' ' am_or_pm
 
-state 25
-	minutes:  NUMBER.    (22)
-	time_in_MM:  NUMBER.    (24)
+    ' '  shift, and goto state 28
+    ':'  shift, and goto state 26
+    AM   shift, and goto state 29
+    PM   shift, and goto state 30
 
-	$end  reduce 24 (src line 76)
-	.  reduce 22 (src line 72)
+    am_or_pm  goto state 27
 
+state 23 // ORDINAL FRIDAY AT
 
-state 26
-	time_in_MM:  minutes.AFTER 
-	time_in_MM:  minutes.TIL 
+   54 monthly_spec: ORDINAL day_name AT . time_in_HHMM
 
-	AFTER  shift 50
-	TIL  shift 51
-	.  error
+    NUMBER  shift, and goto state 22
 
+    time_in_HHMM  goto state 25
 
-state 27
-	anyhour:  'h'.    (15)
+state 24 // ORDINAL FRIDAY NUMBER AM [$end]
 
-	.  reduce 15 (src line 68)
+   55 monthly_spec: ORDINAL day_name time_in_HHMM .  [$end]
 
+    $end  reduce using rule 55 (monthly_spec)
 
-state 28
-	anyhour:  'H'.    (16)
+state 25 // ORDINAL FRIDAY AT NUMBER AM [$end]
 
-	.  reduce 16 (src line 68)
+   54 monthly_spec: ORDINAL day_name AT time_in_HHMM .  [$end]
 
+    $end  reduce using rule 54 (monthly_spec)
 
-state 29
-	anyhour:  'x'.    (17)
+state 26 // MONTHLY NUMBER ':'
 
-	.  reduce 17 (src line 68)
+   30 time_in_HHMM: NUMBER ':' . NUMBER
+   31 time_in_HHMM: NUMBER ':' . NUMBER am_or_pm
+   32 time_in_HHMM: NUMBER ':' . NUMBER ' ' am_or_pm
 
+    NUMBER  shift, and goto state 32
 
-state 30
-	anyhour:  'X'.    (18)
+state 27 // MONTHLY NUMBER AM [$end]
 
-	.  reduce 18 (src line 68)
+   33 time_in_HHMM: NUMBER am_or_pm .  [$end, FRIDAY, MONDAY, NUMBER, ON, ORDINAL, SATURDAY, SUNDAY, THURSDAY, TUESDAY, WEDNESDAY]
 
+    $end       reduce using rule 33 (time_in_HHMM)
+    FRIDAY     reduce using rule 33 (time_in_HHMM)
+    MONDAY     reduce using rule 33 (time_in_HHMM)
+    NUMBER     reduce using rule 33 (time_in_HHMM)
+    ON         reduce using rule 33 (time_in_HHMM)
+    ORDINAL    reduce using rule 33 (time_in_HHMM)
+    SATURDAY   reduce using rule 33 (time_in_HHMM)
+    SUNDAY     reduce using rule 33 (time_in_HHMM)
+    THURSDAY   reduce using rule 33 (time_in_HHMM)
+    TUESDAY    reduce using rule 33 (time_in_HHMM)
+    WEDNESDAY  reduce using rule 33 (time_in_HHMM)
 
-state 31
-	anyhour:  '*'.    (19)
+state 28 // MONTHLY NUMBER ' '
 
-	.  reduce 19 (src line 68)
+   34 time_in_HHMM: NUMBER ' ' . am_or_pm
 
+    AM  shift, and goto state 29
+    PM  shift, and goto state 30
 
-state 32
-	minutes:  QUARTER.    (20)
+    am_or_pm  goto state 31
 
-	.  reduce 20 (src line 70)
+state 29 // MONTHLY NUMBER AM
 
+   41 am_or_pm: AM .  [$end, FRIDAY, MONDAY, NUMBER, ON, ORDINAL, SATURDAY, SUNDAY, THURSDAY, TUESDAY, WEDNESDAY]
 
-state 33
-	minutes:  HALF.    (21)
+    $end       reduce using rule 41 (am_or_pm)
+    FRIDAY     reduce using rule 41 (am_or_pm)
+    MONDAY     reduce using rule 41 (am_or_pm)
+    NUMBER     reduce using rule 41 (am_or_pm)
+    ON         reduce using rule 41 (am_or_pm)
+    ORDINAL    reduce using rule 41 (am_or_pm)
+    SATURDAY   reduce using rule 41 (am_or_pm)
+    SUNDAY     reduce using rule 41 (am_or_pm)
+    THURSDAY   reduce using rule 41 (am_or_pm)
+    TUESDAY    reduce using rule 41 (am_or_pm)
+    WEDNESDAY  reduce using rule 41 (am_or_pm)
 
-	.  reduce 21 (src line 71)
+state 30 // MONTHLY NUMBER PM
 
+   42 am_or_pm: PM .  [$end, FRIDAY, MONDAY, NUMBER, ON, ORDINAL, SATURDAY, SUNDAY, THURSDAY, TUESDAY, WEDNESDAY]
 
-state 34
-	hourly_spec:  EVERYHOUR AT.time_in_MM 
-	anyhour: .    (14)
+    $end       reduce using rule 42 (am_or_pm)
+    FRIDAY     reduce using rule 42 (am_or_pm)
+    MONDAY     reduce using rule 42 (am_or_pm)
+    NUMBER     reduce using rule 42 (am_or_pm)
+    ON         reduce using rule 42 (am_or_pm)
+    ORDINAL    reduce using rule 42 (am_or_pm)
+    SATURDAY   reduce using rule 42 (am_or_pm)
+    SUNDAY     reduce using rule 42 (am_or_pm)
+    THURSDAY   reduce using rule 42 (am_or_pm)
+    TUESDAY    reduce using rule 42 (am_or_pm)
+    WEDNESDAY  reduce using rule 42 (am_or_pm)
 
-	NUMBER  shift 25
-	HALF  shift 33
-	QUARTER  shift 32
-	'h'  shift 27
-	'H'  shift 28
-	'x'  shift 29
-	'X'  shift 30
-	'*'  shift 31
-	.  reduce 14 (src line 68)
+state 31 // MONTHLY NUMBER ' ' AM [$end]
 
-	time_in_MM  goto 52
-	minutes  goto 26
-	anyhour  goto 24
+   34 time_in_HHMM: NUMBER ' ' am_or_pm .  [$end, FRIDAY, MONDAY, NUMBER, ON, ORDINAL, SATURDAY, SUNDAY, THURSDAY, TUESDAY, WEDNESDAY]
 
-state 35
-	hourly_spec:  EVERYHOUR time_in_MM.    (9)
+    $end       reduce using rule 34 (time_in_HHMM)
+    FRIDAY     reduce using rule 34 (time_in_HHMM)
+    MONDAY     reduce using rule 34 (time_in_HHMM)
+    NUMBER     reduce using rule 34 (time_in_HHMM)
+    ON         reduce using rule 34 (time_in_HHMM)
+    ORDINAL    reduce using rule 34 (time_in_HHMM)
+    SATURDAY   reduce using rule 34 (time_in_HHMM)
+    SUNDAY     reduce using rule 34 (time_in_HHMM)
+    THURSDAY   reduce using rule 34 (time_in_HHMM)
+    TUESDAY    reduce using rule 34 (time_in_HHMM)
+    WEDNESDAY  reduce using rule 34 (time_in_HHMM)
 
-	.  reduce 9 (src line 59)
+state 32 // MONTHLY NUMBER ':' NUMBER
 
+   30 time_in_HHMM: NUMBER ':' NUMBER .  [$end, FRIDAY, MONDAY, NUMBER, ON, ORDINAL, SATURDAY, SUNDAY, THURSDAY, TUESDAY, WEDNESDAY]
+   31 time_in_HHMM: NUMBER ':' NUMBER . am_or_pm
+   32 time_in_HHMM: NUMBER ':' NUMBER . ' ' am_or_pm
 
-state 36
-	daily_spec:  DAILY AT.time_in_HHMM 
+    $end       reduce using rule 30 (time_in_HHMM)
+    ' '        shift, and goto state 34
+    AM         shift, and goto state 29
+    FRIDAY     reduce using rule 30 (time_in_HHMM)
+    MONDAY     reduce using rule 30 (time_in_HHMM)
+    NUMBER     reduce using rule 30 (time_in_HHMM)
+    ON         reduce using rule 30 (time_in_HHMM)
+    ORDINAL    reduce using rule 30 (time_in_HHMM)
+    PM         shift, and goto state 30
+    SATURDAY   reduce using rule 30 (time_in_HHMM)
+    SUNDAY     reduce using rule 30 (time_in_HHMM)
+    THURSDAY   reduce using rule 30 (time_in_HHMM)
+    TUESDAY    reduce using rule 30 (time_in_HHMM)
+    WEDNESDAY  reduce using rule 30 (time_in_HHMM)
 
-	NUMBER  shift 38
-	.  error
+    am_or_pm  goto state 33
 
-	time_in_HHMM  goto 53
+state 33 // MONTHLY NUMBER ':' NUMBER AM [$end]
 
-state 37
-	daily_spec:  DAILY time_in_HHMM.    (11)
+   31 time_in_HHMM: NUMBER ':' NUMBER am_or_pm .  [$end, FRIDAY, MONDAY, NUMBER, ON, ORDINAL, SATURDAY, SUNDAY, THURSDAY, TUESDAY, WEDNESDAY]
 
-	.  reduce 11 (src line 63)
+    $end       reduce using rule 31 (time_in_HHMM)
+    FRIDAY     reduce using rule 31 (time_in_HHMM)
+    MONDAY     reduce using rule 31 (time_in_HHMM)
+    NUMBER     reduce using rule 31 (time_in_HHMM)
+    ON         reduce using rule 31 (time_in_HHMM)
+    ORDINAL    reduce using rule 31 (time_in_HHMM)
+    SATURDAY   reduce using rule 31 (time_in_HHMM)
+    SUNDAY     reduce using rule 31 (time_in_HHMM)
+    THURSDAY   reduce using rule 31 (time_in_HHMM)
+    TUESDAY    reduce using rule 31 (time_in_HHMM)
+    WEDNESDAY  reduce using rule 31 (time_in_HHMM)
 
+state 34 // MONTHLY NUMBER ':' NUMBER ' '
 
-state 38
-	time_in_HHMM:  NUMBER.':' NUMBER 
-	time_in_HHMM:  NUMBER.':' NUMBER am_or_pm 
-	time_in_HHMM:  NUMBER.':' NUMBER ' ' am_or_pm 
-	time_in_HHMM:  NUMBER.am_or_pm 
-	time_in_HHMM:  NUMBER.' ' am_or_pm 
+   32 time_in_HHMM: NUMBER ':' NUMBER ' ' . am_or_pm
 
-	AM  shift 57
-	PM  shift 58
-	':'  shift 54
-	' '  shift 56
-	.  error
+    AM  shift, and goto state 29
+    PM  shift, and goto state 30
 
-	am_or_pm  goto 55
+    am_or_pm  goto state 35
 
-state 39
-	daily_spec:  EVERYDAY AT.time_in_HHMM 
+state 35 // MONTHLY NUMBER ':' NUMBER ' ' AM [$end]
 
-	NUMBER  shift 38
-	.  error
+   32 time_in_HHMM: NUMBER ':' NUMBER ' ' am_or_pm .  [$end, FRIDAY, MONDAY, NUMBER, ON, ORDINAL, SATURDAY, SUNDAY, THURSDAY, TUESDAY, WEDNESDAY]
 
-	time_in_HHMM  goto 59
+    $end       reduce using rule 32 (time_in_HHMM)
+    FRIDAY     reduce using rule 32 (time_in_HHMM)
+    MONDAY     reduce using rule 32 (time_in_HHMM)
+    NUMBER     reduce using rule 32 (time_in_HHMM)
+    ON         reduce using rule 32 (time_in_HHMM)
+    ORDINAL    reduce using rule 32 (time_in_HHMM)
+    SATURDAY   reduce using rule 32 (time_in_HHMM)
+    SUNDAY     reduce using rule 32 (time_in_HHMM)
+    THURSDAY   reduce using rule 32 (time_in_HHMM)
+    TUESDAY    reduce using rule 32 (time_in_HHMM)
+    WEDNESDAY  reduce using rule 32 (time_in_HHMM)
 
-state 40
-	daily_spec:  EVERYDAY time_in_HHMM.    (13)
+state 36 // MONTHLY AT
 
-	.  reduce 13 (src line 65)
+   50 monthly_spec: MONTHLY AT . time_in_HHMM ON month_day
+   52 monthly_spec: MONTHLY AT . time_in_HHMM month_day
 
+    NUMBER  shift, and goto state 22
 
-state 41
-	weekly_spec:  WEEKLY AT.time_in_HHMM ON day_name 
-	weekly_spec:  WEEKLY AT.time_in_HHMM day_name 
+    time_in_HHMM  goto state 43
 
-	NUMBER  shift 38
-	.  error
+state 37 // MONTHLY NUMBER AM [NUMBER]
 
-	time_in_HHMM  goto 60
+   51 monthly_spec: MONTHLY time_in_HHMM . ON month_day
+   53 monthly_spec: MONTHLY time_in_HHMM . month_day
 
-state 42
-	weekly_spec:  WEEKLY time_in_HHMM.ON day_name 
-	weekly_spec:  WEEKLY time_in_HHMM.day_name 
+    NUMBER   shift, and goto state 41
+    ON       shift, and goto state 38
+    ORDINAL  shift, and goto state 40
 
-	ON  shift 61
-	SUNDAY  shift 15
-	MONDAY  shift 16
-	TUESDAY  shift 17
-	WEDNESDAY  shift 18
-	THURSDAY  shift 19
-	FRIDAY  shift 20
-	SATURDAY  shift 21
-	.  error
+    month_day  goto state 39
 
-	day_name  goto 62
+state 38 // MONTHLY NUMBER AM ON
 
-state 43
-	weekly_spec:  day_name AT.time_in_HHMM 
+   51 monthly_spec: MONTHLY time_in_HHMM ON . month_day
 
-	NUMBER  shift 38
-	.  error
+    NUMBER   shift, and goto state 41
+    ORDINAL  shift, and goto state 40
 
-	time_in_HHMM  goto 63
+    month_day  goto state 42
 
-state 44
-	weekly_spec:  day_name time_in_HHMM.    (37)
+state 39 // MONTHLY NUMBER AM NUMBER [$end]
 
-	.  reduce 37 (src line 93)
+   53 monthly_spec: MONTHLY time_in_HHMM month_day .  [$end]
 
+    $end  reduce using rule 53 (monthly_spec)
 
-state 45
-	monthly_spec:  MONTHLY AT.time_in_HHMM ON month_day 
-	monthly_spec:  MONTHLY AT.time_in_HHMM month_day 
+state 40 // MONTHLY NUMBER AM ORDINAL
 
-	NUMBER  shift 38
-	.  error
+   56 month_day: ORDINAL .  [$end]
 
-	time_in_HHMM  goto 64
+    $end  reduce using rule 56 (month_day)
 
-state 46
-	monthly_spec:  MONTHLY time_in_HHMM.ON month_day 
-	monthly_spec:  MONTHLY time_in_HHMM.month_day 
+state 41 // MONTHLY NUMBER AM NUMBER
 
-	NUMBER  shift 68
-	ORDINAL  shift 67
-	ON  shift 65
-	.  error
+   57 month_day: NUMBER .  [$end]
 
-	month_day  goto 66
+    $end  reduce using rule 57 (month_day)
 
-state 47
-	monthly_spec:  ORDINAL day_name.AT time_in_HHMM 
-	monthly_spec:  ORDINAL day_name.time_in_HHMM 
+state 42 // MONTHLY NUMBER AM ON NUMBER [$end]
 
-	NUMBER  shift 38
-	AT  shift 69
-	.  error
+   51 monthly_spec: MONTHLY time_in_HHMM ON month_day .  [$end]
 
-	time_in_HHMM  goto 70
+    $end  reduce using rule 51 (monthly_spec)
 
-state 48
-	hourly_spec:  HOURLY AT time_in_MM.    (6)
+state 43 // MONTHLY AT NUMBER AM [NUMBER]
 
-	.  reduce 6 (src line 56)
+   50 monthly_spec: MONTHLY AT time_in_HHMM . ON month_day
+   52 monthly_spec: MONTHLY AT time_in_HHMM . month_day
 
+    NUMBER   shift, and goto state 41
+    ON       shift, and goto state 44
+    ORDINAL  shift, and goto state 40
 
-state 49
-	time_in_MM:  anyhour ':'.NUMBER 
+    month_day  goto state 45
 
-	NUMBER  shift 71
-	.  error
+state 44 // MONTHLY AT NUMBER AM ON
 
+   50 monthly_spec: MONTHLY AT time_in_HHMM ON . month_day
 
-state 50
-	time_in_MM:  minutes AFTER.    (25)
+    NUMBER   shift, and goto state 41
+    ORDINAL  shift, and goto state 40
 
-	.  reduce 25 (src line 77)
+    month_day  goto state 46
 
+state 45 // MONTHLY AT NUMBER AM NUMBER [$end]
 
-state 51
-	time_in_MM:  minutes TIL.    (26)
+   52 monthly_spec: MONTHLY AT time_in_HHMM month_day .  [$end]
 
-	.  reduce 26 (src line 78)
+    $end  reduce using rule 52 (monthly_spec)
 
+state 46 // MONTHLY AT NUMBER AM ON NUMBER [$end]
 
-state 52
-	hourly_spec:  EVERYHOUR AT time_in_MM.    (8)
+   50 monthly_spec: MONTHLY AT time_in_HHMM ON month_day .  [$end]
 
-	.  reduce 8 (src line 58)
+    $end  reduce using rule 50 (monthly_spec)
 
+state 47 // FRIDAY AT
 
-state 53
-	daily_spec:  DAILY AT time_in_HHMM.    (10)
+   39 weekly_spec: day_name AT . time_in_HHMM
 
-	.  reduce 10 (src line 62)
+    NUMBER  shift, and goto state 22
 
+    time_in_HHMM  goto state 49
 
-state 54
-	time_in_HHMM:  NUMBER ':'.NUMBER 
-	time_in_HHMM:  NUMBER ':'.NUMBER am_or_pm 
-	time_in_HHMM:  NUMBER ':'.NUMBER ' ' am_or_pm 
+state 48 // FRIDAY NUMBER AM [$end]
 
-	NUMBER  shift 72
-	.  error
+   40 weekly_spec: day_name time_in_HHMM .  [$end]
 
+    $end  reduce using rule 40 (weekly_spec)
 
-state 55
-	time_in_HHMM:  NUMBER am_or_pm.    (30)
+state 49 // FRIDAY AT NUMBER AM [$end]
 
-	.  reduce 30 (src line 84)
+   39 weekly_spec: day_name AT time_in_HHMM .  [$end]
 
+    $end  reduce using rule 39 (weekly_spec)
 
-state 56
-	time_in_HHMM:  NUMBER ' '.am_or_pm 
+state 50 // WEEKLY AT
 
-	AM  shift 57
-	PM  shift 58
-	.  error
+   35 weekly_spec: WEEKLY AT . time_in_HHMM ON day_name
+   37 weekly_spec: WEEKLY AT . time_in_HHMM day_name
 
-	am_or_pm  goto 73
+    NUMBER  shift, and goto state 22
 
-state 57
-	am_or_pm:  AM.    (38)
+    time_in_HHMM  goto state 55
 
-	.  reduce 38 (src line 96)
+state 51 // WEEKLY NUMBER AM [FRIDAY]
 
+   36 weekly_spec: WEEKLY time_in_HHMM . ON day_name
+   38 weekly_spec: WEEKLY time_in_HHMM . day_name
 
-state 58
-	am_or_pm:  PM.    (39)
+    FRIDAY     shift, and goto state 17
+    MONDAY     shift, and goto state 13
+    ON         shift, and goto state 52
+    SATURDAY   shift, and goto state 18
+    SUNDAY     shift, and goto state 12
+    THURSDAY   shift, and goto state 16
+    TUESDAY    shift, and goto state 14
+    WEDNESDAY  shift, and goto state 15
 
-	.  reduce 39 (src line 97)
+    day_name  goto state 53
 
+state 52 // WEEKLY NUMBER AM ON
 
-state 59
-	daily_spec:  EVERYDAY AT time_in_HHMM.    (12)
+   36 weekly_spec: WEEKLY time_in_HHMM ON . day_name
 
-	.  reduce 12 (src line 64)
+    FRIDAY     shift, and goto state 17
+    MONDAY     shift, and goto state 13
+    SATURDAY   shift, and goto state 18
+    SUNDAY     shift, and goto state 12
+    THURSDAY   shift, and goto state 16
+    TUESDAY    shift, and goto state 14
+    WEDNESDAY  shift, and goto state 15
 
+    day_name  goto state 54
 
-state 60
-	weekly_spec:  WEEKLY AT time_in_HHMM.ON day_name 
-	weekly_spec:  WEEKLY AT time_in_HHMM.day_name 
+state 53 // WEEKLY NUMBER AM FRIDAY [$end]
 
-	ON  shift 74
-	SUNDAY  shift 15
-	MONDAY  shift 16
-	TUESDAY  shift 17
-	WEDNESDAY  shift 18
-	THURSDAY  shift 19
-	FRIDAY  shift 20
-	SATURDAY  shift 21
-	.  error
+   38 weekly_spec: WEEKLY time_in_HHMM day_name .  [$end]
 
-	day_name  goto 75
+    $end  reduce using rule 38 (weekly_spec)
 
-state 61
-	weekly_spec:  WEEKLY time_in_HHMM ON.day_name 
+state 54 // WEEKLY NUMBER AM ON FRIDAY [$end]
 
-	SUNDAY  shift 15
-	MONDAY  shift 16
-	TUESDAY  shift 17
-	WEDNESDAY  shift 18
-	THURSDAY  shift 19
-	FRIDAY  shift 20
-	SATURDAY  shift 21
-	.  error
+   36 weekly_spec: WEEKLY time_in_HHMM ON day_name .  [$end]
 
-	day_name  goto 76
+    $end  reduce using rule 36 (weekly_spec)
 
-state 62
-	weekly_spec:  WEEKLY time_in_HHMM day_name.    (35)
+state 55 // WEEKLY AT NUMBER AM [FRIDAY]
 
-	.  reduce 35 (src line 91)
+   35 weekly_spec: WEEKLY AT time_in_HHMM . ON day_name
+   37 weekly_spec: WEEKLY AT time_in_HHMM . day_name
 
+    FRIDAY     shift, and goto state 17
+    MONDAY     shift, and goto state 13
+    ON         shift, and goto state 56
+    SATURDAY   shift, and goto state 18
+    SUNDAY     shift, and goto state 12
+    THURSDAY   shift, and goto state 16
+    TUESDAY    shift, and goto state 14
+    WEDNESDAY  shift, and goto state 15
 
-state 63
-	weekly_spec:  day_name AT time_in_HHMM.    (36)
+    day_name  goto state 57
 
-	.  reduce 36 (src line 92)
+state 56 // WEEKLY AT NUMBER AM ON
 
+   35 weekly_spec: WEEKLY AT time_in_HHMM ON . day_name
 
-state 64
-	monthly_spec:  MONTHLY AT time_in_HHMM.ON month_day 
-	monthly_spec:  MONTHLY AT time_in_HHMM.month_day 
+    FRIDAY     shift, and goto state 17
+    MONDAY     shift, and goto state 13
+    SATURDAY   shift, and goto state 18
+    SUNDAY     shift, and goto state 12
+    THURSDAY   shift, and goto state 16
+    TUESDAY    shift, and goto state 14
+    WEDNESDAY  shift, and goto state 15
 
-	NUMBER  shift 68
-	ORDINAL  shift 67
-	ON  shift 77
-	.  error
+    day_name  goto state 58
 
-	month_day  goto 78
+state 57 // WEEKLY AT NUMBER AM FRIDAY [$end]
 
-state 65
-	monthly_spec:  MONTHLY time_in_HHMM ON.month_day 
+   37 weekly_spec: WEEKLY AT time_in_HHMM day_name .  [$end]
 
-	NUMBER  shift 68
-	ORDINAL  shift 67
-	.  error
+    $end  reduce using rule 37 (weekly_spec)
 
-	month_day  goto 79
+state 58 // WEEKLY AT NUMBER AM ON FRIDAY [$end]
 
-state 66
-	monthly_spec:  MONTHLY time_in_HHMM month_day.    (50)
+   35 weekly_spec: WEEKLY AT time_in_HHMM ON day_name .  [$end]
 
-	.  reduce 50 (src line 112)
+    $end  reduce using rule 35 (weekly_spec)
 
+state 59 // DAILY AT
 
-state 67
-	month_day:  ORDINAL.    (53)
+   13 daily_spec: DAILY AT . time_in_HHMM
 
-	.  reduce 53 (src line 117)
+    NUMBER  shift, and goto state 22
 
+    time_in_HHMM  goto state 61
 
-state 68
-	month_day:  NUMBER.    (54)
+state 60 // DAILY NUMBER AM [$end]
 
-	.  reduce 54 (src line 118)
+   14 daily_spec: DAILY time_in_HHMM .  [$end]
 
+    $end  reduce using rule 14 (daily_spec)
 
-state 69
-	monthly_spec:  ORDINAL day_name AT.time_in_HHMM 
+state 61 // DAILY AT NUMBER AM [$end]
 
-	NUMBER  shift 38
-	.  error
+   13 daily_spec: DAILY AT time_in_HHMM .  [$end]
 
-	time_in_HHMM  goto 80
+    $end  reduce using rule 13 (daily_spec)
 
-state 70
-	monthly_spec:  ORDINAL day_name time_in_HHMM.    (52)
+state 62 // EVERY QUARTER
 
-	.  reduce 52 (src line 114)
+    8 hourly_spec: EVERY QUARTER . HOUR FROM time_in_MM
 
+    HOUR  shift, and goto state 93
 
-state 71
-	time_in_MM:  anyhour ':' NUMBER.    (23)
+state 63 // EVERY HALF
 
-	.  reduce 23 (src line 75)
+    9 hourly_spec: EVERY HALF . HOUR FROM time_in_MM
 
+    HOUR  shift, and goto state 90
 
-state 72
-	time_in_HHMM:  NUMBER ':' NUMBER.    (27)
-	time_in_HHMM:  NUMBER ':' NUMBER.am_or_pm 
-	time_in_HHMM:  NUMBER ':' NUMBER.' ' am_or_pm 
+state 64 // EVERY HOUR
 
-	AM  shift 57
-	PM  shift 58
-	' '  shift 82
-	.  reduce 27 (src line 81)
+   10 hourly_spec: EVERY HOUR . AT time_in_MM
+   11 hourly_spec: EVERY HOUR . time_in_MM
+   17 anyhour: .  [':']
 
-	am_or_pm  goto 81
+    '*'      shift, and goto state 79
+    ':'      reduce using rule 17 (anyhour)
+    'H'      shift, and goto state 76
+    'X'      shift, and goto state 78
+    'h'      shift, and goto state 75
+    'x'      shift, and goto state 77
+    AT       shift, and goto state 73
+    HALF     shift, and goto state 81
+    NUMBER   shift, and goto state 82
+    QUARTER  shift, and goto state 80
 
-state 73
-	time_in_HHMM:  NUMBER ' ' am_or_pm.    (31)
+    anyhour     goto state 83
+    minutes     goto state 84
+    time_in_MM  goto state 74
 
-	.  reduce 31 (src line 85)
+state 65 // EVERY NUMBER
 
+   12 hourly_spec: EVERY NUMBER . HOUR FROM time_in_HHMM
 
-state 74
-	weekly_spec:  WEEKLY AT time_in_HHMM ON.day_name 
+    HOUR  shift, and goto state 70
 
-	SUNDAY  shift 15
-	MONDAY  shift 16
-	TUESDAY  shift 17
-	WEDNESDAY  shift 18
-	THURSDAY  shift 19
-	FRIDAY  shift 20
-	SATURDAY  shift 21
-	.  error
+state 66 // EVERY DAY
 
-	day_name  goto 83
+   15 daily_spec: EVERY DAY . AT time_in_HHMM
+   16 daily_spec: EVERY DAY . time_in_HHMM
 
-state 75
-	weekly_spec:  WEEKLY AT time_in_HHMM day_name.    (34)
+    AT      shift, and goto state 67
+    NUMBER  shift, and goto state 22
 
-	.  reduce 34 (src line 90)
+    time_in_HHMM  goto state 68
 
+state 67 // EVERY DAY AT
 
-state 76
-	weekly_spec:  WEEKLY time_in_HHMM ON day_name.    (33)
+   15 daily_spec: EVERY DAY AT . time_in_HHMM
 
-	.  reduce 33 (src line 89)
+    NUMBER  shift, and goto state 22
 
+    time_in_HHMM  goto state 69
 
-state 77
-	monthly_spec:  MONTHLY AT time_in_HHMM ON.month_day 
+state 68 // EVERY DAY NUMBER AM [$end]
 
-	NUMBER  shift 68
-	ORDINAL  shift 67
-	.  error
+   16 daily_spec: EVERY DAY time_in_HHMM .  [$end]
 
-	month_day  goto 84
+    $end  reduce using rule 16 (daily_spec)
 
-state 78
-	monthly_spec:  MONTHLY AT time_in_HHMM month_day.    (49)
+state 69 // EVERY DAY AT NUMBER AM [$end]
 
-	.  reduce 49 (src line 111)
+   15 daily_spec: EVERY DAY AT time_in_HHMM .  [$end]
 
+    $end  reduce using rule 15 (daily_spec)
 
-state 79
-	monthly_spec:  MONTHLY time_in_HHMM ON month_day.    (48)
+state 70 // EVERY NUMBER HOUR
 
-	.  reduce 48 (src line 110)
+   12 hourly_spec: EVERY NUMBER HOUR . FROM time_in_HHMM
 
+    FROM  shift, and goto state 71
 
-state 80
-	monthly_spec:  ORDINAL day_name AT time_in_HHMM.    (51)
+state 71 // EVERY NUMBER HOUR FROM
 
-	.  reduce 51 (src line 113)
+   12 hourly_spec: EVERY NUMBER HOUR FROM . time_in_HHMM
 
+    NUMBER  shift, and goto state 22
 
-state 81
-	time_in_HHMM:  NUMBER ':' NUMBER am_or_pm.    (28)
+    time_in_HHMM  goto state 72
 
-	.  reduce 28 (src line 82)
+state 72 // EVERY NUMBER HOUR FROM NUMBER AM [$end]
 
+   12 hourly_spec: EVERY NUMBER HOUR FROM time_in_HHMM .  [$end]
 
-state 82
-	time_in_HHMM:  NUMBER ':' NUMBER ' '.am_or_pm 
+    $end  reduce using rule 12 (hourly_spec)
 
-	AM  shift 57
-	PM  shift 58
-	.  error
+state 73 // EVERY HOUR AT
 
-	am_or_pm  goto 85
+   10 hourly_spec: EVERY HOUR AT . time_in_MM
+   17 anyhour: .  [':']
 
-state 83
-	weekly_spec:  WEEKLY AT time_in_HHMM ON day_name.    (32)
+    '*'      shift, and goto state 79
+    ':'      reduce using rule 17 (anyhour)
+    'H'      shift, and goto state 76
+    'X'      shift, and goto state 78
+    'h'      shift, and goto state 75
+    'x'      shift, and goto state 77
+    HALF     shift, and goto state 81
+    NUMBER   shift, and goto state 82
+    QUARTER  shift, and goto state 80
 
-	.  reduce 32 (src line 88)
+    anyhour     goto state 83
+    minutes     goto state 84
+    time_in_MM  goto state 89
 
+state 74 // EVERY HOUR NUMBER [$end]
 
-state 84
-	monthly_spec:  MONTHLY AT time_in_HHMM ON month_day.    (47)
+   11 hourly_spec: EVERY HOUR time_in_MM .  [$end]
 
-	.  reduce 47 (src line 109)
+    $end  reduce using rule 11 (hourly_spec)
 
+state 75 // HOURLY 'h'
 
-state 85
-	time_in_HHMM:  NUMBER ':' NUMBER ' ' am_or_pm.    (29)
+   18 anyhour: 'h' .  [':']
 
-	.  reduce 29 (src line 83)
+    ':'  reduce using rule 18 (anyhour)
 
+state 76 // HOURLY 'H'
 
-33 terminals, 14 nonterminals
-55 grammar rules, 86/2000 states
-0 shift/reduce, 0 reduce/reduce conflicts reported
-63 working sets used
-memory: parser 43/30000
-7 extra closures
-129 shift entries, 2 exceptions
-38 goto entries
-6 entries saved by goto default
-Optimizer space used: output 154/30000
-154 table entries, 18 zero
-maximum spread: 33, maximum offset: 82
+   19 anyhour: 'H' .  [':']
+
+    ':'  reduce using rule 19 (anyhour)
+
+state 77 // HOURLY 'x'
+
+   20 anyhour: 'x' .  [':']
+
+    ':'  reduce using rule 20 (anyhour)
+
+state 78 // HOURLY 'X'
+
+   21 anyhour: 'X' .  [':']
+
+    ':'  reduce using rule 21 (anyhour)
+
+state 79 // HOURLY '*'
+
+   22 anyhour: '*' .  [':']
+
+    ':'  reduce using rule 22 (anyhour)
+
+state 80 // HOURLY QUARTER
+
+   23 minutes: QUARTER .  [AFTER, TIL]
+
+    AFTER  reduce using rule 23 (minutes)
+    TIL    reduce using rule 23 (minutes)
+
+state 81 // HOURLY HALF
+
+   24 minutes: HALF .  [AFTER, TIL]
+
+    AFTER  reduce using rule 24 (minutes)
+    TIL    reduce using rule 24 (minutes)
+
+state 82 // HOURLY NUMBER
+
+   25 minutes: NUMBER .  [AFTER, TIL]
+   27 time_in_MM: NUMBER .  [$end]
+
+    $end   reduce using rule 27 (time_in_MM)
+    AFTER  reduce using rule 25 (minutes)
+    TIL    reduce using rule 25 (minutes)
+
+state 83 // HOURLY [':']
+
+   26 time_in_MM: anyhour . ':' NUMBER
+
+    ':'  shift, and goto state 87
+
+state 84 // HOURLY HALF [AFTER]
+
+   28 time_in_MM: minutes . AFTER
+   29 time_in_MM: minutes . TIL
+
+    AFTER  shift, and goto state 85
+    TIL    shift, and goto state 86
+
+state 85 // HOURLY HALF AFTER
+
+   28 time_in_MM: minutes AFTER .  [$end]
+
+    $end  reduce using rule 28 (time_in_MM)
+
+state 86 // HOURLY HALF TIL
+
+   29 time_in_MM: minutes TIL .  [$end]
+
+    $end  reduce using rule 29 (time_in_MM)
+
+state 87 // HOURLY ':'
+
+   26 time_in_MM: anyhour ':' . NUMBER
+
+    NUMBER  shift, and goto state 88
+
+state 88 // HOURLY ':' NUMBER
+
+   26 time_in_MM: anyhour ':' NUMBER .  [$end]
+
+    $end  reduce using rule 26 (time_in_MM)
+
+state 89 // EVERY HOUR AT NUMBER [$end]
+
+   10 hourly_spec: EVERY HOUR AT time_in_MM .  [$end]
+
+    $end  reduce using rule 10 (hourly_spec)
+
+state 90 // EVERY HALF HOUR
+
+    9 hourly_spec: EVERY HALF HOUR . FROM time_in_MM
+
+    FROM  shift, and goto state 91
+
+state 91 // EVERY HALF HOUR FROM
+
+    9 hourly_spec: EVERY HALF HOUR FROM . time_in_MM
+   17 anyhour: .  [':']
+
+    '*'      shift, and goto state 79
+    ':'      reduce using rule 17 (anyhour)
+    'H'      shift, and goto state 76
+    'X'      shift, and goto state 78
+    'h'      shift, and goto state 75
+    'x'      shift, and goto state 77
+    HALF     shift, and goto state 81
+    NUMBER   shift, and goto state 82
+    QUARTER  shift, and goto state 80
+
+    anyhour     goto state 83
+    minutes     goto state 84
+    time_in_MM  goto state 92
+
+state 92 // EVERY HALF HOUR FROM NUMBER [$end]
+
+    9 hourly_spec: EVERY HALF HOUR FROM time_in_MM .  [$end]
+
+    $end  reduce using rule 9 (hourly_spec)
+
+state 93 // EVERY QUARTER HOUR
+
+    8 hourly_spec: EVERY QUARTER HOUR . FROM time_in_MM
+
+    FROM  shift, and goto state 94
+
+state 94 // EVERY QUARTER HOUR FROM
+
+    8 hourly_spec: EVERY QUARTER HOUR FROM . time_in_MM
+   17 anyhour: .  [':']
+
+    '*'      shift, and goto state 79
+    ':'      reduce using rule 17 (anyhour)
+    'H'      shift, and goto state 76
+    'X'      shift, and goto state 78
+    'h'      shift, and goto state 75
+    'x'      shift, and goto state 77
+    HALF     shift, and goto state 81
+    NUMBER   shift, and goto state 82
+    QUARTER  shift, and goto state 80
+
+    anyhour     goto state 83
+    minutes     goto state 84
+    time_in_MM  goto state 95
+
+state 95 // EVERY QUARTER HOUR FROM NUMBER [$end]
+
+    8 hourly_spec: EVERY QUARTER HOUR FROM time_in_MM .  [$end]
+
+    $end  reduce using rule 8 (hourly_spec)
+
+state 96 // HOURLY AT
+
+    6 hourly_spec: HOURLY AT . time_in_MM
+   17 anyhour: .  [':']
+
+    '*'      shift, and goto state 79
+    ':'      reduce using rule 17 (anyhour)
+    'H'      shift, and goto state 76
+    'X'      shift, and goto state 78
+    'h'      shift, and goto state 75
+    'x'      shift, and goto state 77
+    HALF     shift, and goto state 81
+    NUMBER   shift, and goto state 82
+    QUARTER  shift, and goto state 80
+
+    anyhour     goto state 83
+    minutes     goto state 84
+    time_in_MM  goto state 98
+
+state 97 // HOURLY NUMBER [$end]
+
+    7 hourly_spec: HOURLY time_in_MM .  [$end]
+
+    $end  reduce using rule 7 (hourly_spec)
+
+state 98 // HOURLY AT NUMBER [$end]
+
+    6 hourly_spec: HOURLY AT time_in_MM .  [$end]
+
+    $end  reduce using rule 6 (hourly_spec)
+
