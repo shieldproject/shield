@@ -33,6 +33,9 @@ type Store struct {
 	StorageUsed   int64     `json:"storage_used"`
 	Threshold     int64     `json:"threshold"`
 	ArchiveCount  int       `json:"archive_count"`
+
+	Healthy             bool      `json:"healthy"`
+	LastTestStoreTaskID uuid.UUID `json:"last_test_store_task_id"`
 }
 
 type StoreStats struct {

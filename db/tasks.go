@@ -15,7 +15,7 @@ const (
 	BackupOperation    = "backup"
 	RestoreOperation   = "restore"
 	PurgeOperation     = "purge"
-	TestStoreOperation = "testStore"
+	TestStoreOperation = "test-store"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"
@@ -298,22 +298,33 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 	return db.GetTask(id)
 }
 
-func (db *DB) CreateTestStoreTask(owner string, job *Job, agent string) (*Task, error) {
+func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	id := uuid.NewRandom()
 	err := db.Exec(
 		`INSERT INTO tasks
-			(uuid, owner, op, store_uuid, store_plugin, 
+			(uuid, op, store_uuid, store_plugin, 
 			 store_endpoint, status, log, requested_at,
-			 agent, attempts, tenant_uuid)
+			 attempts, tenant_uuid, owner)
 		 VALUES
-			(?, ?, ?, ?, ?,
+			(?, ?, ?, ?,
 			 ?, ?, ?, ?, 
-			 ?, ?, ?)`,
-		id.String(), owner, TestStoreOperation, job.StoreUUID.String(), job.StorePlugin,
-		job.StoreEndpoint, PendingStatus, "", time.Now().Unix(),
-		agent, 0, job.TenantUUID.String(),
+			 ?, ?, ?, ?)`,
+		id.String(), TestStoreOperation, store.UUID.String(), store.Plugin,
+		store.Endpoint, PendingStatus, "", time.Now().Unix(),
+		0, store.TenantUUID.String(), owner, store.Agent,
 	)
 
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Exec(
+		`UPDATE stores
+		 SET
+			(last_test_store_task_id = ?)
+		 WHERE uuid=?`,
+		id.String, store.UUID,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -255,6 +255,7 @@ func (core *Core) Run() error {
 			core.checkAgents()
 			core.dailyStorageAnalytics()
 			core.purgeExpiredSessions()
+			core.TestStoresHealth()
 		}
 	}
 }

@@ -15,6 +15,20 @@ func (core *Core) dailyStorageAnalytics() {
 	core.DailyTenantStats()
 }
 
+func (core *Core) TestStoresHealth() {
+
+	log.Debugf("testing health of cloud stores")
+
+	stores, err := core.DB.GetAllStores(nil)
+	if err != nil {
+		log.Errorf("Failed to get stores for health tests: %s", err)
+	}
+
+	for _, store := range stores {
+		core.DB.CreateTestStoreTask("system", store)
+	}
+}
+
 // DeltaIncrease calculates the delta in storage space over the period specified.
 // It stores the number of bytes increased/decreased in the period specified in the stores table.
 // Calculation is preformed by taking (total new archives created - any archives newly purged)

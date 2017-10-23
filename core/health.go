@@ -63,7 +63,7 @@ func (core *Core) checkHealth() (Health, error) {
 	for i, store := range stores {
 		health.Storage[i].UUID = store.UUID
 		health.Storage[i].Name = store.Name
-		health.Storage[i].Healthy = true // FIXME
+		health.Storage[i].Healthy = store.Healthy
 		if !health.Storage[i].Healthy {
 			health.Health.Storage = false
 		}
@@ -131,7 +131,7 @@ func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	for i, store := range stores {
 		health.Storage[i].UUID = store.UUID
 		health.Storage[i].Name = store.Name
-		health.Storage[i].Healthy = true // FIXME
+		health.Storage[i].Healthy = store.Healthy
 		if !health.Storage[i].Healthy {
 			health.Health.Storage = false
 		}
