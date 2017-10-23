@@ -431,7 +431,7 @@ func main() {
 			bail(err)
 
 		} else if opts.Login.Via != "" {
-			provider, err := c.AuthProvider(opts.Login.Via)
+			provider, err := c.AuthProviderAnonymous(opts.Login.Via)
 			bail(err)
 
 			fmt.Printf("Visit the following URL in your favorite web browser:\n\n")
