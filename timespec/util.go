@@ -10,12 +10,26 @@ func hhmm(hours uint, minutes uint) int {
 	}
 	return int(hours*60 + minutes)
 }
-func hourly(minutes int) *Spec {
+
+func hourly(minutes int, cardinality float32) *Spec {
+	if cardinality != 0 {
+		//Bounds checking on cardinality to ensure it is positive and reduced
+		if float32(minutes) > (cardinality*60) || cardinality < 0 || cardinality > 23 {
+			return nil
+		}
+		return &Spec{
+			Interval:    Hourly,
+			TimeOfDay:   minutes,
+			Cardinality: cardinality,
+		}
+	}
 	return &Spec{
-		Interval:   Hourly,
-		TimeOfHour: minutes,
+		Interval:    Hourly,
+		TimeOfHour:  minutes,
+		Cardinality: cardinality,
 	}
 }
+
 func daily(minutes int) *Spec {
 	return &Spec{
 		Interval:  Daily,
