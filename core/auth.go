@@ -199,7 +199,16 @@ func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 		return user, err
 	}
 
-	_ = core.DB.PokeSession(session)
+	err = core.DB.PokeSession(&db.Session{
+		UUID:      uuid.Parse(session),
+		UserUUID:  user.UUID,
+		IP:        r.Req.RemoteAddr,
+		UserAgent: r.Req.UserAgent(),
+	})
+	if err != nil {
+		log.Errorf("Failed to poke session %s with error %s", session, err.Error())
+	}
+
 	return user, nil
 }
 

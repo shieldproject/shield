@@ -52,8 +52,13 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				fmt.Fprintf(w, "The authentication process broke down\n")
 				w.WriteHeader(500)
 			}
+			session := &db.Session{
+				UserUUID:  user.UUID,
+				IP:        req.RemoteAddr,
+				UserAgent: req.UserAgent(),
+			}
 
-			session, err := core.createSession(user)
+			session, err := core.createSession(session)
 			if err != nil {
 				log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
 				w.Header().Set("Location", "/")
@@ -61,12 +66,7 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				w.Header().Set("Location", fmt.Sprintf("/#!/cliauth:s:%s", session.UUID.String()))
 			} else {
 				w.Header().Set("Location", "/")
-
-				if session, err := core.createSession(user); err != nil {
-					log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
-				} else {
-					http.SetCookie(w, SessionCookie(session.UUID.String(), true))
-				}
+				http.SetCookie(w, SessionCookie(session.UUID.String(), true))
 			}
 			w.WriteHeader(302)
 

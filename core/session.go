@@ -8,17 +8,16 @@ import (
 )
 
 // create a session for the user and returns a pointer to said session
-func (core *Core) createSession(user *db.User) (*db.Session, error) {
+func (core *Core) createSession(session *db.Session) (*db.Session, error) {
 
-	username := user.Name
-	session, err := core.DB.CreateSessionFor(user)
+	new_session, err := core.DB.CreateSession(session)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create session for local user '%s' (database error: %s)", username, err)
+		return nil, fmt.Errorf("failed to create session for local user '%s' (database error: %s)", session.UserUUID, err)
 	}
-	if session == nil {
-		return nil, fmt.Errorf("failed to create session for local user '%s' (session was nil)", username)
+	if new_session == nil {
+		return nil, fmt.Errorf("failed to create session for local user '%s' (session was nil)", session.UserUUID)
 	}
-	return session, nil
+	return new_session, nil
 }
 
 func SessionCookie(value string, valid bool) *http.Cookie {
