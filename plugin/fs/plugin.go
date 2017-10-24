@@ -55,12 +55,11 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -196,40 +195,40 @@ func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("base_dir")
 	if err != nil {
-		ansi.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fmt.Printf("@R{\u2717 base_dir  %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
+		fmt.Printf("@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("include", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 include   %s}\n", err)
+		fmt.Printf("@R{\u2717 include   %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 include}   all files will be included\n")
+		fmt.Printf("@G{\u2713 include}   all files will be included\n")
 	} else {
-		ansi.Printf("@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
+		fmt.Printf("@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("exclude", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fmt.Printf("@R{\u2717 base_dir  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 exclude}   no files will be excluded\n")
+		fmt.Printf("@G{\u2713 exclude}   no files will be excluded\n")
 	} else {
-		ansi.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
+		fmt.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("bsdtar", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bsdtar    %s}\n", err)
+		fmt.Printf("@R{\u2717 bsdtar    %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 bsdtar}    using default @C{%s}\n", DefaultBsdTar)
+		fmt.Printf("@G{\u2713 bsdtar}    using default @C{%s}\n", DefaultBsdTar)
 	} else {
-		ansi.Printf("@G{\u2713 bsdtar}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bsdtar}    @C{%s}\n", s)
 	}
 
 	if fail {

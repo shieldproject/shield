@@ -57,14 +57,13 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 	"golang.org/x/oauth2"
 	oauthgoogle "golang.org/x/oauth2/google"
 	"google.golang.org/api/storage/v1"
@@ -150,31 +149,31 @@ func (p GooglePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("json_key", DefaultJsonKey)
 	if err != nil {
-		ansi.Printf("@R{\u2717 json_key     %s}\n", err)
+		fmt.Printf("@R{\u2717 json_key     %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 json_key}     (using Google Application Default Credentials)\n")
+		fmt.Printf("@G{\u2713 json_key}     (using Google Application Default Credentials)\n")
 	} else {
-		ansi.Printf("@G{\u2713 json_key}     @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 json_key}     @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bucket       %s}\n", err)
+		fmt.Printf("@R{\u2717 bucket       %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 bucket}       @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bucket}       @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		ansi.Printf("@R{\u2717 prefix       %s}\n", err)
+		fmt.Printf("@R{\u2717 prefix       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 prefix}       (none)\n")
+		fmt.Printf("@G{\u2713 prefix}       (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		ansi.Printf("@G{\u2713 prefix}       @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 prefix}       @C{%s}\n", s)
 	}
 
 	if fail {

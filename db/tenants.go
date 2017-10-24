@@ -33,14 +33,13 @@ func (f *TenantFilter) Query() (string, []interface{}) {
 	}
 
 	if f.Name != "" {
-		comparator := "LIKE"
-		toAdd := Pattern(f.Name)
 		if f.ExactMatch {
-			comparator = "="
-			toAdd = f.Name
+			wheres = append(wheres, "t.name = ?")
+			args = append(args, f.Name)
+		} else {
+			wheres = append(wheres, "t.name LIKE ?")
+			args = append(args, Pattern(f.Name))
 		}
-		wheres = append(wheres, fmt.Sprintf("t.name %s ?", comparator))
-		args = append(args, toAdd)
 	}
 
 	limit := ""

@@ -51,7 +51,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -61,7 +60,7 @@ import (
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -125,9 +124,9 @@ func (p DockerPostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	)
 	s, err = endpoint.StringValue("socket")
 	if err != nil {
-		ansi.Printf("@G{\u2713 socket}  using default socket @C{%s}\n", DefaultSocket)
+		fmt.Printf("@G{\u2713 socket}  using default socket @C{%s}\n", DefaultSocket)
 	} else {
-		ansi.Printf("@G{\u2713 socket}  using socket @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 socket}  using socket @C{%s}\n", s)
 	}
 	return nil
 }

@@ -1,10 +1,9 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 )
 
 //FlagList contains information and functions to display flag help dialogue
@@ -54,7 +53,7 @@ func (f *FlagInfo) HelpLines(colwidth int) []string {
 	flags = append(flags, f.formatLong())
 
 	for i := range flags { //Turn the flags blue
-		flags[i] = ansi.Sprintf("@B{%s}", flags[i])
+		flags[i] = fmt.Sprintf("@B{%s}", flags[i])
 	}
 	flagStr := strings.Join(flags, ", ")
 	//Adjust the formatting column width to account for non-printing chars
@@ -136,7 +135,7 @@ func (f FlagInfo) lenLong() (length int) {
 
 //HelpHeader returns the input string formatted for a help dialogue's header
 func HelpHeader(text string) string {
-	return ansi.Sprintf("\n@G{%s}", text)
+	return fmt.Sprintf("\n@G{%s}", text)
 }
 
 var (

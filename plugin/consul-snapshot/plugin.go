@@ -43,12 +43,11 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -146,50 +145,50 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("consul", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 consul        %s}\n", err)
+		fmt.Printf("@R{\u2717 consul        %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 consul}       using default consul @C{%s}\n", DefaultConsul)
+		fmt.Printf("@G{\u2713 consul}       using default consul @C{%s}\n", DefaultConsul)
 	} else {
-		ansi.Printf("@G{\u2713 consul}       @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 consul}       @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("address", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 address       %s}\n", err)
+		fmt.Printf("@R{\u2717 address       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 address}      using default address @C{%s}\n", DefaultAddress)
+		fmt.Printf("@G{\u2713 address}      using default address @C{%s}\n", DefaultAddress)
 	} else {
-		ansi.Printf("@G{\u2713 address}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 address}      @C{%s}\n", s)
 	}
 
 	addr := s
 	s, err = endpoint.StringValueDefault("ca-path", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 ca-path       %s}\n", err)
+		fmt.Printf("@R{\u2717 ca-path       %s}\n", err)
 		fail = true
 	} else if s == "" && strings.HasPrefix(addr, "https") {
-		ansi.Printf("@G{\u2717 ca-path       ca-path must be specified when using https}\n")
+		fmt.Printf("@G{\u2717 ca-path       ca-path must be specified when using https}\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 ca-path}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 ca-path}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("client-cert", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 client-cert   %s}\n", err)
+		fmt.Printf("@R{\u2717 client-cert   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 client-cert}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 client-cert}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("client-key", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 client-key    %s}\n", err)
+		fmt.Printf("@R{\u2717 client-key    %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 client-key}   @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 client-key}   @C{%s}\n", s)
 	}
 
 	if fail {

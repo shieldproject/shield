@@ -1,11 +1,11 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 )
 
@@ -44,7 +44,7 @@ func (c *Command) ShortHelp() string {
 	//all of the summarys' text
 	summaryIndent := maxCmdLen + minBuffer
 	//Create format string with buffer specified
-	return ansi.Sprintf("@B{%-[1]*[2]s}%[3]s", summaryIndent, c.canonical, c.Summary)
+	return fmt.Sprintf("@B{%-[1]*[2]s}%[3]s", summaryIndent, c.canonical, c.Summary)
 }
 
 //Run runs the attached runFn with the given args
@@ -55,36 +55,32 @@ func (c *Command) Run(args ...string) error {
 //DisplayHelp prints the help for this command to stderr
 func (c *Command) DisplayHelp() {
 	//Print Usage Line
-	fmt.Fprintln(os.Stderr, c.usageLine())
-	fmt.Fprintln(os.Stderr, c.Summary)
+	fmt.Fprintf(os.Stderr, "%s\n%s\n", c.usageLine(), c.Summary)
 
 	//Print Aliases, if present
 	aliases := c.GetAliases()
 	if len(aliases) > 0 {
-		fmt.Fprintln(os.Stderr, HelpHeader("ALIASES"))
-		fmt.Fprintf(os.Stderr, "  %s\n", strings.Join(c.GetAliases(), ", "))
+		fmt.Fprintf(os.Stderr, "%s\n  %s\n", HelpHeader("ALIASES"), strings.Join(c.GetAliases(), ", "))
 	}
 
 	//Print flag help if there are any flags for this command
 	if len(c.Flags) > 0 {
-		fmt.Fprintln(os.Stderr, HelpHeader("FLAGS"))
-		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(c.Flags.HelpStrings()), "\n"))
+		fmt.Fprintf(os.Stderr, "%s\n%s\n", HelpHeader("FLAGS"), strings.Join(internal.IndentSlice(c.Flags.HelpStrings()), "\n"))
 	}
 
 	if len(GlobalFlags) != 0 {
-		fmt.Fprintln(os.Stderr, HelpHeader("GLOBAL FLAGS"))
-		fmt.Fprintln(os.Stderr, strings.Join(internal.IndentSlice(GlobalFlags.HelpStrings()), "\n"))
+		fmt.Fprintf(os.Stderr, "%s\n%s\n", HelpHeader("GLOBAL FLAGS"), strings.Join(internal.IndentSlice(GlobalFlags.HelpStrings()), "\n"))
 	}
 }
 
 func (c *Command) usageLine() string {
-	components := []string{ansi.Sprintf("@G{shield %s}", c.canonical)}
+	components := []string{fmt.Sprintf("@G{shield %s}", c.canonical)}
 	for _, f := range c.Flags {
 		var flagNotation string
 		if !f.Mandatory {
-			flagNotation = ansi.Sprintf("@G{[%s]}", f.formatShortIfPresent())
+			flagNotation = fmt.Sprintf("@G{[%s]}", f.formatShortIfPresent())
 		} else {
-			flagNotation = ansi.Sprintf("@G{%s}", f.formatShortIfPresent())
+			flagNotation = fmt.Sprintf("@G{%s}", f.formatShortIfPresent())
 		}
 		components = append(components, flagNotation)
 	}

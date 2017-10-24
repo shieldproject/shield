@@ -3,12 +3,12 @@ package backends
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
 )
@@ -18,9 +18,9 @@ import (
 func DisplayCurrent() {
 	cur := config.Current()
 	if cur == nil {
-		ansi.Fprintf(os.Stderr, "No current SHIELD backend\n\n")
+		fmt.Fprintf(os.Stderr, "No current SHIELD backend\n\n")
 	} else {
-		ansi.Fprintf(os.Stderr, "Using @G{%s} (%s) as SHIELD backend\n\n", cur.Address, cur.Name)
+		fmt.Fprintf(os.Stderr, "Using @G{%s} (%s) as SHIELD backend\n\n", cur.Address, cur.Name)
 	}
 }
 
@@ -28,11 +28,11 @@ func DisplayCurrent() {
 func DisplayCACert() {
 	cur := config.Current()
 	if cur == nil {
-		ansi.Fprintf(os.Stderr, "No current SHIELD backend\n\n")
+		fmt.Fprintf(os.Stderr, "No current SHIELD backend\n\n")
 	} else if cur.CACert == "" {
-		ansi.Fprintf(os.Stderr, "Current backend {%s} does not have a CA Cert configured", cur.Name)
+		fmt.Fprintf(os.Stderr, "Current backend {%s} does not have a CA Cert configured", cur.Name)
 	} else {
-		ansi.Fprintf(os.Stderr, cur.CACert)
+		fmt.Fprintf(os.Stderr, cur.CACert)
 	}
 }
 

@@ -77,7 +77,7 @@ func (core *Core) checkHealth() (Health, error) {
 	health.Jobs = make([]JobHealth, len(jobs))
 	for i, job := range jobs {
 		health.Jobs[i].UUID = job.UUID
-		health.Jobs[i].Target = job.TargetName
+		health.Jobs[i].Target = job.Target.Name
 		health.Jobs[i].Job = job.Name
 		health.Jobs[i].Healthy = job.Healthy()
 
@@ -147,7 +147,7 @@ func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	health.Jobs = make([]JobHealth, len(jobs))
 	for i, job := range jobs {
 		health.Jobs[i].UUID = job.UUID
-		health.Jobs[i].Target = job.TargetName
+		health.Jobs[i].Target = job.Target.Name
 		health.Jobs[i].Job = job.Name
 		health.Jobs[i].Healthy = job.Healthy()
 

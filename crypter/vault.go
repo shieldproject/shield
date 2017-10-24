@@ -18,7 +18,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 type Vault struct {

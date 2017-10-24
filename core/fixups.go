@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 func (core *Core) fixups() error {

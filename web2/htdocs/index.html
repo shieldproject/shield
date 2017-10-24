@@ -372,7 +372,7 @@
             [[   }); ]]
             [[ } ]]
             <div class="divider"></div>
-            <a class="dropdown" href="#!/account">Settings</a>
+            <!--a class="dropdown" href="#!/settings">Settings</a-->
             <a class="dropdown" href="#!/logout">Sign Out</a>
           </div>
         </div>
@@ -1997,12 +1997,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
     var referer = undefined;
     function divert(page) { // {{{
-      if ($global.auth.unauthenticated && !page.match(/^#!\/(login|logout|cliauth)$/)) {
+      if ($global.auth.unauthenticated) {
+        if (page.match(/^#!\/(login|logout|cliauth)$/)) {
+          return page;
+        }
         console.log('session not authenticated; diverting to #!/login page...');
         return "#!/login";
-
-      } else if (page == '#!/logout') {
-        return page;
 
       } else if ($global.auth.is.system.engineer && $global.hud) {
         /* process 'system' team diverts */
@@ -2221,18 +2221,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           break;
         }
         $('#main').html(template('loading'));
-        api({
-          type: 'GET',
-          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores',
+        apis({
+          multiplex: {
+            local:  { type: 'GET', url: '/v2/tenants/'+$global.auth.tenant.uuid+'/stores' },
+            global: { type: 'GET', url: '/v2/global/stores' }
+          },
           error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
           success: function (data) {
             /* FIXME fixups that need to migrate into the SHIELD code */
-            for (key in data) {
-              if (!('ok' in data[key])) {
-                data[key].ok = true;
-              }
-            }
-            $('#main').html(template('stores', { stores: data }));
+            for (key in data.local)  { if (!('ok' in data.local[key]))  { data.local[key].ok  = true; } }
+            for (key in data.global) { if (!('ok' in data.global[key])) { data.global[key].ok = true; } }
+            $('#main').html(template('stores', { stores: $.extend({}, data.local, data.global) }));
           }
         });
         break; /* #!/stores */
@@ -2243,19 +2242,27 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           break;
         }
         $('#main').html(template('loading'));
+
+        var go = function (data) {
+          /* FIXME fixups that need to migrate into the SHIELD code */
+          data.ok = true;
+          data.archives = data.archive_count;
+          data.used = data.storage_used;
+          data.projected = 2.1;
+          data.daily_delta = data.daily_increase;
+          $('#main').html(template('store', { store: data }));
+        };
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
-          error: "Unable to retrieve storage systems from SHIELD API.",
-          success: function (data) {
-            /* FIXME fixups that need to migrate into the SHIELD code */
-            data.ok = true;
-            data.archives = data.archive_count;
-            data.used = data.storage_used;
-            data.threshold = data.threshold;
-            data.projected = 2.1;
-            data.daily_delta = data.daily_increase;
-            $('#main').html(template('store', { store: data }));
+          success: go,
+          error: function (xhr) {
+            api({
+              type: 'GET',
+              url:  '/v2/global/stores/'+args.uuid,
+              error: "Unable to retrieve storage systems from SHIELD API.",
+              success: go
+            });
           }
         });
         break; /* #!/stores/store */
@@ -3024,7 +3031,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         $('#main').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
+          url:  '/v2/agents',
           error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
           success: function (data) {
             var cache = {};

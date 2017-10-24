@@ -43,12 +43,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -143,40 +142,40 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("host", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 host                  %s}\n", err)
+		fmt.Printf("@R{\u2717 host                  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
+		fmt.Printf("@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
 	} else {
-		ansi.Printf("@G{\u2713 host}                  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 host}                  @C{%s}\n", s)
 	}
 
 	b, err = endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
+		fmt.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
+		fmt.Printf("@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
 	}
 
 	s, err = endpoint.StringValueDefault("username", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 username              %s}\n", err)
+		fmt.Printf("@R{\u2717 username              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 username}              no username\n")
+		fmt.Printf("@G{\u2713 username}              no username\n")
 	} else {
-		ansi.Printf("@G{\u2713 username}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 username}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("password", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 password              %s}\n", err)
+		fmt.Printf("@R{\u2717 password              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 password}              no password\n")
+		fmt.Printf("@G{\u2713 password}              no password\n")
 	} else {
-		ansi.Printf("@G{\u2713 password}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 password}              @C{%s}\n", s)
 	}
 
 	if fail {

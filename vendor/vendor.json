@@ -155,12 +155,30 @@
 			"revision": "402636ff2db998edef392ac6d59210d2170b3ebf"
 		},
 		{
+			"checksumSHA1": "2yWJ+rGPlRU7zuN3RhQvmHGrQiQ=",
+			"path": "github.com/jhunt/go-ansi",
+			"revision": "8ad0f7010398b229bc562f3919fcdc9b0aeab9fd",
+			"revisionTime": "2017-10-24T02:42:54Z"
+		},
+		{
 			"path": "github.com/jhunt/go-cli",
 			"revision": "d74b1b6905297834d014b95038b9a58539832140"
 		},
 		{
 			"path": "github.com/jhunt/go-envirotron",
 			"revision": "6bdf7cebaa407f9ef7869eeb673a268d04126c90"
+		},
+		{
+			"checksumSHA1": "0zh8BzWlmxf6Sh76Qn3b+maOOKg=",
+			"path": "github.com/jhunt/go-log",
+			"revision": "ddc1e3b8ed3044efd4d4cf00032e9d42f63a9afb",
+			"revisionTime": "2017-10-24T03:28:03Z"
+		},
+		{
+			"checksumSHA1": "sIwthOGOIXFw3dLTF5y4c3e5EFM=",
+			"path": "github.com/jhunt/go-querytron",
+			"revision": "d7e47db792ceb62ccdb77f86bb0b00e26b2a4991",
+			"revisionTime": "2017-10-17T03:25:57Z"
 		},
 		{
 			"comment": "sqlx-v1.1-71-gbdae0c3",

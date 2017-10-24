@@ -4,14 +4,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/access"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 	"github.com/starkandwayne/shield/cmd/shield/log"
 	"github.com/starkandwayne/shield/tui"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 //Passwd - Change the password of a given user
@@ -52,11 +53,11 @@ func cliPasswd(opts *commands.Options, args ...string) error {
 			b := access.SecurePrompt("%s @C{[confirm]:} ", "Confirm Password:")
 
 			if a != "" && (a == b || !terminal.IsTerminal(int(os.Stdin.Fd()))) {
-				ansi.Fprintf(os.Stderr, "\n")
+				fmt.Fprintf(os.Stderr, "\n")
 				userpass = a
 				break
 			}
-			ansi.Fprintf(os.Stderr, "\n@Y{oops, passwords do not match: try again }(Ctrl-C to cancel)\n\n")
+			fmt.Fprintf(os.Stderr, "\n@Y{oops, passwords do not match: try again }(Ctrl-C to cancel)\n\n")
 		}
 
 		pass, _ := in.NewField("Password", "password", userpass, "", tui.FieldIsRequired)

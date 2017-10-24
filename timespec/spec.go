@@ -17,12 +17,13 @@ const (
 const ns = 1000 * 1000 * 1000
 
 type Spec struct {
-	Interval   Interval
-	TimeOfDay  int
-	TimeOfHour int
-	DayOfWeek  time.Weekday
-	DayOfMonth int
-	Week       int
+	Interval    Interval
+	TimeOfDay   int
+	TimeOfHour  int
+	DayOfWeek   time.Weekday
+	DayOfMonth  int
+	Week        int
+	Cardinality float32
 }
 
 func roundM(t time.Time) time.Time {
@@ -74,7 +75,16 @@ func (s *Spec) String() string {
 	t := fmt.Sprintf("%d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
 
 	if s.Interval == Hourly && s.TimeOfHour < 60 {
-		return fmt.Sprintf("hourly at %d after", s.TimeOfHour)
+		if s.Cardinality == 0 {
+			return fmt.Sprintf("hourly at %d after", s.TimeOfHour)
+		}
+		if s.Cardinality == 0.25 {
+			return fmt.Sprintf("every quarter hour from %s", t)
+		}
+		if s.Cardinality == 0.5 {
+			return fmt.Sprintf("every half hour from %s", t)
+		}
+		return fmt.Sprintf("every %d hours from %s", int(s.Cardinality), t)
 	}
 
 	if s.Interval == Daily {
@@ -98,6 +108,32 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 	midnight := offsetM(t, -1*(t.Hour()*60+t.Minute()))
 
 	if s.Interval == Hourly && s.TimeOfHour < 60 {
+		if s.Cardinality != 0 {
+			//Check bounds on cardinality for a one day period
+			if s.Cardinality < 0 || s.Cardinality > 23 {
+				return t, fmt.Errorf("Invalid Cardinality: Cannot calculate the %0.2fth hour in a day", s.Cardinality)
+			}
+			//Check Cardinality is Valid (i.e. integer, half, or quarter)
+			if s.Cardinality != float32(int(s.Cardinality)) {
+				if s.Cardinality != 0.5 && s.Cardinality != 0.25 {
+					return t, fmt.Errorf("Invalid Cardinality: Cannot calculate the %0.2fth hour in a day", s.Cardinality)
+				}
+			}
+			//Ensure "FROM" is reduced to its simplest form
+			if float32(s.TimeOfDay) > (s.Cardinality * 60) {
+				s.TimeOfDay = s.TimeOfDay % int(s.Cardinality*60)
+				return t, fmt.Errorf("Invalid FROM time: did you mean %d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
+			}
+			target := offsetM(midnight, s.TimeOfDay)
+			for i := 0; i < 97; i++ { //Incrementing 96 1/4hours in the worst case
+				if target.After(t) {
+					return target, nil
+				}
+				target = offsetM(target, int(60*s.Cardinality))
+			}
+			return t, fmt.Errorf("Cannot calculate the %0.2fth hour in a day", s.Cardinality)
+		}
+
 		target := offsetM(t, s.TimeOfHour-t.Minute())
 		if target.After(t) {
 			return target, nil

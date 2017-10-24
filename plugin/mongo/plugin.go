@@ -67,9 +67,7 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -195,41 +193,41 @@ func (p MongoPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("mongo_host", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_host          %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_host          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_host}          using default host @C{%s}\n", DefaultHost)
+		fmt.Printf("@G{\u2713 mongo_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
-		ansi.Printf("@G{\u2713 mongo_host}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_host}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_port", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_port          %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_port          %s}\n", err)
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_port}          using default port @C{%s}\n", DefaultPort)
+		fmt.Printf("@G{\u2713 mongo_port}          using default port @C{%s}\n", DefaultPort)
 	} else {
-		ansi.Printf("@G{\u2713 mongo_port}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_port}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_user", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_user          %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_user          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_user}          (none)\n")
+		fmt.Printf("@G{\u2713 mongo_user}          (none)\n")
 	} else {
-		ansi.Printf("@G{\u2713 mongo_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_user}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_password", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_password      %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_password      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_password}      (none)\n")
+		fmt.Printf("@G{\u2713 mongo_password}      (none)\n")
 	} else {
-		ansi.Printf("@G{\u2713 mongo_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_password}      @C{%s}\n", s)
 	}
 
 	if fail {

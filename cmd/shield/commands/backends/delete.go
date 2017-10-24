@@ -1,10 +1,8 @@
 package backends
 
 import (
-	"fmt"
-	"os"
+	fmt "github.com/jhunt/go-ansi"
 
-	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
@@ -35,12 +33,12 @@ func cliDeleteBackend(opts *commands.Options, args ...string) error {
 		return err
 	}
 
-	ansi.Fprintf(os.Stdout, "Successfully deleted backend '@G{%s}'\n", name)
+	fmt.Printf("Successfully deleted backend '@G{%s}'\n", name)
 	if config.Current() == nil {
-		ansi.Fprintf(os.Stdout, "@Y{You are no longer targeting any backend}\n")
+		fmt.Printf("@Y{You are no longer targeting any backend}\n")
 	}
 
-	fmt.Println("")
+	fmt.Printf("\n")
 
 	return nil
 }

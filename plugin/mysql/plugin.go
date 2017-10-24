@@ -69,10 +69,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -207,67 +206,67 @@ func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("mysql_host", DefaultHost)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_host          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_host          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_host}          using default host @C{%s}\n", DefaultHost)
+		fmt.Printf("@G{\u2713 mysql_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
-		ansi.Printf("@G{\u2713 mysql_host}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_host}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_port", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_port          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_port          %s}\n", err)
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_port}          using default port @C{%s}\n", DefaultPort)
+		fmt.Printf("@G{\u2713 mysql_port}          using default port @C{%s}\n", DefaultPort)
 	} else {
-		ansi.Printf("@G{\u2713 mysql_port}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_port}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("mysql_user")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_user          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_user          %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("mysql_password")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_password      %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_password      %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_read_replica", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_read_replica  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_read_replica  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_read_replica}  no read replica given\n")
+		fmt.Printf("@G{\u2713 mysql_read_replica}  no read replica given\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_database", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_database      %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_database      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_database}      backing up *all* databases\n")
+		fmt.Printf("@G{\u2713 mysql_database}      backing up *all* databases\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_database}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_database}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_options", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_options       %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_options       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_options}       no options given\n")
+		fmt.Printf("@G{\u2713 mysql_options}       no options given\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_options}       @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_options}       @C{%s}\n", s)
 	}
 
 	if fail {

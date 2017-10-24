@@ -3,12 +3,12 @@ package agent
 import (
 	"bytes"
 	"fmt"
-	"github.com/starkandwayne/goutils/log"
 	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/jhunt/go-log"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )

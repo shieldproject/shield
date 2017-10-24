@@ -71,15 +71,14 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	fmt "github.com/jhunt/go-ansi"
 	minio "github.com/minio/minio-go"
-	"github.com/starkandwayne/goutils/ansi"
 	"golang.org/x/net/proxy"
 
 	"github.com/starkandwayne/shield/plugin"
@@ -230,89 +229,89 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
-		ansi.Printf("@R{\u2717 s3_host              %s}\n", err)
+		fmt.Printf("@R{\u2717 s3_host              %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 s3_host}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 s3_host}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("access_key_id")
 	if err != nil {
-		ansi.Printf("@R{\u2717 access_key_id        %s}\n", err)
+		fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("s3_port", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 s3_port        %s}\n", err)
+		fmt.Printf("@R{\u2717 s3_port        %s}\n", err)
 		fail = true
 	} else {
 		if s3Host, err := endpoint.StringValueDefault("s3_host", ""); s != "" && err == nil && s3Host == "" {
-			ansi.Printf("@R{\u2717 s3_port        %s but s3_host cannot be empty}\n", s)
+			fmt.Printf("@R{\u2717 s3_port        %s but s3_host cannot be empty}\n", s)
 			fail = true
 		} else {
-			ansi.Printf("@G{\u2713 s3_port}        @C{%s}\n", s)
+			fmt.Printf("@G{\u2713 s3_port}        @C{%s}\n", s)
 		}
 	}
 
 	s, err = endpoint.StringValue("secret_access_key")
 	if err != nil {
-		ansi.Printf("@R{\u2717 secret_access_key    %s}\n", err)
+		fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bucket               %s}\n", err)
+		fmt.Printf("@R{\u2717 bucket               %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		ansi.Printf("@R{\u2717 prefix               %s}\n", err)
+		fmt.Printf("@R{\u2717 prefix               %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 prefix}               (none)\n")
+		fmt.Printf("@G{\u2713 prefix}               (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		ansi.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("signature_version", DefaultSigVersion)
 	if err != nil {
-		ansi.Printf("@R{\u2717 signature_version    %s}\n", err)
+		fmt.Printf("@R{\u2717 signature_version    %s}\n", err)
 		fail = true
 	} else if !validSigVersion(s) {
-		ansi.Printf("@R{\u2717 signature_version    Unexpected signature version '%s' found (expecting '2' or '4')}\n", s)
+		fmt.Printf("@R{\u2717 signature_version    Unexpected signature version '%s' found (expecting '2' or '4')}\n", s)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 signature_version}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 signature_version}    @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("socks5_proxy", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
+		fmt.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 socks5_proxy}         (no proxy will be used)\n")
+		fmt.Printf("@G{\u2713 socks5_proxy}         (no proxy will be used)\n")
 	} else {
-		ansi.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else if tf {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 	} else {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 	}
 
 	if fail {
@@ -491,7 +490,7 @@ func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
 	if s3.SOCKS5Proxy != "" {
 		dialer, err := proxy.SOCKS5("tcp", s3.SOCKS5Proxy, nil, proxy.Direct)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)
+			fmt.Fprintf(os.Stderr, "can't connect to the proxy: %s\n", err)
 			os.Exit(1)
 		}
 		transport.(*http.Transport).Dial = dialer.Dial

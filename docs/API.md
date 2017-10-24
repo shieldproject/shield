@@ -78,23 +78,150 @@ Example:
 ```
 
 The order of the fields is inconsequential.
-## Health
+## Health & Informational
 
-The health endpoints give you a glimpse into the well-being of a
-SHIELD Core, for monitoring purposes.
+The health and informational endpoints give you a glimpse into the
+well-being of a SHIELD Core, for monitoring purposes, at various
+levels of detail.
 
 
-### GET /v2/health
+### GET /v2/info
 
-Returns health information about the SHIELD Core, connected
-storage accounts, and general metrics.
+Returns minimal information necessary for forward-compatibility
+with different versions of SHIELD Core and clients.
 
 
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/health
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/info
 ```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "version" : "6.7.2",
+  "env"     : "PRODUCTION",
+  "api"     : 2
+}
+```
+
+The `version` key only shows up if the request was made in the
+context of an authenticated session.
+
+The `env` key is configurable by the SHIELD site administrator,
+at deployment / boot time.
+
+The `api` key is a single integer that identifies which version
+of the SHIELD API this core implements.  Currently, there are
+two possible values:
+
+  - **2** - The `/v2` endpoints are present, but not `/v1`
+  - **1** - Only the `/v1` endpoints are present (legacy).
+
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
+**Errors**
+
+This API endpoint does not return any error conditions.
+
+### GET /v2/health
+
+Returns health information about the SHIELD Core, connected
+storage accounts, and general metrics, at a global scope.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/health
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+If all goes well, you will receive a 200 OK, with a `Content-Type`
+of `application/json`, and something similar to the following JSON
+payload in the response body:
+
+```json
+{
+  "shield": {
+    "version" : "6.7.2",
+    "ip"      : "10.0.0.5",
+    "fqdn"    : "shield.example.com",
+    "env"     : "PRODUCTION",
+    "color"   : "",
+    "motd"    : "Welcome to S.H.I.E.L.D."
+  },
+  "health": {
+    "core"       : "unsealed",
+    "storage_ok" : true,
+    "jobs_ok"    : true
+  },
+  "storage": [
+    { "name": "s3", "healthy": true },
+    { "name": "fs", "healthy": true } ],
+  "jobs": [
+    {
+      "uuid"    : "3dc875a4-042c-47a1-828c-1d927455c6c7",
+      "target"  : "BOSH DB",
+      "job"     : "daily",
+      "healthy" : true
+    },
+    {
+      "uuid"    : "d9a4547e-c1e7-4869-bb8d-4abb757b2f70",
+      "target"  : "BOSH DB",
+      "job"     : "weekly",
+      "healthy" : true
+    }
+  ],
+  "stats": {
+    "jobs"    : 8,
+    "systems" : 7,
+    "archives": 124,
+    "storage" : 243567112,
+    "daily"   : 12345000
+  }
+}
+```
+
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to check SHIELD health**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### GET /v2/tenants/:tenant/health
+
+Returns health information about the SHIELD Core, connected
+storage accounts, and general metrics, restricted to the scope
+visible to a single tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/health
+```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -227,8 +354,11 @@ Destroy the current session and log the user out.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/auth/logout
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/logout
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -265,8 +395,11 @@ authenticated, a suitable response will be returned.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/auth/id
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/id
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -322,6 +455,557 @@ The following error messages can be returned:
   `X-Shield-Session` header), or some other internal
   error has occurred, and SHIELD administrators should
   investigate.
+
+
+### GET /v2/auth/providers
+
+Retrieve public configuration of SHIELD Authentication Providers,
+which can be used by client systems to initiate authentication
+against 3rd party systems like Github and Cloud Foundry UAA.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/providers
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+[
+  {
+    "name"       : "Github(.com)",
+    "identifier" : "gh",
+    "type"       : "github",
+
+    "web_entry"  : "/auth/gh/web",
+    "cli_entry"  : "/auth/gh/cli",
+    "redirect"   : "/auth/gh/redir"
+  }
+]
+```
+
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
+**Errors**
+
+This API endpoint does not return any error conditions.
+
+### GET /v2/auth/providers/:identifier
+
+Retrieve private configuration of a single SHIELD Authentication
+Providers, for use by SHIELD administrators.  This includes all of
+the information from the public endpoint, as well as private
+properties including things like client secrets.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/providers/:identifier
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "name"       : "Github(.com)",
+  "identifier" : "gh",
+  "type"       : "github",
+
+  "web_entry"  : "/auth/gh/web",
+  "cli_entry"  : "/auth/gh/cli",
+  "redirect"   : "/auth/gh/redir",
+
+  "properties" : {
+    "secret"   : "properties",
+    "that"     : "are",
+    "provider" : "specific"
+  }
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **No such authentication provider**:
+  No authentication provider was found with the given
+  identifier.
+
+
+### GET /v2/auth/tokens
+
+Retrieve a list of all authentication tokens that have been
+generated for use on behalf of the currently authenticated
+user.  For security reasons, the session ID attached to the
+authentication token is not returned.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/tokens
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+[
+  {
+    "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
+    "name"       : "test",
+    "created_at" : "2017-10-21 00:54:33",
+    "last_seen"  : null
+  }
+]
+```
+
+The `uuid` key is used strictly for retrieving and revoking each
+authentication token; it cannot be used as an authentication token,
+as it is not the session ID.
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Authentication failed**:
+  The request either lacked a session cookie (or an
+  `X-Shield-Session` header), or some other internal
+  error has occurred, and SHIELD administrators should
+  investigate.
+
+- **Unable to retrieve tokens information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### POST /v2/auth/tokens
+
+Generate a new authentication token to act on behalf of the
+currently authenticated user.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/auth/tokens \
+     --data-binary '
+{
+  "name": "auth-token-name"
+}'
+```
+
+Each authentication token requires a name that is unique
+to the parent user account.
+
+**Response**
+
+```json
+{
+  "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
+  "session"    : "8ef409e9-690d-4d91-9f74-6d657f56843e",
+  "name"       : "test",
+  "created_at" : "2017-10-21 00:54:33",
+  "last_seen"  : null
+}
+```
+
+The `uuid` key is used strictly for retrieving and revoking each
+authentication token; it cannot be used as an authentication token,
+as it is not the session ID.
+
+The `session` key should be used 
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Authentication failed**:
+  The request either lacked a session cookie (or an
+  `X-Shield-Session` header), or some other internal
+  error has occurred, and SHIELD administrators should
+  investigate.
+
+- **Unable to retrieve tokens information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### DELETE /v2/auth/tokens/:uuid
+
+Revoke an authentication token that belongs to the currently
+authenticated user (even if its authenticated by the token being
+revoked).
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/auth/tokens/:uuid \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Token revoked"
+}
+```
+
+Note that if you have revoked the auth token you were using, all
+subsequent requests will fail to authenticated.  It makes sense,
+but it bears repeating.
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to revoke auth token**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+## SHIELD Users
+
+SHIELD provides both a local user database, and the ability to
+map 3rd party systems into the SHIELD tenancy model.  These API
+endpoints allow you to manage the former, and query the results
+of the latter.
+
+
+### GET /v2/auth/local/users
+
+
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/local/users
+```
+
+- **?exact=(t|f)**
+When filtering users, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?uuid=**
+Only show the local user that matches the given UUID.
+This is a FIXME - we probably need to remove this.
+
+
+- **?account=...**
+Only show local users whose account names (usernames)
+match the given value.  Subject to the `exact=(t|f)` query
+string parameter.
+
+
+- **?sysrole=...**
+Only show local users who have been assigned the given
+system role.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
+
+**Response**
+
+```json
+[
+  {
+    "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+    "name"       : "Full Name",
+    "account"    : "username",
+    "sysrole"    : "engineer",
+
+    "tenants": [
+      {
+        "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
+        "name" : "Tenant Name",
+        "role" : "operator"
+      }
+    ]
+  }
+]
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Invalid limit parameter given**:
+  Request specified a `limit` parameter that was either
+  non-numeric, or was negative.  Note that `0` is a valid limit,
+  standing for _unlimited_.
+
+- **Unable to retrieve local users information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### GET /v2/auth/local/users/:uuid
+
+
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/local/users/:uuid
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+  "name"       : "Full Name",
+  "account"    : "username",
+  "sysrole"    : "engineer",
+
+  "tenants": [
+    {
+      "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
+      "name" : "Tenant Name",
+      "role" : "operator"
+    }
+  ]
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve local user information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### POST /v2/auth/local/users
+
+
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/auth/local/users \
+     --data-binary '
+{
+  "name"     : "Full Name",
+  "account"  : "username",
+  "password" : "cleartext password",
+  "sysrole"  : "engineer"
+}'
+```
+
+The `sysrole` parameter must be either empty (or not specified),
+or one of the following values: **admin**, **engineer**, or
+**operator**.
+
+**Response**
+
+```json
+{
+  "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+  "name"       : "Full Name",
+  "account"    : "username",
+  "sysrole"    : "engineer"
+}
+```
+
+**NOTE** that the user's password (neither in hashed form, or in
+the clear) is never returned to requesters.
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **System role '...' is invalid**:
+  Request specified a `sysrole` payload parameter that was
+  outside of the allowable set of values.
+
+- **Unable to create local user '...'**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **User '...' already exists**:
+  You attempted to create a new local user account, but the
+  username was already assigned to a pre-existing account.
+  The request should not be retried.
+
+
+### PATCH /v2/auth/local/users/:uuid
+
+
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PATCH https://shield.host/v2/auth/local/users/:uuid \
+     --data-binary '
+{
+  "name"     : "Full Name",
+  "password" : "cleartext password",
+  "sysrole"  : "engineer"
+}'
+```
+
+The `sysrole` parameter must be either empty (or not specified),
+or one of the following values: **admin**, **engineer**, or
+**operator**.
+
+**NOTE** that you cannot alter a users `account` after creation.
+
+**Response**
+
+```json
+{
+  "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+  "name"       : "Full Name",
+  "account"    : "username",
+  "sysrole"    : "engineer"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **No such local user**:
+  Either the user given by the URL UUID was not found in the
+  database, or that user was created by an authentication
+  provider, and not SHIELD itself.
+
+- **System role '...' is invalid**:
+  Request specified a `sysrole` payload parameter that was
+  outside of the allowable set of values.
+
+- **Unable to update local user '...'**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### DELETE /v2/auth/local/users/:uuid
+
+
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/auth/local/users/:uuid \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok" : "Successfully deleted local user"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **No such local user**:
+  Either the user given by the URL UUID was not found in the
+  database, or that user was created by an authentication
+  provider, and not SHIELD itself.
+
+- **System role '...' is invalid**:
+  Request specified a `sysrole` payload parameter that was
+  outside of the allowable set of values.
+
+- **Unable to update local user '...'**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ## SHIELD Core
@@ -455,6 +1139,8 @@ curl -H 'Accept: application/json' \
 }'
 ```
 
+This endpoint takes no query string parameters.
+
 **Response**
 
 If all goes well, you will receive a 200 OK, and the
@@ -492,8 +1178,11 @@ Retrieves information about all registered SHIELD Agents.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/agents
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/agents
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -560,6 +1249,8 @@ to assert that a problem exists.
 **Access Control**
 
 You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
 
 **Errors**
 
@@ -656,8 +1347,11 @@ require, etc.)
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/agents/:uuid
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/agents/:uuid
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -737,6 +1431,264 @@ The following error messages can be returned:
   of registered agents.
 
 
+### POST /v2/agents/:uuid/show
+
+Mark a single SHIELD agent as visible to all tenants, and
+available for configuration.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X POST https://shield.host/v2/agents/:uuid/show \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok" : "Agent is now visible to everyone"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve agent information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Unable to set agent visibility**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such agent**:
+  The requested agent UUID was not found in the list
+  of registered agents.
+
+
+### POST /v2/agents/:uuid/hide
+
+Hide a single SHIELD agent from all tenants, rendering it unusable
+in storage and target configuration.  Pre-existing configurations
+will continue to function; this only affects visibility for future
+configuration.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X POST https://shield.host/v2/agents/:uuid/hide \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok" : "Agent is now visible to everyone"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve agent information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Unable to set agent visibility**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such agent**:
+  The requested agent UUID was not found in the list
+  of registered agents.
+
+
+### GET /v2/tenants/:tenant/agents
+
+Retrieves information about all registered SHIELD Agents,
+viewable by a given tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/agents
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "agents": [
+    {
+      "name"         : "prod/web/42",
+      "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+      "address"      : "127.0.0.1:5444",
+      "version"      : "dev",
+      "status"       : "ok",
+      "hidden"       : false,
+      "last_error"   : "",
+      "last_seen_at" : "2017-10-11 18:54:00"
+    }
+  ]
+}
+```
+
+The top-level `agents` key is a list of object describing each registered agent:
+
+- **name** - The name of the SHIELD Agent, as set by
+  the local system administrator (which may not be the
+  SHIELD site administrator).
+
+- **uuid** - The internal UUID assigned to this agent by the SHIELD Core.
+
+- **address** - The `host:port` of the agent, from the
+  point-of-view of the SHIELD Core.
+
+- **version - The version of the remote SHIELD Agent's software.
+
+- **status - The health status of the remote SHIELD
+  Agent, one of `ok` or `failing`.
+
+- **hidden - Whether or not this agent has been administratively hidden.
+
+- **last\_error - TBD
+
+- **last\_seen\_at - When the remote SHIELD Agent last
+  made contact with the SHIELD Core to refresh its
+  registration and its metadata.  Date is formatted
+  YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve agent information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### GET /v2/tenants/:tenant/agents/:uuid
+
+Retrieve extended information about a single SHIELD Agent,
+viewable by a given tenant.  This includes plugin metadata, but
+not problem information (which is accessible via `GET /v2/agents`,
+but only to SHIELD administrators).
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/agents/:uuid
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "agent": {
+    "name"         : "prod/web/42",
+    "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+    "address"      : "127.0.0.1:5444",
+    "version"      : "dev",
+    "status"       : "ok",
+    "hidden"       : false,
+    "last_error"   : "",
+    "last_seen_at" : "2017-10-11 18:54:00"
+  },
+  "metadata": {
+    "name"    : "prod/web/42",
+    "version" : "dev",
+    "health"  : "ok",
+
+    "plugins": {
+      "fs": {
+        "author"   : "Stark & Wayne",
+        "features" : {
+          "store"  : "yes",
+          "target" : "no"
+        },
+
+        "fields": [
+          {
+            "mode"     : "store",
+            "name"     : "storage_account",
+            "title"    : "Storage Account",
+            "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
+            "type"     : "string",
+            "required" : true
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+The top-level `agents` key contains the same agent
+information that the `GET /v2/tenants/:tenant/agents` endpoint
+returns.
+
+The `metadata` key is exclusive to this endpoint, and
+contains all of the agent metadata.  Of particular
+interest is the `plugins` key, which contains a map of
+plugin metadata, keyed by the plugin name.  The format
+of this metadata is documented in
+[/docs/plugins.md](/docs/plugins.md).
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve agent information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such agent**:
+  The requested agent UUID was not found in the list
+  of registered agents visible to this tenant.
+
+
 ## SHIELD Tenants
 
 Tenants serve to insulate groups of SHIELD users from one another,
@@ -755,8 +1707,11 @@ Retrieve the list of all tenants currently defined.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -923,8 +1878,11 @@ Request more detailed information about a single tenant.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants/:uuid
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:uuid
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -1120,6 +2078,8 @@ curl -H 'Accept: application/json' \
 }'
 ```
 
+This endpoint takes no query string parameters.
+
 **Response**
 
 ```json
@@ -1163,6 +2123,47 @@ local users can be banished
   site administrators
 
 
+### DELETE /v2/tenants/:uuid
+
+Remove a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/tenants/:uuid \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Successfully deleted tenant"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `manager` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Unable to delete tenant**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
 ## SHIELD Targets
 
 Targets represent the data systems that SHIELD runs backup and
@@ -1177,8 +2178,11 @@ Retrieve all defined targets for a tenant.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/targets
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/targets
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -1304,8 +2308,11 @@ Retrieve a single target for a tenant.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/targets/:uuid
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/targets/:uuid
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -1420,6 +2427,8 @@ curl -H 'Accept: application/json' \
      -X DELETE https://shield.host/v2/tenants/:tenant/targets/:uuid \
 ```
 
+This endpoint takes no query string parameters.
+
 **Response**
 
 ```json
@@ -1477,8 +2486,11 @@ Retrieve all defined stores for a tenant.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/stores
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/stores
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -1585,8 +2597,11 @@ Retrieve a single store for the given tenant.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/stores/:uuid
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/stores/:uuid
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -1708,6 +2723,8 @@ curl -H 'Accept: application/json' \
      -X DELETE https://shield.host/v2/tenants/:tenant/stores/:uuid \
 ```
 
+This endpoint takes no query string parameters.
+
 **Response**
 
 ```json
@@ -1759,8 +2776,11 @@ Retrieve all defined retention policies for a tenant.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/policies
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/policies
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -1859,8 +2879,11 @@ Retrieve a single retention policy for a tenant.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/tenants/:tenant/policies/:uuid
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/policies/:uuid
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -1961,6 +2984,8 @@ curl -H 'Accept: application/json' \
      -X DELETE https://shield.host/v2/tenants/:tenant/policies/:uuid \
 ```
 
+This endpoint takes no query string parameters.
+
 **Response**
 
 ```json
@@ -2004,6 +3029,103 @@ target system, a cloud storage system, a schedule, and a retention
 policies.  Without Jobs, SHIELD cannot actually back anything up.
 
 
+### GET /v2/tenants/:tenant/jobs
+
+Retrieve all defined jobs for a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/jobs?name=redis&paused=t
+```
+
+By default, all jobs for the tenant will be returned.  You can
+filter down to a subset of that by the following query string
+parameters:
+
+- **?exact=(t|f)**
+When filtering jobs, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?paused=(t|f)**
+Show only paused (`paused=t`) or unpaused (`paused=f`) jobs.
+If omitted, all jobs are shown, regardless of their
+pausedness.
+
+
+- **?name=...**
+Show only jobs whose names match the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?target=...**
+Show only jobs whose target UUIDs match the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?store=...**
+Show only jobs whose store UUIDs match the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?policy=...**
+Show only jobs whose retention policy UUIDs match the given
+value.  Subject to the `exact=(t|f)` query string parameter.
+
+
+
+
+**Response**
+
+```json
+{
+  "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+  "name"     : "Job Name",
+  "summary"  : "A longer description",
+  "expiry"   : 604800,
+  "schedule" : "daily 4am",
+  "paused"   : false,
+  "agent"    : "10.0.0.5:5444",
+
+  "last_run"          : "2017-10-19 03:00:00",
+  "last_task_status"  : "done",
+
+  "policy_uuid"       : "9a112894-10eb-439f-afd5-01597d8faf64",
+  "policy_name"       : "Retention Policy Name",
+  "policy_summary"    : "A longer description",
+
+  "store_uuid"        : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+  "store_name"        : "Cloud Storage System Name",
+  "store_summary"     : "A longer description",
+  "store_plugin"      : "s3",
+  "store_endpoint"    : "{ ... some json ... }",
+
+  "target_uuid"       : "9f602367-256a-4454-be56-9ddde1257f13",
+  "target_name"       : "Data System Name",
+  "target_plugin"     : "fs",
+  "target_endpoint"   : "{ ... some json ... }"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve tenant job information.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
 ## SHIELD Tasks
 
 Tasks represent the context, status, and output of the execution of
@@ -2014,6 +3136,57 @@ Since tasks represent internal state, they cannot easily be created or
 updated via operators.  Instead, the execution of the job, or the
 triggering of some other action, will cause a task to spring into
 existence and move through its lifecycle.
+
+
+### GET /v2/tenants/:tenant/tasks/:uuid
+
+Retrieve a single task.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/tasks/:uuid
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+  "owner"        : "user@backend",
+  "type"         : "backup",
+  "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+  "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+  "status"       : "running",
+  "started_at"   : "2017-10-17 04:51:16",
+  "stopped_at"   : "",
+  "log"          : "running log...",
+  "notes"        : "Annotated notes about this task",
+  "clear"        : "manual"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve task information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such task**:
+  You requested details on a task that either doesn't exist, or
+  is not tied to the given tenant.
 
 
 ### DELETE /v2/tenants/:tenant/tasks/:uuid
@@ -2027,6 +3200,8 @@ Cancel a task.
 curl -H 'Accept: application/json' \
      -X DELETE https://shield.host/v2/tenants/:tenant/tasks/:uuid \
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -2044,7 +3219,20 @@ You must also have the `operator` role on the tenant.
 
 **Errors**
 
-This API endpoint does not return any error conditions.
+The following error messages can be returned:
+
+- **Unable to retrieve task information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such task**:
+  You requested details on a task that either doesn't exist, or
+  is not tied to the given tenant.
+
+- **Unable to cancel task**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
 
 ## SHIELD Backup Archives
 
@@ -2054,6 +3242,79 @@ target system during a single backup job task.
 Archives cannot be created _a priori_ via the API alone.  New archives
 will be created from scheduled and ad hoc backup jobs, when they
 succeed.
+
+
+### POST /v2/tenants/:tenant/archives/:uuid/restore
+
+Restore a backup archive for a tenant, either to the original
+target system it was taken from, or against a different target
+owned by the same tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/:tenant/archives/:uuid/restore \
+     --data-binary '
+{
+  "target" : "2a1731c0-7d0e-4f31-8860-7d0ae7a34261"
+}'
+```
+
+Here, `target` is an optional UUID of an alternative data system
+to restore this archive to.  This target must exist inside the
+same tenant.  By default, if `target` is omitted, the archive
+will be restored back to the target it was created from.
+
+**Response**
+
+When a restore has been scheduled for execution, it generates a
+task inside of SHIELD, which is then returned as the result to
+the requester:
+
+```json
+{
+  "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+  "owner"        : "user@backend",
+  "type"         : "restore",
+  "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+  "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+  "status"       : "running",
+  "started_at"   : "2017-10-17 04:51:16",
+  "stopped_at"   : "",
+  "log"          : "running log...",
+  "notes"        : "Annotated notes about this task",
+  "clear"        : "manual"
+}
+```
+
+The `type` of this task will always be `restore`, and usually,
+`log` will be empty and `stopped_at` will have no value, since
+the task hasn't had time to run to completion.
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve backup archive information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such backup archive**:
+  The requested backup archive was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Unable to schedule a restore task**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
 
 ## SHIELD Global Resources
@@ -2071,8 +3332,11 @@ Retrieve all globally-defined stores.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/global/stores
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/global/stores
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -2178,8 +3442,11 @@ Retrieve a single globally-defined storage system.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/global/stores/:uuid
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/global/stores/:uuid
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -2299,6 +3566,8 @@ curl -H 'Accept: application/json' \
      -X DELETE https://shield.host/v2/global/stores/:uuid \
 ```
 
+This endpoint takes no query string parameters.
+
 **Response**
 
 ```json
@@ -2343,8 +3612,11 @@ Retrieve all defined retention policy templates.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/global/policies
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/global/policies
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -2440,8 +3712,11 @@ Retrieve a single retention policy template.
 **Request**
 
 ```sh
-curl -H 'Accept: application/json' https://shield.host/v2/global/policies/:uuid
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/global/policies/:uuid
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 
@@ -2551,6 +3826,8 @@ copied into any future tenants.
 curl -H 'Accept: application/json' \
      -X DELETE https://shield.host/v2/global/policies/:uuid \
 ```
+
+This endpoint takes no query string parameters.
 
 **Response**
 

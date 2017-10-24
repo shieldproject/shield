@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 
+	"github.com/starkandwayne/shield/timespec"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
 )
@@ -100,6 +101,25 @@ func (core *Core) v2API() *route.Router {
 		Debug: core.debug,
 	}
 
+	r.Dispatch("GET /v2/info", func(r *route.Request) { // {{{
+		in := struct {
+			Version string `json:"version,omitempty"`
+			Env     string `json:"env"`
+			API     int    `json:"api"`
+		}{
+			Env: core.env,
+			API: 2,
+		}
+
+		/* only show sensitive things like version numbers
+		   to authenticated sessions. */
+		if u, _ := core.AuthenticatedUser(r); u != nil {
+			in.Version = Version
+		}
+
+		r.OK(in)
+	})
+	// }}}
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{
 		health, err := core.checkHealth()
 		if err != nil {
@@ -221,21 +241,21 @@ func (core *Core) v2API() *route.Router {
 	r.Dispatch("GET /v2/auth/providers", func(r *route.Request) { // {{{
 		l := make([]AuthProviderConfig, 0)
 
-		typ := r.Param("for", "cli")
 		for _, auth := range core.auth {
 			cfg := auth.Configuration(false)
-			if cfg.Type == "token" && typ != "cli" {
-				continue
-			}
 			l = append(l, cfg)
 		}
 		r.OK(l)
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/providers/:name", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+
 		a, ok := core.auth[r.Args[1]]
 		if !ok {
-			r.Fail(route.NotFound(nil, "No such authentication provider: '%s'", r.Args[1]))
+			r.Fail(route.NotFound(nil, "No such authentication provider"))
 			return
 		}
 		r.OK(a.Configuration(true))
@@ -243,6 +263,10 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/auth/local/users", func(r *route.Request) { // {{{
+		if core.IsNotSystemManager(r) {
+			return
+		}
+
 		limit, err := strconv.Atoi(r.Param("limit", "0"))
 		if err != nil || limit < 0 {
 			r.Fail(route.Bad(err, "Invalid limit parameter given"))
@@ -290,6 +314,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotSystemManager(r) {
+			return
+		}
+
 		user, err := core.DB.GetUserByID(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve local user information"))
@@ -305,7 +333,7 @@ func (core *Core) v2API() *route.Router {
 		if err != nil {
 			log.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
 				user.Account, user.Backend, user.UUID.String(), err)
-			r.Fail(route.Oops(err, "Unable to retrieve local users information"))
+			r.Fail(route.Oops(err, "Unable to retrieve local user information"))
 			return
 		}
 
@@ -327,6 +355,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/auth/local/users", func(r *route.Request) { // {{{
+		if core.IsNotSystemManager(r) {
+			return
+		}
+
 		var in struct {
 			UUID     string `json:"uuid"`
 			Name     string `json:"name"`
@@ -352,9 +384,9 @@ func (core *Core) v2API() *route.Router {
 			case
 				"admin",
 				"manager",
-				"technician":
+				"engineer":
 			default:
-				r.Fail(route.Bad(nil, "System Role '%s' is invalid", in.SysRole))
+				r.Fail(route.Bad(nil, "System role '%s' is invalid", in.SysRole))
 				return
 			}
 		}
@@ -370,28 +402,32 @@ func (core *Core) v2API() *route.Router {
 
 		exists, err := core.DB.GetUser(u.Account, "local")
 		if err != nil {
-			r.Fail(route.Oops(err, "Unable to create local user '%s' (local auth provider)", in.Name))
+			r.Fail(route.Oops(err, "Unable to create local user '%s'", in.Account))
 			return
 		}
 
 		if exists != nil {
-			r.Fail(route.Bad(nil, "user '%s' already exists (for local auth provider)", u.Account))
+			r.Fail(route.Bad(nil, "user '%s' already exists", u.Account))
 			return
 		}
 
-		new_user, err := core.DB.CreateUser(u)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to create local user '%s' (local auth provider)", in.Name))
+		u, err = core.DB.CreateUser(u)
+		if u == nil || err != nil {
+			r.Fail(route.Oops(err, "Unable to create local user '%s'", in.Account))
 			return
 		}
-		r.OK(new_user)
+		r.OK(u)
 	})
 	// }}}
 	r.Dispatch("PATCH /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotSystemManager(r) {
+			return
+		}
+
 		/* FIXME rules for updating accounts:
 		   1. you can update your own account (except for sysrole)
-		   2. managers can update technicians and ''
-		   3. admins can update managers, technicians and ''
+		   2. managers can update engineers and ''
+		   3. admins can update managers, engineers and ''
 		*/
 		var in struct {
 			Name     string `json:"name"`
@@ -404,11 +440,11 @@ func (core *Core) v2API() *route.Router {
 
 		user, err := core.DB.GetUserByID(r.Args[1])
 		if err != nil {
-			r.Fail(route.Oops(err, "Unable to update local user information"))
+			r.Fail(route.Oops(err, "Unable to update local user '%s'", user.Account))
 			return
 		}
 		if user == nil || user.Backend != "local" {
-			r.Fail(route.NotFound(nil, "Local User '%s' not found", r.Args[1]))
+			r.Fail(route.NotFound(nil, "No such local user"))
 			return
 		}
 		if in.Name != "" {
@@ -420,10 +456,10 @@ func (core *Core) v2API() *route.Router {
 			case
 				"admin",
 				"manager",
-				"technician":
+				"engineer":
 				user.SysRole = in.SysRole
 			default:
-				r.Fail(route.Bad(nil, "System Role '%s' is invalid", in.SysRole))
+				r.Fail(route.Bad(nil, "System role '%s' is invalid", in.SysRole))
 				return
 			}
 		}
@@ -434,7 +470,7 @@ func (core *Core) v2API() *route.Router {
 
 		err = core.DB.UpdateUser(user)
 		if err != nil {
-			r.Fail(route.Oops(err, "Unable to update local user '%s' (local auth provider)", in.Name))
+			r.Fail(route.Oops(err, "Unable to update local user '%s'", user.Account))
 			return
 		}
 
@@ -442,10 +478,14 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/auth/local/users/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotSystemManager(r) {
+			return
+		}
+
 		/* FIXME rules for deleting accounts:
 		   1. you cannot delete your own account
-		   2. managers can delete technicians and ''
-		   3. admins can delete managers, technicians and ''
+		   2. managers can delete engineers and ''
+		   3. admins can delete managers, engineers and ''
 		*/
 		user, err := core.DB.GetUserByID(r.Args[1])
 		if err != nil {
@@ -462,7 +502,7 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to delete local user '%s' (%s)", r.Args[1], user.Account))
 			return
 		}
-		r.Success("Successfully deleted user '%s' (%s@local)", r.Args[1], user.Account)
+		r.Success("Successfully deleted local user")
 	})
 	// }}}
 
@@ -478,6 +518,10 @@ func (core *Core) v2API() *route.Router {
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve tokens information"))
 			return
+		}
+
+		for i := range tokens {
+			tokens[i].Session = nil
 		}
 
 		r.OK(tokens)
@@ -761,14 +805,14 @@ func (core *Core) v2API() *route.Router {
 		r.Success("annotated successfully")
 	})
 	// }}}
-	r.Dispatch("DELETE /v2/systems/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("DELETE /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 
 	r.Dispatch("GET /v2/agents", func(r *route.Request) { // {{{
-		if core.IsNotAuthenticated(r) {
+		if core.IsNotSystemAdmin(r) {
 			return
 		}
 
@@ -916,9 +960,9 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		tenants, err := core.DB.GetAllTenants(&db.TenantFilter{
-			UUID:       paramValue(r.Req, "uuid", ""),
-			Name:       paramValue(r.Req, "name", ""),
-			ExactMatch: paramEquals(r.Req, "exact", "t"),
+			UUID:       r.Param("uuid", ""),
+			Name:       r.Param("name", ""),
+			ExactMatch: r.ParamIs("exact", "t"),
 			Limit:      limit,
 		})
 
@@ -982,7 +1026,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		t, err := core.DB.CreateTenant(in.UUID, in.Name)
-		if err != nil {
+		if t == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new tenant '%s'", in.Name))
 			return
 		}
@@ -1300,28 +1344,38 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name     string `json:"name"`
-			Summary  string `json:"summary"`
-			Plugin   string `json:"plugin"`
-			Endpoint string `json:"endpoint"`
-			Agent    string `json:"agent"`
+			Name    string `json:"name"`
+			Summary string `json:"summary"`
+			Plugin  string `json:"plugin"`
+			Agent   string `json:"agent"`
+
+			Config   map[string]interface{} `json:"config"`
+			endpoint string
 		}
 
 		if !r.Payload(&in) {
 			return
 		}
-		if r.Missing("name", in.Name, "plugin", in.Plugin, "endpoint", in.Endpoint, "agent", in.Agent) {
+		if in.Config != nil {
+			b, err := json.Marshal(in.Config)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to create target"))
+			}
+			in.endpoint = string(b)
+		}
+		if r.Missing("name", in.Name, "plugin", in.Plugin, "endpoint", in.endpoint, "agent", in.Agent) {
 			return
 		}
 
 		target, err := core.DB.CreateTarget(&db.Target{
-			Name:     in.Name,
-			Summary:  in.Summary,
-			Plugin:   in.Plugin,
-			Endpoint: in.Endpoint,
-			Agent:    in.Agent,
+			TenantUUID: uuid.Parse(r.Args[1]),
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Plugin:     in.Plugin,
+			Config:     in.Config,
+			Agent:      in.Agent,
 		})
-		if err != nil {
+		if target == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new data target"))
 			return
 		}
@@ -1370,9 +1424,18 @@ func (core *Core) v2API() *route.Router {
 			Plugin   string `json:"plugin"`
 			Endpoint string `json:"endpoint"`
 			Agent    string `json:"agent"`
+
+			Config map[string]interface{} `json:"config"`
 		}
 		if !r.Payload(&in) {
 			return
+		}
+		if in.Endpoint == "" && in.Config != nil {
+			b, err := json.Marshal(in.Config)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to create target"))
+			}
+			in.Endpoint = string(b)
 		}
 
 		if in.Name != "" {
@@ -1384,8 +1447,8 @@ func (core *Core) v2API() *route.Router {
 		if in.Plugin != "" {
 			target.Plugin = in.Plugin
 		}
-		if in.Endpoint != "" {
-			target.Endpoint = in.Endpoint
+		if in.Config != nil {
+			target.Config = in.Config
 		}
 		if in.Agent != "" {
 			target.Agent = in.Agent
@@ -1485,7 +1548,7 @@ func (core *Core) v2API() *route.Router {
 			Summary:    in.Summary,
 			Expires:    in.Expires,
 		})
-		if err != nil {
+		if policy == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create retention policy"))
 			return
 		}
@@ -1512,7 +1575,7 @@ func (core *Core) v2API() *route.Router {
 		r.OK(policy)
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PATCH /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
 		if core.IsNotTenantEngineer(r, r.Args[1]) {
 			return
 		}
@@ -1541,7 +1604,7 @@ func (core *Core) v2API() *route.Router {
 			policy.Name = in.Name
 		}
 		if in.Summary != "" {
-			policy.Summary = in.Name
+			policy.Summary = in.Summary
 		}
 		if in.Expires != 0 {
 			/* FIXME: for v2, flip expires over to days, not seconds */
@@ -1614,15 +1677,6 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* resolve string configurations to real objects */
-		for _, store := range stores {
-			if err := store.Resolve(); err != nil {
-				r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
-				return
-			}
-			store.Endpoint = ""
-		}
-
 		r.OK(stores)
 	})
 	// }}}
@@ -1641,12 +1695,6 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.NotFound(nil, "No such storage system"))
 			return
 		}
-
-		if err := store.Resolve(); err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		store.Endpoint = ""
 
 		/* FIXME: we also have to handle public, for operators */
 		if err := store.DisplayPublic(); err != nil {
@@ -1670,8 +1718,6 @@ func (core *Core) v2API() *route.Router {
 			Threshold int64  `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
-
-			endpoint string
 		}
 
 		if !r.Payload(&in) {
@@ -1688,31 +1734,20 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: move this into (s *Store) itself ... */
-		b, err := json.Marshal(in.Config)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to create new storage system"))
-			return
-		}
-		in.endpoint = string(b)
-
 		store, err := core.DB.CreateStore(&db.Store{
 			TenantUUID: tenant.UUID,
 			Name:       in.Name,
 			Summary:    in.Summary,
 			Agent:      in.Agent,
 			Plugin:     in.Plugin,
-			Endpoint:   in.endpoint,
 			Config:     in.Config,
 			Threshold:  in.Threshold,
 		})
-		if err != nil {
+		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))
 			return
 		}
 
-		store.Config = in.Config
-		store.Endpoint = ""
 		r.OK(store)
 	})
 	// }}}
@@ -1763,13 +1798,6 @@ func (core *Core) v2API() *route.Router {
 
 		if in.Config != nil {
 			store.Config = in.Config
-			/* FIXME: move this into (s *Store) itself ... */
-			b, err := json.Marshal(in.Config)
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to update storage system"))
-				return
-			}
-			store.Endpoint = string(b)
 		}
 
 		if err := core.DB.UpdateStore(store); err != nil {
@@ -1782,11 +1810,6 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if err := store.Resolve(); err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		store.Endpoint = ""
 
 		r.OK(store)
 	})
@@ -1833,10 +1856,10 @@ func (core *Core) v2API() *route.Router {
 
 				SearchName: r.Param("name", ""),
 
-				ForTarget:    r.Param("target", ""),
-				ForStore:     r.Param("store", ""),
-				ForRetention: r.Param("retention", ""),
-				ExactMatch:   r.ParamIs("exact", "t"),
+				ForTarget:  r.Param("target", ""),
+				ForStore:   r.Param("store", ""),
+				ForPolicy:  r.Param("policy", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
 			},
 		)
 		if err != nil {
@@ -1857,30 +1880,29 @@ func (core *Core) v2API() *route.Router {
 			Summary  string `json:"summary"`
 			Schedule string `json:"schedule"`
 			Paused   bool   `json:"paused"`
-
-			StoreUUID     string `json:"store"`
-			TargetUUID    string `json:"target"`
-			RetentionUUID string `json:"retention"`
+			Store    string `json:"store"`
+			Target   string `json:"target"`
+			Policy   string `json:"policy"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
-		if r.Missing("name", in.Name, "store", in.StoreUUID, "target", in.TargetUUID, "schedule", in.Schedule, "retention", in.RetentionUUID) {
+		if r.Missing("name", in.Name, "store", in.Store, "target", in.Target, "schedule", in.Schedule, "policy", in.Policy) {
 			return
 		}
 
 		job, err := core.DB.CreateJob(&db.Job{
-			TenantUUID:    uuid.Parse(r.Args[1]),
-			Name:          in.Name,
-			Summary:       in.Summary,
-			Schedule:      in.Schedule,
-			Paused:        in.Paused,
-			StoreUUID:     uuid.Parse(in.StoreUUID),
-			TargetUUID:    uuid.Parse(in.TargetUUID),
-			RetentionUUID: uuid.Parse(in.RetentionUUID),
+			TenantUUID: uuid.Parse(r.Args[1]),
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Schedule:   in.Schedule,
+			Paused:     in.Paused,
+			StoreUUID:  uuid.Parse(in.Store),
+			TargetUUID: uuid.Parse(in.Target),
+			PolicyUUID: uuid.Parse(in.Policy),
 		})
-		if err != nil {
+		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
 			return
 		}
@@ -1917,9 +1939,9 @@ func (core *Core) v2API() *route.Router {
 			Summary  string `json:"summary"`
 			Schedule string `json:"schedule"`
 
-			StoreUUID     string `json:"store"`
-			TargetUUID    string `json:"target"`
-			RetentionUUID string `json:"retention"`
+			StoreUUID  string `json:"store"`
+			TargetUUID string `json:"target"`
+			PolicyUUID string `json:"policy"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -1944,14 +1966,17 @@ func (core *Core) v2API() *route.Router {
 		if in.Schedule != "" {
 			job.Schedule = in.Schedule
 		}
+		job.TargetUUID = job.Target.UUID
 		if in.TargetUUID != "" {
 			job.TargetUUID = uuid.Parse(in.TargetUUID)
 		}
+		job.StoreUUID = job.Store.UUID
 		if in.StoreUUID != "" {
 			job.StoreUUID = uuid.Parse(in.StoreUUID)
 		}
-		if in.RetentionUUID != "" {
-			job.RetentionUUID = uuid.Parse(in.RetentionUUID)
+		job.PolicyUUID = job.Policy.UUID
+		if in.PolicyUUID != "" {
+			job.PolicyUUID = uuid.Parse(in.PolicyUUID)
 		}
 
 		if err := core.DB.UpdateJob(job); err != nil {
@@ -2009,7 +2034,7 @@ func (core *Core) v2API() *route.Router {
 
 		user, _ := core.AuthenticatedUser(r)
 		task, err := core.DB.CreateBackupTask(fmt.Sprintf("%s@%s", user.Account, user.Backend), job)
-		if err != nil {
+		if task == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to schedule ad hoc backup job run"))
 			return
 		}
@@ -2293,13 +2318,13 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if target == nil || archive.TenantUUID.String() != r.Args[1] {
-			r.Fail(route.NotFound(nil, "No such archive"))
+			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
 
 		user, _ := core.AuthenticatedUser(r)
 		task, err := core.DB.CreateRestoreTask(fmt.Sprintf("%s@%s", user.Account, user.Backend), archive, target)
-		if err != nil {
+		if task == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to schedule a restore task"))
 			return
 		}
@@ -2373,6 +2398,35 @@ func (core *Core) v2API() *route.Router {
 		}{true})
 	})
 	// }}}
+	r.Dispatch("POST /v2/auth/passwd", func(r *route.Request) { // {{{
+		if core.IsNotAuthenticated(r) {
+			return
+		}
+
+		var in struct {
+			OldPassword string `json:"old_password"`
+			NewPassword string `json:"new_password"`
+		}
+
+		if !r.Payload(&in) {
+			return
+		}
+
+		user, _ := core.AuthenticatedUser(r)
+		if !user.Authenticate(in.OldPassword) {
+			r.Fail(route.Forbidden(nil, "Incorrect password"))
+			return
+		}
+
+		user.SetPassword(in.NewPassword)
+		if err := core.DB.UpdateUser(user); err != nil {
+			r.Fail(route.Oops(err, "Unable to change your password"))
+			return
+		}
+
+		r.Success("Password changed successfully")
+	})
+	// }}}
 
 	r.Dispatch("GET /v2/global/stores", func(r *route.Request) { // {{{
 		if core.IsNotAuthenticated(r) {
@@ -2394,15 +2448,6 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* resolve string configurations to real objects */
-		for _, store := range stores {
-			if err := store.Resolve(); err != nil {
-				r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
-				return
-			}
-			store.Endpoint = ""
-		}
-
 		r.OK(stores)
 	})
 	// }}}
@@ -2421,12 +2466,6 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.NotFound(nil, "No such storage system"))
 			return
 		}
-
-		if err := store.Resolve(); err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		store.Endpoint = ""
 
 		/* FIXME: we also have to handle public, for operators */
 		if err := store.DisplayPublic(); err != nil {
@@ -2450,8 +2489,6 @@ func (core *Core) v2API() *route.Router {
 			Threshold int64  `json:"threshold"`
 
 			Config map[string]interface{} `json:"config"`
-
-			endpoint string
 		}
 
 		if !r.Payload(&in) {
@@ -2462,31 +2499,20 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: move this into (s *Store) itself ... */
-		b, err := json.Marshal(in.Config)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to create new storage system"))
-			return
-		}
-		in.endpoint = string(b)
-
 		store, err := core.DB.CreateStore(&db.Store{
 			TenantUUID: uuid.NIL,
 			Name:       in.Name,
 			Summary:    in.Summary,
 			Agent:      in.Agent,
 			Plugin:     in.Plugin,
-			Endpoint:   in.endpoint,
 			Config:     in.Config,
 			Threshold:  in.Threshold,
 		})
-		if err != nil {
+		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))
 			return
 		}
 
-		store.Config = in.Config
-		store.Endpoint = ""
 		r.OK(store)
 	})
 	// }}}
@@ -2536,13 +2562,6 @@ func (core *Core) v2API() *route.Router {
 		}
 		if in.Config != nil {
 			store.Config = in.Config
-			/* FIXME: move this into (s *Store) itself ... */
-			b, err := json.Marshal(in.Config)
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to update storage system"))
-				return
-			}
-			store.Endpoint = string(b)
 		}
 
 		if err := core.DB.UpdateStore(store); err != nil {
@@ -2555,11 +2574,6 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if err := store.Resolve(); err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
-			return
-		}
-		store.Endpoint = ""
 
 		r.OK(store)
 	})
@@ -2649,7 +2663,7 @@ func (core *Core) v2API() *route.Router {
 			Summary:    in.Summary,
 			Expires:    in.Expires,
 		})
-		if err != nil {
+		if policy == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create retention policy template"))
 			return
 		}
@@ -2762,4 +2776,56 @@ func (core *Core) v2API() *route.Router {
 		core.dispatchDebug(r)
 	}
 	return r
+}
+
+func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
+	dst.UUID = target.UUID
+	dst.Name = target.Name
+	dst.Notes = target.Summary
+	dst.OK = true /* FIXME */
+
+	jobs, err := core.DB.GetAllJobs(
+		&db.JobFilter{
+			ForTarget: target.UUID.String(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	dst.Jobs = make([]v2SystemJob, len(jobs))
+	for j, job := range jobs {
+		dst.Jobs[j].UUID = job.UUID
+		dst.Jobs[j].Schedule = job.Schedule
+		dst.Jobs[j].From = job.Target.Plugin
+		dst.Jobs[j].To = job.Store.Plugin
+		dst.Jobs[j].OK = job.Healthy()
+		dst.Jobs[j].Store.UUID = job.Store.UUID
+		dst.Jobs[j].Store.Name = job.Store.Name
+		dst.Jobs[j].Store.Summary = job.Store.Summary
+		dst.Jobs[j].Retention.UUID = job.Policy.UUID
+		dst.Jobs[j].Retention.Name = job.Policy.Name
+		dst.Jobs[j].Retention.Summary = job.Policy.Summary
+
+		if !job.Healthy() {
+			dst.OK = false
+		}
+
+		dst.Jobs[j].Keep.Days = job.Expiry / 86400
+		dst.Jobs[j].Retention.Days = dst.Jobs[j].Keep.Days
+
+		tspec, err := timespec.Parse(job.Schedule)
+		if err != nil {
+			return err
+		}
+		switch tspec.Interval {
+		case timespec.Daily:
+			dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days
+		case timespec.Weekly:
+			dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days / 7
+		case timespec.Monthly:
+			dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days / 30
+		}
+	}
+	return nil
 }

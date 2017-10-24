@@ -30,12 +30,9 @@ func (u *User) IsLocal() bool {
 }
 
 func (u *User) Authenticate(password string) bool {
-	if !u.IsLocal() {
-		return false
-	}
-
+	/* always do this first, to avoid timing attacks */
 	err := bcrypt.CompareHashAndPassword([]byte(u.pwhash), []byte(password))
-	return err == nil
+	return u.IsLocal() && err == nil
 }
 
 func (u *User) SetPassword(password string) error {

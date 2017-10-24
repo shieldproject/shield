@@ -1,10 +1,10 @@
 package backends
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/config"
 	"github.com/starkandwayne/shield/cmd/shield/log"
@@ -55,7 +55,7 @@ func cliRenameBackend(opts *commands.Options, args ...string) error {
 
 	config.Delete(oldname)
 
-	ansi.Fprintf(os.Stdout, "Successfully renamed backend '@G{%s}' (@G{%s}) to @G{%s}'\n\n", oldname, toRename.Address, newname)
+	fmt.Fprintf(os.Stdout, "Successfully renamed backend '@G{%s}' (@G{%s}) to @G{%s}'\n\n", oldname, toRename.Address, newname)
 
 	if editingCurrent {
 		config.Use(newname)

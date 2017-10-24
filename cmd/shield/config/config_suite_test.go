@@ -1,12 +1,11 @@
 package config_test
 
 import (
-	"fmt"
 	"os"
 
+	fmt "github.com/jhunt/go-ansi"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/starkandwayne/goutils/ansi"
 
 	"testing"
 )
@@ -23,5 +22,5 @@ var _ = AfterEach(func() {
 })
 
 func Warn(format string, args ...interface{}) {
-	ansi.Fprintf(os.Stderr, "@Y{WARNING: %s}\n", fmt.Sprintf(format, args...))
+	fmt.Fprintf(os.Stderr, "@Y{WARNING: %s}\n", fmt.Sprintf(format, args...))
 }
