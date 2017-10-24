@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/shield/timespec"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
+	"github.com/starkandwayne/shield/timespec"
 )
 
 type v2AuthProvider struct {

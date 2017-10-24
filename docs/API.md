@@ -701,6 +701,122 @@ The following error messages can be returned:
   site administrators
 
 
+### GET /v2/auth/sessions
+
+Retrieve a list of all current login sessions
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/sessions
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+[
+  {
+    "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
+    "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
+    "created_at": "2017-10-24 16:39:03",
+    "last_seen_at": "2017-10-24 16:39:03",
+    "token_uuid": "",
+    "name": "",
+    "ip_addr": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+  }
+]
+```
+
+- **uuid** - The internal UUID assigned to this session by the SHIELD Core.
+
+- **user\_uuid** - The internal UUID corresponding to the user associated with the session.
+
+- **created\_at** - When the user created the session (upon login via WebUI or CLI).
+  Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+
+- **last\_seen\_at** - When the user last made contact with the 
+  SHIELD Core via an authenticated endpoint.
+  Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+
+- **token\_uuid** - The uuid of the SHIELD Token associated with the session (if applicable).
+
+- **name** - The name of the SHIELD Token associated with the session (if applicable).
+
+- **ip_addr** - The originating `IP address` of the user, from the
+  point-of-view of the SHIELD Core.
+
+- **user_agent** - The user agent associated with the last request made by the user.
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Authentication failed**:
+  The request either lacked a session cookie (or an
+  `X-Shield-Session` header), or some other internal
+  error has occurred, and SHIELD administrators should
+  investigate.
+
+- **Unable to retrieve session information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
+### DELETE /v2/auth/sessions/:uuid
+
+Revoke a user's session and force them to reauthenticate on next request.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/auth/sessions/:uuid \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Successfully cleared session 'd3092979-5a83-4006-8819-fd1695f9041f' (127.0.0.1)"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Session not found**:
+  The session given by the URL UUID was not found in the database
+
+- **Unable to clear session**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Unable to retrieve session information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
 ## SHIELD Users
 
 SHIELD provides both a local user database, and the ability to
@@ -1219,16 +1335,16 @@ The top-level `agents` key is a list of object describing each registered agent:
 - **address** - The `host:port` of the agent, from the
   point-of-view of the SHIELD Core.
 
-- **version - The version of the remote SHIELD Agent's software.
+- **version** - The version of the remote SHIELD Agent's software.
 
-- **status - The health status of the remote SHIELD
+- **status** - The health status of the remote SHIELD
   Agent, one of `ok` or `failing`.
 
-- **hidden - Whether or not this agent has been administratively hidden.
+- **hidden** - Whether or not this agent has been administratively hidden.
 
-- **last\_error - TBD
+- **last\_error** - TBD
 
-- **last\_seen\_at - When the remote SHIELD Agent last
+- **last\_seen\_at** - When the remote SHIELD Agent last
   made contact with the SHIELD Core to refresh its
   registration and its metadata.  Date is formatted
   YYYY-MM-DD HH:MM:SS, in 24-hour notation.
@@ -2193,18 +2309,15 @@ This endpoint takes no query string parameters.
     "name"     : "Some Target",
     "summary"  : "The operator-supplied description of this target",
     "agent"    : "127.0.0.1:5444",
-    "endpoint" : "{}",
-    "plugin"   : "fs"
+    "plugin"   : "fs",
+
+    "config" : {
+      "target"   : "specific",
+      "settings" : "and configuration"
+    }
   }
 ]
 ```
-
-**NOTE:** the `endpoint` key is currently a string of JSON, which
-means that it contains lots of escape sequences.  Future versions
-of the v2 API (prior to launch) may alter this to be the full
-JSON, inline, for both readability and sanity's sake.
-
-FIXME: Fix target.endpoint string -> JSON problem.
 
 **Access Control**
 
@@ -2915,7 +3028,7 @@ The following error messages can be returned:
   the specified tenant.
 
 
-### PUT /v2/tenants/:tenant/policies/:uuid
+### PATCH /v2/tenants/:tenant/policies/:uuid
 
 Update a single retention policy on a tenant.
 
@@ -2925,7 +3038,7 @@ Update a single retention policy on a tenant.
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:tenant/policies/:uuid \
+     -X PATCH https://shield.host/v2/tenants/:tenant/policies/:uuid \
      --data-binary '
 {
   "name"    : "Updated Retention Policy Name",
@@ -3090,24 +3203,33 @@ value.  Subject to the `exact=(t|f)` query string parameter.
   "schedule" : "daily 4am",
   "paused"   : false,
   "agent"    : "10.0.0.5:5444",
+  "last_run" : "2017-10-19 03:00:00",
+  "status"   : "done",
 
-  "last_run"          : "2017-10-19 03:00:00",
-  "last_task_status"  : "done",
+  "policy" : {
+    "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+    "name"    : "Retention Policy Name",
+    "summary" : "A longer description"
+  },
 
-  "policy_uuid"       : "9a112894-10eb-439f-afd5-01597d8faf64",
-  "policy_name"       : "Retention Policy Name",
-  "policy_summary"    : "A longer description",
+  "store" : {
+    "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+    "name"    : "Cloud Storage System Name",
+    "summary" : "A longer description",
+    "plugin"  : "s3",
+    "config"  : {
+      "storage" : "configuration"
+    }
+  },
 
-  "store_uuid"        : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
-  "store_name"        : "Cloud Storage System Name",
-  "store_summary"     : "A longer description",
-  "store_plugin"      : "s3",
-  "store_endpoint"    : "{ ... some json ... }",
-
-  "target_uuid"       : "9f602367-256a-4454-be56-9ddde1257f13",
-  "target_name"       : "Data System Name",
-  "target_plugin"     : "fs",
-  "target_endpoint"   : "{ ... some json ... }"
+  "target" : {
+    "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+    "name"   : "Data System Name",
+    "plugin" : "fs",
+    "config" : {
+      "target" : "configuration"
+    }
+  }
 }
 ```
 

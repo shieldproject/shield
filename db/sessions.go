@@ -11,14 +11,14 @@ import (
 )
 
 type Session struct {
-	UUID      uuid.UUID
-	UserUUID  uuid.UUID
-	CreatedAt timestamp.Timestamp
-	LastSeen  *timestamp.Timestamp
-	Token     uuid.UUID
-	Name      string
-	IP        string
-	UserAgent string
+	UUID      uuid.UUID            `json:"uuid"`
+	UserUUID  uuid.UUID            `json:"user_uuid"`
+	CreatedAt timestamp.Timestamp  `json:"created_at"`
+	LastSeen  *timestamp.Timestamp `json:"last_seen_at"`
+	Token     uuid.UUID            `json:"token_uuid"`
+	Name      string               `json:"name"`
+	IP        string               `json:"ip_addr"`
+	UserAgent string               `json:"user_agent"`
 }
 
 type SessionFilter struct {
