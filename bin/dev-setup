@@ -31,14 +31,14 @@ SHIELD_AGENT_ADDR="127.0.0.1:5444"
 export SHIELD_CORE=localdev
 export SHIELD_BATCH_MODE=y
 
-echo "Initializing this dev SHIELD core"
+echo ; echo "Initializing this dev SHIELD core"
 buckler api localdev http://localhost:8181
 SHIELD_CORE_MASTER="master-password-yo" buckler initialize || true
 buckler login --username failsafe --password sekrit 2>&1 | indent2
 buckler id 2>&1 | indent2
 
 
-echo "  - Setting up admin account"
+echo ; echo "  - Setting up admin account"
 buckler create-user \
           --name        Administrator \
           --username    admin \
@@ -46,77 +46,93 @@ buckler create-user \
           --system-role admin \
   2>&1 | indent4
 
-echo "  - Logging in as admin:admin"
+echo ; echo "  - Logging in as admin:admin"
 buckler login --username admin --password admin 2>&1 | indent4
 buckler id 2>&1 | indent4
 
-echo "Setting up 'Acme, Inc.' tenant"
+echo ; echo "Setting up Global Resources"
+       echo "  - creating Globus global cloud storage system"
+buckler create-global-store \
+          --name    Globus \
+          --summary 'Global Storage, for use by any and all' \
+          --agent   "${SHIELD_AGENT_ADDR}" \
+          --plugin  fs \
+          --data    "base_dir=${storedir}" \
+          --data    bsdtar=bsdtar \
+  2>&1 | indent2
+
+echo ; echo "  - creating Templated retention policy template"
+buckler create-policy-template \
+          --name    Templated \
+          --days    73
+
+echo ; echo "Setting up 'Acme, Inc.' tenant"
 buckler create-tenant \
           --name 'Acme, Inc.' \
   2>&1 | indent2
 
-echo "  - creating user rrunner:password"
+echo ; echo "  - creating user rrunner:password"
 buckler create-user \
           --name     'Road Runner' \
           --username rrunner \
           --password password \
   2>&1 | indent4
 
-echo "  - creating user wcoyote:password"
+echo ; echo "  - creating user wcoyote:password"
 buckler create-user \
           --name     'Wile E. Coyote' \
           --username wcoyote \
           --password password \
   2>&1 | indent4
 
-echo "  - creating user cjones:password"
+echo ; echo "  - creating user cjones:password"
 buckler create-user \
           --name     'Chuck Jones' \
           --username cjones \
           --password password \
   2>&1 | indent4
 
-echo "  - inviting cjones to Acme, Inc. as an operator"
+echo ; echo "  - inviting cjones to Acme, Inc. as an operator"
 buckler invite --tenant Acme --role operator cjones  2>&1 | indent4
-echo "  - inviting wcoyote to Acme, Inc. as an engineer"
+echo ; echo "  - inviting wcoyote to Acme, Inc. as an engineer"
 buckler invite --tenant Acme --role engineer wcoyote 2>&1 | indent4
-echo "  - inviting rrunner to Acme, Inc. as an admin"
+echo ; echo "  - inviting rrunner to Acme, Inc. as an admin"
 buckler invite --tenant Acme --role admin    rrunner 2>&1 | indent4
 
 echo
 buckler tenant --json Acme 2>&1 | indent2
 
 
-echo "Setting up 'Other Tenant' tenant"
-echo "  - creating tenant 'Other Tenant'"
+echo ; echo "Setting up 'Other Tenant' tenant"
+       echo "  - creating tenant 'Other Tenant'"
 buckler create-tenant \
           --name 'Other Tenant' \
   2>&1 | indent4
 
-echo "  - inviting all of Acme, Inc. members to Other Tenant as operators"
+echo ; echo "  - inviting all of Acme, Inc. members to Other Tenant as operators"
 buckler invite --tenant Other --role operator cjones wcoyote rrunner 2>&1 | indent4
-echo "  - inviting admin to Other Tenant as an admin"
+echo ; echo "  - inviting admin to Other Tenant as an admin"
 buckler invite --tenant Other --role admin admin 2>&1 | indent4
 
 
 
 export SHIELD_TENANT=Acme
-echo "Populating 'Acme, Inc.' tenant with targets, stores, policies, etc."
-echo "  - loggin in as rrunner:password"
+echo ; echo "Populating 'Acme, Inc.' tenant with targets, stores, policies, etc."
+       echo "  - loggin in as rrunner:password"
 buckler login --username rrunner --password password 2>&1 | indent4
 buckler id 2>&1 | indent4
 
-echo "  - creating 'S3' cloud storage system"
+echo ; echo "  - creating 'S3' cloud storage system"
 buckler create-store \
         --name    S3 \
-        --summary 'A fake S4 store for pretending and web UI development.' \
+        --summary 'A fake S3 store for pretending and web UI development.' \
         --agent   "${SHIELD_AGENT_ADDR}" \
         --plugin  fs \
         --data    "base_dir=${storedir}" \
         --data    bsdtar=bsdtar \
   2>&1 | indent4
 
-echo "  - creating 'Scality (On-Prem)' cloud storage system"
+echo ; echo "  - creating 'Scality (On-Prem)' cloud storage system"
 buckler create-store \
         --name    'Scality (On-Prem)' \
         --summary 'A fake Scality (On-Premise) store for pretending and web UI development.' \
@@ -126,14 +142,14 @@ buckler create-store \
         --data    bsdtar=bsdtar \
   2>&1 | indent4
 
-echo "  - creating Short-Term archive retention policy"
+echo ; echo "  - creating Short-Term archive retention policy"
 buckler create-policy \
         --name    Short-Term \
         --summary 'For frequent backups, only kept for a few days at most.' \
         --days    1 \
   2>&1 | indent4
 
-echo "  - creating Long-Term archive retention policy"
+echo ; echo "  - creating Long-Term archive retention policy"
 buckler create-policy \
         --name    Long-Term \
         --summary 'For infrequent backups, to be kept for at least two weeks.' \
@@ -155,7 +171,7 @@ for i in $(seq 1 5); do
 
 done
 
-echo "  - creating Weekly job for 'System #427/a01'"
+echo ; echo "  - creating Weekly job for 'System #427/a01'"
 buckler create-job \
         --name Weekly \
         --schedule 'sundays at 2:30am' \
@@ -165,7 +181,7 @@ buckler create-job \
         --policy   long-term \
   2>&1 | indent4
 
-echo "  - creating Weekly job for 'System #427/a02'"
+echo ; echo "  - creating Weekly job for 'System #427/a02'"
 buckler create-job \
         --name Weekly \
         --schedule 'sundays at 2:45am' \
@@ -175,7 +191,7 @@ buckler create-job \
         --policy   long-term \
   2>&1 | indent4
 
-echo "  - creating Weekly job for 'System #427/a03'"
+echo ; echo "  - creating Weekly job for 'System #427/a03'"
 buckler create-job \
         --name Weekly \
         --schedule 'sundays at 3am' \
@@ -184,7 +200,7 @@ buckler create-job \
         --target   "System #427/a03" \
         --policy   long-term
 
-echo "  - creating Daily job for 'System #427/a02'"
+echo ; echo "  - creating Daily job for 'System #427/a02'"
 buckler create-job \
         --name     Daily \
         --schedule 'daily 4:10am' \
@@ -194,7 +210,7 @@ buckler create-job \
         --policy   short-term \
   2>&1 | indent4
 
-echo "  - creating Daily job for 'System #427/a03'"
+echo ; echo "  - creating Daily job for 'System #427/a03'"
 buckler create-job \
         --name     Daily \
         --schedule 'daily 4:20am' \
@@ -204,7 +220,7 @@ buckler create-job \
         --policy   short-term \
   2>&1 | indent4
 
-echo "  - creating Daily job for 'System #427/a04'"
+echo ; echo "  - creating Daily job for 'System #427/a04'"
 buckler create-job \
         --name     Daily \
         --schedule 'daily 4:30am' \
@@ -214,7 +230,7 @@ buckler create-job \
         --policy   short-term \
   2>&1 | indent4
 
-echo "  - creating Daily job for 'System #427/a05'"
+echo ; echo "  - creating Daily job for 'System #427/a05'"
 buckler create-job \
         --name     Daily \
         --schedule 'daily 4:40am' \
@@ -226,12 +242,12 @@ buckler create-job \
 
 
 export SHIELD_TENANT=Other
-echo "Populating 'Other Tenant' tenant with targets, stores, policies, etc."
-echo "  - loggin in as admin:admin"
+echo ; echo "Populating 'Other Tenant' tenant with targets, stores, policies, etc."
+       echo "  - loggin in as admin:admin"
 buckler login --username admin --password admin 2>&1 | indent4
 buckler id 2>&1 | indent4
 
-echo "  - creatin 'CloudStor' cloud storage system"
+echo ; echo "  - creatin 'CloudStor' cloud storage system"
 buckler create-store \
         --name    CloudStor \
         --summary 'A temporary store for the dev environment.' \
@@ -241,7 +257,7 @@ buckler create-store \
         --data    bsdtar=bsdtar \
   2>&1 | indent4
 
-echo "  - creating 'SHIELD' data system target"
+echo ; echo "  - creating 'SHIELD' data system target"
 buckler create-target \
         --name    SHIELD \
         --summary 'The working directory of the dev environment.' \
@@ -252,14 +268,14 @@ buckler create-target \
         --data    'exclude=var/*.db' \
   2>&1 | indent4
 
-echo "  - creating 'Default Policy' archive retention policy"
+echo ; echo "  - creating 'Default Policy' archive retention policy"
 buckler create-policy \
         --name    'Default Policy' \
         --summary 'The Default Retention Policy' \
         --days    1 \
   2>&1 | indent4
 
-echo "  - creating Hourly job for SHIELD backups"
+echo ; echo "  - creating Hourly job for SHIELD backups"
 buckler create-job \
         --name     'Hourly' \
         --paused \
@@ -270,27 +286,27 @@ buckler create-job \
   2>&1 | indent4
 
 
-echo "Running Jobs in 'Other Tenant' tenant"
-echo "  - running SHIELD job (should succeed)"
+echo ; echo "Running Jobs in 'Other Tenant' tenant"
+       echo "  - running SHIELD job (should succeed)"
 buckler run-job Hourly 2>&1 | indent4
 sleep 2
 
-echo "  - running Hourly job again (should succeed)"
+echo ; echo "  - running Hourly job again (should succeed)"
 buckler run-job Hourly
 buckler run-job Hourly 2>&1 | indent4
 sleep 2
 
-echo "  - modifying Hourly target configuration to induce failure"
+echo ; echo "  - modifying Hourly target configuration to induce failure"
 buckler update-target SHIELD \
           --data base_dir=/e/no/ent \
   2>&1 | indent4
-echo "  - running Hourly job again (should start failing)"
+echo ; echo "  - running Hourly job again (should start failing)"
 buckler run-job Hourly 2>&1 | indent4
 sleep 3
 
-echo "  - running Hourly job again (should still fail)"
+echo ; echo "  - running Hourly job again (should still fail)"
 buckler run-job Hourly 2>&1 | indent4
 sleep 3
 
 echo ; echo
-echo "DONE"
+echo ; echo "DONE"
