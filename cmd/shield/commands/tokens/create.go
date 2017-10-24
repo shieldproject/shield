@@ -3,7 +3,8 @@ package tokens
 import (
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
@@ -37,7 +38,7 @@ func cliCreateToken(opts *commands.Options, args ...string) error {
 		return nil
 	}
 
-	ansi.Fprintf(os.Stderr, "@Y{This is the only time you can see the value of this token, so store it somewhere safe}\n")
+	fmt.Fprintf(os.Stderr, "@Y{This is the only time you can see the value of this token, so store it somewhere safe}\n")
 
 	Show(token)
 

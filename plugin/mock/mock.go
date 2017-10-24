@@ -1,10 +1,12 @@
 package main
 
 import (
-	fmt "github.com/starkandwayne/goutils/ansi"
-	"github.com/starkandwayne/shield/plugin"
 	"io"
 	"os"
+
+	fmt "github.com/jhunt/go-ansi"
+
+	"github.com/starkandwayne/shield/plugin"
 )
 
 func main() {

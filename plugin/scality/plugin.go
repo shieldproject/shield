@@ -67,13 +67,12 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 	minio "github.com/starkandwayne/minio-go"
 	"golang.org/x/net/proxy"
 
@@ -198,64 +197,64 @@ func (p ScalityPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("scality_host")
 	if err != nil {
-		ansi.Printf("@R{\u2717 scality_host              %s}\n", err)
+		fmt.Printf("@R{\u2717 scality_host              %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 scality_host}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 scality_host}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("access_key_id")
 	if err != nil {
-		ansi.Printf("@R{\u2717 access_key_id        %s}\n", err)
+		fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("secret_access_key")
 	if err != nil {
-		ansi.Printf("@R{\u2717 secret_access_key    %s}\n", err)
+		fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bucket               %s}\n", err)
+		fmt.Printf("@R{\u2717 bucket               %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		ansi.Printf("@R{\u2717 prefix               %s}\n", err)
+		fmt.Printf("@R{\u2717 prefix               %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 prefix}               (none)\n")
+		fmt.Printf("@G{\u2713 prefix}               (none)\n")
 	} else {
-		ansi.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("socks5_proxy", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
+		fmt.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 socks5_proxy}         (no proxy will be used)\n")
+		fmt.Printf("@G{\u2713 socks5_proxy}         (no proxy will be used)\n")
 	} else {
-		ansi.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else if tf {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 	} else {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 	}
 
 	if fail {
@@ -409,7 +408,7 @@ func (scal ScalityConnectionInfo) Connect() (*minio.Client, error) {
 	if scal.SOCKS5Proxy != "" {
 		dialer, err := proxy.SOCKS5("tcp", scal.SOCKS5Proxy, nil, proxy.Direct)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)
+			fmt.Fprintf(os.Stderr, "can't connect to the proxy: %s\n", err)
 			os.Exit(1)
 		}
 		transport.(*http.Transport).Dial = dialer.Dial

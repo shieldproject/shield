@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"regexp"
 
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/pborman/getopt/v2"
-	"github.com/starkandwayne/goutils/ansi"
+
 	"github.com/starkandwayne/shield/api"
 	cmds "github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/access"
@@ -80,7 +80,7 @@ func main() {
 	for {
 		err := cmdLine.Getopt(args, nil)
 		if err != nil {
-			ansi.Fprintf(os.Stderr, "@R{%s}\n", err.Error())
+			fmt.Fprintf(os.Stderr, "@R{%s}\n", err.Error())
 			os.Exit(1)
 		}
 		if cmdLine.NArgs() == 0 {
@@ -113,7 +113,7 @@ func main() {
 
 	err := config.Load(*cmds.Opts.Config)
 	if err != nil {
-		ansi.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *cmds.Opts.Config, err)
+		fmt.Fprintf(os.Stderr, "\n@R{ERROR:} Could not parse %s: %s\n", *cmds.Opts.Config, err)
 		os.Exit(1)
 	}
 
@@ -121,7 +121,7 @@ func main() {
 	log.DEBUG("Command: '%s'", cmdname)
 	//Check if user gave a valid command
 	if cmd == nil {
-		ansi.Fprintf(os.Stderr, "@R{unrecognized command `%s'}\n", cmdname)
+		fmt.Fprintf(os.Stderr, "@R{unrecognized command `%s'}\n", cmdname)
 
 		re := regexp.MustCompile("schedule")
 		if re.MatchString(cmdname) {
@@ -137,7 +137,7 @@ func main() {
 	// only check for backends + creds if we aren't manipulating backends/help
 	if shouldLoadBackend(cmd) {
 		if currentBackend == nil {
-			ansi.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
+			fmt.Fprintf(os.Stderr, "@R{No backend targeted. Use `shield list backends` and `shield backend` to target one}\n")
 			os.Exit(1)
 		}
 
@@ -150,7 +150,7 @@ func main() {
 		if *cmds.Opts.SkipSSLValidation {
 			os.Setenv("SHIELD_SKIP_SSL_VERIFY", "true")
 			if *cmds.Opts.CACert != "" {
-				ansi.Fprintf(os.Stderr, "@R{Can't skip validation with a specified CA cert}\n")
+				fmt.Fprintf(os.Stderr, "@R{Can't skip validation with a specified CA cert}\n")
 				os.Exit(1)
 			}
 		}
@@ -161,7 +161,7 @@ func main() {
 			curCACert = currentBackend.CACert
 			currentBackend.CACert, err = backends.ParseCACertFlag(*cmds.Opts.CACert)
 			if err != nil {
-				ansi.Fprintf(os.Stderr, "@R{Could not parse --ca-cert flag: %s}\n", err.Error())
+				fmt.Fprintf(os.Stderr, "@R{Could not parse --ca-cert flag: %s}\n", err.Error())
 				os.Exit(1)
 			}
 			shouldResetCACert = true
@@ -170,20 +170,20 @@ func main() {
 		err = api.SetBackend(currentBackend)
 		cmds.Opts.APIVersion, err = fetchAPIVersion()
 		if err != nil {
-			ansi.Fprintf(os.Stderr, "@R{Could not contact backend: %s}\n", err.Error())
+			fmt.Fprintf(os.Stderr, "@R{Could not contact backend: %s}\n", err.Error())
 			os.Exit(1)
 		}
 
 		currentBackend.APIVersion = cmds.Opts.APIVersion
 		err = config.Commit(currentBackend)
 		if err != nil {
-			ansi.Fprintf(os.Stderr, "@R{Could not update config: %s}\n", err.Error())
+			fmt.Fprintf(os.Stderr, "@R{Could not update config: %s}\n", err.Error())
 			os.Exit(1)
 		}
 		err = api.SetBackend(currentBackend)
 		log.DEBUG("Using API Version %d", cmds.Opts.APIVersion)
 		if err != nil {
-			ansi.Fprintf(os.Stderr, "@R{Could not set current backend: %s}\n", err.Error())
+			fmt.Fprintf(os.Stderr, "@R{Could not set current backend: %s}\n", err.Error())
 			os.Exit(1)
 		}
 	}
@@ -199,7 +199,7 @@ func main() {
 			}
 			fmt.Println(string(j))
 		} else {
-			ansi.Fprintf(os.Stderr, "@R{%s}\n", err)
+			fmt.Fprintf(os.Stderr, "@R{%s}\n", err)
 		}
 		os.Exit(1)
 	} else {
@@ -208,7 +208,7 @@ func main() {
 		}
 		err = config.Save()
 		if err != nil {
-			ansi.Fprintf(os.Stderr, "@R{Error saving config: %s}\n", err)
+			fmt.Fprintf(os.Stderr, "@R{Error saving config: %s}\n", err)
 			os.Exit(1)
 		}
 
@@ -364,5 +364,5 @@ reduced to simply the timespec string (e.g. daily 4am), which is now attached
 directly to a job. Therefore, schedule commands have been removed from the CLI.
 The CLI is still backward-compatible, and when contacting SHIELD deployments
 which still expect a SHIELD, it will manage schedules for you transparently.`
-	ansi.Fprintf(os.Stderr, "@R{%s}\n", output)
+	fmt.Fprintf(os.Stderr, "@R{%s}\n", output)
 }

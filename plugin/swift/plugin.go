@@ -62,7 +62,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -71,8 +70,8 @@ import (
 
 	"git.openstack.org/openstack/golang-client/objectstorage/v1"
 	"git.openstack.org/openstack/golang-client/openstack"
+	fmt "github.com/jhunt/go-ansi"
 
-	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -136,10 +135,10 @@ func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
 	for _, reqConfig := range requiredConfig {
 		s, err = endpoint.StringValue(reqConfig)
 		if err != nil {
-			ansi.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
+			fmt.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
 			fail = true
 		} else {
-			ansi.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
+			fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
 		}
 	}
 	if fail {

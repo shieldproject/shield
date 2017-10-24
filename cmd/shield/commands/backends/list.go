@@ -4,13 +4,13 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"os"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
@@ -64,11 +64,11 @@ func conciseList(backends []*api.Backend) *tui.Table {
 		isCurrent := config.Current() != nil && backend.Name == config.Current().Name
 
 		if backend.SkipSSLValidation {
-			backend.Name = ansi.Sprintf("%s @R{(insecure)}", backend.Name)
+			backend.Name = fmt.Sprintf("%s @R{(insecure)}", backend.Name)
 		}
 
 		if isCurrent {
-			backend.Name = ansi.Sprintf("@G{%s}", backend.Name)
+			backend.Name = fmt.Sprintf("@G{%s}", backend.Name)
 		}
 
 		t.Row(backend, backend.Name, backend.Address)
@@ -94,11 +94,11 @@ func verboseList(backends []*api.Backend) (*tui.Table, error) {
 		}
 
 		if isCurrent {
-			backend.Name = ansi.Sprintf("@G{%s}", backend.Name)
+			backend.Name = fmt.Sprintf("@G{%s}", backend.Name)
 		}
 
 		if backend.SkipSSLValidation {
-			isInsecure = ansi.Sprintf("@R{%s}", isInsecure)
+			isInsecure = fmt.Sprintf("@R{%s}", isInsecure)
 		}
 
 		t.Row(backend, backend.Name, backend.Address, isInsecure, backend.Token, backend.CACert)
@@ -143,10 +143,10 @@ func certInfoString(pemcert string) (string, error) {
 	subjectStr := formatSubject(cert.Subject)
 
 	if valid {
-		return ansi.Sprintf("@Y{Subject:} %s\n@Y{Valid During:} %s\n@Y{SANs:} %s",
+		return fmt.Sprintf("@Y{Subject:} %s\n@Y{Valid During:} %s\n@Y{SANs:} %s",
 			subjectStr, validityRange, strings.Join(sans, ", ")), nil
 	}
-	return ansi.Sprintf("@Y{Subject:} %s\n@Y{Valid During:} @R{%s}\n@Y{SANs:} %s",
+	return fmt.Sprintf("@Y{Subject:} %s\n@Y{Valid During:} @R{%s}\n@Y{SANs:} %s",
 		subjectStr, validityRange, strings.Join(sans, ", ")), nil
 }
 

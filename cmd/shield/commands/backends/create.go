@@ -1,10 +1,10 @@
 package backends
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/config"
@@ -76,7 +76,7 @@ func cliCreateBackend(opts *commands.Options, args ...string) error {
 		panic("We just created this backend. Why can't we use it?")
 	}
 
-	ansi.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
+	fmt.Fprintf(os.Stdout, "Successfully created backend '@G{%s}', pointing to '@G{%s}'\n\n", args[0], args[1])
 	DisplayCurrent()
 
 	return nil

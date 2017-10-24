@@ -8,10 +8,9 @@ of what is needed in a backup plugin, and how they execute.
 */
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -56,10 +55,10 @@ func (p DummyPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("data")
 	if err != nil {
-		ansi.Printf("@R{\u2717 data   %s}\n", err)
+		fmt.Printf("@R{\u2717 data   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 data}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 data}  @C{%s}\n", s)
 	}
 
 	if fail {

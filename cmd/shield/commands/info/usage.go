@@ -1,11 +1,11 @@
 package info
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 )
 
@@ -17,7 +17,7 @@ var Usage = &commands.Command{
 
 func cliUsage(opts *commands.Options, args ...string) error {
 	if len(args) == 0 {
-		ansi.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
+		fmt.Fprintf(os.Stderr, "For more help with a command, type @M{shield help <command>}\n")
 		printUsage()
 		lineBreak()
 
@@ -37,13 +37,13 @@ func cliUsage(opts *commands.Options, args ...string) error {
 	if c != nil {
 		c.DisplayHelp()
 	} else {
-		ansi.Fprintf(os.Stderr, "@R{unrecognized command %s}\n", commandname)
+		fmt.Fprintf(os.Stderr, "@R{unrecognized command %s}\n", commandname)
 	}
 	return nil
 }
 
 func header(contents string) {
-	ansi.Fprintf(os.Stderr, "@R{%s:}\n", contents)
+	fmt.Fprintf(os.Stderr, "@R{%s:}\n", contents)
 }
 
 func contents(contents string) {

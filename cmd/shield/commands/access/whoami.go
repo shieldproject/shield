@@ -2,11 +2,11 @@ package access
 
 import (
 	"encoding/base64"
-	"fmt"
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/config"
@@ -47,7 +47,7 @@ func v1WhoAmI() error {
 
 	user := strings.Split(string(asciiToken), ":")[0]
 	fmt.Println("")
-	ansi.Printf("@G{USER:}\n")
+	fmt.Printf("@G{USER:}\n")
 	userReport := tui.NewReport()
 	userReport.Add("Name", user)
 	userReport.Output(os.Stdout)
@@ -67,7 +67,7 @@ func v2WhoAmI() error {
 	}
 
 	fmt.Println("")
-	ansi.Printf("@G{USER:}\n")
+	fmt.Printf("@G{USER:}\n")
 	userReport := tui.NewReport()
 	userReport.Add("Name", userInfo.User.Name)
 	userReport.Add("Account", userInfo.User.Account)
@@ -77,7 +77,7 @@ func v2WhoAmI() error {
 	userReport.Output(os.Stdout)
 
 	fmt.Println("")
-	ansi.Printf("@G{TENANTS:}\n")
+	fmt.Printf("@G{TENANTS:}\n")
 	tenantsTable := tui.NewTable("Name", "Role", "UUID")
 	for _, tenant := range userInfo.Tenants {
 		tenantsTable.Row(tenant, tenant.Name, tenant.Role, tenant.UUID)

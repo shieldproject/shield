@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strconv"
 
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/jhunt/go-cli"
 	env "github.com/jhunt/go-envirotron"
-	fmt "github.com/starkandwayne/goutils/ansi"
 
 	"github.com/starkandwayne/shield/client/v2/shield"
 	"github.com/starkandwayne/shield/tui"
@@ -489,7 +489,7 @@ func main() {
 		} else {
 			r.Add("System Role", fmt.Sprintf("@Y{none}"))
 		}
-			fmt.Printf("@G{Account Details}\n")
+		fmt.Printf("@G{Account Details}\n")
 		r.Output(os.Stdout)
 		fmt.Printf("\n")
 
@@ -521,7 +521,6 @@ func main() {
 		bail(err)
 
 		fmt.Printf("SHIELD core unlocked successfully.\n")
-
 
 	/* }}} */
 	case "unlock": /* {{{ */

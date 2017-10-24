@@ -82,13 +82,12 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"regexp"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -201,45 +200,45 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("pg_host")
 	if err != nil {
-		ansi.Printf("@R{\u2717 pg_host      %s}\n", err)
+		fmt.Printf("@R{\u2717 pg_host      %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 pg_host}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_host}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("pg_port", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 pg_port      %s}\n", err)
+		fmt.Printf("@R{\u2717 pg_port      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 pg_port}      using default port @C{%s}\n", DefaultPort)
+		fmt.Printf("@G{\u2713 pg_port}      using default port @C{%s}\n", DefaultPort)
 	} else {
-		ansi.Printf("@G{\u2713 pg_port}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_port}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("pg_user")
 	if err != nil {
-		ansi.Printf("@R{\u2717 pg_user      %s}\n", err)
+		fmt.Printf("@R{\u2717 pg_user      %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 pg_user}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_user}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("pg_password")
 	if err != nil {
-		ansi.Printf("@R{\u2717 pg_password  %s}\n", err)
+		fmt.Printf("@R{\u2717 pg_password  %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("pg_database", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 pg_database  %s}\n", err)
+		fmt.Printf("@R{\u2717 pg_database  %s}\n", err)
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 pg_database}  none (all databases will be backed up)\n")
+		fmt.Printf("@G{\u2713 pg_database}  none (all databases will be backed up)\n")
 	} else {
-		ansi.Printf("@G{\u2713 pg_database}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_database}  @C{%s}\n", s)
 	}
 
 	if fail {

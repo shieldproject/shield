@@ -35,7 +35,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -43,8 +42,8 @@ import (
 	"path"
 	"path/filepath"
 
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/mholt/archiver"
-	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -140,24 +139,24 @@ func (p BbrPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	)
 	s, err = endpoint.StringValue("bbr_host")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bbr_host   %s}\n", err)
+		fmt.Printf("@R{\u2717 bbr_host   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 bbr_host}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bbr_host}  @C{%s}\n", s)
 	}
 	s, err = endpoint.StringValue("bbr_privatekey")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bbr_privatekey   %s}\n", err)
+		fmt.Printf("@R{\u2717 bbr_privatekey   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 bbr_privatekey}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bbr_privatekey}  @C{%s}\n", s)
 	}
 	s, err = endpoint.StringValue("bbr_sshusername")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bbr_sshusername   %s}\n", err)
+		fmt.Printf("@R{\u2717 bbr_sshusername   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 bbr_sshusername}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bbr_sshusername}  @C{%s}\n", s)
 	}
 	if fail {
 		return fmt.Errorf("bbr: invalid configuration")

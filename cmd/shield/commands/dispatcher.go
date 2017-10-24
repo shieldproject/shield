@@ -1,11 +1,10 @@
 package commands
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 )
 
 var (
@@ -30,7 +29,7 @@ func (h *helpGroup) addCommand(c *Command) {
 
 func (h *helpGroup) String() string {
 	var helpLines []string
-	groupHeader := ansi.Sprintf("@M{%s:}", h.name)
+	groupHeader := fmt.Sprintf("@M{%s:}", h.name)
 	helpLines = append(helpLines, groupHeader) //Add the helpGroup header
 
 	for _, command := range h.commands {

@@ -51,14 +51,13 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"regexp"
 	"time"
 
 	azure "github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -139,23 +138,23 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("storage_account")
 	if err != nil {
-		ansi.Printf("@R{\u2717 storage_account     %s}\n", err)
+		fmt.Printf("@R{\u2717 storage_account     %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 storage_account}     @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 storage_account}     @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("storage_account_key", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 storage_account_key %s}\n", err)
+		fmt.Printf("@R{\u2717 storage_account_key %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 storage_account_key} @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 storage_account_key} @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("storage_container")
 	if err != nil {
-		ansi.Printf("@R{\u2717 storage_container   %s}\n", err)
+		fmt.Printf("@R{\u2717 storage_container   %s}\n", err)
 		fail = true
 	} else {
 		containerFail := false
@@ -163,16 +162,16 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		if !containerValidator.MatchString(s) {
 			fail = true
 			containerFail = true
-			ansi.Printf("@R{\u2717 storage_container   invalid characters (must be lower-case alpha-numeric plus dash)}\n")
+			fmt.Printf("@R{\u2717 storage_container   invalid characters (must be lower-case alpha-numeric plus dash)}\n")
 		}
 		if len(s) < 3 || len(s) > 63 {
 			fail = true
 			containerFail = true
-			ansi.Printf("@R{\u2717 storage_container   is too long/short (must be 3-63 characters)}\n")
+			fmt.Printf("@R{\u2717 storage_container   is too long/short (must be 3-63 characters)}\n")
 		}
 
 		if !containerFail {
-			ansi.Printf("@G{\u2713 storage_container}   @C{%s}\n", s)
+			fmt.Printf("@G{\u2713 storage_container}   @C{%s}\n", s)
 		}
 	}
 

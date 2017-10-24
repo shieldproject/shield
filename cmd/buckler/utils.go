@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/mattn/go-isatty"
-	fmt "github.com/starkandwayne/goutils/ansi"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

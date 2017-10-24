@@ -75,12 +75,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
-	plugin "github.com/starkandwayne/shield/plugin"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 var (
@@ -206,72 +205,72 @@ func (p XtraBackupPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("mysql_user")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_user          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_user          %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("mysql_password")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_password      %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_password      %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_databases", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_databases  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_databases  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_databases}  no databases\n")
+		fmt.Printf("@G{\u2713 mysql_databases}  no databases\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_databases}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_databases}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_datadir", DefaultDataDir)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_datadir  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_datadir  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_datadir}  no datadir\n")
+		fmt.Printf("@R{\u2717 mysql_datadir}  no datadir\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_datadir}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_datadir}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_xtrabackup", DefaultXtrabackup)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_xtrabackup  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_xtrabackup  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_xtrabackup}  xtrabackup command not specified\n")
+		fmt.Printf("@R{\u2717 mysql_xtrabackup}  xtrabackup command not specified\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_xtrabackup}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_xtrabackup}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_temp_targetdir", DefaultTempTargetDir)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_temp_targetdir  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_temp_targetdir  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_temp_targetdir}  no temporary target dir\n")
+		fmt.Printf("@R{\u2717 mysql_temp_targetdir}  no temporary target dir\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_temp_targetdir}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_temp_targetdir}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_tar", DefaultTar)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_tar  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_tar  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_tar}  tar command not specified\n")
+		fmt.Printf("@R{\u2717 mysql_tar}  tar command not specified\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_tar}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_tar}  @C{%s}\n", s)
 	}
 
 	if fail {

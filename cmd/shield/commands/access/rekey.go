@@ -3,12 +3,13 @@ package access
 import (
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 	"github.com/starkandwayne/shield/cmd/shield/log"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 //Rekey - Rekeys the encryption database keys
@@ -30,11 +31,11 @@ func cliRekey(opts *commands.Options, args ...string) error {
 		b := SecurePrompt("%s @C{[confirm]:} ", "New Master Password")
 
 		if a != "" && (a == b || !terminal.IsTerminal(int(os.Stdin.Fd()))) {
-			ansi.Fprintf(os.Stderr, "\n")
+			fmt.Fprintf(os.Stderr, "\n")
 			newmaster = a
 			break
 		}
-		ansi.Fprintf(os.Stderr, "\n@Y{oops, passwords do not match: try again }(Ctrl-C to cancel)\n\n")
+		fmt.Fprintf(os.Stderr, "\n@Y{oops, passwords do not match: try again }(Ctrl-C to cancel)\n\n")
 	}
 	if err := api.Rekey(curmaster, newmaster); err != nil {
 		return err

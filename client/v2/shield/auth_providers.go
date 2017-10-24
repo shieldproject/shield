@@ -36,7 +36,6 @@ func (c *Client) AuthProviderAnonymous(id string) (*AuthProvider, error) {
 	return nil, fmt.Errorf("no such authentication provider '%s'", id)
 }
 
-
 func (c *Client) AuthProvider(id string) (*AuthProvider, error) {
 	p := AuthProvider{}
 	return &p, c.get("/v2/auth/providers/"+id, &p)

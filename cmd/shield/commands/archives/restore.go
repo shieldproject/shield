@@ -2,11 +2,11 @@ package archives
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/ansi"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
@@ -83,7 +83,7 @@ func cliRestoreArchive(opts *commands.Options, args ...string) error {
 		//`OK` handles raw checking
 		commands.OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
 		if taskUUID != "" {
-			ansi.Printf("To view task, type @B{shield task %s}\n", taskUUID)
+			fmt.Printf("To view task, type @B{shield task %s}\n", taskUUID)
 		}
 	}
 

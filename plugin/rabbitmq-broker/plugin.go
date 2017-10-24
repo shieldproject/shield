@@ -57,13 +57,12 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -152,37 +151,37 @@ func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("rmq_url")
 	if err != nil {
-		ansi.Printf("@R{\u2717 rmq_url              %s}\n", err)
+		fmt.Printf("@R{\u2717 rmq_url              %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 rmq_url}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 rmq_url}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("rmq_username")
 	if err != nil {
-		ansi.Printf("@R{\u2717 rmq_username         %s}\n", err)
+		fmt.Printf("@R{\u2717 rmq_username         %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 rmq_username}         @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 rmq_username}         @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("rmq_password")
 	if err != nil {
-		ansi.Printf("@R{\u2717 rmq_password         %s}\n", err)
+		fmt.Printf("@R{\u2717 rmq_password         %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 rmq_password}         @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 rmq_password}         @C{%s}\n", s)
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else {
 		if tf {
-			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+			fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 		} else {
-			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+			fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 		}
 	}
 
