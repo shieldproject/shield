@@ -597,6 +597,20 @@ footer p {
   background-color: #F2F2F2;
   box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
 }
+.field .shadow.card {
+  color: #999;
+  font-size: 18pt;
+  text-align: center;
+  line-height: 3em;
+  opacity: 0.4;
+  cursor: pointer;
+}
+.field .shadow.card:hover {
+  opacity: 0.9;
+}
+.field .shadow.card a {
+  display: block;
+}
 .field .card h3 {
   font-size: 18px;
   font-weight: bold;
@@ -674,6 +688,60 @@ footer p {
   padding: 1em;
   font-style: italic;
   line-height: 1.2em;
+}
+.card .notes strong {
+  font-weight: bold;
+}
+
+.card .notes .no-data {
+  font-size: inherit;
+  padding: 0;
+}
+
+.picks .card {
+  position: relative;
+  padding-bottom: 2em;
+}
+.picks .card h3 {
+  padding-bottom: 1em;
+}
+.picks .card .type {
+  font-size: 7.5pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  position: absolute;
+  left: 8px; bottom: 4px;
+}
+.policy.card h3 input {
+  font-size: inherit;
+  background-color: transparent;
+  border: none;
+  height: 17px;
+  font-weight: inherit;
+  color: #0071bc;
+}
+.policy.card .days,
+.policy.card .days input {
+  height: 1em;
+  font-size: 48pt;
+  padding: 0.5em;
+  text-align: center;
+  color: #0071bc;
+}
+.policy.card .days input {
+  width: 2.5em;
+  background-color: transparent;
+  margin: 0; padding: 0;
+  border: none;
+  border-bottom: 2px solid #0071bc;
+
+}
+.policy.card .days span {
+  font-size: 24pt;
+  color: black;
+}
+.picks .policy.card .days {
+  font-size: 24pt;
 }
 
 .summary h2 {
@@ -1232,7 +1300,7 @@ pre.task-failed.override code { background-color: #333; }
   color: palegreen;
 }
 
-button[rel^="run:"] {
+.wizard button.final {
   display: block;
   float: right;
   font-size: 14pt;
@@ -1275,6 +1343,11 @@ button[rel^="run:"] {
   opacity: 0.5;
 }
 
+.wizard .step > span.label {
+  color: #aaa;
+  font-size: 24pt;
+  float: right;
+}
 .wizard .step > h3 {
   font-size: 24px;
   line-height: 64px;
@@ -1663,4 +1736,45 @@ h2 strong,
   color: #fff;
   font-size: 120%;
   line-height 1.4em;
+}
+
+
+
+form.scheduling .optgroup {
+  display: inline-block;
+}
+form.scheduling .optgroup li {
+  display: inline-block;
+  padding: 8px 6px 6px 6px;
+  border: 1px solid #0071bc;
+  border-radius: 4px;
+  opacity: 0.6;
+  color: #0071bc;
+  margin: 11px 2px;
+  line-height: 0.8em;
+
+  cursor: pointer;
+}
+form.scheduling .optgroup li.selected {
+  background-color: #0071bc;
+  opacity: 1;
+  color: #fff;
+  font-weight: bold;
+}
+form.scheduling input.num,
+form.scheduling input.time {
+  border: none;
+  border-bottom: 2px solid #0071bc;
+  font-size: 18pt;
+  text-align: center;
+}
+form.scheduling input.num {
+  width: 4ex;
+}
+form.scheduling input.time {
+  width: 6ex;
+}
+form.scheduling .subform {
+  display: none;
+  margin-left: 4em;
 }

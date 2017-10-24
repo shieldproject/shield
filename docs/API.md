@@ -2193,18 +2193,15 @@ This endpoint takes no query string parameters.
     "name"     : "Some Target",
     "summary"  : "The operator-supplied description of this target",
     "agent"    : "127.0.0.1:5444",
-    "endpoint" : "{}",
-    "plugin"   : "fs"
+    "plugin"   : "fs",
+
+    "config" : {
+      "target"   : "specific",
+      "settings" : "and configuration"
+    }
   }
 ]
 ```
-
-**NOTE:** the `endpoint` key is currently a string of JSON, which
-means that it contains lots of escape sequences.  Future versions
-of the v2 API (prior to launch) may alter this to be the full
-JSON, inline, for both readability and sanity's sake.
-
-FIXME: Fix target.endpoint string -> JSON problem.
 
 **Access Control**
 
@@ -2248,6 +2245,17 @@ of the v2 API (prior to launch) may alter this to be the full
 JSON, inline, for both readability and sanity's sake.
 
 FIXME: Fix target.endpoint string -> JSON problem.
+
+The following query string parameters are honored:
+
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the target in the database.  This is useful
+for validating that a target _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
+
 
 **Response**
 
@@ -2556,6 +2564,17 @@ The values under `config` will depend entirely on which `plugin`
 has been selected; no validation will be done by the SHIELD Core,
 until the storage system is used in a job.
 
+The following query string parameters are honored:
+
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the store in the database.  This is useful
+for validating that a store _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
+
+
 **Response**
 
 ```json
@@ -2836,6 +2855,17 @@ The `expires` value must be specified in seconds, and
 must be at least 86,400 (1 day) and be a multiple of
 86,400.
 
+The following query string parameters are honored:
+
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the policy in the database.  This is useful
+for validating that a policy _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
+
+
 **Response**
 
 ```json
@@ -2915,7 +2945,7 @@ The following error messages can be returned:
   the specified tenant.
 
 
-### PUT /v2/tenants/:tenant/policies/:uuid
+### PATCH /v2/tenants/:tenant/policies/:uuid
 
 Update a single retention policy on a tenant.
 
@@ -2925,7 +2955,7 @@ Update a single retention policy on a tenant.
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:tenant/policies/:uuid \
+     -X PATCH https://shield.host/v2/tenants/:tenant/policies/:uuid \
      --data-binary '
 {
   "name"    : "Updated Retention Policy Name",
@@ -3090,24 +3120,33 @@ value.  Subject to the `exact=(t|f)` query string parameter.
   "schedule" : "daily 4am",
   "paused"   : false,
   "agent"    : "10.0.0.5:5444",
+  "last_run" : "2017-10-19 03:00:00",
+  "status"   : "done",
 
-  "last_run"          : "2017-10-19 03:00:00",
-  "last_task_status"  : "done",
+  "policy" : {
+    "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+    "name"    : "Retention Policy Name",
+    "summary" : "A longer description"
+  },
 
-  "policy_uuid"       : "9a112894-10eb-439f-afd5-01597d8faf64",
-  "policy_name"       : "Retention Policy Name",
-  "policy_summary"    : "A longer description",
+  "store" : {
+    "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+    "name"    : "Cloud Storage System Name",
+    "summary" : "A longer description",
+    "plugin"  : "s3",
+    "config"  : {
+      "storage" : "configuration"
+    }
+  },
 
-  "store_uuid"        : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
-  "store_name"        : "Cloud Storage System Name",
-  "store_summary"     : "A longer description",
-  "store_plugin"      : "s3",
-  "store_endpoint"    : "{ ... some json ... }",
-
-  "target_uuid"       : "9f602367-256a-4454-be56-9ddde1257f13",
-  "target_name"       : "Data System Name",
-  "target_plugin"     : "fs",
-  "target_endpoint"   : "{ ... some json ... }"
+  "target" : {
+    "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+    "name"   : "Data System Name",
+    "plugin" : "fs",
+    "config" : {
+      "target" : "configuration"
+    }
+  }
 }
 ```
 

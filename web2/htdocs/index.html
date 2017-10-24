@@ -14,8 +14,10 @@
 
         The main (authenticated) layout for the UI
       ]]
+      [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
       <div class="story-sidebar">
         <nav>
+          [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
           <li><a href="#!/do/backup">Perform an ad hoc backup</a>
               <p>Run a backup job whenever you need to, regardless of the job's
               schedule.</p></li>
@@ -23,10 +25,13 @@
           <li><a href="#">Restore data from a backup</a>
               <p>Restore a protected system back to the state it was in when a
               backup archive was taken.</p></li>
+          [[ } ]]
 
-          <li><a href="#">Configure a new backup job</a>
+          [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].engineer) { ]]
+          <li><a href="#!/do/configure">Configure a new backup job</a>
               <p>Set up a new protected system, and configure the how, when,
               and for how long of managing its backup archives.</p></li>
+          [[ } ]]
         </nav>
 
         <footer>
@@ -36,6 +41,7 @@
           <p>SHIELD Copyright &copy; 2017 Stark & Wayne</p>
         </footer>
       </div>
+      [[ } ]]
       <div class="pane">
         <div class="hud blk" id="hud">
           <div class="x5"><div class="inst">
@@ -748,7 +754,8 @@
 
         [[ if (!_.system) { ]]
         <div class="step pick-a-system">
-          <h3>1. Pick What You Want To Back Up</h3>
+          <span class="label">Step 1</span>
+          <h3>Pick What You Want To Back Up</h3>
           <p>Which protected system you want to back up?</p>
 
           <div>
@@ -767,25 +774,26 @@
 
         [[ if (_.system && !_.store) { ]]
         <div class="step pick-a-store">
-          <h3>2. Select Cloud Storage</h3>
+          <span class="label">Step 2</span>
+          <h3>Select Cloud Storage</h3>
           <p>Where would you like to store this backup archive?</p>
 
           <div>
             [[ $.each(stores, function (uuid, store) { ]]
-                <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-                  <a href="do-backup:pick:store:[[= store.uuid ]]">
-                  <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
-                  <h3>[[= store.name ]]</h3>
-                  <div class="notes">[[ if (store.summary) { ]]
-                    [[= store.summary ]]
-                  [[ } else { ]]
-                    <div class="no-data">No summary provided.  Too bad.</div>
-                  [[ } ]]</div>
-                  <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
-                    <div class="to">[[= store.plugin ]]</div>
-                  </div>
-                  </a>
-                </div>
+            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+              <a href="do-backup:pick:store:[[= store.uuid ]]">
+              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <h3>[[= store.name ]]</h3>
+              <div class="notes">[[ if (store.summary) { ]]
+                [[= store.summary ]]
+              [[ } else { ]]
+                <div class="no-data">No summary provided.  Too bad.</div>
+              [[ } ]]</div>
+              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+                <div class="to">[[= store.plugin ]]</div>
+              </div>
+              </a>
+            </div>
             [[ }); ]]
           </div>
         </div>
@@ -793,7 +801,8 @@
 
         [[ if (_.system && _.store && !_.policy) { ]]
         <div class="step pick-a-retention-policy" style="display: block">
-          <h3>3. Choose a Retention Policy</h3>
+          <span class="label">Step 3</span>
+          <h3>Choose a Retention Policy</h3>
           <p>How long should we keep this backup?</p>
 
           <div>
@@ -827,16 +836,480 @@
           }
         ]]
         <div class="step run-the-backup" style="display: block">
-          <h3>4. Review Your Choices</h3>
+          <h3>Review Your Choices</h3>
           <p>If everything looks correct, click the big button to
           initiate a manual backup of <strong>[[= _.system.name ]]</strong>
           to <strong>[[= _.store.name ]]</strong> &mdash; backup archive will be kept
           for <strong>[[= _.policy.days ]] days</strong>.</p>
 
-          <button rel="run:[[= uuid ]]">Run Backup &raquo;</button>
+          <button class="final" rel="run:[[= uuid ]]">Run Backup &raquo;</button>
         </div>
         [[ } ]]
       </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--do-configure"><!-- {{{ -->
+      [[#
+        {do-configure} - Job Configuration Wizard
+
+      ]]
+      <div class="gutter blk wizard do-configure">
+        <p class="do-caption">Configuring a New Backup Job</p>
+        <div class="picks">[[# {{{ ]]
+          [[ if (_.target) { ]]
+          <div class="job card">
+            <a href="do-configure:unpick">
+              <span class="type">[[= _.target.uuid ? '' : '<strong>New</strong> ' ]]System</span>
+              <h3>[[= _.target.name ]]</h3>
+              <div class="notes">[[ if (_.target.summary) { ]]
+                [[= _.target.summary ]]
+              [[ } else { ]]
+                <div class="no-data">No summary provided.  Too bad.</div>
+              [[ } ]]</div>
+              <div class="graph">
+                <div class="to">[[= _.target.plugin ]]</div>
+              </div>
+            </a>
+          </div>
+          [[ } else { ]]
+          <div class="job card empty">Protected System</div>
+          [[ } ]]
+
+          [[ if (_.schedule) { ]]
+          <div class="policy card">
+            <a href="do-configure:unpick">
+              [[ if (!_.policy) { ]]
+              <span class="type">Retention + Schedule</span>
+              <h3>Runs [[= _.schedule ]]</h3>
+              [[ } else { ]]
+              <span class="type">Schedule / Retention</span>
+              <h3>Run [[= _.schedule ]]</h3>
+              <h3>Retain [[= _.policy.expires / 86400 ]] day[[= _.policy.expires == 86400 ? '' : 's' ]] of archives</h3>
+              <div class="notes">using the <strong>[[= _.policy.name]]</strong> policy</div>
+              [[ } ]]
+            </a>
+          </div>
+          [[ } else if (_.policy && _.schedule) { ]]
+          <div class="policy card">
+            <a href="do-configure:unpick">
+              <span class="type">[[= _.policy.uuid ? '' : '<strong>New</strong> ' ]]Policy + Schedule</span>
+              <span class="
+              <h3>[[= _.policy.name ]]</h3>
+              <div class="days">[[= _.policy.expires / 86400 ]]<span> days</span></div>
+              Runs [[= _.schedule ]]
+            </a>
+          </div>
+          [[ } else { ]]
+          <div class="schedule card empty">Schedule & Retention</div>
+          [[ } ]]
+
+          [[ if (_.store) { ]]
+          <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <a href="do-configure:unpick">
+              <span class="type">[[= _.store.uuid ? '' : '<strong>New</strong> ' ]]Store</span>
+              <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+              <h3>[[= _.store.name ]]</h3>
+              <div class="notes">[[ if (_.store.summary) { ]]
+                [[= _.store.summary ]]
+              [[ } else { ]]
+                <div class="no-data">No summary provided.  Too bad.</div>
+              [[ } ]]</div>
+              <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+                <div class="to">[[= _.store.plugin ]]</div>
+              </div>
+            </a>
+          </div>
+          [[ } else { ]]
+          <div class="store card empty">Cloud Storage</div>
+          [[ } ]]
+        </div>[[# }}} ]]
+
+        [[ if (!_.target) { ]]
+        <div class="step pick-a-target">
+          <span class="label">Step 1</span>
+          [[ if (_.targets.length == 0 || _.new_target === true) { ]]
+          [[ if (_.targets.length > 0) { ]]<a class="breadcrumb" href="do-configure:unpick:target:redo">Select a pre-existing system</a>[[ } ]]
+          <h3>Configure a New Protected System</h3>[[# {{{ ]]
+          <form action="do-configure:make:target">
+            <div class="ctl" data-field="name">
+              <label for="target-name">Name</label>
+              <span class="errors">
+                <span data-error="missing">You must name your data system.</span>
+              </span>
+              <div class="widget">
+                <input type="text" id="target-name" name="name" class="autofocus" />
+                <p class-"help">Pick a memorable or descriptive name for this data system.</p>
+              </div>
+            </div>
+
+            <div class="ctl" data-field="summary">
+              <label for="target-name">Summary</label>
+              <span class="errors">
+              </span>
+              <div class="widget">
+                <textarea id="target-summary" summary="summary" class="autofocus"></textarea>
+                <p class="help">If you want, you can add a longer description.</p>
+              </div>
+            </div>
+
+            <div class="ctl" data-field="agent">
+              <label for="store-agent">Agent</label>
+              <span class="errors">
+                <span data-error="missing">You must select which SHIELD Agent to use to access this protected system.</span>
+              </span>
+              <div class="widget">
+                <select id="store-agent" name="agent" value="[[= _.store ? _.store.agent : '' ]]">
+                  <option></option>
+                  [[ var found = false; ]]
+                  [[ $.each(_.agents, function (i, agent) { ]]
+                  <option value="[[= agent.uuid ]]|[[= agent.address ]]">[[= agent.name ]] (at [[= agent.address ]])</option>
+                  [[ }); ]]
+                </select>
+              </div>
+            </div>
+
+            <div id="choose-plugin"></div>
+            <div id="configure-plugin"></div>
+
+            <button class="go">Next</button>
+          </form>
+          [[ } else { ]][[# }}} ]]
+          <h3>What Do You Want To Back Up?</h3>[[# {{{ ]]
+          <div>
+            [[ $.each(_.targets, function (i, target) { ]]
+            <div class="job card">
+              <a href="do-configure:pick:target:[[= target.uuid ]]">
+                <h3>[[= target.name ]]</h3>
+                <div class="notes">[[= target.summary ]]</div>
+                <div class="graph">
+                  <div class="to">[[= target.plugin ]]</div>
+                </div>
+              </a>
+            </div>
+            [[ }); ]]
+            <div class="shadow card">
+              <a href="do-configure:new:target">
+              ... or configure a new target
+              </a>
+            </div>
+          </div>[[# }}} ]]
+          [[ } ]]
+        </div>
+
+        [[ } else if (!_.schedule) { ]]
+        <div class="step pick-a-schedule">[[# {{{ ]]
+          <span class="label">Step 2</span>
+          <h3>Select a Schedule</h3>
+
+          <form class="scheduling" action="do-configure:make:schedule">
+            <div class="error"></div>
+            <div>
+              <label>Run the backup</label>
+              <ul class="optgroup">
+                <li data-subform="schedule-hourly">Hourly</li>
+                <li data-subform="schedule-daily">Daily</li>
+                <li data-subform="schedule-weekly">Weekly</li>
+                <li data-subform="schedule-monthly">Monthly</li>
+              </ul>
+
+              <div id="schedule-hourly" class="subform">
+                <div>Every <input name="hourlyn" class="num" type="text" value="1"> hour(s)</div>
+                <div>from <input name="hourlyat" class="time" type="text" value="12:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+              </div>
+
+              <div id="schedule-daily" class="subform">
+                <div>Every day</div>
+                <div>at <input name="dailyat" class="time" type="text" value="3:00"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+              </div>
+
+              <div id="schedule-weekly" class="subform">
+                <div>Every week</div>
+                <div>on <ul class="wday optgroup">[[= optgroup(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                <div>at <input name="weeklyat" class="time" type="text" value="4:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+              </div>
+
+              <div id="schedule-monthly" class="subform">
+                <div>Every month(s)</div>
+                <div>on the <input name="monthlynth" class="num" type="text" value="1st">
+                     <ul class="mday optgroup">[[= optgroup(['day', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                <div>at <input name="monthlyat" class="time" type="text" value="5:30"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+              </div>
+
+            </div>
+
+            <button class="go">Next</button>
+          </form>
+        </div>[[# }}} ]]
+
+        [[ } else if (!_.policy) { ]]
+        <div class="step pick-a-policy">
+          <span class="label">Step 3</span>
+          [[ if (_.policies.length == 0 || _.new_policy) { ]]
+          [[ if (_.policies.length > 0) { ]]<a class="breadcrumb" href="do-configure:unpick:policy:redo">Select a pre-existing retention policy</a>[[ } ]]
+          <h3>Configure a New Retention Policy</h3>[[# {{{ ]]
+          <form action="do-configure:make:policy">
+            <div class="error"></div>
+
+            <div class="ctl" data-field="name">
+              <label for="policy-name">Name</label>
+              <span class="errors">
+                <span data-error="missing">You must provide a name for this new retention policy.</span>
+              </span>
+              <div class="widget">
+                <input type="text" id="policy-name" name="name" class="autofocus" tabindex="0" />
+                <p class="help">Pick a memorable or descriptive name for this retention policy,
+                so that other operators can determine what to use it for.</p>
+              </div>
+            </div>
+
+            <div class="ctl" data-field="expires">
+              <label for="policy-days">Expiry (in days)</label>
+              <span class="errors">
+                <span data-error="missing">You must specify an expiry of at least 1 day.</span>
+                <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
+              </span>
+              <div class="widget">
+                <input type="text" id="policy-days" name="days" />
+                <p class="help">How long should archives be kept, under this retention policy.
+                At a minimum, archives must be kept for one day.</p>
+              </div>
+            </div>
+
+            <button class="go">Create</button>
+          </form>
+          [[ } else { ]][[# }}} ]]
+          <h3>How Long Should SHIELD Keep The Backup Archives?</h3>[[# {{{ ]]
+          <div>
+          [[ $.each(_.policies, function (i, policy) { ]]
+            <div class="policy card">
+              <a href="do-configure:pick:policy:[[= policy.uuid ]]">
+              <h3>[[= policy.name ]]</h3>
+              <div class="days">[[= policy.expires / 86400 ]]<span> days</span></div>
+              </a>
+            </div>
+          [[ }); ]]
+            <div class="shadow card">
+              <a href="do-configure:new:policy">
+              ... or configure a new retention policy
+              </a>
+            </div>
+          </div>[[# }}} ]]
+          [[ } ]]
+        </div>
+
+        [[ } else if (!_.store) { ]]
+        <div class="step pick-a-store">
+          <span class="label">Step 4</span>
+          [[ if (_.stores.length == 0 || _.new_store) { ]]
+          [[ if (_.stores.length > 0) { ]]<a class="breadcrumb" href="do-configure:unpick:store:redo">Select a pre-existing cloud storage system</a>[[ } ]]
+          <h3>Configure a New Cloud Storage System</h3>[[# {{{ ]]
+          <form action="do-configure:make:store">
+            <div class="error"></div>
+
+            <div class="ctl" data-field="name">
+              <label for="store-name">Name</label>
+              <span class="errors">
+                <span data-error="missing">You must provide a name for this new storage system.</span>
+              </span>
+              <div class="widget">
+                <input type="text" id="store-name" name="name" class="autofocus" />
+                <p class="help">Pick a memorable or descriptive name for this storage system,
+                so that other operators can determine when to use it.</p>
+              </div>
+            </div>
+
+            <div class="ctl" data-field="summary">
+              <label for="store-summary">Description</label>
+              <div class="widget">
+                <textarea id="store-summary" name="summary"></textarea>
+                <p class="help">If you want, you can add a longer description.</p>
+              </div>
+            </div>
+
+            <div class="ctl" data-field="threshold">
+              <label for="store-threshold">Threshold</label>
+              <span class="errors">
+                <span data-error="missing">You must provide a threshold for this new storage system.</span>
+              </span>
+              <div class="widget">
+                <input type="text" id="store-threshold" name="threshold" />
+                  <p class="help">Select a reasonable threshold for storage size warnings</p>
+              </div>
+            </div>
+
+            <div class="ctl" data-field="agent">
+              <label for="store-agent">Agent</label>
+              <span class="errors">
+                <span data-error="missing">You must select which SHIELD Agent to use to access this storage system.</span>
+              </span>
+              <div class="widget">
+                <select id="store-agent" name="agent">
+                  <option></option>
+                  [[ $.each(_.agents, function (i, agent) { ]]
+                  <option value="[[= agent.uuid ]]|[[= agent.address ]]">[[= agent.name ]] (at [[= agent.address ]])</option>
+                  [[ }); ]]
+                </select>
+              </div>
+            </div>
+
+            <div id="choose-plugin"></div>
+            <div id="configure-plugin"></div>
+
+            <button class="go">Next</button>
+          </form>
+          [[ } else { ]][[# }}} ]]
+          <h3>Where Should SHIELD Store The Backup Archives?</h3>[[# {{{ ]]
+
+          <div>
+            [[ $.each(_.stores, function (uuid, store) { ]]
+            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+              <a href="do-configure:pick:store:[[= store.uuid ]]">
+              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <h3>[[= store.name ]]</h3>
+              <div class="notes">[[ if (store.summary) { ]]
+                [[= store.summary ]]
+              [[ } else { ]]
+                <div class="no-data">No summary provided.  Too bad.</div>
+              [[ } ]]</div>
+              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+                <div class="to">[[= store.plugin ]]</div>
+              </div>
+              </a>
+            </div>
+            [[ }); ]]
+            <div class="shadow card">
+              <a href="do-configure:new:store">
+              ... or configure new cloud storage
+              </a>
+            </div>
+          </div>
+        </div>[[# }}} ]]
+          [[ } ]]
+
+        [[ } else { ]]
+        <div class="step review" style="display: block">[[# {{{ ]]
+          <h3>Review Your Choices</h3>
+          <form action="do-configure:finalize">
+            <div class="ctl" data-field="name">
+              <label for="job-name">Job Name</label>
+              <div class="widget">
+                <div class="errors">
+                  <span data-error="missing">You must name your new backup job.</span>
+                </div>
+                <input type="text" name="name" value="[[= _.name || '' ]]" />
+              </div>
+            </div>
+
+            <div class="ctl" data-field="summary">
+              <label for="job-name">Notes</label>
+              <div class="widget">
+                <textarea name="summary">[[= _.summary || '' ]]</textarea>
+              </div>
+            </div>
+            <button class="final">Save &raquo;</button>
+          </form>
+        </div>[[# }}} ]]
+        [[ } ]]
+      </div>
+    <!-- }}} --></script>
+
+    <script type="text/html" id="tpl--subform-choose-plugin"><!-- {{{ -->
+      [[#
+        {subform-choose-plugin} template
+
+        Renders the plugin choice dropdown
+      ]]
+          <div class="ctl" data-field="plugin">
+            <label for="the-plugin">[[= _.type == 'store' ? 'Storage' : 'Backup' ]] Plugin</label>
+            <span class="errors">
+              <span data-error="missing">You must select a [[= _.type == 'store' ? 'storage' : 'backup' ]] plugin to use.</span>
+            </span>
+            <div class="widget">
+              <select id="the-plugin" name="plugin">
+                <option></option>
+                [[
+                    var plugins = [];
+                    $.each(_.metadata.plugins, function (plugin, metadata) {
+                      if (metadata.features[_.type] == 'yes') {
+                        plugins.push([plugin, metadata.name + " ("+plugin+")"])
+                      }
+                    });
+                    plugins = plugins.sort(function (a, b) {
+                      return a[1] > b[1] ?  1
+                           : a[1] < b[1] ? -1 : 0;
+                    });
+                ]]
+                [[ $.each(plugins, function (i, plugin) { ]]
+                <option value="[[= plugin[0] ]]">[[= plugin[1] ]]</option>
+                [[ }); ]]
+              </select>
+            </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--subform-configure-plugin"><!-- {{{ -->
+      [[#
+        {subform-configure-plugin} template
+
+        Renders the plugin / endpoint configuration sub-form
+      ]][[
+
+            var esc = function (s) { return s.replace(/`([^`]*)`/g, '<tt>$1</tt>'); }
+
+          ]]
+          <div class="subform">
+            <h2>[[= _.type == 'storage' ? 'Storage' : 'Backup' ]] Plugin Options</h2>
+          [[ var n = 0; ]]
+          [[ $.each(_.plugin.fields, function (i, field) { ]]
+            [[ if (field.mode == 'target') { return; } ]]
+              [[ n++; ]]
+              <div class="ctl[[ if (field.required) { ]] required[[ } ]]" data-field="config.[[= field.name ]]" data-type="[[= field.type ]]">
+                <label for="the-plugin-[[= field.name ]]">[[= esc(field.title) ]][[ if (field.required) { ]] <span>(required)</span>[[ } ]]</label>
+                <span class="errors">
+                  <span data-error="missing">You must provide a value for this plugin configuration.</span>
+                  [[ if (field.type == "port") { ]]
+                  <span data-error="invalid">Please supply a valid port number, between 1 and 65535 (inclusive).</span>
+                  [[ } else if (field.type == "abspath") { ]]
+                  <span data-error="invalid">Please supply an absolute filesystem path, starting with a forward slash.</span>
+                  [[ } ]]
+                </span>
+                <div class="widget">
+                  [[ if (field.type == 'bool') { ]]
+                  <input type="checkbox" id="the-plugin-[[= field.name ]]" name="config.[[= field.name ]]" />
+                  [[ } else if (field.type == 'enum') { ]]
+                  <select id="the-plugin-[[= field.name ]]" name="config.[[= field.name ]]">
+                    [[ if (!field.required || field.default) { ]]<option></option>[[ } ]]
+                    [[ $.each(field.enum, function (i, value) { ]]
+                    [[   if (_.config && _.config[field.name] == value) { ]]
+                    <option selected value="[[= value ]]">[[= value ]]</option>
+                    [[   } else { ]]
+                    <option value="[[= value ]]">[[= value ]]</option>
+                    [[   } ]]
+                    [[ }); ]]
+                  </select>
+                  [[ } else if (field.type == 'password') { ]]
+                  <!-- FIXME: this needs to be a smudge field -->
+                  <input type="password" id="the-plugin-[[= field.name ]]" name="config.[[= field.name ]]"
+                    [[ if (_.config && (field.name in _.config)) { ]]value="[[= _.config[field.name] ]]"[[ } ]]
+                    [[ if (field.placeholder && field.placeholder != "") { ]]placeholder="[[= field.placeholder ]]"[[ } ]]/>
+                  [[ } else { ]]
+                  <input type="text" id="the-plugin-[[= field.name ]]" name="config.[[= field.name ]]"
+                    [[ if (_.config && (field.name in _.config)) { ]]value="[[= _.config[field.name] ]]"[[ } ]]
+                    [[ if (field.placeholder && field.placeholder != "") { ]]placeholder="[[= field.placeholder ]]"[[ } ]]/>
+                  [[ } ]]
+                  [[ if (field.help && field.help != '') { ]]
+                  <p class="help">[[= esc(field.help) ]]</p>
+                  [[ } ]]
+                  [[ if (field.example && field.example != '') { ]]
+                  <p class="example">For example: [[= esc(field.example) ]]</p>
+                  [[ } ]]
+                </div>
+              </div>
+          [[ }); ]]
+          [[ if (n == 0) { ]]
+          <div class="no-data">
+            <p>This [[= _.type == 'store' ? 'storage' : 'backup' ]] plugin is zero-conf, and should just work.</p>
+          </div>
+          [[ } ]]
+          </div>
     <!-- }}} --></script>
 
     <script type="text/html" id="tpl--systems"><!-- {{{ -->
@@ -2023,6 +2496,55 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     }
     // }}}
 
+    $.fn.serializePluginForm = function () {
+      var data       = this.serializeObject();
+      data.agent     = data.agent.replace(/.*\|/, '');
+      if ('threshold' in data) {
+        data.threshold = readableToBytes(data.threshold || '0');
+      }
+      if (!('config' in data)) {
+        data.config = {};
+      }
+
+      return data;
+    };
+
+    $.fn.pluginForm = function (opts) {
+      opts = $.extend({}, {}, opts);
+      if (!('type' in opts)) {
+        throw 'pluginForm() requires a "type" option (either "store" or "target")';
+      }
+
+      var $parent = this;
+      var cache   = {};
+
+      $parent
+        .on('change', 'select[name=agent]', function (event) {
+          var uuid = $(event.target).val().replace(/\|.*/, '');
+          if (uuid == "") { return; }
+
+          $parent.find('#choose-plugin').html(template('loading'));
+          api({
+            type: 'GET',
+            url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
+            success: function (data) {
+              cache = data;
+              data.type = opts.type;
+              $parent.find('#choose-plugin').html(template('subform-choose-plugin', data));
+            }
+          });
+        })
+        .on('change', 'select[name=plugin]', function (event) {
+          var plugin = $(event.target).val();
+          if (plugin == '') { return; }
+
+          $parent.find('#configure-plugin').html(
+            template('subform-configure-plugin', {
+              plugin: cache.metadata.plugins[plugin]
+            }));
+        });
+    };
+
     function dispatch(page) {
       var argv = page.split(/[:+]/);
       dest = argv.shift();
@@ -2112,6 +2634,14 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         // }}}
 
       case "#!/do/backup": /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].operator) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'operator' }));
+          break;
+        }
         (function () {
           if (!$global.auth.tenant) {
             $('#main').html(template('you-have-no-tenants'));
@@ -2181,6 +2711,328 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         })();
         break; /* #!/do/backup */
         // }}}
+      case "#!/do/configure": /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].engineer) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+          break;
+        }
+        (function () {
+          if (!$global.auth.tenant) {
+            $('#main').html(template('you-have-no-tenants'));
+            return;
+          }
+          $('#main').html(template('loading'));
+          var data = {};
+
+          var rerender = function (data) {
+            $('#main').html($(template('do-configure', data))
+              .on('click', 'a[href^="do-configure:"]', function (event) {
+                event.preventDefault();
+                l = $(event.target).closest('a[href^="do-configure:"]').attr('href').split(':');
+
+                /* unpick: go back to a previous step {{{ */
+                if (l[1] == "unpick") {
+                  var what = l[2];
+                  if (!what) {
+                    var $card = $(event.target).closest('.card');
+                    if ($card.is('.job'))    { what = "target";   }
+                    if ($card.is('.store'))  { what = "store";    }
+                    if ($card.is('.policy')) { what = "schedule"; } /* .card.policy is combo schedule+policy */
+                  }
+
+                  switch (what) {
+                  case "target"   : data.target = data.schedule = data.policy = data.store = undefined; break;
+                  case "schedule" :               data.schedule = data.policy = data.store = undefined; break;
+                  case "policy"   :                               data.policy = data.store = undefined; break;
+                  case "store"    :                                             data.store = undefined; break;
+                  }
+
+                  if (l[3] == 'redo') {
+                    switch (what) {
+                    case "target" : data.new_target = false; break;
+                    case "store"  : data.new_store  = false; break;
+                    case "policy" : data.new_policy = false; break;
+                    }
+                  }
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* pick:target - pick a target and render the next step: scheduling {{{ */
+                if (l[1] == "pick" && l[2] == "target") {
+                  delete data.new_target;
+                  for (var i = 0; i < data.targets.length; i++) {
+                    if (data.targets[i].uuid == l[3]) {
+                      data.target = data.targets[i];
+                      break;
+                    }
+                  }
+
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* new:target  - show the 'new target' form {{{ */
+                if (l[1] == "new" && l[2] == "target") {
+                  data.new_target = true;
+                  $('#main .step').html(template('loading'));
+                  api({
+                    type: 'GET',
+                    url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
+                    error: "Unable to retreive list of SHIELD Agents from the SHIELD API.",
+                    success: function (agents) {
+                      data.agents = agents;
+                      rerender(data);
+                    }
+                  });
+                  return;
+                }
+
+                /* }}} */
+                /* pick:policy - pick a retention policy and render the next step: storage {{{ */
+                if (l[1] == "pick" && l[2] == "policy") {
+                  delete data.new_policy;
+                  for (var i = 0; i < data.policies.length; i++) {
+                    if (data.policies[i].uuid == l[3]) {
+                      data.policy = data.policies[i];
+                      break;
+                    }
+                  }
+
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* new:policy  - show the 'new policy' form {{{ */
+                if (l[1] == "new" && l[2] == "policy") {
+                  data.new_policy = true;
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* pick:store  - pick a store and render the next step: review {{{ */
+                if (l[1] == "pick" && l[2] == "store") {
+                  delete data.new_store;
+                  for (var i = 0; i < data.stores.length; i++) {
+                    if (data.stores[i].uuid == l[3]) {
+                      data.store = data.stores[i];
+                      break;
+                    }
+                  }
+
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* new:store   - show the 'new store' form {{{ */
+                if (l[1] == "new" && l[2] == "store") {
+                  data.new_store = true;
+                  $('#main .step').html(template('loading'));
+                  api({
+                    type: 'GET',
+                    url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
+                    error: "Unable to retreive list of SHIELD Agents from the SHIELD API.",
+                    success: function (agents) {
+                      data.agents = agents;
+                      rerender(data);
+                    }
+                  });
+                  return;
+                }
+
+                /* }}} */
+              })
+              .on('submit', 'form[action^="do-configure:"]', function (event) {
+                event.preventDefault();
+                var $form = $(event.target);
+                var l = $form.attr('action').split(':');
+
+                /* make:target   - validate a new target, store it for later {{{ */
+                if (l[1] == 'make' && l[2] == 'target') {
+                  var target = $form.serializePluginForm();
+                  if (!$form.reset().validate(target).isOK()) { return; }
+                  api({
+                    type: 'POST',
+                    url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/targets?test=t',
+                    data: target,
+                    error: function (xhr) {
+                      console.log('do-configure: target validation failed: ', xhr.responseJSON);
+                      $form.error(xhr.responseJSON);
+                    },
+                    success: function (ok) {
+                      data.target = target;
+                      rerender(data);
+                    }
+                  });
+                  return;
+                }
+
+                /* }}} */
+                /* make:schedule - validate and set the backup schedule {{{ */
+                if (l[1] == 'make' && l[2] == 'schedule') {
+                  var spec = $form.timespec();
+                  $form.reset();
+                  api({
+                    type: 'POST',
+                    url:  '/v2/ui/check/timespec',
+                    data: { timespec: spec },
+                    error: function (xhr) {
+                      $form.error(xhr.responseJSON);
+                    },
+                    success: function (rs) {
+                      data.schedule = rs.ok
+                      data.name = $('.scheduling .optgroup .selected[data-subform]').text();
+                      rerender(data);
+                    }
+                  })
+                  return;
+                }
+
+                /* }}} */
+                /* make:policy   - validate a new policy, store it for later {{{ */
+                if (l[1] == 'make' && l[2] == 'policy') {
+                  var policy = $form.serializeObject();
+                  policy.expires = policy.days * 86400; /* FIXME */
+                  $form.reset();
+                  api({
+                    type: 'POST',
+                    url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies?test=t',
+                    data: policy,
+                    error: function (xhr) {
+                      $form.error(xhr);
+                    },
+                    success: function (ok) {
+                      data.policy = policy;
+                      rerender(data);
+                    }
+                  });
+                  return;
+                }
+
+                /* }}} */
+                /* make:store    - validate a new store, store it for later {{{ */
+                if (l[1] == 'make' && l[2] == 'store') {
+                  var store = $form.serializePluginForm();
+                  if (!$form.reset().validate(store).isOK()) { return; }
+                  api({
+                    type: 'POST',
+                    url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores?test=t',
+                    data: store,
+                    error: function (xhr) {
+                      $form.error(xhr);
+                    },
+                    success: function (ok) {
+                      data.store = store;
+                      rerender(data);
+                    }
+                  });
+                  return;
+                }
+                /* }}} */
+                /* finalize      - create all the things! {{{ */
+                if (l[1] == 'finalize') {
+                  var finalize = function () {
+                    console.log('finalizing....');
+                    if (!data.target.uuid) {
+                      console.log('creating new target "%s"...', data.target.name);
+                      console.dir(data.target);
+                      api({
+                        type: 'POST',
+                        url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/targets',
+                        data: data.target,
+                        error: "Unable to create new data system",
+                        success: function (ok) {
+                          data.target.uuid = ok.uuid;
+                          finalize();
+                        }
+                      });
+                      return;
+                    }
+
+                    if (!data.policy.uuid) {
+                      console.log('creating new policy "%s"...', data.policy.name);
+                      console.dir(data.policy);
+                      api({
+                        type: 'POST',
+                        url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies',
+                        data: data.policy,
+                        error: "Unable to create new retention policy",
+                        success: function (ok) {
+                          data.policy.uuid = ok.uuid;
+                          finalize();
+                        }
+                      });
+                      return;
+                    }
+
+                    if (!data.store.uuid) {
+                      console.log('creating new store "%s"...', data.store.name);
+                      console.dir(data.store);
+                      api({
+                        type: 'POST',
+                        url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores',
+                        data: data.store,
+                        error: "Unable to create new cloud storage system",
+                        success: function (ok) {
+                          data.store.uuid = ok.uuid;
+                          finalize();
+                        }
+                      });
+                      return;
+                    }
+
+                    console.log('creating job...');
+                    api({
+                      type: 'POST',
+                      url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs',
+                      data: {
+                        name     : 'a random name?', // FIXME
+                        summary  : '',
+                        schedule : data.schedule,
+
+                        store    : data.store.uuid,
+                        target   : data.target.uuid,
+                        policy   : data.policy.uuid
+                      },
+                      error: "Unable to create a new backup job",
+                      success: function (ok) {
+                        goto("#!/systems");
+                      }
+                    });
+                  };
+                  finalize();
+                  return;
+                }
+                /* }}} */
+              }));
+            $('#main .optgroup').optgroup(); $('.scheduling').subform();
+            $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
+
+            $('#main [action="do-configure:make:target"]').pluginForm({ type: 'target' });
+            $('#main [action="do-configure:make:store"]').pluginForm({ type: 'store' });
+          };
+
+          apis({
+            base: '/v2/tenants/'+$global.auth.tenant.uuid,
+            multiplex: {
+              targets:  { type: 'GET', url: '+/targets'  },
+              stores:   { type: 'GET', url: '+/stores'   },
+              policies: { type: 'GET', url: '+/policies' }
+            },
+            success: rerender
+          });
+        })();
+        break; /* #!/do/configure */
+        // }}}
 
       case "#!/systems": /* {{{ */
         if (!$global.auth.tenant) {
@@ -2243,7 +3095,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         }
         $('#main').html(template('loading'));
 
-        var go = function (data) {
+        var rerender = function (data) {
           /* FIXME fixups that need to migrate into the SHIELD code */
           data.ok = true;
           data.archives = data.archive_count;
@@ -2255,13 +3107,13 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
-          success: go,
+          success: rerender,
           error: function (xhr) {
             api({
               type: 'GET',
               url:  '/v2/global/stores/'+args.uuid,
               error: "Unable to retrieve storage systems from SHIELD API.",
-              success: go
+              success: rerender
             });
           }
         });
@@ -3427,7 +4279,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       referer = page;
     }
 
-    function redraw() {
+    function redraw(complete) {
+      if (complete && !$global.auth.unauthenticated) {
+        $('#viewport').html(template('layout'));
+      }
       $('#hud').html(template('hud', $global.hud));
       $('.top-bar').html(template('top-bar', {
         shield:  $global.hud.shield,
@@ -3477,7 +4332,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         var rehud = function (data) {
           $global.hud = data;
           var json = JSON.stringify(data);
-          if (json != last) { redraw(); }
+          if (json != last) { redraw(false); }
           last = json;
         };
         var ping = function () {
@@ -3524,7 +4379,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         for (var i = 0; i < $global.auth.tenants.length; i++) {
           if ($global.auth.tenants[i].uuid == uuid) {
             $global.auth.tenant = $global.auth.tenants[i];
-            redraw();
+            redraw(true);
             var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
             if (page == "#!/do") { page = "#!/systems"; }
             goto(page);
