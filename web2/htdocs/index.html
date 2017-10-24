@@ -2231,7 +2231,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             /* FIXME fixups that need to migrate into the SHIELD code */
             for (key in data.local)  { if (!('ok' in data.local[key]))  { data.local[key].ok  = true; } }
             for (key in data.global) { if (!('ok' in data.global[key])) { data.global[key].ok = true; } }
-            $('#main').html(template('stores', { stores: data }));
+            $('#main').html(template('stores', { stores: $.extend({}, data.local, data.global) }));
           }
         });
         break; /* #!/stores */
@@ -2242,19 +2242,27 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           break;
         }
         $('#main').html(template('loading'));
+
+        var go = function (data) {
+          /* FIXME fixups that need to migrate into the SHIELD code */
+          data.ok = true;
+          data.archives = data.archive_count;
+          data.used = data.storage_used;
+          data.projected = 2.1;
+          data.daily_delta = data.daily_increase;
+          $('#main').html(template('store', { store: data }));
+        };
         api({
           type: 'GET',
           url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
-          error: "Unable to retrieve storage systems from SHIELD API.",
-          success: function (data) {
-            /* FIXME fixups that need to migrate into the SHIELD code */
-            data.ok = true;
-            data.archives = data.archive_count;
-            data.used = data.storage_used;
-            data.threshold = data.threshold;
-            data.projected = 2.1;
-            data.daily_delta = data.daily_increase;
-            $('#main').html(template('store', { store: data }));
+          success: go,
+          error: function (xhr) {
+            api({
+              type: 'GET',
+              url:  '/v2/global/stores/'+args.uuid,
+              error: "Unable to retrieve storage systems from SHIELD API.",
+              success: go
+            });
           }
         });
         break; /* #!/stores/store */
