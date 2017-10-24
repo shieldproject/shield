@@ -31,6 +31,7 @@ shield:
 	go $(BUILD_TYPE) ./cmd/shield-agent
 	go $(BUILD_TYPE) ./cmd/shield-schema
 	go $(BUILD_TYPE) ./cmd/shield
+	go $(BUILD_TYPE) ./cmd/buckler
 
 # Building the Shield CLI *only*
 shield-cli:
