@@ -169,6 +169,12 @@
 			"revision": "6bdf7cebaa407f9ef7869eeb673a268d04126c90"
 		},
 		{
+			"checksumSHA1": "0zh8BzWlmxf6Sh76Qn3b+maOOKg=",
+			"path": "github.com/jhunt/go-log",
+			"revision": "ddc1e3b8ed3044efd4d4cf00032e9d42f63a9afb",
+			"revisionTime": "2017-10-24T03:28:03Z"
+		},
+		{
 			"checksumSHA1": "sIwthOGOIXFw3dLTF5y4c3e5EFM=",
 			"path": "github.com/jhunt/go-querytron",
 			"revision": "d7e47db792ceb62ccdb77f86bb0b00e26b2a4991",

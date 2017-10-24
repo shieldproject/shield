@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/jhunt/go-cli"
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/agent"
 )

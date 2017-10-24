@@ -46,12 +46,11 @@ func v1WhoAmI() error {
 	}
 
 	user := strings.Split(string(asciiToken), ":")[0]
-	fmt.Println("")
-	fmt.Printf("@G{USER:}\n")
+	fmt.Printf("\n@G{USER:}\n")
 	userReport := tui.NewReport()
 	userReport.Add("Name", user)
 	userReport.Output(os.Stdout)
-	fmt.Println("")
+	fmt.Printf("\n")
 	return nil
 }
 
@@ -66,8 +65,7 @@ func v2WhoAmI() error {
 		sysrole = "none"
 	}
 
-	fmt.Println("")
-	fmt.Printf("@G{USER:}\n")
+	fmt.Printf("\n@G{USER:}\n")
 	userReport := tui.NewReport()
 	userReport.Add("Name", userInfo.User.Name)
 	userReport.Add("Account", userInfo.User.Account)
@@ -76,15 +74,14 @@ func v2WhoAmI() error {
 
 	userReport.Output(os.Stdout)
 
-	fmt.Println("")
-	fmt.Printf("@G{TENANTS:}\n")
+	fmt.Printf("\n@G{TENANTS:}\n")
 	tenantsTable := tui.NewTable("Name", "Role", "UUID")
 	for _, tenant := range userInfo.Tenants {
 		tenantsTable.Row(tenant, tenant.Name, tenant.Role, tenant.UUID)
 	}
 
 	tenantsTable.Output(os.Stdout)
-	fmt.Println("")
+	fmt.Printf("\n")
 
 	return nil
 }

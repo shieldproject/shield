@@ -53,7 +53,7 @@ func contents(contents string) {
 }
 
 func lineBreak() {
-	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintf(os.Stderr, "\n")
 }
 
 func printUsage() {

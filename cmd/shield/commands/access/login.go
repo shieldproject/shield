@@ -130,7 +130,7 @@ func v1BasicAuthToken(username, password string) (token string, err error) {
 		}
 	}
 
-	fmt.Println("")
+	fmt.Printf("\n")
 
 	b64enc := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
 	return fmt.Sprintf("Basic %s", b64enc), nil
@@ -151,7 +151,7 @@ func v2LocalAuthSession(username, password string) (token string, err error) {
 		}
 	}
 
-	fmt.Println("")
+	fmt.Printf("\n")
 	token, _, err = api.Login(username, password)
 	return
 }

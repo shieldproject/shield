@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 const (

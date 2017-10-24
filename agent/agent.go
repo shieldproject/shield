@@ -11,8 +11,7 @@ import (
 	"syscall"
 
 	"golang.org/x/crypto/ssh"
-
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 type Agent struct {

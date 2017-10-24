@@ -97,7 +97,7 @@ func main() {
 
 	if *cmds.Opts.Version {
 		if Version == "" {
-			fmt.Println("shield cli (development)")
+			fmt.Printf("shield cli (development)\n")
 		} else {
 			fmt.Printf("shield cli v%s\n", Version)
 		}
@@ -197,7 +197,7 @@ func main() {
 			if err != nil {
 				panic("Couldn't parse error json")
 			}
-			fmt.Println(string(j))
+			fmt.Printf("%s\n", string(j))
 		} else {
 			fmt.Fprintf(os.Stderr, "@R{%s}\n", err)
 		}

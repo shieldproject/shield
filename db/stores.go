@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 type StoreConfigItem struct {

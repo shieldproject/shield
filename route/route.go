@@ -3,7 +3,7 @@ package route
 import (
 	"net/http"
 
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 type Handler func(r *Request)

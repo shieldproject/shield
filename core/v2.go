@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/log"
-	"github.com/starkandwayne/shield/timespec"
+	"github.com/jhunt/go-log"
 
+	"github.com/starkandwayne/shield/timespec"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
 )

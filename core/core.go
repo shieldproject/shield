@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 	"github.com/starkandwayne/goutils/timestamp"
+
 	"github.com/starkandwayne/shield/crypter"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"

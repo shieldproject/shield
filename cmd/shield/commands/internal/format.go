@@ -52,7 +52,7 @@ func RawJSON(raw interface{}) {
 
 //RawUUID prints the given UUID to stdout.
 func RawUUID(uuid string) {
-	fmt.Println(uuid)
+	fmt.Printf("%s\n", uuid)
 }
 
 func boolString(tf bool) string {
