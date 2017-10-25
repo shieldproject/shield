@@ -4318,6 +4318,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       (function (s) {
         var last = "",
             every = 5,
+            failing = true;
             backoff = {
               0:   5,    /* on success */
               5:   6,    /* +1  */
@@ -4348,10 +4349,16 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             type: 'GET',
             url:  uri,
             success: function (data) {
-              every = backoff[0]; /* reset backoff */
+              if (failing) {
+                failing = false;
+                every = backoff[0]; /* reset */
+              } else {
+                every = backoff[every];
+              }
               rehud(data);
             },
             error: function (xhr) {
+              failing = true;
               var old = every;
               every = backoff[every];
               if (every != backoff[every]) {
