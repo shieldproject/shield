@@ -1322,6 +1322,7 @@
             [[ if (_.systems.length == 0) { ]]
             <div class="no-data">You have not yet configured any data systems to protect.</div>
             [[ } else { ]]
+            <div>
             [[ $.each(_.systems, function (i, target) { ]]
             <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="#!/systems/system:uuid:[[= target.uuid ]]">
@@ -1341,6 +1342,7 @@
               </a>
             </div>
             [[ }); ]]
+            </div>
             [[ } ]]
           </div>
     <!-- }}} --></script>
@@ -1487,6 +1489,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ if (_.stores.length == 0) { ]]
             <div class="no-data">No Cloud Storage Systems have been configured yet.</div>
             [[ } else { ]]
+            <div>
             [[ $.each(_.stores, function (i, store) { ]]
             <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
@@ -1503,6 +1506,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </a>
             </div>
             [[ }); ]]
+            </div>
             [[ } ]]
           </div>
     <!-- }}} --></script>
