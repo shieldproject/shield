@@ -281,6 +281,14 @@ var opts struct {
 		SysRole  string `cli:"--system-role"`
 	} `cli:"update-user"`
 
+	/* SESSIONS {{{ */
+	Sessions struct {
+		Limit    int    `cli:"-l, --limit"`
+		UserUUID string `cli:"-u, --user-uuid"`
+		IP       string `cli:"--ip"`
+	} `cli:"sessions"`
+	Session       struct{} `cli:"session"`
+	DeleteSession struct{} `cli:"delete-session"`
 	/* }}} */
 }
 
@@ -2452,6 +2460,83 @@ func main() {
 		}
 
 		r, err := c.ChangePassword(old, a)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(r))
+			break
+		}
+		fmt.Printf("%s\n", r.OK)
+
+	/* }}} */
+
+	case "sessions": /* {{{ */
+		required(len(args) <= 1, "Too many arguments.")
+
+		filter := &shield.SessionFilter{
+			Limit: opts.Sessions.Limit,
+		}
+		if len(args) == 1 {
+			filter.IP = args[0]
+		}
+
+		sessions, err := c.ListSessions(filter)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(sessions))
+			break
+		}
+
+		tbl := tui.NewTable("UUID", "Account", "Created At", "Last Seen", "IP Address", "User Agent")
+		for _, session := range sessions {
+			tbl.Row(session, session.UUID, session.UserAccount, session.CreatedAt, session.LastSeen, session.IP, session.UserAgent)
+		}
+		tbl.Output(os.Stdout)
+
+	/* }}} */
+	case "session": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: buckler %s UUID\n", command)
+		}
+
+		session, err := c.GetSession(args[0])
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(session))
+			break
+		}
+
+		r := tui.NewReport()
+		r.Add("UUID", session.UUID)
+		r.Add("Account", session.UserAccount)
+		r.Add("Created At", session.CreatedAt)
+		r.Add("Last Seen", session.LastSeen)
+		r.Add("IP Address", session.IP)
+		r.Add("User Agent", session.UserAgent)
+		r.Output(os.Stdout)
+
+	/* }}} */
+
+	case "delete-session": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: buckler %s UUID\n", command)
+		}
+
+		session, err := c.GetSession(args[0])
+		bail(err)
+
+		if !confirm(opts.Yes, "Delete session for user @Y{%s}?", session.UserAccount) {
+			break
+		}
+
+		if session.CurrentSession {
+			if !confirm(opts.Yes, "This is your current session, are you really sure you want to delete it? You will have to reauthenticate.") {
+				break
+			}
+		}
+		r, err := c.DeleteSession(session)
 		bail(err)
 
 		if opts.JSON {

@@ -98,8 +98,8 @@
    ***************************************************/
   exported.trelative = function (d, threshold, fmt) { // {{{
     d = exported.tparse(d);
-    var now = new Date()
-
+    var now = new Date();
+    threshold = threshold * 1000;
     if (threshold > 0 && now.getTime() - d.getTime() < threshold) {
       return duration(tdiff(d, now)) + " ago";
     }

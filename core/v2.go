@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/shield/timespec"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
+	"github.com/starkandwayne/shield/timespec"
 )
 
 type v2AuthProvider struct {
@@ -596,7 +596,87 @@ func (core *Core) v2API() *route.Router {
 		r.Success("Token revoked")
 	})
 	// }}}
+	r.Dispatch("GET /v2/auth/sessions", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
 
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit < 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
+			return
+		}
+
+		sessions, err := core.DB.GetAllSessions(
+			&db.SessionFilter{
+				UUID:       r.Param("uuid", ""),
+				UserUUID:   r.Param("user_uuid", ""),
+				Name:       r.Param("name", ""),
+				IP:         r.Param("ip_addr", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
+				IsToken:    r.ParamIs("is_token", "t"),
+				Limit:      limit,
+			},
+		)
+		for _, session := range sessions {
+			if session.UUID.String() == r.SessionID() {
+				session.CurrentSession = true
+				break
+			}
+		}
+
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve session information"))
+			return
+		}
+
+		r.OK(sessions)
+	})
+	// }}}
+	r.Dispatch("GET /v2/auth/sessions/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit < 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
+			return
+		}
+
+		session, err := core.DB.GetSession(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve session information"))
+			return
+		}
+		if session.UUID.String() == r.SessionID() {
+			session.CurrentSession = true
+		}
+
+		r.OK(session)
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/auth/sessions/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+		session, err := core.DB.GetSession(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve session information"))
+			return
+		}
+		if session == nil {
+			r.Fail(route.NotFound(nil, "Session not found"))
+			return
+		}
+
+		if err := core.DB.ClearSession(session.UUID.String()); err != nil {
+			r.Fail(route.Oops(err, "Unable to clear session '%s' (%s)", r.Args[1], session.IP))
+			return
+		}
+		r.Success("Successfully cleared session '%s' (%s)", r.Args[1], session.IP)
+	})
+	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
@@ -1208,12 +1288,17 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to retrieve tenant information"))
 			return
 		}
-		if tenant != nil {
-			if err := core.DB.DeleteTenant(tenant); err != nil {
-				r.Fail(route.Oops(err, "Unable to delete tenant '%s' (%s)", r.Args[1], tenant.Name))
-				return
-			}
+
+		if tenant == nil {
+			r.Fail(route.NotFound(nil, "Tenant not found"))
+			return
 		}
+
+		if err := core.DB.DeleteTenant(tenant); err != nil {
+			r.Fail(route.Oops(err, "Unable to delete tenant '%s' (%s)", r.Args[1], tenant.Name))
+			return
+		}
+
 		r.Success("Successfully deleted tenant '%s' (%s)", r.Args[1], tenant.Name)
 	})
 	// }}}
@@ -2334,7 +2419,11 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		session, err := core.createSession(user)
+		session, err := core.createSession(&db.Session{
+			UserUUID:  user.UUID,
+			IP:        r.Req.RemoteAddr,
+			UserAgent: r.Req.UserAgent(),
+		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to log you in"))
 			return
@@ -2363,6 +2452,7 @@ func (core *Core) v2API() *route.Router {
 		user, _ := core.AuthenticatedUser(r)
 		if id, _ := core.checkAuth(user); id != nil {
 			r.OK(id)
+			return
 		}
 
 		r.OK(struct {

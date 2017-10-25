@@ -13,8 +13,11 @@ func (s v4Schema) Deploy(db *DB) error {
 
 	// Set up Multi-Tenancy
 	err = db.Exec(`CREATE TABLE tenants (
-	                 uuid          UUID PRIMARY KEY,
-	                 name          TEXT NOT NULL DEFAULT ''
+	                 uuid              UUID PRIMARY KEY,
+			 name              TEXT NOT NULL DEFAULT '',
+			 daily_increase    INTEGER DEFAULT NULL,
+			 storage_used      INTEGER DEFAULT NULL,
+			 archive_count     INTEGER DEFAULT NULL
 	               )`)
 	if err != nil {
 		return err
@@ -200,13 +203,10 @@ func (s v4Schema) Deploy(db *DB) error {
 	                 last_seen     INTEGER,
 
 	                 token         UUID DEFAULT NULL, -- the auth token itself
-	                 name          TEXT DEFAULT ''    -- name for auth token
+			 name          TEXT DEFAULT '',    -- name for auth token
+			 ip_addr       TEXT DEFAULT '',    -- last seen ip address
+			 user_agent    TEXT DEFAULT ''    -- last seen user agent
 	               )`)
-	if err != nil {
-		return err
-	}
-
-	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err
 	}
@@ -231,17 +231,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tenants ADD COLUMN daily_increase INTEGER DEFAULT NULL`)
-	if err != nil {
-		return err
-	}
-
-	err = db.Exec(`ALTER TABLE tenants ADD COLUMN storage_used INTEGER DEFAULT NULL`)
-	if err != nil {
-		return err
-	}
-
-	err = db.Exec(`ALTER TABLE tenants ADD COLUMN archive_count INTEGER DEFAULT NULL`)
+	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err
 	}
