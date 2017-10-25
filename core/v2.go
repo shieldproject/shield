@@ -601,6 +601,12 @@ func (core *Core) v2API() *route.Router {
 				Limit:      limit,
 			},
 		)
+		for _, session := range sessions {
+			if session.UUID.String() == r.SessionID() {
+				session.CurrentSession = true
+				break
+			}
+		}
 
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve session information"))
@@ -621,13 +627,16 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		sessions, err := core.DB.GetSession(r.Args[1])
+		session, err := core.DB.GetSession(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve session information"))
 			return
 		}
+		if session.UUID.String() == r.SessionID() {
+			session.CurrentSession = true
+		}
 
-		r.OK(sessions)
+		r.OK(session)
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/auth/sessions/:uuid", func(r *route.Request) { // {{{

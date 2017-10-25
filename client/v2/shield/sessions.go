@@ -7,15 +7,16 @@ import (
 )
 
 type Session struct {
-	UUID        string `json:"uuid"`
-	UserUUID    string `json:"user_uuid"`
-	CreatedAt   string `json:"created_at"`
-	LastSeen    string `json:"last_seen_at"`
-	Token       string `json:"token_uuid"`
-	Name        string `json:"name"`
-	IP          string `json:"ip_addr"`
-	UserAgent   string `json:"user_agent"`
-	UserAccount string `json:"user_account"`
+	UUID           string `json:"uuid"`
+	UserUUID       string `json:"user_uuid"`
+	CreatedAt      string `json:"created_at"`
+	LastSeen       string `json:"last_seen_at"`
+	Token          string `json:"token_uuid"`
+	Name           string `json:"name"`
+	IP             string `json:"ip_addr"`
+	UserAgent      string `json:"user_agent"`
+	UserAccount    string `json:"user_account"`
+	CurrentSession bool   `json:"current_session"`
 }
 
 type SessionFilter struct {

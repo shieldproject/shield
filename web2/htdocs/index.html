@@ -2022,7 +2022,7 @@
                     <td>[[= trelative(session.last_seen_at, 14*86400) ]]</td>
                     <td>[[= session.ip_addr ]]</td>
                     <td id="user-agent">[[= session.user_agent ]]</td>
-                    <td><a href="#!/admin/sessions/delete:uuid:[[= session.uuid ]]">delete</a></td>
+                    <td>[[ if (!session.current_session) {]]<a href="#!/admin/sessions/delete:uuid:[[= session.uuid ]]">delete</a> [[ } ]]</td>
                   </tr>
                   [[ }); ]]
                 </tbody>

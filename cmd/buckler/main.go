@@ -2530,6 +2530,12 @@ func main() {
 		if !confirm(opts.Yes, "Delete session for user @Y{%s}?", session.UserAccount) {
 			break
 		}
+
+		if session.CurrentSession {
+			if !confirm(opts.Yes, "This is your current session, are you really sure you want to delete it? You will have to reauthenticate.") {
+				break
+			}
+		}
 		r, err := c.DeleteSession(session)
 		bail(err)
 
