@@ -49,10 +49,10 @@ func (f *SessionFilter) Query() (string, []interface{}) {
 
 	if f.Name != "" {
 		if f.ExactMatch {
-			wheres = append(wheres, "s.name LIKE ?")
+			wheres = append(wheres, "s.name = ?")
 			args = append(args, Pattern(f.Name))
 		} else {
-			wheres = append(wheres, "s.name = ?")
+			wheres = append(wheres, "s.name LIKE ?")
 			args = append(args, f.Name)
 		}
 	}
@@ -214,6 +214,5 @@ func (db *DB) PokeSession(session *Session) error {
 }
 
 func stripIP(raw_ip string) string {
-	r, _ := regexp.Compile(":[^:]+$")
-	return r.ReplaceAllString(raw_ip, "")
+	return regexp.MustCompile(":[^:]+$").ReplaceAllString(raw_ip, "")
 }
