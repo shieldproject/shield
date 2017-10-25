@@ -237,6 +237,23 @@ func (core *Core) v2API() *route.Router {
 		r.OK(users)
 	})
 	// }}}
+	r.Dispatch("POST /v2/ui/check/timespec", func(r *route.Request) { // {{{
+		var in struct {
+			Timespec string `json:"timespec"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		spec, err := timespec.Parse(in.Timespec)
+		if err != nil {
+			r.Fail(route.Bad(err, fmt.Sprintf("%s", err)))
+			return
+		}
+
+		r.Success("%s", spec)
+	})
+	// }}}
 
 	r.Dispatch("GET /v2/auth/providers", func(r *route.Request) { // {{{
 		l := make([]AuthProviderConfig, 0)
@@ -1397,6 +1414,11 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		if r.ParamIs("test", "t") {
+			r.Success("validation suceeded (request made in ?test=t mode)")
+			return
+		}
+
 		target, err := core.DB.CreateTarget(&db.Target{
 			TenantUUID: uuid.Parse(r.Args[1]),
 			Name:       in.Name,
@@ -1569,6 +1591,11 @@ func (core *Core) v2API() *route.Router {
 		}
 		if in.Expires%86400 != 0 {
 			r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
+			return
+		}
+
+		if r.ParamIs("test", "t") {
+			r.Success("validation suceeded (request made in ?test=t mode)")
 			return
 		}
 
@@ -1761,6 +1788,11 @@ func (core *Core) v2API() *route.Router {
 		tenant, err := core.DB.GetTenant(r.Args[1])
 		if tenant == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+
+		if r.ParamIs("test", "t") {
+			r.Success("validation suceeded (request made in ?test=t mode)")
 			return
 		}
 

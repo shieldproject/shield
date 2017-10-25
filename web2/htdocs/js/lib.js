@@ -493,7 +493,7 @@
 
       if (!$banner) { $(document.body).append( $banner = $('<div class="banner-top">').hide() ); }
       if (typeof type == 'undefined') { type = 'info' }
-      $banner.show('fade').html(template('banner', {
+      $banner.show('fade').html(exported.template('banner', {
         type:    type,
         message: message
       }));
@@ -596,8 +596,10 @@
     var Templates = {};
     return function (name, data) {
       if (!(name in Templates)) {
+        console.log('compiling template %s', name);
         Templates[name] = compile($('script#tpl--'+name).html());
       }
+      console.log('rendering template %s, with data:', name, data);
       return Templates[name](data);
     }
   })();
@@ -949,7 +951,7 @@
 
               $('.userlookup-results').remove();
               $(event.target).after(
-                $(template('userlookup-results', data))
+                $(exported.template('userlookup-results', data))
                   .on('click', 'li', function (event) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -997,6 +999,8 @@
    ***************************************************/
   exported.jQuery.fn.validate = function (data) { // {{{
     var $form = this;
+    if (!('config' in data)) { data.config = {}; }
+
     $form.find('.ctl').each(function (i, ctl) {
       var $ctl  = $(ctl);
       var type  = $ctl.data('type');
@@ -1064,4 +1068,99 @@
     return res[1] * Math.pow(1024, powers[(res[2]||"").toLowerCase()]);
   };
   // }}}
+
+
+  /***************************************************
+     $(...).subform() - Set up a subform widget
+
+   ***************************************************/
+  exported.jQuery.fn.subform = function () { // {{{
+    var $form = this;
+
+    $form.find('.subform').hide();
+    $form.find('[data-subform]').on('click', function (event) {
+      $form.find('.subform').hide();
+      $form.find('.subform#'+$(event.target).extract('subform')).show();
+    });
+
+    return this;
+  };
+  // }}}
+
+
+  /***************************************************
+     $(...).optgroup() - Set up an optgroup widget
+
+   ***************************************************/
+  exported.jQuery.fn.optgroup = function () { // {{{
+    this.each(function (i, optgroup) {
+      var $optgroup = $(optgroup);
+      $optgroup.find('li').on('click', function (event) {
+        $optgroup.find('li.selected').removeClass('selected');
+        $(event.target).closest('li').addClass('selected');
+      });
+    });
+    return this;
+  };
+  // }}}
+
+
+  /***************************************************
+     optgroup(selected, list) - Return HTML for an optgroup set
+
+   ***************************************************/
+  exported.optgroup = function (selected, list) { // {{{
+    if (arguments.length == 1) {
+      list = selected;
+      selected = list[0];
+    }
+
+    var html = "";
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] == selected) {
+        html += '<li class="selected">'+list[i]+'</li>';
+      } else {
+        html += '<li>'+list[i]+'</li>';
+      }
+    }
+    return html;
+  };
+  // }}}
+
+
+  /***************************************************
+     $(...).timespec() - Summarize a Timespec Form
+
+   ***************************************************/
+  exported.jQuery.fn.timespec = function () { // {{{
+    var $form = $(this);
+    var d = $form.serializeObject();
+    var s = '';
+
+    switch ($form.find('[data-subform].selected').extract('subform')) {
+    case 'schedule-hourly':
+      var ampm = $form.find('#schedule-hourly .ampm .selected').text();
+      return 'every '+d.hourlyn+' hour from '+d.hourlyat+ampm;
+
+    case 'schedule-daily':
+      var ampm = $form.find('#schedule-daily .ampm .selected').text();
+      return 'daily '+d.dailyat+ampm;
+
+    case 'schedule-weekly':
+      var ampm = $form.find('#schedule-weekly .ampm .selected').text();
+      var wday = $form.find('#schedule-weekly .wday .selected').text();
+      return 'weekly at '+d.weeklyat+ampm+' on '+wday;
+
+    case 'schedule-monthly':
+      var ampm = $form.find('#schedule-monthly .ampm .selected').text();
+      var mday = $form.find('#schedule-monthly .mday .selected').text();
+      if (mday == 'day') {
+        return 'monthly at '+d.monthlyat+ampm+' on '+d.monthlynth;
+      } else {
+        return d.monthlynth+' '+mday+' at '+d.monthlyat+ampm;
+      }
+    }
+  };
+  // }}}
+
 })(window, document);

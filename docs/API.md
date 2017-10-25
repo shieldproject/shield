@@ -2365,6 +2365,17 @@ JSON, inline, for both readability and sanity's sake.
 
 FIXME: Fix target.endpoint string -> JSON problem.
 
+The following query string parameters are honored:
+
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the target in the database.  This is useful
+for validating that a target _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
+
+
 **Response**
 
 ```json
@@ -2672,6 +2683,17 @@ The values under `config` will depend entirely on which `plugin`
 has been selected; no validation will be done by the SHIELD Core,
 until the storage system is used in a job.
 
+The following query string parameters are honored:
+
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the store in the database.  This is useful
+for validating that a store _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
+
+
 **Response**
 
 ```json
@@ -2951,6 +2973,17 @@ curl -H 'Accept: application/json' \
 The `expires` value must be specified in seconds, and
 must be at least 86,400 (1 day) and be a multiple of
 86,400.
+
+The following query string parameters are honored:
+
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the policy in the database.  This is useful
+for validating that a policy _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
+
 
 **Response**
 
