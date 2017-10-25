@@ -1724,105 +1724,6 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--stores-form-choose-plugin"><!-- {{{ -->
-      [[#
-        {stores-form-choose-plugin} template
-
-        Renders the plugin choice dropdown
-      ]]
-          <div class="ctl" data-field="plugin">
-            <label for="store-plugin">Storage Plugin</label>
-            <span class="errors">
-              <span data-error="missing">You must select a storage plugin to use.</span>
-            </span>
-            <div class="widget">
-              <select id="store-plugin" name="plugin">
-                <option></option>
-                [[
-                    var plugins = [];
-                    $.each(_.metadata.plugins, function (plugin, metadata) {
-                      if (metadata.features.store == 'yes') {
-                        plugins.push([plugin, metadata.name + " ("+plugin+")"])
-                      }
-                    });
-                    plugins = plugins.sort(function (a, b) {
-                      return a[1] > b[1] ?  1
-                           : a[1] < b[1] ? -1 : 0;
-                    });
-                ]]
-                [[ $.each(plugins, function (i, plugin) { ]]
-                <option value="[[= plugin[0] ]]">[[= plugin[1] ]]</option>
-                [[ }); ]]
-              </select>
-            </div>
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="tpl--stores-form-configure-plugin"><!-- {{{ -->
-      [[#
-        {stores-form-configure-plugin} template
-
-        Renders the plugin / endpoint configuration sub-form
-      ]][[
-
-            var esc = function (s) { return s.replace(/`([^`]*)`/g, '<tt>$1</tt>'); }
-
-          ]]
-          <div class="subform">
-            <h2>Storage Plugin Options</h2>
-          [[ var n = 0; ]]
-          [[ $.each(_.plugin.fields, function (i, field) { ]]
-            [[ if (field.mode == 'target') { return; } ]]
-              [[ n++; ]]
-              <div class="ctl[[ if (field.required) { ]] required[[ } ]]" data-field="config.[[= field.name ]]" data-type="[[= field.type ]]">
-                <label for="store-plugin-[[= field.name ]]">[[= esc(field.title) ]][[ if (field.required) { ]] <span>(required)</span>[[ } ]]</label>
-                <span class="errors">
-                  <span data-error="missing">You must provide a value for this plugin configuration.</span>
-                  [[ if (field.type == "port") { ]]
-                  <span data-error="invalid">Please supply a valid port number, between 1 and 65535 (inclusive).</span>
-                  [[ } else if (field.type == "abspath") { ]]
-                  <span data-error="invalid">Please supply an absolute filesystem path, starting with a forward slash.</span>
-                  [[ } ]]
-                </span>
-                <div class="widget">
-                  [[ if (field.type == 'bool') { ]]
-                  <input type="checkbox" id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]" />
-                  [[ } else if (field.type == 'enum') { ]]
-                  <select id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]">
-                    [[ if (!field.required || field.default) { ]]<option></option>[[ } ]]
-                    [[ $.each(field.enum, function (i, value) { ]]
-                    [[   if (_.config && _.config[field.name] == value) { ]]
-                    <option selected value="[[= value ]]">[[= value ]]</option>
-                    [[   } else { ]]
-                    <option value="[[= value ]]">[[= value ]]</option>
-                    [[   } ]]
-                    [[ }); ]]
-                  </select>
-                  [[ } else if (field.type == 'password') { ]]
-                  <!-- FIXME: this needs to be a smudge field -->
-                  <input type="password" id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]"
-                    [[ if (_.config && (field.name in _.config)) { ]]value="[[= _.config[field.name] ]]"[[ } ]]
-                    [[ if (field.placeholder && field.placeholder != "") { ]]placeholder="[[= field.placeholder ]]"[[ } ]]/>
-                  [[ } else { ]]
-                  <input type="text" id="store-plugin-[[= field.name ]]" name="config.[[= field.name ]]"
-                    [[ if (_.config && (field.name in _.config)) { ]]value="[[= _.config[field.name] ]]"[[ } ]]
-                    [[ if (field.placeholder && field.placeholder != "") { ]]placeholder="[[= field.placeholder ]]"[[ } ]]/>
-                  [[ } ]]
-                  [[ if (field.help && field.help != '') { ]]
-                  <p class="help">[[= esc(field.help) ]]</p>
-                  [[ } ]]
-                  [[ if (field.example && field.example != '') { ]]
-                  <p class="example">For example: [[= esc(field.example) ]]</p>
-                  [[ } ]]
-                </div>
-              </div>
-          [[ }); ]]
-          [[ if (n == 0) { ]]
-          <div class="no-data">
-            <p>This storage plugin is zero-conf, and should just work.</p>
-          </div>
-          [[ } ]]
-          </div>
-    <!-- }}} --></script>
     <script type="text/html" id="tpl--stores-delete"><!-- {{{ -->
       [[#
         {stores-delete}
@@ -3211,37 +3112,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 agents: data,
               }))
               .autofocus()
-              .on('change', 'select#store-agent', function (event) {
-                var uuid = $(event.target).val().replace(/\|.*/, '');
-                if (uuid == "") { return; }
-
-                $('#main #choose-plugin').html(template('loading'));
-                api({
-                  type: 'GET',
-                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
-                  success: function (data) {
-                    cache = data;
-                    $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
-                  }
-                });
-              })
-              .on('change', 'select#store-plugin', function (event) {
-                var plugin = $(event.target).val();
-                if (plugin == '') { return; }
-
-                $('#main #configure-plugin').html(
-                  template('stores-form-configure-plugin', {
-                    plugin: cache.metadata.plugins[plugin]
-                  }));
-              })
               .on('submit', 'form', function (event) {
                 event.preventDefault();
 
                 var $form = $(event.target);
-                var data = $form.serializeObject();
-                data.agent = data.agent.replace(/.*\|/, '');
-                data.threshold = readableToBytes(data.threshold);
-
+                var data = $form.serializePluginForm();
                 if (!$form.reset().validate(data).isOK()) { return; }
                 api({
                   type: 'POST',
@@ -3255,6 +3130,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   }
                 });
               }));
+            $('#main form').pluginForm({ type: 'store' });
           }
         });
         break; /* #!/stores */
