@@ -7,7 +7,7 @@ import (
 func hhmm12(hours, minutes uint, am bool) int {
 	if am && hours == 12 { /* 12am is 00:00 */
 		hours = 0
-	} else if !am && hours > 12 { /* 12pm is 12:00 */
+	} else if !am && hours < 12 { /* 12pm is 12:00 */
 		hours += 12
 	}
 	return hhmm24(hours, minutes)
