@@ -442,24 +442,27 @@ body { font-family: sans-serif; }
   float: right;
 }
 
-.banner-top {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100vw;
-  text-align: center;
-  z-index: 200;
-}
 .banner-top p {
-  display: inline-block;
-  width: auto;
+  color: #fff;
+  background-color: #FF1D25;
+  box-shadow: 0px 4px 5px rgba(0,0,0,0.25);
+
+  position: fixed;
+  top: 0px; left: 0; right: 0;
+  z-index: 100;
+
+  padding: 7px 0 9px 0;
   text-align: center;
-  padding: 1ex;
-  margin: 1em;
-  box-shadow: 0px 0px 8px #333;
-  border-radius: 0.75ex;
-  background-color: #ccc;
-  color: #000;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+.banner-top p a {
+  display: inline-block;
+  text-decoration: none;
+  border-bottom: 1px dotted #fff;
+  color: #fff;
+  font-size: 80%;
+  margin-left: 1em;
 }
 .banner-top p.info     { color: #fff; background-color: #729849; }
 .banner-top p.error    { color: #fff; background-color: #ff1d25; }

@@ -493,13 +493,19 @@
 
       if (!$banner) { $(document.body).append( $banner = $('<div class="banner-top">').hide() ); }
       if (typeof type == 'undefined') { type = 'info' }
-      $banner.show('fade').html(exported.template('banner', {
+      $banner.show().html(exported.template('banner', {
         type:    type,
         message: message
       }));
-      time = window.setTimeout(function () {
-        $banner.hide('fade');
-      }, 7000);
+      $banner.on('click', 'a', function (event) {
+        event.preventDefault();
+        $banner.hide();
+      });
+      if (type !== 'error') {
+        time = window.setTimeout(function () {
+          $banner.hide();
+        }, 7000);
+      }
     };
   }());
   // }}}
