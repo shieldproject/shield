@@ -4316,9 +4316,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
       /* ... ping /v2/health every X seconds, and update the HUD {{{ */
       (function (s) {
-        var last = "",
-            every = 5,
-            failing = true;
+        var last    = "",
+            every   = 5,
+            timer   = undefined,
+            failing = true,
             backoff = {
               0:   5,    /* on success */
               5:   6,    /* +1  */
@@ -4342,7 +4343,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           var uri = ""
           if ($global.auth.tenant) {
             uri = '/v2/tenants/'+$global.auth.tenant.uuid+'/health'
-          }else{
+          } else {
             uri = '/v2/health'
           }
           $.ajax({
@@ -4369,10 +4370,21 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               rehud($global.hud);
             },
             complete: function () {
-              window.setTimeout(ping, every * 1000);
+              timer = window.setTimeout(ping, every * 1000);
             }
           });
         }
+        $(document).on('visibilitychange', function (event) {
+          if (document.hidden) {
+            console.log('pausing /v2/health checks...');
+            if (timer) { window.clearTimeout(timer); }
+            timer = undefined;
+          } else {
+            console.log('resuming /v2/health checks...');
+            every = backoff[0]; /* reset */
+            ping();
+          }
+        });
         ping();
       })(5);
       /* }}} */
