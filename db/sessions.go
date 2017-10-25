@@ -48,14 +48,13 @@ func (f *SessionFilter) Query() (string, []interface{}) {
 	}
 
 	if f.Name != "" {
-		comparator := "LIKE"
-		toAdd := Pattern(f.Name)
 		if f.ExactMatch {
-			comparator = "="
-			toAdd = f.Name
+			wheres = append(wheres, "s.name LIKE ?")
+			args = append(args, Pattern(f.Name))
+		} else {
+			wheres = append(wheres, "s.name = ?")
+			args = append(args, f.Name)
 		}
-		wheres = append(wheres, fmt.Sprintf("s.name %s ?", comparator))
-		args = append(args, toAdd)
 	}
 
 	if f.IP != "" {
@@ -74,7 +73,7 @@ func (f *SessionFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-	    SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account
+	    SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account, u.backend
 		  FROM sessions s
 		  INNER JOIN users u   ON u.uuid = s.user_uuid
 	     WHERE ` + strings.Join(wheres, " AND ") + `
@@ -98,9 +97,10 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 		var (
 			this, user, token  NullUUID
 			created, last_seen *int64
+			backend            string
 		)
 		s := &Session{}
-		if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount); err != nil {
+		if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 			return nil, err
 		}
 
@@ -112,6 +112,7 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 		s.Token = token.UUID
 		s.UserUUID = user.UUID
 		s.CreatedAt = parseEpochTime(*created)
+		s.UserAccount = s.UserAccount + "@" + backend
 
 		l = append(l, s)
 	}
@@ -121,7 +122,7 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 
 func (db *DB) GetSession(id string) (*Session, error) {
 	r, err := db.Query(`
-	   SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account
+	   SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account, u.backend
 		 FROM sessions s
 		 INNER JOIN users u   ON u.uuid = s.user_uuid
 	    WHERE s.uuid = ?`, id)
@@ -137,9 +138,10 @@ func (db *DB) GetSession(id string) (*Session, error) {
 	var (
 		this, user, token  NullUUID
 		created, last_seen *int64
+		backend            string
 	)
 	s := &Session{}
-	if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount); err != nil {
+	if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 		return nil, err
 	}
 
@@ -151,6 +153,7 @@ func (db *DB) GetSession(id string) (*Session, error) {
 	s.Token = token.UUID
 	s.UserUUID = user.UUID
 	s.CreatedAt = parseEpochTime(*created)
+	s.UserAccount = s.UserAccount + "@" + backend
 
 	return s, nil
 }
@@ -211,6 +214,6 @@ func (db *DB) PokeSession(session *Session) error {
 }
 
 func stripIP(raw_ip string) string {
-	r, _ := regexp.Compile("(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}")
-	return r.FindString(raw_ip)
+	r, _ := regexp.Compile(":[^:]+$")
+	return r.ReplaceAllString(raw_ip, "")
 }

@@ -776,6 +776,81 @@ The following error messages can be returned:
   site administrators
 
 
+### GET /v2/auth/sessions/:uuid
+
+Retrieve a single login session
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/auth/sessions/:uuid
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+[
+  {
+    "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
+    "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
+    "created_at": "2017-10-24 16:39:03",
+    "last_seen_at": "2017-10-24 16:39:03",
+    "token_uuid": "",
+    "name": "",
+    "ip_addr": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+    "user_account": "admin"
+  }
+]
+```
+
+- **uuid** - The internal UUID assigned to this session by the SHIELD Core.
+
+- **user\_uuid** - The internal UUID corresponding to the user associated with the session.
+
+- **created\_at** - When the user created the session (upon login via WebUI or CLI).
+  Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+
+- **last\_seen\_at** - When the user last made contact with the 
+  SHIELD Core via an authenticated endpoint.
+  Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
+
+- **token\_uuid** - The uuid of the SHIELD Token associated with the session (if applicable).
+
+- **name** - The name of the SHIELD Token associated with the session (if applicable).
+
+- **ip\_addr** - The originating `IP address` of the user, from the
+  point-of-view of the SHIELD Core.
+
+- **user\_agent** - The user agent associated with the last request made by the user.
+
+- **user\_account** - The account corresponding to the user associated with the session.
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Authentication failed**:
+  The request either lacked a session cookie (or an
+  `X-Shield-Session` header), or some other internal
+  error has occurred, and SHIELD administrators should
+  investigate.
+
+- **Unable to retrieve session information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+
 ### DELETE /v2/auth/sessions/:uuid
 
 Revoke a user's session and force them to reauthenticate on next request.
