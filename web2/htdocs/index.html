@@ -4417,7 +4417,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
 
       /* global: show a task in the next row down {{{ */
-      $('#main').on('click', 'a[href^="task:"]', function (event) {
+      $(document.body).on('click', 'a[href^="task:"]', function (event) {
         event.preventDefault();
         var uuid  = $(event.target).closest('a[href^="task:"]').attr('href').replace(/^task:/, '');
         var $ev   = $(event.target).closest('.event');
@@ -4445,12 +4445,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       });
       /* }}} */
       /* global: show an annotation form, in a task log {{{ */
-      $('#main').on('click', '.task button[rel^="annotate:"]', function (event) {
+      $(document.body).on('click', '.task button[rel^="annotate:"]', function (event) {
         $(event.target).closest('.task').find('form.annotate').toggle();
       });
       /* }}} */
       /* global: submit the annotation form {{{ */
-      $('#main').on('submit', '.task form.annotate', function (event) {
+      $(document.body).on('submit', '.task form.annotate', function (event) {
         event.preventDefault();
 
         var $form = $(event.target);
@@ -4493,7 +4493,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       /* }}} */
 
       /* global: handle "run:job-uuid" links {{{ */
-      $('#main').on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) {
+      $(document.body).on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) {
         event.preventDefault();
         var uuid;
         if ($(event.target).is('button')) {
@@ -4518,7 +4518,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       });
       /* }}} */
       /* global: handle "restore:archive-uuid" buttons {{{ */
-      $('#main').on('click', '.task button[rel^="restore:"]', function (event) {
+      $(document.body).on('click', '.task button[rel^="restore:"]', function (event) {
         var uuid   = $(event.target).extract('archive-uuid');
         var target = $(event.target).extract('system-name');
         var taken  = $(event.target).extract('archive-taken');
