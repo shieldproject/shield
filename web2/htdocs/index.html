@@ -949,46 +949,46 @@
         Optionally, if this is being displayed in the {system} view,
         also display a big RESTORE button in the task output.
       ]]
-<pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
-<button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
+        <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
+        <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
 
-<form class="annotate">
-  <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
-  [[ if (_.task.status == "failed") { ]]
-  <p><input type="checkbox" name="disposition"
-            id="annotask-ok"[[ if (_.task.ok) { ]] checked[[ } ]]><label for="annotask-ok">Nothing to worry about</label></p>
-  [[ } ]]
-  <p><textarea name="notes" id="notes"
-              placeholder="no notes recorded yet...">[[= maybe(_.task.notes, '') ]]</textarea></p>
-  <button>Save</button>
-</form>
+        <form class="annotate">
+        <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
+        [[ if (_.task.status == "failed") { ]]
+        <p><input type="checkbox" name="disposition"
+                    id="annotask-ok"[[ if (_.task.ok) { ]] checked[[ } ]]><label for="annotask-ok">Nothing to worry about</label></p>
+        [[ } ]]
+        <p><textarea name="notes" id="notes"
+                    placeholder="no notes recorded yet...">[[= maybe(_.task.notes, '') ]]</textarea></p>
+        <button>Save</button>
+        </form>
 
-</div><em>task <em>[[= _.task.uuid ]]</em></em>
-<em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
-if (_.task.type == "purge") { ]]
-purging archive <em>[[= _.task.archive_uuid ]]</em>[[
-} else if (_.task.type == "restore") { ]]
-restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
-} ]]
-initiated by <em>[[= _.task.owner ]]</em></em>
+        </div><em>task <em>[[= _.task.uuid ]]</em></em>
+        <em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[
+        if (_.task.type == "purge") { ]]
+        purging archive <em>[[= _.task.archive_uuid ]]</em>[[
+        } else if (_.task.type == "restore") { ]]
+        restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
+        } ]]
+        initiated by <em>[[= _.task.owner ]]</em></em>
 
-[[= _.task.log ]]
+        [[= _.task.log ]]
 
-<em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
-]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
-[[ }
+        <em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
+        ]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
+        [[ }
 
-if (_.task.type == 'backup') {
-  if (_.task.archive_uuid != "") {
-    ]]generated archive <em>[[= _.task.archive_uuid ]]</em>
-for job <em>[[= _.task.job_uuid ]]</em>
-[[
-  } else {
-  ]]no archive was generated.
-[[
-  }
-} ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
-</em></code></pre>
+        if (_.task.type == 'backup') {
+        if (_.task.archive_uuid != "") {
+            ]]generated archive <em>[[= _.task.archive_uuid ]]</em>
+        for job <em>[[= _.task.job_uuid ]]</em>
+        [[
+        } else {
+        ]]no archive was generated.
+        [[
+        }
+        } ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
+        </em></code></pre>
     <!-- }}} --></script>
 
     <script type="text/html" id="tpl--stores"><!-- {{{ -->
@@ -1655,6 +1655,14 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 vault, which is protected by the SHIELD <em>master password</em>.  If you need or
                 want to, you can rekey this SHIELD Core and pick a new master password.</p>
               </li>
+              [[ if ($global.auth.is.system.admin) { ]]
+              <li><a href="#!/admin/sessions">Manage User Sessions</a>
+                <p>Upon login, users are granted a session token to be used for the duration of 
+                    their access. These sessions can be revoked via this interface, or expire 
+                    naturally over time requiring the user to reauthenticate.
+                </p>
+              </li>
+              [[ } ]]
             </ul>
           </div>
     <!-- }}} --></script>
@@ -1797,9 +1805,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
             suffice:</p>
 
             <pre><code>$ uaac target <span class="hi">[[= p.uaa_endpoint ]]</span>
-$ uaac token client get admin
+                $ uaac token client get admin
 
-$ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
+                $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   --name S.H.I.E.L.D. \
                   --scope openid \
                   --authorities uaa.none \
@@ -1985,6 +1993,64 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             </form>
           </div>
     <!-- }}} --></script>
+    <script type="text/html" id="tpl--sessions"><!-- {{{ -->
+        [[#
+          {sessions} template
+  
+          Renders the list of all current user sessions
+        ]]
+            <div class="gutter blk">
+              <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+              <h2>Sessions</h2>
+              [[ if (_.sessions.length == 0) { ]]
+              <div class="no-data">No sessions have been created yet.</div>
+              [[ } else { ]]
+              <table>
+                <thead><tr>
+                  <th>Account</th>
+                  <th>Created At</th>
+                  <th>Last Seen</th>
+                  <th>IP Address</th>
+                  <th>User Agent</th>
+                  <th></th>
+                </tr></thead>
+                <tbody>
+                  [[ $.each(_.sessions, function (i, session) { ]]
+                  <tr>
+                    <td>[[= session.user_account ]]</td>
+                    <td>[[= session.created_at ]]</td>
+                    <td>[[= trelative(session.last_seen_at, 14*86400) ]]</td>
+                    <td>[[= session.ip_addr ]]</td>
+                    <td id="user-agent">[[= session.user_agent ]]</td>
+                    <td><a href="#!/admin/sessions/delete:uuid:[[= session.uuid ]]">delete</a></td>
+                  </tr>
+                  [[ }); ]]
+                </tbody>
+              </table>
+              [[ } ]]
+            </div>
+      <!-- }}} --></script>
+    <script type="text/html" id="tpl--sessions-delete"><!-- {{{ -->
+        [[#
+          {sessions-delete}
+  
+          A modal interaction screen that requires the operator to acknowledge
+          that what they are about to do will result in the destruction of
+          session data.
+        ]]
+            <div class="confirm">
+              <h2>Delete The Session For Account:<em>[[= _.session.user_account ]]</em>?</h2>
+  
+              <p>You have requested that S.H.I.E.L.D. remove the session for
+              the account "[[= _.session.user_account ]]".</p>
+  
+              <p class="q">Are you sure you want to delete the session for <em>[[= _.session.user_account ]]</em>?</p>
+              <div class="a">
+                <button class="danger" rel="yes">Yes, Delete It</button>
+                <button class="safe" rel="close">No, Cancel This Operation</button>
+              </div>
+            </div>
+      <!-- }}} --></script>
     <script type="text/html" id="tpl--"><!-- {{{ -->
     <!-- }}} --></script>
 
@@ -3343,7 +3409,63 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
         break; /* #!/admin/policies/delete */
         // }}}
+      case '#!/admin/sessions': /* {{{ */
+        if (!$global.auth.is.system.admin) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'admin' }));
+          break;
+        }
+        $('#main').html(template('loading'));
+        api({
+          type: 'GET',
+          url:  '/v2/auth/sessions',
+          error: "Failed retrieving the list of sessions from the SHIELD API.",
+          success: function (data) {
+          data = data.sort(function(a, b) {
+            if (a.user_account != b.user_account){
+                return a.user_account > b.user_account;
+            }
+            return tparse(a.last_seen_at).getTime() < tparse(b.last_seen_at).getTime();
+          });
+          $('#main').html(template('sessions', { sessions: data, admin: true }));
+          }
+        });
+        break; /* #!/admin/policies */
+        // }}}
+      case '#!/admin/sessions/delete': /* {{{ */
+        if (!$global.auth.is.system.admin) {
+          $('#main').html(template('access-denied', { level: 'system', need: 'admin' }));
+          break;
+        }
+        api({
+          type: 'GET',
+          url:  '/v2/auth/sessions/'+args.uuid,
+          error: "Failed to retrieve session information from the SHIELD API.",
+          success: function (data) {
+          modal($(template('sessions-delete', { session: data }))
+            .on('click', '[rel="yes"]', function (event) {
+            event.preventDefault();
+            api({
+                type: 'DELETE',
+                url:  '/v2/auth/sessions/'+args.uuid,
+                error: "Unable to delete session",
+                complete: function () {
+                modal(true);
+                },
+                success: function (event) {
+                goto('#!/admin/sessions');
+                }
+            });
+            })
+            .on('click', '[rel="close"]', function (event) {
+            modal(true);
+            goto('#!/admin/sessions');
+            })
+        );
+        }
+    });
 
+    break; /* #!/admin/policies/delete */
+    // }}}
       case "#!/unlock": /* {{{ */
         if (!$global.auth.is.system.engineer) {
           $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));

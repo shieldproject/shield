@@ -727,7 +727,8 @@ This endpoint takes no query string parameters.
     "token_uuid": "",
     "name": "",
     "ip_addr": "127.0.0.1",
-    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+    "user_account": "admin"
   }
 ]
 ```
@@ -747,10 +748,12 @@ This endpoint takes no query string parameters.
 
 - **name** - The name of the SHIELD Token associated with the session (if applicable).
 
-- **ip_addr** - The originating `IP address` of the user, from the
+- **ip\_addr** - The originating `IP address` of the user, from the
   point-of-view of the SHIELD Core.
 
-- **user_agent** - The user agent associated with the last request made by the user.
+- **user\_agent** - The user agent associated with the last request made by the user.
+
+- **user\_account** - The account corresponding to the user associated with the session.
 
 **Access Control**
 

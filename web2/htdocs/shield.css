@@ -1664,3 +1664,7 @@ h2 strong,
   font-size: 120%;
   line-height 1.4em;
 }
+
+#user-agent{
+  max-width: 200px;
+}

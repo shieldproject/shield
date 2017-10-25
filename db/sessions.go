@@ -11,14 +11,15 @@ import (
 )
 
 type Session struct {
-	UUID      uuid.UUID            `json:"uuid"`
-	UserUUID  uuid.UUID            `json:"user_uuid"`
-	CreatedAt timestamp.Timestamp  `json:"created_at"`
-	LastSeen  *timestamp.Timestamp `json:"last_seen_at"`
-	Token     uuid.UUID            `json:"token_uuid"`
-	Name      string               `json:"name"`
-	IP        string               `json:"ip_addr"`
-	UserAgent string               `json:"user_agent"`
+	UUID        uuid.UUID            `json:"uuid"`
+	UserUUID    uuid.UUID            `json:"user_uuid"`
+	CreatedAt   timestamp.Timestamp  `json:"created_at"`
+	LastSeen    *timestamp.Timestamp `json:"last_seen_at"`
+	Token       uuid.UUID            `json:"token_uuid"`
+	Name        string               `json:"name"`
+	IP          string               `json:"ip_addr"`
+	UserAgent   string               `json:"user_agent"`
+	UserAccount string               `json:"user_account"`
 }
 
 type SessionFilter struct {
@@ -28,6 +29,7 @@ type SessionFilter struct {
 	UserUUID   string
 	Limit      int
 	IP         string
+	IsToken    bool
 }
 
 func (f *SessionFilter) Query() (string, []interface{}) {
@@ -60,6 +62,10 @@ func (f *SessionFilter) Query() (string, []interface{}) {
 		args = append(args, f.IP)
 	}
 
+	if !f.IsToken {
+		wheres = append(wheres, "s.token IS NULL")
+	}
+
 	limit := ""
 	if f.Limit > 0 {
 		limit = " LIMIT ?"
@@ -67,8 +73,9 @@ func (f *SessionFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-	    SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent
-	      FROM sessions s
+	    SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account
+		  FROM sessions s
+		  INNER JOIN users u   ON u.uuid = s.user_uuid
 	     WHERE ` + strings.Join(wheres, " AND ") + `
 	` + limit, args
 }
@@ -92,7 +99,7 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 			created, last_seen *int64
 		)
 		s := &Session{}
-		if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent); err != nil {
+		if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount); err != nil {
 			return nil, err
 		}
 
@@ -113,9 +120,10 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 
 func (db *DB) GetSession(id string) (*Session, error) {
 	r, err := db.Query(`
-	   SELECT uuid, user_uuid, created_at, last_seen, token, name, ip_addr, user_agent
-	     FROM sessions
-	    WHERE uuid = ?`, id)
+	   SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account
+		 FROM sessions s
+		 INNER JOIN users u   ON u.uuid = s.user_uuid
+	    WHERE s.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +138,7 @@ func (db *DB) GetSession(id string) (*Session, error) {
 		created, last_seen *int64
 	)
 	s := &Session{}
-	if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent); err != nil {
+	if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount); err != nil {
 		return nil, err
 	}
 

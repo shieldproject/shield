@@ -580,9 +580,9 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/auth/sessions", func(r *route.Request) { // {{{
-		// if core.IsNotSystemAdmin(r) {
-		// 	return
-		// }
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
 
 		limit, err := strconv.Atoi(r.Param("limit", "0"))
 		if err != nil || limit < 0 {
@@ -597,6 +597,7 @@ func (core *Core) v2API() *route.Router {
 				Name:       r.Param("name", ""),
 				IP:         r.Param("ip_addr", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
+				IsToken:    r.ParamIs("is_token", "t"),
 				Limit:      limit,
 			},
 		)
@@ -609,10 +610,30 @@ func (core *Core) v2API() *route.Router {
 		r.OK(sessions)
 	})
 	// }}}
+	r.Dispatch("GET /v2/auth/sessions/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+
+		limit, err := strconv.Atoi(r.Param("limit", "0"))
+		if err != nil || limit < 0 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
+			return
+		}
+
+		sessions, err := core.DB.GetSession(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve session information"))
+			return
+		}
+
+		r.OK(sessions)
+	})
+	// }}}
 	r.Dispatch("DELETE /v2/auth/sessions/:uuid", func(r *route.Request) { // {{{
-		// if core.IsNotSystemAdmin(r) {
-		// 	return
-		// }
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
 		session, err := core.DB.GetSession(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve session information"))
