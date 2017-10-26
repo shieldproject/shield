@@ -82,6 +82,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 			Backend: user.Backend,
 			SysRole: user.SysRole,
 		},
+		Tenant: nil,
 	}
 
 	switch user.SysRole {
@@ -110,6 +111,10 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 		answer.Tenants[i].Name = membership.TenantName
 		answer.Tenants[i].Role = membership.Role
 
+		if answer.Tenants[i].UUID.String() == user.DefaultTenant {
+			answer.Tenant = &answer.Tenants[i]
+		}
+
 		grant := authTenantGrant{}
 		switch membership.Role {
 		case "admin":
@@ -124,7 +129,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 		}
 		answer.Grants.Tenants[membership.TenantUUID.String()] = grant
 	}
-	if len(answer.Tenants) > 0 {
+	if answer.Tenant == nil && len(answer.Tenants) > 0 {
 		answer.Tenant = &answer.Tenants[0]
 	}
 

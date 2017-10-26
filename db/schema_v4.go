@@ -180,6 +180,9 @@ func (s v4Schema) Deploy(db *DB) error {
 	                 pwhash        TEXT, -- only for local accounts
 	                 sysrole       VARCHAR(100) NOT NULL DEFAULT '',
 
+	                 -- user-managed settings
+	                 default_tenant  UUID DEFAULT '',
+
 	                 UNIQUE (account, backend)
 	               )`)
 	if err != nil {

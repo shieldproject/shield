@@ -606,7 +606,7 @@ sections:
               point-of-view of the SHIELD Core.
 
             - **user\_agent** - The user agent associated with the last request made by the user.
-            
+
             - **user\_account** - The account corresponding to the user associated with the session.
 
         errors:
@@ -621,7 +621,6 @@ sections:
             summary: *internal
 
       # }}}
-
       - name: GET /v2/auth/sessions/:uuid # {{{
         intro: |
           Retrieve a single login session
@@ -663,7 +662,7 @@ sections:
               point-of-view of the SHIELD Core.
 
             - **user\_agent** - The user agent associated with the last request made by the user.
-            
+
             - **user\_account** - The account corresponding to the user associated with the session.
 
         errors:
@@ -678,7 +677,6 @@ sections:
             summary: *internal
 
       # }}}
-
       - name: DELETE /v2/auth/sessions/:uuid # {{{
         intro: |
           Revoke a user's session and force them to reauthenticate on next request.
@@ -700,6 +698,38 @@ sections:
 
           - message: Unable to retrieve session information
             summary: *internal
+
+
+      # }}}
+
+      - name: PATCH /v2/auth/user/settings # {{{
+        intro: |
+          Save user settings.
+        access: any
+
+        request:
+          json: |
+            {
+              "default_tenant": "2a03d67b-6146-4716-b10a-42ec073cfb78"
+            }
+
+        response:
+          json: |
+            {
+              "ok" : "Settings saved."
+            }
+
+        errors:
+          - message: Authentication failed
+            summary: |
+              The request either lacked a session cookie (or an
+              `X-Shield-Session` header), or some other internal
+              error has occurred, and SHIELD administrators should
+              investigate.
+
+          - message: Unable to save settings
+            summary: *internal
+
 
 
       # }}}

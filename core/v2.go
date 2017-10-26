@@ -2489,6 +2489,32 @@ func (core *Core) v2API() *route.Router {
 		r.Success("Password changed successfully")
 	})
 	// }}}
+	r.Dispatch("PATCH /v2/auth/user/settings", func (r *route.Request) { // {{{
+		var in struct {
+			DefaultTenant string `json:"default_tenant"`
+		}
+
+		if !r.Payload(&in) {
+			return
+		}
+
+		user, err := core.AuthenticatedUser(r)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to save settings"))
+			return
+		}
+
+		if in.DefaultTenant != "" {
+			user.DefaultTenant = in.DefaultTenant;
+		}
+		if err := core.DB.UpdateUserSettings(user); err != nil {
+			r.Fail(route.Oops(err, "Unable to save settings"))
+			return
+		}
+
+		r.Success("Settings saved");
+	})
+	// }}}
 
 	r.Dispatch("GET /v2/global/stores", func(r *route.Request) { // {{{
 		if core.IsNotAuthenticated(r) {

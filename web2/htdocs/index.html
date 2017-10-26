@@ -4424,10 +4424,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         for (var i = 0; i < $global.auth.tenants.length; i++) {
           if ($global.auth.tenants[i].uuid == uuid) {
             $global.auth.tenant = $global.auth.tenants[i];
+            api({
+              type: 'PATCH',
+              url:  '/v2/auth/user/settings',
+              data: { default_tenant: uuid }
+            });
+
             redraw(true);
             var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
             if (page == "#!/do") { page = "#!/systems"; }
             goto(page);
+            return;
           }
         }
       });

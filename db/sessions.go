@@ -160,7 +160,7 @@ func (db *DB) GetSession(id string) (*Session, error) {
 
 func (db *DB) GetUserForSession(id string) (*User, error) {
 	r, err := db.Query(`
-	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash
+	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash, u.default_tenant
 	      FROM sessions s INNER JOIN users u ON u.uuid = s.user_uuid
 	     WHERE s.uuid = ?`, id)
 	if err != nil {
@@ -174,7 +174,7 @@ func (db *DB) GetUserForSession(id string) (*User, error) {
 
 	var this NullUUID
 	u := &User{}
-	if err := r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash); err != nil {
+	if err := r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash, &u.DefaultTenant); err != nil {
 		return nil, err
 	}
 	u.UUID = this.UUID
