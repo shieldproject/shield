@@ -1022,10 +1022,10 @@
       var field = $ctl.data('field');
       var key   = field.replace(/^config\./, '');
 
-      if ($ctl.is('.required') && data.config[key] == "") {
+      if ($ctl.is('.required') && !(key in data.config)) {
         $form.error(field, 'missing');
 
-      } else if (data.config[key] != "") {
+      } else if (key in data.config) {
         switch (type) {
         case "abspath":
           if (!data.config[key].match(/^\//)) {
@@ -1237,6 +1237,11 @@
     }
     if (!('config' in data)) {
       data.config = {};
+    }
+    for (var k in data.config) {
+      if (data.config[k] == "") {
+        delete data.config[k];
+      }
     }
 
     return data;
