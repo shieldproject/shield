@@ -1205,6 +1205,9 @@
             cache = data;
             data.type = opts.type;
             $parent.find('#choose-plugin').html(template('subform-choose-plugin', data));
+            if (opts.plugin) {
+              $parent.find('[name=plugin]').val(opts.plugin).trigger('change');
+            }
           }
         });
       })
@@ -1214,7 +1217,8 @@
 
         $parent.find('#configure-plugin').html(
           template('subform-configure-plugin', {
-            plugin: cache.metadata.plugins[plugin]
+            plugin: cache.metadata.plugins[plugin],
+            config: (plugin == opts.plugin ? opts.config : undefined)
           }));
       });
   };

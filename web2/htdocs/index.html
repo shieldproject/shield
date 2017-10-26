@@ -1639,7 +1639,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
             <h2><div class="plugin">[[= _.store.plugin ]]</div>[[= _.store.name ]]</h2>
 
-            [[ if ((_.admin && $global.auth.is.engineer)
+            [[ if ((_.admin && $global.auth.is.system.engineer)
                 || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
             <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= _.store.uuid ]]">Edit</a>
             <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= _.store.uuid ]]">Delete</a>
@@ -3295,10 +3295,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           success: function (data) {
             var cache = {};
 
-            $('#main').html($(template('stores-form', {
-                store:  null,
-                agents: data,
-              }))
+            $('#main').html($(template('stores-form', { agents: data }))
               .autofocus()
               .on('submit', 'form', function (event) {
                 event.preventDefault();
@@ -3332,68 +3329,41 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
           break;
         }
-        api({
-          type: 'GET',
-          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
+        apis({
+          base: '/v2/tenants/'+$global.auth.tenant.uuid,
+          multiplex: {
+            store:  { type: 'GET', url: '+/stores/'+args.uuid },
+            agents: { type: 'GET', url: '+/agents' },
+          },
           error: "Failed to retrieve storage system information from the SHIELD API.",
-          success: function (store) {
-            api({
-              type: 'GET',
-              url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
-              error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
-              success: function (agents) {
+          success: function (data) {
+            $('#main').html($(template('stores-form', data))
+              .autofocus()
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
 
-                $('#main').html($(template('stores-form', { store: store, agents: agents.agents }))
-                  .autofocus()
-                  .on('change', 'select#store-agent', function (event) {
-                    var uuid = $(event.target).val().replace(/\|.*/, '');
-                    if (uuid == "") { return; }
-
-                    $('#main #choose-plugin').html(template('loading'));
-                    api({
-                      type: 'GET',
-                      url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
-                      success: function (data) {
-                        cache = data;
-                        $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
-                        $('#main select[name="plugin"]').val(store.plugin).trigger('change');
-                      }
-                    });
-                  })
-                  .on('change', 'select#store-plugin', function (event) {
-                    var plugin = $(event.target).val();
-                    if (plugin == '') { return; }
-
-                    $('#main #configure-plugin').html(
-                      template('stores-form-configure-plugin', {
-                        config: store.config,
-                        plugin: cache.metadata.plugins[plugin]
-                      }));
-                  })
-                  .on('submit', 'form', function (event) {
-                    event.preventDefault();
-
-                    var $form = $(event.target);
-                    var data = $form.serializeObject();
-                    data.agent = data.agent.replace(/.*\|/, '');
-                    data.threshold = readableToBytes(data.threshold);
-
-                    if (!$form.reset().validate(data).isOK()) { return; }
-                    api({
-                      type: 'PUT',
-                      url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
-                      data: data,
-                      success: function () {
-                        goto("#!/stores/store:uuid:"+args.uuid);
-                      },
-                      error: function (xhr) {
-                        $form.error(xhr.responseJSON);
-                      }
-                    });
-                  }));
-                $('#main select[name="agent"]').trigger('change');
-              }
+                var $form = $(event.target);
+                var data = $form.serializePluginObject();
+                if (!$form.reset().validate(data).isOK()) { return; }
+                api({
+                  type: 'PUT',
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/stores/'+args.uuid,
+                  data: data,
+                  success: function () {
+                    goto("#!/stores/store:uuid:"+args.uuid);
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              }));
+            $('#main form').pluginForm({
+              type   : 'store',
+              plugin : data.store.plugin,
+              config : data.store.config
             });
+            $('#main select[name="agent"]').trigger('change');
+            $('#main select[name="plugin"]').trigger('change');
           }
         });
 
@@ -4023,42 +3993,15 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             var cache = {};
 
             $('#main').html($(template('stores-form', {
-                store:  null,
                 agents: data.agents,
                 admin:  true,
               }))
               .autofocus()
-              .on('change', 'select#store-agent', function (event) {
-                var uuid = $(event.target).val().replace(/\|.*/, '');
-                if (uuid == "") { return; }
-
-                $('#main #choose-plugin').html(template('loading'));
-                api({
-                  type: 'GET',
-                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
-                  success: function (data) {
-                    cache = data;
-                    $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
-                  }
-                });
-              })
-              .on('change', 'select#store-plugin', function (event) {
-                var plugin = $(event.target).val();
-                if (plugin == '') { return; }
-
-                $('#main #configure-plugin').html(
-                  template('stores-form-configure-plugin', {
-                    plugin: cache.metadata.plugins[plugin]
-                  }));
-              })
               .on('submit', 'form', function (event) {
                 event.preventDefault();
 
                 var $form = $(event.target);
-                var data = $form.serializeObject();
-                data.agent = data.agent.replace(/.*\|/, '');
-                data.threshold = readableToBytes(data.threshold);
-
+                var data = $form.serializePluginObject();
                 if (!$form.reset().validate(data).isOK()) { return; }
                 api({
                   type: 'POST',
@@ -4072,8 +4015,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   }
                 });
               }));
+            $('#main form').pluginForm({ type: 'store' });
           }
         });
+
         break; /* #!/admin/stores */
         // }}}
       case '#!/admin/stores/edit': /* {{{ */
@@ -4081,72 +4026,42 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
           break;
         }
-        api({
-          type: 'GET',
-          url:  '/v2/global/stores/'+args.uuid,
+        apis({
+          multiplex: {
+            store:  { type: 'GET', url: '/v2/global/stores/'+args.uuid },
+            agents: { type: 'GET', url: '/v2/agents' }
+          },
           error: "Failed to retrieve storage system information from the SHIELD API.",
-          success: function (store) {
-            api({
-              type: 'GET',
-              url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents',
-              error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
-              success: function (agents) {
+          success: function (data) {
+            data.admin = true;
+            data.agents = data.agents.agents;
+            $('#main').html($(template('stores-form', data))
+              .autofocus()
+              .on('submit', 'form', function (event) {
+                event.preventDefault();
 
-                $('#main').html($(template('stores-form', {
-                  store:  store,
-                  agents: agents.agents,
-                  admin:  true
-                }))
-                  .autofocus()
-                  .on('change', 'select#store-agent', function (event) {
-                    var uuid = $(event.target).val().replace(/\|.*/, '');
-                    if (uuid == "") { return; }
-
-                    $('#main #choose-plugin').html(template('loading'));
-                    api({
-                      type: 'GET',
-                      url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
-                      success: function (data) {
-                        cache = data;
-                        $('#main #choose-plugin').html(template('stores-form-choose-plugin', data));
-                        $('#main select[name="plugin"]').val(store.plugin).trigger('change');
-                      }
-                    });
-                  })
-                  .on('change', 'select#store-plugin', function (event) {
-                    var plugin = $(event.target).val();
-                    if (plugin == '') { return; }
-
-                    $('#main #configure-plugin').html(
-                      template('stores-form-configure-plugin', {
-                        config: store.config,
-                        plugin: cache.metadata.plugins[plugin]
-                      }));
-                  })
-                  .on('submit', 'form', function (event) {
-                    event.preventDefault();
-
-                    var $form = $(event.target);
-                    var data = $form.serializeObject();
-                    data.agent = data.agent.replace(/.*\|/, '');
-                    data.threshold = readableToBytes(data.threshold);
-
-                    if (!$form.reset().validate(data).isOK()) { return; }
-                    api({
-                      type: 'PUT',
-                      url:  '/v2/global/stores/'+args.uuid,
-                      data: data,
-                      success: function () {
-                        goto("#!/admin/stores/store:uuid:"+args.uuid);
-                      },
-                      error: function (xhr) {
-                        $form.error(xhr.responseJSON);
-                      }
-                    });
-                  }));
-                $('#main select[name="agent"]').trigger('change');
-              }
+                var $form = $(event.target);
+                var data = $form.serializePluginObject();
+                if (!$form.reset().validate(data).isOK()) { return; }
+                api({
+                  type: 'PUT',
+                  url:  '/v2/global/stores/'+args.uuid,
+                  data: data,
+                  success: function () {
+                    goto("#!/admin/stores/store:uuid:"+args.uuid);
+                  },
+                  error: function (xhr) {
+                    $form.error(xhr.responseJSON);
+                  }
+                });
+              }));
+            $('#main form').pluginForm({
+              type   : 'store',
+              plugin : data.store.plugin,
+              config : data.store.config
             });
+            $('#main select[name="agent"]').trigger('change');
+            $('#main select[name="plugin"]').trigger('change');
           }
         });
 
