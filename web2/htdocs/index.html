@@ -2576,55 +2576,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     }
     // }}}
 
-    $.fn.serializePluginForm = function () {
-      var data       = this.serializeObject();
-      data.agent     = data.agent.replace(/.*\|/, '');
-      if ('threshold' in data) {
-        data.threshold = readableToBytes(data.threshold || '0');
-      }
-      if (!('config' in data)) {
-        data.config = {};
-      }
-
-      return data;
-    };
-
-    $.fn.pluginForm = function (opts) {
-      opts = $.extend({}, {}, opts);
-      if (!('type' in opts)) {
-        throw 'pluginForm() requires a "type" option (either "store" or "target")';
-      }
-
-      var $parent = this;
-      var cache   = {};
-
-      $parent
-        .on('change', 'select[name=agent]', function (event) {
-          var uuid = $(event.target).val().replace(/\|.*/, '');
-          if (uuid == "") { return; }
-
-          $parent.find('#choose-plugin').html(template('loading'));
-          api({
-            type: 'GET',
-            url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
-            success: function (data) {
-              cache = data;
-              data.type = opts.type;
-              $parent.find('#choose-plugin').html(template('subform-choose-plugin', data));
-            }
-          });
-        })
-        .on('change', 'select[name=plugin]', function (event) {
-          var plugin = $(event.target).val();
-          if (plugin == '') { return; }
-
-          $parent.find('#configure-plugin').html(
-            template('subform-configure-plugin', {
-              plugin: cache.metadata.plugins[plugin]
-            }));
-        });
-    };
-
     function dispatch(page) {
       var argv = page.split(/[:+]/);
       dest = argv.shift();
