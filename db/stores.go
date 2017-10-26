@@ -20,6 +20,7 @@ type Store struct {
 	Summary string    `json:"summary"`
 	Agent   string    `json:"agent"`
 	Plugin  string    `json:"plugin"`
+	Global bool `json:"global"`
 
 	PublicConfig  string `json:"-"`
 	PrivateConfig string `json:"-"`
@@ -224,6 +225,7 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 			}
 		}
 
+		s.Global = s.TenantUUID.String() == uuid.NIL.String()
 		l = append(l, s)
 	}
 
@@ -281,6 +283,7 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 		}
 	}
 
+	s.Global = s.TenantUUID.String() == uuid.NIL.String()
 	return s, nil
 }
 

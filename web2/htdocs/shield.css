@@ -645,6 +645,16 @@ footer p {
   margin: 2% 2% 2% 0;
 }
 .card > a { color: inherit; text-decoration: none; }
+.card {
+  position: relative;
+}
+.card .type {
+  font-size: 7.5pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  position: absolute;
+  left: 8px; bottom: 4px;
+}
 
 .card .details {
   font-size: 14px;
@@ -702,18 +712,10 @@ footer p {
 }
 
 .picks .card {
-  position: relative;
   padding-bottom: 2em;
 }
 .picks .card h3 {
   padding-bottom: 1em;
-}
-.picks .card .type {
-  font-size: 7.5pt;
-  font-weight: bold;
-  text-transform: uppercase;
-  position: absolute;
-  left: 8px; bottom: 4px;
 }
 .policy.card h3 input {
   font-size: inherit;

@@ -3033,6 +3033,7 @@ This endpoint takes no query string parameters.
   {
     "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
     "name"    : "Cloud Storage Name",
+    "global"  : false,
     "summary" : "A longer description of the storage configuration",
     "agent"   : "127.0.0.1:5444",
     "plugin"  : "fs",
@@ -3174,6 +3175,7 @@ This endpoint takes no query string parameters.
 {
   "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
   "name"    : "Cloud Storage Name",
+  "global"  : false,
   "summary" : "A longer description of the storage configuration",
   "plugin"  : "fs",
   "agent"   : "127.0.0.1:5444",
@@ -4050,6 +4052,7 @@ This endpoint takes no query string parameters.
   {
     "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
     "name"    : "Cloud Storage Name",
+    "global"  : true,
     "summary" : "A longer description of the storage configuration",
     "agent"   : "127.0.0.1:5444",
     "plugin"  : "fs",
@@ -4174,6 +4177,7 @@ This endpoint takes no query string parameters.
 {
   "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
   "name"    : "Cloud Storage Name",
+  "global"  : true,
   "summary" : "A longer description of the storage configuration",
   "plugin"  : "fs",
   "agent"   : "127.0.0.1:5444",

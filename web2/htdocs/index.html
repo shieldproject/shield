@@ -1610,6 +1610,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             <div>
             [[ $.each(_.stores, function (i, store) { ]]
             <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+              [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
               <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
               <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
@@ -1639,10 +1640,12 @@ for job <em>[[= _.task.job_uuid ]]</em>
             <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
             <h2><div class="plugin">[[= _.store.plugin ]]</div>[[= _.store.name ]]</h2>
 
-            [[ if ((_.admin && $global.auth.is.system.engineer)
-                || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
-            <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= _.store.uuid ]]">Edit</a>
-            <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= _.store.uuid ]]">Delete</a>
+            [[ if (_.admin || !_.store.global) { ]]
+              [[ if ((_.admin && $global.auth.is.system.engineer)
+                  || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
+              <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= _.store.uuid ]]">Edit</a>
+              <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= _.store.uuid ]]">Delete</a>
+              [[ } ]]
             [[ } ]]
 
             <div class="summary">[[= _.store.summary ]]</div>
