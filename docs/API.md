@@ -548,6 +548,16 @@ The following error messages can be returned:
   No authentication provider was found with the given
   identifier.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/auth/tokens
 
@@ -600,6 +610,11 @@ The following error messages can be returned:
 - **Unable to retrieve tokens information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
 
 
 ### POST /v2/auth/tokens
@@ -659,6 +674,11 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
 
 ### DELETE /v2/auth/tokens/:uuid
 
@@ -699,6 +719,11 @@ The following error messages can be returned:
 - **Unable to revoke auth token**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
 
 
 ### GET /v2/auth/sessions
@@ -775,6 +800,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/auth/sessions/:uuid
 
@@ -850,6 +885,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/auth/sessions/:uuid
 
@@ -893,6 +938,67 @@ The following error messages can be returned:
 - **Unable to retrieve session information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### PATCH /v2/auth/user/settings
+
+Save user settings.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PATCH https://shield.host/v2/auth/user/settings \
+     --data-binary '
+{
+  "default_tenant": "2a03d67b-6146-4716-b10a-42ec073cfb78"
+}'
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok" : "Settings saved."
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Authentication failed**:
+  The request either lacked a session cookie (or an
+  `X-Shield-Session` header), or some other internal
+  error has occurred, and SHIELD administrators should
+  investigate.
+
+- **Unable to save settings**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
 
 
 ## SHIELD Users
@@ -985,6 +1091,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/auth/local/users/:uuid
 
@@ -1032,6 +1148,16 @@ The following error messages can be returned:
 - **Unable to retrieve local user information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### POST /v2/auth/local/users
@@ -1095,6 +1221,16 @@ The following error messages can be returned:
   username was already assigned to a pre-existing account.
   The request should not be retried.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### PATCH /v2/auth/local/users/:uuid
 
@@ -1155,6 +1291,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/auth/local/users/:uuid
 
@@ -1200,6 +1346,16 @@ The following error messages can be returned:
 - **Unable to update local user '...'**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ## SHIELD Core
@@ -1454,6 +1610,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### POST /v2/agents
 
@@ -1624,6 +1790,16 @@ The following error messages can be returned:
   The requested agent UUID was not found in the list
   of registered agents.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### POST /v2/agents/:uuid/show
 
@@ -1669,6 +1845,16 @@ The following error messages can be returned:
 - **No such agent**:
   The requested agent UUID was not found in the list
   of registered agents.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### POST /v2/agents/:uuid/hide
@@ -1717,6 +1903,16 @@ The following error messages can be returned:
 - **No such agent**:
   The requested agent UUID was not found in the list
   of registered agents.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### GET /v2/tenants/:tenant/agents
@@ -1791,6 +1987,16 @@ The following error messages can be returned:
 - **Unable to retrieve agent information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### GET /v2/tenants/:tenant/agents/:uuid
@@ -1882,6 +2088,16 @@ The following error messages can be returned:
   The requested agent UUID was not found in the list
   of registered agents visible to this tenant.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ## SHIELD Tenants
 
@@ -1949,6 +2165,16 @@ The following error messages can be returned:
 - **Unable to retrieve tenants information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### POST /v2/tenants
@@ -2063,6 +2289,16 @@ local users can be invited.
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/tenants/:uuid
 
@@ -2122,6 +2358,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### PATCH /v2/tenants/:uuid
 
@@ -2170,6 +2416,16 @@ The following error messages can be returned:
 - **Unable to update tenant**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### POST /v2/tenants/:uuid/invite
@@ -2245,6 +2501,16 @@ local users can be invited
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### POST /v2/tenants/:uuid/banish
 
@@ -2316,6 +2582,16 @@ local users can be banished
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/tenants/:uuid
 
@@ -2356,6 +2632,16 @@ The following error messages can be returned:
 - **Unable to delete tenant**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ## SHIELD Targets
@@ -2410,6 +2696,16 @@ The following error messages can be returned:
 - **Unable to retrieve targets information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### POST /v2/tenants/:tenant/targets
@@ -2487,10 +2783,6 @@ The following error messages can be returned:
   more details.  The request may be retried after
   authentication.
 
-- **Access denied**:
-  The requester lacks sufficient tenant or system role
-  assignment.  The request should not be retried.
-
 - **Unable to retrieve tenant information**:
   an internal error occurred and should be investigated by the
   site administrators
@@ -2500,6 +2792,16 @@ The following error messages can be returned:
 - **Unable to create new data target**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### GET /v2/tenants/:tenant/targets/:uuid
@@ -2553,6 +2855,16 @@ The following error messages can be returned:
 - **No such target**:
   No target with the given UUID exists on the
   specified tenant.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### PUT /v2/tenants/:tenant/targets/:uuid
@@ -2616,6 +2928,16 @@ The following error messages can be returned:
   No target with the given UUID exists on the
   specified tenant.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/tenants/:tenant/targets/:uuid
 
@@ -2665,6 +2987,16 @@ The following error messages can be returned:
   This target is referenced by one or more extant job
   configuration; deleting it would lead to an
   incomplete (and unusable) setup.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ## SHIELD Stores
@@ -2729,6 +3061,16 @@ The following error messages can be returned:
 - **Unable to retrieve storage systems information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### POST /v2/tenants/:tenant/stores
@@ -2801,6 +3143,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/tenants/:tenant/stores/:uuid
 
@@ -2853,6 +3205,16 @@ The following error messages can be returned:
 - **No such storage system**:
   No storage system with the given UUID exists on the
   specified tenant.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### PUT /v2/tenants/:tenant/stores/:uuid
@@ -2923,6 +3285,16 @@ The following error messages can be returned:
   No storage system with the given UUID exists on the
   specified tenant.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/tenants/:tenant/stores/:uuid
 
@@ -2972,6 +3344,16 @@ The following error messages can be returned:
   This storage system is referenced by one or more
   extant job configuration; deleting it would lead to
   an incomplete (and unusable) setup.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ## SHIELD Retention Policies
@@ -3024,6 +3406,16 @@ The following error messages can be returned:
 - **Unable to retrieve retention policies information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### POST /v2/tenants/:tenant/policies
@@ -3094,6 +3486,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/tenants/:tenant/policies/:uuid
 
@@ -3137,6 +3539,16 @@ The following error messages can be returned:
 - **No such retention policy**:
   No retention policy with the given UUID exists on
   the specified tenant.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### PATCH /v2/tenants/:tenant/policies/:uuid
@@ -3195,6 +3607,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/tenants/:tenant/policies/:uuid
 
@@ -3244,6 +3666,16 @@ The following error messages can be returned:
   This retention policy is referenced by one or more
   extant job configuration; deleting it would lead to
   an incomplete (and unusable) setup.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ## SHIELD Jobs
@@ -3358,6 +3790,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ## SHIELD Tasks
 
@@ -3421,6 +3863,16 @@ The following error messages can be returned:
   You requested details on a task that either doesn't exist, or
   is not tied to the given tenant.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/tenants/:tenant/tasks/:uuid
 
@@ -3465,6 +3917,16 @@ The following error messages can be returned:
 - **Unable to cancel task**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ## SHIELD Backup Archives
@@ -3549,6 +4011,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ## SHIELD Global Resources
 
@@ -3604,6 +4076,11 @@ The following error messages can be returned:
 - **Unable to retrieve storage systems information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
 
 
 ### POST /v2/global/stores
@@ -3666,6 +4143,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/global/stores/:uuid
 
@@ -3716,6 +4203,11 @@ The following error messages can be returned:
 - **No such storage system**:
   No storage system with the given UUID exists
   (globally).
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
 
 
 ### PUT /v2/global/stores/:uuid
@@ -3786,6 +4278,16 @@ The following error messages can be returned:
   No storage system with the given UUID exists
   (globally).
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/global/stores/:uuid
 
@@ -3836,6 +4338,16 @@ The following error messages can be returned:
   extant job configuration; deleting it would lead to
   an incomplete (and unusable) setup.
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/global/policies
 
@@ -3878,6 +4390,11 @@ The following error messages can be returned:
 - **Unable to retrieve retention policy templates information**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
 
 
 ### POST /v2/global/policies
@@ -3936,6 +4453,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### GET /v2/global/policies/:uuid
 
@@ -3977,6 +4504,11 @@ The following error messages can be returned:
 - **No such retention policy template**:
   No retention policy template with the given UUID
   exists globally.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
 
 
 ### PUT /v2/global/policies/:uuid
@@ -4043,6 +4575,16 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
 
 ### DELETE /v2/global/policies/:uuid
 
@@ -4097,5 +4639,15 @@ The following error messages can be returned:
   extant job configuration; deleting it would lead to
   an incomplete (and unusable) setup.  Note that this
   error should never happen.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 

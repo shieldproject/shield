@@ -1,9 +1,21 @@
-meta:
+global:
   errors:
     none: &none []
     internal: &internal |
       an internal error occurred and should be investigated by the
       site administrators
+    e401: &e401
+      message: Authorization required
+      summary: |
+        The request was made without an authenticated session or auth token.
+        See **Authentication** for more details.  The request may be retried
+        after authentication.
+    e403: &e403
+      message: Access denied
+      summary: |
+        The requester lacks sufficient tenant or system role assignment.
+        Refer to the **Access Control** subsection, above.
+        The request should not be retried.
 
 intro: |
   # SHIELD v2 API
@@ -445,7 +457,6 @@ sections:
             summary: |
               No authentication provider was found with the given
               identifier.
-
 
       # }}}
 
@@ -1980,11 +1991,6 @@ sections:
               session or auth token.  See **Authentication** for
               more details.  The request may be retried after
               authentication.
-
-          - message: Access denied
-            summary: |
-              The requester lacks sufficient tenant or system role
-              assignment.  The request should not be retried.
 
           - message: Unable to retrieve tenant information
             summary: *internal

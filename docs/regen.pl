@@ -78,6 +78,12 @@ for my $section (@{$api->{sections}}) {
 		print "**Access Control**\n\n";
 		print access($endpoint);
 
+		if ($endpoint->{access}) {
+			push @{$endpoint->{errors}}, $api->{global}{errors}{e401};
+			push @{$endpoint->{errors}}, $api->{global}{errors}{e403}
+				unless $endpoint->{access} eq 'any';
+		}
+
 		print "**Errors**\n\n";
 		print errors($endpoint);
 	}
@@ -171,8 +177,6 @@ sub access {
 
 sub errors {
 	my ($endpoint) = @_;
-
-	# FIXME
 
 	return "This API endpoint does not return any error conditions.\n\n"
 		unless @{$endpoint->{errors}};
