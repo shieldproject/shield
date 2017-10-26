@@ -1163,8 +1163,10 @@ pre.task-failed.override code { background-color: #333; }
 .timeline .event.ok::before       { background-color:  #8cc63f; }
 .timeline .event.failed           { border-left-color: #ff1d25; }
 .timeline .event.failed::before   { background-color:  #ff1d25; }
-.timeline .event.handled          { border-left-color: #0071bc; }
+.timeline .event.running          { border-left-color: #0071bc; }
 .timeline .event.handled::before  { background-color:  #0071bc; }
+.timeline .event.running          { border-left-color: #777777; }
+.timeline .event.handled::before  { background-color:  #777777; }
 
 .timeline .event .date {
   display: inline-block;

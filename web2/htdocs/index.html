@@ -1492,9 +1492,14 @@
             <h2>Timeline</h2>
             <div class="timeline">
                 [[ $.each(_.target.tasks, function (i, task) { ]]
-                <div class="event [[= task.type ]] [[= (task.status == 'done' ? 'ok' : task.status) ]][[ if (task.notes != "") { ]] noted[[ } ]][[ if (task.status != 'done' && task.ok) { ]] handled[[ } ]]" data-task-uuid="[[= task.uuid ]]"[[ if (task.archive) { ]] data-archive-uuid="[[= task.archive.uuid ]]" data-archive-taken="[[= task.started_at ]]"[[ } ]]>
+                  [[ task.is = {};
+                     task.is.handled  = (task.stopped_at == ''
+                                      && task.status != 'done'
+                                      && task.ok);
+                  ]]
+                <div class="event [[= task.type ]] [[= (task.status == 'done' ? 'ok' : task.status) ]][[ if (task.notes != "") { ]] noted[[ } ]][[ if (task.is.handled) { ]] handled[[ } ]]" data-task-uuid="[[= task.uuid ]]"[[ if (task.archive) { ]] data-archive-uuid="[[= task.archive.uuid ]]" data-archive-taken="[[= task.started_at ]]"[[ } ]]>
                   <ul>
-                    <li class="date">[[ if (task.status == 'scheduled') { ]]
+                    <li class="date">[[ if (task.started_at == "") { ]]
                       <em>scheduled / pending</em>
                     [[ } else { ]]
                       [[= strftime("%b %d %Y", task.started_at) ]]</li>
@@ -1506,7 +1511,7 @@
                       <li class="meta">run automatically per job schedule</li>
                       [[ } else { ]]
                       <li class="desc">Ad Hoc Backup</li>
-                      <li class="meta">run by [[= task.owner ]] at [[= strftime("%l:%M%P", task.started_at) ]]</li>
+                      <li class="meta">run by [[= task.owner ]] at [[= strftime("%l:%M%P", task.requested_at_at) ]]</li>
                       [[ } ]]
                     [[ } else if (task.type == "restore") { ]]
                       <li class="desc">Manual Restore</li>
