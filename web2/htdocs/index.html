@@ -1678,6 +1678,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </dl>
             </div>
 
+            [[ if (_.store.archives > 0) { ]]
             <div class="meter">
               <svg width="500" height="400" xmlns="http://www.w3.org/2000/svg">
                 <defs>
@@ -1745,7 +1746,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   </g>
                 </g>
                 [[ } ]]
-                
+
                 [[ if (false) { ]]
                 [[# "projected" marker ]]
                 <g class="projected" transform="translate(-3)">
@@ -1758,8 +1759,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 [[}]]
               </svg>
             </div>
-            [[# #################################### ]]
           </div>
+          [[ } ]]
     <!-- }}} --></script>
     <script type="text/html" id="tpl--stores-form"><!-- {{{ -->
       [[#
