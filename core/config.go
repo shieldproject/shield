@@ -42,6 +42,8 @@ type Config struct {
 	EncryptionType string `yaml:"encryption_type"`
 	VaultKeyfile   string `yaml:"vault_keyfile"`
 
+	SessionTimeout int `yaml:"session_timeout"`
+
 	Failsafe FailsafeConfig `yaml:"failsafe"`
 
 	Auth []AuthConfig `yaml:"auth"`
@@ -61,6 +63,7 @@ func ReadConfig(file string) (Config, error) {
 		WebRoot:        "web",
 		EncryptionType: "aes256-ctr",
 		VaultKeyfile:   "vault/config.crypt",
+		SessionTimeout: 720,
 	}
 
 	/* optionally read configuration from a file */
@@ -87,6 +90,9 @@ func ReadConfig(file string) (Config, error) {
 	}
 	if config.Workers <= 0 {
 		return config, fmt.Errorf("number of workers '%d' is invalid (must be greater than zero)", config.Workers)
+	}
+	if config.SessionTimeout <= 0 {
+		return config, fmt.Errorf("session timeout of '%d' hours is invalid (must be greater than zero)", config.SessionTimeout)
 	}
 	if config.EncryptionType == "" {
 		return config, fmt.Errorf("encryption type '%s' is invalid (see documentation for supported ciphers and modes)", config.EncryptionType)
