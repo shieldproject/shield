@@ -1043,7 +1043,7 @@
 
 
   /***************************************************
-     $(...).bytes(x) - Format a file size
+     bytes(x) - Format a file size
 
      Given an integer number of bytes, formats and returns a more
      human-readable string using units of n*1024b, to make sizes

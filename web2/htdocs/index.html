@@ -22,7 +22,7 @@
               <p>Run a backup job whenever you need to, regardless of the job's
               schedule.</p></li>
 
-          <li><a href="#">Restore data from a backup</a>
+          <li><a href="#!/do/restore">Restore data from a backup</a>
               <p>Restore a protected system back to the state it was in when a
               backup archive was taken.</p></li>
           [[ } ]]
@@ -711,6 +711,7 @@
           [[ if (_.system) { ]]
           <div class="job card [[ if (!_.system.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
           <a href="do-backup:unpick">
+            <span class="type">System</span>
             <img src="i/shield-[[= _.system.ok ? 'ok' : 'fail' ]].svg">
             <h3>[[= _.system.name ]]</h3>
             <div class="notes">[[= _.system.notes ]]</div>
@@ -722,6 +723,7 @@
           [[ if (_.store) { ]]
           <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
           <a href="do-backup:unpick">
+            <span class="type">Cloud Storage</span>
             <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
             <h3>[[= _.store.name ]]</h3>
             <div class="notes">[[ if (_.store.summary) { ]]
@@ -847,6 +849,122 @@
         [[ } ]]
       </div>
     <!-- }}} --></script>
+    <script type="text/html" id="tpl--do-restore"><!-- {{{ -->
+      [[#
+        {do-restore} - Restore Wizard Template
+
+        Renders a multi-step, interactive wizard to assist operators in
+        finding the correct archive to restore, based on what data system
+        they want to restore, and how fresh the restore needs to be.
+      ]]
+      <div class="gutter blk wizard do-restore">
+        <p class="do-caption">Restoring Data</p>
+        <div class="picks">
+          [[ if (_.system) { ]]
+          <div class="job card">
+          <a href="do-restore:unpick">
+            <span class="type">System to Restore</span>
+            <h3>[[= _.system.name ]]</h3>
+            <div class="notes">[[= _.system.notes ]]</div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="job card empty">Protected System</div>
+          [[ } ]]
+          [[ if (_.archive) { ]]
+          <div class="archive card">
+          <a href="do-restore:unpick">
+            <span class="type">Archive</span>
+            <h3>[[= strftime("%x %X", _.archive.taken_at) ]]</h3>
+            <div class="notes">
+              <strong>[[= bytes(_.archive.size) ]]</strong>,
+              in <strong>[[= _.archive.store_name ]]</strong>.
+            </div>
+            <div class="graph">
+              <div class="to">[[= _.archive.store_plugin ]]</div>
+            </div>
+          </a>
+          </div>
+          [[ } else { ]]
+          <div class="store card empty">Backup Archive to restore</div>
+          [[ } ]]
+        </div>
+
+        [[ if (!_.system) { ]]
+        <div class="step pick-a-system">
+          <span class="label">Step 1</span>
+          <h3>What system do you want to restore?</h3>
+          <div>
+          [[ $.each(_.systems, function (i, target) { ]]
+          <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <a href="do-restore:pick:target:[[= target.uuid ]]">
+            <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
+            <h3>[[= target.name ]]</h3>
+            <div class="notes">[[= target.notes ]]</div>
+            </a>
+          </div>
+          [[ }); ]]
+          </div>
+        </div>
+
+        [[ } else if (!_.archive) { ]]
+        <div class="step pick-an-archive">
+          <span class="label">Step 2</span>
+          <h3>Which archive do you want to restore?</h3>
+
+          [[ if (_.archives.length == 0) { ]]
+          <div class="no-data">This data system has never been backed up successfully.</div>
+          [[ } else { ]]
+          <div class="archive-row pick-me">
+            <h4>Most Recent Backup: [[= strftime("%x %X", _.archives[0].taken_at) ]]</h4>
+            <dl>
+              <dt>Archive size</dt>
+              <dd>[[= bytes(_.archives[0].size) ]]</dd>
+
+              <dt>Stored in</dt>
+              <dd>[[= _.archives[0].store_name ]]</dd>
+            </dl>
+
+            <button rel="do-restore:pick:archive:[[= _.archives[0].uuid ]]">Go &raquo;</button>
+          </div>
+            [[ if (_.archives.length > 1) { ]]
+              <table class="archives">
+                <thead><tr>
+                  <th>Date of backup</th>
+                  <th>Archive size</th>
+                  <th>Stored in</th>
+                  <th></th>
+                </tr></thead>
+                <tbody>
+                [[ $.each(_.archives, function (i, archive) { ]]
+                  [[ if (i == 0) { return; } ]]
+                  <tr>
+                    <th>[[= strftime("%x %X", archive.taken_at) ]]</th>
+                    <td>[[= bytes(archive.size) ]]</td>
+                    <td>[[= archive.store_name ]]</td>
+                    <td><a href="do-restore:pick:archive:[[= archive.uuid ]]">restore this one &raquo;</a></td>
+                  </tr>
+                [[ }); ]]
+                </tbody>
+              </table>
+            [[ } ]]
+          [[ } ]]
+        </div>
+        [[ } ]]
+
+        [[ if (_.system && _.archive) { ]]
+        <div class="step run-the-restore" style="display: block">
+          <h3>Review Your Choices</h3>
+          <p>If everything looks correct, click the big button to
+          initiate a manual restore of <strong>[[= _.system.name ]]</strong>
+          from the backup archive taken [[= strftime("on %x at %X", _.archive.taken_at) ]].
+          </p>
+
+          <button class="final" rel="do-restore:final:[[= _.archive.uuid ]]">Run Restore &raquo;</button>
+        </div>
+        [[ } ]]
+      </div>
+    <!-- }}} --></script>
     <script type="text/html" id="tpl--do-configure"><!-- {{{ -->
       [[#
         {do-configure} - Job Configuration Wizard
@@ -878,33 +996,24 @@
           <div class="policy card">
             <a href="do-configure:unpick">
               [[ if (!_.policy) { ]]
-              <span class="type">Retention + Schedule</span>
+              <span class="type">Schedule</span>
               <h3>Runs [[= _.schedule ]]</h3>
               [[ } else { ]]
-              <span class="type">Schedule / Retention</span>
-              <h3>Run [[= _.schedule ]]</h3>
+              <span class="type">Schedule + [[= _.policy.uuid ? '' : '<strong>New</strong> ' ]]Policy</span>
+              <h3>Runs [[= _.schedule ]]</h3>
               <h3>Retain [[= _.policy.expires / 86400 ]] day[[= _.policy.expires == 86400 ? '' : 's' ]] of archives</h3>
               <div class="notes">using the <strong>[[= _.policy.name]]</strong> policy</div>
               [[ } ]]
             </a>
           </div>
-          [[ } else if (_.policy && _.schedule) { ]]
-          <div class="policy card">
-            <a href="do-configure:unpick">
-              <span class="type">[[= _.policy.uuid ? '' : '<strong>New</strong> ' ]]Policy + Schedule</span>
-              <h3>[[= _.policy.name ]]</h3>
-              <div class="days">[[= _.policy.expires / 86400 ]]<span> days</span></div>
-              Runs [[= _.schedule ]]
-            </a>
-          </div>
           [[ } else { ]]
-          <div class="schedule card empty">Schedule & Retention</div>
+          <div class="schedule card empty">Schedule + Policy</div>
           [[ } ]]
 
           [[ if (_.store) { ]]
           <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
             <a href="do-configure:unpick">
-              <span class="type">[[= _.store.uuid ? '' : '<strong>New</strong> ' ]]Store</span>
+              <span class="type">[[= _.store.uuid ? '' : '<strong>New</strong> ' ]]Cloud Storage</span>
               <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
               <h3>[[= _.store.name ]]</h3>
               <div class="notes">[[ if (_.store.summary) { ]]
@@ -2705,6 +2814,101 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           });
         })();
         break; /* #!/do/backup */
+        // }}}
+      case "#!/do/restore": /* {{{ */
+        if (!$global.auth.tenant) {
+          $('#main').html(template('you-have-no-tenants'));
+          break;
+        }
+        if (!$global.auth.is.tenant[$global.auth.tenant.uuid].operator) {
+          $('#main').html(template('access-denied', { level: 'tenant', need: 'operator' }));
+          break;
+        }
+        (function () {
+          $('#main').html(template('loading'));
+          var rerender = function (data) {
+            $('#main').html($(template('do-restore', data))
+              .on('click', 'a[href^="do-restore:"], button[rel^="do-restore:"]', function (event) {
+                event.preventDefault();
+                var l = [];
+                if ($(event.target).is('a, a *')) {
+                  l = $(event.target).closest('a[href^="do-restore:"]').attr('href').split(':');
+                } else {
+                  l = $(event.target).closest('button[rel^="do-restore:"]').attr('rel').split(':');
+                }
+
+                /* unpick       - unpick the target / store / policy {{{ */
+                if (l[1] == "unpick") {
+                  var $card = $(event.target).closest('.card');
+                  if ($card.is('.job'))     { data.system = data.archive = undefined; }
+                  if ($card.is('.archive')) {               data.archive = undefined; }
+
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* pick:target  - pick the target we want to back up {{{ */
+                if (l[1] == "pick" && l[2] == "target") {
+                  for (var i = 0; i < data.systems.length; i++) {
+                    if (data.systems[i].uuid == l[3]) {
+                      data.system = data.systems[i];
+                      break;
+                    }
+                  }
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* pick:archive - pick the store we want to store the restores in {{{ */
+                if (l[1] == "pick" && l[2] == "archive") {
+                  for (var i = 0; i < data.archives.length; i++) {
+                    if (data.archives[i].uuid == l[3]) {
+                      data.archive = data.archives[i];
+                      break;
+                    }
+                  }
+                  rerender(data);
+                  return;
+                }
+
+                console.log('unhandled action: %s', l.join(":"));
+
+                /* }}} */
+                /* final        - run the restore {{{ */
+                if (l[1] == "final") {
+                  banner('Scheduling restore...', 'progress');
+                  api({
+                    type: 'POST',
+                    url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/archives/'+data.archive.uuid+'/restore',
+                    success: function () {
+                      banner('Ad hoc restore task scheduled');
+                      goto('#!/systems/system:uuid:'+data.system.uuid);
+                    },
+                    error: function () {
+                      banner('Unable to schedule ad hoc restore task', 'error');
+                    }
+                  });
+                }
+
+                /* }}} */
+
+                console.log('unhandled action: %s', l.join(":"));
+              }));
+          };
+
+          apis({
+            base: '/v2/tenants/'+$global.auth.tenant.uuid,
+            multiplex: {
+              systems:  { type: 'GET', url: '+/systems' },
+              archives: { type: 'GET', url: '+/archives' }
+            },
+            error: "Failed retrieving the list of protected systems from the SHIELD API.",
+            success: rerender
+          });
+        })();
+        break; /* #!/do/restore */
         // }}}
       case "#!/do/configure": /* {{{ */
         if (!$global.auth.tenant) {
