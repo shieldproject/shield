@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 	"github.com/starkandwayne/goutils/timestamp"
 
 	"github.com/starkandwayne/shield/crypter"
@@ -57,6 +57,9 @@ type Core struct {
 	vault          crypter.Vault
 	encryptionType string
 	vaultKeyfile   string
+
+	/* sessions */
+	sessionTimeout int
 
 	failsafe FailsafeConfig
 
@@ -107,6 +110,9 @@ func NewCore(file string) (*Core, error) {
 		/* encryption */
 		encryptionType: config.EncryptionType,
 		vaultKeyfile:   config.VaultKeyfile,
+
+		/* session */
+		sessionTimeout: config.SessionTimeout,
 
 		failsafe: config.Failsafe,
 
@@ -247,7 +253,8 @@ func (core *Core) Run() error {
 			core.purge()
 			core.markTasks()
 			core.checkAgents()
-			core.DailyStorageAnalytics()
+			core.dailyStorageAnalytics()
+			core.purgeExpiredSessions()
 		}
 	}
 }

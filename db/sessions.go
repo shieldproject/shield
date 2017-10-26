@@ -203,6 +203,10 @@ func (db *DB) ClearAllSessions() error {
 	return db.Exec(`DELETE FROM sessions`)
 }
 
+func (db *DB) ClearExpiredSessions(expiration_threshold time.Time) error {
+	return db.Exec(`DELETE FROM sessions WHERE last_seen < ?`, expiration_threshold.Unix())
+}
+
 func (db *DB) ClearSession(id string) error {
 	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND uuid = ?`, id)
 }

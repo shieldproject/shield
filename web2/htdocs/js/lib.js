@@ -631,6 +631,15 @@
 
       if (!('error' in options)) {
         options.error = function (xhr) {
+          if (xhr.status == 401) {
+            document.location.href = '/';
+            return
+          }
+            
+          if (xhr.status == 403) {
+            $('#main').html(template('access-denied', { level: 'generic', need: 'elevated' }));
+            return
+          }
           $('#main').html(exported.template('error', {
             http:     xhr.status + ' ' + xhr.statusText,
             response: xhr.responseText,

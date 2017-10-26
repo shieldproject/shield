@@ -3,9 +3,10 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"time"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -194,18 +195,23 @@ func (core *Core) hasSystemRole(r *route.Request, roles ...string) bool {
 }
 
 func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
-	session := r.SessionID()
-	user, err := core.DB.GetUserForSession(session)
+	session, err := core.DB.GetSession(r.SessionID())
+	if err != nil || session == nil {
+		return nil, err
+	}
+	session.IP = r.Req.RemoteAddr
+	session.UserAgent = r.Req.UserAgent()
+
+	if time.Now().After(session.LastSeen.Time().Add(time.Duration(core.sessionTimeout) * time.Hour)) {
+		core.DB.ClearSession(session.UUID.String())
+		return nil, nil
+	}
+	user, err := core.DB.GetUserForSession(session.UUID.String())
 	if err != nil || user == nil {
 		return user, err
 	}
 
-	err = core.DB.PokeSession(&db.Session{
-		UUID:      uuid.Parse(session),
-		UserUUID:  user.UUID,
-		IP:        r.Req.RemoteAddr,
-		UserAgent: r.Req.UserAgent(),
-	})
+	err = core.DB.PokeSession(session)
 	if err != nil {
 		log.Errorf("Failed to poke session %s with error %s", session, err.Error())
 	}

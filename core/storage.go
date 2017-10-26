@@ -8,8 +8,10 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
-func (core *Core) DailyStorageAnalytics() {
+func (core *Core) dailyStorageAnalytics() {
+	log.Debugf("updating daily storage analytics per store")
 	core.DailyStoreStats()
+	log.Debugf("updating daily storage analytics per tenant")
 	core.DailyTenantStats()
 }
 

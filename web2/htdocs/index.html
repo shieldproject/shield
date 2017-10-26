@@ -596,6 +596,10 @@
                  granted <strong>operator</strong>-level access.</p>
                  <p>Please consult your tenant administrators if you believe
                  you should have this level of access.</p>
+            [[ } else if (want == 'generic/elevated') { ]]
+                 <p>This part of SHIELD requires <strong>elevated</strong> access.</p>
+                 <p>Please consult your administrators if you believe you should 
+                 have this level of access.</p>
             [[ } else { ]]
                  <p>This part of SHIELD requires <strong>[[= _.level ]]/[[= _.need ]]</strong>
                     access, which seems to be an invalid role.  Please submit a bug report.</p>
@@ -4161,7 +4165,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           $('#main').html(template('sessions', { sessions: data, admin: true }));
           }
         });
-        break; /* #!/admin/policies */
+        break; /* #!/admin/sessions */
         // }}}
       case '#!/admin/sessions/delete': /* {{{ */
         if (!$global.auth.is.system.admin) {
@@ -4194,10 +4198,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             })
         );
         }
-    });
-
-    break; /* #!/admin/policies/delete */
-    // }}}
+        });
+        break; /* #!/admin/sessions/delete */
+        // }}}
       case "#!/unlock": /* {{{ */
         if (!$global.auth.is.system.engineer) {
           $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));

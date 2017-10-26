@@ -3,6 +3,9 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/db"
 )
@@ -30,4 +33,12 @@ func SessionCookie(value string, valid bool) *http.Cookie {
 		c.MaxAge = 0
 	}
 	return c
+}
+
+func (core *Core) purgeExpiredSessions() {
+	log.Debugf("purging expired user sessions from the database")
+	err := core.DB.ClearExpiredSessions(time.Now().Add(0 - (time.Duration(core.sessionTimeout) * time.Hour)))
+	if err != nil {
+		log.Errorf("Failed to purge expired sessions from the database: %s", err.Error())
+	}
 }
