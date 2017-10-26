@@ -2614,69 +2614,93 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           break;
         }
         (function () {
-          if (!$global.auth.tenant) {
-            $('#main').html(template('you-have-no-tenants'));
-            return;
-          }
           $('#main').html(template('loading'));
-          var data = {};
+          var rerender = function (data) {
+            $('#main').html($(template('do-backup', data))
+              .on('click', "a[href^=\"do-backup:\"]", function (event) {
+                event.preventDefault();
+                l = $(event.target).closest('a[href^="do-backup:"]').attr('href').split(':');
+
+                /* unpick      - unpick the target / store / policy {{{ */
+                if (l[1] == "unpick") {
+                  var $card = $(event.target).closest('.card');
+                  if ($card.is('.job'))    { data.system = data.store = data.policy = undefined; }
+                  if ($card.is('.store'))  {               data.store = data.policy = undefined; }
+                  if ($card.is('.policy')) {                            data.policy = undefined; }
+
+                  data.noauto = true;
+                  rerender(data);
+                  data.noauto = false;
+                  return;
+                }
+
+                /* }}} */
+                /* pick:target - pick the target we want to back up {{{ */
+                if (l[1] == "pick" && l[2] == "target") {
+                  for (var i = 0; i < data.systems.length; i++) {
+                    if (data.systems[i].uuid == l[3]) {
+                      data.system = data.systems[i];
+                      break;
+                    }
+                  }
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* pick:store  - pick the store we want to store the backups in {{{ */
+                if (l[1] == "pick" && l[2] == "store") {
+                  for (var i = 0; i < data.system.jobs.length; i++) {
+                    if (data.system.jobs[i].store.uuid == l[3]) {
+                      data.store = data.system.jobs[i].store;
+                      break;
+                    }
+                  }
+                  rerender(data);
+                  return;
+                }
+
+                /* }}} */
+                /* pick:policy - pick the retention polict we want {{{ */
+                if (l[1] == "pick" && l[2] == "policy") {
+                  for (var i = 0; i < data.system.jobs.length; i++) {
+                    if (data.system.jobs[i].store.uuid == data.store.uuid
+                    && data.system.jobs[i].retention.uuid == l[3]) {
+                      data.policy = data.system.jobs[i].retention;
+                      break;
+                    }
+                  }
+                  rerender(data);
+                  return;
+                }
+                /* }}} */
+              })
+              .on('click', 'button[rel^="run:"]', function (event) {
+                console.log('local handler triggered');
+                event.preventDefault(); event.stopPropagation();
+
+                var uuid = $(event.target).attr('rel').replace(/^run:/, '');
+                banner('Scheduling ad hoc backup...', 'progress');
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs/'+uuid+'/run',
+                  success: function () {
+                    banner('Ad hoc backup job scheduled');
+                    goto('#!/systems/system:uuid:'+data.system.uuid);
+                  },
+                  error: function () {
+                    banner('Unable to schedule ad hoc backup job', 'error');
+                  }
+                });
+              }));
+          };
 
           api({
             type: 'GET',
             url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/systems',
             error: "Failed retrieving the list of protected systems from the SHIELD API.",
             success: function (systems) {
-              data = { systems: systems };
-              $('#main').html($(template('do-backup', data)))
-                .on('click', "a[href^=\"do-backup:\"]", function (event) {
-                  event.preventDefault();
-                  l = $(event.target).closest('a[href^="do-backup:"]').attr('href').split(':');
-                  if (l[1] == "unpick") {
-                    var $card = $(event.target).closest('.card');
-                    if ($card.is('.job'))    { data.system = data.store = data.policy = undefined; }
-                    if ($card.is('.store'))  {               data.store = data.policy = undefined; }
-                    if ($card.is('.policy')) {                            data.policy = undefined; }
-
-                    data.noauto = true;
-                    $('#main').html(template('do-backup', data));
-                    data.noauto = false;
-                    return;
-                  }
-
-                  if (l[1] == "pick" && l[2] == "target") {
-                    for (var i = 0; i < data.systems.length; i++) {
-                      if (data.systems[i].uuid == l[3]) {
-                        data.system = data.systems[i];
-                        break;
-                      }
-                    }
-                    $('#main').html(template('do-backup', data));
-                    return;
-                  }
-
-                  if (l[1] == "pick" && l[2] == "store") {
-                    for (var i = 0; i < data.system.jobs.length; i++) {
-                      if (data.system.jobs[i].store.uuid == l[3]) {
-                        data.store = data.system.jobs[i].store;
-                        break;
-                      }
-                    }
-                    $('#main').html(template('do-backup', data));
-                    return;
-                  }
-
-                  if (l[1] == "pick" && l[2] == "policy") {
-                    for (var i = 0; i < data.system.jobs.length; i++) {
-                      if (data.system.jobs[i].store.uuid == data.store.uuid
-                      && data.system.jobs[i].retention.uuid == l[3]) {
-                        data.policy = data.system.jobs[i].retention;
-                        break;
-                      }
-                    }
-                    $('#main').html(template('do-backup', data));
-                    return;
-                  }
-                });
+              rerender({ systems: systems });
             }
           });
         })();
