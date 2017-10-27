@@ -1021,7 +1021,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid", func(r *route.Request) { // {{{
-		if core.IsNotSystemManager(r) {
+		if !core.CanManageTenants(r, r.Args[1]) {
 			return
 		}
 
@@ -1112,7 +1112,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/invite", func(r *route.Request) { // {{{
-		if core.IsNotSystemManager(r) {
+		if !core.CanManageTenants(r, r.Args[1]) {
 			return
 		}
 
@@ -1165,7 +1165,7 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/banish", func(r *route.Request) { // {{{
-		if core.IsNotSystemManager(r) {
+		if !core.CanManageTenants(r, r.Args[1]) {
 			return
 		}
 
@@ -2489,7 +2489,7 @@ func (core *Core) v2API() *route.Router {
 		r.Success("Password changed successfully")
 	})
 	// }}}
-	r.Dispatch("PATCH /v2/auth/user/settings", func (r *route.Request) { // {{{
+	r.Dispatch("PATCH /v2/auth/user/settings", func(r *route.Request) { // {{{
 		var in struct {
 			DefaultTenant string `json:"default_tenant"`
 		}
@@ -2505,14 +2505,14 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if in.DefaultTenant != "" {
-			user.DefaultTenant = in.DefaultTenant;
+			user.DefaultTenant = in.DefaultTenant
 		}
 		if err := core.DB.UpdateUserSettings(user); err != nil {
 			r.Fail(route.Oops(err, "Unable to save settings"))
 			return
 		}
 
-		r.Success("Settings saved");
+		r.Success("Settings saved")
 	})
 	// }}}
 

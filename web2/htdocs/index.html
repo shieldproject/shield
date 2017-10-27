@@ -377,6 +377,10 @@
             <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
             [[   }); ]]
             [[ } ]]
+            [[ if ($global.auth.is.tenant[_.tenant.uuid].admin) { ]] 
+                <div class="divider"></div>
+                <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a> 
+            [[ } ]]
             <div class="divider"></div>
             <!--a class="dropdown" href="#!/settings">Settings</a-->
             <a class="dropdown" href="#!/logout">Sign Out</a>
@@ -1974,7 +1978,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
         Renders the list of all tenants (for site managers)
       ]]
           <div class="gutter blk">
-            <a class="new" href="#!/admin/tenants/new">Create a New Tenant &raquo;</a>
+            [[ if (_.admin) { ]]
+              <a class="new" href="#!/admin/tenants/new">Create a New Tenant &raquo;</a>
+            [[ } ]]
             <h2>Tenants</h2>
             [[ if (_.tenants.length == 0) { ]]
             <div class="no-data">No Tenants have been created yet.</div>
@@ -1988,7 +1994,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 [[ $.each(_.tenants, function (i, tenant) { ]]
                 <tr>
                   <td>[[= tenant.name ]]</td>
-                  <td><a href="#!/admin/tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
+                  <td><a href="#!/[[= _.admin ? 'admin/' : '' ]]tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
                 </tr>
                 [[ }); ]]
               </tbody>
@@ -2004,23 +2010,29 @@ for job <em>[[= _.task.job_uuid ]]</em>
         existing tenants.
       ]]
           <div class="gutter blk">
-            <a class="breadcrumb" href="#!/admin/tenants">&laquo; Back to Tenants</a>
-            <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
+            [[ if (_.admin) { ]]
+                <a class="breadcrumb" href="#!/admin/tenants">&laquo; Back to Tenants</a>
+                <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
+            [[ } else { ]]
+                <a class="breadcrumb" href="#!/systems">&laquo; Back to Systems</a>
+                <h2> [[= _.tenant.name ]] - Tenant Settings</h2>
+            [[ } ]]
 
             <form>
               <div class="error"></div>
-
+              [[ if (_.admin) { ]]
               <div class="ctl" data-field="name">
-                <label for="tenant-name">Name</label>
-                <span class="errors">
-                  <span data-error="missing">You must provide a name for this new tenant.</span>
-                </span>
-                <div class="widget">
-                  <input type="text" id="tenant-name" name="name" class="autofocus"
-                    [[ if (_.tenant) { ]]value="[[= _.tenant.name ]]"[[ } ]]/>
-                  <p class="help">Pick a memorable or descriptive name for this tenant.</p>
-                </div>
+                    <label for="tenant-name">Name</label>
+                    <span class="errors">
+                    <span data-error="missing">You must provide a name for this new tenant.</span>
+                    </span>
+                    <div class="widget">
+                    <input type="text" id="tenant-name" name="name" class="autofocus"
+                        [[ if (_.tenant) { ]]value="[[= _.tenant.name ]]"[[ } ]]/>
+                    <p class="help">Pick a memorable or descriptive name for this tenant.</p>
+                    </div>
               </div>
+              [[ } ]]
 
               <div class="ctl">
                 <label for="tenant-invite">People In This Tenant</label>
@@ -2054,8 +2066,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   </table>
                 </div>
               </div>
-
-              <button class="go">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
+              [[ if (_.admin) { ]]
+                <button class="go">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
+              [[ } ]]
             </form>
           </div>
     <!-- }}} --></script>
@@ -3585,6 +3598,101 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
         break; /* #!/admin/policies/delete */
         // }}}
+      case '#!/tenants/edit': /* {{{ */
+        if (!$global.auth.tenant) {
+            $('#main').html(template('you-have-no-tenants'));
+            break;
+        }
+        if (!$global.auth.is.tenant[args.uuid].admin) {
+            $('#main').html(template('access-denied', { level: 'tenant', need: 'admin' }));
+            break;
+        }
+        api({
+          type: 'GET',
+          url:  '/v2/tenants/'+args.uuid,
+          error: "Failed to retrieve tenant information from the SHIELD API.",
+          success: function (data) {
+            var members = {};
+            $.each(data.members, function (i, user) {
+              members[user.uuid] = user;
+            });
+            $('#main').html($(template('tenants-form', { tenant: data, admin: false }))
+              .userlookup('input[name=invite]', {
+                filter: function (users) {
+                  var lst = [];
+                  $.each(users, function (i, user) {
+                    if (!(user.uuid in members)) {
+                      lst.push(user);
+                    }
+                  });
+                  return lst;
+                },
+                onclick: function (user) {
+                  user.role = 'operator';
+                  $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+                  members[user.uuid] = user;
+
+                  api({
+                    type: 'POST',
+                    url:  '/v2/tenants/'+args.uuid+'/invite',
+                    data: {users:[user]},
+                    error: "Unable to save tenant role assignment.",
+                    success: function () {
+                      banner('User "'+user.account+'" is now '+{
+                          admin    : 'an administrator',
+                          engineer : 'an engineer',
+                          operator : 'an operator'
+                        }[user.role]+' on this tenant.');
+                    }
+                  });
+                }
+              })
+              .roles('.role', function (e, role) {
+                var data = {
+                  uuid    : e.extract('uuid'),
+                  account : e.extract('account'),
+                  role    : e.extract('role')
+                };
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+args.uuid+'/invite',
+                  data: {users:[data]},
+                  error: "Unable to save tenant role assignment.",
+                  success: function () {
+                    banner('User "'+data.account+'" is now '+{
+                        admin    : 'an administrator',
+                        engineer : 'an engineer',
+                        operator : 'an operator'
+                      }[data.role]+' on this tenant.');
+                  }
+                });
+              })
+              .autofocus()
+              .on('click', 'a[href="banish:user"]', function (event) {
+                event.preventDefault();
+
+                var e = $(event.target);
+                var data = {
+                  uuid    : e.extract('uuid'),
+                  account : e.extract('account')
+                };
+                delete members[data.uuid];
+                api({
+                  type: 'POST',
+                  url:  '/v2/tenants/'+args.uuid+'/banish',
+                  data: {users:[data]},
+                  error: "Unable to save tenant role assignment.",
+                  success: function () {
+                    banner('User "'+data.account+'" is no longer associated with this tenant.');
+                  }
+                })
+                $(event.target).closest('tr').remove();
+              }));
+          }
+        });
+
+        break; /* #!/tenants/edit */
+        // }}}
 
       case '#!/admin': /* {{{ */
         if (!$global.auth.is.system.engineer) {
@@ -3715,7 +3823,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           url:  '/v2/tenants',
           error: 'Failed to retrieve tenant information from the SHIELD API.',
           success: function (data) {
-            $('#main').html(template('tenants', { tenants: data }));
+            $('#main').html(template('tenants', { tenants: data, admin: true }));
           }
         });
         break; /* #!/admin/tenants */
@@ -3727,7 +3835,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         }
         var members = {};
 
-        $('#main').html($(template('tenants-form', { policy: null }))
+        $('#main').html($(template('tenants-form', { policy: null, admin: true }))
           .userlookup('input[name=invite]', {
             // {{{
             filter: function (users) {
@@ -3803,7 +3911,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             $.each(data.members, function (i, user) {
               members[user.uuid] = user;
             });
-            $('#main').html($(template('tenants-form', { tenant: data }))
+            $('#main').html($(template('tenants-form', { tenant: data, admin: true }))
               .userlookup('input[name=invite]', {
                 filter: function (users) {
                   var lst = [];
@@ -4588,6 +4696,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             redraw(true);
             var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
             if (page == "#!/do") { page = "#!/systems"; }
+            if (page == "#!/tenants") { page = "#!/systems"; }
             goto(page);
             return;
           }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -191,6 +191,38 @@ func (core *Core) hasSystemRole(r *route.Request, roles ...string) bool {
 	for _, role := range roles {
 		if user.SysRole == role {
 			return true
+		}
+	}
+
+	r.Fail(route.Forbidden(nil, "Access denied"))
+	return false
+}
+
+func (core *Core) CanManageTenants(r *route.Request, tenant string) bool {
+	user, err := core.AuthenticatedUser(r)
+	if user == nil || err != nil {
+		r.Fail(route.Unauthorized(err, "Authorization required"))
+		return false
+	}
+
+	if user.SysRole == "admin" {
+		return true
+	}
+
+	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
+	if err != nil {
+		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
+			user.Account, user.Backend, user.UUID.String(), err)
+		r.Fail(route.Forbidden(err, "Access denied"))
+		return false
+	}
+
+	for _, m := range memberships {
+		if m.TenantUUID.String() == tenant {
+			if m.Role == "admin" {
+				return true
+			}
+			break
 		}
 	}
 
