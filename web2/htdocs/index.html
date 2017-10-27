@@ -2115,11 +2115,13 @@ for job <em>[[= _.task.job_uuid ]]</em>
           <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
+              [[ if ($global.auth.is.system.manager) { ]]
               <li><a href="#!/admin/tenants">Tenants</a>
                 <p>Tenants separate and isolate subsets of your users from one another, so that
                 they can neither see nor affect the systems, storage, and retention policies
                 of one another.</p>
               </li>
+              [[ } ]]
 
               <li><a href="#!/admin/stores">Global Storage Systems</a>
                 <p>You may elect to configure some global storage systems, which can be used,
