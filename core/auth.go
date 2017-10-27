@@ -205,7 +205,7 @@ func (core *Core) CanManageTenants(r *route.Request, tenant string) bool {
 		return false
 	}
 
-	if user.SysRole == "admin" {
+	if user.SysRole == "admin" || user.SysRole == "manager" {
 		return true
 	}
 
