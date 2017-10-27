@@ -199,6 +199,38 @@ func (core *Core) hasSystemRole(r *route.Request, roles ...string) bool {
 	return false
 }
 
+func (core *Core) CanManageTenants(r *route.Request, tenant string) bool {
+	user, err := core.AuthenticatedUser(r)
+	if user == nil || err != nil {
+		r.Fail(route.Unauthorized(err, "Authorization required"))
+		return false
+	}
+
+	if user.SysRole == "admin" || user.SysRole == "manager" {
+		return true
+	}
+
+	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
+	if err != nil {
+		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
+			user.Account, user.Backend, user.UUID.String(), err)
+		r.Fail(route.Forbidden(err, "Access denied"))
+		return false
+	}
+
+	for _, m := range memberships {
+		if m.TenantUUID.String() == tenant {
+			if m.Role == "admin" {
+				return true
+			}
+			break
+		}
+	}
+
+	r.Fail(route.Forbidden(nil, "Access denied"))
+	return false
+}
+
 func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 	session, err := core.DB.GetSession(r.SessionID())
 	if err != nil || session == nil {
