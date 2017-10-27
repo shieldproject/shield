@@ -828,19 +828,17 @@ This endpoint takes no query string parameters.
 **Response**
 
 ```json
-[
-  {
-    "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
-    "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
-    "created_at": "2017-10-24 16:39:03",
-    "last_seen_at": "2017-10-24 16:39:03",
-    "token_uuid": "",
-    "name": "",
-    "ip_addr": "127.0.0.1",
-    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-    "user_account": "admin"
-  }
-]
+{
+  "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
+  "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
+  "created_at": "2017-10-24 16:39:03",
+  "last_seen_at": "2017-10-24 16:39:03",
+  "token_uuid": "",
+  "name": "",
+  "ip_addr": "127.0.0.1",
+  "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+  "user_account": "admin"
+}
 ```
 
 - **uuid** - The internal UUID assigned to this session by the SHIELD Core.
@@ -3803,6 +3801,315 @@ The following error messages can be returned:
   The request should not be retried.
 
 
+### POST /v2/tenants/:tenant/jobs
+
+Configure a new backup job on a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X POST https://shield.host/v2/tenants/:tenant/jobs \
+     --data-binary '
+{
+  "name"     : "New Job Name",
+  "summary"  : "A longer description...",
+  "schedule" : "daily 4am",
+  "paused"   : false,
+
+  "store"    : "af1ad037-c8c1-4036-984a-3cf726b4081d",
+  "target"   : "2c64d9ff-fc9f-4114-8e89-9f7c84fcaac7",
+  "policy"   : "cb6b0503-4741-4cfd-9a1d-11b5a5aaadde"
+}'
+```
+
+**NOTE**: As of right now, the `store`, `target`, and `policy`
+values must be passed as the UUIDs of the related objects.
+
+FIXME : allow non-UUIDs for all three.
+
+**Response**
+
+```json
+{
+  "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+  "name"     : "Job Name",
+  "summary"  : "A longer description",
+  "expiry"   : 604800,
+  "schedule" : "daily 4am",
+  "paused"   : false,
+  "agent"    : "10.0.0.5:5444",
+  "last_run" : "2017-10-19 03:00:00",
+  "last_task_status": "",
+
+  "policy" : {
+    "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+    "name"    : "Retention Policy Name",
+    "summary" : "A longer description"
+  },
+
+  "store" : {
+    "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+    "name"    : "Cloud Storage System Name",
+    "summary" : "A longer description",
+    "plugin"  : "s3",
+    "config"  : {
+      "storage" : "configuration"
+    }
+  },
+
+  "target" : {
+    "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+    "name"   : "Data System Name",
+    "plugin" : "fs",
+    "config" : {
+      "target" : "configuration"
+    }
+  }
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to create new job**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### GET /v2/tenants/:tenant/jobs/:uuid
+
+Retrieve a single job for a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/jobs/:uuid
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+  "name"     : "Job Name",
+  "summary"  : "A longer description",
+  "expiry"   : 604800,
+  "schedule" : "daily 4am",
+  "paused"   : false,
+  "agent"    : "10.0.0.5:5444",
+  "last_run" : "2017-10-19 03:00:00",
+  "last_task_status": "",
+
+  "policy" : {
+    "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+    "name"    : "Retention Policy Name",
+    "summary" : "A longer description"
+  },
+
+  "store" : {
+    "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+    "name"    : "Cloud Storage System Name",
+    "summary" : "A longer description",
+    "plugin"  : "s3",
+    "config"  : {
+      "storage" : "configuration"
+    }
+  },
+
+  "target" : {
+    "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+    "name"   : "Data System Name",
+    "plugin" : "fs",
+    "config" : {
+      "target" : "configuration"
+    }
+  }
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve tenant job information.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such job**:
+  The requested job was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### PATCH /v2/tenants/:tenant/jobs/:uuid
+
+Update a single job on a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PATCH https://shield.host/v2/tenants/:tenant/jobs/:uuid \
+     --data-binary '
+{
+  "name"     : "New Name",
+  "summary"  : "An updated summary",
+  "schedule" : "daily 4am",
+  "store"    : "a6ef5aea-51f6-4e91-a490-3063395f879b",
+  "target"   : "af1425ed-53fd-4ab6-a425-fb230c383901",
+  "policy"   : "c16a4783-19b8-400d-8b51-f47dcdc11da3"
+}'
+```
+
+Any of the fields in the request payload can be omitted to keep
+the pre-existing value.
+
+**NOTE**: As of right now, the `store`, `target`, and `policy`
+values must be passed as the UUIDs of the related objects.
+
+FIXME : allow non-UUIDs for all three.
+
+**Response**
+
+```json
+{
+  "ok": "Updated job successfully"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve job information.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such job**:
+  The requested job was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Unable to update job.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### DELETE /v2/tenants/:tenant/jobs/:uuid
+
+Remove a job from a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/tenants/:tenant/jobs/:uuid \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Job deleted successfully"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `engineer` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve job information.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such job**:
+  The requested job was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Unable to update job.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **The job could not be deleted at this time.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
 ## SHIELD Tasks
 
 Tasks represent the context, status, and output of the execution of
@@ -3813,6 +4120,70 @@ Since tasks represent internal state, they cannot easily be created or
 updated via operators.  Instead, the execution of the job, or the
 triggering of some other action, will cause a task to spring into
 existence and move through its lifecycle.
+
+
+### GET /v2/tenants/:tenant/tasks
+
+Retrieve all tasks for a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/tasks
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+[
+  {
+    "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+    "owner"        : "user@backend",
+    "type"         : "backup",
+    "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+    "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+    "status"       : "running",
+    "started_at"   : "2017-10-17 04:51:16",
+    "stopped_at"   : "",
+    "log"          : "running log...",
+    "notes"        : "Annotated notes about this task",
+    "clear"        : "manual"
+  }
+]
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve task information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Invalid limit parameter given**:
+  Request specified a `limit` parameter that was either
+  non-numeric, or was negative.  Note that `0` is a valid limit,
+  standing for _unlimited_.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
 
 
 ### GET /v2/tenants/:tenant/tasks/:uuid
@@ -3941,6 +4312,251 @@ will be created from scheduled and ad hoc backup jobs, when they
 succeed.
 
 
+### GET /v2/tenants/:tenant/archives
+
+Retrieve all archives for a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/archives
+```
+
+- **?target=**
+Only show the archives that beloing to the the given target UUID.
+
+
+- **?store=**
+Only show the archives that beloing to the the given store UUID.
+
+
+- **?before=**
+Only show the archives created before the given time.
+
+
+- **?after=**
+Only show the archives created after the given time.
+
+
+- **?status=...**
+Only show the archives with the given status.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
+
+**Response**
+
+```json
+[
+  {
+    "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+    "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+    "taken_at": "2017-10-27 16:05:25",
+    "expires_at": "2017-10-28 16:05:25",
+    "notes": "",
+    "status": "valid",
+    "purge_reason": "",
+    "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+    "target_name": "SHIELD",
+    "target_plugin": "fs",
+    "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+    "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+    "store_name": "CloudStor",
+    "store_plugin": "fs",
+    "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+    "job": "Hourly",
+    "encryption_type": "aes256-ctr",
+    "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+    "size": 43306681
+  }
+]
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve backup archives information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Invalid limit parameter given**:
+  Request specified a `limit` parameter that was either
+  non-numeric, or was negative.  Note that `0` is a valid limit,
+  standing for _unlimited_.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### GET /v2/tenants/:tenant/archives/:uuid
+
+Retrieve a single archive for a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+        https://shield.host/v2/tenants/:tenant/archives/:uuid
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+  "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+  "taken_at": "2017-10-27 16:05:25",
+  "expires_at": "2017-10-28 16:05:25",
+  "notes": "",
+  "status": "valid",
+  "purge_reason": "",
+  "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+  "target_name": "SHIELD",
+  "target_plugin": "fs",
+  "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+  "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+  "store_name": "CloudStor",
+  "store_plugin": "fs",
+  "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+  "job": "Hourly",
+  "encryption_type": "aes256-ctr",
+  "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+  "size": 43306681
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve backup archive information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Archive Not Found**:
+  You requested details on an archive that either doesn't exist, or
+  is not tied to the given tenant.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### PUT /v2/tenants/:tenant/archives/:uuid
+
+Update a single archive on a tenant.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -H 'Content-Type: application/json' \
+     -X PUT https://shield.host/v2/tenants/:tenant/archives/:uuid \
+     --data-binary '
+{
+  "notes": "Notes for this specific archive"
+}'
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+  "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+  "taken_at": "2017-10-27 16:05:25",
+  "expires_at": "2017-10-28 16:05:25",
+  "notes": "Notes for this specific archive",
+  "status": "valid",
+  "purge_reason": "",
+  "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+  "target_name": "SHIELD",
+  "target_plugin": "fs",
+  "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+  "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+  "store_name": "CloudStor",
+  "store_plugin": "fs",
+  "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+  "job": "Hourly",
+  "encryption_type": "aes256-ctr",
+  "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+  "size": 43306681
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve backup archive information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such backup archive**:
+  You requested details on an archive that either doesn't exist, or
+  is not tied to the given tenant.
+
+- **Unable to update backup archive**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
 ### POST /v2/tenants/:tenant/archives/:uuid/restore
 
 Restore a backup archive for a tenant, either to the original
@@ -4010,6 +4626,66 @@ The following error messages can be returned:
   it was not associated with the given tenant.
 
 - **Unable to schedule a restore task**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### DELETE /v2/tenants/:tenant/archives/:uuid
+
+Remove an archive from a tenant, and purge the archive
+data from the backing storage system.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X DELETE https://shield.host/v2/tenants/:tenant/archives/:uuid \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Archive deleted successfully"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve backup archive information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such backup archive**:
+  The requested backup archive was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Unable to delete backup archive**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **The backup archive could not be deleted at this time.**:
   an internal error occurred and should be investigated by the
   site administrators
 

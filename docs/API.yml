@@ -638,7 +638,6 @@ sections:
         access: [system, admin]
         response:
           json: |
-            [
               {
                 "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
                 "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
@@ -650,7 +649,6 @@ sections:
                 "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
                 "user_account": "admin"
               }
-            ]
           summary: |
             {{JSON}}
 
@@ -2666,7 +2664,6 @@ sections:
 
         # }}}
       - name: POST /v2/tenants/:tenant/jobs # {{{
-        FIXME: true
         intro: |
           Configure a new backup job on a tenant.
         access: [tenant, engineer]
@@ -2692,17 +2689,104 @@ sections:
 
             FIXME : allow non-UUIDs for all three.
 
+        response:
+          json: |
+            {
+              "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+              "name"     : "Job Name",
+              "summary"  : "A longer description",
+              "expiry"   : 604800,
+              "schedule" : "daily 4am",
+              "paused"   : false,
+              "agent"    : "10.0.0.5:5444",
+              "last_run" : "2017-10-19 03:00:00",
+              "last_task_status": "",
+
+              "policy" : {
+                "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+                "name"    : "Retention Policy Name",
+                "summary" : "A longer description"
+              },
+
+              "store" : {
+                "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+                "name"    : "Cloud Storage System Name",
+                "summary" : "A longer description",
+                "plugin"  : "s3",
+                "config"  : {
+                  "storage" : "configuration"
+                }
+              },
+
+              "target" : {
+                "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+                "name"   : "Data System Name",
+                "plugin" : "fs",
+                "config" : {
+                  "target" : "configuration"
+                }
+              }
+            }
+        errors:
+          - message: Unable to create new job
+            summary: *internal
+
         # }}}
       - name: GET /v2/tenants/:tenant/jobs/:uuid # {{{
-        FIXME: true
         intro: |
           Retrieve a single job for a tenant.
         access: [tenant, operator]
+        
+        response:
+          json: |
+            {
+              "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+              "name"     : "Job Name",
+              "summary"  : "A longer description",
+              "expiry"   : 604800,
+              "schedule" : "daily 4am",
+              "paused"   : false,
+              "agent"    : "10.0.0.5:5444",
+              "last_run" : "2017-10-19 03:00:00",
+              "last_task_status": "",
 
+              "policy" : {
+                "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+                "name"    : "Retention Policy Name",
+                "summary" : "A longer description"
+              },
+
+              "store" : {
+                "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+                "name"    : "Cloud Storage System Name",
+                "summary" : "A longer description",
+                "plugin"  : "s3",
+                "config"  : {
+                  "storage" : "configuration"
+                }
+              },
+
+              "target" : {
+                "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+                "name"   : "Data System Name",
+                "plugin" : "fs",
+                "config" : {
+                  "target" : "configuration"
+                }
+              }
+            }
+
+        errors:
+          - message: Unable to retrieve tenant job information.
+            summary: *internal
+
+          - message: No such job
+            summary: |
+              The requested job was not found in the database, or
+              it was not associated with the given tenant.
 
         # }}}
       - name: PATCH /v2/tenants/:tenant/jobs/:uuid # {{{
-        FIXME: true
         intro: |
           Update a single job on a tenant.
         access: [tenant, engineer]
@@ -2727,11 +2811,26 @@ sections:
             values must be passed as the UUIDs of the related objects.
 
             FIXME : allow non-UUIDs for all three.
+        response:
+          json: |
+            {
+              "ok": "Updated job successfully"
+            }
 
+        errors:
+          - message: Unable to retrieve job information.
+            summary: *internal
+
+          - message: No such job
+            summary: |
+              The requested job was not found in the database, or
+              it was not associated with the given tenant.
+
+          - message: Unable to update job.
+            summary: *internal
 
         # }}}
       - name: DELETE /v2/tenants/:tenant/jobs/:uuid # {{{
-        FIXME: true
         intro: |
           Remove a job from a tenant.
         access: [tenant, engineer]
@@ -2742,6 +2841,22 @@ sections:
               "ok": "Job deleted successfully"
             }
 
+        errors:
+          - message: Unable to retrieve job information.
+            summary: *internal
+
+          - message: No such job
+            summary: |
+              The requested job was not found in the database, or
+              it was not associated with the given tenant.
+
+          - message: Unable to update job.
+            summary: *internal
+
+          #This error is not currently able to be thrown but could be in the future 
+          #if job deletion is conditional
+          - message: The job could not be deleted at this time.
+            summary: *internal
 
 
         # }}}
@@ -2751,6 +2866,27 @@ sections:
           Perform an ad hoc backup job run
         access: [tenant, operator]
 
+        request:
+          json: {}
+
+        response:
+          json: |
+            {
+              "ok": "Scheduled ad hoc backup job run",
+              "task_uuid": "6d38e8bd-42e9-4c23-bbb6-9a480e0e2a82"
+            }
+
+        errors:
+          - message: Unable to retrieve job information.
+            summary: *internal
+
+          - message: No such job
+            summary: |
+              The requested job was not found in the database, or
+              it was not associated with the given tenant.
+
+          - message: Unable to schedule ad hoc backup job run.
+            summary: *internal
 
         # }}}
       - name: POST /v2/tenants/:tenant/jobs/:uuid/pause # {{{
@@ -2758,7 +2894,27 @@ sections:
         intro: |
           Pause a job, to prevent it from being scheduled.
         access: [tenant, operator]
+    
+        request:
+          json: {}
 
+        response:
+          json: |
+            {
+              "ok": "Paused job successfully"
+            }
+
+        errors:
+          - message: Unable to retrieve job information.
+            summary: *internal
+
+          - message: No such job
+            summary: |
+              The requested job was not found in the database, or
+              it was not associated with the given tenant.
+
+          - message: Unable to pause job.
+            summary: *internal
 
         # }}}
       - name: POST /v2/tenants/:tenant/jobs/:uuid/unpause # {{{
@@ -2766,6 +2922,27 @@ sections:
         intro: |
           Unpause a job, allowing it to be scheduled again.
         access: [tenant, operator]
+
+        request:
+          json: {}
+
+        response:
+          json: |
+            {
+              "ok": "Unpaused job successfully"
+            }
+
+        errors:
+          - message: Unable to retrieve job information.
+            summary: *internal
+
+          - message: No such job
+            summary: |
+              The requested job was not found in the database, or
+              it was not associated with the given tenant.
+
+          - message: Unable to unpause job.
+            summary: *internal
 
 
         # }}}
@@ -2784,7 +2961,6 @@ sections:
 
     endpoints:
       - name: GET /v2/tenants/:tenant/tasks # {{{
-        FIXME: true
         intro: |
           Retrieve all tasks for a tenant.
         access: [tenant, operator]
@@ -2806,6 +2982,16 @@ sections:
                 "clear"        : "manual"
               }
             ]
+
+        errors:
+          - message: Unable to retrieve task information
+            summary: *internal
+
+          - message: Invalid limit parameter given
+            summary: |
+              Request specified a `limit` parameter that was either
+              non-numeric, or was negative.  Note that `0` is a valid limit,
+              standing for _unlimited_.
 
 
         # }}}
@@ -2879,27 +3065,160 @@ sections:
 
     endpoints:
       - name: GET /v2/tenants/:tenant/archives # {{{
-        FIXME: true
         intro: |
           Retrieve all archives for a tenant.
         access: [tenant, operator]
 
+        request:
+          query:
+            - name: target
+              type: uuid
+              summary: |
+                Only show the archives that beloing to the the given target UUID.
+            - name: store
+              type: uuid
+              summary: |
+                Only show the archives that beloing to the the given store UUID.
+            - name: before
+              type: date
+              summary: |
+                Only show the archives created before the given time.
+            - name: after
+              type: date
+              summary: |
+                Only show the archives created after the given time.
+            - name: status
+              type: string
+              summary: |
+                Only show the archives with the given status.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
+
+        response:
+          json: |
+            [
+              {
+                "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+                "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+                "taken_at": "2017-10-27 16:05:25",
+                "expires_at": "2017-10-28 16:05:25",
+                "notes": "",
+                "status": "valid",
+                "purge_reason": "",
+                "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+                "target_name": "SHIELD",
+                "target_plugin": "fs",
+                "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+                "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+                "store_name": "CloudStor",
+                "store_plugin": "fs",
+                "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+                "job": "Hourly",
+                "encryption_type": "aes256-ctr",
+                "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+                "size": 43306681
+              }
+            ]
+
+        errors:
+          - message: Unable to retrieve backup archives information
+            summary: *internal
+
+          - message: Invalid limit parameter given
+            summary: |
+              Request specified a `limit` parameter that was either
+              non-numeric, or was negative.  Note that `0` is a valid limit,
+              standing for _unlimited_.
 
         # }}}
       - name: GET /v2/tenants/:tenant/archives/:uuid # {{{
-        FIXME: true
         intro: |
           Retrieve a single archive for a tenant.
         access: [tenant, operator]
 
+        response:
+          json: |
+            {
+              "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+              "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+              "taken_at": "2017-10-27 16:05:25",
+              "expires_at": "2017-10-28 16:05:25",
+              "notes": "",
+              "status": "valid",
+              "purge_reason": "",
+              "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+              "target_name": "SHIELD",
+              "target_plugin": "fs",
+              "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+              "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+              "store_name": "CloudStor",
+              "store_plugin": "fs",
+              "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+              "job": "Hourly",
+              "encryption_type": "aes256-ctr",
+              "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+              "size": 43306681
+            }
+        errors:
+          - message: Unable to retrieve backup archive information
+            summary: *internal
+
+          - message: Archive Not Found
+            summary: |
+              You requested details on an archive that either doesn't exist, or
+              is not tied to the given tenant.
 
         # }}}
       - name: PUT /v2/tenants/:tenant/archives/:uuid # {{{
-        FIXME: true
         intro: |
           Update a single archive on a tenant.
         access: [tenant, operator]
 
+        request:
+          json: |
+            {
+              "notes": "Notes for this specific archive"
+            }
+
+        response:
+          json: |
+            {
+              "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+              "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+              "taken_at": "2017-10-27 16:05:25",
+              "expires_at": "2017-10-28 16:05:25",
+              "notes": "Notes for this specific archive",
+              "status": "valid",
+              "purge_reason": "",
+              "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+              "target_name": "SHIELD",
+              "target_plugin": "fs",
+              "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+              "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+              "store_name": "CloudStor",
+              "store_plugin": "fs",
+              "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+              "job": "Hourly",
+              "encryption_type": "aes256-ctr",
+              "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+              "size": 43306681
+            }
+
+        errors:
+          - message: Unable to retrieve backup archive information
+            summary: *internal
+
+          - message: No such backup archive
+            summary: |
+              You requested details on an archive that either doesn't exist, or
+              is not tied to the given tenant.
+
+          - message: Unable to update backup archive
+            summary: *internal
 
         # }}}
       - name: POST /v2/tenants/:tenant/archives/:uuid/restore # {{{
@@ -2963,7 +3282,6 @@ sections:
 
         # }}}
       - name: DELETE /v2/tenants/:tenant/archives/:uuid # {{{
-        FIXME: true
         intro: |
           Remove an archive from a tenant, and purge the archive
           data from the backing storage system.
@@ -2975,6 +3293,22 @@ sections:
               "ok": "Archive deleted successfully"
             }
 
+        errors:
+          - message: Unable to retrieve backup archive information
+            summary: *internal
+
+          - message: No such backup archive
+            summary: |
+              The requested backup archive was not found in the database, or
+              it was not associated with the given tenant.
+
+          - message: Unable to delete backup archive
+            summary: *internal
+
+          #This error is not currently able to be thrown but could be in the future 
+          #if archive deletion is conditional
+          - message: The backup archive could not be deleted at this time.
+            summary: *internal
 
 
         # }}}
