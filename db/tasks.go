@@ -305,15 +305,15 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	err := db.Exec(
 		`INSERT INTO tasks
 			(uuid, op, store_uuid, store_plugin, 
-			 status, log, requested_at,
+			 status, log, requested_at, agent,
 			 attempts, tenant_uuid, owner)
 		 VALUES
 			(?, ?, ?, ?,
-			 ?, ?, ?, 
-			 ?, ?, ?, ?)`,
+			 ?, ?, ?, ?, 
+			 ?, ?, ?)`,
 		id.String(), TestStoreOperation, store.UUID.String(), store.Plugin,
-		PendingStatus, "", time.Now().Unix(),
-		0, store.TenantUUID.String(), owner, store.Agent,
+		PendingStatus, "", time.Now().Unix(), store.Agent,
+		0, store.TenantUUID.String(), owner,
 	)
 
 	if err != nil {
@@ -322,10 +322,9 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 
 	err = db.Exec(
 		`UPDATE stores
-		 SET
-			(last_test_store_task_id = ?)
+		 SET last_test_store_task_id = ?
 		 WHERE uuid=?`,
-		id.String, store.UUID,
+		id.String(), store.UUID,
 	)
 	if err != nil {
 		return nil, err

@@ -39,7 +39,10 @@ func (core *Core) TestStoresHealth() {
 	}
 
 	for _, store := range stores {
-		core.DB.CreateTestStoreTask("system", store)
+		_, err := core.DB.CreateTestStoreTask("system", store)
+		if err != nil {
+			log.Errorf("failed to create test store task: %s", err)
+		}
 	}
 }
 

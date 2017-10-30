@@ -288,25 +288,25 @@ buckler create-job \
 
 echo ; echo "Running Jobs in 'Other Tenant' tenant"
        echo "  - running SHIELD job (should succeed)"
-buckler run-job Hourly 2>&1 | indent4
-sleep 2
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 2
 
-echo ; echo "  - running Hourly job again (should succeed)"
-buckler run-job Hourly
-buckler run-job Hourly 2>&1 | indent4
-sleep 2
+# echo ; echo "  - running Hourly job again (should succeed)"
+# buckler run-job Hourly
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 2
 
-echo ; echo "  - modifying Hourly target configuration to induce failure"
-buckler update-target SHIELD \
-          --data base_dir=/e/no/ent \
-  2>&1 | indent4
-echo ; echo "  - running Hourly job again (should start failing)"
-buckler run-job Hourly 2>&1 | indent4
-sleep 3
+# echo ; echo "  - modifying Hourly target configuration to induce failure"
+# buckler update-target SHIELD \
+#           --data base_dir=/e/no/ent \
+#   2>&1 | indent4
+# echo ; echo "  - running Hourly job again (should start failing)"
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 3
 
-echo ; echo "  - running Hourly job again (should still fail)"
-buckler run-job Hourly 2>&1 | indent4
-sleep 3
+# echo ; echo "  - running Hourly job again (should still fail)"
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 3
 
 echo ; echo
 echo ; echo "DONE"
