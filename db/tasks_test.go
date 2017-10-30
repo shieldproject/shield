@@ -2,8 +2,9 @@ package db_test
 
 import (
 	"fmt"
-	"github.com/starkandwayne/goutils/timestamp"
 	"time"
+
+	"github.com/starkandwayne/goutils/timestamp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -160,6 +161,25 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
+	})
+
+	It("Can create a new TestStore task", func() {
+		task, err := db.CreateTestStoreTask("owner-name", SomeJob, "127.0.0.1:9938")
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(task).ShouldNot(BeNil())
+
+		shouldExist(`SELECT * FROM tasks`)
+		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, task.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
+		shouldExist(`SELECT * FROM tasks WHERE op = ?`, TestStoreOperation)
+		shouldExist(`SELECT * from tasks WHERE store_uuid = ?`, SomeStore.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE job_uuid IS NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE status = ?`, PendingStatus)
+		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE agent = ?`, "127.0.0.1:9938")
+
 	})
 
 	It("Can start an existing task", func() {

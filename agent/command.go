@@ -77,9 +77,15 @@ func ParseCommand(b []byte) (*Command, error) {
 		if cmd.StoreEndpoint == "" {
 			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
-
 		if cmd.RestoreKey == "" {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for purge operation)")
+		}
+	case "test-store":
+		if cmd.StorePlugin == "" {
+			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
+		}
+		if cmd.StoreEndpoint == "" {
+			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
 
 	case "status":

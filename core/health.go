@@ -54,7 +54,7 @@ func (core *Core) checkHealth() (Health, error) {
 	health.SHIELD.MOTD = core.motd
 	health.SHIELD.Color = core.color
 
-	health.Health.Storage = true
+	health.Health.Storage = core.AreStoresHealthy()
 	stores, err := core.DB.GetAllStores(nil)
 	if err != nil {
 		return health, err
@@ -63,7 +63,7 @@ func (core *Core) checkHealth() (Health, error) {
 	for i, store := range stores {
 		health.Storage[i].UUID = store.UUID
 		health.Storage[i].Name = store.Name
-		health.Storage[i].Healthy = true // FIXME
+		health.Storage[i].Healthy = store.Healthy
 		if !health.Storage[i].Healthy {
 			health.Health.Storage = false
 		}
@@ -131,7 +131,7 @@ func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	for i, store := range stores {
 		health.Storage[i].UUID = store.UUID
 		health.Storage[i].Name = store.Name
-		health.Storage[i].Healthy = true // FIXME
+		health.Storage[i].Healthy = store.Healthy
 		if !health.Storage[i].Healthy {
 			health.Health.Storage = false
 		}

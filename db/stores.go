@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 )
 
 type StoreConfigItem struct {
@@ -20,7 +20,7 @@ type Store struct {
 	Summary string    `json:"summary"`
 	Agent   string    `json:"agent"`
 	Plugin  string    `json:"plugin"`
-	Global bool `json:"global"`
+	Global  bool      `json:"global"`
 
 	PublicConfig  string `json:"-"`
 	PrivateConfig string `json:"-"`
@@ -33,6 +33,9 @@ type Store struct {
 	StorageUsed   int64     `json:"storage_used"`
 	Threshold     int64     `json:"threshold"`
 	ArchiveCount  int       `json:"archive_count"`
+
+	Healthy             bool      `json:"healthy"`
+	LastTestStoreTaskID uuid.UUID `json:"last_test_store_task_id"`
 }
 
 type StoreStats struct {
@@ -153,7 +156,8 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 		   SELECT s.uuid, s.name, s.summary, s.agent,
 		          s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
 		          s.private_config, s.public_config, s.daily_increase,
-		          s.storage_used, s.archive_count, s.threshold
+				  s.storage_used, s.archive_count, s.threshold,
+				  s.healthy, s.last_test_store_task_id
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
@@ -168,7 +172,8 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
 	                   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
 	                   s.private_config, s.public_config, s.daily_increase,
-	                   s.storage_used, s.archive_count, s.threshold
+					   s.storage_used, s.archive_count, s.threshold,
+					   s.healthy, s.last_test_store_task_id					   
 	              FROM stores s
 	         LEFT JOIN jobs j
 	                ON j.store_uuid = s.uuid
@@ -194,18 +199,21 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		s := &Store{}
 		var (
-			this, tenant           NullUUID
-			rawconfig              []byte
-			n                      int
-			daily, used, threshold *int64
-			archives               *int
+			this, tenant, lastTestStoreTaskID NullUUID
+			rawconfig                         []byte
+			n                                 int
+			daily, used, threshold            *int64
+			archives                          *int
+			healthy                           bool
 		)
 		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &tenant, &n, &s.PrivateConfig,
-			&s.PublicConfig, &daily, &used, &archives, &threshold); err != nil {
+			&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &lastTestStoreTaskID); err != nil {
 			return l, err
 		}
 		s.UUID = this.UUID
 		s.TenantUUID = tenant.UUID
+		s.Healthy = healthy
+		s.LastTestStoreTaskID = lastTestStoreTaskID.UUID
 
 		if daily != nil {
 			s.DailyIncrease = *daily
@@ -237,7 +245,8 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	   SELECT s.uuid, s.name, s.summary, s.agent,
 	          s.plugin, s.endpoint, s.tenant_uuid,
 	          s.private_config, s.public_config, s.daily_increase,
-	          s.storage_used, s.archive_count, s.threshold
+			  s.storage_used, s.archive_count, s.threshold,
+			  s.healthy, s.last_test_store_task_id
 	     FROM stores s
 	LEFT JOIN jobs j
 	       ON j.store_uuid = s.uuid
@@ -253,17 +262,20 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 
 	s := &Store{}
 	var (
-		this, tenant           NullUUID
-		rawconfig              []byte
-		daily, used, threshold *int64
-		archives               *int
+		this, tenant, lastTestStoreTaskID NullUUID
+		rawconfig                         []byte
+		daily, used, threshold            *int64
+		archives                          *int
+		healthy                           bool
 	)
 	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &tenant, &s.PrivateConfig,
-		&s.PublicConfig, &daily, &used, &archives, &threshold); err != nil {
+		&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &lastTestStoreTaskID); err != nil {
 		return nil, err
 	}
 	s.UUID = this.UUID
 	s.TenantUUID = tenant.UUID
+	s.Healthy = healthy
+	s.LastTestStoreTaskID = lastTestStoreTaskID.UUID
 
 	if daily != nil {
 		s.DailyIncrease = *daily
@@ -277,6 +289,7 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	if threshold != nil {
 		s.Threshold = *threshold
 	}
+
 	if rawconfig != nil {
 		if err := json.Unmarshal(rawconfig, &s.Config); err != nil {
 			log.Warnf("failed to parse storage system endpoint json '%s': %s", rawconfig, err)
@@ -299,9 +312,9 @@ func (db *DB) CreateStore(s *Store) (*Store, error) {
 
 	s.UUID = uuid.NewRandom()
 	return s, db.Exec(`
-	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold)
-	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?)`,
-		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold)
+	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold, healthy, last_test_store_task_id)
+	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?,        ?,       ?)`,
+		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold, s.Healthy, s.LastTestStoreTaskID)
 }
 
 func (db *DB) UpdateStore(s *Store) error {
@@ -316,19 +329,21 @@ func (db *DB) UpdateStore(s *Store) error {
 
 	return db.Exec(`
 	   UPDATE stores
-	      SET name           = ?,
-	          summary        = ?,
-	          agent          = ?,
-	          plugin         = ?,
-	          endpoint       = ?,
-	          private_config = ?,
-	          public_config  = ?,
-	          daily_increase = ?,
-	          archive_count  = ?,
-	          storage_used   = ?,
-	          threshold      = ?
+	      SET name                    = ?,
+	          summary                 = ?,
+	          agent                   = ?,
+	          plugin                  = ?,
+	          endpoint                = ?,
+	          private_config          = ?,
+	          public_config           = ?,
+	          daily_increase          = ?,
+	          archive_count           = ?,
+	          storage_used            = ?,
+			  threshold               = ?,
+			  healthy                 = ?,
+			  last_test_store_task_id = ?
 	    WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
-		s.ArchiveCount, s.StorageUsed, s.Threshold, s.UUID.String(),
+		s.ArchiveCount, s.StorageUsed, s.Threshold, s.Healthy, s.LastTestStoreTaskID, s.UUID.String(),
 	)
 }
 
@@ -364,4 +379,12 @@ func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 		`DELETE FROM stores WHERE uuid = ?`,
 		id.String(),
 	)
+}
+
+func (s Store) ConfigJSON() (string, error) {
+	b, err := json.Marshal(s.Config)
+	if err != nil {
+		return "", err
+	}
+	return string(b), err
 }

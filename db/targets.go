@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 )
 
 type Target struct {

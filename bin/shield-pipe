@@ -157,7 +157,7 @@ EOF
 
 	header "Performing store / retrieve / purge test"
 	say "generating an input bit pattern"
-	input=$(echo -n "test::"; dd if=/dev/urandom 2>/dev/null bs=25 count=1 | base64 -w0)
+	input=$(echo -n "test::"; dd if=/dev/urandom 2>/dev/null bs=25 count=1 | base64)
 	if [[ -z "${input}" ]]; then
 		fail "input bit pattern was empty; this test is INVALID."
 		exit 1
@@ -166,6 +166,7 @@ EOF
 	key=$(echo "${input}" | ${SHIELD_STORE_PLUGIN} store --text -e "${SHIELD_STORE_ENDPOINT}" || true)
 	if [[ -z "${key}" ]]; then
 		fail "unable to write to storage"
+		echo '{"healthy":false}'
 		exit 2
 	fi
 
@@ -179,16 +180,19 @@ EOF
 
 	if [[ -z "${output}" ]]; then
 		fail "unable to read from storage"
+		echo '{"healthy":false}'
 		exit 2
 	fi
 
 	if [[ "${input}" != "${output}" ]]; then
 		fail "output bit pattern did not match the input pattern"
+		echo '{"healthy":false}'
 		exit 3
 	fi
 
 	ok
-	exit 0
+	echo '{"healthy":true}'
+exit 0
 	;;
 
 (backup)
