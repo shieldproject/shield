@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
@@ -14,15 +15,8 @@ import (
 //Run - Schedule an immediate run of a backup job
 var Run = &commands.Command{
 	Summary: "Schedule an immediate run of a backup job",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{commands.JobNameFlag},
-		JSONOutput: `{
-			"ok":"Scheduled immediate run of job",
-			"task_uuid":"143e5494-63c4-4e05-9051-8b3015eae061"
-		}`,
-	},
-	RunFn: cliRunJob,
-	Group: commands.JobsGroup,
+	Flags:   commands.FlagList{commands.JobNameFlag},
+	RunFn:   cliRunJob,
 }
 
 func cliRunJob(opts *commands.Options, args ...string) error {
@@ -57,7 +51,7 @@ func cliRunJob(opts *commands.Options, args ...string) error {
 	} else {
 		commands.OK("Scheduled immediate run of job")
 		if taskUUID != "" {
-			ansi.Printf("To view task, type @B{shield task %s}\n", taskUUID)
+			fmt.Printf("To view task, type @B{shield task %s}\n", taskUUID)
 		}
 	}
 

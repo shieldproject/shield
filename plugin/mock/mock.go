@@ -1,10 +1,12 @@
 package main
 
 import (
-	fmt "github.com/starkandwayne/goutils/ansi"
-	"github.com/starkandwayne/shield/plugin"
 	"io"
 	"os"
+
+	fmt "github.com/jhunt/go-ansi"
+
+	"github.com/starkandwayne/shield/plugin"
 )
 
 func main() {
@@ -38,6 +40,7 @@ func main() {
   "bool2":   true
 }
 `,
+		Fields: []plugin.Field{},
 	}
 
 	plugin.Run(p)
@@ -153,8 +156,8 @@ func (p MockPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return err
 }
 
-func (p MockPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "fake-storage-key", nil
+func (p MockPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "fake-storage-key", 0, nil
 }
 
 func (p MockPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

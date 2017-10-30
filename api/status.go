@@ -1,8 +1,9 @@
 package api
 
 type Status struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name       string `json:"name"`
+	Version    string `json:"version"`
+	APIVersion int    `json:"api_version"`
 }
 
 func GetStatus() (Status, error) {
@@ -11,7 +12,7 @@ func GetStatus() (Status, error) {
 		return Status{}, err
 	}
 
-	var data Status
+	data := Status{}
 	return data, uri.Get(&data)
 }
 
@@ -33,4 +34,14 @@ func GetJobsStatus() (JobsStatus, error) {
 
 	var data JobsStatus
 	return data, uri.Get(&data)
+}
+
+//Ping hits the /v1/ping endpoint and returns nil if it was successful
+func Ping() (err error) {
+	uri, err := ShieldURI("/v1/ping")
+	if err != nil {
+		return err
+	}
+
+	return uri.Get(nil)
 }

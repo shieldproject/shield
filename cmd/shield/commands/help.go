@@ -1,18 +1,35 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 )
 
-//HelpInfo contains information and functions to display help dialogue
-type HelpInfo struct {
-	Flags      []FlagInfo
-	Message    string
-	JSONInput  string
-	JSONOutput string
+//FlagList contains information and functions to display flag help dialogue
+type FlagList []FlagInfo
+
+//HelpStrings returns all of the contained flags' help lines, formatted into
+//columns
+func (f FlagList) HelpStrings() (lines []string) {
+	columnWidth := f.maxFlagLength()
+	for _, flag := range f {
+		lines = append(lines, flag.HelpLines(columnWidth)...)
+	}
+
+	return lines
+}
+
+//Get the longest length of flags in this helpinfo, to be used to determine the
+//buffer width in help formatting
+func (f FlagList) maxFlagLength() (length int) {
+	for _, flag := range f {
+		thisLen := flag.combinedFlagLength()
+		if thisLen > length {
+			length = thisLen
+		}
+	}
+	return
 }
 
 //FlagInfo contains attributes needed to display help for this command's flags
@@ -36,7 +53,7 @@ func (f *FlagInfo) HelpLines(colwidth int) []string {
 	flags = append(flags, f.formatLong())
 
 	for i := range flags { //Turn the flags blue
-		flags[i] = ansi.Sprintf("@B{%s}", flags[i])
+		flags[i] = fmt.Sprintf("@B{%s}", flags[i])
 	}
 	flagStr := strings.Join(flags, ", ")
 	//Adjust the formatting column width to account for non-printing chars
@@ -81,7 +98,7 @@ func (f FlagInfo) formatLong() (formatted string) {
 	if f.Positional {
 		return fmt.Sprintf("<%s>", f.Name)
 	} else if f.Valued {
-		return fmt.Sprintf("--%s=value", f.Name)
+		return fmt.Sprintf("--%s VALUE", f.Name)
 	}
 	return fmt.Sprintf("--%s", f.Name)
 }
@@ -107,50 +124,18 @@ func (f FlagInfo) lenShort() (length int) {
 
 func (f FlagInfo) lenLong() (length int) {
 	if f.Name != "" {
-		return len(f.Name) + 2
+		var additionalLength int
+		if f.Valued {
+			additionalLength = 6
+		}
+		return len(f.Name) + 2 + additionalLength
 	}
 	panic("flag name not set")
 }
 
-//FlagHelp returns all of the contained flags' help lines, formatted into
-//columns
-func (h HelpInfo) FlagHelp() (lines []string) {
-	columnWidth := h.maxFlagLength()
-	for _, flag := range h.Flags {
-		lines = append(lines, flag.HelpLines(columnWidth)...)
-	}
-
-	return lines
-}
-
-//Get the longest length of flags in this helpinfo, to be used to determine the
-//buffer width in help formatting
-func (h HelpInfo) maxFlagLength() (length int) {
-	for _, flag := range h.Flags {
-		thisLen := flag.combinedFlagLength()
-		if thisLen > length {
-			length = thisLen
-		}
-	}
-	return
-}
-
 //HelpHeader returns the input string formatted for a help dialogue's header
 func HelpHeader(text string) string {
-	return ansi.Sprintf("\n@G{%s}", text)
-}
-
-//ByFlag sorts FlagInfo objects by their flag. Positional arguments come first.
-// Short flags are only used for sorting if long flags aren't present
-type ByFlag []FlagInfo
-
-func (f ByFlag) Len() int      { return len(f) }
-func (f ByFlag) Swap(i, j int) { f[i], f[j] = f[j], f[i] }
-func (f ByFlag) Less(i, j int) bool {
-	if f[i].Positional != f[j].Positional { //Positional arguments come first
-		return f[i].Positional
-	}
-	return f[i].Name < f[j].Name
+	return fmt.Sprintf("\n@G{%s}", text)
 }
 
 var (
@@ -175,12 +160,6 @@ var (
 		Desc: `A string partially matching the name of a single target
 				or a UUID exactly matching the UUID of a target.`,
 	}
-	//ScheduleNameFlag <schedulename>
-	ScheduleNameFlag = FlagInfo{
-		Name: "schedulename", Positional: true, Mandatory: true,
-		Desc: `A string partially matching the name of a single schedule
-				or a UUID exactly matching the UUID of a schedule.`,
-	}
 	//PolicyNameFlag <policyname>
 	PolicyNameFlag = FlagInfo{
 		Name: "policyname", Positional: true, Mandatory: true,
@@ -198,6 +177,22 @@ var (
 		Name: "jobname", Positional: true, Mandatory: true,
 		Desc: `A string partially matching the name of a single job
 				or a UUID exactly matching the UUID of a job.`,
+	}
+	TenantNameFlag = FlagInfo{
+		Name: "tenantname", Positional: true, Mandatory: true,
+		Desc: `A string partially matching the name of a single tenant
+				or a UUID exactly matching the UUID of a tenant.`,
+	}
+	UserNameFlag = FlagInfo{
+		Name: "username", Positional: true, Mandatory: true,
+		Desc: `A string partially matching the account of a single (local) user
+				or a UUID exactly matching the UUID of a (local) user.`,
+	}
+	//AccountFlag <account>
+	AccountFlag = FlagInfo{
+		Name: "account", Positional: true, Mandatory: true,
+		Desc: `A string partially matching the name of a single account
+				or a UUID exactly matching the UUID of an account.`,
 	}
 
 	//UpdateIfExistsFlag --update-if-exists

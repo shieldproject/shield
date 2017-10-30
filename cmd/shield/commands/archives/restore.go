@@ -2,11 +2,11 @@ package archives
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/ansi"
+
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
@@ -16,17 +16,14 @@ import (
 //Restore - Restore a backup archive
 var Restore = &commands.Command{
 	Summary: "Restore a backup archive",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.FlagInfo{
-				Name: "target or uuid", Positional: true, Mandatory: true,
-				Desc: `The name or UUID of a single target to restore. In raw mode, it
+	Flags: commands.FlagList{
+		commands.FlagInfo{
+			Name: "target or uuid", Positional: true, Mandatory: true,
+			Desc: `The name or UUID of a single target to restore. In raw mode, it
 				  must be a UUID assigned to a single archive instance`,
-			},
 		},
 	},
 	RunFn: cliRestoreArchive,
-	Group: commands.ArchivesGroup,
 }
 
 func cliRestoreArchive(opts *commands.Options, args ...string) error {
@@ -35,7 +32,7 @@ func cliRestoreArchive(opts *commands.Options, args ...string) error {
 	var id uuid.UUID
 
 	if *opts.Raw {
-		internal.Require(len(args) == 1, "USAGE: shield restore archive <UUID>")
+		internal.Require(len(args) == 1, "shield restore archive <UUID>")
 		id = uuid.Parse(args[0])
 		log.DEBUG("  trying archive UUID '%s'", args[0])
 
@@ -86,7 +83,7 @@ func cliRestoreArchive(opts *commands.Options, args ...string) error {
 		//`OK` handles raw checking
 		commands.OK("Scheduled immediate restore of archive '%s' %s", id, targetMsg)
 		if taskUUID != "" {
-			ansi.Printf("To view task, type @B{shield task %s}\n", taskUUID)
+			fmt.Printf("To view task, type @B{shield task %s}\n", taskUUID)
 		}
 	}
 

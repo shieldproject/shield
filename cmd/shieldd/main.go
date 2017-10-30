@@ -4,40 +4,50 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/log"
-	"github.com/voxelbrain/goptions"
+	"github.com/jhunt/go-cli"
+	"github.com/jhunt/go-log"
 
 	// sql drivers
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/starkandwayne/shield/supervisor"
+	"github.com/starkandwayne/shield/core"
 )
-
-type ShielddOpts struct {
-	Help       bool   `goptions:"-h, --help, description='Show the help screen'"`
-	ConfigFile string `goptions:"-c, --config, description='Path to the shieldd configuration file'"`
-	Log        string `goptions:"-l, --log-level, description='Set logging level to debug, info, notice, warn, error, crit, alert, or emerg'"`
-	Version    bool   `goptions:"-v, --version, description='Display the SHIELD version'"`
-}
 
 var Version = ""
 
 func main() {
-	supervisor.Version = Version
-	var opts ShielddOpts
-	opts.Log = "Info"
-	if err := goptions.Parse(&opts); err != nil {
-		fmt.Printf("%s\n", err)
-		goptions.PrintHelp()
-		return
+	core.Version = Version
+
+	var opts struct {
+		Help       bool   `cli:"-h, --help"`
+		Version    bool   `cli:"-v, --version"`
+		ConfigFile string `cli:"-c, --config"`
+		Log        string `cli:"-l, --log-level"`
+	}
+	opts.Log = "info"
+
+	_, args, err := cli.Parse(&opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
+		os.Exit(1)
+	}
+	if len(args) != 0 {
+		fmt.Fprintf(os.Stderr, "!!! extra arguments found\n")
+		os.Exit(1)
 	}
 
 	if opts.Help {
-		goptions.PrintHelp()
+		fmt.Printf("shieldd - Run a SHIELD Core daemon\n\n")
+		fmt.Printf("Options\n")
+		fmt.Printf("  -h, --help       Show this help screen.\n")
+		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  -l, --log-level  What messages to log (error, warning, info, or debug).\n")
+		fmt.Printf("  -c, --config     Path to the SHIELD Core configuration file.\n")
+		fmt.Printf("\n")
 		os.Exit(0)
 	}
+
 	if opts.Version {
 		if Version == "" {
 			fmt.Printf("shieldd (development)\n")
@@ -52,20 +62,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.SetupLogging(log.LogConfig{Type: "console", Level: opts.Log})
-	log.Infof("starting shield daemon")
+	log.SetupLogging(log.LogConfig{
+		Type:  "console",
+		Level: opts.Log,
+	})
+	log.Infof("starting up shield core")
 
-	s := supervisor.NewSupervisor()
-	if err := s.ReadConfig(opts.ConfigFile); err != nil {
-		log.Errorf("Failed to load config: %s", err)
-		return
+	daemon, err := core.NewCore(opts.ConfigFile)
+	if err != nil {
+		log.Errorf("shield core failed to start up: %s", err)
+		os.Exit(1)
 	}
 
-	s.SpawnAPI()
-	s.SpawnWorkers()
-
-	if err := s.Run(); err != nil {
-		log.Errorf("shield daemon failed: %s", err)
+	if err := daemon.Run(); err != nil {
+		log.Errorf("shield core failed to run: %s", err)
+		os.Exit(1)
 	}
-	log.Infof("stopping daemon")
+
+	log.Infof("shutting down shield core")
 }

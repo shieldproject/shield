@@ -5,17 +5,17 @@ import (
 	"os"
 	"strings"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 )
 
 func Confirm(prompt string) bool {
 	in := bufio.NewReader(os.Stdin)
 
 	for {
-		ansi.Printf("@Y{%s [y/n]} ", prompt)
+		fmt.Printf("@Y{%s [y/n]} ", prompt)
 		v, err := in.ReadString('\n')
 		if err != nil {
-			ansi.Fprintf(os.Stderr, "failed: @R{%s}\n", err)
+			fmt.Fprintf(os.Stderr, "failed: @R{%s}\n", err)
 			return false
 		}
 

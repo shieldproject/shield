@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -290,7 +291,7 @@ func FindJob(search string, strict bool) (Job, uuid.UUID, error) {
 		}
 		t := tui.NewTable("Name", "Summary", "Target", "Store", "Schedule")
 		for _, job := range jobs {
-			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.ScheduleWhen)
+			t.Row(job, job.Name, job.Summary, job.TargetName, job.StoreName, job.Schedule)
 		}
 		want := tui.Menu(
 			fmt.Sprintf("More than one job matched your search for '%s':", search),
@@ -330,4 +331,159 @@ func FindArchivesFor(target Target, show int) (Archive, uuid.UUID, error) {
 		&t, "Which backup archive would you like to restore?")
 
 	return want.(Archive), uuid.Parse(want.(Archive).UUID), nil
+}
+
+func FindTenant(search string, strict bool) (Tenant, uuid.UUID, error) {
+	id := uuid.Parse(search)
+	if id != nil {
+		t, err := GetTenant(id)
+		if err == nil {
+			return t, uuid.Parse(t.UUID), err
+		}
+		return t, nil, err
+	}
+
+	// test if 'search' is actually a JSON Tenant
+	tenant := Tenant{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&tenant)
+
+	if err == nil {
+		if tenant.UUID != "" {
+			var want Tenant
+			want, err = GetTenant(id)
+			if err != nil {
+				return Tenant{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if tenant.Name != "" {
+			search = tenant.Name
+		}
+	}
+
+	tenants, err := GetTenants(TenantFilter{
+		Name:       search,
+		ExactMatch: MaybeBools(strict, false),
+	})
+	if err != nil {
+		return Tenant{}, nil, fmt.Errorf("Failed to retrieve list of tenants: %s", err)
+	}
+
+	switch len(tenants) {
+	case 0:
+		return Tenant{}, nil, fmt.Errorf("no matching tenants found")
+
+	case 1:
+		return tenants[0], uuid.Parse(tenants[0].UUID), nil
+
+	default:
+		if strict {
+			return Tenant{}, nil, fmt.Errorf("more than one matching tenant found")
+		}
+		t := tui.NewTable("Name", "UUID")
+		for _, tenant := range tenants {
+			t.Row(tenant, tenant.Name, tenant.UUID)
+		}
+		want := tui.Menu(
+			fmt.Sprintf("More than one tenant matched your search for '%s':", search),
+			&t, "Which tenant do you want?")
+		return want.(Tenant), uuid.Parse(want.(Tenant).UUID), nil
+	}
+}
+
+func FindUser(search string, strict bool) (User, uuid.UUID, error) {
+	id := uuid.Parse(search)
+	if id != nil {
+		u, err := GetUser(id)
+		if err == nil {
+			return u, uuid.Parse(u.UUID), err
+		}
+		return u, nil, err
+	}
+
+	// test if 'search' is actually a JSON user
+	user := User{}
+	err := json.NewDecoder(strings.NewReader(search)).Decode(&user)
+
+	if err == nil {
+		if user.UUID != "" {
+			var want User
+			want, err = GetUser(id)
+			if err != nil {
+				return User{}, nil, err
+			}
+			return want, uuid.Parse(want.UUID), nil
+		}
+		if user.Name != "" {
+			search = user.Name
+		}
+	}
+
+	users, err := GetUsers(UserFilter{
+		Account:    search,
+		ExactMatch: MaybeBools(strict, false),
+	})
+	if err != nil {
+		return User{}, nil, fmt.Errorf("Failed to retrieve list of users: %s", err)
+	}
+
+	switch len(users) {
+	case 0:
+		return User{}, nil, fmt.Errorf("no matching users found")
+
+	case 1:
+		return users[0], uuid.Parse(users[0].UUID), nil
+
+	default:
+		if strict {
+			return User{}, nil, fmt.Errorf("more than one matching user found")
+		}
+		t := tui.NewTable("Account", "Name", "System Role", "Tenants")
+		for _, user := range users {
+			t.Row(user, user.Account, user.Name, user.SysRole, user.Tenants)
+		}
+		want := tui.Menu(
+			fmt.Sprintf("More than one user matched your search for '%s':", search),
+			&t, "Which user do you want?")
+		return want.(User), uuid.Parse(want.(User).UUID), nil
+	}
+}
+
+func FindToken(search string, strict bool) (ret Token, u uuid.UUID, err error) {
+	tokens, err := ListTokens()
+	if err != nil {
+		return
+	}
+
+	candidates := []Token{}
+	re := regexp.MustCompile(regexp.QuoteMeta(search))
+
+	for _, token := range tokens {
+		if (strict && token.Name == search) ||
+			(!strict && re.Match([]byte(token.Name))) {
+			candidates = append(candidates, token)
+		}
+	}
+
+	switch len(candidates) {
+	case 0:
+		err = fmt.Errorf("no matching tokens found")
+
+	case 1:
+		ret = candidates[0]
+		u = uuid.Parse(ret.UUID)
+
+	default:
+		t := tui.NewTable("Name", "Created At", "Last Seen")
+		for _, token := range candidates {
+			t.Row(token, token.Name, token.CreatedAt, token.LastSeen)
+		}
+
+		want := tui.Menu(
+			fmt.Sprintf("More than one token matched your search for '%s':", search),
+			&t, "Which token do you want?")
+		ret = want.(Token)
+		u = uuid.Parse(ret.UUID)
+	}
+	return
 }

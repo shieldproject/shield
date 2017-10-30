@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	// sql drivers
-	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
 	. "github.com/starkandwayne/shield/db"
@@ -76,7 +75,7 @@ var _ = Describe("Database Schema", func() {
 
 				var v int
 				Ω(r.Scan(&v)).Should(Succeed())
-				Ω(v).Should(Equal(3))
+				Ω(v).Should(Equal(4))
 			})
 
 			It("creates the correct tables", func() {
@@ -89,7 +88,6 @@ var _ = Describe("Database Schema", func() {
 
 				tableExists("targets")
 				tableExists("stores")
-				tableExists("schedules")
 				tableExists("retention")
 				tableExists("jobs")
 				tableExists("archives")
@@ -101,8 +99,8 @@ var _ = Describe("Database Schema", func() {
 	Describe("Schema Version Interrogation", func() {
 		It("should return an error for a bad database connection", func() {
 			db := &DB{
-				Driver: "postgres",
-				DSN:    "host=127.86.86.86, port=8686",
+				Driver: "sqlite3",
+				DSN:    "/path/to/no/such/file",
 			}
 
 			db.Connect()

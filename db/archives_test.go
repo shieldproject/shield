@@ -19,6 +19,7 @@ var _ = Describe("Archive Management", func() {
 	TARGET_UUID := uuid.NewRandom()
 	STORE_UUID := uuid.NewRandom()
 	ARCHIVE_UUID := uuid.NewRandom()
+	TENANT_UUID := uuid.NewRandom()
 
 	var db *DB
 
@@ -44,9 +45,9 @@ var _ = Describe("Archive Management", func() {
 			// need a store
 			`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES ("`+STORE_UUID.String()+`", "store_plugin", "store_endpoint", "store_name")`,
 			// need an ARCHIVE
-			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status, notes, purge_reason)
+			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status, notes, purge_reason, tenant_uuid)
 				VALUES ("`+ARCHIVE_UUID.String()+`", "`+TARGET_UUID.String()+`",
-				        "`+STORE_UUID.String()+`", "key", 0, 0, "valid", "my_notes", "")`,
+				        "`+STORE_UUID.String()+`", "key", 0, 0, "valid", "my_notes", "", "`+TENANT_UUID.String()+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())
@@ -141,6 +142,7 @@ var _ = Describe("Archive Management", func() {
 				Expect(a).ShouldNot(BeNil())
 				Expect(a).Should(BeEquivalentTo(&Archive{
 					UUID:           ARCHIVE_UUID,
+					TenantUUID:     TENANT_UUID,
 					StoreKey:       "key",
 					TakenAt:        NewTimestamp(time.Unix(0, 0).UTC()),
 					ExpiresAt:      NewTimestamp(time.Unix(0, 0).UTC()),
@@ -247,41 +249,17 @@ var _ = Describe("Archive Management", func() {
 			})
 			It("limits the number of results returned with valid limit", func() {
 				filter := ArchiveFilter{
-					Limit: "3",
+					Limit: 3,
 				}
 				archives, err := db.GetAllArchives(&filter)
 				Ω(err).ShouldNot(HaveOccurred(), "does not error")
 				Ω(len(archives)).Should(Equal(3), "returns three archives")
 			})
-			It("errs when given a negative limit", func() {
-				//This is prevented in the supervisor layer.
-				filter := ArchiveFilter{
-					Limit: "-1",
-				}
-				_, err := db.GetAllArchives(&filter)
-				Ω(err).Should(HaveOccurred(), "does err")
-			})
-			It("errs when given a non-integer number limit", func() {
-				//This is prevented in the supervisor layer.
-				filter := ArchiveFilter{
-					Limit: "6.8",
-				}
-				_, err := db.GetAllArchives(&filter)
-				Ω(err).Should(HaveOccurred(), "does err")
-			})
-			It("errs when given a non-number limit", func() {
-				//This is prevented in the supervisor layer.
-				filter := ArchiveFilter{
-					Limit: "$h13ld",
-				}
-				_, err := db.GetAllArchives(&filter)
-				Ω(err).Should(HaveOccurred(), "does err")
-			})
 			It("correctly uses the limit in conjunction with other filters", func() {
 				//This is prevented in the supervisor layer.
 				filter := ArchiveFilter{
 					WithOutStatus: []string{"valid"},
-					Limit:         "2",
+					Limit:         2,
 				}
 				archives, err := db.GetAllArchives(&filter)
 				Ω(err).ShouldNot(HaveOccurred(), "does not err")
@@ -290,7 +268,7 @@ var _ = Describe("Archive Management", func() {
 			It("returns all entries when limit is higher than matching rows", func() {
 				//This is prevented in the supervisor layer.
 				filter := ArchiveFilter{
-					Limit: "27",
+					Limit: 27,
 				}
 				archives, err := db.GetAllArchives(&filter)
 				Ω(err).ShouldNot(HaveOccurred(), "does not err")

@@ -1,8 +1,10 @@
 package jobs
 
 import (
+	"fmt"
 	"os"
 
+	"github.com/pborman/uuid"
 	"github.com/starkandwayne/shield/api"
 	"github.com/starkandwayne/shield/cmd/shield/commands"
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
@@ -13,41 +15,8 @@ import (
 //Create - Create a new backup job
 var Create = &commands.Command{
 	Summary: "Create a new backup job",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{commands.UpdateIfExistsFlag},
-		JSONInput: `{
-			"name":"TestJob",
-			"paused":true,
-			"retention":"18a446c4-c068-4c09-886c-cb77b6a85274",
-			"schedule":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
-			"store":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"summary":"A Test Job",
-			"target":"84751f04-2be2-428d-b6a3-2022c63bf6ee"
-		}`,
-		JSONOutput: `{
-			"uuid":"f6623a6f-8dce-46b2-a293-5525bc3a3588",
-			"name":"TestJob",
-			"summary":"A Test Job",
-			"retention_name":"AnotherPolicy",
-			"retention_uuid":"18a446c4-c068-4c09-886c-cb77b6a85274",
-			"expiry":31536000,
-			"schedule_name":"AnotherSched",
-			"schedule_uuid":"9a58a3fa-7457-431c-b094-e201b42b5c7b",
-			"schedule_when":"daily 4am",
-			"paused":true,
-			"store_uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"store_name":"AnotherStore",
-			"store_plugin":"s3",
-			"store_endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"target_uuid":"84751f04-2be2-428d-b6a3-2022c63bf6ee",
-			"target_name":"TestTarget",
-			"target_plugin":"postgres",
-			"target_endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"agent":"127.0.0.1:1234"
-		}`,
-	},
-	RunFn: cliCreateJob,
-	Group: commands.JobsGroup,
+	Flags:   commands.FlagList{commands.UpdateIfExistsFlag},
+	RunFn:   cliCreateJob,
 }
 
 func cliCreateJob(opts *commands.Options, args ...string) error {
@@ -69,9 +38,10 @@ func cliCreateJob(opts *commands.Options, args ...string) error {
 		in.NewField("Store", "store", "", "", internal.FieldIsStoreUUID)
 		in.NewField("Target", "target", "", "", internal.FieldIsTargetUUID)
 		in.NewField("Retention Policy", "retention", "", "", internal.FieldIsRetentionPolicyUUID)
-		in.NewField("Schedule", "schedule", "", "", internal.FieldIsScheduleUUID)
+		in.NewField("Schedule Timespec (e.g. daily 4am)", "schedule", "", "", tui.FieldIsRequired)
 
 		in.NewField("Paused?", "paused", "no", "", tui.FieldIsBoolean)
+
 		err := in.Show()
 		if err != nil {
 			return err
@@ -79,6 +49,27 @@ func cliCreateJob(opts *commands.Options, args ...string) error {
 
 		if !in.Confirm("Really create this backup job?") {
 			return internal.ErrCanceled
+		}
+
+		if opts.APIVersion == 1 {
+			log.DEBUG("Creating schedule against v1 API")
+			//We need to create a schedule for this
+			//Also, we need to give the created schedule to the form.
+			scheduleField := in.GetField("schedule")
+			jobNameField := in.GetField("name")
+
+			sched := &api.Schedule{
+				Name:    uuid.New(),
+				Summary: fmt.Sprintf("Created by v8 CLI for job '%s`", jobNameField.Value.(string)),
+				When:    scheduleField.Value.(string),
+			}
+
+			schedUUID, err := sched.Create()
+			if err != nil {
+				return err
+			}
+
+			scheduleField.Value = schedUUID
 		}
 
 		content, err = in.BuildContent()

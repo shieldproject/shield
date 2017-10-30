@@ -1,91 +1,312 @@
 #!/bin/bash
-set -e
+#vim:ft=bash
+set -e -o pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-#if no cli, make cli
-if [[ ! -f "../shield" ]]
-then
-  pushd .. && make shield-cli
-  popd
-fi
+if [[ ! -f "../shield" ]];  then pushd .. && go build ./cmd/shield;   popd; fi
+if [[ ! -f "../buckler" ]]; then pushd .. && go build ./cmd/buckler ; popd; fi
 
-shieldbackend="http://localhost:8181"
-shield="../shield -k --raw -D"
-jq="jq -Mr"
+buckler() { ../buckler "$@"; }
+indent2() { sed -e 's/^/  /'; }
+indent4() { sed -e 's/^/    /'; }
+
 targetdir=$1
 storedir=$2
+
+echo "waiting for shield to spin up..."
+shield_up="1"
+while [ $shield_up -eq 1 ]; do
+  sleep 1
+  shield_up=`nc -z 127.0.0.1 8181; echo $?`
+done
 
 echo targetdir=$targetdir
 echo storedir=$storedir
 
-$shield create-backend localdev $shieldbackend
-echo "backend created"
-target=$($shield create-target <<EOF | $jq .uuid
-{
-  "agent"    : "127.0.0.1:5444",
-  "endpoint" : "{\"base_dir\":\"${targetdir}\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-  "name"     : "DevTarget",
-  "plugin"   : "fs",
-  "summary"  : "The working directory of the dev environment."
-}
-EOF )
-if [[ "$target" = "null" ]]; then
-  echo >&2 "Failed to create the DevTarget target"
-  exit 1
-fi
-echo "target=$target"
+# this agent is not real, but the data validation
+# requires that we provide an agent host:port...
+SHIELD_AGENT_ADDR="127.0.0.1:5444"
 
-store=$($shield create-store <<EOF | $jq .uuid
-{
-  "endpoint" : "{\"base_dir\":\"${storedir}\",\"bsdtar\":\"bsdtar\"}",
-  "name"     : "DevStore",
-  "plugin"   : "fs",
-  "summary"  : "A temporary store for the dev environment."
-}
-EOF )
-if [[ "$store" = "null" ]]; then
-  echo >&2 "Failed to create the DevStore store"
-  exit 1
-fi
-echo "store=$store"
+export SHIELD_CORE=localdev
+export SHIELD_BATCH_MODE=y
 
-policy=$($shield create-policy <<EOF | $jq .uuid
-{
-  "name"    : "DevPolicy",
-  "summary" : "A Test Policy",
-  "expires" : 86400
-}
-EOF )
-if [[ "$policy" = "null" ]]; then
-  echo >&2 "Failed to create the DevPolicy retention policy"
-  exit 1
-fi
-echo "target=$target"
-echo "policy=$policy"
+echo ; echo "Initializing this dev SHIELD core"
+buckler api localdev http://localhost:8181
+SHIELD_CORE_MASTER="master-password-yo" buckler initialize || true
+buckler login --username failsafe --password sekrit 2>&1 | indent2
+buckler id 2>&1 | indent2
 
-schedule=$($shield create-schedule <<EOF | $jq .uuid
-{
-  "name"    : "DevSched",
-  "summary" : "A Test Schedule",
-  "when"    : "daily 4am"
-}
-EOF )
-if [[ "$schedule" = "null" ]]; then
-  echo >&2 "Failed to create the DevSchedule schedule"
-  exit 1
-fi
-echo "target=$target"
-echo "schedule=$schedule"
 
-$shield create-job <<EOF
-{
-  "name"      : "DevJob",
-  "paused"    : true,
-  "retention" : "$policy",
-  "schedule"  : "$schedule",
-  "store"     : "$store",
-  "summary"   : "A Test Job",
-  "target"    : "$target"
-}
-EOF
+echo ; echo "  - Setting up admin account"
+buckler create-user \
+          --name        Administrator \
+          --username    admin \
+          --password    admin \
+          --system-role admin \
+  2>&1 | indent4
+
+echo ; echo "  - Logging in as admin:admin"
+buckler login --username admin --password admin 2>&1 | indent4
+buckler id 2>&1 | indent4
+
+echo ; echo "Setting up Global Resources"
+       echo "  - creating Globus global cloud storage system"
+buckler create-global-store \
+          --name    Globus \
+          --summary 'Global Storage, for use by any and all' \
+          --agent   "${SHIELD_AGENT_ADDR}" \
+          --plugin  fs \
+          --data    "base_dir=${storedir}" \
+          --data    bsdtar=bsdtar \
+  2>&1 | indent2
+
+echo ; echo "  - creating Templated retention policy template"
+buckler create-policy-template \
+          --name    Templated \
+          --days    73
+
+echo ; echo "Setting up 'Acme, Inc.' tenant"
+buckler create-tenant \
+          --name 'Acme, Inc.' \
+  2>&1 | indent2
+
+echo ; echo "  - creating user rrunner:password"
+buckler create-user \
+          --name     'Road Runner' \
+          --username rrunner \
+          --password password \
+  2>&1 | indent4
+
+echo ; echo "  - creating user wcoyote:password"
+buckler create-user \
+          --name     'Wile E. Coyote' \
+          --username wcoyote \
+          --password password \
+  2>&1 | indent4
+
+echo ; echo "  - creating user cjones:password"
+buckler create-user \
+          --name     'Chuck Jones' \
+          --username cjones \
+          --password password \
+  2>&1 | indent4
+
+echo ; echo "  - inviting cjones to Acme, Inc. as an operator"
+buckler invite --tenant Acme --role operator cjones  2>&1 | indent4
+echo ; echo "  - inviting wcoyote to Acme, Inc. as an engineer"
+buckler invite --tenant Acme --role engineer wcoyote 2>&1 | indent4
+echo ; echo "  - inviting rrunner to Acme, Inc. as an admin"
+buckler invite --tenant Acme --role admin    rrunner 2>&1 | indent4
+
+echo
+buckler tenant --json Acme 2>&1 | indent2
+
+
+echo ; echo "Setting up 'Other Tenant' tenant"
+       echo "  - creating tenant 'Other Tenant'"
+buckler create-tenant \
+          --name 'Other Tenant' \
+  2>&1 | indent4
+
+echo ; echo "  - inviting all of Acme, Inc. members to Other Tenant as operators"
+buckler invite --tenant Other --role operator cjones wcoyote rrunner 2>&1 | indent4
+echo ; echo "  - inviting admin to Other Tenant as an admin"
+buckler invite --tenant Other --role admin admin 2>&1 | indent4
+
+
+
+export SHIELD_TENANT=Acme
+echo ; echo "Populating 'Acme, Inc.' tenant with targets, stores, policies, etc."
+       echo "  - loggin in as rrunner:password"
+buckler login --username rrunner --password password 2>&1 | indent4
+buckler id 2>&1 | indent4
+
+echo ; echo "  - creating 'S3' cloud storage system"
+buckler create-store \
+        --name    S3 \
+        --summary 'A fake S3 store for pretending and web UI development.' \
+        --agent   "${SHIELD_AGENT_ADDR}" \
+        --plugin  fs \
+        --data    "base_dir=${storedir}" \
+        --data    bsdtar=bsdtar \
+  2>&1 | indent4
+
+echo ; echo "  - creating 'Scality (On-Prem)' cloud storage system"
+buckler create-store \
+        --name    'Scality (On-Prem)' \
+        --summary 'A fake Scality (On-Premise) store for pretending and web UI development.' \
+        --agent   "${SHIELD_AGENT_ADDR}" \
+        --plugin  fs \
+        --data    "base_dir=${storedir}" \
+        --data    bsdtar=bsdtar \
+  2>&1 | indent4
+
+echo ; echo "  - creating Short-Term archive retention policy"
+buckler create-policy \
+        --name    Short-Term \
+        --summary 'For frequent backups, only kept for a few days at most.' \
+        --days    1 \
+  2>&1 | indent4
+
+echo ; echo "  - creating Long-Term archive retention policy"
+buckler create-policy \
+        --name    Long-Term \
+        --summary 'For infrequent backups, to be kept for at least two weeks.' \
+        --days    14 \
+  2>&1 | indent4
+
+export SHIELD_TRACE=y
+for i in $(seq 1 5); do
+  echo "  - creating 'System #427/a0${i}' target data system"
+  buckler create-target \
+            --name    "System #427/a0${i}" \
+            --summary 'A test system for generating lots of web UI output and pushing the limits of the web UI.' \
+            --agent   "${SHIELD_AGENT_ADDR}" \
+            --plugin  fs \
+            --data    "base_dir=${targetdir}" \
+            --data    bsdtar=bsdtar \
+            --data    'exclude=var/*.db' \
+    2>&1 | indent4
+
+done
+
+echo ; echo "  - creating Weekly job for 'System #427/a01'"
+buckler create-job \
+        --name Weekly \
+        --schedule 'sundays at 2:30am' \
+        --paused \
+        --store    s3 \
+        --target   "System #427/a01" \
+        --policy   long-term \
+  2>&1 | indent4
+
+echo ; echo "  - creating Weekly job for 'System #427/a02'"
+buckler create-job \
+        --name Weekly \
+        --schedule 'sundays at 2:45am' \
+        --paused \
+        --store    s3 \
+        --target   "System #427/a02" \
+        --policy   long-term \
+  2>&1 | indent4
+
+echo ; echo "  - creating Weekly job for 'System #427/a03'"
+buckler create-job \
+        --name Weekly \
+        --schedule 'sundays at 3am' \
+        --paused \
+        --store    s3 \
+        --target   "System #427/a03" \
+        --policy   long-term
+
+echo ; echo "  - creating Daily job for 'System #427/a02'"
+buckler create-job \
+        --name     Daily \
+        --schedule 'daily 4:10am' \
+        --paused \
+        --store    s3 \
+        --target   "System #427/a02" \
+        --policy   short-term \
+  2>&1 | indent4
+
+echo ; echo "  - creating Daily job for 'System #427/a03'"
+buckler create-job \
+        --name     Daily \
+        --schedule 'daily 4:20am' \
+        --paused \
+        --store    s3 \
+        --target   "System #427/a03" \
+        --policy   short-term \
+  2>&1 | indent4
+
+echo ; echo "  - creating Daily job for 'System #427/a04'"
+buckler create-job \
+        --name     Daily \
+        --schedule 'daily 4:30am' \
+        --paused \
+        --store    s3 \
+        --target   "System #427/a04" \
+        --policy   short-term \
+  2>&1 | indent4
+
+echo ; echo "  - creating Daily job for 'System #427/a05'"
+buckler create-job \
+        --name     Daily \
+        --schedule 'daily 4:40am' \
+        --paused \
+        --store    s3 \
+        --target   "System #427/a05" \
+        --policy   short-term \
+  2>&1 | indent4
+
+
+export SHIELD_TENANT=Other
+echo ; echo "Populating 'Other Tenant' tenant with targets, stores, policies, etc."
+       echo "  - loggin in as admin:admin"
+buckler login --username admin --password admin 2>&1 | indent4
+buckler id 2>&1 | indent4
+
+echo ; echo "  - creatin 'CloudStor' cloud storage system"
+buckler create-store \
+        --name    CloudStor \
+        --summary 'A temporary store for the dev environment.' \
+        --agent   "${SHIELD_AGENT_ADDR}" \
+        --plugin  fs \
+        --data    "base_dir=${storedir}" \
+        --data    bsdtar=bsdtar \
+  2>&1 | indent4
+
+echo ; echo "  - creating 'SHIELD' data system target"
+buckler create-target \
+        --name    SHIELD \
+        --summary 'The working directory of the dev environment.' \
+        --agent   "${SHIELD_AGENT_ADDR}" \
+        --plugin  fs \
+        --data    "base_dir=${targetdir}" \
+        --data    bsdtar=bsdtar \
+        --data    'exclude=var/*.db' \
+  2>&1 | indent4
+
+echo ; echo "  - creating 'Default Policy' archive retention policy"
+buckler create-policy \
+        --name    'Default Policy' \
+        --summary 'The Default Retention Policy' \
+        --days    1 \
+  2>&1 | indent4
+
+echo ; echo "  - creating Hourly job for SHIELD backups"
+buckler create-job \
+        --name     'Hourly' \
+        --paused \
+        --schedule 'hourly at :05' \
+        --target   SHIELD \
+        --store    CloudStor \
+        --policy   Default \
+  2>&1 | indent4
+
+
+echo ; echo "Running Jobs in 'Other Tenant' tenant"
+       echo "  - running SHIELD job (should succeed)"
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 2
+
+# echo ; echo "  - running Hourly job again (should succeed)"
+# buckler run-job Hourly
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 2
+
+# echo ; echo "  - modifying Hourly target configuration to induce failure"
+# buckler update-target SHIELD \
+#           --data base_dir=/e/no/ent \
+#   2>&1 | indent4
+# echo ; echo "  - running Hourly job again (should start failing)"
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 3
+
+# echo ; echo "  - running Hourly job again (should still fail)"
+# buckler run-job Hourly 2>&1 | indent4
+# sleep 3
+
+echo ; echo
+echo ; echo "DONE"

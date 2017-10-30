@@ -14,26 +14,10 @@ import (
 //Edit - Modify an existing archive store
 var Edit = &commands.Command{
 	Summary: "Modify an existing archive store",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{
-			commands.StoreNameFlag,
-		},
-		JSONInput: `{
-			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"name":"AnotherStore",
-			"plugin":"s3",
-			"summary":"A Test Store"
-		}`,
-		JSONOutput: `{
-			"uuid":"355ccd3f-1d2f-49d5-937b-f4a12033a0cf",
-			"name":"AnotherStore",
-			"summary":"A Test Store",
-			"plugin":"s3",
-			"endpoint":"{\"endpoint\":\"schmendpoint\"}"
-		}`,
+	Flags: commands.FlagList{
+		commands.StoreNameFlag,
 	},
 	RunFn: cliEditStore,
-	Group: commands.StoresGroup,
 }
 
 func cliEditStore(opts *commands.Options, args ...string) error {

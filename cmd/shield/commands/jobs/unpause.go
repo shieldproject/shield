@@ -12,11 +12,8 @@ import (
 //Unpause - Unpause a backup job
 var Unpause = &commands.Command{
 	Summary: "Unpause a backup job",
-	Help: &commands.HelpInfo{
-		Flags: []commands.FlagInfo{commands.JobNameFlag},
-	},
-	RunFn: cliUnpauseJob,
-	Group: commands.JobsGroup,
+	Flags:   commands.FlagList{commands.JobNameFlag},
+	RunFn:   cliUnpauseJob,
 }
 
 func cliUnpauseJob(opts *commands.Options, args ...string) error {

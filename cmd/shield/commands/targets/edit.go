@@ -14,27 +14,8 @@ import (
 //Edit - Modify an existing backup target
 var Edit = &commands.Command{
 	Summary: "Modify an existing backup target",
-	Help: &commands.HelpInfo{
-		Message: "Modify an existing backup target. The UUID of the target will remain the same after modification.",
-		Flags:   []commands.FlagInfo{commands.TargetNameFlag},
-		JSONInput: `{
-			"agent":"127.0.0.1:1234",
-			"endpoint":"{\"endpoint\":\"newschmendpoint\"}",
-			"name":"NewTargetName",
-			"plugin":"postgres",
-			"summary":"Some Target"
-		}`,
-		JSONOutput: `{
-			"uuid":"8add3e57-95cd-4ec0-9144-4cd5c50cd392",
-			"name":"SomeTarget",
-			"summary":"Just this target, you know?",
-			"plugin":"postgres",
-			"endpoint":"{\"endpoint\":\"schmendpoint\"}",
-			"agent":"127.0.0.1:1234"
-		}`,
-	},
-	RunFn: cliEditTarget,
-	Group: commands.TargetsGroup,
+	Flags:   commands.FlagList{commands.TargetNameFlag},
+	RunFn:   cliEditTarget,
 }
 
 func cliEditTarget(opts *commands.Options, args ...string) error {

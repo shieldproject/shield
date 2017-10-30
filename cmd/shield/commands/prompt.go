@@ -1,10 +1,10 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
+
 	"github.com/starkandwayne/shield/cmd/shield/commands/internal"
 )
 
@@ -14,13 +14,13 @@ func OK(f string, l ...interface{}) {
 		internal.RawJSON(map[string]string{"ok": fmt.Sprintf(f, l...)})
 		return
 	}
-	ansi.Printf("@G{%s}\n", fmt.Sprintf(f, l...))
+	fmt.Printf("@G{%s}\n", fmt.Sprintf(f, l...))
 }
 
 //MSG prints an informational message to the screen
 func MSG(f string, l ...interface{}) {
 	if !*Opts.Raw {
-		ansi.Printf("\n@G{%s}\n", fmt.Sprintf(f, l...))
+		fmt.Printf("\n@G{%s}\n", fmt.Sprintf(f, l...))
 	}
 }
 

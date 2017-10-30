@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/log"
-	"github.com/voxelbrain/goptions"
+	"github.com/jhunt/go-cli"
+	"github.com/jhunt/go-log"
 
 	// sql drivers
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/starkandwayne/shield/db"
@@ -20,24 +18,36 @@ var Version = ""
 func main() {
 	log.Infof("starting schema...")
 
-	options := struct {
-		Help    bool   `goptions:"-h, --help, description='Show the help screen'"`
-		Driver  string `goptions:"-t, --type, description='Type of database backend (postgres or mysql)'"`
-		DSN     string `goptions:"-d,--database, description='DSN of the database backend'"`
-		Version bool   `goptions:"-v, --version, description='Display the SHIELD version'"`
-	}{
-	// No defaults
+	var opts struct {
+		Help     bool   `cli:"-h, --help"`
+		Version  bool   `cli:"-v, --version"`
+		Debug    bool   `cli:"-D, --debug"`
+		Database string `cli:"-d, --database"`
 	}
-	if err := goptions.Parse(&options); err != nil {
-		fmt.Printf("%s\n", err)
-		goptions.PrintHelp()
-		return
+
+	_, args, err := cli.Parse(&opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
+		os.Exit(1)
 	}
-	if options.Help {
-		goptions.PrintHelp()
+	if len(args) != 0 {
+		fmt.Fprintf(os.Stderr, "!!! extra arguments found\n")
+		os.Exit(1)
+	}
+
+	if opts.Help {
+		fmt.Printf("shield-schema - Deploy a SHIELD database schema\n\n")
+		fmt.Printf("Options\n")
+		fmt.Printf("  -h, --help       Show this help screen.\n")
+		fmt.Printf("  -D, --debug      Enable debugging output.\n")
+		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  -d, --database   Path to the SQLite3 database file.\n")
+		fmt.Printf("\n")
 		os.Exit(0)
 	}
-	if options.Version {
+
+	if opts.Version {
 		if Version == "" {
 			fmt.Printf("shield-schema (development)%s\n", Version)
 		} else {
@@ -45,30 +55,37 @@ func main() {
 		}
 		os.Exit(0)
 	}
-	if options.Driver == "" {
-		fmt.Fprintf(os.Stderr, "You must indicate which type of database you wish to manage, via the `--type` option.\n")
+
+	if opts.Database == "" {
+		fmt.Fprintf(os.Stderr, "You must specify the path to your database, via the `--database` option.\n")
 		os.Exit(1)
 	}
-	if options.DSN == "" {
-		fmt.Fprintf(os.Stderr, "You must specify the DSN of your database, via the `--database` option.\n")
-		os.Exit(1)
+
+	level := "info"
+	if opts.Debug {
+		level = "debug"
 	}
+	log.SetupLogging(log.LogConfig{
+		Type:  "console",
+		Level: level,
+	})
 
 	database := &db.DB{
-		Driver: options.Driver,
-		DSN:    options.DSN,
+		Driver: "sqlite3",
+		DSN:    opts.Database,
 	}
 
-	log.Debugf("connecting to %s database at %s", database.Driver, database.DSN)
+	log.Debugf("connecting to database at %s", database.DSN)
 	if err := database.Connect(); err != nil {
-		log.Errorf("failed to connect to %s database at %s: %s",
-			database.Driver, database.DSN, err)
+		log.Errorf("failed to connect to database at %s: %s",
+			database.DSN, err)
+		os.Exit(1)
 	}
 
 	if err := database.Setup(); err != nil {
-		log.Errorf("failed to set up schema in %s database at %s: %s",
-			database.Driver, database.DSN, err)
-		return
+		log.Errorf("failed to set up schema in database at %s: %s",
+			database.DSN, err)
+		os.Exit(1)
 	}
 
 	log.Infof("deployed schema version %d", db.CurrentSchema)

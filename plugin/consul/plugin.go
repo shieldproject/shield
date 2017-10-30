@@ -43,13 +43,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/starkandwayne/goutils/ansi"
-	. "github.com/starkandwayne/shield/plugin"
+	fmt "github.com/jhunt/go-ansi"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 var (
@@ -61,7 +60,7 @@ func main() {
 		Name:    "Consul Backup Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
-		Features: PluginFeatures{
+		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
@@ -81,12 +80,44 @@ func main() {
   "host" : "http://127.0.0.1:8500"
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:    "target",
+				Name:    "host",
+				Type:    "string",
+				Title:   "Consul Host/Port",
+				Help:    "The hostname or IP address port of your consul endpoint.",
+				Example: "my.consul.tld:8500",
+				Default: "127.0.0.1:8500",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "skip_ssl_validation",
+				Type:  "bool",
+				Title: "Skip SSL Validation",
+				Help:  "If your Consul certificate is invalid, expired, or signed by an unknown Certificate Authority, you can disable SSL validation.  This is not recommended from a security standpoint, however.",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "username",
+				Type:  "string",
+				Title: "Consul Username",
+				Help:  "Username to authenticate to Consul as (usually over HTTP Basic Auth).",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "password",
+				Type:  "password",
+				Title: "Consul Password",
+				Help:  "Password to authenticate to Consul as (usually over HTTP Basic Auth).",
+			},
+		},
 	}
 
-	Run(p)
+	plugin.Run(p)
 }
 
-type ConsulPlugin PluginInfo
+type ConsulPlugin plugin.PluginInfo
 
 type ConsulConnectionInfo struct {
 	Host     string
@@ -97,11 +128,11 @@ type ConsulConnectionInfo struct {
 	Database string
 }
 
-func (p ConsulPlugin) Meta() PluginInfo {
-	return PluginInfo(p)
+func (p ConsulPlugin) Meta() plugin.PluginInfo {
+	return plugin.PluginInfo(p)
 }
 
-func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
+func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		b    bool
@@ -111,40 +142,40 @@ func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("host", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 host                  %s}\n", err)
+		fmt.Printf("@R{\u2717 host                  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
+		fmt.Printf("@G{\u2717 host                  using default host @C{%s}}\n", DefaultHostPort)
 	} else {
-		ansi.Printf("@G{\u2713 host}                  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 host}                  @C{%s}\n", s)
 	}
 
 	b, err = endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
+		fmt.Printf("@R{\u2717 skip_ssl_validation   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
+		fmt.Printf("@G{\u2713 skip_ssl_validation}   @C{%t}\n", b)
 	}
 
 	s, err = endpoint.StringValueDefault("username", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 username              %s}\n", err)
+		fmt.Printf("@R{\u2717 username              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 username}              no username\n")
+		fmt.Printf("@G{\u2713 username}              no username\n")
 	} else {
-		ansi.Printf("@G{\u2713 username}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 username}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("password", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 password              %s}\n", err)
+		fmt.Printf("@R{\u2717 password              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 password}              no password\n")
+		fmt.Printf("@G{\u2713 password}              no password\n")
 	} else {
-		ansi.Printf("@G{\u2713 password}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 password}              @C{%s}\n", s)
 	}
 
 	if fail {
@@ -153,7 +184,7 @@ func (p ConsulPlugin) Validate(endpoint ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Backup(endpoint ShieldEndpoint) error {
+func (p ConsulPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	encoder := json.NewEncoder(os.Stdout)
 
@@ -176,7 +207,7 @@ func (p ConsulPlugin) Backup(endpoint ShieldEndpoint) error {
 	return err
 }
 
-func (p ConsulPlugin) Restore(endpoint ShieldEndpoint) error {
+func (p ConsulPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	client, err := consulClient(endpoint)
 	if err != nil {
 		return err
@@ -206,25 +237,25 @@ func (p ConsulPlugin) Restore(endpoint ShieldEndpoint) error {
 	return nil
 }
 
-func (p ConsulPlugin) Store(endpoint ShieldEndpoint) (string, error) {
-	return "", UNIMPLEMENTED
+func (p ConsulPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p ConsulPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p ConsulPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p ConsulPlugin) Purge(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p ConsulPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func consulClient(endpoint ShieldEndpoint) (*api.Client, error) {
+func consulClient(endpoint plugin.ShieldEndpoint) (*api.Client, error) {
 	skipSSLVerify, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
 		return nil, err
 	}
 	if skipSSLVerify {
-		DEBUG("Skipping SSL Validation")
+		plugin.DEBUG("Skipping SSL Validation")
 		os.Setenv(api.HTTPSSLVerifyEnvName, "false")
 	}
 
@@ -235,20 +266,20 @@ func consulClient(endpoint ShieldEndpoint) (*api.Client, error) {
 		return nil, err
 	}
 
-	DEBUG("HOST: '%s'", host)
+	plugin.DEBUG("HOST: '%s'", host)
 	config.Address = host
 
 	username, err := endpoint.StringValueDefault("username", "")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("USERNAME: '%s'", username)
+	plugin.DEBUG("USERNAME: '%s'", username)
 
 	password, err := endpoint.StringValueDefault("password", "")
 	if err != nil {
 		return nil, err
 	}
-	DEBUG("PASSWORD: '%s'", password)
+	plugin.DEBUG("PASSWORD: '%s'", password)
 
 	if username != "" && password != "" {
 		config.HttpAuth = &api.HttpBasicAuth{

@@ -67,13 +67,12 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 	minio "github.com/starkandwayne/minio-go"
 	"golang.org/x/net/proxy"
 
@@ -87,7 +86,7 @@ const (
 
 func main() {
 	p := ScalityPlugin{
-		Name:    "Scality Backup + Storage Plugin",
+		Name:    "Scality Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -113,6 +112,61 @@ func main() {
   "socks5_proxy"        : ""      # don't use a proxy
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "store",
+				Name:     "scality_host",
+				Type:     "string",
+				Title:    "Scality Host",
+				Help:     "The hostname or IP address fo the Scality host to store archives in.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "access_key_id",
+				Type:     "string",
+				Title:    "Access Key ID",
+				Help:     "The Access Key ID to use when authenticating against Scality's S3-like API.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "secret_access_key",
+				Type:     "password",
+				Title:    "Secret Access Key",
+				Help:     "The Secret Access Key to use when authenticating against Scality's S3-like API.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "bucket",
+				Type:     "string",
+				Title:    "Bucket Name",
+				Help:     "Name of the AWS-style bucket to store backup archives in.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "prefix",
+				Type:  "string",
+				Title: "Bucket Path Prefix",
+				Help:  "An optional sub-path of the bucket to use for storing archives.  By default, archives are stored in the root of the bucket.",
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "socks5_proxy",
+				Type:  "string",
+				Title: "SOCKS5 Proxy",
+				Help:  "The host:port address of a SOCKS5 proxy to relay HTTP through when accessing Scality.",
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "skip_ssl_validation",
+				Type:  "bool",
+				Title: "Skip SSL Validation",
+				Help:  "If your Scality certificate is invalid, expired, or signed by an unknown Certificate Authority, you can disable SSL validation.  This is not recommended from a security standpoint, however.",
+			},
+		},
 	}
 
 	plugin.Run(p)
@@ -143,64 +197,64 @@ func (p ScalityPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("scality_host")
 	if err != nil {
-		ansi.Printf("@R{\u2717 scality_host              %s}\n", err)
+		fmt.Printf("@R{\u2717 scality_host              %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 scality_host}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 scality_host}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("access_key_id")
 	if err != nil {
-		ansi.Printf("@R{\u2717 access_key_id        %s}\n", err)
+		fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("secret_access_key")
 	if err != nil {
-		ansi.Printf("@R{\u2717 secret_access_key    %s}\n", err)
+		fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bucket               %s}\n", err)
+		fmt.Printf("@R{\u2717 bucket               %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		ansi.Printf("@R{\u2717 prefix               %s}\n", err)
+		fmt.Printf("@R{\u2717 prefix               %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 prefix}               (none)\n")
+		fmt.Printf("@G{\u2713 prefix}               (none)\n")
 	} else {
-		ansi.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("socks5_proxy", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
+		fmt.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 socks5_proxy}         (no proxy will be used)\n")
+		fmt.Printf("@G{\u2713 socks5_proxy}         (no proxy will be used)\n")
 	} else {
-		ansi.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 socks5_proxy}         @C{%s}\n", s)
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else if tf {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 	} else {
-		ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 	}
 
 	if fail {
@@ -217,14 +271,15 @@ func (p ScalityPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p ScalityPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p ScalityPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	var size int64
 	scal, err := getScalityConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	client, err := scal.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	path := scal.genBackupPath()
@@ -234,10 +289,10 @@ func (p ScalityPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	// FIXME: should we do something with the size of the write performed?
 	_, err = client.PutObject(scal.Bucket, path, os.Stdin, "application/x-gzip")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return path, nil
+	return path, size, nil
 }
 
 func (p ScalityPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
@@ -353,7 +408,7 @@ func (scal ScalityConnectionInfo) Connect() (*minio.Client, error) {
 	if scal.SOCKS5Proxy != "" {
 		dialer, err := proxy.SOCKS5("tcp", scal.SOCKS5Proxy, nil, proxy.Direct)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)
+			fmt.Fprintf(os.Stderr, "can't connect to the proxy: %s\n", err)
 			os.Exit(1)
 		}
 		transport.(*http.Transport).Dial = dialer.Dial

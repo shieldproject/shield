@@ -1,5 +1,6 @@
 #!/bin/bash
 export PATH=$(pwd):$(pwd)/bin:${PATH}
+export VAULT_SKIP_VERIFY=1
 workdir=""
 ADDR=127.0.0.1:8181
 
@@ -12,6 +13,51 @@ setup_workdir() {
   mkdir ${workdir}/var
 }
 
+preflight() {
+  echo "RUNNING testdev PRE-FLIGHT CHECKS"
+  echo
+
+  echo "checking for tmux..."
+  if ! type tmux &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires tmux (https://tmux.github.io)"
+    echo "You will need to install tmux to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install tmux\` and be on your way."
+    esac
+    exit 1
+  fi
+
+  echo "checking for vault..."
+  if ! type vault &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires vault (https://vaultproject.io)"
+    echo "You will need to install vault to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install vault\` and be on your way."
+    esac
+    exit 1
+  fi
+  v=$(vault -v | awk '{print $2}')
+  case $v in
+  v0.8.*) ;;
+  *) echo
+     echo "The installed version of vault ($v) has not been verified"
+     echo "to work with this version of SHIELD testdev.  Please try v0.8.3"
+      case $OSTYPE in
+      *darwin*) echo
+                echo "On macOS ($OSTYPE), you can \`brew upgrade vault\` and be on your way."
+      esac
+     exit 1;
+     ;;
+  esac
+
+  echo
+  echo "PRE-FLIGHT CHECKS OK"
+}
+
 # If a work directory is not supplied as a parameter,
 # create one.
 if [ $# -lt 2 ]; then
@@ -20,11 +66,46 @@ else
     workdir="${2}"
 fi
 
-export DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
-export DATABASE_DSN=${DATABASE_DSN:-$workdir/var/shield.db}
-export SHIELD_API_TOKEN=LETMEIN
+# set up a dedicated directory just for plugins
+mkdir -p ${workdir}/bin
+for x in $(find plugin -maxdepth 1 -type d); do
+  bin=${x##*/}
+  if [[ -f $bin && -x $bin ]]; then
+    cp $bin ${workdir}/bin/$bin
+  fi
+done
+
+export DATABASE=${DATABASE:-$workdir/var/shield.db}
 
 case "${1}" in
+(vault)
+  mkdir -p ${workdir}/var/vault
+  cat >${workdir}/etc/vault.conf <<EOF
+storage "file" {
+  path = "${workdir}/var/vault"
+}
+disable_mlock = true
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = true
+}
+EOF
+  while true; do
+    echo ">> Spinning up a local (loopback) Vault"
+    vault server -config ${workdir}/etc/vault.conf
+    echo
+
+    echo "vault exited."
+    echo "Do you want to [r]estart it (sealed)"
+    echo "or re-[i]nitialize it?"
+    read -p "[r/i/N] " CONTINUE
+    case "${CONTINUE}" in
+    i*|I*) rm -rf ${workdir}/var/vault ;;
+    r*|r*) ;;
+    *) exit 0 ;;
+    esac
+  done
+  ;;
 (shieldd)
   ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
   rm ${workdir}/var/shieldd_key.pub
@@ -32,46 +113,104 @@ case "${1}" in
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
 listen_addr:   ${ADDR}
-database_type: ${DATABASE_TYPE}
-database_dsn:  ${DATABASE_DSN}
+database:      ${DATABASE}
 private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
-web_root: ./webui
+web_root:      ./web2/htdocs
+slow_loop:     20
+fast_loop:     2
+vault_keyfile: ${workdir}/var/vault.crypt
+session_timeout: 8
+debug: true
+
+env:   TESTDEV
+color: yellow
+motd: |
+  Welcome to the testdev S.H.I.E.L.D. environment!
+
+failsafe:
+  username: failsafe
+  password: sekrit
+
 auth:
-  api_tokens:
-    test: ${SHIELD_API_TOKEN}
-  basic:
-    user: testuser
-    password: testpass
-#  oauth:
-#    provider: github
-#    key: Fill this in with the github Client ID after creating a dev oauth app
-#    secret: Fill this in with the github secret after creating a dev oath app
-#    base_url: http://localhost:8181
-#    orgs:
-#    - Fill this in with a real github group you want to restrict access to
-#    sessions:
-#      type: sqlite3
-#      dsn: ${workdir}/var/sessions.db
+  - name:       Github
+    identifier: github
+    backend:    github
+    properties:
+      client_id:     35f670b0ee9c9b4bc37c
+      client_secret: b33d1309ea69e75c0ccd51f2caac9493e9326830
+      mapping:
+        - github: starkandwayne  # <-- github org name
+          tenant: starkandwayne  # <-- shield tenant name
+          rights:
+            - team: Owners       # <-- github team name
+              role: admin        # <-- shield role name
+            - team: Engineering  #   (first match wins)
+              role: engineer
+            - role: operator     # = (default match)
+
+        - github: starkandwayne
+          tenant: SYSTEM
+          rights:
+            - team: Owners
+              role: admin
+
+        - github: cloudfoundry-community
+          tenant: CF Community
+          rights:
+            - role: engineer
+
+  - name:       UAA
+    identifier: uaa1
+    backend:    uaa
+    properties:
+      client_id:       shield-dev
+      client_secret:   s.h.i.e.l.d.
+      uaa_endpoint:    https://uaa.shield.10.244.156.2.netip.cc:8443
+      skip_verify_tls: true
+      mapping:
+        - tenant: UAA          # <-- shield tenant name
+          rights:
+            - scim: uaa.admin  # <-- uaa scim right
+              role: admin      # <-- shield role
+                               #   (first match wins)
+            - scim: cloud_controller.write
+              role: engineer
+
+            - role: operator   # = (default match)
+
+        - tenant: UAA Admins Club
+          rights:
+            - scim: uaa.admin
+              role: admin
+
 EOF
 
   echo ">> Setting up SHIELD schema"
-  ./shield-schema -t ${DATABASE_TYPE} -d "${DATABASE_DSN}"
+  ./shield-schema -d "${DATABASE}"
   echo
 
-  echo ">> RUNNING SHIELDD"
-  ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
-  echo
-  echo "shieldd exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> RUNNING SHIELDD"
+    trap ":" INT # ignore Ctrl-C
+    ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
+    echo
+    echo "shieldd exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
+
 (shieldagent)
-  agent_up="1"
-  while [ $agent_up -eq 1 ]; do
+  shield_up="1"
+  while [ $shield_up -eq 1 ]; do
       sleep 1
-      agent_up=`nc -z 127.0.0.1 8181; echo $?`
+      shield_up=`nc -z 127.0.0.1 8181; echo $?`
   done
 
   ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
@@ -84,21 +223,36 @@ authorized_keys_file: ${workdir}/var/authorized_keys
 host_key_file: ${workdir}/var/shield-agent_key
 listen_address: 0.0.0.0:5444
 plugin_paths:
-  - $(pwd)
+  - ${workdir}/bin
+
+name: bond-james-bond
+registration:
+  url: http://localhost:8181
+  interval: 15
 EOF
 
-  echo ">> RUNNING SHIELD AGENT"
-  ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
-  echo
-  echo "shield-agent exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> RUNNING SHIELD AGENT"
+    trap ":" INT # ignore Ctrl-C
+    ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
+    echo
+    echo "shield-agent exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
 ("")
+  preflight >&2
   tmux new-session \; set-option update-environment ' SHIELD_API' \; \
+       new-window -n vault ./bin/testdev vault ${workdir} \; \
        new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
        new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ; read JUNK" \;
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ${SHIELD_ENV}; read JUNK" \; \
+       new-window -n db sqlite3 ${workdir}/var/shield.db \;
   ;;
 
 (*)

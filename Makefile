@@ -11,8 +11,14 @@ format:
 	go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
-test:
+test: go-tests api-tests plugin-tests
+plugin-tests: plugins
+	go build ./plugin/mock
+	./t/plugins
+	@rm -f mock
+go-tests:
 	go list ./... | grep -v vendor | xargs go test
+api-tests:
 	./t/api
 
 # Running Tests for race conditions
@@ -25,10 +31,12 @@ shield:
 	go $(BUILD_TYPE) ./cmd/shield-agent
 	go $(BUILD_TYPE) ./cmd/shield-schema
 	go $(BUILD_TYPE) ./cmd/shield
+	go $(BUILD_TYPE) ./cmd/buckler
 
 # Building the Shield CLI *only*
 shield-cli:
 	go $(BUILD_TYPE) ./cmd/shield
+	go $(BUILD_TYPE) ./cmd/buckler
 
 # Building Plugins
 plugin: plugins
@@ -49,12 +57,19 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/consul-snapshot
 	go $(BUILD_TYPE) ./plugin/mongo
 	go $(BUILD_TYPE) ./plugin/google
+	go $(BUILD_TYPE) ./plugin/bbr-director
+	go $(BUILD_TYPE) ./plugin/bbr-deployment
+
+docs: docs/API.md
+docs/API.md: docs/API.yml
+	perl ./docs/regen.pl <$+ >$@
 
 clean:
-	rm shieldd shield-agent shield-schema shield
-	rm fs docker-postgres dummy postgres redis-broker
-	rm s3 swift azure mysql xtrabackup rabbitmq-broker
-	rm consul consul-snapshot mongo scality google
+	rm -f shieldd shield-agent shield-schema shield
+	rm -f fs docker-postgres dummy postgres redis-broker
+	rm -f s3 swift azure mysql xtrabackup rabbitmq-broker
+	rm -f consul consul-snapshot mongo scality google
+	rm -f bbr-director bbr-deployment
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -68,7 +83,7 @@ report:
 
 fixmes: fixme
 fixme:
-	@grep -rn FIXME * | grep -v Godeps/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
+	@grep -rn FIXME * | grep -v vendor/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
 
 dev: shield
 	./bin/testdev
@@ -105,6 +120,8 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul-snapshot"   ./plugin/consul-snapshot
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/xtrabackup"        ./plugin/xtrabackup
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/google"            ./plugin/google
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/bbr-director"      ./plugin/bbr-director
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/bbr-deployment"    ./plugin/bbr-deployment
 
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
 
