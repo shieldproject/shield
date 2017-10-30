@@ -674,6 +674,10 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Unable to generate new token**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
   See **Authentication** for more details.  The request may be retried
@@ -738,7 +742,41 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/auth/sessions
 ```
 
-This endpoint takes no query string parameters.
+- **?exact=(t|f)**
+When filtering sessions, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?is_token=(t|f)**
+When filtering sessions, include those associated with tokens (default - false)
+
+
+- **?uuid=**
+Only show the session that matches the given UUID.
+This is a FIXME - we probably need to remove this.
+
+
+- **?user_uuid=**
+Only show sessions that matches the given user UUID.
+
+
+- **?name=...**
+Only show sessions whose associated token name match the given value.  
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?ip_addr=...**
+Only show sessions who are associated with the given IP address.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 
@@ -753,7 +791,8 @@ This endpoint takes no query string parameters.
     "name": "",
     "ip_addr": "127.0.0.1",
     "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-    "user_account": "admin"
+    "user_account": "admin",
+    "current_session": false
   }
 ]
 ```
@@ -779,6 +818,8 @@ This endpoint takes no query string parameters.
 - **user\_agent** - The user agent associated with the last request made by the user.
 
 - **user\_account** - The account corresponding to the user associated with the session.
+
+- **current\_session** - Denotes whether the session corresponds to the requesting session.
 
 **Access Control**
 
@@ -1147,6 +1188,10 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **user '...' not found (for local auth provider)**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
   See **Authentication** for more details.  The request may be retried
@@ -1332,16 +1377,16 @@ You must also have the `manager` system role.
 
 The following error messages can be returned:
 
-- **No such local user**:
+- **Local User '...' not found**:
   Either the user given by the URL UUID was not found in the
   database, or that user was created by an authentication
   provider, and not SHIELD itself.
 
-- **System role '...' is invalid**:
-  Request specified a `sysrole` payload parameter that was
-  outside of the allowable set of values.
+- **Unable to retrieve local user information**:
+  an internal error occurred and should be investigated by the
+  site administrators
 
-- **Unable to update local user '...'**:
+- **Unable to delete local user '...'**:
   an internal error occurred and should be investigated by the
   site administrators
 
@@ -2119,7 +2164,29 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/tenants
 ```
 
-This endpoint takes no query string parameters.
+- **?exact=(t|f)**
+When filtering tenants, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?uuid=**
+Only show the tenant that matches the given UUID.
+This is a FIXME - we probably need to remove this.
+
+
+- **?name=...**
+Only show tenant whose name matches the given value.  
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 
@@ -2356,6 +2423,9 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **No such tenant**:
+  The requested tenant UUID was not found in the database.
+
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
   See **Authentication** for more details.  The request may be retried
@@ -2414,6 +2484,13 @@ The following error messages can be returned:
 - **Unable to update tenant**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **Unable to retrieve tenant information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such tenant**:
+  The requested tenant UUID was not found in the database.
 
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
@@ -2479,6 +2556,10 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Unable to update tenant memberships information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
 - **Unrecognized user account**:
   The request indicated a tenant invitation to a user
   account that was not found in the SHIELD database.
@@ -2498,6 +2579,9 @@ local users can be invited
 - **Unable to invite $user to tenant $tenant**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **No such tenant**:
+  The requested tenant UUID was not found in the database.
 
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
@@ -2560,6 +2644,10 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **Unable to update tenant memberships information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
 - **Unrecognized user account**:
   The request indicated a tenant banishment of a user
   account that was not found in the SHIELD database.
@@ -2579,6 +2667,9 @@ local users can be banished
 - **Unable to banish $user to tenant $tenant**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **No such tenant**:
+  The requested tenant UUID was not found in the database.
 
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
@@ -2631,6 +2722,9 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
+- **No such tenant**:
+  The requested tenant UUID was not found in the database.
+
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
   See **Authentication** for more details.  The request may be retried
@@ -2660,7 +2754,33 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/tenants/:tenant/targets
 ```
 
-This endpoint takes no query string parameters.
+- **?exact=(t|f)**
+When filtering targets, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering targets, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show targets whose name matches the given value.  
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?plugin=...**
+Only show targets who are associated with the given plugin.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 
@@ -3022,7 +3142,33 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/tenants/:tenant/stores
 ```
 
-This endpoint takes no query string parameters.
+- **?exact=(t|f)**
+When filtering stores, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering stores, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show stores whose name matches the given value.  
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?plugin=...**
+Only show stores who are associated with the given plugin.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 
@@ -3038,7 +3184,8 @@ This endpoint takes no query string parameters.
     "config"  : {
       "base_dir" : "/var/data/root",
       "bsdtar"   : "bsdtar"
-    }
+    },
+    "threshold": 1073741824
   }
 ]
 ```
@@ -3091,7 +3238,8 @@ curl -H 'Accept: application/json' \
   "agent"   : "127.0.0.1:5444",
   "config"  : {
     "plugin-specific": "configuration"
-  }
+  },
+  "threshold": 1073741824
 }'
 ```
 
@@ -3120,7 +3268,8 @@ creating it (i.e. for defering creation until later).
   "agent"   : "127.0.0.1:5444",
   "config"  : {
     "plugin-specific": "configuration"
-  }
+  },
+  "threshold": 1073741824
 }
 ```
 
@@ -3180,7 +3329,8 @@ This endpoint takes no query string parameters.
   "config"  : {
     "base_dir" : "/var/data/root",
     "bsdtar"   : "bsdtar"
-  }
+  },
+  "threshold": 1073741824
 }
 ```
 
@@ -3236,7 +3386,8 @@ curl -H 'Accept: application/json' \
   "plugin"  : "plugin",
   "config"  : {
     "new": "plugin configuration"
-  }
+  },
+  "threshold": 1073741824
 }'
 ```
 
@@ -3259,7 +3410,8 @@ until the storage system is used in a job.
   "plugin"  : "plugin",
   "config"  : {
     "new": "plugin configuration"
-  }
+  },
+  "threshold": 1073741824
 }
 ```
 
@@ -3332,13 +3484,13 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
-- **Unable to update storage system**:
-  an internal error occurred and should be investigated by the
-  site administrators
-
 - **Unable to delete storage system**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **No such storage system**:
+  No storage system with the given UUID exists on the
+  specified tenant.
 
 - **The storage system cannot be deleted at this time**:
   This storage system is referenced by one or more
@@ -3375,7 +3527,28 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/tenants/:tenant/policies
 ```
 
-This endpoint takes no query string parameters.
+- **?exact=(t|f)**
+When filtering policies, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering policies, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show policies whose name matches the given value.  
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 
@@ -3551,7 +3724,7 @@ The following error messages can be returned:
   The request should not be retried.
 
 
-### PATCH /v2/tenants/:tenant/policies/:uuid
+### PUT /v2/tenants/:tenant/policies/:uuid
 
 Update a single retention policy on a tenant.
 
@@ -3561,7 +3734,7 @@ Update a single retention policy on a tenant.
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PATCH https://shield.host/v2/tenants/:tenant/policies/:uuid \
+     -X PUT https://shield.host/v2/tenants/:tenant/policies/:uuid \
      --data-binary '
 {
   "name"    : "Updated Retention Policy Name",
@@ -3603,9 +3776,17 @@ The following error messages can be returned:
   multiple of 86,400.  Please re-try the request with
   a different value.
 
+- **Unable to retrieve retention policy template information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
 - **Unable to update retention policy**:
   an internal error occurred and should be investigated by the
   site administrators
+
+- **No such retention policy**:
+  No retention policy with the given UUID exists on
+  the specified tenant.
 
 - **Authorization required**:
   The request was made without an authenticated session or auth token.
@@ -3980,7 +4161,7 @@ The following error messages can be returned:
   The request should not be retried.
 
 
-### PATCH /v2/tenants/:tenant/jobs/:uuid
+### PUT /v2/tenants/:tenant/jobs/:uuid
 
 Update a single job on a tenant.
 
@@ -3990,7 +4171,7 @@ Update a single job on a tenant.
 ```sh
 curl -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
-     -X PATCH https://shield.host/v2/tenants/:tenant/jobs/:uuid \
+     -X PUT https://shield.host/v2/tenants/:tenant/jobs/:uuid \
      --data-binary '
 {
   "name"     : "New Name",
@@ -4091,11 +4272,177 @@ The following error messages can be returned:
   The requested job was not found in the database, or
   it was not associated with the given tenant.
 
-- **Unable to update job.**:
+- **Unable to delete job.**:
   an internal error occurred and should be investigated by the
   site administrators
 
 - **The job could not be deleted at this time.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### POST /v2/tenants/:tenant/jobs/:uuid/run
+
+Perform an ad hoc backup job run
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/run \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Scheduled ad hoc backup job run",
+  "task_uuid": "6d38e8bd-42e9-4c23-bbb6-9a480e0e2a82"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve job information.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such job**:
+  The requested job was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Unable to schedule ad hoc backup job run.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### POST /v2/tenants/:tenant/jobs/:uuid/pause
+
+Pause a job, to prevent it from being scheduled.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/pause \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Paused job successfully"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve job information.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such job**:
+  The requested job was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Unable to pause job.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
+### POST /v2/tenants/:tenant/jobs/:uuid/unpause
+
+Unpause a job, allowing it to be scheduled again.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/unpause \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok": "Unpaused job successfully"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `operator` role on the tenant.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve job information.**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such job**:
+  The requested job was not found in the database, or
+  it was not associated with the given tenant.
+
+- **Unable to unpause job.**:
   an internal error occurred and should be investigated by the
   site administrators
 
@@ -4134,7 +4481,21 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/tenants/:tenant/tasks
 ```
 
-This endpoint takes no query string parameters.
+- **?active=(t|f)**
+When filtering tasks, show those that are active (true) or inactive (false)
+
+
+- **?status=...**
+Only show tasks whose status matches the given value.  
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 
@@ -4719,7 +5080,33 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/global/stores
 ```
 
-This endpoint takes no query string parameters.
+- **?exact=(t|f)**
+When filtering stores, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering stores, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show stores whose name matches the given value.  
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?plugin=...**
+Only show stores who are associated with the given plugin.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 
@@ -5005,10 +5392,6 @@ The following error messages can be returned:
   an internal error occurred and should be investigated by the
   site administrators
 
-- **Unable to update storage system**:
-  an internal error occurred and should be investigated by the
-  site administrators
-
 - **Unable to delete storage system**:
   an internal error occurred and should be investigated by the
   site administrators
@@ -5041,7 +5424,28 @@ curl -H 'Accept: application/json' \
         https://shield.host/v2/global/policies
 ```
 
-This endpoint takes no query string parameters.
+- **?exact=(t|f)**
+When filtering policies, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering policies, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show policies whose name matches the given value.  
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
+
 
 **Response**
 

@@ -544,7 +544,9 @@ sections:
 
           - message: Unable to retrieve tokens information
             summary: *internal
-
+          
+          - message: Unable to generate new token
+            summary: *internal
 
 
       # }}}
@@ -580,6 +582,43 @@ sections:
           Retrieve a list of all current login sessions
         access: [system, admin]
 
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering sessions, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: is_token
+              type: bool
+              summary: |
+                When filtering sessions, include those associated with tokens (default - false)
+            - name: uuid
+              type: uuid
+              summary: |
+                Only show the session that matches the given UUID.
+                This is a FIXME - we probably need to remove this.
+            - name: user_uuid
+              type: uuid
+              summary: |
+                Only show sessions that matches the given user UUID.
+            - name: name
+              type: string
+              summary: |
+                Only show sessions whose associated token name match the given value.  
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: ip_addr
+              type: string
+              summary: |
+                Only show sessions who are associated with the given IP address.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
+
         response:
           json: |
             [
@@ -592,7 +631,8 @@ sections:
                 "name": "",
                 "ip_addr": "127.0.0.1",
                 "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-                "user_account": "admin"
+                "user_account": "admin",
+                "current_session": false
               }
             ]
           summary: |
@@ -619,6 +659,8 @@ sections:
             - **user\_agent** - The user agent associated with the last request made by the user.
 
             - **user\_account** - The account corresponding to the user associated with the session.
+
+            - **current\_session** - Denotes whether the session corresponds to the requesting session.
 
         errors:
           - message: Authentication failed
@@ -843,6 +885,8 @@ sections:
           - message: Unable to retrieve local user information
             summary: *internal
 
+          - message: user '...' not found (for local auth provider)
+            summary: *internal
 
 
       # }}}
@@ -955,18 +999,16 @@ sections:
             }
 
         errors:
-          - message: No such local user
+          - message: Local User '...' not found
             summary: |
               Either the user given by the URL UUID was not found in the
               database, or that user was created by an authentication
               provider, and not SHIELD itself.
 
-          - message: System role '...' is invalid
-            summary: |
-              Request specified a `sysrole` payload parameter that was
-              outside of the allowable set of values.
+          - message: Unable to retrieve local user information
+            summary: *internal
 
-          - message: Unable to update local user '...'
+          - message: Unable to delete local user '...'
             summary: *internal
 
 
@@ -1535,6 +1577,31 @@ sections:
           Retrieve the list of all tenants currently defined.
         access: [system, manager]
 
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering tenants, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: uuid
+              type: uuid
+              summary: |
+                Only show the tenant that matches the given UUID.
+                This is a FIXME - we probably need to remove this.
+            - name: name
+              type: string
+              summary: |
+                Only show tenant whose name matches the given value.  
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
+
         response:
           json: |
             [
@@ -1711,6 +1778,10 @@ sections:
 
           - message: Unable to retrieve tenant memberships information
             summary: *internal
+          
+          - message: No such tenant
+            summary: |
+              The requested tenant UUID was not found in the database.
 
 
 
@@ -1748,6 +1819,12 @@ sections:
           - message: Unable to update tenant
             summary: *internal
 
+          - message: Unable to retrieve tenant information
+            summary: *internal
+
+          - message: No such tenant
+            summary: |
+              The requested tenant UUID was not found in the database.
 
 
         # }}}
@@ -1790,6 +1867,9 @@ sections:
           - message: Unable to retrieve tenant information
             summary: *internal
 
+          - message: Unable to update tenant memberships information
+            summary: *internal
+
           - message: Unrecognized user account
             summary: |
               The request indicated a tenant invitation to a user
@@ -1810,6 +1890,10 @@ sections:
 
           - message: Unable to invite $user to tenant $tenant
             summary: *internal
+
+          - message: No such tenant
+            summary: |
+              The requested tenant UUID was not found in the database.
 
 
 
@@ -1844,6 +1928,9 @@ sections:
           - message: Unable to retrieve tenant information
             summary: *internal
 
+          - message: Unable to update tenant memberships information
+            summary: *internal
+
           - message: Unrecognized user account
             summary: |
               The request indicated a tenant banishment of a user
@@ -1865,6 +1952,9 @@ sections:
           - message: Unable to banish $user to tenant $tenant
             summary: *internal
 
+          - message: No such tenant
+            summary: |
+              The requested tenant UUID was not found in the database.
 
 
         # }}}
@@ -1886,6 +1976,10 @@ sections:
           - message: Unable to delete tenant
             summary: *internal
 
+          - message: No such tenant
+            summary: |
+              The requested tenant UUID was not found in the database.
+
         # }}}
 
 
@@ -1899,6 +1993,35 @@ sections:
         intro: |
           Retrieve all defined targets for a tenant.
         access: [tenant, operator]
+
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering targets, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: unused
+              type: bool
+              summary: |
+                When filtering targets, skip those that are unused (true) or used (false)
+            - name: name
+              type: string
+              summary: |
+                Only show targets whose name matches the given value.  
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: plugin
+              type: string
+              summary: |
+                Only show targets who are associated with the given plugin.
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
 
         response:
           json: |
@@ -2143,6 +2266,35 @@ sections:
           Retrieve all defined stores for a tenant.
         access: [tenant, operator]
 
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering stores, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: unused
+              type: bool
+              summary: |
+                When filtering stores, skip those that are unused (true) or used (false)
+            - name: name
+              type: string
+              summary: |
+                Only show stores whose name matches the given value.  
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: plugin
+              type: string
+              summary: |
+                Only show stores who are associated with the given plugin.
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
+
         response:
           json: |
             [
@@ -2156,7 +2308,8 @@ sections:
                 "config"  : {
                   "base_dir" : "/var/data/root",
                   "bsdtar"   : "bsdtar"
-                }
+                },
+                "threshold": 1073741824
               }
             ]
           summary: |
@@ -2196,7 +2349,8 @@ sections:
               "agent"   : "127.0.0.1:5444",
               "config"  : {
                 "plugin-specific": "configuration"
-              }
+              },
+              "threshold": 1073741824
             }
 
           summary: |
@@ -2219,7 +2373,8 @@ sections:
               "agent"   : "127.0.0.1:5444",
               "config"  : {
                 "plugin-specific": "configuration"
-              }
+              },
+              "threshold": 1073741824
             }
           summary: |
             {{JSON}}
@@ -2252,7 +2407,8 @@ sections:
               "config"  : {
                 "base_dir" : "/var/data/root",
                 "bsdtar"   : "bsdtar"
-              }
+              },
+              "threshold": 1073741824
             }
           summary: |
             {{JSON}}
@@ -2287,7 +2443,8 @@ sections:
               "plugin"  : "plugin",
               "config"  : {
                 "new": "plugin configuration"
-              }
+              },
+              "threshold": 1073741824
             }
           summary: |
             {{CURL}}
@@ -2310,7 +2467,8 @@ sections:
               "plugin"  : "plugin",
               "config"  : {
                 "new": "plugin configuration"
-              }
+              },
+              "threshold": 1073741824
             }
 
         errors:
@@ -2343,11 +2501,13 @@ sections:
           - message: Unable to retrieve storage system information
             summary: *internal
 
-          - message: Unable to update storage system
-            summary: *internal
-
           - message: Unable to delete storage system
             summary: *internal
+
+          - message: No such storage system
+            summary: |
+              No storage system with the given UUID exists on the
+              specified tenant.
 
           - message: The storage system cannot be deleted at this time
             summary: |
@@ -2370,6 +2530,30 @@ sections:
         intro: |
           Retrieve all defined retention policies for a tenant.
         access: [tenant, operator]
+
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering policies, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: unused
+              type: bool
+              summary: |
+                When filtering policies, skip those that are unused (true) or used (false)
+            - name: name
+              type: string
+              summary: |
+                Only show policies whose name matches the given value.  
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
 
         response:
           json: |
@@ -2479,7 +2663,7 @@ sections:
 
 
         # }}}
-      - name: PATCH /v2/tenants/:tenant/policies/:uuid # {{{
+      - name: PUT /v2/tenants/:tenant/policies/:uuid # {{{
         intro: |
           Update a single retention policy on a tenant.
         access: [tenant, engineer]
@@ -2521,9 +2705,16 @@ sections:
               multiple of 86,400.  Please re-try the request with
               a different value.
 
+          - message: Unable to retrieve retention policy template information
+            summary: *internal
+
           - message: Unable to update retention policy
             summary: *internal
 
+          - message: No such retention policy
+            summary: |
+              No retention policy with the given UUID exists on
+              the specified tenant.
 
 
         # }}}
@@ -2786,7 +2977,7 @@ sections:
               it was not associated with the given tenant.
 
         # }}}
-      - name: PATCH /v2/tenants/:tenant/jobs/:uuid # {{{
+      - name: PUT /v2/tenants/:tenant/jobs/:uuid # {{{
         intro: |
           Update a single job on a tenant.
         access: [tenant, engineer]
@@ -2850,7 +3041,7 @@ sections:
               The requested job was not found in the database, or
               it was not associated with the given tenant.
 
-          - message: Unable to update job.
+          - message: Unable to delete job.
             summary: *internal
 
           #This error is not currently able to be thrown but could be in the future 
@@ -2861,13 +3052,12 @@ sections:
 
         # }}}
       - name: POST /v2/tenants/:tenant/jobs/:uuid/run # {{{
-        FIXME: true
         intro: |
           Perform an ad hoc backup job run
         access: [tenant, operator]
 
         request:
-          json: {}
+          json: ~
 
         response:
           json: |
@@ -2890,13 +3080,12 @@ sections:
 
         # }}}
       - name: POST /v2/tenants/:tenant/jobs/:uuid/pause # {{{
-        FIXME: true
         intro: |
           Pause a job, to prevent it from being scheduled.
         access: [tenant, operator]
     
         request:
-          json: {}
+          json: ~
 
         response:
           json: |
@@ -2918,13 +3107,12 @@ sections:
 
         # }}}
       - name: POST /v2/tenants/:tenant/jobs/:uuid/unpause # {{{
-        FIXME: true
         intro: |
           Unpause a job, allowing it to be scheduled again.
         access: [tenant, operator]
 
         request:
-          json: {}
+          json: ~
 
         response:
           json: |
@@ -2964,6 +3152,23 @@ sections:
         intro: |
           Retrieve all tasks for a tenant.
         access: [tenant, operator]
+
+        request:
+          query:
+            - name: active
+              type: bool
+              summary: |
+                When filtering tasks, show those that are active (true) or inactive (false)
+            - name: status
+              type: string
+              summary: |
+                Only show tasks whose status matches the given value.  
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
 
         response:
           json: |
@@ -3326,6 +3531,35 @@ sections:
           Retrieve all globally-defined stores.
         access: any
 
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering stores, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: unused
+              type: bool
+              summary: |
+                When filtering stores, skip those that are unused (true) or used (false)
+            - name: name
+              type: string
+              summary: |
+                Only show stores whose name matches the given value.  
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: plugin
+              type: string
+              summary: |
+                Only show stores who are associated with the given plugin.
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
+
         response:
           json: |
             [
@@ -3510,9 +3744,6 @@ sections:
           - message: Unable to retrieve storage system information
             summary: *internal
 
-          - message: Unable to update storage system
-            summary: *internal
-
           - message: Unable to delete storage system
             summary: *internal
 
@@ -3529,6 +3760,30 @@ sections:
         intro: |
           Retrieve all defined retention policy templates.
         access: any
+
+        request:
+          query:
+            - name: exact
+              type: bool
+              summary: |
+                When filtering policies, perform either exact field / value
+                matching (`exact=t`), or fuzzy search (`exact=f`, the
+                default)
+            - name: unused
+              type: bool
+              summary: |
+                When filtering policies, skip those that are unused (true) or used (false)
+            - name: name
+              type: string
+              summary: |
+                Only show policies whose name matches the given value.  
+                Subject to the `exact=(t|f)` query string parameter.
+            - name: limit
+              type: number
+              summary: |
+                Limit the returned result set to the first _limit_ users
+                that match the other filtering rules.  A limit of `0` (the
+                default) denotes an unlimited search.
 
         response:
           json: |
