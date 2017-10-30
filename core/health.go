@@ -54,7 +54,7 @@ func (core *Core) checkHealth() (Health, error) {
 	health.SHIELD.MOTD = core.motd
 	health.SHIELD.Color = core.color
 
-	health.Health.Storage = true
+	health.Health.Storage = core.AreStoresHealthy()
 	stores, err := core.DB.GetAllStores(nil)
 	if err != nil {
 		return health, err

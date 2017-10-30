@@ -15,6 +15,20 @@ func (core *Core) dailyStorageAnalytics() {
 	core.DailyTenantStats()
 }
 
+func (core *Core) AreStoresHealthy() bool {
+	stores, err := core.DB.GetAllStores(nil)
+	if err != nil {
+		log.Errorf("Failed to get stores for health tests: %s", err)
+	}
+
+	for _, store := range stores {
+		if !store.Healthy {
+			return false
+		}
+	}
+	return true
+}
+
 func (core *Core) TestStoresHealth() {
 
 	log.Debugf("testing health of cloud stores")
