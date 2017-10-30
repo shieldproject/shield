@@ -301,17 +301,24 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 
 func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	log.Printf("creating test store task")
+
+	endpoint, err := store.ConfigJSON()
+	if err != nil {
+		return nil, err
+	}
 	id := uuid.NewRandom()
-	err := db.Exec(
+	err = db.Exec(
 		`INSERT INTO tasks
-			(uuid, op, store_uuid, store_plugin, 
+			(uuid, op,
+			 store_uuid, store_plugin, store_endpoint,
 			 status, log, requested_at, agent,
 			 attempts, tenant_uuid, owner)
 		 VALUES
-			(?, ?, ?, ?,
+			(?, ?, ?, ?, ?,
 			 ?, ?, ?, ?, 
 			 ?, ?, ?)`,
-		id.String(), TestStoreOperation, store.UUID.String(), store.Plugin,
+		id.String(), TestStoreOperation,
+		store.UUID.String(), store.Plugin, endpoint,
 		PendingStatus, "", time.Now().Unix(), store.Agent,
 		0, store.TenantUUID.String(), owner,
 	)

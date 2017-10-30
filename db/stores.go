@@ -380,3 +380,11 @@ func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 		id.String(),
 	)
 }
+
+func (s Store) ConfigJSON() (string, error) {
+	b, err := json.Marshal(s.Config)
+	if err != nil {
+		return "", err
+	}
+	return string(b), err
+}
