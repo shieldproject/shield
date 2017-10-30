@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
-	"golang.org/x/crypto/ssh"
 	"github.com/jhunt/go-log"
+	"golang.org/x/crypto/ssh"
 )
 
 type Agent struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pborman/uuid"
 	"github.com/jhunt/go-log"
+	"github.com/pborman/uuid"
 )
 
 type StoreConfigItem struct {
@@ -20,7 +20,7 @@ type Store struct {
 	Summary string    `json:"summary"`
 	Agent   string    `json:"agent"`
 	Plugin  string    `json:"plugin"`
-	Global bool `json:"global"`
+	Global  bool      `json:"global"`
 
 	PublicConfig  string `json:"-"`
 	PrivateConfig string `json:"-"`
