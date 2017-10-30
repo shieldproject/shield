@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -299,6 +300,7 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 }
 
 func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
+	log.Printf("creating test store task")
 	id := uuid.NewRandom()
 	err := db.Exec(
 		`INSERT INTO tasks

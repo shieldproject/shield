@@ -234,6 +234,16 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN healthy BOOLEAN DEFAULT FALSE`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN last_test_store_task_id BOOLEAN DEFAULT NULL`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err
