@@ -38,6 +38,7 @@ type Task struct {
 	TargetPlugin   string         `json:"-"`
 	TargetEndpoint string         `json:"-"`
 	Status         string         `json:"status"`
+	RequestedAt    Timestamp      `json:"requested_at"`
 	StartedAt      Timestamp      `json:"started_at"`
 	StoppedAt      Timestamp      `json:"stopped_at"`
 	TimeoutAt      Timestamp      `json:"-"`
@@ -130,14 +131,14 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		       t.job_uuid, t.archive_uuid,
 		       t.store_uuid,  t.store_plugin,  t.store_endpoint,
 		       t.target_uuid, t.target_plugin, t.target_endpoint,
-		       t.status, t.started_at, t.stopped_at, t.timeout_at,
+		       t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
 		       t.restore_key, t.attempts, t.agent, t.log,
 		       t.ok, t.notes, t.clear
 
 		FROM tasks t
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
-		ORDER BY t.started_at DESC, t.uuid ASC
+		ORDER BY t.requested_at DESC, t.started_at DESC, t.uuid ASC
 	` + limit, args
 }
 
@@ -159,13 +160,13 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 		var (
 			log                                       sql.NullString
 			this, tenant, archive, job, store, target NullUUID
-			started, stopped, deadline                *int64
+			requested, started, stopped, deadline     *int64
 		)
 		if err = r.Scan(
 			&this, &tenant, &t.Owner, &t.Op, &job, &archive,
 			&store, &t.StorePlugin, &t.StoreEndpoint,
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
-			&t.Status, &started, &stopped, &deadline,
+			&t.Status, &requested, &started, &stopped, &deadline,
 			&t.RestoreKey, &t.Attempts, &t.Agent, &log,
 			&t.OK, &t.Notes, &t.Clear); err != nil {
 			return l, err
@@ -187,6 +188,9 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 		}
 		if log.Valid {
 			t.Log = log.String
+		}
+		if requested != nil {
+			t.RequestedAt = parseEpochTime(*requested)
 		}
 		if started != nil {
 			t.StartedAt = parseEpochTime(*started)

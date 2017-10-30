@@ -37,14 +37,15 @@ type v2SystemArchive struct {
 	Notes    string    `json:"notes"`
 }
 type v2SystemTask struct {
-	UUID      uuid.UUID        `json:"uuid"`
-	Type      string           `json:"type"`
-	Status    string           `json:"status"`
-	Owner     string           `json:"owner"`
-	StartedAt int64            `json:"started_at"`
-	OK        bool             `json:"ok"`
-	Notes     string           `json:"notes"`
-	Archive   *v2SystemArchive `json:"archive,omitempty"`
+	UUID        uuid.UUID        `json:"uuid"`
+	Type        string           `json:"type"`
+	Status      string           `json:"status"`
+	Owner       string           `json:"owner"`
+	RequestedAt int64            `json:"requested_at"`
+	StartedAt   int64            `json:"started_at"`
+	OK          bool             `json:"ok"`
+	Notes       string           `json:"notes"`
+	Archive     *v2SystemArchive `json:"archive,omitempty"`
 }
 type v2SystemJob struct {
 	UUID     uuid.UUID `json:"uuid"`
@@ -758,6 +759,7 @@ func (core *Core) v2API() *route.Router {
 			system.Tasks[i].Owner = task.Owner
 			system.Tasks[i].OK = task.OK
 			system.Tasks[i].Notes = task.Notes
+			system.Tasks[i].RequestedAt = task.RequestedAt.Time().Unix()
 
 			if t := task.StartedAt.Time(); t.IsZero() {
 				system.Tasks[i].StartedAt = 0

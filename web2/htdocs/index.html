@@ -1512,14 +1512,14 @@
                     [[ if (task.type == "backup") { ]]
                       [[ if (task.owner == "") { ]]
                       <li class="desc">[[= maybe(task.archive.schedule, 'Scheduled Backup') ]]</li>
-                      <li class="meta">run automatically per job schedule</li>
+                      <li class="meta">run automatically per job schedule at [[= strftime("%l:%M%P", task.requested_at) ]]</li>
                       [[ } else { ]]
                       <li class="desc">Ad Hoc Backup</li>
-                      <li class="meta">run by [[= task.owner ]] at [[= strftime("%l:%M%P", task.requested_at_at) ]]</li>
+                      <li class="meta">initiated by [[= task.owner ]] at [[= strftime("%l:%M%P", task.requested_at) ]]</li>
                       [[ } ]]
                     [[ } else if (task.type == "restore") { ]]
                       <li class="desc">Manual Restore</li>
-                      <li class="meta">run by [[= task.owner ]]</li>
+                      <li class="meta">initiated by [[= task.owner ]] at [[= strftime("%l:%M%P", task.requested_at) ]]</li>
                     [[ } else if (task.type == "purge") { ]]
                       <li class="desc">Purge Expired Archive</li>
                       <li class="meta">...</li>
@@ -1566,7 +1566,7 @@ purging archive <em>[[= _.task.archive_uuid ]]</em>[[
 } else if (_.task.type == "restore") { ]]
 restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
 } ]]
-initiated by <em>[[= _.task.owner ]]</em></em>
+initiated by <em>[[= _.task.owner ]]</em> at <em>[[= strftime("%c", _.task.requested_at) ]]</em></em>
 
 [[= _.task.log ]]
 
