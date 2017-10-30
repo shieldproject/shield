@@ -303,14 +303,14 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	err := db.Exec(
 		`INSERT INTO tasks
 			(uuid, op, store_uuid, store_plugin, 
-			 store_endpoint, status, log, requested_at,
+			 status, log, requested_at,
 			 attempts, tenant_uuid, owner)
 		 VALUES
 			(?, ?, ?, ?,
-			 ?, ?, ?, ?, 
+			 ?, ?, ?, 
 			 ?, ?, ?, ?)`,
 		id.String(), TestStoreOperation, store.UUID.String(), store.Plugin,
-		store.Endpoint, PendingStatus, "", time.Now().Unix(),
+		PendingStatus, "", time.Now().Unix(),
 		0, store.TenantUUID.String(), owner, store.Agent,
 	)
 

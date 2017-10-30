@@ -166,6 +166,11 @@ EOF
 	key=$(echo "${input}" | ${SHIELD_STORE_PLUGIN} store --text -e "${SHIELD_STORE_ENDPOINT}" || true)
 	if [[ -z "${key}" ]]; then
 		fail "unable to write to storage"
+		echo "{"
+	cat <<EOF
+"healthy"    : "false",
+EOF
+	echo "}"
 		exit 2
 	fi
 
@@ -179,14 +184,30 @@ EOF
 
 	if [[ -z "${output}" ]]; then
 		fail "unable to read from storage"
+		echo "{"
+		cat <<EOF
+"healthy"    : "false",
+EOF
+		echo "}"
 		exit 2
 	fi
 
 	if [[ "${input}" != "${output}" ]]; then
 		fail "output bit pattern did not match the input pattern"
+		echo "{"
+		cat <<EOF
+"healthy"    : "false",
+EOF
+		echo "}"
 		exit 3
 	fi
 
+	#send yes or no back to the caller of shield pipe
+	echo "{"
+	cat <<EOF
+"healthy"    : "true",
+EOF
+	echo "}"
 	ok
 	exit 0
 	;;
