@@ -179,7 +179,7 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE agent = ?`, SomeStore.Agent)
 		shouldExist(`SELECT * FROM tasks WHERE attempts >= 0`)
-		shouldExist(`SELECT * FROM tasks WHERE tenant_uuid = ?`, SomeStore.TenantUUID)
+		shouldExist(`SELECT * FROM tasks WHERE tenant_uuid = ?`, SomeStore.TenantUUID.String())
 
 	})
 
