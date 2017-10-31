@@ -2,8 +2,9 @@ package db_test
 
 import (
 	"fmt"
-	"github.com/starkandwayne/goutils/timestamp"
 	"time"
+
+	"github.com/starkandwayne/goutils/timestamp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -60,7 +61,6 @@ var _ = Describe("Task Management", func() {
 			// need a store
 			`INSERT INTO stores (uuid, name, summary, plugin, endpoint)
 			   VALUES ("`+SomeStore.UUID.String()+`", "Some Store", "", "plugin", "endpoint")`,
-
 			// need a retention policy
 			`INSERT INTO retention (uuid, name, summary, expiry)
 			   VALUES ("`+SomeRetention.UUID.String()+`", "Some Retention", "", 3600)`,
@@ -160,6 +160,27 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE started_at IS NULL`)
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
+	})
+
+	It("Can create a new TestStore task", func() {
+		//`json:"config,omitempty"`
+		SomeStore.Config = map[string]interface{}{"argkey": "fake"}
+		task, err := db.CreateTestStoreTask("owner-name", SomeStore)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(task).ShouldNot(BeNil())
+		shouldExist(`SELECT * FROM tasks`)
+		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, task.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
+		shouldExist(`SELECT * FROM tasks WHERE op = ?`, TestStoreOperation)
+		shouldExist(`SELECT * FROM tasks WHERE store_plugin = ?`, SomeStore.Plugin)
+		shouldExist(`SELECT * from tasks WHERE store_uuid = ?`, SomeStore.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE store_endpoint IS NOT NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE status = ?`, PendingStatus)
+		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE agent = ?`, SomeStore.Agent)
+		shouldExist(`SELECT * FROM tasks WHERE attempts >= 0`)
+		shouldExist(`SELECT * FROM tasks WHERE tenant_uuid = ?`, SomeStore.TenantUUID.String())
+
 	})
 
 	It("Can start an existing task", func() {

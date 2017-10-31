@@ -255,6 +255,7 @@ func (core *Core) Run() error {
 			core.checkAgents()
 			core.dailyStorageAnalytics()
 			core.purgeExpiredSessions()
+			core.TestStoresHealth()
 		}
 	}
 }
@@ -626,6 +627,29 @@ func (core *Core) worker(id int) {
 			if err := core.DB.PurgeArchive(task.ArchiveUUID); err != nil {
 				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 			}
+		}
+
+		if task.Op == db.TestStoreOperation && !failed {
+			var v struct {
+				Healthy bool `json:"healthy"`
+			}
+
+			if err := json.Unmarshal([]byte(response), &v); err != nil {
+				failed = true
+				core.handleOutput(task, "WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, task.Agent, err)
+
+			} else {
+				store, err := core.DB.GetStore(task.StoreUUID)
+				if err != nil {
+					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
+				}
+				store.Healthy = v.Healthy
+				err = core.DB.UpdateStore(store)
+				if err != nil {
+					log.Errorf("error updating store: %s", err)
+				}
+			}
+			log.Infof("  %s: cloud storage %s tested", task.UUID, task.StoreUUID)
 		}
 
 		if failed {
