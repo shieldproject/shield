@@ -2336,13 +2336,13 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		deleted, err := core.DB.DeleteArchive(archive.UUID)
+		if archive.Status != "valid" {
+			r.Fail(route.Bad(err, "The backup archive could not be deleted at this time. Archive is already %s", archive.Status))
+		}
+
+		err = core.DB.ExpireArchive(archive.UUID)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to delete backup archive"))
-			return
-		}
-		if !deleted {
-			r.Fail(route.Bad(err, "The backup archive could not be deleted at this time."))
 			return
 		}
 
