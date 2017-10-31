@@ -361,10 +361,10 @@ func (core *Core) runPending() {
 		/* spin up a goroutine so that we can block in the write
 		   to the workers channel, yet return immediately to here,
 		   and 'queue up' the remaining pending tasks */
-		go func() {
-			core.workers <- task
+		go func(task db.Task) {
+			core.workers <- &task
 			log.Debugf("dispatched task %s to a worker goroutine", task.UUID)
-		}()
+		}(*task)
 	}
 }
 

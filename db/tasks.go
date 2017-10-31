@@ -8,6 +8,7 @@ import (
 
 	"github.com/pborman/uuid"
 
+	"github.com/starkandwayne/goutils/log"
 	. "github.com/starkandwayne/goutils/timestamp"
 )
 
@@ -440,6 +441,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 		archive_id.String(), key, validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(), "valid", encryptionType, archive_size, tenant_uuid.String(), id.String(),
 	)
 	if err != nil {
+		log.Errorf("failed to insert archive with UUID %s into database: %s", archive_id, err)
 		return nil, err
 	}
 
