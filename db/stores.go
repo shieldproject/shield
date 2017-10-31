@@ -34,8 +34,8 @@ type Store struct {
 	Threshold     int64     `json:"threshold"`
 	ArchiveCount  int       `json:"archive_count"`
 
-	Healthy             bool      `json:"healthy"`
-	LastTestStoreTaskID uuid.UUID `json:"last_test_store_task_id"`
+	Healthy          bool      `json:"healthy"`
+	LastTestTaskUUID uuid.UUID `json:"last_test_task_uuid"`
 }
 
 type StoreStats struct {
@@ -156,8 +156,8 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 		   SELECT s.uuid, s.name, s.summary, s.agent,
 		          s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
 		          s.private_config, s.public_config, s.daily_increase,
-				  s.storage_used, s.archive_count, s.threshold,
-				  s.healthy, s.last_test_store_task_id
+		          s.storage_used, s.archive_count, s.threshold,
+		          s.healthy, s.last_test_task_uuid
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
@@ -172,8 +172,8 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
 	                   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
 	                   s.private_config, s.public_config, s.daily_increase,
-					   s.storage_used, s.archive_count, s.threshold,
-					   s.healthy, s.last_test_store_task_id					   
+	                   s.storage_used, s.archive_count, s.threshold,
+	                   s.healthy, s.last_test_task_uuid
 	              FROM stores s
 	         LEFT JOIN jobs j
 	                ON j.store_uuid = s.uuid
@@ -199,21 +199,21 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	for r.Next() {
 		s := &Store{}
 		var (
-			this, tenant, lastTestStoreTaskID NullUUID
-			rawconfig                         []byte
-			n                                 int
-			daily, used, threshold            *int64
-			archives                          *int
-			healthy                           bool
+			this, tenant, lastTestTaskUUID NullUUID
+			rawconfig                      []byte
+			n                              int
+			daily, used, threshold         *int64
+			archives                       *int
+			healthy                        bool
 		)
 		if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &tenant, &n, &s.PrivateConfig,
-			&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &lastTestStoreTaskID); err != nil {
+			&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &lastTestTaskUUID); err != nil {
 			return l, err
 		}
 		s.UUID = this.UUID
 		s.TenantUUID = tenant.UUID
 		s.Healthy = healthy
-		s.LastTestStoreTaskID = lastTestStoreTaskID.UUID
+		s.LastTestTaskUUID = lastTestTaskUUID.UUID
 
 		if daily != nil {
 			s.DailyIncrease = *daily
@@ -245,8 +245,8 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	   SELECT s.uuid, s.name, s.summary, s.agent,
 	          s.plugin, s.endpoint, s.tenant_uuid,
 	          s.private_config, s.public_config, s.daily_increase,
-			  s.storage_used, s.archive_count, s.threshold,
-			  s.healthy, s.last_test_store_task_id
+	          s.storage_used, s.archive_count, s.threshold,
+	          s.healthy, s.last_test_task_uuid
 	     FROM stores s
 	LEFT JOIN jobs j
 	       ON j.store_uuid = s.uuid
@@ -262,20 +262,20 @@ func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 
 	s := &Store{}
 	var (
-		this, tenant, lastTestStoreTaskID NullUUID
-		rawconfig                         []byte
-		daily, used, threshold            *int64
-		archives                          *int
-		healthy                           bool
+		this, tenant, lastTestTaskUUID NullUUID
+		rawconfig                      []byte
+		daily, used, threshold         *int64
+		archives                       *int
+		healthy                        bool
 	)
 	if err = r.Scan(&this, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &tenant, &s.PrivateConfig,
-		&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &lastTestStoreTaskID); err != nil {
+		&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &lastTestTaskUUID); err != nil {
 		return nil, err
 	}
 	s.UUID = this.UUID
 	s.TenantUUID = tenant.UUID
 	s.Healthy = healthy
-	s.LastTestStoreTaskID = lastTestStoreTaskID.UUID
+	s.LastTestTaskUUID = lastTestTaskUUID.UUID
 
 	if daily != nil {
 		s.DailyIncrease = *daily
@@ -312,9 +312,9 @@ func (db *DB) CreateStore(s *Store) (*Store, error) {
 
 	s.UUID = uuid.NewRandom()
 	return s, db.Exec(`
-	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold, healthy, last_test_store_task_id)
+	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold, healthy, last_test_task_uuid)
 	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?,        ?,       ?)`,
-		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold, s.Healthy, s.LastTestStoreTaskID)
+		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold, s.Healthy, s.LastTestTaskUUID)
 }
 
 func (db *DB) UpdateStore(s *Store) error {
@@ -328,7 +328,7 @@ func (db *DB) UpdateStore(s *Store) error {
 	}
 
 	return db.Exec(`
-	   UPDATE stores
+		UPDATE stores
 	      SET name                    = ?,
 	          summary                 = ?,
 	          agent                   = ?,
@@ -339,11 +339,11 @@ func (db *DB) UpdateStore(s *Store) error {
 	          daily_increase          = ?,
 	          archive_count           = ?,
 	          storage_used            = ?,
-			  threshold               = ?,
-			  healthy                 = ?,
-			  last_test_store_task_id = ?
-	    WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
-		s.ArchiveCount, s.StorageUsed, s.Threshold, s.Healthy, s.LastTestStoreTaskID, s.UUID.String(),
+	          threshold               = ?,
+	          healthy                 = ?,
+	          last_test_task_uuid     = ?
+		WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
+		s.ArchiveCount, s.StorageUsed, s.Threshold, s.Healthy, s.LastTestTaskUUID, s.UUID.String(),
 	)
 }
 

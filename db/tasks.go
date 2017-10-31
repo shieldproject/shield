@@ -326,7 +326,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 
 	err = db.Exec(
 		`UPDATE stores
-		 SET last_test_store_task_id = ?
+		 SET last_test_task_uuid = ?
 		 WHERE uuid=?`,
 		id.String(), store.UUID,
 	)
