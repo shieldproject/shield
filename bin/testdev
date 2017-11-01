@@ -17,6 +17,22 @@ preflight() {
   echo "RUNNING testdev PRE-FLIGHT CHECKS"
   echo
 
+  echo "checking for plugins..."
+  plugins=$(sed -n '/^plugins:/,/^ *$/{//!p}' $(dirname $0)/../Makefile | sed -e 's/.*plugin\///')
+  missing='';
+  for plugin in $plugins; do
+    if [[ ! -f $(dirname $0)/../$plugin ]]; then
+      echo "  - $plugin missing"
+      missing=true
+    fi
+  done
+  if [[ -n "$missing" ]] ; then
+    echo "making missing plugins"
+    (cd $(dirname $0)/.. && make plugins)
+    echo "done."
+    echo ""
+  fi
+
   echo "checking for tmux..."
   if ! type tmux &>/dev/null; then
     echo
