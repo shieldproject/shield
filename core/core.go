@@ -640,8 +640,10 @@ func (core *Core) worker(id int) {
 
 			} else {
 				store, err := core.DB.GetStore(task.StoreUUID)
-				if err != nil {
-					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
+				if err != nil || store == nil {
+					core.handleOutput(task, "TASK FAILED!!  shield worker %d error retrieving store %s for task %s:  %s\n", id, task.StoreUUID, task.UUID, err)
+					core.handleFailure(task)
+					continue
 				}
 				store.Healthy = v.Healthy
 				err = core.DB.UpdateStore(store)
