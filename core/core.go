@@ -643,6 +643,11 @@ func (core *Core) worker(id int) {
 				if err != nil {
 					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
 				}
+				if store == nil {
+					core.handleOutput(task, "TASK FAILED!!  shield worker %d error store not found when testing store health: %s\n", id)
+					core.handleFailure(task)
+					continue
+				}
 				store.Healthy = v.Healthy
 				err = core.DB.UpdateStore(store)
 				if err != nil {
