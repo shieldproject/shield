@@ -1,0 +1,226 @@
+#!/bin/bash
+set -eux
+
+# FIXME: turn this into a Makefile thing some day
+
+# build all the software
+#make GOOS=linux GOARCH=amd64 shield plugins
+
+
+CACHED=demo/cached
+mkdir -p $CACHED
+
+SHARED=demo/shared
+rm -rf $SHARED
+mkdir -p $SHARED
+ssh-keygen -t rsa -f ${SHARED}/agent.ssh -N '' >/dev/null
+ssh-keygen -t rsa -f ${SHARED}/core.ssh  -N '' >/dev/null
+
+# set up the input files for 'shield-agent'
+SHIELD_AGENT=demo/shield-agent/in
+rm -rf ${SHIELD_AGENT}
+mkdir -p ${SHIELD_AGENT}/{plugins,bin,etc,rc,var}
+cp shield-agent shield buckler ${SHIELD_AGENT}/bin
+for plugin in $(cat plugins); do
+  cp $plugin ${SHIELD_AGENT}/plugins
+done
+cp bin/shield-pipe ${SHIELD_AGENT}/bin/shield-pipe
+cp demo/init-static ${SHIELD_AGENT}/bin/init
+cp ${SHARED}/agent.ssh    ${SHIELD_AGENT}/etc/agent.ssh
+cp ${SHARED}/core.ssh.pub ${SHIELD_AGENT}/etc/authorized_keys
+
+cat > ${SHIELD_AGENT}/rc/shield-agent <<'EOF'
+#!/bin/sh
+export PATH=/shield/bin:/shield/plugins:/bin:/usr/bin
+# generate the template for agent config
+cat /shield/etc/shield-agent.conf.tpl |\
+  sed -e "s/{{HOST}}/$(hostname)/" > /shield/etc/shield-agent.conf
+
+/shield/bin/shield-agent --config /shield/etc/shield-agent.conf --log-level debug > /var/log/shield-agent.log
+EOF
+chmod 755 ${SHIELD_AGENT}/rc/shield-agent
+cat > ${SHIELD_AGENT}/etc/shield-agent.conf.tpl <<'EOF'
+name: {{HOST}}
+
+authorized_keys_file: /shield/etc/authorized_keys
+host_key_file:        /shield/etc/agent.ssh
+listen_address:       0.0.0.0:5444
+plugin_paths:        [/shield/plugins]
+
+registration:
+  url: http://core:8181
+  interval: 15
+EOF
+
+# set up the input files for 'shield-core'
+SHIELD_CORE=demo/shield-core/in
+rm -rf ${SHIELD_CORE}
+mkdir -p ${SHIELD_CORE}/{bin,etc,rc,data}
+cp -R web2/htdocs ${SHIELD_CORE}/www
+cp shieldd shield-schema ${SHIELD_CORE}/bin
+cp ${SHARED}/core.ssh ${SHIELD_CORE}/etc/
+cat > ${SHIELD_CORE}/rc/shield-core <<'EOF'
+#!/bin/sh
+export PATH=/shield/bin:/shield/plugins:/bin:/usr/bin
+
+shield-schema --database /shield/data/db
+
+shieldd --config /shield/etc/shieldd.conf --log-level debug > /var/log/shield-core.log
+EOF
+chmod 755 ${SHIELD_CORE}/rc/shield-core
+cat > ${SHIELD_CORE}/etc/shieldd.conf <<'EOF'
+listen_addr:   0.0.0.0:8181
+database:      /shield/data/db
+private_key:   /shield/etc/core.ssh
+workers:       3
+max_timeout:   10
+web_root:      /shield/www
+slow_loop:     300
+fast_loop:     2
+vault_keyfile: /shield/data/crypt
+
+session_timeout: 8
+debug: true
+
+env:   Demo
+color: palegreen
+motd: |
+  Welcome to the Demo S.H.I.E.L.D. environment!
+
+failsafe:
+  username: demo
+  password: demo
+EOF
+
+VAULT_VERSION=0.8.3
+curl -C - -Lo ${CACHED}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip
+pushd $CACHED
+rm -f vault
+unzip vault.zip
+popd
+cp $CACHED/vault ${SHIELD_CORE}/bin
+cat > ${SHIELD_CORE}/rc/vault <<'EOF'
+#!/bin/sh
+/shield/bin/vault server -config /shield/etc/vault.conf
+EOF
+chmod 755 ${SHIELD_CORE}/rc/vault
+cat > ${SHIELD_CORE}/etc/vault.conf <<'EOF'
+storage "file" {
+  path = "/shield/data/vault"
+}
+disable_mlock = true
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = true
+}
+EOF
+
+cat > ${SHIELD_CORE}/etc/setup <<'EOF'
+#!/bin/sh
+set -ex
+
+#echo "waiting for shield to spin up..."
+#shield_up="1"
+#while [ $shield_up -eq 1 ]; do
+#  sleep 1
+#  shield_up=`nc -z core 8181; echo $?`
+#done
+
+export SHIELD_CORE=demo
+export SHIELD_BATCH_MODE=y
+export PATH=/bin:/usr/bin:/shield/bin
+
+buckler api http://core:8181 demo
+SHIELD_CORE_MASTER=master buckler initialize
+buckler login --username demo --password demo
+buckler id
+
+
+buckler create-policy-template --name Short-Term --days 7
+buckler create-policy-template --name Long-Term  --days 90
+buckler create-policy-template --name Audit      --days 400
+
+
+buckler create-user \
+  --name        Ophelia \
+  --username    ophelia \
+  --password    password \
+  --system-role admin
+
+buckler create-user \
+  --name        Olaf \
+  --username    olaf \
+  --password    password \
+  --system-role engineer
+
+buckler create-user \
+  --name        Nikita \
+  --username    nikita \
+  --password    password
+
+buckler create-user \
+  --name        Nelson \
+  --username    nelson \
+  --password    password
+
+buckler create-user \
+  --name        Cheri \
+  --username    cheri \
+  --password    password
+
+buckler create-user \
+  --name        Carlton \
+  --username    carlton \
+  --password    password
+
+buckler create-user \
+  --name        Frank \
+  --username    frank \
+  --password    password
+
+buckler create-user \
+  --name        Fiona \
+  --username    fiona \
+  --password    password
+
+buckler create-tenant --name 'Customer Service'
+buckler invite --tenant 'Customer Service' --role operator ophelia olaf nikita nelson
+buckler invite --tenant 'Customer Service' --role engineer carlton
+buckler invite --tenant 'Customer Service' --role admin    cheri
+
+buckler create-tenant --name Operations
+buckler invite --tenant Operations --role operator nikita nelson
+buckler invite --tenant Operations --role engineer olaf
+buckler invite --tenant Operations --role admin    ophelia
+
+buckler create-tenant --name Fulfillment
+buckler invite --tenant Fulfillment --role operator ophelia olaf nikita nelson
+buckler invite --tenant Fulfillment --role engineer fiona
+buckler invite --tenant Fulfillment --role admin    frank
+EOF
+chmod 755 ${SHIELD_CORE}/etc/setup
+
+cat > ${SHIELD_CORE}/rc/init <<'EOF'
+# spin the agent
+/shield/rc/shield-agent
+
+# spin the vault
+/shield/rc/vault
+
+# spin the core
+/shield/rc/shield-core
+EOF
+
+
+for img in shield-{agent,core,store}; do
+  pushd demo/$img
+  ./build.sh
+  popd
+done
+
+
+for img in {ageis,insigniaCRM,shipit}; do
+  pushd demo/$img
+  ./build.sh
+  popd
+done

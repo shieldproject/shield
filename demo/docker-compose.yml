@@ -1,0 +1,29 @@
+version: '2'
+services:
+  core:
+    image: shieldproject/shield-core:dev
+    ports:
+      - "8181:8181"
+  store:
+    image: shieldproject/shield-store:dev
+    ports:
+      - "8000:80"
+  #shipit:
+  #  image: shieldproject/shipit-demo
+  #  ports:
+  #    - "8080:8080"
+  db:
+    image: postgres:9.4
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+    ports:
+      - "5432:5432"
+  insignia:
+    image: shieldproject/insignia-demo
+    ports:
+      - "8069:8069"
+  ageis:
+    image: shieldproject/ageis-demo
+    ports:
+      - "8081:80"

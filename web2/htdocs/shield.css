@@ -327,7 +327,7 @@ body { font-family: sans-serif; }
   margin: 2em 0;
 }
 
-#login > div.local-only { width: 400px; }
+#login > div.local-only .dialog { width: 400px; }
 #login p.motd {
   margin: 0 0 2em 0;
 }

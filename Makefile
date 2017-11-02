@@ -26,12 +26,10 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield:
+shield: shield-cli
 	go $(BUILD_TYPE) ./cmd/shieldd
 	go $(BUILD_TYPE) ./cmd/shield-agent
 	go $(BUILD_TYPE) ./cmd/shield-schema
-	go $(BUILD_TYPE) ./cmd/shield
-	go $(BUILD_TYPE) ./cmd/buckler
 
 # Building the Shield CLI *only*
 shield-cli: buckler

@@ -47,3 +47,9 @@ cmd/shield-umc/main
 oauth.conf
 oauth.key
 oauth.key.pub
+
+# ignore the compiled assets for demo docker
+demo/shield-agent/in
+demo/shield-core/in
+demo/shared
+demo/cached
