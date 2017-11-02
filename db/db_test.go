@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"database/sql"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -131,6 +132,57 @@ var _ = Describe("Database", func() {
 			It("propagates errors from sql driver", func() {
 				Ω(db.Exec(`DO STUFF IN SQL`)).Should(HaveOccurred())
 			})
+		})
+	})
+
+	Describe("Stressing the database", func() {
+		Context("With varying levels of concurrency", func() {
+			var db *DB
+
+			BeforeEach(func() {
+				db = &DB{
+					Driver: "sqlite3",
+					DSN: "file::memory:?cache=shared",
+				}
+				Ω(db.Connect()).Should(Succeed())
+				Ω(db.Exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
+			})
+
+			AfterEach(func() {
+				db.Disconnect()
+			})
+
+			stressor := func (reply chan error, db *DB, n, times int) {
+				Ω(db.Connected()).Should(BeTrue())
+				for i := 0; i < times; i++ {
+					err := db.Exec("INSERT INTO stuff (numb, iter) VALUES (?, ?)", n, i)
+					if err != nil {
+						reply <- err
+						return
+					}
+				}
+				reply <- nil
+			}
+
+			stress := func(n int) func() {
+				return func() {
+					reply := make(chan error, n)
+					for i := 0; i < n; i++ {
+						go stressor(reply, db, i, 100)
+					}
+
+					for i := 0; i < n; i++ {
+						err := <-reply
+						Ω(err).ShouldNot(HaveOccurred())
+					}
+				}
+			}
+
+			It("can handle a single writer", stress(1))
+			It("can handle two concurrent writers", stress(2))
+			It("can handle twenty concurrent writers", stress(20))
+			It("can handle a hundred concurrent writers", stress(100))
+			It("can handle a thousand concurrent writers", stress(1000))
 		})
 	})
 })
