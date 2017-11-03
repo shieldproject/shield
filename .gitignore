@@ -25,6 +25,7 @@
 /s3
 /swift
 /scality
+/webdav
 /xtrabackup
 
 # ignore database we may create
