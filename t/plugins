@@ -370,7 +370,8 @@ for x in s3 scality \
          mongo \
          mysql \
          redis-broker \
-         rabbitmq-broker
+         rabbitmq-broker \
+         webdav
 do
 	strip $x
 	try "$x help"

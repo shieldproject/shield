@@ -57,6 +57,7 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/consul-snapshot
 	go $(BUILD_TYPE) ./plugin/mongo
 	go $(BUILD_TYPE) ./plugin/google
+	go $(BUILD_TYPE) ./plugin/webdav
 	go $(BUILD_TYPE) ./plugin/bbr-director
 	go $(BUILD_TYPE) ./plugin/bbr-deployment
 
