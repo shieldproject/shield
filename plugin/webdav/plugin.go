@@ -210,7 +210,19 @@ func (dav WebDAV) generate() string {
 	return strings.Replace(path, "//", "/", -1)
 }
 
-func (dav WebDAV) client() *http.Client {
+func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) {
+	u, _ := url.Parse(dav.URL)
+	u.Path = fmt.Sprintf("%s/%s", strings.TrimSuffix(u.Path, "/"), path)
+
+	req, err := http.NewRequest(method, u.String(), in)
+	if err != nil {
+		return nil, err
+	}
+
+	if dav.Username != "" {
+		req.SetBasicAuth(dav.Username, dav.Password)
+	}
+
 	if dav.c == nil {
 		dav.c = &http.Client{
 			Transport: &http.Transport{
@@ -220,34 +232,17 @@ func (dav WebDAV) client() *http.Client {
 			},
 		}
 	}
-	return dav.c
-}
-
-func (dav WebDAV) url(rel string) string {
-	u, _ := url.Parse(dav.URL)
-	u.Path = fmt.Sprintf("%s/%s", strings.TrimSuffix(u.Path, "/"), rel)
-	return u.String()
+	return dav.c.Do(req)
 }
 
 func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
-	req, err := http.NewRequest("PUT", dav.url(path), in)
-	if err != nil {
-		return 0, err
-	}
-
-	res, err := dav.client().Do(req)
+	res, err := dav.do("PUT", path, in)
 	if err != nil {
 		return 0, err
 	}
 
 	if res.StatusCode == 201 {
-
-		req, err = http.NewRequest("HEAD", dav.url(path), nil)
-		if err != nil {
-			return 0, err
-		}
-
-		res, err = dav.client().Do(req)
+		res, err = dav.do("HEAD", path, nil)
 		if err != nil {
 			return 0, err
 		}
@@ -259,12 +254,7 @@ func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
 }
 
 func (dav WebDAV) Get(path string, out io.Writer) error {
-	req, err := http.NewRequest("GET", dav.url(path), nil)
-	if err != nil {
-		return err
-	}
-
-	res, err := dav.client().Do(req)
+	res, err := dav.do("GET", path, nil)
 	if err != nil {
 		return err
 	}
@@ -278,15 +268,11 @@ func (dav WebDAV) Get(path string, out io.Writer) error {
 }
 
 func (dav WebDAV) Delete(path string) error {
-	req, err := http.NewRequest("DELETE", dav.url(path), nil)
+	res, err := dav.do("DELETE", path, nil)
 	if err != nil {
 		return err
 	}
 
-	res, err := dav.client().Do(req)
-	if err != nil {
-		return err
-	}
 	if res.StatusCode == 200 {
 		return nil
 	}
