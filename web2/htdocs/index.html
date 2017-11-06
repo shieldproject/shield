@@ -4647,12 +4647,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             console.log('resuming /v2/health checks...');
             every = backoff[0]; /* reset */
             //dont ping health if you're on the login page
-            if (document.location.hash == ""){return}
+            if ($global.auth.unauthenticated){return}
             ping();
           }
         });
         //dont ping health if you're on the login page
-        if (document.location.hash == ""){return}
+        if ($global.auth.unauthenticated){return}
         ping();
       })(5);
       /* }}} */
