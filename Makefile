@@ -41,25 +41,10 @@ shield-cli:
 # Building Plugins
 plugin: plugins
 plugins:
-	go $(BUILD_TYPE) ./plugin/fs
-	go $(BUILD_TYPE) ./plugin/docker-postgres
 	go $(BUILD_TYPE) ./plugin/dummy
-	go $(BUILD_TYPE) ./plugin/postgres
-	go $(BUILD_TYPE) ./plugin/redis-broker
-	go $(BUILD_TYPE) ./plugin/s3
-	go $(BUILD_TYPE) ./plugin/swift
-	go $(BUILD_TYPE) ./plugin/azure
-	go $(BUILD_TYPE) ./plugin/mysql
-	go $(BUILD_TYPE) ./plugin/xtrabackup
-	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
-	go $(BUILD_TYPE) ./plugin/scality
-	go $(BUILD_TYPE) ./plugin/consul
-	go $(BUILD_TYPE) ./plugin/consul-snapshot
-	go $(BUILD_TYPE) ./plugin/mongo
-	go $(BUILD_TYPE) ./plugin/google
-	go $(BUILD_TYPE) ./plugin/webdav
-	go $(BUILD_TYPE) ./plugin/bbr-director
-	go $(BUILD_TYPE) ./plugin/bbr-deployment
+	for plugin in $$(cat plugins); do \
+		go $(BUILD_TYPE) ./plugin/$$plugin; \
+	done
 
 docs: docs/API.md
 docs/API.md: docs/API.yml
@@ -67,10 +52,7 @@ docs/API.md: docs/API.yml
 
 clean:
 	rm -f shieldd shield-agent shield-schema shield
-	rm -f fs docker-postgres dummy postgres redis-broker
-	rm -f s3 swift azure mysql xtrabackup rabbitmq-broker
-	rm -f consul consul-snapshot mongo scality google
-	rm -f bbr-director bbr-deployment
+	rm -f $$(cat plugins) dummy
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -86,17 +68,17 @@ fixmes: fixme
 fixme:
 	@grep -rn FIXME * | grep -v vendor/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
 
-dev: shield
+dev:
 	./bin/testdev
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
-# Deferred: Looping through plugins instead of listing them
 
-restore-deps:
-	godep restore ./...
+init:
+	go get github.com/kardianos/govendor
+	go install github.com/kardianos/govendor
 
 save-deps:
-	godep save ./...
+	govendor add +external
 
 ARTIFACTS := artifacts/shield-server-{{.OS}}-{{.Arch}}
 LDFLAGS := -X main.Version=$(VERSION)
@@ -105,27 +87,10 @@ release:
 	@test -n "$(VERSION)"
 	@echo "OK.  VERSION=$(VERSION)"
 
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/fs"                ./plugin/fs
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/docker-postgres"   ./plugin/docker-postgres
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/dummy"             ./plugin/dummy
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/postgres"          ./plugin/postgres
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/redis-broker"      ./plugin/redis-broker
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/s3"                ./plugin/s3
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/swift"             ./plugin/swift
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/azure"             ./plugin/azure
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mysql"             ./plugin/mysql
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/rabbitmq-broker"   ./plugin/rabbitmq-broker
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/scality"           ./plugin/scality
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mongo"             ./plugin/mongo
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul"            ./plugin/consul
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul-snapshot"   ./plugin/consul-snapshot
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/xtrabackup"        ./plugin/xtrabackup
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/google"            ./plugin/google
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/bbr-director"      ./plugin/bbr-director
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/bbr-deployment"    ./plugin/bbr-deployment
-
+	for plugin in $$(cat plugins); do \
+	  gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/$$plugin" ./plugin/$$plugin; \
+	done
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
-
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/cli/shield"                ./cmd/shield
 
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
@@ -134,4 +99,4 @@ release:
 	rm -f artifacts/*.tar.gz
 	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
 
-.PHONY: shield
+.PHONY: shield plugins dev

@@ -2,7 +2,14 @@
 export PATH=$(pwd):$(pwd)/bin:${PATH}
 export VAULT_SKIP_VERIFY=1
 workdir=""
-ADDR=0.0.0.0:8181
+
+# this is not the right way to do this, but it works
+# for our limited use case between macbooks and vagrant.
+ADDR=127.0.0.1:8181
+case $OSTYPE in
+# assuming linux doesn't have IPv6 support...
+*linux*) ADDR=0.0.0.0:8181 ;;
+esac
 
 setup_workdir() {
   workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
@@ -17,20 +24,34 @@ preflight() {
   echo "RUNNING testdev PRE-FLIGHT CHECKS"
   echo
 
-  echo "checking for plugins..."
-  plugins=$(sed -n '/^plugins:/,/^ *$/{//!p}' $(dirname $0)/../Makefile | sed -e 's/.*plugin\///')
-  missing='';
-  for plugin in $plugins; do
-    if [[ ! -f $(dirname $0)/../$plugin ]]; then
-      echo "  - $plugin missing"
-      missing=true
+  echo "checking for SHIELD binaries..."
+  missing=''
+  for bin in shieldd shield-agent shield-schema; do
+    if [[ ! -f "$bin" ]]; then
+      echo " - missing '$bin' binary..."
+      missing=1
+    fi
+  done
+  for bin in shield buckler; do
+    if [[ ! -f "$bin" ]]; then
+      echo " - missing '$bin' binary..."
+      missing=1
+    fi
+  done
+  if [[ -n "$missing" ]]; then
+    make shield shield-cli
+  fi
+
+  echo "checking for SHIELD plugins..."
+  missing=''
+  for plugin in $(cat plugins); do
+    if [[ ! -f "$plugin" ]]; then
+      echo " - missing '$plugin' plugin"
+      missing=1
     fi
   done
   if [[ -n "$missing" ]] ; then
-    echo "making missing plugins"
-    (cd $(dirname $0)/.. && make plugins)
-    echo "done."
-    echo ""
+    make plugins
   fi
 
   echo "checking for tmux..."
@@ -84,8 +105,7 @@ fi
 
 # set up a dedicated directory just for plugins
 mkdir -p ${workdir}/bin
-for x in $(find plugin -maxdepth 1 -type d); do
-  bin=${x##*/}
+for plugin in $(cat plugins); do
   if [[ -f $bin && -x $bin ]]; then
     cp $bin ${workdir}/bin/$bin
   fi
