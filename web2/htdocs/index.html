@@ -2667,6 +2667,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     },
                     complete: function () {
                       $('#viewport').find('#logging-in').remove();
+                      //using the systems page as our landing page when a user logs in
+                      document.location.href = "/#!/systems"
                     }
                   });
                 });
@@ -4597,6 +4599,42 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             },
             complete: function () {
               timer = window.setTimeout(ping, every * 1000);
+            },
+            statusCode: {
+              401: function() {
+                console.log('/v2/health check received a 401, redirecting to login page')
+                api({
+                  type: "GET",
+                  url: "/v2/auth/logout",
+                  success: function () {
+                    document.location.href = '/';
+                  },
+                  error: function (xhr) {
+                    if (xhr.status >= 500) {
+                      $('#viewport').html(template('BOOM'));
+                    } else {
+                      document.location.href = '/';
+                    }
+                  }
+                })
+              },
+              403: function() {
+                console.log('/v2/health check received a 403, redirecting to login page')
+                api({
+                  type: "GET",
+                  url: "/v2/auth/logout",
+                  success: function () {
+                    document.location.href = '/';
+                  },
+                  error: function (xhr) {
+                    if (xhr.status >= 500) {
+                      $('#viewport').html(template('BOOM'));
+                    } else {
+                      document.location.href = '/';
+                    }
+                  }
+                })
+              },
             }
           });
         }
@@ -4608,9 +4646,13 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           } else {
             console.log('resuming /v2/health checks...');
             every = backoff[0]; /* reset */
+            //dont ping health if you're on the login page
+            if (document.location.hash == ""){return}
             ping();
           }
         });
+        //dont ping health if you're on the login page
+        if (document.location.hash == ""){return}
         ping();
       })(5);
       /* }}} */
