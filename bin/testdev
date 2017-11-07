@@ -143,15 +143,15 @@ http {
       add_header X-XSS-Protection          "1; mode=block";
       add_header Referrer-Policy           "same-origin";
 
+      if (\$request_uri ~* "^/(v2|init.js)") {
+        expires -1;
+      }
       if (\$request_uri ~* ".(ico|css|js|gif|jpe?g|png|svg)$") {
         expires 30d;
         access_log off;
         add_header Pragma public;
         add_header Cache-Control "public";
         break;
-      }
-      if (\$request_uri ~* "^/(v2|init.js)") {
-        expires -1;
       }
     }
   }
