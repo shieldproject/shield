@@ -122,6 +122,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{
+		//you must be logged into shield to access shield health
+		if core.IsNotAuthenticated(r) {
+			return
+		}
 		health, err := core.checkHealth()
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to check SHIELD health"))
@@ -132,6 +136,11 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/health", func(r *route.Request) { // {{{
+		//you must at least be on the tenant (which would make you at least an operator)
+		//to acces the health of said tenant
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
 		health, err := core.checkTenantHealth(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to check SHIELD health"))

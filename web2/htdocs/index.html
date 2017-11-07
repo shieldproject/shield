@@ -14,26 +14,33 @@
 
         The main (authenticated) layout for the UI
       ]]
-      [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
       <div class="story-sidebar">
         <nav>
-          [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
-          <li><a href="#!/do/backup">Run an ad hoc backup</a>
-              <p>Run a backup job whenever you need to, regardless of the job's
-              schedule.</p></li>
+          [[if ($global.auth.tenant && $global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
+              
+            [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
+            <li><a href="#!/do/backup">Run an ad hoc backup</a>
+                <p>Run a backup job whenever you need to, regardless of the job's
+                schedule.</p></li>
 
-          <li><a href="#!/do/restore">Restore data from a backup</a>
-              <p>Restore a protected system back to the state it was in when a
-              backup archive was taken.</p></li>
-          [[ } ]]
-
-          [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].engineer) { ]]
-          <li><a href="#!/do/configure">Configure a new backup job</a>
-              <p>Set up a new protected system, and configure the how, when,
-              and for how long of managing its backup archives.</p></li>
+            <li><a href="#!/do/restore">Restore data from a backup</a>
+                <p>Restore a protected system back to the state it was in when a
+                backup archive was taken.</p></li>
+            [[ } ]]
+            [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].engineer) { ]]
+              <li><a href="#!/do/configure">Configure a new backup job</a>
+                  <p>Set up a new protected system, and configure the how, when,
+                  and for how long of managing its backup archives.</p></li>
+            [[ } ]]
+          [[ } else { ]]
+            <li>
+              <a>You are not in a tenant</a>
+              <p> You may want to reach out to your SHIELD administrator and ask them to assign you to a tenant,
+                or check their configuration if they believe you ought to just be automagically assigned to one by the system.
+              </p>
+            </li>
           [[ } ]]
         </nav>
-
         <footer>
           <a target="_blank" href="https://github.com/starkandwayne/shield"><img src="/i/social/github.png"></a>
           <a target="_blank" href="https://shieldproject.slack.com"><img src="/i/social/slack.png"></a>
@@ -41,8 +48,8 @@
           <p>SHIELD Copyright &copy; 2017 Stark & Wayne</p>
         </footer>
       </div>
-      [[ } ]]
       <div class="pane">
+        [[ if (($global.auth.tenant && $global.auth.is.tenant[$global.auth.tenant.uuid].operator) || ($global.auth.is.system.engineer)){ ]]
         <div class="hud blk" id="hud">
           <div class="x5"><div class="inst">
             <ul>
@@ -58,6 +65,8 @@
             <div class="fill"></div>
           </div></div>
         </div>
+        [[ } ]]
+        
 
         <div class="nav sticky" id="sticky-nav">
           <nav>
@@ -377,7 +386,7 @@
             <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
             [[   }); ]]
             [[ } ]]
-            [[ if ($global.auth.is.tenant[_.tenant.uuid].admin) { ]] 
+            [[ if (_.tenant && $global.auth.is.tenant[_.tenant.uuid].admin) { ]] 
                 <div class="divider"></div>
                 <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a> 
             [[ } ]]
@@ -404,6 +413,7 @@
                 <li class="env"><span style="color: [[= maybe(_.shield.color, "#8CC63F") ]]">[[= _.shield.env ]]</span></li>
               </ul>
             </div></div>
+
 
             <div class="x5"><div class="health">
               <div class="preload" style="display: none">
@@ -2657,6 +2667,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     },
                     complete: function () {
                       $('#viewport').find('#logging-in').remove();
+                      //using the systems page as our landing page when a user logs in
+                      document.location.href = "/#!/systems"
                     }
                   });
                 });
@@ -4587,6 +4599,42 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             },
             complete: function () {
               timer = window.setTimeout(ping, every * 1000);
+            },
+            statusCode: {
+              401: function() {
+                console.log('/v2/health check received a 401, redirecting to login page')
+                api({
+                  type: "GET",
+                  url: "/v2/auth/logout",
+                  success: function () {
+                    document.location.href = '/';
+                  },
+                  error: function (xhr) {
+                    if (xhr.status >= 500) {
+                      $('#viewport').html(template('BOOM'));
+                    } else {
+                      document.location.href = '/';
+                    }
+                  }
+                })
+              },
+              403: function() {
+                console.log('/v2/health check received a 403, redirecting to login page')
+                api({
+                  type: "GET",
+                  url: "/v2/auth/logout",
+                  success: function () {
+                    document.location.href = '/';
+                  },
+                  error: function (xhr) {
+                    if (xhr.status >= 500) {
+                      $('#viewport').html(template('BOOM'));
+                    } else {
+                      document.location.href = '/';
+                    }
+                  }
+                })
+              },
             }
           });
         }
@@ -4598,9 +4646,13 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           } else {
             console.log('resuming /v2/health checks...');
             every = backoff[0]; /* reset */
+            //dont ping health if you're on the login page
+            if ($global.auth.unauthenticated){return}
             ping();
           }
         });
+        //dont ping health if you're on the login page
+        if ($global.auth.unauthenticated){return}
         ping();
       })(5);
       /* }}} */
