@@ -1927,7 +1927,6 @@ function redraw(complete) {
   }
   $('#hud').html(template('hud', $global.hud));
   $('.top-bar').html(template('top-bar', {
-    shield:  $global.hud.shield,
     user:    $global.auth.user,
     tenants: $global.auth.tenants,
     tenant:  $global.auth.tenant

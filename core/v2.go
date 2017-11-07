@@ -103,22 +103,15 @@ func (core *Core) v2API() *route.Router {
 	}
 
 	r.Dispatch("GET /v2/info", func(r *route.Request) { // {{{
-		in := struct {
-			Version string `json:"version,omitempty"`
-			Env     string `json:"env"`
-			API     int    `json:"api"`
-		}{
-			Env: core.env,
-			API: 2,
-		}
+		info := core.checkInfo()
 
 		/* only show sensitive things like version numbers
 		   to authenticated sessions. */
 		if u, _ := core.AuthenticatedUser(r); u != nil {
-			in.Version = Version
+			info.Version = Version
 		}
 
-		r.OK(in)
+		r.OK(info)
 	})
 	// }}}
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{

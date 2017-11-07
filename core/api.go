@@ -187,19 +187,14 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "// init.js\n")
 	fmt.Fprintf(w, "var $global = {}\n")
 
-	health, err := core.checkHealth()
+	info := core.checkInfo()
+	b, err := json.Marshal(info)
 	if err != nil {
-		log.Errorf("init.js: failed to check health of SHIELD core: %s", err)
-		fmt.Fprintf(w, "// failed to determine health of SHIELD core...\n")
+		log.Errorf("init.js: failed to marshal SHIELD core info into JSON: %s", err)
+		fmt.Fprintf(w, "// failed to retrieve SHIELD core info...\n")
+		fmt.Fprintf(w, "$global.shield = {};\n")
 	} else {
-		b, err := json.Marshal(health)
-		if err != nil {
-			log.Errorf("init.js: failed to marshal health data into JSON: %s", err)
-			fmt.Fprintf(w, "// failed to determine health of SHIELD core...\n")
-			fmt.Fprintf(w, "$global.hud = {\"health\":{\"shield\":{\"core\":\"down\"}}};\n")
-		} else {
-			fmt.Fprintf(w, "$global.hud = %s;\n", string(b))
-		}
+		fmt.Fprintf(w, "$global.shield = %s;\n", string(b))
 	}
 
 	const unauthFail = "// failed to determine user authentication state...\n"
@@ -219,12 +214,12 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 
 	id, err := core.checkAuth(user)
 	if err != nil {
-		log.Errorf("failed to obtain tenancy info about user: %s", err)
+		log.Errorf("init.js: failed to obtain tenancy info about user: %s", err)
 		fmt.Fprintf(w, unauthFail)
 		fmt.Fprintf(w, unauthJS)
 		return
 	}
-	b, err := json.Marshal(id)
+	b, err = json.Marshal(id)
 	if err != nil {
 		log.Errorf("init.js: failed to marshal auth id data into JSON: %s", err)
 		fmt.Fprintf(w, unauthFail)

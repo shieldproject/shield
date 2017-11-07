@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
@@ -18,14 +20,6 @@ type JobHealth struct {
 	Healthy bool      `json:"healthy"`
 }
 type Health struct {
-	SHIELD struct {
-		Version string `json:"version"`
-		IP      string `json:"ip"`
-		FQDN    string `json:"fqdn"`
-		Env     string `json:"env"`
-		Color   string `json:"color"`
-		MOTD    string `json:"motd"`
-	} `json:"shield"`
 	Health struct {
 		Core    string `json:"core"`
 		Storage bool   `json:"storage_ok"`
@@ -47,17 +41,10 @@ type Health struct {
 func (core *Core) checkHealth() (Health, error) {
 	var health Health
 
-	health.SHIELD.Version = Version
-	health.SHIELD.Env = core.env
-	health.SHIELD.IP = core.ip
-	health.SHIELD.FQDN = core.fqdn
-	health.SHIELD.MOTD = core.motd
-	health.SHIELD.Color = core.color
-
 	health.Health.Storage = core.AreStoresHealthy()
 	stores, err := core.DB.GetAllStores(nil)
 	if err != nil {
-		return health, err
+		return health, fmt.Errorf("failed to retrieve all stores: %s", err)
 	}
 	health.Storage = make([]StorageHealth, len(stores))
 	for i, store := range stores {
@@ -72,7 +59,7 @@ func (core *Core) checkHealth() (Health, error) {
 	health.Health.Jobs = true
 	jobs, err := core.DB.GetAllJobs(nil)
 	if err != nil {
-		return health, err
+		return health, fmt.Errorf("failed to retrieve all jobs: %s", err)
 	}
 	health.Jobs = make([]JobHealth, len(jobs))
 	for i, job := range jobs {
@@ -88,23 +75,23 @@ func (core *Core) checkHealth() (Health, error) {
 	health.Stats.Jobs = len(jobs)
 
 	if health.Health.Core, err = core.vault.Status(); err != nil {
-		return health, err
+		return health, fmt.Errorf("failed to retrieve vault status: %s", err)
 	}
 
 	if health.Stats.Systems, err = core.DB.CountTargets(nil); err != nil {
-		return health, err
+		return health, fmt.Errorf("failed to count systems/targets: %s", err)
 	}
 
 	if health.Stats.Archives, err = core.DB.CountArchives(&db.ArchiveFilter{
 		WithStatus: []string{"valid"},
 	}); err != nil {
-		return health, err
+		return health, fmt.Errorf("failed to retrieve count of valid archives: %s", err)
 	}
 
 	if health.Stats.Storage, err = core.DB.ArchiveStorageFootprint(&db.ArchiveFilter{
 		WithStatus: []string{"valid"},
 	}); err != nil {
-		return health, err
+		return health, fmt.Errorf("failed to calcualte storage footprint: %s", err)
 	}
 
 	health.Stats.Daily = 0 // FIXME
@@ -113,13 +100,6 @@ func (core *Core) checkHealth() (Health, error) {
 
 func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	var health Health
-	health.SHIELD.Version = Version
-	health.SHIELD.Env = core.env
-	health.SHIELD.IP = core.ip
-	health.SHIELD.FQDN = core.fqdn
-	health.SHIELD.MOTD = core.motd
-	health.SHIELD.Color = core.color
-
 	health.Health.Storage = true
 	stores, err := core.DB.GetAllStores(&db.StoreFilter{
 		ForTenant: tenantUUID,

@@ -246,9 +246,9 @@
       ]]
           <div id="login" class="frontdoor">
             <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
-              <h1>SHIELD<span style="color: [[= $global.hud.shield.color || 'green' ]]">[[= $global.hud.shield.env ]]<span></h1>
+              <h1>SHIELD<span style="color: [[= $global.shield.color || 'green' ]]">[[= $global.shield.env ]]<span></h1>
               <div class="dialog">
-                <p class="motd">[[= $global.hud.shield.motd ]]</p>
+                <p class="motd">[[= $global.shield.motd ]]</p>
 
                 [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
@@ -370,7 +370,7 @@
         Renders the top-most bar, with the SHIELD name / environment, and the
         current users name / tenant and "personal settings" menu.
       ]]
-        <h1><a href="#!/systems">SHIELD [[ if (_.shield.color) { ]]<span style="color:[[= _.shield.color ]]">[[ } ]][[= _.shield.env ]]</span> <span>[[= _.shield.ip ]]</span></a></h1>
+        <h1><a href="#!/systems">SHIELD [[ if ($global.shield.color) { ]]<span style="color:[[= $global.shield.color ]]">[[ } ]][[= $global.shield.env ]]</span> <span>[[= $global.shield.ip ]]</span></a></h1>
         [[ if (_.user) { ]]
         <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
         <div class="flyout ephemeral">
@@ -407,10 +407,10 @@
         ]]
             <div class="x5"><div class="inst">
               <ul>
-                <li class="shield">SHIELD <span class="v">[[= _.shield.version ]]</span></li>
-                <li class="ip">[[= _.shield.ip ]]</li>
-                <li class="fqdn">[[= _.shield.fqdn ]]</li>
-                <li class="env"><span style="color: [[= maybe(_.shield.color, "#8CC63F") ]]">[[= _.shield.env ]]</span></li>
+                <li class="shield">SHIELD <span class="v">[[= $global.shield.version ]]</span></li>
+                <li class="ip">[[= $global.shield.ip ]]</li>
+                <li class="fqdn">[[= $global.shield.fqdn ]]</li>
+                <li class="env"><span style="color: [[= maybe($global.shield.color, "#8CC63F") ]]">[[= $global.shield.env ]]</span></li>
               </ul>
             </div></div>
 
