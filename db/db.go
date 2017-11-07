@@ -3,8 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	. "github.com/starkandwayne/goutils/timestamp"

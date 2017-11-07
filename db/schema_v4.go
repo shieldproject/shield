@@ -244,6 +244,24 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	/* provide summaries */
+	err = db.Exec(`UPDATE stores SET summary = '' WHERE summary IS NULL`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`UPDATE targets SET summary = '' WHERE summary IS NULL`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`UPDATE retention SET summary = '' WHERE summary IS NULL`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`UPDATE jobs SET summary = '' WHERE summary IS NULL`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err

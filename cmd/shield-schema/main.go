@@ -23,6 +23,7 @@ func main() {
 		Version  bool   `cli:"-v, --version"`
 		Debug    bool   `cli:"-D, --debug"`
 		Database string `cli:"-d, --database"`
+		Revision int    `cli:"-r, --revision"`
 	}
 
 	_, args, err := cli.Parse(&opts)
@@ -43,6 +44,8 @@ func main() {
 		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  -d, --database   Path to the SQLite3 database file.\n")
+		fmt.Printf("  -r, --revision   What version of the SHIELD schema\n")
+		fmt.Printf("                   to deploy.  Defaults to latest.\n")
 		fmt.Printf("\n")
 		os.Exit(0)
 	}
@@ -82,11 +85,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := database.Setup(); err != nil {
+	if opts.Revision > db.CurrentSchema {
+		log.Errorf("unable to deploy schema revision %d: latest available is %d",
+			opts.Revision, db.CurrentSchema)
+		os.Exit(1)
+	}
+	if opts.Revision < 0 {
+		log.Errorf("invalid schema revision '%d'", opts.Revision)
+		os.Exit(1)
+	}
+	deployed, err := database.Setup(opts.Revision)
+	if err != nil {
 		log.Errorf("failed to set up schema in database at %s: %s",
 			database.DSN, err)
 		os.Exit(1)
 	}
 
-	log.Infof("deployed schema version %d", db.CurrentSchema)
+	log.Infof("deployed schema version %d", deployed)
 }

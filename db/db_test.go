@@ -142,7 +142,7 @@ var _ = Describe("Database", func() {
 			BeforeEach(func() {
 				db = &DB{
 					Driver: "sqlite3",
-					DSN: "file::memory:?cache=shared",
+					DSN:    "file::memory:?cache=shared",
 				}
 				Ω(db.Connect()).Should(Succeed())
 				Ω(db.Exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
@@ -152,7 +152,7 @@ var _ = Describe("Database", func() {
 				db.Disconnect()
 			})
 
-			stressor := func (reply chan error, db *DB, n, times int) {
+			stressor := func(reply chan error, db *DB, n, times int) {
 				Ω(db.Connected()).Should(BeTrue())
 				for i := 0; i < times; i++ {
 					err := db.Exec("INSERT INTO stuff (numb, iter) VALUES (?, ?)", n, i)

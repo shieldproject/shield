@@ -7,10 +7,10 @@ echo "======================"
 echo
 
 PATH=$(pwd):$(pwd)/bin:${PATH}
-WORKDIR=$(mktemp -d /tmp/shield.test.XXXXXXX)
+WORKDIR=$(pwd)/tmp/t
 DATABASE=${DATABASE:-$WORKDIR/var/shield.db}
 SHIELD_DAEMON_HOST=127.0.0.1
-SHIELD_DAEMON_PORT=8181
+SHIELD_DAEMON_PORT=8282
 SHIELD_DAEMON_ADDR="$SHIELD_DAEMON_HOST:$SHIELD_DAEMON_PORT"
 SHIELD_AGENT_HOST=127.0.0.1
 SHIELD_AGENT_PORT=5441
@@ -20,19 +20,17 @@ SHIELD_PASS=sekrit
 SHIELD_NAME="T.E.S.T. S.H.I.E.L.D."
 SHIELD_MASTER_PASSWORD="master-chief-117"
 
+rm -rf   ${WORKDIR}
+mkdir -p ${WORKDIR}/{etc,var,data}
+
 # TEST HARNESS APPARATUS {{{
 export PATH SHIELD_NAME
 cleanup () {
-  rm -rf ${WORKDIR}
   if [[ -n "$(jobs -p)" ]]; then
     kill $(jobs -p) 2>/dev/null
   fi
 }
 trap "cleanup >&2" EXIT QUIT INT TERM
-
-mkdir ${WORKDIR}/etc
-mkdir ${WORKDIR}/var
-mkdir ${WORKDIR}/data
 
 spin_vault() {
   cat >${WORKDIR}/etc/vault.conf <<EOF
@@ -96,20 +94,18 @@ EOF
   echo
 
   echo ">> WAITING FOR SHIELD CORE TO COME ONLINE"
-  up="1"
   n=60
-  while [ $up -eq 1 ]; do
-      sleep 1
-      up=$(nc -z ${SHIELD_DAEMON_HOST} ${SHIELD_DAEMON_PORT} &>/dev/null; echo $?)
-      n=$(( n - 1 ))
+  while ! curl -Ls --fail http://${SHIELD_DAEMON_ADDR}/v2/info; do
       if [[ $n -eq 0 ]]; then
         echo >&2 "SHIELD core did not spin up within 60s; aborting"
         echo >&2 "---[ shieldd log ]-----------------------------------------"
-        cat  >&2 ${WORKDIR}/daemon.log
+        cat  >&2 ${WORKDIR}/core.log
         echo >&2 "-----------------------------------------------------------"
         echo >&2
         exit 4;
       fi
+      sleep 1
+      n=$(( n - 1 ))
   done
 
   echo ">> INITIALIZING SHIELD CORE"
@@ -195,7 +191,7 @@ echo "running: $TESTS" | sed -e 's/  */ /'
 # }}}
 
 spin_vault   2>&1 > ${WORKDIR}/vault.log
-spin_shieldd 2>&1 > ${WORKDIR}/daemon.log
+spin_shieldd 2>&1 > ${WORKDIR}/core.log
 spin_agent   2>&1 > ${WORKDIR}/agent.log
 
 # try "A Suite of Tests" {{{
@@ -568,7 +564,6 @@ try "Checking that initial database is empty" # {{{
  run auth-tokens ; none "Initial tokens list should be empty"
 ) 2>&1 | indent
 #}}}
-
 
 try "Creating testing objects" # {{{
 (
