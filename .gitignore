@@ -37,6 +37,9 @@
 # ignore the coverage reports
 /coverage
 
+# ignore tmp stuff from testdev
+/tmp
+
 # ignore testing files
 cmd/shield-umc/shield-umc
 cmd/shield-umc/main

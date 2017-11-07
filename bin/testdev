@@ -1,23 +1,13 @@
 #!/bin/bash
 export PATH=$(pwd):$(pwd)/bin:${PATH}
 export VAULT_SKIP_VERIFY=1
-workdir=""
-
-# this is not the right way to do this, but it works
-# for our limited use case between macbooks and vagrant.
-ADDR=127.0.0.1:8181
-case $OSTYPE in
-# assuming linux doesn't have IPv6 support...
-*linux*) ADDR=0.0.0.0:8181 ;;
-esac
+workdir=$PWD/tmp/work
+export PORT=${PORT:-8181}
 
 setup_workdir() {
-  workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
-  storedir=$(mktemp -d /tmp/shield.testdev.storeXXXXXXX)
-  trap "rm -rf ${workdir} ${storedir}" EXIT QUIT INT TERM
-
-  mkdir ${workdir}/etc
-  mkdir ${workdir}/var
+  rm -rf ${workdir} ${storedir}
+  mkdir -p ${workdir}/{etc,var}
+  mkdir -p ${storedir}
 }
 
 preflight() {
@@ -66,6 +56,17 @@ preflight() {
     exit 1
   fi
 
+  if ! type nginx &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires nginx (https://nginx.org)"
+    echo "You will need to install nginx to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install nginx\` and be on your way."
+    esac
+    exit 1
+  fi
+
   echo "checking for vault..."
   if ! type vault &>/dev/null; then
     echo
@@ -95,25 +96,81 @@ preflight() {
   echo "PRE-FLIGHT CHECKS OK"
 }
 
-# If a work directory is not supplied as a parameter,
-# create one.
-if [ $# -lt 2 ]; then
-    setup_workdir
-else
-    workdir="${2}"
-fi
-
 # set up a dedicated directory just for plugins
 mkdir -p ${workdir}/bin
 for plugin in $(cat plugins); do
-  if [[ -f $bin && -x $bin ]]; then
-    cp $bin ${workdir}/bin/$bin
+  if [[ -f $plugin && -x $plugin ]]; then
+    cp $plugin ${workdir}/bin/$plugin
   fi
 done
 
-export DATABASE=${DATABASE:-$workdir/var/shield.db}
-
 case "${1}" in
+(nginx)
+  export PORT=$2
+  cat >${workdir}/etc/nginx.conf <<EOF
+daemon    off;
+error_log ${workdir}/var/error.log;
+events {}
+http {
+  default_type application/octet-stream;
+  log_format main '\$remote_addr - \$remote_user [\$time_local]  \$status '
+                  '"\$request" \$body_bytes_sent "\$http_referer" '
+                  '"\$http_user_agent" "\$http_x_forwarded_for"';
+  access_log ${workdir}/var/access.log;
+  sendfile   on;
+  tcp_nopush on;
+
+  server {
+    listen ${PORT};
+    root   web2/htdocs;
+    location / {
+      proxy_pass              http://127.0.0.1:8180;
+      proxy_redirect          off;
+      proxy_set_header        Host            \$host;
+      proxy_set_header        X-Real-IP       \$remote_addr;
+      proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
+      client_max_body_size    10m;
+      client_body_buffer_size 128k;
+      proxy_connect_timeout   90;
+      proxy_send_timeout      90;
+      proxy_read_timeout      90;
+      proxy_buffers           32 4k;
+
+      add_header Strict-Transport-Security "max-age=63072000; preload";
+      add_header Content-Security-Policy   "default-src 'none' ; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; img-src 'self'; media-src 'self'; object-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; base-uri 'self'";
+      add_header X-Content-Type-Options    "nosniff";
+      add_header X-Frame-Options           "DENY";
+      add_header X-XSS-Protection          "1; mode=block";
+      add_header Referrer-Policy           "same-origin";
+
+      if (\$request_uri ~* "^/(v2|init.js)") {
+        expires -1;
+      }
+      if (\$request_uri ~* ".(ico|css|js|gif|jpe?g|png|svg)$") {
+        expires 30d;
+        access_log off;
+        add_header Pragma public;
+        add_header Cache-Control "public";
+        break;
+      }
+    }
+  }
+}
+EOF
+  while true; do
+    echo ">> Spinning up an nginx reverse proxy."
+    nginx -c ${workdir}/etc/nginx.conf -T
+    nginx -c ${workdir}/etc/nginx.conf
+    echo
+    echo "nginx exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
+  ;;
 (vault)
   mkdir -p ${workdir}/var/vault
   cat >${workdir}/etc/vault.conf <<EOF
@@ -148,8 +205,8 @@ EOF
 
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
-listen_addr:   ${ADDR}
-database:      ${DATABASE}
+listen_addr:   127.0.0.1:8180
+database:      ${workdir}/var/shield.db
 private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
@@ -223,11 +280,11 @@ auth:
 
 EOF
 
-  echo ">> Setting up SHIELD schema"
-  ./shield-schema -d "${DATABASE}"
-  echo
-
   while true; do
+    echo ">> Setting up SHIELD schema"
+    ./shield-schema -d ${workdir}/var/shield.db
+    echo
+
     echo ">> RUNNING SHIELDD"
     trap ":" INT # ignore Ctrl-C
     ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
@@ -243,16 +300,16 @@ EOF
   ;;
 
 (shieldagent)
-  shield_up="1"
-  while [ $shield_up -eq 1 ]; do
+  PORT=$2
+  echo "waiting for SHIELD Core to spin up on http://127.0.0.1:${PORT}..."
+  while ! curl -Ls http://127.0.0.1:${PORT}/v2/info 2>/dev/null | grep -q TESTDEV; do
       sleep 1
-      shield_up=`nc -z 127.0.0.1 8181; echo $?`
   done
 
   ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
   rm ${workdir}/var/shield-agent_key.pub
 
-  `curl -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
+  `curl -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://127.0.0.1:${PORT}/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
   cat >${workdir}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${workdir}/var/authorized_keys
@@ -263,7 +320,7 @@ plugin_paths:
 
 name: bond-james-bond
 registration:
-  url: http://localhost:8181
+  url: http://localhost:${PORT}
   interval: 15
 EOF
 
@@ -282,19 +339,21 @@ EOF
   done
   ;;
 ("")
+  setup_workdir
   preflight >&2
-  tmux new-session \; set-option update-environment ' SHIELD_API' \; \
-       new-window -n vault ./bin/testdev vault ${workdir} \; \
-       new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
-       new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ${SHIELD_ENV}; read JUNK" \; \
+  tmux new-session \; set-option update-environment ' PORT SHIELD_API' \; \
+       new-window -n nginx ./bin/testdev nginx ${PORT} \; \
+       new-window -n vault ./bin/testdev vault \; \
+       new-window -n daemon ./bin/testdev shieldd \; \
+       new-window -n agent ./bin/testdev shieldagent ${PORT} \; \
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup; read JUNK" \; \
        new-window -n db sqlite3 ${workdir}/var/shield.db \;
   ;;
 
 (*)
   echo >&2 "USAGE: $0 [ACTION]"
   echo >&2 ""
-  echo >&2 "Run components of a test/dev shield setup, on http://${ADDR}"
+  echo >&2 "Run components of a test/dev shield setup, on http://127.0.0.1:${PORT}"
   echo >&2 ""
   echo >&2 "Actions:"
   echo >&2 "  shieldd     Run SHIELD core daemon"
