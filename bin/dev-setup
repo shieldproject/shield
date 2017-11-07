@@ -11,14 +11,12 @@ buckler() { ../buckler "$@"; }
 indent2() { sed -e 's/^/  /'; }
 indent4() { sed -e 's/^/    /'; }
 
-targetdir=$1
-storedir=$2
+targetdir=tmp/work
+storedir=tmp/store
 
-echo "waiting for shield to spin up..."
-shield_up="1"
-while [ $shield_up -eq 1 ]; do
+echo "waiting for SHIELD Core to spin up on http://127.0.0.1:8180..."
+while ! curl -Ls --fail http://127.0.0.1:8180/v2/info 2>/dev/null | grep -q TESTDEV; do
   sleep 1
-  shield_up=`nc -z 127.0.0.1 8181; echo $?`
 done
 
 echo targetdir=$targetdir
@@ -32,8 +30,9 @@ export SHIELD_CORE=localdev
 export SHIELD_BATCH_MODE=y
 
 echo ; echo "Initializing this dev SHIELD core"
-buckler api localdev http://localhost:8181
+buckler api localdev http://localhost:8180
 SHIELD_CORE_MASTER="master-password-yo" buckler initialize || true
+echo ; echo "Logging in as the failsafe user"
 buckler login --username failsafe --password sekrit 2>&1 | indent2
 buckler id 2>&1 | indent2
 

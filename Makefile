@@ -99,4 +99,14 @@ release:
 	rm -f artifacts/*.tar.gz
 	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
 
-.PHONY: shield plugins dev
+
+JAVASCRIPTS := web2/src/js/jquery.js
+JAVASCRIPTS += web2/src/js/lib.js
+JAVASCRIPTS += web2/src/js/sticky-nav.js
+JAVASCRIPTS += web2/src/js/shield.js
+web2/htdocs/shield.js: $(JAVASCRIPTS)
+	cat $+ >$@
+
+web2: web2/htdocs/shield.js
+
+.PHONY: shield plugins dev web2
