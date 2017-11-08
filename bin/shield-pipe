@@ -128,6 +128,10 @@ case ${SHIELD_OP} in
 EOF
 
 	# PLUGIN inventory
+	EXECABLE="/111"
+	case $OSTYPE in
+	*darwin*) EXECABLE="+111"
+	esac
 	(IFS=:; for x in $SHIELD_PLUGINS_PATH; do
 	   say "checking for plugins in $x..."
 	   echo "\"plugins\": {"
@@ -139,7 +143,7 @@ EOF
 	       echo "$comma\"$name\":$output"
 	       comma=","
 	     fi
-	   done < <(find $x -maxdepth 1 -type f -perm +111 -print0)
+	   done < <(find $x -maxdepth 1 -type f -perm "$EXECABLE" -print0)
 	   echo "}"
 	 done)
 	echo "}"
