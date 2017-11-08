@@ -136,6 +136,12 @@
 			"revision": "d750ee8aff39bca4ccf0b362db4f04510145d678"
 		},
 		{
+			"checksumSHA1": "BIY45G2IVrTttD4Rlk9tHwiIOCM=",
+			"path": "github.com/go-sql-driver/mysql",
+			"revision": "3654d25ec346ee8ce71a68431025458d52a38ac0",
+			"revisionTime": "2016-06-02T00:10:21Z"
+		},
+		{
 			"checksumSHA1": "p/8vSviYF91gFflhrt5vkyksroo=",
 			"path": "github.com/golang/snappy",
 			"revision": "553a641470496b2327abcac10b36396bd98e45c9",
@@ -189,6 +195,12 @@
 			"comment": "sqlx-v1.1-71-gbdae0c3",
 			"path": "github.com/jmoiron/sqlx/reflectx",
 			"revision": "bdae0c3219c3bdb92f3d7c70825018712787c933"
+		},
+		{
+			"checksumSHA1": "Ncf0ItwKAuTF5eNkGW+Pk78pwzM=",
+			"path": "github.com/lib/pq",
+			"revision": "b269bd035a727d6c1081f76e7a239a1b00674c40",
+			"revisionTime": "2015-08-05T09:05:26Z"
 		},
 		{
 			"comment": "go1.0-cutoff-59-gb269bd0",
