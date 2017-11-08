@@ -62,6 +62,8 @@ func (c *Client) FindMyTenant(q string, fuzzy bool) (*Tenant, error) {
 			l = append(l, tenant)
 		} else if fuzzy && strings.Contains(strings.ToLower(tenant.Name), q) {
 			l = append(l, tenant)
+		} else if fuzzy && strings.HasPrefix(strings.ToLower(tenant.UUID), q) {
+			l = append(l, tenant)
 		}
 	}
 
