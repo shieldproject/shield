@@ -34,8 +34,10 @@ shield:
 	go $(BUILD_TYPE) ./cmd/buckler
 
 # Building the Shield CLI *only*
-shield-cli:
+shield-cli: buckler
 	go $(BUILD_TYPE) ./cmd/shield
+
+buckler: cmd/buckler/help.go
 	go $(BUILD_TYPE) ./cmd/buckler
 
 # Building Plugins
@@ -53,6 +55,12 @@ docs/API.md: docs/API.yml
 clean:
 	rm -f shieldd shield-agent shield-schema shield
 	rm -f $$(cat plugins) dummy
+
+
+# Assemble the CLI help with some assistance from our friend, Perl
+HELP := $(shell ls -1 cmd/buckler/help/*)
+cmd/buckler/help.go: $(HELP) cmd/buckler/help.pl
+	./cmd/buckler/help.pl $(HELP) > $@
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -109,4 +117,4 @@ web2/htdocs/shield.js: $(JAVASCRIPTS)
 
 web2: web2/htdocs/shield.js
 
-.PHONY: shield plugins dev web2
+.PHONY: shield plugins dev web2 buckler

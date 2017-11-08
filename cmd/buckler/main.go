@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sort"
 	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
@@ -32,6 +33,13 @@ var opts struct {
 	Exact  bool   `cli:"--exact"`
 	Fuzzy  bool   `cli:"--fuzzy"`
 	Tenant string `cli:"-t, --tenant" env:"SHIELD_TENANT"`
+
+	HelpCommand struct {} `cli:"help"`
+
+	Commands struct {
+		Full bool `cli:"--full"`
+		List bool `cli:"--list"`
+	} `cli:"commands"`
 
 	Curl struct{} `cli:"curl"`
 
@@ -281,7 +289,7 @@ var opts struct {
 		Password string `cli:"-p, --password"`
 		SysRole  string `cli:"--system-role"`
 	} `cli:"update-user"`
-
+	/* }}} */
 	/* SESSIONS {{{ */
 	Sessions struct {
 		Limit    int    `cli:"-l, --limit"`
@@ -321,14 +329,264 @@ func main() {
 
 		opts.Help = true
 	}
+	if command == "help" && len(args) == 0 {
+		opts.Help = true
+		command = ""
+	}
 
-	if opts.Help {
-		fmt.Printf("USAGE: buckler COMMAND [OPTIONS] [ARGUMENTS]\n")
+	if opts.Help && command == "" {
+		fmt.Printf("USAGE: @G{buckler} COMMAND [OPTIONS] [ARGUMENTS]\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Global options:}\n")
+		fmt.Printf("  -h, --help     Show this help screen.\n")
+		fmt.Printf("  -v, --version  Print the version and exit.\n")
+		fmt.Printf("\n")
+		fmt.Printf("      --config   An alternate client configuration file to use. (@W{$SHIELD_CLI_CONFIG})\n")
+		fmt.Printf("  -c, --core     Which SHIELD core to communicate with. (@W{$SHIELD_CORE})\n")
+		fmt.Printf("  -t, --tenant   Which SHIELD tenant to operate within. (@W{$SHIELD_TENANT})\n")
+		fmt.Printf("\n")
+		fmt.Printf("      --exact    Perform lookups against SHIELD data without using fuzzy matching.\n")
+		fmt.Printf("      --fuzzy    Perform lookups against SHIELD data using fuzzy matching.\n")
+		fmt.Printf("  -y, --yes      Answer all prompts affirmatively.\n")
+		fmt.Printf("  -b, --batch    Batch mode; no questions will be asked. (@W{$SHIELD_BATCH_MODE})\n")
+		fmt.Printf("      --no-batch\n")
+		fmt.Printf("\n")
+		fmt.Printf("  -q, --quiet    Suppress all output.\n")
+		fmt.Printf("      --json     Format output as JSON. (@W{$SHIELD_JSON_MODE})\n")
+		fmt.Printf("  -D, --debug    Enable debugging output. (@W{$SHIELD_DEBUG})\n")
+		fmt.Printf("  -T, --trace    Trace HTTP communication with the SHIELD core.  (@W{$SHIELD_TRACE})\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Environment variables:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Some global options can be specified by setting environment variables.\n")
+		fmt.Printf("  For example, the $SHIELD_CORE environment variable causes buckler to\n")
+		fmt.Printf("  behave as if the user called `buckler --core \"$SHIELD_CORE\"`.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Here are the environment variable / command-line flag correlations:\n")
+		fmt.Printf("\n")
+		fmt.Printf("    SHIELD_CLI_CONFIG=@C{/path/to/.shield}      --config @C{/path/to/.shield}\n")
+		fmt.Printf("    SHIELD_CORE=@C{prod-shield}                 --core @C{prod-shield}\n")
+		fmt.Printf("    SHIELD_TENANT=@C{infrastructure}            --tenant @C{infrastructure}\n")
+		fmt.Printf("    SHIELD_BATCH_MODE=@M{1}                     --batch\n")
+		fmt.Printf("    SHIELD_JSON_MODE=@M{y}                      --json\n")
+		fmt.Printf("    SHIELD_DEBUG=@M{1} SHIELD_TRACE=@M{yes}         --debug --trace\n")
+		fmt.Printf("\n")
+		fmt.Printf("For a list of common buckler commands, try `buckler commands`\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
 		os.Exit(0)
 	}
 
 	if opts.Version {
 		fmt.Printf("buckler v¯\\_(ツ)_/¯\n")
+		os.Exit(0)
+	}
+
+	if command == "help" {
+		command = args[0]
+		args = args[1:]
+		opts.Help = true
+	}
+
+	if command == "commands" { /* {{{ */
+		if opts.Help {
+			fmt.Printf("USAGE: @G{buckler} @C{commands} [--list] [group [group ...]]\n")
+			fmt.Printf("\n")
+			fmt.Printf("  Summarizes the things that buckler can do.\n")
+			fmt.Printf("\n")
+			fmt.Printf("  By default, all commands will be shown, grouped according to\n")
+			fmt.Printf("  their function.  For example, authentication-related commands\n")
+			fmt.Printf("  will be grouped together.\n")
+			fmt.Printf("\n")
+			fmt.Printf("  The @M{--list} argument countermands this behavior, listing all\n")
+			fmt.Printf("  commands, alphabetically, regardless of functional similarities.\n")
+			fmt.Printf("  Great for scripts and grepping!\n")
+			fmt.Printf("\n")
+			fmt.Printf("@B{Groups}\n")
+			fmt.Printf("\n")
+			fmt.Printf("  You can target your help query to a subset of functional groups\n")
+			fmt.Printf("  by naming those groups on the command-line.  This works regardless\n")
+			fmt.Printf("  of whether or not @M{--list} is in force.\n")
+			fmt.Printf("\n")
+			fmt.Printf("  Currently defined groups are:\n")
+			fmt.Printf("\n")
+			fmt.Printf("    @C{auth}       Authentication and SHIELD Endpoint management.\n")
+			fmt.Printf("    @C{misc}       Commands that don't really fit elsewhere...\n")
+			fmt.Printf("    @C{admin}      Administrative commands, for SHIELD site operators.\n")
+			fmt.Printf("    @C{tenants}    Tenant (and membership) management.\n")
+			fmt.Printf("    @C{targets}    Target Data System management.\n")
+			fmt.Printf("    @C{storage}    Cloud Storage management.\n")
+			fmt.Printf("    @C{policies}   Retenion Policy management.\n")
+			fmt.Printf("    @C{jobs}       Scheduled Backup Job management.\n")
+			fmt.Printf("    @C{archives}   Backup Archive (and restore!) management.\n")
+			fmt.Printf("    @C{tasks}      Task management.\n")
+			fmt.Printf("\n\n")
+			os.Exit(0)
+		}
+
+		set := make(map[string]bool)
+		for _, want := range args {
+			set[want] = true
+		}
+
+		first := true
+		blank := func () {
+			if !opts.Commands.List {
+				fmt.Printf("\n")
+			}
+		}
+		header := func (s string) {
+			if !opts.Commands.List {
+				if !first {
+					fmt.Printf("\n\n")
+				}
+				first = false
+				fmt.Printf("@G{%s:}\n\n", s)
+			}
+		}
+		show := func (ss ...string) bool {
+			if len(args) == 0 {
+				return true
+			}
+			for _, accept := range ss {
+				for _, have := range args {
+					if accept == have {
+						return true
+					}
+				}
+			}
+			return false
+		}
+
+		save := make([]string, 0)
+		printc := func (s string) {
+			if opts.Commands.List {
+				save = append(save, s)
+			} else {
+				fmt.Printf(s)
+			}
+		}
+
+		if show("misc", "miscellaneous") {
+			header("Miscellaneous")
+			printc("  commands                 Print this list of commands.\n")
+			printc("  curl                     Issue raw HTTP requests to the targeted SHIELD Core.\n")
+			printc("  status                   Show the status of the targeted SHIELD Core.\n")
+		}
+		if show("auth", "authentication") {
+			header("Authentication (auth)")
+			printc("  cores                    Print list of targeted SHIELD Cores.\n")
+			printc("  api                      Target a new SHIELD Core, saving it in the configuration.\n")
+			printc("  login                    Authenticate to the designated SHIELD Core.\n")
+			printc("  logout                   Sign out of the current authenticated session.\n")
+			printc("  id                       Display information about the current session.\n")
+			printc("  passwd                   Change your password.\n")
+			blank()
+			printc("  auth-tokens              List your personal authentication tokens.\n")
+			printc("  create-auth-token        Issue a new personal authentication token.\n")
+			printc("  revoke-auth-token        Revoke an issued authentication token\n")
+		}
+		if show("admin", "administration", "administrative") {
+			header("Administrative Tasks")
+			printc("  init                     Initialize a new SHIELD Core.\n")
+			printc("  unlock                   Unlock a SHIELD Core (i.e. after a reboot).\n")
+			printc("  rekey                    Change a SHIELD Core master (unlock) password.\n")
+			blank()
+			printc("  global-stores            List shared cloud storage systems.\n")
+			printc("  global-store             Display details for a single shared cloud storage system.\n")
+			printc("  create-global-store      Configure a new shared cloud storage system.\n")
+			printc("  update-global-store      Reconfigure a shared cloud storage system.\n")
+			printc("  delete-global-store      Decomission an unused shared cloud storage system.\n")
+			blank()
+			printc("  policy-templates         List retention policy templates.\n")
+			printc("  policy-template          Display details for a single retention policy template.\n")
+			printc("  create-policy-template   Configure a new retention policy template.\n")
+			printc("  update-policy-template   Reconfigure a retention policy template.\n")
+			printc("  delete-policy-template   Decomission an unused retention policy template.\n")
+			blank()
+			printc("  users                    List all of the local user accounts.\n")
+			printc("  user                     Display the details for a single local user account.\n")
+			printc("  create-user              Create a new local user account.\n")
+			printc("  update-user              Modify the account settings of a local user.\n")
+			printc("  delete-user              Delete a local user account.\n")
+			blank()
+			printc("  sessions                 List all authenticated sessions.\n")
+			printc("  session                  Display the details of a single session.\n")
+			printc("  delete-session           Revoke (forcibly de-authenticate) a session.\n")
+		}
+		if show("tenant", "tenants") {
+			header("Tenant Management")
+			printc("  tenants                  List all SHIELD Tenants.\n")
+			printc("  tenant                   Display the details for a single SHIELD Tenant.\n")
+			printc("  create-tenant            Create a new SHIELD Tenant.\n")
+			printc("  update-tenant            Update the metadata for a single tenant.\n")
+			blank()
+			printc("  invite                   Invite a local user to a SHIELD Tenant.\n")
+			printc("  banish                   Remove a local user from a SHIELD Tenant.\n")
+		}
+		if show("target", "targets") {
+			header("Target Data Systems")
+			printc("  targets                  List all target data systems.\n")
+			printc("  target                   Display the details for a single target data system.\n")
+			printc("  create-target            Configure a new target data system.\n")
+			printc("  update-target            Reconfigure a target data system.\n")
+			printc("  delete-target            Decomission an unused target data system.\n")
+		}
+		if show("store", "stores", "storage") {
+			header("Cloud Storage Systems")
+			printc("  stores                   List all cloud storage systems.\n")
+			printc("  store                    Display the details for a single cloud storage system.\n")
+			printc("  create-store             Configure a new cloud storage system.\n")
+			printc("  update-store             Reconfigure a cloud storage system.\n")
+			printc("  delete-store             Decomission an unused cloud storage system.\n")
+		}
+		if show("retention", "policies", "policy") {
+			header("Retention Policies")
+			printc("  policies                 List all retention policies.\n")
+			printc("  policy                   Display the details for a single retention policy.\n")
+			printc("  create-policy            Configure a new retention policy.\n")
+			printc("  update-policy            Reconfigure a retention policy.\n")
+			printc("  delete-policy            Decomission an unused retention policy.\n")
+		}
+		if show("job", "jobs") {
+			header("Scheduled Backup Jobs")
+			printc("  jobs                     List configured backup jobs.\n")
+			printc("  job                      Display the details for a single backup job.\n")
+			printc("  create-job               Configure a new backup job.\n")
+			printc("  update-job               Reconfigure a scheduled backup job.\n")
+			printc("  delete-job               Decomission a scheduled backup job.\n")
+			blank()
+			printc("  pause-job                Pause a backup job, so that it doesn't get scheduled.\n")
+			printc("  unpause-job              Unpause a backup job, so that it gets scheduled.\n")
+			printc("  run-job                  Schedule an ad hoc run of a backup job.\n")
+		}
+		if show("archive", "archives", "backup", "backups") {
+			header("Backup Data Archives")
+			printc("  archives                 List all backup archives (valid or otherwise).\n")
+			printc("  archive                  Display the details for a single backup archive.\n")
+			printc("  restore-archive          Restore a backup archive to its original target system, or a new one.\n")
+			printc("  purge-archive            Remove a backup archive from its cloud storage, and mark it invalid.\n")
+		}
+		if show("task", "tasks") {
+			header("Task Management")
+			printc("  tasks                    List all tasks, running or otherwise.\n")
+			printc("  task                     Display the details for a single task.\n")
+			printc("  cancel                   Cancel a running task.\n")
+		}
+		blank()
+		blank()
+
+		if opts.Commands.List {
+			sort.Strings(save)
+			for _, s := range save {
+				fmt.Printf(s)
+			}
+		}
+		return
+	}
+	/* }}} */
+	if opts.Help {
+		ShowHelp(command)
 		os.Exit(0)
 	}
 
@@ -1577,7 +1835,7 @@ func main() {
 		tbl.Output(os.Stdout)
 
 	/* }}} */
-	case "polic-templatey": /* {{{ */
+	case "policy-template": /* {{{ */
 		if len(args) != 1 {
 			fail(2, "Usage: buckler %s NAME-or-UUID\n", command)
 		}
@@ -2533,7 +2791,6 @@ func main() {
 		r.Output(os.Stdout)
 
 	/* }}} */
-
 	case "delete-session": /* {{{ */
 		if len(args) != 1 {
 			fail(2, "Usage: buckler %s UUID\n", command)
