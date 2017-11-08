@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 	"github.com/jhunt/go-cli"
@@ -365,17 +366,30 @@ func main() {
 
 		cacert := ""
 		if opts.API.CACertificate != "" {
-			/* try to parse it as a literal PEM */
-			/* check for the file on-disk if no interior newlines */
-			cacert = opts.API.CACertificate /* FIXME cheating */
+			if strings.Contains(opts.API.CACertificate, "\n") {
+				/* embedded newlines detected in option value;
+				   assume this is a literal PEM blob, perhaps provided via
+
+				     buckler api test https://shield.example.com \
+				        --ca-certificate "$(vault read secret/ca/certs)"
+				*/
+				cacert = opts.API.CACertificate
+			} else {
+				/* no embedded newlines in option value;
+				   check for the file on-disk if no interior newlines */
+				b, err := ioutil.ReadFile(opts.API.CACertificate)
+				bail(err)
+				cacert = string(b)
+			}
 		}
 
 		/* validate the SHIELD */
 		c := &shield.Client{
-			URL:     url,
-			Debug:   opts.Debug,
-			Trace:   opts.Trace,
-			Session: "",
+			URL:           url,
+			Debug:         opts.Debug,
+			Trace:         opts.Trace,
+			Session:       "",
+			CACertificate: cacert,
 		}
 		nfo, err := c.Info()
 		bail(err)
@@ -397,10 +411,11 @@ func main() {
 	bail(config.Select(opts.Core))
 
 	c := &shield.Client{
-		URL:     config.Current.URL,
-		Debug:   opts.Debug,
-		Trace:   opts.Trace,
-		Session: config.Current.Session,
+		URL:           config.Current.URL,
+		Debug:         opts.Debug,
+		Trace:         opts.Trace,
+		Session:       config.Current.Session,
+		CACertificate: config.Current.CACertificate,
 	}
 
 	switch command {
