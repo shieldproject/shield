@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
-
-	"github.com/starkandwayne/goutils/log"
 )
 
 const (
