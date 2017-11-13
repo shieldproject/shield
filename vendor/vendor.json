@@ -420,14 +420,6 @@
 			"revisionTime": "2017-07-14T08:24:55Z"
 		},
 		{
-			"path": "github.com/starkandwayne/goutils/log",
-			"revision": "a28afee5ab1f712454bee22cd403f512308e25e2"
-		},
-		{
-			"path": "github.com/starkandwayne/goutils/timestamp",
-			"revision": "a28afee5ab1f712454bee22cd403f512308e25e2"
-		},
-		{
 			"comment": "1.0.1-48-g84dd430",
 			"path": "github.com/starkandwayne/minio-go",
 			"revision": "84dd430f98ca7c34d673046dc7757bc828d3388b"
