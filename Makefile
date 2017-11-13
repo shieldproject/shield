@@ -33,7 +33,6 @@ shield: shield-cli
 
 # Building the Shield CLI *only*
 shield-cli: buckler
-	go $(BUILD_TYPE) ./cmd/shield
 
 buckler: cmd/buckler/help.go
 	go $(BUILD_TYPE) ./cmd/buckler
@@ -97,7 +96,7 @@ release:
 	  gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/$$plugin" ./plugin/$$plugin; \
 	done
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/cli/shield"                ./cmd/shield
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/cli/shield"                ./cmd/buckler
 
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
 	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
