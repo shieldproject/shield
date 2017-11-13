@@ -4,8 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
-	"strconv"
 	"sort"
+	"strconv"
 	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
@@ -34,7 +34,7 @@ var opts struct {
 	Fuzzy  bool   `cli:"--fuzzy"`
 	Tenant string `cli:"-t, --tenant" env:"SHIELD_TENANT"`
 
-	HelpCommand struct {} `cli:"help"`
+	HelpCommand struct{} `cli:"help"`
 
 	Commands struct {
 		Full bool `cli:"--full"`
@@ -430,12 +430,12 @@ func main() {
 		}
 
 		first := true
-		blank := func () {
+		blank := func() {
 			if !opts.Commands.List {
 				fmt.Printf("\n")
 			}
 		}
-		header := func (s string) {
+		header := func(s string) {
 			if !opts.Commands.List {
 				if !first {
 					fmt.Printf("\n\n")
@@ -444,7 +444,7 @@ func main() {
 				fmt.Printf("@G{%s:}\n\n", s)
 			}
 		}
-		show := func (ss ...string) bool {
+		show := func(ss ...string) bool {
 			if len(args) == 0 {
 				return true
 			}
@@ -459,7 +459,7 @@ func main() {
 		}
 
 		save := make([]string, 0)
-		printc := func (s string) {
+		printc := func(s string) {
 			if opts.Commands.List {
 				save = append(save, s)
 			} else {

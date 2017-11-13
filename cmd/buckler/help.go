@@ -5,7 +5,7 @@ import (
 )
 
 func ShowHelp(command string) {
-	switch (command) {
+	switch command {
 	case "api": /* {{{ */
 		fmt.Printf("USAGE: @G{buckler} api [OPTIONS] @Y{ALIAS} @Y{URL}\n")
 		fmt.Printf("\n")
@@ -191,7 +191,7 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
-	/* }}} */
+		/* }}} */
 
 	}
 }
