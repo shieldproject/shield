@@ -635,7 +635,7 @@
             document.location.href = '/';
             return
           }
-            
+
           if (xhr.status == 403) {
             $('#main').html(template('access-denied', { level: 'generic', need: 'elevated' }));
             return

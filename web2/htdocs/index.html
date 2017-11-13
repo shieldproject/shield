@@ -2157,6 +2157,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 quickly, and using your best practices for data retention.</p>
               </li>
 
+              [[ if ($global.auth.is.system.admin) { ]]
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
                 on other machines.  These agents register with the SHIELD Core, and provide
@@ -2168,16 +2169,22 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 are configured in the SHIELD Core configuration file, but you can review their
                 configuration here.</p>
               </li>
+              [[ } ]]
+
+              [[ if ($global.auth.is.system.manager) { ]]
               <li><a href="#!/admin/users">Local User Management</a>
                 <p>Local SHIELD user accounts can be set up to provide access to your SHIELD if
                 you do not want to use a 3rd party authentication provider.  Local users can be
                 granted system roles and be given roles on tenants.</p>
               </li>
+              [[ } ]]
+
               <li><a href="#!/admin/rekey">Rekey SHIELD Core</a>
                 <p>The SHIELD Core stores all of the archive encryption keys in a secure storage
                 vault, which is protected by the SHIELD <em>master password</em>.  If you need or
                 want to, you can rekey this SHIELD Core and pick a new master password.</p>
               </li>
+
               [[ if ($global.auth.is.system.admin) { ]]
               <li><a href="#!/admin/sessions">Manage User Sessions</a>
                 <p>Upon login, users are granted a session token to be used for the duration of 
@@ -2412,7 +2419,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       ]]
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+            [[ if ($global.auth.is.system.manager) { ]]
             <a class="new" href="#!/admin/users/new">Create a New Local User &raquo;</a>
+            [[ } }]
             <h2>Local User Management</h2>
             [[ if (_.users.length == 0) { ]]
             <div class="no-data">No local SHIELD users have been created yet.</div>
@@ -2442,7 +2451,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     </ul>
                     [[ } ]]
                   </td>
-                  <td><a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a></td>
+                  <td>
+                    [[ if ($global.auth.is.system.manager) { ]]
+                    <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a>
+                    [[ } ]]
+                  </td>
                 </tr>
                 [[ }); ]]
               </tbody>

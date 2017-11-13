@@ -129,8 +129,6 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/health", func(r *route.Request) { // {{{
-		//you must at least be on the tenant (which would make you at least an operator)
-		//to acces the health of said tenant
 		if core.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}

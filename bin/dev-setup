@@ -46,6 +46,13 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
             --password    admin \
             --system-role admin \
     2>&1 | indent4
+  echo ; echo "  - Setting up engineer account"
+  buckler create-user \
+            --name        Engineer \
+            --username    engineer \
+            --password    engineer \
+            --system-role engineer \
+    2>&1 | indent4
 
   echo ; echo "  - Logging in as admin:admin"
   buckler login --username admin --password admin 2>&1 | indent4
