@@ -2718,6 +2718,7 @@ function dispatch(page) {
 
         var payload = {
           name:     $form.find('[name=name]').val(),
+          sysrole:  $form.find('[name=sysrole]').val(),
           account:  $form.find('[name=account]').val(),
           password: $form.find('[name=password]').val()
         };
@@ -2741,6 +2742,45 @@ function dispatch(page) {
           }
         });
       });
+    break; // #!/admin/users/new
+    // }}}
+  case "#!/admin/users/edit": /* {{{ */
+    if (!$global.auth.is.system.manager) {
+      $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+      break;
+    }
+    api({
+      type: 'GET',
+      url:  '/v2/auth/local/users/'+args.uuid,
+      error: "Unable to retrieve user information from the SHIELD API.",
+      success: function (data) {
+        $('#main').html($(template('admin-users-edit', { user: data })))
+          .autofocus()
+          .on('submit', 'form', function (event) {
+            event.preventDefault();
+            var $form = $(event.target);
+
+            var payload = {
+              name:    $form.find('[name=name]').val(),
+              sysrole: $form.find('[name=sysrole]').val()
+            };
+
+            banner("Updating user...", "info");
+            api({
+              type: 'PATCH',
+              url:  '/v2/auth/local/users/'+args.uuid,
+              data: payload,
+              success: function (data) {
+                banner('User updated successfully.');
+                goto("#!/admin/users");
+              },
+              error: function (xhr) {
+                banner("Failed to update user", "error");
+              }
+            });
+          });
+      }
+    });
     break; // #!/admin/users/new
     // }}}
 

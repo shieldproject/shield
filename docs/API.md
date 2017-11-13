@@ -396,6 +396,7 @@ This endpoint takes no query string parameters.
 ```json
 {
   "user": {
+    "uuid"    : "447d6695-bb21-4490-81dc-4d6607f63c46",
     "name"    : "Your Full Name",
     "account" : "username",
     "backend" : "SHIELD",

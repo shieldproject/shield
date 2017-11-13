@@ -26,6 +26,7 @@ type authTenant struct {
 	Role string    `json:"role"`
 }
 type authUser struct {
+	UUID    string `json:"uuid"`
 	Name    string `json:"name"`
 	Account string `json:"account"`
 	Backend string `json:"backend"`
@@ -78,6 +79,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 
 	answer := authResponse{
 		User: authUser{
+			UUID:    user.UUID.String(),
 			Name:    user.Name,
 			Account: user.Account,
 			Backend: user.Backend,

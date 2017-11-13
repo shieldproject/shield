@@ -2420,11 +2420,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 <th>Username</th>
                 <th>System Role</th>
                 <th>Tenants</th>
+                <th></th>
               </tr></thead>
               <tbody>
                 [[ $.each(_.users, function (i, user) { ]]
                 <tr>
-                  <td><a href="#">[[= user.name ]]</a></td>
+                  <td><strong>[[= user.name ]]</strong></td>
                   <td>[[= user.account ]]</td>
                   <td>[[ if (user.sysrole == "") { ]]<span class="none">none</span>[[ } else { ]][[= user.sysrole ]][[ } ]]</td>
                   <td>
@@ -2438,6 +2439,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     </ul>
                     [[ } ]]
                   </td>
+                  <td><a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a></td>
                 </tr>
                 [[ }); ]]
               </tbody>
@@ -2511,6 +2513,45 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               </div>
 
               <button class="go">Create</button>
+            </form>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--admin-users-edit"><!-- {{{ -->
+      [[#
+        {admin-users-edit} template
+
+        Renders a form that administrators can use to edit existing local
+        SHIELD user accounts, specifying their passwords and system roles.
+      ]]
+          <div class="gutter blk" id="admin-users">
+            <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
+            <h2>Update SHIELD User [[= _.user.account ]]</h2>
+            <form>
+              <div class="ctl" data-field="name">
+                <label for="edit-user-name">Display Name</label>
+                <span class="errors">
+                  <span data-error="missing">Please provide a display name.</span>
+                </span>
+                <div class="widget">
+                  <input type="text" name="name" id="edit-user-name" value="[[= _.user.name ]]">
+                  <p class="help"></p>
+                </div>
+              </div>
+
+              <div class="ctl" data-field="sysrole">
+                <label for="edit-user-sysrole">System Role</label>
+                <div class="widget">
+                  <select name="sysrole" id="edit-user-sysrole"
+                    [[ if ($global.auth.user.uuid == _.user.uuid || (!$global.auth.is.system.admin && _.user.sysrole == "admin")) { ]] disabled[[ } ]]>
+                    <option value="">None</option>
+                    <option value="engineer"[[ if (_.user.sysrole == "engineer") { ]] selected[[ } ]]>Engineer</option>
+                    <option value="manager"[[ if (_.user.sysrole == "manager") { ]] selected[[ } ]]>Manager</option>
+                    <option value="admin"[[ if (_.user.sysrole == "admin") { ]] selected[[ } ]]>Administrator</option>
+                  </select>
+                </div>
+              </div>
+
+              <button class="go">Update</button>
             </form>
           </div>
     <!-- }}} --></script>
