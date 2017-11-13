@@ -626,6 +626,7 @@ function dispatch(page) {
       apis({
         base: '/v2/tenants/'+$global.auth.tenant.uuid,
         multiplex: {
+          agents:   { type: 'GET', url: '+/agents'   },
           targets:  { type: 'GET', url: '+/targets'  },
           stores:   { type: 'GET', url: '+/stores'   },
           policies: { type: 'GET', url: '+/policies' }
