@@ -668,7 +668,7 @@
             <div class="notes">[[ if (_.store.summary) { ]]
               [[= _.store.summary ]]
             [[ } else { ]]
-              <div class="no-data">No summary provided.  Too bad.</div>
+              <div class="no-data">No notes provided.  Too bad.</div>
             [[ } ]]</div>
             <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
               <div class="to">[[= _.store.plugin ]]</div>
@@ -728,7 +728,7 @@
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
-                <div class="no-data">No summary provided.  Too bad.</div>
+                <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
               <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
@@ -920,7 +920,7 @@
               <div class="notes">[[ if (_.target.summary) { ]]
                 [[= _.target.summary ]]
               [[ } else { ]]
-                <div class="no-data">No summary provided.  Too bad.</div>
+                <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
               <div class="graph">
                 <div class="to">[[= _.target.plugin ]]</div>
@@ -958,7 +958,7 @@
               <div class="notes">[[ if (_.store.summary) { ]]
                 [[= _.store.summary ]]
               [[ } else { ]]
-                <div class="no-data">No summary provided.  Too bad.</div>
+                <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
               <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
                 <div class="to">[[= _.store.plugin ]]</div>
@@ -989,11 +989,11 @@
             </div>
 
             <div class="ctl" data-field="summary">
-              <label for="target-name">Summary</label>
+              <label for="target-summary">Notes</label>
               <span class="errors">
               </span>
               <div class="widget">
-                <textarea id="target-summary" summary="summary" class="autofocus"></textarea>
+                <textarea id="target-summary" name="summary" class="autofocus"></textarea>
                 <p class="help">If you want, you can add a longer description.</p>
               </div>
             </div>
@@ -1165,7 +1165,7 @@
             </div>
 
             <div class="ctl" data-field="summary">
-              <label for="store-summary">Description</label>
+              <label for="store-summary">Notes</label>
               <div class="widget">
                 <textarea id="store-summary" name="summary"></textarea>
                 <p class="help">If you want, you can add a longer description.</p>
@@ -1215,7 +1215,7 @@
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
-                <div class="no-data">No summary provided.  Too bad.</div>
+                <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
               <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
@@ -1552,7 +1552,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
-                <div class="no-data">No summary provided.  Too bad.</div>
+                <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
               <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
@@ -1734,7 +1734,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </div>
 
               <div class="ctl" data-field="summary">
-                <label for="store-summary">Description</label>
+                <label for="store-summary">Notes</label>
                 <div class="widget">
                   <textarea id="store-summary" name="summary">[[= _.store ? _.store.summary : '' ]]</textarea>
                   <p class="help">If you want, you can add a longer description.</p>
