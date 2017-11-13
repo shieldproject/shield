@@ -30,5 +30,7 @@ import (
 func ShowHelp(command string) {
 	switch (command) {
 __CASES__
+	default:
+		fmt.Printf("No help is available for `@G{buckler} @R{%s}` yet.\n\n", command)
 	}
 }
