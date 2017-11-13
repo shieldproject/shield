@@ -5,7 +5,7 @@ import (
 )
 
 func ShowHelp(command string) {
-	switch (command) {
+	switch command {
 	case "api": /* {{{ */
 		fmt.Printf("USAGE: @G{buckler} api [OPTIONS] @Y{ALIAS} @Y{URL}\n")
 		fmt.Printf("\n")
@@ -34,6 +34,44 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "auth-tokens": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} auth-tokens\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Lists all issues authentication tokens.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  SHIELD users can issue @W{authentication tokens}, which can be\n")
+		fmt.Printf("  used in scripts and other automatons to represent the issuing\n")
+		fmt.Printf("  account, and all of their privileges within the system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  If you are authenticated to a SHIELD Core, you can run this\n")
+		fmt.Printf("  command to view the metadata, including names and creation / last\n")
+		fmt.Printf("  used timestamps, of your issued authentication tokens.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "banish": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} banish --tenant @Y{TENANT} @Y{USER}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Banish a local user from a SHIELD Tenant.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
+		fmt.Printf("  set of cloud storage configurations, retention policies, data systems,\n")
+		fmt.Printf("  and backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Once banished, a user will be unable to interact with that tenant until\n")
+		fmt.Printf("  they are extended another invitation, perhaps under a different role.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers},\n")
+		fmt.Printf("        and @R{SHIELD Tenant Managers}.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  This command only operates on one (user,tenant) pairing at a time.\n")
+		fmt.Printf("  For bulk operations, either avail yourself of the SHIELD API, or run\n")
+		fmt.Printf("  the command multiple times.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "cores": /* {{{ */
 		fmt.Printf("USAGE: @G{buckler} cores\n")
 		fmt.Printf("\n")
@@ -42,6 +80,39 @@ func ShowHelp(command string) {
 		fmt.Printf("  Consults your @M{$SHIELD_CONFIG} (or, if given, @M{--config}), and\n")
 		fmt.Printf("  prints out pertinent information about each targeted core.\n")
 		fmt.Printf("  This includes the URL, the alias, and any security parameters.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "create-auth-token": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} create-auth-token\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Issue a new authentication token, for the current user.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  SHIELD users can issue @W{authentication tokens}, which can be\n")
+		fmt.Printf("  used in scripts and other automatons to represent the issuing\n")
+		fmt.Printf("  account, and all of their privileges within the system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  This command contacts your currently targeted SHIELD Core, and\n")
+		fmt.Printf("  asks it to issue a new token for authentication.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "create-tenant": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} create-tenant [--name @Y{NAME}]\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Create a new SHIELD Tenant.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
+		fmt.Printf("  set of cloud storage configurations, retention policies, data systems,\n")
+		fmt.Printf("  and backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --name         The name to assign this new tenant.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -96,6 +167,49 @@ func ShowHelp(command string) {
 		fmt.Printf("  For interactive use, not specifying @M{--master} causes buckler\n")
 		fmt.Printf("  to prompt you for a new master password, with appropriate\n")
 		fmt.Printf("  security precautions (no terminal echo, confirmation, etc.)\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "invite": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Invite a local user into a SHIELD Tenant.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
+		fmt.Printf("  set of cloud storage configurations, retention policies, data systems,\n")
+		fmt.Printf("  and backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Local users (accounts defined wholly within SHIELD itself) can be\n")
+		fmt.Printf("  arbitrarily assigned to those tenants, and given one of three roles:\n")
+		fmt.Printf("\n")
+		fmt.Printf("    @M{manager}   Complete access to the tenant, including the ability\n")
+		fmt.Printf("                  to invite new users and banish existing users.\n")
+		fmt.Printf("\n")
+		fmt.Printf("    @M{engineer}  Full control of the configuration of SHIELD within the\n")
+		fmt.Printf("                  tenant.  Engineers have the ability to reconfigure\n")
+		fmt.Printf("                  retention policies, cloud storage, data systems, and\n")
+		fmt.Printf("                  backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("    @M{operator}  Day-to-day backup-related activities including running\n")
+		fmt.Printf("                  ad hoc backup jobs, performing restores, pausing and\n")
+		fmt.Printf("                  unpausing jobs, etc.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each more powerful role includes the rights of the roles beneath.\n")
+		fmt.Printf("  For example, a @M{manager} can do everything an @M{engineer} can do,\n")
+		fmt.Printf("  and an @M{engineer} can do everything an @M{operator} can do.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers},\n")
+		fmt.Printf("        and @R{SHIELD Tenant Managers}.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  This command only operates on one (user,tenant) pairing at a time.\n")
+		fmt.Printf("  For bulk operations, either avail yourself of the SHIELD API, or run\n")
+		fmt.Printf("  the command multiple times.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  -r, --role     The role to assign the new user.  Must be one of\n")
+		fmt.Printf("                 @M{manager}, @M{engineer}, or @M{operator}.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -167,6 +281,55 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "revoke-auth-token": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} create-auth-token\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Revoke an issued authentication token.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  SHIELD users can issue @W{authentication tokens}, which can be\n")
+		fmt.Printf("  used in scripts and other automatons to represent the issuing\n")
+		fmt.Printf("  account, and all of their privileges within the system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  This command contacts your currently targeted SHIELD Core, and\n")
+		fmt.Printf("  asks it to revoke a specific authentication token.  Once revoked,\n")
+		fmt.Printf("  that token will no longer be usable to authentication to SHIELD.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "tenant": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} tenant [--members] @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Show Information for a single SHIELD Tenant.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
+		fmt.Printf("  set of cloud storage configurations, retention policies, data systems,\n")
+		fmt.Printf("  and backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --members      List all users who have been granted access to this\n")
+		fmt.Printf("                 Tenant, and identify their role within.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "tenants": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} tenants\n")
+		fmt.Printf("\n")
+		fmt.Printf("  List defined SHIELD Tenants.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
+		fmt.Printf("  set of cloud storage configurations, retention policies, data systems,\n")
+		fmt.Printf("  and backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "unlock": /* {{{ */
 		fmt.Printf("USAGE: @G{buckler} unlock [--master @Y{PASSWORD}]\n")
 		fmt.Printf("\n")
@@ -188,6 +351,24 @@ func ShowHelp(command string) {
 		fmt.Printf("  For interactive use, not specifying @M{--master} causes buckler\n")
 		fmt.Printf("  to prompt you for the master password, with appropriate\n")
 		fmt.Printf("  security precautions (no terminal echo)\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "update-tenant": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} update-tenant [--name @Y{NAME}] @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Update an existing SHIELD Tenant.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
+		fmt.Printf("  set of cloud storage configurations, retention policies, data systems,\n")
+		fmt.Printf("  and backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --name         The name to assign this tenant, effectively renaming it.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 

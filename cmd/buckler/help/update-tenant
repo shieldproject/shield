@@ -1,0 +1,14 @@
+USAGE: @G{buckler} update-tenant [--name @Y{NAME}] @Y{NAME-OR-UUID}
+
+  Update an existing SHIELD Tenant.
+
+  Each SHIELD Core defines one or more tenants, each with their own
+  set of cloud storage configurations, retention policies, data systems,
+  and backup jobs.
+
+  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.
+
+@B{Options:}
+
+  --name         The name to assign this tenant, effectively renaming it.
+

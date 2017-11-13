@@ -34,6 +34,7 @@
 
 # ignore release testing output
 /artifacts
+/help.all
 
 # ignore the coverage reports
 /coverage

@@ -36,6 +36,8 @@ shield-cli: buckler
 
 buckler: cmd/buckler/help.go
 	go $(BUILD_TYPE) ./cmd/buckler
+help.all: cmd/buckler/main.go
+	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./buckler @ -h > $@
 
 # Building Plugins
 plugin: plugins
