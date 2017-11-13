@@ -2458,7 +2458,16 @@ func main() {
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
 		tbl := tui.NewTable("UUID", "Type", "Status", "Owner", "Started at", "Completed at")
 		for _, task := range tasks {
-			tbl.Row(task, task.UUID, task.Type, task.Status, task.Owner, task.StartedAt, task.StoppedAt)
+			started := "(pending)"
+			stopped := "(not yet started)"
+			if task.StartedAt != 0 {
+				stopped = "(running)"
+				started = strftime(task.StartedAt)
+			}
+			if task.StoppedAt != 0 {
+				stopped = strftime(task.StoppedAt)
+			}
+			tbl.Row(task, task.UUID, task.Type, task.Status, task.Owner, started, stopped)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2489,12 +2498,12 @@ func main() {
 
 		started := "(pending)"
 		stopped := "(not yet started)"
-		if task.StartedAt != "" {
+		if task.StartedAt != 0 {
 			stopped = "(running)"
-			started = task.StartedAt
+			started = strftime(task.StartedAt)
 		}
-		if task.StoppedAt != "" {
-			stopped = task.StoppedAt
+		if task.StoppedAt != 0 {
+			stopped = strftime(task.StoppedAt)
 		}
 		r.Add("Started at", started)
 		r.Add("Stopped at", stopped)
@@ -2533,12 +2542,12 @@ func main() {
 
 		started := "(pending)"
 		stopped := "(not yet started)"
-		if task.StartedAt != "" {
+		if task.StartedAt != 0 {
 			stopped = "(running)"
-			started = task.StartedAt
+			started = strftime(task.StartedAt)
 		}
-		if task.StoppedAt != "" {
-			stopped = task.StoppedAt
+		if task.StoppedAt != 0 {
+			stopped = strftime(task.StoppedAt)
 		}
 		r.Add("Started at", started)
 		r.Add("Stopped at", stopped)
@@ -2552,7 +2561,7 @@ func main() {
 		}
 		r.Output(os.Stdout)
 
-		if task.StoppedAt != "" {
+		if task.StoppedAt != 0 {
 			fail(1, "This task cannot be cancelled, as it has already completed.\n")
 		}
 		if !confirm(opts.Yes, "Cancel this task?") {

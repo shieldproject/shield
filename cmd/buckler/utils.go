@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"strings"
+	"time"
 
 	fmt "github.com/jhunt/go-ansi"
 	"github.com/mattn/go-isatty"
@@ -104,4 +105,12 @@ func dataConfig(data []string) (map[string]interface{}, error) {
 		conf[p[0]] = p[1]
 	}
 	return conf, nil
+}
+
+func strftime(t int64) string {
+	f := os.Getenv("SHIELD_DATE_FORMAT")
+	if f == "" {
+		f = "2006-01-02 15:04:05-0700"
+	}
+	return time.Unix(t, 0).Format(f)
 }

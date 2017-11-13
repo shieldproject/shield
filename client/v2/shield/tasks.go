@@ -11,8 +11,8 @@ type Task struct {
 	Type        string `json:"type"`
 	Status      string `json:"status"`
 	Owner       string `json:"owner"`
-	StartedAt   string `json:"started_at"`
-	StoppedAt   string `json:"stopped_at"`
+	StartedAt   int64  `json:"started_at"`
+	StoppedAt   int64  `json:"stopped_at"`
 	Log         string `json:"log"`
 	OK          bool   `json:"ok"`
 	Notes       string `json:"notes"`

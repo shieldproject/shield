@@ -16,7 +16,7 @@ type Job struct {
 	Paused     bool   `json:"paused"`
 	Agent      string `json:"agent"`
 	LastStatus string `json:"status"`
-	LastRun    string `json:"last_run"`
+	LastRun    int64  `json:"last_run"`
 
 	TargetUUID string `json:"-"`
 	Target     struct {
