@@ -2351,7 +2351,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.OK("Archive deleted successfully")
+		r.Success("Archive deleted successfully")
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/archives/:uuid/restore", func(r *route.Request) { // {{{
