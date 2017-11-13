@@ -143,9 +143,12 @@ http {
       add_header X-XSS-Protection          "1; mode=block";
       add_header Referrer-Policy           "same-origin";
 
-      if (\$request_uri ~* "^/(v2|init.js)") {
-        expires -1;
+      location /init.js {
+        add_header Content-Type text/javascript;
+        proxy_pass http://127.0.0.1:8180;
+        expires    -1;
       }
+
       if (\$request_uri ~* ".(ico|css|js|gif|jpe?g|png|svg)$") {
         expires 30d;
         access_log off;
