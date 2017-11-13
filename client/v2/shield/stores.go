@@ -13,6 +13,7 @@ type Store struct {
 	Summary string `json:"summary"`
 	Plugin  string `json:"plugin"`
 	Agent   string `json:"agent"`
+	Healthy bool   `json:"healthy"`
 
 	Config map[string]interface{} `json:"config"`
 }

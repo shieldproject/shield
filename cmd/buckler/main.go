@@ -1329,9 +1329,13 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration")
+		tbl := tui.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
 		for _, store := range stores {
-			tbl.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Agent, asJSON(store.Config))
+			health := fmt.Sprintf("@G{yes}")
+			if !store.Healthy {
+				health = fmt.Sprintf("@R{no}")
+			}
+			tbl.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Agent, asJSON(store.Config), health)
 		}
 		tbl.Output(os.Stdout)
 
@@ -1353,9 +1357,15 @@ func main() {
 			break
 		}
 
+		health := fmt.Sprintf("@G{yes}")
+		if !store.Healthy {
+			health = fmt.Sprintf("@R{no}")
+		}
+
 		r := tui.NewReport()
 		r.Add("UUID", store.UUID)
 		r.Add("Name", store.Name)
+		r.Add("Healthy?", health)
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
@@ -1514,9 +1524,13 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration")
+		tbl := tui.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
 		for _, store := range stores {
-			tbl.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Agent, asJSON(store.Config))
+			health := fmt.Sprintf("@G{yes}")
+			if !store.Healthy {
+				health = fmt.Sprintf("@R{no}")
+			}
+			tbl.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Agent, asJSON(store.Config), health)
 		}
 		tbl.Output(os.Stdout)
 
@@ -1534,9 +1548,15 @@ func main() {
 			break
 		}
 
+		health := fmt.Sprintf("@G{yes}")
+		if !store.Healthy {
+			health = fmt.Sprintf("@R{no}")
+		}
+
 		r := tui.NewReport()
 		r.Add("UUID", store.UUID)
 		r.Add("Name", store.Name)
+		r.Add("Healthy?", health)
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
