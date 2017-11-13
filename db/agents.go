@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	. "github.com/starkandwayne/goutils/timestamp"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -18,7 +17,7 @@ type Agent struct {
 	Address    string    `json:"address"`
 	Version    string    `json:"version"`
 	Hidden     bool      `json:"hidden"`
-	LastSeenAt Timestamp `json:"last_seen_at"`
+	LastSeenAt int64     `json:"last_seen_at"`
 	LastError  string    `json:"last_error"`
 	Status     string    `json:"status"`
 	Metadata   string    `json:"-"`
@@ -81,22 +80,16 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 	for r.Next() {
 		agent := &Agent{}
 
-		var lastSeenAt *int64
-		var hidden *bool
+		var last *int64
 		var this NullUUID
 		if err = r.Scan(
 			&this, &agent.Name, &agent.Address, &agent.Version,
-			&hidden, &lastSeenAt, &agent.Status,
-			&agent.Metadata); err != nil {
-
+			&agent.Hidden, &last, &agent.Status, &agent.Metadata); err != nil {
 			return l, err
 		}
 		agent.UUID = this.UUID
-		if lastSeenAt != nil {
-			agent.LastSeenAt = parseEpochTime(*lastSeenAt)
-		}
-		if hidden != nil {
-			agent.Hidden = *hidden
+		if last != nil {
+			agent.LastSeenAt = *last
 		}
 
 		l = append(l, agent)
@@ -125,20 +118,18 @@ func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
 
 	agent := &Agent{}
 
-	var lastSeenAt *int64
-	var hidden *bool
+	var last *int64
 	var this NullUUID
-
 	if err = r.Scan(
 		&this, &agent.Name, &agent.Address, &agent.Version,
-		&hidden, &lastSeenAt, &agent.LastError, &agent.Status,
+		&agent.Hidden, &last, &agent.LastError, &agent.Status,
 		&agent.Metadata); err != nil {
 
 		return nil, err
 	}
 	agent.UUID = this.UUID
-	if lastSeenAt != nil {
-		agent.LastSeenAt = parseEpochTime(*lastSeenAt)
+	if last != nil {
+		agent.LastSeenAt = *last
 	}
 
 	return agent, nil

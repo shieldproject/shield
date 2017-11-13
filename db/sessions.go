@@ -7,20 +7,19 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/timestamp"
 )
 
 type Session struct {
-	UUID           uuid.UUID            `json:"uuid"`
-	UserUUID       uuid.UUID            `json:"user_uuid"`
-	CreatedAt      timestamp.Timestamp  `json:"created_at"`
-	LastSeen       *timestamp.Timestamp `json:"last_seen_at"`
-	Token          uuid.UUID            `json:"token_uuid"`
-	Name           string               `json:"name"`
-	IP             string               `json:"ip_addr"`
-	UserAgent      string               `json:"user_agent"`
-	UserAccount    string               `json:"user_account"`
-	CurrentSession bool                 `json:"current_session"`
+	UUID           uuid.UUID `json:"uuid"`
+	UserUUID       uuid.UUID `json:"user_uuid"`
+	CreatedAt      int64     `json:"created_at"`
+	LastSeen       int64     `json:"last_seen_at"`
+	Token          uuid.UUID `json:"token_uuid"`
+	Name           string    `json:"name"`
+	IP             string    `json:"ip_addr"`
+	UserAgent      string    `json:"user_agent"`
+	UserAccount    string    `json:"user_account"`
+	CurrentSession bool      `json:"current_session"`
 }
 
 type SessionFilter struct {
@@ -95,23 +94,17 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 
 	for r.Next() {
 		var (
-			this, user, token  NullUUID
-			created, last_seen *int64
-			backend            string
+			this, user, token NullUUID
+			backend           string
 		)
 		s := &Session{}
-		if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
+		if err := r.Scan(&this, &user, &s.CreatedAt, &s.LastSeen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 			return nil, err
 		}
 
-		if last_seen != nil {
-			ts := parseEpochTime(*last_seen)
-			s.LastSeen = &ts
-		}
 		s.UUID = this.UUID
 		s.Token = token.UUID
 		s.UserUUID = user.UUID
-		s.CreatedAt = parseEpochTime(*created)
 		s.UserAccount = s.UserAccount + "@" + backend
 
 		l = append(l, s)
@@ -136,23 +129,16 @@ func (db *DB) GetSession(id string) (*Session, error) {
 	}
 
 	var (
-		this, user, token  NullUUID
-		created, last_seen *int64
-		backend            string
+		this, user, token NullUUID
+		backend           string
 	)
 	s := &Session{}
-	if err := r.Scan(&this, &user, &created, &last_seen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
+	if err := r.Scan(&this, &user, &s.CreatedAt, &s.LastSeen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 		return nil, err
-	}
-
-	if last_seen != nil {
-		ts := parseEpochTime(*last_seen)
-		s.LastSeen = &ts
 	}
 	s.UUID = this.UUID
 	s.Token = token.UUID
 	s.UserUUID = user.UUID
-	s.CreatedAt = parseEpochTime(*created)
 	s.UserAccount = s.UserAccount + "@" + backend
 
 	return s, nil
@@ -219,4 +205,8 @@ func (db *DB) PokeSession(session *Session) error {
 
 func stripIP(raw_ip string) string {
 	return regexp.MustCompile(":[^:]+$").ReplaceAllString(raw_ip, "")
+}
+
+func (s *Session) Expired(lifetime int) bool {
+	return time.Now().Unix() > s.LastSeen+(int64)(lifetime*3600)
 }

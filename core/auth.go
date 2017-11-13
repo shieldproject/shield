@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
@@ -241,7 +240,7 @@ func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 	session.IP = r.Req.RemoteAddr
 	session.UserAgent = r.Req.UserAgent()
 
-	if time.Now().After(session.LastSeen.Time().Add(time.Duration(core.sessionTimeout) * time.Hour)) {
+	if session.Expired(core.sessionTimeout) {
 		core.DB.ClearSession(session.UUID.String())
 		return nil, nil
 	}

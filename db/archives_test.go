@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/starkandwayne/goutils/timestamp"
 	. "github.com/starkandwayne/shield/db"
 )
 
@@ -144,8 +143,8 @@ var _ = Describe("Archive Management", func() {
 					UUID:           ARCHIVE_UUID,
 					TenantUUID:     TENANT_UUID,
 					StoreKey:       "key",
-					TakenAt:        NewTimestamp(time.Unix(0, 0).UTC()),
-					ExpiresAt:      NewTimestamp(time.Unix(0, 0).UTC()),
+					TakenAt:        0,
+					ExpiresAt:      0,
 					Notes:          "my_notes",
 					Status:         "valid",
 					PurgeReason:    "",
@@ -342,7 +341,7 @@ var _ = Describe("Archive Management", func() {
 				for _, archive := range archives {
 					Expect(archive.UUID).ShouldNot(Equal(UNEXPIRED_ARCHIVE), "does not return the unexpired archive")
 					Expect(archive.UUID).ShouldNot(Equal(UNEXPIRED_ARCHIVE2), "does not return the expired but not 'valid' archive")
-					Expect(archive.ExpiresAt.Time()).Should(BeTemporally("<", time.Now()), "does not return archives that have not expired yet")
+					Expect(archive.ExpiresAt).Should(BeNumerically("<", time.Now().Unix()), "does not return archives that have not expired yet")
 					Expect(archive.Status).Should(Equal("valid"), "does not return archives that aren't valid")
 				}
 				Expect(len(archives)).Should(Equal(expectedArchiveCount), "returns the correct number of archives")

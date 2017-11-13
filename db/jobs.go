@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	. "github.com/starkandwayne/goutils/timestamp"
 
 	"github.com/starkandwayne/shield/timespec"
 )
@@ -52,12 +51,12 @@ type Job struct {
 		Summary string    `json:"summary"`
 	} `json:"policy"`
 
-	Agent          string    `json:"agent"`
-	LastRun        Timestamp `json:"last_run"`
-	LastTaskStatus string    `json:"last_task_status"`
+	Agent          string `json:"agent"`
+	LastRun        int64  `json:"last_run"`
+	LastTaskStatus string `json:"last_task_status"`
 
 	Spec    *timespec.Spec `json:"-"`
-	NextRun time.Time      `json:"-"`
+	NextRun int64          `json:"-"`
 }
 
 func (j Job) Healthy() bool {
@@ -165,8 +164,8 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	for r.Next() {
 		j := &Job{}
 		var (
+			last                                *int64
 			this, policy, store, target, tenant NullUUID
-			last_run                            *int64
 			last_task_status                    sql.NullString
 		)
 		if err = r.Scan(
@@ -174,7 +173,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
 			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
 			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
-			&j.Agent, &last_run, &last_task_status); err != nil {
+			&j.Agent, &last, &last_task_status); err != nil {
 			return l, err
 		}
 		j.UUID = this.UUID
@@ -182,14 +181,11 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		j.Store.UUID = store.UUID
 		j.Target.UUID = target.UUID
 		j.TenantUUID = tenant.UUID
-		if last_run != nil {
-			j.LastRun = parseEpochTime(*last_run)
-			if last_task_status.Valid {
-				j.LastTaskStatus = last_task_status.String
-			}
-		} else {
-			j.LastRun = Timestamp{}
+		if last == nil {
+			j.LastRun = 0
 			j.LastTaskStatus = "pending"
+		} else {
+			j.LastRun = *last
 		}
 
 		l = append(l, j)
@@ -302,23 +298,26 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 	)
 }
 
-func (db *DB) RescheduleJob(j *Job, next time.Time) error {
-	return db.Exec(
-		`UPDATE jobs SET next_run = ? WHERE uuid = ?`,
-		next.Unix(), j.UUID.String())
+func (db *DB) RescheduleJob(j *Job, t time.Time) error {
+	return db.Exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID.String())
 }
 
-func (j *Job) Reschedule() (err error) {
+func (j *Job) Reschedule() error {
+	var err error
 	if j.Spec == nil {
 		j.Spec, err = timespec.Parse(j.Schedule)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	j.NextRun, err = j.Spec.Next(time.Now())
-	return
+	next, err := j.Spec.Next(time.Now())
+	if err != nil {
+		return err
+	}
+	j.NextRun = next.Unix()
+	return nil
 }
 
 func (j *Job) Runnable() bool {
-	return j.Paused == false && !j.NextRun.After(time.Now())
+	return j.Paused == false && j.NextRun <= time.Now().Unix()
 }

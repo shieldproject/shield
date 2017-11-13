@@ -296,25 +296,12 @@ func (core *Core) v1JobsStatus(w http.ResponseWriter, req *http.Request) {
 
 	health := make(map[string]v1jobhealth)
 	for _, j := range jobs {
-		var next, last int64
-		if j.LastRun.Time().IsZero() {
-			last = 0
-		} else {
-			last = j.LastRun.Time().Unix()
-		}
-
 		j.Reschedule() /* not really, just enough to get NextRun */
-		if j.Paused || j.NextRun.IsZero() {
-			next = 0
-		} else {
-			next = j.NextRun.Unix()
-		}
-
 		health[j.Name] = v1jobhealth{
 			Name:    j.Name,
 			Paused:  j.Paused,
-			LastRun: last,
-			NextRun: next,
+			LastRun: j.LastRun,
+			NextRun: j.NextRun,
 			Status:  j.LastTaskStatus,
 		}
 	}

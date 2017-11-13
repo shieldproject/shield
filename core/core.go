@@ -11,7 +11,6 @@ import (
 
 	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/timestamp"
 
 	"github.com/starkandwayne/shield/crypter"
 	"github.com/starkandwayne/shield/db"
@@ -352,7 +351,7 @@ func (core *Core) runPending() {
 
 	for _, task := range l {
 		/* set up the deadline for execution */
-		task.TimeoutAt = timestamp.Now().Add(time.Duration(core.timeout))
+		task.TimeoutAt = time.Now().Unix() + (int64)(core.timeout)
 		log.Infof("schedule task %s with deadline %v", task.UUID, task.TimeoutAt)
 
 		/* mark the task as scheduled, so we don't pick it up again */

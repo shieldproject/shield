@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/starkandwayne/goutils/timestamp"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -362,8 +360,6 @@ var _ = Describe("Task Management", func() {
 				ArchiveUUID: nil,
 				Status:      PendingStatus,
 				RequestedAt: task.RequestedAt,
-				StartedAt:   timestamp.Timestamp{},
-				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
 				OK:          true,
 				Notes:       "",
@@ -382,8 +378,6 @@ var _ = Describe("Task Management", func() {
 				ArchiveUUID: SomeArchive.UUID,
 				RequestedAt: task.RequestedAt,
 				Status:      PendingStatus,
-				StartedAt:   timestamp.Timestamp{},
-				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
 				OK:          true,
 				Notes:       "",

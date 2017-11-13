@@ -6,15 +6,13 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-
-	. "github.com/starkandwayne/goutils/timestamp"
 )
 
 type Archive struct {
 	UUID           uuid.UUID `json:"uuid"`
 	StoreKey       string    `json:"key"`
-	TakenAt        Timestamp `json:"taken_at"`
-	ExpiresAt      Timestamp `json:"expires_at"`
+	TakenAt        int64     `json:"taken_at"`
+	ExpiresAt      int64     `json:"expires_at"`
 	Notes          string    `json:"notes"`
 	Status         string    `json:"status"`
 	PurgeReason    string    `json:"purge_reason"`
@@ -164,10 +162,10 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		ann.StoreUUID = store.UUID
 		ann.TenantUUID = tenant.UUID
 		if takenAt != nil {
-			ann.TakenAt = parseEpochTime(*takenAt)
+			ann.TakenAt = *takenAt
 		}
 		if expiresAt != nil {
-			ann.ExpiresAt = parseEpochTime(*expiresAt)
+			ann.ExpiresAt = *expiresAt
 		}
 		if targetName != nil {
 			ann.TargetName = *targetName
@@ -226,10 +224,10 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	ann.StoreUUID = store.UUID
 	ann.TenantUUID = tenant.UUID
 	if takenAt != nil {
-		ann.TakenAt = parseEpochTime(*takenAt)
+		ann.TakenAt = *takenAt
 	}
 	if expiresAt != nil {
-		ann.ExpiresAt = parseEpochTime(*expiresAt)
+		ann.ExpiresAt = *expiresAt
 	}
 	if targetName != nil {
 		ann.TargetName = *targetName

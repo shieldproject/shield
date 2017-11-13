@@ -9,7 +9,6 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/goutils/log"
-	. "github.com/starkandwayne/goutils/timestamp"
 )
 
 const (
@@ -40,10 +39,10 @@ type Task struct {
 	TargetPlugin   string         `json:"-"`
 	TargetEndpoint string         `json:"-"`
 	Status         string         `json:"status"`
-	RequestedAt    Timestamp      `json:"requested_at"`
-	StartedAt      Timestamp      `json:"started_at"`
-	StoppedAt      Timestamp      `json:"stopped_at"`
-	TimeoutAt      Timestamp      `json:"-"`
+	RequestedAt    int64          `json:"requested_at"`
+	StartedAt      int64          `json:"started_at"`
+	StoppedAt      int64          `json:"stopped_at"`
+	TimeoutAt      int64          `json:"-"`
 	Attempts       int            `json:"-"`
 	RestoreKey     string         `json:"-"`
 	Agent          string         `json:"-"`
@@ -160,15 +159,15 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	for r.Next() {
 		t := &Task{}
 		var (
+			started, stopped, deadline                *int64
 			log                                       sql.NullString
 			this, tenant, archive, job, store, target NullUUID
-			requested, started, stopped, deadline     *int64
 		)
 		if err = r.Scan(
 			&this, &tenant, &t.Owner, &t.Op, &job, &archive,
 			&store, &t.StorePlugin, &t.StoreEndpoint,
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
-			&t.Status, &requested, &started, &stopped, &deadline,
+			&t.Status, &t.RequestedAt, &started, &stopped, &deadline,
 			&t.RestoreKey, &t.Attempts, &t.Agent, &log,
 			&t.OK, &t.Notes, &t.Clear); err != nil {
 			return l, err
@@ -191,19 +190,21 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 		if log.Valid {
 			t.Log = log.String
 		}
-		if requested != nil {
-			t.RequestedAt = parseEpochTime(*requested)
+		if started == nil {
+			t.StartedAt = 0
+		} else {
+			t.StartedAt = *started
 		}
-		if started != nil {
-			t.StartedAt = parseEpochTime(*started)
+		if stopped == nil {
+			t.StoppedAt = 0
+		} else {
+			t.StoppedAt = *stopped
 		}
-		if stopped != nil {
-			t.StoppedAt = parseEpochTime(*stopped)
+		if deadline == nil {
+			t.TimeoutAt = 0
+		} else {
+			t.TimeoutAt = *deadline
 		}
-		if deadline != nil {
-			t.TimeoutAt = parseEpochTime(*deadline)
-		}
-
 		l = append(l, t)
 	}
 

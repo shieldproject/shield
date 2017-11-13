@@ -6,15 +6,14 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	"github.com/starkandwayne/goutils/timestamp"
 )
 
 type AuthToken struct {
-	UUID      uuid.UUID            `json:"uuid"`
-	Session   uuid.UUID            `json:"session,omitempty"`
-	Name      string               `json:"name"`
-	CreatedAt timestamp.Timestamp  `json:"created_at"`
-	LastSeen  *timestamp.Timestamp `json:"last_seen"`
+	UUID      uuid.UUID `json:"uuid"`
+	Session   uuid.UUID `json:"session,omitempty"`
+	Name      string    `json:"name"`
+	CreatedAt int64     `json:"created_at"`
+	LastSeen  *int64    `json:"last_seen"`
 }
 
 type AuthTokenFilter struct {
@@ -63,24 +62,12 @@ func (db *DB) GetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
 
 	for r.Next() {
 		t := &AuthToken{}
-		var (
-			this, session      NullUUID
-			created, last_seen *int64
-		)
-		if err = r.Scan(&this, &session, &created, &last_seen, &t.Name); err != nil {
+		var this, session NullUUID
+		if err = r.Scan(&this, &session, &t.CreatedAt, t.LastSeen, &t.Name); err != nil {
 			return l, err
 		}
 		t.UUID = this.UUID
 		t.Session = session.UUID
-
-		if created != nil {
-			t.CreatedAt = parseEpochTime(*created)
-		}
-		if last_seen != nil {
-			ts := parseEpochTime(*last_seen)
-			t.LastSeen = &ts
-		}
-
 		l = append(l, t)
 	}
 

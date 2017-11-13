@@ -759,19 +759,14 @@ func (core *Core) v2API() *route.Router {
 			system.Tasks[i].Owner = task.Owner
 			system.Tasks[i].OK = task.OK
 			system.Tasks[i].Notes = task.Notes
-			system.Tasks[i].RequestedAt = task.RequestedAt.Time().Unix()
-
-			if t := task.StartedAt.Time(); t.IsZero() {
-				system.Tasks[i].StartedAt = 0
-			} else {
-				system.Tasks[i].StartedAt = t.Unix()
-			}
+			system.Tasks[i].RequestedAt = task.RequestedAt
+			system.Tasks[i].StartedAt = task.StartedAt
 
 			if archive, ok := archives[task.ArchiveUUID.String()]; ok {
 				system.Tasks[i].Archive = &v2SystemArchive{
 					UUID:     archive.UUID,
 					Schedule: archive.Job,
-					Expiry:   (int)((archive.ExpiresAt.Time().Unix() - archive.TakenAt.Time().Unix()) / 86400),
+					Expiry:   (int)((archive.ExpiresAt - archive.TakenAt) / 86400),
 					Notes:    archive.Notes,
 					Size:     -1, // FIXME
 				}
