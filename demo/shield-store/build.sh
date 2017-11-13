@@ -1,2 +1,2 @@
 #!/bin/sh
-docker build -t shieldproject/shield-store:dev .
+docker build -t shieldproject/shield-store .

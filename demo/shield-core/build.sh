@@ -1,2 +1,2 @@
 #!/bin/sh
-docker build -t shieldproject/shield-core:dev .
+docker build -t shieldproject/shield-core .
