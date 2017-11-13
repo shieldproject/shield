@@ -26,6 +26,7 @@ type Agent struct {
 type AgentFilter struct {
 	Address    string
 	Name       string
+	Status     string
 	OnlyHidden bool
 	SkipHidden bool
 }
@@ -40,6 +41,11 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 	} else if f.SkipHidden {
 		wheres = append(wheres, "a.hidden = ?")
 		args = append(args, false)
+	}
+
+	if f.Status != "" {
+		wheres = append(wheres, "a.status = ?")
+		args = append(args, f.Status)
 	}
 
 	if f.Address != "" {

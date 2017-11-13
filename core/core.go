@@ -241,6 +241,7 @@ func (core *Core) Run() error {
 			if initialized && !sealed {
 				core.scheduleTasks()
 				core.runPending()
+				core.checkPendingAgents()
 			} else {
 				if err != nil || initErr != nil {
 					log.Errorf("Failed to schedule tasks due to Vault error: %s %s", err, initErr)
@@ -251,7 +252,7 @@ func (core *Core) Run() error {
 			core.expireArchives()
 			core.purge()
 			core.markTasks()
-			core.checkAgents()
+			core.checkAllAgents()
 			core.dailyStorageAnalytics()
 			core.purgeExpiredSessions()
 			core.testStorage()
@@ -407,14 +408,7 @@ func (core *Core) markTasks() {
 	core.DB.MarkTasksIrrelevant()
 }
 
-func (core *Core) checkAgents() {
-	log.Debugf("scanning for agents that need to be checked")
-
-	agents, err := core.DB.GetAllAgents(nil)
-	if err != nil {
-		log.Errorf("error retrieving agent registration records from database: %s", err)
-		return
-	}
+func (core *Core) checkAgents(agents []*db.Agent) {
 	for _, a := range agents {
 		if c, ok := core.agents[a.Address]; ok {
 			select {
@@ -462,7 +456,7 @@ func (core *Core) checkAgents() {
 						Version string `json:"version"`
 						Health  string `json:"health"`
 					}
-					if err = json.Unmarshal([]byte(response), &x); err != nil {
+					if err := json.Unmarshal([]byte(response), &x); err != nil {
 						log.Errorf("  [monitor] %s: !! failed to parse status op response: %s", a.Address, err)
 
 						a.Status = "failing"
@@ -501,6 +495,26 @@ func (core *Core) checkAgents() {
 		}(core.agents[a.Address])
 		core.agents[a.Address] <- a
 	}
+}
+
+func (core *Core) checkAllAgents() {
+	log.Debugf("scanning for agents that need to be checked")
+
+	agents, err := core.DB.GetAllAgents(nil)
+	if err != nil {
+		log.Errorf("error retrieving agent registration records from database: %s", err)
+		return
+	}
+	core.checkAgents(agents)
+}
+
+func (core *Core) checkPendingAgents() {
+	agents, err := core.DB.GetAllAgents(&db.AgentFilter{Status: "pending"})
+	if err != nil {
+		log.Errorf("error retrieving agent registration records from database: %s", err)
+		return
+	}
+	core.checkAgents(agents)
 }
 
 func (core *Core) worker(id int) {
