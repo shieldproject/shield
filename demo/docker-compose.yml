@@ -19,7 +19,7 @@ services:
       - POSTGRES_PASSWORD=odoo
     ports:
       - "5432:5432"
-  insignia:
+  crm:
     image: shieldproject/crm-demo
     ports:
       - "8069:8069"

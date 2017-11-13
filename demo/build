@@ -1,6 +1,6 @@
 #!/bin/bash
 set -eux
-cd $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
+cd $(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)
 
 # FIXME: turn this into a Makefile thing some day
 
@@ -8,17 +8,17 @@ cd $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
 #make GOOS=linux GOARCH=amd64 shield plugins
 
 
-CACHED=$PWD/cached
+CACHED=$PWD/demo/cached
 mkdir -p $CACHED
 
-SHARED=$PWD/shared
+SHARED=$PWD/demo/shared
 rm -rf $SHARED
 mkdir -p $SHARED
 ssh-keygen -t rsa -f ${SHARED}/agent.ssh -N '' >/dev/null
 ssh-keygen -t rsa -f ${SHARED}/core.ssh  -N '' >/dev/null
 
 # set up the input files for 'shield-agent'
-SHIELD_AGENT=$PWD/shield-agent/in
+SHIELD_AGENT=$PWD/demo/shield-agent/in
 rm -rf ${SHIELD_AGENT}
 mkdir -p ${SHIELD_AGENT}/{plugins,bin,etc,rc,var}
 cp shield-agent shield buckler ${SHIELD_AGENT}/bin
@@ -26,7 +26,7 @@ for plugin in $(cat plugins); do
   cp $plugin ${SHIELD_AGENT}/plugins
 done
 cp bin/shield-pipe ${SHIELD_AGENT}/bin/shield-pipe
-cp $PWD/init-static ${SHIELD_AGENT}/bin/init
+cp $PWD/demo/init-static ${SHIELD_AGENT}/bin/init
 cp ${SHARED}/agent.ssh    ${SHIELD_AGENT}/etc/agent.ssh
 cp ${SHARED}/core.ssh.pub ${SHIELD_AGENT}/etc/authorized_keys
 
@@ -54,7 +54,7 @@ registration:
 EOF
 
 # set up the input files for 'shield-core'
-SHIELD_CORE=$PWD/shield-core/in
+SHIELD_CORE=$PWD/demo/shield-core/in
 rm -rf ${SHIELD_CORE}
 mkdir -p ${SHIELD_CORE}/{bin,etc,rc,data}
 cp -R web2/htdocs ${SHIELD_CORE}/www
@@ -214,14 +214,14 @@ EOF
 
 
 for img in shield-{agent,core,store}; do
-  pushd $PWD/$img
+  pushd $PWD/demo/$img
   ./build.sh
   popd
 done
 
 
-for img in {ageis,insigniaCRM,shipit}; do
-  pushd $PWD/$img
+for img in {aegis,crm,shipit}; do
+  pushd $PWD/demo/$img
   ./build.sh
   popd
 done
