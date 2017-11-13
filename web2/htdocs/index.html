@@ -1421,10 +1421,15 @@
 
             <div class="job summary">
               <h2>Notes</h2>
-              <p>[[= html(_.target.notes) ]]</p>
+              <div class="notes">[[ if (_.target.summary) { ]]
+                [[= _.target.summary ]]
+              [[ } else { ]]
+                <div class="no-data">No notes provided.  Too bad.</div>
+              [[ } ]]</div>
             </div>
 
             <h2>Timeline</h2>
+            [[ if (_.target.tasks.length > 0) { ]]
             <div class="timeline">
                 [[ $.each(_.target.tasks, function (i, task) { ]]
                   [[ task.is = {};
@@ -1466,6 +1471,9 @@
                 </div>
                 [[ }); ]]
             </div>
+            [[ } else { ]]
+            <div class="no-data">No backups or restores have been performed.</div>
+            [[ } ]]
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--task"><!-- {{{ -->
