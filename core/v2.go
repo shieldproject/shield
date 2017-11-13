@@ -1807,6 +1807,11 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		if _, err := core.DB.CreateTestStoreTask("system", store); err != nil {
+			log.Errorf("failed to schedule storage test task (non-critical) for %s (%s): %s",
+				store.Name, store.UUID, err)
+		}
+
 		r.OK(store)
 	})
 	// }}}
@@ -1868,6 +1873,11 @@ func (core *Core) v2API() *route.Router {
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
+		}
+
+		if _, err := core.DB.CreateTestStoreTask("system", store); err != nil {
+			log.Errorf("failed to schedule storage test task (non-critical) for %s (%s): %s",
+				store.Name, store.UUID, err)
 		}
 
 		r.OK(store)

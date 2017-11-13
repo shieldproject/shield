@@ -29,8 +29,7 @@ func (core *Core) AreStoresHealthy() bool {
 	return true
 }
 
-func (core *Core) TestStoresHealth() {
-
+func (core *Core) testStorage() {
 	log.Debugf("testing health of cloud stores")
 
 	stores, err := core.DB.GetAllStores(nil)
