@@ -1,11 +1,11 @@
 version: '2'
 services:
   core:
-    image: shieldproject/shield-core:dev
+    image: shieldproject/shield-core
     ports:
       - "8181:8181"
   store:
-    image: shieldproject/shield-store:dev
+    image: shieldproject/shield-store
     ports:
       - "8000:80"
   #shipit:
@@ -20,10 +20,10 @@ services:
     ports:
       - "5432:5432"
   insignia:
-    image: shieldproject/insignia-demo
+    image: shieldproject/crm-demo
     ports:
       - "8069:8069"
-  ageis:
-    image: shieldproject/ageis-demo
+  aegis:
+    image: shieldproject/aegis-demo
     ports:
       - "8081:80"
