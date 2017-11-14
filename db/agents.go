@@ -20,7 +20,15 @@ type Agent struct {
 	LastSeenAt int64     `json:"last_seen_at"`
 	LastError  string    `json:"last_error"`
 	Status     string    `json:"status"`
-	Metadata   string    `json:"-"`
+	RawMeta    string    `json:"-"`
+}
+
+func (a *Agent) Metadata() (map[string]interface{}, error) {
+	raw := make(map[string]interface{})
+	if a.RawMeta == "" {
+		return raw, nil
+	}
+	return raw, json.Unmarshal([]byte(a.RawMeta), &raw)
 }
 
 type AgentFilter struct {
@@ -90,7 +98,7 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 		var this NullUUID
 		if err = r.Scan(
 			&this, &agent.Name, &agent.Address, &agent.Version,
-			&agent.Hidden, &last, &agent.Status, &agent.Metadata); err != nil {
+			&agent.Hidden, &last, &agent.Status, &agent.RawMeta); err != nil {
 			return l, err
 		}
 		agent.UUID = this.UUID
@@ -129,7 +137,7 @@ func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
 	if err = r.Scan(
 		&this, &agent.Name, &agent.Address, &agent.Version,
 		&agent.Hidden, &last, &agent.LastError, &agent.Status,
-		&agent.Metadata); err != nil {
+		&agent.RawMeta); err != nil {
 
 		return nil, err
 	}
@@ -205,7 +213,7 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		                   last_seen_at = ?,
 		                   last_error   = ?
 		        WHERE uuid = ?`,
-		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.Metadata,
+		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
 		time.Now().Unix(), agent.LastError,
 		agent.UUID.String())
 }

@@ -1271,24 +1271,29 @@
               <span data-error="missing">You must select a [[= _.type == 'store' ? 'storage' : 'backup' ]] plugin to use.</span>
             </span>
             <div class="widget">
+              [[
+                  var plugins = [];
+                  $.each(_.metadata.plugins, function (plugin, metadata) {
+                    if (metadata.features[_.type] == 'yes') {
+                      plugins.push([plugin, metadata.name + " ("+plugin+")"])
+                    }
+                  });
+                  plugins = plugins.sort(function (a, b) {
+                    return a[1] > b[1] ?  1
+                         : a[1] < b[1] ? -1 : 0;
+                  });
+              ]]
+              [[ if (plugins.length == 0) { ]]
+              <div class="no-data">This agent does not seem to be properly reporting its metadata to SHIELD, and cannot be used.
+              Please select another SHIELD agent.</div>
+              [[ } else { ]]
               <select id="the-plugin" name="plugin">
                 <option></option>
-                [[
-                    var plugins = [];
-                    $.each(_.metadata.plugins, function (plugin, metadata) {
-                      if (metadata.features[_.type] == 'yes') {
-                        plugins.push([plugin, metadata.name + " ("+plugin+")"])
-                      }
-                    });
-                    plugins = plugins.sort(function (a, b) {
-                      return a[1] > b[1] ?  1
-                           : a[1] < b[1] ? -1 : 0;
-                    });
-                ]]
                 [[ $.each(plugins, function (i, plugin) { ]]
                 <option value="[[= plugin[0] ]]">[[= plugin[1] ]]</option>
                 [[ }); ]]
               </select>
+              [[ } ]]
             </div>
           </div>
     <!-- }}} --></script>

@@ -905,8 +905,8 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		var raw map[string]interface{}
-		if err := json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
+		raw, err := agent.Metadata()
+		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
 		}
@@ -1331,8 +1331,8 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		var raw map[string]interface{}
-		if err := json.Unmarshal([]byte(agent.Metadata), &raw); err != nil {
+		raw, err := agent.Metadata()
+		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
 		}
