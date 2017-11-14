@@ -7,23 +7,22 @@ services:
   store:
     image: shieldproject/shield-store
     ports:
-      - "8000:80"
+      - "8182:80"
+  crmdb:
+    image: shieldproject/postgres-demo
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+  crm:
+    image: shieldproject/crm-demo
+    ports:
+      - "8183:8069"
+  aegis:
+    image: shieldproject/aegis-demo
+    ports:
+      - "8184:80"
+
   #shipit:
   #  image: shieldproject/shipit-demo
   #  ports:
   #    - "8080:8080"
-  db:
-    image: postgres:9.4
-    environment:
-      - POSTGRES_USER=odoo
-      - POSTGRES_PASSWORD=odoo
-    ports:
-      - "5432:5432"
-  crm:
-    image: shieldproject/crm-demo
-    ports:
-      - "8069:8069"
-  aegis:
-    image: shieldproject/aegis-demo
-    ports:
-      - "8081:80"

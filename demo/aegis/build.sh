@@ -1,2 +1,2 @@
 #!/bin/sh
-docker build -t shieldproject/ageis-demo .
+docker build -t shieldproject/aegis-demo .

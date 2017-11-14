@@ -21,7 +21,7 @@ ssh-keygen -t rsa -f ${SHARED}/core.ssh  -N '' >/dev/null
 SHIELD_AGENT=$PWD/demo/shield-agent/in
 rm -rf ${SHIELD_AGENT}
 mkdir -p ${SHIELD_AGENT}/{plugins,bin,etc,rc,var}
-cp shield-agent shield buckler ${SHIELD_AGENT}/bin
+cp shield-agent buckler ${SHIELD_AGENT}/bin
 for plugin in $(cat plugins); do
   cp $plugin ${SHIELD_AGENT}/plugins
 done
@@ -121,20 +121,20 @@ EOF
 cat > ${SHIELD_CORE}/etc/setup <<'EOF'
 #!/bin/sh
 set -ex
+exec >&1 >>/var/setup.log 2>&1
 
+date
+echo ">>> SETUP SCRIPT STARTING UP..."
 export SHIELD_CORE=demo
 export SHIELD_BATCH_MODE=y
 export PATH=/bin:/usr/bin:/shield/bin
 
-if [ ! -f ~/.SETUP-DONE ]; then
-  buckler api http://core:8181 demo
-  SHIELD_CORE_MASTER=master buckler initialize
-
-  # wait for it...
-  while ! buckler curl /v2/info; do
+if [ ! -f /.SETUP-DONE ]; then
+  while ! buckler api http://core:8181 demo; do
     sleep 1
   done
 
+  SHIELD_CORE_MASTER=master buckler initialize
   buckler login --username demo --password demo
   buckler id
 
@@ -201,10 +201,144 @@ if [ ! -f ~/.SETUP-DONE ]; then
   buckler invite --tenant Fulfillment --role engineer fiona
   buckler invite --tenant Fulfillment --role admin    frank
 
-  touch ~/.SETUP-DONE
+  ##
+  ## Global Storage
+  ##
+  buckler create-global-store         \
+    --name    'Tier 1'                \
+    --agent   172.18.0.6:5444         \
+    --plugin  webdav                  \
+    --data    url=http://webdav/tier1
+
+  buckler create-global-store         \
+    --name    'Tier 2'                \
+    --agent   172.18.0.6:5444         \
+    --plugin  webdav                  \
+    --data    url=http://webdav/tier2
+
+
+  ##
+  ## Customer Service
+  ## (work must be done as cheri; she's an admin)
+  ##
+  buckler login --username cheri --password password
+
+  ##
+  ## Customer Service -- AEGIS
+  ##
+  buckler create-target \
+      --tenant   'Customer Service' \
+      --name     'A.E.G.I.S.' \
+      --summary  'Self-service Customer Support System.' \
+      --agent    '127.0.0.1:5444' \
+      --plugin   mysql \
+      --data     mysql_host=aegis \
+      --data     mysql_port=3306 \
+      --data     mysql_user=aegis \
+      --data     mysql_password=sekrit
+
+  buckler create-job \
+      --tenant   'Customer Service' \
+      --target   'A.E.G.I.S.' \
+      --store    'Tier 1' \
+      --policy   'Short-Term' \
+      --name     'Daily' \
+      --schedule 'daily at 4am'
+
+  buckler create-job \
+      --tenant   'Customer Service' \
+      --target   'A.E.G.I.S.' \
+      --store    'Tier 2' \
+      --policy   'Long-Term' \
+      --name     'Weekly' \
+      --schedule 'sundays at 5am'
+
+  ##
+  ## Insignia CRM
+  ##
+  buckler create-target \
+      --tenant   'Customer Service' \
+      --name     'InsigniaCRM DB' \
+      --summary  'Customer-Relationship Management platform.' \
+      --agent    '127.0.0.1:5444' \
+      --plugin   postgres \
+      --data     pg_host=crmdb \
+      --data     pg_user=odoo \
+      --data     pg_password=odoo \
+      --data     pg_bindir=/usr/bin
+
+  buckler create-job \
+      --tenant   'Customer Service' \
+      --target   'InsigniaCRM DB' \
+      --store    'Tier 1' \
+      --policy   'Short-Term' \
+      --name     'Daily' \
+      --schedule 'daily at 4am'
+
+  buckler create-job \
+      --tenant   'Customer Service' \
+      --target   'InsigniaCRM DB' \
+      --store    'Tier 2' \
+      --policy   'Long-Term' \
+      --name     'Weekly' \
+      --schedule 'sundays at 5am'
+
+  buckler create-target \
+      --tenant    'Customer Service' \
+      --name      'InsigniaCRM Assets' \
+      --summary   'Uploaded assets and attachments for the CRM platform.' \
+      --agent     '127.0.0.1:5444' \
+      --plugin    fs \
+      --data      foo=bar
+
+  buckler create-job \
+      --tenant   'Customer Service' \
+      --target   'InsigniaCRM Assets' \
+      --store    'Tier 1' \
+      --policy   'Short-Term' \
+      --name     'Daily' \
+      --schedule 'daily at 2am'
+
+  buckler create-job \
+      --tenant   'Customer Service' \
+      --target   'InsigniaCRM Assets' \
+      --store    'Tier 2' \
+      --policy   'Long-Term' \
+      --name     'Weekly' \
+      --schedule 'sundays at 3am'
+
+
+  ##
+  ## Operations
+  ## (work must be done as ophelia; she's an admin)
+  ##
+  buckler login --username ophelia --password password
+
+  ##
+  ## Operations - SHIELD
+  ##
+  buckler create-target \
+      --tenant    'Operations' \
+      --name      'S.H.I.E.L.D.' \
+      --summary   'The data protection system we know and trust.' \
+      --agent     '127.0.0.1:5444' \
+      --plugin    fs \
+      --data      base_dir=/shield/data \
+      --data      bsdtar=/bin/tar
+
+  buckler create-job \
+      --tenant   'Operations' \
+      --target   'S.H.I.E.L.D.' \
+      --store    'Tier 1' \
+      --policy   'Short-Term' \
+      --name     'Daily' \
+      --schedule 'daily 9pm'
+
+  touch /.SETUP-DONE
 fi
 
-while true;
+echo "<<< SETUP SCRIPT JUST SORT OF STARING OFF INTO SPACE DOING NOT MUCH OF ANYTHING..."
+while true; do
   tail -f /dev/null # sleep forever
 done
 EOF
