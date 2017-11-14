@@ -94,11 +94,13 @@ failsafe:
 EOF
 
 VAULT_VERSION=0.8.3
-curl -C - -Lo ${CACHED}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip
-pushd $CACHED
-rm -f vault
-unzip vault.zip
-popd
+if [[ ! -f ${CACHED}/vault.zip ]]; then
+  curl -C - -Lo ${CACHED}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip
+  pushd $CACHED
+  rm -f vault
+  unzip vault.zip
+  popd
+fi
 cp $CACHED/vault ${SHIELD_CORE}/bin
 cat > ${SHIELD_CORE}/rc/vault <<'EOF'
 #!/bin/sh
@@ -120,84 +122,91 @@ cat > ${SHIELD_CORE}/etc/setup <<'EOF'
 #!/bin/sh
 set -ex
 
-#echo "waiting for shield to spin up..."
-#shield_up="1"
-#while [ $shield_up -eq 1 ]; do
-#  sleep 1
-#  shield_up=`nc -z core 8181; echo $?`
-#done
-
 export SHIELD_CORE=demo
 export SHIELD_BATCH_MODE=y
 export PATH=/bin:/usr/bin:/shield/bin
 
-buckler api http://core:8181 demo
-SHIELD_CORE_MASTER=master buckler initialize
-buckler login --username demo --password demo
-buckler id
+if [ ! -f ~/.SETUP-DONE ]; then
+  buckler api http://core:8181 demo
+  SHIELD_CORE_MASTER=master buckler initialize
+
+  # wait for it...
+  while ! buckler curl /v2/info; do
+    sleep 1
+  done
+
+  buckler login --username demo --password demo
+  buckler id
 
 
-buckler create-policy-template --name Short-Term --days 7
-buckler create-policy-template --name Long-Term  --days 90
-buckler create-policy-template --name Audit      --days 400
+  buckler create-policy-template --name Short-Term --days 7
+  buckler create-policy-template --name Long-Term  --days 90
+  buckler create-policy-template --name Audit      --days 400
 
 
-buckler create-user \
-  --name        Ophelia \
-  --username    ophelia \
-  --password    password \
-  --system-role admin
+  buckler create-user \
+    --name        Ophelia \
+    --username    ophelia \
+    --password    password \
+    --system-role admin
 
-buckler create-user \
-  --name        Olaf \
-  --username    olaf \
-  --password    password \
-  --system-role engineer
+  buckler create-user \
+    --name        Olaf \
+    --username    olaf \
+    --password    password \
+    --system-role engineer
 
-buckler create-user \
-  --name        Nikita \
-  --username    nikita \
-  --password    password
+  buckler create-user \
+    --name        Nikita \
+    --username    nikita \
+    --password    password
 
-buckler create-user \
-  --name        Nelson \
-  --username    nelson \
-  --password    password
+  buckler create-user \
+    --name        Nelson \
+    --username    nelson \
+    --password    password
 
-buckler create-user \
-  --name        Cheri \
-  --username    cheri \
-  --password    password
+  buckler create-user \
+    --name        Cheri \
+    --username    cheri \
+    --password    password
 
-buckler create-user \
-  --name        Carlton \
-  --username    carlton \
-  --password    password
+  buckler create-user \
+    --name        Carlton \
+    --username    carlton \
+    --password    password
 
-buckler create-user \
-  --name        Frank \
-  --username    frank \
-  --password    password
+  buckler create-user \
+    --name        Frank \
+    --username    frank \
+    --password    password
 
-buckler create-user \
-  --name        Fiona \
-  --username    fiona \
-  --password    password
+  buckler create-user \
+    --name        Fiona \
+    --username    fiona \
+    --password    password
 
-buckler create-tenant --name 'Customer Service'
-buckler invite --tenant 'Customer Service' --role operator ophelia olaf nikita nelson
-buckler invite --tenant 'Customer Service' --role engineer carlton
-buckler invite --tenant 'Customer Service' --role admin    cheri
+  buckler create-tenant --name 'Customer Service'
+  buckler invite --tenant 'Customer Service' --role operator ophelia olaf nikita nelson
+  buckler invite --tenant 'Customer Service' --role engineer carlton
+  buckler invite --tenant 'Customer Service' --role admin    cheri
 
-buckler create-tenant --name Operations
-buckler invite --tenant Operations --role operator nikita nelson
-buckler invite --tenant Operations --role engineer olaf
-buckler invite --tenant Operations --role admin    ophelia
+  buckler create-tenant --name Operations
+  buckler invite --tenant Operations --role operator nikita nelson
+  buckler invite --tenant Operations --role engineer olaf
+  buckler invite --tenant Operations --role admin    ophelia
 
-buckler create-tenant --name Fulfillment
-buckler invite --tenant Fulfillment --role operator ophelia olaf nikita nelson
-buckler invite --tenant Fulfillment --role engineer fiona
-buckler invite --tenant Fulfillment --role admin    frank
+  buckler create-tenant --name Fulfillment
+  buckler invite --tenant Fulfillment --role operator ophelia olaf nikita nelson
+  buckler invite --tenant Fulfillment --role engineer fiona
+  buckler invite --tenant Fulfillment --role admin    frank
+
+  touch ~/.SETUP-DONE
+fi
+
+while true;
+  tail -f /dev/null # sleep forever
+done
 EOF
 chmod 755 ${SHIELD_CORE}/etc/setup
 
@@ -210,6 +219,9 @@ cat > ${SHIELD_CORE}/rc/init <<'EOF'
 
 # spin the core
 /shield/rc/shield-core
+
+# set up the data
+/shield/etc/setup
 EOF
 
 
@@ -218,7 +230,6 @@ for img in shield-{agent,core,store}; do
   ./build.sh
   popd
 done
-
 
 for img in {aegis,crm,shipit}; do
   pushd $PWD/demo/$img
