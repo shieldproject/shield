@@ -171,10 +171,11 @@ func (c *Client) DeleteGlobalStore(in *Store) (Response, error) {
 
 func (c *Client) FindUsableStore(tenant *Tenant, q string, fuzzy bool) (*Store, error) {
 	store, err := c.FindStore(tenant, q, fuzzy)
-	if err != nil {
-		if store, _ = c.FindGlobalStore(q, fuzzy); store == nil {
-			return nil, err
-		}
+	if err == nil {
+		return store, nil
 	}
-	return store, err
+	if store, _ := c.FindGlobalStore(q, fuzzy); store != nil {
+		return store, nil
+	}
+	return nil, err
 }
