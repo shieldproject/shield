@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shield plugins test
+all: format shieldd buckler shield-agent shield-schema plugins test
 
 # go fmt ftw
 format:
@@ -26,13 +26,14 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield: shield-cli
-	go $(BUILD_TYPE) ./cmd/shieldd
-	go $(BUILD_TYPE) ./cmd/shield-agent
-	go $(BUILD_TYPE) ./cmd/shield-schema
+shield: shieldd shield-agent shield-schema buckler
 
-# Building the Shield CLI *only*
-shield-cli: buckler
+shieldd:
+	go $(BUILD_TYPE) ./cmd/shieldd
+shield-agent:
+	go $(BUILD_TYPE) ./cmd/shield-agent
+shield-schema:
+	go $(BUILD_TYPE) ./cmd/shield-schema
 
 buckler: cmd/buckler/help.go
 	go $(BUILD_TYPE) ./cmd/buckler
@@ -116,4 +117,4 @@ web2/htdocs/shield.js: $(JAVASCRIPTS)
 
 web2: web2/htdocs/shield.js
 
-.PHONY: shield plugins dev web2 buckler
+.PHONY: shield plugins dev web2 buckler shieldd shield-schema shield-agent
