@@ -1,13 +1,16 @@
 var referer = undefined;
 function divert(page) { // {{{
+  if (page.match(/^#!\/(login|logout|cliauth)$/)) {
+    /* never divert these pages */
+    return page;
+  }
+
   if ($global.auth.unauthenticated) {
-    if (page.match(/^#!\/(login|logout|cliauth)$/)) {
-      return page;
-    }
     console.log('session not authenticated; diverting to #!/login page...');
     return "#!/login";
+  }
 
-  } else if ($global.auth.is.system.engineer && $global.hud) {
+  if ($global.auth.is.system.engineer && $global.hud) {
     /* process 'system' team diverts */
     if ($global.hud.health.core == "uninitialized") {
       console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
@@ -18,6 +21,7 @@ function divert(page) { // {{{
       return "#!/unlock";
     }
   }
+
   if (!page || page == "") {
     return $global.auth.is.system.engineer ? '#!/admin' : '#!/systems';
   }
