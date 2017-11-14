@@ -1,0 +1,14 @@
+USAGE: @G{buckler} policy-templates
+
+  List Retention Policy Templates
+
+  No backup is good forever.  SHIELD utilizes retention policies
+  to automatically expire backup archives that are too old, and
+  automatically remove them from cloud storage.
+
+  @Y{NOTE:} This command manages @W{templates} for retention
+  policies, which are copied over to new SHIELD Tenants when they
+  are first created.  Only SHIELD site engineers can use this
+  command; for managing retention policies in your own tenant(s),
+  see @C{buckler policies}.
+
