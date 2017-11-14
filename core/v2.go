@@ -957,10 +957,10 @@ func (core *Core) v2API() *route.Router {
 
 		err := core.DB.PreRegisterAgent(peer, in.Name, in.Port)
 		if err != nil {
-			r.Fail(route.Oops(err, "Unable to pre-register agent %s at %s:%i", in.Name, peer, in.Port))
+			r.Fail(route.Oops(err, "Unable to pre-register agent %s at %s:%d", in.Name, peer, in.Port))
 			return
 		}
-		r.Success("pre-registered agent %s at %s:%i", in.Name, peer, in.Port)
+		r.Success("pre-registered agent %s at %s:%d", in.Name, peer, in.Port)
 	})
 	// }}}
 	r.Dispatch("POST /v2/agents/:uuid/(show|hide)", func(r *route.Request) { // {{{
