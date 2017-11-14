@@ -639,7 +639,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
             document.location.href = '/';
             return
           }
-            
+
           if (xhr.status == 403) {
             $('#main').html(template('access-denied', { level: 'generic', need: 'elevated' }));
             return
@@ -1898,6 +1898,7 @@ function dispatch(page) {
       apis({
         base: '/v2/tenants/'+$global.auth.tenant.uuid,
         multiplex: {
+          agents:   { type: 'GET', url: '+/agents'   },
           targets:  { type: 'GET', url: '+/targets'  },
           stores:   { type: 'GET', url: '+/stores'   },
           policies: { type: 'GET', url: '+/policies' }
@@ -1957,7 +1958,7 @@ function dispatch(page) {
         /* FIXME fixups that need to migrate into the SHIELD code */
         for (key in data.local)  { if (!('ok' in data.local[key]))  { data.local[key].ok  = true; } }
         for (key in data.global) { if (!('ok' in data.global[key])) { data.global[key].ok = true; } }
-        $('#main').html(template('stores', { stores: $.extend({}, data.local, data.global) }));
+        $('#main').html(template('stores', { stores: $.extend([], data.local, data.global) }));
       }
     });
     break; /* #!/stores */
