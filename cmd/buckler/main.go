@@ -2459,10 +2459,10 @@ func main() {
 			/* not specified; which is ok... */
 		case "all":
 			opts.Tasks.All = true
-		case "running", "pending", "cancelled":
+		case "pending", "scheduled", "running", "canceled", "failed", "done":
 			/* good enough to pass validation... */
 		default:
-			fail(3, "Invalid --status value of '%s' (must be one of all, running, pending, or cancelled).", opts.Tasks.Status)
+			fail(3, "Invalid --status value of '%s'\n(must be one of all, pending, running,\n cnaceled, failed, or done).", opts.Tasks.Status)
 		}
 
 		if opts.Tasks.All {
