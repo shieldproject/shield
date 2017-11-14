@@ -1,0 +1,38 @@
+USAGE: @G{buckler} jobs --tenant @Y{TENANT} [OPTIONS]
+
+  List Backup Jobs.
+
+  Backup Jobs are the linchpin of SHIELD configuration; they
+  provide the what, when, and where, tying together target data
+  systems (the "what"), cloud storage ("where"), a schedule, and
+  a retention policy into one schedulable unit of data protection.
+
+@B{Options:}
+
+  By default, all defined backup jobs will be displayed.
+  You may filter the results with the following command-line flags.
+
+  --target        Only show backup jobs for the given target data
+                  system (given by name or UUID).
+
+  --store         Only show backup jobs for the given cloud storage
+                  system (given by name or UUID).
+
+  --policy        Only show backup jobs for the given retention
+                  policy (given by name or UUID).
+
+  --paused        Only show jobs that are not scheduled (@W{paused}),
+  --unpaused      or that are (@W{unpaused}).  These two options are
+                  mutually exclusive.
+
+@B{Examples:}
+
+  # What Azure-bound jobs aren't running automatically?
+  @W{buckler jobs}     \
+     @Y{--store} Azure \
+     @Y{--paused}
+
+  # How are we backing up UAADB?
+  @W{buckler jobs} \
+     @Y{--target} UAADB
+
