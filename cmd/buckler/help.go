@@ -34,6 +34,34 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "archive": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} archive --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Show a single Backup Archive.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When SHIELD successfully performs a backup operation, it generates\n")
+		fmt.Printf("  a backup archive containing all of the protected data form that\n")
+		fmt.Printf("  particular system, at that particular point in time.  This archive\n")
+		fmt.Printf("  is then placed in cloud storage, awaiting either expiry and purgation,\n")
+		fmt.Printf("  or restoration to a data system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "archives": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} archives --tenant @Y{TENANT}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  List Backup Archives.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When SHIELD successfully performs a backup operation, it generates\n")
+		fmt.Printf("  a backup archive containing all of the protected data form that\n")
+		fmt.Printf("  particular system, at that particular point in time.  This archive\n")
+		fmt.Printf("  is then placed in cloud storage, awaiting either expiry and purgation,\n")
+		fmt.Printf("  or restoration to a data system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "auth-tokens": /* {{{ */
 		fmt.Printf("USAGE: @G{buckler} auth-tokens\n")
 		fmt.Printf("\n")
@@ -997,6 +1025,26 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "purge-archive": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} purge-archive --tenant @Y{TENANT} @Y{UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Remove a Backup Archive from Cloud Storage.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When SHIELD successfully performs a backup operation, it generates\n")
+		fmt.Printf("  a backup archive containing all of the protected data form that\n")
+		fmt.Printf("  particular system, at that particular point in time.  This archive\n")
+		fmt.Printf("  is then placed in cloud storage, awaiting either expiry and purgation,\n")
+		fmt.Printf("  or restoration to a data system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When you purge a backup archive, it will be remmoved from its cloud\n")
+		fmt.Printf("  storage system, and marked as purged in the SHIELD database; no one\n")
+		fmt.Printf("  will be able to restore the data in the archvie.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @R{This is a dangerous operation that cannot be undone.}\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "rekey": /* {{{ */
 		fmt.Printf("USAGE: @G{buckler} rekey [--old-master @Y{PASSWORD}]\n")
 		fmt.Printf("                     [--new-master @Y{PASSWORD}]\n")
@@ -1019,6 +1067,35 @@ func ShowHelp(command string) {
 		fmt.Printf("  for both the current master password, and your desired new\n")
 		fmt.Printf("  master password, with appropriate security precautions (no\n")
 		fmt.Printf("  terminal echo, confirmation, etc.)\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "restore-archive": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} restore-archive --tenant @Y{TENANT} [OPTIONS] @Y{UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Restore a Backup Archive.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When SHIELD successfully performs a backup operation, it generates\n")
+		fmt.Printf("  a backup archive containing all of the protected data form that\n")
+		fmt.Printf("  particular system, at that particular point in time.  This archive\n")
+		fmt.Printf("  is then placed in cloud storage, awaiting either expiry and purgation,\n")
+		fmt.Printf("  or restoration to a data system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  You are not constrained to restoring a backup archive to the target\n")
+		fmt.Printf("  system it was generated from.  This allows you to migrate data by\n")
+		fmt.Printf("  way of the backup system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @R{NOTE: Restoring data may cause an outage} in the target data system\n")
+		fmt.Printf("  as the data is replayed.  SHIELD cannot guarantee that plugins will not\n")
+		fmt.Printf("  disconnect end users, block new connections, prohibit writes to the data\n")
+		fmt.Printf("  store, etc.  Please consult your plugin documentation.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --to, --target   The name or UUID of an alternate target data system\n")
+		fmt.Printf("                   to restore the data to.  By default, archives will\n")
+		fmt.Printf("                   be restored to their originating target system.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
