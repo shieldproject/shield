@@ -952,6 +952,20 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "passwd": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} passwd\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Change your SHIELD Password.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  If you are authenticated to SHIELD as a local user, you can use\n")
+		fmt.Printf("  this command to interactively change your password.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{Note:} It is not possible (nor is it advisable) to change your\n")
+		fmt.Printf("  password in @Y{--batch} mode, or via environment variables.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "pause-job": /* {{{ */
 		fmt.Printf("USAGE: @G{buckler} pause-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
@@ -1201,6 +1215,14 @@ func ShowHelp(command string) {
 		fmt.Printf("  # Who is logging in from 10.56.78.9?\n")
 		fmt.Printf("  @W{buckler sessions} \\\n")
 		fmt.Printf("    @Y{--ip} @C{10.56.78.9}\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "status": /* {{{ */
+		fmt.Printf("USAGE: @G{buckler} status\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Print information about your targeted SHIELD Core.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
