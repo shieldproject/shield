@@ -273,7 +273,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --store    'Tier 1' \
       --policy   'Short-Term' \
       --name     'Daily' \
-      --schedule 'daily at 4am'
+      --schedule 'daily at 4:30am'
 
   buckler create-job \
       --tenant   'Customer Service' \
@@ -281,7 +281,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --store    'Tier 2' \
       --policy   'Long-Term' \
       --name     'Weekly' \
-      --schedule 'sundays at 5am'
+      --schedule 'sundays at 5:30am'
 
   buckler create-target \
       --tenant    'Customer Service' \
