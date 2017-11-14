@@ -165,11 +165,6 @@ func (db *DB) GetAgentPluginMetadata(addr, name string) (*plugin.PluginInfo, err
 		return nil, err
 	}
 
-	fmt.Printf("start of plugin list\n")
-	for n := range meta.Plugins {
-		fmt.Printf("found plugin %s\n", n)
-	}
-	fmt.Printf("end of plugin list\n")
 	if p, ok := meta.Plugins[name]; ok {
 		return &p, nil
 	}
