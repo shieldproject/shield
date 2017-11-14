@@ -1,9 +1,14 @@
 package shield
 
 type Info struct {
-	Env     string `json:"env"`
-	API     int    `json:"api"`
 	Version string `json:"version,omitempty"`
+	IP      string `json:"ip,omitempty"`
+	FQDN    string `json:"fqdn,omitempty"`
+	Env     string `json:"env,omitempty"`
+	Color   string `json:"color,omitempty"`
+	MOTD    string `json:"motd,omitempty"`
+
+	API int `json:"api"`
 }
 
 func (c *Client) Info() (*Info, error) {

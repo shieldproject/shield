@@ -869,8 +869,11 @@ func main() {
 
 	/* }}} */
 	case "status": /* {{{ */
+		info, err := c.Info()
+		bail(err)
+
 		var status *shield.Status
-		if opts.Status.Global {
+		if opts.Status.Global || opts.Tenant == "" {
 			status, err = c.GlobalStatus()
 			bail(err)
 
@@ -888,7 +891,17 @@ func main() {
 			break
 		}
 
-		fmt.Printf("SHIELD %s v%s\n", status.SHIELD.Env, status.SHIELD.Version)
+		if info.Version == "" {
+			fmt.Printf("@W{SHIELD %s} @R{(development)}\n", info.Env)
+		} else {
+			fmt.Printf("@W{SHIELD %s} v@G{%s}\n", info.Env, info.Version)
+		}
+		fmt.Printf("API Version @G{%d}\n", info.API)
+		if info.MOTD != "" {
+			fmt.Printf("\n---[ MOTD ]-------------------------------------\n")
+			fmt.Printf("%s", info.MOTD)
+			fmt.Printf("\n------------------------------------------------\n\n")
+		}
 
 	/* }}} */
 
