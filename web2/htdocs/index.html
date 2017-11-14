@@ -327,7 +327,10 @@
         ]]
             <div class="x5"><div class="inst">
               <ul>
-                <li class="shield">SHIELD <span class="v">[[= $global.shield.version ]]</span></li>
+                <li class="shield">SHIELD
+                  [[ if ($global.shield.version) { ]]<span class="v">[[= $global.shield.version ]]</span>
+                  [[ } else { ]]<span class="v dev">(development)</span>
+                  [[ } ]]</li>
                 <li class="ip">[[= $global.shield.ip ]]</li>
                 <li class="fqdn">[[= $global.shield.fqdn ]]</li>
                 <li class="env"><span style="color: [[= maybe($global.shield.color, "#8CC63F") ]]">[[= $global.shield.env ]]</span></li>
