@@ -1226,10 +1226,10 @@
 
 
   /***************************************************
-     $(...).serializePluginForm() - Serialize Data from a Plugin Form
+     $(...).serializePluginObject() - Serialize Data from a Plugin Form
 
    ***************************************************/
-  exported.jQuery.fn.serializePluginForm = function () { // {{{
+  exported.jQuery.fn.serializePluginObject = function () { // {{{
     var data       = this.serializeObject();
     data.agent     = data.agent.replace(/.*\|/, '');
     if ('threshold' in data) {

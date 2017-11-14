@@ -1230,10 +1230,10 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
 
 
   /***************************************************
-     $(...).serializePluginForm() - Serialize Data from a Plugin Form
+     $(...).serializePluginObject() - Serialize Data from a Plugin Form
 
    ***************************************************/
-  exported.jQuery.fn.serializePluginForm = function () { // {{{
+  exported.jQuery.fn.serializePluginObject = function () { // {{{
     var data       = this.serializeObject();
     data.agent     = data.agent.replace(/.*\|/, '');
     if ('threshold' in data) {
@@ -1732,7 +1732,7 @@ function dispatch(page) {
 
             /* make:target   - validate a new target, store it for later {{{ */
             if (l[1] == 'make' && l[2] == 'target') {
-              var target = $form.serializePluginForm();
+              var target = $form.serializePluginObject();
               if (!$form.reset().validate(target).isOK()) { return; }
               api({
                 type: 'POST',
@@ -1795,7 +1795,7 @@ function dispatch(page) {
             /* }}} */
             /* make:store    - validate a new store, store it for later {{{ */
             if (l[1] == 'make' && l[2] == 'store') {
-              var store = $form.serializePluginForm();
+              var store = $form.serializePluginObject();
               if (!$form.reset().validate(store).isOK()) { return; }
               api({
                 type: 'POST',
@@ -2017,7 +2017,7 @@ function dispatch(page) {
             event.preventDefault();
 
             var $form = $(event.target);
-            var data = $form.serializePluginForm();
+            var data = $form.serializePluginObject();
             if (!$form.reset().validate(data).isOK()) { return; }
             api({
               type: 'POST',
