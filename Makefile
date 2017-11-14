@@ -48,6 +48,11 @@ plugins:
 		go $(BUILD_TYPE) ./plugin/$$plugin; \
 	done
 
+
+demo: clean shield plugins
+	./demo/build
+	(cd demo && docker-compose up)
+
 docs: docs/API.md
 docs/API.md: docs/API.yml
 	perl ./docs/regen.pl <$+ >$@
@@ -117,4 +122,4 @@ web2/htdocs/shield.js: $(JAVASCRIPTS)
 
 web2: web2/htdocs/shield.js
 
-.PHONY: shield plugins dev web2 buckler shieldd shield-schema shield-agent
+.PHONY: shield plugins dev web2 buckler shieldd shield-schema shield-agent demo
