@@ -11,6 +11,7 @@ for my $file (@ARGV) {
 	my $help = do { local $/; <$fh> };
 	close $fh;
 
+	$help =~ s/\\/\\\\/g;
 	$help =~ s/"/\\"/g;
 	$help = join("", map { "\t\tfmt.Printf(\"$_\\n\")\n" } split("\n", $help, -1));
 
