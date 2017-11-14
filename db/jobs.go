@@ -166,14 +166,14 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		var (
 			last                                *int64
 			this, policy, store, target, tenant NullUUID
-			last_task_status                    sql.NullString
+			status                              sql.NullString
 		)
 		if err = r.Scan(
 			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant,
 			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
 			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
 			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
-			&j.Agent, &last, &last_task_status); err != nil {
+			&j.Agent, &last, &status); err != nil {
 			return l, err
 		}
 		j.UUID = this.UUID
@@ -181,11 +181,11 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		j.Store.UUID = store.UUID
 		j.Target.UUID = target.UUID
 		j.TenantUUID = tenant.UUID
-		if last == nil {
-			j.LastRun = 0
-			j.LastTaskStatus = "pending"
-		} else {
+		if last != nil {
 			j.LastRun = *last
+		}
+		if status.Valid {
+			j.LastTaskStatus = status.String
 		}
 
 		l = append(l, j)
