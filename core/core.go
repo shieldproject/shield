@@ -253,7 +253,7 @@ func (core *Core) Run() error {
 			core.purge()
 			core.markTasks()
 			core.checkAllAgents()
-			core.dailyStorageAnalytics()
+			core.updateStorageUsage()
 			core.purgeExpiredSessions()
 			core.testStorage()
 		}
@@ -676,6 +676,10 @@ func (core *Core) worker(id int) {
 			log.Infof("  %s: job completed successfully", task.UUID)
 			if err := core.DB.CompleteTask(task.UUID, time.Now()); err != nil {
 				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
+			}
+			if task.Op == db.BackupOperation {
+				log.Infof("  %s: triggering an update to storage analytics", task.UUID)
+				core.updateStorageUsage()
 			}
 		}
 	}

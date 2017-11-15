@@ -8,11 +8,11 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
-func (core *Core) dailyStorageAnalytics() {
+func (core *Core) updateStorageUsage() {
 	log.Debugf("updating daily storage analytics per store")
-	core.DailyStoreStats()
+	core.updateGlobalStorageUsage()
 	log.Debugf("updating daily storage analytics per tenant")
-	core.DailyTenantStats()
+	core.updateTenantStorageUsage()
 }
 
 func (core *Core) AreStoresHealthy() bool {
@@ -75,9 +75,7 @@ func (core *Core) DeltaIncrease(filter *db.ArchiveFilter) (int64, error) {
 	return (delta_increase - delta_purged), nil
 }
 
-// DailyStoreStats batches updates of daily archive storage space statistics.
-// It stores the number total archives corresponding to each store, and the total size of those archives
-func (core *Core) DailyStoreStats() error {
+func (core *Core) updateGlobalStorageUsage() error {
 	base := time.Now()
 	threshold := base.Add(0 - time.Duration(24)*time.Hour)
 
@@ -137,10 +135,7 @@ func (core *Core) DailyStoreStats() error {
 	return nil
 }
 
-// DailyTenantStats batches updates of daily archive storage space statistics.
-// It stores the number total archives corresponding to each tenant, and the total size of those archives
-// It also aggregates the daily increase over all the stores belonging to the tenant
-func (core *Core) DailyTenantStats() error {
+func (core *Core) updateTenantStorageUsage() error {
 	base := time.Now()
 	threshold := base.Add(0 - time.Duration(24)*time.Hour)
 	tenants, err := core.DB.GetAllTenants(nil)
