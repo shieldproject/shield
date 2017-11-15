@@ -235,7 +235,7 @@ if [ ! -f /.SETUP-DONE ]; then
   ##
   buckler create-target \
       --tenant   'Customer Service' \
-      --name     'A.E.G.I.S.' \
+      --name     'A.E.G.I.S. DB' \
       --summary  'Self-service Customer Support System.' \
       --agent    '10.5.0.9:5444' \
       --plugin   mysql \
@@ -245,7 +245,7 @@ if [ ! -f /.SETUP-DONE ]; then
 
   buckler create-job \
       --tenant   'Customer Service' \
-      --target   'A.E.G.I.S.' \
+      --target   'A.E.G.I.S. DB' \
       --store    'Tier 1' \
       --policy   'Short-Term' \
       --name     'Daily' \
@@ -253,11 +253,28 @@ if [ ! -f /.SETUP-DONE ]; then
 
   buckler create-job \
       --tenant   'Customer Service' \
-      --target   'A.E.G.I.S.' \
+      --target   'A.E.G.I.S. DB' \
       --store    'Tier 2' \
       --policy   'Long-Term' \
       --name     'Weekly' \
       --schedule 'sundays at 5am'
+
+  buckler create-target \
+      --tenant    'Customer Service' \
+      --name      'A.E.G.I.S. Assets' \
+      --summary   'Uploaded assets and attachments for the A.E.G.I.S. platform.' \
+      --agent     '10.5.0.9:5444' \
+      --plugin    fs \
+      --data      base_dir=/var/www/html/osticket \
+      --data      bsdtar=/bin/tar
+
+  buckler create-job \
+      --tenant   'Customer Service' \
+      --target   'A.E.G.I.S. Assets' \
+      --store    'Tier 1' \
+      --policy   'Short-Term' \
+      --name     'Daily' \
+      --schedule 'daily at 2am'
 
   ##
   ## Insignia CRM
@@ -283,35 +300,11 @@ if [ ! -f /.SETUP-DONE ]; then
 
   buckler create-job \
       --tenant   'Customer Service' \
-      --target   'InsigniaCRM DB' \
+      --target   'InsigniaCRM' \
       --store    'Tier 2' \
       --policy   'Long-Term' \
       --name     'Weekly' \
       --schedule 'sundays at 5:30am'
-
-  buckler create-target \
-      --tenant    'Customer Service' \
-      --name      'InsigniaCRM Assets' \
-      --summary   'Uploaded assets and attachments for the CRM platform.' \
-      --agent     '10.5.0.5:5444' \
-      --plugin    fs \
-      --data      base_dir=/var/www/html/osticket
-
-  buckler create-job \
-      --tenant   'Customer Service' \
-      --target   'InsigniaCRM Assets' \
-      --store    'Tier 1' \
-      --policy   'Short-Term' \
-      --name     'Daily' \
-      --schedule 'daily at 2am'
-
-  buckler create-job \
-      --tenant   'Customer Service' \
-      --target   'InsigniaCRM Assets' \
-      --store    'Tier 2' \
-      --policy   'Long-Term' \
-      --name     'Weekly' \
-      --schedule 'sundays at 3am'
 
 
   ##
