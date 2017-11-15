@@ -237,12 +237,11 @@ if [ ! -f /.SETUP-DONE ]; then
       --tenant   'Customer Service' \
       --name     'A.E.G.I.S.' \
       --summary  'Self-service Customer Support System.' \
-      --agent    '127.0.0.1:5444' \
+      --agent    '10.5.0.9:5444' \
       --plugin   mysql \
-      --data     mysql_host=aegis \
-      --data     mysql_port=3306 \
-      --data     mysql_user=aegis \
-      --data     mysql_password=sekrit
+      --data     mysql_user=osticket \
+      --data     mysql_password=password \
+      --data     mysql_bindir=/usr/bin
 
   buckler create-job \
       --tenant   'Customer Service' \
@@ -267,7 +266,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --tenant   'Customer Service' \
       --name     'InsigniaCRM DB' \
       --summary  'Customer-Relationship Management platform.' \
-      --agent    '127.0.0.1:5444' \
+      --agent    '10.5.0.5:5444' \
       --plugin   postgres \
       --data     pg_host=crmdb \
       --data     pg_user=odoo \
@@ -294,9 +293,9 @@ if [ ! -f /.SETUP-DONE ]; then
       --tenant    'Customer Service' \
       --name      'InsigniaCRM Assets' \
       --summary   'Uploaded assets and attachments for the CRM platform.' \
-      --agent     '127.0.0.1:5444' \
+      --agent     '10.5.0.5:5444' \
       --plugin    fs \
-      --data      foo=bar
+      --data      base_dir=/var/www/html/osticket
 
   buckler create-job \
       --tenant   'Customer Service' \
@@ -328,7 +327,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --tenant    'Operations' \
       --name      'S.H.I.E.L.D.' \
       --summary   'The data protection system we know and trust.' \
-      --agent     '127.0.0.1:5444' \
+      --agent     '10.5.0.5:5444' \
       --plugin    fs \
       --data      base_dir=/shield/data \
       --data      bsdtar=/bin/tar
