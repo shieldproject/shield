@@ -1519,7 +1519,7 @@ initiated by <em>[[= _.task.owner ]]</em> at <em>[[= strftime("%c", _.task.reque
 
 <em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
 ]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
-[[ }
+[[
 
 if (_.task.type == 'backup') {
 if (_.task.archive_uuid != "") {
@@ -1531,7 +1531,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
 [[
 }
 } ]][[= _.task.type ]] task finished at <em>[[= strftime("%c", _.task.stopped_at) ]]</em> with status <em>[[= _.task.status ]]</em>
-</em></code></pre>
+[[
+}
+]]</em></code></pre>
     <!-- }}} --></script>
 
     <script type="text/html" id="tpl--stores"><!-- {{{ -->
