@@ -33,15 +33,21 @@ cp ${SHARED}/core.ssh.pub ${SHIELD_AGENT}/etc/authorized_keys
 cat > ${SHIELD_AGENT}/rc/shield-agent <<'EOF'
 #!/bin/sh
 export PATH=/shield/bin:/shield/plugins:/bin:/usr/bin
+if [ -f /shield/etc/name ]; then
+  AGENT_NAME="$(cat /shield/etc/name)"
+fi
+if [ -z "$AGENT_NAME" ]; then
+  AGENT_NAME="agent-$(hostname)"
+fi
 # generate the template for agent config
 cat /shield/etc/shield-agent.conf.tpl |\
-  sed -e "s/{{HOST}}/$(hostname)/" > /shield/etc/shield-agent.conf
+  sed -e "s/{{NAME}}/${AGENT_NAME}/" > /shield/etc/shield-agent.conf
 
 /shield/bin/shield-agent --config /shield/etc/shield-agent.conf --log-level debug > /var/log/shield-agent.log
 EOF
 chmod 755 ${SHIELD_AGENT}/rc/shield-agent
 cat > ${SHIELD_AGENT}/etc/shield-agent.conf.tpl <<'EOF'
-name: {{HOST}}
+name: {{NAME}}
 
 authorized_keys_file: /shield/etc/authorized_keys
 host_key_file:        /shield/etc/agent.ssh
@@ -60,6 +66,7 @@ mkdir -p ${SHIELD_CORE}/{bin,etc,rc,data}
 cp -R web2/htdocs ${SHIELD_CORE}/www
 cp shieldd shield-schema ${SHIELD_CORE}/bin
 cp ${SHARED}/core.ssh ${SHIELD_CORE}/etc/
+echo core-box > ${SHIELD_CORE}/etc/name
 cat > ${SHIELD_CORE}/rc/shield-core <<'EOF'
 #!/bin/sh
 export PATH=/shield/bin:/shield/plugins:/bin:/usr/bin

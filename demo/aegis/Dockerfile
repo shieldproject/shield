@@ -1,14 +1,14 @@
 FROM shieldproject/shield-agent
-RUN apt-get update && apt-get -y upgrade
-RUN DEBIAN_FRONTEND=noninteractive \
-    apt-get install -y \
-      nginx \
-      php7.0-cli php7.0-mysql php7.0-cgi \
-      php7.0-fpm php7.0-gd php7.0-imap \ 
-      php7.0-xml php7.0-mbstring php7.0-intl \
-      php-apcu wget \
-      mysql-server \
-      unzip \
+RUN apt-get update && apt-get -y upgrade \
+    && DEBIAN_FRONTEND=noninteractive \
+        apt-get install -y \
+          nginx \
+          php7.0-cli php7.0-mysql php7.0-cgi \
+          php7.0-fpm php7.0-gd php7.0-imap \
+          php7.0-xml php7.0-mbstring php7.0-intl \
+          php-apcu wget \
+          mysql-server \
+          unzip \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir /var/www/html/osticket \
     && wget --quiet -P /tmp/osticket/ http://osticket.com/sites/default/files/download/osTicket-v1.10.zip \
@@ -27,5 +27,6 @@ RUN chmod +x /root/run.sh \
     && chown www-data:www-data /var/www/html/osticket/upload/include/ost-config.php \
     && chmod 644 /var/www/html/osticket/upload/include/ost-config.php
 
+ENV AGENT_NAME aegis-box
 VOLUME ["/var/lib/mysql"]
 CMD ["/root/run.sh"]
