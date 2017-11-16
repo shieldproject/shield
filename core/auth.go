@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
@@ -47,28 +46,9 @@ type authGrants struct {
 type authResponse struct {
 	User    authUser     `json:"user"`
 	Tenants []authTenant `json:"tenants"`
-	//The currently selected tenant
-	Tenant *authTenant `json:"tenant,omitempty"`
+	Tenant  *authTenant  `json:"tenant,omitempty"`
 
 	Grants authGrants `json:"is"`
-}
-
-//Gets the session ID from the request. Returns "" if not given.
-func getSessionID(req *http.Request) string {
-	sessionID := req.Header.Get("X-Shield-Session")
-
-	if sessionID == "" { //If not in header, check for cookie
-		cookie, err := req.Cookie(SessionCookieName)
-		if err == nil { //ErrNoCookie is the only error returned from Cookie()
-			sessionID = cookie.Value
-		}
-	}
-
-	return sessionID
-}
-
-func getAuthToken(req *http.Request) string {
-	return req.Header.Get("X-Shield-Token")
 }
 
 func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
@@ -146,8 +126,6 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 	return &answer, nil
 }
 
-//SetAuthHeaders sets the appropriate HTTP headers in the given request object
-// to send back the session information in a login request
 func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
 	r.SetCookie(SessionCookie(sessionID.String(), true))
 	r.SetRespHeader("X-Shield-Session", sessionID.String())

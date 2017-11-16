@@ -12,6 +12,7 @@ import (
 	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/route"
 )
 
 const APIVersion = 2
@@ -200,7 +201,7 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 	const unauthFail = "// failed to determine user authentication state...\n"
 	const unauthJS = "$global.auth = {\"unauthenticated\":true};\n"
 
-	user, err := core.DB.GetUserForSession(getSessionID(req))
+	user, err := core.DB.GetUserForSession(route.SessionID(req))
 	if err != nil {
 		log.Errorf("init.js: failed to get user from session: %s", err)
 		fmt.Fprintf(w, unauthFail)

@@ -13,7 +13,6 @@ import (
 const (
 	SessionHeaderKey = "X-Shield-Session"
 	SessionCookieKey = "shield7"
-	TokenHeaderKey   = "X-Shield-Token"
 )
 
 type Request struct {
@@ -39,20 +38,20 @@ func (r *Request) String() string {
 	return fmt.Sprintf("%s %s", r.Req.Method, r.Req.URL.Path)
 }
 
-func (r *Request) SessionID() string {
-	if s := r.Req.Header.Get(SessionHeaderKey); s != "" {
+func SessionID(req *http.Request) string {
+	if s := req.Header.Get(SessionHeaderKey); s != "" {
 		return s
 	}
 
-	if c, err := r.Req.Cookie(SessionCookieKey); err == nil {
+	if c, err := req.Cookie(SessionCookieKey); err == nil {
 		return c.Value
 	}
 
-	if s := r.Req.Header.Get(TokenHeaderKey); s != "" {
-		return s
-	}
-
 	return ""
+}
+
+func (r *Request) SessionID() string {
+	return SessionID(r.Req)
 }
 
 func (r *Request) Success(msg string, args ...interface{}) {
