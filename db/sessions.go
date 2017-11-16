@@ -96,9 +96,10 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 		var (
 			this, user, token NullUUID
 			backend           string
+			last              *int64
 		)
 		s := &Session{}
-		if err := r.Scan(&this, &user, &s.CreatedAt, &s.LastSeen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
+		if err := r.Scan(&this, &user, &s.CreatedAt, &last, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 			return nil, err
 		}
 
@@ -106,6 +107,9 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 		s.Token = token.UUID
 		s.UserUUID = user.UUID
 		s.UserAccount = s.UserAccount + "@" + backend
+		if last != nil {
+			s.LastSeen = *last
+		}
 
 		l = append(l, s)
 	}
@@ -131,15 +135,19 @@ func (db *DB) GetSession(id string) (*Session, error) {
 	var (
 		this, user, token NullUUID
 		backend           string
+		last              *int64
 	)
 	s := &Session{}
-	if err := r.Scan(&this, &user, &s.CreatedAt, &s.LastSeen, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
+	if err := r.Scan(&this, &user, &s.CreatedAt, &last, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 		return nil, err
 	}
 	s.UUID = this.UUID
 	s.Token = token.UUID
 	s.UserUUID = user.UUID
 	s.UserAccount = s.UserAccount + "@" + backend
+	if last != nil {
+		s.LastSeen = *last
+	}
 
 	return s, nil
 }

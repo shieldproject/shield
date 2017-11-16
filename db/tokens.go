@@ -63,7 +63,7 @@ func (db *DB) GetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
 	for r.Next() {
 		t := &AuthToken{}
 		var this, session NullUUID
-		if err = r.Scan(&this, &session, &t.CreatedAt, t.LastSeen, &t.Name); err != nil {
+		if err = r.Scan(&this, &session, &t.CreatedAt, &t.LastSeen, &t.Name); err != nil {
 			return l, err
 		}
 		t.UUID = this.UUID
