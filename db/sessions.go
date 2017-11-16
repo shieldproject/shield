@@ -216,5 +216,5 @@ func stripIP(raw_ip string) string {
 }
 
 func (s *Session) Expired(lifetime int) bool {
-	return time.Now().Unix() > s.LastSeen+(int64)(lifetime*3600)
+	return s.Token == nil && time.Now().Unix() > s.LastSeen+(int64)(lifetime*3600)
 }
