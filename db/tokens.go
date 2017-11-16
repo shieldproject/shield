@@ -90,18 +90,18 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 		return nil, "", fmt.Errorf("cannot generate a token without a user")
 	}
 
-	id := uuid.NewRandom()
-	token := uuid.NewRandom()
+	id := uuid.NewRandom().String()
+	token := uuid.NewRandom().String()
 	err := db.Exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, token, name)
 	                 VALUES (?,    ?,         ?,          ?,     ?)`,
-		id.String(), user.UUID.String(), time.Now().Unix(), token.String(), name)
+		id, user.UUID.String(), time.Now().Unix(), token, name)
 	if err != nil {
 		return nil, "", err
 	}
 
-	t, err := db.GetAuthToken(token.String())
-	return t, token.String(), err
+	t, err := db.GetAuthToken(token)
+	return t, token, err
 }
 
 func (db *DB) DeleteAuthToken(id string, user *User) error {
