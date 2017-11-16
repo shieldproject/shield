@@ -9,8 +9,8 @@ import (
 type Session struct {
 	UUID           string `json:"uuid"`
 	UserUUID       string `json:"user_uuid"`
-	CreatedAt      string `json:"created_at"`
-	LastSeen       string `json:"last_seen_at"`
+	CreatedAt      int64  `json:"created_at"`
+	LastSeen       int64  `json:"last_seen_at"`
 	Token          string `json:"token_uuid"`
 	Name           string `json:"name"`
 	IP             string `json:"ip_addr"`

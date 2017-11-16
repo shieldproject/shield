@@ -909,12 +909,6 @@ func main() {
 		tokens, err := c.ListAuthTokens()
 		bail(err)
 
-		for _, token := range tokens {
-			if token.LastSeen == "" {
-				token.LastSeen = "never"
-			}
-		}
-
 		if opts.JSON {
 			fmt.Printf("%s\n", asJSON(tokens))
 			break
@@ -922,7 +916,7 @@ func main() {
 
 		tbl := tui.NewTable("Name", "Created at", "Last seen")
 		for _, token := range tokens {
-			tbl.Row(token, token.Name, token.CreatedAt, token.LastSeen)
+			tbl.Row(token, token.Name, strftime(token.CreatedAt), strftimenil(token.LastSeen, "(never)"))
 		}
 		tbl.Output(os.Stdout)
 
@@ -2805,7 +2799,7 @@ func main() {
 
 		tbl := tui.NewTable("UUID", "Account", "Created At", "Last Seen", "IP Address", "User Agent")
 		for _, session := range sessions {
-			tbl.Row(session, session.UUID, session.UserAccount, session.CreatedAt, session.LastSeen, session.IP, session.UserAgent)
+			tbl.Row(session, session.UUID, session.UserAccount, strftime(session.CreatedAt), strftimenil(session.LastSeen, "(nerver)"), session.IP, session.UserAgent)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2826,8 +2820,8 @@ func main() {
 		r := tui.NewReport()
 		r.Add("UUID", session.UUID)
 		r.Add("Account", session.UserAccount)
-		r.Add("Created At", session.CreatedAt)
-		r.Add("Last Seen", session.LastSeen)
+		r.Add("Created At", strftime(session.CreatedAt))
+		r.Add("Last Seen", strftimenil(session.LastSeen, "(never)"))
 		r.Add("IP Address", session.IP)
 		r.Add("User Agent", session.UserAgent)
 		r.Output(os.Stdout)

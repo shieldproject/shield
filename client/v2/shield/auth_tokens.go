@@ -8,8 +8,8 @@ type AuthToken struct {
 	UUID      string `json:"uuid"`
 	Name      string `json:"name"`
 	Session   string `json:"session"`
-	CreatedAt string `json:"created_at"`
-	LastSeen  string `json:"last_seen"`
+	CreatedAt int64  `json:"created_at"`
+	LastSeen  int64  `json:"last_seen"`
 }
 
 func (c *Client) ListAuthTokens() ([]*AuthToken, error) {

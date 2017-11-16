@@ -114,3 +114,10 @@ func strftime(t int64) string {
 	}
 	return time.Unix(t, 0).Format(f)
 }
+
+func strftimenil(t int64, ifnil string) string {
+	if t == 0 {
+		return ifnil
+	}
+	return strftime(t)
+}
