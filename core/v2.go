@@ -597,6 +597,7 @@ func (core *Core) v2API() *route.Router {
 		r.Success("Token revoked")
 	})
 	// }}}
+
 	r.Dispatch("GET /v2/auth/sessions", func(r *route.Request) { // {{{
 		if core.IsNotSystemAdmin(r) {
 			return
@@ -678,6 +679,7 @@ func (core *Core) v2API() *route.Router {
 		r.Success("Successfully cleared session '%s' (%s)", r.Args[1], session.IP)
 	})
 	// }}}
+
 	r.Dispatch("GET /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
