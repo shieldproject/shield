@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
@@ -131,7 +132,7 @@ func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
 	r.SetRespHeader("X-Shield-Session", sessionID.String())
 }
 
-func (core *Core) hasTenantRole(r *route.Request, tenant string, roles ...string) bool {
+func (core *Core) hasRole(r *route.Request, tenant string, roles ...string) bool {
 	user, err := core.AuthenticatedUser(r)
 	if user == nil || err != nil {
 		r.Fail(route.Unauthorized(err, "Authorization required"))
@@ -146,31 +147,32 @@ func (core *Core) hasTenantRole(r *route.Request, tenant string, roles ...string
 		return false
 	}
 
-	for _, m := range memberships {
-		if m.TenantUUID.String() == tenant {
-			for _, role := range roles {
-				if role == m.Role {
+	for _, role := range roles {
+		l := strings.SplitN(role, "/", 2)
+		if len(l) != 2 {
+			continue
+		}
+
+		if l[0] == "system" {
+			if l[1] == "*" && user.SysRole != "" {
+				return true
+			}
+			if l[1] == user.SysRole {
+				return true
+			}
+			continue
+		}
+
+		for _, m := range memberships {
+			if m.TenantUUID.String() == tenant {
+				if l[1] == "*" {
 					return true
 				}
+				if l[1] == m.Role {
+					return true
+				}
+				break
 			}
-			break
-		}
-	}
-
-	r.Fail(route.Forbidden(nil, "Access denied"))
-	return false
-}
-
-func (core *Core) hasSystemRole(r *route.Request, roles ...string) bool {
-	user, err := core.AuthenticatedUser(r)
-	if user == nil || err != nil {
-		r.Fail(route.Unauthorized(err, "Authorization required"))
-		return false
-	}
-
-	for _, role := range roles {
-		if user.SysRole == role {
-			return true
 		}
 	}
 
@@ -219,6 +221,7 @@ func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 	session.UserAgent = r.Req.UserAgent()
 
 	if session.Expired(core.sessionTimeout) {
+		log.Infof("session %s expired; purging...", r.SessionID())
 		core.DB.ClearSession(session.UUID.String())
 		return nil, nil
 	}
@@ -244,25 +247,25 @@ func (core *Core) IsNotAuthenticated(r *route.Request) bool {
 }
 
 func (core *Core) IsNotSystemAdmin(r *route.Request) bool {
-	return !core.hasSystemRole(r, "admin")
+	return !core.hasRole(r, "", "system/admin")
 }
 
 func (core *Core) IsNotSystemManager(r *route.Request) bool {
-	return !core.hasSystemRole(r, "manager", "admin")
+	return !core.hasRole(r, "", "system/manager", "system/admin")
 }
 
 func (core *Core) IsNotSystemEngineer(r *route.Request) bool {
-	return !core.hasSystemRole(r, "engineer", "manager", "admin")
+	return !core.hasRole(r, "", "system/engineer", "system/manager", "system/admin")
 }
 
 func (core *Core) IsNotTenantAdmin(r *route.Request, tenant string) bool {
-	return !core.hasTenantRole(r, tenant, "admin")
+	return !core.hasRole(r, tenant, "tenant/admin", "system/manager", "system/admin")
 }
 
 func (core *Core) IsNotTenantEngineer(r *route.Request, tenant string) bool {
-	return !core.hasTenantRole(r, tenant, "engineer", "admin")
+	return !core.hasRole(r, tenant, "tenant/engineer", "tenant/admin", "system/*")
 }
 
 func (core *Core) IsNotTenantOperator(r *route.Request, tenant string) bool {
-	return !core.hasTenantRole(r, tenant, "operator", "engineer", "admin")
+	return !core.hasRole(r, tenant, "tenant/*", "system/*")
 }

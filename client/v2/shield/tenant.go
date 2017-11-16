@@ -38,6 +38,10 @@ func (c *Client) GetMyTenants() ([]*Tenant, error) {
 		return nil, err
 	}
 
+	if id.User.SysRole != "" {
+		return c.ListTenants(nil)
+	}
+
 	l := make([]*Tenant, len(id.Tenants))
 	for i := range id.Tenants {
 		l[i] = &Tenant{
