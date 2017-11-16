@@ -73,6 +73,19 @@ type AuthID struct {
 		Name string `json:"name"`
 		Role string `json:"role"`
 	} `json:"tenant"`
+
+	Is struct {
+		System struct {
+			Admin    bool `json:"admin"`
+			Manager  bool `json:"manager"`
+			Engineer bool `json:"engineer"`
+		} `json:"system"`
+		Tenants map[string]struct {
+			Admin    bool `json:"admin"`
+			Engineer bool `json:"engineer"`
+			Operator bool `json:"operator"`
+		} `json:"tenant"`
+	} `json:"is"`
 }
 
 func (c *Client) AuthID() (*AuthID, error) {
