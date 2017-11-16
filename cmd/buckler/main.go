@@ -11,6 +11,7 @@ import (
 	fmt "github.com/jhunt/go-ansi"
 	"github.com/jhunt/go-cli"
 	env "github.com/jhunt/go-envirotron"
+	"gopkg.in/yaml.v2"
 
 	"github.com/starkandwayne/shield/client/v2/shield"
 	"github.com/starkandwayne/shield/tui"
@@ -46,6 +47,8 @@ var opts struct {
 	Status struct {
 		Global bool `cli:"--global"`
 	} `cli:"status"`
+
+	Import struct{} `cli:"import"`
 
 	/* CORES {{{ */
 	Cores struct{} `cli:"cores"`
@@ -961,6 +964,41 @@ func main() {
 		}
 		os.Exit(rc)
 
+	/* }}} */
+
+	case "import": /* {{{ */
+		if len(args) < 1 {
+			fail(2, "Usage: buckler %s /path/to/manifest.yml ...\n", command)
+		}
+		readin := false
+		for _, file := range args {
+			var (
+				m   ImportManifest
+				b   []byte
+				err error
+			)
+
+			if file == "-" {
+				if readin {
+					bail(fmt.Errorf("a second '-' file was encountered; but we already read standard input!"))
+				}
+				readin = true
+				b, err = ioutil.ReadAll(os.Stdin)
+				file = "<stdin>"
+			} else {
+				b, err = ioutil.ReadFile(file)
+			}
+			bailon(file, err)
+
+			err = yaml.Unmarshal(b, &m)
+			bailon(file, err)
+
+			err = m.Normalize()
+			bailon(file, err)
+
+			err = m.Deploy(c)
+			bailon(file, err)
+		}
 	/* }}} */
 
 	case "tenants": /* {{{ */

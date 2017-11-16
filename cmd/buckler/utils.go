@@ -34,6 +34,12 @@ func bail(err error) {
 	}
 }
 
+func bailon(pre string, err error) {
+	if err != nil {
+		bail(fmt.Errorf("%s: %s\n", pre, err))
+	}
+}
+
 func required(ok bool, msg string) {
 	if !ok {
 		fmt.Fprintf(os.Stderr, "@Y{%s}\n", msg)
