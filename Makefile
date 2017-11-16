@@ -93,24 +93,23 @@ init:
 save-deps:
 	govendor add +external
 
-ARTIFACTS := artifacts/shield-server-{{.OS}}-{{.Arch}}
+ARTIFACTS := artifacts/shield-server-linux-amd64
 LDFLAGS := -X main.Version=$(VERSION)
 release:
 	@echo "Checking that VERSION was defined in the calling environment"
 	@test -n "$(VERSION)"
 	@echo "OK.  VERSION=$(VERSION)"
-
+	export GOOS=linux GOARCH=amd64
 	for plugin in $$(cat plugins); do \
-	  gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/$$plugin" ./plugin/$$plugin; \
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"     ./plugin/$$plugin; \
 	done
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/cli/shield"                ./cmd/buckler
-
-	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
-	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"   ./cmd/shield-agent
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"           ./cmd/buckler
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
 
 	rm -f artifacts/*.tar.gz
-	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
+	cd artifacts && for x in shield-server-*; do cp -a ../web2/htdocs $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
 
 
 JAVASCRIPTS := web2/src/js/jquery.js
