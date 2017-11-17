@@ -40,7 +40,10 @@ type Config struct {
 	MOTD        string `yaml:"motd"`
 
 	EncryptionType string `yaml:"encryption_type"`
-	VaultKeyfile   string `yaml:"vault_keyfile"`
+
+	VaultAddress string `yaml:"vault_address"`
+	VaultCACert  string `yaml:"vault_ca_cert"`
+	VaultKeyfile string `yaml:"vault_keyfile"`
 
 	SessionTimeout int `yaml:"session_timeout"`
 
@@ -63,6 +66,7 @@ func ReadConfig(file string) (Config, error) {
 		WebRoot:        "web",
 		EncryptionType: "aes256-ctr",
 		VaultKeyfile:   "vault/config.crypt",
+		VaultAddress:   "http://127.0.0.1:8200",
 		SessionTimeout: 720,
 	}
 

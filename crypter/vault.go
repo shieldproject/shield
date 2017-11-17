@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -37,15 +38,22 @@ var status struct {
 	Sealed bool `json:"sealed"`
 }
 
-func NewVault() (Vault, error) {
+func NewVault(url, cacert string) (Vault, error) {
+	pool := x509.NewCertPool()
+	if cacert != "" {
+		if ok := pool.AppendCertsFromPEM([]byte(cacert)); !ok {
+			return Vault{}, fmt.Errorf("Invalid or malformed CA Certificate")
+		}
+	}
+
 	return Vault{
-		URL:      "http://127.0.0.1:8200",
+		URL:      url,
 		Token:    "",
 		Insecure: true,
 		HTTP: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					RootCAs: pool,
 				},
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {

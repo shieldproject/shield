@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -56,6 +57,8 @@ type Core struct {
 	vault          crypter.Vault
 	encryptionType string
 	vaultKeyfile   string
+	vaultAddress   string
+	vaultCACert    string
 
 	/* sessions */
 	sessionTimeout int
@@ -109,6 +112,7 @@ func NewCore(file string) (*Core, error) {
 		/* encryption */
 		encryptionType: config.EncryptionType,
 		vaultKeyfile:   config.VaultKeyfile,
+		vaultAddress:   config.VaultAddress,
 
 		/* session */
 		sessionTimeout: config.SessionTimeout,
@@ -120,6 +124,14 @@ func NewCore(file string) (*Core, error) {
 			Driver: "sqlite3",
 			DSN:    config.DBPath,
 		},
+	}
+
+	if config.VaultCACert != "" {
+		b, err := ioutil.ReadFile(config.VaultCACert)
+		if err != nil {
+			return nil, err
+		}
+		core.vaultCACert = string(b)
 	}
 
 	core.auth = make(map[string]AuthProvider)
@@ -217,7 +229,7 @@ func (core *Core) Run() error {
 	}
 	core.cleanup()
 
-	core.vault, err = crypter.NewVault()
+	core.vault, err = crypter.NewVault(core.vaultAddress, core.vaultCACert)
 	if err != nil {
 		log.Errorf("Failed to create core vault instance with error: %s", err)
 		os.Exit(2)
