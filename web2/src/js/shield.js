@@ -1976,6 +1976,7 @@ function redraw(complete) {
     tenants: $global.auth.tenants,
     tenant:  $global.auth.tenant
   }));
+  document.title = "SHIELD "+$global.shield.env;
 }
 function goto(page) {
   if (document.location.hash == page) {
