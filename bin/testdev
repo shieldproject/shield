@@ -2,6 +2,7 @@
 export PATH=$(pwd):$(pwd)/bin:${PATH}
 export VAULT_SKIP_VERIFY=1
 workdir=$PWD/tmp/work
+storedir=$PWD/tmp/store
 export PORT=${PORT:-8181}
 
 setup_workdir() {
