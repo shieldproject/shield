@@ -74,6 +74,10 @@ import (
 	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
+	"database/sql"
+	"errors"
+	// sql drivers
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -297,10 +301,18 @@ func (p MySQLPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	if err != nil {
 		return err
 	}
-
 	cmd := fmt.Sprintf("%s/mysql %s", mysql.Bin, connectionString(mysql, false))
-	plugin.DEBUG("Exec: %s", cmd)
-	return plugin.Exec(cmd, plugin.STDIN)
+        dbname, err := endpoint.StringValueDefault("mysql_database", "")
+        if err != nil {
+                return err
+        } else if dbname == "" {
+               fmt.Fprintf(os.Stderr,"Restore Full Database \n")
+                return mysqlrestorefull(mysql , cmd)
+        } else {
+                fmt.Fprintf(os.Stderr,"Restore Database %s \n", dbname)
+                plugin.DEBUG("Exec: %s", cmd)
+                return plugin.Exec(cmd, plugin.STDIN)
+        }
 }
 
 func (p MySQLPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
@@ -320,13 +332,106 @@ func connectionString(info *MySQLConnectionInfo, backup bool) string {
 	os.Setenv("MYSQL_PWD", info.Password)
 
 	var db string
-	if info.Database != "" {
-		db = info.Database
-	} else if backup {
-		db = "--all-databases"
+	if backup {
+		if info.Database != "" {
+			db = fmt.Sprintf("--databases %s", info.Database )
+		} else {
+			db = "--all-databases"
+			}
+	} else	{
+		db = ""
+		}
+	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
+}
+
+func connectionclientString(info *MySQLConnectionInfo) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/", info.User, info.Password, info.Host, info.Port )
+}
+
+func mysqlrestorefull(info *MySQLConnectionInfo ,cmd string) error {
+	var gblvar = []struct {
+                name            string
+                oldvalue        string
+                newvalue        string
+        }{
+		{"slow_query_log","","false"},
+                {"general_log","","false"},
+                {"enforce_storage_engine","","NULL"},
 	}
 
-	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
+	var i int
+	db, err := sql.Open("mysql", connectionclientString(info))
+	if err != nil {
+		fmt.Fprintf(os.Stderr," @R{\u2717 MySQL Instance Connection}\n")
+		return err
+	}
+	defer db.Close()
+	err = db.Ping()
+	if err != nil {
+		fmt.Fprintf(os.Stderr," @R{\u2717 MySQL Instance Connection}\n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr," @G{\u2713 MySQL Instance Connection}\n")
+
+	for  i = 0; i < 3; i++ {
+		gblvar[i].oldvalue, err = mysqlshowvariable(db,  gblvar[i].name)
+		if err != nil {
+			fmt.Fprintf(os.Stderr," @R{\u2717 MySQL Backing up original parameters}\n")
+			return err
+		}
+	}
+	fmt.Fprintf(os.Stderr," @G{\u2713 MySQL Backing up original parameters}\n")
+	for  i = 0; i < 3; i++ {
+		 _, err = db.Exec(fmt.Sprintf("SET GLOBAL %s=%s",  gblvar[i].name, gblvar[i].newvalue))
+		if err != nil {
+			fmt.Fprintf(os.Stderr," @R{\u2717 MySQL Updating restore parameters}\n")
+			return err
+		}
+		{
+			idx := i
+			defer func () {
+				_, err := db.Exec(fmt.Sprintf("SET GLOBAL %s=%s",  gblvar[idx].name, gblvar[idx].oldvalue ))
+				if err != nil {
+					fmt.Fprintf(os.Stderr," @R{\u2717 MySQL Restoring original parameter %s}\n",gblvar[idx].name)
+				}
+				fmt.Fprintf(os.Stderr," @G{\u2713 MySQL Restoring original parameter %s}\n", gblvar[idx].name)
+			}()
+		}
+	}
+	fmt.Fprintf(os.Stderr," @G{\u2713 MySQL Updating restore parameters}\n")
+	plugin.DEBUG("Exec: %s --init-command='set sql_log_bin=0'", cmd)
+	err = plugin.Exec(fmt.Sprintf("%s --init-command='set sql_log_bin=0'",cmd), plugin.STDIN)
+	if err != nil {
+		fmt.Fprintf(os.Stderr," @R{\u2717 Restoring instance} \n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr," @G{\u2713 Restoring instance} \n")
+
+	return nil
+}
+
+func mysqlshowvariable( mydb *sql.DB, varname string ) (string, error) {
+	var dummy, varvalue string
+	row, err := mydb.Query(fmt.Sprintf("SHOW GLOBAL VARIABLES LIKE '%s'", varname))
+	if err != nil {
+		return "", err
+	}
+	defer row.Close()
+
+	if row.Next() {
+		err := row.Scan(&dummy, &varvalue)
+	        if err != nil {
+			return "", err
+		}
+		if row.Next() {
+			return "", errors.New("sql: unexpected second row in result set")
+		}
+		err = row.Err()
+	} else
+	{
+		return "", sql.ErrNoRows
+	}
+	return varvalue, err
 }
 
 func mysqlConnectionInfo(endpoint plugin.ShieldEndpoint) (*MySQLConnectionInfo, error) {
