@@ -293,7 +293,7 @@
       ]]
         <h1><a href="#!/systems">SHIELD [[ if ($global.shield.color) { ]]<span style="color:[[= $global.shield.color ]]">[[ } ]][[= $global.shield.env ]]</span> <span>[[= $global.shield.ip ]]</span></a></h1>
         [[ if (_.user) { ]]
-        <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]])[[ } ]]</a>
+        <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]] :: [[= _.tenant.role ]])[[ } ]]</a>
         <div class="flyout ephemeral">
           <div class="menu">
             <div class="header">Signed in as [[= _.user.account ]]
