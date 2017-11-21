@@ -307,10 +307,12 @@
             <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
             [[   }); ]]
             [[ } ]]
+            <!--
             [[ if (_.tenant && $global.auth.is.tenant[_.tenant.uuid].admin) { ]]
                 <div class="divider"></div>
                 <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a> 
             [[ } ]]
+            -->
             <div class="divider"></div>
             <!--a class="dropdown" href="#!/settings">Settings</a-->
             <a class="dropdown" href="#!/logout">Sign Out</a>
