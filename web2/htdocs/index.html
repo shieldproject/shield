@@ -303,7 +303,7 @@
             [[ if (_.tenants.length == 0) { ]]
             <span class="dropdown odd">you have no tenants</span>
             [[ } else { ]]
-            [[   $.each(_.tenants, function (i, tenant) { ]]
+            [[   $.each(_.tenants.sort(function (a, b) { return a.name > b.name ? 1 : a.name == b.name ? 0 : -1 }), function (i, tenant) { ]]
             <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
             [[   }); ]]
             [[ } ]]
