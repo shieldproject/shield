@@ -3405,8 +3405,9 @@ $(function () {
 
         redraw(true);
         var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
-        if (page == "#!/do") { page = "#!/systems"; }
+        if (page == "#!/do")      { page = "#!/systems"; }
         if (page == "#!/tenants") { page = "#!/systems"; }
+        if (page == "#!/admin")   { page = "#!/systems"; }
         goto(page);
         return;
       }
