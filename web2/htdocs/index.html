@@ -2369,7 +2369,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             [[ if ($global.auth.is.system.manager) { ]]
             <a class="new" href="#!/admin/users/new">Create a New Local User &raquo;</a>
-            [[ } }]
+            [[ } ]]
             <h2>Local User Management</h2>
             [[ if (_.users.length == 0) { ]]
             <div class="no-data">No local SHIELD users have been created yet.</div>
