@@ -82,9 +82,10 @@ preflight() {
   v=$(vault -v | awk '{print $2}')
   case $v in
   v0.8.*) ;;
+  v0.9.0) ;;
   *) echo
      echo "The installed version of vault ($v) has not been verified"
-     echo "to work with this version of SHIELD testdev.  Please try v0.8.3"
+     echo "to work with this version of SHIELD testdev.  Please try v0.9.0"
       case $OSTYPE in
       *darwin*) echo
                 echo "On macOS ($OSTYPE), you can \`brew upgrade vault\` and be on your way."
