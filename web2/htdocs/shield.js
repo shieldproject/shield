@@ -3444,7 +3444,7 @@ $(function () {
       success: function (data) {
         $task.html(template('task', {
           task: data,
-          restorable: data.archive_uuid != "" && data.status == "done",
+          restorable: data.type == "backup" && data.archive_uuid != "" && data.status == "done",
         }));
       }
     });
