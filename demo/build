@@ -211,17 +211,19 @@ if [ ! -f /.SETUP-DONE ]; then
   ##
   ## Global Storage
   ##
-  buckler create-global-store         \
-    --name    'Tier 1'                \
-    --agent   172.18.0.6:5444         \
-    --plugin  webdav                  \
-    --data    url=http://webdav/tier1
+  buckler create-global-store           \
+    --name      'Tier 1'                \
+    --agent     172.18.0.6:5444         \
+    --plugin    webdav                  \
+    --threshold 7G                      \
+    --data      url=http://webdav/tier1
 
-  buckler create-global-store         \
-    --name    'Tier 2'                \
-    --agent   172.18.0.6:5444         \
-    --plugin  webdav                  \
-    --data    url=http://webdav/tier2
+  buckler create-global-store           \
+    --name      'Tier 2'                \
+    --agent     172.18.0.6:5444         \
+    --plugin    webdav                  \
+    --threshold 5G                      \
+    --data      url=http://webdav/tier2
 
 
   ##
