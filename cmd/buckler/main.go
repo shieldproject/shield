@@ -147,17 +147,19 @@ var opts struct {
 	Store       struct{} `cli:"store"`
 	DeleteStore struct{} `cli:"delete-store"`
 	CreateStore struct {
-		Name    string   `cli:"-n, --name"`
-		Summary string   `cli:"-s, --summary"`
-		Agent   string   `cli:"-a, --agent"`
-		Plugin  string   `cli:"-p, --plugin"`
-		Data    []string `cli:"-d, --data"`
+		Name      string   `cli:"-n, --name"`
+		Summary   string   `cli:"-s, --summary"`
+		Agent     string   `cli:"-a, --agent"`
+		Plugin    string   `cli:"-p, --plugin"`
+		Threshold string   `cli:"--threshold"`
+		Data      []string `cli:"-d, --data"`
 	} `cli:"create-store"`
 	UpdateStore struct {
 		Name      string   `cli:"-n, --name"`
 		Summary   string   `cli:"-s, --summary"`
 		Agent     string   `cli:"-a, --agent"`
 		Plugin    string   `cli:"-p, --plugin"`
+		Threshold string   `cli:"--threshold"`
 		ClearData bool     `cli:"--clear-data"`
 		Data      []string `cli:"-d, --data"`
 	} `cli:"update-store"`
@@ -172,11 +174,12 @@ var opts struct {
 	GlobalStore       struct{} `cli:"global-store"`
 	DeleteGlobalStore struct{} `cli:"delete-global-store"`
 	CreateGlobalStore struct {
-		Name    string   `cli:"-n, --name"`
-		Summary string   `cli:"-s, --summary"`
-		Agent   string   `cli:"-a, --agent"`
-		Plugin  string   `cli:"-p, --plugin"`
-		Data    []string `cli:"-d, --data"`
+		Name      string   `cli:"-n, --name"`
+		Summary   string   `cli:"-s, --summary"`
+		Agent     string   `cli:"-a, --agent"`
+		Plugin    string   `cli:"-p, --plugin"`
+		Threshold string   `cli:"--threshold"`
+		Data      []string `cli:"-d, --data"`
 	} `cli:"create-global-store"`
 	UpdateGlobalStore struct {
 		Name      string   `cli:"-n, --name"`
@@ -184,6 +187,7 @@ var opts struct {
 		Agent     string   `cli:"-a, --agent"`
 		Plugin    string   `cli:"-p, --plugin"`
 		ClearData bool     `cli:"--clear-data"`
+		Threshold string   `cli:"--threshold"`
 		Data      []string `cli:"-d, --data"`
 	} `cli:"update-global-store"`
 
@@ -1439,14 +1443,21 @@ func main() {
 			if opts.CreateStore.Plugin == "" {
 				opts.CreateStore.Plugin = prompt("@C{Backup Plugin}: ")
 			}
+			if opts.CreateStore.Threshold == "" {
+				opts.CreateStore.Threshold = prompt("@C{Threshold}: ")
+			}
 		}
 
+		thold, err := parseBytes(opts.CreateStore.Threshold)
+		bail(err)
+
 		store, err := c.CreateStore(tenant, &shield.Store{
-			Name:    opts.CreateStore.Name,
-			Summary: opts.CreateStore.Summary,
-			Agent:   opts.CreateStore.Agent,
-			Plugin:  opts.CreateStore.Plugin,
-			Config:  conf,
+			Name:      opts.CreateStore.Name,
+			Summary:   opts.CreateStore.Summary,
+			Agent:     opts.CreateStore.Agent,
+			Plugin:    opts.CreateStore.Plugin,
+			Threshold: thold,
+			Config:    conf,
 		})
 		bail(err)
 
@@ -1461,6 +1472,7 @@ func main() {
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
+		r.Add("Threshold", formatBytes(store.Threshold))
 		r.Output(os.Stdout)
 
 	/* }}} */
@@ -1492,6 +1504,12 @@ func main() {
 			opts.UpdateStore.ClearData = true
 			store.Plugin = opts.UpdateStore.Plugin
 		}
+		if opts.UpdateStore.Threshold != "" {
+			thold, err := parseBytes(opts.UpdateStore.Threshold)
+			fmt.Printf("threshold is '%s' -> %d\n", opts.UpdateStore.Threshold, thold)
+			bail(err)
+			store.Threshold = thold
+		}
 		if opts.UpdateStore.ClearData {
 			store.Config = conf
 		} else {
@@ -1514,6 +1532,7 @@ func main() {
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
+		r.Add("Threshold", formatBytes(store.Threshold))
 		r.Output(os.Stdout)
 
 	/* }}} */
@@ -1625,14 +1644,21 @@ func main() {
 			if opts.CreateGlobalStore.Plugin == "" {
 				opts.CreateGlobalStore.Plugin = prompt("@C{Backup Plugin}: ")
 			}
+			if opts.CreateGlobalStore.Threshold == "" {
+				opts.CreateGlobalStore.Threshold = prompt("@C{Threshold}: ")
+			}
 		}
 
+		thold, err := parseBytes(opts.CreateStore.Threshold)
+		bail(err)
+
 		store, err := c.CreateGlobalStore(&shield.Store{
-			Name:    opts.CreateGlobalStore.Name,
-			Summary: opts.CreateGlobalStore.Summary,
-			Agent:   opts.CreateGlobalStore.Agent,
-			Plugin:  opts.CreateGlobalStore.Plugin,
-			Config:  conf,
+			Name:      opts.CreateGlobalStore.Name,
+			Summary:   opts.CreateGlobalStore.Summary,
+			Agent:     opts.CreateGlobalStore.Agent,
+			Plugin:    opts.CreateGlobalStore.Plugin,
+			Threshold: thold,
+			Config:    conf,
 		})
 		bail(err)
 
@@ -1647,6 +1673,7 @@ func main() {
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
+		r.Add("Threshold", formatBytes(store.Threshold))
 		r.Output(os.Stdout)
 
 	/* }}} */
@@ -1674,6 +1701,11 @@ func main() {
 			opts.UpdateGlobalStore.ClearData = true
 			store.Plugin = opts.UpdateGlobalStore.Plugin
 		}
+		if opts.UpdateGlobalStore.Threshold != "" {
+			thold, err := parseBytes(opts.UpdateGlobalStore.Threshold)
+			bail(err)
+			store.Threshold = thold
+		}
 		if opts.UpdateGlobalStore.ClearData {
 			store.Config = conf
 		} else {
@@ -1696,6 +1728,7 @@ func main() {
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
+		r.Add("Threshold", formatBytes(store.Threshold))
 		r.Output(os.Stdout)
 
 	/* }}} */

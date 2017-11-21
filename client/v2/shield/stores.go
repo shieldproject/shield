@@ -8,12 +8,13 @@ import (
 )
 
 type Store struct {
-	UUID    string `json:"uuid,omitempty"`
-	Name    string `json:"name"`
-	Summary string `json:"summary"`
-	Plugin  string `json:"plugin"`
-	Agent   string `json:"agent"`
-	Healthy bool   `json:"healthy"`
+	UUID      string `json:"uuid,omitempty"`
+	Name      string `json:"name"`
+	Summary   string `json:"summary"`
+	Plugin    string `json:"plugin"`
+	Agent     string `json:"agent"`
+	Healthy   bool   `json:"healthy"`
+	Threshold int64  `json:"threshold"`
 
 	Config map[string]interface{} `json:"config"`
 }

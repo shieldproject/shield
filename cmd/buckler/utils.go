@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -126,4 +128,55 @@ func strftimenil(t int64, ifnil string) string {
 		return ifnil
 	}
 	return strftime(t)
+}
+
+func parseBytes(in string) (int64, error) {
+	if in == "" {
+		return 0, nil
+	}
+
+	re := regexp.MustCompile(`(?i)(\d+(?:\.\d+)?)\s?([kmgt])?b?`)
+	m := re.FindStringSubmatch(in)
+	if m == nil {
+		return 0, fmt.Errorf("Invalid size spec '%s' (try something like '100M' or '1.5gb')", in)
+	}
+	f, err := strconv.ParseFloat(m[1], 64)
+	if err != nil {
+		return 0, fmt.Errorf("Invalid size spec '%s' (%s)", in, err)
+	}
+	fmt.Printf("m = [%v]\n", m)
+	switch m[2] {
+	case "":
+		return int64(f), nil
+
+	case "k", "K":
+		return (int64)(f * 1024), nil
+
+	case "m", "M":
+		return (int64)(f * 1024 * 1024), nil
+
+	case "g", "G":
+		return (int64)(f * 1024 * 1024 * 1024), nil
+
+	case "t", "T":
+		return (int64)(f * 1024 * 1024 * 1024 * 1024), nil
+	}
+
+	return 0, fmt.Errorf("Invalid size spec '%s'", in)
+}
+
+func formatBytes(in int64) string {
+	if in < 1024 {
+		return fmt.Sprintf("%db", in)
+	}
+	if in < 1024*1024 {
+		return fmt.Sprintf("%0.1fK", float64(in)/1024.0)
+	}
+	if in < 1024*1024*1024 {
+		return fmt.Sprintf("%0.1fM", float64(in)/1024.0/1024.0)
+	}
+	if in < 1024*1024*1024*1024 {
+		return fmt.Sprintf("%0.1fG", float64(in)/1024.0/1024.0/1024.0)
+	}
+	return fmt.Sprintf("%0.1fT", float64(in)/1024.0/1024.0/1024.0/1024.0)
 }
