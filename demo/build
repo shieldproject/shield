@@ -128,7 +128,7 @@ EOF
 cat > ${SHIELD_CORE}/etc/setup <<'EOF'
 #!/bin/sh
 set -ex
-exec >&1 >>/var/setup.log 2>&1
+exec >&1 >>/var/log/setup.log 2>&1
 
 date
 echo ">>> SETUP SCRIPT STARTING UP..."
