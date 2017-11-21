@@ -615,7 +615,10 @@ func (core *Core) worker(id int) {
 		})
 
 		if err != nil {
-			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to run command against %s: %s\n", id, task.Agent, err)
+			/* N.B.: there is a temptation to print the error here, but in all the
+			   time we've run this code in production, the error message is
+			   ALWAYS 'process exited X, reason was ()', which is useless. */
+			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to run command against %s\n", id, task.Agent)
 			core.handleFailure(task)
 			continue
 		}
