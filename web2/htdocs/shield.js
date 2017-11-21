@@ -528,7 +528,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
     var $wash = $('<div id="modal" class="modal-wash"></div>').hide();
     $(document.body).append($wash);
 
-    $wash.on('click', '[rel="close"]', function (event) {
+    $wash.on('click', '.closes, [rel="close"]', function (event) {
       event.preventDefault();
       $wash.hide();
     });
@@ -3540,6 +3540,7 @@ $(function () {
         url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/archives/'+uuid+'/restore',
         success: function() {
           banner("restore operation started");
+          redraw(false);
         },
         error: function () {
           banner("unable to schedule restore operation", "error");

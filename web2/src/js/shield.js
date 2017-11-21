@@ -2268,6 +2268,7 @@ $(function () {
         url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/archives/'+uuid+'/restore',
         success: function() {
           banner("restore operation started");
+          redraw(false);
         },
         error: function () {
           banner("unable to schedule restore operation", "error");

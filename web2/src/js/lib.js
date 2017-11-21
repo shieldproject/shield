@@ -524,7 +524,7 @@
     var $wash = $('<div id="modal" class="modal-wash"></div>').hide();
     $(document.body).append($wash);
 
-    $wash.on('click', '[rel="close"]', function (event) {
+    $wash.on('click', '.closes, [rel="close"]', function (event) {
       event.preventDefault();
       $wash.hide();
     });
