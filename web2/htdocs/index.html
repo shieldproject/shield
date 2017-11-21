@@ -859,8 +859,12 @@
           <div class="no-data">This data system has never been backed up successfully.</div>
           [[ } else { ]]
           <div class="archive-row pick-me">
-            <h4>Most Recent Backup: [[= strftime("%x %X", _.archives[0].taken_at) ]]</h4>
+            <h4>Most Recent Backup</h4>
             <dl>
+              <dt>Backup Taken</dt>
+              <dd>[[= strftime("%x %X", _.archives[0].taken_at) ]]<br>
+                  <sub>[[= duration(tdiff(_.archives[0].taken_at, new Date())) ]] ago</sub></dd>
+
               <dt>Archive size</dt>
               <dd>[[= bytes(_.archives[0].size) ]]</dd>
 
@@ -874,6 +878,7 @@
               <table class="archives">
                 <thead><tr>
                   <th>Date of backup</th>
+                  <th>Age of backup</th>
                   <th>Archive size</th>
                   <th>Stored in</th>
                   <th></th>
@@ -883,6 +888,7 @@
                   [[ if (i == 0) { return; } ]]
                   <tr>
                     <th>[[= strftime("%x %X", archive.taken_at) ]]</th>
+                    <td>[[= duration(tdiff(archive.taken_at, new Date())) ]]</th>
                     <td>[[= bytes(archive.size) ]]</td>
                     <td>[[= archive.store_name ]]</td>
                     <td><a href="do-restore:pick:archive:[[= archive.uuid ]]">restore this one &raquo;</a></td>

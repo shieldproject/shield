@@ -1787,3 +1787,40 @@ form.scheduling .subform {
   display: none;
   margin-left: 4em;
 }
+
+.do-restore .pick-an-archive .archive-row {
+  overflow: hidden;
+  border-radius: 0.5em;
+  padding: 2em;
+  background-color: #eee;
+}
+.do-restore .pick-an-archive .archive-row h4 {
+  font-size: 110%;
+  font-weight: bold;
+  color: #0071bc;
+}
+.do-restore .pick-an-archive .archive-row dl {
+  width: 50%;
+  float: left;
+  margin: 2em;
+  font-size: 120%;
+}
+.do-restore .pick-an-archive .archive-row dd sub {
+  font-style: italic;
+  font-size: 90%;
+  font-weight: normal;
+}
+.do-restore .pick-an-archive .archive-row button {
+  display: block;
+  float: right;
+  font-size: 14pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
