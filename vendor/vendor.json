@@ -156,6 +156,12 @@
 			"revision": "547ef5ac979778feb2f760cdb5f4eae1a2207b86"
 		},
 		{
+			"checksumSHA1": "CndM3N2pHvVUezjuBFfbkqB+XdM=",
+			"path": "github.com/gorilla/websocket",
+			"revision": "23059f29570f0e13fca80ef6aea0f04c11daaa4d",
+			"revisionTime": "2017-11-23T07:25:25Z"
+		},
+		{
 			"comment": "v0.8.0",
 			"path": "github.com/hashicorp/consul/api",
 			"revision": "402636ff2db998edef392ac6d59210d2170b3ebf"
