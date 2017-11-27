@@ -669,6 +669,18 @@ function dispatch(page) {
       error: "Failed retrieving metadata for protected system from the SHIELD API.",
       success: function (data) {
         $('#main').html(template('system', { target: data }));
+        watchTasks($global.auth.tenant.uuid, data.uuid, function (r) {
+          task = JSON.parse(r.data);
+          for (var i = 0; i < data.tasks.length; i++) {
+            if (data.tasks[i].uuid == task.uuid) {
+              data.tasks[i] = task;
+              $('#main').html(template('system', { target: data }));
+              return;
+            }
+          }
+          data.tasks.unshift(task);
+          $('#main').html(template('system', { target: data }));
+        });
       }
     });
     break; /* #!/systems/system */
@@ -2243,7 +2255,6 @@ $(function () {
       url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs/'+uuid+'/run',
       success: function () {
         banner('ad hoc backup job scheduled');
-        reload();
       },
       error: function () {
         banner('unable to schedule ad hoc backup job', 'error');

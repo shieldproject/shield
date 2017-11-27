@@ -1450,7 +1450,7 @@
             <div class="timeline">
                 [[ $.each(_.target.tasks, function (i, task) { ]]
                   [[ task.is = {};
-                     task.is.handled  = (task.stopped_at == ''
+                     task.is.handled  = (task.stopped_at
                                       && task.status != 'done'
                                       && task.ok);
                   ]]

@@ -38,6 +38,8 @@ type Core struct {
 	/* foreman */
 	numWorkers int
 	workers    chan *db.Task
+	broadcast  Broadcaster
+	events     chan Event
 
 	/* monitor */
 	agents map[string]chan *db.Agent
@@ -95,6 +97,8 @@ func NewCore(file string) (*Core, error) {
 		/* foreman */
 		numWorkers: config.Workers,
 		workers:    make(chan *db.Task),
+		broadcast:  NewBroadcaster(2048),
+		events:     make(chan Event),
 
 		/* monitor */
 		agents: make(map[string]chan *db.Agent),
@@ -244,6 +248,7 @@ func (core *Core) Run() error {
 
 	core.api()
 	core.runWorkers()
+	core.runBroadcast()
 
 	for {
 		select {
@@ -287,6 +292,14 @@ func (core *Core) api() {
 			os.Exit(2)
 		}
 		log.Infof("shutting down shield core api")
+	}()
+}
+
+func (core *Core) runBroadcast() {
+	go func() {
+		for ev := range core.events {
+			core.broadcast.Broadcast(ev)
+		}
 	}()
 }
 
@@ -534,20 +547,9 @@ func (core *Core) worker(id int) {
 	for task := range core.workers {
 		log.Debugf("worker %d starting to execute task %s", id, task.UUID)
 
-		if err := core.DB.StartTask(task.UUID, time.Now()); err != nil {
-			log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-		}
-
+		core.startTask(task)
 		if task.Agent == "" {
-			err := core.DB.UpdateTaskLog(
-				task.UUID,
-				fmt.Sprintf("TASK FAILED!!  no remote agent specified for task %s", task.UUID),
-			)
-			if err != nil {
-				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-			}
-
-			core.handleFailure(task)
+			core.failTask(task, "no remote agent specified for task %s", task.UUID)
 			continue
 		}
 
@@ -555,7 +557,7 @@ func (core *Core) worker(id int) {
 		stderr := make(chan string)
 		go func() {
 			for s := range stderr {
-				core.handleOutput(task, "%s", s)
+				core.logToTask(task, s)
 			}
 		}()
 
@@ -564,8 +566,7 @@ func (core *Core) worker(id int) {
 
 			enc_key, enc_iv, err := core.vault.CreateBackupEncryptionConfig(core.encryptionType)
 			if err != nil {
-				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption key/iv pair: %s\n", id, err)
-				core.handleFailure(task)
+				core.failTask(task, "shield worker %d failed to generate encryption parameters: %s\n", id, err)
 				continue
 			}
 
@@ -577,8 +578,7 @@ func (core *Core) worker(id int) {
 			})
 
 			if err != nil {
-				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to set encryption vars: %s\n", id, err)
-				core.handleFailure(task)
+				core.failTask(task, "shield worker %d failed to set encryption parameters: %s\n", id, err)
 				continue
 			}
 
@@ -586,8 +586,7 @@ func (core *Core) worker(id int) {
 
 		data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
 		if err != nil {
-			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to set encryption uuid: %s\n", id, err)
-			core.handleFailure(task)
+			core.failTask(task, "shield worker %d unable retrieve encryption parameters: %s\n", id, err)
 			continue
 		}
 
@@ -618,12 +617,10 @@ func (core *Core) worker(id int) {
 			/* N.B.: there is a temptation to print the error here, but in all the
 			   time we've run this code in production, the error message is
 			   ALWAYS 'process exited X, reason was ()', which is useless. */
-			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to run command against %s\n", id, task.Agent)
-			core.handleFailure(task)
+			core.failTask(task, "shield workder %d unable to run command against %s\n", id, task.Agent)
 			continue
 		}
 
-		failed := false
 		response := <-stdout
 		if task.Op == db.BackupOperation {
 			var v struct {
@@ -631,40 +628,38 @@ func (core *Core) worker(id int) {
 				Size int64  `json:"archive_size"`
 			}
 			if err := json.Unmarshal([]byte(response), &v); err != nil {
-				failed = true
-				core.handleOutput(task, "WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, task.Agent, err)
+				core.failTask(task, "shield worker %d failed to parse JSON response from remote agent %s: %s\n", id, task.Agent, err)
+				continue
 
 			} else {
 				if v.Key != "" {
 					log.Infof("  %s: restore key is %s", task.UUID, v.Key)
-					if id, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Size, task.TenantUUID); err != nil {
+					if _, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Size, task.TenantUUID); err != nil {
 						log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-					} else if failed {
-						core.DB.InvalidateArchive(id)
 					}
 
 				} else {
-					failed = true
-					core.handleOutput(task, "TASK FAILED!! No restore key detected in worker %d. Cowardly refusing to create an archive record\n", id)
+					core.failTask(task, "shield worker %d did not detect a restore key in the store plugin output\nCowardly refusing to create an archive record\n", id)
+					continue
 				}
 			}
 		}
 
-		if task.Op == db.PurgeOperation && !failed {
+		if task.Op == db.PurgeOperation {
 			log.Infof("  %s: archive %s purged from storage", task.UUID, task.ArchiveUUID)
 			if err := core.DB.PurgeArchive(task.ArchiveUUID); err != nil {
 				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 			}
 		}
 
-		if task.Op == db.TestStoreOperation && !failed {
+		if task.Op == db.TestStoreOperation {
 			var v struct {
 				Healthy bool `json:"healthy"`
 			}
 
 			if err := json.Unmarshal([]byte(response), &v); err != nil {
-				failed = true
-				core.handleOutput(task, "WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, task.Agent, err)
+				core.failTask(task, "shield worker %d failed to parse JSON response from remote agent %s: %s\n", id, task.Agent, err)
+				continue
 
 			} else {
 				store, err := core.DB.GetStore(task.StoreUUID)
@@ -672,8 +667,7 @@ func (core *Core) worker(id int) {
 					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
 				}
 				if store == nil {
-					core.handleOutput(task, "TASK FAILED!!  shield worker %d error store not found when testing store health: %s\n", id)
-					core.handleFailure(task)
+					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
 					continue
 				}
 				store.Healthy = v.Healthy
@@ -685,17 +679,11 @@ func (core *Core) worker(id int) {
 			log.Infof("  %s: cloud storage %s tested", task.UUID, task.StoreUUID)
 		}
 
-		if failed {
-			core.handleFailure(task)
-		} else {
-			log.Infof("  %s: job completed successfully", task.UUID)
-			if err := core.DB.CompleteTask(task.UUID, time.Now()); err != nil {
-				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-			}
-			if task.Op == db.BackupOperation {
-				log.Infof("  %s: triggering an update to storage analytics", task.UUID)
-				core.updateStorageUsage()
-			}
+		log.Infof("  %s: job completed successfully", task.UUID)
+		core.finishTask(task)
+		if task.Op == db.BackupOperation {
+			log.Infof("  %s: triggering an update to storage analytics", task.UUID)
+			core.updateStorageUsage()
 		}
 	}
 }

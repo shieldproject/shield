@@ -1251,6 +1251,30 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
     return data;
   };
   // }}}
+
+
+  exported.watchTasks = (function () {
+    var socket = undefined;
+
+    return function (tenant, target, cb) {
+      if (socket) { socket.close(); }
+
+      console.log("watching tasks for tenant "+tenant+", target "+target)
+      socket = new WebSocket(document.location.protocol.replace(/http/, 'ws')+"//"+document.location.host+"/v2/tenants/"+tenant+"/systems/"+target+"/events");
+      socket.onmessage = cb;
+    }
+  })();
+
+  exported.sockify = function (tenant) {
+    var socket = new WebSocket(document.location.protocol.replace(/http/, 'ws')+"//"+document.location.host+"/v2/tenants/"+tenant+"/events");
+    socket.onopen    = function () { console.log('socket open: ',    arguments); };
+    socket.onclose   = function () { console.log('socket close: ',   arguments); };
+    socket.onmessage = function () { console.log('socket message: ', arguments);
+      console.log(arguments[0].message.data);
+      console.dir(JSON.parse(arguments[0].message.data));
+    };
+    return socket;
+  }
 })(window, document);
 ;(function () {
   /*
@@ -1941,6 +1965,18 @@ function dispatch(page) {
       error: "Failed retrieving metadata for protected system from the SHIELD API.",
       success: function (data) {
         $('#main').html(template('system', { target: data }));
+        watchTasks($global.auth.tenant.uuid, data.uuid, function (r) {
+          task = JSON.parse(r.data);
+          for (var i = 0; i < data.tasks.length; i++) {
+            if (data.tasks[i].uuid == task.uuid) {
+              data.tasks[i] = task;
+              $('#main').html(template('system', { target: data }));
+              return;
+            }
+          }
+          data.tasks.unshift(task);
+          $('#main').html(template('system', { target: data }));
+        });
       }
     });
     break; /* #!/systems/system */
@@ -3515,7 +3551,6 @@ $(function () {
       url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs/'+uuid+'/run',
       success: function () {
         banner('ad hoc backup job scheduled');
-        reload();
       },
       error: function () {
         banner('unable to schedule ad hoc backup job', 'error');

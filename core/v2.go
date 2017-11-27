@@ -43,9 +43,11 @@ type v2SystemTask struct {
 	Owner       string           `json:"owner"`
 	RequestedAt int64            `json:"requested_at"`
 	StartedAt   int64            `json:"started_at"`
+	StoppedAt   int64            `json:"stopped_at"`
 	OK          bool             `json:"ok"`
 	Notes       string           `json:"notes"`
 	Archive     *v2SystemArchive `json:"archive,omitempty"`
+	Log         string           `json:"log"`
 }
 type v2SystemJob struct {
 	UUID     uuid.UUID `json:"uuid"`
@@ -763,6 +765,8 @@ func (core *Core) v2API() *route.Router {
 			system.Tasks[i].Notes = task.Notes
 			system.Tasks[i].RequestedAt = task.RequestedAt
 			system.Tasks[i].StartedAt = task.StartedAt
+			system.Tasks[i].StoppedAt = task.StoppedAt
+			system.Tasks[i].Log = task.Log
 
 			if archive, ok := archives[task.ArchiveUUID.String()]; ok {
 				system.Tasks[i].Archive = &v2SystemArchive{
@@ -776,6 +780,36 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		r.OK(system)
+	})
+	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/systems/:uuid/events", func(r *route.Request) { // {{{
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
+		log.Infof("registering broadcast receiver")
+		in := make(chan Event)
+		id, err := core.broadcast.Register(in)
+		if err != nil {
+			r.Fail(route.Oops(err, "an internal error has occurred"))
+			return
+		}
+
+		socket := r.Upgrade()
+		if socket == nil {
+			return
+		}
+
+		go socket.Discard()
+		for event := range in {
+			if event.Task != nil && event.Task.TenantUUID.String() == r.Args[1] && event.Task.TargetUUID.String() == r.Args[2] {
+				socket.Write(event.JSON)
+			}
+		}
+		if err := core.broadcast.Unregister(id); err != nil {
+			log.Errorf("unable to unregister broadcast receiver: %s", err)
+		}
+		close(in)
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
