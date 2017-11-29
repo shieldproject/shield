@@ -50,6 +50,11 @@ func validPartSize(v string) bool {
 	return parsePartSize(v) >= 5*1024*1024*1024
 }
 
+func validBucketName(v string) bool {
+	ok, err := regexp.MatchString(`^[a-z0-9][a-z0-9\.\-]{1,61}[a-z0-9]$`, v)
+	return ok && err == nil
+}
+
 func main() {
 	p := S3Plugin{
 		Name:    "Amazon S3 Storage Plugin",
@@ -234,6 +239,9 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
 		fmt.Printf("@R{\u2717 bucket               %s}\n", err)
+		fail = true
+	} else if !validBucketName(s) {
+		fmt.Printf("@R{\u2717 bucket               '%s' is an invalid bucket name (must be all lowercase)}\n", s)
 		fail = true
 	} else {
 		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
