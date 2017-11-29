@@ -241,11 +241,6 @@
 			"revisionTime": "2017-09-22T20:54:32Z"
 		},
 		{
-			"comment": "v1.0.0",
-			"path": "github.com/minio/minio-go",
-			"revision": "84b89f6f458668d047b0de2d2cdf596dcf4a79a1"
-		},
-		{
 			"checksumSHA1": "H4cr9VWdZBK2OqHE1bnxMthh4ak=",
 			"path": "github.com/nwaples/rardecode",
 			"revision": "f22b7ef81a0afac9ce1447d37e5ab8e99fbd2f73",
@@ -430,11 +425,6 @@
 			"path": "github.com/pierrec/xxHash/xxHash32",
 			"revision": "a0006b13c722f7f12368c00a3d3c2ae8a999a0c6",
 			"revisionTime": "2017-07-14T08:24:55Z"
-		},
-		{
-			"comment": "1.0.1-48-g84dd430",
-			"path": "github.com/starkandwayne/minio-go",
-			"revision": "84dd430f98ca7c34d673046dc7757bc828d3388b"
 		},
 		{
 			"checksumSHA1": "z2kAtVle4NFV2OExI85fZoTcsI4=",
