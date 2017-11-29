@@ -62,6 +62,7 @@ EOF
   set -e
   echo ">> Setting up a local (loopback) Vault"
   export PATH=$PATH:$WORKDIR
+  vault version
   vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
   set +e
 }
