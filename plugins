@@ -12,7 +12,6 @@ postgres
 rabbitmq-broker
 redis-broker
 s3
-scality
 swift
 webdav
 xtrabackup

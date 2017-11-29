@@ -3,6 +3,8 @@ package main
 import (
 	"io"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,11 +18,36 @@ const (
 	DefaultS3Host            = "s3.amazonaws.com"
 	DefaultPrefix            = ""
 	DefaultSigVersion        = "4"
+	DefaultPartSize          = "5M"
 	DefaultSkipSSLValidation = false
 )
 
 func validSigVersion(v string) bool {
 	return v == "2" || v == "4"
+}
+
+func parsePartSize(v string) int {
+	re := regexp.MustCompile(`(?i)^(\d+)([mg])b?`)
+	m := re.FindStringSubmatch(v)
+	if m == nil {
+		return -1
+	}
+	n, err := strconv.ParseInt(m[1], 10, 64)
+	if err != nil {
+		return -1
+	}
+	switch strings.ToLower(m[2]) {
+	case "m":
+		return int(n * 1024 * 1024 * 1024)
+	case "g":
+		return int(n * 1024 * 1024 * 1024 * 1024)
+	default:
+		return -1
+	}
+}
+
+func validPartSize(v string) bool {
+	return parsePartSize(v) >= 5*1024*1024*1024
 }
 
 func main() {
@@ -40,6 +67,7 @@ func main() {
 
   "s3_host"             : "s3.amazonaws.com",    # override Amazon S3 endpoint
   "s3_port"             : ""                     # optional port to access s3_host on
+  "part_size"           : "75m",                 # optional multipart upload part size
   "skip_ssl_validation" : false,                 # Skip certificate verification (not recommended)
   "prefix"              : "/path/in/bucket",     # where to store archives, inside the bucket
   "signature_version"   : "4",                   # AWS signature version; must be '2' or '4'
@@ -50,7 +78,8 @@ func main() {
 {
   "s3_host"             : "s3.amazonawd.com",
   "signature_version"   : "4",
-  "skip_ssl_validation" : false
+  "skip_ssl_validation" : false,
+  "part_size"           : "5M"
 }
 `,
 		Fields: []plugin.Field{
@@ -111,6 +140,15 @@ func main() {
 				Default: DefaultSigVersion,
 			},
 			plugin.Field{
+				Mode:    "store",
+				Name:    "part_size",
+				Type:    "string",
+				Title:   "Multipart Upload Part Size",
+				Help:    "How big should the individual parts of the backup upload be?  This must be at least 5M.",
+				Example: "100MB, 64M, etc.",
+				Default: DefaultPartSize,
+			},
+			plugin.Field{
 				Mode:  "store",
 				Name:  "socks5_proxy",
 				Type:  "string",
@@ -142,6 +180,7 @@ type s3Endpoint struct {
 	SignatureVersion  int
 	SOCKS5Proxy       string
 	Port              string
+	PartSize          int
 }
 
 func (p S3Plugin) Meta() plugin.PluginInfo {
@@ -222,6 +261,17 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 signature_version}    @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValueDefault("part_size", DefaultPartSize)
+	if err != nil {
+		fmt.Printf("@R{\u2717 part_size            %s}\n", err)
+		fail = true
+	} else if !validPartSize(s) {
+		fmt.Printf("@R{\u2717 part_size            Invalid part size '%s'}\n", s)
+		fail = true
+	} else {
+		fmt.Printf("@G{\u2713 part_size}            @C{%s}\n", s)
+	}
+
 	s, err = endpoint.StringValueDefault("socks5_proxy", "")
 	if err != nil {
 		fmt.Printf("@R{\u2717 socks5_proxy         %s}\n", err)
@@ -275,8 +325,7 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 		return "", 0, err
 	}
 
-	/* FIXME: make block size configurable */
-	size, err := upload.Stream(os.Stdin, 5*1024*1024*1024)
+	size, err := upload.Stream(os.Stdin, c.PartSize)
 	if err != nil {
 		return "", 0, err
 	}
@@ -363,6 +412,12 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		sigVer = 2
 	}
 
+	s, err = e.StringValueDefault("part_size", DefaultPartSize)
+	if !validPartSize(s) {
+		return s3Endpoint{}, fmt.Errorf("Invalid `part_size` specified (`%s`).", s)
+	}
+	partSize := parsePartSize(s)
+
 	proxy, err := e.StringValueDefault("socks5_proxy", "")
 	if err != nil {
 		return s3Endpoint{}, err
@@ -383,6 +438,7 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		SignatureVersion:  sigVer,
 		SOCKS5Proxy:       proxy,
 		Port:              port,
+		PartSize:          partSize,
 	}, nil
 }
 

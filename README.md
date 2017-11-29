@@ -34,7 +34,6 @@ Engineers should be able to integrate support for new data systems and storage s
 | [RabbitMQ Broker](https://godoc.org/github.com/starkandwayne/shield/plugin/rabbitmq-broker) | rabbitmq-broker | X      |       |
 | [Redis Broker](https://godoc.org/github.com/starkandwayne/shield/plugin/redis-broker)       | redis-broker    | X      |       |
 | [S3](https://godoc.org/github.com/starkandwayne/shield/plugin/s3)                           | s3              |        | X     |
-| [Scality](https://godoc.org/github.com/starkandwayne/shield/plugin/scality)                 | scality         |        | X     |
 | [Xtra Backup](https://godoc.org/github.com/starkandwayne/shield/plugin/xtrabackup)          | xtrabackup      | X      |       |
 
 **See a missing plugin? Create one and submit a PR**<br>

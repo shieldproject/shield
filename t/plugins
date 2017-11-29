@@ -361,7 +361,7 @@ with "Missing required --key flag"
 
 
 ####################################################################################
-for x in s3 scality \
+for x in s3 \
          fs \
          azure \
          consul \

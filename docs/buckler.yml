@@ -34,7 +34,7 @@ tenants:
     storage:
       - name: Scality
         agent:  10.32.45.10:5444
-        plugin: scality
+        plugin: s3
         config:
           s3_host: 10.32.45.1
           s3_port: 8200
