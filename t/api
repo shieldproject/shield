@@ -33,6 +33,23 @@ cleanup () {
 trap "cleanup >&2" EXIT QUIT INT TERM
 
 spin_vault() {
+  if [[ -z "$(type vault 2>/dev/null)" ]]; then
+    VAULT_VERSION=0.9.0
+    echo "... retrieving vault $VAULT_VERSION form the web..."
+    case $OSTYPE in
+    *darwin*) curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_darwin_amd64.zip ;;
+    *linux*)  curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip  ;;
+    *) echo >&2 "unable to determine OSTYPE, and the vault command was not found.  bailing..."; exit 1 ;;
+    esac
+
+    pushd $WORKDIR
+      rm -f vault
+      unzip vault.zip
+      rm -f vault.zip
+      chmod 755 vault
+    popd
+  fi
+
   cat >${WORKDIR}/etc/vault.conf <<EOF
 storage "inmem" {}
 disable_mlock = true
@@ -44,6 +61,7 @@ EOF
 
   set -e
   echo ">> Setting up a local (loopback) Vault"
+  export PATH=$PATH:$WORKDIR
   vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
   set +e
 }
