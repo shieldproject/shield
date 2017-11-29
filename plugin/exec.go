@@ -37,8 +37,8 @@ func ExecWithOptions(opts ExecOptions) error {
 	var encStream, decStream cipher.Stream
 	var data struct {
 		EncryptionKey  string `json:"enc_key"`
-		EncrypyionIV   string `json:"enc_iv"`
-		EncrypyionType string `json:"enc_type"`
+		EncryptionIV   string `json:"enc_iv"`
+		EncryptionType string `json:"enc_type"`
 	}
 	decoder := json.NewDecoder(os.NewFile(uintptr(3), "encConfig"))
 	if err := decoder.Decode(&data); err == nil {
@@ -46,13 +46,13 @@ func ExecWithOptions(opts ExecOptions) error {
 		if err != nil {
 			return err
 		}
-		ivRaw, err := hex.DecodeString(data.EncrypyionIV)
+		ivRaw, err := hex.DecodeString(data.EncryptionIV)
 		if err != nil {
 			return err
 		}
 
-		if data.EncrypyionType != "" {
-			encStream, decStream, err = crypter.Stream(data.EncrypyionType, keyRaw, ivRaw)
+		if data.EncryptionType != "" {
+			encStream, decStream, err = crypter.Stream(data.EncryptionType, keyRaw, ivRaw)
 			if err != nil {
 				return err
 			}
