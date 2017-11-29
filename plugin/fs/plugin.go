@@ -55,12 +55,11 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -71,7 +70,7 @@ var (
 
 func main() {
 	p := FSPlugin{
-		Name:    "FS Plugin",
+		Name:    "Local Filesystem Plugin",
 		Author:  "Stark & Wayne",
 		Version: "1.0.0",
 		Features: plugin.PluginFeatures{
@@ -94,6 +93,51 @@ func main() {
   "bsdtar" : "/var/vcap/packages/bsdtar/bin/bsdtar"
 }
 `,
+
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "target",
+				Name:     "base_dir",
+				Type:     "abspath",
+				Title:    "Base Directory",
+				Help:     "Absolute path of the directory to backup.",
+				Example:  "/srv/www/htdocs",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "base_dir",
+				Type:     "abspath",
+				Title:    "Base Directory",
+				Help:     "Where to store the backup archives, on-disk.  This must be an absolute path, and the directory must exist.",
+				Example:  "/var/store/backups",
+				Required: true,
+			},
+
+			plugin.Field{
+				Mode:  "target",
+				Name:  "include",
+				Type:  "string",
+				Title: "Files to Include",
+				Help:  "Only files that match this pattern will be included in the backup archive.  If not specified, all files will be included.",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "exclude",
+				Type:  "abspath",
+				Title: "Files to Exclude",
+				Help:  "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded.",
+			},
+
+			plugin.Field{
+				Mode:    "both",
+				Name:    "bsdtar",
+				Type:    "abspath",
+				Title:   "Path to `bsdtar` Utility",
+				Help:    "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
+				Default: "/var/vcap/packages/bsdtar/bin/bsdtar",
+			},
+		},
 	}
 
 	plugin.DEBUG("fs plugin starting up...")
@@ -151,40 +195,40 @@ func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("base_dir")
 	if err != nil {
-		ansi.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fmt.Printf("@R{\u2717 base_dir  %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
+		fmt.Printf("@G{\u2713 base_dir}  files in @C{%s} will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("include", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 include   %s}\n", err)
+		fmt.Printf("@R{\u2717 include   %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 include}   all files will be included\n")
+		fmt.Printf("@G{\u2713 include}   all files will be included\n")
 	} else {
-		ansi.Printf("@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
+		fmt.Printf("@G{\u2713 include}   only files matching @C{%s} will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("exclude", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 base_dir  %s}\n", err)
+		fmt.Printf("@R{\u2717 base_dir  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 exclude}   no files will be excluded\n")
+		fmt.Printf("@G{\u2713 exclude}   no files will be excluded\n")
 	} else {
-		ansi.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
+		fmt.Printf("@G{\u2713 exclude}   files matching @C{%s} will be skipped\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("bsdtar", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 bsdtar    %s}\n", err)
+		fmt.Printf("@R{\u2717 bsdtar    %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 bsdtar}    using default @C{%s}\n", DefaultBsdTar)
+		fmt.Printf("@G{\u2713 bsdtar}    using default @C{%s}\n", DefaultBsdTar)
 	} else {
-		ansi.Printf("@G{\u2713 bsdtar}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bsdtar}    @C{%s}\n", s)
 	}
 
 	if fail {
@@ -234,10 +278,11 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	var size int64
 	cfg, err := getFSConfig(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	t := time.Now()
@@ -250,20 +295,20 @@ func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 
 	err = os.MkdirAll(fmt.Sprintf("%s/%s", cfg.BasePath, dir), 0777) // umask will lower...
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	f, err := os.Create(fmt.Sprintf("%s/%s/%s", cfg.BasePath, dir, file))
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	defer f.Close()
 
-	if _, err = io.Copy(f, os.Stdin); err != nil {
-		return "", err
+	if size, err = io.Copy(f, os.Stdin); err != nil {
+		return "", 0, err
 	}
 
-	return fmt.Sprintf("%s/%s", dir, file), nil
+	return fmt.Sprintf("%s/%s", dir, file), size, nil
 }
 
 func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

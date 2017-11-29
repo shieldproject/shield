@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	// sql drivers
-	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
 	. "github.com/starkandwayne/shield/db"
@@ -24,7 +23,7 @@ func Database(sqls ...string) (*DB, error) {
 		return nil, err
 	}
 
-	if err := db.Setup(); err != nil {
+	if _, err := db.Setup(0); err != nil {
 		db.Disconnect()
 		return nil, err
 	}
@@ -61,13 +60,15 @@ var _ = Describe("Database Schema", func() {
 			})
 
 			It("should create tables during Setup()", func() {
-				Ω(db.Setup()).Should(Succeed())
+				_, err := db.Setup(0)
+				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.Exec("SELECT * FROM schema_info")).
 					Should(Succeed())
 			})
 
 			It("should set the version number in schema_info", func() {
-				Ω(db.Setup()).Should(Succeed())
+				_, err := db.Setup(0)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				r, err := db.Query(`SELECT version FROM schema_info`)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -76,11 +77,12 @@ var _ = Describe("Database Schema", func() {
 
 				var v int
 				Ω(r.Scan(&v)).Should(Succeed())
-				Ω(v).Should(Equal(3))
+				Ω(v).Should(Equal(4))
 			})
 
 			It("creates the correct tables", func() {
-				Ω(db.Setup()).Should(Succeed())
+				_, err := db.Setup(0)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				tableExists := func(table string) {
 					sql := fmt.Sprintf("SELECT * FROM %s", table)
@@ -89,7 +91,6 @@ var _ = Describe("Database Schema", func() {
 
 				tableExists("targets")
 				tableExists("stores")
-				tableExists("schedules")
 				tableExists("retention")
 				tableExists("jobs")
 				tableExists("archives")
@@ -101,8 +102,8 @@ var _ = Describe("Database Schema", func() {
 	Describe("Schema Version Interrogation", func() {
 		It("should return an error for a bad database connection", func() {
 			db := &DB{
-				Driver: "postgres",
-				DSN:    "host=127.86.86.86, port=8686",
+				Driver: "sqlite3",
+				DSN:    "/path/to/no/such/file",
 			}
 
 			db.Connect()

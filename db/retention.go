@@ -12,9 +12,12 @@ type RetentionPolicy struct {
 	Name    string    `json:"name"`
 	Summary string    `json:"summary"`
 	Expires uint      `json:"expires"`
+
+	TenantUUID uuid.UUID `json:"-"`
 }
 
 type RetentionFilter struct {
+	ForTenant  string
 	SkipUsed   bool
 	SkipUnused bool
 	SearchName string
@@ -36,9 +39,14 @@ func (f *RetentionFilter) Query() (string, []interface{}) {
 		args = append(args, toAdd)
 	}
 
+	if f.ForTenant != "" {
+		wheres = append(wheres, "r.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
+	}
+
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT r.uuid, r.name, r.summary, r.expiry, -1 AS n
+			SELECT r.uuid, r.tenant_uuid, r.name, r.summary, r.expiry, -1 AS n
 				FROM retention r
 				WHERE ` + strings.Join(wheres, " AND ") + `
 				ORDER BY r.name, r.uuid ASC
@@ -53,7 +61,7 @@ func (f *RetentionFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-		SELECT DISTINCT r.uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
+		SELECT DISTINCT r.uuid, r.tenant_uuid, r.name, r.summary, r.expiry, COUNT(j.uuid) AS n
 			FROM retention r
 				LEFT JOIN jobs j
 					ON j.retention_uuid = r.uuid
@@ -78,16 +86,18 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 	defer r.Close()
 
 	for r.Next() {
-		ann := &RetentionPolicy{}
+		p := &RetentionPolicy{}
 		var n int
 		var this NullUUID
+		var tenant NullUUID
 
-		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Expires, &n); err != nil {
+		if err = r.Scan(&this, &tenant, &p.Name, &p.Summary, &p.Expires, &n); err != nil {
 			return l, err
 		}
-		ann.UUID = this.UUID
+		p.UUID = this.UUID
+		p.TenantUUID = tenant.UUID
 
-		l = append(l, ann)
+		l = append(l, p)
 	}
 
 	return l, nil
@@ -95,7 +105,7 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 
 func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 	r, err := db.Query(`
-		SELECT uuid, name, summary, expiry
+		SELECT uuid, tenant_uuid, name, summary, expiry
 			FROM retention WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
@@ -105,36 +115,34 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 	if !r.Next() {
 		return nil, nil
 	}
-	ann := &RetentionPolicy{}
+	p := &RetentionPolicy{}
 	var this NullUUID
-	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Expires); err != nil {
+	var tenant NullUUID
+	if err = r.Scan(&this, &tenant, &p.Name, &p.Summary, &p.Expires); err != nil {
 		return nil, err
 	}
-	ann.UUID = this.UUID
+	p.UUID = this.UUID
+	p.TenantUUID = tenant.UUID
 
-	return ann, nil
+	return p, nil
 }
 
-func (db *DB) AnnotateRetentionPolicy(id uuid.UUID, name string, summary string) error {
-	return db.Exec(
-		`UPDATE retention SET name = ?, summary = ? WHERE uuid = ?`,
-		name, summary, id.String(),
-	)
+func (db *DB) CreateRetentionPolicy(p *RetentionPolicy) (*RetentionPolicy, error) {
+	p.UUID = uuid.NewRandom()
+	return p, db.Exec(`
+	   INSERT INTO retention (uuid, tenant_uuid, name, summary, expiry)
+	                  VALUES (?,    ?,           ?,    ?,       ?)`,
+		p.UUID.String(), p.TenantUUID.String(), p.Name, p.Summary, p.Expires)
 }
 
-func (db *DB) CreateRetentionPolicy(expiry uint) (uuid.UUID, error) {
-	id := uuid.NewRandom()
-	return id, db.Exec(
-		`INSERT INTO retention (uuid, expiry) VALUES (?, ?)`,
-		id.String(), expiry,
-	)
-}
-
-func (db *DB) UpdateRetentionPolicy(id uuid.UUID, expiry uint) error {
-	return db.Exec(
-		`UPDATE retention SET expiry = ? WHERE uuid = ?`,
-		expiry, id.String(),
-	)
+func (db *DB) UpdateRetentionPolicy(p *RetentionPolicy) error {
+	return db.Exec(`
+	   UPDATE retention
+	      SET name    = ?,
+	          summary = ?,
+	          expiry  = ?
+	    WHERE uuid = ?`,
+		p.Name, p.Summary, p.Expires, p.UUID.String())
 }
 
 func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
@@ -169,4 +177,20 @@ func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 		`DELETE FROM retention WHERE uuid = ?`,
 		id.String(),
 	)
+}
+
+//InheritRetentionTemplates gives a tenant the global (templated) retention policies
+func (db *DB) InheritRetentionTemplates(tenant *Tenant) error {
+
+	//all of the global tenants are defined with a nil UUID
+	policies, err := db.GetAllRetentionPolicies(&RetentionFilter{ForTenant: uuid.NIL.String()})
+	if err != nil {
+		return err
+	}
+
+	for _, policy := range policies {
+		policy.TenantUUID = tenant.UUID
+		db.CreateRetentionPolicy(policy)
+	}
+	return nil
 }

@@ -1,0 +1,17 @@
+azure
+bbr-deployment
+bbr-director
+consul
+consul-snapshot
+docker-postgres
+fs
+google
+mongo
+mysql
+postgres
+rabbitmq-broker
+redis-broker
+s3
+swift
+webdav
+xtrabackup

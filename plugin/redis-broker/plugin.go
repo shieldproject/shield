@@ -18,7 +18,7 @@
 // redis VM to back up. Your endpoint JSON should look something like this:
 //
 //    {
-//        "redis_type":<dedicated|broker>"
+//        "redis_type":<dedicated|shared>"
 //    }
 //
 // Default Configuration
@@ -37,7 +37,7 @@
 // Restoration steps for the `redis-broker` plugin depend on the type of redis being backed
 // up.
 //
-// If `redis_type` is set to `broker`, the restoration stops the redis service-broker process,
+// If `redis_type` is set to `shared`, the restoration stops the redis service-broker process,
 // kills all instances of `redis-server`, and untars the backup into /var/vcap/store. Once
 // complete, it runs `redis-check-aof --fix` against all appendonly.aof files, to resolve any
 // potential corruption caused by backups happening mid-write. Lastly, it starts up the
@@ -60,11 +60,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"time"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -80,7 +79,7 @@ func main() {
 		},
 		Example: `
 {
-  "redis_type" : "broker"    # Type of Redis Broker backups to run.
+  "redis_type" : "shared"    # Type of Redis Broker backups to run.
                              # Must be either 'shared' or 'dedicated'
 }
 `,
@@ -90,6 +89,20 @@ func main() {
   # all keys are required.
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode: "target",
+				Name: "redis_type",
+				Type: "enum",
+				Enum: []string{
+					"shared",
+					"dedicated",
+				},
+				Title:    "Type of Redis Broker",
+				Help:     "The CF Redis Broker can run in either `shared` or `dedicated` mode, which affects how it gets backed up.",
+				Required: true,
+			},
+		},
 	}
 
 	plugin.Run(p)
@@ -114,10 +127,10 @@ func (p RedisBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("redis_type")
 	if err != nil {
-		ansi.Printf("@R{\u2717 redis_type  %s}\n", err)
+		fmt.Printf("@R{\u2717 redis_type  %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 redis_type}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 redis_type}  @C{%s}\n", s)
 	}
 
 	if fail {
@@ -197,8 +210,8 @@ func (p RedisBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p RedisBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p RedisBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p RedisBrokerPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

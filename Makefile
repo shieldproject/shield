@@ -4,15 +4,21 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shield plugins test
+all: format shieldd buckler shield-agent shield-schema plugins test
 
 # go fmt ftw
 format:
 	go list ./... | grep -v vendor | xargs go fmt
 
 # Running Tests
-test:
+test: go-tests api-tests plugin-tests
+plugin-tests: plugins
+	go build ./plugin/mock
+	./t/plugins
+	@rm -f mock
+go-tests:
 	go list ./... | grep -v vendor | xargs go test
+api-tests:
 	./t/api
 
 # Running Tests for race conditions
@@ -20,41 +26,46 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield:
-	go $(BUILD_TYPE) ./cmd/shieldd
-	go $(BUILD_TYPE) ./cmd/shield-agent
-	go $(BUILD_TYPE) ./cmd/shield-schema
-	go $(BUILD_TYPE) ./cmd/shield
+shield: shieldd shield-agent shield-schema buckler
 
-# Building the Shield CLI *only*
-shield-cli:
-	go $(BUILD_TYPE) ./cmd/shield
+shieldd:
+	go $(BUILD_TYPE) ./cmd/shieldd
+shield-agent:
+	go $(BUILD_TYPE) ./cmd/shield-agent
+shield-schema:
+	go $(BUILD_TYPE) ./cmd/shield-schema
+
+buckler: cmd/buckler/help.go
+	go $(BUILD_TYPE) ./cmd/buckler
+help.all: cmd/buckler/main.go
+	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./buckler @ -h > $@
 
 # Building Plugins
 plugin: plugins
 plugins:
-	go $(BUILD_TYPE) ./plugin/fs
-	go $(BUILD_TYPE) ./plugin/docker-postgres
 	go $(BUILD_TYPE) ./plugin/dummy
-	go $(BUILD_TYPE) ./plugin/postgres
-	go $(BUILD_TYPE) ./plugin/redis-broker
-	go $(BUILD_TYPE) ./plugin/s3
-	go $(BUILD_TYPE) ./plugin/swift
-	go $(BUILD_TYPE) ./plugin/azure
-	go $(BUILD_TYPE) ./plugin/mysql
-	go $(BUILD_TYPE) ./plugin/xtrabackup
-	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
-	go $(BUILD_TYPE) ./plugin/scality
-	go $(BUILD_TYPE) ./plugin/consul
-	go $(BUILD_TYPE) ./plugin/consul-snapshot
-	go $(BUILD_TYPE) ./plugin/mongo
-	go $(BUILD_TYPE) ./plugin/google
+	for plugin in $$(cat plugins); do \
+		go $(BUILD_TYPE) ./plugin/$$plugin; \
+	done
+
+
+demo: clean shield plugins
+	./demo/build
+	(cd demo && docker-compose up)
+
+docs: docs/API.md
+docs/API.md: docs/API.yml
+	perl ./docs/regen.pl <$+ >$@
 
 clean:
-	rm shieldd shield-agent shield-schema shield
-	rm fs docker-postgres dummy postgres redis-broker
-	rm s3 swift azure mysql xtrabackup rabbitmq-broker
-	rm consul consul-snapshot mongo scality google
+	rm -f shieldd shield-agent shield-schema shield
+	rm -f $$(cat plugins) dummy
+
+
+# Assemble the CLI help with some assistance from our friend, Perl
+HELP := $(shell ls -1 cmd/buckler/help/*)
+cmd/buckler/help.go: $(HELP) cmd/buckler/help.pl
+	./cmd/buckler/help.pl $(HELP) > $@
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -68,52 +79,46 @@ report:
 
 fixmes: fixme
 fixme:
-	@grep -rn FIXME * | grep -v Godeps/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
+	@grep -rn FIXME * | grep -v vendor/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
 
-dev: shield
+dev:
 	./bin/testdev
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
-# Deferred: Looping through plugins instead of listing them
 
-restore-deps:
-	godep restore ./...
+init:
+	go get github.com/kardianos/govendor
+	go install github.com/kardianos/govendor
 
 save-deps:
-	godep save ./...
+	govendor add +external
 
-ARTIFACTS := artifacts/shield-server-{{.OS}}-{{.Arch}}
+ARTIFACTS := artifacts/shield-server-linux-amd64
 LDFLAGS := -X main.Version=$(VERSION)
 release:
 	@echo "Checking that VERSION was defined in the calling environment"
 	@test -n "$(VERSION)"
 	@echo "OK.  VERSION=$(VERSION)"
-
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/fs"                ./plugin/fs
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/docker-postgres"   ./plugin/docker-postgres
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/dummy"             ./plugin/dummy
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/postgres"          ./plugin/postgres
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/redis-broker"      ./plugin/redis-broker
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/s3"                ./plugin/s3
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/swift"             ./plugin/swift
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/azure"             ./plugin/azure
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mysql"             ./plugin/mysql
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/rabbitmq-broker"   ./plugin/rabbitmq-broker
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/scality"           ./plugin/scality
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mongo"             ./plugin/mongo
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul"            ./plugin/consul
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul-snapshot"   ./plugin/consul-snapshot
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/xtrabackup"        ./plugin/xtrabackup
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/google"            ./plugin/google
-
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
-
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/cli/shield"                ./cmd/shield
-
-	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
-	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
+	export GOOS=linux GOARCH=amd64
+	for plugin in $$(cat plugins); do \
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"     ./plugin/$$plugin; \
+	done
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"   ./cmd/shield-agent
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"           ./cmd/buckler
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
 
 	rm -f artifacts/*.tar.gz
-	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
+	cd artifacts && for x in shield-server-*; do cp -a ../web2/htdocs $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
 
-.PHONY: shield
+
+JAVASCRIPTS := web2/src/js/jquery.js
+JAVASCRIPTS += web2/src/js/lib.js
+JAVASCRIPTS += web2/src/js/sticky-nav.js
+JAVASCRIPTS += web2/src/js/shield.js
+web2/htdocs/shield.js: $(JAVASCRIPTS)
+	cat $+ >$@
+
+web2: web2/htdocs/shield.js
+
+.PHONY: shield plugins dev web2 buckler shieldd shield-schema shield-agent demo

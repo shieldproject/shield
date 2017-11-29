@@ -16,6 +16,12 @@
 #   SHIELD_STORE_ENDPOINT     The store endpoint config (probably JSON)
 #   SHIELD_RESTORE_KEY        Archive key for 'restore' operations
 #
+# Temporary Environment Variables (Unset before call to shield plugin)
+# ---------------------
+#   SHIELD_ENCRYPT_TYPE       Cipher and mode to be used for archive encryption
+#   SHIELD_ENCRYPT_KEY        Encryption key for archive encryption
+#   SHIELD_ENCRYPT_IV         Initialization vector for archive encryption
+#
 # Exit Codes
 # ----------
 #
@@ -41,7 +47,7 @@ header() {
 }
 
 say() {
-	echo >&2 $*
+	echo >&2 "$@"
 }
 
 ok() {
@@ -85,7 +91,114 @@ needenv() {
 
 trap 'exiting $?' EXIT
 
+if [ -z "$SHIELD_ENCRYPT_KEY" ]; then
+	enc_key="${SHIELD_ENCRYPT_KEY}"
+	unset SHIELD_ENCRYPT_KEY
+fi  
+
+if [ -z "$SHIELD_ENCRYPT_TYPE" ]; then
+	enc_type="${SHIELD_ENCRYPT_TYPE}"
+	unset SHIELD_ENCRYPT_IV
+fi  
+
+if [ -z "$SHIELD_ENCRYPT_IV" ]; then
+	enc_iv="${SHIELD_ENCRYPT_IV}"
+	unset SHIELD_ENCRYPT_IV
+fi
+
 case ${SHIELD_OP} in
+(status)
+	needenv SHIELD_OP \
+	        SHIELD_AGENT_NAME \
+	        SHIELD_PLUGINS_PATH
+
+	if [[ -z "${SHIELD_AGENT_VERSION:-}" ]]; then
+		SHIELD_AGENT_VERSION="dev"
+	fi
+
+	set -e
+	header "Running SHIELD Agent ($SHIELD_AGENT_VERSION) Health Checks"
+
+	echo "{"
+	# METADATA
+	cat <<EOF
+"name"    : "${SHIELD_AGENT_NAME}",
+"version" : "${SHIELD_AGENT_VERSION}",
+"health"  : "ok",
+EOF
+
+	# PLUGIN inventory
+	EXECABLE="/111"
+	case $OSTYPE in
+	*darwin*) EXECABLE="+111"
+	esac
+	(IFS=:; for x in $SHIELD_PLUGINS_PATH; do
+	   say "checking for plugins in $x..."
+	   echo "\"plugins\": {"
+	   comma=""
+	   while IFS= read -r -d '' plugin; do
+	     name=${plugin##*/}
+	     set +e ; output=$($plugin info 2>/dev/null) ; set -e
+	     if [[ $? -eq 0 ]]; then
+	       echo "$comma\"$name\":$output"
+	       comma=","
+	     fi
+	   done < <(find $x -maxdepth 1 -type f -perm "$EXECABLE" -print0)
+	   echo "}"
+	 done)
+	echo "}"
+
+	exit 0
+	;;
+
+(test-store)
+	needenv SHIELD_OP              \
+	        SHIELD_STORE_PLUGIN    \
+	        SHIELD_STORE_ENDPOINT
+
+	set -e
+	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
+
+	header "Performing store / retrieve / purge test"
+	say "generating an input bit pattern"
+	input=$(echo -n "test::"; dd if=/dev/urandom 2>/dev/null bs=25 count=1 | base64)
+	if [[ -z "${input}" ]]; then
+		fail "input bit pattern was empty; this test is INVALID."
+		exit 1
+	fi
+
+	key=$(echo "${input}" | ${SHIELD_STORE_PLUGIN} store --text -e "${SHIELD_STORE_ENDPOINT}" || true)
+	if [[ -z "${key}" ]]; then
+		fail "unable to write to storage"
+		echo '{"healthy":false}'
+		exit 2
+	fi
+
+	output=$(${SHIELD_STORE_PLUGIN} retrieve -e "${SHIELD_STORE_ENDPOINT}" -k "${key}"        || true)
+	${SHIELD_STORE_PLUGIN} purge -e "${SHIELD_STORE_ENDPOINT}" -k "${key}" || true
+
+	say "INPUT:  ${input}"
+	say "OUTPUT: ${output}"
+	say "KEY:    ${key}"
+	say
+
+	if [[ -z "${output}" ]]; then
+		fail "unable to read from storage"
+		echo '{"healthy":false}'
+		exit 2
+	fi
+
+	if [[ "${input}" != "${output}" ]]; then
+		fail "output bit pattern did not match the input pattern"
+		echo '{"healthy":false}'
+		exit 3
+	fi
+
+	ok
+	echo '{"healthy":true}'
+exit 0
+	;;
+
 (backup)
 	needenv SHIELD_OP              \
 	        SHIELD_STORE_PLUGIN    \
@@ -103,8 +216,10 @@ case ${SHIELD_OP} in
 	trap "rm -f ${PULSE}" QUIT TERM INT
 
 	set -o pipefail
-	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | tee >(tail -c1 >$PULSE) | bzip2 | \
-		${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
+	#The use of 3<<< shown below is to write the encryption config as json to FD 3 thus allowing us to drop it from the environment
+	#	and prevent further propogation
+	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" | \
+		tee >(tail -c1 >$PULSE) | bzip2 | ${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
 
 	if [[ ! -s ${PULSE} ]]; then
 		rm -f ${PULSE}
@@ -130,8 +245,11 @@ case ${SHIELD_OP} in
 
 	header "Running restore task (using bzip2 compression)"
 	set -o pipefail
+	#The use of 3<<< shown below is to write the encryption config as json to FD 3 thus allowing us to drop it from the environment
+	#	and prevent further propogation
 	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | bunzip2 | \
-		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}" 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" 
+
 	exit 0
 	;;
 

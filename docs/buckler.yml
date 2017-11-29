@@ -1,0 +1,64 @@
+---
+core:  http://localhost:7171
+token: 531e1e57-9870-4234-9bdd-1f4031e36219
+
+global:
+  storage:
+    - name: S3 Cloud Storage
+      summary: |
+        Public S3 cloud storage for all SHIELD tenants to use
+      agent:  127.0.0.1:5444
+      plugin: s3
+      config:
+        access_key_id:     AKI12
+        secret_access_key: secret
+
+  policies:
+    - name: Long-Term Storage
+      days: 90
+
+users:
+  - name:     James Hunt
+    username: jhunt
+    password: sekrit
+    sysrole:  admin
+    tenants:
+      - name: Stark & Wayne
+        role: admin
+
+tenants:
+  - name: CF Community
+    members:
+      - user: jhunt@local
+        role: admin
+    storage:
+      - name: Scality
+        agent:  10.32.45.10:5444
+        plugin: s3
+        config:
+          s3_host: 10.32.45.1
+          s3_port: 8200
+          bucket:  my-bucket
+
+    policies:
+      - name: Short-Term
+        days: 7
+      - name: Long-Term
+        days: 90
+
+    systems:
+      - name:   BOSH
+        agent:  10.4.0.1:5444
+        plugin: postgres
+        config: {}
+        jobs:
+          - name:    Daily
+            when:    daily 4am
+            policy:  Short-Term
+            storage: Scality
+            paused:  true
+
+          - name:    Monthly
+            when:    every month on the 1st at 3am
+            policy:  Long-Term
+            storage: Scality

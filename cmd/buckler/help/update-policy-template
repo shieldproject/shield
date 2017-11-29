@@ -1,0 +1,26 @@
+USAGE: @G{buckler} update-policy-template [OPTIONS] @Y{NAME-OR-UUID}
+
+  Update an existing Retention Policy Template
+
+  No backup is good forever.  SHIELD utilizes retention policies
+  to automatically expire backup archives that are too old, and
+  automatically remove them from cloud storage.
+
+  @Y{NOTE:} This command manages @W{templates} for retention
+  policies, which are copied over to new SHIELD Tenants when they
+  are first created.  Only SHIELD site engineers can use this
+  command; for managing retention policies in your own tenant(s),
+  see @C{buckler update-policy}.
+
+@B{Options:}
+
+  Updates are entirely specified via command-line arguments.
+
+  -n, --name      A new name for the Retention Policy.
+
+  -s, --summary   An optional, long-form description for the policy.
+
+  -d, --days      How many days to keep backup archives for.
+                  This field is @W{required}, and must be a positive,
+                  non-zero, whole number.
+

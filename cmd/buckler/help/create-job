@@ -1,0 +1,63 @@
+USAGE: @G{buckler} create-job --tenant @Y{TENANT} [OPTIONS]
+
+  Configure a new Backup Job.
+
+  Backup Jobs are the linchpin of SHIELD configuration; they
+  provide the what, when, and where, tying together target data
+  systems (the "what"), cloud storage ("where"), a schedule, and
+  a retention policy into one schedulable unit of data protection.
+
+@B{Options:}
+
+  -n, --name      A name for your backup job.
+                  This field is @W{required}.
+
+  -s, --summary   An optional, long-form description for the job.
+
+  --target        The name or UUID of the target data system that
+                  you want SHIELD to back up.
+                  This field is @W{required}.
+
+  --store         The name or UUID of the cloud storage system to
+                  store backup archives in.
+                  This field is @W{required}.
+
+  --policy        The name or UUID of the retention policy that
+                  resulting backup archives will be subject to.
+                  This field is @W{required}.
+
+  --schedule      A @W{timespec} schedule description (see below),
+                  instructing SHIELD how to schedule this job.
+                  This field is @W{required}.
+
+  --paused        Don't schedule this job; in order for it to run,
+                  an operator will have to manually kick it off.
+
+  In @Y{--batch} mode, the name or UUID specified on the command-line
+  must be "unique enough" for buckler to determine what you meant.
+  In interactive mode, you will be asked to narrow your search
+  parameters if necessary.
+
+@B{Example:}
+
+  @W{buckler create-job}                \
+      @Y{--batch}                       \
+      @Y{--name}      Daily             \
+      @Y{--target}    "Important Files" \
+      @Y{--store}     "Amazon S3"       \
+      @Y{--policy}    "Short-Term"      \
+      @Y{--schedule}  "daily 4am"
+
+@B{Scheduling Syntax:}
+
+  SHIELD uses a thing called @W{Timespec} for specifying job schedules.
+  This mini-language is intended to be intuitive and readable.
+
+  Here are some examples.
+
+    @C{daily 4am}          Runs every day at 4:00 in the morning.
+
+    @C{every 2h at 0:15}   Run at 0:15, 2:15, 4:15, etc...
+
+    @C{sundays at 16:32}   Runs weekly, on Sundays, at 4:32 in the afternoon.
+

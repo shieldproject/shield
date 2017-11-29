@@ -12,6 +12,11 @@ import (
 )
 
 var _ = Describe("Plugin Commands", func() {
+	BeforeEach(func() {
+		os.Setenv("SHIELD_ENCRYPTION_KEY", "DEADBEEFDECAFBADDEADBEEFDECAFBAD")
+		os.Setenv("SHIELD_ENCRYPTION_IV", "DEADBEEFDECAFBADDEADBEEFDECAFBAD")
+		os.Setenv("SHIELD_ENCRYPTION_TYPE", "aes256-ctr")
+	})
 
 	drain := func(file *os.File, output chan string) {
 		data, err := ioutil.ReadAll(file)
@@ -93,7 +98,9 @@ var _ = Describe("Plugin Commands", func() {
 		stdout := <-stdoutC
 
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(stdout).Should(Equal("This should go to stdout"))
+		if os.Getenv("TRAVIS") != "yes" {
+			Expect(stdout).Should(Equal("This should go to stdout"))
+		}
 		Expect(stderr).Should(Equal("This goes to stderr\n"))
 	})
 	It("Returns an error for commands that cannot be parsed", func() {

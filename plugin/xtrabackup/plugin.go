@@ -75,12 +75,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
-	. "github.com/starkandwayne/shield/plugin"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 var (
@@ -95,7 +94,7 @@ func main() {
 		Name:    "MySQL XtraBackup Plugin",
 		Author:  "Swisscom",
 		Version: "0.0.1",
-		Features: PluginFeatures{
+		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
@@ -121,12 +120,67 @@ func main() {
   "mysql_temp_targetdir": "/tmp/backups"
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "target",
+				Name:     "mysql_user",
+				Type:     "string",
+				Title:    "MySQL Username",
+				Help:     "The username to use for performing the backup against MySQL",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "mysql_password",
+				Type:     "password",
+				Title:    "MySQL Password",
+				Help:     "The password to authenticate to MySQL with",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "mysql_databases",
+				Type:    "wslist",
+				Title:   "Databases to Backup",
+				Help:    "A list of databases (and optional tables) to restrict the backup to.  By default, all tables, in all databases will be backed up.",
+				Example: "`database1`, or `db.users db.sessions`",
+			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "mysql_datadir",
+				Type:    "abspath",
+				Title:   "MySQL Data Directory",
+				Default: "/var/lib/mysql",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "mysql_xtrabackup",
+				Type:  "abspath",
+				Title: "Path to `xtrabackup` Utility",
+				Help:  "By default, the plugin will search the local `$PATH` to find the `xtrabackup` utility",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "mysql_tar",
+				Type:  "abspath",
+				Title: "Path to the `tar` Utility",
+				Help:  "By default, the plugin will search the local `$PATH` to find the `tar` utility",
+			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "mysql_temp_targetdir",
+				Type:    "abspath",
+				Title:   "Local Temporary Directory",
+				Help:    "Path to a temporary directory that `xtrabackup` will use for its own purposes.",
+				Default: "/tmp/backups",
+			},
+		},
 	}
 
-	Run(p)
+	plugin.Run(p)
 }
 
-type XtraBackupPlugin PluginInfo
+type XtraBackupPlugin plugin.PluginInfo
 
 type XtraBackupEndpoint struct {
 	Databases string
@@ -138,11 +192,11 @@ type XtraBackupEndpoint struct {
 	Tar       string
 }
 
-func (p XtraBackupPlugin) Meta() PluginInfo {
-	return PluginInfo(p)
+func (p XtraBackupPlugin) Meta() plugin.PluginInfo {
+	return plugin.PluginInfo(p)
 }
 
-func (p XtraBackupPlugin) Validate(endpoint ShieldEndpoint) error {
+func (p XtraBackupPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -151,72 +205,72 @@ func (p XtraBackupPlugin) Validate(endpoint ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("mysql_user")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_user          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_user          %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("mysql_password")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_password      %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_password      %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_databases", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_databases  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_databases  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_databases}  no databases\n")
+		fmt.Printf("@G{\u2713 mysql_databases}  no databases\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_databases}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_databases}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_datadir", DefaultDataDir)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_datadir  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_datadir  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_datadir}  no datadir\n")
+		fmt.Printf("@R{\u2717 mysql_datadir}  no datadir\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_datadir}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_datadir}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_xtrabackup", DefaultXtrabackup)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_xtrabackup  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_xtrabackup  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_xtrabackup}  xtrabackup command not specified\n")
+		fmt.Printf("@R{\u2717 mysql_xtrabackup}  xtrabackup command not specified\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_xtrabackup}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_xtrabackup}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_temp_targetdir", DefaultTempTargetDir)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_temp_targetdir  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_temp_targetdir  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_temp_targetdir}  no temporary target dir\n")
+		fmt.Printf("@R{\u2717 mysql_temp_targetdir}  no temporary target dir\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_temp_targetdir}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_temp_targetdir}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_tar", DefaultTar)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_tar  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_tar  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@R{\u2717 mysql_tar}  tar command not specified\n")
+		fmt.Printf("@R{\u2717 mysql_tar}  tar command not specified\n")
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_tar}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_tar}  @C{%s}\n", s)
 	}
 
 	if fail {
@@ -225,7 +279,7 @@ func (p XtraBackupPlugin) Validate(endpoint ShieldEndpoint) error {
 	return nil
 }
 
-func (p XtraBackupPlugin) Backup(endpoint ShieldEndpoint) error {
+func (p XtraBackupPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	xtrabackup, err := getXtraBackupEndpoint(endpoint)
 	if err != nil {
 		return err
@@ -240,20 +294,20 @@ func (p XtraBackupPlugin) Backup(endpoint ShieldEndpoint) error {
 
 	// create backup files
 	cmdString := fmt.Sprintf("%s --backup --target-dir=%s --datadir=%s %s --user=%s --password=%s", xtrabackup.Bin, targetDir, xtrabackup.DataDir, dbs, xtrabackup.User, xtrabackup.Password)
-	opts := ExecOptions{
+	opts := plugin.ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
 		ExpectRC: []int{0},
 	}
 
-	DEBUG("Executing: `%s`", cmdString)
-	if err = ExecWithOptions(opts); err != nil {
+	plugin.DEBUG("Executing: `%s`", cmdString)
+	if err = plugin.ExecWithOptions(opts); err != nil {
 		return err
 	}
 
 	// create and return archive
 	cmdString = fmt.Sprintf("%s -cf - -C %s .", xtrabackup.Tar, targetDir)
-	if err = Exec(cmdString, STDOUT); err != nil {
+	if err = plugin.Exec(cmdString, plugin.STDOUT); err != nil {
 		return err
 	}
 
@@ -261,7 +315,7 @@ func (p XtraBackupPlugin) Backup(endpoint ShieldEndpoint) error {
 	return os.RemoveAll(targetDir)
 }
 
-func (p XtraBackupPlugin) Restore(endpoint ShieldEndpoint) error {
+func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	xtrabackup, err := getXtraBackupEndpoint(endpoint)
 	if err != nil {
 		return err
@@ -271,42 +325,42 @@ func (p XtraBackupPlugin) Restore(endpoint ShieldEndpoint) error {
 
 	// create tmp folder
 	cmdString := fmt.Sprintf("mkdir -p %s", backupDir)
-	opts := ExecOptions{
+	opts := plugin.ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
 		ExpectRC: []int{0},
 	}
-	DEBUG("Executing: `%s`", cmdString)
-	if err := ExecWithOptions(opts); err != nil {
+	plugin.DEBUG("Executing: `%s`", cmdString)
+	if err := plugin.ExecWithOptions(opts); err != nil {
 		return err
 	}
 
 	// unpack archive
 	cmdString = fmt.Sprintf("%s -xf - -C %s", xtrabackup.Tar, backupDir)
-	DEBUG("Executing: `%s`", cmdString)
-	if err := Exec(cmdString, STDIN); err != nil {
+	plugin.DEBUG("Executing: `%s`", cmdString)
+	if err := plugin.Exec(cmdString, plugin.STDIN); err != nil {
 		return err
 	}
 
 	cmdString = fmt.Sprintf("%s --prepare --target-dir=%s", xtrabackup.Bin, backupDir)
-	opts = ExecOptions{
+	opts = plugin.ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
 		ExpectRC: []int{0},
 	}
-	DEBUG("Executing: `%s`", cmdString)
-	if err := ExecWithOptions(opts); err != nil {
+	plugin.DEBUG("Executing: `%s`", cmdString)
+	if err := plugin.ExecWithOptions(opts); err != nil {
 		return err
 	}
 
 	cmdString = fmt.Sprintf("%s --move-back --target-dir=%s --datadir=%s", xtrabackup.Bin, backupDir, xtrabackup.DataDir)
-	opts = ExecOptions{
+	opts = plugin.ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
 		ExpectRC: []int{0},
 	}
-	DEBUG("Executing: `%s`", cmdString)
-	if err := ExecWithOptions(opts); err != nil {
+	plugin.DEBUG("Executing: `%s`", cmdString)
+	if err := plugin.ExecWithOptions(opts); err != nil {
 		return err
 	}
 
@@ -314,60 +368,60 @@ func (p XtraBackupPlugin) Restore(endpoint ShieldEndpoint) error {
 	return os.RemoveAll(xtrabackup.TargetDir)
 }
 
-func (p XtraBackupPlugin) Store(endpoint ShieldEndpoint) (string, error) {
-	return "", UNIMPLEMENTED
+func (p XtraBackupPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
-func (p XtraBackupPlugin) Retrieve(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p XtraBackupPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func (p XtraBackupPlugin) Purge(endpoint ShieldEndpoint, file string) error {
-	return UNIMPLEMENTED
+func (p XtraBackupPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+	return plugin.UNIMPLEMENTED
 }
 
-func getXtraBackupEndpoint(endpoint ShieldEndpoint) (XtraBackupEndpoint, error) {
+func getXtraBackupEndpoint(endpoint plugin.ShieldEndpoint) (XtraBackupEndpoint, error) {
 	user, err := endpoint.StringValue("mysql_user")
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
-	DEBUG("MYSQL_USER: '%s'", user)
+	plugin.DEBUG("MYSQL_USER: '%s'", user)
 
 	password, err := endpoint.StringValue("mysql_password")
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
-	DEBUG("MYSQL_PWD: '%s'", password)
+	plugin.DEBUG("MYSQL_PWD: '%s'", password)
 
 	databases, err := endpoint.StringValueDefault("mysql_databases", "")
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
-	DEBUG("MYSQL_DATABASES: '%s'", databases)
+	plugin.DEBUG("MYSQL_DATABASES: '%s'", databases)
 
 	dataDir, err := endpoint.StringValueDefault("mysql_datadir", DefaultDataDir)
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
-	DEBUG("MYSQL_DATADIR: '%s'", dataDir)
+	plugin.DEBUG("MYSQL_DATADIR: '%s'", dataDir)
 
 	targetDir, err := endpoint.StringValueDefault("mysql_temp_targetdir", DefaultTempTargetDir)
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
-	DEBUG("MYSQL_TEMP_TARGETDIR: '%s'", targetDir)
+	plugin.DEBUG("MYSQL_TEMP_TARGETDIR: '%s'", targetDir)
 
 	xtrabackupBin, err := endpoint.StringValueDefault("mysql_xtrabackup", DefaultXtrabackup)
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
-	DEBUG("MYSQL_XTRABACKUP: '%s'", xtrabackupBin)
+	plugin.DEBUG("MYSQL_XTRABACKUP: '%s'", xtrabackupBin)
 
 	tar, err := endpoint.StringValueDefault("mysql_tar", DefaultTar)
 	if err != nil {
 		return XtraBackupEndpoint{}, err
 	}
-	DEBUG("MYSQL_TAR: '%s'", tar)
+	plugin.DEBUG("MYSQL_TAR: '%s'", tar)
 
 	return XtraBackupEndpoint{
 		User:      user,

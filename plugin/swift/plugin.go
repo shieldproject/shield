@@ -62,7 +62,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -71,8 +70,8 @@ import (
 
 	"git.openstack.org/openstack/golang-client/objectstorage/v1"
 	"git.openstack.org/openstack/golang-client/openstack"
+	fmt "github.com/jhunt/go-ansi"
 
-	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -83,7 +82,7 @@ const (
 
 func main() {
 	p := SwiftPlugin{
-		Name:    "OpenStack Swift Backup + Storage Plugin",
+		Name:    "OpenStack Swift Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -136,10 +135,10 @@ func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
 	for _, reqConfig := range requiredConfig {
 		s, err = endpoint.StringValue(reqConfig)
 		if err != nil {
-			ansi.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
+			fmt.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
 			fail = true
 		} else {
-			ansi.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
+			fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
 		}
 	}
 	if fail {
@@ -156,16 +155,16 @@ func (p SwiftPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	openstack.Debug = &swift.Debug
 
 	baseURL, session, err := swift.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	path := swift.genBackupPath()
@@ -174,17 +173,17 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	r := bufio.NewReader(os.Stdin)
 	contents, err := ioutil.ReadAll(r)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	headers := http.Header{}
 	url := baseURL + "/" + swift.Container + "/" + path
 	err = objectstorage.PutObject(session, &contents, url, headers)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return path, nil
+	return path, int64(len(contents)), nil
 }
 
 func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (err error) {

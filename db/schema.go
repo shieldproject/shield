@@ -12,22 +12,26 @@ var Schemas = map[int]Schema{
 	1: v1Schema{},
 	2: v2Schema{},
 	3: v3Schema{},
+	4: v4Schema{},
 }
 
 type Schema interface {
 	Deploy(*DB) error
 }
 
-func (db *DB) Setup() error {
+func (db *DB) Setup(want int) (int, error) {
 	current, err := db.SchemaVersion()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	if current > CurrentSchema {
-		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD (%d)", current, CurrentSchema)
+	if want == 0 {
+		want = CurrentSchema
+	}
+	if current > want {
+		err = fmt.Errorf("Schema version %d is newer than this version of SHIELD (%d)", current, want)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
@@ -37,12 +41,15 @@ func (db *DB) Setup() error {
 		if current < version {
 			err = Schemas[version].Deploy(db)
 			if err != nil {
-				return err
+				return version - 1, err
 			}
+		}
+		if want == version {
+			break
 		}
 	}
 
-	return nil
+	return want, nil
 }
 
 func schemaVersions() []int {

@@ -57,13 +57,12 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -91,6 +90,40 @@ func main() {
   "skip_ssl_validation" : false
 }
 `,
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "target",
+				Name:     "rmq_url",
+				Type:     "string",
+				Title:    "RabbitMQ URL",
+				Help:     "The URL of your RabbitMQ management UI, usually run on port 15672.",
+				Example:  "http://1.2.3.4:15672",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "rmq_username",
+				Type:     "string",
+				Title:    "RabbitMQ Username",
+				Help:     "Username to use when authenticating to RabbitMQ.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "rmq_password",
+				Type:     "password",
+				Title:    "RabbitMQ Password",
+				Help:     "Password to use when authenticating to RabbitMQ.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "skip_ssl_validation",
+				Type:  "bool",
+				Title: "Skip SSL Validation",
+				Help:  "If your RabbitMQ installation has an invalid or expired SSL/TLS certificate, you can ignore those errors by disabling SSL validation.  This is not recommended from a security perspective, however.",
+			},
+		},
 	}
 
 	plugin.Run(p)
@@ -118,37 +151,37 @@ func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("rmq_url")
 	if err != nil {
-		ansi.Printf("@R{\u2717 rmq_url              %s}\n", err)
+		fmt.Printf("@R{\u2717 rmq_url              %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 rmq_url}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 rmq_url}              @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("rmq_username")
 	if err != nil {
-		ansi.Printf("@R{\u2717 rmq_username         %s}\n", err)
+		fmt.Printf("@R{\u2717 rmq_username         %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 rmq_username}         @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 rmq_username}         @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("rmq_password")
 	if err != nil {
-		ansi.Printf("@R{\u2717 rmq_password         %s}\n", err)
+		fmt.Printf("@R{\u2717 rmq_password         %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 rmq_password}         @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 rmq_password}         @C{%s}\n", s)
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
-		ansi.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
 		fail = true
 	} else {
 		if tf {
-			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
+			fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{yes}, SSL will @Y{NOT} be validated\n")
 		} else {
-			ansi.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
+			fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{no}, SSL @Y{WILL} be validated\n")
 		}
 	}
 
@@ -193,8 +226,8 @@ func (p RabbitMQBrokerPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p RabbitMQBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p RabbitMQBrokerPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p RabbitMQBrokerPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

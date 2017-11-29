@@ -7,55 +7,81 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	. "github.com/starkandwayne/goutils/timestamp"
 
 	"github.com/starkandwayne/shield/timespec"
 )
 
 type Job struct {
-	UUID           uuid.UUID `json:"uuid"`
-	Name           string    `json:"name"`
-	Summary        string    `json:"summary"`
-	RetentionName  string    `json:"retention_name"`
-	RetentionUUID  uuid.UUID `json:"retention_uuid"`
-	Expiry         int       `json:"expiry"`
-	ScheduleName   string    `json:"schedule_name"`
-	ScheduleUUID   uuid.UUID `json:"schedule_uuid"`
-	ScheduleWhen   string    `json:"schedule_when"`
-	Paused         bool      `json:"paused"`
-	StoreUUID      uuid.UUID `json:"store_uuid"`
-	StoreName      string    `json:"store_name"`
-	StorePlugin    string    `json:"store_plugin"`
-	StoreEndpoint  string    `json:"store_endpoint"`
-	TargetUUID     uuid.UUID `json:"target_uuid"`
-	TargetName     string    `json:"target_name"`
-	TargetPlugin   string    `json:"target_plugin"`
-	TargetEndpoint string    `json:"target_endpoint"`
-	Agent          string    `json:"agent"`
-	LastRun        Timestamp `json:"last_run"`
-	LastTaskStatus string    `json:"last_task_status"`
+	TenantUUID uuid.UUID `json:"-"`
+	TargetUUID uuid.UUID `json:"-"`
+	StoreUUID  uuid.UUID `json:"-"`
+	PolicyUUID uuid.UUID `json:"-"`
+
+	UUID     uuid.UUID `json:"uuid"`
+	Name     string    `json:"name"`
+	Summary  string    `json:"summary"`
+	Expiry   int       `json:"expiry"`
+	Schedule string    `json:"schedule"`
+	Paused   bool      `json:"paused"`
+
+	Target struct {
+		UUID   uuid.UUID `json:"uuid"`
+		Name   string    `json:"name"`
+		Agent  string    `json:"agent"`
+		Plugin string    `json:"plugin"`
+
+		Endpoint string                 `json:"endpoint,omitempty"`
+		Config   map[string]interface{} `json:"config,omitempty"`
+	}
+
+	Store struct {
+		UUID    uuid.UUID `json:"uuid"`
+		Name    string    `json:"name"`
+		Agent   string    `json:"agent"`
+		Plugin  string    `json:"plugin"`
+		Summary string    `json:"summary"`
+
+		Endpoint string                 `json:"endpoint,omitempty"`
+		Config   map[string]interface{} `json:"config,omitempty"`
+	} `json:"store"`
+
+	Policy struct {
+		UUID    uuid.UUID `json:"uuid"`
+		Name    string    `json:"name"`
+		Summary string    `json:"summary"`
+	} `json:"policy"`
+
+	Agent          string `json:"agent"`
+	LastRun        int64  `json:"last_run"`
+	LastTaskStatus string `json:"last_task_status"`
 
 	Spec    *timespec.Spec `json:"-"`
-	NextRun time.Time      `json:"-"`
+	NextRun int64          `json:"-"`
+}
+
+func (j Job) Healthy() bool {
+	return j.LastTaskStatus == "" || j.LastTaskStatus == "done"
 }
 
 type JobFilter struct {
 	SkipPaused   bool
 	SkipUnpaused bool
 
+	Overdue bool
+
 	SearchName string
 
-	ForTarget    string
-	ForStore     string
-	ForSchedule  string
-	ForRetention string
-	ExactMatch   bool
+	ForTenant  string
+	ForTarget  string
+	ForStore   string
+	ForPolicy  string
+	ExactMatch bool
 }
 
-func (f *JobFilter) Query(driver string) (string, []interface{}) {
-	wheres := []string{"j.uuid = j.uuid"}
+func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
+	wheres := []string{"1"}
+	args := []interface{}{}
 
-	var args []interface{}
 	if f.SearchName != "" {
 		comparator := "LIKE"
 		toAdd := Pattern(f.SearchName)
@@ -66,6 +92,10 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 		wheres = append(wheres, fmt.Sprintf("j.name %s ?", comparator))
 		args = append(args, toAdd)
 	}
+	if f.ForTenant != "" {
+		wheres = append(wheres, "j.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
+	}
 	if f.ForTarget != "" {
 		wheres = append(wheres, "j.target_uuid = ?")
 		args = append(args, f.ForTarget)
@@ -74,13 +104,9 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 		wheres = append(wheres, "j.store_uuid = ?")
 		args = append(args, f.ForStore)
 	}
-	if f.ForSchedule != "" {
-		wheres = append(wheres, "j.schedule_uuid = ?")
-		args = append(args, f.ForSchedule)
-	}
-	if f.ForRetention != "" {
+	if f.ForPolicy != "" {
 		wheres = append(wheres, "j.retention_uuid = ?")
-		args = append(args, f.ForRetention)
+		args = append(args, f.ForPolicy)
 	}
 	if f.SkipPaused || f.SkipUnpaused {
 		wheres = append(wheres, "j.paused = ?")
@@ -90,54 +116,33 @@ func (f *JobFilter) Query(driver string) (string, []interface{}) {
 			args = append(args, 1)
 		}
 	}
-
-	switch driver {
-	case "postgres", "sqlite3":
-		return `
-		WITH most_recent_job_task_at AS (
-			SELECT job_uuid,  max(requested_at) AS requested_at FROM tasks WHERE status <> 'pending' GROUP BY job_uuid 
-		),
-		most_recent_job_task AS (
-			SELECT t.started_at, t.status, t.job_uuid, t.uuid FROM tasks t, most_recent_job_task_at mr WHERE t.job_uuid = mr.job_uuid AND t.requested_at = mr.requested_at
-		)
-			SELECT j.uuid, j.name, j.summary, j.paused,
-						 r.name, r.uuid, r.expiry,
-						 sc.name, sc.uuid, sc.timespec,
-						 s.uuid, s.name, s.plugin, s.endpoint,
-						 t.uuid, t.name, t.plugin, t.endpoint, t.agent,
-						 k.started_at, k.status
-
-				FROM jobs j
-					INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-					INNER JOIN schedules sc  ON sc.uuid = j.schedule_uuid
-					INNER JOIN stores     s  ON  s.uuid = j.store_uuid
-					INNER JOIN targets    t  ON  t.uuid = j.target_uuid
-					LEFT  JOIN most_recent_job_task k  ON  j.uuid = k.job_uuid
-
-				WHERE ` + strings.Join(wheres, " AND ") + `
-				ORDER BY j.name, j.uuid ASC
-		`, args
-
-	default:
-		return `
-			SELECT j.uuid, j.name, j.summary, j.paused,
-			       r.name, r.uuid, r.expiry,
-			       sc.name, sc.uuid, sc.timespec,
-			       s.uuid, s.name, s.plugin, s.endpoint,
-			       t.uuid, t.name, t.plugin, t.endpoint, t.agent,
-			       null AS started_at, '' AS status
-
-				FROM jobs j
-					INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-					INNER JOIN schedules sc  ON sc.uuid = j.schedule_uuid
-					INNER JOIN stores     s  ON  s.uuid = j.store_uuid
-					INNER JOIN targets    t  ON  t.uuid = j.target_uuid
-
-				WHERE ` + strings.Join(wheres, " AND ") + `
-				ORDER BY j.name, j.uuid ASC
-		`, args
+	if f.Overdue {
+		wheres = append(wheres, "j.next_run > ?")
+		args = append(args, time.Now().Unix())
 	}
 
+	return `
+	   WITH recent_tasks AS (
+	           SELECT uuid AS task_uuid, job_uuid, started_at, status
+	             FROM tasks
+	            WHERE stopped_at IS NOT NULL
+	         GROUP BY job_uuid
+	        )
+
+	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid,
+	          r.name, r.summary, r.uuid, r.expiry,
+	          s.uuid, s.name, s.plugin, s.endpoint, s.summary,
+	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
+	          k.started_at, k.status
+
+	     FROM jobs j
+	          INNER JOIN retention    r  ON  r.uuid = j.retention_uuid
+	          INNER JOIN stores       s  ON  s.uuid = j.store_uuid
+	          INNER JOIN targets      t  ON  t.uuid = j.target_uuid
+	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
+
+	    WHERE ` + strings.Join(wheres, " AND ") + `
+	 ORDER BY j.name, j.uuid ASC`, args, nil
 }
 
 func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
@@ -146,7 +151,10 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	}
 
 	l := []*Job{}
-	query, args := filter.Query(db.Driver)
+	query, args, err := filter.Query(db.Driver)
+	if err != nil {
+		return l, err
+	}
 	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
@@ -154,37 +162,33 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	defer r.Close()
 
 	for r.Next() {
-		ann := &Job{}
+		j := &Job{}
 		var (
-			this, retention, schedule, store, target NullUUID
-			last_run                                 *int64
-			last_task_status                         sql.NullString
+			last                                *int64
+			this, policy, store, target, tenant NullUUID
+			status                              sql.NullString
 		)
 		if err = r.Scan(
-			&this, &ann.Name, &ann.Summary, &ann.Paused,
-			&ann.RetentionName, &retention, &ann.Expiry,
-			&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
-			&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.Agent, &last_run, &last_task_status); err != nil {
+			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant,
+			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
+			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
+			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
+			&j.Agent, &last, &status); err != nil {
 			return l, err
 		}
-		ann.UUID = this.UUID
-		ann.RetentionUUID = retention.UUID
-		ann.ScheduleUUID = schedule.UUID
-		ann.StoreUUID = store.UUID
-		ann.TargetUUID = target.UUID
-		if last_run != nil {
-			ann.LastRun = parseEpochTime(*last_run)
-			if last_task_status.Valid {
-				ann.LastTaskStatus = last_task_status.String
-			}
-		} else {
-			ann.LastRun = Timestamp{}
-			ann.LastTaskStatus = "pending"
+		j.UUID = this.UUID
+		j.Policy.UUID = policy.UUID
+		j.Store.UUID = store.UUID
+		j.Target.UUID = target.UUID
+		j.TenantUUID = tenant.UUID
+		if last != nil {
+			j.LastRun = *last
+		}
+		if status.Valid {
+			j.LastTaskStatus = status.String
 		}
 
-		l = append(l, ann)
+		l = append(l, j)
 	}
 
 	return l, nil
@@ -192,15 +196,13 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
-		SELECT j.uuid, j.name, j.summary, j.paused,
-		       r.name, r.uuid, r.expiry,
-		       sc.name, sc.uuid, sc.timespec,
-		       s.uuid, s.name, s.plugin, s.endpoint,
+		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid,
+		       r.name, r.summary, r.uuid, r.expiry,
+		       s.uuid, s.name, s.plugin, s.endpoint, s.summary,
 		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-				INNER JOIN schedules sc  ON sc.uuid = j.schedule_uuid
 				INNER JOIN stores     s  ON  s.uuid = j.store_uuid
 				INNER JOIN targets    t  ON  t.uuid = j.target_uuid
 
@@ -214,24 +216,23 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 		return nil, nil
 	}
 
-	ann := &Job{}
-	var this, retention, schedule, store, target NullUUID
+	j := &Job{}
+	var this, policy, store, target, tenant NullUUID
 	if err = r.Scan(
-		&this, &ann.Name, &ann.Summary, &ann.Paused,
-		&ann.RetentionName, &retention, &ann.Expiry,
-		&ann.ScheduleName, &schedule, &ann.ScheduleWhen,
-		&store, &ann.StoreName, &ann.StorePlugin, &ann.StoreEndpoint,
-		&target, &ann.TargetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&ann.Agent); err != nil {
+		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant,
+		&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
+		&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
+		&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
+		&j.Agent); err != nil {
 		return nil, err
 	}
-	ann.UUID = this.UUID
-	ann.RetentionUUID = retention.UUID
-	ann.ScheduleUUID = schedule.UUID
-	ann.StoreUUID = store.UUID
-	ann.TargetUUID = target.UUID
+	j.UUID = this.UUID
+	j.Policy.UUID = policy.UUID
+	j.Store.UUID = store.UUID
+	j.Target.UUID = target.UUID
+	j.TenantUUID = tenant.UUID
 
-	return ann, nil
+	return j, nil
 }
 
 func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
@@ -255,27 +256,39 @@ func (db *DB) UnpauseJob(id uuid.UUID) (bool, error) {
 	return db.PauseOrUnpauseJob(id, false)
 }
 
-func (db *DB) AnnotateJob(id uuid.UUID, name string, summary string) error {
-	return db.Exec(
-		`UPDATE jobs SET name = ?, summary = ? WHERE uuid = ?`,
-		name, summary, id.String(),
-	)
+func (db *DB) CreateJob(job *Job) (*Job, error) {
+	job.UUID = uuid.NewRandom()
+
+	err := db.Exec(`
+	   INSERT INTO jobs (uuid, tenant_uuid,
+	                     name, summary, schedule, paused,
+	                     target_uuid, store_uuid, retention_uuid)
+	             VALUES (?, ?,
+	                     ?, ?, ?, ?,
+	                     ?, ?, ?)`,
+		job.UUID.String(), job.TenantUUID.String(),
+		job.Name, job.Summary, job.Schedule, job.Paused,
+		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return db.GetJob(job.UUID)
 }
 
-func (db *DB) CreateJob(target, store, schedule, retention string, paused bool) (uuid.UUID, error) {
-	id := uuid.NewRandom()
-	return id, db.Exec(
-		`INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, paused)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-		id.String(), target, store, schedule, retention, paused,
-	)
-}
-
-func (db *DB) UpdateJob(id uuid.UUID, target, store, schedule, retention string) error {
-	return db.Exec(
-		`UPDATE jobs SET target_uuid = ?, store_uuid = ?, schedule_uuid = ?, retention_uuid = ? WHERE uuid = ?`,
-		target, store, schedule, retention, id.String(),
-	)
+func (db *DB) UpdateJob(job *Job) error {
+	return db.Exec(`
+	   UPDATE jobs
+	      SET name           = ?,
+	          summary        = ?,
+	          schedule       = ?,
+	          target_uuid    = ?,
+	          store_uuid     = ?,
+	          retention_uuid = ?
+	    WHERE uuid = ?`,
+		job.Name, job.Summary, job.Schedule,
+		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),
+		job.UUID.String())
 }
 
 func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
@@ -285,17 +298,26 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 	)
 }
 
-func (j *Job) Reschedule() (err error) {
+func (db *DB) RescheduleJob(j *Job, t time.Time) error {
+	return db.Exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID.String())
+}
+
+func (j *Job) Reschedule() error {
+	var err error
 	if j.Spec == nil {
-		j.Spec, err = timespec.Parse(j.ScheduleWhen)
+		j.Spec, err = timespec.Parse(j.Schedule)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	j.NextRun, err = j.Spec.Next(time.Now())
-	return
+	next, err := j.Spec.Next(time.Now())
+	if err != nil {
+		return err
+	}
+	j.NextRun = next.Unix()
+	return nil
 }
 
 func (j *Job) Runnable() bool {
-	return j.Paused == false && !j.NextRun.After(time.Now())
+	return j.Paused == false && j.NextRun <= time.Now().Unix()
 }

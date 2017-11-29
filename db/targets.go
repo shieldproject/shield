@@ -1,25 +1,39 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
 )
 
 type Target struct {
-	UUID     uuid.UUID `json:"uuid"`
-	Name     string    `json:"name"`
-	Summary  string    `json:"summary"`
-	Plugin   string    `json:"plugin"`
-	Endpoint string    `json:"endpoint"`
-	Agent    string    `json:"agent"`
+	TenantUUID uuid.UUID `json:"-"`
+
+	UUID    uuid.UUID `json:"uuid"`
+	Name    string    `json:"name"`
+	Summary string    `json:"summary"`
+	Plugin  string    `json:"plugin"`
+	Agent   string    `json:"agent"`
+
+	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+func (t Target) ConfigJSON() (string, error) {
+	b, err := json.Marshal(t.Config)
+	if err != nil {
+		return "", err
+	}
+	return string(b), err
 }
 
 type TargetFilter struct {
 	SkipUsed   bool
 	SkipUnused bool
 	SearchName string
+	ForTenant  string
 	ForPlugin  string
 	ExactMatch bool
 }
@@ -29,16 +43,18 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	args := []interface{}{}
 
 	if f.SearchName != "" {
-		comparator := "LIKE"
-		toAdd := Pattern(f.SearchName)
 		if f.ExactMatch {
-			comparator = "="
-			toAdd = f.SearchName
+			wheres = append(wheres, "t.name = ?")
+			args = append(args, f.SearchName)
+		} else {
+			wheres = append(wheres, "t.name LIKE ?")
+			args = append(args, Pattern(f.SearchName))
 		}
-		wheres = append(wheres, fmt.Sprintf("t.name %s ?", comparator))
-		args = append(args, toAdd)
 	}
-
+	if f.ForTenant != "" {
+		wheres = append(wheres, "t.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
+	}
 	if f.ForPlugin != "" {
 		wheres = append(wheres, "t.plugin LIKE ?")
 		args = append(args, f.ForPlugin)
@@ -46,30 +62,48 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
-			SELECT t.uuid, t.name, t.summary, t.plugin, t.endpoint, t.agent, -1 AS n
-				FROM targets t
-				WHERE ` + strings.Join(wheres, " AND ") + `
-				ORDER BY t.name, t.uuid ASC
-		`, args
+		   SELECT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
+		          t.endpoint, t.agent, -1 AS n
+		     FROM targets t
+		    WHERE ` + strings.Join(wheres, " AND ") + `
+		 ORDER BY t.name, t.uuid ASC`, args
 	}
 
-	// by default, show targets with no attached jobs (unused)
 	having := `HAVING COUNT(j.uuid) = 0`
 	if f.SkipUnused {
-		// otherwise, only show targets that have attached jobs
 		having = `HAVING COUNT(j.uuid) > 0`
 	}
 
 	return `
-		SELECT DISTINCT t.uuid, t.name, t.summary, t.plugin, t.endpoint, t.agent, COUNT(j.uuid) AS n
-			FROM targets t
-				LEFT JOIN jobs j
-					ON j.target_uuid = t.uuid
-			WHERE ` + strings.Join(wheres, " AND ") + `
-			GROUP BY t.uuid
-			` + having + `
-			ORDER BY t.name, t.uuid ASC
-	`, args
+	   SELECT DISTINCT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
+	                   t.endpoint, t.agent, COUNT(j.uuid) AS n
+	              FROM targets t
+	         LEFT JOIN jobs j
+	                ON j.target_uuid = t.uuid
+	             WHERE ` + strings.Join(wheres, " AND ") + `
+	          GROUP BY t.uuid
+	          ` + having + `
+	          ORDER BY t.name, t.uuid ASC`, args
+}
+
+func (db *DB) CountTargets(filter *TargetFilter) (int, error) {
+	if filter == nil {
+		filter = &TargetFilter{}
+	}
+
+	var i int
+	query, args := filter.Query()
+	r, err := db.Query(query, args...)
+	if err != nil {
+		return i, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		i++
+	}
+
+	return i, nil
 }
 
 func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
@@ -86,15 +120,25 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 	defer r.Close()
 
 	for r.Next() {
-		ann := &Target{}
-		var n int
-		var this NullUUID
-		if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent, &n); err != nil {
+		t := &Target{}
+		var (
+			n            int
+			this, tenant NullUUID
+			rawconfig    []byte
+		)
+		if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &n); err != nil {
 			return l, err
 		}
-		ann.UUID = this.UUID
+		t.UUID = this.UUID
+		t.TenantUUID = tenant.UUID
 
-		l = append(l, ann)
+		if rawconfig != nil {
+			if err := json.Unmarshal(rawconfig, &t.Config); err != nil {
+				log.Warnf("failed to parse data system endpoint json '%s': %s", rawconfig, err)
+			}
+		}
+
+		l = append(l, t)
 	}
 
 	return l, nil
@@ -102,11 +146,9 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 	r, err := db.Query(`
-		SELECT t.uuid, t.name, t.summary, t.plugin, t.endpoint, t.agent
-			FROM targets t
-				LEFT JOIN jobs j
-					ON j.target_uuid = t.uuid
-			WHERE t.uuid = ?`, id.String())
+	  SELECT uuid, tenant_uuid, name, summary, plugin, endpoint, agent
+	    FROM targets
+	   WHERE uuid = ?`, id.String())
 	if err != nil {
 		return nil, err
 	}
@@ -116,37 +158,55 @@ func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 		return nil, nil
 	}
 
-	ann := &Target{}
-	var this NullUUID
-	if err = r.Scan(&this, &ann.Name, &ann.Summary, &ann.Plugin, &ann.Endpoint, &ann.Agent); err != nil {
+	t := &Target{}
+	var (
+		this, tenant NullUUID
+		rawconfig    []byte
+	)
+	if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent); err != nil {
 		return nil, err
 	}
-	ann.UUID = this.UUID
+	t.UUID = this.UUID
+	t.TenantUUID = tenant.UUID
 
-	return ann, nil
+	if rawconfig != nil {
+		if err := json.Unmarshal(rawconfig, &t.Config); err != nil {
+			log.Warnf("failed to parse data system endpoint json '%s': %s", rawconfig, err)
+		}
+	}
+
+	return t, nil
 }
 
-func (db *DB) AnnotateTarget(id uuid.UUID, name string, summary string) error {
-	return db.Exec(
-		`UPDATE targets SET name = ?, summary = ? WHERE uuid = ?`,
-		name, summary, id.String(),
-	)
+func (db *DB) CreateTarget(in *Target) (*Target, error) {
+	rawconfig, err := json.Marshal(in.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	in.UUID = uuid.NewRandom()
+	return in, db.Exec(`
+	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
+	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?)`,
+		in.UUID.String(), in.TenantUUID.String(), in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent)
 }
 
-func (db *DB) CreateTarget(plugin string, endpoint interface{}, agent string) (uuid.UUID, error) {
-	id := uuid.NewRandom()
+func (db *DB) UpdateTarget(t *Target) error {
+	rawconfig, err := json.Marshal(t.Config)
+	if err != nil {
+		return err
+	}
 
-	return id, db.Exec(
-		`INSERT INTO targets (uuid, plugin, endpoint, agent) VALUES (?, ?, ?, ?)`,
-		id.String(), plugin, endpoint, agent,
-	)
-}
-
-func (db *DB) UpdateTarget(id uuid.UUID, plugin string, endpoint interface{}, agent string) error {
-	return db.Exec(
-		`UPDATE targets SET plugin = ?, endpoint = ?, agent = ? WHERE uuid = ?`,
-		plugin, endpoint, agent, id.String(),
-	)
+	return db.Exec(`
+	  UPDATE targets
+	     SET name     = ?,
+	         summary  = ?,
+	         plugin   = ?,
+	         endpoint = ?,
+	         agent    = ?
+	   WHERE uuid = ?`,
+		t.Name, t.Summary, t.Plugin, string(rawconfig), t.Agent,
+		t.UUID.String())
 }
 
 func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {

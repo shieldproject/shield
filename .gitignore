@@ -1,33 +1,56 @@
+# ignore the binaries
 /shieldd
 /shield
 /shield-agent
+/shield-migrate
 /shield-schema
+/buckler
+
+# ignore the plugin
+/azure
+/bbr-deployment
+/bbr-director
+/consul
+/consul-snapshot
 /docker-postgres*
 /dummy
 /elasticsearch
-/mock
-/mysql
-/postgres
-/redis-broker
-/rabbitmq-broker
-/s3
-/swift
-/azure
 /fs
-/scality
-/consul
-/xtrabackup
-/mongo
 /google
 /mock
-/consul-snapshot
-.DS_Store
+/mongo
+/mysql
+/postgres
+/rabbitmq-broker
+/redis-broker
+/s3
+/swift
+/scality
+/webdav
+/xtrabackup
+
+# ignore database we may create
+*.db
 
 # ignore release testing output
 /artifacts
+/help.all
 
-# where we keep coverage reports...
+# ignore the coverage reports
 /coverage
 
-# secrets
-/ci/credentials.yml
+# ignore tmp stuff from testdev
+/tmp
+
+# ignore testing files
+cmd/shield-umc/shield-umc
+cmd/shield-umc/main
+oauth.conf
+oauth.key
+oauth.key.pub
+
+# ignore the compiled assets for demo docker
+demo/shield-agent/in
+demo/shield-core/in
+demo/shared
+demo/cached

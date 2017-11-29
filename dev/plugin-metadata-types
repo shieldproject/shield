@@ -1,0 +1,19 @@
+#!/bin/bash
+
+
+for x in s3 \
+         fs \
+         azure \
+         consul \
+         google \
+         postgres docker-postgres \
+         mongo \
+         mysql \
+         redis-broker \
+         rabbitmq-broker
+do
+	if [[ ! -x $x ]]; then
+		go build ./plugins/$x >&2
+	fi
+	./$x info
+done | jq -r .fields[].type | sort -u

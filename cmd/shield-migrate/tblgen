@@ -1,0 +1,84 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+my $CODE = do { local $/; <DATA>; };
+my @tables = (
+	[ 'Targets',   'uuid, name, summary, plugin, endpoint, agent' ],
+	[ 'Stores',    'uuid, name, summary, plugin, endpoint' ],
+	[ 'Schedules', 'uuid, name, summary, timespec' ],
+	[ 'Retention', 'uuid, name, summary, expiry' ],
+	[ 'Jobs',      'uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, priority, paused, name, summary' ],
+	[ 'Archives',  'uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, purge_reason, status' ],
+	[ 'Tasks',     'uuid, owner, op, job_uuid, archive_uuid, target_uuid, status, requested_at, started_at, stopped_at, log, store_uuid, target_plugin, target_endpoint, store_plugin, store_endpoint, restore_key, timeout_at, attempts, agent' ],
+);
+
+for my $t (@tables) {
+	my $this = $CODE;
+
+	my $s;
+	$s = lc($t->[0]); $this =~ s/__TABLE__/$s/g;
+	$s = $t->[0];     $this =~ s/__FUNCTION__/$s/g;
+	$s = $t->[1];     $this =~ s/__FIELDS__/$s/g;
+
+	my $c = 'a';
+	$s = join(', ', map { $c++ } split(/\s*,\s*/, $t->[1]));
+	$this =~ s/__VARS__/$s/g;
+
+	$c = 'a';
+	$s = join(', ', map { "&".$c++ } split(/\s*,\s*/, $t->[1]));
+	$this =~ s/__SCANS__/$s/g;
+
+	$s = join(', ', map { '?' } split(/\s*,\s*/, $t->[1]));
+	$this =~ s/__PLACES__/$s/g;
+
+	$s = lc($t->[0]);
+	print "writing cmd/shield-migrate/$s.go\n";
+	open my $fh, ">", "cmd/shield-migrate/$s.go";
+	print $fh $this;
+	close $fh;
+}
+
+__DATA__
+package main
+
+import (
+	"os"
+	"database/sql"
+
+	"github.com/jhunt/go-log"
+
+	"github.com/starkandwayne/shield/db"
+)
+
+func migrate__FUNCTION__(to, from *db.DB) {
+	n := 0
+	rs, err := from.Query(`
+	   SELECT __FIELDS__
+	     FROM __TABLE__`)
+	if err != nil {
+		log.Errorf("failed to migrate __TABLE__; SELECT said: %s", err)
+		os.Exit(3)
+	}
+
+	for rs.Next() {
+		n += 1
+		var __VARS__ sql.RawBytes
+
+		if err := rs.Scan(__SCANS__); err != nil {
+			log.Errorf("failed to read result from __TABLE__ source table: %s", err)
+			os.Exit(3)
+		}
+
+		err = to.Exec(`
+		   INSERT INTO __TABLE__ (__FIELDS__)
+                VALUES (__PLACES__)`,
+			__VARS__)
+		if err != nil {
+			log.Errorf("failed to insert result into __TABLE__ dest table: %s", err)
+			os.Exit(3)
+		}
+	}
+
+	log.Infof("migrated %d __TABLE__", n)
+}

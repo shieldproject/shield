@@ -3,22 +3,16 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"time"
+	"sync"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/starkandwayne/goutils/log"
-
-	. "github.com/starkandwayne/goutils/timestamp"
 )
-
-func parseEpochTime(et int64) Timestamp {
-	return NewTimestamp(time.Unix(et, 0).UTC())
-}
 
 type DB struct {
 	connection *sqlx.DB
 	Driver     string
 	DSN        string
+	exclusive  sync.Mutex
 
 	qCache map[string]*sql.Stmt
 	qAlias map[string]string
@@ -76,12 +70,14 @@ func (db *DB) Alias(name string, sql string) error {
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
 func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+
 	s, err := db.statement(sql_or_name)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("Parameters: %v", args)
 	_, err = s.Exec(args...)
 	if err != nil {
 		return err
@@ -92,12 +88,14 @@ func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
 
 // Execute a named, data query (SELECT)
 func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+
 	s, err := db.statement(sql_or_name)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debugf("Parameters: %v", args)
 	r, err := s.Query(args...)
 	if err != nil {
 		return nil, err
@@ -135,13 +133,11 @@ func (db *DB) rebind(sql string) string {
 
 // Return the prepared Statement for a given SQL query
 func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
-	sql := db.resolve(db.rebind(sql_or_name))
 	if db.connection == nil {
 		return nil, fmt.Errorf("Not connected to database")
 	}
 
-	log.Debugf("Executing SQL: %s", sql)
-
+	sql := db.resolve(db.rebind(sql_or_name))
 	q, ok := db.qCache[sql]
 	if !ok {
 		stmt, err := db.connection.Prepare(sql)

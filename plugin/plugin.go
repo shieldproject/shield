@@ -31,6 +31,7 @@ type Opt struct {
 	Version   bool   `cli:"-v, --version"`
 	Endpoint  string `cli:"-e,--endpoint"`
 	Key       string `cli:"-k, --key"`
+	Text      bool   `cli:"--text"`
 
 	Info     struct{} `cli:"info"`
 	Example  struct{} `cli:"example"`
@@ -46,10 +47,22 @@ type Plugin interface {
 	Validate(ShieldEndpoint) error
 	Backup(ShieldEndpoint) error
 	Restore(ShieldEndpoint) error
-	Store(ShieldEndpoint) (string, error)
+	Store(ShieldEndpoint) (string, int64, error)
 	Retrieve(ShieldEndpoint, string) error
 	Purge(ShieldEndpoint, string) error
 	Meta() PluginInfo
+}
+
+type Field struct {
+	Mode     string   `json:"mode"`
+	Name     string   `json:"name"`
+	Type     string   `json:"type"`
+	Title    string   `json:"title,omitempty"`
+	Help     string   `json:"help,omitempty"`
+	Example  string   `json:"example,omitempty"`
+	Default  string   `json:"default,omitempty"`
+	Enum     []string `json:"enum,omitempty"`
+	Required bool     `json:"required,omitempty"`
 }
 
 type PluginInfo struct {
@@ -60,6 +73,8 @@ type PluginInfo struct {
 
 	Example  string `json:"-"`
 	Defaults string `json:"-"`
+
+	Fields []Field `json:"fields"`
 }
 
 type PluginFeatures struct {
@@ -109,7 +124,7 @@ COMMANDS
   validate -e JSON             Validate endpoint JSON/configuration
   backup   -e JSON             Backup a target
   restore  -e JSON             Replay a backup archive to a target
-  store    -e JSON             Store a backup archive
+  store    -e JSON [--text]    Store a backup archive
   retrieve -e JSON -k KEY      Stream a backup archive from storage
   purge    -e JSON -k KEY      Delete a backup archive from storage
 `)
@@ -165,11 +180,15 @@ BACKUP COMMANDS
 
 STORAGE COMMANDS
 
-  store --endpoint STORE-ENDPOINT-JSON
+  store --endpoint STORE-ENDPOINT-JSON [--text]
 
     Reads a compressed backup archive on standard input and attempts to
     persist it to the backing storage system indicated by --endpoint.
     Upon success, writes the STORAGE-HANDLE to standard output.
+
+    If --text is given, the STORAGE-HANDLE is printed on a single line,
+    without any additional whitespace or formatting.  By default, it will
+    be printed inside of a JSON structure.
 
   retrieve --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON
 
@@ -198,6 +217,52 @@ STORAGE COMMANDS
 
 	switch command {
 	case "info":
+		if os.Getenv("SHIELD_PEDANTIC_INFO") != "" {
+			/* validate the plugin info with great pedantry */
+			ok := true
+			for i, f := range info.Fields {
+				name := f.Name
+				if f.Name == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: field #%d has no name\n", info.Name, i+1)
+					name = fmt.Sprintf("field #%d", i+1)
+					ok = false
+				}
+
+				if f.Type == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: %s has no type\n", info.Name, name)
+					ok = false
+				}
+
+				if f.Title == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: %s has no title\n", info.Name, name)
+					ok = false
+				}
+
+				if f.Help == "" {
+					fmt.Fprintf(os.Stderr, "!! %s: %s has no help\n", info.Name, name)
+					ok = false
+				} else if !strings.HasSuffix(f.Help, ".") {
+					fmt.Fprintf(os.Stderr, "!! %s: %s help field does not end in a period.\n", info.Name, name)
+					ok = false
+				}
+
+				if f.Type == "enum" {
+					if len(f.Enum) == 0 {
+						fmt.Fprintf(os.Stderr, "!! %s: %s is defined as an enum, but specifies no allowed values.\n", info.Name, name)
+						ok = false
+					}
+				} else {
+					if len(f.Enum) != 0 {
+						fmt.Fprintf(os.Stderr, "!! %s: %s is not defined as an enum, but has the following allowed values: [%s]\n", info.Name, name, f.Enum)
+						ok = false
+					}
+				}
+			}
+
+			if !ok {
+				os.Exit(1)
+			}
+		}
 		json, err := json.MarshalIndent(info, "", "    ")
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -228,6 +293,7 @@ STORAGE COMMANDS
 func dispatch(p Plugin, mode string, opt Opt) error {
 	var err error
 	var key string
+	var size int64
 	var endpoint ShieldEndpoint
 
 	DEBUG("'%s' action requested with options %#v", mode, opt)
@@ -239,31 +305,41 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 			return err
 		}
 		err = p.Validate(endpoint)
+
 	case "backup":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		err = p.Backup(endpoint)
+
 	case "restore":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
 		err = p.Restore(endpoint)
+
 	case "store":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {
 			return err
 		}
-		key, err = p.Store(endpoint)
-		output, jsonErr := json.MarshalIndent(struct {
-			Key string `json:"key"`
-		}{Key: key}, "", "    ")
-		if jsonErr != nil {
-			return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
+
+		key, size, err = p.Store(endpoint)
+		if opt.Text {
+			fmt.Printf("%s\n", key)
+		} else {
+			output, jsonErr := json.MarshalIndent(struct {
+				Key  string `json:"key"`
+				Size int64  `json:"archive_size"`
+			}{Key: key, Size: size}, "", "    ")
+			if jsonErr != nil {
+				return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
+			}
+			fmt.Printf("%s\n", string(output))
 		}
-		fmt.Printf("%s\n", string(output))
+
 	case "retrieve":
 		endpoint, err = getEndpoint(opt.Endpoint)
 		if err != nil {

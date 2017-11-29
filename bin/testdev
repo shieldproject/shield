@@ -1,110 +1,364 @@
 #!/bin/bash
 export PATH=$(pwd):$(pwd)/bin:${PATH}
-workdir=""
-ADDR=127.0.0.1:8181
+export VAULT_SKIP_VERIFY=1
+workdir=$PWD/tmp/work
+storedir=$PWD/tmp/store
+export PORT=${PORT:-8181}
 
 setup_workdir() {
-  workdir=$(mktemp -d /tmp/shield.testdev.XXXXXXX)
-  storedir=$(mktemp -d /tmp/shield.testdev.storeXXXXXXX)
-  trap "rm -rf ${workdir} ${storedir}" EXIT QUIT INT TERM
-
-  mkdir ${workdir}/etc
-  mkdir ${workdir}/var
+  rm -rf ${workdir} ${storedir}
+  mkdir -p ${workdir}/{etc,var}
+  mkdir -p ${storedir}
 }
 
-# If a work directory is not supplied as a parameter,
-# create one.
-if [ $# -lt 2 ]; then
-    setup_workdir
-else
-    workdir="${2}"
-fi
+preflight() {
+  echo "RUNNING testdev PRE-FLIGHT CHECKS"
+  echo
 
-export DATABASE_TYPE=${DATABASE_TYPE:-sqlite3}
-export DATABASE_DSN=${DATABASE_DSN:-$workdir/var/shield.db}
-export SHIELD_API_TOKEN=LETMEIN
+  echo "checking for SHIELD binaries..."
+  missing=''
+  for bin in shieldd shield-agent shield-schema; do
+    if [[ ! -f "$bin" ]]; then
+      echo " - missing '$bin' binary..."
+      missing=1
+    fi
+  done
+  for bin in shield buckler; do
+    if [[ ! -f "$bin" ]]; then
+      echo " - missing '$bin' binary..."
+      missing=1
+    fi
+  done
+  if [[ -n "$missing" ]]; then
+    make shield shield-cli
+  fi
+
+  echo "checking for SHIELD plugins..."
+  missing=''
+  for plugin in $(cat plugins); do
+    if [[ ! -f "$plugin" ]]; then
+      echo " - missing '$plugin' plugin"
+      missing=1
+    fi
+  done
+  if [[ -n "$missing" ]] ; then
+    make plugins
+  fi
+
+  echo "checking for tmux..."
+  if ! type tmux &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires tmux (https://tmux.github.io)"
+    echo "You will need to install tmux to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install tmux\` and be on your way."
+    esac
+    exit 1
+  fi
+
+  if ! type nginx &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires nginx (https://nginx.org)"
+    echo "You will need to install nginx to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install nginx\` and be on your way."
+    esac
+    exit 1
+  fi
+
+  echo "checking for vault..."
+  if ! type vault &>/dev/null; then
+    echo
+    echo "SHIELD's testdev environment requires vault (https://vaultproject.io)"
+    echo "You will need to install vault to continue."
+    case $OSTYPE in
+    *darwin*) echo
+              echo "On macOS ($OSTYPE), you can \`brew install vault\` and be on your way."
+    esac
+    exit 1
+  fi
+  v=$(vault -v | awk '{print $2}')
+  case $v in
+  v0.8.*) ;;
+  v0.9.0) ;;
+  *) echo
+     echo "The installed version of vault ($v) has not been verified"
+     echo "to work with this version of SHIELD testdev.  Please try v0.9.0"
+      case $OSTYPE in
+      *darwin*) echo
+                echo "On macOS ($OSTYPE), you can \`brew upgrade vault\` and be on your way."
+      esac
+     exit 1;
+     ;;
+  esac
+
+  echo
+  echo "PRE-FLIGHT CHECKS OK"
+}
+
+# set up a dedicated directory just for plugins
+mkdir -p ${workdir}/bin
+for plugin in $(cat plugins); do
+  if [[ -f $plugin && -x $plugin ]]; then
+    cp $plugin ${workdir}/bin/$plugin
+  fi
+done
 
 case "${1}" in
+(nginx)
+  export PORT=$2
+  cat >${workdir}/etc/nginx.conf <<EOF
+daemon    off;
+error_log ${workdir}/var/error.log;
+events {}
+http {
+  default_type application/octet-stream;
+  log_format main '\$remote_addr - \$remote_user [\$time_local]  \$status '
+                  '"\$request" \$body_bytes_sent "\$http_referer" '
+                  '"\$http_user_agent" "\$http_x_forwarded_for"';
+  access_log ${workdir}/var/access.log;
+  sendfile   on;
+  tcp_nopush on;
+
+  server {
+    listen ${PORT};
+    root   web2/htdocs;
+    location / {
+      proxy_pass              http://127.0.0.1:8180;
+      proxy_redirect          off;
+      proxy_set_header        Host            \$host;
+      proxy_set_header        X-Real-IP       \$remote_addr;
+      proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
+      client_max_body_size    10m;
+      client_body_buffer_size 128k;
+      proxy_connect_timeout   90;
+      proxy_send_timeout      90;
+      proxy_read_timeout      90;
+      proxy_buffers           32 4k;
+
+      add_header Strict-Transport-Security "max-age=63072000; preload";
+      add_header Content-Security-Policy   "default-src 'none' ; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; img-src 'self'; media-src 'self'; object-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; base-uri 'self'";
+      add_header X-Content-Type-Options    "nosniff";
+      add_header X-Frame-Options           "DENY";
+      add_header X-XSS-Protection          "1; mode=block";
+      add_header Referrer-Policy           "same-origin";
+
+      location /init.js {
+        add_header Content-Type text/javascript;
+        proxy_pass http://127.0.0.1:8180;
+        expires    -1;
+      }
+
+      if (\$request_uri ~* ".(ico|css|js|gif|jpe?g|png|svg)$") {
+        expires 30d;
+        access_log off;
+        add_header Pragma public;
+        add_header Cache-Control "public";
+        break;
+      }
+    }
+  }
+}
+EOF
+  while true; do
+    echo ">> Spinning up an nginx reverse proxy."
+    nginx -c ${workdir}/etc/nginx.conf -T
+    nginx -c ${workdir}/etc/nginx.conf
+    echo
+    echo "nginx exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
+  ;;
+(vault)
+  mkdir -p ${workdir}/var/vault
+  cat >${workdir}/etc/vault.conf <<EOF
+storage "file" {
+  path = "${workdir}/var/vault"
+}
+disable_mlock = true
+listener "tcp" {
+  address = "127.0.0.1:8200"
+  tls_disable = true
+}
+EOF
+  while true; do
+    echo ">> Spinning up a local (loopback) Vault"
+    vault server -config ${workdir}/etc/vault.conf
+    echo
+
+    echo "vault exited."
+    echo "Do you want to [r]estart it (sealed)"
+    echo "or re-[i]nitialize it?"
+    read -p "[r/i/N] " CONTINUE
+    case "${CONTINUE}" in
+    i*|I*) rm -rf ${workdir}/var/vault ;;
+    r*|r*) ;;
+    *) exit 0 ;;
+    esac
+  done
+  ;;
 (shieldd)
   ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
   rm ${workdir}/var/shieldd_key.pub
 
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
-listen_addr:   ${ADDR}
-database_type: ${DATABASE_TYPE}
-database_dsn:  ${DATABASE_DSN}
+listen_addr:   127.0.0.1:8180
+database:      ${workdir}/var/shield.db
 private_key:   ${workdir}/var/shieldd_key
 workers:       3
 max_timeout:   10
-web_root: ./webui
+web_root:      ./web2/htdocs
+slow_loop:     20
+fast_loop:     2
+vault_keyfile: ${workdir}/var/vault.crypt
+session_timeout: 8
+debug: true
+
+env:   TESTDEV
+color: yellow
+motd: |
+  Welcome to the testdev S.H.I.E.L.D. environment!
+
+failsafe:
+  username: failsafe
+  password: sekrit
+
 auth:
-  api_tokens:
-    test: ${SHIELD_API_TOKEN}
-  basic:
-    user: testuser
-    password: testpass
-#  oauth:
-#    provider: github
-#    key: Fill this in with the github Client ID after creating a dev oauth app
-#    secret: Fill this in with the github secret after creating a dev oath app
-#    base_url: http://localhost:8181
-#    orgs:
-#    - Fill this in with a real github group you want to restrict access to
-#    sessions:
-#      type: sqlite3
-#      dsn: ${workdir}/var/sessions.db
+  - name:       Github
+    identifier: github
+    backend:    github
+    properties:
+      client_id:     35f670b0ee9c9b4bc37c
+      client_secret: b33d1309ea69e75c0ccd51f2caac9493e9326830
+      mapping:
+        - github: starkandwayne  # <-- github org name
+          tenant: starkandwayne  # <-- shield tenant name
+          rights:
+            - team: Owners       # <-- github team name
+              role: admin        # <-- shield role name
+            - team: Engineering  #   (first match wins)
+              role: engineer
+            - role: operator     # = (default match)
+
+        - github: starkandwayne
+          tenant: SYSTEM
+          rights:
+            - team: Owners
+              role: admin
+
+        - github: cloudfoundry-community
+          tenant: CF Community
+          rights:
+            - role: engineer
+
+  - name:       UAA
+    identifier: uaa1
+    backend:    uaa
+    properties:
+      client_id:       shield-dev
+      client_secret:   s.h.i.e.l.d.
+      uaa_endpoint:    https://uaa.shield.10.244.156.2.netip.cc:8443
+      skip_verify_tls: true
+      mapping:
+        - tenant: UAA          # <-- shield tenant name
+          rights:
+            - scim: uaa.admin  # <-- uaa scim right
+              role: admin      # <-- shield role
+                               #   (first match wins)
+            - scim: cloud_controller.write
+              role: engineer
+
+            - role: operator   # = (default match)
+
+        - tenant: UAA Admins Club
+          rights:
+            - scim: uaa.admin
+              role: admin
+
 EOF
 
-  echo ">> Setting up SHIELD schema"
-  ./shield-schema -t ${DATABASE_TYPE} -d "${DATABASE_DSN}"
-  echo
+  while true; do
+    echo ">> Setting up SHIELD schema"
+    ./shield-schema -d ${workdir}/var/shield.db
+    echo
 
-  echo ">> RUNNING SHIELDD"
-  ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
-  echo
-  echo "shieldd exited."
-  echo "Press enter to close this session."
-  read JUNK
+    echo ">> RUNNING SHIELDD"
+    trap ":" INT # ignore Ctrl-C
+    ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
+    echo
+    echo "shieldd exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
+
 (shieldagent)
-  agent_up="1"
-  while [ $agent_up -eq 1 ]; do
+  PORT=$2
+  echo "waiting for SHIELD Core to spin up on http://127.0.0.1:${PORT}..."
+  while ! curl -Ls http://127.0.0.1:${PORT}/v2/info 2>/dev/null | grep -q TESTDEV; do
       sleep 1
-      agent_up=`nc -z 127.0.0.1 8181; echo $?`
   done
 
   ssh-keygen -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
   rm ${workdir}/var/shield-agent_key.pub
 
-  `curl -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://127.0.0.1:8181/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
+  `curl -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://127.0.0.1:${PORT}/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
   cat >${workdir}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${workdir}/var/authorized_keys
 host_key_file: ${workdir}/var/shield-agent_key
 listen_address: 0.0.0.0:5444
 plugin_paths:
-  - $(pwd)
+  - ${workdir}/bin
+
+name: bond-james-bond
+registration:
+  url: http://localhost:${PORT}
+  interval: 15
 EOF
 
-  echo ">> RUNNING SHIELD AGENT"
-  ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
-  echo
-  echo "shield-agent exited."
-  echo "Press enter to close this session."
-  read JUNK
+  while true; do
+    echo ">> RUNNING SHIELD AGENT"
+    trap ":" INT # ignore Ctrl-C
+    ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
+    echo
+    echo "shield-agent exited."
+    echo "Do you want to restart it?"
+    read -p "[y/N] " CONTINUE
+    case "${CONTINUE}" in
+    y*|Y*) ;;
+    *) exit 0 ;;
+    esac
+  done
   ;;
 ("")
-  tmux new-session \; set-option update-environment ' SHIELD_API' \; \
-       new-window -n daemon ./bin/testdev shieldd ${workdir} \; \
-       new-window -n agent ./bin/testdev shieldagent ${workdir} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${workdir} ${storedir} ; read JUNK" \;
+  setup_workdir
+  preflight >&2
+  tmux new-session \; set-option update-environment ' PORT SHIELD_API' \; \
+       new-window -n nginx ./bin/testdev nginx ${PORT} \; \
+       new-window -n vault ./bin/testdev vault \; \
+       new-window -n daemon ./bin/testdev shieldd \; \
+       new-window -n agent ./bin/testdev shieldagent ${PORT} \; \
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup; read JUNK" \; \
+       new-window -n db sqlite3 ${workdir}/var/shield.db \;
   ;;
 
 (*)
   echo >&2 "USAGE: $0 [ACTION]"
   echo >&2 ""
-  echo >&2 "Run components of a test/dev shield setup, on http://${ADDR}"
+  echo >&2 "Run components of a test/dev shield setup, on http://127.0.0.1:${PORT}"
   echo >&2 ""
   echo >&2 "Actions:"
   echo >&2 "  shieldd     Run SHIELD core daemon"

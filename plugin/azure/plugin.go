@@ -51,21 +51,20 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"regexp"
 	"time"
 
 	azure "github.com/Azure/azure-sdk-for-go/storage"
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
 
 func main() {
 	p := AzurePlugin{
-		Name:    "Azure Blobstore Storage Plugin",
+		Name:    "Microsoft Azure Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -86,6 +85,33 @@ func main() {
   # all keys are required.
 }
 `,
+
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "store",
+				Name:     "storage_account",
+				Type:     "string",
+				Title:    "Storage Account",
+				Help:     "Name of the Azure Storage Account for accessing the blobstore.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "storage_account_key",
+				Type:     "password",
+				Title:    "Storage Account Key",
+				Help:     "Secret Key of the Azure Storage Account for accessing the blobstore.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "storage_container",
+				Type:     "string",
+				Title:    "Storage container",
+				Help:     "Name of the Container to store backup archives in.",
+				Required: true,
+			},
+		},
 	}
 
 	plugin.Run(p)
@@ -112,23 +138,23 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("storage_account")
 	if err != nil {
-		ansi.Printf("@R{\u2717 storage_account     %s}\n", err)
+		fmt.Printf("@R{\u2717 storage_account     %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 storage_account}     @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 storage_account}     @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("storage_account_key", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 storage_account_key %s}\n", err)
+		fmt.Printf("@R{\u2717 storage_account_key %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 storage_account_key} @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 storage_account_key} @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("storage_container")
 	if err != nil {
-		ansi.Printf("@R{\u2717 storage_container   %s}\n", err)
+		fmt.Printf("@R{\u2717 storage_container   %s}\n", err)
 		fail = true
 	} else {
 		containerFail := false
@@ -136,16 +162,16 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		if !containerValidator.MatchString(s) {
 			fail = true
 			containerFail = true
-			ansi.Printf("@R{\u2717 storage_container   invalid characters (must be lower-case alpha-numeric plus dash)}\n")
+			fmt.Printf("@R{\u2717 storage_container   invalid characters (must be lower-case alpha-numeric plus dash)}\n")
 		}
 		if len(s) < 3 || len(s) > 63 {
 			fail = true
 			containerFail = true
-			ansi.Printf("@R{\u2717 storage_container   is too long/short (must be 3-63 characters)}\n")
+			fmt.Printf("@R{\u2717 storage_container   is too long/short (must be 3-63 characters)}\n")
 		}
 
 		if !containerFail {
-			ansi.Printf("@G{\u2713 storage_container}   @C{%s}\n", s)
+			fmt.Printf("@G{\u2713 storage_container}   @C{%s}\n", s)
 		}
 	}
 
@@ -163,19 +189,19 @@ func (p AzurePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	az, err := getAzureConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	client, err := az.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	created, err := client.CreateContainerIfNotExists(az.StorageContainer, azure.ContainerAccessTypePrivate)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	if created {
 		plugin.DEBUG("Created new storage container: %s", az.StorageContainer)
@@ -187,31 +213,31 @@ func (p AzurePlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	plugin.DEBUG("Creating new backup blob: %s", path)
 	err = client.PutAppendBlob(az.StorageContainer, path, nil)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	uploaded := 0
+	var uploaded int64
 	for {
 		buf := make([]byte, 4*1024*1024)
 		n, err := io.ReadFull(os.Stdin, buf)
 		plugin.DEBUG("Uploading %d bytes for a total of %d", n, uploaded)
 		if n > 0 {
-			uploaded += n
+			uploaded += int64(n)
 			err := client.AppendBlock(az.StorageContainer, path, buf[:n], nil)
 			if err != nil {
-				return "", err
+				return "", 0, err
 			}
 		}
 		if err != nil {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				break
 			}
-			return "", err
+			return "", 0, err
 		}
 	}
 	plugin.DEBUG("Successfully uploaded %d bytes of data", uploaded)
 
-	return path, nil
+	return path, uploaded, nil
 }
 
 func (p AzurePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

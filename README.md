@@ -7,7 +7,7 @@ Questions? Pop in our [slack channel](https://cloudfoundry.slack.com/messages/sh
 ## Project Goal
 The goal of this project is to build a standalone system that can perform backup and restore functions for a wide variety of pluggable data systems (like Redis, PostgreSQL, MySQL, RabbitMQ, etc.), storing backup data in pluggable storage solutions (i.e. local files, S3 blobstore, etc.).
 
-The system should enable self-service for end users to perform ad hoc backup / restore operations, review backup schedules, retention policies and backup job runs, etc.
+The system should enable self-service for end users to perform ad hoc backup / restore operations, review backup retention policies and backup job runs, etc.
 
 Engineers should be able to integrate support for new data systems and storage solutions without having to modify core code.
 
@@ -34,7 +34,6 @@ Engineers should be able to integrate support for new data systems and storage s
 | [RabbitMQ Broker](https://godoc.org/github.com/starkandwayne/shield/plugin/rabbitmq-broker) | rabbitmq-broker | X      |       |
 | [Redis Broker](https://godoc.org/github.com/starkandwayne/shield/plugin/redis-broker)       | redis-broker    | X      |       |
 | [S3](https://godoc.org/github.com/starkandwayne/shield/plugin/s3)                           | s3              |        | X     |
-| [Scality](https://godoc.org/github.com/starkandwayne/shield/plugin/scality)                 | scality         |        | X     |
 | [Xtra Backup](https://godoc.org/github.com/starkandwayne/shield/plugin/xtrabackup)          | xtrabackup      | X      |       |
 
 **See a missing plugin? Create one and submit a PR**<br>
@@ -74,7 +73,7 @@ Additional information in the [Plugin README](plugin/README.md)
 The Core Daemon is the coordinating component that handles:
 
 #### Metadata Management
-What targets and stores exist, what schedules and retention policies are defined, what jobs are specified, what backups have taken place, and what tasks are in-flight.
+What targets and stores exist, what retention policies are defined, what jobs are specified, what backups have taken place, and what tasks are in-flight.
 #### Scheduling Backups
 Kicks off backup tasks (owned by SYSTEM) for all jobs per their configured schedule.
 #### Expiring Backups
@@ -94,10 +93,10 @@ Detailed documentation on the HTTP API can be read in the [docs/api/http.md](htt
 
 ## Catalog Database
 
-A dedicated data store that keeps track of schedules, retention policies, backup configurations, targets and stores, and running tasks.  This database is private to the Core Daemon; there should be no need to query it directly, outside of maintenance tasks.
+A dedicated data store that keeps track of retention policies, backup configurations, targets and stores, and running tasks.  This database is private to the Core Daemon; there should be no need to query it directly, outside of maintenance tasks.
 Web UI and the CLI
 
-The Web UI provides a rich user interface for operators and end-users to view configuration (schedules, policies, jobs, etc.) review archives, and monitor tasks in-progress.  It also provides self-service functionality by allowing users to request ad hoc backup and restore operations.
+The Web UI provides a rich user interface for operators and end-users to view configuration (policies, jobs, etc.) review archives, and monitor tasks in-progress.  It also provides self-service functionality by allowing users to request ad hoc backup and restore operations.
 
 The Web UI relies exclusively on the HTTP API.
 
@@ -133,19 +132,6 @@ CREATE TABLE stores (
 );
 ```
 
-SCHEDULES contains the timing information that informs the core daemon when it should run which backup jobs (or JOBS, see later).
-
-```sql
-CREATE TABLE schedules (
-  uuid      UUID PRIMARY KEY,
-  name      TEXT, -- a human-friendly name for this schedule
-  summary   TEXT, -- annotation for operator use, to describe schedule
-  timespec  TEXT NOT NULL, -- code in a DSL for specifying when to run backups,
-                           --   i.e. 'sundays 8am' or 'daily 1am'
-                           --   (note: may want to eval use of cron here)
-);
-```
-
 RETENTION policies govern how long data is kept.  For now, this is just a simple expiration time, with 'name' and 'summary' fields for annotation.
 
 All backups taken MUST have a retention policy; no backups are kept indefinitely.
@@ -168,11 +154,11 @@ CREATE TABLE jobs (
   uuid            UUID PRIMARY KEY,
   target_uuid     UUID NOT NULL, -- the target
   store_uuid      UUID NOT NULL, -- the store
-  schedule_uuid   UUID NOT NULL, -- what schedule to use
+  schedule        TEXT NOT NULL, -- when to run this job
   retention_uuid  UUID NOT NULL, -- what retention policy to use
   priority        INTEGER DEFAULT 50, -- priority, scale from 0 to 100 (0 = highest)
   paused          BOOLEAN, -- if true, this job is not run when scheduled.
-  name            TEXT,    -- a human-friendly name for this schedule
+  name            TEXT,    -- a human-friendly name for this job
   summary         TEXT,    -- annotation for operator use, to describe
                            --   the purpose of the job ('weekly orders db')
 );
@@ -442,13 +428,6 @@ $ shield create target
 $ shield edit target $UUID
 $ shield delete target $UUID
 
-# schedule management
-$ shield list schedules [--[un]used]
-$ shield show schedule $UUID
-$ shield create schedule
-$ shield update schedule $UUID
-$ shield delete schedule $UUID
-
 # retention policies
 $ shield list retention policies [--[un]used]
 $ shield show retention policy $UUID
@@ -465,7 +444,7 @@ $ shield delete store $UUID
 
 # jobs
 $ shield list jobs [--[un]paused] [--target $UUID] [--store $UUID]
-                [--schedule $UUID] [--retention-policy $UUID]
+                   [--retention-policy $UUID]
 $ shield show job $UUID
 $ shield create job
 $ shield edit job $UUID
