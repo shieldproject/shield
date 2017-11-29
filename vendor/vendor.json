@@ -348,22 +348,12 @@
 		},
 		{
 			"comment": "v1.2.0-2-gdcabb60",
-			"path": "github.com/onsi/gomega/gbytes",
-			"revision": "dcabb60a477c2b6f456df65037cb6708210fbb02"
-		},
-		{
-			"comment": "v1.2.0-2-gdcabb60",
 			"path": "github.com/onsi/gomega/internal/assertion",
 			"revision": "dcabb60a477c2b6f456df65037cb6708210fbb02"
 		},
 		{
 			"comment": "v1.2.0-2-gdcabb60",
 			"path": "github.com/onsi/gomega/internal/asyncassertion",
-			"revision": "dcabb60a477c2b6f456df65037cb6708210fbb02"
-		},
-		{
-			"comment": "v1.2.0-2-gdcabb60",
-			"path": "github.com/onsi/gomega/internal/fakematcher",
 			"revision": "dcabb60a477c2b6f456df65037cb6708210fbb02"
 		},
 		{
@@ -405,10 +395,6 @@
 			"comment": "v1.2.0-2-gdcabb60",
 			"path": "github.com/onsi/gomega/types",
 			"revision": "dcabb60a477c2b6f456df65037cb6708210fbb02"
-		},
-		{
-			"path": "github.com/pborman/getopt/v2",
-			"revision": "7148bc3a4c3008adfcab60cbebfd0576018f330b"
 		},
 		{
 			"path": "github.com/pborman/uuid",
@@ -468,10 +454,6 @@
 		},
 		{
 			"path": "golang.org/x/crypto/ssh/terminal",
-			"revision": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
-		},
-		{
-			"path": "golang.org/x/crypto/ssh/testdata",
 			"revision": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},
 		{
