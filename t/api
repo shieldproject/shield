@@ -33,8 +33,8 @@ cleanup () {
 trap "cleanup >&2" EXIT QUIT INT TERM
 
 spin_vault() {
-  if [[ -z "$(type vault 2>/dev/null)" ]]; then
-    VAULT_VERSION=0.8.3
+  if [[ ! -f $(pwd)/bin/vault ]]; then
+    VAULT_VERSION=0.9.0
     echo "... retrieving vault $VAULT_VERSION form the web..."
     case $OSTYPE in
     *darwin*) curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_darwin_amd64.zip ;;
@@ -45,9 +45,8 @@ spin_vault() {
     pushd $WORKDIR
       rm -f vault
       unzip vault.zip
-      rm -f vault.zip
-      chmod 755 vault
     popd
+    mv $WORKDIR/vault $(pwd)/bin/vault
   fi
 
   cat >${WORKDIR}/etc/vault.conf <<EOF

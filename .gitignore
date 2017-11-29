@@ -6,6 +6,9 @@
 /shield-schema
 /buckler
 
+# stuff we use in t/*
+/bin/vault
+
 # ignore the plugin
 /azure
 /bbr-deployment
