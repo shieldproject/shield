@@ -11,4 +11,4 @@ cd ${GOPATH}/src/${MODULE}
 
 # customization - shield runs a battery of live-fire tests
 # against a real shieldd + agent pair.
-make shield shield-cli test
+make all
