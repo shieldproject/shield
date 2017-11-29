@@ -1,85 +1,13 @@
-// The `s3` plugin for SHIELD is intended to be a back-end storage
-// plugin, wrapping Amazon's Simple Storage Service (S3). It should
-// be compatible with other services which emulate the S3 API, offering
-// similar storage solutions for private cloud offerings (such as OpenStack
-// Swift). However, this plugin has only been tested with Amazon S3.
-//
-// PLUGIN FEATURES
-//
-// This plugin implements functionality suitable for use with the following
-// SHIELD Job components:
-//
-//  Target: no
-//  Store:  yes
-//
-// PLUGIN CONFIGURATION
-//
-// The endpoint configuration passed to this plugin is used to determine
-// how to connect to S3, and where to place/retrieve the data once connected.
-// your endpoint JSON should look something like this:
-//
-//    {
-//        "s3_host":             "s3.amazonaws.com", # default
-//        "access_key_id":       "your-access-key-id",
-//        "secret_access_key":   "your-secret-access-key",
-//        "skip_ssl_validation":  false,
-//        "bucket":              "bucket-name",
-//        "prefix":              "/path/inside/bucket/to/place/backup/data",
-//        "signature_version":   "4",  # should be 2 or 4. Defaults to 4
-//        "socks5_proxy":        ""    # optionally defined SOCKS5 proxy to use for the s3 communications
-//        "s3_port":             ""    # optionally defined port to use for the s3 communications
-//    }
-//
-// Default Configuration
-//
-//    {
-//        "s3_host"             : "s3.amazonawd.com",
-//        "signature_version"   : "4",
-//        "skip_ssl_validation" : false
-//    }
-//
-// `prefix` will default to the empty string, and backups will be placed in the
-// root of the bucket.
-//
-// The `s3_port` field is optional. If specified, `s3_host` cannot be empty.
-//
-// STORE DETAILS
-//
-// When storing data, this plugin connects to the S3 service, and uploads the data
-// into the specified bucket, using a path/filename with the following format:
-//
-//    <prefix>/<YYYY>/<MM>/<DD>/<HH-mm-SS>-<UUID>
-//
-// Upon successful storage, the plugin then returns this filename to SHIELD to use
-// as the `store_key` when the data needs to be retrieved, or purged.
-//
-// RETRIEVE DETAILS
-//
-// When retrieving data, this plugin connects to the S3 service, and retrieves the data
-// located in the specified bucket, identified by the `store_key` provided by SHIELD.
-//
-// PURGE DETAILS
-//
-// When purging data, this plugin connects to the S3 service, and deletes the data
-// located in the specified bucket, identified by the `store_key` provided by SHIELD.
-//
-// DEPENDENCIES
-//
-// None.
-//
 package main
 
 import (
-	"crypto/tls"
 	"io"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	fmt "github.com/jhunt/go-ansi"
-	minio "github.com/minio/minio-go"
-	"golang.org/x/net/proxy"
+	"github.com/jhunt/go-s3"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -204,14 +132,14 @@ func main() {
 
 type S3Plugin plugin.PluginInfo
 
-type S3ConnectionInfo struct {
+type s3Endpoint struct {
 	Host              string
 	SkipSSLValidation bool
 	AccessKey         string
 	SecretKey         string
 	Bucket            string
 	PathPrefix        string
-	SignatureVersion  string
+	SignatureVersion  int
 	SOCKS5Proxy       string
 	Port              string
 }
@@ -329,22 +257,31 @@ func (p S3Plugin) Restore(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
-	var size int64
-	s3, err := getS3ConnInfo(endpoint)
-	if err != nil {
-		return "", 0, err
-	}
-	client, err := s3.Connect()
+	c, err := getS3ConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
 	}
 
-	path := s3.genBackupPath()
+	client, err := c.Connect()
+	if err != nil {
+		return "", 0, err
+	}
+
+	path := c.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
 
-	// FIXME: should we do something with the size of the write performed?
-	// Removing leading slash until https://github.com/minio/minio/issues/3256 is fixed
-	size, err = client.PutObject(s3.Bucket, strings.TrimPrefix(path, "/"), os.Stdin, "application/x-gzip")
+	upload, err := client.NewUpload(path)
+	if err != nil {
+		return "", 0, err
+	}
+
+	/* FIXME: make block size configurable */
+	size, err := upload.Stream(os.Stdin, 5*1024*1024*1024)
+	if err != nil {
+		return "", 0, err
+	}
+
+	err = upload.Done()
 	if err != nil {
 		return "", 0, err
 	}
@@ -353,97 +290,90 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 }
 
 func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	s3, err := getS3ConnInfo(endpoint)
-	if err != nil {
-		return err
-	}
-	client, err := s3.Connect()
+	e, err := getS3ConnInfo(endpoint)
 	if err != nil {
 		return err
 	}
 
-	reader, err := client.GetObject(s3.Bucket, file)
-	if err != nil {
-		return err
-	}
-	if _, err = io.Copy(os.Stdout, reader); err != nil {
-		return err
-	}
-
-	err = reader.Close()
+	client, err := e.Connect()
 	if err != nil {
 		return err
 	}
 
-	return nil
+	reader, err := client.Get(file)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(os.Stdout, reader)
+	return err
 }
 
 func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
-	s3, err := getS3ConnInfo(endpoint)
-	if err != nil {
-		return err
-	}
-	client, err := s3.Connect()
+	e, err := getS3ConnInfo(endpoint)
 	if err != nil {
 		return err
 	}
 
-	err = client.RemoveObject(s3.Bucket, file)
+	client, err := e.Connect()
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return client.Delete(file)
 }
 
-func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
+func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	host, err := e.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 
 	insecure_ssl, err := e.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 
 	key, err := e.StringValue("access_key_id")
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 
 	secret, err := e.StringValue("secret_access_key")
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 
 	bucket, err := e.StringValue("bucket")
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 
 	prefix, err := e.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 	prefix = strings.TrimLeft(prefix, "/")
 
-	sigVer, err := e.StringValueDefault("signature_version", DefaultSigVersion)
-	if !validSigVersion(sigVer) {
-		return S3ConnectionInfo{}, fmt.Errorf("Invalid `signature_version` specified (`%s`). Expected `2` or `4`", sigVer)
+	s, err := e.StringValueDefault("signature_version", DefaultSigVersion)
+	if !validSigVersion(s) {
+		return s3Endpoint{}, fmt.Errorf("Invalid `signature_version` specified (`%s`). Expected `2` or `4`", s)
+	}
+	sigVer := 4
+	if s == "2" {
+		sigVer = 2
 	}
 
 	proxy, err := e.StringValueDefault("socks5_proxy", "")
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 
 	port, err := e.StringValueDefault("s3_port", "")
 	if err != nil {
-		return S3ConnectionInfo{}, err
+		return s3Endpoint{}, err
 	}
 
-	return S3ConnectionInfo{
+	return s3Endpoint{
 		Host:              host,
 		SkipSSLValidation: insecure_ssl,
 		AccessKey:         key,
@@ -456,47 +386,32 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (S3ConnectionInfo, error) {
 	}, nil
 }
 
-func (s3 S3ConnectionInfo) genBackupPath() string {
+func (e s3Endpoint) genBackupPath() string {
 	t := time.Now()
 	year, mon, day := t.Date()
 	hour, min, sec := t.Clock()
 	uuid := plugin.GenUUID()
-	path := fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", s3.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
+	path := fmt.Sprintf("%s/%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s", e.PathPrefix, year, mon, day, year, mon, day, hour, min, sec, uuid)
 	// Remove double slashes
 	path = strings.Replace(path, "//", "/", -1)
 	return path
 }
 
-func (s3 S3ConnectionInfo) Connect() (*minio.Client, error) {
-	var s3Client *minio.Client
-	var err error
-
-	s3Host := s3.Host
-	if s3.Port != "" {
-		s3Host = s3.Host + ":" + s3.Port
+func (e s3Endpoint) Connect() (*s3.Client, error) {
+	host := e.Host
+	if e.Port != "" {
+		host = host + ":" + e.Port
 	}
 
-	if s3.SignatureVersion == "2" {
-		s3Client, err = minio.NewV2(s3Host, s3.AccessKey, s3.SecretKey, false)
-	} else {
-		s3Client, err = minio.NewV4(s3Host, s3.AccessKey, s3.SecretKey, false)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	transport := http.DefaultTransport
-	transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: s3.SkipSSLValidation}
-	if s3.SOCKS5Proxy != "" {
-		dialer, err := proxy.SOCKS5("tcp", s3.SOCKS5Proxy, nil, proxy.Direct)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "can't connect to the proxy: %s\n", err)
-			os.Exit(1)
-		}
-		transport.(*http.Transport).Dial = dialer.Dial
-	}
-
-	s3Client.SetCustomTransport(transport)
-
-	return s3Client, nil
+	return s3.NewClient(&s3.Client{
+		SignatureVersion:   e.SignatureVersion,
+		AccessKeyID:        e.AccessKey,
+		SecretAccessKey:    e.SecretKey,
+		Region:             "us-east-1", /* FIXME: make this configurable */
+		Domain:             host,
+		Bucket:             e.Bucket,
+		InsecureSkipVerify: e.SkipSSLValidation,
+		SOCKS5Proxy:        e.SOCKS5Proxy,
+		/* FIXME: CA Certs */
+	})
 }
