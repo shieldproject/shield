@@ -4,7 +4,6 @@ set -e -o pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-if [[ ! -f "../shield" ]];  then pushd .. && go build ./cmd/shield;   popd; fi
 if [[ ! -f "../buckler" ]]; then pushd .. && go build ./cmd/buckler ; popd; fi
 
 buckler() { ../buckler "$@"; }

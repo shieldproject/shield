@@ -58,7 +58,7 @@ docs/API.md: docs/API.yml
 	perl ./docs/regen.pl <$+ >$@
 
 clean:
-	rm -f shieldd shield-agent shield-schema shield
+	rm -f shieldd shield-agent shield-schema
 	rm -f $$(cat plugins) dummy
 
 
@@ -121,4 +121,4 @@ web2/htdocs/shield.js: $(JAVASCRIPTS)
 
 web2: web2/htdocs/shield.js
 
-.PHONY: shield plugins dev web2 buckler shieldd shield-schema shield-agent demo
+.PHONY: plugins dev web2 buckler shieldd shield-schema shield-agent demo
