@@ -976,10 +976,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		proxypeer := regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.Header.Get("X-Forwarded-For"), "")
 		peer := regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.RemoteAddr, "")
 		if peer == "" {
-			r.Fail(route.Oops(nil, "Unable to determine remote peer address from '%s'", r.Req.RemoteAddr))
-			return
+			if proxypeer == "" {
+				r.Fail(route.Oops(nil, "Unable to determine remote peer address from '%s'", r.Req.RemoteAddr))
+				return
+			}
+			peer = proxypeer
 		}
 
 		if in.Name == "" {

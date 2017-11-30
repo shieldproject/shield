@@ -23,10 +23,9 @@ import (
 )
 
 type Vault struct {
-	URL      string
-	Token    string
-	Insecure bool
-	HTTP     *http.Client
+	URL   string
+	Token string
+	HTTP  *http.Client
 }
 
 type VaultCreds struct {
@@ -47,9 +46,8 @@ func NewVault(url, cacert string) (Vault, error) {
 	}
 
 	return Vault{
-		URL:      url,
-		Token:    "",
-		Insecure: true,
+		URL:   url,
+		Token: "",
 		HTTP: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
