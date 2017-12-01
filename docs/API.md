@@ -4480,6 +4480,10 @@ When filtering tasks, show those that are active (true) or inactive (false)
 Only show tasks whose status matches the given value.  
 
 
+- **?target=**
+Only show tasks associated with a given target...
+
+
 - **?limit=N**
 Limit the returned result set to the first _limit_ users
 that match the other filtering rules.  A limit of `0` (the

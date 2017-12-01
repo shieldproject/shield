@@ -271,6 +271,7 @@ var opts struct {
 		Status   string `cli:"-s, --status"`
 		Active   bool   `cli:"--active"`
 		Inactive bool   `cli:"--inactive"`
+		Target   string `cli:"--target"`
 		All      bool   `cli:"-a, --all"`
 		Limit    int    `cli:"-l, --limit"`
 	} `cli:"tasks"`
@@ -2534,16 +2535,23 @@ func main() {
 			opts.Tasks.Status = ""
 		}
 
+		tenant, err := c.FindMyTenant(opts.Tenant, true)
+		bail(err)
+
+		if opts.Tasks.Target != "" {
+			t, err := c.FindTarget(tenant, opts.Tasks.Target, !opts.Exact)
+			bail(err)
+			opts.Tasks.Target = t.UUID
+		}
+
 		filter := &shield.TaskFilter{
 			Status: opts.Tasks.Status,
 			Limit:  &opts.Tasks.Limit,
+			Target: opts.Tasks.Target,
 		}
 		if opts.Tasks.Active || opts.Tasks.Inactive {
 			filter.Active = &opts.Tasks.Active
 		}
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
 
 		tasks, err := c.ListTasks(tenant, filter)
 		bail(err)

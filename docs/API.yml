@@ -3163,6 +3163,10 @@ sections:
               type: string
               summary: |
                 Only show tasks whose status matches the given value.  
+            - name: target
+              type: uuid
+              summary: |
+                Only show tasks associated with a given target...
             - name: limit
               type: number
               summary: |

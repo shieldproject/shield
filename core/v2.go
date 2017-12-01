@@ -2217,6 +2217,7 @@ func (core *Core) v2API() *route.Router {
 				SkipActive:   r.ParamIs("active", "f"),
 				SkipInactive: r.ParamIs("active", "t"),
 				ForStatus:    r.Param("status", ""),
+				ForTarget:    r.Param("target", ""),
 				ForTenant:    r.Args[1],
 				Limit:        limit,
 			},

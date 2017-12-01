@@ -38,6 +38,9 @@ USAGE: @G{buckler} tasks --tenant @Y{TENANT}
       --active   Only show tasks that are still running (@W{active}),
     --inactive   or that are no longer running (@W{inactive}).
 
+      --target   Show tasks that are associated with the given target,
+                 either by name or UUID.
+
   -a, --all      Show all tasks, overriding the @Y{--status} flag.
 
   -l, --limit    Only show the given number of tasks.

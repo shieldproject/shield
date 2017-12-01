@@ -26,6 +26,7 @@ type TaskFilter struct {
 	Active *bool  `qs:"active:t:f"`
 	Debug  *bool  `qs:"debug:t:f"`
 	Limit  *int   `qs:limit`
+	Target string `qs:"target"`
 }
 
 func fixupTaskResponse(p *Task) {
