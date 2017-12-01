@@ -55,7 +55,8 @@ demo: clean shield plugins
 
 docs: docs/API.md
 docs/API.md: docs/API.yml
-	perl ./docs/regen.pl <$+ >$@
+	perl ./docs/regen.pl <$+ >$@~
+	mv $@~ $@
 
 clean:
 	rm -f shieldd shield-agent shield-schema shield

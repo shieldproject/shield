@@ -105,14 +105,8 @@ This endpoint takes no query string parameters.
 ```json
 {
   "version" : "6.7.2",
-  "api"     : 2,
-
   "env"     : "PRODUCTION",
-  "ip"      : "10.0.0.5",
-  "fqdn"    : "shield.example.com",
-  "env"     : "PRODUCTION",
-  "color"   : "lightblue",
-  "motd"    : "Welcome to S.H.I.E.L.D."
+  "api"     : 2
 }
 ```
 
@@ -160,6 +154,14 @@ payload in the response body:
 
 ```json
 {
+  "shield": {
+    "version" : "6.7.2",
+    "ip"      : "10.0.0.5",
+    "fqdn"    : "shield.example.com",
+    "env"     : "PRODUCTION",
+    "color"   : "",
+    "motd"    : "Welcome to S.H.I.E.L.D."
+  },
   "health": {
     "core"       : "unsealed",
     "storage_ok" : true,
@@ -229,6 +231,14 @@ payload in the response body:
 
 ```json
 {
+  "shield": {
+    "version" : "6.7.2",
+    "ip"      : "10.0.0.5",
+    "fqdn"    : "shield.example.com",
+    "env"     : "PRODUCTION",
+    "color"   : "",
+    "motd"    : "Welcome to S.H.I.E.L.D."
+  },
   "health": {
     "core"       : "unsealed",
     "storage_ok" : true,
@@ -396,7 +406,6 @@ This endpoint takes no query string parameters.
 ```json
 {
   "user": {
-    "uuid"    : "447d6695-bb21-4490-81dc-4d6607f63c46",
     "name"    : "Your Full Name",
     "account" : "username",
     "backend" : "SHIELD",
