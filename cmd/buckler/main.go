@@ -258,7 +258,11 @@ var opts struct {
 
 	/* }}} */
 	/* ARCHIVES {{{ */
-	Archives       struct{} `cli:"archives"`
+	Archives struct {
+		Target string `cli:"--target"`
+		Store  string `cli:"--store"`
+		Limit  int    `cli:"-l, --limit"`
+	} `cli:"archives"`
 	Archive        struct{} `cli:"archive"`
 	RestoreArchive struct {
 		Target string `cli:"--target, --to"`
@@ -271,8 +275,8 @@ var opts struct {
 		Status   string `cli:"-s, --status"`
 		Active   bool   `cli:"--active"`
 		Inactive bool   `cli:"--inactive"`
-		Target   string `cli:"--target"`
 		All      bool   `cli:"-a, --all"`
+		Target   string `cli:"--target"`
 		Limit    int    `cli:"-l, --limit"`
 	} `cli:"tasks"`
 	Task       struct{} `cli:"task"`
@@ -2401,7 +2405,24 @@ func main() {
 		tenant, err := c.FindMyTenant(opts.Tenant, true)
 		bail(err)
 
-		archives, err := c.ListArchives(tenant, nil)
+		if opts.Archives.Limit == 0 {
+			opts.Archives.Limit = 1000 /* sane upper limit */
+		}
+		if opts.Archives.Target != "" {
+			t, err := c.FindTarget(tenant, opts.Archives.Target, !opts.Exact)
+			bail(err)
+			opts.Archives.Target = t.UUID
+		}
+		if opts.Archives.Store != "" {
+			s, err := c.FindStore(tenant, opts.Archives.Store, !opts.Exact)
+			bail(err)
+			opts.Archives.Store = s.UUID
+		}
+		archives, err := c.ListArchives(tenant, &shield.ArchiveFilter{
+			Target: opts.Archives.Target,
+			Store:  opts.Archives.Store,
+			Limit:  &opts.Archives.Limit,
+		})
 		bail(err)
 
 		if opts.JSON {

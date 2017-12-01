@@ -8,3 +8,16 @@ USAGE: @G{buckler} archives --tenant @Y{TENANT}
   is then placed in cloud storage, awaiting either expiry and purgation,
   or restoration to a data system.
 
+@B{Options:}
+
+  By default, the most recent 1000 archives, valid, purged, or otherwise,
+  are displayed.  You may filter the results with the following flags.
+
+      --target   Show archives for the given target, specified either by
+                 name or UUID.
+
+      --store    Show archives housed in the given cloud storage system,
+                 specified either by name or UUID.
+
+  -l, --limit    Only show the given number of archives.
+

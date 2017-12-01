@@ -81,8 +81,8 @@ func (c *Client) DeleteArchive(parent *Tenant, in *Archive) (Response, error) {
 	return out, c.delete(fmt.Sprintf("/v2/tenants/%s/archives/%s", parent.UUID, in.UUID), &out)
 }
 
-func (c *Client) RestoreArchive(parent *Tenant, a *Archive, t *Target) (Response, error) {
-	var out Response
+func (c *Client) RestoreArchive(parent *Tenant, a *Archive, t *Target) (*Task, error) {
+	var out Task
 	var filter struct {
 		Target string `json:"target"`
 	}
@@ -92,6 +92,6 @@ func (c *Client) RestoreArchive(parent *Tenant, a *Archive, t *Target) (Response
 	}
 
 	u := qs.Generate(filter).Encode()
-	return out, c.post(fmt.Sprintf("/v2/tenants/%s/archives/%s/restore?%s",
+	return &out, c.post(fmt.Sprintf("/v2/tenants/%s/archives/%s/restore?%s",
 		parent.UUID, a.UUID, u), nil, &out)
 }
