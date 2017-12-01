@@ -100,7 +100,7 @@ var _ = Describe("Plugin Commands", func() {
 
 		Expect(err).ShouldNot(HaveOccurred())
 		if runtime.GOOS != "linux" {
-			Expect(stdout).Should(Equal("{{This should go to stdout}}"))
+			Expect(stdout).Should(Equal("{{This should go to stdout}}\n"))
 		}
 		Expect(stderr).Should(Equal("This goes to stderr\n"))
 	})

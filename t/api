@@ -33,6 +33,22 @@ cleanup () {
 trap "cleanup >&2" EXIT QUIT INT TERM
 
 spin_vault() {
+  if [[ ! -f $(pwd)/bin/vault ]]; then
+    VAULT_VERSION=0.9.0
+    echo "... retrieving vault $VAULT_VERSION form the web..."
+    case $OSTYPE in
+    *darwin*) curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_darwin_amd64.zip ;;
+    *linux*)  curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip  ;;
+    *) echo >&2 "unable to determine OSTYPE, and the vault command was not found.  bailing..."; exit 1 ;;
+    esac
+
+    pushd $WORKDIR
+      rm -f vault
+      unzip vault.zip
+    popd
+    mv $WORKDIR/vault $(pwd)/bin/vault
+  fi
+
   cat >${WORKDIR}/etc/vault.conf <<EOF
 storage "inmem" {}
 disable_mlock = true
@@ -44,6 +60,8 @@ EOF
 
   set -e
   echo ">> Setting up a local (loopback) Vault"
+  export PATH=$PATH:$WORKDIR
+  vault version
   vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
   set +e
 }
@@ -98,6 +116,12 @@ EOF
   while ! curl -Ls --fail http://${SHIELD_DAEMON_ADDR}/v2/info; do
       if [[ $n -eq 0 ]]; then
         echo >&2 "SHIELD core did not spin up within 60s; aborting"
+        echo >&2 "---[ vault log ]-------------------------------------------"
+        cat  >&2 ${WORKDIR}/vault.log
+        echo >&2
+        echo >&2 "---[ agent log ]-------------------------------------------"
+        cat  >&2 ${WORKDIR}/agent.log
+        echo >&2
         echo >&2 "---[ shieldd log ]-----------------------------------------"
         cat  >&2 ${WORKDIR}/core.log
         echo >&2 "-----------------------------------------------------------"
