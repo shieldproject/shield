@@ -1442,8 +1442,10 @@ func (core *Core) v2API() *route.Router {
 				r.Fail(route.Oops(err, "Unable to create target"))
 			}
 			in.endpoint = string(b)
+		} else {
+			in.endpoint = "{}"
 		}
-		if r.Missing("name", in.Name, "plugin", in.Plugin, "endpoint", in.endpoint, "agent", in.Agent) {
+		if r.Missing("name", in.Name, "plugin", in.Plugin, "agent", in.Agent) {
 			return
 		}
 
