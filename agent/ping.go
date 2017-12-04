@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,14 +18,23 @@ func (agent *Agent) Ping() {
 		return
 	}
 	if agent.Registration.Interval <= 0 {
-		log.Errorf("invalid registration.interval %d supplied; skipping agent auto-registration")
+		log.Errorf("invalid registration.interval %d supplied; skipping agent auto-registration", agent.Registration.Interval)
 		return
+	}
+
+	pool := x509.NewCertPool()
+	if agent.Registration.ShieldCACert != "" {
+		if ok := pool.AppendCertsFromPEM([]byte(agent.Registration.ShieldCACert)); !ok {
+			log.Errorf("Invalid or malformed CA Certificate")
+			return
+		}
 	}
 
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: agent.Registration.SkipVerify,
+				RootCAs:            pool,
 			},
 			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,

@@ -29,7 +29,7 @@
 // Default Configuration
 //
 //    {
-//        "bsdtar": "/var/vcap/packages/bsdtar/bin/bsdtar"
+//        "bsdtar": "/var/vcap/packages/shield/bin/bsdtar"
 //    }
 //
 // BACKUP DETAILS
@@ -65,7 +65,7 @@ import (
 )
 
 var (
-	DefaultBsdTar = "/var/vcap/packages/bsdtar/bin/bsdtar"
+	DefaultBsdTar = "/var/vcap/packages/shield/bin/bsdtar"
 )
 
 func main() {
@@ -90,7 +90,7 @@ func main() {
 `,
 		Defaults: `
 {
-  "bsdtar" : "/var/vcap/packages/bsdtar/bin/bsdtar"
+  "bsdtar" : "/var/vcap/packages/shield/bin/bsdtar"
 }
 `,
 
@@ -135,7 +135,7 @@ func main() {
 				Type:    "abspath",
 				Title:   "Path to `bsdtar` Utility",
 				Help:    "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
-				Default: "/var/vcap/packages/bsdtar/bin/bsdtar",
+				Default: "/var/vcap/packages/shield/bin/bsdtar",
 			},
 		},
 	}
