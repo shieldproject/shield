@@ -58,7 +58,7 @@ It looks something like this:
     "type"    : "abspath",
     "title"   : "Path to `bsdtar` Utility",
     "help"    : "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
-    "default" : "/var/vcap/packages/bsdtar/bin/bsdtar"
+    "default" : "/var/vcap/packages/shield/bin/bsdtar"
   }
 ]
 ```
