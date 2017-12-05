@@ -1354,7 +1354,7 @@ function dispatch(page) {
         type: 'GET',
         url:  '/v2/auth/providers?for=web',
         success: function (data) {
-          $('#viewport').html($(template('login', { providers: data })))
+          $('#viewport').html($(template('login', { providers: data }))
             .on("click", ".login", function (event) {
               progress($(event.target).text());
             })
@@ -1383,12 +1383,12 @@ function dispatch(page) {
                   document.location.href = "/#!/systems"
                 }
               });
-            });
-         },
+            }));
+        },
         error: function (xhr) {
           $('#viewport').html(template('BOOM'));
         }
-      })
+      });
     })();
     break; /* #!/login */
     // }}}
@@ -2751,7 +2751,7 @@ function dispatch(page) {
       $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
       break;
     }
-    $('#main').html($(template('admin-users-new', {})))
+    $('#main').html($(template('admin-users-new', {}))
       .autofocus()
       .on('submit', 'form', function (event) {
         event.preventDefault();
@@ -2782,7 +2782,7 @@ function dispatch(page) {
             banner("Failed to create new user", "error");
           }
         });
-      });
+      }));
     break; // #!/admin/users/new
     // }}}
   case "#!/admin/users/edit": /* {{{ */
@@ -2795,7 +2795,7 @@ function dispatch(page) {
       url:  '/v2/auth/local/users/'+args.uuid,
       error: "Unable to retrieve user information from the SHIELD API.",
       success: function (data) {
-        $('#main').html($(template('admin-users-edit', { user: data })))
+        $('#main').html($(template('admin-users-edit', { user: data }))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -2819,7 +2819,7 @@ function dispatch(page) {
                 banner("Failed to update user", "error");
               }
             });
-          });
+          }));
       }
     });
     break; // #!/admin/users/new
@@ -3196,7 +3196,7 @@ function dispatch(page) {
       $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
       break;
     }
-    $('#main').html($(template('unlock', {})))
+    $('#main').html($(template('unlock', {}))
       .autofocus()
       .on('submit', 'form', function (event) {
         event.preventDefault();
@@ -3214,7 +3214,7 @@ function dispatch(page) {
             goto("");
           }
         });
-      });
+      }));
     break;
     // }}}
   case "#!/init": /* {{{ */
@@ -3222,7 +3222,7 @@ function dispatch(page) {
       $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
       break;
     }
-    $('#main').html($(template('init', {})))
+    $('#main').html($(template('init', {}))
       .autofocus()
       .on('submit', 'form', function (event) {
         event.preventDefault();
@@ -3258,7 +3258,7 @@ function dispatch(page) {
             $form.error(xhr.responseJSON);
           }
         });
-      });
+      }));
     break;
     // }}}
 
