@@ -940,6 +940,12 @@ func main() {
 
 		t, err := c.CreateAuthToken(&shield.AuthToken{Name: args[0]})
 		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(t))
+			break
+		}
+
 		fmt.Printf("@C{%s}\n", t.Session)
 
 	/* }}} */

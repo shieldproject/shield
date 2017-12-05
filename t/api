@@ -365,6 +365,16 @@ attr() {
      "'$attr' was present when we asked for $what"
 }
 # }}}
+# hasattr $name "optionally, why $name should be present" {{{
+hasattr() {
+  local attr=$1
+  local what=${2:-$CONTEXT}
+
+  isnt "$(jq -r ".$attr // empty" < $WORKDIR/out)" \
+       "" \
+       "'$attr' was not present when we asked for $what"
+}
+# }}}
 # run command --plus --arg u ments {{{
 run() {
   buckler --yes "$@" >$WORKDIR/out 2>$WORKDIR/err
@@ -672,6 +682,33 @@ run create-job \
 ) 2>&1 | indent
 
 # }}}
+
+if testing tokens; then
+try "Creating an auth-token" # {{{
+(run create-auth-token "test1"
+ context 'a newly-created token'
+ attr name "test1"
+ hasattr session
+
+ run auth-tokens
+ is "$(jq -r '.[] | select(.name == "test1") | .name' < $WORKDIR/out)" \
+    "test1" \
+    "token 'test1' should show up in the list of auth-tokens"
+) 2>&1 | indent
+
+
+# }}}
+try "Revoking an auth-token" # {{{
+(run revoke-auth-token "test1"
+ run auth-tokens
+ isnt "$(jq -r '.[] | select(.name == "test1") | .name' < $WORKDIR/out)" \
+      "test1" \
+      "token 'test1' should not show up in the list of auth-tokens (post-revocation)"
+) 2>&1 | indent
+
+
+# }}}
+fi
 
 if testing tenant; then
 try "Finding a single tenant" # {{{
