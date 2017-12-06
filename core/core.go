@@ -267,12 +267,17 @@ func (core *Core) Run() error {
 
 		case <-core.slowloop.C:
 			core.expireArchives()
-			core.purge()
 			core.markTasks()
 			core.checkAllAgents()
 			core.updateStorageUsage()
 			core.purgeExpiredSessions()
-			core.testStorage()
+
+			sealed, _ := core.vault.IsSealed()
+			initialized, _ := core.vault.IsInitialized()
+			if initialized && !sealed {
+				core.purge()
+				core.testStorage()
+			}
 		}
 	}
 }
