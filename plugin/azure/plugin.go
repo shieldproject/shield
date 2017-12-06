@@ -54,12 +54,17 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	azure "github.com/Azure/azure-sdk-for-go/storage"
 	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
+)
+
+const (
+	DefaultPrefix = ""
 )
 
 func main() {
@@ -74,9 +79,11 @@ func main() {
 
 		Example: `
 {
-  "storage_account":     "your-access-key-id",
-  "storage_account_key": "your-secret-access-key",
-  "storage_container":   "storage-container-name",
+  "storage_account"     : "your-access-key-id",
+  "storage_account_key" : "your-secret-access-key",
+  "storage_container"   : "storage-container-name",
+
+  "prefix"              : "/path/in/container",     # where to store archives, inside the container
 }
 `,
 		Defaults: `
@@ -111,6 +118,13 @@ func main() {
 				Help:     "Name of the Container to store backup archives in.",
 				Required: true,
 			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "prefix",
+				Type:  "string",
+				Title: "Container Path Prefix",
+				Help:  "An optional sub-path of the container to use for storing archives.  By default, archives are stored in the root of the container.",
+			},
 		},
 	}
 
@@ -123,6 +137,7 @@ type AzureConnectionInfo struct {
 	StorageAccount    string
 	StorageAccountKey string
 	StorageContainer  string
+	PathPrefix        string
 }
 
 func (p AzurePlugin) Meta() plugin.PluginInfo {
@@ -173,6 +188,17 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		if !containerFail {
 			fmt.Printf("@G{\u2713 storage_container}   @C{%s}\n", s)
 		}
+	}
+
+	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
+	if err != nil {
+		fmt.Printf("@R{\u2717 prefix               %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 prefix}               (none)\n")
+	} else {
+		s = strings.TrimLeft(s, "/")
+		fmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
 	}
 
 	if fail {
@@ -295,10 +321,17 @@ func getAzureConnInfo(e plugin.ShieldEndpoint) (AzureConnectionInfo, error) {
 		return AzureConnectionInfo{}, err
 	}
 
+	prefix, err := e.StringValueDefault("prefix", DefaultPrefix)
+	if err != nil {
+		return AzureConnectionInfo{}, err
+	}
+	prefix = strings.TrimLeft(prefix, "/")
+
 	return AzureConnectionInfo{
 		StorageAccount:    storageAcct,
 		StorageAccountKey: storageAcctKey,
 		StorageContainer:  storageContainer,
+		PathPrefix:        prefix,
 	}, nil
 }
 
@@ -307,7 +340,9 @@ func (az AzureConnectionInfo) genBackupPath() string {
 	year, mon, day := t.Date()
 	hour, min, sec := t.Clock()
 	uuid := plugin.GenUUID()
-	path := fmt.Sprintf("%04d-%02d-%02d-%02d%02d%02d-%s", year, mon, day, hour, min, sec, uuid)
+	path := fmt.Sprintf("%s/%04d-%02d-%02d-%02d%02d%02d-%s", az.PathPrefix, year, mon, day, hour, min, sec, uuid)
+	// Remove double slashes
+	path = strings.Replace(path, "//", "/", -1)
 	return path
 }
 
