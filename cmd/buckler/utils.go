@@ -144,7 +144,7 @@ func parseBytes(in string) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("Invalid size spec '%s' (%s)", in, err)
 	}
-	fmt.Printf("m = [%v]\n", m)
+
 	switch m[2] {
 	case "":
 		return int64(f), nil
