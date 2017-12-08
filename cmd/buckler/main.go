@@ -655,11 +655,12 @@ func main() {
 
 		/* validate the SHIELD */
 		c := &shield.Client{
-			URL:           url,
-			Debug:         opts.Debug,
-			Trace:         opts.Trace,
-			Session:       "",
-			CACertificate: cacert,
+			URL:                url,
+			Debug:              opts.Debug,
+			Trace:              opts.Trace,
+			Session:            "",
+			InsecureSkipVerify: opts.API.SkipSSLValidation,
+			CACertificate:      cacert,
 		}
 		nfo, err := c.Info()
 		bail(err)
@@ -681,11 +682,12 @@ func main() {
 	bail(config.Select(opts.Core))
 
 	c := &shield.Client{
-		URL:           config.Current.URL,
-		Debug:         opts.Debug,
-		Trace:         opts.Trace,
-		Session:       config.Current.Session,
-		CACertificate: config.Current.CACertificate,
+		URL:                config.Current.URL,
+		Debug:              opts.Debug,
+		Trace:              opts.Trace,
+		Session:            config.Current.Session,
+		InsecureSkipVerify: config.Current.InsecureSkipVerify,
+		CACertificate:      config.Current.CACertificate,
 	}
 
 	switch command {
