@@ -1,15 +1,10 @@
 package plugin
 
-/*
-
-ShieldEndpoints are used for store + targets. This code genericizes them and makes it easy for you to pull out arbitrary values from them. The plugin framework will feed your action methods with the appropriate endpoint, and you can pull whatever data out that you need.
-
-*/
-
 import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 )
 
 type ShieldEndpoint map[string]interface{}
@@ -79,6 +74,33 @@ func (endpoint ShieldEndpoint) BooleanValue(key string) (bool, error) {
 	_, ok := endpoint[key]
 	if !ok {
 		return false, EndpointMissingRequiredDataError{Key: key}
+	}
+
+	if s, ok := endpoint[key].(string); ok {
+		if regexp.MustCompile(`(?i)^(1|y|yes|t|true|on)$`).MatchString(s) {
+			return true, nil
+		}
+		if regexp.MustCompile(`(?i)^(0|n|no|f|false|off|)$`).MatchString(s) {
+			return false, nil
+		}
+	}
+
+	if v, ok := endpoint[key].(float64); ok {
+		if uint(v) == 1 {
+			return true, nil
+		}
+		if uint(v) == 0 {
+			return false, nil
+		}
+	}
+
+	if v, ok := endpoint[key].(int); ok {
+		if v == 1 {
+			return true, nil
+		}
+		if v == 0 {
+			return false, nil
+		}
 	}
 
 	if reflect.TypeOf(endpoint[key]).Kind() != reflect.Bool {
