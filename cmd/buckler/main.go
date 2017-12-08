@@ -1102,7 +1102,7 @@ func main() {
 			t.Name = opts.UpdateTenant.Name
 		}
 
-		t, err = c.UpdateTenant(t)
+		_, err = c.UpdateTenant(t)
 		bail(err)
 
 		if opts.JSON {
@@ -1318,7 +1318,7 @@ func main() {
 			}
 		}
 
-		t, err = c.UpdateTarget(tenant, t)
+		_, err = c.UpdateTarget(tenant, t)
 		bail(err)
 
 		if opts.JSON {
@@ -1529,7 +1529,7 @@ func main() {
 			}
 		}
 
-		store, err = c.UpdateStore(tenant, store)
+		_, err = c.UpdateStore(tenant, store)
 		bail(err)
 
 		if opts.JSON {
@@ -1725,7 +1725,7 @@ func main() {
 			}
 		}
 
-		store, err = c.UpdateGlobalStore(store)
+		_, err = c.UpdateGlobalStore(store)
 		bail(err)
 
 		if opts.JSON {
@@ -1888,7 +1888,7 @@ func main() {
 			p.Expires = opts.UpdatePolicy.Days
 		}
 
-		p, err = c.UpdatePolicy(tenant, p)
+		_, err = c.UpdatePolicy(tenant, p)
 		bail(err)
 
 		if opts.JSON {
@@ -2013,7 +2013,7 @@ func main() {
 			p.Expires = opts.UpdatePolicy.Days
 		}
 
-		p, err = c.UpdatePolicyTemplate(p)
+		_, err = c.UpdatePolicyTemplate(p)
 		bail(err)
 
 		if opts.JSON {
@@ -2285,7 +2285,7 @@ func main() {
 			job.Schedule = opts.UpdateJob.Schedule
 		}
 
-		job, err = c.UpdateJob(tenant, job)
+		_, err = c.UpdateJob(tenant, job)
 		bail(err)
 
 		if opts.JSON {
@@ -2820,7 +2820,7 @@ func main() {
 			user.SysRole = opts.UpdateUser.SysRole
 		}
 
-		user, err = c.UpdateUser(user)
+		_, err = c.UpdateUser(user)
 		bail(err)
 
 		if opts.JSON {
