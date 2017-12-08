@@ -1310,6 +1310,10 @@ func main() {
 			opts.UpdateTarget.ClearData = true
 			t.Plugin = opts.UpdateTarget.Plugin
 		}
+
+		if t.Config == nil {
+			t.Config = make(map[string]interface{})
+		}
 		if opts.UpdateTarget.ClearData {
 			t.Config = conf
 		} else {
@@ -1521,6 +1525,9 @@ func main() {
 			bail(err)
 			store.Threshold = thold
 		}
+		if store.Config == nil {
+			store.Config = make(map[string]interface{})
+		}
 		if opts.UpdateStore.ClearData {
 			store.Config = conf
 		} else {
@@ -1716,6 +1723,9 @@ func main() {
 			thold, err := parseBytes(opts.UpdateGlobalStore.Threshold)
 			bail(err)
 			store.Threshold = thold
+		}
+		if store.Config == nil {
+			store.Config = make(map[string]interface{})
 		}
 		if opts.UpdateGlobalStore.ClearData {
 			store.Config = conf
