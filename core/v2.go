@@ -787,16 +787,16 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		socket := r.Upgrade()
+		if socket == nil {
+			return
+		}
+
 		log.Infof("registering broadcast receiver")
 		in := make(chan Event)
 		id, err := core.broadcast.Register(in)
 		if err != nil {
 			r.Fail(route.Oops(err, "an internal error has occurred"))
-			return
-		}
-
-		socket := r.Upgrade()
-		if socket == nil {
 			return
 		}
 
