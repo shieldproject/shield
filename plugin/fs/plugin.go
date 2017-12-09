@@ -180,8 +180,14 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return nil
 		}
 
-		/* FIXME: doesn't handle symlinks yet */
-		header, err := tar.FileInfoHeader(info, "FIXME")
+		link := ""
+		if info.Mode()&os.ModeType == os.ModeSymlink {
+			link, err = os.Readlink(path)
+			if err != nil {
+				return err
+			}
+		}
+		header, err := tar.FileInfoHeader(info, link)
 		if err != nil {
 			return err
 		}
@@ -191,7 +197,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return err
 		}
 
-		if info.Mode().IsDir() {
+		if info.Mode().IsDir() || link != "" {
 			return nil
 		}
 
