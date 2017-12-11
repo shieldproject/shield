@@ -589,24 +589,25 @@ func (core *Core) worker(id int) {
 
 		}
 
-		data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
-		if err != nil {
-			core.failTask(task, "shield worker %d unable retrieve encryption parameters: %s\n", id, err)
-			continue
-		}
-
 		var encType, encKey, encIV string
-		if exists {
-			encType = data["type"].(string)
-			encKey = data["key"].(string)
-			encIV = data["iv"].(string)
-		}
+		if task.Op == db.BackupOperation || task.Op == db.RestoreOperation {
+			data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
+			if err != nil {
+				core.failTask(task, "shield worker %d unable retrieve encryption parameters: %s\n", id, err)
+				continue
+			}
 
+			if exists {
+				encType = data["type"].(string)
+				encKey = data["key"].(string)
+				encIV = data["iv"].(string)
+			}
+		}
 		/* connect to the remote SSH agent for this specific request
 		   (a worker may connect to lots of different agents in its
 		    lifetime; these connections endure long enough to submit
 		    the agent command and gather the exit code + output) */
-		err = core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
+		err := core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
 			Op:             task.Op,
 			TargetPlugin:   task.TargetPlugin,
 			TargetEndpoint: task.TargetEndpoint,
