@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/jhunt/go-log"
 )
@@ -53,7 +54,9 @@ func NewVault(url, cacert string) (Vault, error) {
 				TLSClientConfig: &tls.Config{
 					RootCAs: pool,
 				},
+				DisableKeepAlives: true,
 			},
+			Timeout: 30 * time.Second,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) > 10 {
 					return fmt.Errorf("stopped after 10 redirects")
