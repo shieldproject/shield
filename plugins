@@ -1,6 +1,7 @@
 azure
 bbr-deployment
 bbr-director
+cassandra
 consul
 consul-snapshot
 docker-postgres
