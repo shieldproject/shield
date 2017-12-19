@@ -77,16 +77,16 @@ import (
 )
 
 const (
-	DefaultHost = "127.0.0.1"
-	DefaultPort = "9042"
-	DefaultUser = "cassandra"
+	DefaultHost     = "127.0.0.1"
+	DefaultPort     = "9042"
+	DefaultUser     = "cassandra"
 	DefaultPassword = "cassandra"
-	DefaultBinDir = "/var/vcap/jobs/cassandra/bin"
-	DefaultDataDir = "/var/vcap/store/cassandra/data"
-	DefaultBsdTar = "/var/vcap/packages/bsdtar/bin/bsdtar"
+	DefaultBinDir   = "/var/vcap/jobs/cassandra/bin"
+	DefaultDataDir  = "/var/vcap/store/cassandra/data"
+	DefaultBsdTar   = "/var/vcap/packages/bsdtar/bin/bsdtar"
 
 	VcapOwnership = "vcap:vcap"
-	SnapshotName = "shield-backup"
+	SnapshotName  = "shield-backup"
 )
 
 func main() {
@@ -160,39 +160,39 @@ func main() {
 				Required: true,
 			},
 			plugin.Field{
-				Mode:  "target",
-				Name:  "cassandra_keyspace",
-				Type:  "string",
-				Title: "Keyspace to Backup",
-				Help:  "The name of the keyspace to backup.",
-				Example: "system",
+				Mode:     "target",
+				Name:     "cassandra_keyspace",
+				Type:     "string",
+				Title:    "Keyspace to Backup",
+				Help:     "The name of the keyspace to backup.",
+				Example:  "system",
 				Required: true,
 			},
 			plugin.Field{
-				Mode:    "target",
-				Name:    "cassandra_bindir",
-				Type:    "abspath",
-				Title:   "Path to Cassandra bin/ directory",
-				Help:    "The absolute path to the bin/ directory that contains the `nodetool` and `sstableloader` commands.",
-				Default: "/var/vcap/packages/cassandra/bin",
+				Mode:     "target",
+				Name:     "cassandra_bindir",
+				Type:     "abspath",
+				Title:    "Path to Cassandra bin/ directory",
+				Help:     "The absolute path to the bin/ directory that contains the `nodetool` and `sstableloader` commands.",
+				Default:  "/var/vcap/packages/cassandra/bin",
 				Required: true,
 			},
 			plugin.Field{
-				Mode:    "target",
-				Name:    "cassandra_datadir",
-				Type:    "abspath",
-				Title:   "Path to Cassandra data/ directory",
-				Help:    "The absolute path to the data/ directory that contains the Cassandra database files.",
-				Default: "/var/vcap/store/cassandra/data",
+				Mode:     "target",
+				Name:     "cassandra_datadir",
+				Type:     "abspath",
+				Title:    "Path to Cassandra data/ directory",
+				Help:     "The absolute path to the data/ directory that contains the Cassandra database files.",
+				Default:  "/var/vcap/store/cassandra/data",
 				Required: true,
 			},
 			plugin.Field{
-				Mode:    "target",
-				Name:    "bsdtar",
-				Type:    "abspath",
-				Title:   "Path to `bsdtar` Utility",
-				Help:    "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
-				Default: "/var/vcap/packages/shield/bin/bsdtar",
+				Mode:     "target",
+				Name:     "bsdtar",
+				Type:     "abspath",
+				Title:    "Path to `bsdtar` Utility",
+				Help:     "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
+				Default:  "/var/vcap/packages/shield/bin/bsdtar",
 				Required: true,
 			},
 		},
@@ -210,7 +210,7 @@ type CassandraInfo struct {
 	Password string
 	Keyspace string
 	BinDir   string
-	DataDir   string
+	DataDir  string
 	BsdTar   string
 }
 
