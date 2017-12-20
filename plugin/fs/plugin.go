@@ -245,18 +245,20 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 			return err
 		}
 
-		path := fmt.Sprintf("%s/%s", cfg.BasePath, header.Name)
+		path := fmt.Sprintf("%s", header.Name)
 		if info.Mode().IsDir() {
 			if err := os.MkdirAll(path, 0777); err != nil {
 				return err
 			}
 
 		} else if info.Mode().IsRegular() {
-			f, err := os.OpenFile(path, os.O_CREATE, info.Mode())
+			f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, info.Mode())
 			if err != nil {
 				return err
 			}
-			io.Copy(f, archive)
+			if _, err := io.Copy(f, archive); err != nil {
+				return err
+			}
 
 		} else {
 			return fmt.Errorf("unable to unpack special file '%s'", path)
