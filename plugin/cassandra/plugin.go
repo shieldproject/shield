@@ -23,7 +23,7 @@
 //        "cassandra_keyspace"     : "ksXXXX",           # Required
 //        "cassandra_bindir"       : "/path/to/bindir",
 //        "cassandra_datadir"      : "/path/to/datadir",
-//        "bsdtar"                 : "/path/to/bsdtar"   # where is the BSD tar utility?
+//        "cassandra_tar"          : "/path/to/tar"      # where is the tar utility?
 //    }
 //
 // The plugin provides devault values for those configuration properties, as
@@ -37,7 +37,7 @@
 //        "cassandra_password" : "cassandra",
 //        "cassandra_bindir"   : "/var/vcap/packages/cassandra/bin",
 //        "cassandra_datadir"  : "/var/vcap/store/cassandra/data",
-//        "bsdtar"             : "/var/vcap/packages/bsdtar/bin/bsdtar"
+//        "cassandra_tar"      : "tar"
 //    }
 //
 // BACKUP DETAILS
@@ -83,7 +83,7 @@ const (
 	DefaultPassword = "cassandra"
 	DefaultBinDir   = "/var/vcap/jobs/cassandra/bin"
 	DefaultDataDir  = "/var/vcap/store/cassandra/data"
-	DefaultBsdTar   = "/var/vcap/packages/bsdtar/bin/bsdtar"
+	DefaultTar      = "tar"
 
 	VcapOwnership = "vcap:vcap"
 	SnapshotName  = "shield-backup"
@@ -100,15 +100,14 @@ func main() {
 		},
 		Example: `
 {
-  "cassandra_host"         : "127.0.0.1",        # optional
-  "cassandra_port"         : "9042",             # optional
+  "cassandra_host"         : "127.0.0.1",      # optional
+  "cassandra_port"         : "9042",           # optional
   "cassandra_user"         : "username",
   "cassandra_password"     : "password",
   "cassandra_keyspace"     : "db",
-  "cassandra_bindir"       : "/path/to/bin",     # optional
-  "cassandra_datadir"      : "/path/to/data",    # optional
-  "bsdtar"                 : "/usr/bin/bsdtar"   # where is the BSD tar utility?
-												 # (GNU tar is insufficient)
+  "cassandra_bindir"       : "/path/to/bin",   # optional
+  "cassandra_datadir"      : "/path/to/data",  # optional
+  "cassandra_tar"          : "/bin/tar"        # Tar-compatible archival tool to use
 }
 `,
 		Defaults: `
@@ -119,7 +118,7 @@ func main() {
   "cassandra_password" : "cassandra",
   "cassandra_bindir"   : "/var/vcap/packages/cassandra/bin",
   "cassandra_datadir"  : "/var/vcap/store/cassandra/data",
-  "bsdtar"             : "/var/vcap/packages/bsdtar/bin/bsdtar"
+  "cassandra_tar"      : "tar"
 }
 `,
 		Fields: []plugin.Field{
@@ -188,11 +187,11 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "bsdtar",
+				Name:     "cassandra_tar",
 				Type:     "abspath",
-				Title:    "Path to `bsdtar` Utility",
-				Help:     "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
-				Default:  "/var/vcap/packages/shield/bin/bsdtar",
+				Title:    "Path to `tar` utility",
+				Help:     "By default, the plugin will search the local `$PATH` to find the `tar` utility.",
+				Default:  DefaultTar,
 				Required: true,
 			},
 		},
@@ -211,7 +210,7 @@ type CassandraInfo struct {
 	Keyspace string
 	BinDir   string
 	DataDir  string
-	BsdTar   string
+	Tar      string
 }
 
 // This function should be used to return the plugin's PluginInfo, however you decide to implement it
@@ -269,7 +268,7 @@ func (p CassandraPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("cassandra_keyspace")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_keyspace       %s}\n", err)
+		fmt.Printf("@R{\u2717 cassandra_keyspace      %s}\n", err)
 		fail = true
 	} else {
 		fmt.Printf("@G{\u2713 cassandra_keyspace}      @C{%s}\n", s)
@@ -277,32 +276,32 @@ func (p CassandraPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("cassandra_bindir", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_bindir    %s}\n", err)
+		fmt.Printf("@R{\u2717 cassandra_bindir        %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_bindir}    using default @C{%s}\n", DefaultBinDir)
+		fmt.Printf("@G{\u2713 cassandra_bindir}        using default @C{%s}\n", DefaultBinDir)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_bindir}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 cassandra_bindir}        @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("cassandra_datadir", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_datadir   %s}\n", err)
+		fmt.Printf("@R{\u2717 cassandra_datadir       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_datadir}   using default @C{%s}\n", DefaultDataDir)
+		fmt.Printf("@G{\u2713 cassandra_datadir}       using default @C{%s}\n", DefaultDataDir)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_datadir}   @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 cassandra_datadir}       @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("bsdtar", "")
+	s, err = endpoint.StringValueDefault("cassandra_tar", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 bsdtar              %s}\n", err)
+		fmt.Printf("@R{\u2717 cassandra_tar           %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 bsdtar}              using default @C{%s}\n", DefaultBsdTar)
+		fmt.Printf("@G{\u2713 cassandra_tar}           using default @C{%s}\n", DefaultTar)
 	} else {
-		fmt.Printf("@G{\u2713 bsdtar}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 cassandra_tar}           @C{%s}\n", s)
 	}
 
 	if fail {
@@ -352,8 +351,8 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	// Here we need to copy the snapshots/shield-backup directories into a
 	// {keyspace}/{tablename} structure that we'll temporarily put in
-	// /var/vcap/store/shield/cassandra. Then we can BSD tar it all and stream
-	// the tar to stdout.
+	// /var/vcap/store/shield/cassandra. Then we can tar it all and stream
+	// that to stdout.
 
 	baseDir := "/var/vcap/store/shield/cassandra"
 	plugin.DEBUG("Creating any missing directories for '%s', with 0755 permissions", baseDir)
@@ -468,7 +467,7 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	fmt.Fprintf(os.Stderr, "@G{\u2713 Set ownership of snapshot hard-links}\n")
 
 	plugin.DEBUG("Streaming output tar file")
-	cmd = fmt.Sprintf("%s -c -C /var/vcap/store/shield/cassandra -f - \"%s\"", cassandra.BsdTar, cassandra.Keyspace)
+	cmd = fmt.Sprintf("%s -c -C /var/vcap/store/shield/cassandra -f - \"%s\"", cassandra.Tar, cassandra.Keyspace)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDOUT)
 	if err != nil {
@@ -552,7 +551,7 @@ func (p CassandraPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		fmt.Fprintf(os.Stderr, "@G{\u2713 Clean base temporary directory}\n")
 	}()
 
-	cmd = fmt.Sprintf("%s -x -C /var/vcap/store/shield/cassandra -f -", cassandra.BsdTar)
+	cmd = fmt.Sprintf("%s -x -C /var/vcap/store/shield/cassandra -f -", cassandra.Tar)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
@@ -648,11 +647,11 @@ func cassandraInfo(endpoint plugin.ShieldEndpoint) (*CassandraInfo, error) {
 	}
 	plugin.DEBUG("CASSANDRA_DATADIR: '%s'", datadir)
 
-	bsdtar, err := endpoint.StringValueDefault("bsdtar", DefaultBsdTar)
+	tar, err := endpoint.StringValueDefault("cassandra_tar", DefaultTar)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("BSDTAR: '%s'", bsdtar)
+	plugin.DEBUG("CASSANDRA_TAR: '%s'", tar)
 
 	return &CassandraInfo{
 		Host:     host,
@@ -662,6 +661,6 @@ func cassandraInfo(endpoint plugin.ShieldEndpoint) (*CassandraInfo, error) {
 		Keyspace: keyspace,
 		BinDir:   bindir,
 		DataDir:  datadir,
-		BsdTar:   bsdtar,
+		Tar:      tar,
 	}, nil
 }
