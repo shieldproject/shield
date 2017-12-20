@@ -5,7 +5,10 @@ import (
 	"crypto/x509"
 	"fmt"
 	"golang.org/x/net/proxy"
+	"io"
 	"net/http"
+	"os"
+	"strings"
 )
 
 type Client struct {
@@ -24,6 +27,10 @@ type Client struct {
 	InsecureSkipVerify bool
 
 	ua *http.Client
+
+	trace     bool
+	traceTo   io.Writer
+	traceBody bool
 }
 
 func NewClient(c *Client) (*Client, error) {
@@ -34,6 +41,17 @@ func NewClient(c *Client) (*Client, error) {
 
 	if c.SignatureVersion == 0 {
 		c.SignatureVersion = 4
+	}
+
+	if trace := os.Getenv("S3_TRACE"); trace != "" {
+		switch strings.ToLower(trace) {
+		case "yes", "y", "1":
+			c.Trace(os.Stderr, true, true)
+		case "headers", "header":
+			c.Trace(os.Stderr, true, false)
+		default:
+			c.Trace(os.Stderr, false, false)
+		}
 	}
 
 	if !c.SkipSystemCAs {

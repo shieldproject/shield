@@ -25,7 +25,7 @@ type Upload struct {
 }
 
 func (c *Client) NewUpload(path string) (*Upload, error) {
-	res, err := c.post(path+"?uploads", nil)
+	res, err := c.post(path+"?uploads", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c *Client) NewUpload(path string) (*Upload, error) {
 	}
 
 	if res.StatusCode != 200 {
-		return nil, ResponseError(b)
+		return nil, ResponseErrorFrom(b)
 	}
 
 	var payload struct {
@@ -67,7 +67,7 @@ func (u *Upload) Write(b []byte) error {
 		return fmt.Errorf("S3 limits the number of multipart upload segments to 10k")
 	}
 
-	res, err := u.c.put(fmt.Sprintf("%s?partNumber=%d&uploadId=%s", u.path, u.n, u.id), b)
+	res, err := u.c.put(fmt.Sprintf("%s?partNumber=%d&uploadId=%s", u.path, u.n, u.id), b, nil)
 	if err != nil {
 		return err
 	}
@@ -92,22 +92,18 @@ func (u *Upload) Done() error {
 		return err
 	}
 
-	res, err := u.c.post(fmt.Sprintf("%s?uploadId=%s", u.path, u.id), b)
+	res, err := u.c.post(fmt.Sprintf("%s?uploadId=%s", u.path, u.id), b, nil)
 	if err != nil {
 		return err
 	}
 	if res.StatusCode != 200 {
-		b, err = ioutil.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-		return ResponseError(b)
+		return ResponseError(res)
 	}
 	return nil
 }
 
 func (u *Upload) Stream(in io.Reader, block int) (int64, error) {
-	if block < 5*1024*1024*1024 {
+	if block < 5*1024*1024 {
 		return 0, fmt.Errorf("S3 requires block sizes of 5MB or higher")
 	}
 

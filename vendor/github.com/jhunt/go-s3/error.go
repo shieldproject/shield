@@ -3,9 +3,19 @@ package s3
 import (
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 )
 
-func ResponseError(b []byte) error {
+func ResponseError(res *http.Response) error {
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	return ResponseErrorFrom(b)
+}
+
+func ResponseErrorFrom(b []byte) error {
 	var payload struct {
 		XMLName xml.Name `xml:"Error"`
 		Code    string   `xml:"Code"`

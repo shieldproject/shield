@@ -50,3 +50,14 @@ func main() {
 	}
 }
 ```
+
+Environment Variables
+---------------------
+
+The following environment variables affect the behavior of this
+library:
+
+  - `$S3_TRACE` - If set to "yes", "y", or "1" (case-insensitive),
+    any and all HTTP(S) requests will be dumped to standard error.
+    If set to the value "header" or "headers", only the headers of
+    requests and responses will be dumped.

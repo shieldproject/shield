@@ -38,16 +38,16 @@ func parsePartSize(v string) int {
 	}
 	switch strings.ToLower(m[2]) {
 	case "m":
-		return int(n * 1024 * 1024 * 1024)
+		return int(n * 1024 * 1024)
 	case "g":
-		return int(n * 1024 * 1024 * 1024 * 1024)
+		return int(n * 1024 * 1024 * 1024)
 	default:
 		return -1
 	}
 }
 
 func validPartSize(v string) bool {
-	return parsePartSize(v) >= 5*1024*1024*1024
+	return parsePartSize(v) >= 5*1024*1024
 }
 
 func validBucketName(v string) bool {
