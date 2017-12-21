@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -192,7 +193,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return err
 		}
 
-		header.Name = path
+		header.Name = strings.Replace(path, cfg.BasePath, "", 1)
 		if err := archive.WriteHeader(header); err != nil {
 			return err
 		}
@@ -245,7 +246,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 			return err
 		}
 
-		path := fmt.Sprintf("%s", header.Name)
+		path := fmt.Sprintf("%s/%s", cfg.BasePath, header.Name)
 		if info.Mode().IsDir() {
 			if err := os.MkdirAll(path, 0777); err != nil {
 				return err
