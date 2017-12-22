@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -180,6 +181,11 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return nil
 		}
 
+		baseRelative := strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
+		if baseRelative == "" { /* musta been cfg.BasePath or cfg.BasePath + '/' */
+			return nil
+		}
+
 		link := ""
 		if info.Mode()&os.ModeType == os.ModeSymlink {
 			link, err = os.Readlink(path)
@@ -192,7 +198,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return err
 		}
 
-		header.Name = path
+		header.Name = baseRelative
 		if err := archive.WriteHeader(header); err != nil {
 			return err
 		}
@@ -252,11 +258,13 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 			}
 
 		} else if info.Mode().IsRegular() {
-			f, err := os.OpenFile(path, os.O_CREATE, info.Mode())
+			f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, info.Mode())
 			if err != nil {
 				return err
 			}
-			io.Copy(f, archive)
+			if _, err := io.Copy(f, archive); err != nil {
+				return err
+			}
 
 		} else {
 			return fmt.Errorf("unable to unpack special file '%s'", path)
