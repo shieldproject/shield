@@ -181,6 +181,11 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return nil
 		}
 
+		baseRelative := strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
+		if baseRelative == "" { /* musta been cfg.BasePath or cfg.BasePath + '/' */
+			return nil
+		}
+
 		link := ""
 		if info.Mode()&os.ModeType == os.ModeSymlink {
 			link, err = os.Readlink(path)
@@ -193,7 +198,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return err
 		}
 
-		header.Name = strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
+		header.Name = baseRelative
 		if err := archive.WriteHeader(header); err != nil {
 			return err
 		}
