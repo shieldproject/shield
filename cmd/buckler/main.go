@@ -1851,7 +1851,7 @@ func main() {
 			if opts.CreatePolicy.Days == 0 {
 				for {
 					s := prompt("@C{Retention Period (days)}: ")
-					if d, err := strconv.Atoi(s); err != nil && d > 0 {
+					if d, err := strconv.Atoi(s); err == nil && d > 0 {
 						opts.CreatePolicy.Days = d
 						break
 					}
