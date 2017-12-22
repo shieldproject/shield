@@ -193,7 +193,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return err
 		}
 
-		header.Name = strings.Replace(path, cfg.BasePath, "", 1)
+		header.Name = strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
 		if err := archive.WriteHeader(header); err != nil {
 			return err
 		}
