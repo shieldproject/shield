@@ -57,6 +57,7 @@ func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 		p.GithubEndpoint = "https://github.com"
 	}
 	p.GithubEndpoint = strings.TrimSuffix(p.GithubEndpoint, "/")
+	p.properties = util.StringifyKeys(raw).(map[string]interface{})
 
 	return nil
 }

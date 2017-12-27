@@ -58,6 +58,7 @@ func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	}
 
 	p.UAAEndpoint = strings.TrimSuffix(p.UAAEndpoint, "/")
+	p.properties = util.StringifyKeys(raw).(map[string]interface{})
 
 	p.uaa = uaa.NewClient(uaa.Client{
 		ID:       p.ClientID,
