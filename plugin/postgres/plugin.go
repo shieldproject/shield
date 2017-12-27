@@ -221,7 +221,7 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 pg_user      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 pg_user}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_user}      @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValue("pg_password")
@@ -229,7 +229,7 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 pg_password  %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_password}  @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValueDefault("pg_database", "")

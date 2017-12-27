@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -174,6 +175,10 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	archive := tar.NewWriter(os.Stdout)
 	walker := func(path string, info os.FileInfo, err error) error {
+		if info == nil {
+			return errors.New("fs: base directory invalid")
+		}
+
 		if !cfg.Match(info.Name()) {
 			if info.IsDir() {
 				return filepath.SkipDir

@@ -104,7 +104,7 @@ func (p WebDAVPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 username}             none (no authentication)\n")
 	} else {
-		fmt.Printf("@G{\u2713 username}             @C{%s} (basic auth)\n", s)
+		fmt.Printf("@G{\u2713 username}             @C{%s} (basic auth)\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValueDefault("password", "")
@@ -114,7 +114,7 @@ func (p WebDAVPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 password}             none (no authentication)\n")
 	} else {
-		fmt.Printf("@G{\u2713 password}             @C{%s} (basic auth)\n", s)
+		fmt.Printf("@G{\u2713 password}             @C{%s} (basic auth)\n", "REDACTED")
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)

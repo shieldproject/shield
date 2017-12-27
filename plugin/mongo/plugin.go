@@ -217,7 +217,7 @@ func (p MongoPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 mongo_user}          (none)\n")
 	} else {
-		fmt.Printf("@G{\u2713 mongo_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_user}          @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_password", "")
@@ -227,7 +227,7 @@ func (p MongoPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 mongo_password}      (none)\n")
 	} else {
-		fmt.Printf("@G{\u2713 mongo_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_password}      @C{%s}\n", "REDACTED")
 	}
 
 	if fail {

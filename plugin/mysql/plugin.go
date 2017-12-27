@@ -232,7 +232,7 @@ func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 mysql_user          %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValue("mysql_password")
@@ -240,7 +240,7 @@ func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 mysql_password      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_read_replica", "")

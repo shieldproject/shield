@@ -212,7 +212,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValueDefault("s3_port", "")
@@ -233,7 +233,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValue("bucket")
@@ -244,7 +244,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 bucket               '%s' is an invalid bucket name (must be all lowercase)}\n", s)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)

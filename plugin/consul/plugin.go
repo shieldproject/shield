@@ -165,7 +165,7 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 username}              no username\n")
 	} else {
-		fmt.Printf("@G{\u2713 username}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 username}              @C{%s}\n", "REDACTED")
 	}
 
 	s, err = endpoint.StringValueDefault("password", "")
@@ -175,7 +175,7 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 password}              no password\n")
 	} else {
-		fmt.Printf("@G{\u2713 password}              @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 password}              @C{%s}\n", "REDACTED")
 	}
 
 	if fail {
