@@ -1,19 +1,20 @@
 package core
 
-func (core *Core) Initialize(master string) (bool, error) {
+func (core *Core) Initialize(master string) (bool, string, error) {
 	if init, err := core.vault.IsInitialized(); init || err != nil {
-		return init, err
+		return init, "", err
 	}
 
-	if err := core.vault.Init(core.vaultKeyfile, master); err != nil {
-		return false, err
+	disasterKey, err := core.vault.Init(core.vaultKeyfile, master)
+	if err != nil {
+		return false, "", err
 	}
 
 	if sealed, err := core.vault.IsSealed(); sealed || err != nil {
-		return false, err
+		return false, "", err
 	}
 
-	return false, nil
+	return false, disasterKey, nil
 }
 
 func (core *Core) Unlock(master string) (bool, error) {
@@ -38,16 +39,20 @@ func (core *Core) Unlock(master string) (bool, error) {
 	return true, nil
 }
 
-func (core *Core) Rekey(current, proposed string) error {
+func (core *Core) Rekey(current, proposed string, rekeyDR bool) (string, error) {
 	creds, err := core.vault.ReadConfig(core.vaultKeyfile, current)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = core.vault.WriteConfig(core.vaultKeyfile, proposed, creds)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	if rekeyDR {
+		return core.vault.DisasterKeygen()
+	}
+
+	return "", nil
 }

@@ -17,12 +17,13 @@ type Job struct {
 	StoreUUID  uuid.UUID `json:"-"`
 	PolicyUUID uuid.UUID `json:"-"`
 
-	UUID     uuid.UUID `json:"uuid"`
-	Name     string    `json:"name"`
-	Summary  string    `json:"summary"`
-	Expiry   int       `json:"expiry"`
-	Schedule string    `json:"schedule"`
-	Paused   bool      `json:"paused"`
+	UUID             uuid.UUID `json:"uuid"`
+	Name             string    `json:"name"`
+	Summary          string    `json:"summary"`
+	Expiry           int       `json:"expiry"`
+	Schedule         string    `json:"schedule"`
+	Paused           bool      `json:"paused"`
+	DisasterRecovery bool      `json:"disaster_recovery"`
 
 	Target struct {
 		UUID   uuid.UUID `json:"uuid"`
@@ -129,7 +130,7 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 	         GROUP BY job_uuid
 	        )
 
-	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid,
+	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid, j.disaster_recovery,
 	          r.name, r.summary, r.uuid, r.expiry,
 	          s.uuid, s.name, s.plugin, s.endpoint, s.summary,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
@@ -169,7 +170,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			status                              sql.NullString
 		)
 		if err = r.Scan(
-			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant,
+			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant, &j.DisasterRecovery,
 			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
 			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
 			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
@@ -196,7 +197,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
-		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid,
+		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid, j.disaster_recovery,
 		       r.name, r.summary, r.uuid, r.expiry,
 		       s.uuid, s.name, s.plugin, s.endpoint, s.summary,
 		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
@@ -219,7 +220,7 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	j := &Job{}
 	var this, policy, store, target, tenant NullUUID
 	if err = r.Scan(
-		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant,
+		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant, &j.DisasterRecovery,
 		&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
 		&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
 		&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
@@ -262,13 +263,13 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 	err := db.Exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,
 	                     name, summary, schedule, paused,
-	                     target_uuid, store_uuid, retention_uuid)
+	                     target_uuid, store_uuid, retention_uuid, disaster_recovery)
 	             VALUES (?, ?,
 	                     ?, ?, ?, ?,
-	                     ?, ?, ?)`,
+	                     ?, ?, ?, ?)`,
 		job.UUID.String(), job.TenantUUID.String(),
 		job.Name, job.Summary, job.Schedule, job.Paused,
-		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String())
+		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(), job.DisasterRecovery)
 	if err != nil {
 		return nil, err
 	}
@@ -284,11 +285,12 @@ func (db *DB) UpdateJob(job *Job) error {
 	          schedule       = ?,
 	          target_uuid    = ?,
 	          store_uuid     = ?,
-	          retention_uuid = ?
+			  retention_uuid = ?,
+			  disaster_recovery = ?
 	    WHERE uuid = ?`,
 		job.Name, job.Summary, job.Schedule,
 		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),
-		job.UUID.String())
+		job.UUID.String(), job.DisasterRecovery)
 }
 
 func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {

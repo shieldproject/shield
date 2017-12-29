@@ -156,7 +156,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		log.Infof("%s: initializing the SHIELD Core...", r)
-		init, err := core.Initialize(in.Master)
+		init, disasterKey, err := core.Initialize(in.Master)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
@@ -166,7 +166,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.Success("Successfully initialized the SHIELD Core")
+		r.OK(
+			struct {
+				Response    string `json:"response"`
+				DisasterKey string `json:"disaster_key"`
+			}{
+				"Successfully initialized the SHIELD Core",
+				disasterKey,
+			})
 	})
 	// }}}
 	r.Dispatch("POST /v2/unlock", func(r *route.Request) { // {{{
@@ -198,6 +205,7 @@ func (core *Core) v2API() *route.Router {
 		var in struct {
 			Current string `json:"current"`
 			New     string `json:"new"`
+			RekeyDR bool   `json:"rekey_dr"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -207,13 +215,20 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		err := core.Rekey(in.Current, in.New)
+		disasterKey, err := core.Rekey(in.Current, in.New, in.RekeyDR)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
 			return
 		}
 
-		r.Success("Successfully rekeyed the SHIELD Core")
+		r.OK(
+			struct {
+				Response    string `json:"response"`
+				DisasterKey string `json:"disaster_key"`
+			}{
+				"Successfully rekeyed the SHIELD Core",
+				disasterKey,
+			})
 	})
 	// }}}
 

@@ -568,14 +568,25 @@ func (core *Core) worker(id int) {
 
 		if task.Op == db.BackupOperation {
 			task.ArchiveUUID = uuid.NewRandom()
-
-			enc_key, enc_iv, err := core.vault.CreateBackupEncryptionConfig(core.encryptionType)
-			if err != nil {
-				core.failTask(task, "shield worker %d failed to generate encryption parameters: %s\n", id, err)
-				continue
+			var enc_key, enc_iv string
+			if task.DisasterRecovery {
+				data, exists, err := core.vault.Get("secret/archives/disaster_recovery")
+				if err != nil || !exists {
+					core.failTask(task, "shield worker %d unable retrieve DR encryption parameters: %s\n", id, err)
+					continue
+				}
+				enc_key = core.vault.ASCIIHexDecode(data["key"].(string))
+				enc_iv = core.vault.ASCIIHexDecode(data["iv"].(string))
+			} else {
+				var err error
+				enc_key, enc_iv, err = core.vault.CreateBackupEncryptionConfig(core.encryptionType)
+				if err != nil {
+					core.failTask(task, "shield worker %d failed to generate encryption parameters: %s\n", id, err)
+					continue
+				}
 			}
 
-			err = core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
+			err := core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
 				"key":  core.vault.ASCIIHexEncode(enc_key, 4),
 				"iv":   core.vault.ASCIIHexEncode(enc_iv, 4),
 				"type": core.encryptionType,
@@ -586,7 +597,6 @@ func (core *Core) worker(id int) {
 				core.failTask(task, "shield worker %d failed to set encryption parameters: %s\n", id, err)
 				continue
 			}
-
 		}
 
 		var encType, encKey, encIV string

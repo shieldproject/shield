@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"time"
 
 	"github.com/jhunt/go-log"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 type Vault struct {
@@ -68,10 +70,10 @@ func NewVault(url, cacert string) (Vault, error) {
 	}, nil
 }
 
-func (vault *Vault) Init(store string, master string) error {
+func (vault *Vault) Init(store string, master string) (string, error) {
 	initialized, err := vault.IsInitialized()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if initialized {
@@ -79,10 +81,10 @@ func (vault *Vault) Init(store string, master string) error {
 
 		creds, err := vault.ReadConfig(store, master)
 		if err != nil {
-			return err
+			return "", err
 		}
 		vault.Token = creds.RootToken
-		return vault.Unseal(creds.SealKey)
+		return "", vault.Unseal(creds.SealKey)
 	}
 
 	//////////////////////////////////////////
@@ -94,12 +96,12 @@ func (vault *Vault) Init(store string, master string) error {
 	})
 	if err != nil {
 		log.Errorf("failed to initialize the vault: %s", err)
-		return err
+		return "", err
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Errorf("failed to read response from the vault, concerning our initialization attempt: %s", err)
-		return err
+		return "", err
 	}
 
 	var keys struct {
@@ -108,7 +110,7 @@ func (vault *Vault) Init(store string, master string) error {
 	}
 	if err = json.Unmarshal(b, &keys); err != nil {
 		log.Errorf("failed to parse response from the vault, concerning our initialization attempt: %s", err)
-		return err
+		return "", err
 	}
 	if keys.RootToken == "" || len(keys.Keys) != 1 {
 		if keys.RootToken == "" {
@@ -118,7 +120,7 @@ func (vault *Vault) Init(store string, master string) error {
 			log.Errorf("failed to initialize vault: incorrect number of seal keys (%d) returned", len(keys.Keys))
 		}
 		err = fmt.Errorf("invalid response from vault: token '%s' and %d keys", keys.RootToken, len(keys.Keys))
-		return err
+		return "", err
 	}
 
 	creds := VaultCreds{
@@ -128,11 +130,20 @@ func (vault *Vault) Init(store string, master string) error {
 
 	err = vault.WriteConfig(store, master, creds)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	vault.Token = creds.RootToken
-	return vault.Unseal(creds.SealKey)
+
+	//////////////////////////////////////////
+	// Unseal and Initialize DR Keys
+
+	err = vault.Unseal(creds.SealKey)
+	if err != nil {
+		return "", err
+	}
+
+	return vault.DisasterKeygen()
 }
 
 func (vault *Vault) Unseal(key string) error {
@@ -380,6 +391,10 @@ func (vault *Vault) ASCIIHexEncode(s string, n int) string {
 	return buffer.String()
 }
 
+func (vault *Vault) ASCIIHexDecode(s string) string {
+	return strings.Replace(s, "-", "", -1)
+}
+
 func (vault *Vault) IsSealed() (bool, error) {
 	if init, err := vault.IsInitialized(); err != nil || init == false {
 		return true, err
@@ -480,4 +495,22 @@ func (vault *Vault) decrypt(key, text []byte) (string, error) {
 	cfb := cipher.NewCFBDecrypter(block, iv)
 	cfb.XORKeyStream(text, text)
 	return string(text), nil
+}
+
+func (vault *Vault) DisasterKeygen() (string, error) {
+	disasterKey, err := vault.Keygen(512)
+	if err != nil {
+		return "", err
+	}
+
+	generatedMaterial := pbkdf2.Key([]byte(disasterKey[32:]), []byte(disasterKey[:32]), 4096, 48, sha256.New)
+
+	err = vault.Put("secret/archives/disaster_recovery", map[string]interface{}{
+		"key":  vault.ASCIIHexEncode(hex.EncodeToString(generatedMaterial[:32]), 4),
+		"iv":   vault.ASCIIHexEncode(hex.EncodeToString(generatedMaterial[32:]), 4),
+		"type": "aes256-ctr",
+		"uuid": "disaster-recovery",
+	})
+
+	return disasterKey, err
 }
