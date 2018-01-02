@@ -156,7 +156,7 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 storage_account     %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 storage_account}     @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 storage_account}     @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("storage_account_key", "")
@@ -164,7 +164,7 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 storage_account_key %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 storage_account_key} @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 storage_account_key} @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("storage_container")
@@ -186,7 +186,7 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		}
 
 		if !containerFail {
-			fmt.Printf("@G{\u2713 storage_container}   @C{%s}\n", "REDACTED")
+			fmt.Printf("@G{\u2713 storage_container}   @C{%s}\n", s)
 		}
 	}
 

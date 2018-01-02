@@ -162,7 +162,7 @@ func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 rmq_username         %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 rmq_username}         @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 rmq_username}         @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("rmq_password")
@@ -170,7 +170,7 @@ func (p RabbitMQBrokerPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 rmq_password         %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 rmq_password}         @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 rmq_password}         @C{%s}\n", s)
 	}
 
 	tf, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)

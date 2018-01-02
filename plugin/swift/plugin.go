@@ -138,11 +138,7 @@ func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
 			fmt.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
 			fail = true
 		} else {
-			if reqConfig == "auth_url" || reqConfig == "project_name" {
-				fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
-			} else {
-				fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, "REDACTED")
-			}
+			fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
 		}
 	}
 	if fail {

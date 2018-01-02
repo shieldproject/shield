@@ -154,7 +154,7 @@ func (p GooglePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 json_key}     (using Google Application Default Credentials)\n")
 	} else {
-		fmt.Printf("@G{\u2713 json_key}     @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 json_key}     @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("bucket")
@@ -162,7 +162,7 @@ func (p GooglePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 bucket       %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bucket}       @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 bucket}       @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
