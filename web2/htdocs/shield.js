@@ -1903,7 +1903,8 @@ function dispatch(page) {
 
                     store    : data.store.uuid,
                     target   : data.target.uuid,
-                    policy   : data.policy.uuid
+                    policy   : data.policy.uuid,
+                    disaster_recovery : (data.target.disaster_recovery == "true")
                   },
                   error: "Unable to create a new backup job",
                   success: function (ok) {
@@ -2512,6 +2513,8 @@ function dispatch(page) {
           $form.error('confirm', 'mismatch');
         }
 
+        data.rekey_dr = (data.rekey_dr == "true")
+
         if (!$form.isOK()) {
           return;
         }
@@ -2521,9 +2524,13 @@ function dispatch(page) {
           type: 'POST',
           url:  '/v2/rekey',
           data: data,
-          success: function () {
+          success: function (data) {
+            if (data.disaster_key != "") {
+                $('#viewport').html(template('disasterkey', data));
+            } else{
+                goto("#!/admin");
+            }
             banner('Succcessfully rekeyed the SHIELD Core.');
-            goto("#!/admin");
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);
@@ -3250,9 +3257,7 @@ function dispatch(page) {
           url:  '/v2/init',
           data: { "master": data.master },
           success: function (data) {
-            $global.hud.health.core = "unlocked";
-            $('#hud').html(template('hud', $global.hud));
-            goto("");
+            $('#viewport').html(template('disasterkey', data));
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);
