@@ -8,83 +8,84 @@ import (
 )
 
 type ImportManifest struct {
-	Core  string `json:"core"`
-	Token string `json:"token"`
-	CA    string `json:"ca"`
+	Core               string `yaml:"core"`
+	Token              string `yaml:"token"`
+	CA                 string `yaml:"ca"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
 
 	Global struct {
 		Storage []struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Agent   string `json:"agent"`
-			Plugin  string `json:"plugin"`
+			Name    string `yaml:"name"`
+			Summary string `yaml:"summary"`
+			Agent   string `yaml:"agent"`
+			Plugin  string `yaml:"plugin"`
 
-			Config map[string]interface{} `json:"config"`
-		} `json:"storage,omitempty"`
+			Config map[string]interface{} `yaml:"config"`
+		} `yaml:"storage,omitempty"`
 
 		Policies []struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Days    int    `json:"days"`
-		} `json:"policies,omitempty"`
-	} `json:"global,omitempty"`
+			Name    string `yaml:"name"`
+			Summary string `yaml:"summary"`
+			Days    int    `yaml:"days"`
+		} `yaml:"policies,omitempty"`
+	} `yaml:"global,omitempty"`
 
 	Users []struct {
-		Name       string `json:"name"`
-		Username   string `json:"username"`
-		Password   string `json:"password"`
-		SystemRole string `json:"sysrole"`
+		Name       string `yaml:"name"`
+		Username   string `yaml:"username"`
+		Password   string `yaml:"password"`
+		SystemRole string `yaml:"sysrole"`
 
 		Tenants []struct {
-			Name string `json:"name"`
-			Role string `json:"role"`
-		} `json:"tenants,omitempty"`
-	} `json:"users,omitempty"`
+			Name string `yaml:"name"`
+			Role string `yaml:"role"`
+		} `yaml:"tenants,omitempty"`
+	} `yaml:"users,omitempty"`
 
-	Tenants []ImportTenant `json:"tenants,omitempty"`
+	Tenants []ImportTenant `yaml:"tenants,omitempty"`
 }
 
 type ImportTenant struct {
-	Name string `json:"name"`
+	Name string `yaml:"name"`
 
-	Members []ImportMembership `json:"members"`
+	Members []ImportMembership `yaml:"members"`
 
 	Storage []struct {
-		Name    string `json:"name"`
-		Summary string `json:"summary"`
-		Agent   string `json:"agent"`
-		Plugin  string `json:"plugin"`
+		Name    string `yaml:"name"`
+		Summary string `yaml:"summary"`
+		Agent   string `yaml:"agent"`
+		Plugin  string `yaml:"plugin"`
 
-		Config map[string]interface{} `json:"config"`
-	} `json:"storage,omitempty"`
+		Config map[string]interface{} `yaml:"config"`
+	} `yaml:"storage,omitempty"`
 
 	Policies []struct {
-		Name    string `json:"name"`
-		Summary string `json:"summary"`
-		Days    int    `json:"days"`
-	} `json:"policies,omitempty"`
+		Name    string `yaml:"name"`
+		Summary string `yaml:"summary"`
+		Days    int    `yaml:"days"`
+	} `yaml:"policies,omitempty"`
 
 	Systems []struct {
-		Name    string `json:"name"`
-		Summary string `json:"summary"`
-		Agent   string `json:"agent"`
-		Plugin  string `json:"plugin"`
+		Name    string `yaml:"name"`
+		Summary string `yaml:"summary"`
+		Agent   string `yaml:"agent"`
+		Plugin  string `yaml:"plugin"`
 
-		Config map[string]interface{} `json:"config"`
+		Config map[string]interface{} `yaml:"config"`
 
 		Jobs []struct {
-			Name    string `json:"name"`
-			When    string `json:"when"`
-			Policy  string `json:"policy"`
-			Storage string `json:"storage"`
-			Paused  bool   `json:"paused"`
-		} `json:"jobs,omitempty"`
-	} `json:"systems,omitempty"`
+			Name    string `yaml:"name"`
+			When    string `yaml:"when"`
+			Policy  string `yaml:"policy"`
+			Storage string `yaml:"storage"`
+			Paused  bool   `yaml:"paused"`
+		} `yaml:"jobs,omitempty"`
+	} `yaml:"systems,omitempty"`
 }
 
 type ImportMembership struct {
-	User string `json:"user"`
-	Role string `json:"role"`
+	User string `yaml:"user"`
+	Role string `yaml:"role"`
 }
 
 func (m *ImportManifest) Normalize() error {
@@ -205,20 +206,21 @@ func (m *ImportManifest) Normalize() error {
 }
 
 func (m *ImportManifest) Deploy(c *shield.Client) error {
-	if m.Core != "" {
-		fmt.Printf("@W{Connecting to }@G{%s}\n", m.Core)
-		c = &shield.Client{
-			URL:           m.Core,
-			Session:       m.Token,
-			CACertificate: m.CA,
-			Debug:         c.Debug,
-			Trace:         c.Trace,
-		}
+	fmt.Printf("@W{Connecting to }@G{%s}\n", m.Core)
+	c = &shield.Client{
+		URL:                m.Core,
+		Session:            m.Token,
+		CACertificate:      m.CA,
+		InsecureSkipVerify: m.InsecureSkipVerify,
+
+		/* stuff we keep from the passed client */
+		Debug: c.Debug,
+		Trace: c.Trace,
 	}
 
 	id, err := c.AuthID()
 	if err != nil {
-		return fmt.Errorf("failed to connect to %s: %s\n", c.URL)
+		return fmt.Errorf("failed to connect to %s: %s\n", c.URL, err)
 	}
 	if id.Unauthenticated {
 		return fmt.Errorf("authentication to %s failed!", c.URL)

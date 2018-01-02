@@ -674,6 +674,49 @@ func main() {
 		bail(config.Write())
 		return
 		/* }}} */
+
+	case "import": /* {{{ */
+		if len(args) < 1 {
+			fail(2, "Usage: buckler %s /path/to/manifest.yml ...\n", command)
+		}
+		if opts.Core != "" {
+			fmt.Fprintf(os.Stderr, "@Y{WARNING: ignoring the SHIELD Core set by either --core or the $SHIELD_CORE environment variable.}\n")
+			fmt.Fprintf(os.Stderr, "(@C{buckler import} uses the import file to determine what SHIELD Core to contact.)\n\n")
+		}
+		readin := false
+		for _, file := range args {
+			var (
+				m   ImportManifest
+				b   []byte
+				err error
+			)
+
+			if file == "-" {
+				if readin {
+					bail(fmt.Errorf("a second '-' file was encountered; but we already read standard input!"))
+				}
+				readin = true
+				b, err = ioutil.ReadAll(os.Stdin)
+				file = "<stdin>"
+			} else {
+				b, err = ioutil.ReadFile(file)
+			}
+			bailon(file, err)
+
+			err = yaml.Unmarshal(b, &m)
+			bailon(file, err)
+
+			err = m.Normalize()
+			bailon(file, err)
+
+			err = m.Deploy(&shield.Client{
+				Debug: opts.Debug,
+				Trace: opts.Trace,
+			})
+			bailon(file, err)
+		}
+		return
+		/* }}} */
 	}
 
 	if opts.Core == "" {
@@ -981,41 +1024,6 @@ func main() {
 		}
 		os.Exit(rc)
 
-	/* }}} */
-
-	case "import": /* {{{ */
-		if len(args) < 1 {
-			fail(2, "Usage: buckler %s /path/to/manifest.yml ...\n", command)
-		}
-		readin := false
-		for _, file := range args {
-			var (
-				m   ImportManifest
-				b   []byte
-				err error
-			)
-
-			if file == "-" {
-				if readin {
-					bail(fmt.Errorf("a second '-' file was encountered; but we already read standard input!"))
-				}
-				readin = true
-				b, err = ioutil.ReadAll(os.Stdin)
-				file = "<stdin>"
-			} else {
-				b, err = ioutil.ReadFile(file)
-			}
-			bailon(file, err)
-
-			err = yaml.Unmarshal(b, &m)
-			bailon(file, err)
-
-			err = m.Normalize()
-			bailon(file, err)
-
-			err = m.Deploy(c)
-			bailon(file, err)
-		}
 	/* }}} */
 
 	case "tenants": /* {{{ */
