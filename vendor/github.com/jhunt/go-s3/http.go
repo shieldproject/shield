@@ -16,7 +16,11 @@ func (c *Client) url(path string) string {
 		scheme = "https"
 	}
 
-	return fmt.Sprintf("%s://%s.%s%s", scheme, c.bucket(), c.domain(), path)
+	if c.UsePathBuckets {
+		return fmt.Sprintf("%s://%s.%s%s", scheme, c.bucket(), c.domain(), path)
+	} else {
+		return fmt.Sprintf("%s://%s/%s%s", scheme, c.domain(), c.bucket(), path)
+	}
 }
 
 func (c *Client) request(method, path string, payload []byte, headers *http.Header) (*http.Response, error) {

@@ -476,6 +476,7 @@ func (e s3Endpoint) Connect() (*s3.Client, error) {
 		Bucket:             e.Bucket,
 		InsecureSkipVerify: e.SkipSSLValidation,
 		SOCKS5Proxy:        e.SOCKS5Proxy,
+		UsePathBuckets:     true,
 		/* FIXME: CA Certs */
 	})
 }
