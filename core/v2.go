@@ -2001,13 +2001,14 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name     string `json:"name"`
-			Summary  string `json:"summary"`
-			Schedule string `json:"schedule"`
-			Paused   bool   `json:"paused"`
-			Store    string `json:"store"`
-			Target   string `json:"target"`
-			Policy   string `json:"policy"`
+			Name             string `json:"name"`
+			Summary          string `json:"summary"`
+			Schedule         string `json:"schedule"`
+			Paused           bool   `json:"paused"`
+			Store            string `json:"store"`
+			Target           string `json:"target"`
+			Policy           string `json:"policy"`
+			DisasterRecovery bool   `json:"disaster_recovery"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2018,14 +2019,15 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		job, err := core.DB.CreateJob(&db.Job{
-			TenantUUID: uuid.Parse(r.Args[1]),
-			Name:       in.Name,
-			Summary:    in.Summary,
-			Schedule:   in.Schedule,
-			Paused:     in.Paused,
-			StoreUUID:  uuid.Parse(in.Store),
-			TargetUUID: uuid.Parse(in.Target),
-			PolicyUUID: uuid.Parse(in.Policy),
+			TenantUUID:       uuid.Parse(r.Args[1]),
+			Name:             in.Name,
+			Summary:          in.Summary,
+			Schedule:         in.Schedule,
+			Paused:           in.Paused,
+			StoreUUID:        uuid.Parse(in.Store),
+			TargetUUID:       uuid.Parse(in.Target),
+			PolicyUUID:       uuid.Parse(in.Policy),
+			DisasterRecovery: in.DisasterRecovery,
 		})
 		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
@@ -2064,9 +2066,10 @@ func (core *Core) v2API() *route.Router {
 			Summary  string `json:"summary"`
 			Schedule string `json:"schedule"`
 
-			StoreUUID  string `json:"store"`
-			TargetUUID string `json:"target"`
-			PolicyUUID string `json:"policy"`
+			StoreUUID        string `json:"store"`
+			TargetUUID       string `json:"target"`
+			PolicyUUID       string `json:"policy"`
+			DisasterRecovery *bool  `json:"disaster_recovery"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2102,6 +2105,10 @@ func (core *Core) v2API() *route.Router {
 		job.PolicyUUID = job.Policy.UUID
 		if in.PolicyUUID != "" {
 			job.PolicyUUID = uuid.Parse(in.PolicyUUID)
+		}
+
+		if in.DisasterRecovery != nil {
+			job.DisasterRecovery = *in.DisasterRecovery
 		}
 
 		if err := core.DB.UpdateJob(job); err != nil {

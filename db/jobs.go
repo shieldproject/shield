@@ -290,7 +290,7 @@ func (db *DB) UpdateJob(job *Job) error {
 	    WHERE uuid = ?`,
 		job.Name, job.Summary, job.Schedule,
 		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),
-		job.UUID.String(), job.DisasterRecovery)
+		job.DisasterRecovery, job.UUID.String())
 }
 
 func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {

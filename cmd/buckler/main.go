@@ -83,6 +83,7 @@ var opts struct {
 	Rekey struct {
 		OldMaster string `cli:"--old-master"`
 		NewMaster string `cli:"--new-master"`
+		RekeyDR   bool   `cli:"--rekey-dr"`
 	} `cli:"rekey"`
 
 	/* }}} */
@@ -239,21 +240,23 @@ var opts struct {
 	UnpauseJob struct{} `cli:"unpause-job"`
 	RunJob     struct{} `cli:"run-job"`
 	CreateJob  struct {
-		Name     string `cli:"-n, --name"`
-		Summary  string `cli:"-s, --summary"`
-		Target   string `cli:"--target"`
-		Store    string `cli:"--store"`
-		Policy   string `cli:"--policy"`
-		Schedule string `cli:"--schedule"`
-		Paused   bool   `cli:"--paused"`
+		Name             string `cli:"-n, --name"`
+		Summary          string `cli:"-s, --summary"`
+		Target           string `cli:"--target"`
+		Store            string `cli:"--store"`
+		Policy           string `cli:"--policy"`
+		Schedule         string `cli:"--schedule"`
+		Paused           bool   `cli:"--paused"`
+		DisasterRecovery bool   `cli:"--disaster-recovery"`
 	} `cli:"create-job"`
 	UpdateJob struct {
-		Name     string `cli:"-n, --name"`
-		Summary  string `cli:"-s, --summary"`
-		Target   string `cli:"--target"`
-		Store    string `cli:"--store"`
-		Policy   string `cli:"--policy"`
-		Schedule string `cli:"--schedule"`
+		Name             string `cli:"-n, --name"`
+		Summary          string `cli:"-s, --summary"`
+		Target           string `cli:"--target"`
+		Store            string `cli:"--store"`
+		Policy           string `cli:"--policy"`
+		Schedule         string `cli:"--schedule"`
+		DisasterRecovery string `cli:"--disaster-recovery"`
 	} `cli:"update-job"`
 
 	/* }}} */
@@ -812,10 +815,20 @@ func main() {
 			}
 			opts.Init.Master = a
 		}
-		err := c.Initialize(opts.Init.Master)
+		disasterKey, err := c.Initialize(opts.Init.Master)
 		bail(err)
 
 		fmt.Printf("SHIELD core unlocked successfully.\n")
+
+		if disasterKey != "" {
+			fmt.Printf("@R{BELOW IS YOUR DISASTER KEY FOR RECOVERING FIXED-KEY BACKUPS.}\n")
+			fmt.Printf("@R{SAVE THIS IN A SECURE LOCATION.}\n")
+			fmt.Printf("----------------------------------------------------------------\n")
+			fmt.Printf("@Y{" + c.SplitKey(disasterKey, 64) + "}")
+			fmt.Printf("\n----------------------------------------------------------------\n")
+		} else {
+			bail(fmt.Errorf("Failed to initialize Disaster Key!"))
+		}
 
 	/* }}} */
 	case "unlock": /* {{{ */
@@ -842,8 +855,18 @@ func main() {
 			}
 			opts.Rekey.NewMaster = a
 		}
-		err := c.Rekey(opts.Rekey.OldMaster, opts.Rekey.NewMaster)
+		disasterKey, err := c.Rekey(opts.Rekey.OldMaster, opts.Rekey.NewMaster, opts.Rekey.RekeyDR)
 		bail(err)
+
+		if disasterKey != "" {
+			fmt.Printf("@R{BELOW IS YOUR DISASTER KEY FOR RECOVERING FIXED-KEY BACKUPS.}\n")
+			fmt.Printf("@R{SAVE THIS IN A SECURE LOCATION.}\n")
+			fmt.Printf("----------------------------------------------------------------\n")
+			fmt.Printf("@Y{" + c.SplitKey(disasterKey, 64) + "}")
+			fmt.Printf("\n----------------------------------------------------------------\n")
+		} else if opts.Rekey.RekeyDR {
+			bail(fmt.Errorf("Failed to initialize Disaster Key!"))
+		}
 
 		fmt.Printf("SHIELD core rekeyed successfully.\n")
 
@@ -2103,9 +2126,9 @@ func main() {
 			)
 		*/
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Policy", "SHIELD Agent", "Target", "Store")
+		tbl := tui.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Policy", "SHIELD Agent", "Target", "Store", "Disaster Recovery")
 		for _, job := range jobs {
-			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), job.Policy.Name, job.Agent, job.Target.Name, job.Store.Name)
+			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), job.Policy.Name, job.Agent, job.Target.Name, job.Store.Name, job.DisasterRecovery)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2147,6 +2170,7 @@ func main() {
 		r.Add("Storage Plugin", job.Store.Plugin)
 		r.Break()
 
+		r.Add("Disaster Recovery", strconv.FormatBool(job.DisasterRecovery))
 		r.Add("Notes", job.Summary)
 
 		r.Output(os.Stdout)
@@ -2207,6 +2231,11 @@ func main() {
 			if opts.CreateJob.Schedule == "" {
 				opts.CreateJob.Schedule = prompt("@C{Schedule}: ")
 			}
+
+			if opts.CreateJob.Summary == "" {
+				opts.CreateJob.Summary = prompt("@C{Notes}: ")
+			}
+
 		} else {
 			if id := opts.CreateJob.Target; id != "" {
 				if target, err := c.FindTarget(tenant, id, !opts.Exact); err != nil {
@@ -2232,13 +2261,14 @@ func main() {
 		}
 
 		job, err := c.CreateJob(tenant, &shield.Job{
-			Name:       opts.CreateJob.Name,
-			Summary:    opts.CreateJob.Summary,
-			TargetUUID: opts.CreateJob.Target,
-			StoreUUID:  opts.CreateJob.Store,
-			PolicyUUID: opts.CreateJob.Policy,
-			Schedule:   opts.CreateJob.Schedule,
-			Paused:     opts.CreateJob.Paused,
+			Name:             opts.CreateJob.Name,
+			Summary:          opts.CreateJob.Summary,
+			TargetUUID:       opts.CreateJob.Target,
+			StoreUUID:        opts.CreateJob.Store,
+			PolicyUUID:       opts.CreateJob.Policy,
+			Schedule:         opts.CreateJob.Schedule,
+			Paused:           opts.CreateJob.Paused,
+			DisasterRecovery: opts.CreateJob.DisasterRecovery,
 		})
 		bail(err)
 
@@ -2295,6 +2325,10 @@ func main() {
 		}
 		if opts.UpdateJob.Schedule != "" {
 			job.Schedule = opts.UpdateJob.Schedule
+		}
+
+		if opts.UpdateJob.DisasterRecovery != "" {
+			job.DisasterRecovery, _ = strconv.ParseBool(opts.UpdateJob.DisasterRecovery)
 		}
 
 		_, err = c.UpdateJob(tenant, job)
