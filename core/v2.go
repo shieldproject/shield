@@ -156,7 +156,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		log.Infof("%s: initializing the SHIELD Core...", r)
-		init, err := core.Initialize(in.Master)
+		init, fixedKey, err := core.Initialize(in.Master)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
@@ -166,7 +166,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.Success("Successfully initialized the SHIELD Core")
+		r.OK(
+			struct {
+				Response string `json:"response"`
+				FixedKey string `json:"fixed_key"`
+			}{
+				"Successfully initialized the SHIELD Core",
+				fixedKey,
+			})
 	})
 	// }}}
 	r.Dispatch("POST /v2/unlock", func(r *route.Request) { // {{{
@@ -196,8 +203,9 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("POST /v2/rekey", func(r *route.Request) { // {{{
 		var in struct {
-			Current string `json:"current"`
-			New     string `json:"new"`
+			Current     string `json:"current"`
+			New         string `json:"new"`
+			RotateFixed bool   `json:"rotate_fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -207,13 +215,20 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		err := core.Rekey(in.Current, in.New)
+		fixedKey, err := core.Rekey(in.Current, in.New, in.RotateFixed)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
 			return
 		}
 
-		r.Success("Successfully rekeyed the SHIELD Core")
+		r.OK(
+			struct {
+				Response string `json:"response"`
+				FixedKey string `json:"fixed_key"`
+			}{
+				"Successfully rekeyed the SHIELD Core",
+				fixedKey,
+			})
 	})
 	// }}}
 
@@ -1993,6 +2008,7 @@ func (core *Core) v2API() *route.Router {
 			Store    string `json:"store"`
 			Target   string `json:"target"`
 			Policy   string `json:"policy"`
+			FixedKey bool   `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2011,6 +2027,7 @@ func (core *Core) v2API() *route.Router {
 			StoreUUID:  uuid.Parse(in.Store),
 			TargetUUID: uuid.Parse(in.Target),
 			PolicyUUID: uuid.Parse(in.Policy),
+			FixedKey:   in.FixedKey,
 		})
 		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
@@ -2052,6 +2069,7 @@ func (core *Core) v2API() *route.Router {
 			StoreUUID  string `json:"store"`
 			TargetUUID string `json:"target"`
 			PolicyUUID string `json:"policy"`
+			FixedKey   *bool  `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2087,6 +2105,10 @@ func (core *Core) v2API() *route.Router {
 		job.PolicyUUID = job.Policy.UUID
 		if in.PolicyUUID != "" {
 			job.PolicyUUID = uuid.Parse(in.PolicyUUID)
+		}
+
+		if in.FixedKey != nil {
+			job.FixedKey = *in.FixedKey
 		}
 
 		if err := core.DB.UpdateJob(job); err != nil {

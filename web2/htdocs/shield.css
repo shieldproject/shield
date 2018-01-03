@@ -865,7 +865,7 @@ form .ctl label {
   line-height: 20px;
   display: block;
 
-  width: 40%;
+  width: 50%;
   float: left;
 }
 form .ctl .widget {
@@ -1727,6 +1727,44 @@ td span.role {
   color: yellow;
 }
 
+#fixed-wrapper #fixedkey {
+    display: inline-block;
+    background-color: #000;
+    font-family: monospace;
+    padding: 1em;
+    font-size: 16px;
+    width: 63%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: yellow;
+}
+
+#fixed-wrapper #accept {
+    height: 40px;
+    width: 150px;
+    margin: -20px -75px;
+    position: relative;
+    top: 50%;
+    left: 50%;
+    background-color: #ffff00;
+    color: #000;
+    font-size: 16px;
+    font-family: monospace;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 0px;
+    font-weight: bold;
+}
+
+#large-checkbox {
+    transform: scale(1.75);
+    margin: 14px 20px;
+}
+
+#dr-explain {
+    font-size: 12pt;
+}
+
 .notice {
   background-color: #b2e1ff;
   padding: 1em;
@@ -1742,7 +1780,7 @@ h2 strong,
   background-color: #FF6161;
   color: #fff;
   font-size: 120%;
-  line-height 1.4em;
+  line-height: 1.4em;
 }
 
 #user-agent{

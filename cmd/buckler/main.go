@@ -81,8 +81,9 @@ var opts struct {
 		Master string `cli:"--master" env:"SHIELD_CORE_MASTER"`
 	} `cli:"unlock"`
 	Rekey struct {
-		OldMaster string `cli:"--old-master"`
-		NewMaster string `cli:"--new-master"`
+		OldMaster   string `cli:"--old-master"`
+		NewMaster   string `cli:"--new-master"`
+		RotateFixed bool   `cli:"--rotate-fixed-key"`
 	} `cli:"rekey"`
 
 	/* }}} */
@@ -246,14 +247,17 @@ var opts struct {
 		Policy   string `cli:"--policy"`
 		Schedule string `cli:"--schedule"`
 		Paused   bool   `cli:"--paused"`
+		FixedKey bool   `cli:"--fixed-key"`
 	} `cli:"create-job"`
 	UpdateJob struct {
-		Name     string `cli:"-n, --name"`
-		Summary  string `cli:"-s, --summary"`
-		Target   string `cli:"--target"`
-		Store    string `cli:"--store"`
-		Policy   string `cli:"--policy"`
-		Schedule string `cli:"--schedule"`
+		Name       string `cli:"-n, --name"`
+		Summary    string `cli:"-s, --summary"`
+		Target     string `cli:"--target"`
+		Store      string `cli:"--store"`
+		Policy     string `cli:"--policy"`
+		Schedule   string `cli:"--schedule"`
+		FixedKey   bool   `cli:"--fixed-key"`
+		NoFixedKey bool   `cli:"--no-fixed-key"`
 	} `cli:"update-job"`
 
 	/* }}} */
@@ -855,10 +859,20 @@ func main() {
 			}
 			opts.Init.Master = a
 		}
-		err := c.Initialize(opts.Init.Master)
+		fixedKey, err := c.Initialize(opts.Init.Master)
 		bail(err)
 
 		fmt.Printf("SHIELD core unlocked successfully.\n")
+
+		if fixedKey != "" {
+			fmt.Printf("@R{BELOW IS YOUR FIXED KEY FOR RECOVERING FIXED-KEY BACKUPS.}\n")
+			fmt.Printf("@R{SAVE THIS IN A SECURE LOCATION.}\n")
+			fmt.Printf("----------------------------------------------------------------\n")
+			fmt.Printf("@Y{" + c.SplitKey(fixedKey, 64) + "}")
+			fmt.Printf("\n----------------------------------------------------------------\n")
+		} else {
+			bail(fmt.Errorf("Failed to initialize Fixed Key!"))
+		}
 
 	/* }}} */
 	case "unlock": /* {{{ */
@@ -885,8 +899,18 @@ func main() {
 			}
 			opts.Rekey.NewMaster = a
 		}
-		err := c.Rekey(opts.Rekey.OldMaster, opts.Rekey.NewMaster)
+		fixedKey, err := c.Rekey(opts.Rekey.OldMaster, opts.Rekey.NewMaster, opts.Rekey.RotateFixed)
 		bail(err)
+
+		if fixedKey != "" {
+			fmt.Printf("@R{BELOW IS YOUR FIXED KEY FOR RECOVERING FIXED-KEY BACKUPS.}\n")
+			fmt.Printf("@R{SAVE THIS IN A SECURE LOCATION.}\n")
+			fmt.Printf("----------------------------------------------------------------\n")
+			fmt.Printf("@Y{" + c.SplitKey(fixedKey, 64) + "}")
+			fmt.Printf("\n----------------------------------------------------------------\n")
+		} else if opts.Rekey.RotateFixed {
+			bail(fmt.Errorf("Failed to initialize Fixed Key!"))
+		}
 
 		fmt.Printf("SHIELD core rekeyed successfully.\n")
 
@@ -2111,9 +2135,9 @@ func main() {
 			)
 		*/
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Policy", "SHIELD Agent", "Target", "Store")
+		tbl := tui.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Policy", "SHIELD Agent", "Target", "Store", "Fixed-Key")
 		for _, job := range jobs {
-			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), job.Policy.Name, job.Agent, job.Target.Name, job.Store.Name)
+			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), job.Policy.Name, job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2155,6 +2179,7 @@ func main() {
 		r.Add("Storage Plugin", job.Store.Plugin)
 		r.Break()
 
+		r.Add("Fixed-Key", strconv.FormatBool(job.FixedKey))
 		r.Add("Notes", job.Summary)
 
 		r.Output(os.Stdout)
@@ -2215,6 +2240,11 @@ func main() {
 			if opts.CreateJob.Schedule == "" {
 				opts.CreateJob.Schedule = prompt("@C{Schedule}: ")
 			}
+
+			if opts.CreateJob.Summary == "" {
+				opts.CreateJob.Summary = prompt("@C{Notes}: ")
+			}
+
 		} else {
 			if id := opts.CreateJob.Target; id != "" {
 				if target, err := c.FindTarget(tenant, id, !opts.Exact); err != nil {
@@ -2247,6 +2277,7 @@ func main() {
 			PolicyUUID: opts.CreateJob.Policy,
 			Schedule:   opts.CreateJob.Schedule,
 			Paused:     opts.CreateJob.Paused,
+			FixedKey:   opts.CreateJob.FixedKey,
 		})
 		bail(err)
 
@@ -2303,6 +2334,13 @@ func main() {
 		}
 		if opts.UpdateJob.Schedule != "" {
 			job.Schedule = opts.UpdateJob.Schedule
+		}
+
+		if opts.UpdateJob.FixedKey {
+			job.FixedKey = true
+		}
+		if opts.UpdateJob.NoFixedKey {
+			job.FixedKey = false
 		}
 
 		_, err = c.UpdateJob(tenant, job)

@@ -225,7 +225,7 @@
       ]]
           <div id="cliauth" class="frontdoor">
             <div>
-              <h1>SHIELD<span>Production<span></h1>
+              <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
               <div class="dialog">
                 <h2>CLI Authentication Credentials</h2>
                 <img src="/i/terminal.png" class="highlight">
@@ -242,6 +242,36 @@
               </div>
             </div>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--fixedkey"><!-- {{{ -->
+        [[#
+          {fixedkey} template
+  
+          Displays the Shield Fixed Key, so that operators can restore
+          fixed-key backups in the event of a disaster.
+        ]]
+            <div id="fixed-wrapper" class="frontdoor">
+              <div>
+                <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
+                <div class="dialog">
+                  <h2>Shield Fixed Key</h2>
+                  <img src="/i/terminal.png" class="highlight">
+  
+                  <p>Here is your SHIELD Fixed Key:</p>
+  
+                  <pre id="fixedkey">[[= _.fixed_key ]]</pre>
+  
+                  <p id="dr-explain">
+                    You will need to save this key in a secure location
+                    for use in recovery of fixed-key backups in a disaster scenario.
+                    Fixed-key backups must be used to backup shield itself. Once you
+                    leave this screen, there is no way to access this key or corresponding
+                    fixed-key backups unless you have saved it!
+                  </p>
+                  <a href="/"><button id="accept">I Understand</button></a>
+                </div>
+              </div>
+            </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--logging-in"><!-- {{{ -->
       [[#
@@ -1028,6 +1058,15 @@
 
             <div id="choose-plugin"></div>
             <div id="configure-plugin"></div>
+
+            <div class="ctl" data-field="fixed-key">
+                <label for="target-fixed-key">Fixed-Key Encryption?</label>
+                <div class="widget">
+                    <input id="large-checkbox" name='fixed_key' type='checkbox' value="true" />
+                    <p class-"help">Select if backups should use the Fixed Key for encryption. 
+                    (Required for backups of Shield itself) </p>
+                </div>
+            </div>
 
             <button class="go">Next</button>
           </form>
@@ -2355,6 +2394,16 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   <strong>new master password</strong> to unlock it.</p>
                 </div>
               </div>
+
+              <div class="ctl" data-field="confirm">
+                    <label for="rekey-fixed">Rekey Shield Fixed Key?</label>
+                    <div class="widget">
+                      <input id="large-checkbox" name='rotate_fixed_key' type='checkbox' value="true" />
+                      <p class="help">This rotates the <strong>Shield Fixed Key</strong>
+                      used for fixed-key backups. Once rekeyed, this new key must be used to manually
+                      restore all future fixed-key backups in a disaster scenario.</p>
+                    </div>
+                </div>
 
               <button class="go">Rekey</button>
             </form>

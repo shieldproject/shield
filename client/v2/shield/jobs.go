@@ -17,6 +17,7 @@ type Job struct {
 	Agent      string `json:"agent"`
 	LastStatus string `json:"status"`
 	LastRun    int64  `json:"last_run"`
+	FixedKey   bool   `json:"fixed_key"`
 
 	TargetUUID string `json:"-"`
 	Target     struct {
@@ -122,6 +123,7 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Store    string `json:"store"`
 		Target   string `json:"target"`
 		Policy   string `json:"policy"`
+		FixedKey bool   `json:"fixed_key"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
@@ -130,6 +132,7 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Target:   job.TargetUUID,
 		Store:    job.StoreUUID,
 		Policy:   job.PolicyUUID,
+		FixedKey: job.FixedKey,
 	}
 	if err := c.post(fmt.Sprintf("/v2/tenants/%s/jobs", parent.UUID), in, &out); err != nil {
 		return nil, err
@@ -146,6 +149,7 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Store    string `json:"store,omitempty"`
 		Target   string `json:"target,omitempty"`
 		Policy   string `json:"policy,omitempty"`
+		FixedKey bool   `json:"fixed_key"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
@@ -153,6 +157,7 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Target:   job.TargetUUID,
 		Store:    job.StoreUUID,
 		Policy:   job.PolicyUUID,
+		FixedKey: job.FixedKey,
 	}
 	if err := c.put(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, job.UUID), in, nil); err != nil {
 		return nil, err
