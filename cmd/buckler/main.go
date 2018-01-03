@@ -250,13 +250,14 @@ var opts struct {
 		FixedKey bool   `cli:"--fixed-key"`
 	} `cli:"create-job"`
 	UpdateJob struct {
-		Name     string `cli:"-n, --name"`
-		Summary  string `cli:"-s, --summary"`
-		Target   string `cli:"--target"`
-		Store    string `cli:"--store"`
-		Policy   string `cli:"--policy"`
-		Schedule string `cli:"--schedule"`
-		FixedKey string `cli:"--fixed-key"`
+		Name       string `cli:"-n, --name"`
+		Summary    string `cli:"-s, --summary"`
+		Target     string `cli:"--target"`
+		Store      string `cli:"--store"`
+		Policy     string `cli:"--policy"`
+		Schedule   string `cli:"--schedule"`
+		FixedKey   bool   `cli:"--fixed-key"`
+		NoFixedKey bool   `cli:"--no-fixed-key"`
 	} `cli:"update-job"`
 
 	/* }}} */
@@ -2327,8 +2328,11 @@ func main() {
 			job.Schedule = opts.UpdateJob.Schedule
 		}
 
-		if opts.UpdateJob.FixedKey != "" {
-			job.FixedKey, _ = strconv.ParseBool(opts.UpdateJob.FixedKey)
+		if opts.UpdateJob.FixedKey {
+			job.FixedKey = true
+		}
+		if opts.UpdateJob.NoFixedKey {
+			job.FixedKey = false
 		}
 
 		_, err = c.UpdateJob(tenant, job)
