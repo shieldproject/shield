@@ -143,7 +143,7 @@ func (vault *Vault) Init(store string, master string) (string, error) {
 		return "", err
 	}
 
-	return vault.DisasterKeygen()
+	return vault.FixedKeygen()
 }
 
 func (vault *Vault) Unseal(key string) error {
@@ -497,20 +497,20 @@ func (vault *Vault) decrypt(key, text []byte) (string, error) {
 	return string(text), nil
 }
 
-func (vault *Vault) DisasterKeygen() (string, error) {
-	disasterKey, err := vault.Keygen(512)
+func (vault *Vault) FixedKeygen() (string, error) {
+	fixedKey, err := vault.Keygen(512)
 	if err != nil {
 		return "", err
 	}
 
-	generatedMaterial := pbkdf2.Key([]byte(disasterKey[32:]), []byte(disasterKey[:32]), 4096, 48, sha256.New)
+	generatedMaterial := pbkdf2.Key([]byte(fixedKey[32:]), []byte(fixedKey[:32]), 4096, 48, sha256.New)
 
-	err = vault.Put("secret/archives/disaster_recovery", map[string]interface{}{
+	err = vault.Put("secret/archives/fixed_key", map[string]interface{}{
 		"key":  vault.ASCIIHexEncode(hex.EncodeToString(generatedMaterial[:32]), 4),
 		"iv":   vault.ASCIIHexEncode(hex.EncodeToString(generatedMaterial[32:]), 4),
 		"type": "aes256-ctr",
-		"uuid": "disaster-recovery",
+		"uuid": "fixed-key",
 	})
 
-	return disasterKey, err
+	return fixedKey, err
 }

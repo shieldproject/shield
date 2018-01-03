@@ -25,32 +25,32 @@ const (
 )
 
 type Task struct {
-	UUID             uuid.UUID      `json:"uuid"`
-	TenantUUID       uuid.UUID      `json:"-"`
-	Owner            string         `json:"owner"`
-	Op               string         `json:"type"`
-	JobUUID          uuid.UUID      `json:"job_uuid"`
-	ArchiveUUID      uuid.UUID      `json:"archive_uuid"`
-	StoreUUID        uuid.UUID      `json:"-"`
-	StorePlugin      string         `json:"-"`
-	StoreEndpoint    string         `json:"-"`
-	TargetUUID       uuid.UUID      `json:"-"`
-	TargetPlugin     string         `json:"-"`
-	TargetEndpoint   string         `json:"-"`
-	Status           string         `json:"status"`
-	RequestedAt      int64          `json:"requested_at"`
-	StartedAt        int64          `json:"started_at"`
-	StoppedAt        int64          `json:"stopped_at"`
-	TimeoutAt        int64          `json:"-"`
-	Attempts         int            `json:"-"`
-	RestoreKey       string         `json:"-"`
-	DisasterRecovery bool           `json:"-"`
-	Agent            string         `json:"-"`
-	Log              string         `json:"log"`
-	OK               bool           `json:"ok"`
-	Notes            string         `json:"notes"`
-	Clear            string         `json:"clear"`
-	TaskUUIDChan     chan *TaskInfo `json:"-"`
+	UUID           uuid.UUID      `json:"uuid"`
+	TenantUUID     uuid.UUID      `json:"-"`
+	Owner          string         `json:"owner"`
+	Op             string         `json:"type"`
+	JobUUID        uuid.UUID      `json:"job_uuid"`
+	ArchiveUUID    uuid.UUID      `json:"archive_uuid"`
+	StoreUUID      uuid.UUID      `json:"-"`
+	StorePlugin    string         `json:"-"`
+	StoreEndpoint  string         `json:"-"`
+	TargetUUID     uuid.UUID      `json:"-"`
+	TargetPlugin   string         `json:"-"`
+	TargetEndpoint string         `json:"-"`
+	Status         string         `json:"status"`
+	RequestedAt    int64          `json:"requested_at"`
+	StartedAt      int64          `json:"started_at"`
+	StoppedAt      int64          `json:"stopped_at"`
+	TimeoutAt      int64          `json:"-"`
+	Attempts       int            `json:"-"`
+	RestoreKey     string         `json:"-"`
+	FixedKey       bool           `json:"-"`
+	Agent          string         `json:"-"`
+	Log            string         `json:"log"`
+	OK             bool           `json:"ok"`
+	Notes          string         `json:"notes"`
+	Clear          string         `json:"clear"`
+	TaskUUIDChan   chan *TaskInfo `json:"-"`
 }
 
 type TaskInfo struct {
@@ -134,7 +134,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		       t.target_uuid, t.target_plugin, t.target_endpoint,
 		       t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
 		       t.restore_key, t.attempts, t.agent, t.log,
-		       t.ok, t.notes, t.clear, t.disaster_recovery
+		       t.ok, t.notes, t.clear, t.fixed_key
 
 		FROM tasks t
 
@@ -169,7 +169,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
 			&t.Status, &t.RequestedAt, &started, &stopped, &deadline,
 			&t.RestoreKey, &t.Attempts, &t.Agent, &log,
-			&t.OK, &t.Notes, &t.Clear, &t.DisasterRecovery); err != nil {
+			&t.OK, &t.Notes, &t.Clear, &t.FixedKey); err != nil {
 			return l, err
 		}
 		t.UUID = this.UUID
@@ -230,7 +230,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
 			 target_uuid, target_plugin, target_endpoint, restore_key, 
-			 agent, attempts, tenant_uuid, disaster_recovery)
+			 agent, attempts, tenant_uuid, fixed_key)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
@@ -239,7 +239,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		job.Store.UUID.String(), job.Store.Plugin, job.Store.Endpoint,
 		job.Target.UUID.String(), job.Target.Plugin, job.Target.Endpoint, "",
-		job.Agent, 0, job.TenantUUID.String(), job.DisasterRecovery,
+		job.Agent, 0, job.TenantUUID.String(), job.FixedKey,
 	)
 
 	if err != nil {

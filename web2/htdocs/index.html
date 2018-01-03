@@ -225,7 +225,7 @@
       ]]
           <div id="cliauth" class="frontdoor">
             <div>
-              <h1>SHIELD<span>Production<span></h1>
+              <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
               <div class="dialog">
                 <h2>CLI Authentication Credentials</h2>
                 <img src="/i/terminal.png" class="highlight">
@@ -243,23 +243,23 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--disasterkey"><!-- {{{ -->
+    <script type="text/html" id="tpl--fixedkey"><!-- {{{ -->
         [[#
-          {disasterkey} template
+          {fixedkey} template
   
-          Displays the Shield Disaster Key, so that operators can restore
+          Displays the Shield Fixed Key, so that operators can restore
           fixed-key backups in the event of a disaster.
         ]]
-            <div id="cliauth" class="frontdoor">
+            <div id="fixed-wrapper" class="frontdoor">
               <div>
-                <h1>SHIELD<span>Production<span></h1>
+                <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
                 <div class="dialog">
-                  <h2>Shield Disaster Key</h2>
+                  <h2>Shield Fixed Key</h2>
                   <img src="/i/terminal.png" class="highlight">
   
-                  <p>Here is your SHIELD Disaster Key:</p>
+                  <p>Here is your SHIELD Fixed Key:</p>
   
-                  <pre id="disasterkey">[[= _.disaster_key ]]</pre>
+                  <pre id="fixedkey">[[= _.fixed_key ]]</pre>
   
                   <p id="dr-explain">
                     You will need to save this key in a secure location
@@ -1062,8 +1062,8 @@
             <div class="ctl" data-field="fixed-key">
                 <label for="target-fixed-key">Fixed-Key Encryption?</label>
                 <div class="widget">
-                    <input id="large-checkbox" name='disaster_recovery' type='checkbox' value="true" />
-                    <p class-"help">Select if backups should use the Disaster Key for encryption. 
+                    <input id="large-checkbox" name='fixed_key' type='checkbox' value="true" />
+                    <p class-"help">Select if backups should use the Fixed Key for encryption. 
                     (Required for backups of Shield itself) </p>
                 </div>
             </div>
@@ -2396,10 +2396,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               </div>
 
               <div class="ctl" data-field="confirm">
-                    <label for="rekey-dr">Rekey Shield DR?</label>
+                    <label for="rekey-fixed">Rekey Shield Fixed Key?</label>
                     <div class="widget">
-                      <input id="large-checkbox" name='rekey_dr' type='checkbox' value="true" />
-                      <p class="help">This rotates the <strong>Shield Disaster Key</strong>
+                      <input id="large-checkbox" name='rotate_fixed_key' type='checkbox' value="true" />
+                      <p class="help">This rotates the <strong>Shield Fixed Key</strong>
                       used for fixed-key backups. Once rekeyed, this new key must be used to manually
                       restore all future fixed-key backups in a disaster scenario.</p>
                     </div>

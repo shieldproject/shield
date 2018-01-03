@@ -1904,7 +1904,7 @@ function dispatch(page) {
                     store    : data.store.uuid,
                     target   : data.target.uuid,
                     policy   : data.policy.uuid,
-                    disaster_recovery : (data.target.disaster_recovery == "true")
+                    fixed_key : (data.target.fixed_key == "true")
                   },
                   error: "Unable to create a new backup job",
                   success: function (ok) {
@@ -2513,7 +2513,7 @@ function dispatch(page) {
           $form.error('confirm', 'mismatch');
         }
 
-        data.rekey_dr = (data.rekey_dr == "true")
+        data.rotate_fixed_key = (data.rotate_fixed_key == "true")
 
         if (!$form.isOK()) {
           return;
@@ -2525,8 +2525,8 @@ function dispatch(page) {
           url:  '/v2/rekey',
           data: data,
           success: function (data) {
-            if (data.disaster_key != "") {
-                $('#viewport').html(template('disasterkey', data));
+            if (data.fixed_key != "") {
+                $('#viewport').html(template('fixedkey', data));
             } else{
                 goto("#!/admin");
             }
@@ -3257,7 +3257,7 @@ function dispatch(page) {
           url:  '/v2/init',
           data: { "master": data.master },
           success: function (data) {
-            $('#viewport').html(template('disasterkey', data));
+            $('#viewport').html(template('fixedkey', data));
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);

@@ -8,16 +8,16 @@ import (
 )
 
 type Job struct {
-	UUID             string `json:"uuid,omitempty"`
-	Name             string `json:"name"`
-	Summary          string `json:"summary"`
-	Expiry           int    `json:"expiry"`
-	Schedule         string `json:"schedule"`
-	Paused           bool   `json:"paused"`
-	Agent            string `json:"agent"`
-	LastStatus       string `json:"status"`
-	LastRun          int64  `json:"last_run"`
-	DisasterRecovery bool   `json:"disaster_recovery"`
+	UUID       string `json:"uuid,omitempty"`
+	Name       string `json:"name"`
+	Summary    string `json:"summary"`
+	Expiry     int    `json:"expiry"`
+	Schedule   string `json:"schedule"`
+	Paused     bool   `json:"paused"`
+	Agent      string `json:"agent"`
+	LastStatus string `json:"status"`
+	LastRun    int64  `json:"last_run"`
+	FixedKey   bool   `json:"fixed_key"`
 
 	TargetUUID string `json:"-"`
 	Target     struct {
@@ -116,23 +116,23 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 	var out *Job
 
 	in := struct {
-		Name             string `json:"name"`
-		Summary          string `json:"summary"`
-		Schedule         string `json:"schedule"`
-		Paused           bool   `json:"paused"`
-		Store            string `json:"store"`
-		Target           string `json:"target"`
-		Policy           string `json:"policy"`
-		DisasterRecovery bool   `json:"disaster_recovery"`
+		Name     string `json:"name"`
+		Summary  string `json:"summary"`
+		Schedule string `json:"schedule"`
+		Paused   bool   `json:"paused"`
+		Store    string `json:"store"`
+		Target   string `json:"target"`
+		Policy   string `json:"policy"`
+		FixedKey bool   `json:"fixed_key"`
 	}{
-		Name:             job.Name,
-		Summary:          job.Summary,
-		Schedule:         job.Schedule,
-		Paused:           job.Paused,
-		Target:           job.TargetUUID,
-		Store:            job.StoreUUID,
-		Policy:           job.PolicyUUID,
-		DisasterRecovery: job.DisasterRecovery,
+		Name:     job.Name,
+		Summary:  job.Summary,
+		Schedule: job.Schedule,
+		Paused:   job.Paused,
+		Target:   job.TargetUUID,
+		Store:    job.StoreUUID,
+		Policy:   job.PolicyUUID,
+		FixedKey: job.FixedKey,
 	}
 	if err := c.post(fmt.Sprintf("/v2/tenants/%s/jobs", parent.UUID), in, &out); err != nil {
 		return nil, err
@@ -143,21 +143,21 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 
 func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 	in := struct {
-		Name             string `json:"name,omitempty"`
-		Summary          string `json:"summary,omitempty"`
-		Schedule         string `json:"schedule,omitempty"`
-		Store            string `json:"store,omitempty"`
-		Target           string `json:"target,omitempty"`
-		Policy           string `json:"policy,omitempty"`
-		DisasterRecovery bool   `json:"disaster_recovery"`
+		Name     string `json:"name,omitempty"`
+		Summary  string `json:"summary,omitempty"`
+		Schedule string `json:"schedule,omitempty"`
+		Store    string `json:"store,omitempty"`
+		Target   string `json:"target,omitempty"`
+		Policy   string `json:"policy,omitempty"`
+		FixedKey bool   `json:"fixed_key"`
 	}{
-		Name:             job.Name,
-		Summary:          job.Summary,
-		Schedule:         job.Schedule,
-		Target:           job.TargetUUID,
-		Store:            job.StoreUUID,
-		Policy:           job.PolicyUUID,
-		DisasterRecovery: job.DisasterRecovery,
+		Name:     job.Name,
+		Summary:  job.Summary,
+		Schedule: job.Schedule,
+		Target:   job.TargetUUID,
+		Store:    job.StoreUUID,
+		Policy:   job.PolicyUUID,
+		FixedKey: job.FixedKey,
 	}
 	if err := c.put(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, job.UUID), in, nil); err != nil {
 		return nil, err

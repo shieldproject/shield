@@ -5,7 +5,7 @@ func (core *Core) Initialize(master string) (bool, string, error) {
 		return init, "", err
 	}
 
-	disasterKey, err := core.vault.Init(core.vaultKeyfile, master)
+	fixedKey, err := core.vault.Init(core.vaultKeyfile, master)
 	if err != nil {
 		return false, "", err
 	}
@@ -14,7 +14,7 @@ func (core *Core) Initialize(master string) (bool, string, error) {
 		return false, "", err
 	}
 
-	return false, disasterKey, nil
+	return false, fixedKey, nil
 }
 
 func (core *Core) Unlock(master string) (bool, error) {
@@ -39,7 +39,7 @@ func (core *Core) Unlock(master string) (bool, error) {
 	return true, nil
 }
 
-func (core *Core) Rekey(current, proposed string, rekeyDR bool) (string, error) {
+func (core *Core) Rekey(current, proposed string, rotateFixed bool) (string, error) {
 	creds, err := core.vault.ReadConfig(core.vaultKeyfile, current)
 	if err != nil {
 		return "", err
@@ -50,8 +50,8 @@ func (core *Core) Rekey(current, proposed string, rekeyDR bool) (string, error) 
 		return "", err
 	}
 
-	if rekeyDR {
-		return core.vault.DisasterKeygen()
+	if rotateFixed {
+		return core.vault.FixedKeygen()
 	}
 
 	return "", nil

@@ -97,8 +97,8 @@ func (s v4Schema) Deploy(db *DB) error {
 	               priority           INTEGER DEFAULT 50,
 	               paused             BOOLEAN,
 	               name               TEXT,
-				   summary            TEXT,
-				   disaster_recovery  INTEGER DEFAULT 0
+		       summary            TEXT,
+		       fixed_key          INTEGER DEFAULT 0
 	             )`)
 	if err != nil {
 		return err
@@ -157,7 +157,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`ALTER TABLE tasks ADD COLUMN disaster_recovery INT NOT NULL DEFAULT 0`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN fixed_key INT NOT NULL DEFAULT 0`)
 	if err != nil {
 		return err
 	}

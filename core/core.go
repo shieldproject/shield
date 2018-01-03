@@ -569,10 +569,10 @@ func (core *Core) worker(id int) {
 		if task.Op == db.BackupOperation {
 			task.ArchiveUUID = uuid.NewRandom()
 			var enc_key, enc_iv string
-			if task.DisasterRecovery {
-				data, exists, err := core.vault.Get("secret/archives/disaster_recovery")
+			if task.FixedKey {
+				data, exists, err := core.vault.Get("secret/archives/fixed_key")
 				if err != nil || !exists {
-					core.failTask(task, "shield worker %d unable retrieve DR encryption parameters: %s\n", id, err)
+					core.failTask(task, "shield worker %d unable retrieve fixed-key encryption parameters: %s\n", id, err)
 					continue
 				}
 				enc_key = core.vault.ASCIIHexDecode(data["key"].(string))

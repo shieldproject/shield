@@ -156,7 +156,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		log.Infof("%s: initializing the SHIELD Core...", r)
-		init, disasterKey, err := core.Initialize(in.Master)
+		init, fixedKey, err := core.Initialize(in.Master)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
@@ -168,11 +168,11 @@ func (core *Core) v2API() *route.Router {
 
 		r.OK(
 			struct {
-				Response    string `json:"response"`
-				DisasterKey string `json:"disaster_key"`
+				Response string `json:"response"`
+				FixedKey string `json:"fixed_key"`
 			}{
 				"Successfully initialized the SHIELD Core",
-				disasterKey,
+				fixedKey,
 			})
 	})
 	// }}}
@@ -203,9 +203,9 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("POST /v2/rekey", func(r *route.Request) { // {{{
 		var in struct {
-			Current string `json:"current"`
-			New     string `json:"new"`
-			RekeyDR bool   `json:"rekey_dr"`
+			Current     string `json:"current"`
+			New         string `json:"new"`
+			RotateFixed bool   `json:"rotate_fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -215,7 +215,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		disasterKey, err := core.Rekey(in.Current, in.New, in.RekeyDR)
+		fixedKey, err := core.Rekey(in.Current, in.New, in.RotateFixed)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
 			return
@@ -223,11 +223,11 @@ func (core *Core) v2API() *route.Router {
 
 		r.OK(
 			struct {
-				Response    string `json:"response"`
-				DisasterKey string `json:"disaster_key"`
+				Response string `json:"response"`
+				FixedKey string `json:"fixed_key"`
 			}{
 				"Successfully rekeyed the SHIELD Core",
-				disasterKey,
+				fixedKey,
 			})
 	})
 	// }}}
@@ -2001,14 +2001,14 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name             string `json:"name"`
-			Summary          string `json:"summary"`
-			Schedule         string `json:"schedule"`
-			Paused           bool   `json:"paused"`
-			Store            string `json:"store"`
-			Target           string `json:"target"`
-			Policy           string `json:"policy"`
-			DisasterRecovery bool   `json:"disaster_recovery"`
+			Name     string `json:"name"`
+			Summary  string `json:"summary"`
+			Schedule string `json:"schedule"`
+			Paused   bool   `json:"paused"`
+			Store    string `json:"store"`
+			Target   string `json:"target"`
+			Policy   string `json:"policy"`
+			FixedKey bool   `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2019,15 +2019,15 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		job, err := core.DB.CreateJob(&db.Job{
-			TenantUUID:       uuid.Parse(r.Args[1]),
-			Name:             in.Name,
-			Summary:          in.Summary,
-			Schedule:         in.Schedule,
-			Paused:           in.Paused,
-			StoreUUID:        uuid.Parse(in.Store),
-			TargetUUID:       uuid.Parse(in.Target),
-			PolicyUUID:       uuid.Parse(in.Policy),
-			DisasterRecovery: in.DisasterRecovery,
+			TenantUUID: uuid.Parse(r.Args[1]),
+			Name:       in.Name,
+			Summary:    in.Summary,
+			Schedule:   in.Schedule,
+			Paused:     in.Paused,
+			StoreUUID:  uuid.Parse(in.Store),
+			TargetUUID: uuid.Parse(in.Target),
+			PolicyUUID: uuid.Parse(in.Policy),
+			FixedKey:   in.FixedKey,
 		})
 		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
@@ -2066,10 +2066,10 @@ func (core *Core) v2API() *route.Router {
 			Summary  string `json:"summary"`
 			Schedule string `json:"schedule"`
 
-			StoreUUID        string `json:"store"`
-			TargetUUID       string `json:"target"`
-			PolicyUUID       string `json:"policy"`
-			DisasterRecovery *bool  `json:"disaster_recovery"`
+			StoreUUID  string `json:"store"`
+			TargetUUID string `json:"target"`
+			PolicyUUID string `json:"policy"`
+			FixedKey   *bool  `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2107,8 +2107,8 @@ func (core *Core) v2API() *route.Router {
 			job.PolicyUUID = uuid.Parse(in.PolicyUUID)
 		}
 
-		if in.DisasterRecovery != nil {
-			job.DisasterRecovery = *in.DisasterRecovery
+		if in.FixedKey != nil {
+			job.FixedKey = *in.FixedKey
 		}
 
 		if err := core.DB.UpdateJob(job); err != nil {

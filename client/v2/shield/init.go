@@ -10,14 +10,12 @@ func (c *Client) Initialize(master string) (string, error) {
 	}
 
 	out := struct {
-		DisasterKey string `json:"disaster_key"`
-	}{
-		DisasterKey: "",
-	}
+		FixedKey string `json:"fixed_key"`
+	}{}
 
 	err := c.post("/v2/init", in, &out)
 
-	return out.DisasterKey, err
+	return out.FixedKey, err
 }
 
 func (c *Client) SplitKey(s string, n int) string {

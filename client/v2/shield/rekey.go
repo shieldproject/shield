@@ -1,23 +1,21 @@
 package shield
 
-func (c *Client) Rekey(oldmaster, newmaster string, rekeyDR bool) (string, error) {
+func (c *Client) Rekey(oldmaster, newmaster string, rotateFixed bool) (string, error) {
 	in := struct {
-		OldMaster string `json:"current"`
-		NewMaster string `json:"new"`
-		RekeyDR   bool   `json:"rekey_dr"`
+		OldMaster   string `json:"current"`
+		NewMaster   string `json:"new"`
+		RotateFixed bool   `json:"rotate_fixed_key"`
 	}{
-		OldMaster: oldmaster,
-		NewMaster: newmaster,
-		RekeyDR:   rekeyDR,
+		OldMaster:   oldmaster,
+		NewMaster:   newmaster,
+		RotateFixed: rotateFixed,
 	}
 
 	out := struct {
-		DisasterKey string `json:"disaster_key"`
-	}{
-		DisasterKey: "",
-	}
+		FixedKey string `json:"fixed_key"`
+	}{}
 
 	err := c.post("/v2/rekey", in, &out)
 
-	return out.DisasterKey, err
+	return out.FixedKey, err
 }
