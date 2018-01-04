@@ -1221,6 +1221,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
 
         $parent.find('#configure-plugin').html(
           template('subform-configure-plugin', {
+            type: opts.type,
             plugin: cache.metadata.plugins[plugin],
             config: (plugin == opts.plugin ? opts.config : undefined)
           }));

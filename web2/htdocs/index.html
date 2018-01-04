@@ -1359,10 +1359,11 @@
 
           ]]
           <div class="subform">
-            <h2>[[= _.type == 'storage' ? 'Storage' : 'Backup' ]] Plugin Options</h2>
+            <h2>[[= _.type == 'store' ? 'Storage' : 'Backup' ]] Plugin Options</h2>
           [[ var n = 0; ]]
           [[ $.each(_.plugin.fields, function (i, field) { ]]
-            [[ if (field.mode == 'target') { return; } ]]
+            [[ if (field.mode == 'target' && _.type == 'store') { return; } ]]
+            [[ if (field.mode == 'store' && _.type == 'target') { return; } ]]
               [[ n++; ]]
               <div class="ctl[[ if (field.required) { ]] required[[ } ]]" data-field="config.[[= field.name ]]" data-type="[[= field.type ]]">
                 <label for="the-plugin-[[= field.name ]]">[[= esc(field.title) ]][[ if (field.required) { ]] <span>(required)</span>[[ } ]]</label>
