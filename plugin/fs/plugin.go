@@ -45,16 +45,6 @@ func main() {
 				Required: true,
 			},
 			plugin.Field{
-				Mode:     "store",
-				Name:     "base_dir",
-				Type:     "abspath",
-				Title:    "Base Directory",
-				Help:     "Where to store the backup archives, on-disk.  This must be an absolute path, and the directory must exist.",
-				Example:  "/var/store/backups",
-				Required: true,
-			},
-
-			plugin.Field{
 				Mode:  "target",
 				Name:  "include",
 				Type:  "string",
