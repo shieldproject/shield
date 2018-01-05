@@ -152,10 +152,30 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	}
 
 	p.ClearAssignments()
-	for org, teams := range orgs {
-		tenant, role, assigned := p.resolveOrgAndTeam(org, teams)
-		if assigned && !p.Assign(user, tenant, role) {
-			return nil
+Mapping:
+	for _, candidate := range p.Mapping {
+		for org, teams := range orgs {
+			if candidate.Github != org {
+				continue Mapping;
+			}
+
+			for _, match := range candidate.Rights {
+				if match.Team == "" {
+					if !p.Assign(user, candidate.Tenant, match.Role) {
+						return nil
+					}
+					continue Mapping
+				}
+
+				for _, team := range teams {
+					if match.Team == team {
+						if !p.Assign(user, candidate.Tenant, match.Role) {
+							return nil
+						}
+						continue Mapping
+					}
+				}
+			}
 		}
 	}
 	if !p.SaveAssignments(p.core.DB, user) {
@@ -163,25 +183,6 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	}
 
 	return user
-}
-
-func (p GithubAuthProvider) resolveOrgAndTeam(org string, teams []string) (string, string, bool) {
-	for _, candidate := range p.Mapping {
-		if candidate.Github != org {
-			continue
-		}
-		for _, match := range candidate.Rights {
-			if match.Team == "" {
-				return candidate.Tenant, match.Role, true
-			}
-			for _, team := range teams {
-				if match.Team == team {
-					return candidate.Tenant, match.Role, true
-				}
-			}
-		}
-	}
-	return "", "", false /* not recognized; not allowed */
 }
 
 func (p GithubAuthProvider) accessTokenURL() string {
