@@ -111,6 +111,7 @@ case "${1}" in
   export PORT=$2
   cat >${workdir}/etc/nginx.conf <<EOF
 daemon    off;
+pid       ${workdir}/var/nginx.pid;
 error_log ${workdir}/var/error.log;
 events {}
 http {
@@ -259,7 +260,7 @@ auth:
         - github: starkandwayne
           tenant: SYSTEM
           rights:
-            - team: Owners
+            - team: Engineering
               role: admin
 
         - github: cloudfoundry-community
