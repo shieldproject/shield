@@ -19,10 +19,12 @@ import (
 type GithubAuthProvider struct {
 	AuthProviderBase
 
-	ClientID       string `json:"client_id"`
-	ClientSecret   string `json:"client_secret"`
-	GithubEndpoint string `json:"github_endpoint"`
-	Mapping        []struct {
+	ClientID         string `json:"client_id"`
+	ClientSecret     string `json:"client_secret"`
+	GithubEndpoint   string `json:"github_endpoint"`
+	GithubAPI        string `json:"github_api"`
+	GithubEnterprise bool   `json:"github_enterprise"`
+	Mapping          []struct {
 		Github string `json:"github"`
 		Tenant string `json:"tenant"`
 		Rights []struct {
@@ -55,8 +57,14 @@ func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 
 	if p.GithubEndpoint == "" {
 		p.GithubEndpoint = "https://github.com"
+		p.GithubAPI = "https://api.github.com/"
 	}
+
 	p.GithubEndpoint = strings.TrimSuffix(p.GithubEndpoint, "/")
+	if p.GithubAPI == "" {
+		p.GithubAPI = p.GithubEndpoint + "/api/v3/"
+	}
+
 	p.properties = util.StringifyKeys(raw).(map[string]interface{})
 
 	return nil
@@ -114,7 +122,12 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 		return nil
 	}
 
-	client := github.NewClient(token)
+	client, err := github.NewClient(p.GithubAPI, token)
+	if err != nil {
+		p.Errorf("failed to perform lookup against Github: %s", err)
+		return nil
+	}
+
 	account, name, orgs, err := client.Lookup()
 	if err != nil {
 		p.Errorf("failed to perform lookup against Github: %s", err)
