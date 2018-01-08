@@ -17,6 +17,8 @@ import (
 	"github.com/starkandwayne/shield/tui"
 )
 
+var Version = ""
+
 var opts struct {
 	Help  bool `cli:"-h, --help"`
 	Quiet bool `cli:"-q, --quiet"`
@@ -394,7 +396,11 @@ func main() {
 	}
 
 	if opts.Version {
-		fmt.Printf("shield v¯\\_(ツ)_/¯\n")
+		if Version == "" {
+			fmt.Printf("shield (development)\n")
+		} else {
+			fmt.Printf("shield v%s\n", Version)
+		}
 		os.Exit(0)
 	}
 
