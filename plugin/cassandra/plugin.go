@@ -49,6 +49,17 @@
 // node. To completely backup the given keyspace, the backup operation needs
 // to be performed on all cluster nodes.
 //
+// As a result of the backup strategy implemented by this plugin, extra space
+// is required on the persistent disk. At backup time, this plugin relies on
+// `nodetool snapshot` which can only create its immutable files inside the
+// Cassandra data directory. At restore time, `sstableloader` requires the
+// backup files to be entirely decompressed before proceeding. This plugins is
+// opinionated towards extracting those files in the persistent storage
+// because the extra space is already required for backups.
+//
+// Therefore, as a rule of the thumb, you should provide twice the persistent
+// storage required for your data.
+//
 // RESTORE DETAILS
 //
 // Restore is limited to the single keyspace specified in the plugin config.
