@@ -1,0 +1,8 @@
+USAGE: @G{shield} id
+
+  Displays information about your currently authenticated session.
+
+  This includes your profile information (display name, username,
+  etc.), as well as what system role you have been assigned, and
+  what tenants (if any) you have been granted membership into.
+

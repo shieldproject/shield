@@ -1,0 +1,10 @@
+USAGE: @G{shield} archive --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Show a single Backup Archive.
+
+  When SHIELD successfully performs a backup operation, it generates
+  a backup archive containing all of the protected data form that
+  particular system, at that particular point in time.  This archive
+  is then placed in cloud storage, awaiting either expiry and purgation,
+  or restoration to a data system.
+

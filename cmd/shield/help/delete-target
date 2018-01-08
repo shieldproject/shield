@@ -1,0 +1,13 @@
+USAGE: @G{shield} delete-target --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Delete a Target Data System.
+
+  SHIELD needs to know what you want it to back up, which is why
+  it defines Target Data Systems.  These can be anything from
+  "that directory over there" to "all of these databases" -- if
+  there exists a target plugin for it, you can back it up.
+
+  @Y{NOTE:} You will only be able to delete @W{unused} target data
+  systems; if the system is being referenced by any backup job
+  configuration, you will be unable to delete it.
+

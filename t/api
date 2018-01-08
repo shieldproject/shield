@@ -343,7 +343,7 @@ update() {
 # }}}
 # uuidof $type $name {{{
 uuidof() {
-  buckler $1 --exact "$2" | jq -r .uuid
+  shield $1 --exact "$2" | jq -r .uuid
 }
 # }}}
 # pick $name {{{
@@ -377,9 +377,9 @@ hasattr() {
 # }}}
 # run command --plus --arg u ments {{{
 run() {
-  buckler --yes "$@" >$WORKDIR/out 2>$WORKDIR/err
+  shield --yes "$@" >$WORKDIR/out 2>$WORKDIR/err
   rc=$?
-  ok $rc "\`buckler $*' should succeed"
+  ok $rc "\`shield $*' should succeed"
   if [[ $rc != 0 ]]; then
     errors $WORKDIR/err | indent
   fi
@@ -387,8 +387,8 @@ run() {
 # }}}
 # runerr command --plus --arg u ments {{{
 runerr() {
-  buckler --yes "$@" > $WORKDIR/out
-  notok $? "\`buckler $*' should not succeed"
+  shield --yes "$@" > $WORKDIR/out
+  notok $? "\`shield $*' should not succeed"
 }
 # }}}
 # none "why the last list retrieved should be empty" {{{
@@ -458,7 +458,7 @@ cannot_delete() {
   local name=$2
   local why=${3:-$CONTEXT}
 
-  ! buckler delete-$type "$name" &> $WORKDIR/out
+  ! shield delete-$type "$name" &> $WORKDIR/out
   rc=$?
   ok $rc "Should not be allowed to delete $type '$name': $why"
   if [[ $rc -ne 0 ]]; then
@@ -475,14 +475,14 @@ can_delete() {
   local name=$2
   local why=${3:-$CONTEXT}
 
-  buckler --exact --yes delete-$type "$name" > $WORKDIR/out 2> $WORKDIR/err
+  shield --exact --yes delete-$type "$name" > $WORKDIR/out 2> $WORKDIR/err
   rc=$?
   ok $rc "Should be allowed to delete $type '$name': $why"
   if [[ $rc -ne 0 ]]; then
     errors $WORKDIR/err | indent
   fi
 
-  buckler --exact $type "$name" >$WORKDIR/out 2>/dev/null
+  shield --exact $type "$name" >$WORKDIR/out 2>/dev/null
   rc=$?
   notok $rc "$type '$name' should not be retrievable after successful delete attempt"
   if [[ $rc -eq 0 ]]; then
@@ -533,9 +533,9 @@ export SHIELD_TENANT="Stark Enterprises"
 
 try "Setting up our test SHIELD instance" # {{{
 (
-buckler api "$SHIELD_CORE" http://${SHIELD_DAEMON_ADDR}
-buckler login --username "$SHIELD_USER" --password "$SHIELD_PASS"
-buckler status --global | jq -r .
+shield api "$SHIELD_CORE" http://${SHIELD_DAEMON_ADDR}
+shield login --username "$SHIELD_USER" --password "$SHIELD_PASS"
+shield status --global | jq -r .
 
 is "$(ping)" "200" "/v1/ping should ping ok"
 

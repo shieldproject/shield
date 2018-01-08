@@ -23,7 +23,7 @@ preflight() {
       missing=1
     fi
   done
-  for bin in buckler; do
+  for bin in shield; do
     if [[ ! -f "$bin" ]]; then
       echo " - missing '$bin' binary..."
       missing=1

@@ -1,0 +1,8 @@
+USAGE: @G{shield} cores
+
+  Lists all known SHIELD Cores.
+
+  Consults your @M{$SHIELD_CONFIG} (or, if given, @M{--config}), and
+  prints out pertinent information about each targeted core.
+  This includes the URL, the alias, and any security parameters.
+

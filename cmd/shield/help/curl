@@ -1,0 +1,13 @@
+USAGE: @G{shield} curl [@Y{METHOD}] @Y{RELATIVE-URL} [@Y{BODY}]
+
+  Issues raw HTTP requests to the targeted SHIELD Core.
+
+  Any valid HTTP method can be provided, but shield will default to
+  using @M{GET}.  Some HTTP methods, like POST and PUT, may require
+  that you supply a request body, like the JSON for updating a target
+  data system.
+
+  If you are using shield curl to debug and/or troubleshoot your
+  SHIELD Core, keep in mind that you may need to add @M{--trace} to your
+  invocation if you want to see the HTTP requests and headers.
+

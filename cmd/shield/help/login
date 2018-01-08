@@ -1,0 +1,29 @@
+USAGE: @G{shield} login [--username @Y{USERNAME}] [--password @Y{PASSWORD}]
+       @G{shield} login --token @Y{AUTH-TOKEN}
+       @G{shield} login --providers
+       @G{shield} login --via @Y{PROVIDER-ID}
+
+  Authenticate to a SHIELD Core.
+
+  There are three ways to authenticate to a SHIELD Core: local user
+  authentication, auth tokens, and 3rd-party provider authentication.
+  Each way has its own set of options, and its own applications.
+
+@B{Local User Authentication:}
+
+  -u, --username ...    Who to log in as. (@W{$SHIELD_CORE_USERNAME})
+  -p, --password ...    Secret password.  (@W{$SHIELD_CORE_PASSWORD})
+
+@B{Token Authentication:}
+
+      --token ...       Auth Token to use. (@W{$SHIELD_CORE_TOKEN})
+
+@B{3rd-Party Authentication}
+
+      --providers       List the 3rd-party authentication providers
+                        that have been configured by the SHIELD site
+                        operators, and are usable by @B{--via}.
+
+      --via ...         Which 3rd-party authentication provider to
+                        use for logging in.
+

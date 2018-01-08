@@ -4,9 +4,9 @@ set -e -o pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-if [[ ! -f "../buckler" ]]; then pushd .. && go build ./cmd/buckler ; popd; fi
+if [[ ! -f "../shield" ]]; then pushd .. && go build ./cmd/shield ; popd; fi
 
-buckler() { ../buckler "$@"; }
+shield() { ../shield "$@"; }
 indent2() { sed -e 's/^/  /'; }
 indent4() { sed -e 's/^/    /'; }
 
@@ -29,24 +29,24 @@ export SHIELD_CORE=localdev
 export SHIELD_BATCH_MODE=y
 
 echo ; echo "Initializing this dev SHIELD core"
-buckler api localdev http://localhost:8180
-SHIELD_CORE_MASTER="master-password-yo" buckler initialize || true
+shield api localdev http://localhost:8180
+SHIELD_CORE_MASTER="master-password-yo" shield initialize || true
 echo ; echo "Logging in as the failsafe user"
-buckler login --username failsafe --password sekrit 2>&1 | indent2
-buckler id 2>&1 | indent2
+shield login --username failsafe --password sekrit 2>&1 | indent2
+shield id 2>&1 | indent2
 
 
 SHIELD_DATA_SET="${SHIELD_DATA_SET:-dev}"
 if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
   echo ; echo "  - Setting up admin account"
-  buckler create-user \
+  shield create-user \
             --name        Administrator \
             --username    admin \
             --password    admin \
             --system-role admin \
     2>&1 | indent4
   echo ; echo "  - Setting up engineer account"
-  buckler create-user \
+  shield create-user \
             --name        Engineer \
             --username    engineer \
             --password    engineer \
@@ -54,12 +54,12 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - Logging in as admin:admin"
-  buckler login --username admin --password admin 2>&1 | indent4
-  buckler id 2>&1 | indent4
+  shield login --username admin --password admin 2>&1 | indent4
+  shield id 2>&1 | indent4
 
   echo ; echo "Setting up Global Resources"
          echo "  - creating Globus global cloud storage system"
-  buckler create-global-store \
+  shield create-global-store \
             --name    Globus \
             --summary 'Global Storage, for use by any and all' \
             --agent   "${SHIELD_AGENT_ADDR}" \
@@ -69,68 +69,68 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent2
 
   echo ; echo "  - creating Templated retention policy template"
-  buckler create-policy-template \
+  shield create-policy-template \
             --name    Templated \
             --days    73
 
   echo ; echo "Setting up 'Acme, Inc.' tenant"
-  buckler create-tenant \
+  shield create-tenant \
             --name 'Acme, Inc.' \
     2>&1 | indent2
 
   echo ; echo "  - creating user rrunner:password"
-  buckler create-user \
+  shield create-user \
             --name     'Road Runner' \
             --username rrunner \
             --password password \
     2>&1 | indent4
 
   echo ; echo "  - creating user wcoyote:password"
-  buckler create-user \
+  shield create-user \
             --name     'Wile E. Coyote' \
             --username wcoyote \
             --password password \
     2>&1 | indent4
 
   echo ; echo "  - creating user cjones:password"
-  buckler create-user \
+  shield create-user \
             --name     'Chuck Jones' \
             --username cjones \
             --password password \
     2>&1 | indent4
 
   echo ; echo "  - inviting cjones to Acme, Inc. as an operator"
-  buckler invite --tenant Acme --role operator cjones  2>&1 | indent4
+  shield invite --tenant Acme --role operator cjones  2>&1 | indent4
   echo ; echo "  - inviting wcoyote to Acme, Inc. as an engineer"
-  buckler invite --tenant Acme --role engineer wcoyote 2>&1 | indent4
+  shield invite --tenant Acme --role engineer wcoyote 2>&1 | indent4
   echo ; echo "  - inviting rrunner to Acme, Inc. as an admin"
-  buckler invite --tenant Acme --role admin    rrunner 2>&1 | indent4
+  shield invite --tenant Acme --role admin    rrunner 2>&1 | indent4
 
   echo
-  buckler tenant --json Acme 2>&1 | indent2
+  shield tenant --json Acme 2>&1 | indent2
 
 
   echo ; echo "Setting up 'Other Tenant' tenant"
          echo "  - creating tenant 'Other Tenant'"
-  buckler create-tenant \
+  shield create-tenant \
             --name 'Other Tenant' \
     2>&1 | indent4
 
   echo ; echo "  - inviting all of Acme, Inc. members to Other Tenant as operators"
-  buckler invite --tenant Other --role operator cjones wcoyote rrunner 2>&1 | indent4
+  shield invite --tenant Other --role operator cjones wcoyote rrunner 2>&1 | indent4
   echo ; echo "  - inviting admin to Other Tenant as an admin"
-  buckler invite --tenant Other --role admin admin 2>&1 | indent4
+  shield invite --tenant Other --role admin admin 2>&1 | indent4
 
 
 
   export SHIELD_TENANT=Acme
   echo ; echo "Populating 'Acme, Inc.' tenant with targets, stores, policies, etc."
          echo "  - loggin in as rrunner:password"
-  buckler login --username rrunner --password password 2>&1 | indent4
-  buckler id 2>&1 | indent4
+  shield login --username rrunner --password password 2>&1 | indent4
+  shield id 2>&1 | indent4
 
   echo ; echo "  - creating 'S3' cloud storage system"
-  buckler create-store \
+  shield create-store \
           --name    S3 \
           --summary 'A fake S3 store for pretending and web UI development.' \
           --agent   "${SHIELD_AGENT_ADDR}" \
@@ -140,7 +140,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating 'Scality (On-Prem)' cloud storage system"
-  buckler create-store \
+  shield create-store \
           --name    'Scality (On-Prem)' \
           --summary 'A fake Scality (On-Premise) store for pretending and web UI development.' \
           --agent   "${SHIELD_AGENT_ADDR}" \
@@ -150,14 +150,14 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating Short-Term archive retention policy"
-  buckler create-policy \
+  shield create-policy \
           --name    Short-Term \
           --summary 'For frequent backups, only kept for a few days at most.' \
           --days    1 \
     2>&1 | indent4
 
   echo ; echo "  - creating Long-Term archive retention policy"
-  buckler create-policy \
+  shield create-policy \
           --name    Long-Term \
           --summary 'For infrequent backups, to be kept for at least two weeks.' \
           --days    14 \
@@ -166,7 +166,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
   export SHIELD_TRACE=y
   for i in $(seq 1 5); do
     echo "  - creating 'System #427/a0${i}' target data system"
-    buckler create-target \
+    shield create-target \
               --name    "System #427/a0${i}" \
               --summary 'A test system for generating lots of web UI output and pushing the limits of the web UI.' \
               --agent   "${SHIELD_AGENT_ADDR}" \
@@ -179,7 +179,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
   done
 
   echo ; echo "  - creating Weekly job for 'System #427/a01'"
-  buckler create-job \
+  shield create-job \
           --name Weekly \
           --schedule 'sundays at 2:30am' \
           --paused \
@@ -189,7 +189,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating Weekly job for 'System #427/a02'"
-  buckler create-job \
+  shield create-job \
           --name Weekly \
           --schedule 'sundays at 2:45am' \
           --paused \
@@ -199,7 +199,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating Weekly job for 'System #427/a03'"
-  buckler create-job \
+  shield create-job \
           --name Weekly \
           --schedule 'sundays at 3am' \
           --paused \
@@ -208,7 +208,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --policy   long-term
 
   echo ; echo "  - creating Daily job for 'System #427/a02'"
-  buckler create-job \
+  shield create-job \
           --name     Daily \
           --schedule 'daily 4:10am' \
           --paused \
@@ -218,7 +218,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating Daily job for 'System #427/a03'"
-  buckler create-job \
+  shield create-job \
           --name     Daily \
           --schedule 'daily 4:20am' \
           --paused \
@@ -228,7 +228,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating Daily job for 'System #427/a04'"
-  buckler create-job \
+  shield create-job \
           --name     Daily \
           --schedule 'daily 4:30am' \
           --paused \
@@ -238,7 +238,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating Daily job for 'System #427/a05'"
-  buckler create-job \
+  shield create-job \
           --name     Daily \
           --schedule 'daily 4:40am' \
           --paused \
@@ -251,11 +251,11 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
   export SHIELD_TENANT=Other
   echo ; echo "Populating 'Other Tenant' tenant with targets, stores, policies, etc."
          echo "  - loggin in as admin:admin"
-  buckler login --username admin --password admin 2>&1 | indent4
-  buckler id 2>&1 | indent4
+  shield login --username admin --password admin 2>&1 | indent4
+  shield id 2>&1 | indent4
 
   echo ; echo "  - creatin 'CloudStor' cloud storage system"
-  buckler create-store \
+  shield create-store \
           --name    CloudStor \
           --summary 'A temporary store for the dev environment.' \
           --agent   "${SHIELD_AGENT_ADDR}" \
@@ -265,7 +265,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating 'SHIELD' data system target"
-  buckler create-target \
+  shield create-target \
           --name    SHIELD \
           --summary 'The working directory of the dev environment.' \
           --agent   "${SHIELD_AGENT_ADDR}" \
@@ -276,14 +276,14 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
     2>&1 | indent4
 
   echo ; echo "  - creating 'Default Policy' archive retention policy"
-  buckler create-policy \
+  shield create-policy \
           --name    'Default Policy' \
           --summary 'The Default Retention Policy' \
           --days    1 \
     2>&1 | indent4
 
   echo ; echo "  - creating Hourly job for SHIELD backups"
-  buckler create-job \
+  shield create-job \
           --name     'Hourly' \
           --paused \
           --schedule 'hourly at :05' \
@@ -295,29 +295,29 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
 
   echo ; echo "Running Jobs in 'Other Tenant' tenant"
          echo "  - running SHIELD job (should succeed)"
-  buckler run-job Hourly 2>&1 | indent4
+  shield run-job Hourly 2>&1 | indent4
   sleep 2
 
   echo ; echo "  - running Hourly job again (should succeed)"
-  buckler run-job Hourly
-  buckler run-job Hourly 2>&1 | indent4
+  shield run-job Hourly
+  shield run-job Hourly 2>&1 | indent4
   sleep 2
 
   echo ; echo "  - modifying Hourly target configuration to induce failure"
-  buckler update-target SHIELD \
+  shield update-target SHIELD \
             --data base_dir=/e/no/ent \
     2>&1 | indent4
   echo ; echo "  - running Hourly job again (should start failing)"
-  buckler run-job Hourly 2>&1 | indent4
+  shield run-job Hourly 2>&1 | indent4
   sleep 3
 
   echo ; echo "  - running Hourly job again (should still fail)"
-  buckler run-job Hourly 2>&1 | indent4
+  shield run-job Hourly 2>&1 | indent4
   sleep 3
 # }}}
 elif [[ "$SHIELD_DATA_SET" == "minimal" ]]; then
   echo ; echo "  - Setting up admin account"
-  buckler create-user \
+  shield create-user \
             --name        Administrator \
             --username    admin \
             --password    admin \
@@ -325,8 +325,8 @@ elif [[ "$SHIELD_DATA_SET" == "minimal" ]]; then
     2>&1 | indent4
 
   echo ; echo "  - Logging in as admin:admin"
-  buckler login --username admin --password admin 2>&1 | indent4
-  buckler id 2>&1 | indent4
+  shield login --username admin --password admin 2>&1 | indent4
+  shield id 2>&1 | indent4
 fi
 
 echo ; echo

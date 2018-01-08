@@ -1,0 +1,39 @@
+USAGE: @G{shield} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}
+
+  Invite a local user into a SHIELD Tenant.
+
+  Each SHIELD Core defines one or more tenants, each with their own
+  set of cloud storage configurations, retention policies, data systems,
+  and backup jobs.
+
+  Local users (accounts defined wholly within SHIELD itself) can be
+  arbitrarily assigned to those tenants, and given one of three roles:
+
+    @M{manager}   Complete access to the tenant, including the ability
+                  to invite new users and banish existing users.
+
+    @M{engineer}  Full control of the configuration of SHIELD within the
+                  tenant.  Engineers have the ability to reconfigure
+                  retention policies, cloud storage, data systems, and
+                  backup jobs.
+
+    @M{operator}  Day-to-day backup-related activities including running
+                  ad hoc backup jobs, performing restores, pausing and
+                  unpausing jobs, etc.
+
+  Each more powerful role includes the rights of the roles beneath.
+  For example, a @M{manager} can do everything an @M{engineer} can do,
+  and an @M{engineer} can do everything an @M{operator} can do.
+
+  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers},
+        and @R{SHIELD Tenant Managers}.
+
+  This command only operates on one (user,tenant) pairing at a time.
+  For bulk operations, either avail yourself of the SHIELD API, or run
+  the command multiple times.
+
+@B{Options:}
+
+  -r, --role     The role to assign the new user.  Must be one of
+                 @M{manager}, @M{engineer}, or @M{operator}.
+

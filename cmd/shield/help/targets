@@ -1,0 +1,32 @@
+USAGE: @G{shield} targets --tenant @Y{TENANT} [OPTIONS]
+
+  List Target Data Systems.
+
+  SHIELD needs to know what you want it to back up, which is why
+  it defines Target Data Systems.  These can be anything from
+  "that directory over there" to "all of these databases" -- if
+  there exists a target plugin for it, you can back it up.
+
+@B{Options:}
+
+  By default, all defined target data systems will be displayed.
+  You may filter the results with the following command-line flags.
+
+  --used          Only show data systems that are either @W{used}
+  --unused        (referenced by a job configurtion) or @W{unused}.
+                  These options are mutually exclusive.
+
+  --with-plugin   Only show data systems that are using the given
+                  target plugin.
+
+@B{Examples:}
+
+  # What PostgreSQL databases do we have configured?
+  @W{shield targets}  \
+     @Y{--used}       \
+     @Y{--with-plugin} @C{postgres}
+
+  # Which data systems can we decomission?
+  @W{shield targets} \
+    @Y{--unused}
+

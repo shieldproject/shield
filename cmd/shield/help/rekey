@@ -1,0 +1,31 @@
+USAGE: @G{shield} rekey [--old-master @Y{PASSWORD}]
+                     [--new-master @Y{PASSWORD}]
+                     [--rotate-fixed-key]
+
+  Change your SHIELD Master Password.
+
+  SHIELD maintains an internal encrypted vault of secrets,
+  for protecting your data archives with strong encryption.
+  The keys to this vault are protected by a master password.
+
+@B{Options:}
+
+  --old-master ...    Current master password.
+  --new-master ...    New master password.
+
+  --rotate-fixed-key  Rotate the fixed key used for backing
+                      up certain jobs (usually SHIELD itself).
+                      NOTE: doing so will render previous
+                      archives unusable during a disaster
+                      recovery scenario; you may want to kick
+                      off new runs of those jobs.
+
+  In general, use of the --old-master and --new-master flags
+  is discouraged.
+
+  Rekeying should, in general, be an interactive process.
+  Not specifying @M{--master} causes shield to prompt you
+  for both the current master password, and your desired new
+  master password, with appropriate security precautions (no
+  terminal echo, confirmation, etc.)
+

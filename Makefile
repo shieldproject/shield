@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shieldd buckler shield-agent shield-schema plugins test
+all: format shieldd shield shield-agent shield-schema plugins test
 
 # go fmt ftw
 format:
@@ -26,7 +26,7 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield: shieldd shield-agent shield-schema buckler
+shield: shieldd shield-agent shield-schema shield
 
 shieldd:
 	go $(BUILD_TYPE) ./cmd/shieldd
@@ -35,10 +35,10 @@ shield-agent:
 shield-schema:
 	go $(BUILD_TYPE) ./cmd/shield-schema
 
-buckler: cmd/buckler/help.go
-	go $(BUILD_TYPE) ./cmd/buckler
-help.all: cmd/buckler/main.go
-	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./buckler @ -h > $@
+shield: cmd/shield/help.go
+	go $(BUILD_TYPE) ./cmd/shield
+help.all: cmd/shield/main.go
+	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./shield @ -h > $@
 
 # Building Plugins
 plugin: plugins
@@ -64,9 +64,9 @@ clean:
 
 
 # Assemble the CLI help with some assistance from our friend, Perl
-HELP := $(shell ls -1 cmd/buckler/help/*)
-cmd/buckler/help.go: $(HELP) cmd/buckler/help.pl
-	./cmd/buckler/help.pl $(HELP) > $@
+HELP := $(shell ls -1 cmd/shield/help/*)
+cmd/shield/help.go: $(HELP) cmd/shield/help.pl
+	./cmd/shield/help.pl $(HELP) > $@
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -105,7 +105,7 @@ release:
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"     ./plugin/$$plugin; \
 	done
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"   ./cmd/shield-agent
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"           ./cmd/buckler
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"           ./cmd/shield
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
 
@@ -122,4 +122,4 @@ web2/htdocs/shield.js: $(JAVASCRIPTS)
 
 web2: web2/htdocs/shield.js
 
-.PHONY: plugins dev web2 buckler shieldd shield-schema shield-agent demo
+.PHONY: plugins dev web2 shield shieldd shield-schema shield-agent demo

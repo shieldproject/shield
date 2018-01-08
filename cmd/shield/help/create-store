@@ -1,0 +1,59 @@
+USAGE: @G{shield} create-store --tenant @Y{TENANT} [OPTIONS]
+
+  Create a new Cloud Storage System
+
+  SHIELD needs a place to store all of the backup archives it is
+  going to generate, and Cloud Storage is where it's at.  Each
+  Cloud Storage System provides the configuration details needed
+  to write to and read from some external storage endpoint, be it
+  Amazon S3, Google Cloud Storage, or a local WebDav instance.
+
+  @Y{NOTE:} Storage Systems created by this command will only be
+  visible to and accessible from a single SHIELD Tenant.  If you
+  want to create shared storage, see @C{shield create-global-store}.
+
+@B{Options:}
+
+  The entire configuration of the new Cloud Storage System can be
+  specified via command-line arguments.  You may also omit any or
+  all of these flags and shield will prompt interactively for the
+  missing information it needs (unless @C{--batch} is active.)
+
+  -n, --name      The name of your new Cloud Storage System.
+                  This field is @W{required}.
+
+  -s, --summary   An optional, long-form description for the new
+                  storage system.
+
+  -a, --agent     The address (in ip:port format) of the SHIELD
+                  Agent that will be used for testing access to
+                  the storage system, and also for purging expired
+                  or manually deleted backup archives.
+                  This field is @W{required}.
+
+  -p, --plugin    The name of the plugin binary to use.  The chosen
+                  plugin must support "store" operations, and must
+                  be available on the selected agent.
+                  This field is @W{required}.
+
+  -d, --data      Configuration data for the storage plugin, in the
+                  format @Y{--data} @G{key_name}=@C{value}.  Note that you may
+                  be required to quote this to avoid tokenization of
+                  the provided value by your shell.
+
+                  This field is optional, and may be specified multiple
+                  times, either to provide new configuration key / values,
+                  or to override configuration specified earlier in the
+                  command-line invocation.
+
+@B{Example:}
+
+  # Create an authenticated WebDAV storage system:
+  @W{shield create-store}                      \
+      @Y{--name}    "Local WebDAV"             \
+      @Y{--agent}   10.0.0.42:5444             \
+      @Y{--plugin}  @B{webdav}                     \
+      @Y{--data}    @G{url}=@C{https://10.0.0.42:8443} \
+      @Y{--data}    @G{username}=@C{webdave}           \
+      @Y{--data}    @G{password}=@C{super-sekrit}
+
