@@ -156,7 +156,7 @@ Mapping:
 	for _, candidate := range p.Mapping {
 		for org, teams := range orgs {
 			if candidate.Github != org {
-				continue Mapping;
+				continue Mapping
 			}
 
 			for _, match := range candidate.Rights {
