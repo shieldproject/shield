@@ -74,9 +74,16 @@
 //
 // DEPENDENCIES
 //
-// This plugin relies on the `nodetool` and `sstableloader` utilities. Please
-// ensure that they are present on the cassandra node that will be backed up
-// or restored.
+// This plugin relies on some `nodetool` and `sstableloader` wrapper scripts
+// that will run the regular `nodetool` and `sstableloader` utilities without
+// requiring any environment variable to be provided (like JAVA_HOME or
+// CASSANDRA_CONF). The 'cassandra' BOSH release typically provides thoses
+// scripts in `/var/vcap/cassandra/job/bin`. Please ensure that this directory
+// is added to the SHIELD v8 `env.path` configuration property.
+//
+// This plugin also relies on some `tar` utility that should be provided on
+// its PATH. This will typically be the standard GNU Tar utility, as provided
+// by BOSH stemcells.
 
 package main
 
