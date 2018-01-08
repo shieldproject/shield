@@ -16,14 +16,14 @@
 // should look something like this:
 //
 //    {
-//        "cassandra_host"         : "10.244.67.61",
-//        "cassandra_port"         : "9042",             # native transport port
-//        "cassandra_user"         : "username",
-//        "cassandra_password"     : "password",
-//        "cassandra_keyspace"     : "ksXXXX",           # Required
-//        "cassandra_bindir"       : "/path/to/bindir",
-//        "cassandra_datadir"      : "/path/to/datadir",
-//        "cassandra_tar"          : "/path/to/tar"      # where is the tar utility?
+//        "host"         : "10.244.67.61",
+//        "port"         : "9042",             # native transport port
+//        "user"         : "username",
+//        "password"     : "password",
+//        "keyspace"     : "ksXXXX",           # Required
+//        "bindir"       : "/path/to/bindir",
+//        "datadir"      : "/path/to/datadir",
+//        "tar"          : "/path/to/tar"      # where is the tar utility?
 //    }
 //
 // The plugin provides devault values for those configuration properties, as
@@ -31,13 +31,13 @@
 // it.
 //
 //    {
-//        "cassandra_host"     : "127.0.0.1",
-//        "cassandra_port"     : "9042",
-//        "cassandra_user"     : "cassandra",
-//        "cassandra_password" : "cassandra",
-//        "cassandra_bindir"   : "/var/vcap/packages/cassandra/bin",
-//        "cassandra_datadir"  : "/var/vcap/store/cassandra/data",
-//        "cassandra_tar"      : "tar"
+//        "host"     : "127.0.0.1",
+//        "port"     : "9042",
+//        "user"     : "cassandra",
+//        "password" : "cassandra",
+//        "bindir"   : "/var/vcap/packages/cassandra/bin",
+//        "datadir"  : "/var/vcap/store/cassandra/data",
+//        "tar"      : "tar"
 //    }
 //
 // BACKUP DETAILS
@@ -100,31 +100,31 @@ func main() {
 		},
 		Example: `
 {
-  "cassandra_host"         : "127.0.0.1",      # optional
-  "cassandra_port"         : "9042",           # optional
-  "cassandra_user"         : "username",
-  "cassandra_password"     : "password",
-  "cassandra_keyspace"     : "db",
-  "cassandra_bindir"       : "/path/to/bin",   # optional
-  "cassandra_datadir"      : "/path/to/data",  # optional
-  "cassandra_tar"          : "/bin/tar"        # Tar-compatible archival tool to use
+  "host"         : "127.0.0.1",      # optional
+  "port"         : "9042",           # optional
+  "user"         : "username",
+  "password"     : "password",
+  "keyspace"     : "db",
+  "bindir"       : "/path/to/bin",   # optional
+  "datadir"      : "/path/to/data",  # optional
+  "tar"          : "/bin/tar"        # Tar-compatible archival tool to use
 }
 `,
 		Defaults: `
 {
-  "cassandra_host"     : "127.0.0.1",
-  "cassandra_port"     : "9042",
-  "cassandra_user"     : "cassandra",
-  "cassandra_password" : "cassandra",
-  "cassandra_bindir"   : "/var/vcap/packages/cassandra/bin",
-  "cassandra_datadir"  : "/var/vcap/store/cassandra/data",
-  "cassandra_tar"      : "tar"
+  "host"     : "127.0.0.1",
+  "port"     : "9042",
+  "user"     : "cassandra",
+  "password" : "cassandra",
+  "bindir"   : "/var/vcap/packages/cassandra/bin",
+  "datadir"  : "/var/vcap/store/cassandra/data",
+  "tar"      : "tar"
 }
 `,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_host",
+				Name:     "host",
 				Type:     "string",
 				Title:    "Cassandra Host",
 				Help:     "The hostname or IP address of your Cassandra server.",
@@ -133,7 +133,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_port",
+				Name:     "port",
 				Type:     "port",
 				Title:    "Cassandra Port",
 				Help:     "The 'native transport' TCP port that Cassandra server is bound to, listening for incoming connections.",
@@ -142,7 +142,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_user",
+				Name:     "user",
 				Type:     "string",
 				Title:    "Cassandra Username",
 				Help:     "Username to authenticate to Cassandra as.",
@@ -151,7 +151,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_password",
+				Name:     "password",
 				Type:     "password",
 				Title:    "Cassandra Password",
 				Help:     "Password to authenticate to Cassandra as.",
@@ -160,7 +160,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_keyspace",
+				Name:     "keyspace",
 				Type:     "string",
 				Title:    "Keyspace to Backup",
 				Help:     "The name of the keyspace to backup.",
@@ -169,7 +169,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_bindir",
+				Name:     "bindir",
 				Type:     "abspath",
 				Title:    "Path to Cassandra bin/ directory",
 				Help:     "The absolute path to the bin/ directory that contains the `nodetool` and `sstableloader` commands.",
@@ -178,7 +178,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_datadir",
+				Name:     "datadir",
 				Type:     "abspath",
 				Title:    "Path to Cassandra data/ directory",
 				Help:     "The absolute path to the data/ directory that contains the Cassandra database files.",
@@ -187,7 +187,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "cassandra_tar",
+				Name:     "tar",
 				Type:     "abspath",
 				Title:    "Path to `tar` utility",
 				Help:     "By default, the plugin will search the local `$PATH` to find the `tar` utility.",
@@ -226,82 +226,82 @@ func (p CassandraPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail bool
 	)
 
-	s, err = endpoint.StringValueDefault("cassandra_host", "")
+	s, err = endpoint.StringValueDefault("host", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_host          %s}\n", err)
+		fmt.Printf("@R{\u2717 host          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_host}          using default node @C{%s}\n", DefaultHost)
+		fmt.Printf("@G{\u2713 host}          using default node @C{%s}\n", DefaultHost)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_host}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 host}          @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("cassandra_port", "")
+	s, err = endpoint.StringValueDefault("port", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_port          %s}\n", err)
+		fmt.Printf("@R{\u2717 port          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_port}          using default port @C{%s}\n", DefaultPort)
+		fmt.Printf("@G{\u2713 port}          using default port @C{%s}\n", DefaultPort)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_port}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 port}          @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("cassandra_user", "")
+	s, err = endpoint.StringValueDefault("user", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_user          %s}\n", err)
+		fmt.Printf("@R{\u2717 user          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_user}          using default user @C{%s}\n", DefaultUser)
+		fmt.Printf("@G{\u2713 user}          using default user @C{%s}\n", DefaultUser)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 user}          @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("cassandra_password", "")
+	s, err = endpoint.StringValueDefault("password", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_password      %s}\n", err)
+		fmt.Printf("@R{\u2717 password      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_password}      using default password @C{%s}\n", DefaultPassword)
+		fmt.Printf("@G{\u2713 password}      using default password @C{%s}\n", DefaultPassword)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 password}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("cassandra_keyspace")
+	s, err = endpoint.StringValue("keyspace")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_keyspace      %s}\n", err)
+		fmt.Printf("@R{\u2717 keyspace      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_keyspace}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 keyspace}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("cassandra_bindir", "")
+	s, err = endpoint.StringValueDefault("bindir", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_bindir        %s}\n", err)
-		fail = true
-	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_bindir}        using default @C{%s}\n", DefaultBinDir)
-	} else {
-		fmt.Printf("@G{\u2713 cassandra_bindir}        @C{%s}\n", s)
-	}
-
-	s, err = endpoint.StringValueDefault("cassandra_datadir", "")
-	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_datadir       %s}\n", err)
+		fmt.Printf("@R{\u2717 bindir        %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_datadir}       using default @C{%s}\n", DefaultDataDir)
+		fmt.Printf("@G{\u2713 bindir}        using default @C{%s}\n", DefaultBinDir)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_datadir}       @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bindir}        @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("cassandra_tar", "")
+	s, err = endpoint.StringValueDefault("datadir", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 cassandra_tar           %s}\n", err)
+		fmt.Printf("@R{\u2717 datadir       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 cassandra_tar}           using default @C{%s}\n", DefaultTar)
+		fmt.Printf("@G{\u2713 datadir}       using default @C{%s}\n", DefaultDataDir)
 	} else {
-		fmt.Printf("@G{\u2713 cassandra_tar}           @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 datadir}       @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("tar", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 tar           %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 tar}           using default @C{%s}\n", DefaultTar)
+	} else {
+		fmt.Printf("@G{\u2713 tar}           @C{%s}\n", s)
 	}
 
 	if fail {
@@ -605,53 +605,53 @@ func (p CassandraPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error
 }
 
 func cassandraInfo(endpoint plugin.ShieldEndpoint) (*CassandraInfo, error) {
-	host, err := endpoint.StringValueDefault("cassandra_host", DefaultHost)
+	host, err := endpoint.StringValueDefault("host", DefaultHost)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_HOST: '%s'", host)
+	plugin.DEBUG("HOST: '%s'", host)
 
-	port, err := endpoint.StringValueDefault("cassandra_port", DefaultPort)
+	port, err := endpoint.StringValueDefault("port", DefaultPort)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_PORT: '%s'", port)
+	plugin.DEBUG("PORT: '%s'", port)
 
-	user, err := endpoint.StringValueDefault("cassandra_user", DefaultUser)
+	user, err := endpoint.StringValueDefault("user", DefaultUser)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_USER: '%s'", user)
+	plugin.DEBUG("USER: '%s'", user)
 
-	password, err := endpoint.StringValueDefault("cassandra_password", DefaultPassword)
+	password, err := endpoint.StringValueDefault("password", DefaultPassword)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_PWD: '%s'", password)
+	plugin.DEBUG("PWD: '%s'", password)
 
-	keyspace, err := endpoint.StringValue("cassandra_keyspace")
+	keyspace, err := endpoint.StringValue("keyspace")
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_KEYSPACE: '%s'", keyspace)
+	plugin.DEBUG("KEYSPACE: '%s'", keyspace)
 
-	bindir, err := endpoint.StringValueDefault("cassandra_bindir", DefaultBinDir)
+	bindir, err := endpoint.StringValueDefault("bindir", DefaultBinDir)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_BINDIR: '%s'", bindir)
+	plugin.DEBUG("BINDIR: '%s'", bindir)
 
-	datadir, err := endpoint.StringValueDefault("cassandra_datadir", DefaultDataDir)
+	datadir, err := endpoint.StringValueDefault("datadir", DefaultDataDir)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_DATADIR: '%s'", datadir)
+	plugin.DEBUG("DATADIR: '%s'", datadir)
 
-	tar, err := endpoint.StringValueDefault("cassandra_tar", DefaultTar)
+	tar, err := endpoint.StringValueDefault("tar", DefaultTar)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("CASSANDRA_TAR: '%s'", tar)
+	plugin.DEBUG("TAR: '%s'", tar)
 
 	return &CassandraInfo{
 		Host:     host,
