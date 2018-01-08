@@ -21,7 +21,6 @@
 //        "user"         : "username",
 //        "password"     : "password",
 //        "keyspace"     : "ksXXXX",           # Required
-//        "bindir"       : "/path/to/bindir",
 //        "datadir"      : "/path/to/datadir",
 //        "tar"          : "/path/to/tar"      # where is the tar utility?
 //    }
@@ -35,10 +34,16 @@
 //        "port"     : "9042",
 //        "user"     : "cassandra",
 //        "password" : "cassandra",
-//        "bindir"   : "/var/vcap/packages/cassandra/bin",
 //        "datadir"  : "/var/vcap/store/cassandra/data",
 //        "tar"      : "tar"
 //    }
+//
+// This plugin uses the SHIELD v8 `env.path` configuration property to find
+// the `nodetool` and `sstableloader` wrapper scripts that don't need any
+// exernal environment variables to run. Administrators deploying this plugin
+// to for backuping the 'cassandra' BOSH release should take care of providing
+// the `/var/vcap/cassandra/job/bin` path in this `env.path` configuration
+// property, and not the `bin` directory of the 'cassandra' package.
 //
 // BACKUP DETAILS
 //
@@ -81,7 +86,6 @@ const (
 	DefaultPort     = "9042"
 	DefaultUser     = "cassandra"
 	DefaultPassword = "cassandra"
-	DefaultBinDir   = "/var/vcap/jobs/cassandra/bin"
 	DefaultDataDir  = "/var/vcap/store/cassandra/data"
 	DefaultTar      = "tar"
 
@@ -105,7 +109,6 @@ func main() {
   "user"         : "username",
   "password"     : "password",
   "keyspace"     : "db",
-  "bindir"       : "/path/to/bin",   # optional
   "datadir"      : "/path/to/data",  # optional
   "tar"          : "/bin/tar"        # Tar-compatible archival tool to use
 }
@@ -116,7 +119,6 @@ func main() {
   "port"     : "9042",
   "user"     : "cassandra",
   "password" : "cassandra",
-  "bindir"   : "/var/vcap/packages/cassandra/bin",
   "datadir"  : "/var/vcap/store/cassandra/data",
   "tar"      : "tar"
 }
@@ -169,15 +171,6 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "bindir",
-				Type:     "abspath",
-				Title:    "Path to Cassandra bin/ directory",
-				Help:     "The absolute path to the bin/ directory that contains the `nodetool` and `sstableloader` commands.",
-				Default:  "/var/vcap/packages/cassandra/bin",
-				Required: true,
-			},
-			plugin.Field{
-				Mode:     "target",
 				Name:     "datadir",
 				Type:     "abspath",
 				Title:    "Path to Cassandra data/ directory",
@@ -208,7 +201,6 @@ type CassandraInfo struct {
 	User     string
 	Password string
 	Keyspace string
-	BinDir   string
 	DataDir  string
 	Tar      string
 }
@@ -274,16 +266,6 @@ func (p CassandraPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 keyspace}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValueDefault("bindir", "")
-	if err != nil {
-		fmt.Printf("@R{\u2717 bindir        %s}\n", err)
-		fail = true
-	} else if s == "" {
-		fmt.Printf("@G{\u2713 bindir}        using default @C{%s}\n", DefaultBinDir)
-	} else {
-		fmt.Printf("@G{\u2713 bindir}        @C{%s}\n", s)
-	}
-
 	s, err = endpoint.StringValueDefault("datadir", "")
 	if err != nil {
 		fmt.Printf("@R{\u2717 datadir       %s}\n", err)
@@ -318,7 +300,7 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	plugin.DEBUG("Cleaning any stale '%s' snapshot", SnapshotName)
-	cmd := fmt.Sprintf("%s/nodetool clearsnapshot -t %s \"%s\"", cassandra.BinDir, SnapshotName, cassandra.Keyspace)
+	cmd := fmt.Sprintf("nodetool clearsnapshot -t %s \"%s\"", SnapshotName, cassandra.Keyspace)
 	plugin.DEBUG("Executing: `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
@@ -329,7 +311,7 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	defer func() {
 		plugin.DEBUG("Clearing snapshot '%s'", SnapshotName)
-		cmd := fmt.Sprintf("%s/nodetool clearsnapshot -t %s \"%s\"", cassandra.BinDir, SnapshotName, cassandra.Keyspace)
+		cmd := fmt.Sprintf("nodetool clearsnapshot -t %s \"%s\"", SnapshotName, cassandra.Keyspace)
 		plugin.DEBUG("Executing: `%s`", cmd)
 		err := plugin.Exec(cmd, plugin.STDIN)
 		if err != nil {
@@ -340,7 +322,7 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}()
 
 	plugin.DEBUG("Creating a new '%s' snapshot", SnapshotName)
-	cmd = fmt.Sprintf("%s/nodetool snapshot -t %s \"%s\"", cassandra.BinDir, SnapshotName, cassandra.Keyspace)
+	cmd = fmt.Sprintf("nodetool snapshot -t %s \"%s\"", SnapshotName, cassandra.Keyspace)
 	plugin.DEBUG("Executing: `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
@@ -579,7 +561,7 @@ func (p CassandraPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		}
 		// Run sstableloader on each sub-directory found, assuming it is a table backup
 		tableDirPath := filepath.Join(keyspaceDirPath, tableDirInfo.Name())
-		cmd := fmt.Sprintf("%s/sstableloader -u \"%s\" -pw \"%s\" -d \"%s\" \"%s\"", cassandra.BinDir, cassandra.User, cassandra.Password, cassandra.Host, tableDirPath)
+		cmd := fmt.Sprintf("sstableloader -u \"%s\" -pw \"%s\" -d \"%s\" \"%s\"", cassandra.User, cassandra.Password, cassandra.Host, tableDirPath)
 		plugin.DEBUG("Executing: `%s`", cmd)
 		err = plugin.Exec(cmd, plugin.STDIN)
 		if err != nil {
@@ -635,12 +617,6 @@ func cassandraInfo(endpoint plugin.ShieldEndpoint) (*CassandraInfo, error) {
 	}
 	plugin.DEBUG("KEYSPACE: '%s'", keyspace)
 
-	bindir, err := endpoint.StringValueDefault("bindir", DefaultBinDir)
-	if err != nil {
-		return nil, err
-	}
-	plugin.DEBUG("BINDIR: '%s'", bindir)
-
 	datadir, err := endpoint.StringValueDefault("datadir", DefaultDataDir)
 	if err != nil {
 		return nil, err
@@ -659,7 +635,6 @@ func cassandraInfo(endpoint plugin.ShieldEndpoint) (*CassandraInfo, error) {
 		User:     user,
 		Password: password,
 		Keyspace: keyspace,
-		BinDir:   bindir,
 		DataDir:  datadir,
 		Tar:      tar,
 	}, nil
