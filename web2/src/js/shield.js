@@ -601,7 +601,7 @@ function dispatch(page) {
                   type: 'POST',
                   url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs',
                   data: {
-                    name     : 'a random name?', // FIXME
+                    name     : data.name,
                     summary  : '',
                     schedule : data.schedule,
 
