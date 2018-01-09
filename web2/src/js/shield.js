@@ -601,13 +601,14 @@ function dispatch(page) {
                   type: 'POST',
                   url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs',
                   data: {
-                    name     : data.name,
-                    summary  : '',
-                    schedule : data.schedule,
+                    name      : data.name,
+                    summary   : '',
+                    schedule  : data.schedule,
 
-                    store    : data.store.uuid,
-                    target   : data.target.uuid,
-                    policy   : data.policy.uuid
+                    store     : data.store.uuid,
+                    target    : data.target.uuid,
+                    policy    : data.policy.uuid,
+                    fixed_key : (data.target.fixed_key == "true")
                   },
                   error: "Unable to create a new backup job",
                   success: function (ok) {
@@ -1216,6 +1217,8 @@ function dispatch(page) {
           $form.error('confirm', 'mismatch');
         }
 
+        data.rotate_fixed_key = (data.rotate_fixed_key == "true");
+
         if (!$form.isOK()) {
           return;
         }
@@ -1225,9 +1228,13 @@ function dispatch(page) {
           type: 'POST',
           url:  '/v2/rekey',
           data: data,
-          success: function () {
+          success: function (data) {
+            if (data.fixed_key != "") {
+              $('#viewport').html(template('fixedkey', data));
+            } else {
+              goto("#!/admin");
+            }
             banner('Succcessfully rekeyed the SHIELD Core.');
-            goto("#!/admin");
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);
@@ -1954,9 +1961,7 @@ function dispatch(page) {
           url:  '/v2/init',
           data: { "master": data.master },
           success: function (data) {
-            $global.hud.health.core = "unlocked";
-            $('#hud').html(template('hud', $global.hud));
-            goto("");
+            $('#viewport').html(template('fixedkey', data));
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);
