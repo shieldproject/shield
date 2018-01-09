@@ -1221,7 +1221,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
 
         $parent.find('#configure-plugin').html(
           template('subform-configure-plugin', {
-            type: opts.type,
+            type:   opts.type,
             plugin: cache.metadata.plugins[plugin],
             config: (plugin == opts.plugin ? opts.config : undefined)
           }));
@@ -1898,13 +1898,13 @@ function dispatch(page) {
                   type: 'POST',
                   url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs',
                   data: {
-                    name     : 'a random name?', // FIXME
-                    summary  : '',
-                    schedule : data.schedule,
+                    name      : data.name,
+                    summary   : '',
+                    schedule  : data.schedule,
 
-                    store    : data.store.uuid,
-                    target   : data.target.uuid,
-                    policy   : data.policy.uuid,
+                    store     : data.store.uuid,
+                    target    : data.target.uuid,
+                    policy    : data.policy.uuid,
                     fixed_key : (data.target.fixed_key == "true")
                   },
                   error: "Unable to create a new backup job",
@@ -2514,7 +2514,7 @@ function dispatch(page) {
           $form.error('confirm', 'mismatch');
         }
 
-        data.rotate_fixed_key = (data.rotate_fixed_key == "true")
+        data.rotate_fixed_key = (data.rotate_fixed_key == "true");
 
         if (!$form.isOK()) {
           return;
@@ -2527,9 +2527,9 @@ function dispatch(page) {
           data: data,
           success: function (data) {
             if (data.fixed_key != "") {
-                $('#viewport').html(template('fixedkey', data));
-            } else{
-                goto("#!/admin");
+              $('#viewport').html(template('fixedkey', data));
+            } else {
+              goto("#!/admin");
             }
             banner('Succcessfully rekeyed the SHIELD Core.');
           },
