@@ -155,24 +155,22 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 Mapping:
 	for _, candidate := range p.Mapping {
 		for org, teams := range orgs {
-			if candidate.Github != org {
-				continue Mapping
-			}
-
-			for _, match := range candidate.Rights {
-				if match.Team == "" {
-					if !p.Assign(user, candidate.Tenant, match.Role) {
-						return nil
-					}
-					continue Mapping
-				}
-
-				for _, team := range teams {
-					if match.Team == team {
+			if candidate.Github == org {
+				for _, match := range candidate.Rights {
+					if match.Team == "" {
 						if !p.Assign(user, candidate.Tenant, match.Role) {
 							return nil
 						}
 						continue Mapping
+					}
+
+					for _, team := range teams {
+						if match.Team == team {
+							if !p.Assign(user, candidate.Tenant, match.Role) {
+								return nil
+							}
+							continue Mapping
+						}
 					}
 				}
 			}
