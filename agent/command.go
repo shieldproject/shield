@@ -137,6 +137,10 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		fmt.Sprintf("USER=%s", os.Getenv("USER")),
 		fmt.Sprintf("LANG=%s", os.Getenv("LANG")),
 
+		fmt.Sprintf("http_proxy=%s", os.Getenv("http_proxy")),
+		fmt.Sprintf("https_proxy=%s", os.Getenv("https_proxy")),
+		fmt.Sprintf("no_proxy=%s", os.Getenv("no_proxy")),
+
 		fmt.Sprintf("SHIELD_OP=%s", c.Op),
 		fmt.Sprintf("SHIELD_STORE_PLUGIN=%s", c.StorePlugin),
 		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", c.StoreEndpoint),
