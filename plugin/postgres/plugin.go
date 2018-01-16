@@ -19,8 +19,8 @@
 //
 //    {
 //        "pg_user":"username-for-postgres",
-//        "pg_password":"password-for-above-user",
-//        "pg_host":"hostname-or-ip-of-pg-server",
+//        "pg_password":"password-for-above-user",     # optional
+//        "pg_host":"hostname-or-ip-of-pg-server",     # optional
 //        "pg_port":"port-above-pg-server-listens-on", # optional
 //        "pg_database": "name-of-db-to-backup",       # optional
 //        "pg_bindir": "PostgreSQL binaries directory" # optional
@@ -108,9 +108,9 @@ func main() {
 		Example: `
 {
   "pg_user"     : "username",   # REQUIRED
-  "pg_password" : "password",   # REQUIRED
-  "pg_host"     : "10.0.0.1",   # REQUIRED
 
+  "pg_password" : "password",
+  "pg_host"     : "10.0.0.1",
   "pg_port"     : "5432",             # Port that PostgreSQL is listening on
   "pg_database" : "db1",              # Limit backup/restore operation to this database
   "pg_bindir"   : "/path/to/pg/bin"   # Where to find the psql command
@@ -124,12 +124,11 @@ func main() {
 `,
 		Fields: []plugin.Field{
 			plugin.Field{
-				Mode:     "target",
-				Name:     "pg_host",
-				Type:     "string",
-				Title:    "PostgreSQL Host",
-				Help:     "The hostname or IP address of your PostgreSQL server.",
-				Required: true,
+				Mode:  "target",
+				Name:  "pg_host",
+				Type:  "string",
+				Title: "PostgreSQL Host",
+				Help:  "The hostname or IP address of your PostgreSQL server.",
 			},
 			plugin.Field{
 				Mode:    "target",
@@ -148,12 +147,11 @@ func main() {
 				Required: true,
 			},
 			plugin.Field{
-				Mode:     "target",
-				Name:     "pg_password",
-				Type:     "password",
-				Title:    "PostgreSQL Password",
-				Help:     "Password to authenticate to PostgreSQL as.",
-				Required: true,
+				Mode:  "target",
+				Name:  "pg_password",
+				Type:  "password",
+				Title: "PostgreSQL Password",
+				Help:  "Password to authenticate to PostgreSQL as.",
 			},
 			plugin.Field{
 				Mode:  "target",
@@ -198,10 +196,12 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail bool
 	)
 
-	s, err = endpoint.StringValue("pg_host")
+	s, err = endpoint.StringValueDefault("pg_host", "")
 	if err != nil {
 		fmt.Printf("@R{\u2717 pg_host      %s}\n", err)
 		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 pg_host}      using @C{localhost}\n")
 	} else {
 		fmt.Printf("@G{\u2713 pg_host}      @C{%s}\n", s)
 	}
@@ -224,10 +224,12 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 pg_user}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("pg_password")
+	s, err = endpoint.StringValueDefault("pg_password", "")
 	if err != nil {
 		fmt.Printf("@R{\u2717 pg_password  %s}\n", err)
 		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 pg_password}  none (no credentials will be sent)\n")
 	} else {
 		fmt.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
 	}
@@ -360,13 +362,13 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	}
 	plugin.DEBUG("PGUSER: '%s'", user)
 
-	password, err := endpoint.StringValue("pg_password")
+	password, err := endpoint.StringValueDefault("pg_password", "")
 	if err != nil {
 		return nil, err
 	}
 	plugin.DEBUG("PGPASSWORD: '%s'", password)
 
-	host, err := endpoint.StringValue("pg_host")
+	host, err := endpoint.StringValueDefault("pg_host", "")
 	if err != nil {
 		return nil, err
 	}
