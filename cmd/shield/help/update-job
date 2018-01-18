@@ -26,13 +26,11 @@ USAGE: @G{shield} update-job --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
                   instructing SHIELD how to schedule this job.
                   This field is @W{required}.
 
-  --paused        Don't schedule this job; in order for it to run,
-                  an operator will have to manually kick it off.
-
   --fixed-key     Encrypt backup archives with the fixed key.
                   Backups of SHIELD itself should use this option
                   to enable recovery in a disaster scenario
 
+  To pause/unpause a job, please use "pause-job" or "unpause-job".
 
   In @Y{--batch} mode, the name or UUID specified on the command-line
   must be "unique enough" for shield to determine what you meant.
