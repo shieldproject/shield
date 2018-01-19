@@ -1,0 +1,23 @@
+# Bug Fixes
+
+- Fix an egregious bug in the scheduling logic that was only
+  considering jobs scheduled in the future to be "overdue".
+  Since all jobs start out with a next_run of 0, this caused NO
+  JOBS to ever be scheduled.  Thankfully, 8.x is still beta.
+
+# Improvements
+
+- Global Storage Systems are available for selection during the
+  backup configuration wizard in the web UI.
+
+- Storage systems now properly report their health to all
+  front-end views, fixing a few fixmes along the way.
+
+# Developer Stuff
+
+- `bin/testdev` now runs a WebDAV service on the nginx reverse
+  proxy (on `$PORT+1`), since we can no longer use the `fs` plugin
+  for storage operations.
+
+  On MacOS, with homebrew, you'll want to reinstall nginx with
+  WebDAV support: `brew reinstall --with-webdav nginx`
