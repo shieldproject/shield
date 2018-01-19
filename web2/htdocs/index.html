@@ -1261,6 +1261,7 @@
             [[ $.each(_.stores, function (uuid, store) { ]]
             <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="do-configure:pick:store:[[= store.uuid ]]">
+              [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
               <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]

@@ -1930,10 +1930,18 @@ function dispatch(page) {
         multiplex: {
           agents:   { type: 'GET', url: '+/agents'   },
           targets:  { type: 'GET', url: '+/targets'  },
+          gstores:  { type: 'GET', url: '/v2/global/stores' },
           stores:   { type: 'GET', url: '+/stores'   },
           policies: { type: 'GET', url: '+/policies' }
         },
-        success: rerender
+        success: function (data) {
+          /* combine data global stores with tenant stores */
+          data.stores = data.stores.concat(data.gstores);
+          delete data.gstores;
+
+          /* but defer everything else to rerender() */
+          return rerender(data);
+        }
       });
     })();
     break; /* #!/do/configure */
