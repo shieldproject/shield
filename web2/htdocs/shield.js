@@ -2005,10 +2005,7 @@ function dispatch(page) {
       },
       error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
       success: function (data) {
-        /* FIXME fixups that need to migrate into the SHIELD code */
-        for (key in data.local)  { if (!('ok' in data.local[key]))  { data.local[key].ok  = true; } }
-        for (key in data.global) { if (!('ok' in data.global[key])) { data.global[key].ok = true; } }
-        $('#main').html(template('stores', { stores: $.extend([], data.local, data.global) }));
+        $('#main').html(template('stores', { stores: data.local.concat(data.global) }));
       }
     });
     break; /* #!/stores */

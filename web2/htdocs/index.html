@@ -696,17 +696,17 @@
           <div class="job card empty">Protected System</div>
           [[ } ]]
           [[ if (_.store) { ]]
-          <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <div class="store card [[ if (!_.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
           <a href="do-backup:unpick">
             <span class="type">Cloud Storage</span>
-            <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+            <img src="i/shield-[[= _.store.healthy ? 'ok' : 'fail' ]].svg">
             <h3>[[= _.store.name ]]</h3>
             <div class="notes">[[ if (_.store.summary) { ]]
               [[= _.store.summary ]]
             [[ } else { ]]
               <div class="no-data">No notes provided.  Too bad.</div>
             [[ } ]]</div>
-            <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+            <div class="graph[[ if (!_.store.healthy) { ]] fail[[ } ]]">
               <div class="to">[[= _.store.plugin ]]</div>
             </div>
           </a>
@@ -757,16 +757,16 @@
 
           <div>
             [[ $.each(stores, function (uuid, store) { ]]
-            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="do-backup:pick:store:[[= store.uuid ]]">
-              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
               </div>
               </a>
@@ -992,17 +992,17 @@
           [[ } ]]
 
           [[ if (_.store) { ]]
-          <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <div class="store card [[ if (!_.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
             <a href="do-configure:unpick">
               <span class="type">[[= _.store.uuid ? '' : '<strong>New</strong> ' ]]Cloud Storage</span>
-              <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= _.store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= _.store.name ]]</h3>
               <div class="notes">[[ if (_.store.summary) { ]]
                 [[= _.store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!_.store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= _.store.plugin ]]</div>
               </div>
             </a>
@@ -1259,17 +1259,17 @@
 
           <div>
             [[ $.each(_.stores, function (uuid, store) { ]]
-            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="do-configure:pick:store:[[= store.uuid ]]">
               [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
-              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
               </div>
               </a>
@@ -1612,17 +1612,17 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } else { ]]
             <div>
             [[ $.each(_.stores, function (i, store) { ]]
-            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
               <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
-              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
               </div>
               </a>
