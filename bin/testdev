@@ -109,6 +109,7 @@ done
 case "${1}" in
 (nginx)
   export PORT=$2
+  export WEBDAV_PORT=$(( PORT + 1 ))
   cat >${workdir}/etc/nginx.conf <<EOF
 daemon    off;
 pid       ${workdir}/var/nginx.pid;
@@ -130,7 +131,7 @@ http {
 
   server {
     listen ${PORT};
-    root   web2/htdocs;
+    root   ${ROOT}/web2/htdocs;
 
     location / {
       proxy_pass              http://127.0.0.1:8180;
@@ -169,10 +170,26 @@ http {
       }
     }
   }
+
+  server {
+    listen ${WEBDAV_PORT};
+    server_name  _;
+
+    location / {
+      root  ${PWD}/tmp/store;
+      autoindex on;
+
+      dav_methods  PUT DELETE;
+      create_full_put_path on;
+      dav_access user:rw group:r;
+
+      client_max_body_size 2G;
+    }
+  }
 }
 EOF
   while true; do
-    echo ">> Spinning up an nginx reverse proxy."
+    echo ">> Spinning up an nginx reverse proxy / webdav server."
     nginx -c ${workdir}/etc/nginx.conf -T
     nginx -c ${workdir}/etc/nginx.conf
     echo
@@ -360,7 +377,7 @@ EOF
        new-window -n vault ./bin/testdev vault \; \
        new-window -n daemon ./bin/testdev shieldd \; \
        new-window -n agent ./bin/testdev shieldagent ${PORT} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup; read JUNK" \; \
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${PORT}; read JUNK" \; \
        new-window -n db sqlite3 ${workdir}/var/shield.db \;
   ;;
 
