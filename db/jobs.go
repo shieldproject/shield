@@ -118,7 +118,7 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 		}
 	}
 	if f.Overdue {
-		wheres = append(wheres, "j.next_run > ?")
+		wheres = append(wheres, "j.next_run <= ?")
 		args = append(args, time.Now().Unix())
 	}
 
