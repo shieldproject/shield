@@ -69,6 +69,9 @@ func (b *Broadcaster) Broadcast(ev Event) {
 
 func (core *Core) broadcastTask(task *db.Task) {
 	task, err := core.DB.GetTask(task.UUID)
+	if task == nil {
+		log.Errorf("unwilling to broadcast task update for nil task")
+	}
 	if err != nil {
 		log.Errorf("unable to broadcast task update for %s, failed to refresh task from database: %s", task.UUID, err)
 		return

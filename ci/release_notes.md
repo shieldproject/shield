@@ -5,6 +5,10 @@
   Since all jobs start out with a next_run of 0, this caused NO
   JOBS to ever be scheduled.  Thankfully, 8.x is still beta.
 
+- Fix a segfault when dereferencing a nil Task during a broadcast.
+  Now, we log that we got a nil task, to assist in tracking down
+  why / where its occurring, rather than just crashing on panic.
+
 # Improvements
 
 - Global Storage Systems are available for selection during the
