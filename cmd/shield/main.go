@@ -2560,15 +2560,15 @@ func main() {
 			bail(err)
 		}
 
-		rs, err := c.RestoreArchive(tenant, archive, target)
+		task, err := c.RestoreArchive(tenant, archive, target)
 		bail(err)
 
 		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(rs))
+			fmt.Printf("%s\n", asJSON(task))
 			break
 		}
 
-		fmt.Printf("%s\n", rs.OK)
+		fmt.Printf("Scheduled restore; task @C{%s}\n", task.UUID)
 
 	/* }}} */
 	case "purge-archive": /* {{{ */

@@ -9,6 +9,10 @@
   Now, we log that we got a nil task, to assist in tracking down
   why / where its occurring, rather than just crashing on panic.
 
+- The `shield restore-archive` command now prints out the UUID of
+  the task scheduled to run the restore, rather than the cryptic
+  (and oh-so-unhelpful) string "%s!:bool=true"
+
 # Improvements
 
 - Global Storage Systems are available for selection during the
