@@ -180,6 +180,15 @@ func (core *Core) hasRole(r *route.Request, tenant string, roles ...string) bool
 	return false
 }
 
+func (core *Core) hasTenant(r *route.Request, id string) bool {
+	tenant, err := core.DB.GetTenant(id)
+	if err != nil || tenant == nil {
+		r.Fail(route.NotFound(err, "No such tenant"))
+		return false
+	}
+	return true
+}
+
 func (core *Core) CanManageTenants(r *route.Request, tenant string) bool {
 	user, err := core.AuthenticatedUser(r)
 	if user == nil || err != nil {
@@ -259,13 +268,16 @@ func (core *Core) IsNotSystemEngineer(r *route.Request) bool {
 }
 
 func (core *Core) IsNotTenantAdmin(r *route.Request, tenant string) bool {
-	return !core.hasRole(r, tenant, "tenant/admin", "system/manager", "system/admin")
+	return !core.hasRole(r, tenant, "tenant/admin", "system/manager", "system/admin") ||
+		!core.hasTenant(r, tenant)
 }
 
 func (core *Core) IsNotTenantEngineer(r *route.Request, tenant string) bool {
-	return !core.hasRole(r, tenant, "tenant/engineer", "tenant/admin", "system/*")
+	return !core.hasRole(r, tenant, "tenant/engineer", "tenant/admin", "system/*") ||
+		!core.hasTenant(r, tenant)
 }
 
 func (core *Core) IsNotTenantOperator(r *route.Request, tenant string) bool {
-	return !core.hasRole(r, tenant, "tenant/*", "system/*")
+	return !core.hasRole(r, tenant, "tenant/*", "system/*") ||
+		!core.hasTenant(r, tenant)
 }

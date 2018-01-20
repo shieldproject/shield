@@ -698,6 +698,10 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
 				SkipUsed:   r.ParamIs("unused", "t"),
@@ -726,6 +730,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
 		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
@@ -828,16 +836,28 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 	r.Dispatch("PATCH /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		var in struct {
 			Annotations []struct {
 				Type        string `json:"type"`
@@ -901,6 +921,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})

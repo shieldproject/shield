@@ -46,6 +46,12 @@
   archives every made for the tenant.  Turns out this was less
   than useful.
 
+- Fix up some edge cases where we weren't checking for the
+  existence of a tenant in tenant-scope API calls, just the rights
+  to that tenant -- since system users can affect all tenants, we
+  found that we could create child objects on non-existent
+  tenants.
+
 # Developer Stuff
 
 - `bin/testdev` now runs a WebDAV service on the nginx reverse
