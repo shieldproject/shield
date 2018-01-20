@@ -15,6 +15,9 @@
   point the new schedule kicked in.  This was weird, so we changed
   it.
 
+- New Cloud Storage Solutions (global or tenant-based) are
+  considered healthy until proven broken.
+
 # Bug Fixes
 
 - Fix an egregious bug in the scheduling logic that was only

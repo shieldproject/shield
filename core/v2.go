@@ -1876,6 +1876,7 @@ func (core *Core) v2API() *route.Router {
 			Plugin:     in.Plugin,
 			Config:     in.Config,
 			Threshold:  in.Threshold,
+			Healthy:    true, /* let's be optimistic */
 		})
 		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))
@@ -2701,6 +2702,7 @@ func (core *Core) v2API() *route.Router {
 			Plugin:     in.Plugin,
 			Config:     in.Config,
 			Threshold:  in.Threshold,
+			Healthy:    true, /* let's be optimistic */
 		})
 		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))

@@ -633,7 +633,23 @@ func (core *Core) worker(id int) {
 			/* N.B.: there is a temptation to print the error here, but in all the
 			   time we've run this code in production, the error message is
 			   ALWAYS 'process exited X, reason was ()', which is useless. */
-			core.failTask(task, "shield workder %d unable to run command against %s\n", id, task.Agent)
+			core.failTask(task, "shield worker %d unable to run command against %s\n", id, task.Agent)
+			if task.Op == db.TestStoreOperation {
+				store, err := core.DB.GetStore(task.StoreUUID)
+				if err != nil {
+					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
+				}
+				if store == nil {
+					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
+					continue
+				}
+				log.Infof("marking store %s [%s] as unhealthy", store.Name, store.Healthy)
+				store.Healthy = false
+				err = core.DB.UpdateStore(store)
+				if err != nil {
+					log.Errorf("error updating store: %s", err)
+				}
+			}
 			continue
 		}
 
@@ -701,21 +717,6 @@ func (core *Core) worker(id int) {
 			log.Infof("  %s: triggering an update to storage analytics", task.UUID)
 			core.updateStorageUsage()
 		}
-	}
-}
-
-func (core *Core) handleFailure(task *db.Task) {
-	log.Warnf("  %s: task failed!", task.UUID)
-	if err := core.DB.FailTask(task.UUID, time.Now()); err != nil {
-		log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-	}
-}
-
-func (core *Core) handleOutput(task *db.Task, f string, args ...interface{}) {
-	s := fmt.Sprintf(f, args...)
-	log.Infof("  %s> %s", task.UUID, strings.Trim(s, "\n"))
-	if err := core.DB.UpdateTaskLog(task.UUID, s); err != nil {
-		log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 	}
 }
 
