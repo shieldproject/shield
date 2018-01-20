@@ -1560,6 +1560,12 @@ function dispatch(page) {
                   break;
                 }
               }
+              data.system.archives = [];
+              for (var i = 0; i < data.archives.length; i++) {
+                if (data.archives[i].target_uuid == data.system.uuid) {
+                  data.system.archives.push(data.archives[i]);
+                }
+              }
               rerender(data);
               return;
             }

@@ -887,26 +887,26 @@
           <span class="label">Step 2</span>
           <h3>Which archive do you want to restore?</h3>
 
-          [[ if (_.archives.length == 0) { ]]
+          [[ if (_.system.archives.length == 0) { ]]
           <div class="no-data">This data system has never been backed up successfully.</div>
           [[ } else { ]]
           <div class="archive-row pick-me">
             <h4>Most Recent Backup</h4>
             <dl>
               <dt>Backup Taken</dt>
-              <dd>[[= strftime("%x %X", _.archives[0].taken_at) ]]<br>
-                  <sub>[[= duration(tdiff(_.archives[0].taken_at, new Date())) ]] ago</sub></dd>
+              <dd>[[= strftime("%x %X", _.system.archives[0].taken_at) ]]<br>
+                  <sub>[[= duration(tdiff(_.system.archives[0].taken_at, new Date())) ]] ago</sub></dd>
 
               <dt>Archive size</dt>
-              <dd>[[= bytes(_.archives[0].size) ]]</dd>
+              <dd>[[= bytes(_.system.archives[0].size) ]]</dd>
 
               <dt>Stored in</dt>
-              <dd>[[= _.archives[0].store_name ]]</dd>
+              <dd>[[= _.system.archives[0].store_name ]]</dd>
             </dl>
 
-            <button rel="do-restore:pick:archive:[[= _.archives[0].uuid ]]">Go &raquo;</button>
+            <button rel="do-restore:pick:archive:[[= _.system.archives[0].uuid ]]">Go &raquo;</button>
           </div>
-            [[ if (_.archives.length > 1) { ]]
+            [[ if (_.system.archives.length > 1) { ]]
               <table class="archives">
                 <thead><tr>
                   <th>Date of backup</th>
@@ -916,7 +916,7 @@
                   <th></th>
                 </tr></thead>
                 <tbody>
-                [[ $.each(_.archives, function (i, archive) { ]]
+                [[ $.each(_.system.archives, function (i, archive) { ]]
                   [[ if (i == 0) { return; } ]]
                   <tr>
                     <th>[[= strftime("%x %X", archive.taken_at) ]]</th>

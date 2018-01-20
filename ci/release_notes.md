@@ -18,6 +18,11 @@
   schedules.  This will keep the CLI from accidentally creating
   schedules that the web UI can't process.
 
+- When restoring through the new wizard, the web UI only shows
+  archives for the selected target system, instead of all of the
+  archives every made for the tenant.  Turns out this was less
+  than useful.
+
 # Improvements
 
 - Global Storage Systems are available for selection during the
