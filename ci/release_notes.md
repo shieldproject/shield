@@ -29,6 +29,12 @@
 - Agents can now be resynchronized, in an ad hoc fashion, via the
   admin backend on the web UI.
 
+- Jobs will have their 'next run' time re-calculated when their
+  schedule is changed.  Previously, the existing schedule was in
+  force until the first run after a schedule change, at which
+  point the new schedule kicked in.  This was weird, so we changed
+  it.
+
 # Developer Stuff
 
 - `bin/testdev` now runs a WebDAV service on the nginx reverse

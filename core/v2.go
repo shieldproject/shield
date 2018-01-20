@@ -2143,6 +2143,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		if in.Schedule != "" {
+			if spec, err := timespec.Parse(in.Schedule); err == nil {
+				if next, err := spec.Next(time.Now()); err == nil {
+					core.DB.RescheduleJob(job, next)
+				}
+			}
+		}
+
 		r.Success("Updated job successfully")
 	})
 	// }}}
