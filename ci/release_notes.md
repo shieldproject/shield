@@ -18,6 +18,9 @@
 - New Cloud Storage Solutions (global or tenant-based) are
   considered healthy until proven broken.
 
+- `shield-agent` now has better logging to help troubleshoot
+  registration problems.
+
 # Bug Fixes
 
 - Fix an egregious bug in the scheduling logic that was only

@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -57,7 +56,7 @@ func (agent *Agent) Ping() {
 			return
 		}
 
-		log.Debugf("attempting to pre-register with %s/v2/agents as %s", agent.Registration.URL, string(b))
+		log.Debugf("pre-registering with %s/v2/agents as %s", agent.Registration.URL, string(b))
 		req, err := http.NewRequest("POST", agent.Registration.URL+"/v2/agents", bytes.NewBuffer(b))
 		if err != nil {
 			log.Errorf("failed to issue POST %s/v2/agents: %s", agent.Registration.URL, err)
@@ -66,10 +65,16 @@ func (agent *Agent) Ping() {
 
 		res, err := client.Do(req)
 		if err != nil {
-			fmt.Errorf("failed to issue POST /v2/agents: %s", err)
+			log.Errorf("failed to issue POST /v2/agents: %s", err)
 			return
 		}
 
+		if res.StatusCode != 200 {
+			log.Errorf("pre-registration with %s failed; SHIELD Core responeded HTTP %s", agent.Registration.URL, res.Status)
+			return
+		}
+
+		log.Infof("pre-registered with %s as %s (port %d)", agent.Registration.URL, agent.Name, agent.Port)
 		log.Debugf("POST /v2/agents returned [%s]", res.Status)
 	}
 
