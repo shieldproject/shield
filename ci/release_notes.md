@@ -1,3 +1,20 @@
+# Improvements
+
+- Global Storage Systems are available for selection during the
+  backup configuration wizard in the web UI.
+
+- Storage systems now properly report their health to all
+  front-end views, fixing a few fixmes along the way.
+
+- Agents can now be resynchronized, in an ad hoc fashion, via the
+  admin backend on the web UI.
+
+- Jobs will have their 'next run' time re-calculated when their
+  schedule is changed.  Previously, the existing schedule was in
+  force until the first run after a schedule change, at which
+  point the new schedule kicked in.  This was weird, so we changed
+  it.
+
 # Bug Fixes
 
 - Fix an egregious bug in the scheduling logic that was only
@@ -22,23 +39,6 @@
   archives for the selected target system, instead of all of the
   archives every made for the tenant.  Turns out this was less
   than useful.
-
-# Improvements
-
-- Global Storage Systems are available for selection during the
-  backup configuration wizard in the web UI.
-
-- Storage systems now properly report their health to all
-  front-end views, fixing a few fixmes along the way.
-
-- Agents can now be resynchronized, in an ad hoc fashion, via the
-  admin backend on the web UI.
-
-- Jobs will have their 'next run' time re-calculated when their
-  schedule is changed.  Previously, the existing schedule was in
-  force until the first run after a schedule change, at which
-  point the new schedule kicked in.  This was weird, so we changed
-  it.
 
 # Developer Stuff
 
