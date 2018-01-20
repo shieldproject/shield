@@ -1156,6 +1156,16 @@ function dispatch(page) {
                 error: "Unable to "+action+" agent via the SHIELD API.",
                 success: function () { reload(); }
               });
+            } else if (action == 'resync') {
+              event.preventDefault();
+              api({
+                type: 'POST',
+                url:  '/v2/agents/'+$(event.target).extract('agent-uuid')+'/resync',
+                error: "Resynchronization request failed",
+                success: function () {
+                  banner("Resynchronization of agent underway");
+                }
+              });
             }
           }));
       }

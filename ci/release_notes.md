@@ -26,6 +26,9 @@
 - Storage systems now properly report their health to all
   front-end views, fixing a few fixmes along the way.
 
+- Agents can now be resynchronized, in an ad hoc fashion, via the
+  admin backend on the web UI.
+
 # Developer Stuff
 
 - `bin/testdev` now runs a WebDAV service on the nginx reverse

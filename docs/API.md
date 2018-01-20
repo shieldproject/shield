@@ -1958,6 +1958,60 @@ The following error messages can be returned:
   The request should not be retried.
 
 
+### POST /v2/agents/:uuid/resync
+
+Re-synchronize a SHIELD agent by immediately contacting it via the
+agent channel and interrogating it for status and metadata.  This
+allows administrators to force a re-check of an agent, regardless of
+slow loop scheduling.
+
+
+**Request**
+
+```sh
+curl -H 'Accept: application/json' \
+     -X POST https://shield.host/v2/agents/:uuid/resync \
+```
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+```json
+{
+  "ok" : "Ad hoc agent resynchronization underway"
+}
+```
+
+**Access Control**
+
+You must be authenticated to access this API endpoint.
+
+You must also have the `admin` system role.
+
+**Errors**
+
+The following error messages can be returned:
+
+- **Unable to retrieve agent information**:
+  an internal error occurred and should be investigated by the
+  site administrators
+
+- **No such agent**:
+  The requested agent UUID was not found in the list
+  of registered agents.
+
+- **Authorization required**:
+  The request was made without an authenticated session or auth token.
+  See **Authentication** for more details.  The request may be retried
+  after authentication.
+
+- **Access denied**:
+  The requester lacks sufficient tenant or system role assignment.
+  Refer to the **Access Control** subsection, above.
+  The request should not be retried.
+
+
 ### GET /v2/tenants/:tenant/agents
 
 Retrieves information about all registered SHIELD Agents,

@@ -1429,6 +1429,35 @@ sections:
 
 
       # }}}
+      - name: POST /v2/agents/:uuid/resync # {{{
+        intro: |
+          Re-synchronize a SHIELD agent by immediately contacting it via the
+          agent channel and interrogating it for status and metadata.  This
+          allows administrators to force a re-check of an agent, regardless of
+          slow loop scheduling.
+        access: [system, admin]
+
+        request:
+          json: ~
+        response:
+          json: |
+            {
+              "ok" : "Ad hoc agent resynchronization underway"
+            }
+
+
+        errors:
+          - message: Unable to retrieve agent information
+            summary: *internal
+
+          - message: No such agent
+            summary: |
+              The requested agent UUID was not found in the list
+              of registered agents.
+
+
+
+      # }}}
       - name: GET /v2/tenants/:tenant/agents # {{{
         intro: |
           Retrieves information about all registered SHIELD Agents,

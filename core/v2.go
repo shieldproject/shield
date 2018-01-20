@@ -1045,6 +1045,25 @@ func (core *Core) v2API() *route.Router {
 		}
 	})
 	// }}}
+	r.Dispatch("POST /v2/agents/:uuid/resync", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+
+		agent, err := core.DB.GetAgent(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+		if agent == nil {
+			r.Fail(route.NotFound(nil, "No such agent"))
+			return
+		}
+
+		core.checkAgents([]*db.Agent{agent})
+		r.Success("Ad hoc agent resynchronization underway")
+	})
+	// }}}
 
 	r.Dispatch("GET /v2/tenants", func(r *route.Request) { // {{{
 		if core.IsNotSystemManager(r) {
