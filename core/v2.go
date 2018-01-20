@@ -2018,6 +2018,11 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		if _, err := timespec.Parse(in.Schedule); err != nil {
+			r.Fail(route.Oops(err, "Invalid or malformed SHIELD Job Schedule '%s'", in.Schedule))
+			return
+		}
+
 		job, err := core.DB.CreateJob(&db.Job{
 			TenantUUID: uuid.Parse(r.Args[1]),
 			Name:       in.Name,
@@ -2092,6 +2097,10 @@ func (core *Core) v2API() *route.Router {
 			job.Summary = in.Summary
 		}
 		if in.Schedule != "" {
+			if _, err := timespec.Parse(in.Schedule); err != nil {
+				r.Fail(route.Oops(err, "Invalid or malformed SHIELD Job Schedule '%s'", in.Schedule))
+				return
+			}
 			job.Schedule = in.Schedule
 		}
 		job.TargetUUID = job.Target.UUID
@@ -2106,7 +2115,6 @@ func (core *Core) v2API() *route.Router {
 		if in.PolicyUUID != "" {
 			job.PolicyUUID = uuid.Parse(in.PolicyUUID)
 		}
-
 		if in.FixedKey != nil {
 			job.FixedKey = *in.FixedKey
 		}

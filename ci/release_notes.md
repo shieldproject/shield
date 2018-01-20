@@ -13,6 +13,11 @@
   the task scheduled to run the restore, rather than the cryptic
   (and oh-so-unhelpful) string "%s!:bool=true"
 
+- Neither `shield create-job`, nor `shield update-job` will allow
+  you to create (or modify) jobs to have invalid, unparseable
+  schedules.  This will keep the CLI from accidentally creating
+  schedules that the web UI can't process.
+
 # Improvements
 
 - Global Storage Systems are available for selection during the
