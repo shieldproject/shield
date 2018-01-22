@@ -59,9 +59,9 @@ USAGE: @G{shield} create-job --tenant @Y{TENANT} [OPTIONS]
 
   Here are some examples.
 
-    @C{daily 4am}          Runs every day at 4:00 in the morning.
+    @C{daily 4am}           Runs every day at 4:00 in the morning.
 
-    @C{every 2h at 0:15}   Run at 0:15, 2:15, 4:15, etc...
+    @C{every 2h from 0:15}  Run at 0:15, 2:15, 4:15, etc...
 
-    @C{sundays at 16:32}   Runs weekly, on Sundays, at 4:32 in the afternoon.
+    @C{sundays at 16:32}    Runs weekly, on Sundays, at 4:32 in the afternoon.
 
