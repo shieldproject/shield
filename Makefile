@@ -49,6 +49,7 @@ plugins:
 	go $(BUILD_TYPE) ./plugin/consul-snapshot
 	go $(BUILD_TYPE) ./plugin/mongo
 	go $(BUILD_TYPE) ./plugin/google
+	go $(BUILD_TYPE) ./plugin/cassandra
 
 clean:
 	rm shieldd shield-agent shield-schema shield
@@ -104,6 +105,7 @@ release:
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul"            ./plugin/consul
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul-snapshot"   ./plugin/consul-snapshot
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/xtrabackup"        ./plugin/xtrabackup
+	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/cassandra"            ./plugin/cassandra
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/google"            ./plugin/google
 
 	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
