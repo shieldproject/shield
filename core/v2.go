@@ -767,17 +767,56 @@ func (core *Core) v2API() *route.Router {
 		for _, archive := range aa {
 			archives[archive.UUID.String()] = archive
 		}
+		// check to see if we're offseting task requests
+		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
 
-		tasks, err := core.DB.GetAllTasks(
-			&db.TaskFilter{
+		var filter db.TaskFilter
+		if paginationDate > 0 {
+			filter = db.TaskFilter{
+				ForTarget:         target.UUID.String(),
+				OnlyRelevant:      true,
+				BeforeCreatedDate: paginationDate,
+				Limit:             30,
+			}
+		} else {
+			filter = db.TaskFilter{
 				ForTarget:    target.UUID.String(),
 				OnlyRelevant: true,
-			},
-		)
+				Limit:        30,
+			}
+		}
+
+		tasks, err := core.DB.GetAllTasks(&filter)
+
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
+
+		//check if there's more tasks on the specific last date and append if so
+		if len(tasks) > 0 {
+			appendingtasks, err := core.DB.GetAllTasks(
+				&db.TaskFilter{
+					ForTarget:    target.UUID.String(),
+					OnlyRelevant: true,
+					CreatedDate:  tasks[len(tasks)-1].RequestedAt,
+				},
+			)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve system information"))
+				return
+			}
+			if (len(appendingtasks) > 1) && (tasks[len(tasks)-1].UUID.String() != appendingtasks[len(appendingtasks)-1].UUID.String()) {
+				log.Infof("Got a misjointed request, need to merge these two arrays.")
+				for i, task := range appendingtasks {
+					if task.UUID.String() == tasks[len(tasks)-1].UUID.String() {
+						tasks = append(tasks, appendingtasks[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+
 		system.Tasks = make([]v2SystemTask, len(tasks))
 		for i, task := range tasks {
 			system.Tasks[i].UUID = task.UUID
@@ -2293,22 +2332,38 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		limit, err := strconv.Atoi(r.Param("limit", "0"))
-		if err != nil || limit < 0 {
+		limit, err := strconv.Atoi(r.Param("limit", "30"))
+		if err != nil || limit < 0 || limit > 30 {
 			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}
 
-		tasks, err := core.DB.GetAllTasks(
-			&db.TaskFilter{
+		// check to see if we're offseting task requests
+		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
+
+		var filter db.TaskFilter
+		if paginationDate > 0 {
+			filter = db.TaskFilter{
+				SkipActive:        r.ParamIs("active", "f"),
+				SkipInactive:      r.ParamIs("active", "t"),
+				ForStatus:         r.Param("status", ""),
+				ForTarget:         r.Param("target", ""),
+				ForTenant:         r.Args[1],
+				Limit:             limit,
+				BeforeCreatedDate: paginationDate,
+			}
+		} else {
+			filter = db.TaskFilter{
 				SkipActive:   r.ParamIs("active", "f"),
 				SkipInactive: r.ParamIs("active", "t"),
 				ForStatus:    r.Param("status", ""),
 				ForTarget:    r.Param("target", ""),
 				ForTenant:    r.Args[1],
 				Limit:        limit,
-			},
-		)
+			}
+		}
+
+		tasks, err := core.DB.GetAllTasks(&filter)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve task information"))
 			return

@@ -59,16 +59,18 @@ type TaskInfo struct {
 }
 
 type TaskFilter struct {
-	UUID         string
-	SkipActive   bool
-	SkipInactive bool
-	OnlyRelevant bool
-	ForOp        string
-	ForTenant    string
-	ForTarget    string
-	ForStatus    string
-	ForArchive   string
-	Limit        int
+	UUID              string
+	SkipActive        bool
+	SkipInactive      bool
+	OnlyRelevant      bool
+	ForOp             string
+	ForTenant         string
+	ForTarget         string
+	ForStatus         string
+	ForArchive        string
+	Limit             int
+	CreatedDate       int64
+	BeforeCreatedDate int64
 	// FIXME: add options for store
 }
 
@@ -120,6 +122,16 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	if f.ForTarget != "" {
 		wheres = append(wheres, "t.target_uuid = ?")
 		args = append(args, f.ForTarget)
+	}
+
+	if f.BeforeCreatedDate > 0 {
+		wheres = append(wheres, "t.requested_at < ?")
+		args = append(args, f.BeforeCreatedDate)
+	}
+
+	if f.CreatedDate > 0 {
+		wheres = append(wheres, "t.requested_at = ?")
+		args = append(args, f.CreatedDate)
 	}
 
 	limit := ""
@@ -229,12 +241,12 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
-			 target_uuid, target_plugin, target_endpoint, restore_key, 
+			 target_uuid, target_plugin, target_endpoint, restore_key,
 			 agent, attempts, tenant_uuid, fixed_key)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
-			 ?, ?, ?, ?, 
+			 ?, ?, ?, ?,
 			 ?, ?, ?, ?)`,
 		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		job.Store.UUID.String(), job.Store.Plugin, job.Store.Endpoint,
@@ -317,7 +329,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 			 attempts, tenant_uuid, owner)
 		 VALUES
 			(?, ?, ?, ?, ?,
-			 ?, ?, ?, ?, 
+			 ?, ?, ?, ?,
 			 ?, ?, ?)`,
 		id.String(), TestStoreOperation,
 		store.UUID.String(), store.Plugin, endpoint,
