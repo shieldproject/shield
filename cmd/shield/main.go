@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	fmt "github.com/jhunt/go-ansi"
 	"github.com/jhunt/go-cli"
@@ -278,12 +279,13 @@ var opts struct {
 	/* }}} */
 	/* TASKS {{{ */
 	Tasks struct {
-		Status   string `cli:"-s, --status"`
-		Active   bool   `cli:"--active"`
-		Inactive bool   `cli:"--inactive"`
-		All      bool   `cli:"-a, --all"`
-		Target   string `cli:"--target"`
-		Limit    int    `cli:"-l, --limit"`
+		Status            string `cli:"-s, --status"`
+		Active            bool   `cli:"--active"`
+		Inactive          bool   `cli:"--inactive"`
+		All               bool   `cli:"-a, --all"`
+		Target            string `cli:"--target"`
+		Limit             int    `cli:"-l, --limit"`
+		BeforeCreatedDate string `cli:"--before"`
 	} `cli:"tasks"`
 	Task       struct{} `cli:"task"`
 	CancelTask struct{} `cli:"cancel"`
@@ -2607,10 +2609,6 @@ func main() {
 			"The --all and --active options are mutually exclusive.")
 		required(len(args) <= 0, "Too many arguments.")
 
-		if opts.Tasks.Limit == 0 {
-			opts.Tasks.Limit = 1000 /* arbitrary upper-limit */
-		}
-
 		switch opts.Tasks.Status {
 		case "":
 			/* not specified; which is ok... */
@@ -2635,11 +2633,20 @@ func main() {
 			opts.Tasks.Target = t.UUID
 		}
 
-		filter := &shield.TaskFilter{
-			Status: opts.Tasks.Status,
-			Limit:  &opts.Tasks.Limit,
-			Target: opts.Tasks.Target,
+		var timeBefore int64
+		if opts.Tasks.BeforeCreatedDate != "" {
+			timeBefore = strptime(opts.Tasks.BeforeCreatedDate)
+		} else {
+			timeBefore = time.Now().Unix()
 		}
+
+		filter := &shield.TaskFilter{
+			Status:            opts.Tasks.Status,
+			Limit:             &opts.Tasks.Limit,
+			Target:            opts.Tasks.Target,
+			BeforeCreatedDate: timeBefore,
+		}
+
 		if opts.Tasks.Active || opts.Tasks.Inactive {
 			filter.Active = &opts.Tasks.Active
 		}
@@ -2647,13 +2654,34 @@ func main() {
 		tasks, err := c.ListTasks(tenant, filter)
 		bail(err)
 
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(tasks))
-			break
+		if opts.Tasks.Limit > 30 {
+			for i := 0; i < opts.Tasks.Limit/30; i++ {
+				filter := &shield.TaskFilter{
+					Status:            opts.Tasks.Status,
+					Limit:             &opts.Tasks.Limit,
+					Target:            opts.Tasks.Target,
+					BeforeCreatedDate: timeBefore,
+				}
+
+				if opts.Tasks.Active || opts.Tasks.Inactive {
+					filter.Active = &opts.Tasks.Active
+				}
+
+				sometasks, err := c.ListTasks(tenant, filter)
+				bail(err)
+				//current request smaller than API limit means we're EoDB
+				if len(sometasks) < 30 {
+					break
+				}
+
+				tasks = append(tasks, sometasks...)
+				timeBefore = tasks[len(tasks)-1].CreatedAt
+				time.Sleep(100 * time.Millisecond)
+			}
 		}
 
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Type", "Status", "Owner", "Started at", "Completed at")
+		tbl := tui.NewTable("UUID", "Type", "Status", "Owner", "Created at", "Started at", "Completed at")
 		for _, task := range tasks {
 			started := "(pending)"
 			stopped := "(not yet started)"
@@ -2664,7 +2692,7 @@ func main() {
 			if task.StoppedAt != 0 {
 				stopped = strftime(task.StoppedAt)
 			}
-			tbl.Row(task, task.UUID, task.Type, task.Status, task.Owner, started, stopped)
+			tbl.Row(task, task.UUID, task.Type, task.Status, task.Owner, strftime(task.CreatedAt), started, stopped)
 		}
 		tbl.Output(os.Stdout)
 
