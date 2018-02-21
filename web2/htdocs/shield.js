@@ -1981,6 +1981,7 @@ function dispatch(page) {
       error: "Failed retrieving metadata for protected system from the SHIELD API.",
       success: function (data) {
         $('#main').html(template('system', { target: data }));
+        time_of_oldest_task = data["tasks"][data.tasks.length-1]["requested_at"]
         watchTasks($global.auth.tenant.uuid, data.uuid, function (r) {
           task = JSON.parse(r.data);
           for (var i = 0; i < data.tasks.length; i++) {
@@ -1992,6 +1993,22 @@ function dispatch(page) {
           }
           data.tasks.unshift(task);
           $('#main').html(template('system', { target: data }));
+        });
+        $(document.body).on('click', 'a[href^="load_more"]', function (event) {
+          event.preventDefault();
+          api({
+            type: 'GET',
+            url: '/v2/tenants/' + $global.auth.tenant.uuid + '/systems/' + args.uuid + '?before=' + time_of_oldest_task,
+            error: "Failed retrieving metadata for protected system from the SHIELD API.",
+            success: function (older_tasks) {
+              data.tasks = $.merge(data.tasks, older_tasks.tasks);
+              $('#main').html(template('system', { target: data }));
+              time_of_oldest_task = data["tasks"][data.tasks.length - 1]["requested_at"]
+              if (older_tasks.tasks.length == 0)  {
+                $(".paginated-loading").remove();
+              }
+            }
+          });
         });
       }
     });
