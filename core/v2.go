@@ -826,7 +826,33 @@ func (core *Core) v2API() *route.Router {
 		go socket.Discard()
 		for event := range in {
 			if event.Task != nil && event.Task.TenantUUID.String() == r.Args[1] && event.Task.TargetUUID.String() == r.Args[2] {
-				socket.Write(event.JSON)
+				var task v2SystemTask
+				task.UUID = event.Task.UUID
+				task.Type = event.Task.Op
+				task.Status = event.Task.Status
+				task.Owner = event.Task.Owner
+				task.OK = event.Task.OK
+				task.Notes = event.Task.Notes
+				task.RequestedAt = event.Task.RequestedAt
+				task.StartedAt = event.Task.StartedAt
+				task.StoppedAt = event.Task.StoppedAt
+				task.Log = event.Task.Log
+
+				if event.Task.ArchiveUUID != nil {
+					task.Archive = &v2SystemArchive{
+						UUID:     event.Task.ArchiveUUID,
+						Schedule: "FIXME",
+						Expiry:   -1,
+						Notes:    event.Task.Notes,
+						Size:     -1, // FIXME
+					}
+				}
+
+				output_event, err := json.Marshal(task)
+				if err != nil {
+					log.Errorf("unable to marshal JSON: %s", err)
+				}
+				socket.Write(output_event)
 			}
 		}
 		if err := core.broadcast.Unregister(id); err != nil {
