@@ -767,17 +767,47 @@ func (core *Core) v2API() *route.Router {
 		for _, archive := range aa {
 			archives[archive.UUID.String()] = archive
 		}
+		// check to see if we're offseting task requests
+		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
 				ForTarget:    target.UUID.String(),
 				OnlyRelevant: true,
+				Before:       paginationDate,
+				Limit:        30,
 			},
 		)
+
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
+
+		//check if there's more tasks on the specific last date and append if so
+		if len(tasks) > 0 {
+			appendingtasks, err := core.DB.GetAllTasks(
+				&db.TaskFilter{
+					ForTarget:    target.UUID.String(),
+					OnlyRelevant: true,
+					RequestedAt:  tasks[len(tasks)-1].RequestedAt,
+				},
+			)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve system information"))
+				return
+			}
+			if (len(appendingtasks) > 1) && (tasks[len(tasks)-1].UUID.String() != appendingtasks[len(appendingtasks)-1].UUID.String()) {
+				log.Infof("Got a misjointed request, need to merge these two arrays.")
+				for i, task := range appendingtasks {
+					if task.UUID.String() == tasks[len(tasks)-1].UUID.String() {
+						tasks = append(tasks, appendingtasks[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+
 		system.Tasks = make([]v2SystemTask, len(tasks))
 		for i, task := range tasks {
 			system.Tasks[i].UUID = task.UUID
@@ -2319,11 +2349,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		limit, err := strconv.Atoi(r.Param("limit", "0"))
-		if err != nil || limit < 0 {
+		limit, err := strconv.Atoi(r.Param("limit", "30"))
+		if err != nil || limit < 0 || limit > 30 {
 			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}
+
+		// check to see if we're offseting task requests
+		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
@@ -2333,6 +2366,7 @@ func (core *Core) v2API() *route.Router {
 				ForTarget:    r.Param("target", ""),
 				ForTenant:    r.Args[1],
 				Limit:        limit,
+				Before:       paginationDate,
 			},
 		)
 		if err != nil {

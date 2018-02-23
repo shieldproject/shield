@@ -69,6 +69,8 @@ type TaskFilter struct {
 	ForStatus    string
 	ForArchive   string
 	Limit        int
+	RequestedAt  int64
+	Before       int64
 	// FIXME: add options for store
 }
 
@@ -120,6 +122,16 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	if f.ForTarget != "" {
 		wheres = append(wheres, "t.target_uuid = ?")
 		args = append(args, f.ForTarget)
+	}
+
+	if f.Before > 0 {
+		wheres = append(wheres, "t.requested_at < ?")
+		args = append(args, f.Before)
+	}
+
+	if f.RequestedAt > 0 {
+		wheres = append(wheres, "t.requested_at = ?")
+		args = append(args, f.RequestedAt)
 	}
 
 	limit := ""

@@ -123,6 +123,18 @@ func strftime(t int64) string {
 	return time.Unix(t, 0).Format(f)
 }
 
+func strptime(t string) int64 {
+	f := os.Getenv("SHIELD_DATE_FORMAT")
+	if f == "" {
+		f = "2006-01-02 15:04:05-0700"
+	}
+	u, err := time.Parse(f, t)
+	if err != nil {
+		bail(err)
+	}
+	return u.Unix()
+}
+
 func strftimenil(t int64, ifnil string) string {
 	if t == 0 {
 		return ifnil
