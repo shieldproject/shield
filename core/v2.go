@@ -770,23 +770,14 @@ func (core *Core) v2API() *route.Router {
 		// check to see if we're offseting task requests
 		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
 
-		var filter db.TaskFilter
-		if paginationDate > 0 {
-			filter = db.TaskFilter{
+		tasks, err := core.DB.GetAllTasks(
+			&db.TaskFilter{
 				ForTarget:    target.UUID.String(),
 				OnlyRelevant: true,
 				Before:       paginationDate,
 				Limit:        30,
-			}
-		} else {
-			filter = db.TaskFilter{
-				ForTarget:    target.UUID.String(),
-				OnlyRelevant: true,
-				Limit:        30,
-			}
-		}
-
-		tasks, err := core.DB.GetAllTasks(&filter)
+			},
+		)
 
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
