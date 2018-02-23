@@ -13,7 +13,7 @@ type Task struct {
 	Owner       string `json:"owner"`
 	StartedAt   int64  `json:"started_at"`
 	StoppedAt   int64  `json:"stopped_at"`
-	CreatedAt   int64  `json:"requested_at"`
+	RequestedAt int64  `json:"requested_at"`
 	Log         string `json:"log"`
 	OK          bool   `json:"ok"`
 	Notes       string `json:"notes"`
@@ -23,12 +23,12 @@ type Task struct {
 }
 
 type TaskFilter struct {
-	Status            string `qs:"status"`
-	Active            *bool  `qs:"active:t:f"`
-	Debug             *bool  `qs:"debug:t:f"`
-	Limit             *int   `qs:limit`
-	Target            string `qs:"target"`
-	BeforeCreatedDate int64  `qs:"before"`
+	Status string `qs:"status"`
+	Active *bool  `qs:"active:t:f"`
+	Debug  *bool  `qs:"debug:t:f"`
+	Limit  *int   `qs:limit`
+	Target string `qs:"target"`
+	Before int64  `qs:"before"`
 }
 
 func fixupTaskResponse(p *Task) {

@@ -773,10 +773,10 @@ func (core *Core) v2API() *route.Router {
 		var filter db.TaskFilter
 		if paginationDate > 0 {
 			filter = db.TaskFilter{
-				ForTarget:         target.UUID.String(),
-				OnlyRelevant:      true,
-				BeforeCreatedDate: paginationDate,
-				Limit:             30,
+				ForTarget:    target.UUID.String(),
+				OnlyRelevant: true,
+				Before:       paginationDate,
+				Limit:        30,
 			}
 		} else {
 			filter = db.TaskFilter{
@@ -799,7 +799,7 @@ func (core *Core) v2API() *route.Router {
 				&db.TaskFilter{
 					ForTarget:    target.UUID.String(),
 					OnlyRelevant: true,
-					CreatedDate:  tasks[len(tasks)-1].RequestedAt,
+					RequestedAt:  tasks[len(tasks)-1].RequestedAt,
 				},
 			)
 			if err != nil {
@@ -2341,29 +2341,17 @@ func (core *Core) v2API() *route.Router {
 		// check to see if we're offseting task requests
 		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
 
-		var filter db.TaskFilter
-		if paginationDate > 0 {
-			filter = db.TaskFilter{
-				SkipActive:        r.ParamIs("active", "f"),
-				SkipInactive:      r.ParamIs("active", "t"),
-				ForStatus:         r.Param("status", ""),
-				ForTarget:         r.Param("target", ""),
-				ForTenant:         r.Args[1],
-				Limit:             limit,
-				BeforeCreatedDate: paginationDate,
-			}
-		} else {
-			filter = db.TaskFilter{
+		tasks, err := core.DB.GetAllTasks(
+			&db.TaskFilter{
 				SkipActive:   r.ParamIs("active", "f"),
 				SkipInactive: r.ParamIs("active", "t"),
 				ForStatus:    r.Param("status", ""),
 				ForTarget:    r.Param("target", ""),
 				ForTenant:    r.Args[1],
 				Limit:        limit,
-			}
-		}
-
-		tasks, err := core.DB.GetAllTasks(&filter)
+				Before:       paginationDate,
+			},
+		)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve task information"))
 			return

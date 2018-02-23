@@ -59,18 +59,18 @@ type TaskInfo struct {
 }
 
 type TaskFilter struct {
-	UUID              string
-	SkipActive        bool
-	SkipInactive      bool
-	OnlyRelevant      bool
-	ForOp             string
-	ForTenant         string
-	ForTarget         string
-	ForStatus         string
-	ForArchive        string
-	Limit             int
-	CreatedDate       int64
-	BeforeCreatedDate int64
+	UUID         string
+	SkipActive   bool
+	SkipInactive bool
+	OnlyRelevant bool
+	ForOp        string
+	ForTenant    string
+	ForTarget    string
+	ForStatus    string
+	ForArchive   string
+	Limit        int
+	RequestedAt  int64
+	Before       int64
 	// FIXME: add options for store
 }
 
@@ -124,14 +124,14 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		args = append(args, f.ForTarget)
 	}
 
-	if f.BeforeCreatedDate > 0 {
+	if f.Before > 0 {
 		wheres = append(wheres, "t.requested_at < ?")
-		args = append(args, f.BeforeCreatedDate)
+		args = append(args, f.Before)
 	}
 
-	if f.CreatedDate > 0 {
+	if f.RequestedAt > 0 {
 		wheres = append(wheres, "t.requested_at = ?")
-		args = append(args, f.CreatedDate)
+		args = append(args, f.RequestedAt)
 	}
 
 	limit := ""

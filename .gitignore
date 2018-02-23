@@ -58,6 +58,3 @@ demo/shield-agent/in
 demo/shield-core/in
 demo/shared
 demo/cached
-
-# ignore local text editor project files
-.vscode

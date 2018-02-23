@@ -279,13 +279,13 @@ var opts struct {
 	/* }}} */
 	/* TASKS {{{ */
 	Tasks struct {
-		Status            string `cli:"-s, --status"`
-		Active            bool   `cli:"--active"`
-		Inactive          bool   `cli:"--inactive"`
-		All               bool   `cli:"-a, --all"`
-		Target            string `cli:"--target"`
-		Limit             int    `cli:"-l, --limit"`
-		BeforeCreatedDate string `cli:"--before"`
+		Status   string `cli:"-s, --status"`
+		Active   bool   `cli:"--active"`
+		Inactive bool   `cli:"--inactive"`
+		All      bool   `cli:"-a, --all"`
+		Target   string `cli:"--target"`
+		Limit    int    `cli:"-l, --limit"`
+		Before   string `cli:"--before"`
 	} `cli:"tasks"`
 	Task       struct{} `cli:"task"`
 	CancelTask struct{} `cli:"cancel"`
@@ -2634,17 +2634,17 @@ func main() {
 		}
 
 		var timeBefore int64
-		if opts.Tasks.BeforeCreatedDate != "" {
-			timeBefore = strptime(opts.Tasks.BeforeCreatedDate)
+		if opts.Tasks.Before != "" {
+			timeBefore = strptime(opts.Tasks.Before)
 		} else {
 			timeBefore = time.Now().Unix()
 		}
 
 		filter := &shield.TaskFilter{
-			Status:            opts.Tasks.Status,
-			Limit:             &opts.Tasks.Limit,
-			Target:            opts.Tasks.Target,
-			BeforeCreatedDate: timeBefore,
+			Status: opts.Tasks.Status,
+			Limit:  &opts.Tasks.Limit,
+			Target: opts.Tasks.Target,
+			Before: timeBefore,
 		}
 
 		if opts.Tasks.Active || opts.Tasks.Inactive {
@@ -2657,10 +2657,10 @@ func main() {
 		if opts.Tasks.Limit > 30 {
 			for i := 0; i < opts.Tasks.Limit/30; i++ {
 				filter := &shield.TaskFilter{
-					Status:            opts.Tasks.Status,
-					Limit:             &opts.Tasks.Limit,
-					Target:            opts.Tasks.Target,
-					BeforeCreatedDate: timeBefore,
+					Status: opts.Tasks.Status,
+					Limit:  &opts.Tasks.Limit,
+					Target: opts.Tasks.Target,
+					Before: timeBefore,
 				}
 
 				if opts.Tasks.Active || opts.Tasks.Inactive {
@@ -2675,13 +2675,18 @@ func main() {
 				}
 
 				tasks = append(tasks, sometasks...)
-				timeBefore = tasks[len(tasks)-1].CreatedAt
+				timeBefore = tasks[len(tasks)-1].RequestedAt
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
 
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(tasks))
+			break
+		}
+
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Type", "Status", "Owner", "Created at", "Started at", "Completed at")
+		tbl := tui.NewTable("UUID", "Type", "Status", "Owner", "Requested at", "Started at", "Completed at")
 		for _, task := range tasks {
 			started := "(pending)"
 			stopped := "(not yet started)"
@@ -2692,7 +2697,7 @@ func main() {
 			if task.StoppedAt != 0 {
 				stopped = strftime(task.StoppedAt)
 			}
-			tbl.Row(task, task.UUID, task.Type, task.Status, task.Owner, strftime(task.CreatedAt), started, stopped)
+			tbl.Row(task, task.UUID, task.Type, task.Status, task.Owner, strftime(task.RequestedAt), started, stopped)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2995,7 +3000,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Account", "Created At", "Last Seen", "IP Address", "User Agent")
+		tbl := tui.NewTable("UUID", "Account", "Requested At", "Last Seen", "IP Address", "User Agent")
 		for _, session := range sessions {
 			tbl.Row(session, session.UUID, session.UserAccount, strftime(session.CreatedAt), strftimenil(session.LastSeen, "(nerver)"), session.IP, session.UserAgent)
 		}
