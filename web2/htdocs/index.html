@@ -246,7 +246,7 @@
     <script type="text/html" id="tpl--fixedkey"><!-- {{{ -->
         [[#
           {fixedkey} template
-
+  
           Displays the Shield Fixed Key, so that operators can restore
           fixed-key backups in the event of a disaster.
         ]]
@@ -256,11 +256,11 @@
                 <div class="dialog">
                   <h2>Shield Fixed Key</h2>
                   <img src="/i/terminal.png" class="highlight">
-
+  
                   <p>Here is your SHIELD Fixed Key:</p>
-
+  
                   <pre id="fixedkey">[[= _.fixed_key ]]</pre>
-
+  
                   <p id="dr-explain">
                     You will need to save this key in a secure location
                     for use in recovery of fixed-key backups in a disaster scenario.
@@ -340,7 +340,7 @@
             <!--
             [[ if (_.tenant && $global.auth.is.tenant[_.tenant.uuid].admin) { ]]
                 <div class="divider"></div>
-                <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a>
+                <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a> 
             [[ } ]]
             -->
             <div class="divider"></div>
@@ -568,7 +568,7 @@
                  you should have this level of access.</p>
             [[ } else if (want == 'generic/elevated') { ]]
                  <p>This part of SHIELD requires <strong>elevated</strong> access.</p>
-                 <p>Please consult your administrators if you believe you should
+                 <p>Please consult your administrators if you believe you should 
                  have this level of access.</p>
             [[ } else { ]]
                  <p>This part of SHIELD requires <strong>[[= _.level ]]/[[= _.need ]]</strong>
@@ -1063,7 +1063,7 @@
                 <label for="target-fixed-key">Fixed-Key Encryption?</label>
                 <div class="widget">
                     <input id="large-checkbox" name='fixed_key' type='checkbox' value="true" />
-                    <p class-"help">Select if backups should use the Fixed Key for encryption.
+                    <p class-"help">Select if backups should use the Fixed Key for encryption. 
                     (Required for backups of Shield itself) </p>
                 </div>
             </div>
@@ -1532,10 +1532,7 @@
             [[ } else { ]]
             <div class="no-data">No backups or restores have been performed.</div>
             [[ } ]]
-            <a class="paginated-loading" href="load_more">
-             Load More
-            </a>
-
+            <a class="paginated-loading" href="load_more">Load More</a>
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--task"><!-- {{{ -->
@@ -2182,8 +2179,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
               [[ if ($global.auth.is.system.admin) { ]]
               <li><a href="#!/admin/sessions">Manage User Sessions</a>
-                <p>Upon login, users are granted a session token to be used for the duration of
-                    their access. These sessions can be revoked via this interface, or expire
+                <p>Upon login, users are granted a session token to be used for the duration of 
+                    their access. These sessions can be revoked via this interface, or expire 
                     naturally over time requiring the user to reauthenticate.
                 </p>
               </li>
@@ -2580,7 +2577,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/html" id="tpl--sessions"><!-- {{{ -->
         [[#
           {sessions} template
-
+  
           Renders the list of all current user sessions
         ]]
             <div class="gutter blk">
@@ -2617,17 +2614,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/html" id="tpl--sessions-delete"><!-- {{{ -->
         [[#
           {sessions-delete}
-
+  
           A modal interaction screen that requires the operator to acknowledge
           that what they are about to do will result in the destruction of
           session data.
         ]]
             <div class="confirm">
               <h2>Delete The Session For Account:<em>[[= _.session.user_account ]]</em>?</h2>
-
+  
               <p>You have requested that S.H.I.E.L.D. remove the session for
               the account "[[= _.session.user_account ]]".</p>
-
+  
               <p class="q">Are you sure you want to delete the session for <em>[[= _.session.user_account ]]</em>?</p>
               <div class="a">
                 <button class="danger" rel="yes">Yes, Delete It</button>
