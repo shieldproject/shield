@@ -3,6 +3,8 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -2585,6 +2587,57 @@ func (core *Core) v2API() *route.Router {
 		r.OK(task)
 	})
 	// }}}
+
+	/* This following route is an out-of-band task that self-restores SHIELD if chosen
+	to during the initialization of SHIELD */
+	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+		file, header, err := r.Req.FormFile("archive")
+
+		fmt.Printf(header.Filename)
+
+		f, err := os.Create("/tmp/bootstrap.restore")
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+
+		io.Copy(f, file)
+
+		if err := f.Sync(); err != nil {
+			panic(err)
+		}
+
+		stdout := make(chan string, 1)
+		stderr := make(chan string)
+		go func() {
+			for s := range stderr {
+				log.Errorf(s)
+			}
+		}()
+
+		/* out-of-band task run to restore SHIELD. /var/vcap/store/shield is hardcoded,
+		as it's assumed that this is a BOSH release */
+		err2 := core.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
+			Op:             db.RestoreOperation,
+			TargetPlugin:   "fs",
+			TargetEndpoint: "{\"base_dir\":\"/var/vcap/store/shield/\",\"bsdtar\":\"bsdtar\"}",
+			StorePlugin:    "fs",
+			StoreEndpoint:  "{\"base_dir\": \"/tmp/\", \"bsdtar\": \"bsdtar\"}",
+			RestoreKey:     "bootstrap.restore",
+			EncryptType:    "aes256-ctr",
+			EncryptKey:     core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[:32], 4),
+			EncryptIV:      core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[32:], 4),
+		})
+
+		if err2 != nil {
+			r.Fail(route.Oops(err2, "SHIELD Restore Failed. You may be in a broken state."))
+		}
+
+		r.Success("SHIELD successfully restored")
+	})
 
 	r.Dispatch("POST /v2/auth/login", func(r *route.Request) { // {{{
 		var in struct {

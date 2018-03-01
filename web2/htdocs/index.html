@@ -216,6 +216,65 @@
             </div>
           </div>
     <!-- }}} --></script>
+    <script type="text/html" id="tpl--init"><!-- {{{ -->
+          [[#
+            {init} template
+    
+            Displays the initialization template screen (displayed after login on an uninitialized SHIELD)
+          ]]
+              <div id="initialize" class="frontdoor">
+                  <h1>SHIELD<span style="color: [[= $global.shield.color || 'green' ]]">[[= $global.shield.env ]]<span></h1>
+                  <div class="dialog">
+                    <p class="motd">[[= $global.shield.motd ]]</p>
+                    <div class="restore">
+                       <h2>Restore SHIELD</h2>
+                        <p class="divert">If you'd like to initialize this SHIELD installation with a previous SHIELD self-backup, provide the archive file and the fixed key used to encrypt the backup. </p>
+                          <form id="restore">
+                        <div class="error"></div>
+                        <div class="ctl" data-field="file">
+                          <label for="archive">SHIELD Backup
+                            <div class="file-upload">Select Archive</div>
+                          </label>
+                           <input type="file" id="archive" name="archive">
+                          <!-- <div class="errors">
+                            <span data-error="missing">Please supply your password.</span>
+                          </div> -->
+                        </div>
+                        <div class="ctl" data-field="password">
+                          <label for="encryption-key">Fixed Key</label>
+                          <div class="errors">
+                            <span data-error="missing">Please supply your password.</span>
+                          </div>
+                          <input type="password" id="fixedkey" name="fixedkey">
+                        </div>
+                        <button>Set up</button>
+                      </form>
+                    </div>
+                    <div class="setpass">
+                      <h2>Initialize SHIELD</h2>
+                        <p class="divert">SHIELD maintains an internal encrypted vault of secrets, for protecting your data archives with strong encryption. This vault must be initialized, and protected with a new master password, before SHIELD will be able to use it</p>
+                      <form id="setpass">
+                        <div class="error"></div>
+                        <div class="ctl" data-field="password">
+                          <label for="masterpass">Master Password</label>
+                          <div class="errors">
+                            <span data-error="missing">Please supply your password.</span>
+                          </div>
+                          <input type="password" id="masterpass" name="masterpass">
+                        </div>
+                        <div class="ctl" data-field="password">
+                          <label for="masterpassconf">Confirm Password</label>
+                          <div class="errors">
+                            <span data-error="missing">Please supply your password.</span>
+                          </div>
+                          <input type="password" id="masterpassconf" name="masterpassconf">
+                        </div>
+                        <button>Set up</button>
+                      </form>
+                    </div>
+                  </div>
+              </div>
+        <!-- }}} --></script>
     <script type="text/html" id="tpl--cliauth"><!-- {{{ -->
       [[#
         {cliauth} template
@@ -577,50 +636,6 @@
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--init"><!-- {{{ -->
-      [[#
-        {init} template
-
-        Renders a form allowing administrators (sys_role = admin) to initialize
-        this SHIELD core.
-      ]]
-        <div class="gutter blk">
-          <h2>This SHIELD Core is UNINITIALIZED</h2>
-          <p>SHIELD maintains an internal encrypted vault of secrets, for protecting
-          your data archives with strong encryption.  This vault must be initialized,
-          and protected with a new master password, before SHIELD will be able to use
-          it.</p>
-
-          <form class="init-shield">
-            <div class="error"></div>
-
-            <div class="ctl" data-field="master">
-              <label for="init-master">Pick a Master Password</label>
-              <span class="errors">
-                <span data-error="missing">You must specify a master password</span>
-              </span>
-              <div class="widget">
-                <input type="password" id="init-master" name="master">
-              </div>
-            </div>
-
-            <div class="ctl" data-field="confirm">
-              <label for="init-confirm">Confirm</label>
-              <span class="errors">
-                <span data-error="missing">You must confirm your master password</span>
-                <span data-error="mismatch">Your passwords don't match</span>
-              </span>
-              <div class="widget">
-                <input type="password" id="init-confirm" name="confirm">
-                <p class="help">SHIELD will encrypt the secure storage vault using
-                the master password you choose, and then promptly forget it.</p>
-              </div>
-            </div>
-
-            <button class="go">Initialize</button>
-          </form>
-        </div>
-    <!-- }}} --></script>
     <script type="text/html" id="tpl--unlock"><!-- {{{ -->
       [[#
         {unlock} template

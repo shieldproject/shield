@@ -1416,6 +1416,77 @@ function dispatch(page) {
     })()
     break;
     // }}}
+    case "#!/init": /* {{{ */
+      (function () {
+        var progress = function (how) {
+          $('#viewport').find('#logging-in').remove();
+          $('#viewport').append(template('init'));
+        }
+
+        $('#viewport').html($(template('init'))
+          .on("submit", ".restore", function (event) {
+            event.preventDefault();
+            progress('Initializing SHIELD with prior backup');
+
+            var $form = $(event.target);
+            $global.form = $form;
+            var data = new FormData();
+            data.append("archive", $form[0].archive.files[0]);
+            data.append("fixedkey", $form[0].fixedkey.value);
+
+            $.ajax({
+              type: "POST",
+              url: "/v2/bootstrap/restore",
+              data: data,
+              cache: false,
+              contentType: false,
+              processData: false,
+              success: function () {
+                document.location.href = "/#!/login";
+              },
+              error: function (xhr) {
+                console.log("Failed.");
+              }
+            });
+          })
+          .on("submit", ".setpass", function (event) {
+            event.preventDefault();
+            console.log("I'm being run");
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+            if (data.masterpass == "") {
+              $form.error('master', 'missing');
+
+            } else if (data.masterpassconf == "") {
+              $form.error('confirm', 'missing');
+
+            } else if (data.masterpass != data.masterpassconf) {
+              $form.error('confirm', 'mismatch');
+            }
+
+            if (!$form.isOK()) {
+              return;
+            }
+            api({
+              type: 'POST',
+              url: '/v2/init',
+              data: { "master": data.masterpass },
+              success: function (data) {
+                console.log("success");
+                $('#viewport').html(template('fixedkey', data));
+              },
+              error: function (xhr) {
+                console.log("errored");
+              }
+            });
+          })
+        );
+        
+
+
+      })();
+      break; /* #!/login */
+    // }}}
 
   case "#!/do/backup": /* {{{ */
     if (!$global.auth.tenant) {
@@ -3258,48 +3329,6 @@ function dispatch(page) {
             $global.hud.health.core = "unlocked";
             $('#hud').html(template('hud', $global.hud));
             goto("");
-          }
-        });
-      }));
-    break;
-    // }}}
-  case "#!/init": /* {{{ */
-    if (!$global.auth.is.system.engineer) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
-      break;
-    }
-    $('#main').html($(template('init', {}))
-      .autofocus()
-      .on('submit', 'form', function (event) {
-        event.preventDefault();
-
-        var $form = $(event.target);
-        var data = $form.serializeObject();
-
-        $form.reset();
-        if (data.master == "") {
-          $form.error('master', 'missing');
-
-        } else if (data.confirm == "") {
-          $form.error('confirm', 'missing');
-
-        } else if (data.master != data.confirm) {
-          $form.error('confirm', 'mismatch');
-        }
-
-        if (!$form.isOK()) {
-          return;
-        }
-
-        api({
-          type: 'POST',
-          url:  '/v2/init',
-          data: { "master": data.master },
-          success: function (data) {
-            $('#viewport').html(template('fixedkey', data));
-          },
-          error: function (xhr) {
-            $form.error(xhr.responseJSON);
           }
         });
       }));

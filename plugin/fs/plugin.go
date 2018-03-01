@@ -19,7 +19,7 @@ func main() {
 		Version: "1.0.0",
 		Features: plugin.PluginFeatures{
 			Target: "yes",
-			Store:  "no",
+			Store:  "yes",
 		},
 		Example: `
 {
@@ -282,7 +282,23 @@ func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 }
 
 func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
+	cfg, err := getFSConfig(endpoint)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(fmt.Sprintf("%s/%s", cfg.BasePath, file))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err = io.Copy(os.Stdout, f); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 func (p FSPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
