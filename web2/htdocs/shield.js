@@ -1418,21 +1418,23 @@ function dispatch(page) {
     // }}}
     case "#!/init": /* {{{ */
       (function () {
-        var progress = function (how) {
-          $('#viewport').find('#logging-in').remove();
-          $('#viewport').append(template('init'));
-        }
-
+        $('#viewport').html(template('init'));
         $('#viewport').html($(template('init'))
           .on("submit", ".restore", function (event) {
             event.preventDefault();
-            progress('Initializing SHIELD with prior backup');
+           // progress('Initializing SHIELD with prior backup');
 
             var $form = $(event.target);
-            $global.form = $form;
             var data = new FormData();
+
+            if ($form[0].fixedkey.value.length < 512 || $form[0].fixedkey.value.length > 512) {
+              $form.error('fixedkey', 'missing')
+              return;
+            }
             data.append("archive", $form[0].archive.files[0]);
             data.append("fixedkey", $form[0].fixedkey.value);
+
+            $form.reset();
 
             $.ajax({
               type: "POST",
@@ -1445,23 +1447,23 @@ function dispatch(page) {
                 document.location.href = "/#!/login";
               },
               error: function (xhr) {
-                console.log("Failed.");
+                $(event.target).error(xhr.responseJSON);
               }
             });
           })
           .on("submit", ".setpass", function (event) {
             event.preventDefault();
-            console.log("I'm being run");
             var $form = $(event.target);
             var data = $form.serializeObject();
+
             if (data.masterpass == "") {
-              $form.error('master', 'missing');
+              $form.error('masterpass', 'missing');
 
             } else if (data.masterpassconf == "") {
-              $form.error('confirm', 'missing');
+              $form.error('masterpassconf', 'missing');
 
             } else if (data.masterpass != data.masterpassconf) {
-              $form.error('confirm', 'mismatch');
+              $form.error('masterpassconf', 'mismatch');
             }
 
             if (!$form.isOK()) {
@@ -1476,7 +1478,7 @@ function dispatch(page) {
                 $('#viewport').html(template('fixedkey', data));
               },
               error: function (xhr) {
-                console.log("errored");
+                $(event.target).error(xhr.responseJSON);
               }
             });
           })

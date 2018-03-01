@@ -561,7 +561,6 @@ body { font-family: sans-serif; }
 #initialize .setpass .errors {
   color: crimson;
   font-size: 13px;
-  display: none;
 }
 #initialize .setpass button {
   display: block;
@@ -659,7 +658,7 @@ body { font-family: sans-serif; }
   font-size: 10pt;
   float: right;
 }
-#initialize .marestorester .errors {
+#initialize .restore .errors {
   color: crimson;
   font-size: 13px;
 }

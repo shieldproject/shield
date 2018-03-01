@@ -231,19 +231,19 @@
                         <p class="divert">If you'd like to initialize this SHIELD installation with a previous SHIELD self-backup, provide the archive file and the fixed key used to encrypt the backup. </p>
                           <form id="restore">
                         <div class="error"></div>
-                        <div class="ctl" data-field="file">
+                        <div class="ctl" data-field="archive">
                           <label for="archive">SHIELD Backup
                             <div class="file-upload">Select Archive</div>
                           </label>
                            <input type="file" id="archive" name="archive">
-                          <!-- <div class="errors">
-                            <span data-error="missing">Please supply your password.</span>
-                          </div> -->
-                        </div>
-                        <div class="ctl" data-field="password">
-                          <label for="encryption-key">Fixed Key</label>
                           <div class="errors">
-                            <span data-error="missing">Please supply your password.</span>
+                            <span data-error="missing">Please supply your SHIELD backup.</span>
+                          </div>
+                        </div>
+                        <div class="ctl" data-field="fixedkey">
+                          <label for="fixedkey">Fixed Key</label>
+                          <div class="errors">
+                            <span data-error="missing">Please supply your fixed key.</span>
                           </div>
                           <input type="password" id="fixedkey" name="fixedkey">
                         </div>
@@ -255,17 +255,18 @@
                         <p class="divert">SHIELD maintains an internal encrypted vault of secrets, for protecting your data archives with strong encryption. This vault must be initialized, and protected with a new master password, before SHIELD will be able to use it</p>
                       <form id="setpass">
                         <div class="error"></div>
-                        <div class="ctl" data-field="password">
+                        <div class="ctl" data-field="masterpass">
                           <label for="masterpass">Master Password</label>
                           <div class="errors">
                             <span data-error="missing">Please supply your password.</span>
                           </div>
                           <input type="password" id="masterpass" name="masterpass">
                         </div>
-                        <div class="ctl" data-field="password">
+                        <div class="ctl" data-field="masterpassconf">
                           <label for="masterpassconf">Confirm Password</label>
                           <div class="errors">
                             <span data-error="missing">Please supply your password.</span>
+                            <span data-error="mismatch">Your passwords do not match</span>
                           </div>
                           <input type="password" id="masterpassconf" name="masterpassconf">
                         </div>
