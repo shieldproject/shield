@@ -1435,6 +1435,9 @@ function dispatch(page) {
             data.append("fixedkey", $form[0].fixedkey.value);
 
             $form.reset();
+            $('.dialog').html("")
+            $('.dialog').html(template('loading'))
+            $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD is initializing from a previous backup, please wait...</h2>")
 
             $.ajax({
               type: "POST",
@@ -1444,10 +1447,12 @@ function dispatch(page) {
               contentType: false,
               processData: false,
               success: function () {
-                document.location.href = "/#!/login";
+                $('.dialog').html(template('loading'))
+                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization success, taking you authentication...</h2>")
               },
-              error: function (xhr) {
-                $(event.target).error(xhr.responseJSON);
+              error: function () {
+                $('.dialog').html(template('loading'))
+                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, opening a breach and going back in time. <br>We can fix this.</h2>")
               }
             });
           })
@@ -1455,7 +1460,6 @@ function dispatch(page) {
             event.preventDefault();
             var $form = $(event.target);
             var data = $form.serializeObject();
-
             if (data.masterpass == "") {
               $form.error('masterpass', 'missing');
 
@@ -1483,6 +1487,17 @@ function dispatch(page) {
             });
           })
         );
+        $.ajax({
+          type: "GET",
+          url: "/v2/bootstrap/log",
+          success: function (data) {
+            if (data["task"]["log"] != "") {
+              $('.restore_divert').html("It looks like there was a previous attempt to self-restore SHIELD that failed. Below is the task log to help debug the problem. ")
+              $('#initialize').append("<div class=\"dialog\" id=\"log\"></div>")
+              $('#log').append(template('task', data))
+            }
+          }
+        });
         
 
 

@@ -19,7 +19,7 @@ func main() {
 		Version: "1.0.0",
 		Features: plugin.PluginFeatures{
 			Target: "yes",
-			Store:  "yes",
+			Store:  "no",
 		},
 		Example: `
 {

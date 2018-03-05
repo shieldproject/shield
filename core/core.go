@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ var Version = "(development)"
 
 const SessionCookieName = "shield7"
 
+var DataDir = "setme"
+
 type Core struct {
 	fastloop *time.Ticker
 	slowloop *time.Ticker
@@ -35,6 +38,9 @@ type Core struct {
 	ip   string
 	fqdn string
 
+	/* poison pill */
+	seppuku bool
+
 	/* foreman */
 	numWorkers int
 	workers    chan *db.Task
@@ -43,6 +49,9 @@ type Core struct {
 
 	/* monitor */
 	agents map[string]chan *db.Agent
+
+	/* data dir */
+	dataDir string
 
 	/* janitor */
 	purgeAgent string
@@ -82,12 +91,17 @@ func NewCore(file string) (*Core, error) {
 
 	ip, fqdn := networkIdentity()
 
+	DataDir = config.DataDir
+
 	core := &Core{
 		fastloop: time.NewTicker(time.Second * time.Duration(config.FastLoop)),
 		slowloop: time.NewTicker(time.Second * time.Duration(config.SlowLoop)),
 
 		timeout: config.Timeout,
 		agent:   agent,
+
+		/* poison pill */
+		seppuku: false,
 
 		ip:   ip,
 		fqdn: fqdn,
@@ -103,6 +117,9 @@ func NewCore(file string) (*Core, error) {
 		/* monitor */
 		agents: make(map[string]chan *db.Agent),
 
+		/* data dir */
+		dataDir: config.DataDir,
+
 		/* janitor */
 		purgeAgent: config.Purge,
 
@@ -115,7 +132,7 @@ func NewCore(file string) (*Core, error) {
 
 		/* encryption */
 		encryptionType: config.EncryptionType,
-		vaultKeyfile:   config.VaultKeyfile,
+		vaultKeyfile:   path.Join(config.DataDir, "/vault/config.crypt"),
 		vaultAddress:   config.VaultAddress,
 
 		/* session */
@@ -126,7 +143,7 @@ func NewCore(file string) (*Core, error) {
 		/* db */
 		DB: &db.DB{
 			Driver: "sqlite3",
-			DSN:    config.DBPath,
+			DSN:    path.Join(config.DataDir, "/shield.db"),
 		},
 	}
 
@@ -214,6 +231,9 @@ func (core *Core) Run() error {
 		}
 	}
 
+	log.Infof("Purging prior authenticated sessions from previous SHIELD instance.")
+	core.DB.Exec("DELETE FROM `sessions`")
+
 	tenants := make(map[string]bool)
 	for _, auth := range core.auth {
 		for _, tenant := range auth.ReferencedTenants() {
@@ -258,6 +278,7 @@ func (core *Core) Run() error {
 			if initialized && !sealed {
 				core.scheduleTasks()
 				core.runPending()
+				core.ShouldIDie()
 				core.checkPendingAgents()
 			} else {
 				if err != nil || initErr != nil {
@@ -313,6 +334,16 @@ func (core *Core) runWorkers() {
 	for id := 1; id <= core.numWorkers; id++ {
 		log.Debugf("spawning worker %d", id)
 		go core.worker(id)
+	}
+}
+
+/* it's necessary to restart SHIELD after self-restore, however we cannot
+call os.Exit() from the API, as the HTTP response will never be sent.
+it is then necessary to create a function within the fastloop that
+checks the 'seppuku' flag, and if true, SHIELD core calls os.Exit() */
+func (core *Core) ShouldIDie() {
+	if core.seppuku {
+		os.Exit(0)
 	}
 }
 

@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -2589,25 +2592,31 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	/* This following route is an out-of-band task that self-restores SHIELD if chosen
-	to during the initialization of SHIELD */
+	to during the initialization of SHIELD. On success, it stops SHIELD and the web UI
+	waits for a monit restart. On failure, SHIELD will nuke its working directory and crash.
+	Monit will then restart SHIELD, SHIELD will reinitialize, and the operator can try
+	again. */
 	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
 		if core.IsNotSystemAdmin(r) {
 			return
 		}
-		file, header, err := r.Req.FormFile("archive")
+		file, _, err := r.Req.FormFile("archive")
 
-		fmt.Printf(header.Filename)
-
-		f, err := os.Create("/tmp/bootstrap.restore")
+		backupStore, err := ioutil.TempFile("", "SHIELDrestoreBOOTSTRAP")
 		if err != nil {
-			panic(err)
+			r.Fail(route.Oops(err, "Unable to save backup file to disk."))
+			return
 		}
-		defer f.Close()
 
-		io.Copy(f, file)
+		defer backupStore.Close()
+		defer os.Remove(backupStore.Name())                          //clean up tempfile
+		backupPath, backupName := filepath.Split(backupStore.Name()) //necessary for task setup
 
-		if err := f.Sync(); err != nil {
-			panic(err)
+		io.Copy(backupStore, file)
+
+		if err := backupStore.Sync(); err != nil {
+			r.Fail(route.Oops(err, "Unable to save backup file to disk."))
+			return
 		}
 
 		stdout := make(chan string, 1)
@@ -2618,26 +2627,88 @@ func (core *Core) v2API() *route.Router {
 			}
 		}()
 
-		/* out-of-band task run to restore SHIELD. /var/vcap/store/shield is hardcoded,
-		as it's assumed that this is a BOSH release */
+		// check for fixed key validity (otherwise, ASCIIHexEncode panics on bad key)
+		validKeyCheck := regexp.MustCompile("^([A-F,0-9]){512}$")
+		if !validKeyCheck.MatchString(r.Req.FormValue("fixedkey")) || len(r.Req.FormValue("fixedkey")) != 512 {
+			r.Fail(route.Oops(nil, "Invalid fixed key."))
+			return
+		}
+
+		/* out-of-band task run to restore SHIELD.*/
 		err2 := core.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
-			Op:             db.RestoreOperation,
+			Op:             db.ShieldRestoreOperation,
 			TargetPlugin:   "fs",
-			TargetEndpoint: "{\"base_dir\":\"/var/vcap/store/shield/\",\"bsdtar\":\"bsdtar\"}",
+			TargetEndpoint: fmt.Sprintf("{\"base_dir\":\"%s\",\"bsdtar\":\"bsdtar\"}", path.Join(core.dataDir, "/../")),
 			StorePlugin:    "fs",
-			StoreEndpoint:  "{\"base_dir\": \"/tmp/\", \"bsdtar\": \"bsdtar\"}",
-			RestoreKey:     "bootstrap.restore",
+			StoreEndpoint:  fmt.Sprintf("{\"base_dir\": \"%s\", \"bsdtar\": \"bsdtar\"}", backupPath),
+			RestoreKey:     backupName,
 			EncryptType:    "aes256-ctr",
 			EncryptKey:     core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[:32], 4),
 			EncryptIV:      core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[32:], 4),
 		})
 
+		/* if task fails, delete datadir and crash for monit restart; try again */
 		if err2 != nil {
+			bsLogFile, err := ioutil.ReadFile(path.Join(core.dataDir, "bootstrap.log"))
+			if err != nil {
+				log.Errorf("Unable to locate bootstrap.log for persistence-while-nuking\n")
+			}
+
+			os.RemoveAll(core.dataDir)
+			os.Mkdir(core.dataDir, 0755)
+
+			err2 := ioutil.WriteFile(path.Join(DataDir, "bootstrap.log"), bsLogFile, 0644)
+			if err2 != nil {
+				log.Errorf("Unable to re-save bootstrap.log for persistence-while-nuking") //FIXME
+			}
+
 			r.Fail(route.Oops(err2, "SHIELD Restore Failed. You may be in a broken state."))
+			core.seppuku = true
+			return
 		}
 
+		os.Remove(path.Join(core.dataDir, "bootstrap.log"))
 		r.Success("SHIELD successfully restored")
-	})
+		core.seppuku = true
+		return
+	}) // }}}
+
+	r.Dispatch("GET /v2/bootstrap/log", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+		bsLogFile, err := ioutil.ReadFile(path.Join(core.dataDir, "bootstrap.log"))
+		if err != nil {
+			log.Errorf("Unable to locate bootstrap.log for API\n")
+		}
+
+		type FakeTask struct {
+			UUID        string `json:"uuid"`
+			OK          bool   `json:"ok"`
+			Status      string `json:"status"`
+			Op          string `json:"type"`
+			ArchiveUUID string `json:"archive_uuid"`
+			Log         string `json:"log"`
+			RequestedAt int64  `json:"requested_at"`
+			StoppedAt   int64  `json:"stopped_at"`
+		}
+		type FakeTaskHusk struct {
+			Task FakeTask `json:"task"`
+		}
+
+		r.OK(&FakeTaskHusk{
+			Task: FakeTask{
+				UUID:        "BOOTSTRAP.RESTORE",
+				OK:          true,
+				Status:      "ok",
+				Op:          "restore",
+				ArchiveUUID: "BOOTSTRAP.RESTORE",
+				Log:         string(bsLogFile),
+				RequestedAt: 000000001,
+				StoppedAt:   000000002,
+			}})
+
+	}) // }}}
 
 	r.Dispatch("POST /v2/auth/login", func(r *route.Request) { // {{{
 		var in struct {

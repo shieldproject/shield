@@ -4,10 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"path"
 	"sync"
+	"time"
 
+	"github.com/jhunt/go-log"
+	"github.com/starkandwayne/shield/db"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -76,6 +82,22 @@ func (c *AgentClient) Run(host string, stdout, stderr chan string, command *Agen
 	go func(stdout, stderr chan string, in io.Reader) {
 		defer wg.Done()
 		var buf bytes.Buffer
+
+		/* Hijack agent output to file if ShieldRestoreOperation; since SRO is an OOB
+		call and we won't have a DB to access SRO task log */
+		var bootstrapLog *os.File
+		if command.Op == db.ShieldRestoreOperation {
+			bootstrapLog, err = os.OpenFile(path.Join(DataDir, "bootstrap.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				log.Errorf("Unable to open bootstrap.log")
+			}
+			_, err2 := bootstrapLog.WriteString(fmt.Sprintf("SHIELD Self-restore started on %s\n", time.Now().Format(time.RFC1123)))
+			if err2 != nil {
+				log.Errorf("Unable to write bootstrap.log")
+			}
+			defer bootstrapLog.Close()
+		}
+
 		b := bufio.NewScanner(in)
 		for b.Scan() {
 			s := b.Text() + "\n"
@@ -84,6 +106,12 @@ func (c *AgentClient) Run(host string, stdout, stderr chan string, command *Agen
 				buf.WriteString(s[2:])
 			case "E:":
 				stderr <- s[2:]
+				if command.Op == db.ShieldRestoreOperation {
+					_, err2 := bootstrapLog.WriteString(s[2:])
+					if err2 != nil {
+						log.Errorf("Unable to write bootstrap.log")
+					}
+				}
 			}
 		}
 		close(stderr)

@@ -443,6 +443,9 @@ body { font-family: sans-serif; }
 }
 
 
+#initialize {
+  overflow: scroll;
+}
 
 #initialize > div.setpass-only .dialog { width: 400px; }
 #initialize p.motd {
@@ -582,7 +585,7 @@ body { font-family: sans-serif; }
   color: #0071bc;
   text-decoration: none;
 }
-#initialize .restore p.divert {
+#initialize .restore p.restore_divert {
   font-size: 10pt;
   margin-top: 0.4em;
   margin-bottom: 3em;
