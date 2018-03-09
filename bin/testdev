@@ -7,7 +7,7 @@ export PORT=${PORT:-8181}
 
 setup_workdir() {
   rm -rf ${workdir} ${storedir}
-  mkdir -p ${workdir}/{etc,var}
+  mkdir -p ${workdir}/{etc,var,config}
   mkdir -p ${storedir}
 }
 
@@ -231,20 +231,19 @@ EOF
   done
   ;;
 (shieldd)
-  ssh-keygen -t rsa -f ${workdir}/var/shieldd_key -N '' >/dev/null
-  rm ${workdir}/var/shieldd_key.pub
+  ssh-keygen -t rsa -f ${workdir}/config/shieldd_key -N '' >/dev/null
+  rm ${workdir}/config/shieldd_key.pub
 
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
 listen_addr:   127.0.0.1:8180
-database:      ${workdir}/var/shield.db
-private_key:   ${workdir}/var/shieldd_key
+data_directory:      ${workdir}/var/
+private_key:   ${workdir}/config/shieldd_key
 workers:       3
 max_timeout:   10
 web_root:      ./web2/htdocs
 slow_loop:     20
 fast_loop:     2
-vault_keyfile: ${workdir}/var/vault.crypt
 session_timeout: 8
 debug: true
 

@@ -132,7 +132,7 @@ func NewCore(file string) (*Core, error) {
 
 		/* encryption */
 		encryptionType: config.EncryptionType,
-		vaultKeyfile:   path.Join(config.DataDir, "/vault/config.crypt"),
+		vaultKeyfile:   path.Join(config.DataDir, "/vault/vault.crypt"),
 		vaultAddress:   config.VaultAddress,
 
 		/* session */
