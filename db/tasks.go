@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	BackupOperation    = "backup"
-	RestoreOperation   = "restore"
-	PurgeOperation     = "purge"
-	TestStoreOperation = "test-store"
+	BackupOperation        = "backup"
+	RestoreOperation       = "restore"
+	ShieldRestoreOperation = "shield-restore"
+	PurgeOperation         = "purge"
+	TestStoreOperation     = "test-store"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"

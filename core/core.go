@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ var Version = "(development)"
 
 const SessionCookieName = "shield7"
 
+var DataDir = "setme"
+
 type Core struct {
 	fastloop *time.Ticker
 	slowloop *time.Ticker
@@ -35,6 +38,10 @@ type Core struct {
 	ip   string
 	fqdn string
 
+	/* poison pill to os.Exit() SHIELD in contexts where
+	it cannot be called direct safely (i.e. r.Dispatch) */
+	seppuku int
+
 	/* foreman */
 	numWorkers int
 	workers    chan *db.Task
@@ -43,6 +50,9 @@ type Core struct {
 
 	/* monitor */
 	agents map[string]chan *db.Agent
+
+	/* data dir */
+	dataDir string
 
 	/* janitor */
 	purgeAgent string
@@ -82,12 +92,17 @@ func NewCore(file string) (*Core, error) {
 
 	ip, fqdn := networkIdentity()
 
+	DataDir = config.DataDir
+
 	core := &Core{
 		fastloop: time.NewTicker(time.Second * time.Duration(config.FastLoop)),
 		slowloop: time.NewTicker(time.Second * time.Duration(config.SlowLoop)),
 
 		timeout: config.Timeout,
 		agent:   agent,
+
+		/* poison pill */
+		seppuku: -1,
 
 		ip:   ip,
 		fqdn: fqdn,
@@ -103,6 +118,9 @@ func NewCore(file string) (*Core, error) {
 		/* monitor */
 		agents: make(map[string]chan *db.Agent),
 
+		/* data dir */
+		dataDir: config.DataDir,
+
 		/* janitor */
 		purgeAgent: config.Purge,
 
@@ -115,7 +133,7 @@ func NewCore(file string) (*Core, error) {
 
 		/* encryption */
 		encryptionType: config.EncryptionType,
-		vaultKeyfile:   config.VaultKeyfile,
+		vaultKeyfile:   path.Join(config.DataDir, "/vault/vault.crypt"),
 		vaultAddress:   config.VaultAddress,
 
 		/* session */
@@ -126,7 +144,7 @@ func NewCore(file string) (*Core, error) {
 		/* db */
 		DB: &db.DB{
 			Driver: "sqlite3",
-			DSN:    config.DBPath,
+			DSN:    path.Join(config.DataDir, "/shield.db"),
 		},
 	}
 
@@ -214,6 +232,9 @@ func (core *Core) Run() error {
 		}
 	}
 
+	log.Infof("Purging prior authenticated sessions from previous SHIELD instance.")
+	core.DB.Exec("DELETE FROM `sessions`")
+
 	tenants := make(map[string]bool)
 	for _, auth := range core.auth {
 		for _, tenant := range auth.ReferencedTenants() {
@@ -255,6 +276,10 @@ func (core *Core) Run() error {
 		case <-core.fastloop.C:
 			sealed, err := core.vault.IsSealed()
 			initialized, initErr := core.vault.IsInitialized()
+			if core.seppuku != -1 {
+				log.Infof("core.sepukku was set to non-negative value, sayonara my friend")
+				os.Exit(core.seppuku)
+			}
 			if initialized && !sealed {
 				core.scheduleTasks()
 				core.runPending()

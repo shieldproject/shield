@@ -51,7 +51,7 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
 
-	case "restore":
+	case "restore", "shield-restore":
 		if cmd.TargetPlugin == "" {
 			return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
 		}
