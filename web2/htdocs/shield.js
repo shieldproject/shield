@@ -1452,7 +1452,7 @@ function dispatch(page) {
               },
               error: function () {
                 $('.dialog').html(template('loading'))
-                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, opening a breach and going back in time. <br>We can fix this.</h2>")
+                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, restarting initialization process...</h2>")
               }
             });
           })
