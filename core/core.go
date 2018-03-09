@@ -277,7 +277,7 @@ func (core *Core) Run() error {
 			sealed, err := core.vault.IsSealed()
 			initialized, initErr := core.vault.IsInitialized()
 			if core.seppuku != -1 {
-				log.Fatalf("core.sepukku was set to non-negative value, sayonara my friend")
+				log.Infof("core.sepukku was set to non-negative value, sayonara my friend")
 				os.Exit(core.seppuku)
 			}
 			if initialized && !sealed {
