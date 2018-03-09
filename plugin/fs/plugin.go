@@ -293,11 +293,8 @@ func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	}
 	defer f.Close()
 
-	if _, err = io.Copy(os.Stdout, f); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = io.Copy(os.Stdout, f)
+	return err
 
 }
 

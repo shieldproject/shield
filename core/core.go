@@ -38,8 +38,9 @@ type Core struct {
 	ip   string
 	fqdn string
 
-	/* poison pill */
-	seppuku bool
+	/* poison pill to os.Exit() SHIELD in contexts where
+	it cannot be called direct safely (i.e. r.Dispatch) */
+	seppuku int
 
 	/* foreman */
 	numWorkers int
@@ -101,7 +102,7 @@ func NewCore(file string) (*Core, error) {
 		agent:   agent,
 
 		/* poison pill */
-		seppuku: false,
+		seppuku: -1,
 
 		ip:   ip,
 		fqdn: fqdn,
@@ -275,10 +276,13 @@ func (core *Core) Run() error {
 		case <-core.fastloop.C:
 			sealed, err := core.vault.IsSealed()
 			initialized, initErr := core.vault.IsInitialized()
+			if core.seppuku != -1 {
+				log.Fatalf("core.sepukku was set to non-negative value, sayonara my friend")
+				os.Exit(core.seppuku)
+			}
 			if initialized && !sealed {
 				core.scheduleTasks()
 				core.runPending()
-				core.ShouldIDie()
 				core.checkPendingAgents()
 			} else {
 				if err != nil || initErr != nil {
@@ -334,16 +338,6 @@ func (core *Core) runWorkers() {
 	for id := 1; id <= core.numWorkers; id++ {
 		log.Debugf("spawning worker %d", id)
 		go core.worker(id)
-	}
-}
-
-/* it's necessary to restart SHIELD after self-restore, however we cannot
-call os.Exit() from the API, as the HTTP response will never be sent.
-it is then necessary to create a function within the fastloop that
-checks the 'seppuku' flag, and if true, SHIELD core calls os.Exit() */
-func (core *Core) ShouldIDie() {
-	if core.seppuku {
-		os.Exit(0)
 	}
 }
 

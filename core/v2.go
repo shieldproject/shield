@@ -2614,7 +2614,8 @@ func (core *Core) v2API() *route.Router {
 
 		io.Copy(backupStore, file)
 
-		if err := backupStore.Sync(); err != nil {
+		err = backupStore.Sync()
+		if err != nil {
 			r.Fail(route.Oops(err, "Unable to save backup file to disk."))
 			return
 		}
@@ -2635,7 +2636,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		/* out-of-band task run to restore SHIELD.*/
-		err2 := core.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
+		err = core.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
 			Op:             db.ShieldRestoreOperation,
 			TargetPlugin:   "fs",
 			TargetEndpoint: fmt.Sprintf("{\"base_dir\":\"%s\",\"bsdtar\":\"bsdtar\"}", path.Join(core.dataDir, "/../")),
@@ -2648,7 +2649,7 @@ func (core *Core) v2API() *route.Router {
 		})
 
 		/* if task fails, delete datadir and crash for monit restart; try again */
-		if err2 != nil {
+		if err != nil {
 			bsLogFile, err := ioutil.ReadFile(path.Join(core.dataDir, "bootstrap.log"))
 			if err != nil {
 				log.Errorf("Unable to locate bootstrap.log for persistence-while-nuking\n")
@@ -2657,19 +2658,19 @@ func (core *Core) v2API() *route.Router {
 			os.RemoveAll(core.dataDir)
 			os.Mkdir(core.dataDir, 0755)
 
-			err2 := ioutil.WriteFile(path.Join(DataDir, "bootstrap.log"), bsLogFile, 0644)
-			if err2 != nil {
+			err = ioutil.WriteFile(path.Join(DataDir, "bootstrap.log"), bsLogFile, 0644)
+			if err != nil {
 				log.Errorf("Unable to re-save bootstrap.log for persistence-while-nuking") //FIXME
 			}
 
-			r.Fail(route.Oops(err2, "SHIELD Restore Failed. You may be in a broken state."))
-			core.seppuku = true
+			r.Fail(route.Oops(err, "SHIELD Restore Failed. You may be in a broken state."))
+			core.seppuku = 666
 			return
 		}
 
 		os.Remove(path.Join(core.dataDir, "bootstrap.log"))
 		r.Success("SHIELD successfully restored")
-		core.seppuku = true
+		core.seppuku = 0
 		return
 	}) // }}}
 

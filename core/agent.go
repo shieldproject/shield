@@ -89,11 +89,11 @@ func (c *AgentClient) Run(host string, stdout, stderr chan string, command *Agen
 		if command.Op == db.ShieldRestoreOperation {
 			bootstrapLog, err = os.OpenFile(path.Join(DataDir, "bootstrap.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
-				log.Errorf("Unable to open bootstrap.log")
+				log.Errorf(fmt.Sprintf("Unable to open bootstrap.log, error: %s", err))
 			}
-			_, err2 := bootstrapLog.WriteString(fmt.Sprintf("SHIELD Self-restore started on %s\n", time.Now().Format(time.RFC1123)))
-			if err2 != nil {
-				log.Errorf("Unable to write bootstrap.log")
+			_, err := bootstrapLog.WriteString(fmt.Sprintf("SHIELD Self-restore started on %s\n", time.Now().Format(time.RFC1123)))
+			if err != nil {
+				log.Errorf(fmt.Sprintf("Unable to write bootstrap.log, error: %s", err))
 			}
 			defer bootstrapLog.Close()
 		}
@@ -107,9 +107,9 @@ func (c *AgentClient) Run(host string, stdout, stderr chan string, command *Agen
 			case "E:":
 				stderr <- s[2:]
 				if command.Op == db.ShieldRestoreOperation {
-					_, err2 := bootstrapLog.WriteString(s[2:])
-					if err2 != nil {
-						log.Errorf("Unable to write bootstrap.log")
+					_, err := bootstrapLog.WriteString(s[2:])
+					if err != nil {
+						log.Errorf(fmt.Sprintf("Unable to write bootstrap.log, error: %s", err))
 					}
 				}
 			}
