@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shieldd shield shield-agent shield-schema plugins test
+all: format shieldd shield shield-agent shield-schema shield-crypt plugins test
 
 # go fmt ftw
 format:
@@ -17,7 +17,7 @@ plugin-tests: plugins
 	./t/plugins
 	@rm -f mock
 go-tests:
-	go list ./... | grep -v vendor | xargs go test
+	export PATH=$$PATH:test/bin; go list ./... | grep -v vendor | xargs go test
 api-tests:
 	./t/api
 
@@ -26,8 +26,10 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield: shieldd shield-agent shield-schema shield
+shield: shieldd shield-agent shield-schema shield-crypt
 
+shield-crypt:
+	go $(BUILD_TYPE) ./crypter/shield-crypt
 shieldd:
 	go $(BUILD_TYPE) ./cmd/shieldd
 shield-agent:
@@ -104,6 +106,7 @@ release:
 	for plugin in $$(cat plugins); do \
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"     ./plugin/$$plugin; \
 	done
+								go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt" ./plugin/shield-crypt
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"   ./cmd/shield-agent
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"           ./cmd/shield
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
@@ -122,4 +125,4 @@ web2/htdocs/shield.js: $(JAVASCRIPTS)
 
 web2: web2/htdocs/shield.js
 
-.PHONY: plugins dev web2 shield shieldd shield-schema shield-agent demo
+.PHONY: plugins dev web2 shield shieldd shield-schema shield-agent shield-crypt demo
