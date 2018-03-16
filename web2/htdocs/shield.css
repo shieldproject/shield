@@ -1734,6 +1734,13 @@ pre.task-failed.override code { background-color: #333; }
 .unlock-shield input {
   display: inline-block;
 }
+
+.unlock-shield .errors {
+  color: crimson;
+  font-size: 13px;
+  position: fixed;
+}
+
 .unlock-shield button {
   background-color: #0071BC;
   border: 1px solid #0071BC;

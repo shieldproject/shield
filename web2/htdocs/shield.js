@@ -3336,17 +3336,28 @@ function dispatch(page) {
         event.preventDefault();
 
         var data = $(event.target).serializeObject();
+        if (data.master == "") {
+          $(event.target).error('unlock-master', 'missing')
+        }
 
         api({
           type: 'POST',
           url:  '/v2/unlock',
           data: data,
-          error: "Unable to unlock the SHIELD Core.",
           success: function (data) {
             $global.hud.health.core = "unlocked";
             $('#hud').html(template('hud', $global.hud));
             goto("");
-          }
+          },
+          statusCode: {
+            403: function () {
+              $(event.target).error('unlock-master', 'incorrect')
+            },
+            500: function (xhr) {
+              $(event.target).error(xhr.responseJSON);
+            }
+          },
+          error: {}
         });
       }));
     break;

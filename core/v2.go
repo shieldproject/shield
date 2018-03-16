@@ -195,6 +195,10 @@ func (core *Core) v2API() *route.Router {
 
 		init, err := core.Unlock(in.Master)
 		if err != nil {
+			if strings.Contains(err.Error(), "Incorrect Password") {
+				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core"))
+				return
+			}
 			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core"))
 			return
 		}

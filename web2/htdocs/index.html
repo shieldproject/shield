@@ -651,8 +651,15 @@
           before SHIELD will be able to use it.</p>
 
           <form class="unlock-shield">
-            <label for="unlock-master">Enter your SHIELD Master Password</label>
-            <input type="password" id="unlock-master" name="master"><button>Unlock</button>
+            <div class="ctl" data-field="unlock-master">
+              <label for="masterpass">Enter your SHIELD Master Password</label>
+              <div class="errors">
+                <span data-error="missing">Please supply your password.</span>
+                <span data-error="incorrect">Incorrect password, please try again.</span>
+              </div>
+              <input type="password" id="unlock-master" name="master">
+            </div>
+            <button>Unlock</button>
           </form>
         </div>
     <!-- }}} --></script>
