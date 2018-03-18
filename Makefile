@@ -29,7 +29,7 @@ race:
 shield: shieldd shield-agent shield-schema shield-crypt
 
 shield-crypt:
-	go $(BUILD_TYPE) ./crypter/shield-crypt
+	go $(BUILD_TYPE) ./cmd/shield-crypt
 shieldd:
 	go $(BUILD_TYPE) ./cmd/shieldd
 shield-agent:
@@ -106,7 +106,7 @@ release:
 	for plugin in $$(cat plugins); do \
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"     ./plugin/$$plugin; \
 	done
-								go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt" ./plugin/shield-crypt
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt" ./cmd/shield-crypt
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"   ./cmd/shield-agent
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"           ./cmd/shield
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
