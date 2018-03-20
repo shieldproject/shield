@@ -5,6 +5,7 @@
 /shield-migrate
 /shield-schema
 /buckler
+/shield-crypt
 
 # stuff we use in t/*
 /bin/vault
