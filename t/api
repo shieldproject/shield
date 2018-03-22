@@ -312,7 +312,7 @@ httpstat() {
   if [[ -n "${body}" ]]; then
     opts="$opts --data-binary ${body} -H Content-type:application/json"
   fi
-  curl -s -o /dev/null -w '%{http_code}' $opts -H "X-Shield-Token: $SHIELD_API_TOKEN" $url 2>/dev/null
+  curl -s -o /dev/null -w '%{http_code}' $opts -H "X-Shield-Session: $SHIELD_API_TOKEN" $url 2>/dev/null
 }
 # }}}
 
