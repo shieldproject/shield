@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shieldd shield shield-agent shield-schema shield-crypt plugins test
+all: format shieldd shield shield-agent shield-schema shield-migrate shield-crypt plugins test
 
 # go fmt ftw
 format:
@@ -36,6 +36,8 @@ shield-agent:
 	go $(BUILD_TYPE) ./cmd/shield-agent
 shield-schema:
 	go $(BUILD_TYPE) ./cmd/shield-schema
+shield-migrate:
+	go $(BUILD_TYPE) ./cmd/shield-migrate
 
 shield: cmd/shield/help.go
 	go $(BUILD_TYPE) ./cmd/shield
@@ -104,13 +106,14 @@ release:
 	@echo "OK.  VERSION=$(VERSION)"
 	export GOOS=linux GOARCH=amd64
 	for plugin in $$(cat plugins); do \
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"     ./plugin/$$plugin; \
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"      ./plugin/$$plugin; \
 	done
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt" ./cmd/shield-crypt
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"   ./cmd/shield-agent
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"           ./cmd/shield
-	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
-	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt"  ./cmd/shield-crypt
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"            ./cmd/shield
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-migrate" ./cmd/shield-migrate
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd
 
 	rm -f artifacts/*.tar.gz
 	cd artifacts && for x in shield-server-*; do cp -a ../web2/htdocs $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
