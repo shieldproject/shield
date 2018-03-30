@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 
 	"github.com/jhunt/go-log"
@@ -21,9 +20,10 @@ func migrateArchives(to, from *db.DB) {
 
 	for rs.Next() {
 		n += 1
-		var a, b, c, d, e, f, g, h, i sql.RawBytes
+		var uuid, target_uuid, store_uuid, store_key, notes, purge_reason, status *string
+		var taken_at, expires_at *int64
 
-		if err := rs.Scan(&a, &b, &c, &d, &e, &f, &g, &h, &i); err != nil {
+		if err := rs.Scan(&uuid, &target_uuid, &store_uuid, &store_key, &taken_at, &expires_at, &notes, &purge_reason, &status); err != nil {
 			log.Errorf("failed to read result from archives source table: %s", err)
 			os.Exit(3)
 		}
@@ -31,7 +31,7 @@ func migrateArchives(to, from *db.DB) {
 		err = to.Exec(`
 		   INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, purge_reason, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			a, b, c, d, e, f, g, h, i)
+			uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, purge_reason, status)
 		if err != nil {
 			log.Errorf("failed to insert result into archives dest table: %s", err)
 			os.Exit(3)

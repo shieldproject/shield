@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 
 	"github.com/jhunt/go-log"
@@ -21,9 +20,10 @@ func migrateTasks(to, from *db.DB) {
 
 	for rs.Next() {
 		n += 1
-		var a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t sql.RawBytes
+		var uuid, owner, op, job_uuid, archive_uuid, target_uuid, status, logs, store_uuid, target_plugin, target_endpoint, store_plugin, store_endpoint, restore_key, agent *string
+		var requested_at, started_at, stopped_at, timeout_at, attempts *int64
 
-		if err := rs.Scan(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, &o, &p, &q, &r, &s, &t); err != nil {
+		if err := rs.Scan(&uuid, &owner, &op, &job_uuid, &archive_uuid, &target_uuid, &status, &requested_at, &started_at, &stopped_at, &logs, &store_uuid, &target_plugin, &target_endpoint, &store_plugin, &store_endpoint, &restore_key, &timeout_at, &attempts, &agent); err != nil {
 			log.Errorf("failed to read result from tasks source table: %s", err)
 			os.Exit(3)
 		}
@@ -31,7 +31,7 @@ func migrateTasks(to, from *db.DB) {
 		err = to.Exec(`
 		   INSERT INTO tasks (uuid, owner, op, job_uuid, archive_uuid, target_uuid, status, requested_at, started_at, stopped_at, log, store_uuid, target_plugin, target_endpoint, store_plugin, store_endpoint, restore_key, timeout_at, attempts, agent)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)
+			uuid, owner, op, job_uuid, archive_uuid, target_uuid, status, requested_at, started_at, stopped_at, logs, store_uuid, target_plugin, target_endpoint, store_plugin, store_endpoint, restore_key, timeout_at, attempts, agent)
 		if err != nil {
 			log.Errorf("failed to insert result into tasks dest table: %s", err)
 			os.Exit(3)

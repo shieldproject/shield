@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 
 	"github.com/jhunt/go-log"
@@ -21,9 +20,9 @@ func migrateStores(to, from *db.DB) {
 
 	for rs.Next() {
 		n += 1
-		var a, b, c, d, e sql.RawBytes
+		var uuid, name, summary, plugin, endpoint *string
 
-		if err := rs.Scan(&a, &b, &c, &d, &e); err != nil {
+		if err := rs.Scan(&uuid, &name, &summary, &plugin, &endpoint); err != nil {
 			log.Errorf("failed to read result from stores source table: %s", err)
 			os.Exit(3)
 		}
@@ -31,7 +30,7 @@ func migrateStores(to, from *db.DB) {
 		err = to.Exec(`
 		   INSERT INTO stores (uuid, name, summary, plugin, endpoint)
                 VALUES (?, ?, ?, ?, ?)`,
-			a, b, c, d, e)
+			uuid, name, summary, plugin, endpoint)
 		if err != nil {
 			log.Errorf("failed to insert result into stores dest table: %s", err)
 			os.Exit(3)

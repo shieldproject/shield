@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 
 	"github.com/jhunt/go-log"
@@ -21,9 +20,10 @@ func migrateRetention(to, from *db.DB) {
 
 	for rs.Next() {
 		n += 1
-		var a, b, c, d sql.RawBytes
+		var uuid, name, summary *string
+		var expiry *int64
 
-		if err := rs.Scan(&a, &b, &c, &d); err != nil {
+		if err := rs.Scan(&uuid, &name, &summary, &expiry); err != nil {
 			log.Errorf("failed to read result from retention source table: %s", err)
 			os.Exit(3)
 		}
@@ -31,7 +31,7 @@ func migrateRetention(to, from *db.DB) {
 		err = to.Exec(`
 		   INSERT INTO retention (uuid, name, summary, expiry)
                 VALUES (?, ?, ?, ?)`,
-			a, b, c, d)
+			uuid, name, summary, expiry)
 		if err != nil {
 			log.Errorf("failed to insert result into retention dest table: %s", err)
 			os.Exit(3)
