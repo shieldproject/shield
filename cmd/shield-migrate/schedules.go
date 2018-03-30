@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 
 	"github.com/jhunt/go-log"
@@ -21,9 +20,9 @@ func migrateSchedules(to, from *db.DB) {
 
 	for rs.Next() {
 		n += 1
-		var a, b, c, d sql.RawBytes
+		var uuid, name, summary, timespec *string
 
-		if err := rs.Scan(&a, &b, &c, &d); err != nil {
+		if err := rs.Scan(&uuid, &name, &summary, &timespec); err != nil {
 			log.Errorf("failed to read result from schedules source table: %s", err)
 			os.Exit(3)
 		}
@@ -31,7 +30,7 @@ func migrateSchedules(to, from *db.DB) {
 		err = to.Exec(`
 		   INSERT INTO schedules (uuid, name, summary, timespec)
                 VALUES (?, ?, ?, ?)`,
-			a, b, c, d)
+			uuid, name, summary, timespec)
 		if err != nil {
 			log.Errorf("failed to insert result into schedules dest table: %s", err)
 			os.Exit(3)
