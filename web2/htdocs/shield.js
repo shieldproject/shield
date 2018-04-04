@@ -1939,6 +1939,9 @@ function dispatch(page) {
             if (l[1] == 'finalize') {
               var finalize = function () {
                 console.log('finalizing....');
+                data.name = $form.find('input[name="name"]').val();
+                data.summary = $form.find('textarea[name=summary]').val();
+
                 if (!data.target.uuid) {
                   console.log('creating new target "%s"...', data.target.name);
                   console.dir(data.target);
@@ -1993,7 +1996,7 @@ function dispatch(page) {
                   url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs',
                   data: {
                     name      : data.name,
-                    summary   : '',
+                    summary   : data.summary,
                     schedule  : data.schedule,
 
                     store     : data.store.uuid,
