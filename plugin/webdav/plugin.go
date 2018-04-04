@@ -177,6 +177,9 @@ func configure(endpoint plugin.ShieldEndpoint) (WebDAV, error) {
 	if err != nil {
 		return WebDAV{}, err
 	}
+	if !strings.HasPrefix(url, "https://") && !strings.HasPrefix(url, "http://") {
+		url = "https://" + url
+	}
 
 	username, err := endpoint.StringValueDefault("username", "")
 	if err != nil {
@@ -211,7 +214,10 @@ func (dav WebDAV) generate() string {
 }
 
 func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) {
-	u, _ := url.Parse(dav.URL)
+	u, err := url.Parse(dav.URL)
+	if err != nil {
+		return nil, err
+	}
 	u.Path = fmt.Sprintf("%s/%s", strings.TrimSuffix(u.Path, "/"), path)
 
 	req, err := http.NewRequest(method, u.String(), in)
