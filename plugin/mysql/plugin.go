@@ -292,6 +292,7 @@ func (p MySQLPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
 	plugin.DEBUG("Executing: `%s`", cmd)
+	fmt.Printf("SET SESSION SQL_LOG_BIN=0;\n")
 	return plugin.Exec(cmd, plugin.STDOUT)
 }
 
