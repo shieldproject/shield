@@ -20,7 +20,7 @@ capacity.
 
 #### Genesis
 
-We\'ll start out with the Genesis template for SHIELD:
+We'll start out with the Genesis template for SHIELD:
 
     $ cd ~/ops
     $ genesis init -k shield
@@ -31,8 +31,8 @@ This will prompt for parameters required to deploy shield such as
 authentication, static IP, etc.
 
 Once finished, if OAuth Provider authentication was selected, open the
-us-east-prod.yml file that was generated and under the \"authentication\"
-section fill out the mapping from oauth-\>tenants using the example
+us-east-prod.yml file that was generated and under the "authentication"
+section fill out the mapping from oauth-/>tenants using the example
 provided below.
 
     authentication:
@@ -94,7 +94,7 @@ Time to deploy!
     Director task 13
       Started downloading remote release > Downloading remote release
 
-Once that\'s complete, you will be able to access your SHIELD
+Once that's complete, you will be able to access your SHIELD
 deployment, and start configuring your backup jobs via the WebUI or CLI
 accessable at the IP you specified for SHIELD.
 
@@ -164,7 +164,7 @@ deployed, you would say `no` to the above question and use the method
 below to deploy SHIELD agents.
 
 If you are adding an agent to an existing genesis deployment, modify the
-\<environment\>.yml file and add the following parameters.
+<environment\>.yml file and add the following parameters.
 
     kit:
         subkits:
@@ -288,19 +288,19 @@ these parameters are filled in, click next.
 Next, select a schedule for this jub to run. There are actually quite a
 few parameters available allowing you to create backups that are
 `hourly`, `daily`, `weekly`, or `monthly`. Here are some additional
-backup schedules to show their behaviors: \"every 4 hours from 12:15\",
-\"thursdays at 23:35\", \"3rd Tuesday at 2:05\", and \"monthly at 2:05
-on 14th\". After selecting an appropriate schedule, click next.
+backup schedules to show their behaviors: "every 4 hours from 12:15",
+"thursdays at 23:35", "3rd Tuesday at 2:05", and "monthly at 2:05
+on 14th". After selecting an appropriate schedule, click next.
 
-Now that you have a backup schedule, we\'re going to create a
+Now that you have a backup schedule, we're going to create a
 **retention policy** as well. With retention policies it is helpful to
 include the duration in the policy name. The duration is given in days,
-so if you wanted to keep a given backup for a year you\'d use `365` and
-perhaps name the policy \"1 year retention\".
+so if you wanted to keep a given backup for a year you'd use `365` and
+perhaps name the policy "1 year retention".
 
-Something to consider: people usually like comparing \"this time, last
-period\" backups. By that we mean \"I wonder what X looked like this
-time last year\" or \"I wonder what last Monday looked like\", so you
+Something to consider: people usually like comparing "this time, last
+period" backups. By that we mean "I wonder what X looked like this
+time last year" or "I wonder what last Monday looked like", so you
 might want to consider making your 1 year backups actually 13 months or
 your weekly backups 8 days. (And so on.)
 
