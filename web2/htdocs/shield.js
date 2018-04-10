@@ -3509,7 +3509,7 @@ $(function () {
             console.log('/v2/health check received a 500, throwing errored state')
             rehud({
               'health':
-                  {'core': 'errored', 'storage_ok': false, 'jobs_ok': false},
+                  {'core': 'failing', 'storage_ok': false, 'jobs_ok': false},
               'storage': [],
               'jobs': [],
               'stats': {}
