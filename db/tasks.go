@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -529,4 +530,18 @@ func (db *DB) MarkTasksIrrelevant() error {
 	}
 
 	return nil
+}
+
+func (db *DB) RedactTaskLog(task *Task) {
+	re := regexp.MustCompile("(<redacted>.*?</redacted>)")
+	matches := re.FindAllStringSubmatch(task.Log, -1)
+	for _, match := range matches {
+		task.Log = strings.Replace(task.Log, match[1], "«REDACTED»", -1)
+	}
+}
+
+func (db *DB) RedactAllTaskLogs(tasks []*Task) {
+	for _, task := range tasks {
+		db.RedactTaskLog(task)
+	}
 }
