@@ -180,7 +180,7 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 client-cert   %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 client-cert}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 client-cert}  @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("client-key", "")
@@ -188,7 +188,7 @@ func (p ConsulPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 client-key    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 client-key}   @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 client-key}   @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {

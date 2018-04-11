@@ -221,7 +221,7 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 pg_user      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 pg_user}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_user}      @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("pg_password", "")
@@ -231,7 +231,7 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 pg_password}  none (no credentials will be sent)\n")
 	} else {
-		fmt.Printf("@G{\u2713 pg_password}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 pg_password}  @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("pg_database", "")
