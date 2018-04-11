@@ -817,7 +817,9 @@ func (core *Core) v2API() *route.Router {
 			}
 		}
 
-		core.DB.RedactAllTaskLogs(tasks)
+		if core.CanNotSeeRedacted(r, r.Args[1]) {
+			core.DB.RedactAllTaskLogs(tasks)
+		}
 
 		system.Tasks = make([]v2SystemTask, len(tasks))
 		for i, task := range tasks {
@@ -877,7 +879,9 @@ func (core *Core) v2API() *route.Router {
 				task.RequestedAt = event.Task.RequestedAt
 				task.StartedAt = event.Task.StartedAt
 				task.StoppedAt = event.Task.StoppedAt
-				core.DB.RedactTaskLog(event.Task)
+				if core.CanNotSeeRedacted(r, r.Args[1]) {
+					core.DB.RedactTaskLog(event.Task)
+				}
 				task.Log = event.Task.Log
 
 				if event.Task.ArchiveUUID != nil {
@@ -2386,7 +2390,9 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		core.DB.RedactAllTaskLogs(tasks)
+		if core.CanNotSeeRedacted(r, r.Args[1]) {
+			core.DB.RedactAllTaskLogs(tasks)
+		}
 		r.OK(tasks)
 	})
 	// }}}
@@ -2404,9 +2410,9 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.NotFound(err, "No such task"))
 			return
 		}
-
-		core.DB.RedactTaskLog(task)
-
+		if core.CanNotSeeRedacted(r, r.Args[1]) {
+			core.DB.RedactTaskLog(task)
+		}
 		r.OK(task)
 	})
 	// }}}
@@ -2596,7 +2602,9 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to schedule a restore task"))
 			return
 		}
-		core.DB.RedactTaskLog(task)
+		if core.CanNotSeeRedacted(r, r.Args[1]) {
+			core.DB.RedactTaskLog(task)
+		}
 		r.OK(task)
 	})
 	// }}}

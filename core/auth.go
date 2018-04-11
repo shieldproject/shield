@@ -132,7 +132,7 @@ func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
 	r.SetRespHeader("X-Shield-Session", sessionID.String())
 }
 
-func (core *Core) hasRole(r *route.Request, tenant string, roles ...string) bool {
+func (core *Core) hasRole(fail bool, r *route.Request, tenant string, roles ...string) bool {
 	user, err := core.AuthenticatedUser(r)
 	if user == nil || err != nil {
 		r.Fail(route.Unauthorized(err, "Authorization required"))
@@ -143,7 +143,9 @@ func (core *Core) hasRole(r *route.Request, tenant string, roles ...string) bool
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
 			user.Account, user.Backend, user.UUID.String(), err)
-		r.Fail(route.Forbidden(err, "Access denied"))
+		if fail {
+			r.Fail(route.Forbidden(err, "Access denied"))
+		}
 		return false
 	}
 
@@ -175,15 +177,18 @@ func (core *Core) hasRole(r *route.Request, tenant string, roles ...string) bool
 			}
 		}
 	}
-
-	r.Fail(route.Forbidden(nil, "Access denied"))
+	if fail {
+		r.Fail(route.Forbidden(nil, "Access denied"))
+	}
 	return false
 }
 
-func (core *Core) hasTenant(r *route.Request, id string) bool {
+func (core *Core) hasTenant(fail bool, r *route.Request, id string) bool {
 	tenant, err := core.DB.GetTenant(id)
 	if err != nil || tenant == nil {
-		r.Fail(route.NotFound(err, "No such tenant"))
+		if fail {
+			r.Fail(route.NotFound(err, "No such tenant"))
+		}
 		return false
 	}
 	return true
@@ -256,28 +261,33 @@ func (core *Core) IsNotAuthenticated(r *route.Request) bool {
 }
 
 func (core *Core) IsNotSystemAdmin(r *route.Request) bool {
-	return !core.hasRole(r, "", "system/admin")
+	return !core.hasRole(true, r, "", "system/admin")
 }
 
 func (core *Core) IsNotSystemManager(r *route.Request) bool {
-	return !core.hasRole(r, "", "system/manager", "system/admin")
+	return !core.hasRole(true, r, "", "system/manager", "system/admin")
 }
 
 func (core *Core) IsNotSystemEngineer(r *route.Request) bool {
-	return !core.hasRole(r, "", "system/engineer", "system/manager", "system/admin")
+	return !core.hasRole(true, r, "", "system/engineer", "system/manager", "system/admin")
 }
 
 func (core *Core) IsNotTenantAdmin(r *route.Request, tenant string) bool {
-	return !core.hasRole(r, tenant, "tenant/admin", "system/manager", "system/admin") ||
-		!core.hasTenant(r, tenant)
+	return !core.hasRole(true, r, tenant, "tenant/admin", "system/manager", "system/admin") ||
+		!core.hasTenant(true, r, tenant)
 }
 
 func (core *Core) IsNotTenantEngineer(r *route.Request, tenant string) bool {
-	return !core.hasRole(r, tenant, "tenant/engineer", "tenant/admin", "system/*") ||
-		!core.hasTenant(r, tenant)
+	return !core.hasRole(true, r, tenant, "tenant/engineer", "tenant/admin", "system/*") ||
+		!core.hasTenant(true, r, tenant)
 }
 
 func (core *Core) IsNotTenantOperator(r *route.Request, tenant string) bool {
-	return !core.hasRole(r, tenant, "tenant/*", "system/*") ||
-		!core.hasTenant(r, tenant)
+	return !core.hasRole(true, r, tenant, "tenant/*", "system/*") ||
+		!core.hasTenant(true, r, tenant)
+}
+
+func (core *Core) CanNotSeeRedacted(r *route.Request, tenant string) bool {
+	return !core.hasRole(false, r, tenant, "tenant/engineer", "tenant/admin", "system/*") ||
+		!core.hasTenant(false, r, tenant)
 }
