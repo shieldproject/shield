@@ -19,11 +19,12 @@
 //    {
 //        "mysql_user":           "username-for-mysql",
 //        "mysql_password":       "password-for-above-user",
-//        "mysql_databases":      <list_of_databases>,       # OPTIONAL
-//        "mysql_datadir":        "/var/lib/mysql",          # OPTIONAL
-//        "mysql_xtrabackup":     "/path/to/xtrabackup",     # OPTIONAL
-//        "mysql_temp_targetdir": "/tmp/backups"             # OPTIONAL
-//        "mysql_tar":            "tar"                      # OPTIONAL
+//        "mysql_databases":      <list_of_databases>,                       # OPTIONAL
+//        "mysql_datadir":        "/var/lib/mysql",                          # OPTIONAL
+//        "mysql_socket":         "/var/vcap/sys/run/mysql/mysqld.sock",     # OPTIONAL
+//        "mysql_xtrabackup":     "/path/to/xtrabackup",                     # OPTIONAL
+//        "mysql_temp_targetdir": "/tmp/backups"                             # OPTIONAL
+//        "mysql_tar":            "tar"                                      # OPTIONAL
 //    }
 //
 // Default Configuration
@@ -43,6 +44,9 @@
 //
 // mysql_datadir:
 // This option specifies MySQL's datadir.
+//
+// mysql_socket:
+// This option specifies the absolute path to MySQL's socket.
 //
 // mysql_xtrabackup:
 // This option specifies the absolute path to the `xtrabackup` tool.
@@ -111,10 +115,11 @@ func main() {
   "mysql_databases":      "db1,db2",              # List of databases to limit
                                                   # backup and recovery to.
 
-  "mysql_datadir":        "/var/lib/mysql",       # Path to the MySQL data directory
-  "mysql_xtrabackup":     "/path/to/xtrabackup",  # Full path to the xtrabackup binary
-  "mysql_temp_targetdir": "/tmp/backups"          # Temporary work directory
-  "mysql_tar":            "tar"                   # Tar-compatible archival tool to use
+  "mysql_datadir":        "/var/lib/mysql",                         # Path to the MySQL data directory
+  "mysql_socket":         "/var/vcap/sys/run/mysql/mysqld.sock",    # Path to the MySQL socket
+  "mysql_xtrabackup":     "/path/to/xtrabackup",                    # Full path to the xtrabackup binary
+  "mysql_temp_targetdir": "/tmp/backups"                            # Temporary work directory
+  "mysql_tar":            "tar"                                     # Tar-compatible archival tool to use
 }
 `,
 		Defaults: `
@@ -131,7 +136,7 @@ func main() {
 				Name:     "mysql_user",
 				Type:     "string",
 				Title:    "MySQL Username",
-				Help:     "The username to use for performing the backup against MySQL",
+				Help:     "The username to use for performing the backup against MySQL.",
 				Required: true,
 			},
 			plugin.Field{
@@ -139,7 +144,7 @@ func main() {
 				Name:     "mysql_password",
 				Type:     "password",
 				Title:    "MySQL Password",
-				Help:     "The password to authenticate to MySQL with",
+				Help:     "The password to authenticate to MySQL with.",
 				Required: true,
 			},
 			plugin.Field{
@@ -155,21 +160,29 @@ func main() {
 				Name:    "mysql_datadir",
 				Type:    "abspath",
 				Title:   "MySQL Data Directory",
+				Help:    "Specifies absolute path to MySQL's data directory.",
 				Default: "/var/lib/mysql",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "mysql_socket",
+				Type:  "abspath",
+				Title: "MySQL Socket",
+				Help:  "Specifies absolute path to MySQL's socket.",
 			},
 			plugin.Field{
 				Mode:  "target",
 				Name:  "mysql_xtrabackup",
 				Type:  "abspath",
 				Title: "Path to `xtrabackup` Utility",
-				Help:  "By default, the plugin will search the local `$PATH` to find the `xtrabackup` utility",
+				Help:  "By default, the plugin will search the local `$PATH` to find the `xtrabackup` utility.",
 			},
 			plugin.Field{
 				Mode:  "target",
 				Name:  "mysql_tar",
 				Type:  "abspath",
 				Title: "Path to the `tar` Utility",
-				Help:  "By default, the plugin will search the local `$PATH` to find the `tar` utility",
+				Help:  "By default, the plugin will search the local `$PATH` to find the `tar` utility.",
 			},
 			plugin.Field{
 				Mode:    "target",
@@ -190,6 +203,7 @@ type XtraBackupPlugin plugin.PluginInfo
 type XtraBackupEndpoint struct {
 	Databases string
 	DataDir   string
+	Socket    string
 	User      string
 	Password  string
 	Bin       string
@@ -213,7 +227,7 @@ func (p XtraBackupPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 mysql_user          %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("mysql_password")
@@ -221,7 +235,7 @@ func (p XtraBackupPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 mysql_password      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_databases", "")
@@ -232,6 +246,16 @@ func (p XtraBackupPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 mysql_databases}  no databases\n")
 	} else {
 		fmt.Printf("@G{\u2713 mysql_databases}  @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("mysql_socket", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 mysql_socket  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 mysql_socket}  no socket\n")
+	} else {
+		fmt.Printf("@G{\u2713 mysql_socket}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_datadir", DefaultDataDir)
@@ -306,13 +330,17 @@ func (p XtraBackupPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	defer func() {
 		os.RemoveAll(targetDir)
 	}()
+	socket := ""
+	if xtrabackup.Socket != "" {
+		socket = fmt.Sprintf(`--socket="%s"`, xtrabackup.Socket)
+	}
 	dbs := ""
 	if xtrabackup.Databases != "" {
 		dbs = fmt.Sprintf(`--databases="%s"`, xtrabackup.Databases)
 	}
 
 	// create backup files
-	cmdString := fmt.Sprintf("%s --backup --target-dir=%s --datadir=%s %s --user=%s --password=%s", xtrabackup.Bin, targetDir, xtrabackup.DataDir, dbs, xtrabackup.User, xtrabackup.Password)
+	cmdString := fmt.Sprintf("%s --backup --target-dir=%s --datadir=%s %s %s --user=%s --password=%s", xtrabackup.Bin, targetDir, xtrabackup.DataDir, socket, dbs, xtrabackup.User, xtrabackup.Password)
 	opts := plugin.ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
@@ -499,6 +527,12 @@ func getXtraBackupEndpoint(endpoint plugin.ShieldEndpoint) (XtraBackupEndpoint, 
 	}
 	plugin.DEBUG("MYSQL_DATADIR: '%s'", dataDir)
 
+	socket, err := endpoint.StringValueDefault("mysql_socket", "")
+	if err != nil {
+		return XtraBackupEndpoint{}, err
+	}
+	plugin.DEBUG("MYSQL_SOCKET: '%s'", socket)
+
 	targetDir, err := endpoint.StringValueDefault("mysql_temp_targetdir", DefaultTempTargetDir)
 	if err != nil {
 		return XtraBackupEndpoint{}, err
@@ -523,6 +557,7 @@ func getXtraBackupEndpoint(endpoint plugin.ShieldEndpoint) (XtraBackupEndpoint, 
 		Databases: databases,
 		DataDir:   dataDir,
 		TargetDir: targetDir,
+		Socket:    socket,
 		Bin:       xtrabackupBin,
 		Tar:       tar,
 	}, nil

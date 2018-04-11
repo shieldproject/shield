@@ -373,7 +373,8 @@ for x in s3 \
          mysql \
          redis-broker \
          rabbitmq-broker \
-         webdav
+         webdav \
+         xtrabackup
 do
 	strip $x
 	try "$x help"
