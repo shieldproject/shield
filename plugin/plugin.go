@@ -379,6 +379,10 @@ func GenUUID() string {
 	return uuid.New()
 }
 
+func Redact(raw string) string {
+	return fmt.Sprintf("<redacted>%s</redacted>", raw)
+}
+
 func codeForError(e error) int {
 	var code int
 	if e != nil {

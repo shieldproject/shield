@@ -149,14 +149,14 @@ func (p BbrPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 bbr_privatekey   %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bbr_privatekey}  @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 bbr_privatekey}  @C{%s}\n", plugin.Redact(s))
 	}
 	s, err = endpoint.StringValue("bbr_sshusername")
 	if err != nil {
 		fmt.Printf("@R{\u2717 bbr_sshusername   %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bbr_sshusername}  @C{%s}\n", "REDACTED")
+		fmt.Printf("@G{\u2713 bbr_sshusername}  @C{%s}\n", plugin.Redact(s))
 	}
 	if fail {
 		return fmt.Errorf("bbr: invalid configuration")
