@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"os"
 
 	"github.com/jhunt/go-log"
@@ -21,9 +20,11 @@ func migrateJobs(to, from *db.DB) {
 
 	for rs.Next() {
 		n += 1
-		var a, b, c, d, e, f, g, h, i sql.RawBytes
+		var uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, name, summary *string
+		var priority *int64
+		var paused *bool
 
-		if err := rs.Scan(&a, &b, &c, &d, &e, &f, &g, &h, &i); err != nil {
+		if err := rs.Scan(&uuid, &target_uuid, &store_uuid, &schedule_uuid, &retention_uuid, &priority, &paused, &name, &summary); err != nil {
 			log.Errorf("failed to read result from jobs source table: %s", err)
 			os.Exit(3)
 		}
@@ -31,7 +32,7 @@ func migrateJobs(to, from *db.DB) {
 		err = to.Exec(`
 		   INSERT INTO jobs (uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, priority, paused, name, summary)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			a, b, c, d, e, f, g, h, i)
+			uuid, target_uuid, store_uuid, schedule_uuid, retention_uuid, priority, paused, name, summary)
 		if err != nil {
 			log.Errorf("failed to insert result into jobs dest table: %s", err)
 			os.Exit(3)

@@ -1221,6 +1221,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
 
         $parent.find('#configure-plugin').html(
           template('subform-configure-plugin', {
+            type:   opts.type,
             plugin: cache.metadata.plugins[plugin],
             config: (plugin == opts.plugin ? opts.config : undefined)
           }));
@@ -1415,6 +1416,94 @@ function dispatch(page) {
     })()
     break;
     // }}}
+    case "#!/init": /* {{{ */
+      (function () {
+        $('#viewport').html(template('init'));
+        $('#viewport').html($(template('init'))
+          .on("submit", ".restore", function (event) {
+            event.preventDefault();
+           // progress('Initializing SHIELD with prior backup');
+
+            var $form = $(event.target);
+            var data = new FormData();
+
+            if ($form[0].fixedkey.value.length < 512 || $form[0].fixedkey.value.length > 512) {
+              $form.error('fixedkey', 'missing')
+              return;
+            }
+            data.append("archive", $form[0].archive.files[0]);
+            data.append("fixedkey", $form[0].fixedkey.value);
+
+            $form.reset();
+            $('.dialog').html("")
+            $('.dialog').html(template('loading'))
+            $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD is initializing from a previous backup, please wait...</h2>")
+
+            $.ajax({
+              type: "POST",
+              url: "/v2/bootstrap/restore",
+              data: data,
+              cache: false,
+              contentType: false,
+              processData: false,
+              success: function () {
+                $('.dialog').html(template('loading'))
+                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization success, taking you authentication...</h2>")
+              },
+              error: function () {
+                $('.dialog').html(template('loading'))
+                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, restarting initialization process...</h2>")
+              }
+            });
+          })
+          .on("submit", ".setpass", function (event) {
+            event.preventDefault();
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+            if (data.masterpass == "") {
+              $form.error('masterpass', 'missing');
+
+            } else if (data.masterpassconf == "") {
+              $form.error('masterpassconf', 'missing');
+
+            } else if (data.masterpass != data.masterpassconf) {
+              $form.error('masterpassconf', 'mismatch');
+            }
+
+            if (!$form.isOK()) {
+              return;
+            }
+            api({
+              type: 'POST',
+              url: '/v2/init',
+              data: { "master": data.masterpass },
+              success: function (data) {
+                console.log("success");
+                $('#viewport').html(template('fixedkey', data));
+              },
+              error: function (xhr) {
+                $(event.target).error(xhr.responseJSON);
+              }
+            });
+          })
+        );
+        $.ajax({
+          type: "GET",
+          url: "/v2/bootstrap/log",
+          success: function (data) {
+            if (data["task"]["log"] != "") {
+              $('.restore_divert').html("It looks like there was a previous attempt to self-restore SHIELD that failed. Below is the task log to help debug the problem. ")
+              $('#initialize').append("<div class=\"dialog\" id=\"log\"></div>")
+              $('#log').append(template('task', data))
+            }
+          }
+        });
+        
+
+
+      })();
+      break; /* #!/login */
+    // }}}
 
   case "#!/do/backup": /* {{{ */
     if (!$global.auth.tenant) {
@@ -1557,6 +1646,12 @@ function dispatch(page) {
                 if (data.systems[i].uuid == l[3]) {
                   data.system = data.systems[i];
                   break;
+                }
+              }
+              data.system.archives = [];
+              for (var i = 0; i < data.archives.length; i++) {
+                if (data.archives[i].target_uuid == data.system.uuid) {
+                  data.system.archives.push(data.archives[i]);
                 }
               }
               rerender(data);
@@ -1844,6 +1939,9 @@ function dispatch(page) {
             if (l[1] == 'finalize') {
               var finalize = function () {
                 console.log('finalizing....');
+                data.name = $form.find('input[name="name"]').val();
+                data.summary = $form.find('textarea[name=summary]').val();
+
                 if (!data.target.uuid) {
                   console.log('creating new target "%s"...', data.target.name);
                   console.dir(data.target);
@@ -1897,13 +1995,14 @@ function dispatch(page) {
                   type: 'POST',
                   url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs',
                   data: {
-                    name     : 'a random name?', // FIXME
-                    summary  : '',
-                    schedule : data.schedule,
+                    name      : data.name,
+                    summary   : data.summary,
+                    schedule  : data.schedule,
 
-                    store    : data.store.uuid,
-                    target   : data.target.uuid,
-                    policy   : data.policy.uuid
+                    store     : data.store.uuid,
+                    target    : data.target.uuid,
+                    policy    : data.policy.uuid,
+                    fixed_key : (data.target.fixed_key == "true")
                   },
                   error: "Unable to create a new backup job",
                   success: function (ok) {
@@ -1928,10 +2027,18 @@ function dispatch(page) {
         multiplex: {
           agents:   { type: 'GET', url: '+/agents'   },
           targets:  { type: 'GET', url: '+/targets'  },
+          gstores:  { type: 'GET', url: '/v2/global/stores' },
           stores:   { type: 'GET', url: '+/stores'   },
           policies: { type: 'GET', url: '+/policies' }
         },
-        success: rerender
+        success: function (data) {
+          /* combine data global stores with tenant stores */
+          data.stores = data.stores.concat(data.gstores);
+          delete data.gstores;
+
+          /* but defer everything else to rerender() */
+          return rerender(data);
+        }
       });
     })();
     break; /* #!/do/configure */
@@ -1965,6 +2072,7 @@ function dispatch(page) {
       error: "Failed retrieving metadata for protected system from the SHIELD API.",
       success: function (data) {
         $('#main').html(template('system', { target: data }));
+        time_of_oldest_task = data["tasks"][data.tasks.length-1]["requested_at"]
         watchTasks($global.auth.tenant.uuid, data.uuid, function (r) {
           task = JSON.parse(r.data);
           for (var i = 0; i < data.tasks.length; i++) {
@@ -1976,6 +2084,22 @@ function dispatch(page) {
           }
           data.tasks.unshift(task);
           $('#main').html(template('system', { target: data }));
+        });
+        $(document.body).on('click', 'a[href^="load_more"]', function (event) {
+          event.preventDefault();
+          api({
+            type: 'GET',
+            url: '/v2/tenants/' + $global.auth.tenant.uuid + '/systems/' + args.uuid + '?before=' + time_of_oldest_task,
+            error: "Failed retrieving metadata for protected system from the SHIELD API.",
+            success: function (older_tasks) {
+              data.tasks = $.merge(data.tasks, older_tasks.tasks);
+              $('#main').html(template('system', { target: data }));
+              time_of_oldest_task = data["tasks"][data.tasks.length - 1]["requested_at"]
+              if (older_tasks.tasks.length == 0)  {
+                $(".paginated-loading").remove();
+              }
+            }
+          });
         });
       }
     });
@@ -1995,10 +2119,7 @@ function dispatch(page) {
       },
       error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
       success: function (data) {
-        /* FIXME fixups that need to migrate into the SHIELD code */
-        for (key in data.local)  { if (!('ok' in data.local[key]))  { data.local[key].ok  = true; } }
-        for (key in data.global) { if (!('ok' in data.global[key])) { data.global[key].ok = true; } }
-        $('#main').html(template('stores', { stores: $.extend([], data.local, data.global) }));
+        $('#main').html(template('stores', { stores: data.local.concat(data.global) }));
       }
     });
     break; /* #!/stores */
@@ -2446,6 +2567,16 @@ function dispatch(page) {
                 error: "Unable to "+action+" agent via the SHIELD API.",
                 success: function () { reload(); }
               });
+            } else if (action == 'resync') {
+              event.preventDefault();
+              api({
+                type: 'POST',
+                url:  '/v2/agents/'+$(event.target).extract('agent-uuid')+'/resync',
+                error: "Resynchronization request failed",
+                success: function () {
+                  banner("Resynchronization of agent underway");
+                }
+              });
             }
           }));
       }
@@ -2512,6 +2643,8 @@ function dispatch(page) {
           $form.error('confirm', 'mismatch');
         }
 
+        data.rotate_fixed_key = (data.rotate_fixed_key == "true");
+
         if (!$form.isOK()) {
           return;
         }
@@ -2521,9 +2654,13 @@ function dispatch(page) {
           type: 'POST',
           url:  '/v2/rekey',
           data: data,
-          success: function () {
+          success: function (data) {
+            if (data.fixed_key != "") {
+              $('#viewport').html(template('fixedkey', data));
+            } else {
+              goto("#!/admin");
+            }
             banner('Succcessfully rekeyed the SHIELD Core.');
-            goto("#!/admin");
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);
@@ -3202,61 +3339,28 @@ function dispatch(page) {
         event.preventDefault();
 
         var data = $(event.target).serializeObject();
+        if (data.master == "") {
+          $(event.target).error('unlock-master', 'missing')
+        }
 
         api({
           type: 'POST',
           url:  '/v2/unlock',
           data: data,
-          error: "Unable to unlock the SHIELD Core.",
-          success: function (data) {
-            $global.hud.health.core = "unlocked";
-            $('#hud').html(template('hud', $global.hud));
-            goto("");
-          }
-        });
-      }));
-    break;
-    // }}}
-  case "#!/init": /* {{{ */
-    if (!$global.auth.is.system.engineer) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
-      break;
-    }
-    $('#main').html($(template('init', {}))
-      .autofocus()
-      .on('submit', 'form', function (event) {
-        event.preventDefault();
-
-        var $form = $(event.target);
-        var data = $form.serializeObject();
-
-        $form.reset();
-        if (data.master == "") {
-          $form.error('master', 'missing');
-
-        } else if (data.confirm == "") {
-          $form.error('confirm', 'missing');
-
-        } else if (data.master != data.confirm) {
-          $form.error('confirm', 'mismatch');
-        }
-
-        if (!$form.isOK()) {
-          return;
-        }
-
-        api({
-          type: 'POST',
-          url:  '/v2/init',
-          data: { "master": data.master },
           success: function (data) {
             $global.hud.health.core = "unlocked";
             $('#hud').html(template('hud', $global.hud));
             goto("");
           },
-          error: function (xhr) {
-            $form.error(xhr.responseJSON);
-          }
+          statusCode: {
+            403: function () {
+              $(event.target).error('unlock-master', 'incorrect')
+            },
+            500: function (xhr) {
+              $(event.target).error(xhr.responseJSON);
+            }
+          },
+          error: {}
         });
       }));
     break;
@@ -3358,9 +3462,13 @@ $(function () {
           if (every != backoff[every]) {
             console.log('/v2/health check failed; backing off to check every %d seconds', every);
           }
-
-          $global.hud.health.core = 'unreachable';
-          rehud($global.hud);
+          rehud({
+            'health':
+                {'core': 'unreachable', 'storage_ok': false, 'jobs_ok': false},
+            'storage': [],
+            'jobs': [],
+            'stats': {}
+          });
         },
         complete: function () {
           timer = window.setTimeout(ping, every * 1000);
@@ -3399,6 +3507,16 @@ $(function () {
                 }
               }
             })
+          },
+          500: function() {
+            console.log('/v2/health check received a 500, throwing errored state')
+            rehud({
+              'health':
+                  {'core': 'failing', 'storage_ok': false, 'jobs_ok': false},
+              'storage': [],
+              'jobs': [],
+              'stats': {}
+            });
           },
         }
       });

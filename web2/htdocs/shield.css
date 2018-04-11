@@ -442,6 +442,242 @@ body { font-family: sans-serif; }
   float: right;
 }
 
+
+#initialize {
+  overflow: scroll;
+}
+
+#initialize > div.setpass-only .dialog { width: 400px; }
+#initialize p.motd {
+  margin: 0 0 2em 0;
+}
+#initialize .restore,
+#initialize .setpass {
+  width: 50%;
+  margin: 0;
+  box-sizing: border-box;
+  float: left;
+}
+#initialize .restore { width: 45%; padding-right: 10px; }
+#initialize .setpass  { width: 55%; padding-left:  20px; border-left: 1px solid #aaa; }
+#initialize > div.setpass-only .setpass { width: 100%; padding: 0; border: none; }
+
+#initialize .restore li a {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 12px;
+  margin-right: 6px;
+  cursor: pointer;
+  text-decoration: none;
+}
+#initialize .restore ul {
+  margin: 20px 0;
+}
+
+#initialize .setpass a {
+  color: #0071bc;
+  text-decoration: none;
+}
+
+#initialize .file-upload {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  float: right;
+}
+
+#initialize .setpass p.divert {
+  font-size: 10pt;
+  margin-top: 0.4em;
+  margin-bottom: 1em;
+}
+#initialize .setpass .ctl {
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+#initialize .setpass label {
+  font-weight: normal;
+}
+
+#initialize .setpass input[type=text],
+#initialize .setpass input[type=password] {
+  border: none;
+  width: 100%;
+  font-size: 14pt;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  color: #fff;
+
+  box-sizing: border-box;
+  padding: 8px;
+}
+#initialize .setpass .cbdark {
+  width: 16px;
+  position: relative;
+}
+#initialize .setpass .cbdark label {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  position: absolute;
+  left: 0px; top: 0px;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  border-radius: 4px;
+  box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+}
+#initialize .setpass .cbdark label::after {
+  content: '';
+  width: 8px;
+  height: 4px;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  border: 3px solid #fcfff4;
+  border-top: none;
+  border-right: none;
+  background: transparent;
+  opacity: 0;
+  transform: rotate(-45deg);
+}
+#initialize .setpass .cbdark label:hover::after {
+  opacity: 0.3;
+}
+#initialize .setpass .cbdark input {
+  visibility: hidden;
+}
+#initialize .setpass .cbdark input:checked + label:after {
+  opacity: 1;
+}
+#initialize .setpass a.forgotpw {
+  font-size: 10pt;
+  float: right;
+}
+#initialize .setpass .errors {
+  color: crimson;
+  font-size: 13px;
+}
+#initialize .setpass button {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  float: right;
+}
+
+
+
+
+#initialize .restore a {
+  color: #0071bc;
+  text-decoration: none;
+}
+#initialize .restore p.restore_divert {
+  font-size: 10pt;
+  margin-top: 0.4em;
+  margin-bottom: 3em;
+}
+#initialize .restore .ctl {
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+
+#initialize .restore label .restore-file {
+  width: 75%;
+  font-weight: normal;
+} 
+#initialize .restore label {
+  width: 75%;
+  font-weight: normal;
+}
+
+#initialize .restore input[type=file] {
+  display: none;
+}
+#initialize .restore input[type=text],
+#initialize .restore input[type=password] {
+  width: 100%;
+  font-size: 14pt;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  color: #fff;
+
+  box-sizing: border-box;
+  padding: 8px;
+}
+#initialize .restore .cbdark {
+  width: 16px;
+  position: relative;
+}
+#initialize .restore .cbdark label {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  position: absolute;
+  left: 0px; top: 0px;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  border-radius: 4px;
+  box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+}
+#initialize .file-upload button {
+  margin: auto;
+}
+#initialize .restore .cbdark label::after {
+  content: '';
+  width: 8px;
+  height: 4px;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  border: 3px solid #fcfff4;
+  border-top: none;
+  border-right: none;
+  background: transparent;
+  opacity: 0;
+  transform: rotate(-45deg);
+}
+#initialize .restore .cbdark label:hover::after {
+  opacity: 0.3;
+}
+#initialize .restore .cbdark input {
+  visibility: hidden;
+}
+#initialize .restore .cbdark input:checked + label:after {
+  opacity: 1;
+}
+#initialize .restore a.forgotpw {
+  font-size: 10pt;
+  float: right;
+}
+#initialize .restore .errors {
+  color: crimson;
+  font-size: 13px;
+}
+#initialize .restore button {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  float: right;
+}
+
 .banner-top p {
   color: #fff;
   background-color: #FF1D25;
@@ -865,7 +1101,7 @@ form .ctl label {
   line-height: 20px;
   display: block;
 
-  width: 40%;
+  width: 50%;
   float: left;
 }
 form .ctl .widget {
@@ -1498,6 +1734,13 @@ pre.task-failed.override code { background-color: #333; }
 .unlock-shield input {
   display: inline-block;
 }
+
+.unlock-shield .errors {
+  color: crimson;
+  font-size: 13px;
+  position: fixed;
+}
+
 .unlock-shield button {
   background-color: #0071BC;
   border: 1px solid #0071BC;
@@ -1727,6 +1970,44 @@ td span.role {
   color: yellow;
 }
 
+#fixed-wrapper #fixedkey {
+    display: inline-block;
+    background-color: #000;
+    font-family: monospace;
+    padding: 1em;
+    font-size: 16px;
+    width: 63%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: yellow;
+}
+
+#fixed-wrapper #accept {
+    height: 40px;
+    width: 150px;
+    margin: -20px -75px;
+    position: relative;
+    top: 50%;
+    left: 50%;
+    background-color: #ffff00;
+    color: #000;
+    font-size: 16px;
+    font-family: monospace;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 0px;
+    font-weight: bold;
+}
+
+#large-checkbox {
+    transform: scale(1.75);
+    margin: 14px 20px;
+}
+
+#dr-explain {
+    font-size: 12pt;
+}
+
 .notice {
   background-color: #b2e1ff;
   padding: 1em;
@@ -1742,7 +2023,7 @@ h2 strong,
   background-color: #FF6161;
   color: #fff;
   font-size: 120%;
-  line-height 1.4em;
+  line-height: 1.4em;
 }
 
 #user-agent{

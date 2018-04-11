@@ -1,0 +1,24 @@
+USAGE: @G{shield} api [OPTIONS] @Y{ALIAS} @Y{URL}
+
+  Target a SHIELD Core.
+
+  Connects to the given SHIELD URL (i.e. @B{https://shield.example.com}),
+  validates that it is healthy and trustworthy, and then saves the
+  connection details in your @M{$SHIELD_CONFIG} or @M{--config}.
+
+  From then on, that SHIELD Core can be contacted by setting the
+  @M{$SHIELD_CORE} environment variable to the supplied @M{ALIAS},
+  or by passing @M{--config ALIAS} on the command-line, explicitly.
+
+@B{Options:}
+
+  -k, --skip-ssl-validate   Do not validate the SSL/TLS certificate
+                            presented by the remote SHIELD Core.
+                            @R{THIS IS HIGHLY DISCOURAGED.}
+
+  --ca-cert ...             Provide either a path to a CA certificate
+  --ca-certificate ...      file, or the literal PEM data of an X.509
+                            certificate representing the Certificate
+                            Authority that signed the SHIELD Core's TLS
+                            certificate.
+

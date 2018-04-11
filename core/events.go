@@ -69,6 +69,9 @@ func (b *Broadcaster) Broadcast(ev Event) {
 
 func (core *Core) broadcastTask(task *db.Task) {
 	task, err := core.DB.GetTask(task.UUID)
+	if task == nil {
+		log.Errorf("unwilling to broadcast task update for nil task")
+	}
 	if err != nil {
 		log.Errorf("unable to broadcast task update for %s, failed to refresh task from database: %s", task.UUID, err)
 		return
@@ -80,12 +83,10 @@ func (core *Core) broadcastTask(task *db.Task) {
 		return
 	}
 
-	log.Debugf("broadcasting event for task %s (tenant %s) json: %s", task.UUID, task.TenantUUID, b)
 	core.events <- Event{
 		Task: task,
 		JSON: b,
 	}
-	log.Debugf("broadcast complete")
 }
 
 func (core *Core) startTask(task *db.Task) {
@@ -106,10 +107,7 @@ func (core *Core) finishTask(task *db.Task) {
 
 func (core *Core) failTask(task *db.Task, msg string, args ...interface{}) {
 	if msg != "" {
-		err := core.DB.UpdateTaskLog(task.UUID, fmt.Sprintf("TASK FAILED!!  "+msg, args...))
-		if err != nil {
-			log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-		}
+		core.logToTask(task, msg, args...)
 	}
 
 	log.Warnf("  %s: task failed!", task.UUID)
@@ -120,7 +118,6 @@ func (core *Core) failTask(task *db.Task, msg string, args ...interface{}) {
 }
 
 func (core *Core) logToTask(task *db.Task, msg string, args ...interface{}) {
-	log.Debugf("appending to log of task %s", task.UUID)
 	s := msg
 	if len(args) > 0 {
 		s = fmt.Sprintf(msg, args...)

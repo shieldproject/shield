@@ -1,0 +1,12 @@
+USAGE: @G{shield} auth-tokens
+
+  Lists all issues authentication tokens.
+
+  SHIELD users can issue @W{authentication tokens}, which can be
+  used in scripts and other automatons to represent the issuing
+  account, and all of their privileges within the system.
+
+  If you are authenticated to a SHIELD Core, you can run this
+  command to view the metadata, including names and creation / last
+  used timestamps, of your issued authentication tokens.
+

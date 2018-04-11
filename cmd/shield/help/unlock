@@ -1,0 +1,21 @@
+USAGE: @G{shield} unlock [--master @Y{PASSWORD}]
+
+  Unlock a SHIELD Core.
+
+  SHIELD maintains an internal encrypted vault of secrets,
+  for protecting your data archives with strong encryption.
+  Before SHIELD will be able to use this vault, it needs to
+  be unlocked, using the SHIELD master password.
+
+@B{Options:}
+
+  --master ...    Master password. (@W{$SHIELD_CORE_MASTER})
+
+  In general, use of the command-line flag is discouraged.
+  Instead, for automation purposes, set @W{$SHIELD_CORE_MASTER}
+  in your environment.
+
+  For interactive use, not specifying @M{--master} causes shield
+  to prompt you for the master password, with appropriate
+  security precautions (no terminal echo)
+

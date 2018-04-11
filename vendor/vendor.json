@@ -193,10 +193,10 @@
 			"revisionTime": "2017-10-17T03:25:57Z"
 		},
 		{
-			"checksumSHA1": "SfDitkZFOLM6lc52VnHI8hpCcVQ=",
+			"checksumSHA1": "TjwtMY6RvELXOAEyMaO5RS9yvBk=",
 			"path": "github.com/jhunt/go-s3",
-			"revision": "46c3d2ef32ca2b0f345601dd5afbf2a729d52ab4",
-			"revisionTime": "2017-12-20T19:01:41Z"
+			"revision": "52c89230b7eba6723610c334a993d372bbf4a615",
+			"revisionTime": "2018-01-02T15:02:38Z"
 		},
 		{
 			"comment": "sqlx-v1.1-71-gbdae0c3",
@@ -447,6 +447,12 @@
 		{
 			"path": "golang.org/x/crypto/curve25519",
 			"revision": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+		},
+		{
+			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
+			"path": "golang.org/x/crypto/pbkdf2",
+			"revision": "7d9177d70076375b9a59c8fde23d52d9c4a7ecd5",
+			"revisionTime": "2017-09-15T19:08:28Z"
 		},
 		{
 			"path": "golang.org/x/crypto/ssh",

@@ -1,0 +1,11 @@
+USAGE: @G{shield} create-auth-token
+
+  Issue a new authentication token, for the current user.
+
+  SHIELD users can issue @W{authentication tokens}, which can be
+  used in scripts and other automatons to represent the issuing
+  account, and all of their privileges within the system.
+
+  This command contacts your currently targeted SHIELD Core, and
+  asks it to issue a new token for authentication.
+

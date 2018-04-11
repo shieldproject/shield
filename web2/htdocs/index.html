@@ -216,6 +216,66 @@
             </div>
           </div>
     <!-- }}} --></script>
+    <script type="text/html" id="tpl--init"><!-- {{{ -->
+          [[#
+            {init} template
+    
+            Displays the initialization template screen (displayed after login on an uninitialized SHIELD)
+          ]]
+              <div id="initialize" class="frontdoor">
+                  <h1>SHIELD<span style="color: [[= $global.shield.color || 'green' ]]">[[= $global.shield.env ]]<span></h1>
+                  <div class="dialog">
+                    <p class="motd">[[= $global.shield.motd ]]</p>
+                    <div class="restore">
+                       <h2>Restore SHIELD</h2>
+                        <p class="restore_divert">If you'd like to initialize this SHIELD installation with a previous SHIELD self-backup, provide the archive file and the fixed key used to encrypt the backup. </p>
+                          <form id="restore">
+                        <div class="error"></div>
+                        <div class="ctl" data-field="archive">
+                          <label for="archive">SHIELD Backup
+                            <div class="file-upload">Select Archive</div>
+                          </label>
+                           <input type="file" id="archive" name="archive">
+                          <div class="errors">
+                            <span data-error="missing">Please supply your SHIELD backup.</span>
+                          </div>
+                        </div>
+                        <div class="ctl" data-field="fixedkey">
+                          <label for="fixedkey">Fixed Key</label>
+                          <div class="errors">
+                            <span data-error="missing">Please supply your fixed key.</span>
+                          </div>
+                          <input type="password" id="fixedkey" name="fixedkey">
+                        </div>
+                        <button>Restore</button>
+                      </form>
+                    </div>
+                    <div class="setpass">
+                      <h2>Initialize SHIELD</h2>
+                        <p class="divert">SHIELD maintains an internal encrypted vault of secrets, for protecting your data archives with strong encryption. This vault must be initialized, and protected with a new master password, before SHIELD will be able to use it</p>
+                      <form id="setpass">
+                        <div class="error"></div>
+                        <div class="ctl" data-field="masterpass">
+                          <label for="masterpass">Master Password</label>
+                          <div class="errors">
+                            <span data-error="missing">Please supply your password.</span>
+                          </div>
+                          <input type="password" id="masterpass" name="masterpass">
+                        </div>
+                        <div class="ctl" data-field="masterpassconf">
+                          <label for="masterpassconf">Confirm Password</label>
+                          <div class="errors">
+                            <span data-error="missing">Please supply your password.</span>
+                            <span data-error="mismatch">Your passwords do not match</span>
+                          </div>
+                          <input type="password" id="masterpassconf" name="masterpassconf">
+                        </div>
+                        <button>Set up</button>
+                      </form>
+                    </div>
+                  </div>
+              </div>
+        <!-- }}} --></script>
     <script type="text/html" id="tpl--cliauth"><!-- {{{ -->
       [[#
         {cliauth} template
@@ -225,7 +285,7 @@
       ]]
           <div id="cliauth" class="frontdoor">
             <div>
-              <h1>SHIELD<span>Production<span></h1>
+              <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
               <div class="dialog">
                 <h2>CLI Authentication Credentials</h2>
                 <img src="/i/terminal.png" class="highlight">
@@ -242,6 +302,36 @@
               </div>
             </div>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--fixedkey"><!-- {{{ -->
+        [[#
+          {fixedkey} template
+  
+          Displays the Shield Fixed Key, so that operators can restore
+          fixed-key backups in the event of a disaster.
+        ]]
+            <div id="fixed-wrapper" class="frontdoor">
+              <div>
+                <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
+                <div class="dialog">
+                  <h2>Shield Fixed Key</h2>
+                  <img src="/i/terminal.png" class="highlight">
+  
+                  <p>Here is your SHIELD Fixed Key:</p>
+  
+                  <pre id="fixedkey">[[= _.fixed_key ]]</pre>
+  
+                  <p id="dr-explain">
+                    You will need to save this key in a secure location
+                    for use in recovery of fixed-key backups in a disaster scenario.
+                    Fixed-key backups must be used to backup shield itself. Once you
+                    leave this screen, there is no way to access this key or corresponding
+                    fixed-key backups unless you have saved it!
+                  </p>
+                  <a href="/"><button id="accept">I Understand</button></a>
+                </div>
+              </div>
+            </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--logging-in"><!-- {{{ -->
       [[#
@@ -359,6 +449,8 @@
                 <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>UNINITIALIZED</span></li>
                 [[ } else if (_.health.core == "unreachable") { ]]
                 <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unreachable</span></li>
+                [[ } else if (_.health.core == "failing") { ]]
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>FAILING</span></li>
                 [[ } else { ]]
                 <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unknown</span></li>
                 [[ } ]]
@@ -547,50 +639,6 @@
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--init"><!-- {{{ -->
-      [[#
-        {init} template
-
-        Renders a form allowing administrators (sys_role = admin) to initialize
-        this SHIELD core.
-      ]]
-        <div class="gutter blk">
-          <h2>This SHIELD Core is UNINITIALIZED</h2>
-          <p>SHIELD maintains an internal encrypted vault of secrets, for protecting
-          your data archives with strong encryption.  This vault must be initialized,
-          and protected with a new master password, before SHIELD will be able to use
-          it.</p>
-
-          <form class="init-shield">
-            <div class="error"></div>
-
-            <div class="ctl" data-field="master">
-              <label for="init-master">Pick a Master Password</label>
-              <span class="errors">
-                <span data-error="missing">You must specify a master password</span>
-              </span>
-              <div class="widget">
-                <input type="password" id="init-master" name="master">
-              </div>
-            </div>
-
-            <div class="ctl" data-field="confirm">
-              <label for="init-confirm">Confirm</label>
-              <span class="errors">
-                <span data-error="missing">You must confirm your master password</span>
-                <span data-error="mismatch">Your passwords don't match</span>
-              </span>
-              <div class="widget">
-                <input type="password" id="init-confirm" name="confirm">
-                <p class="help">SHIELD will encrypt the secure storage vault using
-                the master password you choose, and then promptly forget it.</p>
-              </div>
-            </div>
-
-            <button class="go">Initialize</button>
-          </form>
-        </div>
-    <!-- }}} --></script>
     <script type="text/html" id="tpl--unlock"><!-- {{{ -->
       [[#
         {unlock} template
@@ -605,8 +653,15 @@
           before SHIELD will be able to use it.</p>
 
           <form class="unlock-shield">
-            <label for="unlock-master">Enter your SHIELD Master Password</label>
-            <input type="password" id="unlock-master" name="master"><button>Unlock</button>
+            <div class="ctl" data-field="unlock-master">
+              <label for="masterpass">Enter your SHIELD Master Password</label>
+              <div class="errors">
+                <span data-error="missing">Please supply your password.</span>
+                <span data-error="incorrect">Incorrect password, please try again.</span>
+              </div>
+              <input type="password" id="unlock-master" name="master">
+            </div>
+            <button>Unlock</button>
           </form>
         </div>
     <!-- }}} --></script>
@@ -666,17 +721,17 @@
           <div class="job card empty">Protected System</div>
           [[ } ]]
           [[ if (_.store) { ]]
-          <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <div class="store card [[ if (!_.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
           <a href="do-backup:unpick">
             <span class="type">Cloud Storage</span>
-            <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+            <img src="i/shield-[[= _.store.healthy ? 'ok' : 'fail' ]].svg">
             <h3>[[= _.store.name ]]</h3>
             <div class="notes">[[ if (_.store.summary) { ]]
               [[= _.store.summary ]]
             [[ } else { ]]
               <div class="no-data">No notes provided.  Too bad.</div>
             [[ } ]]</div>
-            <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+            <div class="graph[[ if (!_.store.healthy) { ]] fail[[ } ]]">
               <div class="to">[[= _.store.plugin ]]</div>
             </div>
           </a>
@@ -727,16 +782,16 @@
 
           <div>
             [[ $.each(stores, function (uuid, store) { ]]
-            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="do-backup:pick:store:[[= store.uuid ]]">
-              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
               </div>
               </a>
@@ -857,26 +912,26 @@
           <span class="label">Step 2</span>
           <h3>Which archive do you want to restore?</h3>
 
-          [[ if (_.archives.length == 0) { ]]
+          [[ if (_.system.archives.length == 0) { ]]
           <div class="no-data">This data system has never been backed up successfully.</div>
           [[ } else { ]]
           <div class="archive-row pick-me">
             <h4>Most Recent Backup</h4>
             <dl>
               <dt>Backup Taken</dt>
-              <dd>[[= strftime("%x %X", _.archives[0].taken_at) ]]<br>
-                  <sub>[[= duration(tdiff(_.archives[0].taken_at, new Date())) ]] ago</sub></dd>
+              <dd>[[= strftime("%x %X", _.system.archives[0].taken_at) ]]<br>
+                  <sub>[[= duration(tdiff(_.system.archives[0].taken_at, new Date())) ]] ago</sub></dd>
 
               <dt>Archive size</dt>
-              <dd>[[= bytes(_.archives[0].size) ]]</dd>
+              <dd>[[= bytes(_.system.archives[0].size) ]]</dd>
 
               <dt>Stored in</dt>
-              <dd>[[= _.archives[0].store_name ]]</dd>
+              <dd>[[= _.system.archives[0].store_name ]]</dd>
             </dl>
 
-            <button rel="do-restore:pick:archive:[[= _.archives[0].uuid ]]">Go &raquo;</button>
+            <button rel="do-restore:pick:archive:[[= _.system.archives[0].uuid ]]">Go &raquo;</button>
           </div>
-            [[ if (_.archives.length > 1) { ]]
+            [[ if (_.system.archives.length > 1) { ]]
               <table class="archives">
                 <thead><tr>
                   <th>Date of backup</th>
@@ -886,7 +941,7 @@
                   <th></th>
                 </tr></thead>
                 <tbody>
-                [[ $.each(_.archives, function (i, archive) { ]]
+                [[ $.each(_.system.archives, function (i, archive) { ]]
                   [[ if (i == 0) { return; } ]]
                   <tr>
                     <th>[[= strftime("%x %X", archive.taken_at) ]]</th>
@@ -962,17 +1017,17 @@
           [[ } ]]
 
           [[ if (_.store) { ]]
-          <div class="store card [[ if (!_.store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+          <div class="store card [[ if (!_.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
             <a href="do-configure:unpick">
               <span class="type">[[= _.store.uuid ? '' : '<strong>New</strong> ' ]]Cloud Storage</span>
-              <img src="i/shield-[[= _.store.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= _.store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= _.store.name ]]</h3>
               <div class="notes">[[ if (_.store.summary) { ]]
                 [[= _.store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!_.store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!_.store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= _.store.plugin ]]</div>
               </div>
             </a>
@@ -1028,6 +1083,15 @@
 
             <div id="choose-plugin"></div>
             <div id="configure-plugin"></div>
+
+            <div class="ctl" data-field="fixed-key">
+                <label for="target-fixed-key">Fixed-Key Encryption?</label>
+                <div class="widget">
+                    <input id="large-checkbox" name='fixed_key' type='checkbox' value="true" />
+                    <p class-"help">Select if backups should use the Fixed Key for encryption. 
+                    (Required for backups of Shield itself) </p>
+                </div>
+            </div>
 
             <button class="go">Next</button>
           </form>
@@ -1220,16 +1284,17 @@
 
           <div>
             [[ $.each(_.stores, function (uuid, store) { ]]
-            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="do-configure:pick:store:[[= store.uuid ]]">
-              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
+              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
               </div>
               </a>
@@ -1320,10 +1385,11 @@
 
           ]]
           <div class="subform">
-            <h2>[[= _.type == 'storage' ? 'Storage' : 'Backup' ]] Plugin Options</h2>
+            <h2>[[= _.type == 'store' ? 'Storage' : 'Backup' ]] Plugin Options</h2>
           [[ var n = 0; ]]
           [[ $.each(_.plugin.fields, function (i, field) { ]]
-            [[ if (field.mode == 'target') { return; } ]]
+            [[ if (field.mode == 'target' && _.type == 'store') { return; } ]]
+            [[ if (field.mode == 'store' && _.type == 'target') { return; } ]]
               [[ n++; ]]
               <div class="ctl[[ if (field.required) { ]] required[[ } ]]" data-field="config.[[= field.name ]]" data-type="[[= field.type ]]">
                 <label for="the-plugin-[[= field.name ]]">[[= esc(field.title) ]][[ if (field.required) { ]] <span>(required)</span>[[ } ]]</label>
@@ -1491,6 +1557,7 @@
             [[ } else { ]]
             <div class="no-data">No backups or restores have been performed.</div>
             [[ } ]]
+            <a class="paginated-loading" href="load_more">Load More</a>
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--task"><!-- {{{ -->
@@ -1571,17 +1638,17 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } else { ]]
             <div>
             [[ $.each(_.stores, function (i, store) { ]]
-            <div class="store card [[ if (!store.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
               <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
-              <img src="i/shield-[[= store.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
                 [[= store.summary ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
-              <div class="graph[[ if (!store.ok) { ]] fail[[ } ]]">
+              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
                 <div class="to">[[= store.plugin ]]</div>
               </div>
               </a>
@@ -2185,7 +2252,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   <td>[[= trelative(agent.last_seen_at, 90*86400) ]]</td>
                   <td>[[ if (agent.hidden) { ]]no[[ } else { ]]yes[[ } ]]</td>
                   <td>[[ if (agent.hidden) { ]]<a href="#" rel="show">show</a>
-                      [[ } else            { ]]<a href="#" rel="hide">hide</a>[[ } ]]</td>
+                      [[ } else            { ]]<a href="#" rel="hide">hide</a>[[ } ]]
+                      | <a href="#" rel="resync">resync</a></td>
                 </tr>
                 [[ if (problems.length != 0) { ]]
                 <tr class="note fail">
@@ -2262,7 +2330,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             <div class="github-auth-overlay-register">
               <span class="appname">SHIELD</span>
               <span class="homepage">[[= website() ]]</span>
-              <span class="callback">[[= website() ]]auth/[[= _.provider.identifier ]]/redir</span>
+              <span class="callback">[[= website() ]][[= _.provider.redirect ]]</span>
             </div>
 
             <p>Once your application is registered, Github will provide you
@@ -2355,6 +2423,16 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   <strong>new master password</strong> to unlock it.</p>
                 </div>
               </div>
+
+              <div class="ctl" data-field="confirm">
+                    <label for="rekey-fixed">Rekey Shield Fixed Key?</label>
+                    <div class="widget">
+                      <input id="large-checkbox" name='rotate_fixed_key' type='checkbox' value="true" />
+                      <p class="help">This rotates the <strong>Shield Fixed Key</strong>
+                      used for fixed-key backups. Once rekeyed, this new key must be used to manually
+                      restore all future fixed-key backups in a disaster scenario.</p>
+                    </div>
+                </div>
 
               <button class="go">Rekey</button>
             </form>

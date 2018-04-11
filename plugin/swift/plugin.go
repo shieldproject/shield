@@ -106,6 +106,57 @@ func main() {
   "debug":         false
 }
 `,
+
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "store",
+				Name:     "auth_url",
+				Type:     "string",
+				Title:    "Authentication URL",
+				Help:     "The URL of the authentication API",
+				Example:  "https://identity.api.rackspacecloud.com/v2.0",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "project_name",
+				Type:     "string",
+				Title:    "Project Name",
+				Help:     "Name of the openstack project",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "username",
+				Type:     "string",
+				Title:    "Username",
+				Help:     "The username used to authenticate to swift",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "password",
+				Type:     "password",
+				Title:    "Password",
+				Help:     "The password used to authenticate to swift",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "container",
+				Type:     "string",
+				Title:    "Container",
+				Help:     "Name of the container to store backup archives in.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "prefix",
+				Type:  "string",
+				Title: "Bucket Path Prefix",
+				Help:  "An optional sub-path of the container to use for storing archives.  By default, archives are stored in the root of the container.",
+			},
+		},
 	}
 
 	plugin.Run(p)

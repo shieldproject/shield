@@ -3,6 +3,11 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -156,7 +161,7 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		log.Infof("%s: initializing the SHIELD Core...", r)
-		init, err := core.Initialize(in.Master)
+		init, fixedKey, err := core.Initialize(in.Master)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
@@ -166,7 +171,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		r.Success("Successfully initialized the SHIELD Core")
+		r.OK(
+			struct {
+				Response string `json:"response"`
+				FixedKey string `json:"fixed_key"`
+			}{
+				"Successfully initialized the SHIELD Core",
+				fixedKey,
+			})
 	})
 	// }}}
 	r.Dispatch("POST /v2/unlock", func(r *route.Request) { // {{{
@@ -183,6 +195,10 @@ func (core *Core) v2API() *route.Router {
 
 		init, err := core.Unlock(in.Master)
 		if err != nil {
+			if strings.Contains(err.Error(), "Incorrect Password") {
+				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core"))
+				return
+			}
 			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core"))
 			return
 		}
@@ -196,8 +212,9 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("POST /v2/rekey", func(r *route.Request) { // {{{
 		var in struct {
-			Current string `json:"current"`
-			New     string `json:"new"`
+			Current     string `json:"current"`
+			New         string `json:"new"`
+			RotateFixed bool   `json:"rotate_fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -207,13 +224,20 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		err := core.Rekey(in.Current, in.New)
+		fixedKey, err := core.Rekey(in.Current, in.New, in.RotateFixed)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
 			return
 		}
 
-		r.Success("Successfully rekeyed the SHIELD Core")
+		r.OK(
+			struct {
+				Response string `json:"response"`
+				FixedKey string `json:"fixed_key"`
+			}{
+				"Successfully rekeyed the SHIELD Core",
+				fixedKey,
+			})
 	})
 	// }}}
 
@@ -683,6 +707,10 @@ func (core *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
 		targets, err := core.DB.GetAllTargets(
 			&db.TargetFilter{
 				SkipUsed:   r.ParamIs("unused", "t"),
@@ -711,6 +739,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("GET /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
 		target, err := core.DB.GetTarget(uuid.Parse(r.Args[2]))
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
@@ -744,17 +776,47 @@ func (core *Core) v2API() *route.Router {
 		for _, archive := range aa {
 			archives[archive.UUID.String()] = archive
 		}
+		// check to see if we're offseting task requests
+		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
 				ForTarget:    target.UUID.String(),
 				OnlyRelevant: true,
+				Before:       paginationDate,
+				Limit:        30,
 			},
 		)
+
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
+
+		//check if there's more tasks on the specific last date and append if so
+		if len(tasks) > 0 {
+			appendingtasks, err := core.DB.GetAllTasks(
+				&db.TaskFilter{
+					ForTarget:    target.UUID.String(),
+					OnlyRelevant: true,
+					RequestedAt:  tasks[len(tasks)-1].RequestedAt,
+				},
+			)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve system information"))
+				return
+			}
+			if (len(appendingtasks) > 1) && (tasks[len(tasks)-1].UUID.String() != appendingtasks[len(appendingtasks)-1].UUID.String()) {
+				log.Infof("Got a misjointed request, need to merge these two arrays.")
+				for i, task := range appendingtasks {
+					if task.UUID.String() == tasks[len(tasks)-1].UUID.String() {
+						tasks = append(tasks, appendingtasks[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+
 		system.Tasks = make([]v2SystemTask, len(tasks))
 		for i, task := range tasks {
 			system.Tasks[i].UUID = task.UUID
@@ -803,7 +865,33 @@ func (core *Core) v2API() *route.Router {
 		go socket.Discard()
 		for event := range in {
 			if event.Task != nil && event.Task.TenantUUID.String() == r.Args[1] && event.Task.TargetUUID.String() == r.Args[2] {
-				socket.Write(event.JSON)
+				var task v2SystemTask
+				task.UUID = event.Task.UUID
+				task.Type = event.Task.Op
+				task.Status = event.Task.Status
+				task.Owner = event.Task.Owner
+				task.OK = event.Task.OK
+				task.Notes = event.Task.Notes
+				task.RequestedAt = event.Task.RequestedAt
+				task.StartedAt = event.Task.StartedAt
+				task.StoppedAt = event.Task.StoppedAt
+				task.Log = event.Task.Log
+
+				if event.Task.ArchiveUUID != nil {
+					task.Archive = &v2SystemArchive{
+						UUID:     event.Task.ArchiveUUID,
+						Schedule: "FIXME",
+						Expiry:   -1,
+						Notes:    event.Task.Notes,
+						Size:     -1, // FIXME
+					}
+				}
+
+				output_event, err := json.Marshal(task)
+				if err != nil {
+					log.Errorf("unable to marshal JSON: %s", err)
+				}
+				socket.Write(output_event)
 			}
 		}
 		if err := core.broadcast.Unregister(id); err != nil {
@@ -813,16 +901,28 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
 	// }}}
 	r.Dispatch("PATCH /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		var in struct {
 			Annotations []struct {
 				Type        string `json:"type"`
@@ -886,6 +986,10 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 	r.Dispatch("DELETE /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
+		if core.IsNotTenantEngineer(r, r.Args[1]) {
+			return
+		}
+
 		/* FIXME */
 		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
 	})
@@ -1028,6 +1132,25 @@ func (core *Core) v2API() *route.Router {
 		} else {
 			r.Success("Agent is now visible to everyone")
 		}
+	})
+	// }}}
+	r.Dispatch("POST /v2/agents/:uuid/resync", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+
+		agent, err := core.DB.GetAgent(uuid.Parse(r.Args[1]))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+		if agent == nil {
+			r.Fail(route.NotFound(nil, "No such agent"))
+			return
+		}
+
+		core.checkAgents([]*db.Agent{agent})
+		r.Success("Ad hoc agent resynchronization underway")
 	})
 	// }}}
 
@@ -1842,6 +1965,7 @@ func (core *Core) v2API() *route.Router {
 			Plugin:     in.Plugin,
 			Config:     in.Config,
 			Threshold:  in.Threshold,
+			Healthy:    true, /* let's be optimistic */
 		})
 		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))
@@ -1993,12 +2117,18 @@ func (core *Core) v2API() *route.Router {
 			Store    string `json:"store"`
 			Target   string `json:"target"`
 			Policy   string `json:"policy"`
+			FixedKey bool   `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
 		if r.Missing("name", in.Name, "store", in.Store, "target", in.Target, "schedule", in.Schedule, "policy", in.Policy) {
+			return
+		}
+
+		if _, err := timespec.Parse(in.Schedule); err != nil {
+			r.Fail(route.Oops(err, "Invalid or malformed SHIELD Job Schedule '%s'", in.Schedule))
 			return
 		}
 
@@ -2011,6 +2141,7 @@ func (core *Core) v2API() *route.Router {
 			StoreUUID:  uuid.Parse(in.Store),
 			TargetUUID: uuid.Parse(in.Target),
 			PolicyUUID: uuid.Parse(in.Policy),
+			FixedKey:   in.FixedKey,
 		})
 		if job == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new job"))
@@ -2052,6 +2183,7 @@ func (core *Core) v2API() *route.Router {
 			StoreUUID  string `json:"store"`
 			TargetUUID string `json:"target"`
 			PolicyUUID string `json:"policy"`
+			FixedKey   *bool  `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
@@ -2074,6 +2206,10 @@ func (core *Core) v2API() *route.Router {
 			job.Summary = in.Summary
 		}
 		if in.Schedule != "" {
+			if _, err := timespec.Parse(in.Schedule); err != nil {
+				r.Fail(route.Oops(err, "Invalid or malformed SHIELD Job Schedule '%s'", in.Schedule))
+				return
+			}
 			job.Schedule = in.Schedule
 		}
 		job.TargetUUID = job.Target.UUID
@@ -2088,10 +2224,21 @@ func (core *Core) v2API() *route.Router {
 		if in.PolicyUUID != "" {
 			job.PolicyUUID = uuid.Parse(in.PolicyUUID)
 		}
+		if in.FixedKey != nil {
+			job.FixedKey = *in.FixedKey
+		}
 
 		if err := core.DB.UpdateJob(job); err != nil {
 			r.Fail(route.Oops(err, "Unable to update job"))
 			return
+		}
+
+		if in.Schedule != "" {
+			if spec, err := timespec.Parse(in.Schedule); err == nil {
+				if next, err := spec.Next(time.Now()); err == nil {
+					core.DB.RescheduleJob(job, next)
+				}
+			}
 		}
 
 		r.Success("Updated job successfully")
@@ -2211,11 +2358,14 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		limit, err := strconv.Atoi(r.Param("limit", "0"))
-		if err != nil || limit < 0 {
+		limit, err := strconv.Atoi(r.Param("limit", "30"))
+		if err != nil || limit < 0 || limit > 30 {
 			r.Fail(route.Bad(err, "Invalid limit parameter given"))
 			return
 		}
+
+		// check to see if we're offseting task requests
+		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
@@ -2225,6 +2375,7 @@ func (core *Core) v2API() *route.Router {
 				ForTarget:    r.Param("target", ""),
 				ForTenant:    r.Args[1],
 				Limit:        limit,
+				Before:       paginationDate,
 			},
 		)
 		if err != nil {
@@ -2444,6 +2595,126 @@ func (core *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	/* This following route is an out-of-band task that self-restores SHIELD if chosen
+	to during the initialization of SHIELD. On success, it stops SHIELD and the web UI
+	waits for a monit restart. On failure, SHIELD will nuke its working directory and crash.
+	Monit will then restart SHIELD, SHIELD will reinitialize, and the operator can try
+	again. */
+	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+		file, _, err := r.Req.FormFile("archive")
+
+		backupStore, err := ioutil.TempFile("", "SHIELDrestoreBOOTSTRAP")
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to save backup file to disk."))
+			return
+		}
+
+		defer backupStore.Close()
+		defer os.Remove(backupStore.Name())                          //clean up tempfile
+		backupPath, backupName := filepath.Split(backupStore.Name()) //necessary for task setup
+
+		io.Copy(backupStore, file)
+
+		err = backupStore.Sync()
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to save backup file to disk."))
+			return
+		}
+
+		stdout := make(chan string, 1)
+		stderr := make(chan string)
+		go func() {
+			for s := range stderr {
+				log.Errorf(s)
+			}
+		}()
+
+		// check for fixed key validity (otherwise, ASCIIHexEncode panics on bad key)
+		validKeyCheck := regexp.MustCompile("^([A-F,0-9]){512}$")
+		if !validKeyCheck.MatchString(r.Req.FormValue("fixedkey")) || len(r.Req.FormValue("fixedkey")) != 512 {
+			r.Fail(route.Oops(nil, "Invalid fixed key."))
+			return
+		}
+
+		/* out-of-band task run to restore SHIELD.*/
+		err = core.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
+			Op:             db.ShieldRestoreOperation,
+			TargetPlugin:   "fs",
+			TargetEndpoint: fmt.Sprintf("{\"base_dir\":\"%s\",\"bsdtar\":\"bsdtar\"}", path.Join(core.dataDir, "/../")),
+			StorePlugin:    "fs",
+			StoreEndpoint:  fmt.Sprintf("{\"base_dir\": \"%s\", \"bsdtar\": \"bsdtar\"}", backupPath),
+			RestoreKey:     backupName,
+			EncryptType:    "aes256-ctr",
+			EncryptKey:     core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[:32], 4),
+			EncryptIV:      core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[32:], 4),
+		})
+
+		/* if task fails, delete datadir and crash for monit restart; try again */
+		if err != nil {
+			bsLogFile, err := ioutil.ReadFile(path.Join(core.dataDir, "bootstrap.log"))
+			if err != nil {
+				log.Errorf("Unable to locate bootstrap.log for persistence-while-nuking\n")
+			}
+
+			os.RemoveAll(core.dataDir)
+			os.Mkdir(core.dataDir, 0755)
+
+			err = ioutil.WriteFile(path.Join(DataDir, "bootstrap.log"), bsLogFile, 0644)
+			if err != nil {
+				log.Errorf("Unable to re-save bootstrap.log for persistence-while-nuking") //FIXME
+			}
+
+			r.Fail(route.Oops(err, "SHIELD Restore Failed. You may be in a broken state."))
+			core.seppuku = 666
+			return
+		}
+
+		os.Remove(path.Join(core.dataDir, "bootstrap.log"))
+		r.Success("SHIELD successfully restored")
+		core.seppuku = 0
+		return
+	}) // }}}
+
+	r.Dispatch("GET /v2/bootstrap/log", func(r *route.Request) { // {{{
+		if core.IsNotSystemAdmin(r) {
+			return
+		}
+		bsLogFile, err := ioutil.ReadFile(path.Join(core.dataDir, "bootstrap.log"))
+		if err != nil {
+			log.Errorf("Unable to locate bootstrap.log for API\n")
+		}
+
+		type FakeTask struct {
+			UUID        string `json:"uuid"`
+			OK          bool   `json:"ok"`
+			Status      string `json:"status"`
+			Op          string `json:"type"`
+			ArchiveUUID string `json:"archive_uuid"`
+			Log         string `json:"log"`
+			RequestedAt int64  `json:"requested_at"`
+			StoppedAt   int64  `json:"stopped_at"`
+		}
+		type FakeTaskHusk struct {
+			Task FakeTask `json:"task"`
+		}
+
+		r.OK(&FakeTaskHusk{
+			Task: FakeTask{
+				UUID:        "BOOTSTRAP.RESTORE",
+				OK:          true,
+				Status:      "ok",
+				Op:          "restore",
+				ArchiveUUID: "BOOTSTRAP.RESTORE",
+				Log:         string(bsLogFile),
+				RequestedAt: 000000001,
+				StoppedAt:   000000002,
+			}})
+
+	}) // }}}
+
 	r.Dispatch("POST /v2/auth/login", func(r *route.Request) { // {{{
 		var in struct {
 			Username string
@@ -2644,6 +2915,7 @@ func (core *Core) v2API() *route.Router {
 			Plugin:     in.Plugin,
 			Config:     in.Config,
 			Threshold:  in.Threshold,
+			Healthy:    true, /* let's be optimistic */
 		})
 		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new storage system"))

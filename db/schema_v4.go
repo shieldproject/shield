@@ -87,17 +87,18 @@ func (s v4Schema) Deploy(db *DB) error {
 	}
 	// ... and remove the schedule_uuid field
 	err = db.Exec(`CREATE TABLE jobs_new (
-	               uuid            UUID PRIMARY KEY,
-	               target_uuid     UUID NOT NULL,
-	               store_uuid      UUID NOT NULL,
-	               tenant_uuid     UUID,
-	               schedule        TEXT NOT NULL,
-	               next_run        INTEGER DEFAULT 0,
-	               retention_uuid  UUID NOT NULL,
-	               priority        INTEGER DEFAULT 50,
-	               paused          BOOLEAN,
-	               name            TEXT,
-	               summary         TEXT
+	               uuid               UUID PRIMARY KEY,
+	               target_uuid        UUID NOT NULL,
+	               store_uuid         UUID NOT NULL,
+	               tenant_uuid        UUID,
+	               schedule           TEXT NOT NULL,
+	               next_run           INTEGER DEFAULT 0,
+	               retention_uuid     UUID NOT NULL,
+	               priority           INTEGER DEFAULT 50,
+	               paused             BOOLEAN,
+	               name               TEXT,
+		       summary            TEXT,
+		       fixed_key          INTEGER DEFAULT 0
 	             )`)
 	if err != nil {
 		return err
@@ -155,6 +156,12 @@ func (s v4Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
+
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN fixed_key INT NOT NULL DEFAULT 0`)
+	if err != nil {
+		return err
+	}
+
 	// FIXME - need to backfill archives.job based on heuristics
 
 	err = db.Exec(`CREATE TABLE agents (

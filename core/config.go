@@ -25,7 +25,7 @@ type Config struct {
 
 	Debug bool `yaml:"debug"`
 
-	DBPath string `yaml:"database"`
+	DataDir string `yaml:"data_directory"`
 
 	Addr          string `yaml:"listen_addr"`
 	KeyFile       string `yaml:"private_key"`
@@ -43,7 +43,6 @@ type Config struct {
 
 	VaultAddress string `yaml:"vault_address"`
 	VaultCACert  string `yaml:"vault_ca_cert"`
-	VaultKeyfile string `yaml:"vault_keyfile"`
 
 	SessionTimeout int `yaml:"session_timeout"`
 
@@ -57,7 +56,7 @@ func ReadConfig(file string) (Config, error) {
 		FastLoop: 1,
 		SlowLoop: 60 * 5,
 
-		DBPath:         "shield.db",
+		DataDir:        "/var/vcap/store/shield",
 		Addr:           "*:8888",
 		KeyFile:        "worker.key",
 		Workers:        2,
@@ -65,7 +64,6 @@ func ReadConfig(file string) (Config, error) {
 		Timeout:        12,
 		WebRoot:        "web",
 		EncryptionType: "aes256-ctr",
-		VaultKeyfile:   "vault/config.crypt",
 		VaultAddress:   "http://127.0.0.1:8200",
 		SessionTimeout: 720,
 	}
@@ -101,8 +99,8 @@ func ReadConfig(file string) (Config, error) {
 	if config.EncryptionType == "" {
 		return config, fmt.Errorf("encryption type '%s' is invalid (see documentation for supported ciphers and modes)", config.EncryptionType)
 	}
-	if config.VaultKeyfile == "" {
-		return config, fmt.Errorf("vault keyfile path '%s' is invalid (must be a valid path)", config.VaultKeyfile)
+	if config.DataDir == "" {
+		return config, fmt.Errorf("SHIELD data directory '%s' is invalid (must be a valid path)", config.DataDir)
 	}
 	// FIXME: check existence of WebRoot
 	for i, auth := range config.Auth {

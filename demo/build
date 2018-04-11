@@ -21,7 +21,7 @@ ssh-keygen -t rsa -f ${SHARED}/core.ssh  -N '' >/dev/null
 SHIELD_AGENT=$PWD/demo/shield-agent/in
 rm -rf ${SHIELD_AGENT}
 mkdir -p ${SHIELD_AGENT}/{plugins,bin,etc,rc,var}
-cp shield-agent buckler ${SHIELD_AGENT}/bin
+cp shield-agent shield ${SHIELD_AGENT}/bin
 for plugin in $(cat plugins); do
   cp $plugin ${SHIELD_AGENT}/plugins
 done
@@ -137,88 +137,88 @@ export SHIELD_BATCH_MODE=y
 export PATH=/bin:/usr/bin:/shield/bin
 
 if [ ! -f /.SETUP-DONE ]; then
-  while ! buckler api http://core:8181 demo; do
+  while ! shield api http://core:8181 demo; do
     sleep 1
   done
 
-  SHIELD_CORE_MASTER=master buckler initialize
-  buckler login --username demo --password demo
-  buckler id
+  SHIELD_CORE_MASTER=master shield initialize
+  shield login --username demo --password demo
+  shield id
 
 
-  buckler create-policy-template --name Short-Term --days 7
-  buckler create-policy-template --name Long-Term  --days 90
-  buckler create-policy-template --name Audit      --days 400
+  shield create-policy-template --name Short-Term --days 7
+  shield create-policy-template --name Long-Term  --days 90
+  shield create-policy-template --name Audit      --days 400
 
 
-  buckler create-user \
+  shield create-user \
     --name        Ophelia \
     --username    ophelia \
     --password    password \
     --system-role admin
 
-  buckler create-user \
+  shield create-user \
     --name        Olaf \
     --username    olaf \
     --password    password \
     --system-role engineer
 
-  buckler create-user \
+  shield create-user \
     --name        Nikita \
     --username    nikita \
     --password    password
 
-  buckler create-user \
+  shield create-user \
     --name        Nelson \
     --username    nelson \
     --password    password
 
-  buckler create-user \
+  shield create-user \
     --name        Cheri \
     --username    cheri \
     --password    password
 
-  buckler create-user \
+  shield create-user \
     --name        Carlton \
     --username    carlton \
     --password    password
 
-  buckler create-user \
+  shield create-user \
     --name        Frank \
     --username    frank \
     --password    password
 
-  buckler create-user \
+  shield create-user \
     --name        Fiona \
     --username    fiona \
     --password    password
 
-  buckler create-tenant --name 'Customer Service'
-  buckler invite --tenant 'Customer Service' --role operator ophelia olaf nikita nelson
-  buckler invite --tenant 'Customer Service' --role engineer carlton
-  buckler invite --tenant 'Customer Service' --role admin    cheri
+  shield create-tenant --name 'Customer Service'
+  shield invite --tenant 'Customer Service' --role operator ophelia olaf nikita nelson
+  shield invite --tenant 'Customer Service' --role engineer carlton
+  shield invite --tenant 'Customer Service' --role admin    cheri
 
-  buckler create-tenant --name Operations
-  buckler invite --tenant Operations --role operator nikita nelson
-  buckler invite --tenant Operations --role engineer olaf
-  buckler invite --tenant Operations --role admin    ophelia
+  shield create-tenant --name Operations
+  shield invite --tenant Operations --role operator nikita nelson
+  shield invite --tenant Operations --role engineer olaf
+  shield invite --tenant Operations --role admin    ophelia
 
-  buckler create-tenant --name Fulfillment
-  buckler invite --tenant Fulfillment --role operator ophelia olaf nikita nelson
-  buckler invite --tenant Fulfillment --role engineer fiona
-  buckler invite --tenant Fulfillment --role admin    frank
+  shield create-tenant --name Fulfillment
+  shield invite --tenant Fulfillment --role operator ophelia olaf nikita nelson
+  shield invite --tenant Fulfillment --role engineer fiona
+  shield invite --tenant Fulfillment --role admin    frank
 
   ##
   ## Global Storage
   ##
-  buckler create-global-store           \
+  shield create-global-store           \
     --name      'Tier 1'                \
     --agent     172.18.0.6:5444         \
     --plugin    webdav                  \
     --threshold 7G                      \
     --data      url=http://webdav/tier1
 
-  buckler create-global-store           \
+  shield create-global-store           \
     --name      'Tier 2'                \
     --agent     172.18.0.6:5444         \
     --plugin    webdav                  \
@@ -230,12 +230,12 @@ if [ ! -f /.SETUP-DONE ]; then
   ## Customer Service
   ## (work must be done as cheri; she's an admin)
   ##
-  buckler login --username cheri --password password
+  shield login --username cheri --password password
 
   ##
   ## Customer Service -- AEGIS
   ##
-  buckler create-target \
+  shield create-target \
       --tenant   'Customer Service' \
       --name     'A.E.G.I.S. DB' \
       --summary  'Self-service Customer Support System.' \
@@ -245,7 +245,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --data     mysql_password=password \
       --data     mysql_bindir=/usr/bin
 
-  buckler create-job \
+  shield create-job \
       --tenant   'Customer Service' \
       --target   'A.E.G.I.S. DB' \
       --store    'Tier 1' \
@@ -253,7 +253,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --name     'Daily' \
       --schedule 'daily at 4am'
 
-  buckler create-job \
+  shield create-job \
       --tenant   'Customer Service' \
       --target   'A.E.G.I.S. DB' \
       --store    'Tier 2' \
@@ -261,7 +261,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --name     'Weekly' \
       --schedule 'sundays at 5am'
 
-  buckler create-target \
+  shield create-target \
       --tenant    'Customer Service' \
       --name      'A.E.G.I.S. Assets' \
       --summary   'Uploaded assets and attachments for the A.E.G.I.S. platform.' \
@@ -270,7 +270,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --data      base_dir=/var/www/html/osticket \
       --data      bsdtar=/bin/tar
 
-  buckler create-job \
+  shield create-job \
       --tenant   'Customer Service' \
       --target   'A.E.G.I.S. Assets' \
       --store    'Tier 1' \
@@ -281,7 +281,7 @@ if [ ! -f /.SETUP-DONE ]; then
   ##
   ## Insignia CRM
   ##
-  buckler create-target \
+  shield create-target \
       --tenant   'Customer Service' \
       --name     'InsigniaCRM DB' \
       --summary  'Customer-Relationship Management platform.' \
@@ -292,7 +292,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --data     pg_password=odoo \
       --data     pg_bindir=/usr/bin
 
-  buckler create-job \
+  shield create-job \
       --tenant   'Customer Service' \
       --target   'InsigniaCRM DB' \
       --store    'Tier 1' \
@@ -300,7 +300,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --name     'Daily' \
       --schedule 'daily at 4:30am'
 
-  buckler create-job \
+  shield create-job \
       --tenant   'Customer Service' \
       --target   'InsigniaCRM' \
       --store    'Tier 2' \
@@ -313,12 +313,12 @@ if [ ! -f /.SETUP-DONE ]; then
   ## Operations
   ## (work must be done as ophelia; she's an admin)
   ##
-  buckler login --username ophelia --password password
+  shield login --username ophelia --password password
 
   ##
   ## Operations - SHIELD
   ##
-  buckler create-target \
+  shield create-target \
       --tenant    'Operations' \
       --name      'S.H.I.E.L.D.' \
       --summary   'The data protection system we know and trust.' \
@@ -327,7 +327,7 @@ if [ ! -f /.SETUP-DONE ]; then
       --data      base_dir=/shield/data \
       --data      bsdtar=/bin/tar
 
-  buckler create-job \
+  shield create-job \
       --tenant   'Operations' \
       --target   'S.H.I.E.L.D.' \
       --store    'Tier 1' \

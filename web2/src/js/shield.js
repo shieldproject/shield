@@ -263,6 +263,12 @@ function dispatch(page) {
                   break;
                 }
               }
+              data.system.archives = [];
+              for (var i = 0; i < data.archives.length; i++) {
+                if (data.archives[i].target_uuid == data.system.uuid) {
+                  data.system.archives.push(data.archives[i]);
+                }
+              }
               rerender(data);
               return;
             }
@@ -548,6 +554,9 @@ function dispatch(page) {
             if (l[1] == 'finalize') {
               var finalize = function () {
                 console.log('finalizing....');
+                data.name = $form.find('input[name="name"]').val();
+                data.summary = $form.find('textarea[name=summary]').val();
+
                 if (!data.target.uuid) {
                   console.log('creating new target "%s"...', data.target.name);
                   console.dir(data.target);
@@ -601,13 +610,14 @@ function dispatch(page) {
                   type: 'POST',
                   url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/jobs',
                   data: {
-                    name     : 'a random name?', // FIXME
-                    summary  : '',
-                    schedule : data.schedule,
+                    name      : data.name,
+                    summary   : data.summary,
+                    schedule  : data.schedule,
 
-                    store    : data.store.uuid,
-                    target   : data.target.uuid,
-                    policy   : data.policy.uuid
+                    store     : data.store.uuid,
+                    target    : data.target.uuid,
+                    policy    : data.policy.uuid,
+                    fixed_key : (data.target.fixed_key == "true")
                   },
                   error: "Unable to create a new backup job",
                   success: function (ok) {
@@ -632,10 +642,18 @@ function dispatch(page) {
         multiplex: {
           agents:   { type: 'GET', url: '+/agents'   },
           targets:  { type: 'GET', url: '+/targets'  },
+          gstores:  { type: 'GET', url: '/v2/global/stores' },
           stores:   { type: 'GET', url: '+/stores'   },
           policies: { type: 'GET', url: '+/policies' }
         },
-        success: rerender
+        success: function (data) {
+          /* combine data global stores with tenant stores */
+          data.stores = data.stores.concat(data.gstores);
+          delete data.gstores;
+
+          /* but defer everything else to rerender() */
+          return rerender(data);
+        }
       });
     })();
     break; /* #!/do/configure */
@@ -699,10 +717,7 @@ function dispatch(page) {
       },
       error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
       success: function (data) {
-        /* FIXME fixups that need to migrate into the SHIELD code */
-        for (key in data.local)  { if (!('ok' in data.local[key]))  { data.local[key].ok  = true; } }
-        for (key in data.global) { if (!('ok' in data.global[key])) { data.global[key].ok = true; } }
-        $('#main').html(template('stores', { stores: $.extend([], data.local, data.global) }));
+        $('#main').html(template('stores', { stores: data.local.concat(data.global) }));
       }
     });
     break; /* #!/stores */
@@ -1150,6 +1165,16 @@ function dispatch(page) {
                 error: "Unable to "+action+" agent via the SHIELD API.",
                 success: function () { reload(); }
               });
+            } else if (action == 'resync') {
+              event.preventDefault();
+              api({
+                type: 'POST',
+                url:  '/v2/agents/'+$(event.target).extract('agent-uuid')+'/resync',
+                error: "Resynchronization request failed",
+                success: function () {
+                  banner("Resynchronization of agent underway");
+                }
+              });
             }
           }));
       }
@@ -1216,6 +1241,8 @@ function dispatch(page) {
           $form.error('confirm', 'mismatch');
         }
 
+        data.rotate_fixed_key = (data.rotate_fixed_key == "true");
+
         if (!$form.isOK()) {
           return;
         }
@@ -1225,9 +1252,13 @@ function dispatch(page) {
           type: 'POST',
           url:  '/v2/rekey',
           data: data,
-          success: function () {
+          success: function (data) {
+            if (data.fixed_key != "") {
+              $('#viewport').html(template('fixedkey', data));
+            } else {
+              goto("#!/admin");
+            }
             banner('Succcessfully rekeyed the SHIELD Core.');
-            goto("#!/admin");
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);
@@ -1954,9 +1985,7 @@ function dispatch(page) {
           url:  '/v2/init',
           data: { "master": data.master },
           success: function (data) {
-            $global.hud.health.core = "unlocked";
-            $('#hud').html(template('hud', $global.hud));
-            goto("");
+            $('#viewport').html(template('fixedkey', data));
           },
           error: function (xhr) {
             $form.error(xhr.responseJSON);

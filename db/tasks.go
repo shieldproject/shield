@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	BackupOperation    = "backup"
-	RestoreOperation   = "restore"
-	PurgeOperation     = "purge"
-	TestStoreOperation = "test-store"
+	BackupOperation        = "backup"
+	RestoreOperation       = "restore"
+	ShieldRestoreOperation = "shield-restore"
+	PurgeOperation         = "purge"
+	TestStoreOperation     = "test-store"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"
@@ -44,6 +45,7 @@ type Task struct {
 	TimeoutAt      int64          `json:"-"`
 	Attempts       int            `json:"-"`
 	RestoreKey     string         `json:"-"`
+	FixedKey       bool           `json:"-"`
 	Agent          string         `json:"-"`
 	Log            string         `json:"log"`
 	OK             bool           `json:"ok"`
@@ -68,6 +70,8 @@ type TaskFilter struct {
 	ForStatus    string
 	ForArchive   string
 	Limit        int
+	RequestedAt  int64
+	Before       int64
 	// FIXME: add options for store
 }
 
@@ -121,6 +125,16 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		args = append(args, f.ForTarget)
 	}
 
+	if f.Before > 0 {
+		wheres = append(wheres, "t.requested_at < ?")
+		args = append(args, f.Before)
+	}
+
+	if f.RequestedAt > 0 {
+		wheres = append(wheres, "t.requested_at = ?")
+		args = append(args, f.RequestedAt)
+	}
+
 	limit := ""
 	if f.Limit > 0 {
 		limit = " LIMIT ?"
@@ -133,7 +147,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		       t.target_uuid, t.target_plugin, t.target_endpoint,
 		       t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
 		       t.restore_key, t.attempts, t.agent, t.log,
-		       t.ok, t.notes, t.clear
+		       t.ok, t.notes, t.clear, t.fixed_key
 
 		FROM tasks t
 
@@ -168,7 +182,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
 			&t.Status, &t.RequestedAt, &started, &stopped, &deadline,
 			&t.RestoreKey, &t.Attempts, &t.Agent, &log,
-			&t.OK, &t.Notes, &t.Clear); err != nil {
+			&t.OK, &t.Notes, &t.Clear, &t.FixedKey); err != nil {
 			return l, err
 		}
 		t.UUID = this.UUID
@@ -228,14 +242,17 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
-			 target_uuid, target_plugin, target_endpoint, restore_key, agent, attempts, tenant_uuid)
+			 target_uuid, target_plugin, target_endpoint, restore_key, 
+			 agent, attempts, tenant_uuid, fixed_key)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
 		     ?, ?, ?,
-		     ?, ?, ?, ?, ?, ?, ?)`,
+			 ?, ?, ?, ?, 
+			 ?, ?, ?, ?)`,
 		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		job.Store.UUID.String(), job.Store.Plugin, job.Store.Endpoint,
-		job.Target.UUID.String(), job.Target.Plugin, job.Target.Endpoint, "", job.Agent, 0, job.TenantUUID.String(),
+		job.Target.UUID.String(), job.Target.Plugin, job.Target.Endpoint, "",
+		job.Agent, 0, job.TenantUUID.String(), job.FixedKey,
 	)
 
 	if err != nil {

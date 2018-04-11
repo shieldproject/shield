@@ -45,16 +45,6 @@ func main() {
 				Required: true,
 			},
 			plugin.Field{
-				Mode:     "store",
-				Name:     "base_dir",
-				Type:     "abspath",
-				Title:    "Base Directory",
-				Help:     "Where to store the backup archives, on-disk.  This must be an absolute path, and the directory must exist.",
-				Example:  "/var/store/backups",
-				Required: true,
-			},
-
-			plugin.Field{
 				Mode:  "target",
 				Name:  "include",
 				Type:  "string",
@@ -175,7 +165,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	archive := tar.NewWriter(os.Stdout)
 	walker := func(path string, info os.FileInfo, err error) error {
 		if info == nil {
-			return fmt.Errorf("fs: base directory invalid")
+			return fmt.Errorf("fs: failed to walk %s: %s", path, err)
 		}
 
 		if !cfg.Match(info.Name()) {
@@ -292,7 +282,20 @@ func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 }
 
 func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	return plugin.UNIMPLEMENTED
+	cfg, err := getFSConfig(endpoint)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(fmt.Sprintf("%s/%s", cfg.BasePath, file))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(os.Stdout, f)
+	return err
+
 }
 
 func (p FSPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {

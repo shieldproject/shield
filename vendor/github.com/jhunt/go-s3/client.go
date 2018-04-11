@@ -26,6 +26,8 @@ type Client struct {
 	SkipSystemCAs      bool
 	InsecureSkipVerify bool
 
+	UsePathBuckets bool
+
 	ua *http.Client
 
 	trace     bool

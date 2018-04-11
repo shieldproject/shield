@@ -1,0 +1,14 @@
+USAGE: @G{shield} store --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Show a single Cloud Storage System
+
+  SHIELD needs a place to store all of the backup archives it is
+  going to generate, and Cloud Storage is where it's at.  Each
+  Cloud Storage System provides the configuration details needed
+  to write to and read from some external storage endpoint, be it
+  Amazon S3, Google Cloud Storage, or a local WebDav instance.
+
+  @Y{NOTE:} This command can only display information for storage
+  systems for a single SHIELD Tenant.
+  For shared storage, see @C{shield global-store}.
+

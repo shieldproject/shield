@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ var Version = "(development)"
 
 const SessionCookieName = "shield7"
 
+var DataDir = "setme"
+
 type Core struct {
 	fastloop *time.Ticker
 	slowloop *time.Ticker
@@ -35,6 +38,10 @@ type Core struct {
 	ip   string
 	fqdn string
 
+	/* poison pill to os.Exit() SHIELD in contexts where
+	it cannot be called direct safely (i.e. r.Dispatch) */
+	seppuku int
+
 	/* foreman */
 	numWorkers int
 	workers    chan *db.Task
@@ -43,6 +50,9 @@ type Core struct {
 
 	/* monitor */
 	agents map[string]chan *db.Agent
+
+	/* data dir */
+	dataDir string
 
 	/* janitor */
 	purgeAgent string
@@ -82,12 +92,17 @@ func NewCore(file string) (*Core, error) {
 
 	ip, fqdn := networkIdentity()
 
+	DataDir = config.DataDir
+
 	core := &Core{
 		fastloop: time.NewTicker(time.Second * time.Duration(config.FastLoop)),
 		slowloop: time.NewTicker(time.Second * time.Duration(config.SlowLoop)),
 
 		timeout: config.Timeout,
 		agent:   agent,
+
+		/* poison pill */
+		seppuku: -1,
 
 		ip:   ip,
 		fqdn: fqdn,
@@ -103,6 +118,9 @@ func NewCore(file string) (*Core, error) {
 		/* monitor */
 		agents: make(map[string]chan *db.Agent),
 
+		/* data dir */
+		dataDir: config.DataDir,
+
 		/* janitor */
 		purgeAgent: config.Purge,
 
@@ -115,7 +133,7 @@ func NewCore(file string) (*Core, error) {
 
 		/* encryption */
 		encryptionType: config.EncryptionType,
-		vaultKeyfile:   config.VaultKeyfile,
+		vaultKeyfile:   path.Join(config.DataDir, "/vault/vault.crypt"),
 		vaultAddress:   config.VaultAddress,
 
 		/* session */
@@ -126,7 +144,7 @@ func NewCore(file string) (*Core, error) {
 		/* db */
 		DB: &db.DB{
 			Driver: "sqlite3",
-			DSN:    config.DBPath,
+			DSN:    path.Join(config.DataDir, "/shield.db"),
 		},
 	}
 
@@ -214,6 +232,9 @@ func (core *Core) Run() error {
 		}
 	}
 
+	log.Infof("Purging prior authenticated sessions from previous SHIELD instance.")
+	core.DB.Exec("DELETE FROM `sessions`")
+
 	tenants := make(map[string]bool)
 	for _, auth := range core.auth {
 		for _, tenant := range auth.ReferencedTenants() {
@@ -255,6 +276,10 @@ func (core *Core) Run() error {
 		case <-core.fastloop.C:
 			sealed, err := core.vault.IsSealed()
 			initialized, initErr := core.vault.IsInitialized()
+			if core.seppuku != -1 {
+				log.Infof("core.sepukku was set to non-negative value, sayonara my friend")
+				os.Exit(core.seppuku)
+			}
 			if initialized && !sealed {
 				core.scheduleTasks()
 				core.runPending()
@@ -568,14 +593,25 @@ func (core *Core) worker(id int) {
 
 		if task.Op == db.BackupOperation {
 			task.ArchiveUUID = uuid.NewRandom()
-
-			enc_key, enc_iv, err := core.vault.CreateBackupEncryptionConfig(core.encryptionType)
-			if err != nil {
-				core.failTask(task, "shield worker %d failed to generate encryption parameters: %s\n", id, err)
-				continue
+			var enc_key, enc_iv string
+			if task.FixedKey {
+				data, exists, err := core.vault.Get("secret/archives/fixed_key")
+				if err != nil || !exists {
+					core.failTask(task, "shield worker %d unable retrieve fixed-key encryption parameters: %s\n", id, err)
+					continue
+				}
+				enc_key = core.vault.ASCIIHexDecode(data["key"].(string))
+				enc_iv = core.vault.ASCIIHexDecode(data["iv"].(string))
+			} else {
+				var err error
+				enc_key, enc_iv, err = core.vault.CreateBackupEncryptionConfig(core.encryptionType)
+				if err != nil {
+					core.failTask(task, "shield worker %d failed to generate encryption parameters: %s\n", id, err)
+					continue
+				}
 			}
 
-			err = core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
+			err := core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
 				"key":  core.vault.ASCIIHexEncode(enc_key, 4),
 				"iv":   core.vault.ASCIIHexEncode(enc_iv, 4),
 				"type": core.encryptionType,
@@ -586,7 +622,6 @@ func (core *Core) worker(id int) {
 				core.failTask(task, "shield worker %d failed to set encryption parameters: %s\n", id, err)
 				continue
 			}
-
 		}
 
 		var encType, encKey, encIV string
@@ -623,7 +658,23 @@ func (core *Core) worker(id int) {
 			/* N.B.: there is a temptation to print the error here, but in all the
 			   time we've run this code in production, the error message is
 			   ALWAYS 'process exited X, reason was ()', which is useless. */
-			core.failTask(task, "shield workder %d unable to run command against %s\n", id, task.Agent)
+			core.failTask(task, "shield worker %d unable to run command against %s\n", id, task.Agent)
+			if task.Op == db.TestStoreOperation {
+				store, err := core.DB.GetStore(task.StoreUUID)
+				if err != nil {
+					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
+				}
+				if store == nil {
+					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
+					continue
+				}
+				log.Infof("marking store %s [%s] as unhealthy", store.Name, store.Healthy)
+				store.Healthy = false
+				err = core.DB.UpdateStore(store)
+				if err != nil {
+					log.Errorf("error updating store: %s", err)
+				}
+			}
 			continue
 		}
 
@@ -691,21 +742,6 @@ func (core *Core) worker(id int) {
 			log.Infof("  %s: triggering an update to storage analytics", task.UUID)
 			core.updateStorageUsage()
 		}
-	}
-}
-
-func (core *Core) handleFailure(task *db.Task) {
-	log.Warnf("  %s: task failed!", task.UUID)
-	if err := core.DB.FailTask(task.UUID, time.Now()); err != nil {
-		log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-	}
-}
-
-func (core *Core) handleOutput(task *db.Task, f string, args ...interface{}) {
-	s := fmt.Sprintf(f, args...)
-	log.Infof("  %s> %s", task.UUID, strings.Trim(s, "\n"))
-	if err := core.DB.UpdateTaskLog(task.UUID, s); err != nil {
-		log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 	}
 }
 

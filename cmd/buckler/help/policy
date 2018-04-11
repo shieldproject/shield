@@ -1,8 +1,0 @@
-USAGE: @G{buckler} policy --tenant @Y{TENANT} @Y{NAME-OR-UUID}
-
-  Show a single Retention Policy
-
-  No backup is good forever.  SHIELD utilizes retention policies
-  to automatically expire backup archives that are too old, and
-  automatically remove them from cloud storage.
-

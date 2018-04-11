@@ -267,7 +267,7 @@ web interface and forego the CLI in the first round.
 ### API Key Authentication Backend
 
 Right now, API keys are used by supplying a custom header,
-`X-Shield-Token` in the request.  The API code verifies the key
+`X-Shield-Session` in the request.  The API code verifies the key
 against a list of keys.
 
 With the introduction of multi-tenancy, API keys need overhauled;

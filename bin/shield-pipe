@@ -91,17 +91,17 @@ needenv() {
 
 trap 'exiting $?' EXIT
 
-if [ -z "$SHIELD_ENCRYPT_KEY" ]; then
+if [ -n "$SHIELD_ENCRYPT_KEY" ]; then
 	enc_key="${SHIELD_ENCRYPT_KEY}"
 	unset SHIELD_ENCRYPT_KEY
 fi  
 
-if [ -z "$SHIELD_ENCRYPT_TYPE" ]; then
+if [ -n "$SHIELD_ENCRYPT_TYPE" ]; then
 	enc_type="${SHIELD_ENCRYPT_TYPE}"
-	unset SHIELD_ENCRYPT_IV
+	unset SHIELD_ENCRYPT_TYPE
 fi  
 
-if [ -z "$SHIELD_ENCRYPT_IV" ]; then
+if [ -n "$SHIELD_ENCRYPT_IV" ]; then
 	enc_iv="${SHIELD_ENCRYPT_IV}"
 	unset SHIELD_ENCRYPT_IV
 fi
@@ -218,8 +218,8 @@ exit 0
 	set -o pipefail
 	#The use of 3<<< shown below is to write the encryption config as json to FD 3 thus allowing us to drop it from the environment
 	#	and prevent further propogation
-	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" | \
-		tee >(tail -c1 >$PULSE) | bzip2 | ${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
+	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | \
+		tee >(tail -c1 >$PULSE) | bzip2 | shield-crypt --encrypt  3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" |  ${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
 
 	if [[ ! -s ${PULSE} ]]; then
 		rm -f ${PULSE}
@@ -231,7 +231,7 @@ exit 0
 	exit 0
 	;;
 
-(restore)
+(restore|shield-restore)
 	needenv SHIELD_OP               \
 	        SHIELD_STORE_PLUGIN     \
 	        SHIELD_STORE_ENDPOINT   \
@@ -247,8 +247,8 @@ exit 0
 	set -o pipefail
 	#The use of 3<<< shown below is to write the encryption config as json to FD 3 thus allowing us to drop it from the environment
 	#	and prevent further propogation
-	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | bunzip2 | \
-		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}" 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" 
+	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}"  | bunzip2 | \
+		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
 
 	exit 0
 	;;

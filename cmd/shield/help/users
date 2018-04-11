@@ -1,0 +1,27 @@
+USAGE: @G{shield} users [OPTIONS]
+
+  List local SHIELD Users.
+
+  SHIELD supports a several 3rd party authentication providers,
+  including Github and Cloud Foundry UAA, but for sheer simplicity,
+  nothing beats local users.  Local SHIELD users exist inside the
+  SHIELD database, and can be assigned tenant- and system-roles
+  arbitrarily.
+
+  @Y{NOTE:} This command can only be used by SHIELD site managers.
+
+@B{Options:}
+
+  By default, all local SHIELD users will be displayed.
+  You may filter the results with the following command-line flags.
+
+  --with-system-role  Only show users who have been assigned the
+                      specified system role, one of either @M{admin},
+                      @M{manager}, or @M{engineer}.
+
+@B{Examples:}
+
+  # Who can manage tenants?
+  @W{shield users} \
+     @Y{--with-system-role} @C{manager}
+

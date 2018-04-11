@@ -1,0 +1,13 @@
+USAGE: @G{shield} run-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Manually Run a Backup Job.
+
+  Backup Jobs are the linchpin of SHIELD configuration; they
+  provide the what, when, and where, tying together target data
+  systems (the "what"), cloud storage ("where"), a schedule, and
+  a retention policy into one schedulable unit of data protection.
+
+  When you run a job via @C{shield run-job}, SHIELD will temporarily
+  ignore the schedule and schedule an immediate, ad hoc execution
+  of the job, whether or not it was paused
+

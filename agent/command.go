@@ -51,7 +51,7 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
 
-	case "restore":
+	case "restore", "shield-restore":
 		if cmd.TargetPlugin == "" {
 			return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
 		}
@@ -136,6 +136,10 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		fmt.Sprintf("PATH=%s", os.Getenv("PATH")),
 		fmt.Sprintf("USER=%s", os.Getenv("USER")),
 		fmt.Sprintf("LANG=%s", os.Getenv("LANG")),
+
+		fmt.Sprintf("http_proxy=%s", os.Getenv("http_proxy")),
+		fmt.Sprintf("https_proxy=%s", os.Getenv("https_proxy")),
+		fmt.Sprintf("no_proxy=%s", os.Getenv("no_proxy")),
 
 		fmt.Sprintf("SHIELD_OP=%s", c.Op),
 		fmt.Sprintf("SHIELD_STORE_PLUGIN=%s", c.StorePlugin),

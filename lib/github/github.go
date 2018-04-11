@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -11,14 +12,21 @@ type Client struct {
 	gh *github.Client
 }
 
-func NewClient(token string) *Client {
-	return &Client{
-		gh: github.NewClient(
-			oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(
-				&oauth2.Token{AccessToken: token},
-			)),
-		),
+func NewClient(api, token string) (*Client, error) {
+	gh := github.NewClient(
+		oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)),
+	)
+
+	if api != "" {
+		u, err := url.Parse(api)
+		if err != nil {
+			return nil, err
+		}
+		gh.BaseURL = u
 	}
+	return &Client{gh: gh}, nil
 }
 
 func (c *Client) Lookup() (string, string, map[string][]string, error) {
