@@ -817,7 +817,7 @@ func (core *Core) v2API() *route.Router {
 			}
 		}
 
-		if core.CanNotSeeRedacted(r, r.Args[1]) {
+		if !core.CanSeeCredentials(r, r.Args[1]) {
 			core.DB.RedactAllTaskLogs(tasks)
 		}
 
@@ -879,7 +879,7 @@ func (core *Core) v2API() *route.Router {
 				task.RequestedAt = event.Task.RequestedAt
 				task.StartedAt = event.Task.StartedAt
 				task.StoppedAt = event.Task.StoppedAt
-				if core.CanNotSeeRedacted(r, r.Args[1]) {
+				if !core.CanSeeCredentials(r, r.Args[1]) {
 					core.DB.RedactTaskLog(event.Task)
 				}
 				task.Log = event.Task.Log
@@ -2390,7 +2390,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		if core.CanNotSeeRedacted(r, r.Args[1]) {
+		if !core.CanSeeCredentials(r, r.Args[1]) {
 			core.DB.RedactAllTaskLogs(tasks)
 		}
 		r.OK(tasks)
@@ -2410,7 +2410,7 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.NotFound(err, "No such task"))
 			return
 		}
-		if core.CanNotSeeRedacted(r, r.Args[1]) {
+		if !core.CanSeeCredentials(r, r.Args[1]) {
 			core.DB.RedactTaskLog(task)
 		}
 		r.OK(task)
@@ -2602,7 +2602,7 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to schedule a restore task"))
 			return
 		}
-		if core.CanNotSeeRedacted(r, r.Args[1]) {
+		if !core.CanSeeCredentials(r, r.Args[1]) {
 			core.DB.RedactTaskLog(task)
 		}
 		r.OK(task)

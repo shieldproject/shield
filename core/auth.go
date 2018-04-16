@@ -287,7 +287,7 @@ func (core *Core) IsNotTenantOperator(r *route.Request, tenant string) bool {
 		!core.hasTenant(true, r, tenant)
 }
 
-func (core *Core) CanNotSeeRedacted(r *route.Request, tenant string) bool {
-	return !core.hasRole(false, r, tenant, "tenant/engineer", "tenant/admin", "system/*") ||
-		!core.hasTenant(false, r, tenant)
+func (core *Core) CanSeeCredentials(r *route.Request, tenant string) bool {
+	return core.hasRole(false, r, tenant, "tenant/engineer", "tenant/admin", "system/*") &&
+		core.hasTenant(false, r, tenant)
 }
