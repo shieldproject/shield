@@ -1416,94 +1416,6 @@ function dispatch(page) {
     })()
     break;
     // }}}
-    case "#!/init": /* {{{ */
-      (function () {
-        $('#viewport').html(template('init'));
-        $('#viewport').html($(template('init'))
-          .on("submit", ".restore", function (event) {
-            event.preventDefault();
-           // progress('Initializing SHIELD with prior backup');
-
-            var $form = $(event.target);
-            var data = new FormData();
-
-            if ($form[0].fixedkey.value.length < 512 || $form[0].fixedkey.value.length > 512) {
-              $form.error('fixedkey', 'missing')
-              return;
-            }
-            data.append("archive", $form[0].archive.files[0]);
-            data.append("fixedkey", $form[0].fixedkey.value);
-
-            $form.reset();
-            $('.dialog').html("")
-            $('.dialog').html(template('loading'))
-            $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD is initializing from a previous backup, please wait...</h2>")
-
-            $.ajax({
-              type: "POST",
-              url: "/v2/bootstrap/restore",
-              data: data,
-              cache: false,
-              contentType: false,
-              processData: false,
-              success: function () {
-                $('.dialog').html(template('loading'))
-                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization success, taking you authentication...</h2>")
-              },
-              error: function () {
-                $('.dialog').html(template('loading'))
-                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, restarting initialization process...</h2>")
-              }
-            });
-          })
-          .on("submit", ".setpass", function (event) {
-            event.preventDefault();
-            var $form = $(event.target);
-            var data = $form.serializeObject();
-            if (data.masterpass == "") {
-              $form.error('masterpass', 'missing');
-
-            } else if (data.masterpassconf == "") {
-              $form.error('masterpassconf', 'missing');
-
-            } else if (data.masterpass != data.masterpassconf) {
-              $form.error('masterpassconf', 'mismatch');
-            }
-
-            if (!$form.isOK()) {
-              return;
-            }
-            api({
-              type: 'POST',
-              url: '/v2/init',
-              data: { "master": data.masterpass },
-              success: function (data) {
-                console.log("success");
-                $('#viewport').html(template('fixedkey', data));
-              },
-              error: function (xhr) {
-                $(event.target).error(xhr.responseJSON);
-              }
-            });
-          })
-        );
-        $.ajax({
-          type: "GET",
-          url: "/v2/bootstrap/log",
-          success: function (data) {
-            if (data["task"]["log"] != "") {
-              $('.restore_divert').html("It looks like there was a previous attempt to self-restore SHIELD that failed. Below is the task log to help debug the problem. ")
-              $('#initialize').append("<div class=\"dialog\" id=\"log\"></div>")
-              $('#log').append(template('task', data))
-            }
-          }
-        });
-        
-
-
-      })();
-      break; /* #!/login */
-    // }}}
 
   case "#!/do/backup": /* {{{ */
     if (!$global.auth.tenant) {
@@ -2072,7 +1984,6 @@ function dispatch(page) {
       error: "Failed retrieving metadata for protected system from the SHIELD API.",
       success: function (data) {
         $('#main').html(template('system', { target: data }));
-        time_of_oldest_task = data["tasks"][data.tasks.length-1]["requested_at"]
         watchTasks($global.auth.tenant.uuid, data.uuid, function (r) {
           task = JSON.parse(r.data);
           for (var i = 0; i < data.tasks.length; i++) {
@@ -2084,22 +1995,6 @@ function dispatch(page) {
           }
           data.tasks.unshift(task);
           $('#main').html(template('system', { target: data }));
-        });
-        $(document.body).on('click', 'a[href^="load_more"]', function (event) {
-          event.preventDefault();
-          api({
-            type: 'GET',
-            url: '/v2/tenants/' + $global.auth.tenant.uuid + '/systems/' + args.uuid + '?before=' + time_of_oldest_task,
-            error: "Failed retrieving metadata for protected system from the SHIELD API.",
-            success: function (older_tasks) {
-              data.tasks = $.merge(data.tasks, older_tasks.tasks);
-              $('#main').html(template('system', { target: data }));
-              time_of_oldest_task = data["tasks"][data.tasks.length - 1]["requested_at"]
-              if (older_tasks.tasks.length == 0)  {
-                $(".paginated-loading").remove();
-              }
-            }
-          });
         });
       }
     });
@@ -3339,28 +3234,59 @@ function dispatch(page) {
         event.preventDefault();
 
         var data = $(event.target).serializeObject();
-        if (data.master == "") {
-          $(event.target).error('unlock-master', 'missing')
-        }
 
         api({
           type: 'POST',
           url:  '/v2/unlock',
           data: data,
+          error: "Unable to unlock the SHIELD Core.",
           success: function (data) {
             $global.hud.health.core = "unlocked";
             $('#hud').html(template('hud', $global.hud));
             goto("");
+          }
+        });
+      }));
+    break;
+    // }}}
+  case "#!/init": /* {{{ */
+    if (!$global.auth.is.system.engineer) {
+      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      break;
+    }
+    $('#main').html($(template('init', {}))
+      .autofocus()
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
+
+        var $form = $(event.target);
+        var data = $form.serializeObject();
+
+        $form.reset();
+        if (data.master == "") {
+          $form.error('master', 'missing');
+
+        } else if (data.confirm == "") {
+          $form.error('confirm', 'missing');
+
+        } else if (data.master != data.confirm) {
+          $form.error('confirm', 'mismatch');
+        }
+
+        if (!$form.isOK()) {
+          return;
+        }
+
+        api({
+          type: 'POST',
+          url:  '/v2/init',
+          data: { "master": data.master },
+          success: function (data) {
+            $('#viewport').html(template('fixedkey', data));
           },
-          statusCode: {
-            403: function () {
-              $(event.target).error('unlock-master', 'incorrect')
-            },
-            500: function (xhr) {
-              $(event.target).error(xhr.responseJSON);
-            }
-          },
-          error: {}
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
         });
       }));
     break;
@@ -3462,13 +3388,9 @@ $(function () {
           if (every != backoff[every]) {
             console.log('/v2/health check failed; backing off to check every %d seconds', every);
           }
-          rehud({
-            'health':
-                {'core': 'unreachable', 'storage_ok': false, 'jobs_ok': false},
-            'storage': [],
-            'jobs': [],
-            'stats': {}
-          });
+
+          $global.hud.health.core = 'unreachable';
+          rehud($global.hud);
         },
         complete: function () {
           timer = window.setTimeout(ping, every * 1000);
@@ -3507,16 +3429,6 @@ $(function () {
                 }
               }
             })
-          },
-          500: function() {
-            console.log('/v2/health check received a 500, throwing errored state')
-            rehud({
-              'health':
-                  {'core': 'failing', 'storage_ok': false, 'jobs_ok': false},
-              'storage': [],
-              'jobs': [],
-              'stats': {}
-            });
           },
         }
       });
@@ -3700,6 +3612,23 @@ $(function () {
         }
       });
     });
+  });
+
+  /* global: handle "restore:archive-uuid" buttons {{{ */
+  $(document.body).on('click', '.task .unredact', function (event) {
+    $(event.target).addClass('redact').removeClass('unredact')
+    $(event.target).text("Hide Credentials")
+    $(event.target).closest('.task').find( "redacted" ).css({'background-color': 'unset',
+      'color': 'unset',
+      'filter': 'unset'})
+  });
+
+  $(document.body).on('click', '.task .redact', function (event) {
+    $(event.target).addClass('unredact').removeClass('redact')
+    $(event.target).text("Show Credentials")
+    $(event.target).closest('.task').find( "redacted" ).css({'background-color': 'black',
+      'color': 'black',
+      'filter': 'blur(6px)'})
   });
   /* }}} */
 });

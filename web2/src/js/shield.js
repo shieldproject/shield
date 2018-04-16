@@ -2316,5 +2316,22 @@ $(function () {
       });
     });
   });
+
+  /* global: handle "restore:archive-uuid" buttons {{{ */
+  $(document.body).on('click', '.task .unredact', function (event) {
+    $(event.target).addClass('redact').removeClass('unredact')
+    $(event.target).text("Hide Credentials")
+    $(event.target).closest('.task').find( "redacted" ).css({'background-color': 'unset',
+      'color': 'unset',
+      'filter': 'unset'})
+  });
+
+  $(document.body).on('click', '.task .redact', function (event) {
+    $(event.target).addClass('unredact').removeClass('redact')
+    $(event.target).text("Show Credentials")
+    $(event.target).closest('.task').find( "redacted" ).css({'background-color': 'black',
+      'color': 'black',
+      'filter': 'blur(6px)'})
+  });
   /* }}} */
 });
