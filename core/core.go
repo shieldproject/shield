@@ -245,7 +245,7 @@ func (core *Core) Run() error {
 	}
 	for tenant := range tenants {
 		if _, err := core.DB.EnsureTenant(tenant); err != nil {
-			return fmt.Errorf("unable to pre-create tenant '%s' (referenced in authentication providers): %s", err)
+			return fmt.Errorf("unable to pre-create tenant '%s' (referenced in authentication providers): %s", tenant, err)
 		}
 	}
 

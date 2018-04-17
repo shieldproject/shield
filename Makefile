@@ -63,7 +63,7 @@ docs/API.md: docs/API.yml
 	mv $@~ $@
 
 clean:
-	rm -f shieldd shield-agent shield-schema
+	rm -f shield shieldd shield-agent shield-schema shield-crypt shield-migrate
 	rm -f $$(cat plugins) dummy
 
 

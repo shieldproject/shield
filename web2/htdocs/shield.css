@@ -2105,3 +2105,9 @@ form.scheduling .subform {
   box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
   cursor: pointer;
 }
+
+redacted {
+  background-color: black;
+  color: black;
+  filter: blur(6px);
+}
