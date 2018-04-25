@@ -22,3 +22,7 @@
   or `http://` URL scheme from your DAV server URL.  Instead, it
   assumes HTTPS and keeps on truckin'.  Other URL parse errors are
   properly handled now as well.
+
+- Handle people who don't set up their Github profiles properly,
+  and are missing display names.  The Github API returns these as
+  nil string pointers, instead of pointers to the empty string.

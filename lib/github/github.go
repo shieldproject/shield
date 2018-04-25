@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	"github.com/google/go-github/github"
@@ -36,6 +37,9 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 	if err != nil {
 		return "", "", nil, err
 	}
+	if user.Login == nil {
+		return "", "", nil, fmt.Errorf("no login name found in Github profile...")
+	}
 
 	orgs, _, err := c.gh.Organizations.List("", nil)
 	if err != nil {
@@ -54,5 +58,8 @@ func (c *Client) Lookup() (string, string, map[string][]string, error) {
 		m[*team.Organization.Login] = append(m[*team.Organization.Login], *team.Name)
 	}
 
+	if user.Name == nil {
+		user.Name = user.Login
+	}
 	return *user.Login, *user.Name, m, nil
 }
