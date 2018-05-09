@@ -122,6 +122,14 @@ func main() {
 				Help:    "The absolute path to the bin/ directory that contains the `bbr` command.",
 				Default: "/var/vcap/packages/bbr/bin",
 			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "bbr_deployment",
+				Type:     "string",
+				Title:    "BOSH Deployment Name",
+				Help:     "The deployment name on the director your targeting",
+				Required: true,
+			},
 		},
 	}
 
