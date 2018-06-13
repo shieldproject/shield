@@ -5,6 +5,7 @@ set -e -o pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 export PORT=$1
 export WEBDAV_PORT=$(( PORT + 1 ))
+NO_INIT=${2:-}
 
 if [[ ! -f "../shield" ]]; then pushd .. && go build ./cmd/shield ; popd; fi
 
@@ -29,6 +30,11 @@ SHIELD_AGENT_ADDR="127.0.0.1:5444"
 
 export SHIELD_CORE=localdev
 export SHIELD_BATCH_MODE=y
+
+if [[ -n "${NO_INIT:-}" ]]; then
+  echo ; echo "Skipping dev SHIELD core initialization (NO_INIT=$NO_INIT)..."
+  exit 0
+fi
 
 echo ; echo "Initializing this dev SHIELD core"
 shield api localdev http://localhost:8180

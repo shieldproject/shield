@@ -376,7 +376,7 @@ EOF
        new-window -n vault ./bin/testdev vault \; \
        new-window -n daemon ./bin/testdev shieldd \; \
        new-window -n agent ./bin/testdev shieldagent ${PORT} \; \
-       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${PORT}; read JUNK" \; \
+       new-window -n dev-setup "sleep 5 && ./bin/dev-setup ${PORT} ${NO_INIT:-}; read JUNK" \; \
        new-window -n db sqlite3 ${workdir}/var/shield.db \;
   ;;
 
