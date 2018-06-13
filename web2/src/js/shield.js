@@ -120,6 +120,92 @@ function dispatch(page) {
     break;
     // }}}
 
+    case "#!/init": /* {{{ */
+      (function () {
+        $('#viewport').html(template('init'));
+        $('#viewport').html($(template('init'))
+          .on("submit", ".restore", function (event) {
+            event.preventDefault();
+           // progress('Initializing SHIELD with prior backup');
+
+            var $form = $(event.target);
+            var data = new FormData();
+
+            if ($form[0].fixedkey.value.length < 512 || $form[0].fixedkey.value.length > 512) {
+              $form.error('fixedkey', 'missing')
+              return;
+            }
+            data.append("archive", $form[0].archive.files[0]);
+            data.append("fixedkey", $form[0].fixedkey.value);
+
+            $form.reset();
+            $('.dialog').html("")
+            $('.dialog').html(template('loading'))
+            $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD is initializing from a previous backup, please wait...</h2>")
+
+            $.ajax({
+              type: "POST",
+              url: "/v2/bootstrap/restore",
+              data: data,
+              cache: false,
+              contentType: false,
+              processData: false,
+              success: function () {
+                $('.dialog').html(template('loading'))
+                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization success, taking you authentication...</h2>")
+              },
+              error: function () {
+                $('.dialog').html(template('loading'))
+                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, restarting initialization process...</h2>")
+              }
+            });
+          })
+          .on("submit", ".setpass", function (event) {
+            event.preventDefault();
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+            if (data.masterpass == "") {
+              $form.error('masterpass', 'missing');
+
+            } else if (data.masterpassconf == "") {
+              $form.error('masterpassconf', 'missing');
+
+            } else if (data.masterpass != data.masterpassconf) {
+              $form.error('masterpassconf', 'mismatch');
+            }
+
+            if (!$form.isOK()) {
+              return;
+            }
+            api({
+              type: 'POST',
+              url: '/v2/init',
+              data: { "master": data.masterpass },
+              success: function (data) {
+                console.log("success");
+                $('#viewport').html(template('fixedkey', data));
+              },
+              error: function (xhr) {
+                $(event.target).error(xhr.responseJSON);
+              }
+            });
+          })
+        );
+        $.ajax({
+          type: "GET",
+          url: "/v2/bootstrap/log",
+          success: function (data) {
+            if (data["task"]["log"] != "") {
+              $('.restore_divert').html("It looks like there was a previous attempt to self-restore SHIELD that failed. Below is the task log to help debug the problem. ")
+              $('#initialize').append("<div class=\"dialog\" id=\"log\"></div>")
+              $('#log').append(template('task', data))
+            }
+          }
+        });
+      })();
+      break; /* #!/init */
+    // }}}
+
   case "#!/do/backup": /* {{{ */
     if (!$global.auth.tenant) {
       $('#main').html(template('you-have-no-tenants'));
@@ -1937,59 +2023,28 @@ function dispatch(page) {
         event.preventDefault();
 
         var data = $(event.target).serializeObject();
+        if (data.master == "") {
+          $(event.target).error('unlock-master', 'missing');
+        }
 
         api({
           type: 'POST',
           url:  '/v2/unlock',
           data: data,
-          error: "Unable to unlock the SHIELD Core.",
           success: function (data) {
             $global.hud.health.core = "unlocked";
             $('#hud').html(template('hud', $global.hud));
             goto("");
-          }
-        });
-      }));
-    break;
-    // }}}
-  case "#!/init": /* {{{ */
-    if (!$global.auth.is.system.engineer) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
-      break;
-    }
-    $('#main').html($(template('init', {}))
-      .autofocus()
-      .on('submit', 'form', function (event) {
-        event.preventDefault();
-
-        var $form = $(event.target);
-        var data = $form.serializeObject();
-
-        $form.reset();
-        if (data.master == "") {
-          $form.error('master', 'missing');
-
-        } else if (data.confirm == "") {
-          $form.error('confirm', 'missing');
-
-        } else if (data.master != data.confirm) {
-          $form.error('confirm', 'mismatch');
-        }
-
-        if (!$form.isOK()) {
-          return;
-        }
-
-        api({
-          type: 'POST',
-          url:  '/v2/init',
-          data: { "master": data.master },
-          success: function (data) {
-            $('#viewport').html(template('fixedkey', data));
           },
-          error: function (xhr) {
-            $form.error(xhr.responseJSON);
-          }
+          statusCode: {
+            403: function () {
+              $(event.target).error('unlock-master', 'incorrect')
+            },
+            500: function (xhr) {
+              $(event.target).error(xhr.responseJSON);
+            }
+          },
+          error: {}
         });
       }));
     break;
