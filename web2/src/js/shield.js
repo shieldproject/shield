@@ -2167,8 +2167,8 @@ $(function () {
             console.log('/v2/health check failed; backing off to check every %d seconds', every);
           }
 
-          $global.hud.health.core = 'unreachable';
-          rehud($global.hud);
+          rehud({health: {core: 'unreachable', storage_ok: false, jobs_ok: false},
+                 storage: [], jobs: [], stats: {}});
         },
         complete: function () {
           timer = window.setTimeout(ping, every * 1000);
@@ -2207,6 +2207,11 @@ $(function () {
                 }
               }
             })
+          },
+          500: function() {
+            console.log('/v2/health check received a 500, throwing errored state')
+            rehud({ health: {core: "failing", storage_ok: false, jobs_ok: false},
+                    storage: [], jobs: [], stats: {} });
           },
         }
       });
