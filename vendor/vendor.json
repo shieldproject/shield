@@ -413,6 +413,60 @@
 			"revisionTime": "2017-07-14T08:24:55Z"
 		},
 		{
+			"checksumSHA1": "+bqkymIDXrOgmsuUHjWsdpcwn+8=",
+			"path": "github.com/starkandwayne/goutils/ansi",
+			"revision": "d28cacc19462737f05e67bfee385190ffa593d65",
+			"revisionTime": "2017-05-30T16:16:10Z"
+		},
+		{
+			"checksumSHA1": "a+CBFnEuiiR6Qp/Y/2NM6K/mlBE=",
+			"path": "github.com/starkandwayne/goutils/tree",
+			"revision": "d28cacc19462737f05e67bfee385190ffa593d65",
+			"revisionTime": "2017-05-30T16:16:10Z"
+		},
+		{
+			"checksumSHA1": "b66cLatMBdcrTuAUeKQguEoBmHQ=",
+			"path": "github.com/starkandwayne/safe/prompt",
+			"revision": "3cf6c887f8adf4230e6069f4ea4266d05917ea8a",
+			"revisionTime": "2018-06-09T13:39:22Z"
+		},
+		{
+			"checksumSHA1": "bhzxyrmHJFo+e3pe6H2B9WCwGsU=",
+			"path": "github.com/starkandwayne/safe/vault",
+			"revision": "3cf6c887f8adf4230e6069f4ea4266d05917ea8a",
+			"revisionTime": "2018-06-09T13:39:22Z"
+		},
+		{
+			"checksumSHA1": "MFwXW+d+HJR+bLmIjhSV6XnDs9A=",
+			"path": "github.com/tredoe/osutil/user/crypt",
+			"revision": "7d3ee1afa71c90fd1514c8f557ae6c5f414208eb",
+			"revisionTime": "2016-11-30T13:35:08Z"
+		},
+		{
+			"checksumSHA1": "QEuwxVISS6InjeaZiEJPwgAE24A=",
+			"path": "github.com/tredoe/osutil/user/crypt/common",
+			"revision": "7d3ee1afa71c90fd1514c8f557ae6c5f414208eb",
+			"revisionTime": "2016-11-30T13:35:08Z"
+		},
+		{
+			"checksumSHA1": "23JmRA3tf9pKWNQZKqjfaDHqPv0=",
+			"path": "github.com/tredoe/osutil/user/crypt/md5_crypt",
+			"revision": "7d3ee1afa71c90fd1514c8f557ae6c5f414208eb",
+			"revisionTime": "2016-11-30T13:35:08Z"
+		},
+		{
+			"checksumSHA1": "+vU+2y6sL7lgRzp58njnRayirnU=",
+			"path": "github.com/tredoe/osutil/user/crypt/sha256_crypt",
+			"revision": "7d3ee1afa71c90fd1514c8f557ae6c5f414208eb",
+			"revisionTime": "2016-11-30T13:35:08Z"
+		},
+		{
+			"checksumSHA1": "LIBKbI2B9xyUQ49RVmyO5aisGDo=",
+			"path": "github.com/tredoe/osutil/user/crypt/sha512_crypt",
+			"revision": "7d3ee1afa71c90fd1514c8f557ae6c5f414208eb",
+			"revisionTime": "2016-11-30T13:35:08Z"
+		},
+		{
 			"checksumSHA1": "z2kAtVle4NFV2OExI85fZoTcsI4=",
 			"path": "github.com/ulikunitz/xz",
 			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
