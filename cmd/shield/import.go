@@ -212,9 +212,6 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 	if m.Token == "" {
 		return fmt.Errorf("Missing requird 'token' top-level key in the import manifest.\n")
 	}
-	if m.CA == "" {
-		return fmt.Errorf("Missing requird 'ca' top-level key in the import manifest.\n")
-	}
 
 	fmt.Printf("@W{Connecting to }@G{%s}\n", m.Core)
 	c = &shield.Client{
