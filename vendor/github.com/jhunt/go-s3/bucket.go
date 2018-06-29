@@ -3,8 +3,10 @@ package s3
 import (
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 const (
@@ -79,4 +81,59 @@ func (c *Client) DeleteBucket(name string) error {
 	}
 
 	return nil
+}
+
+type Bucket struct {
+	Name         string
+	CreationDate time.Time
+	OwnerID      string
+	OwnerName    string
+}
+
+func (c *Client) ListBuckets() ([]Bucket, error) {
+	prev := c.Bucket
+	c.Bucket = ""
+	res, err := c.get("/", nil)
+	c.Bucket = prev
+	if err != nil {
+		return nil, err
+	}
+
+	var r struct {
+		XMLName xml.Name `xml:"ListAllMyBucketsResult"`
+		Owner   struct {
+			ID          string `xml:"ID"`
+			DisplayName string `xml:"DisplayName"`
+		} `xml:"Owner"`
+		Buckets struct {
+			Bucket []struct {
+				Name         string `xml:"Name"`
+				CreationDate string `xml:"CreationDate"`
+			} `xml:"Bucket"`
+		} `xml:"Buckets"`
+	}
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 200 {
+		return nil, ResponseErrorFrom(b)
+	}
+
+	err = xml.Unmarshal(b, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	s := make([]Bucket, len(r.Buckets.Bucket))
+	for i, bkt := range r.Buckets.Bucket {
+		s[i].OwnerID = r.Owner.ID
+		s[i].OwnerName = r.Owner.DisplayName
+		s[i].Name = bkt.Name
+
+		created, _ := time.Parse("2006-01-02T15:04:05.000Z", bkt.CreationDate)
+		s[i].CreationDate = created
+	}
+	return s, nil
 }

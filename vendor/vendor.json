@@ -193,10 +193,10 @@
 			"revisionTime": "2017-10-17T03:25:57Z"
 		},
 		{
-			"checksumSHA1": "TjwtMY6RvELXOAEyMaO5RS9yvBk=",
+			"checksumSHA1": "vg+UAN+BKP4ecpGyshu4u81BfMU=",
 			"path": "github.com/jhunt/go-s3",
-			"revision": "52c89230b7eba6723610c334a993d372bbf4a615",
-			"revisionTime": "2018-01-02T15:02:38Z"
+			"revision": "94341002c9be2c159003771d63730e58b6e87d5d",
+			"revisionTime": "2018-06-18T01:23:26Z"
 		},
 		{
 			"comment": "sqlx-v1.1-71-gbdae0c3",

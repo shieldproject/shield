@@ -11,7 +11,7 @@ func (c *Client) List() ([]Object, error) {
 	objects := make([]Object, 0)
 	ctok := ""
 	for {
-		res, err := c.get(fmt.Sprintf("/?list-type=2%s", ctok), nil)
+		res, err := c.get(fmt.Sprintf("/?list-type=2&fetch-owner=true%s", ctok), nil)
 		if err != nil {
 			return nil, err
 		}
