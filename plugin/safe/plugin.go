@@ -68,12 +68,6 @@ func main() {
 
 type SafePlugin plugin.PluginInfo
 
-type SafeConnectionInfo struct {
-	URL            string
-	Token          string
-	SkipValidation bool
-}
-
 func (p SafePlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
@@ -116,12 +110,8 @@ func (p SafePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p SafePlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	target, err := safeConnectionInfo(endpoint)
-	if err != nil {
-		return err
-	}
 
-	v, err := safeConnect(target)
+	v, err := connect(endpoint)
 	if err != nil {
 		return err
 	}
@@ -137,12 +127,7 @@ func (p SafePlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 func (p SafePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
-	target, err := safeConnectionInfo(endpoint)
-	if err != nil {
-		return err
-	}
-
-	v, err := safeConnect(target)
+	v, err := connect(endpoint)
 	if err != nil {
 		return err
 	}
@@ -191,15 +176,7 @@ func (p SafePlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func safeConnect(target *SafeConnectionInfo) (*vault.Vault, error) {
-	if target.SkipValidation {
-		os.Setenv("VAULT_SKIP_VERIFY", "1")
-	}
-	v, err := vault.NewVault(target.URL, target.Token, true)
-	return v, err
-}
-
-func safeConnectionInfo(endpoint plugin.ShieldEndpoint) (*SafeConnectionInfo, error) {
+func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, error) {
 	url, err := endpoint.StringValue("vault_url")
 	if err != nil {
 		return nil, err
@@ -218,13 +195,10 @@ func safeConnectionInfo(endpoint plugin.ShieldEndpoint) (*SafeConnectionInfo, er
 	}
 	if skipSslValidation {
 		plugin.DEBUG("Skipping SSL validation")
+		os.Setenv("VAULT_SKIP_VERIFY", "1")
 	}
-
-	return &SafeConnectionInfo{
-		URL:            url,
-		Token:          token,
-		SkipValidation: skipSslValidation,
-	}, nil
+	v, err := vault.NewVault(url, token, true)
+	return v, err
 }
 
 type SafeContents map[string]*vault.Secret
