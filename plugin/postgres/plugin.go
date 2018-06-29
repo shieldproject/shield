@@ -19,11 +19,13 @@
 //
 //    {
 //        "pg_user":"username-for-postgres",
-//        "pg_password":"password-for-above-user",     # optional
-//        "pg_host":"hostname-or-ip-of-pg-server",     # optional
-//        "pg_port":"port-above-pg-server-listens-on", # optional
-//        "pg_database": "name-of-db-to-backup",       # optional
-//        "pg_bindir": "PostgreSQL binaries directory" # optional
+//        "pg_password":"password-for-above-user",                   # optional
+//        "pg_host":"hostname-or-ip-of-pg-server",                   # optional
+//        "pg_port":"port-above-pg-server-listens-on",               # optional
+//        "pg_database": "name-of-db-to-backup",                     # optional
+//        "pg_bindir": "PostgreSQL binaries directory"               # optional
+//        "pg_read_replica_host" : "hostname of pg read replica",    # optional
+//        "pg_read_replica_port" : "port of pg read replica",        # optional
 //    }
 //
 // Default Configuration
@@ -58,6 +60,10 @@
 //
 // Backing up with the `postgres` plugin will not drop any existing connections to the
 // database, or restart the service.
+//
+// If desired, setting the `pg_read_replica_host` and `pg_read_replica_port` will run
+// backup tasks by connecting to the specified information. The main connection info
+// will be used for restore operations.
 //
 // RESTORE DETAILS
 //
@@ -161,6 +167,20 @@ func main() {
 				Help:  "Limit scope of the backup to include only this database.  By default, all databases will be backed up.",
 			},
 			plugin.Field{
+				Mode:  "target",
+				Name:  "pg_read_replica_host",
+				Type:  "string",
+				Title: "Postgres Read Replica (Host)",
+				Help:  "An optional Postgres replica (possibly readonly) to use for backups, instead of the canonical host.  Restore operations will still be conducted against the real database host.",
+			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "pg_read_replica_port",
+				Type:  "string",
+				Title: "Postgres Read Replica (Port)",
+				Help:  "An optional Postgres replica (possibly readonly) to use for backups, instead of the canonical host.  Restore operations will still be conducted against the real database host.",
+			},
+			plugin.Field{
 				Mode:    "target",
 				Name:    "pg_bindir",
 				Type:    "abspath",
@@ -177,12 +197,14 @@ func main() {
 type PostgresPlugin plugin.PluginInfo
 
 type PostgresConnectionInfo struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Bin      string
-	Database string
+	Host        string
+	Port        string
+	User        string
+	Password    string
+	Bin         string
+	ReplicaHost string
+	ReplicaPort string
+	Database    string
 }
 
 func (p PostgresPlugin) Meta() plugin.PluginInfo {
@@ -243,6 +265,26 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 pg_database}  @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValueDefault("pg_read_replica_host", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 pg_read_replica_host  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 pg_read_replica_host}  no read replica given\n")
+	} else {
+		fmt.Printf("@G{\u2713 pg_read_replica_host}  @C{%s}\n", plugin.Redact(s))
+	}
+
+	s, err = endpoint.StringValueDefault("pg_read_replica_port", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 pg_read_replica_port  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 pg_read_replica_port}  no read replica given\n")
+	} else {
+		fmt.Printf("@G{\u2713 pg_read_replica_port}  @C{%s}\n", plugin.Redact(s))
+	}
+
 	if fail {
 		return fmt.Errorf("postgres: invalid configuration")
 	}
@@ -253,6 +295,12 @@ func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	pg, err := pgConnectionInfo(endpoint)
 	if err != nil {
 		return err
+	}
+
+	if pg.ReplicaHost != "" && pg.ReplicaPort != "" {
+		plugin.DEBUG("Using readonly replica -> `%s`", plugin.Redact(fmt.Sprintf("%s:%s", pg.Host, pg.Port)))
+		pg.Host = pg.ReplicaHost
+		pg.Port = pg.ReplicaPort
 	}
 
 	setupEnvironmentVariables(pg)
@@ -380,6 +428,18 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	}
 	plugin.DEBUG("PGPORT: '%s'", port)
 
+	replicahost, err := endpoint.StringValueDefault("pg_read_replica_host", "")
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("PG_READ_REPLICA_HOST: '%s'", replicahost)
+
+	replicaport, err := endpoint.StringValueDefault("pg_read_replica_port", "")
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("PG_READ_REPLICA_PORT: '%s'", replicaport)
+
 	database, err := endpoint.StringValueDefault("pg_database", "")
 	if err != nil {
 		return nil, err
@@ -393,11 +453,13 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	plugin.DEBUG("PGBINDIR: '%s'", bin)
 
 	return &PostgresConnectionInfo{
-		Host:     host,
-		Port:     port,
-		User:     user,
-		Password: password,
-		Bin:      bin,
-		Database: database,
+		Host:        host,
+		Port:        port,
+		User:        user,
+		Password:    password,
+		ReplicaHost: replicahost,
+		ReplicaPort: replicaport,
+		Bin:         bin,
+		Database:    database,
 	}, nil
 }
