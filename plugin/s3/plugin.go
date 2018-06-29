@@ -1,7 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -15,11 +19,13 @@ import (
 )
 
 const (
-	DefaultS3Host            = "s3.amazonaws.com"
-	DefaultPrefix            = ""
-	DefaultSigVersion        = "4"
-	DefaultPartSize          = "5M"
-	DefaultSkipSSLValidation = false
+	DefaultS3Host              = "s3.amazonaws.com"
+	DefaultPrefix              = ""
+	DefaultSigVersion          = "4"
+	DefaultPartSize            = "5M"
+	DefaultSkipSSLValidation   = false
+	DefaultUseInstanceProfiles = false
+	credentialsEndpoint        = "http://169.254.169.254/latest/meta-data/iam/security-credentials"
 )
 
 func validSigVersion(v string) bool {
@@ -89,20 +95,25 @@ func main() {
 `,
 		Fields: []plugin.Field{
 			plugin.Field{
-				Mode:     "store",
-				Name:     "access_key_id",
-				Type:     "string",
-				Title:    "Access Key ID",
-				Help:     "The Access Key ID to use when authenticating against S3.",
-				Required: true,
+				Mode:  "store",
+				Name:  "use_instance_profile",
+				Type:  "bool",
+				Title: "Use Instance Profile",
+				Help:  "Enable using AWS Instance Profiles instead of Access Key and Secret.",
 			},
 			plugin.Field{
-				Mode:     "store",
-				Name:     "secret_access_key",
-				Type:     "password",
-				Title:    "Secret Access Key",
-				Help:     "The Secret Access Key to use when authenticating against S3.",
-				Required: true,
+				Mode:  "store",
+				Name:  "access_key_id",
+				Type:  "string",
+				Title: "Access Key ID",
+				Help:  "The Access Key ID to use when authenticating against S3.",
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "secret_access_key",
+				Type:  "password",
+				Title: "Secret Access Key",
+				Help:  "The Secret Access Key to use when authenticating against S3.",
 			},
 			plugin.Field{
 				Mode:     "store",
@@ -176,16 +187,24 @@ func main() {
 type S3Plugin plugin.PluginInfo
 
 type s3Endpoint struct {
-	Host              string
-	SkipSSLValidation bool
-	AccessKey         string
-	SecretKey         string
-	Bucket            string
-	PathPrefix        string
-	SignatureVersion  int
-	SOCKS5Proxy       string
-	Port              string
-	PartSize          int
+	Host                string
+	SkipSSLValidation   bool
+	UseInstanceProfiles bool
+	AccessKey           string
+	SecretKey           string
+	Token               string
+	Bucket              string
+	PathPrefix          string
+	SignatureVersion    int
+	SOCKS5Proxy         string
+	Port                string
+	PartSize            int
+}
+
+type instanceProfileCredentials struct {
+	Key    string `json:"AccessKeyId"`
+	Secret string `json:"SecretAccessKey"`
+	Token  string `json:"Token"`
 }
 
 func (p S3Plugin) Meta() plugin.PluginInfo {
@@ -207,12 +226,34 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 s3_host}              @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("access_key_id")
+	//BEGIN AUTH VALIDATION
+
+	useInstanceProfiles, err := endpoint.BooleanValueDefault("use_instance_profile", DefaultUseInstanceProfiles)
 	if err != nil {
-		fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
+		fmt.Printf("@R{\u2717 use_instance_profile  %s}\n", err)
 		fail = true
+	} else if useInstanceProfiles {
+		fmt.Printf("@G{\u2713 use_instance_profile}  @C{yes}, AWS Instance Profiles @Y{WILL} be used\n")
 	} else {
-		fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", plugin.Redact(s))
+		fmt.Printf("@G{\u2713 use_instance_profile}  @C{no}, AWS Instance Profiles will @Y{NOT} be used\n")
+	}
+	//When using instance profiles, the key and secret are grabbed automatically.
+	if !useInstanceProfiles {
+		s, err = endpoint.StringValue("access_key_id")
+		if err != nil {
+			fmt.Printf("@R{\u2717 access_key_id        %s}\n", err)
+			fail = true
+		} else {
+			fmt.Printf("@G{\u2713 access_key_id}        @C{%s}\n", plugin.Redact(s))
+		}
+
+		s, err = endpoint.StringValue("secret_access_key")
+		if err != nil {
+			fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
+			fail = true
+		} else {
+			fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", plugin.Redact(s))
+		}
 	}
 
 	s, err = endpoint.StringValueDefault("s3_port", "")
@@ -227,14 +268,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			fmt.Printf("@G{\u2713 s3_port}        @C{%s}\n", s)
 		}
 	}
-
-	s, err = endpoint.StringValue("secret_access_key")
-	if err != nil {
-		fmt.Printf("@R{\u2717 secret_access_key    %s}\n", err)
-		fail = true
-	} else {
-		fmt.Printf("@G{\u2713 secret_access_key}    @C{%s}\n", plugin.Redact(s))
-	}
+	//END AUTH VALIDATION
 
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
@@ -380,6 +414,11 @@ func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 }
 
 func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
+	var (
+		key    string
+		secret string
+		token  string
+	)
 	host, err := e.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
 		return s3Endpoint{}, err
@@ -390,14 +429,29 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		return s3Endpoint{}, err
 	}
 
-	key, err := e.StringValue("access_key_id")
+	useInstanceProfiles, err := e.BooleanValueDefault("use_instance_profile", DefaultUseInstanceProfiles)
 	if err != nil {
 		return s3Endpoint{}, err
 	}
 
-	secret, err := e.StringValue("secret_access_key")
-	if err != nil {
-		return s3Endpoint{}, err
+	if !useInstanceProfiles {
+		key, err = e.StringValue("access_key_id")
+		if err != nil {
+			return s3Endpoint{}, err
+		}
+
+		secret, err = e.StringValue("secret_access_key")
+		if err != nil {
+			return s3Endpoint{}, err
+		}
+	} else {
+		instanceProfileCreds, err := getInstanceProfileCredentials()
+		if err != nil {
+			return s3Endpoint{}, err
+		}
+		key = instanceProfileCreds.Key
+		secret = instanceProfileCreds.Secret
+		token = instanceProfileCreds.Token
 	}
 
 	bucket, err := e.StringValue("bucket")
@@ -437,16 +491,18 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	}
 
 	return s3Endpoint{
-		Host:              host,
-		SkipSSLValidation: insecure_ssl,
-		AccessKey:         key,
-		SecretKey:         secret,
-		Bucket:            bucket,
-		PathPrefix:        prefix,
-		SignatureVersion:  sigVer,
-		SOCKS5Proxy:       proxy,
-		Port:              port,
-		PartSize:          partSize,
+		Host:                host,
+		SkipSSLValidation:   insecure_ssl,
+		UseInstanceProfiles: useInstanceProfiles,
+		AccessKey:           key,
+		SecretKey:           secret,
+		Token:               token,
+		Bucket:              bucket,
+		PathPrefix:          prefix,
+		SignatureVersion:    sigVer,
+		SOCKS5Proxy:         proxy,
+		Port:                port,
+		PartSize:            partSize,
 	}, nil
 }
 
@@ -471,6 +527,7 @@ func (e s3Endpoint) Connect() (*s3.Client, error) {
 		SignatureVersion:   e.SignatureVersion,
 		AccessKeyID:        e.AccessKey,
 		SecretAccessKey:    e.SecretKey,
+		Token:              e.Token,
 		Region:             "us-east-1", /* FIXME: make this configurable */
 		Domain:             host,
 		Bucket:             e.Bucket,
@@ -479,4 +536,41 @@ func (e s3Endpoint) Connect() (*s3.Client, error) {
 		UsePathBuckets:     true,
 		/* FIXME: CA Certs */
 	})
+}
+
+func getInstanceProfileCredentials() (instanceProfileCredentials, error) {
+	response, connectErr := http.Get(fmt.Sprintf("%s/", credentialsEndpoint))
+	if connectErr != nil {
+		return instanceProfileCredentials{}, connectErr
+	} else if response.StatusCode != 200 {
+		return instanceProfileCredentials{}, errors.New(fmt.Sprintf("Connection request to %s/ failed with code %d", credentialsEndpoint, response.StatusCode))
+	}
+
+	body, readErr := ioutil.ReadAll(response.Body)
+	if readErr != nil {
+		return instanceProfileCredentials{}, readErr
+	}
+	role := string(body)
+	response.Body.Close()
+
+	var creds instanceProfileCredentials
+	response, connectErr = http.Get(fmt.Sprintf("%s/%s", credentialsEndpoint, role))
+	if connectErr != nil {
+		return instanceProfileCredentials{}, connectErr
+	} else if response.StatusCode != 200 {
+		return instanceProfileCredentials{}, errors.New(fmt.Sprintf("Connection request to %s/%s failed with code %d", credentialsEndpoint, role, response.StatusCode))
+	}
+	defer response.Body.Close()
+
+	body, readErr = ioutil.ReadAll(response.Body)
+	if readErr != nil {
+		return instanceProfileCredentials{}, readErr
+	}
+
+	unmarshallErr := json.Unmarshal(body, &creds)
+	if unmarshallErr != nil {
+		return instanceProfileCredentials{}, unmarshallErr
+	}
+
+	return creds, nil
 }
