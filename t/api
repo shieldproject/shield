@@ -61,8 +61,8 @@ EOF
   set -e
   echo ">> Setting up a local (loopback) Vault"
   export PATH=$PATH:$WORKDIR
-  vault version
-  vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
+  $(pwd)/bin/vault version
+  $(pwd)/bin/vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
   set +e
 }
 
@@ -210,7 +210,7 @@ while [[ $# -ne 0 ]]; do
 	TESTS="$TESTS $1 "
 	shift
 done
-echo "running: $TESTS" | sed -e 's/  */ /'
+echo "running: ${TESTS:-(all tests)}" | sed -e 's/  */ /'
 # }}}
 
 spin_vault   2>&1 > ${WORKDIR}/vault.log

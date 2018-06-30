@@ -14,5 +14,6 @@ rabbitmq-broker
 redis-broker
 s3
 swift
+vault
 webdav
 xtrabackup
