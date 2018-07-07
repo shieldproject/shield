@@ -1,5 +1,4 @@
 #!/bin/bash
-export PATH=$(pwd):$(pwd)/bin:${PATH}
 export VAULT_SKIP_VERIFY=1
 workdir=$PWD/tmp/work
 storedir=$PWD/tmp/store
@@ -82,10 +81,10 @@ preflight() {
   v=$(vault -v | awk '{print $2}')
   case $v in
   v0.8.*) ;;
-  v0.9.0) ;;
+  v0.9.*) ;;
   *) echo
      echo "The installed version of vault ($v) has not been verified"
-     echo "to work with this version of SHIELD testdev.  Please try v0.9.0"
+     echo "to work with this version of SHIELD testdev.  Please try v0.9.6"
       case $OSTYPE in
       *darwin*) echo
                 echo "On macOS ($OSTYPE), you can \`brew upgrade vault\` and be on your way."
@@ -310,6 +309,7 @@ auth:
 
 EOF
 
+  export PATH=$(pwd):$(pwd)/bin:${PATH}
   while true; do
     echo ">> Setting up SHIELD schema"
     ./shield-schema -d ${workdir}/var/shield.db
@@ -354,6 +354,7 @@ registration:
   interval: 15
 EOF
 
+  export PATH=$(pwd):$(pwd)/bin:${PATH}
   while true; do
     echo ">> RUNNING SHIELD AGENT"
     trap ":" INT # ignore Ctrl-C
