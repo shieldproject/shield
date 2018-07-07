@@ -1254,8 +1254,8 @@
                 <span data-error="missing">You must provide a threshold for this new storage system.</span>
               </span>
               <div class="widget">
-                <input type="text" id="store-threshold" name="threshold" />
-                  <p class="help">Select a reasonable threshold for storage size warnings</p>
+                <input type="text" id="store-threshold" name="threshold" placeholder="10G, 500M, etc."/>
+                  <p class="help">Select a reasonable threshold for storage size warnings.</p>
               </div>
             </div>
 
@@ -1843,9 +1843,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   <span data-error="missing">You must provide a threshold for this new storage system.</span>
                 </span>
                 <div class="widget">
-                  <input type="text" id="store-threshold" name="threshold"
+                  <input type="text" id="store-threshold" name="threshold" placeholder="i.e. 10G, 500M, etc."
                     [[ if (_.store) { ]]value="[[= bytes(_.store.threshold) ]]"[[ } ]]/>
-                    <p class="help">Select a reasonable threshold for storage size warnings</p>
+                    <p class="help">Select a reasonable threshold for storage size warnings.</p>
                 </div>
               </div>
 
