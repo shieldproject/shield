@@ -66,6 +66,7 @@ type v2SystemJob struct {
 		Name    string    `json:"name"`
 		Summary string    `json:"summary"`
 		Plugin  string    `json:"plugin"`
+		Healthy bool      `json:"healthy"`
 	} `json:"store"`
 
 	Keep struct {
@@ -3226,6 +3227,7 @@ func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 		dst.Jobs[j].Store.UUID = job.Store.UUID
 		dst.Jobs[j].Store.Name = job.Store.Name
 		dst.Jobs[j].Store.Summary = job.Store.Summary
+		dst.Jobs[j].Store.Healthy = job.Store.Healthy
 		dst.Jobs[j].Retention.UUID = job.Policy.UUID
 		dst.Jobs[j].Retention.Name = job.Policy.Name
 		dst.Jobs[j].Retention.Summary = job.Policy.Summary
