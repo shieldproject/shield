@@ -19,6 +19,7 @@ import (
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/timespec"
+	"github.com/starkandwayne/shield/util"
 )
 
 type v2AuthProvider struct {
@@ -2756,7 +2757,7 @@ func (core *Core) v2API() *route.Router {
 
 		session, err := core.createSession(&db.Session{
 			UserUUID:  user.UUID,
-			IP:        r.Req.RemoteAddr,
+			IP:        util.RemoteIP(r.Req),
 			UserAgent: r.Req.UserAgent(),
 		})
 		if err != nil {
