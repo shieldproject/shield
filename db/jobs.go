@@ -41,6 +41,7 @@ type Job struct {
 		Agent   string    `json:"agent"`
 		Plugin  string    `json:"plugin"`
 		Summary string    `json:"summary"`
+		Healthy bool      `json:"healthy"`
 
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
@@ -132,7 +133,7 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid, j.fixed_key,
 	          r.name, r.summary, r.uuid, r.expiry,
-	          s.uuid, s.name, s.plugin, s.endpoint, s.summary,
+	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
 	          k.started_at, k.status
 
@@ -172,7 +173,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		if err = r.Scan(
 			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant, &j.FixedKey,
 			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
-			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
+			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &last, &status); err != nil {
 			return l, err
@@ -199,7 +200,7 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
 		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid, j.fixed_key,
 		       r.name, r.summary, r.uuid, r.expiry,
-		       s.uuid, s.name, s.plugin, s.endpoint, s.summary,
+		       s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
 		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
 
 			FROM jobs j
@@ -222,7 +223,7 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	if err = r.Scan(
 		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant, &j.FixedKey,
 		&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
-		&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary,
+		&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 		&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 		&j.Agent); err != nil {
 		return nil, err
