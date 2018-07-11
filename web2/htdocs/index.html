@@ -1529,8 +1529,8 @@
                     [[ } ]]
                     [[ if (task.archive) { ]]<li class="tag">[[= task.type ]]</li>[[ } ]]
                     [[ if (task.type == "backup") { ]]
-                      [[ if (task.owner == "") { ]]
-                      <li class="desc">[[= maybe(task.archive.schedule, 'Scheduled Backup') ]]</li>
+                      [[ if (task.owner == "system") { ]]
+                      <li class="desc">[[= maybe(task.archive && task.archive.schedule, 'Scheduled Backup') ]]</li>
                       <li class="meta">run automatically per job schedule at [[= strftime("%l:%M%P", task.requested_at) ]]</li>
                       [[ } else { ]]
                       <li class="desc">Ad Hoc Backup</li>
