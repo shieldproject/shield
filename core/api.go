@@ -13,6 +13,7 @@ import (
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
+	"github.com/starkandwayne/shield/util"
 )
 
 const APIVersion = 2
@@ -49,7 +50,7 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 			session := &db.Session{
 				UserUUID:  user.UUID,
-				IP:        req.RemoteAddr,
+				IP:        util.RemoteIP(req),
 				UserAgent: req.UserAgent(),
 			}
 

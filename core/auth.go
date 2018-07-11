@@ -9,6 +9,7 @@ import (
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
+	"github.com/starkandwayne/shield/util"
 )
 
 func IsValidTenantRole(role string) bool {
@@ -231,7 +232,7 @@ func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 	if err != nil || session == nil {
 		return nil, err
 	}
-	session.IP = r.Req.RemoteAddr
+	session.IP = util.RemoteIP(r.Req)
 	session.UserAgent = r.Req.UserAgent()
 
 	if session.Expired(core.sessionTimeout) {

@@ -2626,7 +2626,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   [[ $.each(_.sessions, function (i, session) { ]]
                   <tr>
                     <td>[[= session.user_account ]]</td>
-                    <td>[[= session.created_at ]]</td>
+                    <td>[[= strftime("%Y-%m-%d %I:%M:%S%P", session.created_at) ]]</td>
                     <td>[[= trelative(session.last_seen_at, 14*86400) ]]</td>
                     <td>[[= session.ip_addr ]]</td>
                     <td id="user-agent">[[= session.user_agent ]]</td>
