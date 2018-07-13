@@ -976,7 +976,20 @@ func main() {
 		}
 
 		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(status))
+			fmt.Printf("%s\n", asJSON(
+				struct {
+					Shield  *shield.Info         `json:"shield"`
+					Health  shield.StatusHealth  `json:"health"`
+					Storage shield.StatusStorage `json:"storage"`
+					Jobs    shield.StatusJobs    `json:"jobs"`
+					Stats   shield.StatusStats   `json:"stats"`
+				}{
+					Shield:  info,
+					Health:  status.Health,
+					Storage: status.Storage,
+					Jobs:    status.Jobs,
+					Stats:   status.Stats,
+				}))
 			break
 		}
 

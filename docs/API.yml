@@ -114,6 +114,9 @@ sections:
             {
               "version" : "6.7.2",
               "env"     : "PRODUCTION",
+              "color"   : "yellow",
+              "motd"    : "Welcome to S.H.I.E.L.D.",
+              "ip"      : "10.0.0.5",
               "api"     : 2
             }
           summary: |
@@ -124,6 +127,15 @@ sections:
 
             The `env` key is configurable by the SHIELD site administrator,
             at deployment / boot time.
+
+            Similar to env, the `color` key is configurable by the SHIELD site
+            administrator, used to visually differentiate various SHIELD
+            deployments in the WebUI.
+
+            The `motd` is what is displayed upon login, and can be changed by
+            the SHIELD site administrator.
+
+            The `ip` key is the ip of the SHIELD core.
 
             The `api` key is a single integer that identifies which version
             of the SHIELD API this core implements.  Currently, there are
@@ -140,7 +152,7 @@ sections:
         intro: |
           Returns health information about the SHIELD Core, connected
           storage accounts, and general metrics, at a global scope.
-        access: ~
+        access: any
 
         response:
           summary: |
@@ -152,14 +164,6 @@ sections:
 
           json: |
             {
-              "shield": {
-                "version" : "6.7.2",
-                "ip"      : "10.0.0.5",
-                "fqdn"    : "shield.example.com",
-                "env"     : "PRODUCTION",
-                "color"   : "",
-                "motd"    : "Welcome to S.H.I.E.L.D."
-              },
               "health": {
                 "core"       : "unsealed",
                 "storage_ok" : true,
@@ -202,7 +206,7 @@ sections:
           Returns health information about the SHIELD Core, connected
           storage accounts, and general metrics, restricted to the scope
           visible to a single tenant.
-        access: ~
+        access: [tenant, operator]
 
         response:
           summary: |
@@ -214,14 +218,6 @@ sections:
 
           json: |
             {
-              "shield": {
-                "version" : "6.7.2",
-                "ip"      : "10.0.0.5",
-                "fqdn"    : "shield.example.com",
-                "env"     : "PRODUCTION",
-                "color"   : "",
-                "motd"    : "Welcome to S.H.I.E.L.D."
-              },
               "health": {
                 "core"       : "unsealed",
                 "storage_ok" : true,

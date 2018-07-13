@@ -189,16 +189,6 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "// init.js\n")
 	fmt.Fprintf(w, "var $global = {}\n")
 
-	info := core.checkInfo()
-	b, err := json.Marshal(info)
-	if err != nil {
-		log.Errorf("init.js: failed to marshal SHIELD core info into JSON: %s", err)
-		fmt.Fprintf(w, "// failed to retrieve SHIELD core info...\n")
-		fmt.Fprintf(w, "$global.shield = {};\n")
-	} else {
-		fmt.Fprintf(w, "$global.shield = %s;\n", string(b))
-	}
-
 	const unauthFail = "// failed to determine user authentication state...\n"
 	const unauthJS = "$global.auth = {\"unauthenticated\":true};\n"
 
@@ -209,6 +199,16 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, unauthJS)
 		return
 	}
+
+	b, err := json.Marshal(core.checkInfo(user != nil))
+	if err != nil {
+		log.Errorf("init.js: failed to marshal SHIELD core info into JSON: %s", err)
+		fmt.Fprintf(w, "// failed to retrieve SHIELD core info...\n")
+		fmt.Fprintf(w, "$global.shield = {};\n")
+	} else {
+		fmt.Fprintf(w, "$global.shield = %s;\n", string(b))
+	}
+
 	if user == nil {
 		fmt.Fprintf(w, unauthJS)
 		return

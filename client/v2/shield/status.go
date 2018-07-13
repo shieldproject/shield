@@ -1,39 +1,36 @@
 package shield
 
 type Status struct {
-	SHIELD struct {
-		Version string `json:"version"`
-		IP      string `json:"ip"`
-		FQDN    string `json:"fqdn"`
-		Env     string `json:"env"`
-		MOTD    string `json:"motd"`
-	} `json:"shield"`
+	Health  StatusHealth  `json:"health"`
+	Storage StatusStorage `json:"storage"`
+	Jobs    StatusJobs    `json:"jobs"`
+	Stats   StatusStats   `json:"stats"`
+}
 
-	Health struct {
-		Core      string `json:"core"`
-		StorageOK bool   `json:"storage_ok"`
-		JobsOK    bool   `json:"jobs_ok"`
-	} `json:"health"`
+type StatusHealth struct {
+	Core      string `json:"core"`
+	StorageOK bool   `json:"storage_ok"`
+	JobsOK    bool   `json:"jobs_ok"`
+}
 
-	Storage []struct {
-		Name   string `json:"name"`
-		Health bool   `json:"healthy"`
-	} `json:"storage"`
+type StatusStorage []struct {
+	Name   string `json:"name"`
+	Health bool   `json:"healthy"`
+}
 
-	Jobs []struct {
-		UUID    string `json:"uuid"`
-		Target  string `json:"target"`
-		Job     string `json:"job"`
-		Healthy bool   `json:"healthy"`
-	} `json:"jobs"`
+type StatusJobs []struct {
+	UUID    string `json:"uuid"`
+	Target  string `json:"target"`
+	Job     string `json:"job"`
+	Healthy bool   `json:"healthy"`
+}
 
-	Stats struct {
-		Jobs        int   `json:"jobs"`
-		Systems     int   `json:"systems"`
-		Archives    int   `json:"archives"`
-		StorageUsed int64 `json:"storage"`
-		DailyDelta  int   `json:"daily"`
-	} `json:"stats"`
+type StatusStats struct {
+	Jobs        int   `json:"jobs"`
+	Systems     int   `json:"systems"`
+	Archives    int   `json:"archives"`
+	StorageUsed int64 `json:"storage"`
+	DailyDelta  int   `json:"daily"`
 }
 
 func (c *Client) GlobalStatus() (*Status, error) {
