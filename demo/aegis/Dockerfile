@@ -1,4 +1,7 @@
 FROM shieldproject/shield-agent
+RUN apt-get update
+RUN apt-get install -y software-properties-common
+RUN add-apt-repository -y ppa:ondrej/php
 RUN apt-get update && apt-get -y upgrade \
     && DEBIAN_FRONTEND=noninteractive \
         apt-get install -y \
