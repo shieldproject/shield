@@ -114,6 +114,10 @@ sections:
             {
               "version" : "6.7.2",
               "env"     : "PRODUCTION",
+              "ip"      : "10.0.0.5",
+              "fqdn"    : "shield.example.com",
+              "color"   : "yellow",
+              "motd"    : "Welcome to S.H.I.E.L.D."
               "api"     : 2
             }
           summary: |
@@ -140,7 +144,7 @@ sections:
         intro: |
           Returns health information about the SHIELD Core, connected
           storage accounts, and general metrics, at a global scope.
-        access: ~
+        access: any
 
         response:
           summary: |
@@ -152,14 +156,6 @@ sections:
 
           json: |
             {
-              "shield": {
-                "version" : "6.7.2",
-                "ip"      : "10.0.0.5",
-                "fqdn"    : "shield.example.com",
-                "env"     : "PRODUCTION",
-                "color"   : "",
-                "motd"    : "Welcome to S.H.I.E.L.D."
-              },
               "health": {
                 "core"       : "unsealed",
                 "storage_ok" : true,
@@ -202,7 +198,7 @@ sections:
           Returns health information about the SHIELD Core, connected
           storage accounts, and general metrics, restricted to the scope
           visible to a single tenant.
-        access: ~
+        access: [tenant, operator]
 
         response:
           summary: |

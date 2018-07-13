@@ -112,15 +112,14 @@ func (core *Core) v2API() *route.Router {
 	}
 
 	r.Dispatch("GET /v2/info", func(r *route.Request) { // {{{
-		info := core.checkInfo()
-
-		/* only show sensitive things like version numbers
-		   to authenticated sessions. */
+		auth := false
 		if u, _ := core.AuthenticatedUser(r); u != nil {
-			info.Version = Version
+			/* only show sensitive things like version numbers
+			to authenticated sessions. */
+			auth = true
 		}
 
-		r.OK(info)
+		r.OK(core.checkInfo(auth))
 	})
 	// }}}
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{

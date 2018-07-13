@@ -11,8 +11,8 @@ type Info struct {
 	API int `json:"api"`
 }
 
-func (core *Core) checkInfo() Info {
-	return Info{
+func (core *Core) checkInfo(auth bool) Info {
+	info := Info{
 		IP:    core.ip,
 		FQDN:  core.fqdn,
 		MOTD:  core.motd,
@@ -20,4 +20,8 @@ func (core *Core) checkInfo() Info {
 		Env:   core.env,
 		API:   2,
 	}
+	if auth {
+		info.Version = Version
+	}
+	return info
 }
