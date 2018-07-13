@@ -69,11 +69,9 @@ intro: |
 
   Example:
 
-  ```json
-  {
-    "error": "No such retention policy"
-  }
-  ```
+      {
+        "error": "No such retention policy"
+      }
 
   This format is used for all non-validation error reporting.
 
@@ -87,15 +85,13 @@ intro: |
 
   Example:
 
-  ```json
-  {
-    "missing": [
-      "name",
-      "endpoint",
-      "agent"
-    ]
-  }
-  ```
+      {
+        "missing": [
+          "name",
+          "endpoint",
+          "agent"
+        ]
+      }
 
   The order of the fields is inconsequential.
 

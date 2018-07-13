@@ -95,26 +95,27 @@ sub request {
 
 	my $curl;
 
-	$curl = "```sh\n";
 	if ($method eq "GET") {
 		my $example = $endpoint->{request}{example} || $url;
-		$curl .= "curl -H 'Accept: application/json' \\\n";
-		$curl .= "        https://shield.host$example\n";
+		$curl .= "    curl -H 'Accept: application/json' \\\n";
+		$curl .= "            https://shield.host$example\n";
 
 	} elsif ($method =~ m/^(POST|PUT|PATCH)$/) {
-		$curl .= "curl -H 'Accept: application/json' \\\n";
-		$curl .= "     -H 'Content-Type: application/json' \\\n" if $endpoint->{request}{json};
-		$curl .= "     -X $method https://shield.host$url \\\n";
+		$curl .= "    curl -H 'Accept: application/json' \\\n";
+		$curl .= "         -H 'Content-Type: application/json' \\\n" if $endpoint->{request}{json};
+		$curl .= "         -X $method https://shield.host$url \\\n";
 		if ($endpoint->{request}{json}) {
 			chomp $endpoint->{request}{json};
-			$curl .= "     --data-binary '\n$endpoint->{request}{json}'\n";
+			$curl .= "         --data-binary '\n";
+			my $json = $endpoint->{request}{json};
+			$json =~ s/^/    /gm;
+			$curl .= "$json'\n";
 		}
 
 	} elsif ($endpoint->{name} =~ m/^DELETE /) {
-		$curl .= "curl -H 'Accept: application/json' \\\n";
-		$curl .= "     -X $method https://shield.host$url \\\n";
+		$curl .= "    curl -H 'Accept: application/json' \\\n";
+		$curl .= "         -X $method https://shield.host$url \\\n";
 	}
-	$curl .= "```";
 
 	my $qs = '';
 	for my $param (@{$endpoint->{request}{query} || []}) {
@@ -129,9 +130,9 @@ sub request {
 
 	$qs = "This endpoint takes no query string parameters."
 		unless $qs;
+	$qs =~ s/^/    /gm if $qs;
 
-	return "$curl\n\n$qs\n\n" unless $endpoint->{request}{summary};
-	my $s = $endpoint->{request}{summary};
+	my $s = $endpoint->{request}{summary} || "{{CURL}}\n\n{{QUERY}}";
 	$s =~ s/\{\{CURL}}/$curl/g;
 	$s =~ s/\{\{QUERY}}/$qs/g;
 	return "$s\n";
@@ -143,10 +144,10 @@ sub response {
 		or die "No response JSON specified for endpoint `$endpoint->{name}`\n";
 	chomp $endpoint->{response}{json};
 
-	my $json = "```json\n$endpoint->{response}{json}\n```";
+	my $json = "$endpoint->{response}{json}";
+	$json =~ s/^/    /gm;
 
-	return "$json\n\n" unless $endpoint->{response}{summary};
-	my $s = $endpoint->{response}{summary};
+	my $s = $endpoint->{response}{summary} || '{{JSON}}';
 	$s =~ s/\{\{JSON}}/$json/g;
 	return "$s\n";
 }

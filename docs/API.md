@@ -49,11 +49,9 @@ contains a human-readable error message, suitable for display.
 
 Example:
 
-```json
-{
-  "error": "No such retention policy"
-}
-```
+    {
+      "error": "No such retention policy"
+    }
 
 This format is used for all non-validation error reporting.
 
@@ -67,15 +65,13 @@ of field names that must be sent in the request, but were not.
 
 Example:
 
-```json
-{
-  "missing": [
-    "name",
-    "endpoint",
-    "agent"
-  ]
-}
-```
+    {
+      "missing": [
+        "name",
+        "endpoint",
+        "agent"
+      ]
+    }
 
 The order of the fields is inconsequential.
 ## Health & Informational
@@ -93,22 +89,18 @@ with different versions of SHIELD Core and clients.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/info
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/info
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "version" : "6.7.2",
-  "env"     : "PRODUCTION",
-  "api"     : 2
-}
-```
+    {
+      "version" : "6.7.2",
+      "env"     : "PRODUCTION",
+      "api"     : 2
+    }
 
 The `version` key only shows up if the request was made in the
 context of an authenticated session.
@@ -139,60 +131,56 @@ storage accounts, and general metrics, at a global scope.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/health
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/health
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
 If all goes well, you will receive a 200 OK, with a `Content-Type`
 of `application/json`, and something similar to the following JSON
 payload in the response body:
 
-```json
-{
-  "shield": {
-    "version" : "6.7.2",
-    "ip"      : "10.0.0.5",
-    "fqdn"    : "shield.example.com",
-    "env"     : "PRODUCTION",
-    "color"   : "",
-    "motd"    : "Welcome to S.H.I.E.L.D."
-  },
-  "health": {
-    "core"       : "unsealed",
-    "storage_ok" : true,
-    "jobs_ok"    : true
-  },
-  "storage": [
-    { "name": "s3", "healthy": true },
-    { "name": "fs", "healthy": true } ],
-  "jobs": [
     {
-      "uuid"    : "3dc875a4-042c-47a1-828c-1d927455c6c7",
-      "target"  : "BOSH DB",
-      "job"     : "daily",
-      "healthy" : true
-    },
-    {
-      "uuid"    : "d9a4547e-c1e7-4869-bb8d-4abb757b2f70",
-      "target"  : "BOSH DB",
-      "job"     : "weekly",
-      "healthy" : true
+      "shield": {
+        "version" : "6.7.2",
+        "ip"      : "10.0.0.5",
+        "fqdn"    : "shield.example.com",
+        "env"     : "PRODUCTION",
+        "color"   : "",
+        "motd"    : "Welcome to S.H.I.E.L.D."
+      },
+      "health": {
+        "core"       : "unsealed",
+        "storage_ok" : true,
+        "jobs_ok"    : true
+      },
+      "storage": [
+        { "name": "s3", "healthy": true },
+        { "name": "fs", "healthy": true } ],
+      "jobs": [
+        {
+          "uuid"    : "3dc875a4-042c-47a1-828c-1d927455c6c7",
+          "target"  : "BOSH DB",
+          "job"     : "daily",
+          "healthy" : true
+        },
+        {
+          "uuid"    : "d9a4547e-c1e7-4869-bb8d-4abb757b2f70",
+          "target"  : "BOSH DB",
+          "job"     : "weekly",
+          "healthy" : true
+        }
+      ],
+      "stats": {
+        "jobs"    : 8,
+        "systems" : 7,
+        "archives": 124,
+        "storage" : 243567112,
+        "daily"   : 12345000
+      }
     }
-  ],
-  "stats": {
-    "jobs"    : 8,
-    "systems" : 7,
-    "archives": 124,
-    "storage" : 243567112,
-    "daily"   : 12345000
-  }
-}
-```
 
 **Access Control**
 
@@ -216,60 +204,56 @@ visible to a single tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/health
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/health
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
 If all goes well, you will receive a 200 OK, with a `Content-Type`
 of `application/json`, and something similar to the following JSON
 payload in the response body:
 
-```json
-{
-  "shield": {
-    "version" : "6.7.2",
-    "ip"      : "10.0.0.5",
-    "fqdn"    : "shield.example.com",
-    "env"     : "PRODUCTION",
-    "color"   : "",
-    "motd"    : "Welcome to S.H.I.E.L.D."
-  },
-  "health": {
-    "core"       : "unsealed",
-    "storage_ok" : true,
-    "jobs_ok"    : true
-  },
-  "storage": [
-    { "name": "s3", "healthy": true },
-    { "name": "fs", "healthy": true } ],
-  "jobs": [
     {
-      "uuid"    : "3dc875a4-042c-47a1-828c-1d927455c6c7",
-      "target"  : "BOSH DB",
-      "job"     : "daily",
-      "healthy" : true
-    },
-    {
-      "uuid"    : "d9a4547e-c1e7-4869-bb8d-4abb757b2f70",
-      "target"  : "BOSH DB",
-      "job"     : "weekly",
-      "healthy" : true
+      "shield": {
+        "version" : "6.7.2",
+        "ip"      : "10.0.0.5",
+        "fqdn"    : "shield.example.com",
+        "env"     : "PRODUCTION",
+        "color"   : "",
+        "motd"    : "Welcome to S.H.I.E.L.D."
+      },
+      "health": {
+        "core"       : "unsealed",
+        "storage_ok" : true,
+        "jobs_ok"    : true
+      },
+      "storage": [
+        { "name": "s3", "healthy": true },
+        { "name": "fs", "healthy": true } ],
+      "jobs": [
+        {
+          "uuid"    : "3dc875a4-042c-47a1-828c-1d927455c6c7",
+          "target"  : "BOSH DB",
+          "job"     : "daily",
+          "healthy" : true
+        },
+        {
+          "uuid"    : "d9a4547e-c1e7-4869-bb8d-4abb757b2f70",
+          "target"  : "BOSH DB",
+          "job"     : "weekly",
+          "healthy" : true
+        }
+      ],
+      "stats": {
+        "jobs"    : 8,
+        "systems" : 7,
+        "archives": 124,
+        "storage" : 243567112,
+        "daily"   : 12345000
+      }
     }
-  ],
-  "stats": {
-    "jobs"    : 8,
-    "systems" : 7,
-    "archives": 124,
-    "storage" : 243567112,
-    "daily"   : 12345000
-  }
-}
-```
 
 **Access Control**
 
@@ -300,16 +284,15 @@ interactions.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/auth/login \
-     --data-binary '
-{
-  "username": "your-username",
-  "password": "your-password"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/auth/login \
+         --data-binary '
+    {
+      "username": "your-username",
+      "password": "your-password"
+    }'
+
 
 **NOTE:** `password` is sent in cleartext, so SHIELD should aways be
 communicating over TLS (HTTPS).
@@ -318,11 +301,9 @@ Both fields, `username`, and `password`, are required.
 
 **Response**
 
-```json
-{
-  "ok": "95cca9ea-d2e6-4966-b071-9df6856a0e55"
-}
-```
+    {
+      "ok": "95cca9ea-d2e6-4966-b071-9df6856a0e55"
+    }
 
 The session ID (return under the `ok` key) should be passed on
 subsequent requests as proof of authentication.  This can be done
@@ -353,20 +334,16 @@ Destroy the current session and log the user out.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/logout
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/logout
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok" : "Successfully logged out"
-}
-```
+    {
+      "ok" : "Successfully logged out"
+    }
 
 **NOTE:** The same behavior is exhibited when an authenticated
 session successfully logs out, as is seen when an unauthenticated
@@ -394,42 +371,38 @@ authenticated, a suitable response will be returned.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/id
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/id
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "user": {
-    "name"    : "Your Full Name",
-    "account" : "username",
-    "backend" : "SHIELD",
-    "sysrole" : ""
-  },
-  "tenants": [
     {
-      "uuid": "63a8f402-31e6-4503-8fab-66cbcf411ed3",
-      "name": "Some Random Tenant",
-      "role": "admin"
-    },
-    {
-      "uuid": "860f7685-c311-4ae5-b34d-6991fc721a37",
-      "name": "Another Tenant",
-      "role": "engineer"
+      "user": {
+        "name"    : "Your Full Name",
+        "account" : "username",
+        "backend" : "SHIELD",
+        "sysrole" : ""
+      },
+      "tenants": [
+        {
+          "uuid": "63a8f402-31e6-4503-8fab-66cbcf411ed3",
+          "name": "Some Random Tenant",
+          "role": "admin"
+        },
+        {
+          "uuid": "860f7685-c311-4ae5-b34d-6991fc721a37",
+          "name": "Another Tenant",
+          "role": "engineer"
+        }
+      ],
+      "tenant": {
+        "uuid": "63a8f402-31e6-4503-8fab-66cbcf411ed3",
+        "name": "Some Random Tenant",
+        "role": "admin"
+      }
     }
-  ],
-  "tenant": {
-    "uuid": "63a8f402-31e6-4503-8fab-66cbcf411ed3",
-    "name": "Some Random Tenant",
-    "role": "admin"
-  }
-}
-```
 
 The top-level `user` key contains information about the current
 authenticated user, including their name and what authentication
@@ -466,29 +439,24 @@ against 3rd party systems like Github and Cloud Foundry UAA.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/providers
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/providers
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-[
-  {
-    "name"       : "Github(.com)",
-    "identifier" : "gh",
-    "type"       : "github",
-
-    "web_entry"  : "/auth/gh/web",
-    "cli_entry"  : "/auth/gh/cli",
-    "redirect"   : "/auth/gh/redir"
-  }
-]
-```
-
+    [
+      {
+        "name"       : "Github(.com)",
+        "identifier" : "gh",
+        "type"       : "github",
+    
+        "web_entry"  : "/auth/gh/web",
+        "cli_entry"  : "/auth/gh/cli",
+        "redirect"   : "/auth/gh/redir"
+      }
+    ]
 **Access Control**
 
 This endpoint requires no authentication or authorization.
@@ -507,33 +475,28 @@ properties including things like client secrets.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/providers/:identifier
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/providers/:identifier
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "name"       : "Github(.com)",
-  "identifier" : "gh",
-  "type"       : "github",
-
-  "web_entry"  : "/auth/gh/web",
-  "cli_entry"  : "/auth/gh/cli",
-  "redirect"   : "/auth/gh/redir",
-
-  "properties" : {
-    "secret"   : "properties",
-    "that"     : "are",
-    "provider" : "specific"
-  }
-}
-```
-
+    {
+      "name"       : "Github(.com)",
+      "identifier" : "gh",
+      "type"       : "github",
+    
+      "web_entry"  : "/auth/gh/web",
+      "cli_entry"  : "/auth/gh/cli",
+      "redirect"   : "/auth/gh/redir",
+    
+      "properties" : {
+        "secret"   : "properties",
+        "that"     : "are",
+        "provider" : "specific"
+      }
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -569,25 +532,21 @@ authentication token is not returned.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/tokens
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/tokens
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-[
-  {
-    "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
-    "name"       : "test",
-    "created_at" : "2017-10-21 00:54:33",
-    "last_seen"  : null
-  }
-]
-```
+    [
+      {
+        "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
+        "name"       : "test",
+        "created_at" : "2017-10-21 00:54:33",
+        "last_seen"  : null
+      }
+    ]
 
 The `uuid` key is used strictly for retrieving and revoking each
 authentication token; it cannot be used as an authentication token,
@@ -625,30 +584,27 @@ currently authenticated user.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/auth/tokens \
-     --data-binary '
-{
-  "name": "auth-token-name"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/auth/tokens \
+         --data-binary '
+    {
+      "name": "auth-token-name"
+    }'
+
 
 Each authentication token requires a name that is unique
 to the parent user account.
 
 **Response**
 
-```json
-{
-  "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
-  "session"    : "8ef409e9-690d-4d91-9f74-6d657f56843e",
-  "name"       : "test",
-  "created_at" : "2017-10-21 00:54:33",
-  "last_seen"  : null
-}
-```
+    {
+      "uuid"       : "bbcb6675-8ec4-4412-93e3-35626860b126",
+      "session"    : "8ef409e9-690d-4d91-9f74-6d657f56843e",
+      "name"       : "test",
+      "created_at" : "2017-10-21 00:54:33",
+      "last_seen"  : null
+    }
 
 The `uuid` key is used strictly for retrieving and revoking each
 authentication token; it cannot be used as an authentication token,
@@ -693,20 +649,16 @@ revoked).
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/auth/tokens/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/auth/tokens/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Token revoked"
-}
-```
+    {
+      "ok": "Token revoked"
+    }
 
 Note that if you have revoked the auth token you were using, all
 subsequent requests will fail to authenticated.  It makes sense,
@@ -737,65 +689,61 @@ Retrieve a list of all current login sessions
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/sessions
-```
-
-- **?exact=(t|f)**
-When filtering sessions, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/sessions
 
 
-- **?is_token=(t|f)**
-When filtering sessions, include those associated with tokens (default - false)
-
-
-- **?uuid=**
-Only show the session that matches the given UUID.
-This is a FIXME - we probably need to remove this.
-
-
-- **?user_uuid=**
-Only show sessions that matches the given user UUID.
-
-
-- **?name=...**
-Only show sessions whose associated token name match the given value.  
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?ip_addr=...**
-Only show sessions who are associated with the given IP address.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering sessions, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?is_token=(t|f)**
+    When filtering sessions, include those associated with tokens (default - false)
+    
+    
+    - **?uuid=**
+    Only show the session that matches the given UUID.
+    This is a FIXME - we probably need to remove this.
+    
+    
+    - **?user_uuid=**
+    Only show sessions that matches the given user UUID.
+    
+    
+    - **?name=...**
+    Only show sessions whose associated token name match the given value.  
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?ip_addr=...**
+    Only show sessions who are associated with the given IP address.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
-    "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
-    "created_at": "2017-10-24 16:39:03",
-    "last_seen_at": "2017-10-24 16:39:03",
-    "token_uuid": "",
-    "name": "",
-    "ip_addr": "127.0.0.1",
-    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-    "user_account": "admin",
-    "current_session": false
-  }
-]
-```
+    [
+      {
+        "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
+        "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
+        "created_at": "2017-10-24 16:39:03",
+        "last_seen_at": "2017-10-24 16:39:03",
+        "token_uuid": "",
+        "name": "",
+        "ip_addr": "127.0.0.1",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+        "user_account": "admin",
+        "current_session": false
+      }
+    ]
 
 - **uuid** - The internal UUID assigned to this session by the SHIELD Core.
 
@@ -859,28 +807,24 @@ Retrieve a single login session
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/sessions/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/sessions/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
-  "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
-  "created_at": "2017-10-24 16:39:03",
-  "last_seen_at": "2017-10-24 16:39:03",
-  "token_uuid": "",
-  "name": "",
-  "ip_addr": "127.0.0.1",
-  "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-  "user_account": "admin"
-}
-```
+    {
+      "uuid": "cbeffb8d-4d3d-49a1-b4cd-14b344dac1f2",
+      "user_uuid": "ccc0430b-9d3d-4b1c-a980-dac769f64174",
+      "created_at": "2017-10-24 16:39:03",
+      "last_seen_at": "2017-10-24 16:39:03",
+      "token_uuid": "",
+      "name": "",
+      "ip_addr": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+      "user_account": "admin"
+    }
 
 - **uuid** - The internal UUID assigned to this session by the SHIELD Core.
 
@@ -942,21 +886,16 @@ Revoke a user's session and force them to reauthenticate on next request.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/auth/sessions/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/auth/sessions/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Successfully cleared session 'd3092979-5a83-4006-8819-fd1695f9041f' (127.0.0.1)"
-}
-```
-
+    {
+      "ok": "Successfully cleared session 'd3092979-5a83-4006-8819-fd1695f9041f' (127.0.0.1)"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -996,26 +935,21 @@ Save user settings.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PATCH https://shield.host/v2/auth/user/settings \
-     --data-binary '
-{
-  "default_tenant": "2a03d67b-6146-4716-b10a-42ec073cfb78"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PATCH https://shield.host/v2/auth/user/settings \
+         --data-binary '
+    {
+      "default_tenant": "2a03d67b-6146-4716-b10a-42ec073cfb78"
+    }'
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok" : "Settings saved."
-}
-```
-
+    {
+      "ok" : "Settings saved."
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -1055,62 +989,57 @@ of the latter.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/local/users
-```
-
-- **?exact=(t|f)**
-When filtering users, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/local/users
 
 
-- **?uuid=**
-Only show the local user that matches the given UUID.
-This is a FIXME - we probably need to remove this.
-
-
-- **?account=...**
-Only show local users whose account names (usernames)
-match the given value.  Subject to the `exact=(t|f)` query
-string parameter.
-
-
-- **?sysrole=...**
-Only show local users who have been assigned the given
-system role.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering users, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?uuid=**
+    Only show the local user that matches the given UUID.
+    This is a FIXME - we probably need to remove this.
+    
+    
+    - **?account=...**
+    Only show local users whose account names (usernames)
+    match the given value.  Subject to the `exact=(t|f)` query
+    string parameter.
+    
+    
+    - **?sysrole=...**
+    Only show local users who have been assigned the given
+    system role.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
-    "name"       : "Full Name",
-    "account"    : "username",
-    "sysrole"    : "engineer",
-
-    "tenants": [
+    [
       {
-        "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
-        "name" : "Tenant Name",
-        "role" : "operator"
+        "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+        "name"       : "Full Name",
+        "account"    : "username",
+        "sysrole"    : "engineer",
+    
+        "tenants": [
+          {
+            "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
+            "name" : "Tenant Name",
+            "role" : "operator"
+          }
+        ]
       }
     ]
-  }
-]
-```
-
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -1148,32 +1077,27 @@ The following error messages can be returned:
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/auth/local/users/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/auth/local/users/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
-  "name"       : "Full Name",
-  "account"    : "username",
-  "sysrole"    : "engineer",
-
-  "tenants": [
     {
-      "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
-      "name" : "Tenant Name",
-      "role" : "operator"
+      "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+      "name"       : "Full Name",
+      "account"    : "username",
+      "sysrole"    : "engineer",
+    
+      "tenants": [
+        {
+          "uuid" : "d1fb6abf-55f2-4901-9662-8c6339e0a7d7",
+          "name" : "Tenant Name",
+          "role" : "operator"
+        }
+      ]
     }
-  ]
-}
-```
-
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -1210,18 +1134,17 @@ The following error messages can be returned:
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/auth/local/users \
-     --data-binary '
-{
-  "name"     : "Full Name",
-  "account"  : "username",
-  "password" : "cleartext password",
-  "sysrole"  : "engineer"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/auth/local/users \
+         --data-binary '
+    {
+      "name"     : "Full Name",
+      "account"  : "username",
+      "password" : "cleartext password",
+      "sysrole"  : "engineer"
+    }'
+
 
 The `sysrole` parameter must be either empty (or not specified),
 or one of the following values: **admin**, **engineer**, or
@@ -1229,14 +1152,12 @@ or one of the following values: **admin**, **engineer**, or
 
 **Response**
 
-```json
-{
-  "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
-  "name"       : "Full Name",
-  "account"    : "username",
-  "sysrole"    : "engineer"
-}
-```
+    {
+      "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+      "name"       : "Full Name",
+      "account"    : "username",
+      "sysrole"    : "engineer"
+    }
 
 **NOTE** that the user's password (neither in hashed form, or in
 the clear) is never returned to requesters.
@@ -1282,17 +1203,16 @@ The following error messages can be returned:
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PATCH https://shield.host/v2/auth/local/users/:uuid \
-     --data-binary '
-{
-  "name"     : "Full Name",
-  "password" : "cleartext password",
-  "sysrole"  : "engineer"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PATCH https://shield.host/v2/auth/local/users/:uuid \
+         --data-binary '
+    {
+      "name"     : "Full Name",
+      "password" : "cleartext password",
+      "sysrole"  : "engineer"
+    }'
+
 
 The `sysrole` parameter must be either empty (or not specified),
 or one of the following values: **admin**, **engineer**, or
@@ -1302,15 +1222,12 @@ or one of the following values: **admin**, **engineer**, or
 
 **Response**
 
-```json
-{
-  "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
-  "name"       : "Full Name",
-  "account"    : "username",
-  "sysrole"    : "engineer"
-}
-```
-
+    {
+      "uuid"       : "b30bb2dd-81d4-407f-91eb-a82ed3023218",
+      "name"       : "Full Name",
+      "account"    : "username",
+      "sysrole"    : "engineer"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -1352,21 +1269,16 @@ The following error messages can be returned:
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/auth/local/users/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/auth/local/users/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok" : "Successfully deleted local user"
-}
-```
-
+    {
+      "ok" : "Successfully deleted local user"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -1416,15 +1328,14 @@ Your SHIELD Core can only be initialized once.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/init \
-     --data-binary '
-{
-  "master" : "your secret master password"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/init \
+         --data-binary '
+    {
+      "master" : "your secret master password"
+    }'
+
 
 Where:
 
@@ -1437,11 +1348,9 @@ Where:
 If all went well, and the SHIELD Core was properly initialized,
 you will receive a 200 OK, and the following response:
 
-```json
-{
-  "ok" : "Successfully initialized the SHIELD Core"
-}
-```
+    {
+      "ok" : "Successfully initialized the SHIELD Core"
+    }
 
 **Access Control**
 
@@ -1470,15 +1379,14 @@ securely.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/unlock \
-     --data-binary '
-{
-  "master" : "your secret master password"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/unlock \
+         --data-binary '
+    {
+      "master" : "your secret master password"
+    }'
+
 
 - message: master is the plaintext master password
   that was created when you initialized this SHIELD
@@ -1489,11 +1397,9 @@ curl -H 'Accept: application/json' \
 On success, you will receive a 200 OK, with the
 following response:
 
-```json
-{
-  "ok" : "Successfully unlocked the SHIELD Core"
-}
-```
+    {
+      "ok" : "Successfully unlocked the SHIELD Core"
+    }
 
 **Access Control**
 
@@ -1521,29 +1427,25 @@ keys are held).
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/rekey \
-     --data-binary '
-{
-  "current" : "your CURRENT master password",
-  "new"     : "what you want to change it to"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/rekey \
+         --data-binary '
+    {
+      "current" : "your CURRENT master password",
+      "new"     : "what you want to change it to"
+    }'
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
 If all goes well, you will receive a 200 OK, and the
 following response:
 
-```json
-{
-  "ok" : "Successfully rekeyed the SHIELD core"
-}
-```
+    {
+      "ok" : "Successfully rekeyed the SHIELD core"
+    }
 
 **Access Control**
 
@@ -1570,36 +1472,32 @@ Retrieves information about all registered SHIELD Agents.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/agents
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/agents
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "agents": [
     {
-      "name"         : "prod/web/42",
-      "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
-      "address"      : "127.0.0.1:5444",
-      "version"      : "dev",
-      "status"       : "ok",
-      "hidden"       : false,
-      "last_error"   : "",
-      "last_seen_at" : "2017-10-11 18:54:00"
+      "agents": [
+        {
+          "name"         : "prod/web/42",
+          "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+          "address"      : "127.0.0.1:5444",
+          "version"      : "dev",
+          "status"       : "ok",
+          "hidden"       : false,
+          "last_error"   : "",
+          "last_seen_at" : "2017-10-11 18:54:00"
+        }
+      ],
+      "problems": {
+        "1869e296-4aac-4a17-848d-04f73f743326": [
+          "This SHIELD agent is reporting ..."
+        ]
+      }
     }
-  ],
-  "problems": {
-    "1869e296-4aac-4a17-848d-04f73f743326": [
-      "This SHIELD agent is reporting ..."
-    ]
-  }
-}
-```
 
 The top-level `agents` key is a list of object describing each registered agent:
 
@@ -1682,16 +1580,15 @@ using a weak form of authentication.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/agents \
-     --data-binary '
-{
-  "name" : "some-identifier",
-  "port" : 5444
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/agents \
+         --data-binary '
+    {
+      "name" : "some-identifier",
+      "port" : 5444
+    }'
+
 
 Where:
 
@@ -1706,11 +1603,9 @@ Where:
 
 On success, you will receive a 200 OK, and the following response:
 
-```json
-{
-  "ok" : "Pre-registered agent <name> at <host>:<port>"
-}
-```
+    {
+      "ok" : "Pre-registered agent <name> at <host>:<port>"
+    }
 
 **Access Control**
 
@@ -1749,58 +1644,54 @@ require, etc.)
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/agents/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/agents/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "agent": {
-    "name"         : "prod/web/42",
-    "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
-    "address"      : "127.0.0.1:5444",
-    "version"      : "dev",
-    "status"       : "ok",
-    "hidden"       : false,
-    "last_error"   : "",
-    "last_seen_at" : "2017-10-11 18:54:00"
-  },
-  "metadata": {
-    "name"    : "prod/web/42",
-    "version" : "dev",
-    "health"  : "ok",
-
-    "plugins": {
-      "fs": {
-        "author"   : "Stark & Wayne",
-        "features" : {
-          "store"  : "yes",
-          "target" : "no"
-        },
-
-        "fields": [
-          {
-            "mode"     : "store",
-            "name"     : "storage_account",
-            "title"    : "Storage Account",
-            "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
-            "type"     : "string",
-            "required" : true
+    {
+      "agent": {
+        "name"         : "prod/web/42",
+        "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+        "address"      : "127.0.0.1:5444",
+        "version"      : "dev",
+        "status"       : "ok",
+        "hidden"       : false,
+        "last_error"   : "",
+        "last_seen_at" : "2017-10-11 18:54:00"
+      },
+      "metadata": {
+        "name"    : "prod/web/42",
+        "version" : "dev",
+        "health"  : "ok",
+    
+        "plugins": {
+          "fs": {
+            "author"   : "Stark & Wayne",
+            "features" : {
+              "store"  : "yes",
+              "target" : "no"
+            },
+    
+            "fields": [
+              {
+                "mode"     : "store",
+                "name"     : "storage_account",
+                "title"    : "Storage Account",
+                "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
+                "type"     : "string",
+                "required" : true
+              }
+            ]
           }
-        ]
-      }
+        }
+      },
+      "problems": [
+        "This SHIELD agent is reporting ..."
+      ]
     }
-  },
-  "problems": [
-    "This SHIELD agent is reporting ..."
-  ]
-}
-```
 
 The top-level `agents` key contains the same agent
 information that the `GET /v2/agents` endpoint
@@ -1852,21 +1743,16 @@ available for configuration.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/agents/:uuid/show \
-```
+    curl -H 'Accept: application/json' \
+         -X POST https://shield.host/v2/agents/:uuid/show \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok" : "Agent is now visible to everyone"
-}
-```
-
+    {
+      "ok" : "Agent is now visible to everyone"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -1910,21 +1796,16 @@ configuration.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/agents/:uuid/hide \
-```
+    curl -H 'Accept: application/json' \
+         -X POST https://shield.host/v2/agents/:uuid/hide \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok" : "Agent is now visible to everyone"
-}
-```
-
+    {
+      "ok" : "Agent is now visible to everyone"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -1968,21 +1849,16 @@ slow loop scheduling.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/agents/:uuid/resync \
-```
+    curl -H 'Accept: application/json' \
+         -X POST https://shield.host/v2/agents/:uuid/resync \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok" : "Ad hoc agent resynchronization underway"
-}
-```
-
+    {
+      "ok" : "Ad hoc agent resynchronization underway"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -2020,31 +1896,27 @@ viewable by a given tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/agents
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/agents
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "agents": [
     {
-      "name"         : "prod/web/42",
-      "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
-      "address"      : "127.0.0.1:5444",
-      "version"      : "dev",
-      "status"       : "ok",
-      "hidden"       : false,
-      "last_error"   : "",
-      "last_seen_at" : "2017-10-11 18:54:00"
+      "agents": [
+        {
+          "name"         : "prod/web/42",
+          "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+          "address"      : "127.0.0.1:5444",
+          "version"      : "dev",
+          "status"       : "ok",
+          "hidden"       : false,
+          "last_error"   : "",
+          "last_seen_at" : "2017-10-11 18:54:00"
+        }
+      ]
     }
-  ]
-}
-```
 
 The top-level `agents` key is a list of object describing each registered agent:
 
@@ -2106,55 +1978,51 @@ but only to SHIELD administrators).
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/agents/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/agents/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "agent": {
-    "name"         : "prod/web/42",
-    "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
-    "address"      : "127.0.0.1:5444",
-    "version"      : "dev",
-    "status"       : "ok",
-    "hidden"       : false,
-    "last_error"   : "",
-    "last_seen_at" : "2017-10-11 18:54:00"
-  },
-  "metadata": {
-    "name"    : "prod/web/42",
-    "version" : "dev",
-    "health"  : "ok",
-
-    "plugins": {
-      "fs": {
-        "author"   : "Stark & Wayne",
-        "features" : {
-          "store"  : "yes",
-          "target" : "no"
-        },
-
-        "fields": [
-          {
-            "mode"     : "store",
-            "name"     : "storage_account",
-            "title"    : "Storage Account",
-            "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
-            "type"     : "string",
-            "required" : true
+    {
+      "agent": {
+        "name"         : "prod/web/42",
+        "uuid"         : "1869e296-4aac-4a17-848d-04f73f743326",
+        "address"      : "127.0.0.1:5444",
+        "version"      : "dev",
+        "status"       : "ok",
+        "hidden"       : false,
+        "last_error"   : "",
+        "last_seen_at" : "2017-10-11 18:54:00"
+      },
+      "metadata": {
+        "name"    : "prod/web/42",
+        "version" : "dev",
+        "health"  : "ok",
+    
+        "plugins": {
+          "fs": {
+            "author"   : "Stark & Wayne",
+            "features" : {
+              "store"  : "yes",
+              "target" : "no"
+            },
+    
+            "fields": [
+              {
+                "mode"     : "store",
+                "name"     : "storage_account",
+                "title"    : "Storage Account",
+                "help"     : "Name of the Azure Storage Account for accessing the blobstore.",
+                "type"     : "string",
+                "required" : true
+              }
+            ]
           }
-        ]
+        }
       }
     }
-  }
-}
-```
 
 The top-level `agents` key contains the same agent
 information that the `GET /v2/tenants/:tenant/agents` endpoint
@@ -2213,57 +2081,53 @@ Retrieve the list of all tenants currently defined.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants
-```
-
-- **?exact=(t|f)**
-When filtering tenants, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants
 
 
-- **?uuid=**
-Only show the tenant that matches the given UUID.
-This is a FIXME - we probably need to remove this.
-
-
-- **?name=...**
-Only show tenant whose name matches the given value.  
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering tenants, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?uuid=**
+    Only show the tenant that matches the given UUID.
+    This is a FIXME - we probably need to remove this.
+    
+    
+    - **?name=...**
+    Only show tenant whose name matches the given value.  
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c",
-    "name": "A Tenant",
-
-    "archive_count"  : 32,
-    "storage_used"   : 140509184,
-    "daily_increase" : 1520435
-  },
-  {
-    "uuid": "4b6f6e2a-6ac6-443e-a910-aa412744165e",
-    "name": "Some Other Tenant",
-
-    "archive_count"  : 2,
-    "storage_used"   : 268435456,
-    "daily_increase" : 268435456
-  }
-]
-```
+    [
+      {
+        "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c",
+        "name": "A Tenant",
+    
+        "archive_count"  : 32,
+        "storage_used"   : 140509184,
+        "daily_increase" : 1520435
+      },
+      {
+        "uuid": "4b6f6e2a-6ac6-443e-a910-aa412744165e",
+        "name": "Some Other Tenant",
+    
+        "archive_count"  : 2,
+        "storage_used"   : 268435456,
+        "daily_increase" : 268435456
+      }
+    ]
 
 For each tenant, SHIELD will also return a handful of tenant
 metrics, including how many backup archives belong to the tenant
@@ -2303,27 +2167,26 @@ Create a new tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants \
-     --data-binary '
-{
-  "name"  : "New Tenant Name",
-  "users" : [
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants \
+         --data-binary '
     {
-      "uuid"    : "989b724b-bd3d-4799-bfbd-75b2fb5b41f3",
-      "account" : "juser",
-      "role"    : "engineer"
-    },
-    {
-      "uuid"    : "96d24e33-8e57-4431-95fb-f18b9dfa319a",
-      "account" : "jhunt",
-      "role"    : "operator"
-    }
-  ]
-}'
-```
+      "name"  : "New Tenant Name",
+      "users" : [
+        {
+          "uuid"    : "989b724b-bd3d-4799-bfbd-75b2fb5b41f3",
+          "account" : "juser",
+          "role"    : "engineer"
+        },
+        {
+          "uuid"    : "96d24e33-8e57-4431-95fb-f18b9dfa319a",
+          "account" : "jhunt",
+          "role"    : "operator"
+        }
+      ]
+    }'
+
 
 The `name` field is required.
 
@@ -2349,16 +2212,14 @@ grant each invitee, and must be one of:
 
 **Response**
 
-```json
-{
-  "name": "A New Tenant",
-  "uuid": "52d20ef4-f154-431e-a5bb-bb3a200976bb",
-
-  "archive_count"  : 0,
-  "storage_used"   : 0,
-  "daily_increase" : 0
-}
-```
+    {
+      "name": "A New Tenant",
+      "uuid": "52d20ef4-f154-431e-a5bb-bb3a200976bb",
+    
+      "archive_count"  : 0,
+      "storage_used"   : 0,
+      "daily_increase" : 0
+    }
 
 **NOTE**: You cannot (for obvious reasons) set the
 `archive_count`, `storage_used` and `daily_increase` fields when
@@ -2426,36 +2287,32 @@ Request more detailed information about a single tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "name": "A Tenant",
-  "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c",
-
-  "archive_count"  : 32,
-  "storage_used"   : 140509184,
-  "daily_increase" : 1520435,
-
-  "members": [
     {
-      "uuid"    : "5cb299bf-217f-4756-8eaa-e8a47865869e",
-      "account" : "jhunt",
-      "name"    : "James Hunt",
-      "backend" : "local",
-      "role"    : "admin",
-      "sysrole" : ""
+      "name": "A Tenant",
+      "uuid": "f2ebbb9f-87f9-43e0-8515-dfce5d4d844c",
+    
+      "archive_count"  : 32,
+      "storage_used"   : 140509184,
+      "daily_increase" : 1520435,
+    
+      "members": [
+        {
+          "uuid"    : "5cb299bf-217f-4756-8eaa-e8a47865869e",
+          "account" : "jhunt",
+          "name"    : "James Hunt",
+          "backend" : "local",
+          "role"    : "admin",
+          "sysrole" : ""
+        }
+      ]
     }
-  ]
-}
-```
 
 The `members` key will be absent if this tenant has no members.
 
@@ -2498,15 +2355,14 @@ Update a tenant with new attributes.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PATCH https://shield.host/v2/tenants/:uuid \
-     --data-binary '
-{
-  "name" : "A New Name"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PATCH https://shield.host/v2/tenants/:uuid \
+         --data-binary '
+    {
+      "name" : "A New Name"
+    }'
+
 
 **NOTE**: You cannot (for obvious reasons) set the
 `archive_count`, `storage_used` and `daily_increase` fields when
@@ -2514,17 +2370,14 @@ you update a tenant.
 
 **Response**
 
-```json
-{
-  "name" : "A New Name",
-  "uuid" : "adcfee48-8b43-4ba3-9438-e0da55b8e9df",
-
-  "archive_count"  : 32,
-  "storage_used"   : 140509184,
-  "daily_increase" : 1520435
-}
-```
-
+    {
+      "name" : "A New Name",
+      "uuid" : "adcfee48-8b43-4ba3-9438-e0da55b8e9df",
+    
+      "archive_count"  : 32,
+      "storage_used"   : 140509184,
+      "daily_increase" : 1520435
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -2564,38 +2417,34 @@ Invite one or more local users to a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/:uuid/invite \
-     --data-binary '
-{
-  "users": [
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants/:uuid/invite \
+         --data-binary '
     {
-      "uuid"    : "5cb299bf-217f-4756-8eaa-e8a47865869e",
-      "account" : "jhunt",
-      "role"    : "operator"
-    },
-    {
-      "uuid"    : "c608cc65-b134-4581-9bdc-1fa3d0367961",
-      "account" : "tmitchell",
-      "role"    : "engineer"
-    }
-  ]
-}'
-```
+      "users": [
+        {
+          "uuid"    : "5cb299bf-217f-4756-8eaa-e8a47865869e",
+          "account" : "jhunt",
+          "role"    : "operator"
+        },
+        {
+          "uuid"    : "c608cc65-b134-4581-9bdc-1fa3d0367961",
+          "account" : "tmitchell",
+          "role"    : "engineer"
+        }
+      ]
+    }'
+
 
 Even if you only need to invite a single user, you must specify a list of
 user objects.
 
 **Response**
 
-```json
-{
-  "ok" : "Invitations sent"
-}
-```
-
+    {
+      "ok" : "Invitations sent"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -2655,35 +2504,30 @@ Remove a user from a tenant they currently belong to.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/:uuid/banish \
-     --data-binary '
-{
-  "users": [
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants/:uuid/banish \
+         --data-binary '
     {
-      "uuid"    : "20d5bd91-9f7b-4551-9279-8571b8292003",
-      "account" : "gfranks"
-    },
-    {
-      "uuid"    : "c608cc65-b134-4581-9bdc-1fa3d0367961",
-      "account" : "tmitchell"
-    }
-  ]
-}'
-```
+      "users": [
+        {
+          "uuid"    : "20d5bd91-9f7b-4551-9279-8571b8292003",
+          "account" : "gfranks"
+        },
+        {
+          "uuid"    : "c608cc65-b134-4581-9bdc-1fa3d0367961",
+          "account" : "tmitchell"
+        }
+      ]
+    }'
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok" : "Banishments served."
-}
-```
-
+    {
+      "ok" : "Banishments served."
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -2743,21 +2587,16 @@ Remove a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/tenants/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Successfully deleted tenant"
-}
-```
-
+    {
+      "ok": "Successfully deleted tenant"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -2803,58 +2642,53 @@ Retrieve all defined targets for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/targets
-```
-
-- **?exact=(t|f)**
-When filtering targets, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/targets
 
 
-- **?unused=(t|f)**
-When filtering targets, skip those that are unused (true) or used (false)
-
-
-- **?name=...**
-Only show targets whose name matches the given value.  
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?plugin=...**
-Only show targets who are associated with the given plugin.
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering targets, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?unused=(t|f)**
+    When filtering targets, skip those that are unused (true) or used (false)
+    
+    
+    - **?name=...**
+    Only show targets whose name matches the given value.  
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?plugin=...**
+    Only show targets who are associated with the given plugin.
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid"     : "b4400ee0-dce9-4277-9948-02a56ad51b17",
-    "name"     : "Some Target",
-    "summary"  : "The operator-supplied description of this target",
-    "agent"    : "127.0.0.1:5444",
-    "plugin"   : "fs",
-
-    "config" : {
-      "target"   : "specific",
-      "settings" : "and configuration"
-    }
-  }
-]
-```
-
+    [
+      {
+        "uuid"     : "b4400ee0-dce9-4277-9948-02a56ad51b17",
+        "name"     : "Some Target",
+        "summary"  : "The operator-supplied description of this target",
+        "agent"    : "127.0.0.1:5444",
+        "plugin"   : "fs",
+    
+        "config" : {
+          "target"   : "specific",
+          "settings" : "and configuration"
+        }
+      }
+    ]
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -2887,19 +2721,18 @@ Create a new target in a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/targets \
-     --data-binary '
-{
-  "name"     : "New Target Name",
-  "summary"  : "A longer description of the target",
-  "agent"    : "127.0.0.1:5444",
-  "endpoint" : "{}",
-  "plugin"   : "plugin"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/targets \
+         --data-binary '
+    {
+      "name"     : "New Target Name",
+      "summary"  : "A longer description of the target",
+      "agent"    : "127.0.0.1:5444",
+      "endpoint" : "{}",
+      "plugin"   : "plugin"
+    }'
+
 
 Note: the `endpoint` key is currently a string of JSON, which
 means that it contains lots of escape sequences.  Future versions
@@ -2910,27 +2743,25 @@ FIXME: Fix target.endpoint string -> JSON problem.
 
 The following query string parameters are honored:
 
-- **?test=(t|f)**
-Perform all validation and preparatory steps, but don't
-actually create the target in the database.  This is useful
-for validating that a target _could_ be created, without
-creating it (i.e. for defering creation until later).
-
-
+    - **?test=(t|f)**
+    Perform all validation and preparatory steps, but don't
+    actually create the target in the database.  This is useful
+    for validating that a target _could_ be created, without
+    creating it (i.e. for defering creation until later).
+    
+    
 
 
 **Response**
 
-```json
-{
-  "uuid"     : "b6d03df5-6978-43d8-ad9e-a22f8ec8457a",
-  "name"     : "New Target Name",
-  "summary"  : "A longer description of the target",
-  "agent"    : "127.0.0.1:5444",
-  "endpoint" : "{}",
-  "plugin"   : "plugin"
-}
-```
+    {
+      "uuid"     : "b6d03df5-6978-43d8-ad9e-a22f8ec8457a",
+      "name"     : "New Target Name",
+      "summary"  : "A longer description of the target",
+      "agent"    : "127.0.0.1:5444",
+      "endpoint" : "{}",
+      "plugin"   : "plugin"
+    }
 
 Note: the `endpoint` key is currently a string of JSON, which
 means that it contains lots of escape sequences.  Future versions
@@ -2983,25 +2814,21 @@ Retrieve a single target for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/targets/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/targets/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"     : "b4400ee0-dce9-4277-9948-02a56ad51b17",
-  "name"     : "Some Target",
-  "summary"  : "The operator-supplied description of this target",
-  "agent"    : "127.0.0.1:5444",
-  "endpoint" : "{}",
-  "plugin"   : "fs"
-}
-```
+    {
+      "uuid"     : "b4400ee0-dce9-4277-9948-02a56ad51b17",
+      "name"     : "Some Target",
+      "summary"  : "The operator-supplied description of this target",
+      "agent"    : "127.0.0.1:5444",
+      "endpoint" : "{}",
+      "plugin"   : "fs"
+    }
 
 Note: the `endpoint` key is currently a string of JSON, which
 means that it contains lots of escape sequences.  Future versions
@@ -3046,19 +2873,18 @@ Update an existing target on a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:tenant/targets/:uuid \
-     --data-binary '
-{
-  "name"     : "Updated Target Name",
-  "summary"  : "A longer description of the target",
-  "agent"    : "127.0.0.1:5444",
-  "endpoint" : "{}",
-  "plugin"   : "plugin"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PUT https://shield.host/v2/tenants/:tenant/targets/:uuid \
+         --data-binary '
+    {
+      "name"     : "Updated Target Name",
+      "summary"  : "A longer description of the target",
+      "agent"    : "127.0.0.1:5444",
+      "endpoint" : "{}",
+      "plugin"   : "plugin"
+    }'
+
 
 You can specify as many or few of these fields as you want;
 omitted fields will be left at their previous values.
@@ -3072,11 +2898,9 @@ FIXME: Fix target.endpoint string -> JSON problem.
 
 **Response**
 
-```json
-{
-  "ok" : "Updated target successfully"
-}
-```
+    {
+      "ok" : "Updated target successfully"
+    }
 
 **Access Control**
 
@@ -3118,20 +2942,16 @@ Remove a target from a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/:tenant/targets/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/tenants/:tenant/targets/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Target deleted successfully"
-}
-```
+    {
+      "ok": "Target deleted successfully"
+    }
 
 **Access Control**
 
@@ -3191,58 +3011,54 @@ Retrieve all defined stores for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/stores
-```
-
-- **?exact=(t|f)**
-When filtering stores, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/stores
 
 
-- **?unused=(t|f)**
-When filtering stores, skip those that are unused (true) or used (false)
-
-
-- **?name=...**
-Only show stores whose name matches the given value.  
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?plugin=...**
-Only show stores who are associated with the given plugin.
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering stores, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?unused=(t|f)**
+    When filtering stores, skip those that are unused (true) or used (false)
+    
+    
+    - **?name=...**
+    Only show stores whose name matches the given value.  
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?plugin=...**
+    Only show stores who are associated with the given plugin.
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
-    "name"    : "Cloud Storage Name",
-    "global"  : false,
-    "summary" : "A longer description of the storage configuration",
-    "agent"   : "127.0.0.1:5444",
-    "plugin"  : "fs",
-    "config"  : {
-      "base_dir" : "/var/data/root",
-      "bsdtar"   : "bsdtar"
-    },
-    "threshold": 1073741824
-  }
-]
-```
+    [
+      {
+        "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
+        "name"    : "Cloud Storage Name",
+        "global"  : false,
+        "summary" : "A longer description of the storage configuration",
+        "agent"   : "127.0.0.1:5444",
+        "plugin"  : "fs",
+        "config"  : {
+          "base_dir" : "/var/data/root",
+          "bsdtar"   : "bsdtar"
+        },
+        "threshold": 1073741824
+      }
+    ]
 
 The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
@@ -3280,22 +3096,21 @@ Create a new store on a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/stores \
-     --data-binary '
-{
-  "name"    : "Storage System Name",
-  "summary" : "A longer description for this storage system.",
-  "plugin"  : "plugin-name",
-  "agent"   : "127.0.0.1:5444",
-  "config"  : {
-    "plugin-specific": "configuration"
-  },
-  "threshold": 1073741824
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/stores \
+         --data-binary '
+    {
+      "name"    : "Storage System Name",
+      "summary" : "A longer description for this storage system.",
+      "plugin"  : "plugin-name",
+      "agent"   : "127.0.0.1:5444",
+      "config"  : {
+        "plugin-specific": "configuration"
+      },
+      "threshold": 1073741824
+    }'
+
 
 The values under `config` will depend entirely on which `plugin`
 has been selected; no validation will be done by the SHIELD Core,
@@ -3303,29 +3118,27 @@ until the storage system is used in a job.
 
 The following query string parameters are honored:
 
-- **?test=(t|f)**
-Perform all validation and preparatory steps, but don't
-actually create the store in the database.  This is useful
-for validating that a store _could_ be created, without
-creating it (i.e. for defering creation until later).
-
-
+    - **?test=(t|f)**
+    Perform all validation and preparatory steps, but don't
+    actually create the store in the database.  This is useful
+    for validating that a store _could_ be created, without
+    creating it (i.e. for defering creation until later).
+    
+    
 
 
 **Response**
 
-```json
-{
-  "name"    : "Storage System Name",
-  "summary" : "A longer description for this storage system.",
-  "plugin"  : "plugin-name",
-  "agent"   : "127.0.0.1:5444",
-  "config"  : {
-    "plugin-specific": "configuration"
-  },
-  "threshold": 1073741824
-}
-```
+    {
+      "name"    : "Storage System Name",
+      "summary" : "A longer description for this storage system.",
+      "plugin"  : "plugin-name",
+      "agent"   : "127.0.0.1:5444",
+      "config"  : {
+        "plugin-specific": "configuration"
+      },
+      "threshold": 1073741824
+    }
 
 **Access Control**
 
@@ -3363,30 +3176,26 @@ Retrieve a single store for the given tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/stores/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/stores/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
-  "name"    : "Cloud Storage Name",
-  "global"  : false,
-  "summary" : "A longer description of the storage configuration",
-  "plugin"  : "fs",
-  "agent"   : "127.0.0.1:5444",
-  "config"  : {
-    "base_dir" : "/var/data/root",
-    "bsdtar"   : "bsdtar"
-  },
-  "threshold": 1073741824
-}
-```
+    {
+      "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
+      "name"    : "Cloud Storage Name",
+      "global"  : false,
+      "summary" : "A longer description of the storage configuration",
+      "plugin"  : "fs",
+      "agent"   : "127.0.0.1:5444",
+      "config"  : {
+        "base_dir" : "/var/data/root",
+        "bsdtar"   : "bsdtar"
+      },
+      "threshold": 1073741824
+    }
 
 The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
@@ -3428,22 +3237,21 @@ Update an existing store on a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:tenant/stores/:uuid \
-     --data-binary '
-{
-  "name"    : "Updated Store Name",
-  "summary" : "A longer description of the storage system",
-  "agent"   : "127.0.0.1:5444",
-  "plugin"  : "plugin",
-  "config"  : {
-    "new": "plugin configuration"
-  },
-  "threshold": 1073741824
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PUT https://shield.host/v2/tenants/:tenant/stores/:uuid \
+         --data-binary '
+    {
+      "name"    : "Updated Store Name",
+      "summary" : "A longer description of the storage system",
+      "agent"   : "127.0.0.1:5444",
+      "plugin"  : "plugin",
+      "config"  : {
+        "new": "plugin configuration"
+      },
+      "threshold": 1073741824
+    }'
+
 
 You can specify as many or few of these fields as you want;
 omitted fields will be left at their previous values.  If `config`
@@ -3456,19 +3264,16 @@ until the storage system is used in a job.
 
 **Response**
 
-```json
-{
-  "name"    : "Updated Store Name",
-  "summary" : "A longer description of the storage system",
-  "agent"   : "127.0.0.1:5444",
-  "plugin"  : "plugin",
-  "config"  : {
-    "new": "plugin configuration"
-  },
-  "threshold": 1073741824
-}
-```
-
+    {
+      "name"    : "Updated Store Name",
+      "summary" : "A longer description of the storage system",
+      "agent"   : "127.0.0.1:5444",
+      "plugin"  : "plugin",
+      "config"  : {
+        "new": "plugin configuration"
+      },
+      "threshold": 1073741824
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -3509,21 +3314,16 @@ Remove a store from a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/:tenant/stores/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/tenants/:tenant/stores/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Storage system deleted successfully"
-}
-```
-
+    {
+      "ok": "Storage system deleted successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -3576,46 +3376,42 @@ Retrieve all defined retention policies for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/policies
-```
-
-- **?exact=(t|f)**
-When filtering policies, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/policies
 
 
-- **?unused=(t|f)**
-When filtering policies, skip those that are unused (true) or used (false)
-
-
-- **?name=...**
-Only show policies whose name matches the given value.  
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering policies, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?unused=(t|f)**
+    When filtering policies, skip those that are unused (true) or used (false)
+    
+    
+    - **?name=...**
+    Only show policies whose name matches the given value.  
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid"    : "f4dedf80-cdb2-4c81-9a58-b3a8282e3202",
-    "name"    : "Long-Term Storage",
-    "summary" : "A long-term solution, for infrequent backups only.",
-    "expires" : 7776000
-  }
-]
-```
+    [
+      {
+        "uuid"    : "f4dedf80-cdb2-4c81-9a58-b3a8282e3202",
+        "name"    : "Long-Term Storage",
+        "summary" : "A long-term solution, for infrequent backups only.",
+        "expires" : 7776000
+      }
+    ]
 
 The `expires` key is specified in seconds, but must
 always be a multiple of 86400 (1 day).
@@ -3652,17 +3448,16 @@ Create a new retention policy in a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/policies \
-     --data-binary '
-{
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/policies \
+         --data-binary '
+    {
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }'
+
 
 The `expires` value must be specified in seconds, and
 must be at least 86,400 (1 day) and be a multiple of
@@ -3670,26 +3465,23 @@ must be at least 86,400 (1 day) and be a multiple of
 
 The following query string parameters are honored:
 
-- **?test=(t|f)**
-Perform all validation and preparatory steps, but don't
-actually create the policy in the database.  This is useful
-for validating that a policy _could_ be created, without
-creating it (i.e. for defering creation until later).
-
-
+    - **?test=(t|f)**
+    Perform all validation and preparatory steps, but don't
+    actually create the policy in the database.  This is useful
+    for validating that a policy _could_ be created, without
+    creating it (i.e. for defering creation until later).
+    
+    
 
 
 **Response**
 
-```json
-{
-  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}
-```
-
+    {
+      "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -3731,24 +3523,19 @@ Retrieve a single retention policy for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/policies/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/policies/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}
-```
-
+    {
+      "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -3785,31 +3572,28 @@ Update a single retention policy on a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:tenant/policies/:uuid \
-     --data-binary '
-{
-  "name"    : "Updated Retention Policy Name",
-  "summary" : "A longer description of the retention policy",
-  "expires" : 86400
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PUT https://shield.host/v2/tenants/:tenant/policies/:uuid \
+         --data-binary '
+    {
+      "name"    : "Updated Retention Policy Name",
+      "summary" : "A longer description of the retention policy",
+      "expires" : 86400
+    }'
+
 
 You can specify as many or few of these fields as you want;
 omitted fields will be left at their previous values.
 
 **Response**
 
-```json
-{
-  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}
-```
+    {
+      "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }
 
 **Access Control**
 
@@ -3860,21 +3644,16 @@ Remove a retention policy from a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/:tenant/policies/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/tenants/:tenant/policies/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Retention policy deleted successfully"
-}
-```
-
+    {
+      "ok": "Retention policy deleted successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -3927,90 +3706,86 @@ Retrieve all defined jobs for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/jobs?name=redis&paused=t
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/jobs?name=redis&paused=t
+
 
 By default, all jobs for the tenant will be returned.  You can
 filter down to a subset of that by the following query string
 parameters:
 
-- **?exact=(t|f)**
-When filtering jobs, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
-
-
-- **?paused=(t|f)**
-Show only paused (`paused=t`) or unpaused (`paused=f`) jobs.
-If omitted, all jobs are shown, regardless of their
-pausedness.
-
-
-- **?name=...**
-Show only jobs whose names match the given value.
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?target=...**
-Show only jobs whose target UUIDs match the given value.
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?store=...**
-Show only jobs whose store UUIDs match the given value.
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?policy=...**
-Show only jobs whose retention policy UUIDs match the given
-value.  Subject to the `exact=(t|f)` query string parameter.
-
-
+    - **?exact=(t|f)**
+    When filtering jobs, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?paused=(t|f)**
+    Show only paused (`paused=t`) or unpaused (`paused=f`) jobs.
+    If omitted, all jobs are shown, regardless of their
+    pausedness.
+    
+    
+    - **?name=...**
+    Show only jobs whose names match the given value.
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?target=...**
+    Show only jobs whose target UUIDs match the given value.
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?store=...**
+    Show only jobs whose store UUIDs match the given value.
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?policy=...**
+    Show only jobs whose retention policy UUIDs match the given
+    value.  Subject to the `exact=(t|f)` query string parameter.
+    
+    
 
 
 **Response**
 
-```json
-{
-  "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
-  "name"     : "Job Name",
-  "summary"  : "A longer description",
-  "expiry"   : 604800,
-  "schedule" : "daily 4am",
-  "paused"   : false,
-  "agent"    : "10.0.0.5:5444",
-  "last_run" : "2017-10-19 03:00:00",
-  "status"   : "done",
-
-  "policy" : {
-    "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
-    "name"    : "Retention Policy Name",
-    "summary" : "A longer description"
-  },
-
-  "store" : {
-    "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
-    "name"    : "Cloud Storage System Name",
-    "summary" : "A longer description",
-    "plugin"  : "s3",
-    "config"  : {
-      "storage" : "configuration"
+    {
+      "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+      "name"     : "Job Name",
+      "summary"  : "A longer description",
+      "expiry"   : 604800,
+      "schedule" : "daily 4am",
+      "paused"   : false,
+      "agent"    : "10.0.0.5:5444",
+      "last_run" : "2017-10-19 03:00:00",
+      "status"   : "done",
+    
+      "policy" : {
+        "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+        "name"    : "Retention Policy Name",
+        "summary" : "A longer description"
+      },
+    
+      "store" : {
+        "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+        "name"    : "Cloud Storage System Name",
+        "summary" : "A longer description",
+        "plugin"  : "s3",
+        "config"  : {
+          "storage" : "configuration"
+        }
+      },
+    
+      "target" : {
+        "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+        "name"   : "Data System Name",
+        "plugin" : "fs",
+        "config" : {
+          "target" : "configuration"
+        }
+      }
     }
-  },
-
-  "target" : {
-    "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
-    "name"   : "Data System Name",
-    "plugin" : "fs",
-    "config" : {
-      "target" : "configuration"
-    }
-  }
-}
-```
-
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4043,22 +3818,21 @@ Configure a new backup job on a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/jobs \
-     --data-binary '
-{
-  "name"     : "New Job Name",
-  "summary"  : "A longer description...",
-  "schedule" : "daily 4am",
-  "paused"   : false,
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/jobs \
+         --data-binary '
+    {
+      "name"     : "New Job Name",
+      "summary"  : "A longer description...",
+      "schedule" : "daily 4am",
+      "paused"   : false,
+    
+      "store"    : "af1ad037-c8c1-4036-984a-3cf726b4081d",
+      "target"   : "2c64d9ff-fc9f-4114-8e89-9f7c84fcaac7",
+      "policy"   : "cb6b0503-4741-4cfd-9a1d-11b5a5aaadde"
+    }'
 
-  "store"    : "af1ad037-c8c1-4036-984a-3cf726b4081d",
-  "target"   : "2c64d9ff-fc9f-4114-8e89-9f7c84fcaac7",
-  "policy"   : "cb6b0503-4741-4cfd-9a1d-11b5a5aaadde"
-}'
-```
 
 **NOTE**: As of right now, the `store`, `target`, and `policy`
 values must be passed as the UUIDs of the related objects.
@@ -4067,45 +3841,42 @@ FIXME : allow non-UUIDs for all three.
 
 **Response**
 
-```json
-{
-  "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
-  "name"     : "Job Name",
-  "summary"  : "A longer description",
-  "expiry"   : 604800,
-  "schedule" : "daily 4am",
-  "paused"   : false,
-  "agent"    : "10.0.0.5:5444",
-  "last_run" : "2017-10-19 03:00:00",
-  "last_task_status": "",
-
-  "policy" : {
-    "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
-    "name"    : "Retention Policy Name",
-    "summary" : "A longer description"
-  },
-
-  "store" : {
-    "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
-    "name"    : "Cloud Storage System Name",
-    "summary" : "A longer description",
-    "plugin"  : "s3",
-    "config"  : {
-      "storage" : "configuration"
+    {
+      "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+      "name"     : "Job Name",
+      "summary"  : "A longer description",
+      "expiry"   : 604800,
+      "schedule" : "daily 4am",
+      "paused"   : false,
+      "agent"    : "10.0.0.5:5444",
+      "last_run" : "2017-10-19 03:00:00",
+      "last_task_status": "",
+    
+      "policy" : {
+        "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+        "name"    : "Retention Policy Name",
+        "summary" : "A longer description"
+      },
+    
+      "store" : {
+        "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+        "name"    : "Cloud Storage System Name",
+        "summary" : "A longer description",
+        "plugin"  : "s3",
+        "config"  : {
+          "storage" : "configuration"
+        }
+      },
+    
+      "target" : {
+        "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+        "name"   : "Data System Name",
+        "plugin" : "fs",
+        "config" : {
+          "target" : "configuration"
+        }
+      }
     }
-  },
-
-  "target" : {
-    "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
-    "name"   : "Data System Name",
-    "plugin" : "fs",
-    "config" : {
-      "target" : "configuration"
-    }
-  }
-}
-```
-
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4138,54 +3909,49 @@ Retrieve a single job for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/jobs/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/jobs/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
-  "name"     : "Job Name",
-  "summary"  : "A longer description",
-  "expiry"   : 604800,
-  "schedule" : "daily 4am",
-  "paused"   : false,
-  "agent"    : "10.0.0.5:5444",
-  "last_run" : "2017-10-19 03:00:00",
-  "last_task_status": "",
-
-  "policy" : {
-    "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
-    "name"    : "Retention Policy Name",
-    "summary" : "A longer description"
-  },
-
-  "store" : {
-    "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
-    "name"    : "Cloud Storage System Name",
-    "summary" : "A longer description",
-    "plugin"  : "s3",
-    "config"  : {
-      "storage" : "configuration"
+    {
+      "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+      "name"     : "Job Name",
+      "summary"  : "A longer description",
+      "expiry"   : 604800,
+      "schedule" : "daily 4am",
+      "paused"   : false,
+      "agent"    : "10.0.0.5:5444",
+      "last_run" : "2017-10-19 03:00:00",
+      "last_task_status": "",
+    
+      "policy" : {
+        "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
+        "name"    : "Retention Policy Name",
+        "summary" : "A longer description"
+      },
+    
+      "store" : {
+        "uuid"    : "5945ef33-2cb6-4d7e-a9b7-43cce1773457",
+        "name"    : "Cloud Storage System Name",
+        "summary" : "A longer description",
+        "plugin"  : "s3",
+        "config"  : {
+          "storage" : "configuration"
+        }
+      },
+    
+      "target" : {
+        "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
+        "name"   : "Data System Name",
+        "plugin" : "fs",
+        "config" : {
+          "target" : "configuration"
+        }
+      }
     }
-  },
-
-  "target" : {
-    "uuid"   : "9f602367-256a-4454-be56-9ddde1257f13",
-    "name"   : "Data System Name",
-    "plugin" : "fs",
-    "config" : {
-      "target" : "configuration"
-    }
-  }
-}
-```
-
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4222,20 +3988,19 @@ Update a single job on a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:tenant/jobs/:uuid \
-     --data-binary '
-{
-  "name"     : "New Name",
-  "summary"  : "An updated summary",
-  "schedule" : "daily 4am",
-  "store"    : "a6ef5aea-51f6-4e91-a490-3063395f879b",
-  "target"   : "af1425ed-53fd-4ab6-a425-fb230c383901",
-  "policy"   : "c16a4783-19b8-400d-8b51-f47dcdc11da3"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PUT https://shield.host/v2/tenants/:tenant/jobs/:uuid \
+         --data-binary '
+    {
+      "name"     : "New Name",
+      "summary"  : "An updated summary",
+      "schedule" : "daily 4am",
+      "store"    : "a6ef5aea-51f6-4e91-a490-3063395f879b",
+      "target"   : "af1425ed-53fd-4ab6-a425-fb230c383901",
+      "policy"   : "c16a4783-19b8-400d-8b51-f47dcdc11da3"
+    }'
+
 
 Any of the fields in the request payload can be omitted to keep
 the pre-existing value.
@@ -4247,12 +4012,9 @@ FIXME : allow non-UUIDs for all three.
 
 **Response**
 
-```json
-{
-  "ok": "Updated job successfully"
-}
-```
-
+    {
+      "ok": "Updated job successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4293,21 +4055,16 @@ Remove a job from a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/:tenant/jobs/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/tenants/:tenant/jobs/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Job deleted successfully"
-}
-```
-
+    {
+      "ok": "Job deleted successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4352,22 +4109,17 @@ Perform an ad hoc backup job run
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/run \
-```
+    curl -H 'Accept: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/run \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Scheduled ad hoc backup job run",
-  "task_uuid": "6d38e8bd-42e9-4c23-bbb6-9a480e0e2a82"
-}
-```
-
+    {
+      "ok": "Scheduled ad hoc backup job run",
+      "task_uuid": "6d38e8bd-42e9-4c23-bbb6-9a480e0e2a82"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4408,21 +4160,16 @@ Pause a job, to prevent it from being scheduled.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/pause \
-```
+    curl -H 'Accept: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/pause \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Paused job successfully"
-}
-```
-
+    {
+      "ok": "Paused job successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4463,21 +4210,16 @@ Unpause a job, allowing it to be scheduled again.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/unpause \
-```
+    curl -H 'Accept: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/unpause \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Unpaused job successfully"
-}
-```
-
+    {
+      "ok": "Unpaused job successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4530,51 +4272,46 @@ Retrieve all tasks for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/tasks
-```
-
-- **?active=(t|f)**
-When filtering tasks, show those that are active (true) or inactive (false)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/tasks
 
 
-- **?status=...**
-Only show tasks whose status matches the given value.  
-
-
-- **?target=**
-Only show tasks associated with a given target...
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?active=(t|f)**
+    When filtering tasks, show those that are active (true) or inactive (false)
+    
+    
+    - **?status=...**
+    Only show tasks whose status matches the given value.  
+    
+    
+    - **?target=**
+    Only show tasks associated with a given target...
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
-    "owner"        : "user@backend",
-    "type"         : "backup",
-    "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
-    "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
-    "status"       : "running",
-    "started_at"   : "2017-10-17 04:51:16",
-    "stopped_at"   : "",
-    "log"          : "running log...",
-    "notes"        : "Annotated notes about this task",
-    "clear"        : "manual"
-  }
-]
-```
-
+    [
+      {
+        "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+        "owner"        : "user@backend",
+        "type"         : "backup",
+        "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+        "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+        "status"       : "running",
+        "started_at"   : "2017-10-17 04:51:16",
+        "stopped_at"   : "",
+        "log"          : "running log...",
+        "notes"        : "Annotated notes about this task",
+        "clear"        : "manual"
+      }
+    ]
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4612,31 +4349,26 @@ Retrieve a single task.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/tasks/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/tasks/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
-  "owner"        : "user@backend",
-  "type"         : "backup",
-  "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
-  "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
-  "status"       : "running",
-  "started_at"   : "2017-10-17 04:51:16",
-  "stopped_at"   : "",
-  "log"          : "running log...",
-  "notes"        : "Annotated notes about this task",
-  "clear"        : "manual"
-}
-```
-
+    {
+      "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+      "owner"        : "user@backend",
+      "type"         : "backup",
+      "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+      "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+      "status"       : "running",
+      "started_at"   : "2017-10-17 04:51:16",
+      "stopped_at"   : "",
+      "log"          : "running log...",
+      "notes"        : "Annotated notes about this task",
+      "clear"        : "manual"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4673,21 +4405,16 @@ Cancel a task.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/:tenant/tasks/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/tenants/:tenant/tasks/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Task canceled successfully"
-}
-```
-
+    {
+      "ok": "Task canceled successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4738,67 +4465,62 @@ Retrieve all archives for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/archives
-```
-
-- **?target=**
-Only show the archives that beloing to the the given target UUID.
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/archives
 
 
-- **?store=**
-Only show the archives that beloing to the the given store UUID.
-
-
-- **?before=**
-Only show the archives created before the given time.
-
-
-- **?after=**
-Only show the archives created after the given time.
-
-
-- **?status=...**
-Only show the archives with the given status.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?target=**
+    Only show the archives that beloing to the the given target UUID.
+    
+    
+    - **?store=**
+    Only show the archives that beloing to the the given store UUID.
+    
+    
+    - **?before=**
+    Only show the archives created before the given time.
+    
+    
+    - **?after=**
+    Only show the archives created after the given time.
+    
+    
+    - **?status=...**
+    Only show the archives with the given status.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
-    "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
-    "taken_at": "2017-10-27 16:05:25",
-    "expires_at": "2017-10-28 16:05:25",
-    "notes": "",
-    "status": "valid",
-    "purge_reason": "",
-    "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
-    "target_name": "SHIELD",
-    "target_plugin": "fs",
-    "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-    "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
-    "store_name": "CloudStor",
-    "store_plugin": "fs",
-    "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
-    "job": "Hourly",
-    "encryption_type": "aes256-ctr",
-    "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
-    "size": 43306681
-  }
-]
-```
-
+    [
+      {
+        "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+        "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+        "taken_at": "2017-10-27 16:05:25",
+        "expires_at": "2017-10-28 16:05:25",
+        "notes": "",
+        "status": "valid",
+        "purge_reason": "",
+        "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+        "target_name": "SHIELD",
+        "target_plugin": "fs",
+        "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+        "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+        "store_name": "CloudStor",
+        "store_plugin": "fs",
+        "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+        "job": "Hourly",
+        "encryption_type": "aes256-ctr",
+        "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+        "size": 43306681
+      }
+    ]
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4836,39 +4558,34 @@ Retrieve a single archive for a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/tenants/:tenant/archives/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/tenants/:tenant/archives/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
-  "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
-  "taken_at": "2017-10-27 16:05:25",
-  "expires_at": "2017-10-28 16:05:25",
-  "notes": "",
-  "status": "valid",
-  "purge_reason": "",
-  "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
-  "target_name": "SHIELD",
-  "target_plugin": "fs",
-  "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-  "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
-  "store_name": "CloudStor",
-  "store_plugin": "fs",
-  "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
-  "job": "Hourly",
-  "encryption_type": "aes256-ctr",
-  "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
-  "size": 43306681
-}
-```
-
+    {
+      "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+      "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+      "taken_at": "2017-10-27 16:05:25",
+      "expires_at": "2017-10-28 16:05:25",
+      "notes": "",
+      "status": "valid",
+      "purge_reason": "",
+      "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+      "target_name": "SHIELD",
+      "target_plugin": "fs",
+      "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+      "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+      "store_name": "CloudStor",
+      "store_plugin": "fs",
+      "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+      "job": "Hourly",
+      "encryption_type": "aes256-ctr",
+      "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+      "size": 43306681
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4905,44 +4622,39 @@ Update a single archive on a tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/tenants/:tenant/archives/:uuid \
-     --data-binary '
-{
-  "notes": "Notes for this specific archive"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PUT https://shield.host/v2/tenants/:tenant/archives/:uuid \
+         --data-binary '
+    {
+      "notes": "Notes for this specific archive"
+    }'
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
-  "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
-  "taken_at": "2017-10-27 16:05:25",
-  "expires_at": "2017-10-28 16:05:25",
-  "notes": "Notes for this specific archive",
-  "status": "valid",
-  "purge_reason": "",
-  "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
-  "target_name": "SHIELD",
-  "target_plugin": "fs",
-  "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-  "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
-  "store_name": "CloudStor",
-  "store_plugin": "fs",
-  "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
-  "job": "Hourly",
-  "encryption_type": "aes256-ctr",
-  "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
-  "size": 43306681
-}
-```
-
+    {
+      "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+      "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+      "taken_at": "2017-10-27 16:05:25",
+      "expires_at": "2017-10-28 16:05:25",
+      "notes": "Notes for this specific archive",
+      "status": "valid",
+      "purge_reason": "",
+      "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+      "target_name": "SHIELD",
+      "target_plugin": "fs",
+      "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+      "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
+      "store_name": "CloudStor",
+      "store_plugin": "fs",
+      "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
+      "job": "Hourly",
+      "encryption_type": "aes256-ctr",
+      "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
+      "size": 43306681
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -4985,15 +4697,14 @@ owned by the same tenant.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/tenants/:tenant/archives/:uuid/restore \
-     --data-binary '
-{
-  "target" : "2a1731c0-7d0e-4f31-8860-7d0ae7a34261"
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/tenants/:tenant/archives/:uuid/restore \
+         --data-binary '
+    {
+      "target" : "2a1731c0-7d0e-4f31-8860-7d0ae7a34261"
+    }'
+
 
 Here, `target` is an optional UUID of an alternative data system
 to restore this archive to.  This target must exist inside the
@@ -5006,21 +4717,19 @@ When a restore has been scheduled for execution, it generates a
 task inside of SHIELD, which is then returned as the result to
 the requester:
 
-```json
-{
-  "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
-  "owner"        : "user@backend",
-  "type"         : "restore",
-  "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
-  "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
-  "status"       : "running",
-  "started_at"   : "2017-10-17 04:51:16",
-  "stopped_at"   : "",
-  "log"          : "running log...",
-  "notes"        : "Annotated notes about this task",
-  "clear"        : "manual"
-}
-```
+    {
+      "uuid"         : "df2fd352-83b8-45b8-8f7b-ef74cf9eafdc",
+      "owner"        : "user@backend",
+      "type"         : "restore",
+      "job_uuid"     : "bd2c5ac0-b499-4085-857e-69fa38441419",
+      "archive_uuid" : "eb096379-7c45-4679-9b47-c563276dc22e",
+      "status"       : "running",
+      "started_at"   : "2017-10-17 04:51:16",
+      "stopped_at"   : "",
+      "log"          : "running log...",
+      "notes"        : "Annotated notes about this task",
+      "clear"        : "manual"
+    }
 
 The `type` of this task will always be `restore`, and usually,
 `log` will be empty and `stopped_at` will have no value, since
@@ -5067,21 +4776,16 @@ data from the backing storage system.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/tenants/:tenant/archives/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/tenants/:tenant/archives/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Archive deleted successfully"
-}
-```
-
+    {
+      "ok": "Archive deleted successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -5133,57 +4837,53 @@ Retrieve all globally-defined stores.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/global/stores
-```
-
-- **?exact=(t|f)**
-When filtering stores, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/global/stores
 
 
-- **?unused=(t|f)**
-When filtering stores, skip those that are unused (true) or used (false)
-
-
-- **?name=...**
-Only show stores whose name matches the given value.  
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?plugin=...**
-Only show stores who are associated with the given plugin.
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering stores, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?unused=(t|f)**
+    When filtering stores, skip those that are unused (true) or used (false)
+    
+    
+    - **?name=...**
+    Only show stores whose name matches the given value.  
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?plugin=...**
+    Only show stores who are associated with the given plugin.
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
-    "name"    : "Cloud Storage Name",
-    "global"  : true,
-    "summary" : "A longer description of the storage configuration",
-    "agent"   : "127.0.0.1:5444",
-    "plugin"  : "fs",
-    "config"  : {
-      "base_dir" : "/var/data/root",
-      "bsdtar"   : "bsdtar"
-    }
-  }
-]
-```
+    [
+      {
+        "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
+        "name"    : "Cloud Storage Name",
+        "global"  : true,
+        "summary" : "A longer description of the storage configuration",
+        "agent"   : "127.0.0.1:5444",
+        "plugin"  : "fs",
+        "config"  : {
+          "base_dir" : "/var/data/root",
+          "bsdtar"   : "bsdtar"
+        }
+      }
+    ]
 
 The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
@@ -5215,21 +4915,20 @@ to all tenants.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/global/stores \
-     --data-binary '
-{
-  "name"    : "Storage System Name",
-  "summary" : "A longer description for this storage system.",
-  "plugin"  : "plugin-name",
-  "agent"   : "127.0.0.1:5444",
-  "config"  : {
-    "plugin-specific": "configuration"
-  }
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/global/stores \
+         --data-binary '
+    {
+      "name"    : "Storage System Name",
+      "summary" : "A longer description for this storage system.",
+      "plugin"  : "plugin-name",
+      "agent"   : "127.0.0.1:5444",
+      "config"  : {
+        "plugin-specific": "configuration"
+      }
+    }'
+
 
 The values under `config` will depend entirely on which `plugin`
 has been selected; no validation will be done by the SHIELD Core,
@@ -5237,18 +4936,15 @@ until the storage system is used in a job.
 
 **Response**
 
-```json
-{
-  "name"    : "Storage System Name",
-  "summary" : "A longer description for this storage system.",
-  "plugin"  : "plugin-name",
-  "agent"   : "127.0.0.1:5444",
-  "config"  : {
-    "plugin-specific": "configuration"
-  }
-}
-```
-
+    {
+      "name"    : "Storage System Name",
+      "summary" : "A longer description for this storage system.",
+      "plugin"  : "plugin-name",
+      "agent"   : "127.0.0.1:5444",
+      "config"  : {
+        "plugin-specific": "configuration"
+      }
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -5285,29 +4981,25 @@ Retrieve a single globally-defined storage system.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/global/stores/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/global/stores/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
-  "name"    : "Cloud Storage Name",
-  "global"  : true,
-  "summary" : "A longer description of the storage configuration",
-  "plugin"  : "fs",
-  "agent"   : "127.0.0.1:5444",
-  "config"  : {
-    "base_dir" : "/var/data/root",
-    "bsdtar"   : "bsdtar"
-  }
-}
-```
+    {
+      "uuid"    : "925c83ad-22e6-4cdd-bf63-6dd6d09cd86f",
+      "name"    : "Cloud Storage Name",
+      "global"  : true,
+      "summary" : "A longer description of the storage configuration",
+      "plugin"  : "fs",
+      "agent"   : "127.0.0.1:5444",
+      "config"  : {
+        "base_dir" : "/var/data/root",
+        "bsdtar"   : "bsdtar"
+      }
+    }
 
 The values under `config` will depend entirely on what the
 operator specified when they initially configured the storage
@@ -5342,21 +5034,20 @@ Update an existing globally-defined storage system.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/global/stores/:uuid \
-     --data-binary '
-{
-  "name"    : "Updated Store Name",
-  "summary" : "A longer description of the storage system",
-  "agent"   : "127.0.0.1:5444",
-  "plugin"  : "plugin",
-  "config"  : {
-    "new": "plugin configuration"
-  }
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PUT https://shield.host/v2/global/stores/:uuid \
+         --data-binary '
+    {
+      "name"    : "Updated Store Name",
+      "summary" : "A longer description of the storage system",
+      "agent"   : "127.0.0.1:5444",
+      "plugin"  : "plugin",
+      "config"  : {
+        "new": "plugin configuration"
+      }
+    }'
+
 
 You can specify as many or few of these fields as you want;
 omitted fields will be left at their previous values.  If `config`
@@ -5369,18 +5060,15 @@ until the storage system is used in a job.
 
 **Response**
 
-```json
-{
-  "name"    : "Updated Store Name",
-  "summary" : "A longer description of the storage system",
-  "agent"   : "127.0.0.1:5444",
-  "plugin"  : "plugin",
-  "config"  : {
-    "new": "plugin configuration"
-  }
-}
-```
-
+    {
+      "name"    : "Updated Store Name",
+      "summary" : "A longer description of the storage system",
+      "agent"   : "127.0.0.1:5444",
+      "plugin"  : "plugin",
+      "config"  : {
+        "new": "plugin configuration"
+      }
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -5421,21 +5109,16 @@ Remove a globally-defined storage system.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/global/stores/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/global/stores/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Storage system deleted successfully"
-}
-```
-
+    {
+      "ok": "Storage system deleted successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -5477,46 +5160,42 @@ Retrieve all defined retention policy templates.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/global/policies
-```
-
-- **?exact=(t|f)**
-When filtering policies, perform either exact field / value
-matching (`exact=t`), or fuzzy search (`exact=f`, the
-default)
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/global/policies
 
 
-- **?unused=(t|f)**
-When filtering policies, skip those that are unused (true) or used (false)
-
-
-- **?name=...**
-Only show policies whose name matches the given value.  
-Subject to the `exact=(t|f)` query string parameter.
-
-
-- **?limit=N**
-Limit the returned result set to the first _limit_ users
-that match the other filtering rules.  A limit of `0` (the
-default) denotes an unlimited search.
-
-
-
+    - **?exact=(t|f)**
+    When filtering policies, perform either exact field / value
+    matching (`exact=t`), or fuzzy search (`exact=f`, the
+    default)
+    
+    
+    - **?unused=(t|f)**
+    When filtering policies, skip those that are unused (true) or used (false)
+    
+    
+    - **?name=...**
+    Only show policies whose name matches the given value.  
+    Subject to the `exact=(t|f)` query string parameter.
+    
+    
+    - **?limit=N**
+    Limit the returned result set to the first _limit_ users
+    that match the other filtering rules.  A limit of `0` (the
+    default) denotes an unlimited search.
+    
+    
 
 **Response**
 
-```json
-[
-  {
-    "uuid"    : "f4dedf80-cdb2-4c81-9a58-b3a8282e3202",
-    "name"    : "Long-Term Storage",
-    "summary" : "A long-term solution, for infrequent backups only.",
-    "expires" : 7776000
-  }
-]
-```
+    [
+      {
+        "uuid"    : "f4dedf80-cdb2-4c81-9a58-b3a8282e3202",
+        "name"    : "Long-Term Storage",
+        "summary" : "A long-term solution, for infrequent backups only.",
+        "expires" : 7776000
+      }
+    ]
 
 The `expires` key is specified in seconds, but must always be a
 multiple of 86400 (1 day).
@@ -5546,32 +5225,28 @@ Create a new retention policy template.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X POST https://shield.host/v2/global/policies \
-     --data-binary '
-{
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X POST https://shield.host/v2/global/policies \
+         --data-binary '
+    {
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }'
+
 
 The `expires` value must be specified in seconds, and must be at
 least 86,400 (1 day) and be a multiple of 86,400.
 
 **Response**
 
-```json
-{
-  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}
-```
-
+    {
+      "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -5613,24 +5288,19 @@ Retrieve a single retention policy template.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-        https://shield.host/v2/global/policies/:uuid
-```
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/global/policies/:uuid
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}
-```
-
+    {
+      "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -5660,17 +5330,16 @@ Update a single retention policy template.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -H 'Content-Type: application/json' \
-     -X PUT https://shield.host/v2/global/policies/:uuid \
-     --data-binary '
-{
-  "name"    : "Updated Retention Policy Name",
-  "summary" : "A longer description of the retention policy",
-  "expires" : 86400
-}'
-```
+    curl -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -X PUT https://shield.host/v2/global/policies/:uuid \
+         --data-binary '
+    {
+      "name"    : "Updated Retention Policy Name",
+      "summary" : "A longer description of the retention policy",
+      "expires" : 86400
+    }'
+
 
 You can specify as many or few of these fields as you want;
 omitted fields will be left at their previous values.
@@ -5681,15 +5350,12 @@ future tenants.
 
 **Response**
 
-```json
-{
-  "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
-  "name"    : "Retention Policy Name",
-  "summary" : "A longer description of the policy",
-  "expires" : 86400
-}
-```
-
+    {
+      "uuid"    : "4882b332-6182-4123-984f-f9e5dd8dae20",
+      "name"    : "Retention Policy Name",
+      "summary" : "A longer description of the policy",
+      "expires" : 86400
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
@@ -5739,21 +5405,16 @@ copied into any future tenants.
 
 **Request**
 
-```sh
-curl -H 'Accept: application/json' \
-     -X DELETE https://shield.host/v2/global/policies/:uuid \
-```
+    curl -H 'Accept: application/json' \
+         -X DELETE https://shield.host/v2/global/policies/:uuid \
 
-This endpoint takes no query string parameters.
 
+    This endpoint takes no query string parameters.
 **Response**
 
-```json
-{
-  "ok": "Retention policy template deleted successfully"
-}
-```
-
+    {
+      "ok": "Retention policy template deleted successfully"
+    }
 **Access Control**
 
 You must be authenticated to access this API endpoint.
