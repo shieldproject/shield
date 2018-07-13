@@ -29,6 +29,7 @@ function divert(page) { // {{{
   return page;
 }
 // }}}
+// vim:et:sts=2:ts=2:sw=2
 
 function dispatch(page) {
   var argv = page.split(/[:+]/);
@@ -2042,9 +2043,12 @@ function dispatch(page) {
       .on('submit', 'form', function (event) {
         event.preventDefault();
 
-        var data = $(event.target).serializeObject();
+        var $form = $(event.target);
+        $form.reset()
+        var data = $form.serializeObject();
         if (data.master == "") {
-          $(event.target).error('unlock-master', 'missing');
+          $form.error('unlock-master', 'missing');
+          return;
         }
 
         api({
@@ -2058,10 +2062,10 @@ function dispatch(page) {
           },
           statusCode: {
             403: function () {
-              $(event.target).error('unlock-master', 'incorrect')
+              $form.error('unlock-master', 'incorrect')
             },
             500: function (xhr) {
-              $(event.target).error(xhr.responseJSON);
+              $form.error(xhr.responseJSON);
             }
           },
           error: {}
