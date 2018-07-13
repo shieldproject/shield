@@ -3,7 +3,6 @@ package core
 type Info struct {
 	Version string `json:"version,omitempty"`
 	IP      string `json:"ip,omitempty"`
-	FQDN    string `json:"fqdn,omitempty"`
 	Env     string `json:"env,omitempty"`
 	Color   string `json:"color,omitempty"`
 	MOTD    string `json:"motd,omitempty"`
@@ -14,7 +13,6 @@ type Info struct {
 func (core *Core) checkInfo(auth bool) Info {
 	info := Info{
 		IP:    core.ip,
-		FQDN:  core.fqdn,
 		MOTD:  core.motd,
 		Color: core.color,
 		Env:   core.env,
