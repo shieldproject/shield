@@ -524,7 +524,7 @@ sections:
             authentication token; it cannot be used as an authentication token,
             as it is not the session ID.
 
-            The `session` key should be used 
+            The `session` key should be used
 
         errors:
           - message: Authentication failed
@@ -536,7 +536,7 @@ sections:
 
           - message: Unable to retrieve tokens information
             summary: *internal
-          
+
           - message: Unable to generate new token
             summary: *internal
 
@@ -598,7 +598,7 @@ sections:
             - name: name
               type: string
               summary: |
-                Only show sessions whose associated token name match the given value.  
+                Only show sessions whose associated token name match the given value.
                 Subject to the `exact=(t|f)` query string parameter.
             - name: ip_addr
               type: string
@@ -637,7 +637,7 @@ sections:
             - **created\_at** - When the user created the session (upon login via WebUI or CLI).
               Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
-            - **last\_seen\_at** - When the user last made contact with the 
+            - **last\_seen\_at** - When the user last made contact with the
               SHIELD Core via an authenticated endpoint.
               Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
@@ -693,7 +693,7 @@ sections:
             - **created\_at** - When the user created the session (upon login via WebUI or CLI).
               Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
-            - **last\_seen\_at** - When the user last made contact with the 
+            - **last\_seen\_at** - When the user last made contact with the
               SHIELD Core via an authenticated endpoint.
               Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
@@ -1614,7 +1614,7 @@ sections:
             - name: name
               type: string
               summary: |
-                Only show tenant whose name matches the given value.  
+                Only show tenant whose name matches the given value.
                 Subject to the `exact=(t|f)` query string parameter.
             - name: limit
               type: number
@@ -1799,7 +1799,7 @@ sections:
 
           - message: Unable to retrieve tenant memberships information
             summary: *internal
-          
+
           - message: No such tenant
             summary: |
               The requested tenant UUID was not found in the database.
@@ -2030,7 +2030,7 @@ sections:
             - name: name
               type: string
               summary: |
-                Only show targets whose name matches the given value.  
+                Only show targets whose name matches the given value.
                 Subject to the `exact=(t|f)` query string parameter.
             - name: plugin
               type: string
@@ -2302,7 +2302,7 @@ sections:
             - name: name
               type: string
               summary: |
-                Only show stores whose name matches the given value.  
+                Only show stores whose name matches the given value.
                 Subject to the `exact=(t|f)` query string parameter.
             - name: plugin
               type: string
@@ -2567,7 +2567,7 @@ sections:
             - name: name
               type: string
               summary: |
-                Only show policies whose name matches the given value.  
+                Only show policies whose name matches the given value.
                 Subject to the `exact=(t|f)` query string parameter.
             - name: limit
               type: number
@@ -2948,7 +2948,7 @@ sections:
         intro: |
           Retrieve a single job for a tenant.
         access: [tenant, operator]
-        
+
         response:
           json: |
             {
@@ -3065,7 +3065,7 @@ sections:
           - message: Unable to delete job.
             summary: *internal
 
-          #This error is not currently able to be thrown but could be in the future 
+          #This error is not currently able to be thrown but could be in the future
           #if job deletion is conditional
           - message: The job could not be deleted at this time.
             summary: *internal
@@ -3104,7 +3104,7 @@ sections:
         intro: |
           Pause a job, to prevent it from being scheduled.
         access: [tenant, operator]
-    
+
         request:
           json: ~
 
@@ -3183,7 +3183,7 @@ sections:
             - name: status
               type: string
               summary: |
-                Only show tasks whose status matches the given value.  
+                Only show tasks whose status matches the given value.
             - name: target
               type: uuid
               summary: |
@@ -3535,7 +3535,7 @@ sections:
           - message: Unable to delete backup archive
             summary: *internal
 
-          #This error is not currently able to be thrown but could be in the future 
+          #This error is not currently able to be thrown but could be in the future
           #if archive deletion is conditional
           - message: The backup archive could not be deleted at this time.
             summary: *internal
@@ -3571,7 +3571,7 @@ sections:
             - name: name
               type: string
               summary: |
-                Only show stores whose name matches the given value.  
+                Only show stores whose name matches the given value.
                 Subject to the `exact=(t|f)` query string parameter.
             - name: plugin
               type: string
@@ -3801,7 +3801,7 @@ sections:
             - name: name
               type: string
               summary: |
-                Only show policies whose name matches the given value.  
+                Only show policies whose name matches the given value.
                 Subject to the `exact=(t|f)` query string parameter.
             - name: limit
               type: number

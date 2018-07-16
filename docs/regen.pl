@@ -128,9 +128,8 @@ sub request {
 		$qs .= "\n";
 	}
 
-	$qs = "This endpoint takes no query string parameters."
+	$qs = "This endpoint takes no query string parameters.\n"
 		unless $qs;
-	$qs =~ s/^/    /gm if $qs;
 
 	my $s = $endpoint->{request}{summary} || "{{CURL}}\n\n{{QUERY}}";
 	$s =~ s/\{\{CURL}}/$curl/g;

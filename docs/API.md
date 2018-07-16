@@ -93,7 +93,8 @@ with different versions of SHIELD Core and clients.
             https://shield.host/v2/info
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -112,7 +113,7 @@ The `env` key is configurable by the SHIELD site administrator,
 at deployment / boot time.
 
 Similar to env, the `color` key is configurable by the SHIELD site
-administrator, used to visually differentiate various SHIELD 
+administrator, used to visually differentiate various SHIELD
 deployments in the WebUI.
 
 The `motd` is what is displayed upon login, and can be changed by
@@ -147,7 +148,8 @@ storage accounts, and general metrics, at a global scope.
             https://shield.host/v2/health
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
 If all goes well, you will receive a 200 OK, with a `Content-Type`
@@ -217,7 +219,8 @@ visible to a single tenant.
             https://shield.host/v2/tenants/:tenant/health
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
 If all goes well, you will receive a 200 OK, with a `Content-Type`
@@ -351,7 +354,8 @@ Destroy the current session and log the user out.
             https://shield.host/v2/auth/logout
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -388,7 +392,8 @@ authenticated, a suitable response will be returned.
             https://shield.host/v2/auth/id
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -456,7 +461,8 @@ against 3rd party systems like Github and Cloud Foundry UAA.
             https://shield.host/v2/auth/providers
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     [
@@ -492,7 +498,8 @@ properties including things like client secrets.
             https://shield.host/v2/auth/providers/:identifier
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -549,7 +556,8 @@ authentication token is not returned.
             https://shield.host/v2/auth/tokens
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     [
@@ -623,7 +631,7 @@ The `uuid` key is used strictly for retrieving and revoking each
 authentication token; it cannot be used as an authentication token,
 as it is not the session ID.
 
-The `session` key should be used 
+The `session` key should be used
 
 **Access Control**
 
@@ -666,7 +674,8 @@ revoked).
          -X DELETE https://shield.host/v2/auth/tokens/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -706,40 +715,40 @@ Retrieve a list of all current login sessions
             https://shield.host/v2/auth/sessions
 
 
-    - **?exact=(t|f)**
-    When filtering sessions, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?is_token=(t|f)**
-    When filtering sessions, include those associated with tokens (default - false)
-    
-    
-    - **?uuid=**
-    Only show the session that matches the given UUID.
-    This is a FIXME - we probably need to remove this.
-    
-    
-    - **?user_uuid=**
-    Only show sessions that matches the given user UUID.
-    
-    
-    - **?name=...**
-    Only show sessions whose associated token name match the given value.  
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?ip_addr=...**
-    Only show sessions who are associated with the given IP address.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering sessions, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?is_token=(t|f)**
+When filtering sessions, include those associated with tokens (default - false)
+
+
+- **?uuid=**
+Only show the session that matches the given UUID.
+This is a FIXME - we probably need to remove this.
+
+
+- **?user_uuid=**
+Only show sessions that matches the given user UUID.
+
+
+- **?name=...**
+Only show sessions whose associated token name match the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?ip_addr=...**
+Only show sessions who are associated with the given IP address.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -765,7 +774,7 @@ Retrieve a list of all current login sessions
 - **created\_at** - When the user created the session (upon login via WebUI or CLI).
   Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
-- **last\_seen\_at** - When the user last made contact with the 
+- **last\_seen\_at** - When the user last made contact with the
   SHIELD Core via an authenticated endpoint.
   Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
@@ -824,7 +833,8 @@ Retrieve a single login session
             https://shield.host/v2/auth/sessions/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -846,7 +856,7 @@ Retrieve a single login session
 - **created\_at** - When the user created the session (upon login via WebUI or CLI).
   Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
-- **last\_seen\_at** - When the user last made contact with the 
+- **last\_seen\_at** - When the user last made contact with the
   SHIELD Core via an authenticated endpoint.
   Date is formatted YYYY-MM-DD HH:MM:SS, in 24-hour notation.
 
@@ -903,7 +913,8 @@ Revoke a user's session and force them to reauthenticate on next request.
          -X DELETE https://shield.host/v2/auth/sessions/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -957,7 +968,8 @@ Save user settings.
     }'
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1006,34 +1018,34 @@ of the latter.
             https://shield.host/v2/auth/local/users
 
 
-    - **?exact=(t|f)**
-    When filtering users, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?uuid=**
-    Only show the local user that matches the given UUID.
-    This is a FIXME - we probably need to remove this.
-    
-    
-    - **?account=...**
-    Only show local users whose account names (usernames)
-    match the given value.  Subject to the `exact=(t|f)` query
-    string parameter.
-    
-    
-    - **?sysrole=...**
-    Only show local users who have been assigned the given
-    system role.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering users, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?uuid=**
+Only show the local user that matches the given UUID.
+This is a FIXME - we probably need to remove this.
+
+
+- **?account=...**
+Only show local users whose account names (usernames)
+match the given value.  Subject to the `exact=(t|f)` query
+string parameter.
+
+
+- **?sysrole=...**
+Only show local users who have been assigned the given
+system role.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -1094,7 +1106,8 @@ The following error messages can be returned:
             https://shield.host/v2/auth/local/users/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1286,7 +1299,8 @@ The following error messages can be returned:
          -X DELETE https://shield.host/v2/auth/local/users/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1450,7 +1464,8 @@ keys are held).
     }'
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
 If all goes well, you will receive a 200 OK, and the
@@ -1489,7 +1504,8 @@ Retrieves information about all registered SHIELD Agents.
             https://shield.host/v2/agents
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1661,7 +1677,8 @@ require, etc.)
             https://shield.host/v2/agents/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1760,7 +1777,8 @@ available for configuration.
          -X POST https://shield.host/v2/agents/:uuid/show \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1813,7 +1831,8 @@ configuration.
          -X POST https://shield.host/v2/agents/:uuid/hide \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1866,7 +1885,8 @@ slow loop scheduling.
          -X POST https://shield.host/v2/agents/:uuid/resync \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1913,7 +1933,8 @@ viewable by a given tenant.
             https://shield.host/v2/tenants/:tenant/agents
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -1995,7 +2016,8 @@ but only to SHIELD administrators).
             https://shield.host/v2/tenants/:tenant/agents/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -2098,28 +2120,28 @@ Retrieve the list of all tenants currently defined.
             https://shield.host/v2/tenants
 
 
-    - **?exact=(t|f)**
-    When filtering tenants, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?uuid=**
-    Only show the tenant that matches the given UUID.
-    This is a FIXME - we probably need to remove this.
-    
-    
-    - **?name=...**
-    Only show tenant whose name matches the given value.  
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering tenants, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?uuid=**
+Only show the tenant that matches the given UUID.
+This is a FIXME - we probably need to remove this.
+
+
+- **?name=...**
+Only show tenant whose name matches the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -2304,7 +2326,8 @@ Request more detailed information about a single tenant.
             https://shield.host/v2/tenants/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -2535,7 +2558,8 @@ Remove a user from a tenant they currently belong to.
     }'
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -2604,7 +2628,8 @@ Remove a tenant.
          -X DELETE https://shield.host/v2/tenants/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -2659,32 +2684,32 @@ Retrieve all defined targets for a tenant.
             https://shield.host/v2/tenants/:tenant/targets
 
 
-    - **?exact=(t|f)**
-    When filtering targets, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?unused=(t|f)**
-    When filtering targets, skip those that are unused (true) or used (false)
-    
-    
-    - **?name=...**
-    Only show targets whose name matches the given value.  
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?plugin=...**
-    Only show targets who are associated with the given plugin.
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering targets, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering targets, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show targets whose name matches the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?plugin=...**
+Only show targets who are associated with the given plugin.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -2756,13 +2781,13 @@ FIXME: Fix target.endpoint string -> JSON problem.
 
 The following query string parameters are honored:
 
-    - **?test=(t|f)**
-    Perform all validation and preparatory steps, but don't
-    actually create the target in the database.  This is useful
-    for validating that a target _could_ be created, without
-    creating it (i.e. for defering creation until later).
-    
-    
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the target in the database.  This is useful
+for validating that a target _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
 
 
 **Response**
@@ -2831,7 +2856,8 @@ Retrieve a single target for a tenant.
             https://shield.host/v2/tenants/:tenant/targets/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -2959,7 +2985,8 @@ Remove a target from a tenant.
          -X DELETE https://shield.host/v2/tenants/:tenant/targets/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -3028,32 +3055,32 @@ Retrieve all defined stores for a tenant.
             https://shield.host/v2/tenants/:tenant/stores
 
 
-    - **?exact=(t|f)**
-    When filtering stores, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?unused=(t|f)**
-    When filtering stores, skip those that are unused (true) or used (false)
-    
-    
-    - **?name=...**
-    Only show stores whose name matches the given value.  
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?plugin=...**
-    Only show stores who are associated with the given plugin.
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering stores, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering stores, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show stores whose name matches the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?plugin=...**
+Only show stores who are associated with the given plugin.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -3131,13 +3158,13 @@ until the storage system is used in a job.
 
 The following query string parameters are honored:
 
-    - **?test=(t|f)**
-    Perform all validation and preparatory steps, but don't
-    actually create the store in the database.  This is useful
-    for validating that a store _could_ be created, without
-    creating it (i.e. for defering creation until later).
-    
-    
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the store in the database.  This is useful
+for validating that a store _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
 
 
 **Response**
@@ -3193,7 +3220,8 @@ Retrieve a single store for the given tenant.
             https://shield.host/v2/tenants/:tenant/stores/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -3331,7 +3359,8 @@ Remove a store from a tenant.
          -X DELETE https://shield.host/v2/tenants/:tenant/stores/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -3393,27 +3422,27 @@ Retrieve all defined retention policies for a tenant.
             https://shield.host/v2/tenants/:tenant/policies
 
 
-    - **?exact=(t|f)**
-    When filtering policies, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?unused=(t|f)**
-    When filtering policies, skip those that are unused (true) or used (false)
-    
-    
-    - **?name=...**
-    Only show policies whose name matches the given value.  
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering policies, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering policies, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show policies whose name matches the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -3478,13 +3507,13 @@ must be at least 86,400 (1 day) and be a multiple of
 
 The following query string parameters are honored:
 
-    - **?test=(t|f)**
-    Perform all validation and preparatory steps, but don't
-    actually create the policy in the database.  This is useful
-    for validating that a policy _could_ be created, without
-    creating it (i.e. for defering creation until later).
-    
-    
+- **?test=(t|f)**
+Perform all validation and preparatory steps, but don't
+actually create the policy in the database.  This is useful
+for validating that a policy _could_ be created, without
+creating it (i.e. for defering creation until later).
+
+
 
 
 **Response**
@@ -3540,7 +3569,8 @@ Retrieve a single retention policy for a tenant.
             https://shield.host/v2/tenants/:tenant/policies/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -3661,7 +3691,8 @@ Remove a retention policy from a tenant.
          -X DELETE https://shield.host/v2/tenants/:tenant/policies/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -3727,38 +3758,38 @@ By default, all jobs for the tenant will be returned.  You can
 filter down to a subset of that by the following query string
 parameters:
 
-    - **?exact=(t|f)**
-    When filtering jobs, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?paused=(t|f)**
-    Show only paused (`paused=t`) or unpaused (`paused=f`) jobs.
-    If omitted, all jobs are shown, regardless of their
-    pausedness.
-    
-    
-    - **?name=...**
-    Show only jobs whose names match the given value.
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?target=...**
-    Show only jobs whose target UUIDs match the given value.
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?store=...**
-    Show only jobs whose store UUIDs match the given value.
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?policy=...**
-    Show only jobs whose retention policy UUIDs match the given
-    value.  Subject to the `exact=(t|f)` query string parameter.
-    
-    
+- **?exact=(t|f)**
+When filtering jobs, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?paused=(t|f)**
+Show only paused (`paused=t`) or unpaused (`paused=f`) jobs.
+If omitted, all jobs are shown, regardless of their
+pausedness.
+
+
+- **?name=...**
+Show only jobs whose names match the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?target=...**
+Show only jobs whose target UUIDs match the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?store=...**
+Show only jobs whose store UUIDs match the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?policy=...**
+Show only jobs whose retention policy UUIDs match the given
+value.  Subject to the `exact=(t|f)` query string parameter.
+
+
 
 
 **Response**
@@ -3926,7 +3957,8 @@ Retrieve a single job for a tenant.
             https://shield.host/v2/tenants/:tenant/jobs/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4072,7 +4104,8 @@ Remove a job from a tenant.
          -X DELETE https://shield.host/v2/tenants/:tenant/jobs/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4126,7 +4159,8 @@ Perform an ad hoc backup job run
          -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/run \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4177,7 +4211,8 @@ Pause a job, to prevent it from being scheduled.
          -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/pause \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4227,7 +4262,8 @@ Unpause a job, allowing it to be scheduled again.
          -X POST https://shield.host/v2/tenants/:tenant/jobs/:uuid/unpause \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4289,24 +4325,24 @@ Retrieve all tasks for a tenant.
             https://shield.host/v2/tenants/:tenant/tasks
 
 
-    - **?active=(t|f)**
-    When filtering tasks, show those that are active (true) or inactive (false)
-    
-    
-    - **?status=...**
-    Only show tasks whose status matches the given value.  
-    
-    
-    - **?target=**
-    Only show tasks associated with a given target...
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?active=(t|f)**
+When filtering tasks, show those that are active (true) or inactive (false)
+
+
+- **?status=...**
+Only show tasks whose status matches the given value.
+
+
+- **?target=**
+Only show tasks associated with a given target...
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -4366,7 +4402,8 @@ Retrieve a single task.
             https://shield.host/v2/tenants/:tenant/tasks/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4422,7 +4459,8 @@ Cancel a task.
          -X DELETE https://shield.host/v2/tenants/:tenant/tasks/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4482,32 +4520,32 @@ Retrieve all archives for a tenant.
             https://shield.host/v2/tenants/:tenant/archives
 
 
-    - **?target=**
-    Only show the archives that beloing to the the given target UUID.
-    
-    
-    - **?store=**
-    Only show the archives that beloing to the the given store UUID.
-    
-    
-    - **?before=**
-    Only show the archives created before the given time.
-    
-    
-    - **?after=**
-    Only show the archives created after the given time.
-    
-    
-    - **?status=...**
-    Only show the archives with the given status.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?target=**
+Only show the archives that beloing to the the given target UUID.
+
+
+- **?store=**
+Only show the archives that beloing to the the given store UUID.
+
+
+- **?before=**
+Only show the archives created before the given time.
+
+
+- **?after=**
+Only show the archives created after the given time.
+
+
+- **?status=...**
+Only show the archives with the given status.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -4575,7 +4613,8 @@ Retrieve a single archive for a tenant.
             https://shield.host/v2/tenants/:tenant/archives/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4644,7 +4683,8 @@ Update a single archive on a tenant.
     }'
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4793,7 +4833,8 @@ data from the backing storage system.
          -X DELETE https://shield.host/v2/tenants/:tenant/archives/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -4854,32 +4895,32 @@ Retrieve all globally-defined stores.
             https://shield.host/v2/global/stores
 
 
-    - **?exact=(t|f)**
-    When filtering stores, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?unused=(t|f)**
-    When filtering stores, skip those that are unused (true) or used (false)
-    
-    
-    - **?name=...**
-    Only show stores whose name matches the given value.  
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?plugin=...**
-    Only show stores who are associated with the given plugin.
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering stores, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering stores, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show stores whose name matches the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?plugin=...**
+Only show stores who are associated with the given plugin.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -4998,7 +5039,8 @@ Retrieve a single globally-defined storage system.
             https://shield.host/v2/global/stores/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -5126,7 +5168,8 @@ Remove a globally-defined storage system.
          -X DELETE https://shield.host/v2/global/stores/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -5177,27 +5220,27 @@ Retrieve all defined retention policy templates.
             https://shield.host/v2/global/policies
 
 
-    - **?exact=(t|f)**
-    When filtering policies, perform either exact field / value
-    matching (`exact=t`), or fuzzy search (`exact=f`, the
-    default)
-    
-    
-    - **?unused=(t|f)**
-    When filtering policies, skip those that are unused (true) or used (false)
-    
-    
-    - **?name=...**
-    Only show policies whose name matches the given value.  
-    Subject to the `exact=(t|f)` query string parameter.
-    
-    
-    - **?limit=N**
-    Limit the returned result set to the first _limit_ users
-    that match the other filtering rules.  A limit of `0` (the
-    default) denotes an unlimited search.
-    
-    
+- **?exact=(t|f)**
+When filtering policies, perform either exact field / value
+matching (`exact=t`), or fuzzy search (`exact=f`, the
+default)
+
+
+- **?unused=(t|f)**
+When filtering policies, skip those that are unused (true) or used (false)
+
+
+- **?name=...**
+Only show policies whose name matches the given value.
+Subject to the `exact=(t|f)` query string parameter.
+
+
+- **?limit=N**
+Limit the returned result set to the first _limit_ users
+that match the other filtering rules.  A limit of `0` (the
+default) denotes an unlimited search.
+
+
 
 **Response**
 
@@ -5305,7 +5348,8 @@ Retrieve a single retention policy template.
             https://shield.host/v2/global/policies/:uuid
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
@@ -5422,7 +5466,8 @@ copied into any future tenants.
          -X DELETE https://shield.host/v2/global/policies/:uuid \
 
 
-    This endpoint takes no query string parameters.
+This endpoint takes no query string parameters.
+
 **Response**
 
     {
