@@ -1,40 +1,3 @@
-// The `bbr` plugin for SHIELD
-// backup/restore plugin for all your bbr enabled deployments and directors.
-//
-// PLUGIN FEATURES
-//
-// This plugin implements functionality suitable for use with the following
-// SHIELD Job components:
-//
-//   Target: yes
-//   Store:  no
-//
-// PLUGIN CONFIGURATION
-//
-// The endpoint configuration passed to this plugin is used to identify
-// which bosh director instance to back up, and how to connect to it. Your
-// endpoint JSON should look something like this:
-// Deployment
-//
-//    {
-//						"bbr_username": "admin",																										 # the username of the director
-//						"bbr_password": "c1oudc0w",																						   		 # the password of the director
-//						"bbr_target": "192.168.50.6",																								 # the director ip
-//						"bbr_deployment": "cf",																											 # the deployment name
-//						"bbr_cacert": "-----BEGIN CERTIFICATE----- my cert -----END CERTIFICATE----- # a single line certificate of you bosh instance
-//    }
-//
-// BACKUP DETAILS
-//
-// The `bbr` plugin lets you backup your bbr enabled deployment or bosh director
-//
-// RESTORE DETAILS
-//
-// The `bbr` plugin will also restore your complete deployment or bosh director.
-//
-// DEPENDENCIES
-//
-//
 package main
 
 import (
@@ -52,9 +15,7 @@ import (
 )
 
 func main() {
-	// Create an object representing this plugin, which is a type conforming to the Plugin interface
 	bbr := BbrPlugin{
-		// give it some authorship info
 		Name:    "BOSH BBR Deployment Plugin",
 		Author:  "Stark & Wayne",
 		Version: "1.0.0",
@@ -63,24 +24,23 @@ func main() {
 			Store:  "no",
 		},
 		Example: `
-			// example to make online keys "sed ':a;N;$!ba;s/\n/\\n/g' state/ssh.key"
-			Deployment
-			   {
-									"bbr_bindir"   : "/path/to/pg/bin",
-									"bbr_username": "admin",
-									"bbr_password": "c1oudc0w",
-									"bbr_target": "192.168.50.6",
-									"bbr_deployment": "cf",
-									"bbr_cacert": "-----BEGIN CERTIFICATE----- my single line certs -----END CERTIFICATE-----"
-			   }
-	`,
+// example to make online keys "sed ':a;N;$!ba;s/\n/\\n/g' state/ssh.key"
+{
+  "bbr_bindir"     : "/path/to/bbr-package/bin",
+  "bbr_username"   : "admin",
+  "bbr_password"   : "c1oudc0w",
+  "bbr_target"     : "192.168.50.6",
+  "bbr_deployment" : "cf",
+  "bbr_cacert"     : "-----BEGIN CERTIFICATE----- my single line certs -----END CERTIFICATE-----"
+}
+`,
 		Defaults: `
-	{
-		"bbr_bindir": "/var/vcap/packages/bbr/bin",
-	  "bbr_target": "192.168.50.6",
-		"bbr_username": "admin"
-	}
-	`,
+{
+  "bbr_bindir"   : "/var/vcap/packages/bbr/bin",
+  "bbr_target"   : "192.168.50.6",
+  "bbr_username" : "admin"
+}
+`,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
