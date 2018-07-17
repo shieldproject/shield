@@ -145,6 +145,21 @@ func (r *Request) ParamDate(name string) *time.Time {
 	return &t
 }
 
+// ParamDuration parses a duration string, example: "1m30s"
+// that will be 1 minute and 30 seconds
+func (r *Request) ParamDuration(name string) *time.Duration {
+	v, set := r.Req.URL.Query()[name]
+	if !set {
+		return nil
+	}
+
+	d, err := time.ParseDuration(v[0])
+	if err != nil {
+		return nil
+	}
+	return &d
+}
+
 func (r *Request) ParamIs(name, want string) bool {
 	v, set := r.Req.URL.Query()[name]
 	return set && v[0] == want
