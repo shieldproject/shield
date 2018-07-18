@@ -91,7 +91,6 @@ func (c *Client) RestoreArchive(parent *Tenant, a *Archive, t *Target) (*Task, e
 		filter.Target = t.UUID
 	}
 
-	u := qs.Generate(filter).Encode()
-	return &out, c.post(fmt.Sprintf("/v2/tenants/%s/archives/%s/restore?%s",
-		parent.UUID, a.UUID, u), nil, &out)
+	return &out, c.post(fmt.Sprintf("/v2/tenants/%s/archives/%s/restore",
+		parent.UUID, a.UUID), filter, &out)
 }
