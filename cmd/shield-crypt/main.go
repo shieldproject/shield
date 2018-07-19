@@ -12,7 +12,7 @@ import (
 	"github.com/starkandwayne/shield/crypter"
 )
 
-var CLIOpts struct {
+var opt struct {
 	Encrypt bool `cli:"-e, --encrypt"`
 	Decrypt bool `cli:"-d, --decrypt"`
 }
@@ -49,18 +49,18 @@ func main() {
 		}
 	}
 
-	_, _, err := cli.Parse(&CLIOpts)
+	_, _, err := cli.Parse(&opt)
 
 	if err != nil {
 		panic(err)
 	}
 
-	if CLIOpts.Encrypt && CLIOpts.Decrypt {
+	if opt.Encrypt && opt.Decrypt {
 		os.Stderr.WriteString("Both encrypting and decrypting flags were set. Cowardly refusing to run.")
 		os.Exit(1)
 	}
 
-	if CLIOpts.Encrypt {
+	if opt.Encrypt {
 		encrypter := cipher.StreamWriter{
 			S: encStream,
 			W: os.Stdout,
@@ -70,7 +70,7 @@ func main() {
 		}
 	}
 
-	if CLIOpts.Decrypt {
+	if opt.Decrypt {
 		decrypter := cipher.StreamReader{
 			S: decStream,
 			R: os.Stdin,
