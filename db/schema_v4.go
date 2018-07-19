@@ -14,26 +14,26 @@ func (s v4Schema) Deploy(db *DB) error {
 	// Set up Multi-Tenancy
 	err = db.Exec(`CREATE TABLE tenants (
 	                 uuid              UUID PRIMARY KEY,
-			 name              TEXT NOT NULL DEFAULT '',
-			 daily_increase    INTEGER DEFAULT NULL,
-			 storage_used      INTEGER DEFAULT NULL,
-			 archive_count     INTEGER DEFAULT NULL
+	                 name              TEXT NOT NULL DEFAULT '',
+	                 daily_increase    INTEGER DEFAULT NULL,
+	                 storage_used      INTEGER DEFAULT NULL,
+	                 archive_count     INTEGER DEFAULT NULL
 	               )`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD agent TEXT NOT NULL DEFAULT ''"))
+	err = db.Exec("ALTER TABLE stores ADD agent TEXT NOT NULL DEFAULT ''")
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD public_config TEXT NOT NULL DEFAULT '[]'"))
+	err = db.Exec("ALTER TABLE stores ADD public_config TEXT NOT NULL DEFAULT '[]'")
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD private_config TEXT NOT NULL DEFAULT '[]'"))
+	err = db.Exec("ALTER TABLE stores ADD private_config TEXT NOT NULL DEFAULT '[]'")
 	if err != nil {
 		return err
 	}
@@ -97,8 +97,8 @@ func (s v4Schema) Deploy(db *DB) error {
 	               priority           INTEGER DEFAULT 50,
 	               paused             BOOLEAN,
 	               name               TEXT,
-		       summary            TEXT,
-		       fixed_key          INTEGER DEFAULT 0
+	               summary            TEXT,
+	               fixed_key          INTEGER DEFAULT 0
 	             )`)
 	if err != nil {
 		return err
@@ -213,9 +213,9 @@ func (s v4Schema) Deploy(db *DB) error {
 	                 last_seen     INTEGER,
 
 	                 token         UUID DEFAULT NULL, -- the auth token itself
-			 name          TEXT DEFAULT '',    -- name for auth token
-			 ip_addr       TEXT DEFAULT '',    -- last seen ip address
-			 user_agent    TEXT DEFAULT ''    -- last seen user agent
+	                 name          TEXT DEFAULT '',   -- name for auth token
+	                 ip_addr       TEXT DEFAULT '',   -- last seen ip address
+	                 user_agent    TEXT DEFAULT ''    -- last seen user agent
 	               )`)
 	if err != nil {
 		return err
