@@ -1103,7 +1103,8 @@ form .ctl label {
   line-height: 20px;
   display: block;
 
-  width: 50%;
+  width: auto;
+  whitespace: nowrap;
   float: left;
 }
 form .ctl .widget {
@@ -1167,10 +1168,11 @@ form .ctl span.errors {
   font-size: 13px;
 }
 form .ctl span.errors {
-  width: 60%;
+  width: auto;
   display: block;
   float: right;
-  text-align: right;
+  text-align: left;
+  padding-bottom: 6px;
 }
 form .error,
 form .ctl span[data-error] {

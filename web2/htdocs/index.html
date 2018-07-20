@@ -1177,6 +1177,7 @@
               <label for="policy-name">Name</label>
               <span class="errors">
                 <span data-error="missing">You must provide a name for this new retention policy.</span>
+                <span data-error="too-big">The name cannot exceed 175 characters</span>
               </span>
               <div class="widget">
                 <input type="text" id="policy-name" name="name" class="autofocus" tabindex="0" />
@@ -1190,6 +1191,7 @@
               <span class="errors">
                 <span data-error="missing">You must specify an expiry of at least 1 day.</span>
                 <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
+                <span data-error="too-big">I'm sorry, the Sun has exploded and taken your data (and the rest of the Earth) with it.<br>Do you realy think you need to retain your data this long?!</span>
               </span>
               <div class="widget">
                 <input type="text" id="policy-days" name="days" />
@@ -1963,6 +1965,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 <label for="policy-name">Name</label>
                 <span class="errors">
                   <span data-error="missing">You must provide a name for this new retention policy.</span>
+                  <span data-error="too-big">The name cannot exceed 175 characters</span>
                 </span>
                 <div class="widget">
                   <input type="text" id="policy-name" name="name" class="autofocus" tabindex="0"
@@ -1977,6 +1980,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 <span class="errors">
                   <span data-error="missing">You must specify an expiry of at least 1 day.</span>
                   <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
+                  <span data-error="too-big">I'm sorry, the Sun has exploded and taken your data (and the rest of the Earth) with it. Do you realy think you need to retain your data this long?!</span>
+
                 </span>
                 <div class="widget">
                   <input type="text" id="policy-days" name="days"
