@@ -37,13 +37,13 @@ function checkPolicyForm($form,data) { // {{{
     $form.error('expires', 'missing');
   } else if (!parseInt(data.days) || parseInt(data.days) < 1 || parseInt(data.days) != data.days) {
     $form.error('expires', 'invalid');
-  } else if (data.days > 1895489799660) {
+  } else if (data.days > 3653) {
     $form.error('expires', 'too-big');
   }
 
   if (data.name == "") {
     $form.error('name', 'missing');
-  } else if (data.name.length > 175) {
+  } else if (data.name.length > 100) {
     $form.error('name', 'too-big');
   }
 
