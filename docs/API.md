@@ -5380,7 +5380,7 @@ The following error messages can be returned:
   after authentication.
 
 
-### PUT /v2/global/policies/:uuid
+### PATCH /v2/global/policies/:uuid
 
 Update a single retention policy template.
 
@@ -5389,7 +5389,7 @@ Update a single retention policy template.
 
     curl -H 'Accept: application/json' \
          -H 'Content-Type: application/json' \
-         -X PUT https://shield.host/v2/global/policies/:uuid \
+         -X PATCH https://shield.host/v2/global/policies/:uuid \
          --data-binary '
     {
       "name"    : "Updated Retention Policy Name",
