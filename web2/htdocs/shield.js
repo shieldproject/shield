@@ -2388,7 +2388,7 @@ function dispatch(page) {
             delete data.days;
 
             api({
-              type: 'PUT',
+              type: 'PATCH',
               url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
               data: data,
               success: function () {
