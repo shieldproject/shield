@@ -253,6 +253,7 @@ func (p BbrPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
 	return plugin.UNIMPLEMENTED
 }
 
+
 func BConnectionInfo(endpoint plugin.ShieldEndpoint) (*BbrConnectionInfo, error) {
 	bin, err := endpoint.StringValueDefault("bbr_bindir", "/var/vcap/packages/bbr/bin")
 	if err != nil {
