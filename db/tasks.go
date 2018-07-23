@@ -61,18 +61,22 @@ type TaskInfo struct {
 }
 
 type TaskFilter struct {
-	UUID         string
-	SkipActive   bool
-	SkipInactive bool
-	OnlyRelevant bool
-	ForOp        string
-	ForTenant    string
-	ForTarget    string
-	ForStatus    string
-	ForArchive   string
-	Limit        int
-	RequestedAt  int64
-	Before       int64
+	UUID          string
+	SkipActive    bool
+	SkipInactive  bool
+	OnlyRelevant  bool
+	ForOp         string
+	ForTenant     string
+	ForTarget     string
+	ForStatus     string
+	ForArchive    string
+	Limit         int
+	RequestedAt   int64
+	Before        int64
+	StartedAfter  *time.Duration
+	StoppedAfter  *time.Duration
+	StartedBefore *time.Duration
+	StoppedBefore *time.Duration
 	// FIXME: add options for store
 }
 
@@ -134,6 +138,26 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	if f.RequestedAt > 0 {
 		wheres = append(wheres, "t.requested_at = ?")
 		args = append(args, f.RequestedAt)
+	}
+
+	if f.StartedAfter != nil {
+		wheres = append(wheres, "t.started_at > ?")
+		args = append(args, time.Now().Add(-*f.StartedAfter).Unix())
+	}
+
+	if f.StoppedAfter != nil {
+		wheres = append(wheres, "t.stopped_at > ?")
+		args = append(args, time.Now().Add(-*f.StoppedAfter).Unix())
+	}
+
+	if f.StartedBefore != nil {
+		wheres = append(wheres, "t.started_at < ?")
+		args = append(args, time.Now().Add(-*f.StartedBefore).Unix())
+	}
+
+	if f.StoppedBefore != nil {
+		wheres = append(wheres, "t.stopped_at < ?")
+		args = append(args, time.Now().Add(-*f.StoppedBefore).Unix())
 	}
 
 	limit := ""

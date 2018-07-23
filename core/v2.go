@@ -2377,13 +2377,17 @@ func (core *Core) v2API() *route.Router {
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
-				SkipActive:   r.ParamIs("active", "f"),
-				SkipInactive: r.ParamIs("active", "t"),
-				ForStatus:    r.Param("status", ""),
-				ForTarget:    r.Param("target", ""),
-				ForTenant:    r.Args[1],
-				Limit:        limit,
-				Before:       paginationDate,
+				SkipActive:    r.ParamIs("active", "f"),
+				SkipInactive:  r.ParamIs("active", "t"),
+				ForStatus:     r.Param("status", ""),
+				ForTarget:     r.Param("target", ""),
+				ForTenant:     r.Args[1],
+				Limit:         limit,
+				Before:        paginationDate,
+				StartedAfter:  r.ParamDuration("started_after"),
+				StoppedAfter:  r.ParamDuration("stopped_after"),
+				StartedBefore: r.ParamDuration("started_before"),
+				StoppedBefore: r.ParamDuration("stopped_before"),
 			},
 		)
 		if err != nil {
