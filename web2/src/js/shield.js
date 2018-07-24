@@ -1946,7 +1946,7 @@ function dispatch(page) {
             delete data.days;
 
             api({
-              type: 'PUT',
+              type: 'PATCH',
               url:  '/v2/global/policies/'+args.uuid,
               data: data,
               success: function () {

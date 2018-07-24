@@ -3114,7 +3114,7 @@ func (core *Core) v2API() *route.Router {
 		r.OK(policy)
 	})
 	// }}}
-	r.Dispatch("PUT /v2/global/policies/:uuid", func(r *route.Request) { // {{{
+	r.Dispatch("PATCH /v2/global/policies/:uuid", func(r *route.Request) { // {{{
 		if core.IsNotSystemEngineer(r) {
 			return
 		}
