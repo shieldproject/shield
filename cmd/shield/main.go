@@ -1896,7 +1896,19 @@ func main() {
 
 		if !opts.Batch {
 			if opts.CreatePolicy.Name == "" {
-				opts.CreatePolicy.Name = prompt("@C{Policy Name}: ")
+				for {
+					n := prompt("@C{Policy Name}: ")
+					if len(n) == 0 {
+						fmt.Fprintf(os.Stderr, "@R{invalid name (must not be blank)}\n")
+						continue
+					}
+					if len(n) > 100 {
+						fmt.Fprintf(os.Stderr, "@R{invalid name (must not be more than 100 characters)}\n")
+						continue
+					}
+					opts.CreatePolicy.Name = n
+					break
+				}
 			}
 			if opts.CreatePolicy.Summary == "" {
 				opts.CreatePolicy.Summary = prompt("@C{Summary}: ")
@@ -1904,11 +1916,17 @@ func main() {
 			if opts.CreatePolicy.Days == 0 {
 				for {
 					s := prompt("@C{Retention Period (days)}: ")
-					if d, err := strconv.Atoi(s); err == nil && d > 0 {
-						opts.CreatePolicy.Days = d
-						break
+					d, err := strconv.Atoi(s)
+					if err != nil || d == 0 {
+						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must be numeric and greater than zero)}\n")
+						continue
 					}
-					fmt.Fprintf(os.Stderr, "@R{invalid expiry (must be numeric and greater than zero)}\n")
+					if d > 3653 {
+						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must not exceed 3653 days (~10 years))}\n")
+						continue
+					}
+					opts.CreatePolicy.Days = d
+					break
 				}
 			}
 		}
@@ -1944,12 +1962,21 @@ func main() {
 		bail(err)
 
 		if opts.UpdatePolicy.Name != "" {
+			if len(opts.UpdatePolicy.Name) > 100 {
+				fail(2, "@R{Policy name cannot exceed 100 characters.}\n\n")
+			}
 			p.Name = opts.UpdatePolicy.Name
 		}
 		if opts.UpdatePolicy.Summary != "" {
 			p.Summary = opts.UpdatePolicy.Summary
 		}
 		if opts.UpdatePolicy.Days != 0 {
+			if opts.UpdatePolicy.Days < 1 {
+				fail(2, "@R{Policy expiry must be a positive non-zero integer}\n\n")
+			}
+			if opts.UpdatePolicy.Days > 3653 {
+				fail(2, "@R{Policy expiry must be no more than 3653 days (~10 years)}\n\n")
+			}
 			p.Expires = opts.UpdatePolicy.Days
 		}
 
@@ -1964,7 +1991,7 @@ func main() {
 		r := tui.NewReport()
 		r.Add("UUID", p.UUID)
 		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires))
+		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires/86400))
 		r.Output(os.Stdout)
 
 	/* }}} */
@@ -2116,7 +2143,7 @@ func main() {
 		r := tui.NewReport()
 		r.Add("UUID", p.UUID)
 		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires))
+		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires/86400))
 		r.Output(os.Stdout)
 
 	/* }}} */
