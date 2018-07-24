@@ -1753,11 +1753,21 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		if len(in.Name) > 100 {
+			r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
+			return
+		}
+
 		/* FIXME: for v2, flip expires over to days, not seconds */
 		if in.Expires < 86400 {
 			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
 			return
 		}
+		if in.Expires > 315619200 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
+			return
+		}
+
 		if in.Expires%86400 != 0 {
 			r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
 			return
@@ -1827,6 +1837,10 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if in.Name != "" {
+			if len(in.Name) > 100 {
+				r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
+				return
+			}
 			policy.Name = in.Name
 		}
 		if in.Summary != "" {
@@ -1836,6 +1850,10 @@ func (core *Core) v2API() *route.Router {
 			/* FIXME: for v2, flip expires over to days, not seconds */
 			if in.Expires < 86400 {
 				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
+				return
+			}
+			if in.Expires > 315619200 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
 				return
 			}
 			if in.Expires%86400 != 0 {
@@ -3070,10 +3088,18 @@ func (core *Core) v2API() *route.Router {
 		if r.Missing("name", in.Name) {
 			return
 		}
+		if len(in.Name) > 100 {
+			r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
+			return
+		}
 
 		/* FIXME: for v2, flip expires over to days, not seconds */
 		if in.Expires < 86400 {
 			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
+			return
+		}
+		if in.Expires > 315619200 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
 			return
 		}
 		if in.Expires%86400 != 0 {
@@ -3140,6 +3166,10 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		if in.Name != "" {
+			if len(in.Name) > 100 {
+				r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
+				return
+			}
 			policy.Name = in.Name
 		}
 		if in.Summary != "" {
@@ -3149,6 +3179,10 @@ func (core *Core) v2API() *route.Router {
 			/* FIXME: for v2, flip expires over to days, not seconds */
 			if in.Expires < 86400 {
 				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
+				return
+			}
+			if in.Expires > 315619200 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
 				return
 			}
 			if in.Expires%86400 != 0 {
