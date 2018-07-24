@@ -1054,8 +1054,7 @@ function dispatch(page) {
         var data = $form.serializeObject();
 
         $form.reset();
-        checkPolicyForm($form,data)
-        if (!$form.isOK()) {
+        if (! checkPolicyForm($form,data)) {
           return;
         }
 
@@ -1101,8 +1100,7 @@ function dispatch(page) {
             var data = $form.serializeObject();
 
             $form.reset();
-            checkPolicyForm($form,data);
-            if (!$form.isOK()) {
+            if (! checkPolicyForm($form,data)) {
               return;
             }
 
@@ -1891,10 +1889,7 @@ function dispatch(page) {
         var data = $form.serializeObject();
 
         $form.reset();
-        if (!parseInt(data.days) || parseInt(data.days) < 1) {
-          $form.error('expires', 'invalid');
-        }
-        if (!$form.isOK()) {
+        if (! checkPolicyForm($form,data)) {
           return;
         }
 
@@ -1935,10 +1930,7 @@ function dispatch(page) {
             var data = $form.serializeObject();
 
             $form.reset();
-            if (!parseInt(data.days) || parseInt(data.days) < 1) {
-              $form.error('expires', 'invalid');
-            }
-            if (!$form.isOK()) {
+            if (! checkPolicyForm($form,data)) {
               return;
             }
 
