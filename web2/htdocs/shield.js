@@ -1334,7 +1334,7 @@ function checkPolicyForm($form,data) { // {{{
     $form.error('expires', 'missing');
   } else if (!parseInt(data.days) || parseInt(data.days) < 1 || parseInt(data.days) != data.days) {
     $form.error('expires', 'invalid');
-  } else if (data.days > 3653) {
+  } else if (data.days > 3660) {
     $form.error('expires', 'too-big');
   }
 

@@ -1763,8 +1763,8 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
 			return
 		}
-		if in.Expires > 315619200 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
+		if in.Expires > 10*366*86400 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
 			return
 		}
 
@@ -1852,8 +1852,8 @@ func (core *Core) v2API() *route.Router {
 				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
 				return
 			}
-			if in.Expires > 315619200 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
+			if in.Expires > 10*366*86400 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
 				return
 			}
 			if in.Expires%86400 != 0 {
@@ -3098,8 +3098,8 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
 			return
 		}
-		if in.Expires > 315619200 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
+		if in.Expires > 10*366*86400 {
+			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
 			return
 		}
 		if in.Expires%86400 != 0 {
@@ -3181,8 +3181,8 @@ func (core *Core) v2API() *route.Router {
 				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
 				return
 			}
-			if in.Expires > 315619200 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3653 days (~10 years)"))
+			if in.Expires > 10*366*86400 {
+				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
 				return
 			}
 			if in.Expires%86400 != 0 {

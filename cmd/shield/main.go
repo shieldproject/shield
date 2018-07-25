@@ -1921,8 +1921,8 @@ func main() {
 						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must be numeric and greater than zero)}\n")
 						continue
 					}
-					if d > 3653 {
-						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must not exceed 3653 days (~10 years))}\n")
+					if d > 366*10 {
+						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must not exceed 3660 days (~10 years))}\n")
 						continue
 					}
 					opts.CreatePolicy.Days = d
@@ -1974,8 +1974,8 @@ func main() {
 			if opts.UpdatePolicy.Days < 1 {
 				fail(2, "@R{Policy expiry must be a positive non-zero integer}\n\n")
 			}
-			if opts.UpdatePolicy.Days > 3653 {
-				fail(2, "@R{Policy expiry must be no more than 3653 days (~10 years)}\n\n")
+			if opts.UpdatePolicy.Days > 366*10 {
+				fail(2, "@R{Policy expiry must be no more than 3660 days (~10 years)}\n\n")
 			}
 			p.Expires = opts.UpdatePolicy.Days
 		}
@@ -2081,8 +2081,8 @@ func main() {
 						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must be numeric and greater than zero)}\n")
 						continue
 					}
-					if d > 3653 {
-						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must not exceed 3653 days (~10 years))}\n")
+					if d > 366*10 {
+						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must not exceed 3660 days (~10 years))}\n")
 						continue
 					}
 					opts.CreatePolicyTemplate.Days = d
@@ -2126,8 +2126,8 @@ func main() {
 			if opts.UpdatePolicyTemplate.Days < 1 {
 				fail(2, "@R{Policy expiry must be a positive non-zero integer}\n\n")
 			}
-			if opts.UpdatePolicyTemplate.Days > 3653 {
-				fail(2, "@R{Policy expiry must be no more than 3653 days (~10 years)}\n\n")
+			if opts.UpdatePolicyTemplate.Days > 366*10 {
+				fail(2, "@R{Policy expiry must be no more than 3660 days (~10 years)}\n\n")
 			}
 			p.Expires = opts.UpdatePolicyTemplate.Days
 		}
