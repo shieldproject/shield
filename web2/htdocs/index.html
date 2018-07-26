@@ -1177,9 +1177,10 @@
               <label for="policy-name">Name</label>
               <span class="errors">
                 <span data-error="missing">You must provide a name for this new retention policy.</span>
+                <span data-error="too-big">The name cannot exceed 100 characters</span>
               </span>
               <div class="widget">
-                <input type="text" id="policy-name" name="name" class="autofocus" tabindex="0" />
+                <input type="text" id="policy-name" name="name" maxlength="100" class="autofocus" tabindex="0" />
                 <p class="help">Pick a memorable or descriptive name for this retention policy,
                 so that other operators can determine what to use it for.</p>
               </div>
@@ -1190,6 +1191,7 @@
               <span class="errors">
                 <span data-error="missing">You must specify an expiry of at least 1 day.</span>
                 <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
+                <span data-error="too-big">Retention expiry cannot exceed 10 years (3660 days)</span>
               </span>
               <div class="widget">
                 <input type="text" id="policy-days" name="days" />
@@ -1962,10 +1964,11 @@ for job <em>[[= _.task.job_uuid ]]</em>
               <div class="ctl" data-field="name">
                 <label for="policy-name">Name</label>
                 <span class="errors">
-                  <span data-error="missing">You must provide a name for this new retention policy.</span>
+                  <span data-error="missing">You must provide a name for this [[=  (_.policy) ? "existing" : "new" ]] retention policy.</span>
+                  <span data-error="too-big">The name cannot exceed 100 characters</span>
                 </span>
                 <div class="widget">
-                  <input type="text" id="policy-name" name="name" class="autofocus" tabindex="0"
+                  <input type="text" id="policy-name" name="name" maxlength="100" class="autofocus" tabindex="0"
                     [[ if (_.policy) { ]]value="[[= _.policy.name ]]"[[ } ]]/>
                   <p class="help">Pick a memorable or descriptive name for this retention policy,
                   so that other operators can determine what to use it for.</p>
@@ -1977,6 +1980,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 <span class="errors">
                   <span data-error="missing">You must specify an expiry of at least 1 day.</span>
                   <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
+                  <span data-error="too-big">Retention expiry cannot exceed 10 years (3660 days)</span>
+
                 </span>
                 <div class="widget">
                   <input type="text" id="policy-days" name="days"

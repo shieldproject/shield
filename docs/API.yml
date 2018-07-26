@@ -3904,7 +3904,7 @@ sections:
 
 
         # }}}
-      - name: PUT /v2/global/policies/:uuid # {{{
+      - name: PATCH /v2/global/policies/:uuid # {{{
         intro: |
           Update a single retention policy template.
         access: [system, engineer]

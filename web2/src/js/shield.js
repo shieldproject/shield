@@ -31,6 +31,26 @@ function divert(page) { // {{{
 // }}}
 // vim:et:sts=2:ts=2:sw=2
 
+function checkPolicyForm($form,data) { // {{{
+
+  if (data.days == "") {
+    $form.error('expires', 'missing');
+  } else if (!parseInt(data.days) || parseInt(data.days) < 1 || parseInt(data.days) != data.days) {
+    $form.error('expires', 'invalid');
+  } else if (data.days > 3660) {
+    $form.error('expires', 'too-big');
+  }
+
+  if (data.name == "") {
+    $form.error('name', 'missing');
+  } else if (data.name.length > 100) {
+    $form.error('name', 'too-big');
+  }
+
+  return $form.isOK()
+
+} // }}}
+
 function dispatch(page) {
   var argv = page.split(/[:+]/);
   dest = argv.shift();
@@ -600,6 +620,9 @@ function dispatch(page) {
             /* make:policy   - validate a new policy, store it for later {{{ */
             if (l[1] == 'make' && l[2] == 'policy') {
               var policy = $form.serializeObject();
+              if (! checkPolicyForm($form,policy)) {
+                return;
+              }
               policy.expires = policy.days * 86400; /* FIXME */
               $form.reset();
               api({
@@ -1031,10 +1054,7 @@ function dispatch(page) {
         var data = $form.serializeObject();
 
         $form.reset();
-        if (!parseInt(data.days) || parseInt(data.days) < 1) {
-          $form.error('expires', 'invalid');
-        }
-        if (!$form.isOK()) {
+        if (! checkPolicyForm($form,data)) {
           return;
         }
 
@@ -1080,10 +1100,7 @@ function dispatch(page) {
             var data = $form.serializeObject();
 
             $form.reset();
-            if (!parseInt(data.days) || parseInt(data.days) < 0) {
-              $form.error('expires', 'invalid');
-            }
-            if (!$form.isOK()) {
+            if (! checkPolicyForm($form,data)) {
               return;
             }
 
@@ -1091,7 +1108,7 @@ function dispatch(page) {
             delete data.days;
 
             api({
-              type: 'PUT',
+              type: 'PATCH',
               url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/policies/'+args.uuid,
               data: data,
               success: function () {
@@ -1872,10 +1889,7 @@ function dispatch(page) {
         var data = $form.serializeObject();
 
         $form.reset();
-        if (!parseInt(data.days) || parseInt(data.days) < 1) {
-          $form.error('expires', 'invalid');
-        }
-        if (!$form.isOK()) {
+        if (! checkPolicyForm($form,data)) {
           return;
         }
 
@@ -1916,10 +1930,7 @@ function dispatch(page) {
             var data = $form.serializeObject();
 
             $form.reset();
-            if (!parseInt(data.days) || parseInt(data.days) < 1) {
-              $form.error('expires', 'invalid');
-            }
-            if (!$form.isOK()) {
+            if (! checkPolicyForm($form,data)) {
               return;
             }
 
@@ -1927,7 +1938,7 @@ function dispatch(page) {
             delete data.days;
 
             api({
-              type: 'PUT',
+              type: 'PATCH',
               url:  '/v2/global/policies/'+args.uuid,
               data: data,
               success: function () {

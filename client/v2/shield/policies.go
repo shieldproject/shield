@@ -158,7 +158,7 @@ func (c *Client) CreatePolicyTemplate(in *Policy) (*Policy, error) {
 func (c *Client) UpdatePolicyTemplate(in *Policy) (*Policy, error) {
 	fixupPolicyRequest(in)
 	var out *Policy
-	if err := c.put(fmt.Sprintf("/v2/global/policies/%s", in.UUID), in, &out); err != nil {
+	if err := c.patch(fmt.Sprintf("/v2/global/policies/%s", in.UUID), in, &out); err != nil {
 		return nil, err
 	}
 	fixupPolicyResponse(out)
