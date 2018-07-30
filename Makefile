@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shieldd shield shield-agent shield-schema shield-migrate shield-crypt plugins test
+all: format shieldd shield shield-agent shield-schema shield-migrate shield-crypt shield-report plugins test
 
 # go fmt ftw
 format:
@@ -18,7 +18,7 @@ plugin-tests: plugins
 	@rm -f mock
 go-tests:
 	export PATH=$$PATH:test/bin; go list ./... | grep -v vendor | xargs go test
-api-tests:
+api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
 	./t/api
 
 # Running Tests for race conditions
@@ -26,7 +26,7 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield: shieldd shield-agent shield-schema shield-crypt
+shield: shieldd shield-agent shield-schema shield-crypt shield-report
 
 shield-crypt:
 	go $(BUILD_TYPE) ./cmd/shield-crypt
@@ -38,6 +38,8 @@ shield-schema:
 	go $(BUILD_TYPE) ./cmd/shield-schema
 shield-migrate:
 	go $(BUILD_TYPE) ./cmd/shield-migrate
+shield-report:
+	go $(BUILD_TYPE) ./cmd/shield-report
 
 shield: cmd/shield/help.go
 	go $(BUILD_TYPE) ./cmd/shield
@@ -63,7 +65,7 @@ docs/API.md: docs/API.yml
 	mv $@~ $@
 
 clean:
-	rm -f shield shieldd shield-agent shield-schema shield-crypt shield-migrate
+	rm -f shield shieldd shield-agent shield-schema shield-crypt shield-migrate shield-report
 	rm -f $$(cat plugins) dummy
 
 
@@ -110,6 +112,7 @@ release:
 	done
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt"  ./cmd/shield-crypt
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-report"   ./cmd/shield-report
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"            ./cmd/shield
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-migrate" ./cmd/shield-migrate
@@ -128,4 +131,4 @@ web2/htdocs/shield.js: $(JAVASCRIPTS)
 
 web2: web2/htdocs/shield.js
 
-.PHONY: plugins dev web2 shield shieldd shield-schema shield-agent shield-crypt demo
+.PHONY: plugins dev web2 shield shieldd shield-schema shield-agent shield-crypt shield-report demo

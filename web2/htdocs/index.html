@@ -219,7 +219,7 @@
     <script type="text/html" id="tpl--init"><!-- {{{ -->
           [[#
             {init} template
-    
+
             Displays the initialization template screen (displayed after login on an uninitialized SHIELD)
           ]]
               <div id="initialize" class="frontdoor">
@@ -306,7 +306,7 @@
     <script type="text/html" id="tpl--fixedkey"><!-- {{{ -->
         [[#
           {fixedkey} template
-  
+
           Displays the Shield Fixed Key, so that operators can restore
           fixed-key backups in the event of a disaster.
         ]]
@@ -316,11 +316,11 @@
                 <div class="dialog">
                   <h2>Shield Fixed Key</h2>
                   <img src="/i/terminal.png" class="highlight">
-  
+
                   <p>Here is your SHIELD Fixed Key:</p>
-  
+
                   <pre id="fixedkey">[[= _.fixed_key ]]</pre>
-  
+
                   <p id="dr-explain">
                     You will need to save this key in a secure location
                     for use in recovery of fixed-key backups in a disaster scenario.
@@ -400,7 +400,7 @@
             <!--
             [[ if (_.tenant && $global.auth.is.tenant[_.tenant.uuid].admin) { ]]
                 <div class="divider"></div>
-                <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a> 
+                <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a>
             [[ } ]]
             -->
             <div class="divider"></div>
@@ -630,7 +630,7 @@
                  you should have this level of access.</p>
             [[ } else if (want == 'generic/elevated') { ]]
                  <p>This part of SHIELD requires <strong>elevated</strong> access.</p>
-                 <p>Please consult your administrators if you believe you should 
+                 <p>Please consult your administrators if you believe you should
                  have this level of access.</p>
             [[ } else { ]]
                  <p>This part of SHIELD requires <strong>[[= _.level ]]/[[= _.need ]]</strong>
@@ -1052,7 +1052,7 @@
               </span>
               <div class="widget">
                 <input type="text" id="target-name" name="name" class="autofocus" />
-                <p class-"help">Pick a memorable or descriptive name for this data system.</p>
+                <p class="help">Pick a memorable or descriptive name for this data system.</p>
               </div>
             </div>
 
@@ -1085,13 +1085,22 @@
             <div id="choose-plugin"></div>
             <div id="configure-plugin"></div>
 
+            <div class="ctl" data-field="compression">
+              <label for="target-compresion">Compression?</label>
+              <div class="widget">
+                <input class="large-checkbox" name="compression" type="checkbox" value="true" checked />
+                <p class="help">By default, SHIELD compresses all backup archives using <tt>bzip2</tt>
+                compression.</p>
+              </div>
+            </div>
+
             <div class="ctl" data-field="fixed-key">
-                <label for="target-fixed-key">Fixed-Key Encryption?</label>
-                <div class="widget">
-                    <input id="large-checkbox" name='fixed_key' type='checkbox' value="true" />
-                    <p class-"help">Select if backups should use the Fixed Key for encryption. 
-                    (Required for backups of Shield itself) </p>
-                </div>
+              <label for="target-fixed-key">Fixed-Key Encryption?</label>
+              <div class="widget">
+                <input class="large-checkbox" name="fixed_key" type="checkbox" value="true" />
+                <p class="help">Select if backups should use the Fixed Key for encryption.
+                (Required for backups of Shield itself) </p>
+              </div>
             </div>
 
             <button class="go">Next</button>
@@ -1460,6 +1469,10 @@
               <a href="#!/systems/system:uuid:[[= target.uuid ]]">
               <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
               <h3>[[= target.name ]]</h3>
+              <ul class="details">
+                <li>[[ if (target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
+                    [[ } else { ]]backups will be compressed via <tt>[[= target.compression ]]</tt>[[ } ]]</li>
+              </ul>
               [[ $.each(target.jobs, function (j, job) { ]]
               <ul class="details">
                 <li>runs [[= job.schedule ]]</li>
@@ -1490,6 +1503,10 @@
             <div class="job card [[= _.target.ok ? 'ok' : 'fail' ]]">
               <img src="i/shield-[[= _.target.ok ? 'ok' : 'fail' ]].svg">
               <h3>[[= _.target.name ]]</h3>
+              <ul class="details">
+                <li>[[ if (_.target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
+                    [[ } else { ]]backups will be compressed via <tt>[[= _.target.compression ]]</tt>[[ } ]]</li>
+              </ul>
               [[ $.each(_.target.jobs, function (i, job) { ]]
               <ul class="details">
                 <li>runs [[= job.schedule ]] &mdash; <a href="run:[[= job.uuid ]]">run now</a></li>
@@ -2207,10 +2224,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
               [[ if ($global.auth.is.system.admin) { ]]
               <li><a href="#!/admin/sessions">Manage User Sessions</a>
-                <p>Upon login, users are granted a session token to be used for the duration of 
-                    their access. These sessions can be revoked via this interface, or expire 
-                    naturally over time requiring the user to reauthenticate.
-                </p>
+                <p>Upon login, users are granted a session token to be used for the duration of
+                their access. These sessions can be revoked via this interface, or expire
+                naturally over time requiring the user to reauthenticate.</p>
               </li>
               [[ } ]]
             </ul>
@@ -2430,7 +2446,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               <div class="ctl" data-field="confirm">
                     <label for="rekey-fixed">Rekey Shield Fixed Key?</label>
                     <div class="widget">
-                      <input id="large-checkbox" name='rotate_fixed_key' type='checkbox' value="true" />
+                      <input class="large-checkbox" name="rotate_fixed_key" type="checkbox" value="true" />
                       <p class="help">This rotates the <strong>Shield Fixed Key</strong>
                       used for fixed-key backups. Once rekeyed, this new key must be used to manually
                       restore all future fixed-key backups in a disaster scenario.</p>
@@ -2605,7 +2621,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/html" id="tpl--sessions"><!-- {{{ -->
         [[#
           {sessions} template
-  
+
           Renders the list of all current user sessions
         ]]
             <div class="gutter blk">
@@ -2642,17 +2658,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/html" id="tpl--sessions-delete"><!-- {{{ -->
         [[#
           {sessions-delete}
-  
+
           A modal interaction screen that requires the operator to acknowledge
           that what they are about to do will result in the destruction of
           session data.
         ]]
             <div class="confirm">
               <h2>Delete The Session For Account:<em>[[= _.session.user_account ]]</em>?</h2>
-  
+
               <p>You have requested that S.H.I.E.L.D. remove the session for
               the account "[[= _.session.user_account ]]".</p>
-  
+
               <p class="q">Are you sure you want to delete the session for <em>[[= _.session.user_account ]]</em>?</p>
               <div class="a">
                 <button class="danger" rel="yes">Yes, Delete It</button>

@@ -558,6 +558,7 @@ function dispatch(page) {
             /* make:target   - validate a new target, store it for later {{{ */
             if (l[1] == 'make' && l[2] == 'target') {
               var target = $form.serializePluginObject();
+              target.compression = (target.compression ? "bzip2" : "none");
               if (!$form.reset().validate(target).isOK()) { return; }
               api({
                 type: 'POST',

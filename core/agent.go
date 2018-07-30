@@ -27,6 +27,7 @@ type AgentCommand struct {
 	EncryptType    string `json:"encrypt_type,omitempty"`
 	EncryptKey     string `json:"encrypt_key,omitempty"`
 	EncryptIV      string `json:"encrypt_iv,omitempty"`
+	Compression    string `json:"compression,omitempty"`
 }
 
 type AgentClient struct {

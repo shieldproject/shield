@@ -646,6 +646,7 @@ func (core *Core) worker(id int) {
 			Op:             task.Op,
 			TargetPlugin:   task.TargetPlugin,
 			TargetEndpoint: task.TargetEndpoint,
+			Compression:    task.Compression,
 			StorePlugin:    task.StorePlugin,
 			StoreEndpoint:  task.StoreEndpoint,
 			RestoreKey:     task.RestoreKey,
@@ -681,17 +682,23 @@ func (core *Core) worker(id int) {
 		response := <-stdout
 		if task.Op == db.BackupOperation {
 			var v struct {
-				Key  string `json:"key"`
-				Size int64  `json:"archive_size"`
+				Key         string `json:"key"`
+				Size        int64  `json:"archive_size"`
+				Compression string `json:"compression"`
 			}
 			if err := json.Unmarshal([]byte(response), &v); err != nil {
 				core.failTask(task, "shield worker %d failed to parse JSON response from remote agent %s: %s\n", id, task.Agent, err)
 				continue
 
 			} else {
+				if v.Compression == "" {
+					/* older shield-pipes will always bzip2; and if they aren't
+					   reporting their compression type, it's gotta be bzip2 */
+					v.Compression = "bzip2"
+				}
 				if v.Key != "" {
 					log.Infof("  %s: restore key is %s", task.UUID, v.Key)
-					if _, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Size, task.TenantUUID); err != nil {
+					if _, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Compression, v.Size, task.TenantUUID); err != nil {
 						log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 					}
 

@@ -16,6 +16,7 @@ type Archive struct {
 	Store  *Store  `json:"store,omitempty"`
 	Policy *Policy `json:"policy,omitempty"`
 
+	Compression    string `json:"compression"`
 	EncryptionType string `json:"encryption_type"`
 	Size           int64  `json:"size"`
 }

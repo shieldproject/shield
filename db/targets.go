@@ -12,11 +12,12 @@ import (
 type Target struct {
 	TenantUUID uuid.UUID `json:"-"`
 
-	UUID    uuid.UUID `json:"uuid"`
-	Name    string    `json:"name"`
-	Summary string    `json:"summary"`
-	Plugin  string    `json:"plugin"`
-	Agent   string    `json:"agent"`
+	UUID        uuid.UUID `json:"uuid"`
+	Name        string    `json:"name"`
+	Summary     string    `json:"summary"`
+	Plugin      string    `json:"plugin"`
+	Agent       string    `json:"agent"`
+	Compression string    `json:"compression"`
 
 	Config map[string]interface{} `json:"config,omitempty"`
 }
@@ -63,7 +64,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 		   SELECT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
-		          t.endpoint, t.agent, -1 AS n
+		          t.endpoint, t.agent, t.compression, -1 AS n
 		     FROM targets t
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY t.name, t.uuid ASC`, args
@@ -76,7 +77,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 
 	return `
 	   SELECT DISTINCT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
-	                   t.endpoint, t.agent, COUNT(j.uuid) AS n
+	                   t.endpoint, t.agent, t.compression, COUNT(j.uuid) AS n
 	              FROM targets t
 	         LEFT JOIN jobs j
 	                ON j.target_uuid = t.uuid
@@ -126,7 +127,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 			this, tenant NullUUID
 			rawconfig    []byte
 		)
-		if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &n); err != nil {
+		if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression, &n); err != nil {
 			return l, err
 		}
 		t.UUID = this.UUID
@@ -146,7 +147,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 	r, err := db.Query(`
-	  SELECT uuid, tenant_uuid, name, summary, plugin, endpoint, agent
+	  SELECT uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression
 	    FROM targets
 	   WHERE uuid = ?`, id.String())
 	if err != nil {
@@ -163,7 +164,7 @@ func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 		this, tenant NullUUID
 		rawconfig    []byte
 	)
-	if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent); err != nil {
+	if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression); err != nil {
 		return nil, err
 	}
 	t.UUID = this.UUID
@@ -186,9 +187,9 @@ func (db *DB) CreateTarget(in *Target) (*Target, error) {
 
 	in.UUID = uuid.NewRandom()
 	return in, db.Exec(`
-	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
-	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?)`,
-		in.UUID.String(), in.TenantUUID.String(), in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent)
+	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression)
+	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?,     ?)`,
+		in.UUID.String(), in.TenantUUID.String(), in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent, in.Compression)
 }
 
 func (db *DB) UpdateTarget(t *Target) error {
@@ -199,13 +200,14 @@ func (db *DB) UpdateTarget(t *Target) error {
 
 	return db.Exec(`
 	  UPDATE targets
-	     SET name     = ?,
-	         summary  = ?,
-	         plugin   = ?,
-	         endpoint = ?,
-	         agent    = ?
+	     SET name        = ?,
+	         summary     = ?,
+	         plugin      = ?,
+	         endpoint    = ?,
+	         agent       = ?,
+	         compression = ?
 	   WHERE uuid = ?`,
-		t.Name, t.Summary, t.Plugin, string(rawconfig), t.Agent,
+		t.Name, t.Summary, t.Plugin, string(rawconfig), t.Agent, t.Compression,
 		t.UUID.String())
 }
 

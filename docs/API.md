@@ -3795,15 +3795,16 @@ value.  Subject to the `exact=(t|f)` query string parameter.
 **Response**
 
     {
-      "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
-      "name"     : "Job Name",
-      "summary"  : "A longer description",
-      "expiry"   : 604800,
-      "schedule" : "daily 4am",
-      "paused"   : false,
-      "agent"    : "10.0.0.5:5444",
-      "last_run" : "2017-10-19 03:00:00",
-      "status"   : "done",
+      "uuid"        : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+      "name"        : "Job Name",
+      "summary"     : "A longer description",
+      "compression" : "bzip2",
+      "expiry"      : 604800,
+      "schedule"    : "daily 4am",
+      "paused"      : false,
+      "agent"       : "10.0.0.5:5444",
+      "last_run"    : "2017-10-19 03:00:00",
+      "status"      : "done",
     
       "policy" : {
         "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
@@ -3867,14 +3868,15 @@ Configure a new backup job on a tenant.
          -X POST https://shield.host/v2/tenants/:tenant/jobs \
          --data-binary '
     {
-      "name"     : "New Job Name",
-      "summary"  : "A longer description...",
-      "schedule" : "daily 4am",
-      "paused"   : false,
+      "name"        : "New Job Name",
+      "summary"     : "A longer description...",
+      "schedule"    : "daily 4am",
+      "compression" : "bzip2",
+      "paused"      : false,
     
-      "store"    : "af1ad037-c8c1-4036-984a-3cf726b4081d",
-      "target"   : "2c64d9ff-fc9f-4114-8e89-9f7c84fcaac7",
-      "policy"   : "cb6b0503-4741-4cfd-9a1d-11b5a5aaadde"
+      "store"       : "af1ad037-c8c1-4036-984a-3cf726b4081d",
+      "target"      : "2c64d9ff-fc9f-4114-8e89-9f7c84fcaac7",
+      "policy"      : "cb6b0503-4741-4cfd-9a1d-11b5a5aaadde"
     }'
 
 
@@ -3886,15 +3888,17 @@ FIXME : allow non-UUIDs for all three.
 **Response**
 
     {
-      "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
-      "name"     : "Job Name",
-      "summary"  : "A longer description",
-      "expiry"   : 604800,
-      "schedule" : "daily 4am",
-      "paused"   : false,
-      "agent"    : "10.0.0.5:5444",
-      "last_run" : "2017-10-19 03:00:00",
-      "last_task_status": "",
+      "uuid"        : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+      "name"        : "Job Name",
+      "summary"     : "A longer description",
+      "compression" : "bzip2",
+      "expiry"      : 604800,
+      "schedule"    : "daily 4am",
+      "paused"      : false,
+      "agent"       : "10.0.0.5:5444",
+    
+      "last_run"         : "2017-10-19 03:00:00",
+      "last_task_status" : "",
     
       "policy" : {
         "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
@@ -3962,15 +3966,17 @@ This endpoint takes no query string parameters.
 **Response**
 
     {
-      "uuid"     : "30f34d8f-762e-402a-b7ce-769a4a68de90",
-      "name"     : "Job Name",
-      "summary"  : "A longer description",
-      "expiry"   : 604800,
-      "schedule" : "daily 4am",
-      "paused"   : false,
-      "agent"    : "10.0.0.5:5444",
-      "last_run" : "2017-10-19 03:00:00",
-      "last_task_status": "",
+      "uuid"        : "30f34d8f-762e-402a-b7ce-769a4a68de90",
+      "name"        : "Job Name",
+      "summary"     : "A longer description",
+      "compression" : "bzip2",
+      "expiry"      : 604800,
+      "schedule"    : "daily 4am",
+      "paused"      : false,
+      "agent"       : "10.0.0.5:5444",
+    
+      "last_run"         : "2017-10-19 03:00:00",
+      "last_task_status" : "",
     
       "policy" : {
         "uuid"    : "9a112894-10eb-439f-afd5-01597d8faf64",
@@ -4038,12 +4044,14 @@ Update a single job on a tenant.
          -X PUT https://shield.host/v2/tenants/:tenant/jobs/:uuid \
          --data-binary '
     {
-      "name"     : "New Name",
-      "summary"  : "An updated summary",
-      "schedule" : "daily 4am",
-      "store"    : "a6ef5aea-51f6-4e91-a490-3063395f879b",
-      "target"   : "af1425ed-53fd-4ab6-a425-fb230c383901",
-      "policy"   : "c16a4783-19b8-400d-8b51-f47dcdc11da3"
+      "name"        : "New Name",
+      "summary"     : "An updated summary",
+      "compression" : "bzip2",
+      "schedule"    : "daily 4am",
+    
+      "store"  : "a6ef5aea-51f6-4e91-a490-3063395f879b",
+      "target" : "af1425ed-53fd-4ab6-a425-fb230c383901",
+      "policy" : "c16a4783-19b8-400d-8b51-f47dcdc11da3"
     }'
 
 
@@ -4551,25 +4559,29 @@ default) denotes an unlimited search.
 
     [
       {
-        "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
-        "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
-        "taken_at": "2017-10-27 16:05:25",
-        "expires_at": "2017-10-28 16:05:25",
-        "notes": "",
-        "status": "valid",
-        "purge_reason": "",
-        "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
-        "target_name": "SHIELD",
-        "target_plugin": "fs",
-        "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-        "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
-        "store_name": "CloudStor",
-        "store_plugin": "fs",
-        "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
-        "job": "Hourly",
-        "encryption_type": "aes256-ctr",
-        "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
-        "size": 43306681
+        "uuid"         : "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+        "key"          : "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+        "taken_at"     : "2017-10-27 16:05:25",
+        "expires_at"   : "2017-10-28 16:05:25",
+        "notes"        : "",
+        "compression"  : "bzip2",
+        "encryption_type" : "aes256-ctr",
+        "size"         : 43306681,
+        "status"       : "valid",
+        "purge_reason" : "",
+        "job"          : "Hourly",
+    
+        "tenant_uuid" : "5524167e-cf56-4a8f-9580-cfca40949316",
+    
+        "target_uuid"     : "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+        "target_name"     : "SHIELD",
+        "target_plugin"   : "fs",
+        "target_endpoint" : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+    
+        "store_uuid"     : "828fccae-a11e-41ee-bc13-d33c4dff1241",
+        "store_name"     : "CloudStor",
+        "store_plugin"   : "fs",
+        "store_endpoint" : "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}"
       }
     ]
 **Access Control**
@@ -4618,25 +4630,29 @@ This endpoint takes no query string parameters.
 **Response**
 
     {
-      "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
-      "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
-      "taken_at": "2017-10-27 16:05:25",
-      "expires_at": "2017-10-28 16:05:25",
-      "notes": "",
-      "status": "valid",
-      "purge_reason": "",
-      "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
-      "target_name": "SHIELD",
-      "target_plugin": "fs",
-      "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-      "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
-      "store_name": "CloudStor",
-      "store_plugin": "fs",
-      "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
-      "job": "Hourly",
-      "encryption_type": "aes256-ctr",
-      "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
-      "size": 43306681
+      "uuid"         : "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+      "key"          : "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+      "taken_at"     : "2017-10-27 16:05:25",
+      "expires_at"   : "2017-10-28 16:05:25",
+      "notes"        : "",
+      "compression"  : "bzip2",
+      "encryption_type" : "aes256-ctr",
+      "size"         : 43306681,
+      "status"       : "valid",
+      "purge_reason" : "",
+      "job"          : "Hourly",
+    
+      "tenant_uuid" : "5524167e-cf56-4a8f-9580-cfca40949316",
+    
+      "target_uuid"     : "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+      "target_name"     : "SHIELD",
+      "target_plugin"   : "fs",
+      "target_endpoint" : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+    
+      "store_uuid"     : "828fccae-a11e-41ee-bc13-d33c4dff1241",
+      "store_name"     : "CloudStor",
+      "store_plugin"   : "fs",
+      "store_endpoint" : "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}"
     }
 **Access Control**
 
@@ -4688,25 +4704,29 @@ This endpoint takes no query string parameters.
 **Response**
 
     {
-      "uuid": "5c8cef06-190c-4b07-a0b7-8452f6faff26",
-      "key": "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
-      "taken_at": "2017-10-27 16:05:25",
-      "expires_at": "2017-10-28 16:05:25",
-      "notes": "Notes for this specific archive",
-      "status": "valid",
-      "purge_reason": "",
-      "target_uuid": "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
-      "target_name": "SHIELD",
-      "target_plugin": "fs",
-      "target_endpoint": "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
-      "store_uuid": "828fccae-a11e-41ee-bc13-d33c4dff1241",
-      "store_name": "CloudStor",
-      "store_plugin": "fs",
-      "store_endpoint": "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}",
-      "job": "Hourly",
-      "encryption_type": "aes256-ctr",
-      "tenant_uuid": "5524167e-cf56-4a8f-9580-cfca40949316",
-      "size": 43306681
+      "uuid"         : "5c8cef06-190c-4b07-a0b7-8452f6faff26",
+      "key"          : "2017/10/27/2017-10-27-120512-948428f4-3a83-4b5d-8a41-7d27ca81ce8d",
+      "taken_at"     : "2017-10-27 16:05:25",
+      "expires_at"   : "2017-10-28 16:05:25",
+      "notes"        : "",
+      "compression"  : "bzip2",
+      "encryption_type" : "aes256-ctr",
+      "size"         : 43306681,
+      "status"       : "valid",
+      "purge_reason" : "",
+      "job"          : "Hourly",
+    
+      "tenant_uuid" : "5524167e-cf56-4a8f-9580-cfca40949316",
+    
+      "target_uuid"     : "51d9cced-b11d-4b76-b9f3-fe0be4cd6087",
+      "target_name"     : "SHIELD",
+      "target_plugin"   : "fs",
+      "target_endpoint" : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}",
+    
+      "store_uuid"     : "828fccae-a11e-41ee-bc13-d33c4dff1241",
+      "store_name"     : "CloudStor",
+      "store_plugin"   : "fs",
+      "store_endpoint" : "{\"base_dir\":\"/tmp/shield.testdev.storeNy0fewQ\",\"bsdtar\":\"bsdtar\"}"
     }
 **Access Control**
 

@@ -15,6 +15,7 @@
 #   SHIELD_STORE_PLUGIN       Path to the store plugin to use
 #   SHIELD_STORE_ENDPOINT     The store endpoint config (probably JSON)
 #   SHIELD_RESTORE_KEY        Archive key for 'restore' operations
+#   SHIELD_COMPRESSION        What type of compression to perform
 #
 # Temporary Environment Variables (Unset before call to shield plugin)
 # ---------------------
@@ -105,6 +106,8 @@ if [ -n "$SHIELD_ENCRYPT_IV" ]; then
 	enc_iv="${SHIELD_ENCRYPT_IV}"
 	unset SHIELD_ENCRYPT_IV
 fi
+
+SHIELD_COMPRESSION=${SHIELD_COMPRESSION:-bzip2}
 
 case ${SHIELD_OP} in
 (status)
@@ -210,16 +213,43 @@ exit 0
 	validate TARGET ${SHIELD_TARGET_PLUGIN} "${SHIELD_TARGET_ENDPOINT}"
 	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
 
-	header "Running backup task (using bzip2 compression)"
+	case $SHIELD_COMPRESSION in
+	bzip2) header "Running backup task (using bzip2 compression)" ;;
+	none)  header "Running backup task (without compression)" ;;
+	*)     fail "Unrecognized compression scheme '$SHIELD_COMPRESSION'" ;;
+	esac
 
 	PULSE=$(mktemp -t shield-pipe.XXXXX)
 	trap "rm -f ${PULSE}" QUIT TERM INT
 
 	set -o pipefail
-	#The use of 3<<< shown below is to write the encryption config as json to FD 3 thus allowing us to drop it from the environment
-	#	and prevent further propogation
-	${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | \
-		tee >(tail -c1 >$PULSE) | bzip2 | shield-crypt --encrypt  3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" |  ${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}"
+
+	# The use of 3<<< shown below is to write the encryption
+	# config as JSON to fd3, allowing us to drop it from the
+	# environment and prevent further propogation
+
+	case $SHIELD_COMPRESSION in
+	bzip2)
+		${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | \
+			tee >(tail -c1 >$PULSE) | \
+			bzip2 | \
+			shield-crypt --encrypt  3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" | \
+			${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}" | \
+			shield-report --compression bzip2
+		;;
+
+	none)
+		${SHIELD_TARGET_PLUGIN} backup -e "${SHIELD_TARGET_ENDPOINT}" | \
+			tee >(tail -c1 >$PULSE) | \
+			shield-crypt --encrypt  3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" | \
+			${SHIELD_STORE_PLUGIN} store -e "${SHIELD_STORE_ENDPOINT}" | \
+			shield-report --compression none
+		;;
+
+	*)
+		fail "Unrecognized compression scheme '$SHIELD_COMPRESSION'"
+		;;
+	esac
 
 	if [[ ! -s ${PULSE} ]]; then
 		rm -f ${PULSE}
@@ -243,12 +273,36 @@ exit 0
 	validate TARGET ${SHIELD_TARGET_PLUGIN} "${SHIELD_TARGET_ENDPOINT}"
 	validate STORE  ${SHIELD_STORE_PLUGIN}  "${SHIELD_STORE_ENDPOINT}"
 
-	header "Running restore task (using bzip2 compression)"
+	case $SHIELD_COMPRESSION in
+	bzip2) header "Running restore task (using bzip2 compression)" ;;
+	none)  header "Running restore task (without compression)" ;;
+	*)     fail "Unrecognized compression scheme '$SHIELD_COMPRESSION'" ;;
+	esac
+
 	set -o pipefail
-	#The use of 3<<< shown below is to write the encryption config as json to FD 3 thus allowing us to drop it from the environment
-	#	and prevent further propogation
-	${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}"  | bunzip2 | \
-		${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+
+	# The use of 3<<< shown below is to write the encryption
+	# config as JSON to fd3, allowing us to drop it from the
+	# environment and prevent further propogation
+
+	case $SHIELD_COMPRESSION in
+	bzip2)
+		${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
+			shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}"  | \
+			bunzip2 | \
+			${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+		;;
+
+	none)
+		${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
+			shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}"  | \
+			${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+		;;
+
+	*)
+		fail "Unrecognized compression scheme '$SHIELD_COMPRESSION'"
+		;;
+	esac
 
 	exit 0
 	;;

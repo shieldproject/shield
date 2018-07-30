@@ -2001,7 +2001,7 @@ td span.role {
     font-weight: bold;
 }
 
-#large-checkbox {
+.large-checkbox {
     transform: scale(1.75);
     margin: 14px 20px;
 }
