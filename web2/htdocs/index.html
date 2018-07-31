@@ -1526,9 +1526,11 @@
                     <li class="date">[[ if (task.started_at == "") { ]]
                       <em>scheduled / pending</em>
                     [[ } else { ]]
-                      [[= strftime("%b %d %Y", task.started_at) ]]</li>
+                      [[= strftime("%b %d %Y", task.started_at) ]]
+                    [[ } ]]</li>
+                    [[ if (task.type != "backup") { ]]
+                      <li class="tag">[[= task.type ]]</li>
                     [[ } ]]
-                    [[ if (task.archive) { ]]<li class="tag">[[= task.type ]]</li>[[ } ]]
                     [[ if (task.type == "backup") { ]]
                       [[ if (task.owner == "system") { ]]
                       <li class="desc">[[= maybe(task.archive && task.archive.schedule, 'Scheduled Backup') ]]</li>
