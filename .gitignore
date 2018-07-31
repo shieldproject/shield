@@ -12,6 +12,7 @@
 
 # ignore the plugin
 /azure
+/b2
 /bbr-deployment
 /bbr-director
 /cassandra
