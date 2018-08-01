@@ -6,6 +6,7 @@
 /shield-schema
 /buckler
 /shield-crypt
+/shield-report
 
 # stuff we use in t/*
 /bin/vault
@@ -47,6 +48,10 @@
 
 # ignore tmp stuff from testdev
 /tmp
+
+# ignore travis test bins
+/t/travis-bin
+/vault.zip
 
 # ignore testing files
 cmd/shield-umc/shield-umc

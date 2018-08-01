@@ -126,19 +126,21 @@ var opts struct {
 	Target       struct{} `cli:"target"`
 	DeletTarget  struct{} `cli:"delete-target"`
 	CreateTarget struct {
-		Name    string   `cli:"-n, --name"`
-		Summary string   `cli:"-s, --summary"`
-		Agent   string   `cli:"-a, --agent"`
-		Plugin  string   `cli:"-p, --plugin"`
-		Data    []string `cli:"-d, --data"`
+		Name        string   `cli:"-n, --name"`
+		Summary     string   `cli:"-s, --summary"`
+		Agent       string   `cli:"-a, --agent"`
+		Plugin      string   `cli:"-p, --plugin"`
+		Data        []string `cli:"-d, --data"`
+		Compression string   `cli:"-C, --compression"`
 	} `cli:"create-target"`
 	UpdateTarget struct {
-		Name      string   `cli:"-n, --name"`
-		Summary   string   `cli:"-s, --summary"`
-		Agent     string   `cli:"-a, --agent"`
-		Plugin    string   `cli:"-p, --plugin"`
-		ClearData bool     `cli:"--clear-data"`
-		Data      []string `cli:"-d, --data"`
+		Name        string   `cli:"-n, --name"`
+		Summary     string   `cli:"-s, --summary"`
+		Agent       string   `cli:"-a, --agent"`
+		Plugin      string   `cli:"-p, --plugin"`
+		Compression string   `cli:"-C, --compression"`
+		ClearData   bool     `cli:"--clear-data"`
+		Data        []string `cli:"-d, --data"`
 	} `cli:"update-target"`
 
 	/* }}} */
@@ -1315,12 +1317,17 @@ func main() {
 			}
 		}
 
+		if opts.CreateTarget.Compression == "" {
+			opts.CreateTarget.Compression = "bzip2"
+		}
+
 		t, err := c.CreateTarget(tenant, &shield.Target{
-			Name:    opts.CreateTarget.Name,
-			Summary: opts.CreateTarget.Summary,
-			Agent:   opts.CreateTarget.Agent,
-			Plugin:  opts.CreateTarget.Plugin,
-			Config:  conf,
+			Name:        opts.CreateTarget.Name,
+			Summary:     opts.CreateTarget.Summary,
+			Agent:       opts.CreateTarget.Agent,
+			Plugin:      opts.CreateTarget.Plugin,
+			Compression: opts.CreateTarget.Compression,
+			Config:      conf,
 		})
 		bail(err)
 
@@ -1333,6 +1340,7 @@ func main() {
 		r.Add("UUID", t.UUID)
 		r.Add("Name", t.Name)
 		r.Add("Summary", t.Summary)
+		r.Add("Compression", t.Compression)
 		r.Add("SHIELD Agent", t.Agent)
 		r.Add("Backup Plugin", t.Plugin)
 		r.Output(os.Stdout)
@@ -1365,6 +1373,9 @@ func main() {
 			opts.UpdateTarget.ClearData = true
 			t.Plugin = opts.UpdateTarget.Plugin
 		}
+		if opts.UpdateTarget.Compression != "" {
+			t.Compression = opts.UpdateTarget.Compression
+		}
 
 		if t.Config == nil {
 			t.Config = make(map[string]interface{})
@@ -1389,6 +1400,7 @@ func main() {
 		r.Add("UUID", t.UUID)
 		r.Add("Name", t.Name)
 		r.Add("Summary", t.Summary)
+		r.Add("Compression", t.Compression)
 		r.Add("SHIELD Agent", t.Agent)
 		r.Add("Backup Plugin", t.Plugin)
 		r.Output(os.Stdout)
@@ -2580,9 +2592,9 @@ func main() {
 			)
 		*/
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Key", "Status")
+		tbl := tui.NewTable("UUID", "Key", "Compression", "Status")
 		for _, archive := range archives {
-			tbl.Row(archive, archive.UUID, archive.Key, archive.Status)
+			tbl.Row(archive, archive.UUID, archive.Key, archive.Compression, archive.Status)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2607,6 +2619,7 @@ func main() {
 		r := tui.NewReport()
 		r.Add("UUID", archive.UUID)
 		r.Add("Key", archive.Key)
+		r.Add("Compression", archive.Compression)
 		r.Add("Status", archive.Status)
 		r.Output(os.Stdout)
 

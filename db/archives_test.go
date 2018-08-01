@@ -148,6 +148,7 @@ var _ = Describe("Archive Management", func() {
 					Notes:          "my_notes",
 					Status:         "valid",
 					PurgeReason:    "",
+					Compression:    "none",
 					TargetUUID:     TARGET_UUID,
 					TargetName:     "target_name",
 					TargetPlugin:   "target_plugin",

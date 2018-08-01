@@ -56,11 +56,12 @@ type v2SystemTask struct {
 	Log         string           `json:"log"`
 }
 type v2SystemJob struct {
-	UUID     uuid.UUID `json:"uuid"`
-	Schedule string    `json:"schedule"`
-	From     string    `json:"from"`
-	To       string    `json:"to"`
-	OK       bool      `json:"ok"`
+	UUID        uuid.UUID `json:"uuid"`
+	Schedule    string    `json:"schedule"`
+	Compression string    `json:"compression"`
+	From        string    `json:"from"`
+	To          string    `json:"to"`
+	OK          bool      `json:"ok"`
 
 	Store struct {
 		UUID    uuid.UUID `json:"uuid"`
@@ -83,10 +84,11 @@ type v2SystemJob struct {
 	} `json:"retention"`
 }
 type v2System struct {
-	UUID  uuid.UUID `json:"uuid"`
-	Name  string    `json:"name"`
-	Notes string    `json:"notes"`
-	OK    bool      `json:"ok"`
+	UUID        uuid.UUID `json:"uuid"`
+	Name        string    `json:"name"`
+	Notes       string    `json:"notes"`
+	OK          bool      `json:"ok"`
+	Compression string    `json:"compression"`
 
 	Jobs  []v2SystemJob  `json:"jobs"`
 	Tasks []v2SystemTask `json:"tasks"`
@@ -1558,10 +1560,11 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Plugin  string `json:"plugin"`
-			Agent   string `json:"agent"`
+			Name        string `json:"name"`
+			Summary     string `json:"summary"`
+			Compression string `json:"compression"`
+			Plugin      string `json:"plugin"`
+			Agent       string `json:"agent"`
 
 			Config   map[string]interface{} `json:"config"`
 			endpoint string
@@ -1574,6 +1577,7 @@ func (core *Core) v2API() *route.Router {
 			b, err := json.Marshal(in.Config)
 			if err != nil {
 				r.Fail(route.Oops(err, "Unable to create target"))
+				return
 			}
 			in.endpoint = string(b)
 		} else {
@@ -1583,18 +1587,33 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		if in.Compression == "" {
+			in.Compression = DefaultCompressionType
+		}
+
+		if !ValidCompressionType(in.Compression) {
+			r.Fail(route.Bad(err, "Invalid compression type '%s'", in.Compression))
+			return
+		}
+
 		if r.ParamIs("test", "t") {
 			r.Success("validation suceeded (request made in ?test=t mode)")
 			return
 		}
 
+		if !ValidCompressionType(in.Compression) {
+			r.Fail(route.Bad(err, "Invalid compression type '%s'", in.Compression))
+			return
+		}
+
 		target, err := core.DB.CreateTarget(&db.Target{
-			TenantUUID: uuid.Parse(r.Args[1]),
-			Name:       in.Name,
-			Summary:    in.Summary,
-			Plugin:     in.Plugin,
-			Config:     in.Config,
-			Agent:      in.Agent,
+			TenantUUID:  uuid.Parse(r.Args[1]),
+			Name:        in.Name,
+			Summary:     in.Summary,
+			Plugin:      in.Plugin,
+			Config:      in.Config,
+			Agent:       in.Agent,
+			Compression: in.Compression,
 		})
 		if target == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new data target"))
@@ -1640,11 +1659,12 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		var in struct {
-			Name     string `json:"name"`
-			Summary  string `json:"summary"`
-			Plugin   string `json:"plugin"`
-			Endpoint string `json:"endpoint"`
-			Agent    string `json:"agent"`
+			Name        string `json:"name"`
+			Summary     string `json:"summary"`
+			Compression string `json:"compression"`
+			Plugin      string `json:"plugin"`
+			Endpoint    string `json:"endpoint"`
+			Agent       string `json:"agent"`
 
 			Config map[string]interface{} `json:"config"`
 		}
@@ -1673,6 +1693,13 @@ func (core *Core) v2API() *route.Router {
 		}
 		if in.Agent != "" {
 			target.Agent = in.Agent
+		}
+		if in.Compression != "" {
+			if !ValidCompressionType(in.Compression) {
+				r.Fail(route.Bad(err, "Invalid compression type '%s'", in.Compression))
+				return
+			}
+			target.Compression = in.Compression
 		}
 
 		if err := core.DB.UpdateTarget(target); err != nil {
@@ -3245,6 +3272,7 @@ func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 	dst.Name = target.Name
 	dst.Notes = target.Summary
 	dst.OK = true /* FIXME */
+	dst.Compression = target.Compression
 
 	jobs, err := core.DB.GetAllJobs(
 		&db.JobFilter{
