@@ -25,6 +25,7 @@ type Command struct {
 	EncryptType    string `json:"encrypt_type,omitempty"`
 	EncryptKey     string `json:"encrypt_key,omitempty"`
 	EncryptIV      string `json:"encrypt_iv,omitempty"`
+	Compression    string `json:"compression,omitempty"`
 }
 
 func ParseCommand(b []byte) (*Command, error) {
@@ -80,6 +81,7 @@ func ParseCommand(b []byte) (*Command, error) {
 		if cmd.RestoreKey == "" {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for purge operation)")
 		}
+
 	case "test-store":
 		if cmd.StorePlugin == "" {
 			return nil, fmt.Errorf("missing required 'store_plugin' value in payload")
@@ -153,6 +155,7 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", c.EncryptType),
 		fmt.Sprintf("SHIELD_ENCRYPT_KEY=%s", c.EncryptKey),
 		fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", c.EncryptIV),
+		fmt.Sprintf("SHIELD_COMPRESSION=%s", c.Compression),
 	}
 
 	if log.LogLevel() == syslog.LOG_DEBUG {

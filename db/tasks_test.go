@@ -250,7 +250,7 @@ var _ = Describe("Task Management", func() {
 
 		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Ω(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "SOME-KEY", time.Now(), "aes-256-ctr", 0, task.TenantUUID)
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "SOME-KEY", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(archive_id).ShouldNot(BeNil())
 
@@ -272,7 +272,7 @@ var _ = Describe("Task Management", func() {
 
 		Expect(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Expect(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "", time.Now(), "aes-256-ctr", 0, task.TenantUUID)
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
 		Expect(err).Should(HaveOccurred())
 		Expect(archive_id).Should(BeNil())
 

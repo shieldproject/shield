@@ -8,11 +8,12 @@ import (
 )
 
 type Target struct {
-	UUID    string `json:"uuid,omitempty"`
-	Name    string `json:"name"`
-	Summary string `json:"summary"`
-	Plugin  string `json:"plugin"`
-	Agent   string `json:"agent"`
+	UUID        string `json:"uuid,omitempty"`
+	Name        string `json:"name"`
+	Summary     string `json:"summary"`
+	Plugin      string `json:"plugin"`
+	Agent       string `json:"agent"`
+	Compression string `json:"compression"`
 
 	Config map[string]interface{} `json:"config"`
 }

@@ -26,10 +26,11 @@ type Job struct {
 	FixedKey bool      `json:"fixed_key"`
 
 	Target struct {
-		UUID   uuid.UUID `json:"uuid"`
-		Name   string    `json:"name"`
-		Agent  string    `json:"agent"`
-		Plugin string    `json:"plugin"`
+		UUID        uuid.UUID `json:"uuid"`
+		Name        string    `json:"name"`
+		Agent       string    `json:"agent"`
+		Plugin      string    `json:"plugin"`
+		Compression string    `json:"compression"`
 
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
@@ -131,10 +132,11 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 	         GROUP BY job_uuid
 	        )
 
-	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid, j.fixed_key,
+	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
+	          j.tenant_uuid, j.fixed_key,
 	          r.name, r.summary, r.uuid, r.expiry,
 	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
-	          t.uuid, t.name, t.plugin, t.endpoint, t.agent,
+	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
 	          k.started_at, k.status
 
 	     FROM jobs j
@@ -171,11 +173,12 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			status                              sql.NullString
 		)
 		if err = r.Scan(
-			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant, &j.FixedKey,
+			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
+			&tenant, &j.FixedKey,
 			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
 			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
-			&j.Agent, &last, &status); err != nil {
+			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
 			return l, err
 		}
 		j.UUID = this.UUID
@@ -198,10 +201,11 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	r, err := db.Query(`
-		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule, j.tenant_uuid, j.fixed_key,
+		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
+		       j.tenant_uuid, j.fixed_key,
 		       r.name, r.summary, r.uuid, r.expiry,
 		       s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
-		       t.uuid, t.name, t.plugin, t.endpoint, t.agent
+		       t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression
 
 			FROM jobs j
 				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
@@ -221,11 +225,12 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	j := &Job{}
 	var this, policy, store, target, tenant NullUUID
 	if err = r.Scan(
-		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule, &tenant, &j.FixedKey,
+		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
+		&tenant, &j.FixedKey,
 		&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
 		&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 		&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
-		&j.Agent); err != nil {
+		&j.Agent, &j.Target.Compression); err != nil {
 		return nil, err
 	}
 	j.UUID = this.UUID
@@ -286,8 +291,8 @@ func (db *DB) UpdateJob(job *Job) error {
 	          schedule       = ?,
 	          target_uuid    = ?,
 	          store_uuid     = ?,
-			  retention_uuid = ?,
-			  fixed_key = ?
+	          retention_uuid = ?,
+	          fixed_key      = ?
 	    WHERE uuid = ?`,
 		job.Name, job.Summary, job.Schedule,
 		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),
