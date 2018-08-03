@@ -2125,6 +2125,8 @@ $(function () {
     $('#viewport').html(template('layout'));
   }
 
+  viewSwitcher();
+
   /* ... watch the document hash for changes {{{ */
   $(window).on('hashchange', function (event) {
     dispatch(document.location.hash);

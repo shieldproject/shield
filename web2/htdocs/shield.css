@@ -995,6 +995,46 @@ footer p {
   margin: 0.5em;
 }
 
+.lean img { width: 16px; }
+.lean .name {
+  font-size: 18px;
+  font-weight: bold;
+}
+.lean .fail .name { color: #FF1D25; }
+.lean .schedule,
+.lean .notes,
+.lean .retain {
+  line-height: 1.1em;
+}
+.lean .notes {
+  width: 40%;
+}
+.lean .notes .no-data {
+  padding: 0px;
+  font-size: 100%;
+}
+.lean tbody tr:nth-child(2n+1) {
+  background-color: #F2F2F2;
+}
+
+h2 ul.switcher {
+  float: right;
+}
+h2 ul.switcher li {
+  float: right;
+  padding: 4px;
+}
+h2 ul.switcher li img {
+  width: 20px;
+  opacity: 0.5;
+}
+h2 ul.switcher li:hover img {
+  opacity: 1.0;
+}
+
+.switch-me.card-view .lean,
+.switch-me.lean-view .cards { display: none; }
+
 .gutter > h2 { font-size: 28px; font-weight: bold; clear: both; }
 .gutter > h3 { font-size: 22px; font-weight: bold; }
 .gutter > h4 { font-size: 18px; font-weight: bold; }
