@@ -1271,5 +1271,24 @@
       console.dir(JSON.parse(arguments[0].message.data));
     };
     return socket;
-  }
+  };
+
+  /***************************************************
+     $(...).serializePluginObject() - Serialize Data from a Plugin Form
+
+   ***************************************************/
+  exported.viewSwitcher = function() {
+   $(document.body).on('click', '.switch-me .switcher a[href^="switch:"]', function (event) {
+      event.preventDefault();
+      var view  = $(event.target).closest('a[href^="switch:"]').attr('href').replace(/^switch:/, '');
+      var swtch = $(event.target).closest('.switch-me');
+      $.each(swtch[0].className.split(/\s+/), function (i, cls) {
+        if (cls.match(/-view$/)) {
+          swtch.removeClass(cls);
+        }
+      });
+      localStorage.setItem('view-preference', view);
+      swtch.addClass(view);
+    });
+  };
 })(window, document);
