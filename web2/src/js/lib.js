@@ -1287,6 +1287,7 @@
           swtch.removeClass(cls);
         }
       });
+      localStorage.setItem('view-preference', view);
       swtch.addClass(view);
     });
   };

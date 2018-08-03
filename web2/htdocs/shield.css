@@ -1035,6 +1035,9 @@ h2 ul.switcher li:hover img {
 .switch-me.card-view .lean,
 .switch-me.lean-view .cards { display: none; }
 
+.switch-me.card-view a[href^="switch:card-view"] img { opacity: 0.8; }
+.switch-me.lean-view a[href^="switch:lean-view"] img { opacity: 0.95; }
+
 .gutter > h2 { font-size: 28px; font-weight: bold; clear: both; }
 .gutter > h3 { font-size: 22px; font-weight: bold; }
 .gutter > h4 { font-size: 18px; font-weight: bold; }

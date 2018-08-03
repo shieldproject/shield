@@ -1451,7 +1451,8 @@
 
         Renders all targets visible to / manageable by the current user.
       ]]
-      <div class="gutter blk switch-me card-view">
+      [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
+      <div class="gutter blk switch-me [[= view ]]">
         [[ if (_.systems.length == 0) { ]]
           <h2>Protected Data Systems</h2>
           <div class="no-data">You have not yet configured any data systems to protect.</div>
@@ -1662,7 +1663,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
         Renders the currently defined (visible) storage endpoints,
         and in some cases allows for user-management of their configurations.
       ]]
-          <div class="gutter blk switch-me card-view">
+      [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
+          <div class="gutter blk switch-me [[= view ]]">
             [[ if ((_.admin  && $global.auth.is.system.engineer)
                 || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
             <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/new">Configure a New Cloud Storage System&raquo;</a>

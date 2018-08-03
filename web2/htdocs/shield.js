@@ -1291,6 +1291,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
           swtch.removeClass(cls);
         }
       });
+      localStorage.setItem('view-preference', view);
       swtch.addClass(view);
     });
   };
