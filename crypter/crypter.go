@@ -3,9 +3,7 @@ package crypter
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"fmt"
-	"io"
 	"strings"
 
 	"golang.org/x/crypto/twofish"
@@ -50,13 +48,4 @@ func Stream(enctype string, key, iv []byte) (cipher.Stream, cipher.Stream, error
 	default:
 		return nil, nil, fmt.Errorf("Invalid encryption mode '%s' specified", cipherName)
 	}
-}
-
-func Initialize() (string, string, error) {
-	//Generate the random IV
-	iv := make([]byte, twofish.BlockSize)
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", "", err
-	}
-	return "", "", nil
 }
