@@ -2153,7 +2153,13 @@ form.scheduling .subform {
 }
 
 redacted {
-  background-color: black;
-  color: black;
-  filter: blur(6px);
+  background-color: transparent;
+  color: inherit;
+  filter: blur(10px);
+	font-weight: 900;
+}
+
+redacted:hover {
+	filter: none;
+	font-weight: inherit
 }

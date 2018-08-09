@@ -1632,9 +1632,6 @@
 <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
 <button class="close" rel="close:[[= _.task.uuid ]]">X</button>
 <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
-[[ if (($global.auth.is.system.engineer)
-                || ($global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]<button class="unredact">Show Credentials</button> [[ } ]]
-
 <form class="annotate">
 <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
 [[ if (_.task.status == "failed") { ]]
