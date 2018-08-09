@@ -669,11 +669,11 @@ func (core *Core) worker(id int) {
 					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
 					continue
 				}
-				log.Infof("marking store %s [%s] as unhealthy", store.Name, store.Healthy)
+				log.Infof("marking store %s [%s] as unhealthy", store.Name, store.UUID)
 				store.Healthy = false
 				err = core.DB.UpdateStore(store)
 				if err != nil {
-					log.Errorf("error updating store: %s", err)
+					log.Errorf("error updating store %s [%s]: %s", store.Name, store.UUID, err)
 				}
 			}
 			continue
