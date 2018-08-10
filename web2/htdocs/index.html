@@ -1630,7 +1630,7 @@
         also display a big RESTORE button in the task output.
       ]]
 <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
-<button class="close" rel="close:[[= _.task.uuid ]]">X</button>
+<button class="close" rel="close">X</button>
 <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
 <form class="annotate">
 <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />

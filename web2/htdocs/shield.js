@@ -3608,7 +3608,6 @@ $(function () {
   /* global: show a task log in the next row down {{{ */
   $(document.body).on('click', 'a[href^="task:"]', function (event) {
     event.preventDefault();
-    console.log(event.target);
     var uuid  = $(event.target).closest('a[href^="task:"]').attr('href').replace(/^task:/, '');
     var $ev   = $(event.target).closest('.event');
     var $task = $ev.find('.task');
@@ -3631,7 +3630,7 @@ $(function () {
   });
   /* }}} */
   /* global: close the expanded log, in a task log {{{ */
-  $(document.body).on('click', '.task button[rel^="close:"]', function (event) {
+  $(document.body).on('click', '.task button[rel="close"]', function (event) {
     $ev = $(event.target).closest('.event');
     $ev.find('li.expand').show();
     $ev.find('.task').hide();
