@@ -1359,6 +1359,7 @@ pre code button {
 }
 pre code button.restore:hover { background-color: #8CC63F; }
 pre code button.annotate:hover { background-color: purple; }
+pre code button.close:hover { background-color: red; }
 
 pre code div {
   white-space: normal;
@@ -2152,7 +2153,13 @@ form.scheduling .subform {
 }
 
 redacted {
-  background-color: black;
-  color: black;
-  filter: blur(6px);
+  background-color: transparent;
+  color: inherit;
+  filter: blur(10px);
+	font-weight: 900;
+}
+
+redacted:hover {
+	filter: none;
+	font-weight: inherit
 }

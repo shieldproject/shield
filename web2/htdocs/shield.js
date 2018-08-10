@@ -3605,17 +3605,12 @@ $(function () {
   });
   /* }}} */
 
-  /* global: show a task in the next row down {{{ */
+  /* global: show a task log in the next row down {{{ */
   $(document.body).on('click', 'a[href^="task:"]', function (event) {
     event.preventDefault();
     var uuid  = $(event.target).closest('a[href^="task:"]').attr('href').replace(/^task:/, '');
     var $ev   = $(event.target).closest('.event');
     var $task = $ev.find('.task');
-
-    if ($task.is(':visible')) {
-      $task.hide();
-      return;
-    }
 
     $task = $task.show()
                 .html(template('loading'));
@@ -3629,10 +3624,17 @@ $(function () {
           task: data,
           restorable: data.type == "backup" && data.archive_uuid != "" && data.status == "done",
         }));
+        $(event.target).closest('li').hide();
       }
     });
   });
   /* }}} */
+  /* global: close the expanded log, in a task log {{{ */
+  $(document.body).on('click', '.task button[rel="close"]', function (event) {
+    $ev = $(event.target).closest('.event');
+    $ev.find('li.expand').show();
+    $ev.find('.task').hide();
+  });
   /* global: show an annotation form, in a task log {{{ */
   $(document.body).on('click', '.task button[rel^="annotate:"]', function (event) {
     $(event.target).closest('.task').find('form.annotate').toggle();
@@ -3731,21 +3733,4 @@ $(function () {
     });
   });
 
-  /* global: handle "restore:archive-uuid" buttons {{{ */
-  $(document.body).on('click', '.task .unredact', function (event) {
-    $(event.target).addClass('redact').removeClass('unredact')
-    $(event.target).text("Hide Credentials")
-    $(event.target).closest('.task').find( "redacted" ).css({'background-color': 'unset',
-      'color': 'unset',
-      'filter': 'unset'})
-  });
-
-  $(document.body).on('click', '.task .redact', function (event) {
-    $(event.target).addClass('unredact').removeClass('redact')
-    $(event.target).text("Show Credentials")
-    $(event.target).closest('.task').find( "redacted" ).css({'background-color': 'black',
-      'color': 'black',
-      'filter': 'blur(6px)'})
-  });
-  /* }}} */
 });
