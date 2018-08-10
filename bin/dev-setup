@@ -38,7 +38,7 @@ fi
 
 echo ; echo "Initializing this dev SHIELD core"
 shield api localdev http://localhost:8180
-SHIELD_CORE_MASTER="master-password-yo" shield initialize || true
+SHIELD_CORE_MASTER="master-password-yo" shield initialize >.init || true
 echo ; echo "Logging in as the failsafe user"
 shield login --username failsafe --password sekrit 2>&1 | indent2
 shield id 2>&1 | indent2
@@ -72,13 +72,14 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
             --summary 'Global Storage, for use by any and all' \
             --agent   "${SHIELD_AGENT_ADDR}" \
             --plugin  webdav \
-            --data    "url=http://localhost:${WEBDAV_PORT}"
+            --data    "url=http://localhost:${WEBDAV_PORT}" \
     2>&1 | indent2
 
   echo ; echo "  - creating Templated retention policy template"
   shield create-policy-template \
             --name    Templated \
-            --days    73
+            --days    73 \
+    2>&1 | indent2
 
   echo ; echo "Setting up 'Acme, Inc.' tenant"
   shield create-tenant \
@@ -141,9 +142,8 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name    S3 \
           --summary 'A fake S3 store for pretending and web UI development.' \
           --agent   "${SHIELD_AGENT_ADDR}" \
-          --plugin  fs \
-          --data    "base_dir=${storedir}" \
-          --data    bsdtar=bsdtar \
+          --plugin  webdav \
+          --data    "url=http://localhost:${WEBDAV_PORT}/s3" \
     2>&1 | indent4
 
   echo ; echo "  - creating 'Scality (On-Prem)' cloud storage system"
@@ -151,9 +151,8 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --name    'Scality (On-Prem)' \
           --summary 'A fake Scality (On-Premise) store for pretending and web UI development.' \
           --agent   "${SHIELD_AGENT_ADDR}" \
-          --plugin  fs \
-          --data    "base_dir=${storedir}" \
-          --data    bsdtar=bsdtar \
+          --plugin  webdav \
+          --data    "url=http://localhost:${WEBDAV_PORT}/s3"
     2>&1 | indent4
 
   echo ; echo "  - creating Short-Term archive retention policy"
