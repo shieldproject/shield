@@ -60,6 +60,9 @@
 			"revisionTime": "2017-09-08T23:15:55Z"
 		},
 		{
+			"path": "github.com/kurin/blazer",
+			"revision": "caf65aa76491dc533bac68ad3243ce72fa4e0a0a"
+		{
 			"path": "github.com/fsouza/go-dockerclient",
 			"revision": "d750ee8aff39bca4ccf0b362db4f04510145d678"
 		},
