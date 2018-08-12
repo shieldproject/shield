@@ -25,8 +25,8 @@ func validBucketName(v string) bool {
 }
 
 func main() {
-	p := B2Plugin{
-		Name:    "Backblaze B2 Storage Plugin",
+	p := BackblazePlugin{
+		Name:    "Backblaze Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -83,9 +83,9 @@ func main() {
 	plugin.Run(p)
 }
 
-type B2Plugin plugin.PluginInfo
+type BackblazePlugin plugin.PluginInfo
 
-type b2Endpoint struct {
+type backblazeEndpoint struct {
 	AccessKey  string
 	SecretKey  string
 	PathPrefix string
@@ -97,11 +97,11 @@ type instanceProfileCredentials struct {
 	Secret string `json:"SecretAccessKey"`
 }
 
-func (p B2Plugin) Meta() plugin.PluginInfo {
+func (p BackblazePlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func (p B2Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
+func (p BackblazePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
 		err  error
@@ -154,15 +154,15 @@ func (p B2Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p B2Plugin) Backup(endpoint plugin.ShieldEndpoint) error {
+func (p BackblazePlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p B2Plugin) Restore(endpoint plugin.ShieldEndpoint) error {
+func (p BackblazePlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p B2Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p BackblazePlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	c, err := getB2ConnInfo(endpoint)
 	if err != nil {
 		return "", 0, err
@@ -200,7 +200,7 @@ func (p B2Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return path, size, nil
 }
 
-func (p B2Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p BackblazePlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	e, err := getB2ConnInfo(endpoint)
 	if err != nil {
 		return err
@@ -226,7 +226,7 @@ func (p B2Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	return err
 }
 
-func (p B2Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
+func (p BackblazePlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	e, err := getB2ConnInfo(endpoint)
 	if err != nil {
 		return err
@@ -246,7 +246,7 @@ func (p B2Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	return obj.Delete(ctx)
 }
 
-func getB2ConnInfo(e plugin.ShieldEndpoint) (b2Endpoint, error) {
+func getB2ConnInfo(e plugin.ShieldEndpoint) (backblazeEndpoint, error) {
 	var (
 		key    string
 		secret string
@@ -255,26 +255,26 @@ func getB2ConnInfo(e plugin.ShieldEndpoint) (b2Endpoint, error) {
 
 	key, err = e.StringValue("access_key_id")
 	if err != nil {
-		return b2Endpoint{}, err
+		return backblazeEndpoint{}, err
 	}
 
 	secret, err = e.StringValue("secret_access_key")
 	if err != nil {
-		return b2Endpoint{}, err
+		return backblazeEndpoint{}, err
 	}
 
 	bucket, err := e.StringValue("bucket")
 	if err != nil {
-		return b2Endpoint{}, err
+		return backblazeEndpoint{}, err
 	}
 
 	prefix, err := e.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		return b2Endpoint{}, err
+		return backblazeEndpoint{}, err
 	}
 	prefix = strings.TrimLeft(prefix, "/")
 
-	return b2Endpoint{
+	return backblazeEndpoint{
 		AccessKey:  key,
 		SecretKey:  secret,
 		PathPrefix: prefix,
@@ -282,7 +282,7 @@ func getB2ConnInfo(e plugin.ShieldEndpoint) (b2Endpoint, error) {
 	}, nil
 }
 
-func (e b2Endpoint) genBackupPath() string {
+func (e backblazeEndpoint) genBackupPath() string {
 	t := time.Now()
 	year, mon, day := t.Date()
 	hour, min, sec := t.Clock()
@@ -293,7 +293,7 @@ func (e b2Endpoint) genBackupPath() string {
 	return path
 }
 
-func (e b2Endpoint) Connect() (*b2.Client, error) {
+func (e backblazeEndpoint) Connect() (*b2.Client, error) {
 	ctx := context.Background()
 	return b2.NewClient(ctx, e.AccessKey, e.SecretKey)
 }
