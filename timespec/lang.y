@@ -16,7 +16,7 @@ import (
 
 %type  <time>   time_in_MM
 %type  <time>   time_in_HHMM
-%type  <numval> month_day minutes
+%type  <numval> month_day nth_occurance_of minutes
 %type  <wday>   day_name
 %type  <spec>   spec hourly_spec daily_spec weekly_spec monthly_spec
 %type  <truth>  am_or_pm
@@ -117,12 +117,15 @@ monthly_spec : MONTHLY AT time_in_HHMM ON month_day { $$ = mday($3, $5) }
              | MONTHLY    time_in_HHMM ON month_day { $$ = mday($2, $4) }
              | MONTHLY AT time_in_HHMM    month_day { $$ = mday($3, $4) }
              | MONTHLY    time_in_HHMM    month_day { $$ = mday($2, $3) }
-             | ORDINAL day_name AT time_in_HHMM     { $$ = mweek($4, $2, $1) }
-             | ORDINAL day_name    time_in_HHMM     { $$ = mweek($3, $2, $1) }
+             | nth_occurance_of day_name AT time_in_HHMM     { $$ = mweek($4, $2, $1) }
+             | nth_occurance_of day_name    time_in_HHMM     { $$ = mweek($3, $2, $1) }
              ;
 
-month_day: ORDINAL
-         | NUMBER
-         ;
+month_day : ORDINAL
+          | NUMBER
+          ;
 
+nth_occurance_of : ORDINAL
+                 | NUMBER
+                 ;
 %%

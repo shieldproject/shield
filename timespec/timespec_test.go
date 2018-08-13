@@ -786,9 +786,11 @@ var _ = Describe("Timespec", func() {
 				specOK("2nd tuesday at 23:15", 2, time.Tuesday, 23, 15)
 				specOK("2rd tuesday at 23:15", 2, time.Tuesday, 23, 15)
 				specOK("2th tuesday at 23:15", 2, time.Tuesday, 23, 15)
+				specOK("2 tuesday at 23:15", 2, time.Tuesday, 23, 15)
 
 				specOK("4th fridays at 8am", 4, time.Friday, 8, 00)
 				specOK("4th fridays 8am", 4, time.Friday, 8, 00)
+				specOK("4 fridays 8am", 4, time.Friday, 8, 00)
 			})
 		})
 
@@ -809,6 +811,7 @@ var _ = Describe("Timespec", func() {
 				specOK("monthly 11:01pm 19st", 19, 23, 01)
 				specOK("monthly at 11:01pm 19st", 19, 23, 01)
 				specOK("monthly 11:01pm on 19st", 19, 23, 01)
+				specOK("monthly 11:01pm on 19", 19, 23, 01)
 			})
 		})
 	})
