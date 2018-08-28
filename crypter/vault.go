@@ -503,14 +503,19 @@ func (vault *Vault) FixedKeygen() (string, error) {
 		return "", err
 	}
 
-	generatedMaterial := pbkdf2.Key([]byte(fixedKey[32:]), []byte(fixedKey[:32]), 4096, 48, sha256.New)
-
+	key, iv := vault.DeriveKeyAndIVFromFixedKey(fixedKey)
 	err = vault.Put("secret/archives/fixed_key", map[string]interface{}{
-		"key":  vault.ASCIIHexEncode(hex.EncodeToString(generatedMaterial[:32]), 4),
-		"iv":   vault.ASCIIHexEncode(hex.EncodeToString(generatedMaterial[32:]), 4),
+		"key":  key,
+		"iv":   iv,
 		"type": "aes256-ctr",
 		"uuid": "fixed-key",
 	})
 
 	return fixedKey, err
+}
+
+func (vault *Vault) DeriveKeyAndIVFromFixedKey(fixed string) (string, string) {
+	derived := pbkdf2.Key([]byte(fixed[32:]), []byte(fixed[:32]), 4096, 48, sha256.New)
+	return vault.ASCIIHexEncode(hex.EncodeToString(derived[:32]), 4),
+	       vault.ASCIIHexEncode(hex.EncodeToString(derived[32:]), 4)
 }

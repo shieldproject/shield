@@ -2703,6 +2703,8 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
+		key, iv := core.vault.DeriveKeyAndIVFromFixedKey(r.Req.FormValue("fixedkey"))
+
 		/* out-of-band task run to restore SHIELD.*/
 		err = core.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
 			Op:             db.ShieldRestoreOperation,
@@ -2712,8 +2714,8 @@ func (core *Core) v2API() *route.Router {
 			StoreEndpoint:  fmt.Sprintf("{\"base_dir\": \"%s\", \"bsdtar\": \"bsdtar\"}", backupPath),
 			RestoreKey:     backupName,
 			EncryptType:    "aes256-ctr",
-			EncryptKey:     core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[:32], 4),
-			EncryptIV:      core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[32:], 4),
+			EncryptKey:     key,
+			EncryptIV:      iv,
 		})
 
 		/* if task fails, delete datadir and crash for monit restart; try again */
@@ -3264,6 +3266,7 @@ func (core *Core) v2API() *route.Router {
 	if core.debug {
 		core.dispatchDebug(r)
 	}
+
 	return r
 }
 
