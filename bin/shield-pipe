@@ -95,12 +95,12 @@ trap 'exiting $?' EXIT
 if [ -n "$SHIELD_ENCRYPT_KEY" ]; then
 	enc_key="${SHIELD_ENCRYPT_KEY}"
 	unset SHIELD_ENCRYPT_KEY
-fi  
+fi
 
 if [ -n "$SHIELD_ENCRYPT_TYPE" ]; then
 	enc_type="${SHIELD_ENCRYPT_TYPE}"
 	unset SHIELD_ENCRYPT_TYPE
-fi  
+fi
 
 if [ -n "$SHIELD_ENCRYPT_IV" ]; then
 	enc_iv="${SHIELD_ENCRYPT_IV}"
@@ -285,6 +285,20 @@ exit 0
 		exit 145
 		;;
 	esac
+
+    # Based on the magic number of the file tries to determine if the archive is
+    # encrypted or not if magic number == BZh (bzip) file is not encrypted and
+    # is not encrypted and will only be decompressed
+    # this helps to have a new core v8 capable of restoring previous backups
+    # made with agents < v8
+	BZh=$(${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | head -c3)
+	if [ $BZh = "BZh" ]; then
+		say "Archive not encrypted"
+		${SHIELD_STORE_PLUGIN} retrieve -k "${SHIELD_RESTORE_KEY}" -e "${SHIELD_STORE_ENDPOINT}" | \
+			bunzip2 | \
+			${SHIELD_TARGET_PLUGIN} restore -e "${SHIELD_TARGET_ENDPOINT}"
+		exit 0
+	fi
 
 	set -o pipefail
 
