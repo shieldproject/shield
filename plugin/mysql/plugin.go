@@ -272,7 +272,7 @@ func connectionString(info *MySQLConnectionInfo, backup bool) string {
 			db = "--all-databases"
 		}
 	} else {
-		db = ""
+		db = info.Database
 	}
 	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
 }
