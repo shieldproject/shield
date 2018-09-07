@@ -1,33 +1,44 @@
 ---
 meta:
-  name: shield
-  target: sw
+  name:   shield
+  target: shield@pipes
+  url:    https://pipes.starkandwayne.com
+
   initial_version: 0.6.4
-  url:     https://ci.starkandwayne.com
 
   go:
-    version: "1.9"
-    binary: shield
+    version:    "1.9"
+    binary:     shield
     cmd_module: ./cmd/shield
 
   aws:
-    access_key: (( vault "secret/aws/cfcommunity:access" ))
-    secret_key: (( vault "secret/aws/cfcommunity:secret" ))
+    access_key: (( vault "secret/pipelines/aws/cf-community:access" ))
+    secret_key: (( vault "secret/pipelines/aws/cf-community:secret" ))
 
-  slack:
-    channel: "#shield"
-    webhook: (( vault "secret/pipelines/shield/slack:webhook" ))
+  git:
+    name: Stark & Wayne CI Bot
+    email: ci@starkandwayne.com
 
   github:
     owner: starkandwayne
     repo: shield
-    access_token: (( vault "secret/pipelines/shield/github:token" ))
-    private_key: (( vault "secret/pipelines/shield/github:private" ))
+    private_key:  (( vault "secret/pipelines/github/starkandwayne/ci-bot:private" ))
+    access_token: (( vault "secret/pipelines/github/starkandwayne/ci-bot:access_token" ))
 
   bosh-lite:
-    target:   https://10.58.111.44:25555
+    target:   https://10.200.131.9:25555
     username: admin
-    password: admin
+    password: (( vault "secret/thunder/dome/bosh/users/admin:password" ))
+    cacert:   (( vault "secret/thunder/dome/bosh/ssl/ca:certificate" ))
+
+  aws:
+    access_key: (( vault "secret/pipelines/aws/cf-community:access" ))
+    secret_key: (( vault "secret/pipelines/aws/cf-community:secret" ))
+
+  shout:
+    url:      http://10.200.131.1:7109
+    username: ops
+    password: (( vault "secret/buffalo/lab/concourse/shout/ops:password" ))
 
 #################################################################################
 
@@ -51,7 +62,7 @@ jobs:
     plan:
       - do:
         - aggregate:
-          - { get: git,     trigger: true, passed: [test] }
+          - { get: git,     trigger: true, passed: [testflight] }
           - { get: phalanx, trigger: true }
           - { get: version }
         - task: phalanx
@@ -81,13 +92,20 @@ jobs:
               BOSH_LITE_DEPLOYMENT: shield-phalanx-tests
               AWS_ACCESS_KEY:       (( vault "secret/aws/cfcommunity:access" ))
               AWS_SECRET_KEY:       (( vault "secret/aws/cfcommunity:secret" ))
+        on_success:
+          put: notify
+          params:
+            topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+            message: Phalanx tests succeeded.
+            ok:      yes
+            link:    (( grab meta.shout.links.build ))
         on_failure:
           put: notify
           params:
-            channel:  (( grab meta.slack.channel ))
-            username: (( grab meta.slack.username ))
-            icon_url: (( grab meta.slack.icon ))
-            text:    '(( concat meta.slack.fail_url " " meta.pipeline ": Phalanx tests failed" ))'
+            topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+            message: Phalanx tests failed.  Latest master of SHIELD is not deployable.
+            ok:      no
+            link:    (( grab meta.shout.links.build ))
 
   - name: rc
     plan:

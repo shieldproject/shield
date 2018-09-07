@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #
 # ci/scripts/shipit
 #
@@ -7,22 +6,48 @@
 # and managing release notes for a software pipeline
 #
 # author:  James Hunt <james@niftylogic.com>
-# created: 2016-03-30
 
 set -eu
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [[ -z ${VERSION_FROM} ]]; then
-  echo >&2 "VERSION_FROM environment variable not set, or empty.  Did you misconfigure Concourse?"
-  exit 2
-fi
+header() {
+  echo
+  echo "###############################################"
+  echo
+  echo $*
+  echo
+}
+
+######
+######
+######
+header "Checking the Concourse Pipeline Environment"
+envok=0
+checkenv() {
+  local name=$1
+  local val=$2
+
+  if [[ -z "$val" ]]; then
+    echo >&2 "The $name variable must be set."
+    envok=1
+  fi
+}
+checkenv GIT_NAME "${GIT_NAME:-}"
+checkenv GIT_EMAIL "${GIT_EMAIL:-}"
+checkenv VERSION_FROM "${VERSION_FROM:-}"
 if [[ ! -f ${VERSION_FROM} ]]; then
-  echo >&2 "Version file (${VERSION_FROM}) not found.  Did you misconfigure Concourse?"
+  echo >&2 "Version file (${VERSION_FROM}) not found."
+  envok=1
   exit 2
 fi
 VERSION=$(cat ${VERSION_FROM})
 if [[ -z ${VERSION} ]]; then
-  echo >&2 "Version file (${VERSION_FROM}) was empty.  Did you misconfigure Concourse?"
-  exit 2
+  echo >&2 "Version file (${VERSION_FROM}) was empty."
+  envok=1
+fi
+if [[ $envok != 0 ]]; then
+  echo >&2 "Is your Concourse Pipeline misconfigured?"
+  exit 1
 fi
 
 if [[ ! -f ${REPO_ROOT}/ci/release_notes.md ]]; then
@@ -30,61 +55,68 @@ if [[ ! -f ${REPO_ROOT}/ci/release_notes.md ]]; then
   exit 1
 fi
 
-###############################################################
 
-#?#ORIGIN=$(pwd)
+######
+######
+######
+header "Setting up GOPATH..."
+go version; echo; echo
 TARGETS=${TARGETS:-linux/amd64 darwin/amd64}
-ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 
 pushd $REPO_ROOT
 newgopath=${ROOT%%/gopath/*}/gopath
 if [[ -d ${newgopath} ]]; then
-	if [[ -z ${GOPATH} ]]; then
-		GOPATH="${newgopath}"
-	else
-		GOPATH="${newgopath}:${GOPATH}"
-	fi
-	PATH="${PATH}:${newgopath}/bin"
+  if [[ -z ${GOPATH} ]]; then
+    GOPATH="${newgopath}"
+  else
+    GOPATH="${newgopath}:${GOPATH}"
+  fi
+  PATH="${PATH}:${newgopath}/bin"
 fi
 echo ">> Using GOPATH ${GOPATH}"
 go get github.com/mitchellh/gox
 popd
 
 if [[ -n ${STATIC_BINARY} && ${STATIC_BINARY} != "false" ]]; then
-	export CGO_ENABLED=0
+  export CGO_ENABLED=0
 fi
 
+######
+######
+######
+header "Building the software"
 pushd $REPO_ROOT
 mkdir artifacts
-gox -osarch="${TARGETS}" --output="artifacts/${BINARY}-{{.OS}}-{{.Arch}}" -ldflags="-X main.Version=${VERSION}" ${CMD_PKG:-./...}
+gox -osarch="${TARGETS}" --output="artifacts/${BINARY}-{{.OS}}-{{.Arch}}" -ldflags="-X main.Version=${VERSION}" ./...
 go build -o "${BINARY}" -ldflags="-X main.Version=${VERSION}" ${CMD_PKG:-.}
 ./${BINARY} -v
-
-# SHIELD-specific packaging requirements
-if [[ -f Makefile ]]; then
-	export VERSION TARGETS
-	make release
-fi
-# </customization>
-
 popd
 
+
+######
+######
+######
+header "Preparing the release assets"
 echo "v${VERSION}"                         > ${RELEASE_ROOT}/tag
 echo "${RELEASE_NAME} v${VERSION}"         > ${RELEASE_ROOT}/name
 mv ${REPO_ROOT}/ci/release_notes.md          ${RELEASE_ROOT}/notes.md
 mv ${REPO_ROOT}/artifacts                    ${RELEASE_ROOT}/artifacts
 
 cat > ${RELEASE_ROOT}/notification <<EOF
-<!here> New ${RELEASE_NAME} v${VERSION} released!
+New ${RELEASE_NAME} v${VERSION} released!
 EOF
 
 
-# GIT!
+######
+######
+######
+header "Pushing changes to git"
 if [[ -z $(git config --global user.email) ]]; then
-  git config --global user.email "ci@starkandwayne.com"
+  git config --global user.email "${GIT_EMAIL}"
 fi
 if [[ -z $(git config --global user.name) ]]; then
-  git config --global user.name "CI Bot"
+  git config --global user.name "${GIT_NAME}"
 fi
 
 (cd ${REPO_ROOT}
@@ -95,3 +127,9 @@ fi
 
 # so that future steps in the pipeline can push our changes
 cp -a ${REPO_ROOT} ${REPO_OUT}/git
+
+echo
+echo
+echo
+echo "SUCCESS"
+exit 0
