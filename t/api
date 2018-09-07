@@ -53,7 +53,7 @@ spin_vault() {
 storage "inmem" {}
 disable_mlock = true
 listener "tcp" {
-  address = "127.0.0.1:8200"
+  address = "127.0.0.1:8219"
   tls_disable = true
 }
 EOF
@@ -77,7 +77,7 @@ private_key:     ${WORKDIR}/config/shieldd_key
 workers:       3
 max_timeout:   10
 debug:         true
-web_root: ./webui
+web_root: ./web2/htdocs
 auth:
   - identifier: public-github
     backend:    github
@@ -116,13 +116,13 @@ EOF
       if [[ $n -eq 0 ]]; then
         echo >&2 "SHIELD core did not spin up within 60s; aborting"
         echo >&2 "---[ vault log ]-------------------------------------------"
-        cat  >&2 ${WORKDIR}/vault.log
+        cat  >&2 ${WORKDIR}/vault.log || true
         echo >&2
         echo >&2 "---[ agent log ]-------------------------------------------"
-        cat  >&2 ${WORKDIR}/agent.log
+        cat  >&2 ${WORKDIR}/agent.log || true
         echo >&2
         echo >&2 "---[ shieldd log ]-----------------------------------------"
-        cat  >&2 ${WORKDIR}/core.log
+        cat  >&2 ${WORKDIR}/core.log || true
         echo >&2 "-----------------------------------------------------------"
         echo >&2
         exit 4;

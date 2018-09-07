@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"gopkg.in/yaml.v2"
 )
@@ -84,25 +85,45 @@ func ReadConfig(file string) (Config, error) {
 	if config.FastLoop <= 0 {
 		return config, fmt.Errorf("fast_loop value '%d' is invalid (must be greater than zero)", config.FastLoop)
 	}
+
 	if config.SlowLoop <= 0 {
 		return config, fmt.Errorf("slow_loop value '%d' is invalid (must be greater than zero)", config.SlowLoop)
 	}
+
 	if config.Timeout <= 0 {
 		return config, fmt.Errorf("timeout value '%d' is invalid (must be greater than zero)", config.Timeout)
 	}
+
 	if config.Workers <= 0 {
 		return config, fmt.Errorf("number of workers '%d' is invalid (must be greater than zero)", config.Workers)
 	}
+
 	if config.SessionTimeout <= 0 {
 		return config, fmt.Errorf("session timeout of '%d' hours is invalid (must be greater than zero)", config.SessionTimeout)
 	}
+
 	if config.EncryptionType == "" {
 		return config, fmt.Errorf("encryption type '%s' is invalid (see documentation for supported ciphers and modes)", config.EncryptionType)
 	}
+
 	if config.DataDir == "" {
 		return config, fmt.Errorf("SHIELD data directory '%s' is invalid (must be a valid path)", config.DataDir)
 	}
-	// FIXME: check existence of WebRoot
+	if st, err := os.Stat(config.DataDir); err != nil {
+		return config, fmt.Errorf("SHIELD data directory '%s' is invalid (%s)", config.DataDir, err)
+	} else if !st.Mode().IsDir() {
+		return config, fmt.Errorf("SHIELD data directory '%s' is invalid (not a directory)", config.DataDir)
+	}
+
+	if config.WebRoot == "" {
+		return config, fmt.Errorf("SHIELD web root directory '%s' is invalid (must be a valid path)", config.WebRoot)
+	}
+	if st, err := os.Stat(config.WebRoot); err != nil {
+		return config, fmt.Errorf("SHIELD web root directory '%s' is invalid (%s)", config.WebRoot, err)
+	} else if !st.Mode().IsDir() {
+		return config, fmt.Errorf("SHIELD web root directory '%s' is invalid (not a directory)", config.WebRoot)
+	}
+
 	for i, auth := range config.Auth {
 		if auth.Name == "local" {
 			return config, fmt.Errorf("auth backend configuration #%d is named 'local', which is reserved for internal use by SHIELD itself;please rename this auth backend", i+1)
