@@ -112,7 +112,7 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 	return l, nil
 }
 
-func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
+func (db *DB) GetAgent(id fmt.Stringer) (*Agent, error) {
 	r, err := db.Query(`
 		SELECT a.uuid, a.name, a.address, a.version,
 		       a.hidden, a.last_seen_at, a.last_error, a.status,
@@ -197,7 +197,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	id := uuid.NewRandom()
 	return db.Exec(`
 	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
-	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
+		       VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
 		id.String(), name, address, false, "pending", time.Now().Unix(),
 	)
 }
@@ -205,14 +205,14 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 func (db *DB) UpdateAgent(agent *Agent) error {
 	return db.Exec(
 		`UPDATE agents SET name         = ?,
-		                   address      = ?,
-		                   version      = ?,
-		                   status       = ?,
-		                   hidden       = ?,
-		                   metadata     = ?,
-		                   last_seen_at = ?,
-		                   last_error   = ?
-		        WHERE uuid = ?`,
+				   address      = ?,
+				   version      = ?,
+				   status       = ?,
+				   hidden       = ?,
+				   metadata     = ?,
+				   last_seen_at = ?,
+				   last_error   = ?
+			WHERE uuid = ?`,
 		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
 		time.Now().Unix(), agent.LastError,
 		agent.UUID.String())

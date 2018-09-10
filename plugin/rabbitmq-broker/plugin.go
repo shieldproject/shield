@@ -36,7 +36,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "rmq_url",
 				Type:     "string",
@@ -45,7 +45,7 @@ func main() {
 				Example:  "http://1.2.3.4:15672",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "rmq_username",
 				Type:     "string",
@@ -53,7 +53,7 @@ func main() {
 				Help:     "Username to use when authenticating to RabbitMQ.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "rmq_password",
 				Type:     "password",
@@ -61,7 +61,7 @@ func main() {
 				Help:     "Password to use when authenticating to RabbitMQ.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "skip_ssl_validation",
 				Type:  "bool",

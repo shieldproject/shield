@@ -24,17 +24,14 @@ type Config struct {
 	SlowLoop int `yaml:"slow_loop"`
 	FastLoop int `yaml:"fast_loop"`
 
-	Debug bool `yaml:"debug"`
-
 	DataDir string `yaml:"data_directory"`
 
-	Addr          string `yaml:"listen_addr"`
-	KeyFile       string `yaml:"private_key"`
-	Workers       int    `yaml:"workers"`
-	Purge         string `yaml:"purge_agent"`
-	Timeout       int    `yaml:"max_timeout"`
-	SkipSSLVerify bool   `yaml:"skip_ssl_verify"`
-	WebRoot       string `yaml:"web_root"`
+	Addr    string `yaml:"listen_addr"`
+	KeyFile string `yaml:"private_key"`
+	Workers int    `yaml:"workers"`
+	Purge   string `yaml:"purge_agent"`
+	Timeout int    `yaml:"max_timeout"`
+	WebRoot string `yaml:"web_root"`
 
 	Environment string `yaml:"env"`
 	Color       string `yaml:"color"`
@@ -50,6 +47,9 @@ type Config struct {
 	Failsafe FailsafeConfig `yaml:"failsafe"`
 
 	Auth []AuthConfig `yaml:"auth"`
+
+	SkipSSLVerify bool `yaml:"skip_ssl_verify"`
+	Debug         bool `yaml:"debug"`
 }
 
 func ReadConfig(file string) (Config, error) {

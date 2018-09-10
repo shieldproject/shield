@@ -37,7 +37,7 @@ func main() {
 		}
 
 		if crypt.Type != "" {
-			encStream, decStream, err = crypter.Stream(crypt.Type, []byte(keyRaw), []byte(ivRaw))
+			encStream, decStream, err = crypter.Stream(crypt.Type, keyRaw, ivRaw)
 			if err != nil {
 				panic(err)
 			}

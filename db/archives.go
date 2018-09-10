@@ -184,7 +184,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	return l, nil
 }
 
-func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
+func (db *DB) GetArchive(id fmt.Stringer) (*Archive, error) {
 	r, err := db.Query(`
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
@@ -273,7 +273,7 @@ func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 	return db.GetAllArchives(filter)
 }
 
-func (db *DB) InvalidateArchive(id uuid.UUID) error {
+func (db *DB) InvalidateArchive(id fmt.Stringer) error {
 	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id.String())
 }
 

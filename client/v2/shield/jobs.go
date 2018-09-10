@@ -13,10 +13,10 @@ type Job struct {
 	Summary    string `json:"summary"`
 	Expiry     int    `json:"expiry"`
 	Schedule   string `json:"schedule"`
-	Paused     bool   `json:"paused"`
 	Agent      string `json:"agent"`
 	LastStatus string `json:"status"`
 	LastRun    int64  `json:"last_run"`
+	Paused     bool   `json:"paused"`
 	FixedKey   bool   `json:"fixed_key"`
 
 	TargetUUID string `json:"-"`
@@ -119,10 +119,10 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Name     string `json:"name"`
 		Summary  string `json:"summary"`
 		Schedule string `json:"schedule"`
-		Paused   bool   `json:"paused"`
 		Store    string `json:"store"`
 		Target   string `json:"target"`
 		Policy   string `json:"policy"`
+		Paused   bool   `json:"paused"`
 		FixedKey bool   `json:"fixed_key"`
 	}{
 		Name:     job.Name,

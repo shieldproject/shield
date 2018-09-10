@@ -40,7 +40,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mongo_host",
 				Type:    "string",
@@ -48,7 +48,7 @@ func main() {
 				Help:    "The hostname or IP address of your MongoDB server.",
 				Default: "127.0.0.1",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mongo_port",
 				Type:    "port",
@@ -56,21 +56,21 @@ func main() {
 				Help:    "The TCP port that MongoDB is bound to, listening for incoming connections.",
 				Default: "27017",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "mongo_user",
 				Title: "MongoDB Username",
 				Type:  "string",
 				Help:  "Username to authenticate to MongoDB as.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "mongo_password",
 				Type:  "password",
 				Title: "MongoDB Password",
 				Help:  "The password to authenticate to MongoDB as.",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mongo_database",
 				Type:    "string",
@@ -79,7 +79,7 @@ func main() {
 				Example: "salesdb1",
 			},
 
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mongo_bindir",
 				Type:    "abspath",
@@ -88,7 +88,7 @@ func main() {
 				Default: "/var/vcap/packages/shield-mongo/bin",
 			},
 
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mongo_options",
 				Type:    "string",
@@ -206,8 +206,7 @@ func (p MongoPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func connectionString(info *MongoConnectionInfo, backup bool) string {
-
+func connectionString(info *MongoConnectionInfo, _ bool) string {
 	var options string
 	if info.Options != "" {
 		options = fmt.Sprintf(" %s ", info.Options)

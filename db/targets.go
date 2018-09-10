@@ -31,11 +31,11 @@ func (t Target) ConfigJSON() (string, error) {
 }
 
 type TargetFilter struct {
-	SkipUsed   bool
-	SkipUnused bool
 	SearchName string
 	ForTenant  string
 	ForPlugin  string
+	SkipUsed   bool
+	SkipUnused bool
 	ExactMatch bool
 }
 
@@ -64,7 +64,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 		   SELECT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
-		          t.endpoint, t.agent, t.compression, -1 AS n
+			  t.endpoint, t.agent, t.compression, -1 AS n
 		     FROM targets t
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY t.name, t.uuid ASC`, args
@@ -77,14 +77,14 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 
 	return `
 	   SELECT DISTINCT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
-	                   t.endpoint, t.agent, t.compression, COUNT(j.uuid) AS n
-	              FROM targets t
-	         LEFT JOIN jobs j
-	                ON j.target_uuid = t.uuid
-	             WHERE ` + strings.Join(wheres, " AND ") + `
-	          GROUP BY t.uuid
-	          ` + having + `
-	          ORDER BY t.name, t.uuid ASC`, args
+			   t.endpoint, t.agent, t.compression, COUNT(j.uuid) AS n
+		      FROM targets t
+		 LEFT JOIN jobs j
+			ON j.target_uuid = t.uuid
+		     WHERE ` + strings.Join(wheres, " AND ") + `
+		  GROUP BY t.uuid
+		  ` + having + `
+		  ORDER BY t.name, t.uuid ASC`, args
 }
 
 func (db *DB) CountTargets(filter *TargetFilter) (int, error) {
@@ -188,7 +188,7 @@ func (db *DB) CreateTarget(in *Target) (*Target, error) {
 	in.UUID = uuid.NewRandom()
 	return in, db.Exec(`
 	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression)
-	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?,     ?)`,
+			 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?,     ?)`,
 		in.UUID.String(), in.TenantUUID.String(), in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent, in.Compression)
 }
 
@@ -201,11 +201,11 @@ func (db *DB) UpdateTarget(t *Target) error {
 	return db.Exec(`
 	  UPDATE targets
 	     SET name        = ?,
-	         summary     = ?,
-	         plugin      = ?,
-	         endpoint    = ?,
-	         agent       = ?,
-	         compression = ?
+		 summary     = ?,
+		 plugin      = ?,
+		 endpoint    = ?,
+		 agent       = ?,
+		 compression = ?
 	   WHERE uuid = ?`,
 		t.Name, t.Summary, t.Plugin, string(rawconfig), t.Agent, t.Compression,
 		t.UUID.String())

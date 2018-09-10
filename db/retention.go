@@ -18,9 +18,9 @@ type RetentionPolicy struct {
 
 type RetentionFilter struct {
 	ForTenant  string
+	SearchName string
 	SkipUsed   bool
 	SkipUnused bool
-	SearchName string
 	ExactMatch bool
 }
 
@@ -131,7 +131,7 @@ func (db *DB) CreateRetentionPolicy(p *RetentionPolicy) (*RetentionPolicy, error
 	p.UUID = uuid.NewRandom()
 	return p, db.Exec(`
 	   INSERT INTO retention (uuid, tenant_uuid, name, summary, expiry)
-	                  VALUES (?,    ?,           ?,    ?,       ?)`,
+			  VALUES (?,    ?,           ?,    ?,       ?)`,
 		p.UUID.String(), p.TenantUUID.String(), p.Name, p.Summary, p.Expires)
 }
 
@@ -139,8 +139,8 @@ func (db *DB) UpdateRetentionPolicy(p *RetentionPolicy) error {
 	return db.Exec(`
 	   UPDATE retention
 	      SET name    = ?,
-	          summary = ?,
-	          expiry  = ?
+		  summary = ?,
+		  expiry  = ?
 	    WHERE uuid = ?`,
 		p.Name, p.Summary, p.Expires, p.UUID.String())
 }

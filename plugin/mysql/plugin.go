@@ -7,7 +7,9 @@ import (
 
 	"database/sql"
 	"errors"
+
 	"github.com/starkandwayne/shield/plugin"
+
 	// sql drivers
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -46,7 +48,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "mysql_host",
 				Type:     "string",
@@ -55,7 +57,7 @@ func main() {
 				Default:  "127.0.0.1",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "mysql_port",
 				Type:     "port",
@@ -64,7 +66,7 @@ func main() {
 				Default:  "3306",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "mysql_user",
 				Type:     "string",
@@ -72,7 +74,7 @@ func main() {
 				Help:     "Username to authenticate to MySQL as.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "mysql_pass",
 				Type:     "password",
@@ -80,14 +82,14 @@ func main() {
 				Help:     "Password to authenticate to MySQL as.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "mysql_database",
 				Type:  "string",
 				Title: "Database to Backup",
 				Help:  "Limit scope of the backup to include only this database.  By default, all databases will be backed up.",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mysql_options",
 				Type:    "string",
@@ -95,14 +97,14 @@ func main() {
 				Help:    "You can tune `mysqldump` (which performs the backup) by specifying additional options and command-line arguments.  If you don't know why you might need this, leave it blank.",
 				Example: "--quick",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "mysql_read_replica",
 				Type:  "string",
 				Title: "MySQL Read Replica",
 				Help:  "An optional MySQL replica (possibly readonly) to use for backups, instead of the canonical host.  Restore operations will still be conducted against the real database host.",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mysql_bindir",
 				Type:    "abspath",
@@ -360,6 +362,9 @@ func mysqlshowvariable(mydb *sql.DB, varname string) (string, error) {
 			return "", errors.New("sql: unexpected second row in result set")
 		}
 		err = row.Err()
+		if err != nil {
+			return "", err
+		}
 	} else {
 		return "", sql.ErrNoRows
 	}

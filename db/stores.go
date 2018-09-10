@@ -34,8 +34,8 @@ type Store struct {
 	Threshold     int64     `json:"threshold"`
 	ArchiveCount  int       `json:"archive_count"`
 
-	Healthy          bool      `json:"healthy"`
 	LastTestTaskUUID uuid.UUID `json:"last_test_task_uuid"`
+	Healthy          bool      `json:"healthy"`
 }
 
 type StoreStats struct {
@@ -122,11 +122,11 @@ func (s *Store) CacheConfigs(db *DB) error {
 }
 
 type StoreFilter struct {
-	SkipUsed   bool
-	SkipUnused bool
 	SearchName string
 	ForPlugin  string
 	ForTenant  string
+	SkipUsed   bool
+	SkipUnused bool
 	ExactMatch bool
 }
 
@@ -154,10 +154,10 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 		   SELECT s.uuid, s.name, s.summary, s.agent,
-		          s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
-		          s.private_config, s.public_config, s.daily_increase,
-		          s.storage_used, s.archive_count, s.threshold,
-		          s.healthy, s.last_test_task_uuid
+			  s.plugin, s.endpoint, s.tenant_uuid, -1 AS n,
+			  s.private_config, s.public_config, s.daily_increase,
+			  s.storage_used, s.archive_count, s.threshold,
+			  s.healthy, s.last_test_task_uuid
 		     FROM stores s
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY s.name, s.uuid ASC`, args
@@ -170,17 +170,17 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 
 	return `
 	   SELECT DISTINCT s.uuid, s.name, s.summary, s.agent,
-	                   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
-	                   s.private_config, s.public_config, s.daily_increase,
-	                   s.storage_used, s.archive_count, s.threshold,
-	                   s.healthy, s.last_test_task_uuid
-	              FROM stores s
-	         LEFT JOIN jobs j
-	                ON j.store_uuid = s.uuid
-	             WHERE ` + strings.Join(wheres, " AND ") + `
-	             GROUP BY s.uuid
-	             ` + having + `
-	          ORDER BY s.name, s.uuid ASC`, args
+			   s.plugin, s.endpoint, s.tenant_uuid, COUNT(j.uuid) AS n,
+			   s.private_config, s.public_config, s.daily_increase,
+			   s.storage_used, s.archive_count, s.threshold,
+			   s.healthy, s.last_test_task_uuid
+		      FROM stores s
+		 LEFT JOIN jobs j
+			ON j.store_uuid = s.uuid
+		     WHERE ` + strings.Join(wheres, " AND ") + `
+		     GROUP BY s.uuid
+		     ` + having + `
+		  ORDER BY s.name, s.uuid ASC`, args
 }
 
 func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
@@ -243,10 +243,10 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
 	r, err := db.Query(`
 	   SELECT s.uuid, s.name, s.summary, s.agent,
-	          s.plugin, s.endpoint, s.tenant_uuid,
-	          s.private_config, s.public_config, s.daily_increase,
-	          s.storage_used, s.archive_count, s.threshold,
-	          s.healthy, s.last_test_task_uuid
+		  s.plugin, s.endpoint, s.tenant_uuid,
+		  s.private_config, s.public_config, s.daily_increase,
+		  s.storage_used, s.archive_count, s.threshold,
+		  s.healthy, s.last_test_task_uuid
 	     FROM stores s
 	LEFT JOIN jobs j
 	       ON j.store_uuid = s.uuid
@@ -313,7 +313,7 @@ func (db *DB) CreateStore(s *Store) (*Store, error) {
 	s.UUID = uuid.NewRandom()
 	return s, db.Exec(`
 	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold, healthy, last_test_task_uuid)
-	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?,        ?,       ?)`,
+		       VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?,        ?,       ?)`,
 		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold, s.Healthy, s.LastTestTaskUUID)
 }
 
@@ -330,18 +330,18 @@ func (db *DB) UpdateStore(s *Store) error {
 	return db.Exec(`
 		UPDATE stores
 	      SET name                    = ?,
-	          summary                 = ?,
-	          agent                   = ?,
-	          plugin                  = ?,
-	          endpoint                = ?,
-	          private_config          = ?,
-	          public_config           = ?,
-	          daily_increase          = ?,
-	          archive_count           = ?,
-	          storage_used            = ?,
-	          threshold               = ?,
-	          healthy                 = ?,
-	          last_test_task_uuid     = ?
+		  summary                 = ?,
+		  agent                   = ?,
+		  plugin                  = ?,
+		  endpoint                = ?,
+		  private_config          = ?,
+		  public_config           = ?,
+		  daily_increase          = ?,
+		  archive_count           = ?,
+		  storage_used            = ?,
+		  threshold               = ?,
+		  healthy                 = ?,
+		  last_test_task_uuid     = ?
 		WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
 		s.ArchiveCount, s.StorageUsed, s.Threshold, s.Healthy, s.LastTestTaskUUID, s.UUID.String(),
 	)

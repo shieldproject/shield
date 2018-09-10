@@ -47,21 +47,21 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "access_key_id",
 				Type:  "string",
 				Title: "Access Key ID",
 				Help:  "The Access Key ID to use when authenticating against B2.",
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "secret_access_key",
 				Type:  "password",
 				Title: "Secret Access Key",
 				Help:  "The Secret Access Key to use when authenticating against B2.",
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "bucket",
 				Type:     "string",
@@ -70,7 +70,7 @@ func main() {
 				Example:  "my-aws-backups",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "prefix",
 				Type:  "string",
@@ -90,11 +90,6 @@ type backblazeEndpoint struct {
 	SecretKey  string
 	PathPrefix string
 	Bucket     string
-}
-
-type instanceProfileCredentials struct {
-	Key    string `json:"AccessKeyId"`
-	Secret string `json:"SecretAccessKey"`
 }
 
 func (p BackblazePlugin) Meta() plugin.PluginInfo {

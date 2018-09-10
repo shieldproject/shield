@@ -63,7 +63,7 @@ func (e *InvalidParametersError) IsValid() bool {
 
 func (e InvalidParametersError) Error() string {
 	keys := make([]string, len(e.Errors))
-	for k, _ := range e.Errors {
+	for k := range e.Errors {
 		keys = append(keys, k)
 	}
 	return fmt.Sprintf("%s are invaid parameters", Sentencify(keys))

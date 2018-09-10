@@ -44,14 +44,14 @@ func main() {
 `,
 
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "json_key",
 				Type:  "string",
 				Title: "Google Cloud JSON key",
 				Help:  "Your Google Cloud Store JSON key, which should be available via the Google Cloud Platform web UI.",
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "bucket",
 				Type:     "string",
@@ -59,7 +59,7 @@ func main() {
 				Help:     "Name of the bucket to store backup archives in.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "prefix",
 				Type:  "string",

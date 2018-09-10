@@ -1,8 +1,9 @@
 package main
 
 import (
-	fmt "github.com/jhunt/go-ansi"
 	"strings"
+
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/client/v2/shield"
 )

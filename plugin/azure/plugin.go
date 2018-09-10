@@ -44,7 +44,7 @@ func main() {
 `,
 
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "storage_account",
 				Type:     "string",
@@ -52,7 +52,7 @@ func main() {
 				Help:     "Name of the Azure Storage Account for accessing the blobstore.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "storage_account_key",
 				Type:     "password",
@@ -60,7 +60,7 @@ func main() {
 				Help:     "Secret Key of the Azure Storage Account for accessing the blobstore.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "storage_container",
 				Type:     "string",
@@ -68,7 +68,7 @@ func main() {
 				Help:     "Name of the Container to store backup archives in.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "prefix",
 				Type:  "string",

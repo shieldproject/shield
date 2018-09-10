@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"time"
 
 	"github.com/jhunt/go-log"
 
@@ -115,13 +114,6 @@ func bail(w http.ResponseWriter, e error) {
 	log.Errorf("Request bailed: <%s>", e)
 }
 
-func bailWithError(w http.ResponseWriter, err JSONError) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	w.Write([]byte(err.JSON()))
-	log.Errorf("Request bailed: <%s>", err)
-}
-
 func JSON(w http.ResponseWriter, thing interface{}) {
 	bytes, err := json.Marshal(thing)
 	if err != nil {
@@ -139,32 +131,6 @@ func JSONLiteral(w http.ResponseWriter, thing string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	w.Write([]byte(thing))
-}
-
-func paramEquals(req *http.Request, name string, value string) bool {
-	actual, set := req.URL.Query()[name]
-	return set && actual[0] == value
-}
-
-func paramValue(req *http.Request, name string, defval string) string {
-	value, set := req.URL.Query()[name]
-	if set {
-		return value[0]
-	}
-	return defval
-}
-
-func paramDate(req *http.Request, name string) *time.Time {
-	value, set := req.URL.Query()[name]
-	if !set {
-		return nil
-	}
-
-	t, err := time.Parse("20060102", value[0])
-	if err != nil {
-		return nil
-	}
-	return &t
 }
 
 func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
@@ -231,7 +197,7 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
+func (core *Core) v1Ping(w http.ResponseWriter, _ *http.Request) {
 	JSON(w, struct {
 		OK string `json:"ok"`
 	}{
@@ -239,13 +205,13 @@ func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
-func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
+func (core *Core) v1GetPublicKey(w http.ResponseWriter, _ *http.Request) {
 	pub := core.agent.key.PublicKey()
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s %s\n", pub.Type(), base64.StdEncoding.EncodeToString(pub.Marshal()))
 }
 
-func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
+func (core *Core) v1Status(w http.ResponseWriter, _ *http.Request) {
 	stat := struct {
 		Version    string `json:"version,omitempty"`
 		Name       string `json:"name"`
@@ -261,7 +227,7 @@ func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
 	JSON(w, &stat)
 }
 
-func (core *Core) v1DetailedStatus(w http.ResponseWriter, req *http.Request) {
+func (core *Core) v1DetailedStatus(w http.ResponseWriter, _ *http.Request) {
 	pending, err := core.DB.GetAllTasks(&db.TaskFilter{ForStatus: db.PendingStatus})
 	if err != nil {
 		bail(w, err)
@@ -289,7 +255,7 @@ type v1jobhealth struct {
 	Status  string `json:"status"`
 }
 
-func (core *Core) v1JobsStatus(w http.ResponseWriter, req *http.Request) {
+func (core *Core) v1JobsStatus(w http.ResponseWriter, _ *http.Request) {
 	jobs, err := core.DB.GetAllJobs(&db.JobFilter{})
 	if err != nil {
 		bail(w, err)

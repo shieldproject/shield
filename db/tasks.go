@@ -47,13 +47,13 @@ type Task struct {
 	TimeoutAt      int64          `json:"-"`
 	Attempts       int            `json:"-"`
 	RestoreKey     string         `json:"-"`
-	FixedKey       bool           `json:"-"`
 	Agent          string         `json:"-"`
 	Log            string         `json:"log"`
-	OK             bool           `json:"ok"`
 	Notes          string         `json:"notes"`
 	Clear          string         `json:"clear"`
 	TaskUUIDChan   chan *TaskInfo `json:"-"`
+	OK             bool           `json:"ok"`
+	FixedKey       bool           `json:"-"`
 }
 
 type TaskInfo struct {
@@ -356,7 +356,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 			 attempts, tenant_uuid, owner)
 		 VALUES
 			(?, ?, ?, ?, ?,
-			 ?, ?, ?, ?, 
+			 ?, ?, ?, ?,
 			 ?, ?, ?)`,
 		id.String(), TestStoreOperation,
 		store.UUID.String(), store.Plugin, endpoint,
@@ -479,12 +479,12 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 	     compression, encryption_type, size, tenant_uuid)
 
 	      SELECT ?, t.uuid, s.uuid, ?, ?,
-	             ?, '', 'valid', '', j.Name,
-	             ?, ?, ?, ?
+		     ?, '', 'valid', '', j.Name,
+		     ?, ?, ?, ?
 	      FROM tasks
-	         INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
-	         INNER JOIN targets t     ON t.uuid = j.target_uuid
-	         INNER JOIN stores  s     ON s.uuid = j.store_uuid
+		 INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
+		 INNER JOIN targets t     ON t.uuid = j.target_uuid
+		 INNER JOIN stores  s     ON s.uuid = j.store_uuid
 	      WHERE tasks.uuid = ?`,
 		archive_id.String(), key,
 		validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(),
@@ -546,9 +546,9 @@ func (db *DB) MarkTasksIrrelevant() error {
 		  WHERE relevant = 1 AND clear = 'normal'
 		    AND uuid IN (
 		      SELECT tasks.uuid FROM tasks
-		        INNER JOIN jobs      ON jobs.uuid = tasks.job_uuid
-		        INNER JOIN retention ON retention.uuid = jobs.retention_uuid
-		             WHERE retention.expiry + tasks.started_at < ?`, time.Now().Unix())
+			INNER JOIN jobs      ON jobs.uuid = tasks.job_uuid
+			INNER JOIN retention ON retention.uuid = jobs.retention_uuid
+			     WHERE retention.expiry + tasks.started_at < ?`, time.Now().Unix())
 
 	if err != nil {
 		return err

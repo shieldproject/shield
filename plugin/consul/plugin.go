@@ -40,7 +40,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "host",
 				Type:    "string",
@@ -49,21 +49,21 @@ func main() {
 				Example: "my.consul.tld:8500",
 				Default: "127.0.0.1:8500",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "skip_ssl_validation",
 				Type:  "bool",
 				Title: "Skip SSL Validation",
 				Help:  "If your Consul certificate is invalid, expired, or signed by an unknown Certificate Authority, you can disable SSL validation.  This is not recommended from a security standpoint, however.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "username",
 				Type:  "string",
 				Title: "Consul Username",
 				Help:  "Username to authenticate to Consul as (usually over HTTP Basic Auth).",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "password",
 				Type:  "password",

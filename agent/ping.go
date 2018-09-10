@@ -80,7 +80,7 @@ func (agent *Agent) Ping() {
 
 	ch := time.Tick(time.Duration(agent.Registration.Interval) * time.Second)
 	ping()
-	for _ = range ch {
+	for range ch {
 		ping()
 	}
 }

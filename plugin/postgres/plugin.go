@@ -43,14 +43,14 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "pg_host",
 				Type:  "string",
 				Title: "PostgreSQL Host",
 				Help:  "The hostname or IP address of your PostgreSQL server.",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "pg_port",
 				Type:    "port",
@@ -58,7 +58,7 @@ func main() {
 				Help:    "The TCP port that PostgreSQL is bound to, listening for incoming connections.",
 				Default: "5432",
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "pg_user",
 				Type:     "string",
@@ -66,35 +66,35 @@ func main() {
 				Help:     "Username to authenticate to PostgreSQL as.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "pg_password",
 				Type:  "password",
 				Title: "PostgreSQL Password",
 				Help:  "Password to authenticate to PostgreSQL as.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "pg_database",
 				Type:  "string",
 				Title: "Database to Backup",
 				Help:  "Limit scope of the backup to include only this database.  By default, all databases will be backed up.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "pg_read_replica_host",
 				Type:  "string",
 				Title: "Postgres Read Replica (Host)",
 				Help:  "An optional Postgres replica (possibly readonly) to use for backups, instead of the canonical host.  Restore operations will still be conducted against the real database host.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "pg_read_replica_port",
 				Type:  "string",
 				Title: "Postgres Read Replica (Port)",
 				Help:  "An optional Postgres replica (possibly readonly) to use for backups, instead of the canonical host.  Restore operations will still be conducted against the real database host.",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "pg_bindir",
 				Type:    "abspath",

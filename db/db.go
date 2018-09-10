@@ -138,7 +138,7 @@ func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
 	}
 
 	sql := db.resolve(db.rebind(sql_or_name))
-	q, ok := db.qCache[sql]
+	_, ok := db.qCache[sql]
 	if !ok {
 		stmt, err := db.connection.Prepare(sql)
 		if err != nil {
@@ -147,7 +147,7 @@ func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
 		db.qCache[sql] = stmt
 	}
 
-	q, ok = db.qCache[sql]
+	q, ok := db.qCache[sql]
 	if !ok {
 		return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", sql)
 	}

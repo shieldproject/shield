@@ -68,7 +68,7 @@ func prompt(label string, args ...interface{}) string {
 	return strings.TrimSuffix(s, "\n")
 }
 
-func secureprompt(label string, args ...interface{}) string {
+func secureprompt(label string, _ ...interface{}) string {
 	if !isatty.IsTerminal(os.Stdin.Fd()) {
 		s, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 		return strings.TrimSuffix(s, "\n")

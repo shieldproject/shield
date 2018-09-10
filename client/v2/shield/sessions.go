@@ -21,18 +21,15 @@ type Session struct {
 
 type SessionFilter struct {
 	Name       string `qs:"name"`
-	ExactMatch bool   `qs:"exact:f:t"`
 	UUID       string
 	UserUUID   string `qs:"user_uuid"`
-	Limit      int    `qs:"limit"`
 	IP         string `qs:"ip_addr"`
+	Limit      int    `qs:"limit"`
+	ExactMatch bool   `qs:"exact:f:t"`
 	IsToken    bool   `qs:"is_token"`
 }
 
 func fixupSessionResponse(p *Session) {
-}
-
-func fixupSessionRequest(p *Session) {
 }
 
 func (c *Client) ListSessions(filter *SessionFilter) ([]*Session, error) {
