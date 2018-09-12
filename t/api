@@ -71,13 +71,14 @@ spin_shieldd() {
 
   cat >${WORKDIR}/etc/shieldd.conf <<EOF
 ---
-listen_addr:     ${SHIELD_DAEMON_ADDR}
-data_directory:  ${DATA_DIRECTORY}
-private_key:     ${WORKDIR}/config/shieldd_key
-workers:       3
-max_timeout:   10
-debug:         true
-web_root: ./web2/htdocs
+listen_addr:    ${SHIELD_DAEMON_ADDR}
+data_directory: ${DATA_DIRECTORY}
+private_key:    ${WORKDIR}/config/shieldd_key
+workers:        3
+max_timeout:    10
+debug:          true
+web_root:       ./web2/htdocs
+vault_address:  https://127.0.0.1:8219
 auth:
   - identifier: public-github
     backend:    github
