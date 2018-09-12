@@ -1,4 +1,4 @@
-USAGE: @G{shield} create-auth-token
+USAGE: @G{shield} revoke-auth-token
 
   Revoke an issued authentication token.
 

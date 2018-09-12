@@ -1,4 +1,4 @@
-USAGE: @G{shield} update-store --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
+USAGE: @G{shield} update-target --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
 
   Update an existing Target Data System
 

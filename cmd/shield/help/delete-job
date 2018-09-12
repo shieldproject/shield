@@ -1,4 +1,4 @@
-USAGE: @G{shield} delete-job--tenant @Y{TENANT} @Y{NAME-OR-UUID}
+USAGE: @G{shield} delete-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
 
   Delete a Backup Job.
 
