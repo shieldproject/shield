@@ -16,7 +16,7 @@ plugin-tests: plugins
 	go build ./plugin/mock
 	./t/plugins
 	@rm -f mock
-go-tests:
+go-tests: shield
 	export PATH=$$PATH:test/bin; go list ./... | grep -v vendor | xargs go test
 api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
 	./t/api

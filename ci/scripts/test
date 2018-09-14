@@ -46,7 +46,7 @@ cd ${GOPATH}/src/${MODULE}
 ######
 header "Running tests"
 go version; echo; echo
-go test -v ./...
+make go-tests
 
 echo
 echo
