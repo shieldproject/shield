@@ -31,7 +31,6 @@ type UAAAuthProvider struct {
 
 	core *Core
 	uaa  *uaa.Client
-	http *http.Client
 }
 
 func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {

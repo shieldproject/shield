@@ -12,8 +12,6 @@ import (
 	"github.com/starkandwayne/shield/plugin"
 )
 
-var ()
-
 func main() {
 	p := VaultPlugin{
 		Name:    "Vault Backup Plugin",
@@ -39,7 +37,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "url",
 				Type:     "string",
@@ -48,7 +46,7 @@ func main() {
 				Example:  "https://vault.myorg.mycompany.com",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "token",
 				Type:     "password",
@@ -56,7 +54,7 @@ func main() {
 				Help:     "The auth token for a user with privileges to read and write the entire secret/ tree.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "subtree",
 				Type:    "string",
@@ -64,7 +62,7 @@ func main() {
 				Help:    "A subtree to limit the backup operation to.",
 				Default: "",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "skip_ssl_validation",
 				Type:    "bool",

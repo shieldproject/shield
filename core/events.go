@@ -50,7 +50,7 @@ func (b *Broadcaster) Unregister(idx int) error {
 
 	ch := b.chans[idx]
 	b.chans[idx] = nil
-	for _ = range ch {
+	for range ch {
 	}
 
 	return nil

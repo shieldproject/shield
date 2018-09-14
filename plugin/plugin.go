@@ -25,12 +25,12 @@ import (
 )
 
 type Opt struct {
+	Endpoint  string `cli:"-e,--endpoint"`
+	Key       string `cli:"-k,--key"`
 	HelpShort bool   `cli:"-h"`
 	HelpFull  bool   `cli:"--help"`
-	Debug     bool   `cli:"-D, --debug",env:"DEBUG"`
-	Version   bool   `cli:"-v, --version"`
-	Endpoint  string `cli:"-e,--endpoint"`
-	Key       string `cli:"-k, --key"`
+	Debug     bool   `cli:"-D,--debug" env:"DEBUG"`
+	Version   bool   `cli:"-v,--version"`
 	Text      bool   `cli:"--text"`
 
 	Info     struct{} `cli:"info"`
@@ -364,15 +364,6 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 	}
 
 	return err
-}
-
-func pluginInfo(p Plugin) error {
-	json, err := json.MarshalIndent(p.Meta(), "", "    ")
-	if err != nil {
-		return JSONError{Err: fmt.Sprintf("Could not create plugin metadata output: %s", err.Error())}
-	}
-	fmt.Printf("%s\n", json)
-	return nil
 }
 
 func GenUUID() string {

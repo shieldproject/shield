@@ -94,28 +94,28 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "use_instance_profile",
 				Type:  "bool",
 				Title: "Use Instance Profile",
 				Help:  "Enable using AWS Instance Profiles instead of Access Key and Secret.",
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "access_key_id",
 				Type:  "string",
 				Title: "Access Key ID",
 				Help:  "The Access Key ID to use when authenticating against S3.",
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "secret_access_key",
 				Type:  "password",
 				Title: "Secret Access Key",
 				Help:  "The Secret Access Key to use when authenticating against S3.",
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "bucket",
 				Type:     "string",
@@ -124,14 +124,14 @@ func main() {
 				Example:  "my-aws-backups",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "prefix",
 				Type:  "string",
 				Title: "Bucket Path Prefix",
 				Help:  "An optional sub-path of the bucket to use for storing archives.  By default, archives are stored in the root of the bucket.",
 			},
-			plugin.Field{
+			{
 				Mode:    "store",
 				Name:    "s3_host",
 				Type:    "string",
@@ -139,14 +139,14 @@ func main() {
 				Help:    "An alternative hostname or IP address for S3 work-alike implementations.  For AWS S3, leave this blank to auto-select the correct value.",
 				Default: DefaultS3Host,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "s3_port",
 				Type:  "port",
 				Title: "S3 Port",
 				Help:  "An alternative TCP port to use for S3 work-alike implementations.  For AWS S3, leave this blank to auto-select the correct value.",
 			},
-			plugin.Field{
+			{
 				Mode:    "store",
 				Name:    "signature_version",
 				Type:    "enum",
@@ -155,7 +155,7 @@ func main() {
 				Help:    "Specify an alternate signature version.  For AWS S3, leave this blank to auto-select the correct value.",
 				Default: DefaultSigVersion,
 			},
-			plugin.Field{
+			{
 				Mode:    "store",
 				Name:    "part_size",
 				Type:    "string",
@@ -164,14 +164,14 @@ func main() {
 				Example: "100MB, 64M, etc.",
 				Default: DefaultPartSize,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "socks5_proxy",
 				Type:  "string",
 				Title: "SOCKS5 Proxy",
 				Help:  "The host:port address of a SOCKS5 proxy to relay HTTP through when accessing S3 work-alikes.",
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "skip_ssl_validation",
 				Type:  "bool",
@@ -466,6 +466,9 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	prefix = strings.TrimLeft(prefix, "/")
 
 	s, err := e.StringValueDefault("signature_version", DefaultSigVersion)
+	if err != nil {
+		return s3Endpoint{}, err
+	}
 	if !validSigVersion(s) {
 		return s3Endpoint{}, fmt.Errorf("Invalid `signature_version` specified (`%s`). Expected `2` or `4`", s)
 	}
@@ -475,6 +478,9 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	}
 
 	s, err = e.StringValueDefault("part_size", DefaultPartSize)
+	if err != nil {
+		return s3Endpoint{}, err
+	}
 	if !validPartSize(s) {
 		return s3Endpoint{}, fmt.Errorf("Invalid `part_size` specified (`%s`).", s)
 	}

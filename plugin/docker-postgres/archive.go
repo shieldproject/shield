@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"time"
 )
 
@@ -50,7 +49,7 @@ func NewArchiveWriter(io io.Writer) *ArchiveWriter {
 	return &ArchiveWriter{writer: tar.NewWriter(io)}
 }
 
-func (a *ArchiveWriter) Write(prefix string, metadata interface{}, data *os.File) error {
+func (a *ArchiveWriter) Write(prefix string, metadata interface{}, data io.ReadSeeker) error {
 	// JSONify the metadata
 	raw, err := json.Marshal(metadata)
 	if err != nil {
@@ -80,7 +79,7 @@ func (a *ArchiveWriter) Write(prefix string, metadata interface{}, data *os.File
 	a.writer.WriteHeader(&tar.Header{
 		Name:    fmt.Sprintf("%s.data", prefix),
 		Mode:    0644,
-		Size:    int64(size),
+		Size:    size,
 		ModTime: time.Now(),
 	})
 	buf := make([]byte, 8192)

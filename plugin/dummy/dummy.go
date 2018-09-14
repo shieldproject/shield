@@ -105,7 +105,7 @@ func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 	return file, info.Size(), err
 }
 
-// Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
+// Called when you want to retrieve backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
 func (p DummyPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {

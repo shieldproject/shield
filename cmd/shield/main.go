@@ -655,7 +655,7 @@ func main() {
 				   assume this is a literal PEM blob, perhaps provided via
 
 				     shield api test https://shield.example.com \
-				        --ca-certificate "$(vault read secret/ca/certs)"
+					--ca-certificate "$(vault read secret/ca/certs)"
 				*/
 				cacert = opts.API.CACertificate
 			} else {

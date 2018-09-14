@@ -50,7 +50,7 @@ func main() {
 `,
 
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "auth_url",
 				Type:     "string",
@@ -59,7 +59,7 @@ func main() {
 				Example:  "https://identity.api.rackspacecloud.com/v2.0",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "project_name",
 				Type:     "string",
@@ -67,7 +67,7 @@ func main() {
 				Help:     "Name of the openstack project",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "username",
 				Type:     "string",
@@ -75,7 +75,7 @@ func main() {
 				Help:     "The username used to authenticate to swift",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "password",
 				Type:     "password",
@@ -83,7 +83,7 @@ func main() {
 				Help:     "The password used to authenticate to swift",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "container",
 				Type:     "string",
@@ -91,7 +91,7 @@ func main() {
 				Help:     "Name of the container to store backup archives in.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "prefix",
 				Type:  "string",
@@ -223,41 +223,41 @@ func getConnInfo(e plugin.ShieldEndpoint) (info *SwiftConnectionInfo, err error)
 	info = &SwiftConnectionInfo{}
 	info.AuthURL, err = e.StringValue("auth_url")
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	info.ProjectName, err = e.StringValue("project_name")
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	info.Username, err = e.StringValue("username")
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	info.Password, err = e.StringValue("password")
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	info.Container, err = e.StringValue("container")
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	info.PathPrefix, err = e.StringValueDefault("prefix", defaultPrefix)
 	if err != nil {
-		return
+		return nil, err
 	}
 	info.PathPrefix = strings.TrimLeft(info.PathPrefix, "/")
 
 	info.Debug, err = e.BooleanValueDefault("debug", defaultDebug)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	return
+	return info, nil
 }
 
 func (info SwiftConnectionInfo) genBackupPath() string {
@@ -303,5 +303,5 @@ func (swift SwiftConnectionInfo) Connect() (baseURL string, session *openstack.S
 		return "", nil, fmt.Errorf("There was an error getting account metadata: %v", err)
 	}
 
-	return
+	return baseURL, session, nil
 }

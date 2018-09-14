@@ -26,7 +26,7 @@ type TaskFilter struct {
 	Status string `qs:"status"`
 	Active *bool  `qs:"active:t:f"`
 	Debug  *bool  `qs:"debug:t:f"`
-	Limit  *int   `qs:limit`
+	Limit  *int   `qs:"limit"`
 	Target string `qs:"target"`
 	Before int64  `qs:"before"`
 }

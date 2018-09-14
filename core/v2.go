@@ -22,17 +22,6 @@ import (
 	"github.com/starkandwayne/shield/util"
 )
 
-type v2AuthProvider struct {
-	Name       string `json:"name"`
-	Identifier string `json:"identifier"`
-	Type       string `json:"type"`
-	WebEntry   string `json:"web_entry"`
-	CLIEntry   string `json:"cli_entry"`
-	Redirect   string `json:"redirect"`
-
-	Properties map[string]interface{} `json:"properties,omitempty"`
-}
-
 type v2SystemArchive struct {
 	UUID     uuid.UUID `json:"uuid"`
 	Schedule string    `json:"schedule"`
@@ -781,6 +770,10 @@ func (core *Core) v2API() *route.Router {
 		}
 		// check to see if we're offseting task requests
 		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to parse int"))
+			return
+		}
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
@@ -2166,10 +2159,10 @@ func (core *Core) v2API() *route.Router {
 			Name     string `json:"name"`
 			Summary  string `json:"summary"`
 			Schedule string `json:"schedule"`
-			Paused   bool   `json:"paused"`
 			Store    string `json:"store"`
 			Target   string `json:"target"`
 			Policy   string `json:"policy"`
+			Paused   bool   `json:"paused"`
 			FixedKey bool   `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
@@ -2419,6 +2412,9 @@ func (core *Core) v2API() *route.Router {
 
 		// check to see if we're offseting task requests
 		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to parse int"))
+		}
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
@@ -2669,6 +2665,9 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 		file, _, err := r.Req.FormFile("archive")
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to get form file from request."))
+		}
 
 		backupStore, err := ioutil.TempFile("", "SHIELDrestoreBOOTSTRAP")
 		if err != nil {

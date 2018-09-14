@@ -128,7 +128,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 	return &answer, nil
 }
 
-func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
+func SetAuthHeaders(r *route.Request, sessionID fmt.Stringer) {
 	r.SetCookie(SessionCookie(sessionID.String(), true))
 	r.SetRespHeader("X-Shield-Session", sessionID.String())
 }

@@ -67,11 +67,6 @@ func (j Job) Healthy() bool {
 }
 
 type JobFilter struct {
-	SkipPaused   bool
-	SkipUnpaused bool
-
-	Overdue bool
-
 	SearchName string
 
 	ForTenant  string
@@ -79,6 +74,11 @@ type JobFilter struct {
 	ForStore   string
 	ForPolicy  string
 	ExactMatch bool
+
+	SkipPaused   bool
+	SkipUnpaused bool
+
+	Overdue bool
 }
 
 func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
@@ -126,24 +126,24 @@ func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
 
 	return `
 	   WITH recent_tasks AS (
-	           SELECT uuid AS task_uuid, job_uuid, started_at, status
-	             FROM tasks
-	            WHERE stopped_at IS NOT NULL
-	         GROUP BY job_uuid
-	        )
+		   SELECT uuid AS task_uuid, job_uuid, started_at, status
+		     FROM tasks
+		    WHERE stopped_at IS NOT NULL
+		 GROUP BY job_uuid
+		)
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-	          j.tenant_uuid, j.fixed_key,
-	          r.name, r.summary, r.uuid, r.expiry,
-	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
-	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
-	          k.started_at, k.status
+		  j.tenant_uuid, j.fixed_key,
+		  r.name, r.summary, r.uuid, r.expiry,
+		  s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
+		  t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
+		  k.started_at, k.status
 
 	     FROM jobs j
-	          INNER JOIN retention    r  ON  r.uuid = j.retention_uuid
-	          INNER JOIN stores       s  ON  s.uuid = j.store_uuid
-	          INNER JOIN targets      t  ON  t.uuid = j.target_uuid
-	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
+		  INNER JOIN retention    r  ON  r.uuid = j.retention_uuid
+		  INNER JOIN stores       s  ON  s.uuid = j.store_uuid
+		  INNER JOIN targets      t  ON  t.uuid = j.target_uuid
+		  LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
 
 	    WHERE ` + strings.Join(wheres, " AND ") + `
 	 ORDER BY j.name, j.uuid ASC`, args, nil
@@ -268,11 +268,11 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 
 	err := db.Exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,
-	                     name, summary, schedule, paused,
-	                     target_uuid, store_uuid, retention_uuid, fixed_key)
-	             VALUES (?, ?,
-	                     ?, ?, ?, ?,
-	                     ?, ?, ?, ?)`,
+			     name, summary, schedule, paused,
+			     target_uuid, store_uuid, retention_uuid, fixed_key)
+		     VALUES (?, ?,
+			     ?, ?, ?, ?,
+			     ?, ?, ?, ?)`,
 		job.UUID.String(), job.TenantUUID.String(),
 		job.Name, job.Summary, job.Schedule, job.Paused,
 		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(), job.FixedKey)
@@ -287,12 +287,12 @@ func (db *DB) UpdateJob(job *Job) error {
 	return db.Exec(`
 	   UPDATE jobs
 	      SET name           = ?,
-	          summary        = ?,
-	          schedule       = ?,
-	          target_uuid    = ?,
-	          store_uuid     = ?,
-	          retention_uuid = ?,
-	          fixed_key      = ?
+		  summary        = ?,
+		  schedule       = ?,
+		  target_uuid    = ?,
+		  store_uuid     = ?,
+		  retention_uuid = ?,
+		  fixed_key      = ?
 	    WHERE uuid = ?`,
 		job.Name, job.Summary, job.Schedule,
 		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),

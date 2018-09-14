@@ -137,7 +137,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "host",
 				Type:     "string",
@@ -146,7 +146,7 @@ func main() {
 				Default:  "127.0.0.1",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "port",
 				Type:     "port",
@@ -155,7 +155,7 @@ func main() {
 				Default:  "9042",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "user",
 				Type:     "string",
@@ -164,7 +164,7 @@ func main() {
 				Default:  "cassandra",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "password",
 				Type:     "password",
@@ -173,7 +173,7 @@ func main() {
 				Default:  "cassandra",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "keyspace",
 				Type:     "string",
@@ -182,7 +182,7 @@ func main() {
 				Example:  "system",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "datadir",
 				Type:     "abspath",

@@ -36,7 +36,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "store",
 				Name:     "url",
 				Type:     "string",
@@ -44,21 +44,21 @@ func main() {
 				Help:     "The URL to the root of the WebDAV host.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "username",
 				Type:  "string",
 				Title: "Username",
 				Help:  "Username to authenticate as, via basic auth.",
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "password",
 				Type:  "password",
 				Title: "Password",
 				Help:  "Password to authenticate as, via basic auth.",
 			},
-			plugin.Field{
+			{
 				Mode:  "store",
 				Name:  "skip_ssl_validation",
 				Type:  "bool",

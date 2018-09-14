@@ -24,11 +24,11 @@ type Session struct {
 
 type SessionFilter struct {
 	Name       string
-	ExactMatch bool
 	UUID       string
 	UserUUID   string
 	Limit      int
 	IP         string
+	ExactMatch bool
 	IsToken    bool
 }
 
@@ -184,7 +184,7 @@ func (db *DB) CreateSession(session *Session) (*Session, error) {
 	id := uuid.NewRandom()
 	err := db.Exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, last_seen, ip_addr, user_agent)
-	                 VALUES (?,    ?,         ?,        ?,        ?,        ?)`,
+			 VALUES (?,    ?,         ?,        ?,        ?,        ?)`,
 		id.String(), session.UserUUID.String(), time.Now().Unix(), time.Now().Unix(), stripIP(session.IP), session.UserAgent)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func (db *DB) ClearSession(id string) error {
 
 func (db *DB) PokeSession(session *Session) error {
 	return db.Exec(`
-		UPDATE sessions SET last_seen = ?, user_uuid = ?, ip_addr = ?, user_agent = ? 
+		UPDATE sessions SET last_seen = ?, user_uuid = ?, ip_addr = ?, user_agent = ?
 		WHERE uuid = ?`, time.Now().Unix(), session.UUID, session.IP, session.UserAgent, session.UUID)
 }
 

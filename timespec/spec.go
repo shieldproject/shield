@@ -33,7 +33,7 @@ func offsetM(t time.Time, m int) time.Time {
 	return t.Add(time.Duration(ns * 60 * m))
 }
 func nthWeek(t time.Time) int {
-	return int(t.Day()/7) + 1
+	return t.Day()/7 + 1
 }
 
 func ord(n int) string {

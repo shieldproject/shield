@@ -1,9 +1,10 @@
 package db_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestDb(t *testing.T) {

@@ -86,11 +86,10 @@ func ParseRow(ss ...string) Row {
 }
 
 type Grid struct {
-	rows    []Row
-	indexed bool
-
+	rows     []Row
 	index    []int
 	data     []string
+	indexed  bool
 	prepared bool
 }
 

@@ -54,8 +54,8 @@ func (db *DB) Setup(want int) (int, error) {
 }
 
 func schemaVersions() []int {
-	var versions []int
-	for k, _ := range Schemas {
+	versions := make([]int, 0, len(Schemas))
+	for k := range Schemas {
 		versions = append(versions, k)
 	}
 	sort.Ints(versions)
@@ -64,7 +64,7 @@ func schemaVersions() []int {
 
 func currentSchema() int {
 	versions := schemaVersions()
-	return int(versions[len(versions)-1:][0])
+	return versions[len(versions)-1:][0]
 }
 
 func (db *DB) SchemaVersion() (int, error) {
@@ -100,7 +100,7 @@ func (db *DB) SchemaVersion() (int, error) {
 		return 0, fmt.Errorf("Invalid schema version %d found", v)
 	}
 
-	return int(v), nil
+	return v, nil
 }
 
 func (db *DB) CheckCurrentSchema() error {

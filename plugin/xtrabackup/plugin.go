@@ -50,7 +50,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "mysql_user",
 				Type:     "string",
@@ -58,7 +58,7 @@ func main() {
 				Help:     "The username to use for performing the backup against MySQL.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "mysql_password",
 				Type:     "password",
@@ -66,7 +66,7 @@ func main() {
 				Help:     "The password to authenticate to MySQL with.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mysql_databases",
 				Type:    "wslist",
@@ -74,7 +74,7 @@ func main() {
 				Help:    "A list of databases (and optional tables) to restrict the backup to.  By default, all tables, in all databases will be backed up.",
 				Example: "`database1`, or `db.users db.sessions`",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mysql_datadir",
 				Type:    "abspath",
@@ -82,28 +82,28 @@ func main() {
 				Help:    "Specifies absolute path to MySQL's data directory.",
 				Default: "/var/lib/mysql",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "mysql_socket",
 				Type:  "abspath",
 				Title: "MySQL Socket",
 				Help:  "Specifies absolute path to MySQL's socket.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "mysql_xtrabackup",
 				Type:  "abspath",
 				Title: "Path to `xtrabackup` Utility",
 				Help:  "By default, the plugin will search the local `$PATH` to find the `xtrabackup` utility.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "mysql_tar",
 				Type:  "abspath",
 				Title: "Path to the `tar` Utility",
 				Help:  "By default, the plugin will search the local `$PATH` to find the `tar` utility.",
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "mysql_temp_targetdir",
 				Type:    "abspath",

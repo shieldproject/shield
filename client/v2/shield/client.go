@@ -15,19 +15,20 @@ import (
 )
 
 type Client struct {
-	URL   string
-	Debug bool
-	Trace bool
-
-	InsecureSkipVerify bool
-	TrustSystemCAs     bool
-	CACertificate      string
+	URL           string
+	CACertificate string
 
 	Timeout int
 	Session string
 
 	ua   *http.Client
 	init bool
+
+	Debug bool
+	Trace bool
+
+	InsecureSkipVerify bool
+	TrustSystemCAs     bool
 }
 
 func (c *Client) initialize() error {

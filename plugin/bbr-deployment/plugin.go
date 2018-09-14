@@ -42,7 +42,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_target",
 				Type:     "string",
@@ -50,7 +50,7 @@ func main() {
 				Help:     "The hostname or IP address of your BOSH director.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_username",
 				Type:     "string",
@@ -58,7 +58,7 @@ func main() {
 				Help:     "Username to authenticate to the BOSH director.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_password",
 				Type:     "password",
@@ -66,7 +66,7 @@ func main() {
 				Help:     "Password to authenticate to the BOSH director.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_cacert",
 				Type:     "string",
@@ -74,7 +74,7 @@ func main() {
 				Help:     "CaCert for BOSH director, in a single line, use `sed ':a;N;$!ba;s/\n/\\n/g' ca.pem` to create one.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "bbr_bindir",
 				Type:    "abspath",
@@ -82,7 +82,7 @@ func main() {
 				Help:    "The absolute path to the bin/ directory that contains the `bbr` command.",
 				Default: "/var/vcap/packages/bbr/bin",
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_deployment",
 				Type:     "string",
@@ -296,7 +296,7 @@ func (p BbrPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) 
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-// Called when you want to retreive backup data. Examine the plugin.ShieldEndpoint passed in, and perform actions accordingly
+// Called when you want to retrieve backup data. Examine the plugin.ShieldEndpoint passed in, and perform actions accordingly
 func (p BbrPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }

@@ -9,8 +9,7 @@ import (
 type matcher func(req *http.Request) ([]string, bool)
 
 var (
-	uuidSlug *regexp.Regexp
-	anySlug  *regexp.Regexp
+	anySlug *regexp.Regexp
 )
 
 func init() {

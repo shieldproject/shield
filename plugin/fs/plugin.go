@@ -35,7 +35,7 @@ func main() {
 `,
 
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "base_dir",
 				Type:     "abspath",
@@ -44,14 +44,14 @@ func main() {
 				Example:  "/srv/www/htdocs",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "include",
 				Type:  "string",
 				Title: "Files to Include",
 				Help:  "Only files that match this pattern will be included in the backup archive.  If not specified, all files will be included.",
 			},
-			plugin.Field{
+			{
 				Mode:  "target",
 				Name:  "exclude",
 				Type:  "abspath",

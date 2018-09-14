@@ -39,7 +39,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_host",
 				Type:     "string",
@@ -47,7 +47,7 @@ func main() {
 				Help:     "The hostname or IP address of your BOSH director.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_sshusername",
 				Type:     "string",
@@ -55,7 +55,7 @@ func main() {
 				Help:     "Username to authenticate to vm of the bosh director.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "bbr_privatekey",
 				Type:     "string",
@@ -63,7 +63,7 @@ func main() {
 				Help:     "Private ssh key for vm of the BOSH director, in a single line, use `sed ':a;N;$!ba;s/\n/\\n/g' ssh.key` to create one.",
 				Required: true,
 			},
-			plugin.Field{
+			{
 				Mode:    "target",
 				Name:    "bbr_bindir",
 				Type:    "abspath",

@@ -31,7 +31,7 @@ func main() {
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode: "target",
 				Name: "redis_type",
 				Type: "enum",
