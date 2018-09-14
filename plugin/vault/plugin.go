@@ -51,7 +51,7 @@ func main() {
 			plugin.Field{
 				Mode:     "target",
 				Name:     "token",
-				Type:     "string",
+				Type:     "password",
 				Title:    "Auth Token",
 				Help:     "The auth token for a user with privileges to read and write the entire secret/ tree.",
 				Required: true,
