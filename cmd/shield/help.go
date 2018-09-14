@@ -349,6 +349,8 @@ func ShowHelp(command string) {
 		fmt.Printf("  -n, --name      The name of your new Retention Policy.\n")
 		fmt.Printf("                  This field is @W{required}.\n")
 		fmt.Printf("\n")
+		fmt.Printf("  -s, --summary   An optional, long-form description for the policy.\n")
+		fmt.Printf("\n")
 		fmt.Printf("  -d, --days      How many days to keep backup archives for.\n")
 		fmt.Printf("                  This field is @W{required}, and must be a positive,\n")
 		fmt.Printf("                  non-zero, whole number.\n")
@@ -599,7 +601,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "delete-job": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} delete-job--tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} delete-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Delete a Backup Job.\n")
 		fmt.Printf("\n")
@@ -1152,7 +1154,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "revoke-auth-token": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} create-auth-token\n")
+		fmt.Printf("USAGE: @G{shield} revoke-auth-token\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Revoke an issued authentication token.\n")
 		fmt.Printf("\n")
@@ -1670,6 +1672,8 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 		fmt.Printf("  -n, --name      A new name for the Retention Policy.\n")
 		fmt.Printf("\n")
+		fmt.Printf("  -s, --summary   An optional, long-form description for the policy.\n")
+		fmt.Printf("\n")
 		fmt.Printf("  -d, --days      How many days to keep backup archives for.\n")
 		fmt.Printf("                  This field is @W{required}, and must be a positive,\n")
 		fmt.Printf("                  non-zero, whole number.\n")
@@ -1741,7 +1745,7 @@ func ShowHelp(command string) {
 
 	/* }}} */
 	case "update-target": /* {{{ */
-		fmt.Printf("USAGE: @G{shield} update-store --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}\n")
+		fmt.Printf("USAGE: @G{shield} update-target --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
 		fmt.Printf("  Update an existing Target Data System\n")
 		fmt.Printf("\n")
