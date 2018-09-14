@@ -71,7 +71,7 @@ jobs:
             image_resource:
               type: docker-image
               source:
-                repository: (( grab meta.image ))
+                repository: (( grab meta.image.name ))
                 tag: (( grab meta.go.version ))
             inputs:
               - name: git
