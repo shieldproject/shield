@@ -7,7 +7,9 @@ import (
 
 	"database/sql"
 	"errors"
+
 	"github.com/starkandwayne/shield/plugin"
+
 	// sql drivers
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -272,7 +274,7 @@ func connectionString(info *MySQLConnectionInfo, backup bool) string {
 			db = "--all-databases"
 		}
 	} else {
-		db = ""
+		db = info.Database
 	}
 	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
 }
