@@ -17,6 +17,8 @@ const (
 const ns = 1000 * 1000 * 1000
 
 type Spec struct {
+	Error error
+
 	Interval    Interval
 	TimeOfDay   int
 	TimeOfHour  int
@@ -120,7 +122,7 @@ func (s *Spec) Next(t time.Time) (time.Time, error) {
 				}
 			}
 			//Ensure "FROM" is reduced to its simplest form
-			if float32(s.TimeOfDay) > (s.Cardinality * 60) {
+			if float32(s.TimeOfDay) >= (s.Cardinality * 60) {
 				s.TimeOfDay = s.TimeOfDay % int(s.Cardinality*60)
 				return t, fmt.Errorf("Invalid FROM time: did you mean %d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
 			}
