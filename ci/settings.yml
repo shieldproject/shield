@@ -86,10 +86,11 @@ jobs:
               PHALANX: phalanx
               VERSION: version
               OUTPUT:  out
-              BOSH_LITE_TARGET:     (( grab meta.bosh-lite.target ))
-              BOSH_LITE_USERNAME:   (( grab meta.bosh-lite.username ))
-              BOSH_LITE_PASSWORD:   (( grab meta.bosh-lite.password ))
-              BOSH_LITE_DEPLOYMENT: shield-phalanx-tests
+              BOSH_ENVIRONMENT:     (( grab meta.bosh-lite.target ))
+              BOSH_CLIENT:          (( grab meta.bosh-lite.username ))
+              BOSH_CLIENT_SECRET:   (( grab meta.bosh-lite.password ))
+              BOSH_DEPLOYMENT:      shield-phalanx-tests
+              BOSH_CA_CERT:         (( grab meta.bosh-lite.cacert ))
               AWS_ACCESS_KEY:       (( vault "secret/aws/cfcommunity:access" ))
               AWS_SECRET_KEY:       (( vault "secret/aws/cfcommunity:secret" ))
         on_success:
