@@ -1173,6 +1173,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
     case 'schedule-monthly':
       var ampm = $form.find('#schedule-monthly .ampm .selected').text();
       var mday = $form.find('#schedule-monthly .mday .selected').text();
+      d.monthlynth = d.monthlynth.replace(/\s*(th|rd|st)$/, '')+'th';
       if (mday == 'day') {
         return 'monthly at '+d.monthlyat+ampm+' on '+d.monthlynth;
       } else {
