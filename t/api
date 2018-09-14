@@ -78,7 +78,7 @@ workers:        3
 max_timeout:    10
 debug:          true
 web_root:       ./web2/htdocs
-vault_address:  https://127.0.0.1:8219
+vault_address:  http://127.0.0.1:8219
 auth:
   - identifier: public-github
     backend:    github
