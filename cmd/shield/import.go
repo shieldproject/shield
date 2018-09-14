@@ -74,11 +74,12 @@ type ImportTenant struct {
 		Config map[string]interface{} `yaml:"config"`
 
 		Jobs []struct {
-			Name    string `yaml:"name"`
-			When    string `yaml:"when"`
-			Policy  string `yaml:"policy"`
-			Storage string `yaml:"storage"`
-			Paused  bool   `yaml:"paused"`
+			Name     string `yaml:"name"`
+			When     string `yaml:"when"`
+			Policy   string `yaml:"policy"`
+			Storage  string `yaml:"storage"`
+			FixedKey bool   `yaml:"fixed_key"`
+			Paused   bool   `yaml:"paused"`
 		} `yaml:"jobs,omitempty"`
 	} `yaml:"systems,omitempty"`
 }
@@ -452,6 +453,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 						StoreUUID:  store.UUID,
 						PolicyUUID: policy.UUID,
 						Schedule:   job.When,
+						FixedKey:   job.FixedKey,
 					})
 					if err != nil {
 						return fmt.Errorf("failed to configure job '%s' of data system '%s' for tenant '%s': %s", job.Name, system.Name, tenant.Name, err)
