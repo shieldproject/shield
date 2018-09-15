@@ -75,22 +75,14 @@ if [[ -d ${newgopath} ]]; then
   PATH="${PATH}:${newgopath}/bin"
 fi
 echo ">> Using GOPATH ${GOPATH}"
-go get github.com/mitchellh/gox
 popd
-
-if [[ -n ${STATIC_BINARY} && ${STATIC_BINARY} != "false" ]]; then
-  export CGO_ENABLED=0
-fi
 
 ######
 ######
 ######
 header "Building the software"
 pushd $REPO_ROOT
-mkdir artifacts
-gox -osarch="${TARGETS}" --output="artifacts/${BINARY}-{{.OS}}-{{.Arch}}" -ldflags="-X main.Version=${VERSION}" ./...
-go build -o "${BINARY}" -ldflags="-X main.Version=${VERSION}" ${CMD_PKG:-.}
-./${BINARY} -v
+make release
 popd
 
 
