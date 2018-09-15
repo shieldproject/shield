@@ -106,6 +106,8 @@ release:
 	@echo "Checking that VERSION was defined in the calling environment"
 	@test -n "$(VERSION)"
 	@echo "OK.  VERSION=$(VERSION)"
+
+	@echo "Compiling SHIELD Linux Server Distribution..."
 	export GOOS=linux GOARCH=amd64
 	for plugin in $$(cat plugins); do \
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"      ./plugin/$$plugin; \
@@ -113,11 +115,17 @@ release:
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt"  ./cmd/shield-crypt
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-report"   ./cmd/shield-report
-	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/cli/shield"            ./cmd/shield
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-migrate" ./cmd/shield-migrate
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd
 
+	@echo "Compiling SHIELD CLI For Linux and macOS..."
+	GOOS=linux  GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-linux-amd64  ./cmd/shield
+	GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-amd64 ./cmd/shield
+	mkdir -p "$(ARTIFACTS)/cli"
+	cp artifacts/shield-linux-amd64 "$(ARTIFACTS)/cli/shield"
+
+	@echo "Assembling Linux Server Distribution..."
 	rm -f artifacts/*.tar.gz
 	cd artifacts && for x in shield-server-*; do cp -a ../web2/htdocs $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
 
