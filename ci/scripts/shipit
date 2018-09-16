@@ -82,7 +82,7 @@ popd
 ######
 header "Building the software"
 pushd $REPO_ROOT
-make release
+make release VERSION=$VERSION
 popd
 
 
