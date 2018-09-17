@@ -18,7 +18,7 @@ import (
 %type  <time>   time_in_HHMM
 %type  <numval> month_day minutes
 %type  <wday>   day_name
-%type  <spec>   spec hourly_spec daily_spec weekly_spec monthly_spec
+%type  <spec>   spec minutely_spec hourly_spec daily_spec weekly_spec monthly_spec
 %type  <truth>  am_or_pm
 
 %token <numval> NUMBER ORDINAL
@@ -35,6 +35,7 @@ import (
 %token HALF
 %token EVERY
 %token DAY
+%token MINUTE
 %token HOUR
 %token QUARTER
 %token AFTER
@@ -54,8 +55,13 @@ timespec : spec {
                 }
          ;
 
-spec : hourly_spec | daily_spec | weekly_spec | monthly_spec
+spec : minutely_spec | hourly_spec | daily_spec | weekly_spec | monthly_spec
      ;
+
+minutely_spec : EVERY NUMBER MINUTE FROM time_in_HHMM { $$ = minutely($5, int($2)) }
+              | EVERY        MINUTE                   { $$ = minutely( 0, 1) }
+              | EVERY NUMBER MINUTE                   { $$ = minutely( 0, int($2)) }
+              ;
 
 hourly_spec : HOURLY     AT time_in_MM             { $$ = hourly($3, 0) }
             | HOURLY        time_in_MM             { $$ = hourly($2, 0) }

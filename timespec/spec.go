@@ -8,7 +8,8 @@ import (
 type Interval uint
 
 const (
-	Hourly Interval = iota
+	Minutely Interval = iota
+	Hourly
 	Daily
 	Weekly
 	Monthly
@@ -76,6 +77,26 @@ func weekday(d time.Weekday) string {
 func (s *Spec) String() string {
 	t := fmt.Sprintf("%d:%02d", s.TimeOfDay/60, s.TimeOfDay%60)
 
+	if s.Interval == Minutely {
+		if s.Cardinality == 1.0 {
+			return "every minute"
+		}
+		if s.TimeOfDay == 0 {
+			return fmt.Sprintf("every %d minutes", int(s.Cardinality))
+		}
+
+		m := s.TimeOfDay
+		ampm := "am"
+		if m > 12*60 {
+			ampm = "pm"
+			m -= 12 * 60
+		}
+		if m < 60 {
+			m += 12 * 60
+		}
+		return fmt.Sprintf("every %d minutes from %d:%02d%s", int(s.Cardinality), m/60, m%60, ampm)
+	}
+
 	if s.Interval == Hourly && s.TimeOfHour < 60 {
 		if s.Cardinality == 0 {
 			return fmt.Sprintf("hourly at %d after", s.TimeOfHour)
@@ -108,6 +129,17 @@ func (s *Spec) String() string {
 func (s *Spec) Next(t time.Time) (time.Time, error) {
 	t = roundM(t)
 	midnight := offsetM(t, -1*(t.Hour()*60+t.Minute()))
+
+	if s.Interval == Minutely {
+		target := offsetM(midnight, s.TimeOfDay)
+		for i := 0; i < 1440; i++ { //Incrementing 1440 minutes in the worst case
+			if target.After(t) {
+				return target, nil
+			}
+			target = offsetM(target, int(s.Cardinality))
+		}
+		return t, fmt.Errorf("Cannot calculate the %0.2fth minute", s.Cardinality)
+	}
 
 	if s.Interval == Hourly && s.TimeOfHour < 60 {
 		if s.Cardinality != 0 {

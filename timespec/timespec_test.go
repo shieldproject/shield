@@ -15,6 +15,30 @@ var _ = Describe("Timespec", func() {
 	}
 
 	Describe("Stringification", func() {
+		It("can stringify minutely specs", func() {
+			spec := &Spec{
+				Cardinality: 1.0,
+				Interval: Minutely,
+				TimeOfDay: 0,
+			}
+
+			Ω(spec.String()).Should(Equal("every minute"))
+		})
+
+		It("can stringify cardinal minutely specs", func() {
+			spec := &Spec{
+				Cardinality: 5.0,
+				Interval: Minutely,
+				TimeOfDay: 3,
+			}
+
+			Ω(spec.String()).Should(Equal("every 5 minutes from 12:03am"))
+
+			spec.Cardinality = 90.0
+			spec.TimeOfDay = 45
+			Ω(spec.String()).Should(Equal("every 90 minutes from 12:45am"))
+		})
+
 		It("can stringify hourly specs", func() {
 			spec := &Spec{
 				Interval:   Hourly,
@@ -99,6 +123,28 @@ var _ = Describe("Timespec", func() {
 		// August 6th, 1991, at about 11:15 in the morning: start up Internet thing
 		tz := time.Now().Location()
 		now := time.Date(1991, 8, 6, 11, 15, 42, 100203, tz)
+
+		Context("with a minutely interval", func() {
+			It("can handle minutely", func() {
+				spec := &Spec{
+					Interval:    Minutely,
+					Cardinality: 1,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 11, 16, 00, 00, tz)))
+			})
+
+			It("can handle every 5 minutes on the hour", func() {
+				spec := &Spec{
+					Interval:    Minutely,
+					Cardinality: 5,
+				}
+
+				Ω(spec.Next(now)).Should(Equal(
+					time.Date(1991, 8, 6, 11, 20, 00, 00, tz)))
+			})
+		})
 
 		Context("with an hourly interval", func() {
 			It("can handle hourly at 30 after", func() {

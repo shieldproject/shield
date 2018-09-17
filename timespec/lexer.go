@@ -57,6 +57,7 @@ func (l *yyLex) init() {
 	l.keywords = append(l.keywords, keywordMatcher{token: AM, match: regexp.MustCompile(`(?i:^am)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: PM, match: regexp.MustCompile(`(?i:^pm)`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: EVERY, match: regexp.MustCompile(`(?i:^every)`)})
+	l.keywords = append(l.keywords, keywordMatcher{token: MINUTE, match: regexp.MustCompile(`(?i:^minute(s?))`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: HOUR, match: regexp.MustCompile(`(?i:^hour(s?))`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: DAY, match: regexp.MustCompile(`(?i:^day(s?))`)})
 	l.keywords = append(l.keywords, keywordMatcher{token: HALF, match: regexp.MustCompile(`(?i:^half)`)})

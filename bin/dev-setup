@@ -186,8 +186,8 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
 
   echo ; echo "  - creating Weekly job for 'System #427/a01'"
   shield create-job \
-          --name Weekly \
-          --schedule 'sundays at 2:30am' \
+          --name FAST \
+          --schedule 'every minute' \
           --paused \
           --store    s3 \
           --target   "System #427/a01" \
