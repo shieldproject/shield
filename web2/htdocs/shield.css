@@ -1407,12 +1407,17 @@ pre code form ul {
   margin: 1em 0;
 }
 
-pre.task-failed code { background-color: #5e0000; }
-pre.task-failed code em { color: #eee; }
-pre.task-failed code em em { color: salmon; }
-pre.task-failed code button { background-color: #222; }
+pre.task-canceled code,
+pre.task-failed   code { background-color: #5e0000; }
+pre.task-canceled code em,
+pre.task-failed   code em { color: #eee; }
+pre.task-canceled code em em,
+pre.task-failed   code em em { color: salmon; }
+pre.task-canceled code button,
+pre.task-failed   code button { background-color: #222; }
 
-pre.task-failed.override code { background-color: #333; }
+pre.task-canceled.override code,
+pre.task-failed.override   code { background-color: #333; }
 
 
 .timeline {
@@ -1445,7 +1450,9 @@ pre.task-failed.override code { background-color: #333; }
 
 .timeline .event.ok               { border-left-color: #8cc63f; }
 .timeline .event.ok::before       { background-color:  #8cc63f; }
+.timeline .event.canceled,
 .timeline .event.failed           { border-left-color: #ff1d25; }
+.timeline .event.canceled::before,
 .timeline .event.failed::before   { background-color:  #ff1d25; }
 .timeline .event.running          { border-left-color: #0071bc; }
 .timeline .event.handled::before  { background-color:  #0071bc; }
@@ -1468,6 +1475,7 @@ pre.task-failed.override code { background-color: #333; }
   top: -3px;
   left: 3px;
 }
+.timeline .event.canceled .tag,
 .timeline .event.failed .tag { display: none; }
 .timeline .event.backup .tag {
   color: #fff;
@@ -1482,8 +1490,10 @@ pre.task-failed.override code { background-color: #333; }
   line-height: 24pt;
   font-weight: bold;
 }
-.timeline .event.failed  .desc        { color: #ff1d25; }
-.timeline .event.failed  .desc::after { content: " — FAILED"; }
+.timeline .event.canceled .desc,
+.timeline .event.failed   .desc        { color: #ff1d25; }
+.timeline .event.canceled .desc::after { content: " — CANCELED"; }
+.timeline .event.failed   .desc::after { content: " — FAILED"; }
 .timeline .event.handled .desc        { color: inherit; }
 .timeline .event.handled .desc::after { content: " — handled"; }
 

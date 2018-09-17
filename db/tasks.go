@@ -287,6 +287,35 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	return db.GetTask(id)
 }
 
+func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) {
+	id := uuid.NewRandom()
+	now := time.Now().Unix()
+	err := db.Exec(
+		`INSERT INTO tasks
+		    (uuid, owner, op, job_uuid, status, log,
+		     requested_at, started_at, stopped_at, ok,
+		     store_uuid, store_plugin, store_endpoint,
+		     target_uuid, target_plugin, target_endpoint, restore_key,
+		     agent, attempts, tenant_uuid, fixed_key, compression)
+		  VALUES
+		    (?, ?, ?, ?, ?, ?,
+		     ?, ?, ?, ?,
+		     ?, ?, ?,
+		     ?, ?, ?, ?,
+		     ?, ?, ?, ?, ?)`,
+		id.String(), owner, BackupOperation, job.UUID.String(), CanceledStatus, log,
+		now, now, now, 0,
+		job.Store.UUID.String(), job.Store.Plugin, job.Store.Endpoint,
+		job.Target.UUID.String(), job.Target.Plugin, job.Target.Endpoint, "",
+		job.Agent, 0, job.TenantUUID.String(), job.FixedKey, job.Target.Compression,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	return db.GetTask(id)
+}
+
 func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) (*Task, error) {
 	endpoint, err := target.ConfigJSON()
 	if err != nil {

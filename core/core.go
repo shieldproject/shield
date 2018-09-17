@@ -380,9 +380,36 @@ func (core *Core) scheduleTasks() {
 		return
 	}
 
+	tasks, err := core.DB.GetAllTasks(&db.TaskFilter{
+		ForOp: "backup",
+		SkipInactive: true,
+	})
+	if err != nil {
+		log.Errorf("error retrieving in-flight tasks from database: %s", err)
+		return
+	}
+
+	lookup := make(map[string] string)
+	for _, task := range tasks {
+		lookup[task.JobUUID.String()] = task.UUID.String()
+	}
+
 	for _, job := range l {
-		log.Infof("scheduling a run of job %s [%s]", job.Name, job.UUID)
-		core.DB.CreateBackupTask("system", job)
+		if tid, running := lookup[job.UUID.String()]; running {
+			log.Infof("skipping next run of job %s [%s]; already running in task [%s]...", job.Name, job.UUID, tid)
+			_, err := core.DB.SkipBackupTask("system", job,
+				fmt.Sprintf("... skipping this run; task %s is still not finished ...\n", tid))
+			if err != nil {
+				log.Errorf("failed to insert skipped backup task record: %s", err)
+			}
+
+		} else {
+			log.Infof("scheduling a run of job %s [%s]", job.Name, job.UUID)
+			_, err := core.DB.CreateBackupTask("system", job)
+			if err != nil {
+				log.Errorf("failed to insert backup task record: %s", err)
+			}
+		}
 
 		if spec, err := timespec.Parse(job.Schedule); err != nil {
 			log.Errorf("error re-scheduling job %s [%s]: %s", job.Name, job.UUID, err)

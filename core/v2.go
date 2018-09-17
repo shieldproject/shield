@@ -3310,6 +3310,12 @@ func (core *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 			return err
 		}
 		switch tspec.Interval {
+		case timespec.Hourly:
+			if tspec.Cardinality == 0 {
+				dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days * 24
+			} else {
+				dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days * 24 / int(tspec.Cardinality)
+			}
 		case timespec.Daily:
 			dst.Jobs[j].Keep.N = dst.Jobs[j].Keep.Days
 		case timespec.Weekly:
