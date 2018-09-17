@@ -35,9 +35,28 @@ func (core *Core) testStorage() {
 	stores, err := core.DB.GetAllStores(nil)
 	if err != nil {
 		log.Errorf("Failed to get stores for health tests: %s", err)
+		return
+	}
+
+	inflight, err := core.DB.GetAllTasks(&db.TaskFilter{
+		ForOp:        db.TestStoreOperation,
+		SkipInactive: true,
+	})
+	if err != nil {
+		log.Errorf("Failed to get in-flight health test tasks: %s", err)
+		return
+	}
+
+	lookup := make(map[string]bool)
+	for _, task := range inflight {
+		lookup[task.StoreUUID.String()] = true
 	}
 
 	for _, store := range stores {
+		if _, inqueue := lookup[store.UUID.String()]; inqueue {
+			continue
+		}
+
 		_, err := core.DB.CreateTestStoreTask("system", store)
 		if err != nil {
 			log.Errorf("failed to create test store task: %s", err)
