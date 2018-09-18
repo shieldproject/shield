@@ -617,7 +617,18 @@
 
    ***************************************************/
   exported.api = (function () { // {{{
-    return function (options) {
+    var $key = 10000;
+    var $inflight = {};
+
+    return function (options, multi) {
+      $key++;
+      if (!multi) {
+        $.each($inflight, function (i,ajax) {
+          ajax.abort();
+        });
+        $inflight = {};
+      }
+
       if ('data' in options) {
         options.data = JSON.stringify(options.data);
         options.contentType = 'application/json';
@@ -629,13 +640,23 @@
         delete options.error;
       }
 
+      var complete = options['complete'];
+      options.complete = function () {
+        delete $inflight[$key];
+        if (typeof(complete) !== 'undefined') {
+          return complete.apply(this, arguments);
+        }
+      };
+
       if (!('error' in options)) {
         options.error = function (xhr) {
+          if (xhr.status == 0) {
+            return; /* jquery was aborted; no point in erroring... */
+          }
           if (xhr.status == 401) {
             document.location.href = '/';
             return
           }
-
           if (xhr.status == 403) {
             $('#main').html(template('access-denied', { level: 'generic', need: 'elevated' }));
             return
@@ -648,7 +669,8 @@
         };
       }
 
-      return $.ajax(options);
+      $inflight[$key] = $.ajax(options);
+      return $inflight[$key];
     };
   })();
   // }}}
@@ -671,6 +693,9 @@
 
       if (!('error' in options)) {
         options.error = function (xhr) {
+          if (xhr.status == 0) {
+            return; /* jquery was aborted; no point in erroring... */
+          }
           $('#main').html(exported.template('error', {
             http:     xhr.status + ' ' + xhr.statusText,
             response: xhr.responseText,
@@ -699,7 +724,7 @@
             complete: function () {
               nwait--; if (nwait <= 0) { done() }
             }
-          });
+          }, nwait > 1);
         })(key);
       }
     };

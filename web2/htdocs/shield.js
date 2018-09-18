@@ -621,7 +621,18 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
 
    ***************************************************/
   exported.api = (function () { // {{{
-    return function (options) {
+    var $key = 10000;
+    var $inflight = {};
+
+    return function (options, multi) {
+      $key++;
+      if (!multi) {
+        $.each($inflight, function (i,ajax) {
+          ajax.abort();
+        });
+        $inflight = {};
+      }
+
       if ('data' in options) {
         options.data = JSON.stringify(options.data);
         options.contentType = 'application/json';
@@ -633,13 +644,23 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
         delete options.error;
       }
 
+      var complete = options['complete'];
+      options.complete = function () {
+        delete $inflight[$key];
+        if (typeof(complete) !== 'undefined') {
+          return complete.apply(this, arguments);
+        }
+      };
+
       if (!('error' in options)) {
         options.error = function (xhr) {
+          if (xhr.status == 0) {
+            return; /* jquery was aborted; no point in erroring... */
+          }
           if (xhr.status == 401) {
             document.location.href = '/';
             return
           }
-
           if (xhr.status == 403) {
             $('#main').html(template('access-denied', { level: 'generic', need: 'elevated' }));
             return
@@ -652,7 +673,8 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
         };
       }
 
-      return $.ajax(options);
+      $inflight[$key] = $.ajax(options);
+      return $inflight[$key];
     };
   })();
   // }}}
@@ -675,6 +697,9 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
 
       if (!('error' in options)) {
         options.error = function (xhr) {
+          if (xhr.status == 0) {
+            return; /* jquery was aborted; no point in erroring... */
+          }
           $('#main').html(exported.template('error', {
             http:     xhr.status + ' ' + xhr.statusText,
             response: xhr.responseText,
@@ -703,7 +728,7 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
             complete: function () {
               nwait--; if (nwait <= 0) { done() }
             }
-          });
+          }, nwait > 1);
         })(key);
       }
     };
