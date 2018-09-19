@@ -324,7 +324,7 @@ var opts struct {
 	/* }}} */
 
 	Op struct {
-		Pry struct {} `cli:"pry"`
+		Pry struct{} `cli:"pry"`
 	} `cli:"op"`
 }
 

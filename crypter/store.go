@@ -1,11 +1,11 @@
 package crypter
 
 import (
-	"fmt"
-	"regexp"
-	"io/ioutil"
-	"encoding/json"
 	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"regexp"
 )
 
 func ReadConfig(path string, master string) (VaultCreds, error) {

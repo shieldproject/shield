@@ -381,7 +381,7 @@ func (core *Core) scheduleTasks() {
 	}
 
 	tasks, err := core.DB.GetAllTasks(&db.TaskFilter{
-		ForOp: "backup",
+		ForOp:        "backup",
 		SkipInactive: true,
 	})
 	if err != nil {
@@ -389,7 +389,7 @@ func (core *Core) scheduleTasks() {
 		return
 	}
 
-	lookup := make(map[string] string)
+	lookup := make(map[string]string)
 	for _, task := range tasks {
 		lookup[task.JobUUID.String()] = task.UUID.String()
 	}

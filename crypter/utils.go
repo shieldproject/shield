@@ -1,15 +1,15 @@
 package crypter
 
 import (
-	"crypto/cipher"
-	"io"
-	"fmt"
-	"crypto/aes"
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"io"
 	"math/big"
 	"strings"
-	"encoding/base64"
 )
 
 func encrypt(key, text []byte) (string, error) {
@@ -76,4 +76,3 @@ func ASCIIHexEncode(s string, n int) string {
 func ASCIIHexDecode(s string) string {
 	return strings.Replace(s, "-", "", -1)
 }
-

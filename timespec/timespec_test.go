@@ -18,8 +18,8 @@ var _ = Describe("Timespec", func() {
 		It("can stringify minutely specs", func() {
 			spec := &Spec{
 				Cardinality: 1.0,
-				Interval: Minutely,
-				TimeOfDay: 0,
+				Interval:    Minutely,
+				TimeOfDay:   0,
 			}
 
 			Ω(spec.String()).Should(Equal("every minute"))
@@ -28,8 +28,8 @@ var _ = Describe("Timespec", func() {
 		It("can stringify cardinal minutely specs", func() {
 			spec := &Spec{
 				Cardinality: 5.0,
-				Interval: Minutely,
-				TimeOfDay: 3,
+				Interval:    Minutely,
+				TimeOfDay:   3,
 			}
 
 			Ω(spec.String()).Should(Equal("every 5 minutes from 12:03am"))

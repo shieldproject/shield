@@ -16,8 +16,8 @@ import (
 	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/crypter"
+	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/timespec"
 	"github.com/starkandwayne/shield/util"
