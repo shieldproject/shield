@@ -627,8 +627,8 @@ func (core *Core) worker(id int) {
 					core.failTask(task, "shield worker %d unable retrieve fixed-key encryption parameters: %s\n", id, err)
 					continue
 				}
-				enc_key = core.vault.ASCIIHexDecode(data["key"].(string))
-				enc_iv = core.vault.ASCIIHexDecode(data["iv"].(string))
+				enc_key = crypter.ASCIIHexDecode(data["key"].(string))
+				enc_iv = crypter.ASCIIHexDecode(data["iv"].(string))
 			} else {
 				var err error
 				enc_key, enc_iv, err = core.vault.CreateBackupEncryptionConfig(core.encryptionType)
@@ -639,8 +639,8 @@ func (core *Core) worker(id int) {
 			}
 
 			err := core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
-				"key":  core.vault.ASCIIHexEncode(enc_key, 4),
-				"iv":   core.vault.ASCIIHexEncode(enc_iv, 4),
+				"key":  crypter.ASCIIHexEncode(enc_key, 4),
+				"iv":   crypter.ASCIIHexEncode(enc_iv, 4),
 				"type": core.encryptionType,
 				"uuid": task.ArchiveUUID.String(),
 			})

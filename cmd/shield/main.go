@@ -15,6 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/starkandwayne/shield/client/v2/shield"
+	"github.com/starkandwayne/shield/crypter"
 	"github.com/starkandwayne/shield/tui"
 )
 
@@ -321,6 +322,10 @@ var opts struct {
 	Session       struct{} `cli:"session"`
 	DeleteSession struct{} `cli:"delete-session"`
 	/* }}} */
+
+	Op struct {
+		Pry struct {} `cli:"pry"`
+	} `cli:"op"`
 }
 
 func main() {
@@ -620,6 +625,17 @@ func main() {
 	bail(err)
 
 	switch command {
+	case "op pry":
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s /path/to/vault.crypt\n", command)
+		}
+		master := secureprompt("@Y{SHIELD Master Password:} ")
+		creds, err := crypter.ReadConfig(args[0], master)
+		bail(err)
+		fmt.Printf("@C{Seal Key:}   %s\n", creds.SealKey)
+		fmt.Printf("@C{Root Token:} %s\n", creds.RootToken)
+		return
+
 	case "cores": /* {{{ */
 		tbl := tui.NewTable("Name", "URL", "Verify TLS?")
 		/* FIXME need stable sort */

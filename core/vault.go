@@ -1,5 +1,15 @@
 package core
 
+import (
+	"fmt"
+	"strings"
+
+	"github.com/jhunt/go-log"
+
+	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/crypter"
+)
+
 func (core *Core) Initialize(master string) (bool, string, error) {
 	if init, err := core.vault.IsInitialized(); init || err != nil {
 		return init, "", err
@@ -22,7 +32,7 @@ func (core *Core) Unlock(master string) (bool, error) {
 		return init, err
 	}
 
-	creds, err := core.vault.ReadConfig(core.vaultKeyfile, master)
+	creds, err := crypter.ReadConfig(core.vaultKeyfile, master)
 	if err != nil {
 		return true, err
 	}
@@ -40,12 +50,12 @@ func (core *Core) Unlock(master string) (bool, error) {
 }
 
 func (core *Core) Rekey(current, proposed string, rotateFixed bool) (string, error) {
-	creds, err := core.vault.ReadConfig(core.vaultKeyfile, current)
+	creds, err := crypter.ReadConfig(core.vaultKeyfile, current)
 	if err != nil {
 		return "", err
 	}
 
-	err = core.vault.WriteConfig(core.vaultKeyfile, proposed, creds)
+	err = crypter.WriteConfig(core.vaultKeyfile, proposed, creds)
 	if err != nil {
 		return "", err
 	}

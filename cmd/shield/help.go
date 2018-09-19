@@ -969,6 +969,24 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "op pry": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} op pry @Y{/path/to/vault.crypt}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Decrypt and inspect a SHIELD Vault Crypt.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @R{NOTE: This is an advanced operation, made available for}\n")
+		fmt.Printf("  @R{      troubleshooting and development purposes.  It is not}\n")
+		fmt.Printf("  @R{      to be used lightly.}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  The SHIELD Vault Crypt contains the encrypted Vault Seal Key\n")
+		fmt.Printf("  and Root Token, which are necessary for accessing the Vault.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  This utility asks for the SHIELD Master Password and decrypts\n")
+		fmt.Printf("  the crypt file, printing its contents to standard output.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "passwd": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} passwd\n")
 		fmt.Printf("\n")

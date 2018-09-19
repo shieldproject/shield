@@ -1,3 +1,8 @@
+# New Features
+
+- New `shield op pry` for decrypting and inspecting the contents
+  of a SHIELD Vault Crypt.
+
 # Bug Fixes
 
 - Web UI page dispatch logic now properly cancels all outstanding

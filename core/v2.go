@@ -17,6 +17,7 @@ import (
 	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/crypter"
 	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/timespec"
 	"github.com/starkandwayne/shield/util"
@@ -2712,8 +2713,8 @@ func (core *Core) v2API() *route.Router {
 			StoreEndpoint:  fmt.Sprintf("{\"base_dir\": \"%s\", \"bsdtar\": \"bsdtar\"}", backupPath),
 			RestoreKey:     backupName,
 			EncryptType:    "aes256-ctr",
-			EncryptKey:     core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[:32], 4),
-			EncryptIV:      core.vault.ASCIIHexEncode(r.Req.FormValue("fixedkey")[32:], 4),
+			EncryptKey:     crypter.ASCIIHexEncode(r.Req.FormValue("fixedkey")[:32], 4),
+			EncryptIV:      crypter.ASCIIHexEncode(r.Req.FormValue("fixedkey")[32:], 4),
 		})
 
 		/* if task fails, delete datadir and crash for monit restart; try again */

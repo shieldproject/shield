@@ -15,7 +15,7 @@ for my $file (@ARGV) {
 	$help =~ s/"/\\"/g;
 	$help = join("", map { "\t\tfmt.Printf(\"$_\\n\")\n" } split("\n", $help, -1));
 
-	my $command = $file; $command =~ s|.*/||;
+	my $command = $file; $command =~ s|.*/||; $command =~ s/--/ /;
 	$CASES .= "\tcase \"$command\": /* {{{ */\n$help\n\t/* }}} */\n";
 }
 $CODE =~ s/__CASES__/$CASES/;
