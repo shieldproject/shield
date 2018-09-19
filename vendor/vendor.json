@@ -20,8 +20,10 @@
 			"revision": "4897648e310020dae650a89c31ff633284c13a24"
 		},
 		{
+			"checksumSHA1": "+zvYdwOLxp+4DAPKPAEfT7EsNPY=",
 			"path": "github.com/ErikDubbelboer/gspt",
-			"revision": "90553243e3346b62d0dccd1544a2030ac7237068"
+			"revision": "e39e726e09cc23d1ccf13b36ce10dbdb4a4510e0",
+			"revisionTime": "2018-07-11T09:15:04Z"
 		},
 		{
 			"checksumSHA1": "DGMu2GgXR+RjkEcsJRxQaFQH0VE=",
@@ -59,9 +61,6 @@
 			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
 			"revisionTime": "2017-09-08T23:15:55Z"
 		},
-		{
-			"path": "github.com/kurin/blazer",
-			"revision": "caf65aa76491dc533bac68ad3243ce72fa4e0a0a"
 		{
 			"path": "github.com/fsouza/go-dockerclient",
 			"revision": "d750ee8aff39bca4ccf0b362db4f04510145d678"
@@ -210,6 +209,10 @@
 			"comment": "sqlx-v1.1-71-gbdae0c3",
 			"path": "github.com/jmoiron/sqlx/reflectx",
 			"revision": "bdae0c3219c3bdb92f3d7c70825018712787c933"
+		},
+		{
+			"path": "github.com/kurin/blazer",
+			"revision": "caf65aa76491dc533bac68ad3243ce72fa4e0a0a"
 		},
 		{
 			"checksumSHA1": "Ncf0ItwKAuTF5eNkGW+Pk78pwzM=",
