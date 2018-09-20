@@ -1,13 +1,7 @@
 package core
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/jhunt/go-log"
-
 	"github.com/starkandwayne/shield/crypter"
-	"github.com/starkandwayne/shield/db"
 )
 
 func (core *Core) Initialize(master string) (bool, string, error) {

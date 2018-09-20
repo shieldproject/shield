@@ -465,6 +465,12 @@ func (core *Core) expireArchives() {
 			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
 			continue
 		}
+
+		log.Infof("deleting encryption parameters for archive %s", archive.UUID)
+		err = core.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID.String()))
+		if err != nil {
+			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
+		}
 	}
 }
 

@@ -2606,6 +2606,10 @@ func (core *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to delete backup archive"))
 			return
 		}
+		err = core.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID.String()))
+		if err != nil {
+			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
+		}
 
 		r.Success("Archive deleted successfully")
 	})

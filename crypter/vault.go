@@ -257,31 +257,6 @@ func (vault *Vault) Delete(path string) error {
 	return nil
 }
 
-func (vault *Vault) List(path string) ([]string, error) {
-	res, err := vault.Do("LIST", fmt.Sprintf("/v1/secret/%s", path), nil)
-	if err != nil {
-		return nil, err
-	}
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("API %s", res.Status)
-	}
-
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var raw struct {
-		Data struct {
-			Keys []string `json:"keys"`
-		} `json:"data"`
-	}
-	if err = json.Unmarshal(b, &raw); err != nil {
-		return nil, err
-	}
-	return raw.Data.Keys, nil
-}
-
 // CreateBackupEncryptionConfig creats random keys and corresponding iv's for a given cipher
 // It returns both a key and iv (hex format)
 func (vault *Vault) CreateBackupEncryptionConfig(enctype string) (string, string, error) {
