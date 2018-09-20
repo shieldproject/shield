@@ -736,6 +736,7 @@ footer {
   position: fixed;
   bottom: 0;
   padding: 4px;
+  background-color: #f2f2f2;
 }
 
 footer a {
@@ -795,7 +796,6 @@ footer p {
 .hud .warn span { color: #FCEE21; }
 .hud .fail span { color: #FF6161; text-transform: uppercase }
 
-
 .nav {
   background-color: #000;
   color: #fff;
@@ -818,6 +818,10 @@ footer p {
   display: inline-block;
   padding-right: 22.5px;
   line-height: 40px;
+}
+.nav li.cli {
+  float: left;
+  padding: 0 0 0 8px;
 }
 
 .nav.sticky {

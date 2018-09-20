@@ -127,7 +127,14 @@ release:
 
 	@echo "Assembling Linux Server Distribution..."
 	rm -f artifacts/*.tar.gz
-	cd artifacts && for x in shield-server-*; do cp -a ../web2/htdocs $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
+	cd artifacts && for x in shield-server-*; do \
+	  cp -a ../web2/htdocs $$x/webui; \
+	  mkdir -p $$x/webui/cli/linux; cp ../artifacts/shield-linux-amd64   $$x/webui/cli/linux/shield; \
+	  mkdir -p $$x/webui/cli/mac;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/mac/shield; \
+	  cp ../bin/shield-pipe $$x/daemon; \
+	  tar -czvf $$x.tar.gz $$x; \
+	  rm -r $$x; \
+	done
 
 
 JAVASCRIPTS := web2/src/js/jquery.js

@@ -8,6 +8,9 @@
 /shield-crypt
 /shield-report
 
+# ignore web cli downloads
+/web2/htdocs/cli
+
 # stuff we use in t/*
 /bin/vault
 

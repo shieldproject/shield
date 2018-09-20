@@ -1,5 +1,9 @@
 # New Features
 
+- The SHIELD Web UI now allows you to download the SHIELD CLI
+  directly, for both MacOS (Darwin) and Linux.  From now on,
+  SHIELD releases will include the paired version of the CLI.
+
 - New `shield op pry` for decrypting and inspecting the contents
   of a SHIELD Vault Crypt.
 
