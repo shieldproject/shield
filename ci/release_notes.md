@@ -4,8 +4,23 @@
   directly, for both MacOS (Darwin) and Linux.  From now on,
   SHIELD releases will include the paired version of the CLI.
 
+- We now support minutely backups, but only from the CLI.
+
 - New `shield op pry` for decrypting and inspecting the contents
   of a SHIELD Vault Crypt.
+
+# Improvements
+
+- SHIELD now cleans up the Vault when archives are marked as
+  expired (for purgation).
+
+- Scheduled jobs no longer "stack" in the queue.  If SHIELD goes
+  to schedule a backup and an existing task is in-flight for the
+  same job, an already-cancelled task is stored in the database,
+  as a placeholder to the task that should have run.
+
+- Storage Health Check Tasks no longer stack.  SHIELD only allows
+  one in-flight task for a given Cloud Storage System, at a time.
 
 # Bug Fixes
 
