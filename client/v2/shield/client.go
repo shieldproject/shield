@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -33,6 +34,11 @@ type Client struct {
 func (c *Client) initialize() error {
 	if c.init {
 		return nil
+	}
+
+	/* drop trailing slashes */
+	for strings.HasSuffix(c.URL, "/") {
+		c.URL = strings.TrimSuffix(c.URL, "/")
 	}
 
 	/* set a default timeout */

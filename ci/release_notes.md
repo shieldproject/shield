@@ -22,6 +22,9 @@
 - Storage Health Check Tasks no longer stack.  SHIELD only allows
   one in-flight task for a given Cloud Storage System, at a time.
 
+- The `shield` CLI now handles API endpoints with any number of
+  trailing forward slash (`/`) characters.
+
 # Bug Fixes
 
 - Web UI page dispatch logic now properly cancels all outstanding
