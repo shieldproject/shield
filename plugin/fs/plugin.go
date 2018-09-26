@@ -241,10 +241,6 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		}
 
 		info := header.FileInfo()
-		if err != nil {
-			return err
-		}
-
 		path := fmt.Sprintf("%s/%s", cfg.BasePath, header.Name)
 		if info.Mode().IsDir() {
 			if err := os.MkdirAll(path, 0777); err != nil {
