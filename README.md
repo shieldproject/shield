@@ -1,9 +1,11 @@
+[![Build Status](https://travis-ci.org/starkandwayne/shield.svg)](https://travis-ci.org/starkandwayne/shield)
+
 S.H.I.E.L.D. Data Protection
 ============================
 
-Questions? Pop in our [slack channel](https://cloudfoundry.slack.com/messages/shield/)!
+Questions? Pop in our [slack channel](http://shieldproject.io/community/#slack)!
 
-[![Build Status](https://travis-ci.org/starkandwayne/shield.svg)](https://travis-ci.org/starkandwayne/shield)
+![SHIELD Architectural Diagram](docs/images/arch.gif)
 
 What is SHIELD?
 ---------------
