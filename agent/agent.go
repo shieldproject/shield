@@ -103,8 +103,6 @@ func (agent *Agent) handleConn(conn *ssh.ServerConn, chans <-chan ssh.NewChannel
 			return
 		}
 
-		defer channel.Close()
-
 		for req := range requests {
 			if req.Type != "exec" {
 				log.Errorf("rejecting non-exec channel request (type=%s)\n", req.Type)
