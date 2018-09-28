@@ -770,6 +770,10 @@ func (core *Core) v2API() *route.Router {
 		}
 		// check to see if we're offseting task requests
 		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
+		if err != nil || paginationDate < 0 {
+			r.Fail(route.Bad(err, "Invalid before parameter given"))
+			return
+		}
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
@@ -2408,6 +2412,10 @@ func (core *Core) v2API() *route.Router {
 
 		// check to see if we're offseting task requests
 		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
+		if err != nil || paginationDate < 0 {
+			r.Fail(route.Bad(err, "Invalid before parameter given"))
+			return
+		}
 
 		tasks, err := core.DB.GetAllTasks(
 			&db.TaskFilter{
@@ -2662,6 +2670,10 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 		file, _, err := r.Req.FormFile("archive")
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to receive uploaded backup file."))
+			return
+		}
 
 		backupStore, err := ioutil.TempFile("", "SHIELDrestoreBOOTSTRAP")
 		if err != nil {
