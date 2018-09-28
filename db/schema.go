@@ -55,7 +55,7 @@ func (db *DB) Setup(want int) (int, error) {
 
 func schemaVersions() []int {
 	var versions []int
-	for k, _ := range Schemas {
+	for k := range Schemas {
 		versions = append(versions, k)
 	}
 	sort.Ints(versions)

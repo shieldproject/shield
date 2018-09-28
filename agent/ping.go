@@ -80,7 +80,7 @@ func (agent *Agent) Ping() {
 
 	t := time.NewTicker(time.Duration(agent.Registration.Interval) * time.Second)
 	ping()
-	for _ = range ch {
+	for range t.C {
 		ping()
 	}
 }

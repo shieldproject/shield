@@ -377,15 +377,15 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
 	defer r.Close()
 
 	var p *int64
-	for r.Next() {
-		if err = r.Scan(&p); err != nil {
-			return i, err
-		}
-		if p != nil {
-			i = *p
-		}
-		return i, nil
+	if !r.Next() {
+		return 0, fmt.Errorf("no results from SUM(size) query...")
 	}
 
-	return i, fmt.Errorf("no results from SUM(size) query...")
+	if err = r.Scan(&p); err != nil {
+		return 0, err
+	}
+	if p != nil {
+		i = *p
+	}
+	return i, nil
 }
