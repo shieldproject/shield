@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"time"
 
 	"github.com/jhunt/go-log"
 
@@ -101,9 +100,6 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func match(req *http.Request, pattern string) bool {
-	uuider := regexp.MustCompile(":uuid")
-	pattern = uuider.ReplaceAllString(pattern, "[a-fA-F0-9-]+")
-
 	matched, _ := regexp.MatchString(
 		fmt.Sprintf("^%s$", pattern),
 		fmt.Sprintf("%s %s", req.Method, req.URL.Path))
