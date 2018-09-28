@@ -78,7 +78,7 @@ func (agent *Agent) Ping() {
 		log.Debugf("POST /v2/agents returned [%s]", res.Status)
 	}
 
-	ch := time.Tick(time.Duration(agent.Registration.Interval) * time.Second)
+	t := time.NewTicker(time.Duration(agent.Registration.Interval) * time.Second)
 	ping()
 	for _ = range ch {
 		ping()
