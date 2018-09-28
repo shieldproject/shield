@@ -32,3 +32,6 @@
   where pages would flip "back" to a previous node in the history,
   because a delayed AJAX request was still working away in the
   background.
+
+- `shield import` now honors the `paused` setting on jobs that it
+  creates on your behalf.

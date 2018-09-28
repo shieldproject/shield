@@ -454,6 +454,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 						PolicyUUID: policy.UUID,
 						Schedule:   job.When,
 						FixedKey:   job.FixedKey,
+						Paused:     job.Paused,
 					})
 					if err != nil {
 						return fmt.Errorf("failed to configure job '%s' of data system '%s' for tenant '%s': %s", job.Name, system.Name, tenant.Name, err)
