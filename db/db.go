@@ -143,9 +143,8 @@ func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
 		db.qCache[sql] = stmt
 	}
 
-	q, ok = db.qCache[sql]
-	if !ok {
-		return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", sql)
+	if q, ok := db.qCache[sql]; ok {
+		return q, nil
 	}
-	return q, nil
+	return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", sql)
 }
