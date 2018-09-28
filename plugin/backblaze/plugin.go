@@ -14,10 +14,7 @@ import (
 	"github.com/starkandwayne/shield/plugin"
 )
 
-const (
-	DefaultPrefix              = ""
-	DefaultUseInstanceProfiles = false
-)
+const DefaultPrefix = ""
 
 func validBucketName(v string) bool {
 	ok, err := regexp.MatchString(`^[a-z0-9][a-z0-9\.\-]{1,61}[a-z0-9]$`, v)
@@ -90,11 +87,6 @@ type backblazeEndpoint struct {
 	SecretKey  string
 	PathPrefix string
 	Bucket     string
-}
-
-type instanceProfileCredentials struct {
-	Key    string `json:"AccessKeyId"`
-	Secret string `json:"SecretAccessKey"`
 }
 
 func (p BackblazePlugin) Meta() plugin.PluginInfo {

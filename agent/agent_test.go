@@ -263,12 +263,9 @@ var _ = Describe("Agent", func() {
 
 	Describe("Command Runner", func() {
 		var cmd *Command
-		var out chan string
 		var a *Agent
 
 		BeforeEach(func() {
-			out = make(chan string)
-
 			var err error
 			cmd, err = ParseCommand([]byte(`{
 				"operation"       : "backup",

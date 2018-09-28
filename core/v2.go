@@ -16,23 +16,11 @@ import (
 	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/shield/crypter"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/timespec"
 	"github.com/starkandwayne/shield/util"
 )
-
-type v2AuthProvider struct {
-	Name       string `json:"name"`
-	Identifier string `json:"identifier"`
-	Type       string `json:"type"`
-	WebEntry   string `json:"web_entry"`
-	CLIEntry   string `json:"cli_entry"`
-	Redirect   string `json:"redirect"`
-
-	Properties map[string]interface{} `json:"properties,omitempty"`
-}
 
 type v2SystemArchive struct {
 	UUID     uuid.UUID `json:"uuid"`

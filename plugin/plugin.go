@@ -366,15 +366,6 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 	return err
 }
 
-func pluginInfo(p Plugin) error {
-	json, err := json.MarshalIndent(p.Meta(), "", "    ")
-	if err != nil {
-		return JSONError{Err: fmt.Sprintf("Could not create plugin metadata output: %s", err.Error())}
-	}
-	fmt.Printf("%s\n", json)
-	return nil
-}
-
 func GenUUID() string {
 	return uuid.New()
 }

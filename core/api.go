@@ -115,13 +115,6 @@ func bail(w http.ResponseWriter, e error) {
 	log.Errorf("Request bailed: <%s>", e)
 }
 
-func bailWithError(w http.ResponseWriter, err JSONError) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	w.Write([]byte(err.JSON()))
-	log.Errorf("Request bailed: <%s>", err)
-}
-
 func JSON(w http.ResponseWriter, thing interface{}) {
 	bytes, err := json.Marshal(thing)
 	if err != nil {
@@ -133,54 +126,6 @@ func JSON(w http.ResponseWriter, thing interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	w.Write(bytes)
-}
-
-func JSONLiteral(w http.ResponseWriter, thing string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	w.Write([]byte(thing))
-}
-
-func paramEquals(req *http.Request, name string, value string) bool {
-	actual, set := req.URL.Query()[name]
-	return set && actual[0] == value
-}
-
-func paramValue(req *http.Request, name string, defval string) string {
-	value, set := req.URL.Query()[name]
-	if set {
-		return value[0]
-	}
-	return defval
-}
-
-func paramDate(req *http.Request, name string) *time.Time {
-	value, set := req.URL.Query()[name]
-	if !set {
-		return nil
-	}
-
-	t, err := time.Parse("20060102", value[0])
-	if err != nil {
-		return nil
-	}
-	return &t
-}
-
-func (core *Core) mustBeUnlocked(w http.ResponseWriter) bool {
-	status, err := core.vault.Status()
-	if err != nil {
-		bail(w, err)
-		return true
-	}
-	if status == "unsealed" {
-		return false
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(403)
-	w.Write([]byte(ClientErrorf("Shield is currently locked").JSON()))
-	return true
 }
 
 func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {

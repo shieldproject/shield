@@ -8,10 +8,7 @@ import (
 
 type matcher func(req *http.Request) ([]string, bool)
 
-var (
-	uuidSlug *regexp.Regexp
-	anySlug  *regexp.Regexp
-)
+var anySlug *regexp.Regexp
 
 func init() {
 	anySlug = regexp.MustCompile(":[a-z]+")

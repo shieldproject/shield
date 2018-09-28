@@ -78,15 +78,6 @@ func main() {
 
 type ConsulPlugin plugin.PluginInfo
 
-type ConsulConnectionInfo struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Bin      string
-	Database string
-}
-
 func (p ConsulPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
