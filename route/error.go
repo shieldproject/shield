@@ -14,7 +14,7 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return e.Error()
+	return e.e.Error()
 }
 
 func (e *Error) ProvideDiagnostic() {
