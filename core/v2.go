@@ -216,7 +216,7 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		fixedKey, err := core.Rekey(in.Current, in.New, in.RotateFixed)
+		fixedKey, err := core.vault.Rekey(core.vaultKeyfile, in.Current, in.New, in.RotateFixed)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
 			return
@@ -2697,6 +2697,11 @@ func (core *Core) v2API() *route.Router {
 		}
 
 		/* out-of-band task run to restore SHIELD.*/
+		enc, err := core.vault.RetrieveFixed()
+		if err != nil {
+			r.Fail(route.Oops(nil, "Failed to retrieve encryption parameters from the vault"))
+			return
+		}
 		err = core.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
 			Op:             db.ShieldRestoreOperation,
 			TargetPlugin:   "fs",
@@ -2704,9 +2709,9 @@ func (core *Core) v2API() *route.Router {
 			StorePlugin:    "fs",
 			StoreEndpoint:  fmt.Sprintf("{\"base_dir\": \"%s\", \"bsdtar\": \"bsdtar\"}", backupPath),
 			RestoreKey:     backupName,
-			EncryptType:    "aes256-ctr",
-			EncryptKey:     crypter.ASCIIHexEncode(r.Req.FormValue("fixedkey")[:32], 4),
-			EncryptIV:      crypter.ASCIIHexEncode(r.Req.FormValue("fixedkey")[32:], 4),
+			EncryptType:    enc.Type,
+			EncryptKey:     enc.Key,
+			EncryptIV:      enc.IV,
 		})
 
 		/* if task fails, delete datadir and crash for monit restart; try again */

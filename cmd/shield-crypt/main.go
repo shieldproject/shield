@@ -9,7 +9,8 @@ import (
 	"strings"
 
 	"github.com/jhunt/go-cli"
-	"github.com/starkandwayne/shield/crypter"
+
+	"github.com/starkandwayne/shield/core/vault"
 )
 
 var opt struct {
@@ -37,7 +38,7 @@ func main() {
 		}
 
 		if crypt.Type != "" {
-			encStream, decStream, err = crypter.Stream(crypt.Type, []byte(keyRaw), []byte(ivRaw))
+			encStream, decStream, err = vault.Stream(crypt.Type, []byte(keyRaw), []byte(ivRaw))
 			if err != nil {
 				panic(err)
 			}

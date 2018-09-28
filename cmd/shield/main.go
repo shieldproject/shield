@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/starkandwayne/shield/client/v2/shield"
-	"github.com/starkandwayne/shield/crypter"
+	"github.com/starkandwayne/shield/core/vault"
 	"github.com/starkandwayne/shield/tui"
 )
 
@@ -630,7 +630,7 @@ func main() {
 			fail(2, "Usage: shield %s /path/to/vault.crypt\n", command)
 		}
 		master := secureprompt("@Y{SHIELD Master Password:} ")
-		creds, err := crypter.ReadConfig(args[0], master)
+		creds, err := vault.ReadCrypt(args[0], master)
 		bail(err)
 		fmt.Printf("@C{Seal Key:}   %s\n", creds.SealKey)
 		fmt.Printf("@C{Root Token:} %s\n", creds.RootToken)

@@ -1,32 +1,32 @@
 package core
 
 import (
-	"github.com/starkandwayne/shield/crypter"
+	"github.com/starkandwayne/shield/core/vault"
 )
 
 func (core *Core) Initialize(master string) (bool, string, error) {
-	if init, err := core.vault.IsInitialized(); init || err != nil {
+	if init, err := core.vault.Initialized(); init || err != nil {
 		return init, "", err
 	}
 
-	fixedKey, err := core.vault.Init(core.vaultKeyfile, master)
+	fixed, err := core.vault.Initialize(core.vaultKeyfile, master)
 	if err != nil {
 		return false, "", err
 	}
 
-	if sealed, err := core.vault.IsSealed(); sealed || err != nil {
+	if sealed, err := core.vault.Sealed(); sealed || err != nil {
 		return false, "", err
 	}
 
-	return false, fixedKey, nil
+	return false, fixed, nil
 }
 
 func (core *Core) Unlock(master string) (bool, error) {
-	if init, err := core.vault.IsInitialized(); !init || err != nil {
+	if init, err := core.vault.Initialized(); !init || err != nil {
 		return init, err
 	}
 
-	creds, err := crypter.ReadConfig(core.vaultKeyfile, master)
+	creds, err := vault.ReadCrypt(core.vaultKeyfile, master)
 	if err != nil {
 		return true, err
 	}
@@ -36,27 +36,9 @@ func (core *Core) Unlock(master string) (bool, error) {
 		return true, err
 	}
 
-	if sealed, err := core.vault.IsSealed(); sealed == true || err != nil {
+	if sealed, err := core.vault.Sealed(); sealed == true || err != nil {
 		return true, err
 	}
 
 	return true, nil
-}
-
-func (core *Core) Rekey(current, proposed string, rotateFixed bool) (string, error) {
-	creds, err := crypter.ReadConfig(core.vaultKeyfile, current)
-	if err != nil {
-		return "", err
-	}
-
-	err = crypter.WriteConfig(core.vaultKeyfile, proposed, creds)
-	if err != nil {
-		return "", err
-	}
-
-	if rotateFixed {
-		return core.vault.FixedKeygen()
-	}
-
-	return "", nil
 }

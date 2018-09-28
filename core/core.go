@@ -14,7 +14,7 @@ import (
 	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/shield/crypter"
+	"github.com/starkandwayne/shield/core/vault"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
 )
@@ -66,7 +66,7 @@ type Core struct {
 	motd    string
 
 	/* vault */
-	vault          crypter.Vault
+	vault          *vault.Client
 	encryptionType string
 	vaultKeyfile   string
 	vaultAddress   string
@@ -254,7 +254,7 @@ func (core *Core) Run() error {
 	}
 	core.cleanup()
 
-	core.vault, err = crypter.NewVault(core.vaultAddress, core.vaultCACert)
+	core.vault, err = vault.Connect(core.vaultAddress, core.vaultCACert)
 	if err != nil {
 		log.Errorf("Failed to create core vault instance with error: %s", err)
 		os.Exit(2)
@@ -274,8 +274,8 @@ func (core *Core) Run() error {
 	for {
 		select {
 		case <-core.fastloop.C:
-			sealed, err := core.vault.IsSealed()
-			initialized, initErr := core.vault.IsInitialized()
+			sealed, err := core.vault.Sealed()
+			initialized, initErr := core.vault.Initialized()
 			if core.seppuku != -1 {
 				log.Infof("core.sepukku was set to non-negative value, sayonara my friend")
 				os.Exit(core.seppuku)
@@ -297,8 +297,8 @@ func (core *Core) Run() error {
 			core.updateStorageUsage()
 			core.purgeExpiredSessions()
 
-			sealed, _ := core.vault.IsSealed()
-			initialized, _ := core.vault.IsInitialized()
+			sealed, _ := core.vault.Sealed()
+			initialized, _ := core.vault.Initialized()
 			if initialized && !sealed {
 				core.purge()
 				core.testStorage()
@@ -624,58 +624,44 @@ func (core *Core) worker(id int) {
 			}
 		}()
 
+		var enc vault.Parameters
+		var err error
 		if task.Op == db.BackupOperation {
 			task.ArchiveUUID = uuid.NewRandom()
-			var enc_key, enc_iv string
+
 			if task.FixedKey {
-				data, exists, err := core.vault.Get("secret/archives/fixed_key")
-				if err != nil || !exists {
-					core.failTask(task, "shield worker %d unable retrieve fixed-key encryption parameters: %s\n", id, err)
+				enc, err = core.vault.RetrieveFixed()
+				if err != nil {
+					core.failTask(task, "shield workder %d: %s", id, err)
 					continue
 				}
-				enc_key = crypter.ASCIIHexDecode(data["key"].(string))
-				enc_iv = crypter.ASCIIHexDecode(data["iv"].(string))
 			} else {
-				var err error
-				enc_key, enc_iv, err = core.vault.CreateBackupEncryptionConfig(core.encryptionType)
+				enc, err = core.vault.RandomParameters(core.encryptionType)
 				if err != nil {
-					core.failTask(task, "shield worker %d failed to generate encryption parameters: %s\n", id, err)
+					core.failTask(task, "shield worker %d: %s\n", id, err)
 					continue
 				}
 			}
 
-			err := core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
-				"key":  crypter.ASCIIHexEncode(enc_key, 4),
-				"iv":   crypter.ASCIIHexEncode(enc_iv, 4),
-				"type": core.encryptionType,
-				"uuid": task.ArchiveUUID.String(),
-			})
-
+			err = core.vault.Store(task.ArchiveUUID.String(), enc)
 			if err != nil {
-				core.failTask(task, "shield worker %d failed to set encryption parameters: %s\n", id, err)
+				core.failTask(task, "shield worker %d failed to store encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID.String())
 				continue
 			}
 		}
 
-		var encType, encKey, encIV string
 		if task.Op == db.BackupOperation || task.Op == db.RestoreOperation {
-			data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
+			enc, err = core.vault.Retrieve(task.ArchiveUUID.String())
 			if err != nil {
-				core.failTask(task, "shield worker %d unable retrieve encryption parameters: %s\n", id, err)
+				core.failTask(task, "shield worker %d failed to retrieve encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID.String())
 				continue
-			}
-
-			if exists {
-				encType = data["type"].(string)
-				encKey = data["key"].(string)
-				encIV = data["iv"].(string)
 			}
 		}
 		/* connect to the remote SSH agent for this specific request
 		   (a worker may connect to lots of different agents in its
 		    lifetime; these connections endure long enough to submit
 		    the agent command and gather the exit code + output) */
-		err := core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
+		err = core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
 			Op:             task.Op,
 			TargetPlugin:   task.TargetPlugin,
 			TargetEndpoint: task.TargetEndpoint,
@@ -683,9 +669,9 @@ func (core *Core) worker(id int) {
 			StorePlugin:    task.StorePlugin,
 			StoreEndpoint:  task.StoreEndpoint,
 			RestoreKey:     task.RestoreKey,
-			EncryptType:    encType,
-			EncryptKey:     encKey,
-			EncryptIV:      encIV,
+			EncryptType:    enc.Type,
+			EncryptKey:     enc.Key,
+			EncryptIV:      enc.IV,
 		})
 
 		if err != nil {
