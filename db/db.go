@@ -135,8 +135,7 @@ func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
 	}
 
 	sql := db.resolve(db.rebind(sql_or_name))
-	q, ok := db.qCache[sql]
-	if !ok {
+	if _, ok := db.qCache[sql]; !ok {
 		stmt, err := db.connection.Prepare(sql)
 		if err != nil {
 			return nil, err

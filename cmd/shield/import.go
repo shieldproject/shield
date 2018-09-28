@@ -270,7 +270,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 		s, _ := c.FindGlobalStore(storage.Name, false)
 		if s == nil {
 			fmt.Printf("creating cloud storage system @M{%s}, using the @Y{%s} plugin\n", storage.Name, storage.Plugin)
-			s, err = c.CreateGlobalStore(&shield.Store{
+			_, err = c.CreateGlobalStore(&shield.Store{
 				Name:    storage.Name,
 				Summary: storage.Summary,
 				Agent:   storage.Agent,
@@ -298,7 +298,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 		p, _ := c.FindPolicyTemplate(policy.Name, false)
 		if p == nil {
 			fmt.Printf("creating retention policy template @M{%s}, keeping archives for @Y{%d} days\n", policy.Name, policy.Days)
-			p, err = c.CreatePolicyTemplate(&shield.Policy{
+			_, err = c.CreatePolicyTemplate(&shield.Policy{
 				Name:    policy.Name,
 				Summary: policy.Summary,
 				Expires: policy.Days,
@@ -354,7 +354,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 			s, _ := c.FindStore(t, storage.Name, false)
 			if s == nil {
 				fmt.Printf("@C{%s}> creating cloud storage system @M{%s}, using the @Y{%s} plugin\n", tenant.Name, storage.Name, storage.Plugin)
-				s, err = c.CreateStore(t, &shield.Store{
+				_, err = c.CreateStore(t, &shield.Store{
 					Name:    storage.Name,
 					Summary: storage.Summary,
 					Agent:   storage.Agent,
@@ -382,7 +382,7 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 			p, _ := c.FindPolicy(t, policy.Name, false)
 			if p == nil {
 				fmt.Printf("@C{%s}> creating retention policy @M{%s}, keeping archives for @Y{%d} days\n", tenant.Name, policy.Name, policy.Days)
-				p, err = c.CreatePolicy(t, &shield.Policy{
+				_, err = c.CreatePolicy(t, &shield.Policy{
 					Name:    policy.Name,
 					Summary: policy.Summary,
 					Expires: policy.Days,
