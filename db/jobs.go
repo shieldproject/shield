@@ -327,5 +327,5 @@ func (j *Job) Reschedule() error {
 }
 
 func (j *Job) Runnable() bool {
-	return j.Paused == false && j.NextRun <= time.Now().Unix()
+	return !j.Paused && j.NextRun <= time.Now().Unix()
 }

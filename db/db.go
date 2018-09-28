@@ -27,10 +27,7 @@ func (db *DB) Copy() *DB {
 
 // Are we connected?
 func (db *DB) Connected() bool {
-	if db.connection == nil {
-		return false
-	}
-	return true
+	return db.connection != nil
 }
 
 // Connect to the backend database
