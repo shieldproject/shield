@@ -1307,6 +1307,7 @@ func main() {
 		r.Add("Summary", t.Summary)
 		r.Add("SHIELD Agent", t.Agent)
 		r.Add("Backup Plugin", t.Plugin)
+		r.Add("Configuration", asJSON(t.Config))
 		r.Output(os.Stdout)
 
 	/* }}} */
@@ -1419,6 +1420,7 @@ func main() {
 		r.Add("Compression", t.Compression)
 		r.Add("SHIELD Agent", t.Agent)
 		r.Add("Backup Plugin", t.Plugin)
+		r.Add("Configuration", asJSON(t.Config)) 
 		r.Output(os.Stdout)
 
 	/* }}} */
