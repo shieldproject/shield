@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
 
 	"github.com/jhunt/go-log"
@@ -75,24 +74,8 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		return
 
-	case match(req, `GET /v1/ping`):
-		core.v1Ping(w, req)
-		return
-
-	case match(req, `GET /v1/status`):
-		core.v1Status(w, req)
-		return
-
 	case match(req, `GET /v1/meta/pubkey`):
 		core.v1GetPublicKey(w, req)
-		return
-
-	case match(req, `GET /v1/status/internal`):
-		core.v1DetailedStatus(w, req)
-		return
-
-	case match(req, `GET /v1/status/jobs`):
-		core.v1JobsStatus(w, req)
 		return
 	}
 
@@ -104,24 +87,6 @@ func match(req *http.Request, pattern string) bool {
 		fmt.Sprintf("^%s$", pattern),
 		fmt.Sprintf("%s %s", req.Method, req.URL.Path))
 	return matched
-}
-
-func bail(w http.ResponseWriter, e error) {
-	w.WriteHeader(500)
-	log.Errorf("Request bailed: <%s>", e)
-}
-
-func JSON(w http.ResponseWriter, thing interface{}) {
-	bytes, err := json.Marshal(thing)
-	if err != nil {
-		log.Errorf("Cannot marshal JSON: <%s>\n", err)
-		w.WriteHeader(500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	w.Write(bytes)
 }
 
 func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
@@ -172,83 +137,8 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
-	JSON(w, struct {
-		OK string `json:"ok"`
-	}{
-		OK: "pong",
-	})
-	/* r.Success("pong") */
-}
-
 func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
 	pub := core.agent.key.PublicKey()
 	w.WriteHeader(200)
 	fmt.Fprintf(w, "%s %s\n", pub.Type(), base64.StdEncoding.EncodeToString(pub.Marshal()))
-}
-
-func (core *Core) v1Status(w http.ResponseWriter, req *http.Request) {
-	stat := struct {
-		Version    string `json:"version,omitempty"`
-		Name       string `json:"name"`
-		APIVersion int    `json:"api_version"`
-	}{
-		Name:       os.Getenv("SHIELD_NAME"),
-		APIVersion: APIVersion,
-	}
-
-	//TODO: Once this is in v2, lock behind a check for auth
-	stat.Version = Version
-
-	JSON(w, &stat)
-}
-
-func (core *Core) v1DetailedStatus(w http.ResponseWriter, req *http.Request) {
-	pending, err := core.DB.GetAllTasks(&db.TaskFilter{ForStatus: db.PendingStatus})
-	if err != nil {
-		bail(w, err)
-		return
-	}
-	running, err := core.DB.GetAllTasks(&db.TaskFilter{ForStatus: db.RunningStatus})
-	if err != nil {
-		bail(w, err)
-		return
-	}
-	JSON(w, struct {
-		PendingTasks []*db.Task `json:"pending_tasks"`
-		RunningTasks []*db.Task `json:"running_tasks"`
-	}{
-		PendingTasks: pending,
-		RunningTasks: running,
-	})
-}
-
-type v1jobhealth struct {
-	Name    string `json:"name"`
-	LastRun int64  `json:"last_run"`
-	NextRun int64  `json:"next_run"`
-	Paused  bool   `json:"paused"`
-	Status  string `json:"status"`
-}
-
-func (core *Core) v1JobsStatus(w http.ResponseWriter, req *http.Request) {
-	jobs, err := core.DB.GetAllJobs(&db.JobFilter{})
-	if err != nil {
-		bail(w, err)
-		return
-	}
-
-	health := make(map[string]v1jobhealth)
-	for _, j := range jobs {
-		j.Reschedule() /* not really, just enough to get NextRun */
-		health[j.Name] = v1jobhealth{
-			Name:    j.Name,
-			Paused:  j.Paused,
-			LastRun: j.LastRun,
-			NextRun: j.NextRun,
-			Status:  j.LastTaskStatus,
-		}
-	}
-
-	JSON(w, health)
 }

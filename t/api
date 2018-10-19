@@ -318,7 +318,7 @@ httpstat() {
 # }}}
 
 ping() {
-  curl -s -o /dev/null -w '%{http_code}' "http://$SHIELD_DAEMON_ADDR/v1/ping" 2>/dev/null
+  curl -s -o /dev/null -w '%{http_code}' "http://$SHIELD_DAEMON_ADDR/v2/info" 2>/dev/null
 }
 
 # create $type $name <<<$JSON {{{
@@ -537,7 +537,7 @@ shield api "$SHIELD_CORE" http://${SHIELD_DAEMON_ADDR}
 shield login --username "$SHIELD_USER" --password "$SHIELD_PASS"
 shield status --global | jq -r .
 
-is "$(ping)" "200" "/v1/ping should ping ok"
+is "$(ping)" "200" "/v2/info should ping ok"
 
 is "$(curl -Ls http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey)" \
    "$(ssh-keygen -yf $WORKDIR/config/shieldd_key)" \
