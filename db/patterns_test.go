@@ -1,10 +1,8 @@
-package db_test
+package db
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/starkandwayne/shield/db"
 )
 
 var _ = Describe("DB Pattern Conversion", func() {
@@ -22,7 +20,7 @@ var _ = Describe("DB Pattern Conversion", func() {
 		}
 
 		for _, t := range tests {
-			Ω(db.Pattern(t.Glob)).Should(Equal(t.Pattern))
+			Ω(Pattern(t.Glob)).Should(Equal(t.Pattern))
 		}
 	})
 })

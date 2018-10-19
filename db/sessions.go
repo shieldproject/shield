@@ -86,7 +86,7 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 
 	l := []*Session{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -118,7 +118,7 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 }
 
 func (db *DB) GetSession(id string) (*Session, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 	   SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account, u.backend
 		 FROM sessions s
 		 INNER JOIN users u   ON u.uuid = s.user_uuid
@@ -153,7 +153,7 @@ func (db *DB) GetSession(id string) (*Session, error) {
 }
 
 func (db *DB) GetUserForSession(id string) (*User, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash, u.default_tenant
 	      FROM sessions s INNER JOIN users u ON u.uuid = s.user_uuid
 	     WHERE s.uuid = ?`, id)
@@ -182,7 +182,7 @@ func (db *DB) CreateSession(session *Session) (*Session, error) {
 	}
 
 	id := uuid.NewRandom()
-	err := db.Exec(`
+	err := db.exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, last_seen, ip_addr, user_agent)
 	                 VALUES (?,    ?,         ?,        ?,        ?,        ?)`,
 		id.String(), session.UserUUID.String(), time.Now().Unix(), time.Now().Unix(), stripIP(session.IP), session.UserAgent)
@@ -194,19 +194,19 @@ func (db *DB) CreateSession(session *Session) (*Session, error) {
 }
 
 func (db *DB) ClearAllSessions() error {
-	return db.Exec(`DELETE FROM sessions`)
+	return db.exec(`DELETE FROM sessions`)
 }
 
 func (db *DB) ClearExpiredSessions(expiration_threshold time.Time) error {
-	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND last_seen < ?`, expiration_threshold.Unix())
+	return db.exec(`DELETE FROM sessions WHERE token IS NULL AND last_seen < ?`, expiration_threshold.Unix())
 }
 
 func (db *DB) ClearSession(id string) error {
-	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND uuid = ?`, id)
+	return db.exec(`DELETE FROM sessions WHERE token IS NULL AND uuid = ?`, id)
 }
 
 func (db *DB) PokeSession(session *Session) error {
-	return db.Exec(`
+	return db.exec(`
 		UPDATE sessions SET last_seen = ?, user_uuid = ?, ip_addr = ?, user_agent = ? 
 		WHERE uuid = ?`, time.Now().Unix(), session.UUID, session.IP, session.UserAgent, session.UUID)
 }

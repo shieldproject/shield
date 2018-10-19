@@ -94,7 +94,7 @@ func (db *DB) CountTargets(filter *TargetFilter) (int, error) {
 
 	var i int
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return i, err
 	}
@@ -114,7 +114,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 	l := []*Target{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -146,7 +146,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 }
 
 func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 	  SELECT uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression
 	    FROM targets
 	   WHERE uuid = ?`, id.String())
@@ -186,7 +186,7 @@ func (db *DB) CreateTarget(in *Target) (*Target, error) {
 	}
 
 	in.UUID = uuid.NewRandom()
-	return in, db.Exec(`
+	return in, db.exec(`
 	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression)
 	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?,     ?)`,
 		in.UUID.String(), in.TenantUUID.String(), in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent, in.Compression)
@@ -198,7 +198,7 @@ func (db *DB) UpdateTarget(t *Target) error {
 		return err
 	}
 
-	return db.Exec(`
+	return db.exec(`
 	  UPDATE targets
 	     SET name        = ?,
 	         summary     = ?,
@@ -212,7 +212,7 @@ func (db *DB) UpdateTarget(t *Target) error {
 }
 
 func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
-	r, err := db.Query(
+	r, err := db.query(
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`,
 		id.String(),
 	)
@@ -239,7 +239,7 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, db.Exec(
+	return true, db.exec(
 		`DELETE FROM targets WHERE uuid = ?`,
 		id.String(),
 	)

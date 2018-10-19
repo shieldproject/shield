@@ -3,19 +3,19 @@ package db
 type v1Schema struct{}
 
 func (s v1Schema) Deploy(db *DB) error {
-	err := db.Exec(`CREATE TABLE schema_info (
+	err := db.exec(`CREATE TABLE schema_info (
                version INTEGER
              )`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`INSERT INTO schema_info VALUES (1)`)
+	err = db.exec(`INSERT INTO schema_info VALUES (1)`)
 	if err != nil {
 		return err
 	}
 
-	err = db.Exec(`CREATE TABLE targets (
+	err = db.exec(`CREATE TABLE targets (
 	                 uuid      UUID PRIMARY KEY,
 	                 name      TEXT,
 	                 summary   TEXT,
@@ -27,7 +27,7 @@ func (s v1Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`CREATE TABLE stores (
+	err = db.exec(`CREATE TABLE stores (
 	                 uuid      UUID PRIMARY KEY,
 	                 name      TEXT,
 	                 summary   TEXT,
@@ -38,7 +38,7 @@ func (s v1Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`CREATE TABLE schedules (
+	err = db.exec(`CREATE TABLE schedules (
 	                 uuid      UUID PRIMARY KEY,
 	                 name      TEXT,
 	                 summary   TEXT,
@@ -48,7 +48,7 @@ func (s v1Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`CREATE TABLE retention (
+	err = db.exec(`CREATE TABLE retention (
 	                 uuid     UUID PRIMARY KEY,
 	                 name     TEXT,
 	                 summary  TEXT,
@@ -58,7 +58,7 @@ func (s v1Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`CREATE TABLE jobs (
+	err = db.exec(`CREATE TABLE jobs (
 	                 uuid            UUID PRIMARY KEY,
 	                 target_uuid     UUID NOT NULL,
 	                 store_uuid      UUID NOT NULL,
@@ -73,7 +73,7 @@ func (s v1Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`CREATE TABLE archives (
+	err = db.exec(`CREATE TABLE archives (
 	                 uuid         UUID PRIMARY KEY,
 	                 target_uuid  UUID NOT NULL,
 	                 store_uuid   UUID NOT NULL,
@@ -87,7 +87,7 @@ func (s v1Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`CREATE TABLE tasks (
+	err = db.exec(`CREATE TABLE tasks (
 	                 uuid      UUID PRIMARY KEY,
 	                 owner     TEXT,
 	                 op        TEXT NOT NULL,

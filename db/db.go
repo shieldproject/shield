@@ -66,7 +66,7 @@ func (db *DB) Alias(name string, sql string) error {
 }
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
-func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
+func (db *DB) exec(sql_or_name string, args ...interface{}) error {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 
@@ -84,7 +84,7 @@ func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
 }
 
 // Execute a named, data query (SELECT)
-func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) {
+func (db *DB) query(sql_or_name string, args ...interface{}) (*sql.Rows, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 
@@ -103,7 +103,7 @@ func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) 
 
 // Execute a data query (SELECT) and return how many rows were returned
 func (db *DB) Count(sql_or_name string, args ...interface{}) (uint, error) {
-	r, err := db.Query(sql_or_name, args...)
+	r, err := db.query(sql_or_name, args...)
 	if err != nil {
 		return 0, err
 	}

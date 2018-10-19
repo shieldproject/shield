@@ -118,7 +118,7 @@ func (db *DB) CountArchives(filter *ArchiveFilter) (int, error) {
 	}
 
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -138,7 +138,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 
 	l := []*Archive{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -186,7 +186,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 }
 
 func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
@@ -245,14 +245,14 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 }
 
 func (db *DB) UpdateArchive(update *Archive) error {
-	return db.Exec(
+	return db.exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ?`,
 		update.Notes, update.UUID.String(),
 	)
 }
 
 func (db *DB) AnnotateTargetArchive(target uuid.UUID, id string, notes string) error {
-	return db.Exec(
+	return db.exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ? AND target_uuid = ?`,
 		notes, id, target.String(),
 	)
@@ -275,7 +275,7 @@ func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 }
 
 func (db *DB) InvalidateArchive(id uuid.UUID) error {
-	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id.String())
+	return db.exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id.String())
 }
 
 func (db *DB) PurgeArchive(id uuid.UUID) error {
@@ -288,20 +288,20 @@ func (db *DB) PurgeArchive(id uuid.UUID) error {
 		return fmt.Errorf("Invalid attempt to purge a 'valid' archive detected")
 	}
 
-	err = db.Exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id.String())
+	err = db.exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id.String())
 	if err != nil {
 		return err
 	}
 
-	return db.Exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id.String())
+	return db.exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id.String())
 }
 
 func (db *DB) ExpireArchive(id uuid.UUID) error {
-	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id.String())
+	return db.exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id.String())
 }
 
 func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
-	return true, db.Exec(
+	return true, db.exec(
 		`DELETE FROM archives WHERE uuid = ?`,
 		id.String(),
 	)
@@ -366,7 +366,7 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
 		args = append(args, filter.Limit)
 	}
 
-	r, err := db.Query(`
+	r, err := db.query(`
 		SELECT SUM(a.size)
 		FROM archives a
 			INNER JOIN targets t   ON t.uuid = a.target_uuid

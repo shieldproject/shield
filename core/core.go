@@ -233,7 +233,7 @@ func (core *Core) Run() error {
 	}
 
 	log.Infof("Purging prior authenticated sessions from previous SHIELD instance.")
-	core.DB.Exec("DELETE FROM `sessions`")
+	core.DB.ClearExpiredSessions(time.Now())
 
 	tenants := make(map[string]bool)
 	for _, auth := range core.auth {
@@ -249,9 +249,6 @@ func (core *Core) Run() error {
 		}
 	}
 
-	if err = core.fixups(); err != nil {
-		return fmt.Errorf("failed to run (idempotent) fixups against database: %s", err)
-	}
 	core.cleanup()
 
 	core.vault, err = vault.Connect(core.vaultAddress, core.vaultCACert)

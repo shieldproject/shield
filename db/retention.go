@@ -79,7 +79,7 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 
 	l := []*RetentionPolicy{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -104,7 +104,7 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 }
 
 func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 		SELECT uuid, tenant_uuid, name, summary, expiry
 			FROM retention WHERE uuid = ?`, id.String())
 	if err != nil {
@@ -129,14 +129,14 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 
 func (db *DB) CreateRetentionPolicy(p *RetentionPolicy) (*RetentionPolicy, error) {
 	p.UUID = uuid.NewRandom()
-	return p, db.Exec(`
+	return p, db.exec(`
 	   INSERT INTO retention (uuid, tenant_uuid, name, summary, expiry)
 	                  VALUES (?,    ?,           ?,    ?,       ?)`,
 		p.UUID.String(), p.TenantUUID.String(), p.Name, p.Summary, p.Expires)
 }
 
 func (db *DB) UpdateRetentionPolicy(p *RetentionPolicy) error {
-	return db.Exec(`
+	return db.exec(`
 	   UPDATE retention
 	      SET name    = ?,
 	          summary = ?,
@@ -146,7 +146,7 @@ func (db *DB) UpdateRetentionPolicy(p *RetentionPolicy) error {
 }
 
 func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
-	r, err := db.Query(
+	r, err := db.query(
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`,
 		id.String(),
 	)
@@ -173,7 +173,7 @@ func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, db.Exec(
+	return true, db.exec(
 		`DELETE FROM retention WHERE uuid = ?`,
 		id.String(),
 	)

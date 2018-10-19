@@ -1,4 +1,4 @@
-package db_test
+package db
 
 import (
 	"fmt"
@@ -10,8 +10,6 @@ import (
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
-
-	. "github.com/starkandwayne/shield/db"
 )
 
 var T0 = time.Date(1997, 8, 29, 2, 14, 0, 0, time.UTC)
@@ -336,12 +334,12 @@ var _ = Describe("Task Management", func() {
 		TENANT2_UUID := uuid.NewRandom()
 
 		BeforeEach(func() {
-			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, tenant_uuid)`+
+			err := db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, tenant_uuid)`+
 				`VALUES('%s', '%s', '%s', '%s', %d, '%s')`,
 				TASK1_UUID.String(), "system", BackupOperation, PendingStatus, 0, TENANT1_UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = db.Exec(
+			err = db.exec(
 				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid, tenant_uuid)`+
 					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s', '%s')`,
 					TASK2_UUID.String(), "system", RestoreOperation, PendingStatus, 2,
@@ -391,11 +389,11 @@ var _ = Describe("Task Management", func() {
 		runningTaskTargetUUID := uuid.NewRandom()
 
 		BeforeEach(func() {
-			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
+			err := db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
 				`VALUES('%s', '%s', '%s', %d, '%s')`,
 				uuid.NewRandom().String(), BackupOperation, PendingStatus, 0, notRunningTaskTargetUUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
+			err = db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
 				`VALUES('%s', '%s', '%s', %d, '%s')`,
 				uuid.NewRandom().String(), BackupOperation, RunningStatus, 0, runningTaskTargetUUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())

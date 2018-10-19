@@ -1,4 +1,4 @@
-package db_test
+package db
 
 import (
 	"database/sql"
@@ -8,8 +8,6 @@ import (
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
-
-	. "github.com/starkandwayne/shield/db"
 )
 
 var _ = Describe("Database", func() {
@@ -58,7 +56,7 @@ var _ = Describe("Database", func() {
 
 		Context("With an empty database", func() {
 			It("can create tables", func() {
-				Ω(db.Exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
+				Ω(db.exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
 			})
 		})
 
@@ -76,31 +74,31 @@ var _ = Describe("Database", func() {
 				db.Disconnect()
 				Ω(db.Connect()).Should(Succeed())
 
-				Ω(db.Exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
+				Ω(db.exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
 			})
 
 			It("can insert records", func() {
-				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "monkey")
+				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "monkey")
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(0))
 			})
 
 			It("can update records", func() {
-				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
-				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 42, "monkey")).Should(Succeed())
+				Ω(db.exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.exec(`UPDATE things SET number = number + ? WHERE type = ?`, 42, "monkey")).Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "monkey")
+				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "monkey")
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(42))
 			})
 
 			It("can handle queries without arguments", func() {
-				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
-				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 13, "monkey")).Should(Succeed())
+				Ω(db.exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.exec(`UPDATE things SET number = number + ? WHERE type = ?`, 13, "monkey")).Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = "monkey"`)
+				r, err := db.query(`SELECT number FROM things WHERE type = "monkey"`)
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(13))
 			})
@@ -110,19 +108,19 @@ var _ = Describe("Database", func() {
 				Ω(db.Alias("increment", `UPDATE things SET number = number + ? WHERE type = ?`)).Should(Succeed())
 				Ω(db.Alias("how-many", `SELECT number FROM things WHERE type = "monkey"`)).Should(Succeed())
 
-				Ω(db.Exec("new-thing", "monkey")).Should(Succeed())
-				Ω(db.Exec("increment", 13, "monkey")).Should(Succeed())
+				Ω(db.exec("new-thing", "monkey")).Should(Succeed())
+				Ω(db.exec("increment", 13, "monkey")).Should(Succeed())
 
-				r, err := db.Query("how-many")
+				r, err := db.query("how-many")
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(13))
 			})
 
 			It("can run arbitrary SQL", func() {
-				Ω(db.Exec("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
+				Ω(db.exec("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
 					Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "lion")
+				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "lion")
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(3))
 			})
@@ -130,7 +128,7 @@ var _ = Describe("Database", func() {
 
 		Context("With malformed SQL queries", func() {
 			It("propagates errors from sql driver", func() {
-				Ω(db.Exec(`DO STUFF IN SQL`)).Should(HaveOccurred())
+				Ω(db.exec(`DO STUFF IN SQL`)).Should(HaveOccurred())
 			})
 		})
 	})
@@ -145,7 +143,7 @@ var _ = Describe("Database", func() {
 					DSN:    "file::memory:?cache=shared",
 				}
 				Ω(db.Connect()).Should(Succeed())
-				Ω(db.Exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
+				Ω(db.exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
 			})
 
 			AfterEach(func() {
@@ -155,7 +153,7 @@ var _ = Describe("Database", func() {
 			stressor := func(reply chan error, db *DB, n, times int) {
 				Ω(db.Connected()).Should(BeTrue())
 				for i := 0; i < times; i++ {
-					err := db.Exec("INSERT INTO stuff (numb, iter) VALUES (?, ?)", n, i)
+					err := db.exec("INSERT INTO stuff (numb, iter) VALUES (?, ?)", n, i)
 					if err != nil {
 						reply <- err
 						return

@@ -63,7 +63,7 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 	l := make([]*Tenant, 0)
 
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -95,7 +95,7 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 }
 
 func (db *DB) GetTenant(id string) (*Tenant, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
 		FROM tenants t 
 		WHERE t.uuid = ?`, id)
@@ -130,7 +130,7 @@ func (db *DB) GetTenant(id string) (*Tenant, error) {
 }
 
 func (db *DB) GetTenantByName(name string) (*Tenant, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
 		FROM tenants t 
 		WHERE t.name = ?`, name)
@@ -182,7 +182,7 @@ func (db *DB) CreateTenant(given_uuid string, given_name string) (*Tenant, error
 		return nil, fmt.Errorf("uuid must be of format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
 	}
 
-	err := db.Exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, id.String(), given_name)
+	err := db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, id.String(), given_name)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (db *DB) CreateTenant(given_uuid string, given_name string) (*Tenant, error
 }
 
 func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
-	err := db.Exec(`
+	err := db.exec(`
 		UPDATE tenants 
 			SET name = ?,
 			daily_increase = ?,
@@ -209,7 +209,7 @@ func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
 }
 
 func (db *DB) GetTenantRole(org string, team string) (uuid.UUID, string, error) {
-	rows, err := db.Query(`SELECT tenant_uuid, role FROM org_team_tenant_role WHERE org = ? AND team = ?`, org, team)
+	rows, err := db.query(`SELECT tenant_uuid, role FROM org_team_tenant_role WHERE org = ? AND team = ?`, org, team)
 	if err != nil {
 		return nil, "", err
 	}
@@ -229,7 +229,7 @@ func (db *DB) GetTenantRole(org string, team string) (uuid.UUID, string, error) 
 }
 
 func (db *DB) DeleteTenant(tenant *Tenant) error {
-	return db.Exec(`
+	return db.exec(`
 		DELETE FROM tenants
 		      WHERE uuid = ?`, tenant.UUID.String())
 }

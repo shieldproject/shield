@@ -189,7 +189,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 
 	l := []*Task{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -264,7 +264,7 @@ func (db *DB) GetTask(id uuid.UUID) (*Task, error) {
 
 func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	id := uuid.NewRandom()
-	err := db.Exec(
+	err := db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
@@ -290,7 +290,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) {
 	id := uuid.NewRandom()
 	now := time.Now().Unix()
-	err := db.Exec(
+	err := db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log,
 		     requested_at, started_at, stopped_at, ok,
@@ -323,7 +323,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	}
 
 	id := uuid.NewRandom()
-	err = db.Exec(
+	err = db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
@@ -348,7 +348,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	id := uuid.NewRandom()
-	err := db.Exec(
+	err := db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
@@ -377,7 +377,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		return nil, err
 	}
 	id := uuid.NewRandom()
-	err = db.Exec(
+	err = db.exec(
 		`INSERT INTO tasks
 			(uuid, op,
 			 store_uuid, store_plugin, store_endpoint,
@@ -397,7 +397,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		return nil, err
 	}
 
-	err = db.Exec(
+	err = db.exec(
 		`UPDATE stores
 		 SET last_test_task_uuid = ?
 		 WHERE uuid=?`,
@@ -415,7 +415,7 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	if task.TargetUUID.String() == "" {
 		return true, nil
 	}
-	r, err := db.Query(`
+	r, err := db.query(`
 		SELECT uuid FROM tasks
 		  WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID.String(), RunningStatus)
 	if err != nil {
@@ -431,20 +431,20 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 
 func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
-	return db.Exec(
+	return db.exec(
 		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
 		RunningStatus, validtime, id.String(),
 	)
 }
 
 func (db *DB) ScheduledTask(id uuid.UUID) error {
-	return db.Exec(
+	return db.exec(
 		`UPDATE tasks SET status = ? WHERE uuid = ?`,
 		ScheduledStatus, id.String())
 }
 
 func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64, ok int) error {
-	return db.Exec(
+	return db.exec(
 		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
 		status, effective, ok, id.String())
 }
@@ -464,7 +464,7 @@ func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
 }
 
 func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
-	return db.Exec(
+	return db.exec(
 		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
 		more, id.String(),
 	)
@@ -476,7 +476,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 		return nil, fmt.Errorf("cannot create an archive without a store_key")
 	}
 	// determine how long we need to keep this specific archive for
-	r, err := db.Query(
+	r, err := db.query(
 		`SELECT r.expiry
 			FROM retention r
 				INNER JOIN jobs  j    ON r.uuid = j.retention_uuid
@@ -501,7 +501,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 
 	// insert an archive with all proper references, expiration, etc.
 	validtime := ValidateEffectiveUnix(effective)
-	err = db.Exec(`
+	err = db.exec(`
 	  INSERT INTO archives
 	    (uuid, target_uuid, store_uuid, store_key, taken_at,
 	     expires_at, notes, status, purge_reason, job,
@@ -525,7 +525,7 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 	}
 
 	// and finally, associate task -> archive
-	return archive_id, db.Exec(
+	return archive_id, db.exec(
 		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
 		archive_id.String(), id.String(),
 	)
@@ -555,13 +555,13 @@ func (db *DB) AnnotateTargetTask(target uuid.UUID, id string, ann *TaskAnnotatio
 	}
 
 	args = append(args, target.String(), id)
-	return db.Exec(
+	return db.exec(
 		`UPDATE tasks SET `+strings.Join(updates, ", ")+
 			`WHERE target_uuid = ? AND uuid = ?`, args...)
 }
 
 func (db *DB) MarkTasksIrrelevant() error {
-	err := db.Exec(
+	err := db.exec(
 		`UPDATE tasks SET relevant = 0
 		  WHERE relevant = 1
 		    AND clear = 'immediate'`)
@@ -570,7 +570,7 @@ func (db *DB) MarkTasksIrrelevant() error {
 		return err
 	}
 
-	err = db.Exec(
+	err = db.exec(
 		`UPDATE tasks SET relevant = 0
 		  WHERE relevant = 1 AND clear = 'normal'
 		    AND uuid IN (
@@ -583,7 +583,7 @@ func (db *DB) MarkTasksIrrelevant() error {
 		return err
 	}
 
-	err = db.Exec(
+	err = db.exec(
 		`UPDATE tasks SET relevant = 1
 		  WHERE relevant = 0 AND clear = 'manual'`)
 	if err != nil {

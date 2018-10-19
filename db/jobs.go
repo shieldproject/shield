@@ -159,7 +159,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	if err != nil {
 		return l, err
 	}
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -200,7 +200,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 }
 
 func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
 		       j.tenant_uuid, j.fixed_key,
 		       r.name, r.summary, r.uuid, r.expiry,
@@ -250,7 +250,7 @@ func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
 		return false, err
 	}
 
-	return true, db.Exec(
+	return true, db.exec(
 		`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`,
 		pause, id.String(), !pause)
 }
@@ -266,7 +266,7 @@ func (db *DB) UnpauseJob(id uuid.UUID) (bool, error) {
 func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job.UUID = uuid.NewRandom()
 
-	err := db.Exec(`
+	err := db.exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,
 	                     name, summary, schedule, paused,
 	                     target_uuid, store_uuid, retention_uuid, fixed_key)
@@ -284,7 +284,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 }
 
 func (db *DB) UpdateJob(job *Job) error {
-	return db.Exec(`
+	return db.exec(`
 	   UPDATE jobs
 	      SET name           = ?,
 	          summary        = ?,
@@ -300,14 +300,14 @@ func (db *DB) UpdateJob(job *Job) error {
 }
 
 func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
-	return true, db.Exec(
+	return true, db.exec(
 		`DELETE FROM jobs WHERE uuid = ?`,
 		id.String(),
 	)
 }
 
 func (db *DB) RescheduleJob(j *Job, t time.Time) error {
-	return db.Exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID.String())
+	return db.exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID.String())
 }
 
 func (j *Job) Reschedule() error {

@@ -190,7 +190,7 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 
 	l := []*Store{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -241,7 +241,7 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 }
 
 func (db *DB) GetStore(id uuid.UUID) (*Store, error) {
-	r, err := db.Query(`
+	r, err := db.query(`
 	   SELECT s.uuid, s.name, s.summary, s.agent,
 	          s.plugin, s.endpoint, s.tenant_uuid,
 	          s.private_config, s.public_config, s.daily_increase,
@@ -311,7 +311,7 @@ func (db *DB) CreateStore(s *Store) (*Store, error) {
 	}
 
 	s.UUID = uuid.NewRandom()
-	return s, db.Exec(`
+	return s, db.exec(`
 	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold, healthy, last_test_task_uuid)
 	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?,        ?,       ?)`,
 		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold, s.Healthy, s.LastTestTaskUUID)
@@ -327,7 +327,7 @@ func (db *DB) UpdateStore(s *Store) error {
 		return fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
-	return db.Exec(`
+	return db.exec(`
 		UPDATE stores
 	      SET name                    = ?,
 	          summary                 = ?,
@@ -348,7 +348,7 @@ func (db *DB) UpdateStore(s *Store) error {
 }
 
 func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
-	r, err := db.Query(
+	r, err := db.query(
 		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`,
 		id.String(),
 	)
@@ -375,7 +375,7 @@ func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 	}
 
 	r.Close()
-	return true, db.Exec(
+	return true, db.exec(
 		`DELETE FROM stores WHERE uuid = ?`,
 		id.String(),
 	)
