@@ -12,9 +12,9 @@ type DB struct {
 	connection *sqlx.DB
 	Driver     string
 	DSN        string
-	exclusive  sync.Mutex
 
-	cache map[string]*sql.Stmt
+	exclusive sync.Mutex
+	cache     map[string]*sql.Stmt
 }
 
 func (db *DB) Copy() *DB {
