@@ -38,7 +38,7 @@ func (c Core) Main() {
 		case <-fast.C:
 			c.ScheduleBackupTasks()
 			c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{Status: "pending"})
-			c.scheduler.Run()
+			c.RunScheduler()
 
 		case <-slow.C:
 			c.CheckArchiveExpiries()
@@ -63,13 +63,10 @@ func (c *Core) ConnectToDatabase() {
 		return
 	}
 
-	c.db = &db.DB{
-		Driver: "sqlite3",
-		DSN:    c.Config.DataDir + "/shield.db",
-	}
-
-	log.Debugf("connecting to %s database at %s...", c.db.Driver, c.db.DSN)
-	c.MaybeTerminate(c.db.Connect())
+	log.Debugf("connecting to database at %s...", c.DataFile("shield.db"))
+	db, err := db.Connect(c.DataFile("shield.db"))
+	c.MaybeTerminate(err)
+	c.db = db
 
 	log.Infof("INITIALIZING: checking database schema...")
 	c.MaybeTerminate(c.db.CheckCurrentSchema())
@@ -260,6 +257,39 @@ func (c *Core) ScheduleAgentStatusCheckTasks(f *db.AgentFilter) {
 	}
 }
 
+func (c *Core) RunScheduler() {
+	log.Infof("SCHEDULER: initiating a run of the scheduler")
+
+	tasks, err := c.db.GetAllTasks(&db.TaskFilter{ForStatus: "pending"})
+	if err != nil {
+		log.Errorf("unable to retrieve pending tasks from database, in order to schedule them: %s", err)
+		return
+	}
+
+	for _, task := range tasks {
+		log.Infof("SCHEDULER: scheduling [%s] task %s", task.Op, task.UUID)
+
+		// FIXME: fabric, err := c.FabricFor(task)
+		if err != nil {
+			log.Errorf("unable to find a fabric to facilitate execution of [%s] task %s: %s", task.Op, task.UUID, err)
+			log.Errorf("marking [%s] task %s as errored", task.Op, task.UUID)
+
+			c.db.UpdateTaskLog(task.UUID, "unable to find a fabric to facilitate execution of this task\n")
+			c.db.FailTask(task.UUID, time.Now())
+			continue
+		}
+		// FIXME c.scheduler.Schedule(task)
+
+		if err := c.db.ScheduledTask(task.UUID); err != nil {
+			log.Errorf("unable to mark task %s as 'scheduled' in the database: %s", err)
+			log.Errorf("THIS TASK MAY BE INADVERTANTLY RE-SCHEDULED!!!")
+		}
+	}
+
+	log.Infof("SCHEDULER: running the scheduling algorithm")
+	c.scheduler.Run()
+}
+
 func (c *Core) CheckArchiveExpiries() {
 	log.Infof("UPKEEP: checking archive expiries...")
 
@@ -299,8 +329,6 @@ func (c *Core) SchedulePurgeTasks() {
 			log.Errorf("error scheduling purge of archive %s: %s", archive.UUID, err)
 			continue
 		}
-
-		/* FIXME: actually submit a chore to the scheduler */
 	}
 }
 
@@ -471,7 +499,5 @@ func (c *Core) ScheduleStorageTestTasks() {
 		if _, err := c.db.CreateTestStoreTask("system", store); err != nil {
 			log.Errorf("failed to create test store task: %s", err)
 		}
-
-		/* FIXME: actually submit a chore to the scheduler */
 	}
 }
