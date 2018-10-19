@@ -12,27 +12,11 @@ import (
 
 var _ = Describe("Database", func() {
 	Describe("Connecting to the database", func() {
-		Context("With an invalid DSN", func() {
-			It("should fail", func() {
-				db := &DB{
-					Driver: "invalid",
-					DSN:    "does-not-matter",
-				}
-
-				Ω(db.Connect()).Should(HaveOccurred())
-				Ω(db.Connected()).Should(BeFalse())
-				Ω(db.Disconnect()).Should(Succeed())
-			})
-		})
-
 		Context("With an in-memory SQLite database", func() {
 			It("should succeed", func() {
-				db := &DB{
-					Driver: "sqlite3",
-					DSN:    ":memory:",
-				}
+				db, err := Connect(":memory:")
 
-				Ω(db.Connect()).Should(Succeed())
+				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.Connected()).Should(BeTrue())
 				Ω(db.Disconnect()).Should(Succeed())
 			})
@@ -43,11 +27,7 @@ var _ = Describe("Database", func() {
 		var db *DB
 
 		BeforeEach(func() {
-			db = &DB{
-				Driver: "sqlite3",
-				DSN:    ":memory:",
-			}
-			Ω(db.Connect()).Should(Succeed())
+			db, _ = Connect(":memory:")
 		})
 
 		AfterEach(func() {
@@ -71,8 +51,9 @@ var _ = Describe("Database", func() {
 
 		Context("With an empty table", func() {
 			BeforeEach(func() {
-				db.Disconnect()
-				Ω(db.Connect()).Should(Succeed())
+				var err error
+				db, err = Connect(":memory:")
+				Ω(err).ShouldNot(HaveOccurred())
 
 				Ω(db.exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
 			})
@@ -125,11 +106,9 @@ var _ = Describe("Database", func() {
 			var db *DB
 
 			BeforeEach(func() {
-				db = &DB{
-					Driver: "sqlite3",
-					DSN:    "file::memory:?cache=shared",
-				}
-				Ω(db.Connect()).Should(Succeed())
+				var err error
+				db, err = Connect("file::memory:?cache=shared")
+				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
 			})
 

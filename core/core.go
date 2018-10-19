@@ -140,13 +140,13 @@ func NewCore(file string) (*Core, error) {
 		sessionTimeout: config.SessionTimeout,
 
 		failsafe: config.Failsafe,
-
-		/* db */
-		DB: &db.DB{
-			Driver: "sqlite3",
-			DSN:    path.Join(config.DataDir, "/shield.db"),
-		},
 	}
+
+	db, err := db.Connect(path.Join(config.DataDir, "/shield.db"))
+	if err != nil {
+		return nil, err
+	}
+	core.DB = db
 
 	if config.VaultCACert != "" {
 		b, err := ioutil.ReadFile(config.VaultCACert)
@@ -202,9 +202,6 @@ func NewCore(file string) (*Core, error) {
 
 func (core *Core) Run() error {
 	var err error
-	if err = core.DB.Connect(); err != nil {
-		return fmt.Errorf("failed to connect to database: %s", err)
-	}
 	if err = core.DB.CheckCurrentSchema(); err != nil {
 		return fmt.Errorf("database failed schema version check: %s", err)
 	}

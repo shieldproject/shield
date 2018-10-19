@@ -17,30 +17,29 @@ type DB struct {
 	cache     map[string]*sql.Stmt
 }
 
-func (db *DB) Copy() *DB {
-	return &DB{
-		Driver: db.Driver,
-		DSN:    db.DSN,
+// Connect to the backend database
+func Connect(file string) (*DB, error) {
+	db := &DB{
+		Driver: "sqlite3",
+		DSN:    file,
 	}
+
+	connection, err := sqlx.Open(db.Driver, db.DSN)
+	if err != nil {
+		return nil, err
+	}
+	db.connection = connection
+
+	if db.cache == nil {
+		db.cache = make(map[string]*sql.Stmt)
+	}
+
+	return db, nil
 }
 
 // Are we connected?
 func (db *DB) Connected() bool {
 	return db.connection != nil
-}
-
-// Connect to the backend database
-func (db *DB) Connect() error {
-	connection, err := sqlx.Open(db.Driver, db.DSN)
-	if err != nil {
-		return err
-	}
-
-	db.connection = connection
-	if db.cache == nil {
-		db.cache = make(map[string]*sql.Stmt)
-	}
-	return nil
 }
 
 // Disconnect from the backend database

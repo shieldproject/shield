@@ -11,13 +11,8 @@ import (
 )
 
 func Database(sqls ...string) (*DB, error) {
-	var db *DB
-	db = &DB{
-		Driver: "sqlite3",
-		DSN:    ":memory:",
-	}
-
-	if err := db.Connect(); err != nil {
+	db, err := Connect(":memory:")
+	if err != nil {
 		return nil, err
 	}
 
@@ -43,12 +38,10 @@ var _ = Describe("Database Schema", func() {
 			var db *DB
 
 			BeforeEach(func() {
-				db = &DB{
-					Driver: "sqlite3",
-					DSN:    ":memory:",
-				}
+				var err error
+				db, err = Connect(":memory:")
 
-				Ω(db.Connect()).Should(Succeed())
+				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.Connected()).Should(BeTrue())
 			})
 
@@ -99,12 +92,7 @@ var _ = Describe("Database Schema", func() {
 
 	Describe("Schema Version Interrogation", func() {
 		It("should return an error for a bad database connection", func() {
-			db := &DB{
-				Driver: "sqlite3",
-				DSN:    "/path/to/no/such/file",
-			}
-
-			db.Connect()
+			db, _ := Connect("/path/to/no/such/file")
 			_, err := db.SchemaVersion()
 			Ω(err).Should(HaveOccurred())
 		})
