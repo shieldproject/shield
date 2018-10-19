@@ -54,7 +54,6 @@ func NewAgentClient(keyfile string) (*AgentClient, error) {
 	}, nil
 }
 
-// FIXME: add a stderr here and move O:/E: out of core/core.go
 func (c *AgentClient) Run(host string, stdout, stderr chan string, command *AgentCommand) error {
 	raw, err := json.Marshal(command)
 	if err != nil {

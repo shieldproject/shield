@@ -178,6 +178,7 @@ func (core *Core) v1Ping(w http.ResponseWriter, req *http.Request) {
 	}{
 		OK: "pong",
 	})
+	/* r.Success("pong") */
 }
 
 func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {

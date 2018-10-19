@@ -57,8 +57,8 @@ var _ = Describe("Task Management", func() {
 			   VALUES ("`+SomeTarget.UUID.String()+`", "Some Target", "", "plugin", "endpoint", "127.0.0.1:5444")`,
 
 			// need a store
-			`INSERT INTO stores (uuid, name, summary, plugin, endpoint)
-			   VALUES ("`+SomeStore.UUID.String()+`", "Some Store", "", "plugin", "endpoint")`,
+			`INSERT INTO stores (uuid, name, summary, plugin, endpoint, agent)
+			VALUES ("`+SomeStore.UUID.String()+`", "Some Store", "", "plugin", "endpoint", "127.0.0.1:9938")`,
 			// need a retention policy
 			`INSERT INTO retention (uuid, name, summary, expiry)
 			   VALUES ("`+SomeRetention.UUID.String()+`", "Some Retention", "", 3600)`,
@@ -122,7 +122,7 @@ var _ = Describe("Task Management", func() {
 		archive, err := db.GetArchive(SomeArchive.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		task, err := db.CreatePurgeTask("owner-name", archive, "127.0.0.1:9938")
+		task, err := db.CreatePurgeTask("owner-name", archive)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(task).ShouldNot(BeNil())
 

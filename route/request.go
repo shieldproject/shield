@@ -20,8 +20,8 @@ type Request struct {
 	Args []string
 
 	w     http.ResponseWriter
-	done  bool
 	debug bool
+	bt    []string
 }
 
 //NewRequest initializes and returns a new request object. Setting debug to
@@ -54,6 +54,26 @@ func (r *Request) SessionID() string {
 	return SessionID(r.Req)
 }
 
+func (r *Request) Done() bool {
+	return len(r.bt) > 0
+}
+
+func (r *Request) respond(code int, fn, typ, msg string) {
+	/* have we already responded for this request? */
+	if r.Done() {
+		log.Errorf("%s handler bug: called %s() having already called [%v]", r, fn, r.bt)
+		return
+	}
+
+	/* respond ... */
+	r.w.Header().Set("Content-Type", typ)
+	r.w.WriteHeader(code)
+	fmt.Fprintf(r.w, "%s\n", msg)
+
+	/* track that OK() or Fail() called us... */
+	r.bt = append(r.bt, fn)
+}
+
 func (r *Request) Success(msg string, args ...interface{}) {
 	r.OK(struct {
 		Ok string `json:"ok"`
@@ -61,13 +81,6 @@ func (r *Request) Success(msg string, args ...interface{}) {
 }
 
 func (r *Request) OK(resp interface{}) {
-	if r.done {
-		log.Errorf("%s handler bug: called OK() a second time, or after having called Fail()", r)
-		return
-	}
-
-	r.w.Header().Set("Content-Type", "application/json")
-
 	b, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf("%s errored, trying to marshal a JSON error response: %s", r, err)
@@ -76,21 +89,13 @@ func (r *Request) OK(resp interface{}) {
 	}
 
 	log.Debugf("%s responding with HTTP 200, payload [%s]", r, string(b))
-	r.w.WriteHeader(200)
-	fmt.Fprintf(r.w, "%s\n", string(b))
-	r.done = true
+	r.respond(200, "OK", "application/json", string(b))
 }
 
 func (r *Request) Fail(e Error) {
-	if r.done {
-		log.Errorf("%s handler bug: called Fail() a second time, or after having called OK()", r)
-		return
-	}
-
 	if e.e != nil {
 		log.Errorf("%s errored: %s", r, e.e)
 	}
-	r.w.Header().Set("Content-Type", "application/json")
 	if r.debug {
 		e.ProvideDiagnostic()
 	}
@@ -103,9 +108,7 @@ func (r *Request) Fail(e Error) {
 	}
 
 	log.Debugf("%s responding with HTTP %d, payload [%s]", r, e.code, string(b))
-	r.w.WriteHeader(e.code)
-	fmt.Fprintf(r.w, "%s\n", string(b))
-	r.done = true
+	r.respond(e.code, "Fail", "application/json", string(b))
 }
 
 //Payload unmarshals the JSON body of this request into the given interface.

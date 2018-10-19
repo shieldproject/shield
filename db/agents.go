@@ -32,6 +32,7 @@ func (a *Agent) Metadata() (map[string]interface{}, error) {
 }
 
 type AgentFilter struct {
+	UUID       string
 	Address    string
 	Name       string
 	Status     string
@@ -42,6 +43,11 @@ type AgentFilter struct {
 func (f *AgentFilter) Query() (string, []interface{}) {
 	wheres := []string{"a.uuid = a.uuid"}
 	var args []interface{}
+
+	if f.UUID != "" {
+		wheres = []string{"a.uuid = ?"}
+		args = []interface{}{f.UUID}
+	}
 
 	if f.OnlyHidden {
 		wheres = append(wheres, "a.hidden = ?")

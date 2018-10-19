@@ -48,23 +48,3 @@ func Connect(url, cacert string) (*Client, error) {
 		},
 	}, nil
 }
-
-func (vault *Client) Status() (string, error) {
-	seal, err := vault.Sealed()
-	if err != nil {
-		return "", err
-	}
-
-	init, err := vault.Initialized()
-	if err != nil {
-		return "", err
-	}
-
-	if init {
-		if seal {
-			return "sealed", nil
-		}
-		return "unsealed", nil
-	}
-	return "uninitialized", nil
-}

@@ -24,6 +24,7 @@ type Archive struct {
 	StoreName      string    `json:"store_name"`
 	StorePlugin    string    `json:"store_plugin"`
 	StoreEndpoint  string    `json:"store_endpoint"`
+	StoreAgent     string    `json:"store_agent"`
 	Job            string    `json:"job"`
 	EncryptionType string    `json:"encryption_type"`
 	Compression    string    `json:"compression"`
@@ -189,8 +190,8 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
-		       s.uuid, s.name, s.plugin, s.endpoint, a.status,
-		       a.purge_reason, a.job, a.encryption_type,
+		       s.uuid, s.name, s.plugin, s.endpoint, s.agent,
+		       a.status, a.purge_reason, a.job, a.encryption_type,
 		       a.compression, a.tenant_uuid, a.size
 
 		FROM archives a
@@ -214,7 +215,7 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	if err = r.Scan(
 		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 		&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
+		&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreAgent,
 		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
 		&ann.Compression, &tenant, &size); err != nil {
 

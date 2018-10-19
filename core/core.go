@@ -281,9 +281,9 @@ func (core *Core) Run() error {
 				os.Exit(core.seppuku)
 			}
 			if initialized && !sealed {
-				core.scheduleTasks()
-				core.runPending()
-				core.checkPendingAgents()
+				core.scheduleTasks()      /* schedule backup */
+				core.runPending()         /* RUN */
+				core.checkPendingAgents() /* schedule adhoc status */
 			} else {
 				if err != nil || initErr != nil {
 					log.Errorf("Failed to schedule tasks due to Vault error: %s %s", err, initErr)
@@ -291,17 +291,17 @@ func (core *Core) Run() error {
 			}
 
 		case <-core.slowloop.C:
-			core.expireArchives()
-			core.markTasks()
-			core.checkAllAgents()
-			core.updateStorageUsage()
-			core.purgeExpiredSessions()
+			core.expireArchives()       /* db bg + schedule purge */
+			core.markTasks()            /* db bg */
+			core.checkAllAgents()       /* schedule status */
+			core.updateStorageUsage()   /* db bg */
+			core.purgeExpiredSessions() /* db bg */
 
 			sealed, _ := core.vault.Sealed()
 			initialized, _ := core.vault.Initialized()
 			if initialized && !sealed {
-				core.purge()
-				core.testStorage()
+				core.purge()       /* schedule purge */
+				core.testStorage() /* schedule test-store */
 			}
 		}
 	}
@@ -364,7 +364,7 @@ func (core *Core) cleanup() {
 				continue
 			}
 			log.Warnf("found archive %s for task %s, purging", archive.UUID, task.UUID)
-			task, err := core.DB.CreatePurgeTask("", archive, core.purgeAgent)
+			task, err := core.DB.CreatePurgeTask("", archive)
 			if err != nil {
 				log.Errorf("failed to purge archive %s (for task %s, which was running at boot): %s",
 					archive.UUID, task.UUID, err)
@@ -484,7 +484,7 @@ func (core *Core) purge() {
 
 	for _, archive := range l {
 		log.Infof("requesting purge of archive %s due to status '%s'", archive.UUID, archive.Status)
-		_, err := core.DB.CreatePurgeTask("system", archive, core.purgeAgent)
+		_, err := core.DB.CreatePurgeTask("system", archive)
 		if err != nil {
 			log.Errorf("error scheduling purge of archive %s: %s", archive.UUID, err)
 			continue

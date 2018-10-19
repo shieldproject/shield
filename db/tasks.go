@@ -346,7 +346,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	return db.GetTask(id)
 }
 
-func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Task, error) {
+func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	id := uuid.NewRandom()
 	err := db.Exec(
 		`INSERT INTO tasks
@@ -362,7 +362,7 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive, agent string) (*Ta
 		id.String(), owner, PurgeOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
 		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
 		"", "",
-		archive.StoreKey, agent, 0, archive.TenantUUID.String(),
+		archive.StoreKey, archive.StoreAgent, 0, archive.TenantUUID.String(),
 	)
 
 	if err != nil {

@@ -4,32 +4,7 @@ import (
 	"fmt"
 )
 
-func (c *Client) Initialized() (bool, error) {
-	var out struct {
-		Initialized bool `json:"initialized"`
-	}
-	if _, err := c.Get("/v1/sys/init", &out); err != nil {
-		return false, fmt.Errorf("failed to check vault init status: %s", err)
-	}
-	return out.Initialized, nil
-}
-
-/* START HERE <----- refactor */
 func (c *Client) Initialize(crypt, master string) (string, error) {
-	initialized, err := c.Initialized()
-	if err != nil {
-		return "", err
-	}
-
-	if initialized {
-		creds, err := ReadCrypt(crypt, master)
-		if err != nil {
-			return "", err
-		}
-		c.Token = creds.RootToken
-		return "", c.Unseal(creds.SealKey)
-	}
-
 	/* initialize the vault, with one seal key */
 	in := struct {
 		Shares    int `json:"secret_shares"`
@@ -59,7 +34,8 @@ func (c *Client) Initialize(crypt, master string) (string, error) {
 	}); err != nil {
 		return "", err
 	}
-	if err := c.Unseal(out.Keys[0]); err != nil {
+
+	if err := c.unseal(out.Keys[0]); err != nil {
 		return "", err
 	}
 
