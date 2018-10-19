@@ -30,13 +30,13 @@ var _ = Describe("Task Management", func() {
 	)
 
 	shouldExist := func(q string, params ...interface{}) {
-		n, err := db.Count(q, params...)
+		n, err := db.count(q, params...)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(n).Should(BeNumerically(">", 0))
 	}
 
 	shouldNotExist := func(q string, params ...interface{}) {
-		n, err := db.Count(q, params...)
+		n, err := db.count(q, params...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(n).Should(BeNumerically("==", 0))
 	}

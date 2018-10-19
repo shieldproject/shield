@@ -14,8 +14,7 @@ type DB struct {
 	DSN        string
 	exclusive  sync.Mutex
 
-	qCache map[string]*sql.Stmt
-	qAlias map[string]string
+	cache map[string]*sql.Stmt
 }
 
 func (db *DB) Copy() *DB {
@@ -38,11 +37,8 @@ func (db *DB) Connect() error {
 	}
 
 	db.connection = connection
-	if db.qCache == nil {
-		db.qCache = make(map[string]*sql.Stmt)
-	}
-	if db.qAlias == nil {
-		db.qAlias = make(map[string]string)
+	if db.cache == nil {
+		db.cache = make(map[string]*sql.Stmt)
 	}
 	return nil
 }
@@ -54,23 +50,17 @@ func (db *DB) Disconnect() error {
 			return err
 		}
 		db.connection = nil
-		db.qCache = make(map[string]*sql.Stmt)
+		db.cache = make(map[string]*sql.Stmt)
 	}
 	return nil
 }
 
-// Register a SQL query alias
-func (db *DB) Alias(name string, sql string) error {
-	db.qAlias[name] = sql
-	return nil
-}
-
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
-func (db *DB) exec(sql_or_name string, args ...interface{}) error {
+func (db *DB) exec(sql string, args ...interface{}) error {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 
-	s, err := db.statement(sql_or_name)
+	s, err := db.statement(sql)
 	if err != nil {
 		return err
 	}
@@ -84,11 +74,11 @@ func (db *DB) exec(sql_or_name string, args ...interface{}) error {
 }
 
 // Execute a named, data query (SELECT)
-func (db *DB) query(sql_or_name string, args ...interface{}) (*sql.Rows, error) {
+func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 
-	s, err := db.statement(sql_or_name)
+	s, err := db.statement(sql)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +92,8 @@ func (db *DB) query(sql_or_name string, args ...interface{}) (*sql.Rows, error) 
 }
 
 // Execute a data query (SELECT) and return how many rows were returned
-func (db *DB) Count(sql_or_name string, args ...interface{}) (uint, error) {
-	r, err := db.query(sql_or_name, args...)
+func (db *DB) count(sql string, args ...interface{}) (uint, error) {
+	r, err := db.query(sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -116,35 +106,24 @@ func (db *DB) Count(sql_or_name string, args ...interface{}) (uint, error) {
 	return n, nil
 }
 
-// Transparently resolve SQL aliases to real SQL query text
-func (db *DB) resolve(sql_or_name string) string {
-	if sql, ok := db.qAlias[sql_or_name]; ok {
-		return sql
-	}
-	return sql_or_name
-}
-
-func (db *DB) rebind(sql string) string {
-	return db.connection.Rebind(sql)
-}
-
-// Return the prepared Statement for a given SQL query
-func (db *DB) statement(sql_or_name string) (*sql.Stmt, error) {
+// Return the prepared statement for a given SQL query
+func (db *DB) statement(sql string) (*sql.Stmt, error) {
 	if db.connection == nil {
 		return nil, fmt.Errorf("Not connected to database")
 	}
 
-	sql := db.resolve(db.rebind(sql_or_name))
-	if _, ok := db.qCache[sql]; !ok {
+	sql = db.connection.Rebind(sql)
+	if _, ok := db.cache[sql]; !ok {
 		stmt, err := db.connection.Prepare(sql)
 		if err != nil {
 			return nil, err
 		}
-		db.qCache[sql] = stmt
+		db.cache[sql] = stmt
 	}
 
-	if q, ok := db.qCache[sql]; ok {
+	if q, ok := db.cache[sql]; ok {
 		return q, nil
 	}
+
 	return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", sql)
 }

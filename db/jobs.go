@@ -243,7 +243,7 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 }
 
 func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
-	n, err := db.Count(
+	n, err := db.count(
 		`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`,
 		id.String(), !pause)
 	if n == 0 || err != nil {
