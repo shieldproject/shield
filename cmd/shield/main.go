@@ -1306,6 +1306,7 @@ func main() {
 		r.Add("Name", t.Name)
 		r.Add("Summary", t.Summary)
 		r.Add("SHIELD Agent", t.Agent)
+		r.Add("Compression", t.Compression)
 		r.Add("Backup Plugin", t.Plugin)
 		r.Add("Configuration", asJSON(t.Config))
 		r.Output(os.Stdout)
