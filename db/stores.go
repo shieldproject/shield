@@ -375,6 +375,11 @@ func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
 	}
 	defer r.Close()
 
+	if !r.Next() {
+		/* already deleted (temporal anomaly detected) */
+		return true, nil
+	}
+
 	var numJobs int
 	if err = r.Scan(&numJobs); err != nil {
 		return false, err
