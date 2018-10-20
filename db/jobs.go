@@ -79,7 +79,7 @@ type JobFilter struct {
 	ExactMatch bool
 }
 
-func (f *JobFilter) Query(driver string) (string, []interface{}, error) {
+func (f *JobFilter) Query() (string, []interface{}, error) {
 	wheres := []string{"1"}
 	args := []interface{}{}
 
