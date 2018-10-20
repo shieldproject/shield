@@ -184,7 +184,7 @@ func (db *DB) CreateTarget(in *Target) (*Target, error) {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(toTenant(in.TenantUUID), in)
+	db.sendCreateObjectEvent(in, in.TenantUUID)
 	return in, nil
 }
 
@@ -251,6 +251,6 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(toTenant(t.TenantUUID), t)
+	db.sendDeleteObjectEvent(t, t.TenantUUID)
 	return true, nil
 }

@@ -209,7 +209,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 		return err
 	}
 
-	db.sendCreateObjectEvent("SYSTEM", agent)
+	db.sendCreateObjectEvent(agent, "*")
 	return nil
 }
 

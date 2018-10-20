@@ -318,7 +318,7 @@ func (db *DB) CreateStore(s *Store) (*Store, error) {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(toTenant(s.TenantUUID), s)
+	db.sendCreateObjectEvent(s, s.TenantUUID)
 	return s, nil
 }
 
@@ -354,7 +354,7 @@ func (db *DB) UpdateStore(s *Store) error {
 		return err
 	}
 
-	db.sendUpdateObjectEvent(toTenant(s.TenantUUID), s)
+	db.sendUpdateObjectEvent(s, s.TenantUUID)
 	return nil
 }
 
@@ -396,7 +396,7 @@ func (db *DB) DeleteStore(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(toTenant(s.TenantUUID), s)
+	db.sendDeleteObjectEvent(s, s.TenantUUID)
 	return true, nil
 }
 

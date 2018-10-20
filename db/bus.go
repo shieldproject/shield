@@ -2,8 +2,7 @@ package db
 
 import (
 	"fmt"
-
-	"github.com/pborman/uuid"
+	"strings"
 
 	"github.com/starkandwayne/shield/core/bus"
 )
@@ -25,41 +24,29 @@ func datatype(thing interface{}) string {
 	}
 }
 
-func toTenant(id uuid.UUID) string {
-	return id.String()
+func (db *DB) sendCreateObjectEvent(thing interface{}, queues ...string) {
+	fmt.Printf("sending %s to [%s] for %s\n", bus.CreateObjectEvent, strings.Join(queues, ", "), datatype(thing))
+	db.bus.Send(bus.CreateObjectEvent, datatype(thing), thing, queues...)
 }
 
-func toAdmins() string {
-	return "admin"
+func (db *DB) sendUpdateObjectEvent(thing interface{}, queues ...string) {
+	db.bus.Send(bus.UpdateObjectEvent, datatype(thing), thing, queues...)
 }
 
-func toAll() string {
-	return "*"
+func (db *DB) sendDeleteObjectEvent(thing interface{}, queues ...string) {
+	db.bus.Send(bus.DeleteObjectEvent, datatype(thing), thing, queues...)
 }
 
-func (db *DB) sendCreateObjectEvent(to string, thing interface{}) {
-	fmt.Printf("sending %s to %s for %s\n", bus.CreateObjectEvent, to, datatype(thing))
-	db.bus.Send(bus.CreateObjectEvent, to, datatype(thing), thing)
-}
-
-func (db *DB) sendUpdateObjectEvent(to string, thing interface{}) {
-	db.bus.Send(bus.UpdateObjectEvent, to, datatype(thing), thing)
-}
-
-func (db *DB) sendDeleteObjectEvent(to string, thing interface{}) {
-	db.bus.Send(bus.DeleteObjectEvent, to, datatype(thing), thing)
-}
-
-func (db *DB) sendTaskStatusUpdateEvent(to string, task *Task) {
-	db.bus.Send(bus.TaskStatusUpdateEvent, to, "", map[string]interface{}{
-		"uuid":   task.UUID.String(),
+func (db *DB) sendTaskStatusUpdateEvent(task *Task, queues ...string) {
+	db.bus.Send(bus.TaskStatusUpdateEvent, "", map[string]interface{}{
+		"uuid":   task.UUID,
 		"status": task.Status,
-	})
+	}, queues...)
 }
 
-func (db *DB) sendTaskLogUpdateEvent(to string, task *Task, log string) {
-	db.bus.Send(bus.TaskLogUpdateEvent, to, "", map[string]interface{}{
-		"uuid": task.UUID.String(),
+func (db *DB) sendTaskLogUpdateEvent(task *Task, log string, queues ...string) {
+	db.bus.Send(bus.TaskLogUpdateEvent, "", map[string]interface{}{
+		"uuid": task.UUID,
 		"tail": log,
-	})
+	}, queues...)
 }

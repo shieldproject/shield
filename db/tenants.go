@@ -174,8 +174,7 @@ func (db *DB) CreateTenant(id, name string) (*Tenant, error) {
 	}
 
 	fmt.Printf("SENDING create-object MESSAGES via MBUS...\n")
-	db.sendCreateObjectEvent(toTenant(t.UUID), t)
-	db.sendCreateObjectEvent(toAdmins(), t)
+	db.sendCreateObjectEvent(t, "admins")
 	return t, nil
 }
 
@@ -191,8 +190,7 @@ func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
 		return nil, err
 	}
 
-	db.sendUpdateObjectEvent(toTenant(t.UUID), t)
-	db.sendUpdateObjectEvent(toAdmins(), t)
+	db.sendUpdateObjectEvent(t, "admins", t.UUID)
 	return t, nil
 }
 
@@ -221,7 +219,6 @@ func (db *DB) DeleteTenant(t *Tenant) error {
 		return err
 	}
 
-	db.sendDeleteObjectEvent(toTenant(t.UUID), t)
-	db.sendDeleteObjectEvent(toAdmins(), t)
+	db.sendDeleteObjectEvent(t, "admins", t.UUID)
 	return nil
 }
