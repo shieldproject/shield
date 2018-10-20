@@ -73,15 +73,11 @@ func main() {
 		Level: level,
 	})
 
-	database := &db.DB{
-		Driver: "sqlite3",
-		DSN:    opts.Database,
-	}
-
-	log.Debugf("connecting to database at %s", database.DSN)
-	if err := database.Connect(); err != nil {
+	log.Debugf("connecting to database at %s", opts.Database)
+	database, err := db.Connect(opts.Database)
+	if err != nil {
 		log.Errorf("failed to connect to database at %s: %s",
-			database.DSN, err)
+			opts.Database, err)
 		os.Exit(1)
 	}
 
