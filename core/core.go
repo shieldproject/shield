@@ -157,46 +157,6 @@ func NewCore(file string) (*Core, error) {
 	}
 
 	core.auth = make(map[string]AuthProvider)
-	for i, auth := range config.Auth {
-		if auth.Identifier == "" {
-			return nil, fmt.Errorf("provider #%d lacks the required `identifier' field", i+1)
-		}
-		if auth.Name == "" {
-			return nil, fmt.Errorf("%s provider lacks the required `name' field", auth.Identifier)
-		}
-		if auth.Backend == "" {
-			return nil, fmt.Errorf("%s provider lacks the required `backend' field", auth.Identifier)
-		}
-
-		switch auth.Backend {
-		case "github":
-			core.auth[auth.Identifier] = &GithubAuthProvider{
-				AuthProviderBase: AuthProviderBase{
-					Name:       auth.Name,
-					Identifier: auth.Identifier,
-					Type:       auth.Backend,
-				},
-				core: core,
-			}
-		case "uaa":
-			core.auth[auth.Identifier] = &UAAAuthProvider{
-				AuthProviderBase: AuthProviderBase{
-					Name:       auth.Name,
-					Identifier: auth.Identifier,
-					Type:       auth.Backend,
-				},
-				core: core,
-			}
-		default:
-			return nil, fmt.Errorf("%s provider has an unrecognized `backend' of '%s'; must be one of github or uaa", auth.Identifier, auth.Backend)
-		}
-
-		if err := core.auth[auth.Identifier].Configure(auth.Properties); err != nil {
-			return nil, fmt.Errorf("failed to configure '%s' auth provider '%s': %s",
-				auth.Backend, auth.Identifier, err)
-		}
-	}
-
 	return core, nil
 }
 
