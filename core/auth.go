@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/jhunt/go-log"
-	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -21,9 +20,9 @@ func IsValidSystemRole(role string) bool {
 }
 
 type authTenant struct {
-	UUID uuid.UUID `json:"uuid"`
-	Name string    `json:"name"`
-	Role string    `json:"role"`
+	UUID string `json:"uuid"`
+	Name string `json:"name"`
+	Role string `json:"role"`
 }
 type authUser struct {
 	UUID    string `json:"uuid"`
@@ -60,7 +59,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 
 	answer := authResponse{
 		User: authUser{
-			UUID:    user.UUID.String(),
+			UUID:    user.UUID,
 			Name:    user.Name,
 			Account: user.Account,
 			Backend: user.Backend,
@@ -84,7 +83,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		log.Debugf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-			user.Account, user.Backend, user.UUID.String(), err)
+			user.Account, user.Backend, user.UUID, err)
 		return nil, err
 	}
 
@@ -95,7 +94,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 		answer.Tenants[i].Name = membership.TenantName
 		answer.Tenants[i].Role = membership.Role
 
-		if answer.Tenants[i].UUID.String() == user.DefaultTenant {
+		if answer.Tenants[i].UUID == user.DefaultTenant {
 			answer.Tenant = &answer.Tenants[i]
 		}
 
@@ -111,7 +110,7 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 		case "operator":
 			grant.Operator = true
 		}
-		answer.Grants.Tenants[membership.TenantUUID.String()] = grant
+		answer.Grants.Tenants[membership.TenantUUID] = grant
 	}
 	if answer.Tenant == nil && len(answer.Tenants) > 0 {
 		answer.Tenant = &answer.Tenants[0]
@@ -128,9 +127,9 @@ func (core *Core) checkAuth(user *db.User) (*authResponse, error) {
 	return &answer, nil
 }
 
-func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
-	r.SetCookie(SessionCookie(sessionID.String(), true))
-	r.SetRespHeader("X-Shield-Session", sessionID.String())
+func SetAuthHeaders(r *route.Request, sessionID string) {
+	r.SetCookie(SessionCookie(sessionID, true))
+	r.SetRespHeader("X-Shield-Session", sessionID)
 }
 
 func (core *Core) hasRole(fail bool, r *route.Request, tenant string, roles ...string) bool {
@@ -143,7 +142,7 @@ func (core *Core) hasRole(fail bool, r *route.Request, tenant string, roles ...s
 	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-			user.Account, user.Backend, user.UUID.String(), err)
+			user.Account, user.Backend, user.UUID, err)
 		if fail {
 			r.Fail(route.Forbidden(err, "Access denied"))
 		}
@@ -167,7 +166,7 @@ func (core *Core) hasRole(fail bool, r *route.Request, tenant string, roles ...s
 		}
 
 		for _, m := range memberships {
-			if m.TenantUUID.String() == tenant {
+			if m.TenantUUID == tenant {
 				if l[1] == "*" {
 					return true
 				}
@@ -209,13 +208,13 @@ func (core *Core) CanManageTenants(r *route.Request, tenant string) bool {
 	memberships, err := core.DB.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-			user.Account, user.Backend, user.UUID.String(), err)
+			user.Account, user.Backend, user.UUID, err)
 		r.Fail(route.Forbidden(err, "Access denied"))
 		return false
 	}
 
 	for _, m := range memberships {
-		if m.TenantUUID.String() == tenant {
+		if m.TenantUUID == tenant {
 			if m.Role == "admin" {
 				return true
 			}
@@ -237,10 +236,10 @@ func (core *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 
 	if session.Expired(core.sessionTimeout) {
 		log.Infof("session %s expired; purging...", r.SessionID())
-		core.DB.ClearSession(session.UUID.String())
+		core.DB.ClearSession(session.UUID)
 		return nil, nil
 	}
-	user, err := core.DB.GetUserForSession(session.UUID.String())
+	user, err := core.DB.GetUserForSession(session.UUID)
 	if err != nil || user == nil {
 		return user, err
 	}

@@ -6,52 +6,50 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pborman/uuid"
-
 	"github.com/starkandwayne/shield/timespec"
 )
 
 type Job struct {
-	TenantUUID uuid.UUID `json:"-" mbus:"tenant_uuid"`
-	TargetUUID uuid.UUID `json:"-" mbus:"target_uuid"`
-	StoreUUID  uuid.UUID `json:"-" mbus:"store_uuid"`
-	PolicyUUID uuid.UUID `json:"-" mbus:"policy_uuid"`
+	TenantUUID string `json:"-" mbus:"tenant_uuid"`
+	TargetUUID string `json:"-" mbus:"target_uuid"`
+	StoreUUID  string `json:"-" mbus:"store_uuid"`
+	PolicyUUID string `json:"-" mbus:"policy_uuid"`
 
-	UUID     uuid.UUID `json:"uuid"      mbus:"uuid"`
-	Name     string    `json:"name"      mbus:"name"`
-	Summary  string    `json:"summary"   mbus:"summary"`
-	Expiry   int       `json:"expiry"    mbus:"expiry"`
-	Schedule string    `json:"schedule"  mbus:"schedule"`
-	Paused   bool      `json:"paused"    mbus:"paused"`
-	FixedKey bool      `json:"fixed_key" mbus:"fixed_key"`
+	UUID     string `json:"uuid"      mbus:"uuid"`
+	Name     string `json:"name"      mbus:"name"`
+	Summary  string `json:"summary"   mbus:"summary"`
+	Expiry   int    `json:"expiry"    mbus:"expiry"`
+	Schedule string `json:"schedule"  mbus:"schedule"`
+	Paused   bool   `json:"paused"    mbus:"paused"`
+	FixedKey bool   `json:"fixed_key" mbus:"fixed_key"`
 
 	Target struct {
-		UUID        uuid.UUID `json:"uuid"`
-		Name        string    `json:"name"`
-		Agent       string    `json:"agent"`
-		Plugin      string    `json:"plugin"`
-		Compression string    `json:"compression"`
+		UUID        string `json:"uuid"`
+		Name        string `json:"name"`
+		Agent       string `json:"agent"`
+		Plugin      string `json:"plugin"`
+		Compression string `json:"compression"`
 
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
 	}
 
 	Store struct {
-		UUID    uuid.UUID `json:"uuid"`
-		Name    string    `json:"name"`
-		Agent   string    `json:"agent"`
-		Plugin  string    `json:"plugin"`
-		Summary string    `json:"summary"`
-		Healthy bool      `json:"healthy"`
+		UUID    string `json:"uuid"`
+		Name    string `json:"name"`
+		Agent   string `json:"agent"`
+		Plugin  string `json:"plugin"`
+		Summary string `json:"summary"`
+		Healthy bool   `json:"healthy"`
 
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
 	} `json:"store"`
 
 	Policy struct {
-		UUID    uuid.UUID `json:"uuid"`
-		Name    string    `json:"name"`
-		Summary string    `json:"summary"`
+		UUID    string `json:"uuid"`
+		Name    string `json:"name"`
+		Summary string `json:"summary"`
 	} `json:"policy"`
 
 	Agent          string `json:"agent"`
@@ -168,24 +166,18 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	for r.Next() {
 		j := &Job{}
 		var (
-			last                                *int64
-			this, policy, store, target, tenant NullUUID
-			status                              sql.NullString
+			last   *int64
+			status sql.NullString
 		)
 		if err = r.Scan(
-			&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
-			&tenant, &j.FixedKey,
-			&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
-			&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
-			&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
+			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
+			&j.TenantUUID, &j.FixedKey,
+			&j.Policy.Name, &j.Policy.Summary, &j.Policy.UUID, &j.Expiry,
+			&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
+			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
 			return l, err
 		}
-		j.UUID = this.UUID
-		j.Policy.UUID = policy.UUID
-		j.Store.UUID = store.UUID
-		j.Target.UUID = target.UUID
-		j.TenantUUID = tenant.UUID
 		if last != nil {
 			j.LastRun = *last
 		}
@@ -199,7 +191,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	return l, nil
 }
 
-func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
+func (db *DB) GetJob(id string) (*Job, error) {
 	r, err := db.query(`
 		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
 		       j.tenant_uuid, j.fixed_key,
@@ -212,7 +204,7 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 				INNER JOIN stores     s  ON  s.uuid = j.store_uuid
 				INNER JOIN targets    t  ON  t.uuid = j.target_uuid
 
-			WHERE j.uuid = ?`, id.String())
+			WHERE j.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -223,48 +215,37 @@ func (db *DB) GetJob(id uuid.UUID) (*Job, error) {
 	}
 
 	j := &Job{}
-	var this, policy, store, target, tenant NullUUID
 	if err = r.Scan(
-		&this, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
-		&tenant, &j.FixedKey,
-		&j.Policy.Name, &j.Policy.Summary, &policy, &j.Expiry,
-		&store, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
-		&target, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
+		&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
+		&j.TenantUUID, &j.FixedKey,
+		&j.Policy.Name, &j.Policy.Summary, &j.Policy.UUID, &j.Expiry,
+		&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
+		&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 		&j.Agent, &j.Target.Compression); err != nil {
 		return nil, err
 	}
-	j.UUID = this.UUID
-	j.Policy.UUID = policy.UUID
-	j.Store.UUID = store.UUID
-	j.Target.UUID = target.UUID
-	j.TenantUUID = tenant.UUID
-
 	return j, nil
 }
 
-func (db *DB) PauseOrUnpauseJob(id uuid.UUID, pause bool) (bool, error) {
-	n, err := db.count(
-		`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`,
-		id.String(), !pause)
+func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
+	n, err := db.count(`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`, id, !pause)
 	if n == 0 || err != nil {
 		return false, err
 	}
 
-	return true, db.exec(
-		`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`,
-		pause, id.String(), !pause)
+	return true, db.exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
 }
 
-func (db *DB) PauseJob(id uuid.UUID) (bool, error) {
+func (db *DB) PauseJob(id string) (bool, error) {
 	return db.PauseOrUnpauseJob(id, true)
 }
 
-func (db *DB) UnpauseJob(id uuid.UUID) (bool, error) {
+func (db *DB) UnpauseJob(id string) (bool, error) {
 	return db.PauseOrUnpauseJob(id, false)
 }
 
 func (db *DB) CreateJob(job *Job) (*Job, error) {
-	job.UUID = uuid.NewRandom()
+	job.UUID = randomID()
 
 	err := db.exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,
@@ -273,9 +254,9 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 	             VALUES (?, ?,
 	                     ?, ?, ?, ?,
 	                     ?, ?, ?, ?)`,
-		job.UUID.String(), job.TenantUUID.String(),
+		job.UUID, job.TenantUUID,
 		job.Name, job.Summary, job.Schedule, job.Paused,
-		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(), job.FixedKey)
+		job.TargetUUID, job.StoreUUID, job.PolicyUUID, job.FixedKey)
 	if err != nil {
 		return nil, err
 	}
@@ -301,22 +282,25 @@ func (db *DB) UpdateJob(job *Job) error {
 	          fixed_key      = ?
 	    WHERE uuid = ?`,
 		job.Name, job.Summary, job.Schedule,
-		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),
-		job.FixedKey, job.UUID.String())
+		job.TargetUUID, job.StoreUUID, job.PolicyUUID,
+		job.FixedKey, job.UUID)
 	if err != nil {
 		return err
 	}
 
-	job, err = db.GetJob(job.UUID)
+	update, err := db.GetJob(job.UUID)
 	if err != nil {
 		return err
+	}
+	if update == nil {
+		return fmt.Errorf("unable to retrieve job %s after update", job.UUID)
 	}
 
 	db.sendUpdateObjectEvent(toTenant(job.TenantUUID), job)
 	return nil
 }
 
-func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
+func (db *DB) DeleteJob(id string) (bool, error) {
 	job, err := db.GetJob(id)
 	if err != nil {
 		return false, err
@@ -327,7 +311,7 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 		return true, nil
 	}
 
-	err = db.exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID.String())
+	err = db.exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -338,7 +322,7 @@ func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
 
 func (db *DB) RescheduleJob(j *Job, t time.Time) error {
 	/* note: this update does not require a message bus notification */
-	return db.exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID.String())
+	return db.exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID)
 }
 
 func (j *Job) Reschedule() error {

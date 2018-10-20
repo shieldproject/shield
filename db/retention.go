@@ -3,16 +3,14 @@ package db
 import (
 	"fmt"
 	"strings"
-
-	"github.com/pborman/uuid"
 )
 
 type RetentionPolicy struct {
-	UUID       uuid.UUID `json:"uuid"    mbus:"uuid"`
-	TenantUUID uuid.UUID `json:"-"       mbus:"tennt_uuid"`
-	Name       string    `json:"name"    mbus:"name"`
-	Summary    string    `json:"summary" mbus:"summary"`
-	Expires    uint      `json:"expires" mbus:"expires"`
+	UUID       string `json:"uuid"    mbus:"uuid"`
+	TenantUUID string `json:"-"       mbus:"tennt_uuid"`
+	Name       string `json:"name"    mbus:"name"`
+	Summary    string `json:"summary" mbus:"summary"`
+	Expires    uint   `json:"expires" mbus:"expires"`
 }
 
 type RetentionFilter struct {
@@ -87,25 +85,19 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 	for r.Next() {
 		p := &RetentionPolicy{}
 		var n int
-		var this NullUUID
-		var tenant NullUUID
-
-		if err = r.Scan(&this, &tenant, &p.Name, &p.Summary, &p.Expires, &n); err != nil {
+		if err = r.Scan(&p.UUID, &p.TenantUUID, &p.Name, &p.Summary, &p.Expires, &n); err != nil {
 			return l, err
 		}
-		p.UUID = this.UUID
-		p.TenantUUID = tenant.UUID
-
 		l = append(l, p)
 	}
 
 	return l, nil
 }
 
-func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
+func (db *DB) GetRetentionPolicy(id string) (*RetentionPolicy, error) {
 	r, err := db.query(`
 		SELECT uuid, tenant_uuid, name, summary, expiry
-			FROM retention WHERE uuid = ?`, id.String())
+			FROM retention WHERE uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -115,23 +107,18 @@ func (db *DB) GetRetentionPolicy(id uuid.UUID) (*RetentionPolicy, error) {
 		return nil, nil
 	}
 	p := &RetentionPolicy{}
-	var this NullUUID
-	var tenant NullUUID
-	if err = r.Scan(&this, &tenant, &p.Name, &p.Summary, &p.Expires); err != nil {
+	if err = r.Scan(&p.UUID, &p.TenantUUID, &p.Name, &p.Summary, &p.Expires); err != nil {
 		return nil, err
 	}
-	p.UUID = this.UUID
-	p.TenantUUID = tenant.UUID
-
 	return p, nil
 }
 
 func (db *DB) CreateRetentionPolicy(p *RetentionPolicy) (*RetentionPolicy, error) {
-	p.UUID = uuid.NewRandom()
+	p.UUID = randomID()
 	return p, db.exec(`
 	   INSERT INTO retention (uuid, tenant_uuid, name, summary, expiry)
 	                  VALUES (?,    ?,           ?,    ?,       ?)`,
-		p.UUID.String(), p.TenantUUID.String(), p.Name, p.Summary, p.Expires)
+		p.UUID, p.TenantUUID, p.Name, p.Summary, p.Expires)
 }
 
 func (db *DB) UpdateRetentionPolicy(p *RetentionPolicy) error {
@@ -141,14 +128,11 @@ func (db *DB) UpdateRetentionPolicy(p *RetentionPolicy) error {
 	          summary = ?,
 	          expiry  = ?
 	    WHERE uuid = ?`,
-		p.Name, p.Summary, p.Expires, p.UUID.String())
+		p.Name, p.Summary, p.Expires, p.UUID)
 }
 
-func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
-	r, err := db.query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`,
-		id.String(),
-	)
+func (db *DB) DeleteRetentionPolicy(id string) (bool, error) {
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.retention_uuid = ?`, id)
 	if err != nil {
 		return false, err
 	}
@@ -165,24 +149,21 @@ func (db *DB) DeleteRetentionPolicy(id uuid.UUID) (bool, error) {
 	}
 
 	if numJobs < 0 {
-		return false, fmt.Errorf("Retention policy %s is in used by %d (negative) Jobs", id.String(), numJobs)
+		return false, fmt.Errorf("Retention policy %s is in used by %d (negative) Jobs", id, numJobs)
 	}
 	if numJobs > 0 {
 		return false, nil
 	}
 
 	r.Close()
-	return true, db.exec(
-		`DELETE FROM retention WHERE uuid = ?`,
-		id.String(),
-	)
+	return true, db.exec(`DELETE FROM retention WHERE uuid = ?`, id)
 }
 
 //InheritRetentionTemplates gives a tenant the global (templated) retention policies
 func (db *DB) InheritRetentionTemplates(tenant *Tenant) error {
 
 	//all of the global tenants are defined with a nil UUID
-	policies, err := db.GetAllRetentionPolicies(&RetentionFilter{ForTenant: uuid.NIL.String()})
+	policies, err := db.GetAllRetentionPolicies(&RetentionFilter{ForTenant: GlobalTenantUUID})
 	if err != nil {
 		return err
 	}

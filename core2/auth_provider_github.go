@@ -142,7 +142,7 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	}
 	if user == nil {
 		user = &db.User{
-			UUID:    uuid.NewRandom(),
+			UUID:    uuid.NewRandom().String(),
 			Name:    name,
 			Account: account,
 			Backend: p.Identifier,

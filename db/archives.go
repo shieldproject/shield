@@ -4,24 +4,22 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/pborman/uuid"
 )
 
 type Archive struct {
-	UUID           uuid.UUID `json:"uuid"            mbus:"uuid"`
-	TenantUUID     uuid.UUID `json:"tenant_uuid"     mbus:"tenant_uuid"`
-	TargetUUID     uuid.UUID `json:"target_uuid"     mbus:"target_uuid"`
-	StoreUUID      uuid.UUID `json:"store_uuid"      mbus:"store_uuid"`
-	StoreKey       string    `json:"key"             mbus:"key"`
-	TakenAt        int64     `json:"taken_at"        mbus:"taken_at"`
-	ExpiresAt      int64     `json:"expires_at"      mbus:"expires_at"`
-	Notes          string    `json:"notes"           mbus:"notes"`
-	Status         string    `json:"status"          mbus:"status"`
-	PurgeReason    string    `json:"purge_reason"    mbus:"purge_reason"`
-	EncryptionType string    `json:"encryption_type" mbus:"encryption_type"`
-	Compression    string    `json:"compression"     mbus:"compression"`
-	Size           int64     `json:"size"            mbus:"size"`
+	UUID           string `json:"uuid"            mbus:"uuid"`
+	TenantUUID     string `json:"tenant_uuid"     mbus:"tenant_uuid"`
+	TargetUUID     string `json:"target_uuid"     mbus:"target_uuid"`
+	StoreUUID      string `json:"store_uuid"      mbus:"store_uuid"`
+	StoreKey       string `json:"key"             mbus:"key"`
+	TakenAt        int64  `json:"taken_at"        mbus:"taken_at"`
+	ExpiresAt      int64  `json:"expires_at"      mbus:"expires_at"`
+	Notes          string `json:"notes"           mbus:"notes"`
+	Status         string `json:"status"          mbus:"status"`
+	PurgeReason    string `json:"purge_reason"    mbus:"purge_reason"`
+	EncryptionType string `json:"encryption_type" mbus:"encryption_type"`
+	Compression    string `json:"compression"     mbus:"compression"`
+	Size           int64  `json:"size"            mbus:"size"`
 
 	TargetName     string `json:"target_name"`
 	TargetPlugin   string `json:"target_plugin"`
@@ -150,20 +148,15 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 
 		var takenAt, expiresAt, size *int64
 		var targetName, storeName *string
-		var this, target, store, tenant NullUUID
 		if err = r.Scan(
-			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
+			&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+			&ann.TargetUUID, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+			&ann.StoreUUID, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
 			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
-			&ann.Compression, &tenant, &size); err != nil {
+			&ann.Compression, &ann.TenantUUID, &size); err != nil {
 
 			return l, err
 		}
-		ann.UUID = this.UUID
-		ann.TargetUUID = target.UUID
-		ann.StoreUUID = store.UUID
-		ann.TenantUUID = tenant.UUID
 		if takenAt != nil {
 			ann.TakenAt = *takenAt
 		}
@@ -186,7 +179,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	return l, nil
 }
 
-func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
+func (db *DB) GetArchive(id string) (*Archive, error) {
 	r, err := db.query(`
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
@@ -199,7 +192,7 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 		   INNER JOIN targets t   ON t.uuid = a.target_uuid
 		   INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
-		WHERE a.uuid = ?`, id.String())
+		WHERE a.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -212,20 +205,15 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 
 	var takenAt, expiresAt, size *int64
 	var targetName, storeName *string
-	var this, target, store, tenant NullUUID
 	if err = r.Scan(
-		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-		&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreAgent,
+		&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
+		&ann.TargetUUID, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
+		&ann.StoreUUID, &storeName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreAgent,
 		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
-		&ann.Compression, &tenant, &size); err != nil {
+		&ann.Compression, &ann.TenantUUID, &size); err != nil {
 
 		return nil, err
 	}
-	ann.UUID = this.UUID
-	ann.TargetUUID = target.UUID
-	ann.StoreUUID = store.UUID
-	ann.TenantUUID = tenant.UUID
 	if takenAt != nil {
 		ann.TakenAt = *takenAt
 	}
@@ -248,14 +236,14 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 func (db *DB) UpdateArchive(update *Archive) error {
 	return db.exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ?`,
-		update.Notes, update.UUID.String(),
+		update.Notes, update.UUID,
 	)
 }
 
-func (db *DB) AnnotateTargetArchive(target uuid.UUID, id string, notes string) error {
+func (db *DB) AnnotateTargetArchive(target, id, notes string) error {
 	return db.exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ? AND target_uuid = ?`,
-		notes, id, target.String(),
+		notes, id, target,
 	)
 }
 
@@ -275,11 +263,11 @@ func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 	return db.GetAllArchives(filter)
 }
 
-func (db *DB) InvalidateArchive(id uuid.UUID) error {
-	return db.exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id.String())
+func (db *DB) InvalidateArchive(id string) error {
+	return db.exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id)
 }
 
-func (db *DB) PurgeArchive(id uuid.UUID) error {
+func (db *DB) PurgeArchive(id string) error {
 	a, err := db.GetArchive(id)
 	if err != nil {
 		return err
@@ -289,23 +277,20 @@ func (db *DB) PurgeArchive(id uuid.UUID) error {
 		return fmt.Errorf("Invalid attempt to purge a 'valid' archive detected")
 	}
 
-	err = db.exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id.String())
+	err = db.exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id)
 	if err != nil {
 		return err
 	}
 
-	return db.exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id.String())
+	return db.exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id)
 }
 
-func (db *DB) ExpireArchive(id uuid.UUID) error {
-	return db.exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id.String())
+func (db *DB) ExpireArchive(id string) error {
+	return db.exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id)
 }
 
-func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
-	return true, db.exec(
-		`DELETE FROM archives WHERE uuid = ?`,
-		id.String(),
-	)
+func (db *DB) DeleteArchive(id string) (bool, error) {
+	return true, db.exec(`DELETE FROM archives WHERE uuid = ?`, id)
 }
 
 func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {

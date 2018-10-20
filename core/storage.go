@@ -49,11 +49,11 @@ func (core *Core) testStorage() {
 
 	lookup := make(map[string]bool)
 	for _, task := range inflight {
-		lookup[task.StoreUUID.String()] = true
+		lookup[task.StoreUUID] = true
 	}
 
 	for _, store := range stores {
-		if _, inqueue := lookup[store.UUID.String()]; inqueue {
+		if _, inqueue := lookup[store.UUID]; inqueue {
 			continue
 		}
 
@@ -107,7 +107,7 @@ func (core *Core) updateGlobalStorageUsage() error {
 	for _, store := range stores {
 		delta, err := core.DeltaIncrease(
 			&db.ArchiveFilter{
-				ForStore:      store.UUID.String(),
+				ForStore:      store.UUID,
 				Before:        &base,
 				After:         &threshold,
 				ExpiresBefore: &base,
@@ -120,7 +120,7 @@ func (core *Core) updateGlobalStorageUsage() error {
 
 		total_size, err := core.DB.ArchiveStorageFootprint(
 			&db.ArchiveFilter{
-				ForStore:   store.UUID.String(),
+				ForStore:   store.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -131,7 +131,7 @@ func (core *Core) updateGlobalStorageUsage() error {
 
 		total_count, err := core.DB.CountArchives(
 			&db.ArchiveFilter{
-				ForStore:   store.UUID.String(),
+				ForStore:   store.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -144,7 +144,7 @@ func (core *Core) updateGlobalStorageUsage() error {
 		store.StorageUsed = total_size
 		store.ArchiveCount = total_count
 		log.Debugf("updating store '%s' (%s) %d archives, %db storage used, %db increase",
-			store.Name, store.UUID.String(), store.ArchiveCount, store.StorageUsed, store.DailyIncrease)
+			store.Name, store.UUID, store.ArchiveCount, store.StorageUsed, store.DailyIncrease)
 		err = core.DB.UpdateStore(store)
 		if err != nil {
 			log.Errorf("Failed to update stores with daily storage statistics: %s", err)
@@ -166,7 +166,7 @@ func (core *Core) updateTenantStorageUsage() error {
 	for _, tenant := range tenants {
 		delta, err := core.DeltaIncrease(
 			&db.ArchiveFilter{
-				ForTenant:     tenant.UUID.String(),
+				ForTenant:     tenant.UUID,
 				Before:        &base,
 				After:         &threshold,
 				ExpiresBefore: &base,
@@ -179,7 +179,7 @@ func (core *Core) updateTenantStorageUsage() error {
 
 		total_size, err := core.DB.ArchiveStorageFootprint(
 			&db.ArchiveFilter{
-				ForTenant:  tenant.UUID.String(),
+				ForTenant:  tenant.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -190,7 +190,7 @@ func (core *Core) updateTenantStorageUsage() error {
 
 		total_count, err := core.DB.CountArchives(
 			&db.ArchiveFilter{
-				ForTenant:  tenant.UUID.String(),
+				ForTenant:  tenant.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -204,7 +204,7 @@ func (core *Core) updateTenantStorageUsage() error {
 		tenant.DailyIncrease = delta
 
 		log.Debugf("updating tenant '%s' (%s) %d archives, %db storage used, %db increase",
-			tenant.Name, tenant.UUID.String(), tenant.ArchiveCount, tenant.StorageUsed, tenant.DailyIncrease)
+			tenant.Name, tenant.UUID, tenant.ArchiveCount, tenant.StorageUsed, tenant.DailyIncrease)
 		if _, err = core.DB.UpdateTenant(tenant); err != nil {
 			log.Errorf("Failed to update tenant with daily storage statistics: %s", err)
 			return err

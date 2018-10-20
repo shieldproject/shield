@@ -6,9 +6,12 @@ import (
 	"sync"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/core/bus"
 )
+
+var GlobalTenantUUID = uuid.NIL.String()
 
 type DB struct {
 	connection *sqlx.DB
@@ -133,4 +136,9 @@ func (db *DB) statement(sql string) (*sql.Stmt, error) {
 	}
 
 	return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", sql)
+}
+
+// Generate a randomized UUID
+func randomID() string {
+	return uuid.NewRandom().String()
 }

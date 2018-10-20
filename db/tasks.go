@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jhunt/go-log"
-	"github.com/pborman/uuid"
 )
 
 const (
@@ -27,16 +26,16 @@ const (
 )
 
 type Task struct {
-	UUID           uuid.UUID      `json:"uuid"            mbus:"uuid"`
-	TenantUUID     uuid.UUID      `json:"-"               mbus:"tenant_uuid"`
+	UUID           string         `json:"uuid"            mbus:"uuid"`
+	TenantUUID     string         `json:"-"               mbus:"tenant_uuid"`
 	Owner          string         `json:"owner"           mbus:"owner"`
 	Op             string         `json:"type"            mbus:"op"`
-	JobUUID        uuid.UUID      `json:"job_uuid"        mbus:"job_uuid"`
-	ArchiveUUID    uuid.UUID      `json:"archive_uuid"    mbus:"archive_uuid"`
-	StoreUUID      uuid.UUID      `json:"-"               mbus:"store_uuid"`
+	JobUUID        string         `json:"job_uuid"        mbus:"job_uuid"`
+	ArchiveUUID    string         `json:"archive_uuid"    mbus:"archive_uuid"`
+	StoreUUID      string         `json:"-"               mbus:"store_uuid"`
 	StorePlugin    string         `json:"-"`
 	StoreEndpoint  string         `json:"-"`
-	TargetUUID     uuid.UUID      `json:"-"               mbus:"target_uuid"`
+	TargetUUID     string         `json:"-"               mbus:"target_uuid"`
 	TargetPlugin   string         `json:"-"`
 	TargetEndpoint string         `json:"-"`
 	Compression    string         `json:"-"`
@@ -198,12 +197,11 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	for r.Next() {
 		t := &Task{}
 		var (
-			started, stopped, deadline                *int64
-			log                                       sql.NullString
-			this, tenant, archive, job, store, target NullUUID
+			started, stopped, deadline       *int64
+			job, archive, store, target, log sql.NullString
 		)
 		if err = r.Scan(
-			&this, &tenant, &t.Owner, &t.Op, &job, &archive,
+			&t.UUID, &t.TenantUUID, &t.Owner, &t.Op, &job, &archive,
 			&store, &t.StorePlugin, &t.StoreEndpoint,
 			&target, &t.TargetPlugin, &t.TargetEndpoint,
 			&t.Status, &t.RequestedAt, &started, &stopped, &deadline,
@@ -211,20 +209,17 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 			&t.OK, &t.Notes, &t.Clear, &t.FixedKey, &t.Compression); err != nil {
 			return l, err
 		}
-		t.UUID = this.UUID
-		t.TenantUUID = tenant.UUID
-
 		if job.Valid {
-			t.JobUUID = job.UUID
+			t.JobUUID = job.String
 		}
 		if archive.Valid {
-			t.ArchiveUUID = archive.UUID
+			t.ArchiveUUID = archive.String
 		}
 		if store.Valid {
-			t.StoreUUID = store.UUID
+			t.StoreUUID = store.String
 		}
 		if target.Valid {
-			t.TargetUUID = target.UUID
+			t.TargetUUID = target.String
 		}
 		if log.Valid {
 			t.Log = log.String
@@ -250,8 +245,8 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	return l, nil
 }
 
-func (db *DB) GetTask(id uuid.UUID) (*Task, error) {
-	filter := TaskFilter{UUID: id.String()}
+func (db *DB) GetTask(id string) (*Task, error) {
+	filter := TaskFilter{UUID: id}
 	r, err := db.GetAllTasks(&filter)
 	if err != nil {
 		return nil, err
@@ -263,7 +258,7 @@ func (db *DB) GetTask(id uuid.UUID) (*Task, error) {
 }
 
 func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
-	id := uuid.NewRandom()
+	id := randomID()
 	err := db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
@@ -275,10 +270,10 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		     ?, ?, ?,
 		     ?, ?, ?, ?,
 		     ?, ?, ?, ?, ?)`,
-		id.String(), owner, BackupOperation, job.UUID.String(), PendingStatus, "", time.Now().Unix(),
-		job.Store.UUID.String(), job.Store.Plugin, job.Store.Endpoint,
-		job.Target.UUID.String(), job.Target.Plugin, job.Target.Endpoint, "",
-		job.Agent, 0, job.TenantUUID.String(), job.FixedKey, job.Target.Compression,
+		id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
+		job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
+		job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
+		job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression,
 	)
 
 	if err != nil {
@@ -288,7 +283,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 }
 
 func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) {
-	id := uuid.NewRandom()
+	id := randomID()
 	now := time.Now().Unix()
 	err := db.exec(
 		`INSERT INTO tasks
@@ -303,11 +298,11 @@ func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) 
 		     ?, ?, ?,
 		     ?, ?, ?, ?,
 		     ?, ?, ?, ?, ?)`,
-		id.String(), owner, BackupOperation, job.UUID.String(), CanceledStatus, log,
+		id, owner, BackupOperation, job.UUID, CanceledStatus, log,
 		now, now, now, 0,
-		job.Store.UUID.String(), job.Store.Plugin, job.Store.Endpoint,
-		job.Target.UUID.String(), job.Target.Plugin, job.Target.Endpoint, "",
-		job.Agent, 0, job.TenantUUID.String(), job.FixedKey, job.Target.Compression,
+		job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
+		job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
+		job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression,
 	)
 
 	if err != nil {
@@ -322,7 +317,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		return nil, err
 	}
 
-	id := uuid.NewRandom()
+	id := randomID()
 	err = db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
@@ -334,10 +329,10 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		     ?, ?, ?,
 		     ?, ?, ?,
 		     ?, ?, ?, ?)`,
-		id.String(), owner, RestoreOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
-		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
-		target.UUID.String(), target.Plugin, endpoint,
-		archive.StoreKey, target.Agent, 0, archive.TenantUUID.String(),
+		id, owner, RestoreOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
+		archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
+		target.UUID, target.Plugin, endpoint,
+		archive.StoreKey, target.Agent, 0, archive.TenantUUID,
 	)
 
 	if err != nil {
@@ -347,7 +342,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 }
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
-	id := uuid.NewRandom()
+	id := randomID()
 	err := db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
@@ -359,10 +354,10 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 		     ?, ?, ?,
 		     ?, ?,
 		     ?, ?, ?, ?)`,
-		id.String(), owner, PurgeOperation, archive.UUID.String(), PendingStatus, "", time.Now().Unix(),
-		archive.StoreUUID.String(), archive.StorePlugin, archive.StoreEndpoint,
+		id, owner, PurgeOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
+		archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
 		"", "",
-		archive.StoreKey, archive.StoreAgent, 0, archive.TenantUUID.String(),
+		archive.StoreKey, archive.StoreAgent, 0, archive.TenantUUID,
 	)
 
 	if err != nil {
@@ -376,7 +371,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	id := uuid.NewRandom()
+	id := randomID()
 	err = db.exec(
 		`INSERT INTO tasks
 			(uuid, op,
@@ -387,10 +382,10 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 			(?, ?, ?, ?, ?,
 			 ?, ?, ?, ?, 
 			 ?, ?, ?)`,
-		id.String(), TestStoreOperation,
-		store.UUID.String(), store.Plugin, endpoint,
+		id, TestStoreOperation,
+		store.UUID, store.Plugin, endpoint,
 		PendingStatus, "", time.Now().Unix(), store.Agent,
-		0, store.TenantUUID.String(), owner,
+		0, store.TenantUUID, owner,
 	)
 
 	if err != nil {
@@ -401,7 +396,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		`UPDATE stores
 		 SET last_test_task_uuid = ?
 		 WHERE uuid=?`,
-		id.String(), store.UUID,
+		id, store.UUID,
 	)
 	if err != nil {
 		return nil, err
@@ -412,12 +407,12 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 
 func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	/* tasks without targets (i.e. purge tasks) are always valid */
-	if task.TargetUUID.String() == "" {
+	if task.TargetUUID == "" {
 		return true, nil
 	}
 	r, err := db.query(`
 		SELECT uuid FROM tasks
-		  WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID.String(), RunningStatus)
+		  WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID, RunningStatus)
 	if err != nil {
 		return false, err
 	}
@@ -429,51 +424,51 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	return false, nil
 }
 
-func (db *DB) StartTask(id uuid.UUID, effective time.Time) error {
+func (db *DB) StartTask(id string, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
 	return db.exec(
 		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
-		RunningStatus, validtime, id.String(),
+		RunningStatus, validtime, id,
 	)
 }
 
-func (db *DB) ScheduledTask(id uuid.UUID) error {
+func (db *DB) ScheduledTask(id string) error {
 	return db.exec(
 		`UPDATE tasks SET status = ? WHERE uuid = ?`,
-		ScheduledStatus, id.String())
+		ScheduledStatus, id)
 }
 
-func (db *DB) updateTaskStatus(id uuid.UUID, status string, effective int64, ok int) error {
+func (db *DB) updateTaskStatus(id string, status string, effective int64, ok int) error {
 	return db.exec(
 		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
-		status, effective, ok, id.String())
+		status, effective, ok, id)
 }
-func (db *DB) CancelTask(id uuid.UUID, effective time.Time) error {
+func (db *DB) CancelTask(id string, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
 	return db.updateTaskStatus(id, CanceledStatus, validtime, 1)
 }
 
-func (db *DB) FailTask(id uuid.UUID, effective time.Time) error {
+func (db *DB) FailTask(id string, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
 	return db.updateTaskStatus(id, FailedStatus, validtime, 0)
 }
 
-func (db *DB) CompleteTask(id uuid.UUID, effective time.Time) error {
+func (db *DB) CompleteTask(id string, effective time.Time) error {
 	validtime := ValidateEffectiveUnix(effective)
 	return db.updateTaskStatus(id, DoneStatus, validtime, 1)
 }
 
-func (db *DB) UpdateTaskLog(id uuid.UUID, more string) error {
+func (db *DB) UpdateTaskLog(id string, more string) error {
 	return db.exec(
 		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
-		more, id.String(),
+		more, id,
 	)
 }
 
-func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, effective time.Time, encryptionType string, compression string, archive_size int64, tenant_uuid uuid.UUID) (uuid.UUID, error) {
+func (db *DB) CreateTaskArchive(id string, archive_id string, key string, effective time.Time, encryptionType string, compression string, archive_size int64, tenant_uuid string) (string, error) {
 	// fail on empty store_key, as '' seems to satisfy the NOT NULL constraint in postgres
 	if key == "" {
-		return nil, fmt.Errorf("cannot create an archive without a store_key")
+		return "", fmt.Errorf("cannot create an archive without a store_key")
 	}
 	// determine how long we need to keep this specific archive for
 	r, err := db.query(
@@ -482,20 +477,20 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 				INNER JOIN jobs  j    ON r.uuid = j.retention_uuid
 				INNER JOIN tasks t    ON j.uuid = t.job_uuid
 			WHERE t.uuid = ?`,
-		id.String(),
+		id,
 	)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer r.Close()
 
 	if !r.Next() {
-		return nil, fmt.Errorf("failed to determine expiration for task %s", id)
+		return "", fmt.Errorf("failed to determine expiration for task %s", id)
 	}
 
 	var expiry int
 	if err := r.Scan(&expiry); err != nil {
-		return nil, err
+		return "", err
 	}
 	r.Close()
 
@@ -515,19 +510,19 @@ func (db *DB) CreateTaskArchive(id uuid.UUID, archive_id uuid.UUID, key string, 
 	         INNER JOIN targets t     ON t.uuid = j.target_uuid
 	         INNER JOIN stores  s     ON s.uuid = j.store_uuid
 	      WHERE tasks.uuid = ?`,
-		archive_id.String(), key,
+		archive_id, key,
 		validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(),
-		compression, encryptionType, archive_size, tenant_uuid.String(), id.String(),
+		compression, encryptionType, archive_size, tenant_uuid, id,
 	)
 	if err != nil {
 		log.Errorf("failed to insert archive with UUID %s into database: %s", archive_id, err)
-		return nil, err
+		return "", err
 	}
 
 	// and finally, associate task -> archive
 	return archive_id, db.exec(
 		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
-		archive_id.String(), id.String(),
+		archive_id, id,
 	)
 }
 
@@ -537,24 +532,24 @@ type TaskAnnotation struct {
 	Clear       string
 }
 
-func (db *DB) AnnotateTargetTask(target uuid.UUID, id string, ann *TaskAnnotation) error {
+func (db *DB) AnnotateTargetTask(target, id string, t *TaskAnnotation) error {
 	updates := []string{}
 	args := []interface{}{}
 
 	updates = append(updates, "ok = ?")
-	args = append(args, ann.Disposition == "ok")
+	args = append(args, t.Disposition == "ok")
 
-	if ann.Notes != "" {
+	if t.Notes != "" {
 		updates = append(updates, "notes = ?")
-		args = append(args, ann.Notes)
+		args = append(args, t.Notes)
 	}
 
-	if ann.Clear != "" {
+	if t.Clear != "" {
 		updates = append(updates, "clear = ?")
-		args = append(args, ann.Clear)
+		args = append(args, t.Clear)
 	}
 
-	args = append(args, target.String(), id)
+	args = append(args, target, id)
 	return db.exec(
 		`UPDATE tasks SET `+strings.Join(updates, ", ")+
 			`WHERE target_uuid = ? AND uuid = ?`, args...)

@@ -3,8 +3,6 @@ package db
 import (
 	"time"
 
-	"github.com/pborman/uuid"
-
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
@@ -13,21 +11,21 @@ import (
 )
 
 var _ = Describe("Archive Management", func() {
-	TARGET_UUID := uuid.NewRandom()
-	STORE_UUID := uuid.NewRandom()
-	ARCHIVE_UUID := uuid.NewRandom()
-	TENANT_UUID := uuid.NewRandom()
+	TARGET_UUID := randomID()
+	STORE_UUID := randomID()
+	ARCHIVE_UUID := randomID()
+	TENANT_UUID := randomID()
 
 	var db *DB
 
-	shouldHaveArchiveStatus := func(id uuid.UUID, status string) {
+	shouldHaveArchiveStatus := func(id, status string) {
 		a, err := db.GetArchive(id)
 		Ω(err).ShouldNot(HaveOccurred(), "Retrieving the archive should not have failed")
 		Expect(a).ShouldNot(BeNil(), "An archive should be returned")
 		Expect(a.Status).Should(Equal(status), "the archive should have correct status")
 	}
 
-	shouldHavePurgeReason := func(id uuid.UUID, reason string) {
+	shouldHavePurgeReason := func(id, reason string) {
 		a, err := db.GetArchive(id)
 		Ω(err).ShouldNot(HaveOccurred(), "Retrieving the archive should not have failed")
 		Expect(a).ShouldNot(BeNil(), "An archive should be returned")
@@ -38,13 +36,13 @@ var _ = Describe("Archive Management", func() {
 		var err error
 		db, err = Database(
 			// need a target
-			`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES ("`+TARGET_UUID.String()+`", "target_plugin", "target_endpoint", "127.0.0.1:5444", "target_name")`,
+			`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES ("`+TARGET_UUID+`", "target_plugin", "target_endpoint", "127.0.0.1:5444", "target_name")`,
 			// need a store
-			`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES ("`+STORE_UUID.String()+`", "store_plugin", "store_endpoint", "store_name")`,
+			`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES ("`+STORE_UUID+`", "store_plugin", "store_endpoint", "store_name")`,
 			// need an ARCHIVE
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status, notes, purge_reason, tenant_uuid)
-				VALUES ("`+ARCHIVE_UUID.String()+`", "`+TARGET_UUID.String()+`",
-				        "`+STORE_UUID.String()+`", "key", 0, 0, "valid", "my_notes", "", "`+TENANT_UUID.String()+`")`,
+				VALUES ("`+ARCHIVE_UUID+`", "`+TARGET_UUID+`",
+				        "`+STORE_UUID+`", "key", 0, 0, "valid", "my_notes", "", "`+TENANT_UUID+`")`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())
@@ -99,36 +97,36 @@ var _ = Describe("Archive Management", func() {
 	})
 
 	Describe("Archive Retrieval", func() {
-		TARGET2_UUID := uuid.NewRandom()
-		STORE2_UUID := uuid.NewRandom()
-		ARCHIVE_PURGED := uuid.NewRandom()
-		ARCHIVE_INVALID := uuid.NewRandom()
-		ARCHIVE_EXPIRED := uuid.NewRandom()
-		ARCHIVE_TARGET2 := uuid.NewRandom()
-		ARCHIVE_STORE2 := uuid.NewRandom()
+		TARGET2_UUID := randomID()
+		STORE2_UUID := randomID()
+		ARCHIVE_PURGED := randomID()
+		ARCHIVE_INVALID := randomID()
+		ARCHIVE_EXPIRED := randomID()
+		ARCHIVE_TARGET2 := randomID()
+		ARCHIVE_STORE2 := randomID()
 		BeforeEach(func() {
 			var err error
-			db.exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID.String() + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444", "target_name2")`)
-			err = db.exec(`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES("` + STORE2_UUID.String() + `","store_plugin2", "store_endpoint2", "store_name2")`)
+			db.exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444", "target_name2")`)
+			err = db.exec(`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES("` + STORE2_UUID + `","store_plugin2", "store_endpoint2", "store_name2")`)
 			Expect(err).ShouldNot(HaveOccurred())
 			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
-				ARCHIVE_PURGED.String() + `","` + TARGET_UUID.String() + `", "` + STORE_UUID.String() +
+				ARCHIVE_PURGED + `","` + TARGET_UUID + `", "` + STORE_UUID +
 				`", "key", 10, 10, "purged")`)
 			Expect(err).ShouldNot(HaveOccurred())
 			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
-				ARCHIVE_INVALID.String() + `","` + TARGET_UUID.String() + `", "` + STORE_UUID.String() +
+				ARCHIVE_INVALID + `","` + TARGET_UUID + `", "` + STORE_UUID +
 				`", "key", 10, 10, "invalid")`)
 			Expect(err).ShouldNot(HaveOccurred())
 			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
-				ARCHIVE_EXPIRED.String() + `","` + TARGET_UUID.String() + `", "` + STORE_UUID.String() +
+				ARCHIVE_EXPIRED + `","` + TARGET_UUID + `", "` + STORE_UUID +
 				`", "key", 20, 20, "expired")`)
 			Expect(err).ShouldNot(HaveOccurred())
 			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
-				ARCHIVE_TARGET2.String() + `","` + TARGET2_UUID.String() + `", "` + STORE_UUID.String() +
+				ARCHIVE_TARGET2 + `","` + TARGET2_UUID + `", "` + STORE_UUID +
 				`", "key", 20, 20, "valid")`)
 			Expect(err).ShouldNot(HaveOccurred())
 			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
-				ARCHIVE_STORE2.String() + `","` + TARGET_UUID.String() + `", "` + STORE2_UUID.String() +
+				ARCHIVE_STORE2 + `","` + TARGET_UUID + `", "` + STORE2_UUID +
 				`", "key", 20, 20, "invalid")`)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
@@ -158,7 +156,7 @@ var _ = Describe("Archive Management", func() {
 				}))
 			})
 			It("Should return error nil/nil if no records exist", func() {
-				a, err := db.GetArchive(uuid.NewRandom())
+				a, err := db.GetArchive(randomID())
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(a).Should(BeNil())
 			})
@@ -172,25 +170,25 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_PURGED.String()), "returns the correct archive")
+				Expect(archives[0].UUID).Should(Equal(ARCHIVE_PURGED), "returns the correct archive")
 			})
 			It("When filtering by Target", func() {
 				filter := ArchiveFilter{
-					ForTarget: TARGET2_UUID.String(),
+					ForTarget: TARGET2_UUID,
 				}
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_TARGET2.String()), "returns the correct archive")
+				Expect(archives[0].UUID).Should(Equal(ARCHIVE_TARGET2), "returns the correct archive")
 			})
 			It("When filtering by Store", func() {
 				filter := ArchiveFilter{
-					ForStore: STORE2_UUID.String(),
+					ForStore: STORE2_UUID,
 				}
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
+				Expect(archives[0].UUID).Should(Equal(ARCHIVE_STORE2), "returns the correct archive")
 			})
 			It("When filtering with After", func() {
 				t := time.Unix(15, 0).UTC()
@@ -203,9 +201,9 @@ var _ = Describe("Archive Management", func() {
 
 				var uuids []string
 				for _, e := range archives {
-					uuids = append(uuids, e.UUID.String())
+					uuids = append(uuids, e.UUID)
 				}
-				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED.String(), ARCHIVE_TARGET2.String(), ARCHIVE_STORE2.String()}),
+				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED, ARCHIVE_TARGET2, ARCHIVE_STORE2}),
 					"returns the correct archives")
 			})
 			It("When filtering with Before", func() {
@@ -216,7 +214,7 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_UUID.String()), "returns the correct archive in the first result")
+				Expect(archives[0].UUID).Should(Equal(ARCHIVE_UUID), "returns the correct archive in the first result")
 			})
 			It("When filtering via a combination of values", func() {
 				t := time.Unix(15, 0).UTC()
@@ -227,7 +225,7 @@ var _ = Describe("Archive Management", func() {
 				archives, err := db.GetAllArchives(&filter)
 				Expect(err).ShouldNot(HaveOccurred(), "does not error")
 				Expect(len(archives)).Should(Equal(1), "returns the correct number of archives")
-				Expect(archives[0].UUID.String()).Should(Equal(ARCHIVE_STORE2.String()), "returns the correct archive")
+				Expect(archives[0].UUID).Should(Equal(ARCHIVE_STORE2), "returns the correct archive")
 
 			})
 			It("When filtering by WithoutStatus", func() {
@@ -240,9 +238,9 @@ var _ = Describe("Archive Management", func() {
 
 				var uuids []string
 				for _, e := range archives {
-					uuids = append(uuids, e.UUID.String())
+					uuids = append(uuids, e.UUID)
 				}
-				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED.String(), ARCHIVE_PURGED.String(), ARCHIVE_INVALID.String(), ARCHIVE_STORE2.String()}),
+				Expect(uuids).Should(ConsistOf([]string{ARCHIVE_EXPIRED, ARCHIVE_PURGED, ARCHIVE_INVALID, ARCHIVE_STORE2}),
 					"returns the correct archives")
 			})
 			It("limits the number of results returned with valid limit", func() {
@@ -300,9 +298,9 @@ var _ = Describe("Archive Management", func() {
 		})
 
 		Describe("GetExpiredArchives()", func() {
-			UNEXPIRED_ARCHIVE := uuid.NewRandom()
-			UNEXPIRED_ARCHIVE2 := uuid.NewRandom()
-			EXPIRABLE_ARCHIVE := uuid.NewRandom()
+			UNEXPIRED_ARCHIVE := randomID()
+			UNEXPIRED_ARCHIVE2 := randomID()
+			EXPIRABLE_ARCHIVE := randomID()
 
 			var expectedArchiveCount int
 			BeforeEach(func() {
@@ -312,20 +310,20 @@ var _ = Describe("Archive Management", func() {
 
 				// insert an archive that should be expired
 				err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
-					EXPIRABLE_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
+					EXPIRABLE_ARCHIVE+`","`+TARGET_UUID+`", "`+STORE2_UUID+
 					`", "key", 20, ?, "valid")`, time.Now().Add(-30*time.Second).Unix())
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// insert archive expiring in a day
 				err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
-					UNEXPIRED_ARCHIVE.String()+`","`+TARGET_UUID.String()+`", "`+STORE2_UUID.String()+
+					UNEXPIRED_ARCHIVE+`","`+TARGET_UUID+`", "`+STORE2_UUID+
 					`", "key", 20, ?, "valid")`, time.Now().Unix())
 
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// insert an expired but invalid archive
 				err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
-					UNEXPIRED_ARCHIVE2.String() + `","` + TARGET_UUID.String() + `", "` + STORE2_UUID.String() +
+					UNEXPIRED_ARCHIVE2 + `","` + TARGET_UUID + `", "` + STORE2_UUID +
 					`", "key", 20, 20, "invalid")`)
 				Expect(err).ShouldNot(HaveOccurred())
 				// get expeted count of expired archives

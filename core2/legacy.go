@@ -56,10 +56,10 @@ func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
 				w.Header().Set("Location", "/")
 			} else if via == "cli" {
-				w.Header().Set("Location", fmt.Sprintf("/#!/cliauth:s:%s", session.UUID.String()))
+				w.Header().Set("Location", fmt.Sprintf("/#!/cliauth:s:%s", session.UUID))
 			} else {
 				w.Header().Set("Location", "/")
-				http.SetCookie(w, SessionCookie(session.UUID.String(), true))
+				http.SetCookie(w, SessionCookie(session.UUID, true))
 			}
 			w.WriteHeader(302)
 
@@ -137,8 +137,8 @@ func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
 }
 
 func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
-//	pub := core.agent.key.PublicKey()
+	//	pub := core.agent.key.PublicKey()
 	w.WriteHeader(200)
-//	fmt.Fprintf(w, "%s %s\n", pub.Type(), base64.StdEncoding.EncodeToString(pub.Marshal()))
+	//	fmt.Fprintf(w, "%s %s\n", pub.Type(), base64.StdEncoding.EncodeToString(pub.Marshal()))
 	fmt.Fprintf(w, "...\n")
 }

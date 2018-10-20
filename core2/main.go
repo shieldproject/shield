@@ -143,7 +143,7 @@ func (c *Core) CleanupLeftoverTasks() {
 			continue
 		}
 
-		if task.Op == db.BackupOperation && task.ArchiveUUID != nil {
+		if task.Op == db.BackupOperation && task.ArchiveUUID != "" {
 			archive, err := c.db.GetArchive(task.ArchiveUUID)
 			if err != nil {
 				log.Warnf("unable to retrieve archive %s (for task %s) from the database: %s",
@@ -180,7 +180,7 @@ func (c *Core) Bind() {
 	log.Infof("INITIALIZING: serving SHIELD Web UI static assets from %s...", c.Config.WebRoot)
 
 	http.Handle("/init.js", c) /* FIXME: legacy */
-	http.Handle("/v1/", c) /* FIXME: legacy */
+	http.Handle("/v1/", c)     /* FIXME: legacy */
 	http.Handle("/v2/", c.v2API())
 	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
@@ -225,11 +225,11 @@ func (c *Core) ScheduleBackupTasks() {
 
 	lookup := make(map[string]string)
 	for _, task := range tasks {
-		lookup[task.JobUUID.String()] = task.UUID.String()
+		lookup[task.JobUUID] = task.UUID
 	}
 
 	for _, job := range l {
-		if tid, running := lookup[job.UUID.String()]; running {
+		if tid, running := lookup[job.UUID]; running {
 			log.Infof("skipping next run of job %s [%s]; already running in task [%s]...", job.Name, job.UUID, tid)
 			_, err := c.db.SkipBackupTask("system", job,
 				fmt.Sprintf("... skipping this run; task %s is still not finished ...\n", tid))
@@ -323,7 +323,7 @@ func (c *Core) CheckArchiveExpiries() {
 		}
 
 		log.Infof("deleting encryption parameters for archive %s", archive.UUID)
-		if err := c.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID.String())); err != nil {
+		if err := c.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID)); err != nil {
 			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
 		}
 	}
@@ -369,7 +369,7 @@ func (c *Core) UpdateGlobalStorageUsage() {
 	for _, store := range stores {
 		delta, err := c.DeltaIncrease(
 			&db.ArchiveFilter{
-				ForStore:      store.UUID.String(),
+				ForStore:      store.UUID,
 				Before:        &base,
 				After:         &threshold,
 				ExpiresBefore: &base,
@@ -383,7 +383,7 @@ func (c *Core) UpdateGlobalStorageUsage() {
 
 		total_size, err := c.db.ArchiveStorageFootprint(
 			&db.ArchiveFilter{
-				ForStore:   store.UUID.String(),
+				ForStore:   store.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -394,7 +394,7 @@ func (c *Core) UpdateGlobalStorageUsage() {
 
 		total_count, err := c.db.CountArchives(
 			&db.ArchiveFilter{
-				ForStore:   store.UUID.String(),
+				ForStore:   store.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -407,7 +407,7 @@ func (c *Core) UpdateGlobalStorageUsage() {
 		store.StorageUsed = total_size
 		store.ArchiveCount = total_count
 		log.Debugf("updating store '%s' (%s) %d archives, %db storage used, %db increase",
-			store.Name, store.UUID.String(), store.ArchiveCount, store.StorageUsed, store.DailyIncrease)
+			store.Name, store.UUID, store.ArchiveCount, store.StorageUsed, store.DailyIncrease)
 		err = c.db.UpdateStore(store)
 		if err != nil {
 			log.Errorf("Failed to update stores with daily storage statistics: %s", err)
@@ -430,7 +430,7 @@ func (c *Core) UpdateTenantStorageUsage() {
 	for _, tenant := range tenants {
 		delta, err := c.DeltaIncrease(
 			&db.ArchiveFilter{
-				ForTenant:     tenant.UUID.String(),
+				ForTenant:     tenant.UUID,
 				Before:        &base,
 				After:         &threshold,
 				ExpiresBefore: &base,
@@ -444,7 +444,7 @@ func (c *Core) UpdateTenantStorageUsage() {
 
 		total_size, err := c.db.ArchiveStorageFootprint(
 			&db.ArchiveFilter{
-				ForTenant:  tenant.UUID.String(),
+				ForTenant:  tenant.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -455,7 +455,7 @@ func (c *Core) UpdateTenantStorageUsage() {
 
 		total_count, err := c.db.CountArchives(
 			&db.ArchiveFilter{
-				ForTenant:  tenant.UUID.String(),
+				ForTenant:  tenant.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -504,11 +504,11 @@ func (c *Core) ScheduleStorageTestTasks() {
 
 	lookup := make(map[string]bool)
 	for _, task := range inflight {
-		lookup[task.StoreUUID.String()] = true
+		lookup[task.StoreUUID] = true
 	}
 
 	for _, store := range stores {
-		if _, inqueue := lookup[store.UUID.String()]; inqueue {
+		if _, inqueue := lookup[store.UUID]; inqueue {
 			continue
 		}
 

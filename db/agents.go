@@ -6,21 +6,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pborman/uuid"
-
 	"github.com/starkandwayne/shield/plugin"
 )
 
 type Agent struct {
-	UUID       uuid.UUID `json:"uuid"`
-	Name       string    `json:"name"`
-	Address    string    `json:"address"`
-	Version    string    `json:"version"`
-	Hidden     bool      `json:"hidden"`
-	LastSeenAt int64     `json:"last_seen_at"`
-	LastError  string    `json:"last_error"`
-	Status     string    `json:"status"`
-	RawMeta    string    `json:"-"`
+	UUID       string `json:"uuid"`
+	Name       string `json:"name"`
+	Address    string `json:"address"`
+	Version    string `json:"version"`
+	Hidden     bool   `json:"hidden"`
+	LastSeenAt int64  `json:"last_seen_at"`
+	LastError  string `json:"last_error"`
+	Status     string `json:"status"`
+	RawMeta    string `json:"-"`
 }
 
 func (a *Agent) Metadata() (map[string]interface{}, error) {
@@ -101,13 +99,11 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 		agent := &Agent{}
 
 		var last *int64
-		var this NullUUID
 		if err = r.Scan(
-			&this, &agent.Name, &agent.Address, &agent.Version,
+			&agent.UUID, &agent.Name, &agent.Address, &agent.Version,
 			&agent.Hidden, &last, &agent.Status, &agent.RawMeta); err != nil {
 			return l, err
 		}
-		agent.UUID = this.UUID
 		if last != nil {
 			agent.LastSeenAt = *last
 		}
@@ -118,7 +114,7 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 	return l, nil
 }
 
-func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
+func (db *DB) GetAgent(id string) (*Agent, error) {
 	r, err := db.query(`
 		SELECT a.uuid, a.name, a.address, a.version,
 		       a.hidden, a.last_seen_at, a.last_error, a.status,
@@ -126,7 +122,7 @@ func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
 
 		FROM agents a
 
-		WHERE a.uuid = ?`, id.String())
+		WHERE a.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -139,15 +135,13 @@ func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
 	agent := &Agent{}
 
 	var last *int64
-	var this NullUUID
 	if err = r.Scan(
-		&this, &agent.Name, &agent.Address, &agent.Version,
+		&agent.UUID, &agent.Name, &agent.Address, &agent.Version,
 		&agent.Hidden, &last, &agent.LastError, &agent.Status,
 		&agent.RawMeta); err != nil {
 
 		return nil, err
 	}
-	agent.UUID = this.UUID
 	if last != nil {
 		agent.LastSeenAt = *last
 	}
@@ -200,11 +194,11 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 		return nil
 	}
 
-	id := uuid.NewRandom()
+	id := randomID()
 	err = db.exec(`
 	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
 	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
-		id.String(), name, address, false, "pending", time.Now().Unix(),
+		id, name, address, false, "pending", time.Now().Unix(),
 	)
 	if err != nil {
 		return err
@@ -232,5 +226,5 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		        WHERE uuid = ?`,
 		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
 		time.Now().Unix(), agent.LastError,
-		agent.UUID.String())
+		agent.UUID)
 }

@@ -3,21 +3,19 @@ package core
 import (
 	"fmt"
 
-	"github.com/pborman/uuid"
-
 	"github.com/starkandwayne/shield/db"
 )
 
 type StorageHealth struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Name    string    `json:"name"`
-	Healthy bool      `json:"healthy"`
+	UUID    string `json:"uuid"`
+	Name    string `json:"name"`
+	Healthy bool   `json:"healthy"`
 }
 type JobHealth struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Target  string    `json:"target"`
-	Job     string    `json:"job"`
-	Healthy bool      `json:"healthy"`
+	UUID    string `json:"uuid"`
+	Target  string `json:"target"`
+	Job     string `json:"job"`
+	Healthy bool   `json:"healthy"`
 }
 type Health struct {
 	Health struct {

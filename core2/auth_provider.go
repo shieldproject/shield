@@ -156,7 +156,7 @@ func (p *AuthProviderBase) SaveAssignments(DB *db.DB, user *db.User) bool {
 				return false
 			}
 			p.Infof("saving assignment of tenant role %s on '%s' to %s", role, on, who)
-			err = DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
+			err = DB.AddUserToTenant(user.UUID, tenant.UUID, role)
 			if err != nil {
 				p.Errorf("failed to assign tenant role %s on '%s' to %s: %s", role, on, who, err)
 				return false

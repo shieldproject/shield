@@ -4,16 +4,14 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/pborman/uuid"
 )
 
 type AuthToken struct {
-	UUID      uuid.UUID `json:"uuid"`
-	Session   uuid.UUID `json:"session,omitempty"`
-	Name      string    `json:"name"`
-	CreatedAt int64     `json:"created_at"`
-	LastSeen  *int64    `json:"last_seen"`
+	UUID      string `json:"uuid"`
+	Session   string `json:"session,omitempty"`
+	Name      string `json:"name"`
+	CreatedAt int64  `json:"created_at"`
+	LastSeen  *int64 `json:"last_seen"`
 }
 
 type AuthTokenFilter struct {
@@ -35,7 +33,7 @@ func (t AuthTokenFilter) Query() (string, []interface{}) {
 	}
 	if t.User != nil {
 		wheres = append(wheres, "u.uuid = ?")
-		args = append(args, t.User.UUID.String())
+		args = append(args, t.User.UUID)
 	}
 
 	return `
@@ -62,12 +60,9 @@ func (db *DB) GetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
 
 	for r.Next() {
 		t := &AuthToken{}
-		var this, session NullUUID
-		if err = r.Scan(&this, &session, &t.CreatedAt, &t.LastSeen, &t.Name); err != nil {
+		if err = r.Scan(&t.UUID, &t.Session, &t.CreatedAt, &t.LastSeen, &t.Name); err != nil {
 			return l, err
 		}
-		t.UUID = this.UUID
-		t.Session = session.UUID
 		l = append(l, t)
 	}
 
@@ -90,12 +85,12 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 		return nil, "", fmt.Errorf("cannot generate a token without a user")
 	}
 
-	id := uuid.NewRandom().String()
-	token := uuid.NewRandom().String()
+	id := randomID()
+	token := randomID()
 	err := db.exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, token, name)
 	                 VALUES (?,    ?,         ?,          ?,     ?)`,
-		id, user.UUID.String(), time.Now().Unix(), token, name)
+		id, user.UUID, time.Now().Unix(), token, name)
 	if err != nil {
 		return nil, "", err
 	}
@@ -105,5 +100,5 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 }
 
 func (db *DB) DeleteAuthToken(id string, user *User) error {
-	return db.exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID.String())
+	return db.exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID)
 }

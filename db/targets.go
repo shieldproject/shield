@@ -6,17 +6,16 @@ import (
 	"strings"
 
 	"github.com/jhunt/go-log"
-	"github.com/pborman/uuid"
 )
 
 type Target struct {
-	UUID        uuid.UUID `json:"uuid"        mbus:"uuid"`
-	TenantUUID  uuid.UUID `json:"-"           mbus:"tenant_uuid"`
-	Name        string    `json:"name"        mbus:"name"`
-	Summary     string    `json:"summary"     mbus:"summary"`
-	Plugin      string    `json:"plugin"      mbus:"plugin"`
-	Agent       string    `json:"agent"       mbus:"agent"`
-	Compression string    `json:"compression" mbus:"compression"`
+	UUID        string `json:"uuid"        mbus:"uuid"`
+	TenantUUID  string `json:"-"           mbus:"tenant_uuid"`
+	Name        string `json:"name"        mbus:"name"`
+	Summary     string `json:"summary"     mbus:"summary"`
+	Plugin      string `json:"plugin"      mbus:"plugin"`
+	Agent       string `json:"agent"       mbus:"agent"`
+	Compression string `json:"compression" mbus:"compression"`
 
 	Config map[string]interface{} `json:"config,omitempty" mbus:"config"`
 }
@@ -122,16 +121,12 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 	for r.Next() {
 		t := &Target{}
 		var (
-			n            int
-			this, tenant NullUUID
-			rawconfig    []byte
+			n         int
+			rawconfig []byte
 		)
-		if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression, &n); err != nil {
+		if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression, &n); err != nil {
 			return l, err
 		}
-		t.UUID = this.UUID
-		t.TenantUUID = tenant.UUID
-
 		if rawconfig != nil {
 			if err := json.Unmarshal(rawconfig, &t.Config); err != nil {
 				log.Warnf("failed to parse data system endpoint json '%s': %s", rawconfig, err)
@@ -144,11 +139,11 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 	return l, nil
 }
 
-func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
+func (db *DB) GetTarget(id string) (*Target, error) {
 	r, err := db.query(`
 	  SELECT uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression
 	    FROM targets
-	   WHERE uuid = ?`, id.String())
+	   WHERE uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -160,15 +155,11 @@ func (db *DB) GetTarget(id uuid.UUID) (*Target, error) {
 
 	t := &Target{}
 	var (
-		this, tenant NullUUID
-		rawconfig    []byte
+		rawconfig []byte
 	)
-	if err = r.Scan(&this, &tenant, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression); err != nil {
+	if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression); err != nil {
 		return nil, err
 	}
-	t.UUID = this.UUID
-	t.TenantUUID = tenant.UUID
-
 	if rawconfig != nil {
 		if err := json.Unmarshal(rawconfig, &t.Config); err != nil {
 			log.Warnf("failed to parse data system endpoint json '%s': %s", rawconfig, err)
@@ -184,11 +175,11 @@ func (db *DB) CreateTarget(in *Target) (*Target, error) {
 		return nil, err
 	}
 
-	in.UUID = uuid.NewRandom()
+	in.UUID = randomID()
 	err = db.exec(`
 	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression)
 	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?,     ?)`,
-		in.UUID.String(), in.TenantUUID.String(), in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent, in.Compression)
+		in.UUID, in.TenantUUID, in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent, in.Compression)
 	if err != nil {
 		return nil, err
 	}
@@ -213,16 +204,16 @@ func (db *DB) UpdateTarget(t *Target) error {
 	         compression = ?
 	   WHERE uuid = ?`,
 		t.Name, t.Summary, t.Plugin, string(rawconfig), t.Agent, t.Compression,
-		t.UUID.String())
+		t.UUID)
 	if err != nil {
 		return err
 	}
 
-	db.sendUpdateObjectEvent(toTenant(t.TenantUUID), t)
+	db.sendUpdateObjectEvent(t, t.TenantUUID)
 	return nil
 }
 
-func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
+func (db *DB) DeleteTarget(id string) (bool, error) {
 	t, err := db.GetTarget(id)
 	if err != nil {
 		return false, err
@@ -232,7 +223,7 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 		return true, nil
 	}
 
-	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, t.UUID.String())
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, t.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -248,14 +239,14 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 		return false, err
 	}
 	if numJobs < 0 {
-		return false, fmt.Errorf("Target %s is in used by %d (negative) Jobs", id.String(), numJobs)
+		return false, fmt.Errorf("Target %s is in used by %d (negative) Jobs", id, numJobs)
 	}
 	if numJobs > 0 {
 		return false, nil
 	}
 	r.Close()
 
-	err = db.exec(`DELETE FROM targets WHERE uuid = ?`, id.String())
+	err = db.exec(`DELETE FROM targets WHERE uuid = ?`, id)
 	if err != nil {
 		return false, err
 	}

@@ -1,20 +1,16 @@
 package db
 
-import (
-	"github.com/pborman/uuid"
-)
-
 type Membership struct {
-	TenantUUID uuid.UUID
-	TenantName string
-	Role       string
+	TenantUUID string `json:"tenant_uuid"`
+	TenantName string `json:"tenant_name"`
+	Role       string `json:"role"`
 }
 
-func (db *DB) GetMembershipsForUser(user uuid.UUID) ([]*Membership, error) {
+func (db *DB) GetMembershipsForUser(user string) ([]*Membership, error) {
 	r, err := db.query(`
 	    SELECT t.uuid, t.name, m.role
 	      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
-	     WHERE m.user_uuid = ?`, user.String())
+	     WHERE m.user_uuid = ?`, user)
 	if err != nil {
 		return nil, err
 	}
@@ -22,28 +18,18 @@ func (db *DB) GetMembershipsForUser(user uuid.UUID) ([]*Membership, error) {
 
 	l := make([]*Membership, 0)
 	for r.Next() {
-		var (
-			id   NullUUID
-			name string
-			role string
-		)
-
-		if err := r.Scan(&id, &name, &role); err != nil {
+		m := &Membership{}
+		if err := r.Scan(&m.TenantUUID, &m.TenantName, &m.Role); err != nil {
 			return l, err
 		}
-
-		l = append(l, &Membership{
-			TenantUUID: id.UUID,
-			TenantName: name,
-			Role:       role,
-		})
+		l = append(l, m)
 	}
 
 	return l, nil
 }
 
 func (db *DB) ClearMembershipsFor(user *User) error {
-	return db.exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID.String())
+	return db.exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID)
 }
 
 //Manual close of sql transaction necessary to avoid database lockup due to defer
@@ -80,11 +66,11 @@ func (db *DB) RemoveUserFromTenant(user, tenant string) error {
 }
 
 //GetTenantsForUser given a user's uuid returns a slice of Tenants that the user has membership with
-func (db *DB) GetTenantsForUser(user uuid.UUID) ([]*Tenant, error) {
+func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
 	r, err := db.query(`
 	    SELECT t.uuid, t.name
 	      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
-	     WHERE m.user_uuid = ?`, user.String())
+	     WHERE m.user_uuid = ?`, user)
 	if err != nil {
 		return nil, err
 	}
@@ -92,31 +78,23 @@ func (db *DB) GetTenantsForUser(user uuid.UUID) ([]*Tenant, error) {
 
 	l := make([]*Tenant, 0)
 	for r.Next() {
-		var (
-			id   NullUUID
-			name string
-		)
-
-		if err := r.Scan(&id, &name); err != nil {
+		t := &Tenant{}
+		if err := r.Scan(&t.UUID, &t.Name); err != nil {
 			return l, err
 		}
-
-		l = append(l, &Tenant{
-			UUID: id.UUID,
-			Name: name,
-		})
+		l = append(l, t)
 	}
 
 	return l, nil
 }
 
-func (db *DB) GetUsersForTenant(tenant uuid.UUID) ([]*User, error) {
+func (db *DB) GetUsersForTenant(tenant string) ([]*User, error) {
 	r, err := db.query(`
 	    SELECT u.uuid, u.name, u.account, u.backend,
 	           m.role
 	      FROM users u INNER JOIN memberships m
 	        ON u.uuid = m.user_uuid
-	     WHERE m.tenant_uuid = ?`, tenant.String())
+	     WHERE m.tenant_uuid = ?`, tenant)
 	if err != nil {
 		return nil, err
 	}
@@ -126,12 +104,9 @@ func (db *DB) GetUsersForTenant(tenant uuid.UUID) ([]*User, error) {
 	for r.Next() {
 
 		u := &User{}
-		var this NullUUID
-		if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.Role); err != nil {
+		if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.Role); err != nil {
 			return nil, err
 		}
-		u.UUID = this.UUID
-
 		l = append(l, u)
 	}
 

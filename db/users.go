@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pborman/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -14,11 +13,11 @@ const (
 )
 
 type User struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Name    string    `json:"name"`
-	Account string    `json:"account"`
-	Backend string    `json:"backend"`
-	SysRole string    `json:"sysrole"`
+	UUID    string `json:"uuid"`
+	Name    string `json:"name"`
+	Account string `json:"account"`
+	Backend string `json:"backend"`
+	SysRole string `json:"sysrole"`
 
 	Role string `json:"role,omitempty"`
 
@@ -123,13 +122,9 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 
 	for r.Next() {
 		u := &User{}
-		var this NullUUID
-		if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash,
-			&u.DefaultTenant); err != nil {
+		if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash, &u.DefaultTenant); err != nil {
 			return l, err
 		}
-		u.UUID = this.UUID
-
 		l = append(l, u)
 	}
 
@@ -152,13 +147,9 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 	}
 
 	u := &User{}
-	var this NullUUID
-	if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash,
-		&u.DefaultTenant); err != nil {
+	if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash, &u.DefaultTenant); err != nil {
 		return nil, err
 	}
-	u.UUID = this.UUID
-
 	return u, nil
 }
 
@@ -178,24 +169,20 @@ func (db *DB) GetUser(account string, backend string) (*User, error) {
 	}
 
 	u := &User{}
-	var this NullUUID
-	if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash,
-		&u.DefaultTenant); err != nil {
+	if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash, &u.DefaultTenant); err != nil {
 		return nil, err
 	}
-	u.UUID = this.UUID
-
 	return u, nil
 }
 
 func (db *DB) CreateUser(user *User) (*User, error) {
-	if user.UUID == nil {
-		user.UUID = uuid.NewRandom()
+	if user.UUID == "" {
+		user.UUID = randomID()
 	}
 	err := db.exec(`
 	    INSERT INTO users (uuid, name, account, backend, sysrole, pwhash)
 	               VALUES (?, ?, ?, ?, ?, ?)
-	`, user.UUID.String(), user.Name, user.Account, user.Backend, user.SysRole, user.pwhash)
+	`, user.UUID, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash)
 	return user, err
 }
 
@@ -204,7 +191,7 @@ func (db *DB) UpdateUser(user *User) error {
 	   UPDATE users
 	      SET name = ?, account = ?, backend = ?, sysrole = ?, pwhash = ?
 	    WHERE uuid = ?
-	`, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash, user.UUID.String())
+	`, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash, user.UUID)
 }
 
 func (db *DB) UpdateUserSettings(user *User) error {
@@ -212,11 +199,11 @@ func (db *DB) UpdateUserSettings(user *User) error {
 	   UPDATE users
 	      SET default_tenant = ?
 	    WHERE uuid = ?
-	`, user.DefaultTenant, user.UUID.String())
+	`, user.DefaultTenant, user.UUID)
 }
 
 func (db *DB) DeleteUser(user *User) error {
 	return db.exec(`
 		DELETE FROM users
-		      WHERE uuid = ?`, user.UUID.String())
+		      WHERE uuid = ?`, user.UUID)
 }

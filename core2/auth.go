@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/jhunt/go-log"
-	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -13,9 +12,9 @@ import (
 )
 
 type authTenant struct {
-	UUID uuid.UUID `json:"uuid"`
-	Name string    `json:"name"`
-	Role string    `json:"role"`
+	UUID string `json:"uuid"`
+	Name string `json:"name"`
+	Role string `json:"role"`
 }
 type authUser struct {
 	UUID    string `json:"uuid"`
@@ -52,7 +51,7 @@ func (c *Core) checkAuth(user *db.User) (*authResponse, error) {
 
 	answer := authResponse{
 		User: authUser{
-			UUID:    user.UUID.String(),
+			UUID:    user.UUID,
 			Name:    user.Name,
 			Account: user.Account,
 			Backend: user.Backend,
@@ -76,7 +75,7 @@ func (c *Core) checkAuth(user *db.User) (*authResponse, error) {
 	memberships, err := c.db.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		log.Debugf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-			user.Account, user.Backend, user.UUID.String(), err)
+			user.Account, user.Backend, user.UUID, err)
 		return nil, err
 	}
 
@@ -87,7 +86,7 @@ func (c *Core) checkAuth(user *db.User) (*authResponse, error) {
 		answer.Tenants[i].Name = membership.TenantName
 		answer.Tenants[i].Role = membership.Role
 
-		if answer.Tenants[i].UUID.String() == user.DefaultTenant {
+		if answer.Tenants[i].UUID == user.DefaultTenant {
 			answer.Tenant = &answer.Tenants[i]
 		}
 
@@ -103,7 +102,7 @@ func (c *Core) checkAuth(user *db.User) (*authResponse, error) {
 		case "operator":
 			grant.Operator = true
 		}
-		answer.Grants.Tenants[membership.TenantUUID.String()] = grant
+		answer.Grants.Tenants[membership.TenantUUID] = grant
 	}
 	if answer.Tenant == nil && len(answer.Tenants) > 0 {
 		answer.Tenant = &answer.Tenants[0]
@@ -120,11 +119,6 @@ func (c *Core) checkAuth(user *db.User) (*authResponse, error) {
 	return &answer, nil
 }
 
-func SetAuthHeaders(r *route.Request, sessionID uuid.UUID) {
-	r.SetCookie(SessionCookie(sessionID.String(), true))
-	r.SetRespHeader("X-Shield-Session", sessionID.String())
-}
-
 func (c *Core) hasRole(fail bool, r *route.Request, tenant string, roles ...string) bool {
 	user, err := c.AuthenticatedUser(r)
 	if user == nil || err != nil {
@@ -135,7 +129,7 @@ func (c *Core) hasRole(fail bool, r *route.Request, tenant string, roles ...stri
 	memberships, err := c.db.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-			user.Account, user.Backend, user.UUID.String(), err)
+			user.Account, user.Backend, user.UUID, err)
 		if fail {
 			r.Fail(route.Forbidden(err, "Access denied"))
 		}
@@ -159,7 +153,7 @@ func (c *Core) hasRole(fail bool, r *route.Request, tenant string, roles ...stri
 		}
 
 		for _, m := range memberships {
-			if m.TenantUUID.String() == tenant {
+			if m.TenantUUID == tenant {
 				if l[1] == "*" {
 					return true
 				}
@@ -201,13 +195,13 @@ func (c *Core) CanManageTenants(r *route.Request, tenant string) bool {
 	memberships, err := c.db.GetMembershipsForUser(user.UUID)
 	if err != nil {
 		err = fmt.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-			user.Account, user.Backend, user.UUID.String(), err)
+			user.Account, user.Backend, user.UUID, err)
 		r.Fail(route.Forbidden(err, "Access denied"))
 		return false
 	}
 
 	for _, m := range memberships {
-		if m.TenantUUID.String() == tenant {
+		if m.TenantUUID == tenant {
 			if m.Role == "admin" {
 				return true
 			}
@@ -221,7 +215,12 @@ func (c *Core) CanManageTenants(r *route.Request, tenant string) bool {
 
 func (c *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 	session, err := c.db.GetSession(r.SessionID())
-	if err != nil || session == nil {
+	if err != nil {
+		log.Errorf("failed to retrieve session [%s] from database: %s", r.SessionID(), err)
+		return nil, err
+	}
+	if session == nil {
+		log.Errorf("failed to retrieve session [%s] from database: (no such session)", r.SessionID())
 		return nil, err
 	}
 	session.IP = util.RemoteIP(r.Req)
@@ -229,11 +228,12 @@ func (c *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 
 	if session.Expired(c.Config.API.Session.Timeout) {
 		log.Infof("session %s expired; purging...", r.SessionID())
-		c.db.ClearSession(session.UUID.String())
+		c.db.ClearSession(session.UUID)
 		return nil, nil
 	}
-	user, err := c.db.GetUserForSession(session.UUID.String())
+	user, err := c.db.GetUserForSession(session.UUID)
 	if err != nil || user == nil {
+		log.Errorf("failed to retrieve user belonging to session [%s] from database: %s", session.UUID, err)
 		return user, err
 	}
 

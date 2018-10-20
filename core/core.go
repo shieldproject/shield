@@ -350,7 +350,7 @@ func (core *Core) cleanup() {
 			continue
 		}
 
-		if task.Op == db.BackupOperation && task.ArchiveUUID != nil {
+		if task.Op == db.BackupOperation && task.ArchiveUUID != "" {
 			archive, err := core.DB.GetArchive(task.ArchiveUUID)
 			if err != nil {
 				log.Warnf("unable to retrieve archive %s (for task %s) from the database: %s",
@@ -385,11 +385,11 @@ func (core *Core) scheduleTasks() {
 
 	lookup := make(map[string]string)
 	for _, task := range tasks {
-		lookup[task.JobUUID.String()] = task.UUID.String()
+		lookup[task.JobUUID] = task.UUID
 	}
 
 	for _, job := range l {
-		if tid, running := lookup[job.UUID.String()]; running {
+		if tid, running := lookup[job.UUID]; running {
 			log.Infof("skipping next run of job %s [%s]; already running in task [%s]...", job.Name, job.UUID, tid)
 			_, err := core.DB.SkipBackupTask("system", job,
 				fmt.Sprintf("... skipping this run; task %s is still not finished ...\n", tid))
@@ -461,7 +461,7 @@ func (core *Core) expireArchives() {
 		}
 
 		log.Infof("deleting encryption parameters for archive %s", archive.UUID)
-		err = core.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID.String()))
+		err = core.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID))
 		if err != nil {
 			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
 		}
@@ -621,7 +621,7 @@ func (core *Core) worker(id int) {
 		var enc vault.Parameters
 		var err error
 		if task.Op == db.BackupOperation {
-			task.ArchiveUUID = uuid.NewRandom()
+			task.ArchiveUUID = uuid.NewRandom().String()
 
 			if task.FixedKey {
 				enc, err = core.vault.RetrieveFixed()
@@ -637,17 +637,17 @@ func (core *Core) worker(id int) {
 				}
 			}
 
-			err = core.vault.Store(task.ArchiveUUID.String(), enc)
+			err = core.vault.Store(task.ArchiveUUID, enc)
 			if err != nil {
-				core.failTask(task, "shield worker %d failed to store encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID.String())
+				core.failTask(task, "shield worker %d failed to store encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID)
 				continue
 			}
 		}
 
 		if task.Op == db.BackupOperation || task.Op == db.RestoreOperation {
-			enc, err = core.vault.Retrieve(task.ArchiveUUID.String())
+			enc, err = core.vault.Retrieve(task.ArchiveUUID)
 			if err != nil {
-				core.failTask(task, "shield worker %d failed to retrieve encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID.String())
+				core.failTask(task, "shield worker %d failed to retrieve encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID)
 				continue
 			}
 		}

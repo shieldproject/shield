@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jhunt/go-log"
-	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
@@ -19,16 +18,16 @@ import (
 )
 
 type v2SystemArchive struct {
-	UUID     uuid.UUID `json:"uuid"`
-	Schedule string    `json:"schedule"`
-	TakenAt  int64     `json:"taken_at"`
-	Expiry   int       `json:"expiry"`
-	Size     int       `json:"size"`
-	OK       bool      `json:"ok"`
-	Notes    string    `json:"notes"`
+	UUID     string `json:"uuid"`
+	Schedule string `json:"schedule"`
+	TakenAt  int64  `json:"taken_at"`
+	Expiry   int    `json:"expiry"`
+	Size     int    `json:"size"`
+	OK       bool   `json:"ok"`
+	Notes    string `json:"notes"`
 }
 type v2SystemTask struct {
-	UUID        uuid.UUID        `json:"uuid"`
+	UUID        string           `json:"uuid"`
 	Type        string           `json:"type"`
 	Status      string           `json:"status"`
 	Owner       string           `json:"owner"`
@@ -41,19 +40,19 @@ type v2SystemTask struct {
 	Log         string           `json:"log"`
 }
 type v2SystemJob struct {
-	UUID        uuid.UUID `json:"uuid"`
-	Schedule    string    `json:"schedule"`
-	Compression string    `json:"compression"`
-	From        string    `json:"from"`
-	To          string    `json:"to"`
-	OK          bool      `json:"ok"`
+	UUID        string `json:"uuid"`
+	Schedule    string `json:"schedule"`
+	Compression string `json:"compression"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	OK          bool   `json:"ok"`
 
 	Store struct {
-		UUID    uuid.UUID `json:"uuid"`
-		Name    string    `json:"name"`
-		Summary string    `json:"summary"`
-		Plugin  string    `json:"plugin"`
-		Healthy bool      `json:"healthy"`
+		UUID    string `json:"uuid"`
+		Name    string `json:"name"`
+		Summary string `json:"summary"`
+		Plugin  string `json:"plugin"`
+		Healthy bool   `json:"healthy"`
 	} `json:"store"`
 
 	Keep struct {
@@ -62,18 +61,18 @@ type v2SystemJob struct {
 	} `json:"keep"`
 
 	Retention struct {
-		UUID    uuid.UUID `json:"uuid"`
-		Name    string    `json:"name"`
-		Summary string    `json:"summary"`
-		Days    int       `json:"days"`
+		UUID    string `json:"uuid"`
+		Name    string `json:"name"`
+		Summary string `json:"summary"`
+		Days    int    `json:"days"`
 	} `json:"retention"`
 }
 type v2System struct {
-	UUID        uuid.UUID `json:"uuid"`
-	Name        string    `json:"name"`
-	Notes       string    `json:"notes"`
-	OK          bool      `json:"ok"`
-	Compression string    `json:"compression"`
+	UUID        string `json:"uuid"`
+	Name        string `json:"name"`
+	Notes       string `json:"notes"`
+	OK          bool   `json:"ok"`
+	Compression string `json:"compression"`
 
 	Jobs  []v2SystemJob  `json:"jobs"`
 	Tasks []v2SystemTask `json:"tasks"`
@@ -357,20 +356,20 @@ func (c *Core) v2API() *route.Router {
 			memberships, err := c.db.GetMembershipsForUser(user.UUID)
 			if err != nil {
 				log.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-					user.Account, user.Backend, user.UUID.String(), err)
+					user.Account, user.Backend, user.UUID, err)
 				r.Fail(route.Oops(err, "Unable to retrieve local users information"))
 				return
 			}
 
 			users[i] = v2LocalUser{
-				UUID:    user.UUID.String(),
+				UUID:    user.UUID,
 				Name:    user.Name,
 				Account: user.Account,
 				SysRole: user.SysRole,
 				Tenants: make([]v2LocalTenant, len(memberships)),
 			}
 			for j, membership := range memberships {
-				users[i].Tenants[j].UUID = membership.TenantUUID.String()
+				users[i].Tenants[j].UUID = membership.TenantUUID
 				users[i].Tenants[j].Name = membership.TenantName
 				users[i].Tenants[j].Role = membership.Role
 			}
@@ -398,13 +397,13 @@ func (c *Core) v2API() *route.Router {
 		memberships, err := c.db.GetMembershipsForUser(user.UUID)
 		if err != nil {
 			log.Errorf("failed to retrieve tenant memberships for user %s@%s (uuid %s): %s",
-				user.Account, user.Backend, user.UUID.String(), err)
+				user.Account, user.Backend, user.UUID, err)
 			r.Fail(route.Oops(err, "Unable to retrieve local user information"))
 			return
 		}
 
 		local_user := v2LocalUser{
-			UUID:    user.UUID.String(),
+			UUID:    user.UUID,
 			Name:    user.Name,
 			Account: user.Account,
 			SysRole: user.SysRole,
@@ -412,7 +411,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		for j, membership := range memberships {
-			local_user.Tenants[j].UUID = membership.TenantUUID.String()
+			local_user.Tenants[j].UUID = membership.TenantUUID
 			local_user.Tenants[j].Name = membership.TenantName
 			local_user.Tenants[j].Role = membership.Role
 		}
@@ -440,11 +439,6 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		var id uuid.UUID
-		if in.UUID != "" {
-			id = uuid.Parse(in.UUID)
-		}
-
 		if in.SysRole != "" {
 			switch in.SysRole {
 			case
@@ -458,7 +452,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		u := &db.User{
-			UUID:    id,
+			UUID:    in.UUID,
 			Name:    in.Name,
 			Account: in.Account,
 			Backend: "local",
@@ -587,7 +581,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		for i := range tokens {
-			tokens[i].Session = nil
+			tokens[i].Session = ""
 		}
 
 		r.OK(tokens)
@@ -669,7 +663,7 @@ func (c *Core) v2API() *route.Router {
 			},
 		)
 		for _, session := range sessions {
-			if session.UUID.String() == r.SessionID() {
+			if session.UUID == r.SessionID() {
 				session.CurrentSession = true
 				break
 			}
@@ -699,7 +693,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to retrieve session information"))
 			return
 		}
-		if session.UUID.String() == r.SessionID() {
+		if session.UUID == r.SessionID() {
 			session.CurrentSession = true
 		}
 
@@ -720,7 +714,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		if err := c.db.ClearSession(session.UUID.String()); err != nil {
+		if err := c.db.ClearSession(session.UUID); err != nil {
 			r.Fail(route.Oops(err, "Unable to clear session '%s' (%s)", r.Args[1], session.IP))
 			return
 		}
@@ -765,13 +759,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		target, err := c.db.GetTarget(uuid.Parse(r.Args[2]))
+		target, err := c.db.GetTarget(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
 
-		if target == nil || target.TenantUUID.String() != r.Args[1] {
+		if target == nil || target.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(err, "No such system"))
 			return
 		}
@@ -787,7 +781,7 @@ func (c *Core) v2API() *route.Router {
 		archives := make(map[string]*db.Archive)
 		aa, err := c.db.GetAllArchives(
 			&db.ArchiveFilter{
-				ForTarget:  target.UUID.String(),
+				ForTarget:  target.UUID,
 				WithStatus: []string{"valid"},
 			},
 		)
@@ -796,7 +790,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		for _, archive := range aa {
-			archives[archive.UUID.String()] = archive
+			archives[archive.UUID] = archive
 		}
 		// check to see if we're offseting task requests
 		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
@@ -807,7 +801,7 @@ func (c *Core) v2API() *route.Router {
 
 		tasks, err := c.db.GetAllTasks(
 			&db.TaskFilter{
-				ForTarget:    target.UUID.String(),
+				ForTarget:    target.UUID,
 				OnlyRelevant: true,
 				Before:       paginationDate,
 				Limit:        30,
@@ -823,7 +817,7 @@ func (c *Core) v2API() *route.Router {
 		if len(tasks) > 0 {
 			appendingtasks, err := c.db.GetAllTasks(
 				&db.TaskFilter{
-					ForTarget:    target.UUID.String(),
+					ForTarget:    target.UUID,
 					OnlyRelevant: true,
 					RequestedAt:  tasks[len(tasks)-1].RequestedAt,
 				},
@@ -832,10 +826,10 @@ func (c *Core) v2API() *route.Router {
 				r.Fail(route.Oops(err, "Unable to retrieve system information"))
 				return
 			}
-			if (len(appendingtasks) > 1) && (tasks[len(tasks)-1].UUID.String() != appendingtasks[len(appendingtasks)-1].UUID.String()) {
+			if (len(appendingtasks) > 1) && (tasks[len(tasks)-1].UUID != appendingtasks[len(appendingtasks)-1].UUID) {
 				log.Infof("Got a misjointed request, need to merge these two arrays.")
 				for i, task := range appendingtasks {
-					if task.UUID.String() == tasks[len(tasks)-1].UUID.String() {
+					if task.UUID == tasks[len(tasks)-1].UUID {
 						tasks = append(tasks, appendingtasks[i+1:]...)
 						break
 					}
@@ -860,7 +854,7 @@ func (c *Core) v2API() *route.Router {
 			system.Tasks[i].StoppedAt = task.StoppedAt
 			system.Tasks[i].Log = task.Log
 
-			if archive, ok := archives[task.ArchiveUUID.String()]; ok {
+			if archive, ok := archives[task.ArchiveUUID]; ok {
 				system.Tasks[i].Archive = &v2SystemArchive{
 					UUID:     archive.UUID,
 					Schedule: archive.Job,
@@ -910,13 +904,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		target, err := c.db.GetTarget(uuid.Parse(r.Args[2]))
+		target, err := c.db.GetTarget(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve system information"))
 			return
 		}
 
-		if target == nil || target.TenantUUID.String() != r.Args[1] {
+		if target == nil || target.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such system"))
 			return
 		}
@@ -989,7 +983,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		for _, agent := range agents {
-			id := agent.UUID.String()
+			id := agent.UUID
 			pp := make([]string, 0)
 
 			if agent.Version == "" {
@@ -1009,7 +1003,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		agent, err := c.db.GetAgent(uuid.Parse(r.Args[1]))
+		agent, err := c.db.GetAgent(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
@@ -1085,7 +1079,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		agent, err := c.db.GetAgent(uuid.Parse(r.Args[1]))
+		agent, err := c.db.GetAgent(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
@@ -1113,7 +1107,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		agent, err := c.db.GetAgent(uuid.Parse(r.Args[1]))
+		agent, err := c.db.GetAgent(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
@@ -1123,7 +1117,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{UUID: agent.UUID.String()})
+		c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{UUID: agent.UUID})
 		r.Success("Ad hoc agent resynchronization underway")
 	})
 	// }}}
@@ -1228,7 +1222,7 @@ func (c *Core) v2API() *route.Router {
 				return
 			}
 
-			err = c.db.AddUserToTenant(u.UUID, t.UUID.String(), u.Role)
+			err = c.db.AddUserToTenant(u.UUID, t.UUID, u.Role)
 			if err != nil {
 				r.Fail(route.Oops(err, "Unable to invite '%s' to tenant '%s'", user.Account, t.Name))
 				return
@@ -1287,7 +1281,7 @@ func (c *Core) v2API() *route.Router {
 				return
 			}
 
-			err = c.db.AddUserToTenant(u.UUID, tenant.UUID.String(), u.Role)
+			err = c.db.AddUserToTenant(u.UUID, tenant.UUID, u.Role)
 			if err != nil {
 				r.Fail(route.Oops(err, "Unable to invite '%s' to tenant '%s'", user.Account, tenant.Name))
 				return
@@ -1339,7 +1333,7 @@ func (c *Core) v2API() *route.Router {
 				return
 			}
 
-			err = c.db.RemoveUserFromTenant(u.UUID, tenant.UUID.String())
+			err = c.db.RemoveUserFromTenant(u.UUID, tenant.UUID)
 			if err != nil {
 				r.Fail(route.Oops(err, "Unable to banish '%s' from tenant '%s'", user.Account, tenant.Name))
 				return
@@ -1457,7 +1451,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		agent, err := c.db.GetAgent(uuid.Parse(r.Args[2]))
+		agent, err := c.db.GetAgent(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
@@ -1571,7 +1565,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		target, err := c.db.CreateTarget(&db.Target{
-			TenantUUID:  uuid.Parse(r.Args[1]),
+			TenantUUID:  r.Args[1],
 			Name:        in.Name,
 			Summary:     in.Summary,
 			Plugin:      in.Plugin,
@@ -1592,13 +1586,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		target, err := c.db.GetTarget(uuid.Parse(r.Args[2]))
+		target, err := c.db.GetTarget(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve target information"))
 			return
 		}
 
-		if target == nil || target.TenantUUID.String() != r.Args[1] {
+		if target == nil || target.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such target"))
 			return
 		}
@@ -1611,13 +1605,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		target, err := c.db.GetTarget(uuid.Parse(r.Args[2]))
+		target, err := c.db.GetTarget(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve target information"))
 			return
 		}
 
-		if target == nil || target.TenantUUID.String() != r.Args[1] {
+		if target == nil || target.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such target"))
 			return
 		}
@@ -1679,13 +1673,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		target, err := c.db.GetTarget(uuid.Parse(r.Args[2]))
+		target, err := c.db.GetTarget(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve target information"))
 			return
 		}
 
-		if target == nil || target.TenantUUID.String() != r.Args[1] {
+		if target == nil || target.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such target"))
 			return
 		}
@@ -1770,7 +1764,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		policy, err := c.db.CreateRetentionPolicy(&db.RetentionPolicy{
-			TenantUUID: uuid.Parse(r.Args[1]),
+			TenantUUID: r.Args[1],
 			Name:       in.Name,
 			Summary:    in.Summary,
 			Expires:    in.Expires,
@@ -1788,13 +1782,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		policy, err := c.db.GetRetentionPolicy(uuid.Parse(r.Args[2]))
+		policy, err := c.db.GetRetentionPolicy(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
 			return
 		}
 
-		if policy == nil || policy.TenantUUID.String() != r.Args[1] {
+		if policy == nil || policy.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such retention policy"))
 			return
 		}
@@ -1816,13 +1810,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		policy, err := c.db.GetRetentionPolicy(uuid.Parse(r.Args[2]))
+		policy, err := c.db.GetRetentionPolicy(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
 			return
 		}
 
-		if policy == nil || policy.TenantUUID.String() != r.Args[1] {
+		if policy == nil || policy.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such retention policy"))
 			return
 		}
@@ -1867,13 +1861,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		policy, err := c.db.GetRetentionPolicy(uuid.Parse(r.Args[2]))
+		policy, err := c.db.GetRetentionPolicy(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
 			return
 		}
 
-		if policy == nil || policy.TenantUUID.String() != r.Args[1] {
+		if policy == nil || policy.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such retention policy"))
 			return
 		}
@@ -1920,13 +1914,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		store, err := c.db.GetStore(uuid.Parse(r.Args[2]))
+		store, err := c.db.GetStore(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
 
-		if store == nil || store.TenantUUID.String() != r.Args[1] {
+		if store == nil || store.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such storage system"))
 			return
 		}
@@ -2016,12 +2010,12 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		store, err := c.db.GetStore(uuid.Parse(r.Args[2]))
+		store, err := c.db.GetStore(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if store == nil || store.TenantUUID.String() != r.Args[1] {
+		if store == nil || store.TenantUUID != r.Args[1] {
 			r.Fail(route.Oops(err, "No such storage system"))
 			return
 		}
@@ -2070,12 +2064,12 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		store, err := c.db.GetStore(uuid.Parse(r.Args[2]))
+		store, err := c.db.GetStore(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if store == nil || store.TenantUUID.String() != r.Args[1] {
+		if store == nil || store.TenantUUID != r.Args[1] {
 			r.Fail(route.Oops(err, "No such storage system"))
 			return
 		}
@@ -2150,14 +2144,14 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		job, err := c.db.CreateJob(&db.Job{
-			TenantUUID: uuid.Parse(r.Args[1]),
+			TenantUUID: r.Args[1],
 			Name:       in.Name,
 			Summary:    in.Summary,
 			Schedule:   in.Schedule,
 			Paused:     in.Paused,
-			StoreUUID:  uuid.Parse(in.Store),
-			TargetUUID: uuid.Parse(in.Target),
-			PolicyUUID: uuid.Parse(in.Policy),
+			StoreUUID:  in.Store,
+			TargetUUID: in.Target,
+			PolicyUUID: in.Policy,
 			FixedKey:   in.FixedKey,
 		})
 		if job == nil || err != nil {
@@ -2173,13 +2167,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		job, err := c.db.GetJob(uuid.Parse(r.Args[2]))
+		job, err := c.db.GetJob(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve job information"))
 			return
 		}
 
-		if job == nil || job.TenantUUID.String() != r.Args[1] {
+		if job == nil || job.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such job"))
 			return
 		}
@@ -2206,12 +2200,12 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		job, err := c.db.GetJob(uuid.Parse(r.Args[2]))
+		job, err := c.db.GetJob(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve job information"))
 			return
 		}
-		if job == nil || job.TenantUUID.String() != r.Args[1] {
+		if job == nil || job.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such job"))
 			return
 		}
@@ -2231,15 +2225,15 @@ func (c *Core) v2API() *route.Router {
 		}
 		job.TargetUUID = job.Target.UUID
 		if in.TargetUUID != "" {
-			job.TargetUUID = uuid.Parse(in.TargetUUID)
+			job.TargetUUID = in.TargetUUID
 		}
 		job.StoreUUID = job.Store.UUID
 		if in.StoreUUID != "" {
-			job.StoreUUID = uuid.Parse(in.StoreUUID)
+			job.StoreUUID = in.StoreUUID
 		}
 		job.PolicyUUID = job.Policy.UUID
 		if in.PolicyUUID != "" {
-			job.PolicyUUID = uuid.Parse(in.PolicyUUID)
+			job.PolicyUUID = in.PolicyUUID
 		}
 		if in.FixedKey != nil {
 			job.FixedKey = *in.FixedKey
@@ -2266,13 +2260,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		job, err := c.db.GetJob(uuid.Parse(r.Args[2]))
+		job, err := c.db.GetJob(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve job information"))
 			return
 		}
 
-		if job == nil || job.TenantUUID.String() != r.Args[1] {
+		if job == nil || job.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such job"))
 			return
 		}
@@ -2295,13 +2289,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		job, err := c.db.GetJob(uuid.Parse(r.Args[2]))
+		job, err := c.db.GetJob(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve job information"))
 			return
 		}
 
-		if job == nil || job.TenantUUID.String() != r.Args[1] {
+		if job == nil || job.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such job"))
 			return
 		}
@@ -2314,8 +2308,8 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		var out struct {
-			OK       string    `json:"ok"`
-			TaskUUID uuid.UUID `json:"task_uuid"`
+			OK       string `json:"ok"`
+			TaskUUID string `json:"task_uuid"`
 		}
 
 		out.OK = "Scheduled ad hoc backup job run"
@@ -2328,13 +2322,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		job, err := c.db.GetJob(uuid.Parse(r.Args[2]))
+		job, err := c.db.GetJob(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve job information"))
 			return
 		}
 
-		if job == nil || job.TenantUUID.String() != r.Args[1] {
+		if job == nil || job.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such job"))
 			return
 		}
@@ -2351,13 +2345,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		job, err := c.db.GetJob(uuid.Parse(r.Args[2]))
+		job, err := c.db.GetJob(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve job information"))
 			return
 		}
 
-		if job == nil || job.TenantUUID.String() != r.Args[1] {
+		if job == nil || job.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such job"))
 			return
 		}
@@ -2419,12 +2413,12 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		task, err := c.db.GetTask(uuid.Parse(r.Args[2]))
+		task, err := c.db.GetTask(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve task information"))
 			return
 		}
-		if task == nil || task.TenantUUID.String() != r.Args[1] {
+		if task == nil || task.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(err, "No such task"))
 			return
 		}
@@ -2439,12 +2433,12 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		task, err := c.db.GetTask(uuid.Parse(r.Args[2]))
+		task, err := c.db.GetTask(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve task information"))
 			return
 		}
-		if task == nil || task.TenantUUID.String() != r.Args[1] {
+		if task == nil || task.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(err, "No such task"))
 			return
 		}
@@ -2498,13 +2492,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		archive, err := c.db.GetArchive(uuid.Parse(r.Args[2]))
+		archive, err := c.db.GetArchive(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
-		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
+		if archive == nil || archive.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "Archive Not Found"))
 			return
 		}
@@ -2524,13 +2518,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		archive, err := c.db.GetArchive(uuid.Parse(r.Args[2]))
+		archive, err := c.db.GetArchive(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
-		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
+		if archive == nil || archive.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
@@ -2553,13 +2547,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		archive, err := c.db.GetArchive(uuid.Parse(r.Args[2]))
+		archive, err := c.db.GetArchive(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
-		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
+		if archive == nil || archive.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
@@ -2573,7 +2567,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to delete backup archive"))
 			return
 		}
-		err = c.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID.String()))
+		err = c.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID))
 		if err != nil {
 			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
 		}
@@ -2593,27 +2587,27 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		archive, err := c.db.GetArchive(uuid.Parse(r.Args[2]))
+		archive, err := c.db.GetArchive(r.Args[2])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
-		if archive == nil || archive.TenantUUID.String() != r.Args[1] {
+		if archive == nil || archive.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
 
 		if in.Target == "" {
-			in.Target = archive.TargetUUID.String()
+			in.Target = archive.TargetUUID
 		}
 
-		target, err := c.db.GetTarget(uuid.Parse(in.Target))
+		target, err := c.db.GetTarget(in.Target)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve backup archive information"))
 			return
 		}
 
-		if target == nil || archive.TenantUUID.String() != r.Args[1] {
+		if target == nil || archive.TenantUUID != r.Args[1] {
 			r.Fail(route.NotFound(nil, "No such backup archive"))
 			return
 		}
@@ -2813,7 +2807,8 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to log you in"))
 		}
 
-		SetAuthHeaders(r, session.UUID)
+		r.SetCookie(SessionCookie(session.UUID, true))
+		r.SetRespHeader("X-Shield-Session", session.UUID)
 		r.OK(id)
 	})
 	// }}}
@@ -2907,7 +2902,7 @@ func (c *Core) v2API() *route.Router {
 				SearchName: r.Param("name", ""),
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
-				ForTenant:  uuid.NIL.String(),
+				ForTenant:  db.GlobalTenantUUID,
 			},
 		)
 		if err != nil {
@@ -2923,13 +2918,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		store, err := c.db.GetStore(uuid.Parse(r.Args[1]))
+		store, err := c.db.GetStore(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
 
-		if store == nil || !uuid.Equal(store.TenantUUID, uuid.NIL) {
+		if store == nil || store.TenantUUID == db.GlobalTenantUUID {
 			r.Fail(route.NotFound(nil, "No such storage system"))
 			return
 		}
@@ -2967,7 +2962,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		store, err := c.db.CreateStore(&db.Store{
-			TenantUUID: uuid.NIL,
+			TenantUUID: db.GlobalTenantUUID,
 			Name:       in.Name,
 			Summary:    in.Summary,
 			Agent:      in.Agent,
@@ -3003,12 +2998,12 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		store, err := c.db.GetStore(uuid.Parse(r.Args[1]))
+		store, err := c.db.GetStore(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if store == nil || !uuid.Equal(store.TenantUUID, uuid.NIL) {
+		if store == nil || store.TenantUUID == db.GlobalTenantUUID {
 			r.Fail(route.Oops(err, "No such storage system"))
 			return
 		}
@@ -3051,12 +3046,12 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		store, err := c.db.GetStore(uuid.Parse(r.Args[1]))
+		store, err := c.db.GetStore(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if store == nil || !uuid.Equal(store.TenantUUID, uuid.NIL) {
+		if store == nil || store.TenantUUID == db.GlobalTenantUUID {
 			r.Fail(route.Oops(err, "No such storage system"))
 			return
 		}
@@ -3082,7 +3077,7 @@ func (c *Core) v2API() *route.Router {
 
 		policies, err := c.db.GetAllRetentionPolicies(
 			&db.RetentionFilter{
-				ForTenant:  uuid.NIL.String(),
+				ForTenant:  db.GlobalTenantUUID,
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
 				SearchName: r.Param("name", ""),
@@ -3134,7 +3129,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		policy, err := c.db.CreateRetentionPolicy(&db.RetentionPolicy{
-			TenantUUID: uuid.Parse(uuid.NIL.String()),
+			TenantUUID: db.GlobalTenantUUID,
 			Name:       in.Name,
 			Summary:    in.Summary,
 			Expires:    in.Expires,
@@ -3152,13 +3147,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		policy, err := c.db.GetRetentionPolicy(uuid.Parse(r.Args[1]))
+		policy, err := c.db.GetRetentionPolicy(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
 			return
 		}
 
-		if policy == nil || policy.TenantUUID.String() != uuid.NIL.String() {
+		if policy == nil || policy.TenantUUID != db.GlobalTenantUUID {
 			r.Fail(route.NotFound(nil, "No such retention policy template"))
 			return
 		}
@@ -3180,13 +3175,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		policy, err := c.db.GetRetentionPolicy(uuid.Parse(r.Args[1]))
+		policy, err := c.db.GetRetentionPolicy(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
 			return
 		}
 
-		if policy == nil || policy.TenantUUID.String() != uuid.NIL.String() {
+		if policy == nil || policy.TenantUUID != db.GlobalTenantUUID {
 			r.Fail(route.NotFound(nil, "No such retention policy template"))
 			return
 		}
@@ -3231,13 +3226,13 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		policy, err := c.db.GetRetentionPolicy(uuid.Parse(r.Args[1]))
+		policy, err := c.db.GetRetentionPolicy(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
 			return
 		}
 
-		if policy == nil || policy.TenantUUID.String() != uuid.NIL.String() {
+		if policy == nil || policy.TenantUUID != db.GlobalTenantUUID {
 			r.Fail(route.NotFound(nil, "No such retention policy template"))
 			return
 		}
@@ -3266,11 +3261,7 @@ func (c *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 	dst.OK = true /* FIXME */
 	dst.Compression = target.Compression
 
-	jobs, err := c.db.GetAllJobs(
-		&db.JobFilter{
-			ForTarget: target.UUID.String(),
-		},
-	)
+	jobs, err := c.db.GetAllJobs(&db.JobFilter{ForTarget: target.UUID})
 	if err != nil {
 		return err
 	}
