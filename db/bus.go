@@ -50,3 +50,18 @@ func (db *DB) sendTaskLogUpdateEvent(task *Task, log string, queues ...string) {
 		"tail": log,
 	}, queues...)
 }
+
+func (db *DB) sendTenantInviteEvent(user, tenant, role string) {
+	db.bus.Send(bus.TenantInviteEvent, "", map[string]interface{}{
+		"user_uuid":   user,
+		"tenant_uuid": tenant,
+		"role":        role,
+	}, "user:"+user, "tenant:"+tenant, "admins")
+}
+
+func (db *DB) sendTenantBanishEvent(user, tenant string) {
+	db.bus.Send(bus.TenantBanishEvent, "", map[string]interface{}{
+		"user_uuid":   user,
+		"tenant_uuid": tenant,
+	}, "user:"+user, "tenant:"+tenant, "admins")
+}

@@ -13,6 +13,8 @@ const (
 	DeleteObjectEvent     = "delete-object"
 	TaskStatusUpdateEvent = "task-status-update"
 	TaskLogUpdateEvent    = "task-log-update"
+	TenantInviteEvent     = "tenant-invite"
+	TenantBanishEvent     = "tenant-banish"
 )
 
 type Event struct {
