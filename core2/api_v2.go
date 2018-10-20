@@ -116,6 +116,38 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("GET /v2/events", func(r *route.Request) { // {{{
+		//you must be logged into shield to access the event stream
+		if c.IsNotAuthenticated(r) {
+			return
+		}
+
+		socket := r.Upgrade()
+		if socket == nil {
+			return
+		}
+
+		log.Infof("registering message bus web client")
+		ch, _, err := c.bus.Register()
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to begin streaming SHIELD events"))
+			return
+		}
+
+		go socket.Discard()
+		for event := range ch {
+			/* FIXME: access control for *, admin and <uuid> queues */
+
+			b, err := json.Marshal(event)
+			if err != nil {
+				log.Errorf("message bus web client failed to marshal JSON for websocket relay: %s", err)
+			} else {
+				socket.Write(b)
+			}
+		}
+	})
+	// }}}
+
 	r.Dispatch("GET /v2/tenants/:uuid/health", func(r *route.Request) { // {{{
 		if c.IsNotTenantOperator(r, r.Args[1]) {
 			return
@@ -840,64 +872,6 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		r.OK(system)
-	})
-	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/systems/:uuid/events", func(r *route.Request) { // {{{
-		if c.IsNotTenantOperator(r, r.Args[1]) {
-			return
-		}
-
-		socket := r.Upgrade()
-		if socket == nil {
-			return
-		}
-
-		log.Infof("registering with message bus")
-		in, id, err := c.bus.Register()
-		if err != nil {
-			r.Fail(route.Oops(err, "an internal error has occurred"))
-			return
-		}
-
-		go socket.Discard()
-		for event := range in {
-			if event.Task != nil && event.Task.TenantUUID.String() == r.Args[1] && event.Task.TargetUUID.String() == r.Args[2] {
-				var task v2SystemTask
-				task.UUID = event.Task.UUID
-				task.Type = event.Task.Op
-				task.Status = event.Task.Status
-				task.Owner = event.Task.Owner
-				task.OK = event.Task.OK
-				task.Notes = event.Task.Notes
-				task.RequestedAt = event.Task.RequestedAt
-				task.StartedAt = event.Task.StartedAt
-				task.StoppedAt = event.Task.StoppedAt
-				if !c.CanSeeCredentials(r, r.Args[1]) {
-					c.db.RedactTaskLog(event.Task)
-				}
-				task.Log = event.Task.Log
-
-				if event.Task.ArchiveUUID != nil {
-					task.Archive = &v2SystemArchive{
-						UUID:     event.Task.ArchiveUUID,
-						Schedule: "FIXME",
-						Expiry:   -1,
-						Notes:    event.Task.Notes,
-						Size:     -1, // FIXME
-					}
-				}
-
-				output_event, err := json.Marshal(task)
-				if err != nil {
-					log.Errorf("unable to marshal JSON: %s", err)
-				}
-				socket.Write(output_event)
-			}
-		}
-		if err := c.bus.Unregister(id); err != nil {
-			log.Errorf("unable to unregister from message bus: %s", err)
-		}
-		close(in)
 	})
 	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{

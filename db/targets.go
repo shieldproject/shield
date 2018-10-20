@@ -10,16 +10,15 @@ import (
 )
 
 type Target struct {
-	TenantUUID uuid.UUID `json:"-"`
+	UUID        uuid.UUID `json:"uuid"        mbus:"uuid"`
+	TenantUUID  uuid.UUID `json:"-"           mbus:"tenant_uuid"`
+	Name        string    `json:"name"        mbus:"name"`
+	Summary     string    `json:"summary"     mbus:"summary"`
+	Plugin      string    `json:"plugin"      mbus:"plugin"`
+	Agent       string    `json:"agent"       mbus:"agent"`
+	Compression string    `json:"compression" mbus:"compression"`
 
-	UUID        uuid.UUID `json:"uuid"`
-	Name        string    `json:"name"`
-	Summary     string    `json:"summary"`
-	Plugin      string    `json:"plugin"`
-	Agent       string    `json:"agent"`
-	Compression string    `json:"compression"`
-
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty" mbus:"config"`
 }
 
 func (t Target) ConfigJSON() (string, error) {
@@ -186,10 +185,16 @@ func (db *DB) CreateTarget(in *Target) (*Target, error) {
 	}
 
 	in.UUID = uuid.NewRandom()
-	return in, db.exec(`
+	err = db.exec(`
 	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression)
 	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?,     ?)`,
 		in.UUID.String(), in.TenantUUID.String(), in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent, in.Compression)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(toTenant(in.TenantUUID), in)
+	return in, nil
 }
 
 func (db *DB) UpdateTarget(t *Target) error {
@@ -198,7 +203,7 @@ func (db *DB) UpdateTarget(t *Target) error {
 		return err
 	}
 
-	return db.exec(`
+	err = db.exec(`
 	  UPDATE targets
 	     SET name        = ?,
 	         summary     = ?,
@@ -209,38 +214,47 @@ func (db *DB) UpdateTarget(t *Target) error {
 	   WHERE uuid = ?`,
 		t.Name, t.Summary, t.Plugin, string(rawconfig), t.Agent, t.Compression,
 		t.UUID.String())
+	if err != nil {
+		return err
+	}
+
+	db.sendUpdateObjectEvent(toTenant(t.TenantUUID), t)
+	return nil
 }
 
 func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
-	r, err := db.query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`,
-		id.String(),
-	)
+	t, err := db.GetTarget(id)
+	if err != nil {
+		return false, err
+	}
+	if t == nil {
+		/* already deleted */
+		return true, nil
+	}
+
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, t.UUID.String())
 	if err != nil {
 		return false, err
 	}
 	defer r.Close()
 
-	// already deleted
-	if !r.Next() {
-		return true, nil
-	}
-
 	var numJobs int
 	if err = r.Scan(&numJobs); err != nil {
 		return false, err
 	}
-
 	if numJobs < 0 {
 		return false, fmt.Errorf("Target %s is in used by %d (negative) Jobs", id.String(), numJobs)
 	}
 	if numJobs > 0 {
 		return false, nil
 	}
-
 	r.Close()
-	return true, db.exec(
-		`DELETE FROM targets WHERE uuid = ?`,
-		id.String(),
-	)
+
+	err = db.exec(`DELETE FROM targets WHERE uuid = ?`, id.String())
+	if err != nil {
+		return false, err
+	}
+
+	db.sendDeleteObjectEvent(toTenant(t.TenantUUID), t)
+	return true, nil
 }

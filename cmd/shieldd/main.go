@@ -10,14 +10,10 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/starkandwayne/shield/core"
+	core "github.com/starkandwayne/shield/core2"
 )
 
-var Version = ""
-
 func main() {
-	core.Version = Version
-
 	var opts struct {
 		Help       bool   `cli:"-h, --help"`
 		Version    bool   `cli:"-v, --version"`
@@ -37,7 +33,7 @@ func main() {
 	}
 
 	if opts.Help {
-		fmt.Printf("shieldd - Run a SHIELD Core daemon\n\n")
+		fmt.Printf("shieldd - The SHIELD Core daemon\n\n")
 		fmt.Printf("Options\n")
 		fmt.Printf("  -h, --help       Show this help screen.\n")
 		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
@@ -49,17 +45,12 @@ func main() {
 	}
 
 	if opts.Version {
-		if Version == "" {
+		if core.Version == "" {
 			fmt.Printf("shieldd (development)\n")
 		} else {
-			fmt.Printf("shieldd v%s\n", Version)
+			fmt.Printf("shieldd v%s\n", core.Version)
 		}
 		os.Exit(0)
-	}
-
-	if opts.ConfigFile == "" {
-		fmt.Fprintf(os.Stderr, "No config specified. Please try again using the -c/--config argument\n")
-		os.Exit(1)
 	}
 
 	log.SetupLogging(log.LogConfig{
@@ -68,16 +59,11 @@ func main() {
 	})
 	log.Infof("starting up shield core")
 
-	daemon, err := core.NewCore(opts.ConfigFile)
+	c, err := core.Configure(opts.ConfigFile, core.DefaultConfig)
 	if err != nil {
 		log.Errorf("shield core failed to start up: %s", err)
 		os.Exit(1)
 	}
 
-	if err := daemon.Run(); err != nil {
-		log.Errorf("shield core failed to run: %s", err)
-		os.Exit(1)
-	}
-
-	log.Infof("shutting down shield core")
+	c.Main()
 }

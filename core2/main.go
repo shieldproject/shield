@@ -2,6 +2,8 @@ package core2
 
 import (
 	"fmt"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/jhunt/go-log"
@@ -174,8 +176,17 @@ func (c *Core) ConnectToVault() {
 }
 
 func (c *Core) BindAPI() {
-	log.Infof("INITIALIZING: binding the SHIELD Core API...")
-	/* FIXME */
+	log.Infof("INITIALIZING: binding the SHIELD Core API on %s...", c.Config.API.Bind)
+
+	http.Handle("/v2/", c.v2API())
+
+	go func() {
+		if err := http.ListenAndServe(c.Config.API.Bind, nil); err != nil {
+			log.Alertf("SHIELD Core API failed: %s", err)
+			os.Exit(2)
+		}
+		log.Infof("shutting down SHIELD Core API...")
+	}()
 }
 
 func (c *Core) StartScheduler() {
@@ -187,6 +198,7 @@ func (c *Core) StartScheduler() {
 func (c *Core) ConfigureMessageBus() {
 	log.Infof("INITIALIZING: configuring message bus...")
 	c.bus = bus.New(2048)
+	c.db.Inform(c.bus)
 }
 
 func (c *Core) ScheduleBackupTasks() {

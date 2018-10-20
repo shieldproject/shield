@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	NewObjectEvent        = "new-object"
+	CreateObjectEvent        = "create-object"
 	UpdateObjectEvent     = "update-object"
 	DeleteObjectEvent     = "delete-object"
 	TaskStatusUpdateEvent = "task-status-update"
@@ -14,8 +14,9 @@ const (
 )
 
 type Event struct {
-	Type   string      `json:"type"`
-	Tenant string      `json:"tenant"`
+	Event  string      `json:"event"`
+	Queue  string      `json:"queue"`
+	Type   string      `json:"type,omitempty"`
 	Data   interface{} `json:"data"`
 }
 
@@ -60,16 +61,12 @@ func (b *Bus) Unregister(idx int) error {
 	return nil
 }
 
-func (b *Bus) Send(typ, tenant string, thing interface{}) error {
-	data, err := reflectOn(thing)
-	if err != nil {
-		return err
-	}
-
+func (b *Bus) Send(event, queue, typ string, thing interface{}) error {
 	b.SendEvent(Event{
+		Event:  event,
+		Queue: queue,
 		Type:   typ,
-		Tenant: tenant,
-		Data:   data,
+		Data:   reflectOn(thing),
 	})
 	return nil
 }

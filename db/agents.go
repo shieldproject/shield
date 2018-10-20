@@ -201,11 +201,22 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	}
 
 	id := uuid.NewRandom()
-	return db.exec(`
+	err = db.exec(`
 	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
 	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
 		id.String(), name, address, false, "pending", time.Now().Unix(),
 	)
+	if err != nil {
+		return err
+	}
+
+	agent, err := db.GetAgent(id)
+	if err != nil {
+		return err
+	}
+
+	db.sendCreateObjectEvent("SYSTEM", agent)
+	return nil
 }
 
 func (db *DB) UpdateAgent(agent *Agent) error {

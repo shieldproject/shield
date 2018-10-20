@@ -8,8 +8,8 @@ import (
 )
 
 type Tenant struct {
-	UUID          uuid.UUID `json:"uuid"`
-	Name          string    `json:"name"`
+	UUID          uuid.UUID `json:"uuid"              mbus:"uuid"`
+	Name          string    `json:"name"              mbus:"name"`
 	Members       []*User   `json:"members,omitempty"`
 	DailyIncrease int64     `json:"daily_increase"`
 	StorageUsed   int64     `json:"storage_used"`
@@ -182,15 +182,19 @@ func (db *DB) CreateTenant(given_uuid string, given_name string) (*Tenant, error
 		return nil, fmt.Errorf("uuid must be of format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
 	}
 
-	err := db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, id.String(), given_name)
+	t := &Tenant{
+		UUID: id,
+		Name: given_name,
+	}
+	err := db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, t.UUID.String(), t.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Tenant{
-		UUID: id,
-		Name: given_name,
-	}, nil
+	fmt.Printf("SENDING create-object MESSAGES via MBUS...\n")
+	db.sendCreateObjectEvent(toTenant(t.UUID), t)
+	db.sendCreateObjectEvent(toAdmins(), t)
+	return t, nil
 }
 
 func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
@@ -205,6 +209,8 @@ func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
 		return nil, err
 	}
 
+	db.sendUpdateObjectEvent(toTenant(t.UUID), t)
+	db.sendUpdateObjectEvent(toAdmins(), t)
 	return t, nil
 }
 
@@ -219,17 +225,21 @@ func (db *DB) GetTenantRole(org string, team string) (uuid.UUID, string, error) 
 		return nil, "", nil
 	}
 
-	var tenantUUID string
-	var role string
-	err = rows.Scan(&tenantUUID, &role)
+	var id, role string
+	err = rows.Scan(&id, &role)
 	if err != nil {
 		return nil, "", err
 	}
-	return uuid.Parse(tenantUUID), role, nil
+	return uuid.Parse(id), role, nil
 }
 
-func (db *DB) DeleteTenant(tenant *Tenant) error {
-	return db.exec(`
-		DELETE FROM tenants
-		      WHERE uuid = ?`, tenant.UUID.String())
+func (db *DB) DeleteTenant(t *Tenant) error {
+	err := db.exec(`DELETE FROM tenants WHERE uuid = ?`, t.UUID.String())
+	if err != nil {
+		return err
+	}
+
+	db.sendDeleteObjectEvent(toTenant(t.UUID), t)
+	db.sendDeleteObjectEvent(toAdmins(), t)
+	return nil
 }

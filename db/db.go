@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/jmoiron/sqlx"
+
+	"github.com/starkandwayne/shield/core/bus"
 )
 
 type DB struct {
@@ -15,6 +17,7 @@ type DB struct {
 
 	exclusive sync.Mutex
 	cache     map[string]*sql.Stmt
+	bus       *bus.Bus
 }
 
 // Connect to the backend database
@@ -52,6 +55,11 @@ func (db *DB) Disconnect() error {
 		db.cache = make(map[string]*sql.Stmt)
 	}
 	return nil
+}
+
+// Have the database start sending SHIELD Bus Events to a message bus
+func (db *DB) Inform(mbus *bus.Bus) {
+	db.bus = mbus
 }
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)

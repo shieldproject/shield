@@ -1,11 +1,10 @@
 package bus
 
 import (
-	"fmt"
 	"reflect"
 )
 
-func reflectOn(thing interface{}) (map[string] interface{}, error) {
+func reflectOn(thing interface{}) map[string] interface{} {
 	t := reflect.TypeOf(thing)
 	v := reflect.ValueOf(thing)
 
@@ -18,9 +17,9 @@ func reflectOn(thing interface{}) (map[string] interface{}, error) {
 	return reflectSomeMore(m, t, &v)
 }
 
-func reflectSomeMore(out map[string] interface{}, t reflect.Type, v *reflect.Value) (map[string] interface{}, error) {
+func reflectSomeMore(out map[string] interface{}, t reflect.Type, v *reflect.Value) map[string] interface{} {
 	if t.Kind() != reflect.Struct {
-		return out, fmt.Errorf("bus.ParseEventData() only operates on structures")
+		panic("bus.ParseEventData() only operates on structures")
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -34,26 +33,14 @@ func reflectSomeMore(out map[string] interface{}, t reflect.Type, v *reflect.Val
 		}
 
 		switch field.Type.Kind() {
-		case reflect.String, reflect.Bool,
-			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-			reflect.Float32, reflect.Float64:
-
+		default:
 			out[tag] = v.Field(i).Interface()
 
 		case reflect.Struct:
 			vfield := v.Field(i)
-			sub := make(map[string] interface{})
-			sub, err := reflectSomeMore(sub, vfield.Type(), &vfield)
-			if err != nil {
-				return out, err
-			}
-			out[tag] = sub
-
-		default:
-			return  out, fmt.Errorf("bus.ParseEventData cannot operate on this type of thing")
+			out[tag] = reflectSomeMore(make(map[string] interface{}), vfield.Type(), &vfield)
 		}
 	}
 
-	return out, nil
+	return out
 }

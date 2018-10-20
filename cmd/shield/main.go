@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -53,6 +54,8 @@ var opts struct {
 	} `cli:"status"`
 
 	Import struct{} `cli:"import"`
+
+	Events struct{} `cli:"events"`
 
 	/* CORES {{{ */
 	Cores struct{} `cli:"cores"`
@@ -503,6 +506,7 @@ func main() {
 			printc("  commands                 Print this list of commands.\n")
 			printc("  curl                     Issue raw HTTP requests to the targeted SHIELD Core.\n")
 			printc("  status                   Show the status of the targeted SHIELD Core.\n")
+			printc("  events                   Watch the even stream from the targeted SHIELD Core.\n")
 		}
 		if show("auth", "authentication") {
 			header("Authentication (auth)")
@@ -1022,6 +1026,39 @@ func main() {
 			fmt.Printf("%s", info.MOTD)
 			fmt.Printf("\n------------------------------------------------\n\n")
 		}
+
+	/* }}} */
+	case "events": /* {{{ */
+		header := false
+		err := c.StreamEvents(func(ev shield.Event) {
+			if opts.JSON {
+				fmt.Printf("%s\n", asJSON(ev))
+				return
+			}
+
+			if !header {
+				header = true
+				fmt.Printf("@W{Queue}                                  @W{Event Type}             @W{Object Type}            @W{Object}\n")
+				fmt.Printf("------------------------------------   --------------------   --------------------   -----------------\n")
+			}
+			fmt.Printf("@C{%-36s}   %-20s   @Y{%-20s}   ", ev.Queue, ev.Event, ev.Type)
+
+			b, err := json.MarshalIndent(ev.Data, "", "  ")
+			if err != nil {
+				fmt.Printf("%s\n", ev.Data)
+			} else {
+				prefix := fmt.Sprintf("%85s", " ")
+				for i, s := range strings.Split(string(b), "\n") {
+					if i == 0 {
+						fmt.Printf("%s\n", s)
+					} else {
+						fmt.Printf("%s%s\n", prefix, s)
+					}
+				}
+			}
+			fmt.Printf("\n")
+		})
+		bail(err)
 
 	/* }}} */
 

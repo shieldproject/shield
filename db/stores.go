@@ -15,12 +15,13 @@ type StoreConfigItem struct {
 }
 
 type Store struct {
-	UUID    uuid.UUID `json:"uuid"`
-	Name    string    `json:"name"`
-	Summary string    `json:"summary"`
-	Agent   string    `json:"agent"`
-	Plugin  string    `json:"plugin"`
-	Global  bool      `json:"global"`
+	UUID       uuid.UUID `json:"uuid"    mbus:"uuid"`
+	TenantUUID uuid.UUID `json:"-"       mbus:"tenant_uuid"`
+	Name       string    `json:"name"    mbus:"name"`
+	Summary    string    `json:"summary" mbus:"summary"`
+	Agent      string    `json:"agent"   mbus:"agent"`
+	Plugin     string    `json:"plugin"  mbus:"plugin"`
+	Global     bool      `json:"global"  mbus:"global"`
 
 	PublicConfig  string `json:"-"`
 	PrivateConfig string `json:"-"`
@@ -28,11 +29,10 @@ type Store struct {
 	Config        map[string]interface{} `json:"config,omitempty"`
 	DisplayConfig []StoreConfigItem      `json:"display_config,omitempty"`
 
-	TenantUUID    uuid.UUID `json:"-"`
-	DailyIncrease int64     `json:"daily_increase"`
-	StorageUsed   int64     `json:"storage_used"`
-	Threshold     int64     `json:"threshold"`
-	ArchiveCount  int       `json:"archive_count"`
+	DailyIncrease int64 `json:"daily_increase"`
+	StorageUsed   int64 `json:"storage_used"`
+	Threshold     int64 `json:"threshold"`
+	ArchiveCount  int   `json:"archive_count"`
 
 	Healthy          bool      `json:"healthy"`
 	LastTestTaskUUID uuid.UUID `json:"last_test_task_uuid"`
@@ -311,10 +311,16 @@ func (db *DB) CreateStore(s *Store) (*Store, error) {
 	}
 
 	s.UUID = uuid.NewRandom()
-	return s, db.exec(`
+	err = db.exec(`
 	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold, healthy, last_test_task_uuid)
 	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?,        ?,       ?)`,
 		s.UUID.String(), s.TenantUUID.String(), s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold, s.Healthy, s.LastTestTaskUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(toTenant(s.TenantUUID), s)
+	return s, nil
 }
 
 func (db *DB) UpdateStore(s *Store) error {
@@ -327,7 +333,7 @@ func (db *DB) UpdateStore(s *Store) error {
 		return fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
-	return db.exec(`
+	err = db.exec(`
 		UPDATE stores
 	      SET name                    = ?,
 	          summary                 = ?,
@@ -345,40 +351,49 @@ func (db *DB) UpdateStore(s *Store) error {
 		WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
 		s.ArchiveCount, s.StorageUsed, s.Threshold, s.Healthy, s.LastTestTaskUUID, s.UUID.String(),
 	)
+	if err != nil {
+		return err
+	}
+
+	db.sendUpdateObjectEvent(toTenant(s.TenantUUID), s)
+	return nil
 }
 
 func (db *DB) DeleteStore(id uuid.UUID) (bool, error) {
-	r, err := db.query(
-		`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`,
-		id.String(),
-	)
+	s, err := db.GetStore(id)
+	if err != nil {
+		return false, err
+	}
+	if s == nil {
+		/* already deleted */
+		return true, nil
+	}
+
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`, s.UUID.String())
 	if err != nil {
 		return false, err
 	}
 	defer r.Close()
 
-	// already deleted
-	if !r.Next() {
-		return true, nil
-	}
-
 	var numJobs int
 	if err = r.Scan(&numJobs); err != nil {
 		return false, err
 	}
-
 	if numJobs < 0 {
 		return false, fmt.Errorf("Store %s is in used by %d (negative) Jobs", id.String(), numJobs)
 	}
 	if numJobs > 0 {
 		return false, nil
 	}
-
 	r.Close()
-	return true, db.exec(
-		`DELETE FROM stores WHERE uuid = ?`,
-		id.String(),
-	)
+
+	err = db.exec(`DELETE FROM stores WHERE uuid = ?`, s.UUID.String())
+	if err != nil {
+		return false, err
+	}
+
+	db.sendDeleteObjectEvent(toTenant(s.TenantUUID), s)
+	return true, nil
 }
 
 func (s Store) ConfigJSON() (string, error) {

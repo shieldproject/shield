@@ -12,18 +12,18 @@ import (
 )
 
 type Job struct {
-	TenantUUID uuid.UUID `json:"-"`
-	TargetUUID uuid.UUID `json:"-"`
-	StoreUUID  uuid.UUID `json:"-"`
-	PolicyUUID uuid.UUID `json:"-"`
+	TenantUUID uuid.UUID `json:"-" mbus:"tenant_uuid"`
+	TargetUUID uuid.UUID `json:"-" mbus:"target_uuid"`
+	StoreUUID  uuid.UUID `json:"-" mbus:"store_uuid"`
+	PolicyUUID uuid.UUID `json:"-" mbus:"policy_uuid"`
 
-	UUID     uuid.UUID `json:"uuid"`
-	Name     string    `json:"name"`
-	Summary  string    `json:"summary"`
-	Expiry   int       `json:"expiry"`
-	Schedule string    `json:"schedule"`
-	Paused   bool      `json:"paused"`
-	FixedKey bool      `json:"fixed_key"`
+	UUID     uuid.UUID `json:"uuid"      mbus:"uuid"`
+	Name     string    `json:"name"      mbus:"name"`
+	Summary  string    `json:"summary"   mbus:"summary"`
+	Expiry   int       `json:"expiry"    mbus:"expiry"`
+	Schedule string    `json:"schedule"  mbus:"schedule"`
+	Paused   bool      `json:"paused"    mbus:"paused"`
+	FixedKey bool      `json:"fixed_key" mbus:"fixed_key"`
 
 	Target struct {
 		UUID        uuid.UUID `json:"uuid"`
@@ -280,11 +280,17 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return nil, err
 	}
 
-	return db.GetJob(job.UUID)
+	job, err = db.GetJob(job.UUID)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(toTenant(job.TenantUUID), job)
+	return job, nil
 }
 
 func (db *DB) UpdateJob(job *Job) error {
-	return db.exec(`
+	err := db.exec(`
 	   UPDATE jobs
 	      SET name           = ?,
 	          summary        = ?,
@@ -297,16 +303,41 @@ func (db *DB) UpdateJob(job *Job) error {
 		job.Name, job.Summary, job.Schedule,
 		job.TargetUUID.String(), job.StoreUUID.String(), job.PolicyUUID.String(),
 		job.FixedKey, job.UUID.String())
+	if err != nil {
+		return err
+	}
+
+	job, err = db.GetJob(job.UUID)
+	if err != nil {
+		return err
+	}
+
+	db.sendUpdateObjectEvent(toTenant(job.TenantUUID), job)
+	return nil
 }
 
 func (db *DB) DeleteJob(id uuid.UUID) (bool, error) {
-	return true, db.exec(
-		`DELETE FROM jobs WHERE uuid = ?`,
-		id.String(),
-	)
+	job, err := db.GetJob(id)
+	if err != nil {
+		return false, err
+	}
+
+	if job == nil {
+		/* already deleted */
+		return true, nil
+	}
+
+	err = db.exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID.String())
+	if err != nil {
+		return false, err
+	}
+
+	db.sendDeleteObjectEvent(toTenant(job.TenantUUID), job)
+	return true, nil
 }
 
 func (db *DB) RescheduleJob(j *Job, t time.Time) error {
+	/* note: this update does not require a message bus notification */
 	return db.exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID.String())
 }
 

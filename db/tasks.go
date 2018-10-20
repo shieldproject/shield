@@ -27,32 +27,32 @@ const (
 )
 
 type Task struct {
-	UUID           uuid.UUID      `json:"uuid"`
-	TenantUUID     uuid.UUID      `json:"-"`
-	Owner          string         `json:"owner"`
-	Op             string         `json:"type"`
-	JobUUID        uuid.UUID      `json:"job_uuid"`
-	ArchiveUUID    uuid.UUID      `json:"archive_uuid"`
-	StoreUUID      uuid.UUID      `json:"-"`
+	UUID           uuid.UUID      `json:"uuid"            mbus:"uuid"`
+	TenantUUID     uuid.UUID      `json:"-"               mbus:"tenant_uuid"`
+	Owner          string         `json:"owner"           mbus:"owner"`
+	Op             string         `json:"type"            mbus:"op"`
+	JobUUID        uuid.UUID      `json:"job_uuid"        mbus:"job_uuid"`
+	ArchiveUUID    uuid.UUID      `json:"archive_uuid"    mbus:"archive_uuid"`
+	StoreUUID      uuid.UUID      `json:"-"               mbus:"store_uuid"`
 	StorePlugin    string         `json:"-"`
 	StoreEndpoint  string         `json:"-"`
-	TargetUUID     uuid.UUID      `json:"-"`
+	TargetUUID     uuid.UUID      `json:"-"               mbus:"target_uuid"`
 	TargetPlugin   string         `json:"-"`
 	TargetEndpoint string         `json:"-"`
 	Compression    string         `json:"-"`
-	Status         string         `json:"status"`
-	RequestedAt    int64          `json:"requested_at"`
-	StartedAt      int64          `json:"started_at"`
-	StoppedAt      int64          `json:"stopped_at"`
+	Status         string         `json:"status"          mbus:"status"`
+	RequestedAt    int64          `json:"requested_at"    mbus:"requested_at"`
+	StartedAt      int64          `json:"started_at"      mbus:"started_at"`
+	StoppedAt      int64          `json:"stopped_at"      mbus:"stopped_at"`
 	TimeoutAt      int64          `json:"-"`
 	Attempts       int            `json:"-"`
 	RestoreKey     string         `json:"-"`
 	FixedKey       bool           `json:"-"`
 	Agent          string         `json:"-"`
 	Log            string         `json:"log"`
-	OK             bool           `json:"ok"`
-	Notes          string         `json:"notes"`
-	Clear          string         `json:"clear"`
+	OK             bool           `json:"ok"              mbus:"ok"`
+	Notes          string         `json:"notes"           mbus:"notes"`
+	Clear          string         `json:"clear"           mbus:"clear"`
 	TaskUUIDChan   chan *TaskInfo `json:"-"`
 }
 

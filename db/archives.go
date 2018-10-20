@@ -9,27 +9,28 @@ import (
 )
 
 type Archive struct {
-	UUID           uuid.UUID `json:"uuid"`
-	StoreKey       string    `json:"key"`
-	TakenAt        int64     `json:"taken_at"`
-	ExpiresAt      int64     `json:"expires_at"`
-	Notes          string    `json:"notes"`
-	Status         string    `json:"status"`
-	PurgeReason    string    `json:"purge_reason"`
-	TargetUUID     uuid.UUID `json:"target_uuid"`
-	TargetName     string    `json:"target_name"`
-	TargetPlugin   string    `json:"target_plugin"`
-	TargetEndpoint string    `json:"target_endpoint"`
-	StoreUUID      uuid.UUID `json:"store_uuid"`
-	StoreName      string    `json:"store_name"`
-	StorePlugin    string    `json:"store_plugin"`
-	StoreEndpoint  string    `json:"store_endpoint"`
-	StoreAgent     string    `json:"store_agent"`
-	Job            string    `json:"job"`
-	EncryptionType string    `json:"encryption_type"`
-	Compression    string    `json:"compression"`
-	TenantUUID     uuid.UUID `json:"tenant_uuid"`
-	Size           int64     `json:"size"`
+	UUID           uuid.UUID `json:"uuid"            mbus:"uuid"`
+	TenantUUID     uuid.UUID `json:"tenant_uuid"     mbus:"tenant_uuid"`
+	TargetUUID     uuid.UUID `json:"target_uuid"     mbus:"target_uuid"`
+	StoreUUID      uuid.UUID `json:"store_uuid"      mbus:"store_uuid"`
+	StoreKey       string    `json:"key"             mbus:"key"`
+	TakenAt        int64     `json:"taken_at"        mbus:"taken_at"`
+	ExpiresAt      int64     `json:"expires_at"      mbus:"expires_at"`
+	Notes          string    `json:"notes"           mbus:"notes"`
+	Status         string    `json:"status"          mbus:"status"`
+	PurgeReason    string    `json:"purge_reason"    mbus:"purge_reason"`
+	EncryptionType string    `json:"encryption_type" mbus:"encryption_type"`
+	Compression    string    `json:"compression"     mbus:"compression"`
+	Size           int64     `json:"size"            mbus:"size"`
+
+	TargetName     string `json:"target_name"`
+	TargetPlugin   string `json:"target_plugin"`
+	TargetEndpoint string `json:"target_endpoint"`
+	StoreName      string `json:"store_name"`
+	StorePlugin    string `json:"store_plugin"`
+	StoreEndpoint  string `json:"store_endpoint"`
+	StoreAgent     string `json:"store_agent"`
+	Job            string `json:"job"`
 }
 
 type ArchiveFilter struct {
