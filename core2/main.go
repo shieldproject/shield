@@ -29,7 +29,7 @@ func (c Core) Main() {
 
 	/* prepare for operation */
 	c.ConnectToVault()
-	c.BindAPI()
+	c.Bind()
 	c.StartScheduler()
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
@@ -175,17 +175,21 @@ func (c *Core) ConnectToVault() {
 	c.vault = v
 }
 
-func (c *Core) BindAPI() {
-	log.Infof("INITIALIZING: binding the SHIELD Core API on %s...", c.Config.API.Bind)
+func (c *Core) Bind() {
+	log.Infof("INITIALIZING: binding the SHIELD Core API/UI on %s...", c.Config.API.Bind)
+	log.Infof("INITIALIZING: serving SHIELD Web UI static assets from %s...", c.Config.WebRoot)
 
+	http.Handle("/init.js", c) /* FIXME: legacy */
+	http.Handle("/v1/", c) /* FIXME: legacy */
 	http.Handle("/v2/", c.v2API())
+	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
 	go func() {
 		if err := http.ListenAndServe(c.Config.API.Bind, nil); err != nil {
-			log.Alertf("SHIELD Core API failed: %s", err)
+			log.Alertf("SHIELD Core API/UI failed: %s", err)
 			os.Exit(2)
 		}
-		log.Infof("shutting down SHIELD Core API...")
+		log.Infof("shutting down SHIELD Core API/UI...")
 	}()
 }
 
