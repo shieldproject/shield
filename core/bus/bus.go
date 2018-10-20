@@ -6,7 +6,9 @@ import (
 )
 
 const (
-	CreateObjectEvent        = "create-object"
+	ErrorEvent            = "error"
+	HeartbeatEvent        = "heartbeat"
+	CreateObjectEvent     = "create-object"
 	UpdateObjectEvent     = "update-object"
 	DeleteObjectEvent     = "delete-object"
 	TaskStatusUpdateEvent = "task-status-update"
@@ -14,20 +16,27 @@ const (
 )
 
 type Event struct {
-	Event  string      `json:"event"`
-	Queue  string      `json:"queue"`
-	Type   string      `json:"type,omitempty"`
-	Data   interface{} `json:"data"`
+	Event string      `json:"event"`
+	Type  string      `json:"type,omitempty"`
+	Data  interface{} `json:"data"`
 }
 
 type Bus struct {
 	lock  sync.Mutex
 	chans []chan Event
+
+	lastHeartbeatEvent *Event
 }
 
 func New(n int) *Bus {
 	return &Bus{
 		chans: make([]chan Event, n),
+	}
+}
+
+func catchup(ch chan Event, events ...Event) {
+	for _, ev := range events {
+		ch <- ev
 	}
 }
 
@@ -38,6 +47,11 @@ func (b *Bus) Register() (chan Event, int, error) {
 	for i, slot := range b.chans {
 		if slot == nil {
 			b.chans[i] = make(chan Event, 0)
+
+			if b.lastHeartbeatEvent != nil {
+				go catchup(b.chans[i], *b.lastHeartbeatEvent)
+			}
+
 			return b.chans[i], i, nil
 		}
 	}
@@ -61,21 +75,31 @@ func (b *Bus) Unregister(idx int) error {
 	return nil
 }
 
-func (b *Bus) Send(event, queue, typ string, thing interface{}) error {
-	b.SendEvent(Event{
-		Event:  event,
-		Queue: queue,
-		Type:   typ,
-		Data:   reflectOn(thing),
+func (b *Bus) SendError(err error, queues ...string) {
+	b.SendEvent(queues, Event{
+		Event: ErrorEvent,
+		Data:  map[string]interface{}{"error": err},
 	})
-	return nil
 }
 
-func (b *Bus) SendEvent(ev Event) {
+func (b *Bus) Send(event, typ string, thing interface{}, queues ...string) {
+	b.SendEvent(queues, Event{
+		Event: event,
+		Type:  typ,
+		Data:  marshal(thing),
+	})
+}
+
+func (b *Bus) SendEvent(queues []string, ev Event) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
+	if ev.Event == HeartbeatEvent {
+		b.lastHeartbeatEvent = &ev
+	}
+
 	for _, ch := range b.chans {
+		/* FIXME: acls on bus; only send the message once, and only if queues match up */
 		if ch != nil {
 			ch <- ev
 		}
