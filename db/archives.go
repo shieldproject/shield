@@ -144,36 +144,36 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	defer r.Close()
 
 	for r.Next() {
-		ann := &Archive{}
+		a := &Archive{}
 
 		var takenAt, expiresAt, size *int64
 		var targetName, storeName *string
 		if err = r.Scan(
-			&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&ann.TargetUUID, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-			&ann.StoreUUID, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
-			&ann.Compression, &ann.TenantUUID, &size); err != nil {
+			&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
+			&a.TargetUUID, &targetName, &a.TargetPlugin, &a.TargetEndpoint,
+			&a.StoreUUID, &storeName, &a.StorePlugin, &a.StoreEndpoint,
+			&a.Status, &a.PurgeReason, &a.Job, &a.EncryptionType,
+			&a.Compression, &a.TenantUUID, &size); err != nil {
 
 			return l, err
 		}
 		if takenAt != nil {
-			ann.TakenAt = *takenAt
+			a.TakenAt = *takenAt
 		}
 		if expiresAt != nil {
-			ann.ExpiresAt = *expiresAt
+			a.ExpiresAt = *expiresAt
 		}
 		if targetName != nil {
-			ann.TargetName = *targetName
+			a.TargetName = *targetName
 		}
 		if storeName != nil {
-			ann.StoreName = *storeName
+			a.StoreName = *storeName
 		}
 		if size != nil {
-			ann.Size = *size
+			a.Size = *size
 		}
 
-		l = append(l, ann)
+		l = append(l, a)
 	}
 
 	return l, nil
@@ -201,36 +201,36 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 	if !r.Next() {
 		return nil, nil
 	}
-	ann := &Archive{}
+	a := &Archive{}
 
 	var takenAt, expiresAt, size *int64
 	var targetName, storeName *string
 	if err = r.Scan(
-		&ann.UUID, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-		&ann.TargetUUID, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
-		&ann.StoreUUID, &storeName, &ann.StorePlugin, &ann.StoreEndpoint, &ann.StoreAgent,
-		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
-		&ann.Compression, &ann.TenantUUID, &size); err != nil {
+		&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
+		&a.TargetUUID, &targetName, &a.TargetPlugin, &a.TargetEndpoint,
+		&a.StoreUUID, &storeName, &a.StorePlugin, &a.StoreEndpoint, &a.StoreAgent,
+		&a.Status, &a.PurgeReason, &a.Job, &a.EncryptionType,
+		&a.Compression, &a.TenantUUID, &size); err != nil {
 
 		return nil, err
 	}
 	if takenAt != nil {
-		ann.TakenAt = *takenAt
+		a.TakenAt = *takenAt
 	}
 	if expiresAt != nil {
-		ann.ExpiresAt = *expiresAt
+		a.ExpiresAt = *expiresAt
 	}
 	if targetName != nil {
-		ann.TargetName = *targetName
+		a.TargetName = *targetName
 	}
 	if storeName != nil {
-		ann.StoreName = *storeName
+		a.StoreName = *storeName
 	}
 	if size != nil {
-		ann.Size = *size
+		a.Size = *size
 	}
 
-	return ann, nil
+	return a, nil
 }
 
 func (db *DB) UpdateArchive(update *Archive) error {
