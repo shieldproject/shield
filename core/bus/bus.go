@@ -3,12 +3,20 @@ package bus
 import (
 	"fmt"
 	"sync"
+)
 
-	"github.com/starkandwayne/shield/db"
+const (
+	NewObjectEvent        = "new-object"
+	UpdateObjectEvent     = "update-object"
+	DeleteObjectEvent     = "delete-object"
+	TaskStatusUpdateEvent = "task-status-update"
+	TaskLogUpdateEvent    = "task-log-update"
 )
 
 type Event struct {
-	Task *db.Task
+	Type   string      `json:"type"`
+	Tenant string      `json:"tenant"`
+	Data   interface{} `json:"data"`
 }
 
 type Bus struct {
@@ -52,7 +60,21 @@ func (b *Bus) Unregister(idx int) error {
 	return nil
 }
 
-func (b *Bus) Send(ev Event) {
+func (b *Bus) Send(typ, tenant string, thing interface{}) error {
+	data, err := reflectOn(thing)
+	if err != nil {
+		return err
+	}
+
+	b.SendEvent(Event{
+		Type:   typ,
+		Tenant: tenant,
+		Data:   data,
+	})
+	return nil
+}
+
+func (b *Bus) SendEvent(ev Event) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
