@@ -29,8 +29,10 @@ func (c *Client) StreamEvents(fn func(Event)) error {
 		return err
 	}
 	switch u.Scheme {
-	case "http":  u.Scheme = "ws"
-	case "https": u.Scheme = "wss"
+	case "http":
+		u.Scheme = "ws"
+	case "https":
+		u.Scheme = "wss"
 	}
 
 	header := make(http.Header)

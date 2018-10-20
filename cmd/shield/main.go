@@ -55,7 +55,9 @@ var opts struct {
 
 	Import struct{} `cli:"import"`
 
-	Events struct{} `cli:"events"`
+	Events struct {
+		Skip []string `cli:"--skip"`
+	} `cli:"events"`
 
 	/* CORES {{{ */
 	Cores struct{} `cli:"cores"`
@@ -1029,8 +1031,20 @@ func main() {
 
 	/* }}} */
 	case "events": /* {{{ */
+		skip := make(map[string]bool)
+		for _, what := range opts.Events.Skip {
+			skip[what] = true
+		}
+
 		header := false
 		err := c.StreamEvents(func(ev shield.Event) {
+			if _, ok := skip[ev.Event]; ok {
+				return
+			}
+			if _, ok := skip[ev.Queue]; ok {
+				return
+			}
+
 			if opts.JSON {
 				fmt.Printf("%s\n", asJSON(ev))
 				return
@@ -1038,16 +1052,16 @@ func main() {
 
 			if !header {
 				header = true
-				fmt.Printf("@W{Queue}                                  @W{Event Type}             @W{Object Type}            @W{Object}\n")
-				fmt.Printf("------------------------------------   --------------------   --------------------   -----------------\n")
+				fmt.Printf("@W{Queue}                                         @W{Event Type}             @W{Object Type}            @W{Object}\n")
+				fmt.Printf("-------------------------------------------   --------------------   --------------------   -----------------\n")
 			}
-			fmt.Printf("@C{%-36s}   %-20s   @Y{%-20s}   ", ev.Queue, ev.Event, ev.Type)
+			fmt.Printf("@C{%-43s}   %-20s   @Y{%-20s}   ", ev.Queue, ev.Event, ev.Type)
 
 			b, err := json.MarshalIndent(ev.Data, "", "  ")
 			if err != nil {
 				fmt.Printf("%s\n", ev.Data)
 			} else {
-				prefix := fmt.Sprintf("%85s", " ")
+				prefix := fmt.Sprintf("%92s", " ")
 				for i, s := range strings.Split(string(b), "\n") {
 					if i == 0 {
 						fmt.Printf("%s\n", s)
