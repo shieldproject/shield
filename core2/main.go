@@ -580,7 +580,7 @@ func (c *Core) Heartbeat() {
 
 	h.Stats.Daily = 0 // FIXME
 
-	c.bus.Send(bus.HeartbeatEvent, "", h)
+	c.bus.Send(bus.HeartbeatEvent, "", h, "*")
 }
 
 func (c *Core) PurgeExpiredAPISessions() {

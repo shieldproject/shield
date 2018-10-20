@@ -190,13 +190,30 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
+		user, err := c.AuthenticatedUser(r)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to configure your SHIELD events stream"))
+			return
+		}
+
+		queues := []string{"user:" + user.UUID}
+
+		memberships, err := c.db.GetMembershipsForUser(user.UUID)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to configure your SHIELD events stream"))
+			return
+		}
+		for _, membership := range memberships {
+			queues = append(queues, "tenant:"+membership.TenantUUID)
+		}
+
 		socket := r.Upgrade()
 		if socket == nil {
 			return
 		}
 
 		log.Infof("registering message bus web client")
-		ch, _, err := c.bus.Register()
+		ch, _, err := c.bus.Register(queues)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to begin streaming SHIELD events"))
 			return

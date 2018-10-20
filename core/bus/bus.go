@@ -17,20 +17,26 @@ const (
 
 type Event struct {
 	Event string      `json:"event"`
+	Queue string      `json:"queue"`
 	Type  string      `json:"type,omitempty"`
 	Data  interface{} `json:"data"`
 }
 
 type Bus struct {
 	lock  sync.Mutex
-	chans []chan Event
+	slots []slot
 
 	lastHeartbeatEvent *Event
 }
 
+type slot struct {
+	ch  chan Event
+	acl map[string]bool
+}
+
 func New(n int) *Bus {
 	return &Bus{
-		chans: make([]chan Event, n),
+		slots: make([]slot, n),
 	}
 }
 
@@ -40,19 +46,23 @@ func catchup(ch chan Event, events ...Event) {
 	}
 }
 
-func (b *Bus) Register() (chan Event, int, error) {
+func (b *Bus) Register(queues []string) (chan Event, int, error) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	for i, slot := range b.chans {
-		if slot == nil {
-			b.chans[i] = make(chan Event, 0)
-
-			if b.lastHeartbeatEvent != nil {
-				go catchup(b.chans[i], *b.lastHeartbeatEvent)
+	for i := range b.slots {
+		if b.slots[i].ch == nil {
+			b.slots[i].ch = make(chan Event, 0)
+			b.slots[i].acl = make(map[string]bool)
+			for _, q := range queues {
+				b.slots[i].acl[q] = true
 			}
 
-			return b.chans[i], i, nil
+			if b.lastHeartbeatEvent != nil {
+				go catchup(b.slots[i].ch, *b.lastHeartbeatEvent)
+			}
+
+			return b.slots[i].ch, i, nil
 		}
 	}
 
@@ -63,15 +73,16 @@ func (b *Bus) Unregister(idx int) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if idx < 0 || idx >= len(b.chans) {
+	if idx < 0 || idx >= len(b.slots) {
 		return fmt.Errorf("could not unregister channel #%d: index out of range", idx)
 	}
 
-	ch := b.chans[idx]
-	b.chans[idx] = nil
+	ch := b.slots[idx].ch
+	b.slots[idx].ch = nil
+	b.slots[idx].acl = nil
+
 	for range ch {
 	}
-
 	return nil
 }
 
@@ -98,10 +109,26 @@ func (b *Bus) SendEvent(queues []string, ev Event) {
 		b.lastHeartbeatEvent = &ev
 	}
 
-	for _, ch := range b.chans {
-		/* FIXME: acls on bus; only send the message once, and only if queues match up */
-		if ch != nil {
-			ch <- ev
+	for _, s := range b.slots {
+		if s.ch == nil {
+			continue
 		}
+
+		func() {
+			for _, q := range queues {
+				if q == "*" {
+					ev.Queue = q
+					s.ch <- ev
+					return
+				}
+			}
+			for _, q := range queues {
+				if _, ok := s.acl[q]; ok {
+					ev.Queue = q
+					s.ch <- ev
+					return
+				}
+			}
+		}()
 	}
 }

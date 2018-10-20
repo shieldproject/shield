@@ -13,10 +13,6 @@ func marshal(thing interface{}) interface{} {
 		t = v.Type()
 	}
 
-	if t.Kind() != reflect.Struct {
-		panic("bus.event() only operates on structures")
-	}
-
 	return reflectOn(t, &v)
 }
 
@@ -35,7 +31,7 @@ func reflectOn(t reflect.Type, v *reflect.Value) interface{} {
 		return l
 
 	case reflect.Struct:
-		m := make(map[string] interface{})
+		m := make(map[string]interface{})
 		for i := 0; i < t.NumField(); i++ {
 			field := t.Field(i)
 			if field.PkgPath != "" {
