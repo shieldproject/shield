@@ -1,9 +1,9 @@
 package db
 
 type Membership struct {
-	TenantUUID string `json:"tenant_uuid"`
-	TenantName string `json:"tenant_name"`
-	Role       string `json:"role"`
+	TenantUUID string `json:"tenant_uuid" mbus:"tenant_uuid"`
+	TenantName string `json:"tenant_name" mbus:"tenant_name"`
+	Role       string `json:"role"        mbus:"role"`
 }
 
 func (db *DB) GetMembershipsForUser(user string) ([]*Membership, error) {

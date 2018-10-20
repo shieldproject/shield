@@ -101,6 +101,75 @@ func (c *Core) v2API() *route.Router {
 		r.OK(c.info)
 	})
 	// }}}
+	r.Dispatch("GET /v2/bearings", func(r *route.Request) { // {{{
+		var out struct {
+			User        *db.User         `json:"user"`
+			Tenants     []*db.Tenant     `json:"tenants"`
+			Memberships []*db.Membership `json:"memberships"`
+			Jobs        []*db.Job        `json:"jobs"`
+			Targets     []*db.Target     `json:"targets"`
+			Stores      []*db.Store      `json:"stores"`
+		}
+
+		if user, err := c.db.GetUserForSession(r.SessionID()); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve user information"))
+			return
+
+		} else if user != nil {
+			out.User = user
+
+			/* retrieve global stores */
+			out.Stores, err = c.db.GetAllStores(&db.StoreFilter{ForTenant: db.GlobalTenantUUID})
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve global stores"))
+				return
+			}
+
+			/* retrieve the memberships for this user */
+			out.Memberships, err = c.db.GetMembershipsForUser(user.UUID)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve user membership information"))
+				return
+			}
+
+			out.Targets = make([]*db.Target, 0)
+			out.Tenants = make([]*db.Tenant, len(out.Memberships))
+			for i, m := range out.Memberships {
+				/* retrieve the tenant for this membership grant */
+				tenant, err := c.db.GetTenant(m.TenantUUID)
+				if err != nil {
+					r.Fail(route.Oops(err, "Unable to retrieve user tenant information"))
+					return
+				}
+				out.Tenants[i] = tenant
+
+				/* assemble stores for this tenant */
+				stores, err := c.db.GetAllStores(&db.StoreFilter{ForTenant: tenant.UUID})
+				if err != nil {
+					r.Fail(route.Oops(err, "Unable to retrieve stores for tenant %s (%s)", tenant.Name, tenant.UUID))
+					return
+				}
+
+				for _, store := range stores {
+					out.Stores = append(out.Stores, store)
+				}
+
+				/* assemble targets for this tenant */
+				targets, err := c.db.GetAllTargets(&db.TargetFilter{ForTenant: tenant.UUID})
+				if err != nil {
+					r.Fail(route.Oops(err, "Unable to retrieve targets for tenant %s (%s)", tenant.Name, tenant.UUID))
+					return
+				}
+
+				for _, target := range targets {
+					out.Targets = append(out.Targets, target)
+				}
+			}
+		}
+
+		r.OK(out)
+	})
+	// }}}
 	r.Dispatch("GET /v2/health", func(r *route.Request) { // {{{
 		//you must be logged into shield to access shield health
 		if c.IsNotAuthenticated(r) {
@@ -262,6 +331,63 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("GET /v2/ui", func(r *route.Request) { // {{{
+		type grant struct {
+			Admin    bool `json:"admin"`
+			Engineer bool `json:"engineer"`
+			Operator bool `json:"operator"`
+		}
+
+		out := struct {
+			Info    interface{}      `json:"info"`
+			User    *db.User         `json:"user"`
+			Tenants []*db.Tenant     `json:"tenants"`
+			Grants  map[string]grant `json:"grants"`
+		}{
+			Info: c.info,
+		}
+
+		if user, err := c.db.GetUserForSession(r.SessionID()); err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve user information"))
+			return
+
+		} else if user != nil {
+			out.User = user
+
+			memberships, err := c.db.GetMembershipsForUser(user.UUID)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve user membership information"))
+				return
+			}
+
+			out.Grants = make(map[string]grant)
+			out.Tenants = make([]*db.Tenant, 0)
+			for _, m := range memberships {
+				tenant, err := c.db.GetTenant(m.TenantUUID)
+				if err != nil {
+					r.Fail(route.Oops(err, "Unable to retrieve user tenant information"))
+					return
+				}
+				out.Tenants = append(out.Tenants, tenant)
+
+				g := grant{}
+				switch m.Role {
+				case "admin":
+					g.Admin = true
+					fallthrough
+				case "engineer":
+					g.Engineer = true
+					fallthrough
+				case "operator":
+					g.Operator = true
+				}
+				out.Grants[tenant.UUID] = g
+			}
+		}
+
+		r.OK(out)
+	})
+	// }}}
 	r.Dispatch("POST /v2/ui/users", func(r *route.Request) { // {{{
 		var in struct {
 			Search string `json:"search"`

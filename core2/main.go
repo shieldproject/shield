@@ -33,10 +33,17 @@ func (c Core) Main() {
 	c.StartScheduler()
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
+	/* send an initial heartbeat */
+	c.Heartbeat()
+
+	beat := time.NewTicker(time.Second * time.Duration(c.Config.Scheduler.Heartbeat))
 	fast := time.NewTicker(time.Second * time.Duration(c.Config.Scheduler.FastLoop))
 	slow := time.NewTicker(time.Second * time.Duration(c.Config.Scheduler.SlowLoop))
 	for {
 		select {
+		case <-beat.C:
+			c.Heartbeat()
+
 		case <-fast.C:
 			c.ScheduleBackupTasks()
 			c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{Status: "pending"})
@@ -469,11 +476,111 @@ func (c *Core) UpdateTenantStorageUsage() {
 		tenant.DailyIncrease = delta
 
 		log.Debugf("updating tenant '%s' (%s) %d archives, %db storage used, %db increase",
-			tenant.Name, tenant.UUID.String(), tenant.ArchiveCount, tenant.StorageUsed, tenant.DailyIncrease)
+			tenant.Name, tenant.UUID, tenant.ArchiveCount, tenant.StorageUsed, tenant.DailyIncrease)
 		if _, err = c.db.UpdateTenant(tenant); err != nil {
 			log.Errorf("Failed to update tenant with daily storage statistics: %s", err)
 		}
 	}
+}
+
+func (c *Core) Heartbeat() {
+	log.Infof("HEARTBEAT: sending heartbeat out across the message bus...")
+
+	type storageHealth struct {
+		UUID    string `mbus:"uuid"`
+		Name    string `mbus:"name"`
+		Healthy bool   `mbus:"healthy"`
+	}
+	type jobHealth struct {
+		UUID    string `mbus:"uuid"`
+		Target  string `mbus:"target"`
+		Job     string `mbus:"job"`
+		Healthy bool   `mbus:"healthy"`
+	}
+	type health struct {
+		Health struct {
+			Core    string `mbus:"core"`
+			Storage bool   `mbus:"storage_ok"`
+			Jobs    bool   `mbus:"jobs_ok"`
+		} `mbus:"health"`
+
+		Storage []storageHealth `mbus:"storage"`
+		Jobs    []jobHealth     `mbus:"jobs"`
+
+		Stats struct {
+			Jobs     int   `mbus:"jobs"`
+			Systems  int   `mbus:"systems"`
+			Archives int   `mbus:"archives"`
+			Storage  int64 `mbus:"storage"`
+			Daily    int64 `mbus:"daily"`
+		} `mbus:"stats"`
+	}
+
+	var h health
+
+	stores, err := c.db.GetAllStores(nil)
+	if err != nil {
+		log.Errorf("failed to get stores from database: %s", err)
+		c.bus.SendError(err)
+		return
+	}
+
+	h.Storage = make([]storageHealth, len(stores))
+	for i, store := range stores {
+		h.Storage[i].UUID = store.UUID
+		h.Storage[i].Name = store.Name
+		h.Storage[i].Healthy = store.Healthy
+		if !h.Storage[i].Healthy {
+			h.Health.Storage = false
+		}
+	}
+
+	h.Health.Jobs = true
+	jobs, err := c.db.GetAllJobs(nil)
+	if err != nil {
+		c.bus.SendError(fmt.Errorf("failed to retrieve all jobs: %s", err))
+		return
+	}
+	h.Jobs = make([]jobHealth, len(jobs))
+	for i, job := range jobs {
+		h.Jobs[i].UUID = job.UUID
+		h.Jobs[i].Target = job.Target.Name
+		h.Jobs[i].Job = job.Name
+		h.Jobs[i].Healthy = job.Healthy()
+
+		if !h.Jobs[i].Healthy {
+			h.Health.Jobs = false
+		}
+	}
+	h.Stats.Jobs = len(jobs)
+
+	if h.Health.Core, err = c.vault.Status(); err != nil {
+		c.bus.SendError(fmt.Errorf("failed to retrieve vault status: %s", err))
+		return
+	}
+
+	if h.Stats.Systems, err = c.db.CountTargets(nil); err != nil {
+		c.bus.SendError(fmt.Errorf("failed to count systems/targets: %s", err))
+		return
+	}
+
+	if h.Stats.Archives, err = c.db.CountArchives(&db.ArchiveFilter{
+		WithStatus: []string{"valid"},
+	}); err != nil {
+		c.bus.SendError(fmt.Errorf("failed to retrieve count of valid archives: %s", err))
+		return
+	}
+
+	if h.Stats.Storage, err = c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
+		WithStatus: []string{"valid"},
+	}); err != nil {
+		c.bus.SendError(fmt.Errorf("failed to calcualte storage footprint: %s", err))
+		return
+	}
+
+	h.Stats.Daily = 0 // FIXME
+
+	c.bus.Send(bus.HeartbeatEvent, "", h)
 }
 
 func (c *Core) PurgeExpiredAPISessions() {
