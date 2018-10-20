@@ -19,6 +19,7 @@ import (
 func (c Core) Main() {
 	/* we need a usable database first */
 	c.ConnectToDatabase()
+	c.ConfigureMessageBus()
 
 	/* startup cleanup tasks */
 	c.CreateFailsafeUser()
@@ -30,7 +31,6 @@ func (c Core) Main() {
 	c.ConnectToVault()
 	c.BindAPI()
 	c.StartScheduler()
-	c.ConfigureMessageBus()
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
 	fast := time.NewTicker(time.Second * time.Duration(c.Config.Scheduler.FastLoop))
