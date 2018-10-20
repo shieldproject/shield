@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shieldd shield shield-agent shield-schema shield-migrate shield-crypt shield-report plugins test
+all: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins test
 
 # go fmt ftw
 format:
@@ -36,8 +36,6 @@ shield-agent:
 	go $(BUILD_TYPE) ./cmd/shield-agent
 shield-schema:
 	go $(BUILD_TYPE) ./cmd/shield-schema
-shield-migrate:
-	go $(BUILD_TYPE) ./cmd/shield-migrate
 shield-report:
 	go $(BUILD_TYPE) ./cmd/shield-report
 
@@ -65,7 +63,7 @@ docs/API.md: docs/API.yml
 	mv $@~ $@
 
 clean:
-	rm -f shield shieldd shield-agent shield-schema shield-crypt shield-migrate shield-report
+	rm -f shield shieldd shield-agent shield-schema shield-crypt shield-report
 	rm -f $$(cat plugins) dummy
 
 
@@ -116,7 +114,6 @@ release:
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent
 	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-report"   ./cmd/shield-report
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema
-	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-migrate" ./cmd/shield-migrate
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd
 
 	@echo "Compiling SHIELD CLI For Linux and macOS..."
