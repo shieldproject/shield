@@ -192,7 +192,7 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(target, target.TenantUUID)
+	db.sendCreateObjectEvent(target, "tenant:"+target.TenantUUID)
 	return target, nil
 }
 
@@ -225,7 +225,7 @@ func (db *DB) UpdateTarget(target *Target) error {
 		return fmt.Errorf("unable to retrieve target %s after update", target.UUID)
 	}
 
-	db.sendUpdateObjectEvent(target, target.TenantUUID)
+	db.sendUpdateObjectEvent(target, "tenant:"+target.TenantUUID)
 	return nil
 }
 
@@ -268,6 +268,6 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(target, target.TenantUUID)
+	db.sendDeleteObjectEvent(target, "tenant:"+target.TenantUUID)
 	return true, nil
 }

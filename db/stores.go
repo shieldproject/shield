@@ -330,7 +330,7 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(store, store.TenantUUID)
+	db.sendCreateObjectEvent(store, "tenant:"+store.TenantUUID)
 	return store, nil
 }
 
@@ -377,7 +377,7 @@ func (db *DB) UpdateStore(store *Store) error {
 		return fmt.Errorf("unable to retrieve store %s after update", store.UUID)
 	}
 
-	db.sendUpdateObjectEvent(store, store.TenantUUID)
+	db.sendUpdateObjectEvent(store, "tenant:"+store.TenantUUID)
 	return nil
 }
 
@@ -420,7 +420,7 @@ func (db *DB) DeleteStore(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(store, store.TenantUUID)
+	db.sendDeleteObjectEvent(store, "tenant:"+store.TenantUUID)
 	return true, nil
 }
 

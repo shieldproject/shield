@@ -265,7 +265,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(job, job.TenantUUID)
+	db.sendCreateObjectEvent(job, "tenant:"+job.TenantUUID)
 	return job, nil
 }
 
@@ -295,7 +295,7 @@ func (db *DB) UpdateJob(job *Job) error {
 		return fmt.Errorf("unable to retrieve job %s after update", job.UUID)
 	}
 
-	db.sendUpdateObjectEvent(update, update.TenantUUID)
+	db.sendUpdateObjectEvent(update, "tenant:"+update.TenantUUID)
 	return nil
 }
 
@@ -315,7 +315,7 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(job, job.TenantUUID)
+	db.sendDeleteObjectEvent(job, "tenant:"+job.TenantUUID)
 	return true, nil
 }
 
