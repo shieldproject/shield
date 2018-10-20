@@ -1228,7 +1228,10 @@ func (core *Core) v2API() *route.Router {
 			return
 		}
 
-		t, err := core.DB.CreateTenant(in.UUID, in.Name)
+		t, err := core.DB.CreateTenant(&db.Tenant{
+			UUID: in.UUID,
+			Name: in.Name,
+		})
 		if t == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new tenant '%s'", in.Name))
 			return

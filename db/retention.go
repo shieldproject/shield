@@ -84,10 +84,12 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 
 	for r.Next() {
 		p := &RetentionPolicy{}
+
 		var n int
 		if err = r.Scan(&p.UUID, &p.TenantUUID, &p.Name, &p.Summary, &p.Expires, &n); err != nil {
 			return l, err
 		}
+
 		l = append(l, p)
 	}
 
@@ -96,8 +98,9 @@ func (db *DB) GetAllRetentionPolicies(filter *RetentionFilter) ([]*RetentionPoli
 
 func (db *DB) GetRetentionPolicy(id string) (*RetentionPolicy, error) {
 	r, err := db.query(`
-		SELECT uuid, tenant_uuid, name, summary, expiry
-			FROM retention WHERE uuid = ?`, id)
+	   SELECT uuid, tenant_uuid, name, summary, expiry
+	     FROM retention
+	    WHERE uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -106,10 +109,12 @@ func (db *DB) GetRetentionPolicy(id string) (*RetentionPolicy, error) {
 	if !r.Next() {
 		return nil, nil
 	}
+
 	p := &RetentionPolicy{}
 	if err = r.Scan(&p.UUID, &p.TenantUUID, &p.Name, &p.Summary, &p.Expires); err != nil {
 		return nil, err
 	}
+
 	return p, nil
 }
 
@@ -159,10 +164,7 @@ func (db *DB) DeleteRetentionPolicy(id string) (bool, error) {
 	return true, db.exec(`DELETE FROM retention WHERE uuid = ?`, id)
 }
 
-//InheritRetentionTemplates gives a tenant the global (templated) retention policies
 func (db *DB) InheritRetentionTemplates(tenant *Tenant) error {
-
-	//all of the global tenants are defined with a nil UUID
 	policies, err := db.GetAllRetentionPolicies(&RetentionFilter{ForTenant: GlobalTenantUUID})
 	if err != nil {
 		return err

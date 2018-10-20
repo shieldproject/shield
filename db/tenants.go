@@ -59,7 +59,6 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 	}
 
 	l := make([]*Tenant, 0)
-
 	query, args := filter.Query()
 	r, err := db.query(query, args...)
 	if err != nil {
@@ -68,22 +67,26 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 	defer r.Close()
 
 	for r.Next() {
-		var dailyIncrease, storageUsed *int64
-		var archiveCount *int
-		t := &Tenant{}
-		if err := r.Scan(&t.UUID, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
+		tenant := &Tenant{}
+
+		var (
+			daily, used *int64
+			archives    *int
+		)
+		if err := r.Scan(&tenant.UUID, &tenant.Name, &daily, &used, &archives); err != nil {
 			return l, err
 		}
-		if dailyIncrease != nil {
-			t.DailyIncrease = *dailyIncrease
+		if daily != nil {
+			tenant.DailyIncrease = *daily
 		}
-		if storageUsed != nil {
-			t.StorageUsed = *storageUsed
+		if used != nil {
+			tenant.StorageUsed = *used
 		}
-		if archiveCount != nil {
-			t.ArchiveCount = *archiveCount
+		if archives != nil {
+			tenant.ArchiveCount = *archives
 		}
-		l = append(l, t)
+
+		l = append(l, tenant)
 	}
 
 	return l, nil
@@ -91,9 +94,12 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 
 func (db *DB) GetTenant(id string) (*Tenant, error) {
 	r, err := db.query(`
-		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
-		FROM tenants t 
-		WHERE t.uuid = ?`, id)
+	     SELECT t.uuid, t.name,
+	            t.daily_increase, t.storage_used, t.archive_count
+
+	       FROM tenants t
+
+	      WHERE t.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -103,95 +109,75 @@ func (db *DB) GetTenant(id string) (*Tenant, error) {
 		return nil, nil
 	}
 
-	var dailyIncrease, storageUsed *int64
-	var archiveCount *int
-	t := &Tenant{}
-	if err := r.Scan(&t.UUID, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
-		return t, err
+	tenant := &Tenant{}
+	var (
+		daily, used *int64
+		archives    *int
+	)
+	if err := r.Scan(&tenant.UUID, &tenant.Name,
+		&daily, &used, &archives); err != nil {
+		return tenant, err
 	}
-	if dailyIncrease != nil {
-		t.DailyIncrease = *dailyIncrease
+	if daily != nil {
+		tenant.DailyIncrease = *daily
 	}
-	if storageUsed != nil {
-		t.StorageUsed = *storageUsed
+	if used != nil {
+		tenant.StorageUsed = *used
 	}
-	if archiveCount != nil {
-		t.ArchiveCount = *archiveCount
-	}
-	return t, nil
-}
-
-func (db *DB) GetTenantByName(name string) (*Tenant, error) {
-	r, err := db.query(`
-		SELECT t.uuid, t.name, t.daily_increase, t.storage_used, t.archive_count
-		FROM tenants t 
-		WHERE t.name = ?`, name)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	if !r.Next() {
-		return nil, nil
+	if archives != nil {
+		tenant.ArchiveCount = *archives
 	}
 
-	var dailyIncrease, storageUsed *int64
-	var archiveCount *int
-	t := &Tenant{}
-	if err := r.Scan(&t.UUID, &t.Name, &dailyIncrease, &storageUsed, &archiveCount); err != nil {
-		return t, err
-	}
-	if dailyIncrease != nil {
-		t.DailyIncrease = *dailyIncrease
-	}
-	if storageUsed != nil {
-		t.StorageUsed = *storageUsed
-	}
-	if archiveCount != nil {
-		t.ArchiveCount = *archiveCount
-	}
-	return t, nil
+	return tenant, nil
 }
 
 func (db *DB) EnsureTenant(name string) (*Tenant, error) {
-	if t, err := db.GetTenantByName(name); t != nil {
-		return t, err
+	l, err := db.GetAllTenants(&TenantFilter{
+		Name:       name,
+		ExactMatch: true,
+	})
+	if err != nil {
+		return nil, err
 	}
-	return db.CreateTenant("", name)
+	if len(l) == 1 {
+		return l[0], nil
+	}
+	if len(l) > 1 {
+		return nil, fmt.Errorf("found %d tenants matching '%s'", len(l), name)
+	}
+
+	return db.CreateTenant(&Tenant{Name: name})
 }
 
-func (db *DB) CreateTenant(id, name string) (*Tenant, error) {
-	if id == "" {
-		id = randomID()
+func (db *DB) CreateTenant(tenant *Tenant) (*Tenant, error) {
+	if tenant.UUID == "" {
+		tenant.UUID = randomID()
 	}
-	t := &Tenant{
-		UUID: id,
-		Name: name,
-	}
-	err := db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, t.UUID, t.Name)
+	err := db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant.UUID, tenant.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("SENDING create-object MESSAGES via MBUS...\n")
-	db.sendCreateObjectEvent(t, "admins")
-	return t, nil
+	db.sendCreateObjectEvent(tenant, "admins")
+	return tenant, nil
 }
 
-func (db *DB) UpdateTenant(t *Tenant) (*Tenant, error) {
+func (db *DB) UpdateTenant(tenant *Tenant) (*Tenant, error) {
 	err := db.exec(`
-		UPDATE tenants 
-			SET name = ?,
-			daily_increase = ?,
-			archive_count  = ?,
-			storage_used   = ? 
-			WHERE uuid = ?`, t.Name, t.DailyIncrease, t.ArchiveCount, t.StorageUsed, t.UUID)
+	   UPDATE tenants
+	      SET name = ?,
+	          daily_increase = ?,
+	          archive_count  = ?,
+	          storage_used   = ?
+	    WHERE uuid = ?`,
+		tenant.Name, tenant.DailyIncrease, tenant.ArchiveCount, tenant.StorageUsed,
+		tenant.UUID)
 	if err != nil {
 		return nil, err
 	}
 
-	db.sendUpdateObjectEvent(t, "admins", t.UUID)
-	return t, nil
+	db.sendUpdateObjectEvent(tenant, "admins", tenant.UUID)
+	return tenant, nil
 }
 
 func (db *DB) GetTenantRole(org string, team string) (string, string, error) {
@@ -213,12 +199,12 @@ func (db *DB) GetTenantRole(org string, team string) (string, string, error) {
 	return id, role, nil
 }
 
-func (db *DB) DeleteTenant(t *Tenant) error {
-	err := db.exec(`DELETE FROM tenants WHERE uuid = ?`, t.UUID)
+func (db *DB) DeleteTenant(tenant *Tenant) error {
+	err := db.exec(`DELETE FROM tenants WHERE uuid = ?`, tenant.UUID)
 	if err != nil {
 		return err
 	}
 
-	db.sendDeleteObjectEvent(t, "admins", t.UUID)
+	db.sendDeleteObjectEvent(tenant, "admins", tenant.UUID)
 	return nil
 }

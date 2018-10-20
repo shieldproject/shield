@@ -92,15 +92,15 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 	defer r.Close()
 
 	for r.Next() {
+		s := &Session{}
+
 		var (
 			backend string
 			last    *int64
 		)
-		s := &Session{}
 		if err := r.Scan(&s.UUID, &s.UserUUID, &s.CreatedAt, &last, &s.Token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 			return nil, err
 		}
-
 		s.UserAccount = s.UserAccount + "@" + backend
 		if last != nil {
 			s.LastSeen = *last
@@ -114,10 +114,13 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 
 func (db *DB) GetSession(id string) (*Session, error) {
 	r, err := db.query(`
-	   SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token, s.name, s.ip_addr, s.user_agent, u.account, u.backend
-		 FROM sessions s
-		 INNER JOIN users u   ON u.uuid = s.user_uuid
-	    WHERE s.uuid = ?`, id)
+	         SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token,
+	                s.name, s.ip_addr, s.user_agent, u.account, u.backend
+
+	           FROM sessions s
+	     INNER JOIN users u   ON u.uuid = s.user_uuid
+
+	         WHERE s.uuid = ?`, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve session: %s", err)
 	}
@@ -127,13 +130,14 @@ func (db *DB) GetSession(id string) (*Session, error) {
 		return nil, nil
 	}
 
+	s := &Session{}
 	var (
 		backend string
 		last    *int64
 		token   sql.NullString
 	)
-	s := &Session{}
-	if err := r.Scan(&s.UUID, &s.UserUUID, &s.CreatedAt, &last, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
+	if err := r.Scan(&s.UUID, &s.UserUUID, &s.CreatedAt, &last, &token,
+		&s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 		return nil, err
 	}
 	s.UserAccount = s.UserAccount + "@" + backend
@@ -149,9 +153,12 @@ func (db *DB) GetSession(id string) (*Session, error) {
 
 func (db *DB) GetUserForSession(id string) (*User, error) {
 	r, err := db.query(`
-	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash, u.default_tenant
-	      FROM sessions s INNER JOIN users u ON u.uuid = s.user_uuid
-	     WHERE s.uuid = ?`, id)
+	        SELECT u.uuid, u.name, u.account, u.backend, u.sysrole,
+	               u.pwhash, u.default_tenant
+
+	          FROM sessions s
+	    INNER JOIN users u ON u.uuid = s.user_uuid
+	         WHERE s.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -161,14 +168,16 @@ func (db *DB) GetUserForSession(id string) (*User, error) {
 		return nil, nil
 	}
 
-	var pwhash sql.NullString
 	u := &User{}
-	if err := r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole, &pwhash, &u.DefaultTenant); err != nil {
+	var pwhash sql.NullString
+	if err := r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.SysRole,
+		&pwhash, &u.DefaultTenant); err != nil {
 		return nil, err
 	}
 	if pwhash.Valid {
 		u.pwhash = pwhash.String
 	}
+
 	return u, nil
 }
 
@@ -203,8 +212,8 @@ func (db *DB) ClearSession(id string) error {
 
 func (db *DB) PokeSession(session *Session) error {
 	return db.exec(`
-		UPDATE sessions SET last_seen = ?, user_uuid = ?, ip_addr = ?, user_agent = ? 
-		WHERE uuid = ?`, time.Now().Unix(), session.UserUUID, session.IP, session.UserAgent, session.UUID)
+	   UPDATE sessions SET last_seen = ?, user_uuid = ?, ip_addr = ?, user_agent = ?
+	    WHERE uuid = ?`, time.Now().Unix(), session.UserUUID, session.IP, session.UserAgent, session.UUID)
 }
 
 func stripIP(raw_ip string) string {

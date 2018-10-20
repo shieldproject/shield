@@ -79,7 +79,7 @@ type JobFilter struct {
 	ExactMatch bool
 }
 
-func (f *JobFilter) Query() (string, []interface{}, error) {
+func (f *JobFilter) Query() (string, []interface{}) {
 	wheres := []string{"1"}
 	args := []interface{}{}
 
@@ -144,7 +144,7 @@ func (f *JobFilter) Query() (string, []interface{}, error) {
 	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
 
 	    WHERE ` + strings.Join(wheres, " AND ") + `
-	 ORDER BY j.name, j.uuid ASC`, args, nil
+	 ORDER BY j.name, j.uuid ASC`, args
 }
 
 func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
@@ -153,10 +153,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 	}
 
 	l := []*Job{}
-	query, args, err := filter.Query(db.Driver)
-	if err != nil {
-		return l, err
-	}
+	query, args := filter.Query()
 	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
@@ -165,6 +162,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 	for r.Next() {
 		j := &Job{}
+
 		var (
 			last   *int64
 			status sql.NullString
@@ -193,18 +191,18 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 func (db *DB) GetJob(id string) (*Job, error) {
 	r, err := db.query(`
-		SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-		       j.tenant_uuid, j.fixed_key,
-		       r.name, r.summary, r.uuid, r.expiry,
-		       s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
-		       t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression
+	        SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
+	               j.tenant_uuid, j.fixed_key,
+	               r.name, r.summary, r.uuid, r.expiry,
+	               s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
+	               t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression
 
-			FROM jobs j
-				INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-				INNER JOIN stores     s  ON  s.uuid = j.store_uuid
-				INNER JOIN targets    t  ON  t.uuid = j.target_uuid
+	          FROM jobs j
+	    INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
+	    INNER JOIN stores     s  ON  s.uuid = j.store_uuid
+	    INNER JOIN targets    t  ON  t.uuid = j.target_uuid
 
-			WHERE j.uuid = ?`, id)
+	         WHERE j.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -224,6 +222,7 @@ func (db *DB) GetJob(id string) (*Job, error) {
 		&j.Agent, &j.Target.Compression); err != nil {
 		return nil, err
 	}
+
 	return j, nil
 }
 

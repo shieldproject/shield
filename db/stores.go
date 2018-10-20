@@ -44,27 +44,27 @@ type StoreStats struct {
 	ArchiveCount  int   `json:"archive_count"`
 }
 
-func (s *Store) DisplayPublic() error {
-	if s.PublicConfig == "" {
+func (store *Store) DisplayPublic() error {
+	if store.PublicConfig == "" {
 		return nil
 	}
-	return json.Unmarshal([]byte(s.PublicConfig), &s.DisplayConfig)
+	return json.Unmarshal([]byte(store.PublicConfig), &store.DisplayConfig)
 }
 
-func (s *Store) DisplayPrivate() error {
-	if s.PrivateConfig == "" {
+func (store *Store) DisplayPrivate() error {
+	if store.PrivateConfig == "" {
 		return nil
 	}
-	return json.Unmarshal([]byte(s.PrivateConfig), &s.DisplayConfig)
+	return json.Unmarshal([]byte(store.PrivateConfig), &store.DisplayConfig)
 }
 
-func (s *Store) CacheConfigs(db *DB) error {
-	if s.Config == nil {
+func (store *Store) CacheConfigs(db *DB) error {
+	if store.Config == nil {
 		return nil
 	}
 
 	/* get the metadata from the agent, for the given plugin */
-	meta, err := db.GetAgentPluginMetadata(s.Agent, s.Plugin)
+	meta, err := db.GetAgentPluginMetadata(store.Agent, store.Plugin)
 	if meta == nil || err != nil {
 		return nil
 	}
@@ -80,9 +80,9 @@ func (s *Store) CacheConfigs(db *DB) error {
 			continue
 		}
 
-		vprivate := fmt.Sprintf("%v", s.Config[field.Name])
+		vprivate := fmt.Sprintf("%v", store.Config[field.Name])
 		if field.Type == "bool" {
-			if s.Config[field.Name] == nil {
+			if store.Config[field.Name] == nil {
 				vprivate = "no"
 			} else {
 				vprivate = "yes"
@@ -109,14 +109,14 @@ func (s *Store) CacheConfigs(db *DB) error {
 	if err != nil {
 		return err
 	}
-	s.PublicConfig = string(b)
+	store.PublicConfig = string(b)
 
 	/* store the private config as a JSON string */
 	b, err = json.Marshal(private)
 	if err != nil {
 		return err
 	}
-	s.PrivateConfig = string(b)
+	store.PrivateConfig = string(b)
 
 	return nil
 }
@@ -197,7 +197,8 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 	defer r.Close()
 
 	for r.Next() {
-		s := &Store{}
+		store := &Store{}
+
 		var (
 			rawconfig              []byte
 			n                      int
@@ -206,34 +207,37 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 			healthy                bool
 			ltt                    sql.NullString
 		)
-		if err = r.Scan(&s.UUID, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &s.TenantUUID, &n, &s.PrivateConfig,
-			&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &ltt); err != nil {
+		if err = r.Scan(&store.UUID, &store.Name, &store.Summary, &store.Agent,
+			&store.Plugin, &rawconfig, &store.TenantUUID, &n,
+			&store.PrivateConfig, &store.PublicConfig, &daily,
+			&used, &archives, &threshold,
+			&healthy, &ltt); err != nil {
 			return l, err
 		}
-		s.Healthy = healthy
+		store.Healthy = healthy
+		store.Global = store.TenantUUID == GlobalTenantUUID
 		if ltt.Valid {
-			s.LastTestTaskUUID = ltt.String
+			store.LastTestTaskUUID = ltt.String
 		}
 		if daily != nil {
-			s.DailyIncrease = *daily
+			store.DailyIncrease = *daily
 		}
 		if archives != nil {
-			s.ArchiveCount = *archives
+			store.ArchiveCount = *archives
 		}
 		if used != nil {
-			s.StorageUsed = *used
+			store.StorageUsed = *used
 		}
 		if threshold != nil {
-			s.Threshold = *threshold
+			store.Threshold = *threshold
 		}
 		if rawconfig != nil {
-			if err := json.Unmarshal(rawconfig, &s.Config); err != nil {
+			if err := json.Unmarshal(rawconfig, &store.Config); err != nil {
 				log.Warnf("failed to parse storage system endpoint json '%s': %s", rawconfig, err)
 			}
 		}
 
-		s.Global = s.TenantUUID == GlobalTenantUUID
-		l = append(l, s)
+		l = append(l, store)
 	}
 
 	return l, nil
@@ -241,15 +245,16 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 
 func (db *DB) GetStore(id string) (*Store, error) {
 	r, err := db.query(`
-	   SELECT s.uuid, s.name, s.summary, s.agent,
-	          s.plugin, s.endpoint, s.tenant_uuid,
-	          s.private_config, s.public_config, s.daily_increase,
-	          s.storage_used, s.archive_count, s.threshold,
-	          s.healthy, s.last_test_task_uuid
-	     FROM stores s
-	LEFT JOIN jobs j
-	       ON j.store_uuid = s.uuid
-	    WHERE s.uuid = ?`, id)
+	       SELECT s.uuid, s.name, s.summary, s.agent,
+	              s.plugin, s.endpoint, s.tenant_uuid,
+	              s.private_config, s.public_config, s.daily_increase,
+	              s.storage_used, s.archive_count, s.threshold,
+	              s.healthy, s.last_test_task_uuid
+
+	         FROM stores s
+	    LEFT JOIN jobs j ON j.store_uuid = s.uuid
+
+	        WHERE s.uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -259,6 +264,7 @@ func (db *DB) GetStore(id string) (*Store, error) {
 		return nil, nil
 	}
 
+	store := &Store{}
 	var (
 		rawconfig              []byte
 		daily, used, threshold *int64
@@ -266,74 +272,80 @@ func (db *DB) GetStore(id string) (*Store, error) {
 		healthy                bool
 		ltt                    sql.NullString
 	)
-	s := &Store{}
-	if err = r.Scan(&s.UUID, &s.Name, &s.Summary, &s.Agent, &s.Plugin, &rawconfig, &s.TenantUUID, &s.PrivateConfig,
-		&s.PublicConfig, &daily, &used, &archives, &threshold, &healthy, &ltt); err != nil {
+	if err = r.Scan(&store.UUID, &store.Name, &store.Summary, &store.Agent,
+		&store.Plugin, &rawconfig, &store.TenantUUID,
+		&store.PrivateConfig, &store.PublicConfig, &daily,
+		&used, &archives, &threshold,
+		&healthy, &ltt); err != nil {
 		return nil, err
 	}
-	s.Healthy = healthy
+	store.Global = store.TenantUUID == GlobalTenantUUID
+	store.Healthy = healthy
 	if ltt.Valid {
-		s.LastTestTaskUUID = ltt.String
+		store.LastTestTaskUUID = ltt.String
 	}
-
 	if daily != nil {
-		s.DailyIncrease = *daily
+		store.DailyIncrease = *daily
 	}
 	if archives != nil {
-		s.ArchiveCount = *archives
+		store.ArchiveCount = *archives
 	}
 	if used != nil {
-		s.StorageUsed = *used
+		store.StorageUsed = *used
 	}
 	if threshold != nil {
-		s.Threshold = *threshold
+		store.Threshold = *threshold
 	}
-
 	if rawconfig != nil {
-		if err := json.Unmarshal(rawconfig, &s.Config); err != nil {
+		if err := json.Unmarshal(rawconfig, &store.Config); err != nil {
 			log.Warnf("failed to parse storage system endpoint json '%s': %s", rawconfig, err)
 		}
 	}
 
-	s.Global = s.TenantUUID == GlobalTenantUUID
-	return s, nil
+	return store, nil
 }
 
-func (db *DB) CreateStore(s *Store) (*Store, error) {
-	if err := s.CacheConfigs(db); err != nil {
+func (db *DB) CreateStore(store *Store) (*Store, error) {
+	if err := store.CacheConfigs(db); err != nil {
 		return nil, fmt.Errorf("unable to cache storage configs: %s", err)
 	}
 
-	rawconfig, err := json.Marshal(s.Config)
+	rawconfig, err := json.Marshal(store.Config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
-	s.UUID = randomID()
+	store.UUID = randomID()
 	err = db.exec(`
-	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent, plugin, endpoint, private_config, public_config, threshold, healthy, last_test_task_uuid)
-	               VALUES (?,    ?,           ?,    ?,       ?,     ?,      ?,        ?,              ?,              ?,        ?,       ?)`,
-		s.UUID, s.TenantUUID, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.Threshold, s.Healthy, s.LastTestTaskUUID)
+	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
+	                       plugin, endpoint, private_config, public_config,
+	                       threshold, healthy, last_test_task_uuid)
+	               VALUES (?, ?, ?, ?, ?,
+	                       ?, ?, ?, ?,
+	                       ?, ?, ?)`,
+		store.UUID, store.TenantUUID, store.Name, store.Summary, store.Agent,
+		store.Plugin, string(rawconfig), store.PrivateConfig, store.PublicConfig,
+		store.Threshold, store.Healthy, store.LastTestTaskUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(s, s.TenantUUID)
-	return s, nil
+	db.sendCreateObjectEvent(store, store.TenantUUID)
+	return store, nil
 }
 
-func (db *DB) UpdateStore(s *Store) error {
-	if err := s.CacheConfigs(db); err != nil {
+func (db *DB) UpdateStore(store *Store) error {
+	if err := store.CacheConfigs(db); err != nil {
 		return fmt.Errorf("unable to cache storage configs: %s", err)
 	}
 
-	rawconfig, err := json.Marshal(s.Config)
+	rawconfig, err := json.Marshal(store.Config)
 	if err != nil {
 		return fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
 	err = db.exec(`
-		UPDATE stores
+	   UPDATE stores
 	      SET name                    = ?,
 	          summary                 = ?,
 	          agent                   = ?,
@@ -347,28 +359,40 @@ func (db *DB) UpdateStore(s *Store) error {
 	          threshold               = ?,
 	          healthy                 = ?,
 	          last_test_task_uuid     = ?
-		WHERE uuid = ?`, s.Name, s.Summary, s.Agent, s.Plugin, string(rawconfig), s.PrivateConfig, s.PublicConfig, s.DailyIncrease,
-		s.ArchiveCount, s.StorageUsed, s.Threshold, s.Healthy, s.LastTestTaskUUID, s.UUID,
-	)
+	    WHERE uuid = ?`,
+		store.Name, store.Summary, store.Agent, store.Plugin,
+		string(rawconfig), store.PrivateConfig, store.PublicConfig,
+		store.DailyIncrease, store.ArchiveCount, store.StorageUsed,
+		store.Threshold, store.Healthy, store.LastTestTaskUUID,
+		store.UUID)
 	if err != nil {
 		return err
 	}
 
-	db.sendUpdateObjectEvent(s, s.TenantUUID)
+	update, err := db.GetStore(store.UUID)
+	if err != nil {
+		return err
+	}
+	if update == nil {
+		return fmt.Errorf("unable to retrieve store %s after update", store.UUID)
+	}
+
+	db.sendUpdateObjectEvent(store, store.TenantUUID)
 	return nil
 }
 
 func (db *DB) DeleteStore(id string) (bool, error) {
-	s, err := db.GetStore(id)
+	store, err := db.GetStore(id)
 	if err != nil {
 		return false, err
 	}
-	if s == nil {
+
+	if store == nil {
 		/* already deleted */
 		return true, nil
 	}
 
-	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`, s.UUID)
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`, store.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -391,17 +415,17 @@ func (db *DB) DeleteStore(id string) (bool, error) {
 	}
 	r.Close()
 
-	err = db.exec(`DELETE FROM stores WHERE uuid = ?`, s.UUID)
+	err = db.exec(`DELETE FROM stores WHERE uuid = ?`, store.UUID)
 	if err != nil {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(s, s.TenantUUID)
+	db.sendDeleteObjectEvent(store, store.TenantUUID)
 	return true, nil
 }
 
-func (s Store) ConfigJSON() (string, error) {
-	b, err := json.Marshal(s.Config)
+func (store Store) ConfigJSON() (string, error) {
+	b, err := json.Marshal(store.Config)
 	if err != nil {
 		return "", err
 	}

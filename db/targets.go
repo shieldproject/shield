@@ -120,6 +120,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 	for r.Next() {
 		t := &Target{}
+
 		var (
 			n         int
 			rawconfig []byte
@@ -141,9 +142,12 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 func (db *DB) GetTarget(id string) (*Target, error) {
 	r, err := db.query(`
-	  SELECT uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression
-	    FROM targets
-	   WHERE uuid = ?`, id)
+	    SELECT uuid, tenant_uuid, name, summary, plugin,
+	           endpoint, agent, compression
+
+	      FROM targets
+
+	     WHERE uuid = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +161,8 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 	var (
 		rawconfig []byte
 	)
-	if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression); err != nil {
+	if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin,
+		&rawconfig, &t.Agent, &t.Compression); err != nil {
 		return nil, err
 	}
 	if rawconfig != nil {
@@ -169,27 +174,30 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 	return t, nil
 }
 
-func (db *DB) CreateTarget(in *Target) (*Target, error) {
-	rawconfig, err := json.Marshal(in.Config)
+func (db *DB) CreateTarget(target *Target) (*Target, error) {
+	target.UUID = randomID()
+	rawconfig, err := json.Marshal(target.Config)
 	if err != nil {
 		return nil, err
 	}
 
-	in.UUID = randomID()
 	err = db.exec(`
-	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent, compression)
-	                 VALUES (?,    ?,           ?,    ?,       ?,      ?,        ?,     ?)`,
-		in.UUID, in.TenantUUID, in.Name, in.Summary, in.Plugin, string(rawconfig), in.Agent, in.Compression)
+	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
+	                         endpoint, agent, compression)
+	                 VALUES (?, ?, ?, ?, ?,
+	                         ?, ?, ?)`,
+		target.UUID, target.TenantUUID, target.Name, target.Summary, target.Plugin,
+		string(rawconfig), target.Agent, target.Compression)
 	if err != nil {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(in, in.TenantUUID)
-	return in, nil
+	db.sendCreateObjectEvent(target, target.TenantUUID)
+	return target, nil
 }
 
-func (db *DB) UpdateTarget(t *Target) error {
-	rawconfig, err := json.Marshal(t.Config)
+func (db *DB) UpdateTarget(target *Target) error {
+	rawconfig, err := json.Marshal(target.Config)
 	if err != nil {
 		return err
 	}
@@ -203,27 +211,36 @@ func (db *DB) UpdateTarget(t *Target) error {
 	         agent       = ?,
 	         compression = ?
 	   WHERE uuid = ?`,
-		t.Name, t.Summary, t.Plugin, string(rawconfig), t.Agent, t.Compression,
-		t.UUID)
+		target.Name, target.Summary, target.Plugin, string(rawconfig),
+		target.Agent, target.Compression, target.UUID)
 	if err != nil {
 		return err
 	}
 
-	db.sendUpdateObjectEvent(t, t.TenantUUID)
+	update, err := db.GetTarget(target.UUID)
+	if err != nil {
+		return err
+	}
+	if update == nil {
+		return fmt.Errorf("unable to retrieve target %s after update", target.UUID)
+	}
+
+	db.sendUpdateObjectEvent(target, target.TenantUUID)
 	return nil
 }
 
 func (db *DB) DeleteTarget(id string) (bool, error) {
-	t, err := db.GetTarget(id)
+	target, err := db.GetTarget(id)
 	if err != nil {
 		return false, err
 	}
-	if t == nil {
+
+	if target == nil {
 		/* already deleted */
 		return true, nil
 	}
 
-	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, t.UUID)
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -251,6 +268,6 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return false, err
 	}
 
-	db.sendDeleteObjectEvent(t, t.TenantUUID)
+	db.sendDeleteObjectEvent(target, target.TenantUUID)
 	return true, nil
 }

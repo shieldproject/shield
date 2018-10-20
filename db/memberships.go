@@ -19,9 +19,11 @@ func (db *DB) GetMembershipsForUser(user string) ([]*Membership, error) {
 	l := make([]*Membership, 0)
 	for r.Next() {
 		m := &Membership{}
+
 		if err := r.Scan(&m.TenantUUID, &m.TenantName, &m.Role); err != nil {
 			return l, err
 		}
+
 		l = append(l, m)
 	}
 
@@ -32,7 +34,6 @@ func (db *DB) ClearMembershipsFor(user *User) error {
 	return db.exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID)
 }
 
-//Manual close of sql transaction necessary to avoid database lockup due to defer
 func (db *DB) AddUserToTenant(user, tenant, role string) error {
 	r, err := db.query(`
 	    SELECT m.role
@@ -43,8 +44,10 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 		return err
 	}
 
-	if r.Next() {
-		r.Close()
+	exists := r.Next()
+	r.Close() /* so we can run another query... */
+
+	if exists {
 		return db.exec(`
 		    UPDATE memberships
 		       SET role = ?
@@ -52,7 +55,6 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 		       AND tenant_uuid = ?`, role, user, tenant)
 	}
 
-	r.Close()
 	return db.exec(`
 	    INSERT INTO memberships (user_uuid, tenant_uuid, role)
 	                     VALUES (?, ?, ?)`, user, tenant, role)
@@ -79,9 +81,11 @@ func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
 	l := make([]*Tenant, 0)
 	for r.Next() {
 		t := &Tenant{}
+
 		if err := r.Scan(&t.UUID, &t.Name); err != nil {
 			return l, err
 		}
+
 		l = append(l, t)
 	}
 
@@ -102,11 +106,12 @@ func (db *DB) GetUsersForTenant(tenant string) ([]*User, error) {
 
 	l := make([]*User, 0)
 	for r.Next() {
-
 		u := &User{}
+
 		if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.Role); err != nil {
 			return nil, err
 		}
+
 		l = append(l, u)
 	}
 

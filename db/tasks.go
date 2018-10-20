@@ -80,11 +80,11 @@ type TaskFilter struct {
 	// FIXME: add options for store
 }
 
-func ValidateEffectiveUnix(effective time.Time) int64 {
-	if effective.Unix() <= 0 {
+func effectively(t time.Time) int64 {
+	if t.Unix() <= 0 {
 		return time.Now().Unix()
 	}
-	return effective.Unix()
+	return t.Unix()
 }
 
 func (f *TaskFilter) Query() (string, []interface{}) {
@@ -196,6 +196,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 
 	for r.Next() {
 		t := &Task{}
+
 		var (
 			started, stopped, deadline       *int64
 			job, archive, store, target, log sql.NullString
@@ -239,6 +240,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 		} else {
 			t.TimeoutAt = *deadline
 		}
+
 		l = append(l, t)
 	}
 
@@ -424,11 +426,10 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	return false, nil
 }
 
-func (db *DB) StartTask(id string, effective time.Time) error {
-	validtime := ValidateEffectiveUnix(effective)
+func (db *DB) StartTask(id string, at time.Time) error {
 	return db.exec(
 		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
-		RunningStatus, validtime, id,
+		RunningStatus, effectively(at), id,
 	)
 }
 
@@ -438,24 +439,21 @@ func (db *DB) ScheduledTask(id string) error {
 		ScheduledStatus, id)
 }
 
-func (db *DB) updateTaskStatus(id string, status string, effective int64, ok int) error {
+func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
 	return db.exec(
 		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
-		status, effective, ok, id)
+		status, at, ok, id)
 }
-func (db *DB) CancelTask(id string, effective time.Time) error {
-	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, CanceledStatus, validtime, 1)
-}
-
-func (db *DB) FailTask(id string, effective time.Time) error {
-	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, FailedStatus, validtime, 0)
+func (db *DB) CancelTask(id string, at time.Time) error {
+	return db.updateTaskStatus(id, CanceledStatus, effectively(at), 1)
 }
 
-func (db *DB) CompleteTask(id string, effective time.Time) error {
-	validtime := ValidateEffectiveUnix(effective)
-	return db.updateTaskStatus(id, DoneStatus, validtime, 1)
+func (db *DB) FailTask(id string, at time.Time) error {
+	return db.updateTaskStatus(id, FailedStatus, effectively(at), 0)
+}
+
+func (db *DB) CompleteTask(id string, at time.Time) error {
+	return db.updateTaskStatus(id, DoneStatus, effectively(at), 1)
 }
 
 func (db *DB) UpdateTaskLog(id string, more string) error {
@@ -465,11 +463,11 @@ func (db *DB) UpdateTaskLog(id string, more string) error {
 	)
 }
 
-func (db *DB) CreateTaskArchive(id string, archive_id string, key string, effective time.Time, encryptionType string, compression string, archive_size int64, tenant_uuid string) (string, error) {
-	// fail on empty store_key, as '' seems to satisfy the NOT NULL constraint in postgres
+func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
 	if key == "" {
 		return "", fmt.Errorf("cannot create an archive without a store_key")
 	}
+
 	// determine how long we need to keep this specific archive for
 	r, err := db.query(
 		`SELECT r.expiry
@@ -495,7 +493,6 @@ func (db *DB) CreateTaskArchive(id string, archive_id string, key string, effect
 	r.Close()
 
 	// insert an archive with all proper references, expiration, etc.
-	validtime := ValidateEffectiveUnix(effective)
 	err = db.exec(`
 	  INSERT INTO archives
 	    (uuid, target_uuid, store_uuid, store_key, taken_at,
@@ -511,7 +508,7 @@ func (db *DB) CreateTaskArchive(id string, archive_id string, key string, effect
 	         INNER JOIN stores  s     ON s.uuid = j.store_uuid
 	      WHERE tasks.uuid = ?`,
 		archive_id, key,
-		validtime, effective.Add(time.Duration(expiry)*time.Second).Unix(),
+		effectively(at), at.Add(time.Duration(expiry)*time.Second).Unix(),
 		compression, encryptionType, archive_size, tenant_uuid, id,
 	)
 	if err != nil {

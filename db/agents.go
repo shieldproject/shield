@@ -71,15 +71,14 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-		SELECT a.uuid, a.name, a.address, a.version,
-		       a.hidden, a.last_seen_at, a.status,
-		       a.metadata
+	   SELECT a.uuid, a.name, a.address, a.version,
+	          a.hidden, a.last_seen_at, a.status,
+	          a.metadata
 
-		FROM agents a
+	     FROM agents a
 
-		WHERE ` + strings.Join(wheres, " AND ") + `
-		ORDER BY a.name DESC, a.uuid ASC
-	`, args
+	    WHERE ` + strings.Join(wheres, " AND ") + `
+	 ORDER BY a.name DESC, a.uuid ASC`, args
 }
 
 func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
