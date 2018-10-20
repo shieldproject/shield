@@ -243,25 +243,29 @@ EOF
 
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
-listen_addr:   127.0.0.1:8180
-data_directory:      ${workdir}/var/
-private_key:   ${workdir}/config/shieldd_key
-workers:       3
-max_timeout:   10
-web_root:      ./web2/htdocs
-slow_loop:     20
-fast_loop:     2
-session_timeout: 8
-debug: true
+debug:    true
+data-dir: ${workdir}/var/
+web-root: ./web2/htdocs
 
-env:   TESTDEV
-color: yellow
-motd: |
-  Welcome to the testdev S.H.I.E.L.D. environment!
+scheduler:
+  fast-loop: 5
+  slow-loop: 40
 
-failsafe:
-  username: failsafe
-  password: sekrit
+api:
+  bind: 127.0.0.1:8180
+  env:   TESTDEV
+  color: yellow
+  motd: |
+    Welcome to the testdev S.H.I.E.L.D. environment!
+
+  failsafe:
+    username: failsafe
+    password: sekrit
+
+  session:
+    timeout: 8
+
+#private_key:   ${workdir}/config/shieldd_key
 
 auth:
   - name:       Github
