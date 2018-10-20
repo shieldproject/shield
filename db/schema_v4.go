@@ -2,8 +2,6 @@ package db
 
 import (
 	"fmt"
-
-	"github.com/pborman/uuid"
 )
 
 type v4Schema struct{}
@@ -38,32 +36,32 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	tenant := uuid.NewRandom()
-	err = db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant.String(), "tenant1")
+	tenant := randomID()
+	err = db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant, "tenant1")
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE jobs ADD tenant_uuid UUID NOT NULL DEFAULT '%s'", tenant.String()))
+	err = db.exec(fmt.Sprintf("ALTER TABLE jobs ADD tenant_uuid UUID NOT NULL DEFAULT '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE stores ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant.String()))
+	err = db.exec(fmt.Sprintf("ALTER TABLE stores ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE retention ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant.String()))
+	err = db.exec(fmt.Sprintf("ALTER TABLE retention ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE archives ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant.String()))
+	err = db.exec(fmt.Sprintf("ALTER TABLE archives ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE tasks ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant.String()))
+	err = db.exec(fmt.Sprintf("ALTER TABLE tasks ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE targets ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant.String()))
+	err = db.exec(fmt.Sprintf("ALTER TABLE targets ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
@@ -109,7 +107,7 @@ func (s v4Schema) Deploy(db *DB) error {
 	                              SELECT uuid, target_uuid, store_uuid, ?,
 	                                     schedule, next_run, retention_uuid,
 	                                     priority, paused, name, summary
-	                                FROM jobs`, tenant.String())
+	                                FROM jobs`, tenant)
 	if err != nil {
 		return err
 	}
