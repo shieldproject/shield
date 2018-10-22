@@ -53,15 +53,13 @@ type Job struct {
 	} `json:"policy"`
 
 	Agent          string `json:"agent"`
+
+	Healthy        bool   `json:"healthy" mbus:"healthy"`
 	LastRun        int64  `json:"last_run"`
 	LastTaskStatus string `json:"last_task_status"`
 
 	Spec    *timespec.Spec `json:"-"`
 	NextRun int64          `json:"-"`
-}
-
-func (j Job) Healthy() bool {
-	return j.LastTaskStatus == "" || j.LastTaskStatus == "done"
 }
 
 type JobFilter struct {
@@ -179,8 +177,10 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		if last != nil {
 			j.LastRun = *last
 		}
+		j.Healthy = true
 		if status.Valid {
 			j.LastTaskStatus = status.String
+			j.Healthy = j.LastTaskStatus == "done"
 		}
 
 		l = append(l, j)

@@ -22,19 +22,19 @@ type Store struct {
 	Agent      string `json:"agent"   mbus:"agent"`
 	Plugin     string `json:"plugin"  mbus:"plugin"`
 	Global     bool   `json:"global"  mbus:"global"`
+	Healthy    bool   `json:"healthy" mbus:"healthy"`
+
+	DailyIncrease int64 `json:"daily_increase" mbus:"daily_increase"`
+	StorageUsed   int64 `json:"storage_used"   mbus:"storage_used"`
+	Threshold     int64 `json:"threshold"      mbus:"threshold"`
+	ArchiveCount  int   `json:"archive_count"  mbus:"archive_count"`
 
 	PublicConfig  string `json:"-"`
 	PrivateConfig string `json:"-"`
 
-	Config        map[string]interface{} `json:"config,omitempty"`
-	DisplayConfig []StoreConfigItem      `json:"display_config,omitempty"`
+	Config        map[string]interface{} `json:"config,omitempty"         mbus:"config"`
+	DisplayConfig []StoreConfigItem      `json:"display_config,omitempty" mbus:"display_config"`
 
-	DailyIncrease int64 `json:"daily_increase"`
-	StorageUsed   int64 `json:"storage_used"`
-	Threshold     int64 `json:"threshold"`
-	ArchiveCount  int   `json:"archive_count"`
-
-	Healthy          bool   `json:"healthy"`
 	LastTestTaskUUID string `json:"last_test_task_uuid"`
 }
 

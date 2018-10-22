@@ -3361,7 +3361,7 @@ func (c *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 		dst.Jobs[j].Schedule = job.Schedule
 		dst.Jobs[j].From = job.Target.Plugin
 		dst.Jobs[j].To = job.Store.Plugin
-		dst.Jobs[j].OK = job.Healthy()
+		dst.Jobs[j].OK = job.Healthy
 		dst.Jobs[j].Store.UUID = job.Store.UUID
 		dst.Jobs[j].Store.Name = job.Store.Name
 		dst.Jobs[j].Store.Summary = job.Store.Summary
@@ -3370,7 +3370,7 @@ func (c *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 		dst.Jobs[j].Retention.Name = job.Policy.Name
 		dst.Jobs[j].Retention.Summary = job.Policy.Summary
 
-		if !job.Healthy() {
+		if !job.Healthy {
 			dst.OK = false
 		}
 

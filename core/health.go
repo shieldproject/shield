@@ -64,7 +64,7 @@ func (core *Core) checkHealth() (Health, error) {
 		health.Jobs[i].UUID = job.UUID
 		health.Jobs[i].Target = job.Target.Name
 		health.Jobs[i].Job = job.Name
-		health.Jobs[i].Healthy = job.Healthy()
+		health.Jobs[i].Healthy = job.Healthy
 
 		if !health.Jobs[i].Healthy {
 			health.Health.Jobs = false
@@ -127,7 +127,7 @@ func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 		health.Jobs[i].UUID = job.UUID
 		health.Jobs[i].Target = job.Target.Name
 		health.Jobs[i].Job = job.Name
-		health.Jobs[i].Healthy = job.Healthy()
+		health.Jobs[i].Healthy = job.Healthy
 
 		if !health.Jobs[i].Healthy {
 			health.Health.Jobs = false
