@@ -17,9 +17,9 @@ func (vault *Client) Status() (string, error) {
 
 	if init {
 		if seal {
-			return "sealed", nil
+			return "locked", nil
 		}
-		return "unsealed", nil
+		return "unlocked", nil
 	}
 	return "uninitialized", nil
 }

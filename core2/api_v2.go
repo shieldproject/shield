@@ -103,13 +103,27 @@ func (c *Core) v2API() *route.Router {
 	// }}}
 	r.Dispatch("GET /v2/bearings", func(r *route.Request) { // {{{
 		var out struct {
-			User        *db.User         `json:"user"`
-			Tenants     []*db.Tenant     `json:"tenants"`
-			Memberships []*db.Membership `json:"memberships"`
-			Jobs        []*db.Job        `json:"jobs"`
-			Targets     []*db.Target     `json:"targets"`
-			Stores      []*db.Store      `json:"stores"`
+			/* Status of the internal SHIELD Vault. */
+			Vault string `json:"vault"`
+
+			/* Information about this SHIELD installation itself,
+			   including its name, the MOTD, the UI theme color,
+			   API and software versions, etc. */
+			SHIELD interface{} `json:"shield"`
+
+			/* The currently logged-in user. */
+			User *db.User `json:"user"`
+
+			/* Global storage systems */
+			Stores []*db.Store `json:"stores"`
+
+			/* Initial "seed" data for the web UI data layer.
+			   This, combined with the stream of event data that
+			   we get from the /v2/events web socket should
+			   suffice, and mitigate polling. */
+			Tenants map[string]Bearing `json:"tenants"`
 		}
+		out.SHIELD = c.info
 
 		if user, err := c.db.GetUserForSession(r.SessionID()); err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve user information"))
@@ -117,6 +131,13 @@ func (c *Core) v2API() *route.Router {
 
 		} else if user != nil {
 			out.User = user
+
+			/* retrieve vault status */
+			out.Vault, err = c.vault.Status()
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve vault status"))
+				return
+			}
 
 			/* retrieve global stores */
 			out.Stores, err = c.db.GetAllStores(&db.StoreFilter{ForTenant: db.GlobalTenantUUID})
@@ -126,44 +147,20 @@ func (c *Core) v2API() *route.Router {
 			}
 
 			/* retrieve the memberships for this user */
-			out.Memberships, err = c.db.GetMembershipsForUser(user.UUID)
+			memberships, err := c.db.GetMembershipsForUser(user.UUID)
 			if err != nil {
 				r.Fail(route.Oops(err, "Unable to retrieve user membership information"))
 				return
 			}
 
-			out.Targets = make([]*db.Target, 0)
-			out.Tenants = make([]*db.Tenant, len(out.Memberships))
-			for i, m := range out.Memberships {
-				/* retrieve the tenant for this membership grant */
-				tenant, err := c.db.GetTenant(m.TenantUUID)
+			out.Tenants = make(map[string]Bearing)
+			for _, m := range memberships {
+				b, err := c.BearingFor(m)
 				if err != nil {
-					r.Fail(route.Oops(err, "Unable to retrieve user tenant information"))
+					r.Fail(route.Oops(err, "Unable to retrieve user membership information"))
 					return
 				}
-				out.Tenants[i] = tenant
-
-				/* assemble stores for this tenant */
-				stores, err := c.db.GetAllStores(&db.StoreFilter{ForTenant: tenant.UUID})
-				if err != nil {
-					r.Fail(route.Oops(err, "Unable to retrieve stores for tenant %s (%s)", tenant.Name, tenant.UUID))
-					return
-				}
-
-				for _, store := range stores {
-					out.Stores = append(out.Stores, store)
-				}
-
-				/* assemble targets for this tenant */
-				targets, err := c.db.GetAllTargets(&db.TargetFilter{ForTenant: tenant.UUID})
-				if err != nil {
-					r.Fail(route.Oops(err, "Unable to retrieve targets for tenant %s (%s)", tenant.Name, tenant.UUID))
-					return
-				}
-
-				for _, target := range targets {
-					out.Targets = append(out.Targets, target)
-				}
+				out.Tenants[b.Tenant.UUID] = b
 			}
 		}
 
@@ -314,6 +311,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
+		c.bus.Send("unlock-core", "", nil, "*")
 		r.Success("Successfully unlocked the SHIELD Core")
 	})
 	// }}}

@@ -5,6 +5,10 @@ import (
 )
 
 func marshal(thing interface{}) interface{} {
+	if thing == nil {
+		return nil
+	}
+
 	t := reflect.TypeOf(thing)
 	v := reflect.ValueOf(thing)
 

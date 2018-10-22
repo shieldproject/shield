@@ -7,7 +7,7 @@ import (
 
 const (
 	ErrorEvent            = "error"
-	HeartbeatEvent        = "heartbeat"
+	UnlockCoreEvent       = "unlock-core"
 	CreateObjectEvent     = "create-object"
 	UpdateObjectEvent     = "update-object"
 	DeleteObjectEvent     = "delete-object"
