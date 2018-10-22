@@ -2,7 +2,6 @@ package core2
 
 import (
 	//"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -10,7 +9,6 @@ import (
 	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/util"
 )
 
@@ -18,10 +16,6 @@ const APIVersion = 2
 
 func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
-	case match(req, `GET /init.js`):
-		core.initJS(w, req)
-		return
-
 	case match(req, `GET /auth/([^/]+)/(redir|web|cli)`):
 		re := regexp.MustCompile("/auth/([^/]+)/(redir|web|cli)")
 		m := re.FindStringSubmatch(req.URL.Path)
@@ -86,54 +80,6 @@ func match(req *http.Request, pattern string) bool {
 		fmt.Sprintf("^%s$", pattern),
 		fmt.Sprintf("%s %s", req.Method, req.URL.Path))
 	return matched
-}
-
-func (core *Core) initJS(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(200)
-
-	fmt.Fprintf(w, "// init.js\n")
-	fmt.Fprintf(w, "var $global = {}\n")
-
-	const unauthFail = "// failed to determine user authentication state...\n"
-	const unauthJS = "$global.auth = {\"unauthenticated\":true};\n"
-
-	user, err := core.db.GetUserForSession(route.SessionID(req))
-	if err != nil {
-		log.Errorf("init.js: failed to get user from session: %s", err)
-		fmt.Fprintf(w, unauthFail)
-		fmt.Fprintf(w, unauthJS)
-		return
-	}
-
-	b, err := json.Marshal(core.info)
-	if err != nil {
-		log.Errorf("init.js: failed to marshal SHIELD core info into JSON: %s", err)
-		fmt.Fprintf(w, "// failed to retrieve SHIELD core info...\n")
-		fmt.Fprintf(w, "$global.shield = {};\n")
-	} else {
-		fmt.Fprintf(w, "$global.shield = %s;\n", string(b))
-	}
-
-	if user == nil {
-		fmt.Fprintf(w, unauthJS)
-		return
-	}
-
-	id, err := core.checkAuth(user)
-	if err != nil {
-		log.Errorf("init.js: failed to obtain tenancy info about user: %s", err)
-		fmt.Fprintf(w, unauthFail)
-		fmt.Fprintf(w, unauthJS)
-		return
-	}
-	b, err = json.Marshal(id)
-	if err != nil {
-		log.Errorf("init.js: failed to marshal auth id data into JSON: %s", err)
-		fmt.Fprintf(w, unauthFail)
-		fmt.Fprintf(w, unauthJS)
-	} else {
-		fmt.Fprintf(w, "$global.auth = %s;\n", string(b))
-	}
 }
 
 func (core *Core) v1GetPublicKey(w http.ResponseWriter, req *http.Request) {
