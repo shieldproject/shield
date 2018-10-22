@@ -32,7 +32,7 @@ type Job struct {
 
 		Endpoint string                 `json:"endpoint,omitempty"`
 		Config   map[string]interface{} `json:"config,omitempty"`
-	}
+	} `json:"target"`
 
 	Store struct {
 		UUID    string `json:"uuid"`
@@ -52,7 +52,7 @@ type Job struct {
 		Summary string `json:"summary"`
 	} `json:"policy"`
 
-	Agent          string `json:"agent"`
+	Agent string `json:"agent"`
 
 	Healthy        bool   `json:"healthy" mbus:"healthy"`
 	LastRun        int64  `json:"last_run"`
