@@ -63,6 +63,7 @@ type Job struct {
 }
 
 type JobFilter struct {
+	UUID         string
 	SkipPaused   bool
 	SkipUnpaused bool
 
@@ -80,6 +81,11 @@ type JobFilter struct {
 func (f *JobFilter) Query() (string, []interface{}) {
 	wheres := []string{"1"}
 	args := []interface{}{}
+
+	if f.UUID != "" {
+		wheres = []string{"j.uuid = ?"}
+		args = append(args, f.UUID)
+	}
 
 	if f.SearchName != "" {
 		comparator := "LIKE"
@@ -190,40 +196,14 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 }
 
 func (db *DB) GetJob(id string) (*Job, error) {
-	r, err := db.query(`
-	        SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-	               j.tenant_uuid, j.fixed_key,
-	               r.name, r.summary, r.uuid, r.expiry,
-	               s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
-	               t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression
-
-	          FROM jobs j
-	    INNER JOIN retention  r  ON  r.uuid = j.retention_uuid
-	    INNER JOIN stores     s  ON  s.uuid = j.store_uuid
-	    INNER JOIN targets    t  ON  t.uuid = j.target_uuid
-
-	         WHERE j.uuid = ?`, id)
+	l, err := db.GetAllJobs(&JobFilter{UUID: id})
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
-
-	if !r.Next() {
-		return nil, nil
+	if len(l) > 0 {
+		return l[0], nil
 	}
-
-	j := &Job{}
-	if err = r.Scan(
-		&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
-		&j.TenantUUID, &j.FixedKey,
-		&j.Policy.Name, &j.Policy.Summary, &j.Policy.UUID, &j.Expiry,
-		&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
-		&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
-		&j.Agent, &j.Target.Compression); err != nil {
-		return nil, err
-	}
-
-	return j, nil
+	return nil, nil
 }
 
 func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
