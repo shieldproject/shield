@@ -41,7 +41,6 @@ type Config struct {
 	WebRoot string `yaml:"web-root"`
 
 	Scheduler struct {
-		Heartbeat int `yaml:"heartbeat"`
 		FastLoop  int `yaml:"fast-loop"`
 		SlowLoop  int `yaml:"slow-loop"`
 		Threads   int `yaml:"threads"`
@@ -95,7 +94,6 @@ func init() {
 	DefaultConfig.DataDir = "/shield/data"
 	DefaultConfig.WebRoot = "/shield/ui"
 
-	DefaultConfig.Scheduler.Heartbeat = 30
 	DefaultConfig.Scheduler.FastLoop = 1
 	DefaultConfig.Scheduler.SlowLoop = 300
 	DefaultConfig.Scheduler.Threads = 5
@@ -129,9 +127,6 @@ func Configure(file string, config Config) (*Core, error) {
 	}
 
 	/* validate configuration */
-	if c.Config.Scheduler.Heartbeat <= 5 {
-		return nil, fmt.Errorf("scheduler.heartbeat value '%d' is invalid (must be greater than 5 seconds)", c.Config.Scheduler.Heartbeat)
-	}
 	if c.Config.Scheduler.FastLoop <= 0 {
 		return nil, fmt.Errorf("scheduler.fast-loop value '%d' is invalid (must be greater than zero)", c.Config.Scheduler.FastLoop)
 	}
