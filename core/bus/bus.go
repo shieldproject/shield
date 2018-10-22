@@ -27,8 +27,6 @@ type Event struct {
 type Bus struct {
 	lock  sync.Mutex
 	slots []slot
-
-	lastHeartbeatEvent *Event
 }
 
 type slot struct {
@@ -42,12 +40,6 @@ func New(n int) *Bus {
 	}
 }
 
-func catchup(ch chan Event, events ...Event) {
-	for _, ev := range events {
-		ch <- ev
-	}
-}
-
 func (b *Bus) Register(queues []string) (chan Event, int, error) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
@@ -58,10 +50,6 @@ func (b *Bus) Register(queues []string) (chan Event, int, error) {
 			b.slots[i].acl = make(map[string]bool)
 			for _, q := range queues {
 				b.slots[i].acl[q] = true
-			}
-
-			if b.lastHeartbeatEvent != nil {
-				go catchup(b.slots[i].ch, *b.lastHeartbeatEvent)
 			}
 
 			return b.slots[i].ch, i, nil
@@ -106,10 +94,6 @@ func (b *Bus) Send(event, typ string, thing interface{}, queues ...string) {
 func (b *Bus) SendEvent(queues []string, ev Event) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-
-	if ev.Event == HeartbeatEvent {
-		b.lastHeartbeatEvent = &ev
-	}
 
 	for _, s := range b.slots {
 		if s.ch == nil {
