@@ -348,63 +348,6 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/ui", func(r *route.Request) { // {{{
-		type grant struct {
-			Admin    bool `json:"admin"`
-			Engineer bool `json:"engineer"`
-			Operator bool `json:"operator"`
-		}
-
-		out := struct {
-			Info    interface{}      `json:"info"`
-			User    *db.User         `json:"user"`
-			Tenants []*db.Tenant     `json:"tenants"`
-			Grants  map[string]grant `json:"grants"`
-		}{
-			Info: c.info,
-		}
-
-		if user, err := c.db.GetUserForSession(r.SessionID()); err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve user information"))
-			return
-
-		} else if user != nil {
-			out.User = user
-
-			memberships, err := c.db.GetMembershipsForUser(user.UUID)
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to retrieve user membership information"))
-				return
-			}
-
-			out.Grants = make(map[string]grant)
-			out.Tenants = make([]*db.Tenant, 0)
-			for _, m := range memberships {
-				tenant, err := c.db.GetTenant(m.TenantUUID)
-				if err != nil {
-					r.Fail(route.Oops(err, "Unable to retrieve user tenant information"))
-					return
-				}
-				out.Tenants = append(out.Tenants, tenant)
-
-				g := grant{}
-				switch m.Role {
-				case "admin":
-					g.Admin = true
-					fallthrough
-				case "engineer":
-					g.Engineer = true
-					fallthrough
-				case "operator":
-					g.Operator = true
-				}
-				out.Grants[tenant.UUID] = g
-			}
-		}
-
-		r.OK(out)
-	})
-	// }}}
 	r.Dispatch("POST /v2/ui/users", func(r *route.Request) { // {{{
 		var in struct {
 			Search string `json:"search"`
