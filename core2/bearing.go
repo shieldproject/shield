@@ -15,7 +15,7 @@ type Bearing struct {
 	Grants struct {
 		Admin    bool `json:"admin"`
 		Engineer bool `json:"engineer"`
-		Operator  bool `json:"operator"`
+		Operator bool `json:"operator"`
 	} `json:"grants"`
 }
 
