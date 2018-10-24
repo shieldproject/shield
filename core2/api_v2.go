@@ -2038,7 +2038,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too short, archives must be kept for a minimum of %d days", in.Retain, c.Config.Limit.Retention.Min))
 			return
 		}
-		if keepdays < c.Config.Limit.Retention.Max {
+		if keepdays > c.Config.Limit.Retention.Max {
 			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too long, archives may be kept for a maximum of %d days", in.Retain, c.Config.Limit.Retention.Max))
 			return
 		}
@@ -2135,7 +2135,7 @@ func (c *Core) v2API() *route.Router {
 				r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too short, archives must be kept for a minimum of %d days", in.Retain, c.Config.Limit.Retention.Min))
 				return
 			}
-			if keepdays < c.Config.Limit.Retention.Max {
+			if keepdays > c.Config.Limit.Retention.Max {
 				r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too long, archives may be kept for a maximum of %d days", in.Retain, c.Config.Limit.Retention.Max))
 				return
 			}

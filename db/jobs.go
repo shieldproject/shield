@@ -217,7 +217,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 	                     name, summary, schedule, keep_n, keep_days, paused,
 	                     target_uuid, store_uuid, fixed_key)
 	             VALUES (?, ?,
-	                     ?, ?, ?, ?, ?,
+	                     ?, ?, ?, ?, ?, ?,
 	                     ?, ?, ?)`,
 		job.UUID, job.TenantUUID,
 		job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
