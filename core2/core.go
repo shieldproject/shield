@@ -41,10 +41,10 @@ type Config struct {
 	WebRoot string `yaml:"web-root"`
 
 	Scheduler struct {
-		FastLoop  int `yaml:"fast-loop"`
-		SlowLoop  int `yaml:"slow-loop"`
-		Threads   int `yaml:"threads"`
-		Timeout   int `yaml:"timeout"`
+		FastLoop int `yaml:"fast-loop"`
+		SlowLoop int `yaml:"slow-loop"`
+		Threads  int `yaml:"threads"`
+		Timeout  int `yaml:"timeout"`
 	} `yaml:"scheduler"`
 
 	API struct {
