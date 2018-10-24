@@ -20,6 +20,7 @@ import (
 
 const (
 	DefaultS3Host              = "s3.amazonaws.com"
+	DefaultRegion              = "us-east-1"
 	DefaultPrefix              = ""
 	DefaultSigVersion          = "4"
 	DefaultPartSize            = "5M"
@@ -116,6 +117,15 @@ func main() {
 				Help:  "The Secret Access Key to use when authenticating against S3.",
 			},
 			plugin.Field{
+				Mode:    "store",
+				Name:    "region",
+				Type:    "string",
+				Title:   "Region",
+				Help:    "The name of the region to operate in.  Some S3 work-alikes need this to be set explicitly.",
+				Example: "us-east-1, US",
+				Default: DefaultRegion,
+			},
+			plugin.Field{
 				Mode:     "store",
 				Name:     "bucket",
 				Type:     "string",
@@ -194,6 +204,7 @@ type s3Endpoint struct {
 	SecretKey           string
 	Token               string
 	Bucket              string
+	Region              string
 	PathPrefix          string
 	SignatureVersion    int
 	SOCKS5Proxy         string
@@ -279,6 +290,14 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail = true
 	} else {
 		fmt.Printf("@G{\u2713 bucket}               @C{%s}\n", plugin.Redact(s))
+	}
+
+	s, err = endpoint.StringValueDefault("region", DefaultRegion)
+	if err != nil {
+		fmt.Printf("@R{\u2717 region               %s}\n", err)
+		fail = true
+	} else {
+		fmt.Printf("@G{\u2713 region}               @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
@@ -459,6 +478,11 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		return s3Endpoint{}, err
 	}
 
+	region, err := e.StringValueDefault("region", DefaultRegion)
+	if err != nil {
+		return s3Endpoint{}, err
+	}
+
 	prefix, err := e.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
 		return s3Endpoint{}, err
@@ -498,6 +522,7 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		SecretKey:           secret,
 		Token:               token,
 		Bucket:              bucket,
+		Region:              region,
 		PathPrefix:          prefix,
 		SignatureVersion:    sigVer,
 		SOCKS5Proxy:         proxy,
@@ -528,7 +553,7 @@ func (e s3Endpoint) Connect() (*s3.Client, error) {
 		AccessKeyID:        e.AccessKey,
 		SecretAccessKey:    e.SecretKey,
 		Token:              e.Token,
-		Region:             "us-east-1", /* FIXME: make this configurable */
+		Region:             e.Region,
 		Domain:             host,
 		Bucket:             e.Bucket,
 		InsecureSkipVerify: e.SkipSSLValidation,
