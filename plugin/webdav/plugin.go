@@ -150,6 +150,15 @@ func (p WebDAVPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, erro
 	path := dav.generate()
 	plugin.DEBUG("Storing data in %s", path)
 
+	// Create leading path if needed per WebDAV standard
+	destpath := ""
+	for _, component := range strings.SplitAfter(path, "/") {
+		if strings.HasSuffix(component, "/") {
+			destpath += component
+			dav.MkCol(destpath)
+		}
+	}
+
 	size, err := dav.Put(path, os.Stdin)
 	return path, size, err
 }
@@ -259,6 +268,25 @@ func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
 	return 0, fmt.Errorf("Received a %s from %s", res.Status, dav.URL)
 }
 
+func (dav WebDAV) MkCol(path string) error {
+	plugin.DEBUG("Creating Path: '%s'", path)
+
+	res, err := dav.do("MKCOL", path, nil)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode == 201 {
+		res, err = dav.do("HEAD", path, nil)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("Received a %s from %s", res.Status, dav.URL)
+}
 func (dav WebDAV) Get(path string, out io.Writer) error {
 	res, err := dav.do("GET", path, nil)
 	if err != nil {
