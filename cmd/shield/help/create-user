@@ -47,8 +47,7 @@ USAGE: @G{shield} create-user [OPTIONS]
               tenant.  They also manage local SHIELD users.
 
     @M{engineer}  Full access to everything that is shared between
-              tenants, including retention policy templates and
-              shared cloud storage systems.
+              tenants, namely cloud storage systems.
 
 @B{Example:}
 

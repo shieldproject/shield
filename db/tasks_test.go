@@ -21,12 +21,11 @@ var _ = Describe("Task Management", func() {
 	var (
 		db *DB
 
-		SomeTenant    *Tenant
-		SomeJob       *Job
-		SomeTarget    *Target
-		SomeStore     *Store
-		SomeRetention *RetentionPolicy
-		SomeArchive   *Archive
+		SomeTenant  *Tenant
+		SomeJob     *Job
+		SomeTarget  *Target
+		SomeStore   *Store
+		SomeArchive *Archive
 	)
 
 	shouldExist := func(q string, params ...interface{}) {
@@ -47,7 +46,6 @@ var _ = Describe("Task Management", func() {
 		SomeJob = &Job{UUID: randomID()}
 		SomeTarget = &Target{UUID: randomID()}
 		SomeStore = &Store{UUID: randomID()}
-		SomeRetention = &RetentionPolicy{UUID: randomID()}
 		SomeArchive = &Archive{UUID: randomID()}
 
 		db, err = Database(
@@ -63,16 +61,11 @@ var _ = Describe("Task Management", func() {
 			`INSERT INTO stores (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
 			   VALUES ("`+SomeStore.UUID+`", "`+SomeTenant.UUID+`", "Some Store", "", "plugin", "endpoint", "127.0.0.1:9938")`,
 
-			// need a retention policy
-			`INSERT INTO retention (uuid, tenant_uuid, name, summary, expiry)
-			   VALUES ("`+SomeRetention.UUID+`", "`+SomeTenant.UUID+`", "Some Retention", "", 3600)`,
-
 			// need a job
 			`INSERT INTO jobs (uuid, tenant_uuid, name, summary, paused,
-			                   target_uuid, store_uuid, retention_uuid, schedule)
+			                   target_uuid, store_uuid, schedule, expiry)
 			   VALUES ("`+SomeJob.UUID+`", "`+SomeTenant.UUID+`", "Some Job", "just a job...", 0,
-			           "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`",
-			           "`+SomeRetention.UUID+`", "daily 3am")`,
+			           "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", "daily 3am", 7)`,
 
 			// need an archive
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
@@ -93,10 +86,6 @@ var _ = Describe("Task Management", func() {
 		SomeStore, err = db.GetStore(SomeStore.UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(SomeStore).ShouldNot(BeNil())
-
-		SomeRetention, err = db.GetRetentionPolicy(SomeRetention.UUID)
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(SomeRetention).ShouldNot(BeNil())
 
 		SomeArchive, err = db.GetArchive(SomeArchive.UUID)
 		Ω(err).ShouldNot(HaveOccurred())

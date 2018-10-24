@@ -40,6 +40,5 @@ USAGE: @G{shield} update-user [OPTIONS] @{NAME-OR-UUID}
               tenant.  They also manage local SHIELD users.
 
     @M{engineer}  Full access to everything that is shared between
-              tenants, including retention policy templates and
-              shared cloud storage systems.
+              tenants, namely cloud storage systems.
 

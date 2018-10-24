@@ -75,12 +75,6 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
             --data    "url=http://localhost:${WEBDAV_PORT}" \
     2>&1 | indent2
 
-  echo ; echo "  - creating Templated retention policy template"
-  shield create-policy-template \
-            --name    Templated \
-            --days    73 \
-    2>&1 | indent2
-
   echo ; echo "Setting up 'Acme, Inc.' tenant"
   shield create-tenant \
             --name 'Acme, Inc.' \
@@ -155,20 +149,6 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --data    "url=http://localhost:${WEBDAV_PORT}/s3"
     2>&1 | indent4
 
-  echo ; echo "  - creating Short-Term archive retention policy"
-  shield create-policy \
-          --name    Short-Term \
-          --summary 'For frequent backups, only kept for a few days at most.' \
-          --days    1 \
-    2>&1 | indent4
-
-  echo ; echo "  - creating Long-Term archive retention policy"
-  shield create-policy \
-          --name    Long-Term \
-          --summary 'For infrequent backups, to be kept for at least two weeks.' \
-          --days    14 \
-    2>&1 | indent4
-
   export SHIELD_TRACE=y
   for i in $(seq 1 5); do
     echo "  - creating 'System #427/a0${i}' target data system"
@@ -191,7 +171,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --paused \
           --store    s3 \
           --target   "System #427/a01" \
-          --policy   short-term \
+          --retain   1d  \
     2>&1 | indent4
 
   echo ; echo "  - creating Weekly job for 'System #427/a02'"
@@ -201,7 +181,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --paused \
           --store    s3 \
           --target   "System #427/a02" \
-          --policy   long-term \
+          --retain   14d \
     2>&1 | indent4
 
   echo ; echo "  - creating Weekly job for 'System #427/a03'"
@@ -211,7 +191,8 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --paused \
           --store    s3 \
           --target   "System #427/a03" \
-          --policy   long-term
+          --retain   14d \
+    2>&1 | indent4
 
   echo ; echo "  - creating Daily job for 'System #427/a02'"
   shield create-job \
@@ -220,7 +201,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --paused \
           --store    s3 \
           --target   "System #427/a02" \
-          --policy   short-term \
+          --retain   1d \
     2>&1 | indent4
 
   echo ; echo "  - creating Daily job for 'System #427/a03'"
@@ -230,7 +211,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --paused \
           --store    s3 \
           --target   "System #427/a03" \
-          --policy   short-term \
+          --retain   1d \
     2>&1 | indent4
 
   echo ; echo "  - creating Daily job for 'System #427/a04'"
@@ -240,7 +221,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --paused \
           --store    s3 \
           --target   "System #427/a04" \
-          --policy   short-term \
+          --retain   1d \
     2>&1 | indent4
 
   echo ; echo "  - creating Daily job for 'System #427/a05'"
@@ -250,12 +231,12 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --paused \
           --store    s3 \
           --target   "System #427/a05" \
-          --policy   short-term \
+          --retain   1d \
     2>&1 | indent4
 
 
   export SHIELD_TENANT=Other
-  echo ; echo "Populating 'Other Tenant' tenant with targets, stores, policies, etc."
+  echo ; echo "Populating 'Other Tenant' tenant with targets, stores, etc."
          echo "  - loggin in as admin:admin"
   shield login --username admin --password admin 2>&1 | indent4
   shield id 2>&1 | indent4
@@ -280,13 +261,6 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --data    'exclude=var/*.db' \
     2>&1 | indent4
 
-  echo ; echo "  - creating 'Default Policy' archive retention policy"
-  shield create-policy \
-          --name    'Default Policy' \
-          --summary 'The Default Retention Policy' \
-          --days    1 \
-    2>&1 | indent4
-
   echo ; echo "  - creating Hourly job for SHIELD backups"
   shield create-job \
           --name     'Hourly' \
@@ -294,7 +268,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --schedule 'hourly at :05' \
           --target   SHIELD \
           --store    CloudStor \
-          --policy   Default \
+          --retain   2d \
     2>&1 | indent4
 
 

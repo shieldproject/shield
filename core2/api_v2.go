@@ -59,13 +59,6 @@ type v2SystemJob struct {
 		N    int `json:"n"`
 		Days int `json:"days"`
 	} `json:"keep"`
-
-	Retention struct {
-		UUID    string `json:"uuid"`
-		Name    string `json:"name"`
-		Summary string `json:"summary"`
-		Days    int    `json:"days"`
-	} `json:"retention"`
 }
 type v2System struct {
 	UUID        string `json:"uuid"`
@@ -1316,12 +1309,6 @@ func (c *Core) v2API() *route.Router {
 			}
 		}
 
-		err = c.db.InheritRetentionTemplates(t)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to install template retention policies into new tenant"))
-			return
-		}
-
 		r.OK(t)
 	})
 	// }}}
@@ -1785,194 +1772,6 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
-		if c.IsNotTenantOperator(r, r.Args[1]) {
-			return
-		}
-
-		policies, err := c.db.GetAllRetentionPolicies(
-			&db.RetentionFilter{
-				ForTenant:  r.Args[1],
-				SkipUsed:   r.ParamIs("unused", "t"),
-				SkipUnused: r.ParamIs("unused", "f"),
-				SearchName: r.Param("name", ""),
-				ExactMatch: r.ParamIs("exact", "t"),
-			},
-		)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policies information"))
-			return
-		}
-
-		r.OK(policies)
-	})
-	// }}}
-	r.Dispatch("POST /v2/tenants/:uuid/policies", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Expires uint   `json:"expires"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		if r.Missing("name", in.Name) {
-			return
-		}
-
-		if len(in.Name) > 100 {
-			r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
-			return
-		}
-
-		/* FIXME: for v2, flip expires over to days, not seconds */
-		if in.Expires < 86400 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
-			return
-		}
-		if in.Expires > 10*366*86400 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
-			return
-		}
-
-		if in.Expires%86400 != 0 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
-			return
-		}
-
-		if r.ParamIs("test", "t") {
-			r.Success("validation suceeded (request made in ?test=t mode)")
-			return
-		}
-
-		policy, err := c.db.CreateRetentionPolicy(&db.RetentionPolicy{
-			TenantUUID: r.Args[1],
-			Name:       in.Name,
-			Summary:    in.Summary,
-			Expires:    in.Expires,
-		})
-		if policy == nil || err != nil {
-			r.Fail(route.Oops(err, "Unable to create retention policy"))
-			return
-		}
-
-		r.OK(policy)
-	})
-	// }}}
-	r.Dispatch("GET /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		policy, err := c.db.GetRetentionPolicy(r.Args[2])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
-			return
-		}
-
-		if policy == nil || policy.TenantUUID != r.Args[1] {
-			r.Fail(route.NotFound(nil, "No such retention policy"))
-			return
-		}
-
-		r.OK(policy)
-	})
-	// }}}
-	r.Dispatch("PATCH /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Expires uint   `json:"expires"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		policy, err := c.db.GetRetentionPolicy(r.Args[2])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
-			return
-		}
-
-		if policy == nil || policy.TenantUUID != r.Args[1] {
-			r.Fail(route.NotFound(nil, "No such retention policy"))
-			return
-		}
-
-		if in.Name != "" {
-			if len(in.Name) > 100 {
-				r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
-				return
-			}
-			policy.Name = in.Name
-		}
-		if in.Summary != "" {
-			policy.Summary = in.Summary
-		}
-		if in.Expires != 0 {
-			/* FIXME: for v2, flip expires over to days, not seconds */
-			if in.Expires < 86400 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
-				return
-			}
-			if in.Expires > 10*366*86400 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
-				return
-			}
-			if in.Expires%86400 != 0 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
-				return
-			}
-			policy.Expires = in.Expires
-		}
-
-		if err := c.db.UpdateRetentionPolicy(policy); err != nil {
-			r.Fail(route.Oops(err, "Unable to update retention policy"))
-			return
-		}
-
-		r.OK(policy)
-	})
-	// }}}
-	r.Dispatch("DELETE /v2/tenants/:uuid/policies/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		policy, err := c.db.GetRetentionPolicy(r.Args[2])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policy information"))
-			return
-		}
-
-		if policy == nil || policy.TenantUUID != r.Args[1] {
-			r.Fail(route.NotFound(nil, "No such retention policy"))
-			return
-		}
-
-		deleted, err := c.db.DeleteRetentionPolicy(policy.UUID)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to delete retention policy"))
-			return
-		}
-		if !deleted {
-			r.Fail(route.Forbidden(nil, "The retention policy cannot be deleted at this time"))
-			return
-		}
-
-		r.Success("Retention policy deleted successfully")
-	})
-	// }}}
-
 	r.Dispatch("GET /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
 		if c.IsNotTenantOperator(r, r.Args[1]) {
 			return
@@ -2190,7 +1989,6 @@ func (c *Core) v2API() *route.Router {
 
 				ForTarget:  r.Param("target", ""),
 				ForStore:   r.Param("store", ""),
-				ForPolicy:  r.Param("policy", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 			},
 		)
@@ -2214,31 +2012,48 @@ func (c *Core) v2API() *route.Router {
 			Paused   bool   `json:"paused"`
 			Store    string `json:"store"`
 			Target   string `json:"target"`
-			Policy   string `json:"policy"`
+			Retain   string `json:"retain"`
 			FixedKey bool   `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
-		if r.Missing("name", in.Name, "store", in.Store, "target", in.Target, "schedule", in.Schedule, "policy", in.Policy) {
+		if r.Missing("name", in.Name, "store", in.Store, "target", in.Target, "schedule", in.Schedule, "retain", in.Retain) {
 			return
 		}
 
-		if _, err := timespec.Parse(in.Schedule); err != nil {
+		sched, err := timespec.Parse(in.Schedule)
+		if err != nil {
 			r.Fail(route.Oops(err, "Invalid or malformed SHIELD Job Schedule '%s'", in.Schedule))
 			return
 		}
+
+		keepdays := util.ParseRetain(in.Retain)
+		if keepdays < 0 {
+			r.Fail(route.Oops(nil, "Invalid or malformed SHIELD Job Archive Retention Period '%s'", in.Retain))
+			return
+		}
+		if keepdays < c.Config.Limit.Retention.Min {
+			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too short, archives must be kept for a minimum of %d days", in.Retain, c.Config.Limit.Retention.Min))
+			return
+		}
+		if keepdays < c.Config.Limit.Retention.Max {
+			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too long, archives may be kept for a maximum of %d days", in.Retain, c.Config.Limit.Retention.Max))
+			return
+		}
+		keepn := sched.KeepN(keepdays)
 
 		job, err := c.db.CreateJob(&db.Job{
 			TenantUUID: r.Args[1],
 			Name:       in.Name,
 			Summary:    in.Summary,
 			Schedule:   in.Schedule,
+			KeepDays:   keepdays,
+			KeepN:      keepn,
 			Paused:     in.Paused,
 			StoreUUID:  in.Store,
 			TargetUUID: in.Target,
-			PolicyUUID: in.Policy,
 			FixedKey:   in.FixedKey,
 		})
 		if job == nil || err != nil {
@@ -2277,10 +2092,10 @@ func (c *Core) v2API() *route.Router {
 			Name     string `json:"name"`
 			Summary  string `json:"summary"`
 			Schedule string `json:"schedule"`
+			Retain   string `json:"retain"`
 
 			StoreUUID  string `json:"store"`
 			TargetUUID string `json:"target"`
-			PolicyUUID string `json:"policy"`
 			FixedKey   *bool  `json:"fixed_key"`
 		}
 		if !r.Payload(&in) {
@@ -2310,6 +2125,28 @@ func (c *Core) v2API() *route.Router {
 			}
 			job.Schedule = in.Schedule
 		}
+		if in.Retain != "" {
+			keepdays := util.ParseRetain(in.Retain)
+			if keepdays < 0 {
+				r.Fail(route.Oops(nil, "Invalid or malformed SHIELD Job Archive Retention Period '%s'", in.Retain))
+				return
+			}
+			if keepdays < c.Config.Limit.Retention.Min {
+				r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too short, archives must be kept for a minimum of %d days", in.Retain, c.Config.Limit.Retention.Min))
+				return
+			}
+			if keepdays < c.Config.Limit.Retention.Max {
+				r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%s' is too long, archives may be kept for a maximum of %d days", in.Retain, c.Config.Limit.Retention.Max))
+				return
+			}
+
+			job.KeepDays = keepdays
+			job.KeepN = -1
+			if sched, err := timespec.Parse(job.Schedule); err != nil {
+				job.KeepN = sched.KeepN(keepdays)
+			}
+		}
+
 		job.TargetUUID = job.Target.UUID
 		if in.TargetUUID != "" {
 			job.TargetUUID = in.TargetUUID
@@ -2317,10 +2154,6 @@ func (c *Core) v2API() *route.Router {
 		job.StoreUUID = job.Store.UUID
 		if in.StoreUUID != "" {
 			job.StoreUUID = in.StoreUUID
-		}
-		job.PolicyUUID = job.Policy.UUID
-		if in.PolicyUUID != "" {
-			job.PolicyUUID = in.PolicyUUID
 		}
 		if in.FixedKey != nil {
 			job.FixedKey = *in.FixedKey
@@ -3157,187 +2990,6 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	r.Dispatch("GET /v2/global/policies", func(r *route.Request) { // {{{
-		if c.IsNotAuthenticated(r) {
-			return
-		}
-
-		policies, err := c.db.GetAllRetentionPolicies(
-			&db.RetentionFilter{
-				ForTenant:  db.GlobalTenantUUID,
-				SkipUsed:   r.ParamIs("unused", "t"),
-				SkipUnused: r.ParamIs("unused", "f"),
-				SearchName: r.Param("name", ""),
-				ExactMatch: r.ParamIs("exact", "t"),
-			},
-		)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policy templates information"))
-			return
-		}
-
-		r.OK(policies)
-	})
-	// }}}
-	r.Dispatch("POST /v2/global/policies", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Expires uint   `json:"expires"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		if r.Missing("name", in.Name) {
-			return
-		}
-		if len(in.Name) > 100 {
-			r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
-			return
-		}
-
-		/* FIXME: for v2, flip expires over to days, not seconds */
-		if in.Expires < 86400 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
-			return
-		}
-		if in.Expires > 10*366*86400 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
-			return
-		}
-		if in.Expires%86400 != 0 {
-			r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
-			return
-		}
-
-		policy, err := c.db.CreateRetentionPolicy(&db.RetentionPolicy{
-			TenantUUID: db.GlobalTenantUUID,
-			Name:       in.Name,
-			Summary:    in.Summary,
-			Expires:    in.Expires,
-		})
-		if policy == nil || err != nil {
-			r.Fail(route.Oops(err, "Unable to create retention policy template"))
-			return
-		}
-
-		r.OK(policy)
-	})
-	// }}}
-	r.Dispatch("GET /v2/global/policies/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotAuthenticated(r) {
-			return
-		}
-
-		policy, err := c.db.GetRetentionPolicy(r.Args[1])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
-			return
-		}
-
-		if policy == nil || policy.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.NotFound(nil, "No such retention policy template"))
-			return
-		}
-
-		r.OK(policy)
-	})
-	// }}}
-	r.Dispatch("PATCH /v2/global/policies/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		var in struct {
-			Name    string `json:"name"`
-			Summary string `json:"summary"`
-			Expires uint   `json:"expires"`
-		}
-		if !r.Payload(&in) {
-			return
-		}
-
-		policy, err := c.db.GetRetentionPolicy(r.Args[1])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
-			return
-		}
-
-		if policy == nil || policy.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.NotFound(nil, "No such retention policy template"))
-			return
-		}
-
-		if in.Name != "" {
-			if len(in.Name) > 100 {
-				r.Fail(route.Bad(nil, "Retention policy name must not exceed 100 characters"))
-				return
-			}
-			policy.Name = in.Name
-		}
-		if in.Summary != "" {
-			policy.Summary = in.Name
-		}
-		if in.Expires != 0 {
-			/* FIXME: for v2, flip expires over to days, not seconds */
-			if in.Expires < 86400 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must be greater than 1 day"))
-				return
-			}
-			if in.Expires > 10*366*86400 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must not exceed than 3660 days (~10 years)"))
-				return
-			}
-			if in.Expires%86400 != 0 {
-				r.Fail(route.Bad(nil, "Retention policy expiry must be a multiple of 1 day"))
-				return
-			}
-			policy.Expires = in.Expires
-		}
-
-		if err := c.db.UpdateRetentionPolicy(policy); err != nil {
-			r.Fail(route.Oops(err, "Unable to update retention policy template"))
-			return
-		}
-
-		r.OK(policy)
-	})
-	// }}}
-	r.Dispatch("DELETE /v2/global/policies/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotSystemEngineer(r) {
-			return
-		}
-
-		policy, err := c.db.GetRetentionPolicy(r.Args[1])
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve retention policy template information"))
-			return
-		}
-
-		if policy == nil || policy.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.NotFound(nil, "No such retention policy template"))
-			return
-		}
-
-		deleted, err := c.db.DeleteRetentionPolicy(policy.UUID)
-		if err != nil {
-			r.Fail(route.Oops(err, "Unable to delete retention policy template"))
-			return
-		}
-		if !deleted {
-			r.Fail(route.Forbidden(nil, "The retention policy template cannot be deleted at this time"))
-			return
-		}
-
-		r.Success("Retention policy deleted successfully")
-	})
-	// }}}
-
 	return r
 }
 
@@ -3364,16 +3016,10 @@ func (c *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 		dst.Jobs[j].Store.Name = job.Store.Name
 		dst.Jobs[j].Store.Summary = job.Store.Summary
 		dst.Jobs[j].Store.Healthy = job.Store.Healthy
-		dst.Jobs[j].Retention.UUID = job.Policy.UUID
-		dst.Jobs[j].Retention.Name = job.Policy.Name
-		dst.Jobs[j].Retention.Summary = job.Policy.Summary
 
 		if !job.Healthy {
 			dst.OK = false
 		}
-
-		dst.Jobs[j].Keep.Days = job.Expiry / 86400
-		dst.Jobs[j].Retention.Days = dst.Jobs[j].Keep.Days
 
 		tspec, err := timespec.Parse(job.Schedule)
 		if err != nil {

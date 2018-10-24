@@ -19,12 +19,12 @@ USAGE: @G{shield} update-job --tenant @Y{TENANT} [OPTIONS] @Y{NAME-OR-UUID}
   --store         The name or UUID of the cloud storage system to
                   store backup archives in.
 
-  --policy        The name or UUID of the retention policy that
-                  resulting backup archives will be subject to.
-
   --schedule      A @W{timespec} schedule description (see below),
                   instructing SHIELD how to schedule this job.
                   This field is @W{required}.
+
+  --retain        How long to keep backup archives.  Can be given
+                  in days (7d) or weeks (5w).
 
   --fixed-key     Encrypt backup archives with the fixed key.
                   Backups of SHIELD itself should use this option

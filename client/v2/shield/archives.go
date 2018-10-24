@@ -14,7 +14,6 @@ type Archive struct {
 
 	Target *Target `json:"target,omitempty"`
 	Store  *Store  `json:"store,omitempty"`
-	Policy *Policy `json:"policy,omitempty"`
 
 	Compression    string `json:"compression"`
 	EncryptionType string `json:"encryption_type"`

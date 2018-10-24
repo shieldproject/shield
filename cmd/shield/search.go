@@ -43,17 +43,3 @@ func SearchStores(c *shield.Client, tenant *shield.Tenant, q string) {
 	}
 	tbl.Output(os.Stderr)
 }
-
-func SearchPolicies(c *shield.Client, tenant *shield.Tenant, q string) {
-	l, err := c.ListPolicies(tenant, &shield.PolicyFilter{
-		Name:  q,
-		Fuzzy: true,
-	})
-	bail(err)
-
-	tbl := tui.NewTable("UUID", "Name", "Expiry (days)")
-	for _, x := range l {
-		tbl.Row(x, x.UUID, x.Name, x.Expires)
-	}
-	tbl.Output(os.Stderr)
-}

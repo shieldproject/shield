@@ -469,14 +469,12 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 	}
 
 	// determine how long we need to keep this specific archive for
-	r, err := db.query(
-		`SELECT r.expiry
-			FROM retention r
-				INNER JOIN jobs  j    ON r.uuid = j.retention_uuid
-				INNER JOIN tasks t    ON j.uuid = t.job_uuid
-			WHERE t.uuid = ?`,
-		id,
-	)
+	r, err := db.query(`
+	       SELECT j.keep_days
+	         FROM jobs j
+	   INNER JOIN tasks t ON j.uuid = t.job_uuid
+	        WHERE t.uuid = ?`,
+		id)
 	if err != nil {
 		return "", err
 	}
@@ -486,8 +484,8 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 		return "", fmt.Errorf("failed to determine expiration for task %s", id)
 	}
 
-	var expiry int
-	if err := r.Scan(&expiry); err != nil {
+	var keepdays int
+	if err := r.Scan(&keepdays); err != nil {
 		return "", err
 	}
 	r.Close()
@@ -508,7 +506,7 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 	         INNER JOIN stores  s     ON s.uuid = j.store_uuid
 	      WHERE tasks.uuid = ?`,
 		archive_id, key,
-		effectively(at), at.Add(time.Duration(expiry)*time.Second).Unix(),
+		effectively(at), at.Add(time.Duration(keepdays*24)*time.Hour).Unix(),
 		compression, encryptionType, archive_size, tenant_uuid, id,
 	)
 	if err != nil {
@@ -567,9 +565,8 @@ func (db *DB) MarkTasksIrrelevant() error {
 		  WHERE relevant = 1 AND clear = 'normal'
 		    AND uuid IN (
 		      SELECT tasks.uuid FROM tasks
-		        INNER JOIN jobs      ON jobs.uuid = tasks.job_uuid
-		        INNER JOIN retention ON retention.uuid = jobs.retention_uuid
-		             WHERE retention.expiry + tasks.started_at < ?`, time.Now().Unix())
+		        INNER JOIN jobs ON jobs.uuid = tasks.job_uuid
+		             WHERE jobs.keepdays * 86400 + tasks.started_at < ?`, time.Now().Unix())
 
 	if err != nil {
 		return err

@@ -204,44 +204,10 @@ var opts struct {
 	} `cli:"update-global-store"`
 
 	/* }}} */
-	/* POLICIES {{{ */
-	Policies struct {
-		Used   bool `cli:"--used"`
-		Unused bool `cli:"--unused"`
-	} `cli:"policies"`
-	Policy       struct{} `cli:"policy"`
-	DeletePolicy struct{} `cli:"delete-policy"`
-	CreatePolicy struct {
-		Name    string `cli:"-n, --name"`
-		Summary string `cli:"-s, --summary"`
-		Days    int    `cli:"-d, --days"`
-	} `cli:"create-policy"`
-	UpdatePolicy struct {
-		Name    string `cli:"-n, --name"`
-		Summary string `cli:"-s, --summary"`
-		Days    int    `cli:"-d, --days"`
-	} `cli:"update-policy"`
-
-	/* }}} */
-	/* POLICY TEMPLATES {{{ */
-	PolicyTemplates      struct{} `cli:"policy-templates"`
-	PolicyTemplate       struct{} `cli:"policy-template"`
-	DeletePolicyTemplate struct{} `cli:"delete-policy-template"`
-	CreatePolicyTemplate struct {
-		Name string `cli:"-n, --name"`
-		Days int    `cli:"-d, --days"`
-	} `cli:"create-policy-template"`
-	UpdatePolicyTemplate struct {
-		Name string `cli:"-n, --name"`
-		Days int    `cli:"-d, --days"`
-	} `cli:"update-policy-template"`
-
-	/* }}} */
 	/* JOBS {{{ */
 	Jobs struct {
 		Store    string `cli:"--store"`
 		Target   string `cli:"--target"`
-		Policy   string `cli:"--policy"`
 		Paused   bool   `cli:"--paused"`
 		Unpaused bool   `cli:"--unpaused"`
 	} `cli:"jobs"`
@@ -255,8 +221,8 @@ var opts struct {
 		Summary  string `cli:"-s, --summary"`
 		Target   string `cli:"--target"`
 		Store    string `cli:"--store"`
-		Policy   string `cli:"--policy"`
 		Schedule string `cli:"--schedule"`
+		Retain   string `cli:"--retain"`
 		Paused   bool   `cli:"--paused"`
 		FixedKey bool   `cli:"--fixed-key"`
 	} `cli:"create-job"`
@@ -265,8 +231,8 @@ var opts struct {
 		Summary    string `cli:"-s, --summary"`
 		Target     string `cli:"--target"`
 		Store      string `cli:"--store"`
-		Policy     string `cli:"--policy"`
 		Schedule   string `cli:"--schedule"`
+		Retain     string `cli:"--retain"`
 		FixedKey   bool   `cli:"--fixed-key"`
 		NoFixedKey bool   `cli:"--no-fixed-key"`
 	} `cli:"update-job"`
@@ -452,7 +418,6 @@ func main() {
 			fmt.Printf("    @C{tenants}    Tenant (and membership) management.\n")
 			fmt.Printf("    @C{targets}    Target Data System management.\n")
 			fmt.Printf("    @C{storage}    Cloud Storage management.\n")
-			fmt.Printf("    @C{policies}   Retenion Policy management.\n")
 			fmt.Printf("    @C{jobs}       Scheduled Backup Job management.\n")
 			fmt.Printf("    @C{archives}   Backup Archive (and restore!) management.\n")
 			fmt.Printf("    @C{tasks}      Task management.\n")
@@ -535,12 +500,6 @@ func main() {
 			printc("  update-global-store      Reconfigure a shared cloud storage system.\n")
 			printc("  delete-global-store      Decomission an unused shared cloud storage system.\n")
 			blank()
-			printc("  policy-templates         List retention policy templates.\n")
-			printc("  policy-template          Display details for a single retention policy template.\n")
-			printc("  create-policy-template   Configure a new retention policy template.\n")
-			printc("  update-policy-template   Reconfigure a retention policy template.\n")
-			printc("  delete-policy-template   Decomission an unused retention policy template.\n")
-			blank()
 			printc("  users                    List all of the local user accounts.\n")
 			printc("  user                     Display the details for a single local user account.\n")
 			printc("  create-user              Create a new local user account.\n")
@@ -576,14 +535,6 @@ func main() {
 			printc("  create-store             Configure a new cloud storage system.\n")
 			printc("  update-store             Reconfigure a cloud storage system.\n")
 			printc("  delete-store             Decomission an unused cloud storage system.\n")
-		}
-		if show("retention", "policies", "policy") {
-			header("Retention Policies")
-			printc("  policies                 List all retention policies.\n")
-			printc("  policy                   Display the details for a single retention policy.\n")
-			printc("  create-policy            Configure a new retention policy.\n")
-			printc("  update-policy            Reconfigure a retention policy.\n")
-			printc("  delete-policy            Decomission an unused retention policy.\n")
 		}
 		if show("job", "jobs") {
 			header("Scheduled Backup Jobs")
@@ -1909,345 +1860,6 @@ func main() {
 
 	/* }}} */
 
-	case "policies": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		required(!(opts.Policies.Used && opts.Policies.Unused),
-			"The --used and --unused options are mutually exclusive.")
-		required(len(args) <= 1, "Too many arguments.")
-
-		filter := &shield.PolicyFilter{
-			Fuzzy: !opts.Exact,
-		}
-		if len(args) == 1 {
-			filter.Name = args[0]
-		}
-		if opts.Policies.Used || opts.Policies.Unused {
-			x := opts.Policies.Used
-			filter.Used = &x
-		}
-
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		policies, err := c.ListPolicies(tenant, filter)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(policies))
-			break
-		}
-
-		tbl := tui.NewTable("UUID", "Name", "Retention Period")
-		for _, p := range policies {
-			tbl.Row(p, p.UUID, p.Name, fmt.Sprintf("%dd", p.Expires))
-		}
-		tbl.Output(os.Stdout)
-
-	/* }}} */
-	case "policy": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
-		}
-
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		p, err := c.FindPolicy(tenant, args[0], !opts.Exact)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(p))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", p.UUID)
-		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "create-policy": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		if !opts.Batch {
-			if opts.CreatePolicy.Name == "" {
-				for {
-					n := prompt("@C{Policy Name}: ")
-					if len(n) == 0 {
-						fmt.Fprintf(os.Stderr, "@R{invalid name (must not be blank)}\n")
-						continue
-					}
-					if len(n) > 100 {
-						fmt.Fprintf(os.Stderr, "@R{invalid name (must not be more than 100 characters)}\n")
-						continue
-					}
-					opts.CreatePolicy.Name = n
-					break
-				}
-			}
-			if opts.CreatePolicy.Summary == "" {
-				opts.CreatePolicy.Summary = prompt("@C{Summary}: ")
-			}
-			if opts.CreatePolicy.Days == 0 {
-				for {
-					s := prompt("@C{Retention Period (days)}: ")
-					d, err := strconv.Atoi(s)
-					if err != nil || d == 0 {
-						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must be numeric and greater than zero)}\n")
-						continue
-					}
-					if d > 366*10 {
-						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must not exceed 3660 days (~10 years))}\n")
-						continue
-					}
-					opts.CreatePolicy.Days = d
-					break
-				}
-			}
-		}
-
-		p, err := c.CreatePolicy(tenant, &shield.Policy{
-			Name:    opts.CreatePolicy.Name,
-			Summary: opts.CreatePolicy.Summary,
-			Expires: opts.CreatePolicy.Days,
-		})
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(p))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", p.UUID)
-		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "update-policy": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		p, err := c.FindPolicy(tenant, args[0], true)
-		bail(err)
-
-		if opts.UpdatePolicy.Name != "" {
-			if len(opts.UpdatePolicy.Name) > 100 {
-				fail(2, "@R{Policy name cannot exceed 100 characters.}\n\n")
-			}
-			p.Name = opts.UpdatePolicy.Name
-		}
-		if opts.UpdatePolicy.Summary != "" {
-			p.Summary = opts.UpdatePolicy.Summary
-		}
-		if opts.UpdatePolicy.Days != 0 {
-			if opts.UpdatePolicy.Days < 1 {
-				fail(2, "@R{Policy expiry must be a positive non-zero integer}\n\n")
-			}
-			if opts.UpdatePolicy.Days > 366*10 {
-				fail(2, "@R{Policy expiry must be no more than 3660 days (~10 years)}\n\n")
-			}
-			p.Expires = opts.UpdatePolicy.Days
-		}
-
-		_, err = c.UpdatePolicy(tenant, p)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(p))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", p.UUID)
-		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires/86400))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "delete-policy": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		policy, err := c.FindPolicy(tenant, args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Delete policy @Y{%s} in tenant @Y{%s}?", policy.Name, tenant.Name) {
-			break
-		}
-		r, err := c.DeletePolicy(tenant, policy)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(r))
-			break
-		}
-		fmt.Printf("%s\n", r.OK)
-
-	/* }}} */
-
-	case "policy-templates": /* {{{ */
-		templates, err := c.ListPolicyTemplates(nil)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(templates))
-			break
-		}
-
-		tbl := tui.NewTable("UUID", "Name", "Retention Period")
-		for _, p := range templates {
-			tbl.Row(p, p.UUID, p.Name, fmt.Sprintf("%dd", p.Expires))
-		}
-		tbl.Output(os.Stdout)
-
-	/* }}} */
-	case "policy-template": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
-		}
-
-		p, err := c.FindPolicyTemplate(args[0], !opts.Exact)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(p))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", p.UUID)
-		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires/86400))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "create-policy-template": /* {{{ */
-		if !opts.Batch {
-			if opts.CreatePolicyTemplate.Name == "" {
-				for {
-					n := prompt("@C{Policy Template Name}: ")
-					if len(n) == 0 {
-						fmt.Fprintf(os.Stderr, "@R{invalid name (must not be blank)}\n")
-						continue
-					}
-					if len(n) > 100 {
-						fmt.Fprintf(os.Stderr, "@R{invalid name (must not be more than 100 characters)}\n")
-						continue
-					}
-					opts.CreatePolicyTemplate.Name = n
-					break
-				}
-			}
-			if opts.CreatePolicyTemplate.Days == 0 {
-				for {
-					s := prompt("@C{Retention Period (days)}: ")
-					d, err := strconv.Atoi(s)
-					if err != nil || d == 0 {
-						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must be numeric and greater than zero)}\n")
-						continue
-					}
-					if d > 366*10 {
-						fmt.Fprintf(os.Stderr, "@R{invalid expiry (must not exceed 3660 days (~10 years))}\n")
-						continue
-					}
-					opts.CreatePolicyTemplate.Days = d
-					break
-				}
-			}
-		}
-
-		p, err := c.CreatePolicyTemplate(&shield.Policy{
-			Name:    opts.CreatePolicyTemplate.Name,
-			Expires: opts.CreatePolicyTemplate.Days,
-		})
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(p))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", p.UUID)
-		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "update-policy-template": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-		p, err := c.FindPolicyTemplate(args[0], true)
-		bail(err)
-
-		if opts.UpdatePolicyTemplate.Name != "" {
-			if len(opts.UpdatePolicyTemplate.Name) > 100 {
-				fail(2, "@R{Policy name cannot exceed 100 characters.}\n\n")
-			}
-			p.Name = opts.UpdatePolicyTemplate.Name
-		}
-		if opts.UpdatePolicyTemplate.Days != 0 {
-			if opts.UpdatePolicyTemplate.Days < 1 {
-				fail(2, "@R{Policy expiry must be a positive non-zero integer}\n\n")
-			}
-			if opts.UpdatePolicyTemplate.Days > 366*10 {
-				fail(2, "@R{Policy expiry must be no more than 3660 days (~10 years)}\n\n")
-			}
-			p.Expires = opts.UpdatePolicyTemplate.Days
-		}
-
-		_, err = c.UpdatePolicyTemplate(p)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(p))
-			break
-		}
-
-		r := tui.NewReport()
-		r.Add("UUID", p.UUID)
-		r.Add("Name", p.Name)
-		r.Add("Retention Period", fmt.Sprintf("%dd", p.Expires/86400))
-		r.Output(os.Stdout)
-
-	/* }}} */
-	case "delete-policy-template": /* {{{ */
-		if len(args) != 1 {
-			fail(2, "Usage: shield %s -t TENANT [OPTIONS] NAME-or-UUID\n", command)
-		}
-
-		policy, err := c.FindPolicyTemplate(args[0], true)
-		bail(err)
-
-		if !confirm(opts.Yes, "Delete policy template @Y{%s}?", policy.Name) {
-			break
-		}
-		r, err := c.DeletePolicyTemplate(policy)
-		bail(err)
-
-		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(r))
-			break
-		}
-		fmt.Printf("%s\n", r.OK)
-
-	/* }}} */
-
 	case "jobs": /* {{{ */
 		required(opts.Tenant != "", "Missing required --tenant option.")
 		required(!(opts.Jobs.Paused && opts.Jobs.Unpaused),
@@ -2258,7 +1870,6 @@ func main() {
 			Fuzzy:  !opts.Exact,
 			Store:  opts.Jobs.Store,
 			Target: opts.Jobs.Target,
-			Policy: opts.Jobs.Policy,
 		}
 		if opts.Jobs.Paused || opts.Jobs.Unpaused {
 			filter.Paused = &opts.Jobs.Paused
@@ -2289,9 +1900,9 @@ func main() {
 			)
 		*/
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Policy", "SHIELD Agent", "Target", "Store", "Fixed-Key")
+		tbl := tui.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key")
 		for _, job := range jobs {
-			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), job.Policy.Name, job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
+			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2320,8 +1931,7 @@ func main() {
 		r.Break()
 
 		r.Add("Schedule", job.Schedule)
-		r.Add("Policy", job.Policy.Name)
-		r.Add("Expires in", fmt.Sprintf("%d days", job.Expiry))
+		r.Add("Keep", fmt.Sprintf("%d days (%d archives)", job.KeepDays, job.KeepN))
 		r.Break()
 
 		r.Add("Data System", job.Target.Name)
@@ -2378,21 +1988,11 @@ func main() {
 					break
 				}
 			}
-			for opts.CreateJob.Policy == "" {
-				id := prompt("@C{Retention Policy}: ")
-				if len(id) > 0 && id[0] == '?' {
-					SearchPolicies(c, tenant, id[1:])
-					continue
-				}
-				if policy, err := c.FindPolicy(tenant, id, !opts.Exact); err != nil {
-					fmt.Fprintf(os.Stderr, "@Y{%s}\n", err)
-				} else {
-					opts.CreateJob.Policy = policy.UUID
-					break
-				}
-			}
 			if opts.CreateJob.Schedule == "" {
 				opts.CreateJob.Schedule = prompt("@C{Schedule}: ")
+			}
+			if opts.CreateJob.Retain == "" {
+				opts.CreateJob.Retain = prompt("@C{Retain}: ")
 			}
 
 			if opts.CreateJob.Summary == "" {
@@ -2414,13 +2014,6 @@ func main() {
 					opts.CreateJob.Store = store.UUID
 				}
 			}
-			if id := opts.CreateJob.Policy; id != "" {
-				if policy, err := c.FindPolicy(tenant, id, !opts.Exact); err != nil {
-					bail(err)
-				} else {
-					opts.CreateJob.Policy = policy.UUID
-				}
-			}
 		}
 
 		job, err := c.CreateJob(tenant, &shield.Job{
@@ -2428,8 +2021,8 @@ func main() {
 			Summary:    opts.CreateJob.Summary,
 			TargetUUID: opts.CreateJob.Target,
 			StoreUUID:  opts.CreateJob.Store,
-			PolicyUUID: opts.CreateJob.Policy,
 			Schedule:   opts.CreateJob.Schedule,
+			Retain:     opts.CreateJob.Retain,
 			Paused:     opts.CreateJob.Paused,
 			FixedKey:   opts.CreateJob.FixedKey,
 		})
@@ -2479,15 +2072,11 @@ func main() {
 				job.StoreUUID = store.UUID
 			}
 		}
-		if id := opts.UpdateJob.Policy; id != "" {
-			if policy, err := c.FindPolicy(tenant, id, !opts.Exact); err != nil {
-				bail(err)
-			} else {
-				job.PolicyUUID = policy.UUID
-			}
-		}
 		if opts.UpdateJob.Schedule != "" {
 			job.Schedule = opts.UpdateJob.Schedule
+		}
+		if opts.UpdateJob.Retain != "" {
+			job.Retain = opts.UpdateJob.Retain
 		}
 
 		if opts.UpdateJob.FixedKey {

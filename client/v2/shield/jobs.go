@@ -11,8 +11,10 @@ type Job struct {
 	UUID       string `json:"uuid,omitempty"`
 	Name       string `json:"name"`
 	Summary    string `json:"summary"`
-	Expiry     int    `json:"expiry"`
 	Schedule   string `json:"schedule"`
+	KeepDays   int    `json:"keep_days"`
+	KeepN      int    `json:"keep_n"`
+	Retain     string `json:"-"`
 	Paused     bool   `json:"paused"`
 	Agent      string `json:"agent"`
 	LastStatus string `json:"status"`
@@ -42,13 +44,6 @@ type Job struct {
 		Config   map[string]interface{} `json:"config,omitempty"`
 	} `json:"store"`
 
-	PolicyUUID string `json:"-"`
-	Policy     struct {
-		UUID    string `json:"uuid"`
-		Name    string `json:"name"`
-		Summary string `json:"summary"`
-	} `json:"policy"`
-
 	AgentHost string `json:"-"`
 	AgentPort int    `json:"-"`
 }
@@ -58,14 +53,10 @@ type JobFilter struct {
 	Name   string `qs:"name"`
 	Store  string `qs:"store"`
 	Target string `qs:"target"`
-	Policy string `qs:"policy"`
 	Paused *bool  `qs:"paused:t:f"`
 }
 
 func fixupJobResponse(p *Job) {
-	if p != nil {
-		p.Expiry = p.Expiry / 86400
-	}
 }
 
 func (c *Client) ListJobs(parent *Tenant, filter *JobFilter) ([]*Job, error) {
@@ -119,19 +110,19 @@ func (c *Client) CreateJob(parent *Tenant, job *Job) (*Job, error) {
 		Name     string `json:"name"`
 		Summary  string `json:"summary"`
 		Schedule string `json:"schedule"`
+		Retain   string `json:"retain"`
 		Paused   bool   `json:"paused"`
 		Store    string `json:"store"`
 		Target   string `json:"target"`
-		Policy   string `json:"policy"`
 		FixedKey bool   `json:"fixed_key"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
 		Schedule: job.Schedule,
+		Retain:   job.Retain,
 		Paused:   job.Paused,
 		Target:   job.TargetUUID,
 		Store:    job.StoreUUID,
-		Policy:   job.PolicyUUID,
 		FixedKey: job.FixedKey,
 	}
 	if err := c.post(fmt.Sprintf("/v2/tenants/%s/jobs", parent.UUID), in, &out); err != nil {
@@ -146,17 +137,17 @@ func (c *Client) UpdateJob(parent *Tenant, job *Job) (*Job, error) {
 		Name     string `json:"name,omitempty"`
 		Summary  string `json:"summary,omitempty"`
 		Schedule string `json:"schedule,omitempty"`
+		Retain   string `json:"retain,omitempty"`
 		Store    string `json:"store,omitempty"`
 		Target   string `json:"target,omitempty"`
-		Policy   string `json:"policy,omitempty"`
 		FixedKey bool   `json:"fixed_key"`
 	}{
 		Name:     job.Name,
 		Summary:  job.Summary,
 		Schedule: job.Schedule,
+		Retain:   job.Retain,
 		Target:   job.TargetUUID,
 		Store:    job.StoreUUID,
-		Policy:   job.PolicyUUID,
 		FixedKey: job.FixedKey,
 	}
 	if err := c.put(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, job.UUID), in, nil); err != nil {

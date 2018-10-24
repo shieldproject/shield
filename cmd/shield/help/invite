@@ -3,8 +3,7 @@ USAGE: @G{shield} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}
   Invite a local user into a SHIELD Tenant.
 
   Each SHIELD Core defines one or more tenants, each with their own
-  set of cloud storage configurations, retention policies, data systems,
-  and backup jobs.
+  set of cloud storage configurations, data systems, and backup jobs.
 
   Local users (accounts defined wholly within SHIELD itself) can be
   arbitrarily assigned to those tenants, and given one of three roles:
@@ -14,8 +13,7 @@ USAGE: @G{shield} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}
 
     @M{engineer}  Full control of the configuration of SHIELD within the
                   tenant.  Engineers have the ability to reconfigure
-                  retention policies, cloud storage, data systems, and
-                  backup jobs.
+                  cloud storage, data systems, and backup jobs.
 
     @M{operator}  Day-to-day backup-related activities including running
                   ad hoc backup jobs, performing restores, pausing and

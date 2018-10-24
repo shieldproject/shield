@@ -13,12 +13,12 @@ type Job struct {
 	TenantUUID string `json:"-" mbus:"tenant_uuid"`
 	TargetUUID string `json:"-" mbus:"target_uuid"`
 	StoreUUID  string `json:"-" mbus:"store_uuid"`
-	PolicyUUID string `json:"-" mbus:"policy_uuid"`
 
 	UUID     string `json:"uuid"      mbus:"uuid"`
 	Name     string `json:"name"      mbus:"name"`
 	Summary  string `json:"summary"   mbus:"summary"`
-	Expiry   int    `json:"expiry"    mbus:"expiry"`
+	KeepN    int    `json:"keep_n"    mbus:"keep_n"`
+	KeepDays int    `json:"keep_days" mbus:"keep_days"`
 	Schedule string `json:"schedule"  mbus:"schedule"`
 	Paused   bool   `json:"paused"    mbus:"paused"`
 	FixedKey bool   `json:"fixed_key" mbus:"fixed_key"`
@@ -46,12 +46,6 @@ type Job struct {
 		Config   map[string]interface{} `json:"config,omitempty"`
 	} `json:"store"`
 
-	Policy struct {
-		UUID    string `json:"uuid"`
-		Name    string `json:"name"`
-		Summary string `json:"summary"`
-	} `json:"policy"`
-
 	Agent string `json:"agent"`
 
 	Healthy        bool   `json:"healthy" mbus:"healthy"`
@@ -74,7 +68,6 @@ type JobFilter struct {
 	ForTenant  string
 	ForTarget  string
 	ForStore   string
-	ForPolicy  string
 	ExactMatch bool
 }
 
@@ -109,10 +102,6 @@ func (f *JobFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "j.store_uuid = ?")
 		args = append(args, f.ForStore)
 	}
-	if f.ForPolicy != "" {
-		wheres = append(wheres, "j.retention_uuid = ?")
-		args = append(args, f.ForPolicy)
-	}
 	if f.SkipPaused || f.SkipUnpaused {
 		wheres = append(wheres, "j.paused = ?")
 		if f.SkipPaused {
@@ -135,14 +124,12 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-	          j.tenant_uuid, j.fixed_key,
-	          r.name, r.summary, r.uuid, r.expiry,
+	          j.tenant_uuid, j.fixed_key, j.keep_n, j.keep_days,
 	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
 	          k.started_at, k.status
 
 	     FROM jobs j
-	          INNER JOIN retention    r  ON  r.uuid = j.retention_uuid
 	          INNER JOIN stores       s  ON  s.uuid = j.store_uuid
 	          INNER JOIN targets      t  ON  t.uuid = j.target_uuid
 	          LEFT  JOIN recent_tasks k  ON  j.uuid = k.job_uuid
@@ -173,8 +160,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		)
 		if err = r.Scan(
 			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
-			&j.TenantUUID, &j.FixedKey,
-			&j.Policy.Name, &j.Policy.Summary, &j.Policy.UUID, &j.Expiry,
+			&j.TenantUUID, &j.FixedKey, &j.KeepN, &j.KeepDays,
 			&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
@@ -228,14 +214,14 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 
 	err := db.exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,
-	                     name, summary, schedule, paused,
-	                     target_uuid, store_uuid, retention_uuid, fixed_key)
+	                     name, summary, schedule, keep_n, keep_days, paused,
+	                     target_uuid, store_uuid, fixed_key)
 	             VALUES (?, ?,
-	                     ?, ?, ?, ?,
-	                     ?, ?, ?, ?)`,
+	                     ?, ?, ?, ?, ?,
+	                     ?, ?, ?)`,
 		job.UUID, job.TenantUUID,
-		job.Name, job.Summary, job.Schedule, job.Paused,
-		job.TargetUUID, job.StoreUUID, job.PolicyUUID, job.FixedKey)
+		job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
+		job.TargetUUID, job.StoreUUID, job.FixedKey)
 	if err != nil {
 		return nil, err
 	}
@@ -255,14 +241,15 @@ func (db *DB) UpdateJob(job *Job) error {
 	      SET name           = ?,
 	          summary        = ?,
 	          schedule       = ?,
+	          keep_n         = ?,
+	          keep_days      = ?,
 	          target_uuid    = ?,
 	          store_uuid     = ?,
-	          retention_uuid = ?,
 	          fixed_key      = ?
 	    WHERE uuid = ?`,
-		job.Name, job.Summary, job.Schedule,
-		job.TargetUUID, job.StoreUUID, job.PolicyUUID,
-		job.FixedKey, job.UUID)
+		job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
+		job.TargetUUID, job.StoreUUID, job.FixedKey,
+		job.UUID)
 	if err != nil {
 		return err
 	}

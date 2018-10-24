@@ -63,6 +63,13 @@ type Config struct {
 		MOTD  string `yaml:"motd"`
 	} `yaml:"api"`
 
+	Limit struct {
+		Retention struct {
+			Min int `yaml:"min"`
+			Max int `yaml:"max"`
+		} `yaml:"retention"`
+	} `yaml:"limit"`
+
 	Auth []struct {
 		Name       string `yaml:"name"`
 		Identifier string `yaml:"identifier"`
@@ -106,6 +113,9 @@ func init() {
 
 	DefaultConfig.API.Env = "SHIELD"
 	DefaultConfig.API.Color = "yellow"
+
+	DefaultConfig.Limit.Retention.Min = 1
+	DefaultConfig.Limit.Retention.Max = 390
 
 	DefaultConfig.Vault.Address = "http://127.0.0.1:8200"
 

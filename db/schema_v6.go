@@ -1,5 +1,9 @@
 package db
 
+import (
+	"github.com/starkandwayne/shield/timespec"
+)
+
 type v6Schema struct{}
 
 func (s v6Schema) Deploy(db *DB) error {
@@ -14,8 +18,9 @@ func (s v6Schema) Deploy(db *DB) error {
 	               name               TEXT,
 	               summary            TEXT,
 	               schedule           TEXT NOT NULL,
+	               keep_n             INTEGER NOT NULL DEFAULT 0,
+	               keep_days          INTEGER NOT NULL DEFAULT 0,
 	               next_run           INTEGER DEFAULT 0,
-	               retention_uuid     UUID NOT NULL,
 	               priority           INTEGER DEFAULT 50,
 	               paused             BOOLEAN,
 	               fixed_key          INTEGER DEFAULT 0
@@ -24,12 +29,13 @@ func (s v6Schema) Deploy(db *DB) error {
 		return err
 	}
 	err = db.exec(`INSERT INTO jobs_new (uuid, target_uuid, store_uuid, tenant_uuid,
-	                                     schedule, next_run, retention_uuid,
+	                                     schedule, next_run, keep_days,
 	                                     priority, paused, name, summary)
-	                              SELECT uuid, target_uuid, store_uuid, tenant_uuid,
-	                                     schedule, next_run, retention_uuid,
-	                                     priority, paused, name, summary
-	                                FROM jobs`)
+	                              SELECT j.uuid, j.target_uuid, j.store_uuid, j.tenant_uuid,
+	                                     j.schedule, j.next_run, r.expiry / 86400,
+	                                     j.priority, j.paused, j.name, j.summary
+	                                FROM jobs j INNER JOIN retention r
+	                                  ON j.retention_uuid = r.uuid`)
 	if err != nil {
 		return err
 	}
@@ -40,6 +46,22 @@ func (s v6Schema) Deploy(db *DB) error {
 	err = db.exec(`ALTER TABLE jobs_new RENAME TO jobs`)
 	if err != nil {
 		return err
+	}
+	err = db.exec(`DROP TABLE retention`)
+	if err != nil {
+		return err
+	}
+
+	/* fix keep_n on all jobs */
+	jobs, err := db.GetAllJobs(nil)
+	if err != nil {
+		return err
+	}
+	for _, job := range jobs {
+		if sched, err := timespec.Parse(job.Schedule); err != nil {
+			job.KeepN = sched.KeepN(job.KeepDays)
+			db.UpdateJob(job)
+		}
 	}
 
 	err = db.exec(`UPDATE schema_info set version = 6`)

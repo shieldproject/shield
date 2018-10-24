@@ -82,7 +82,6 @@ var _ = Describe("Database Schema", func() {
 
 				tableExists("targets")
 				tableExists("stores")
-				tableExists("retention")
 				tableExists("jobs")
 				tableExists("archives")
 				tableExists("tasks")

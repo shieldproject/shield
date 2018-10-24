@@ -18,9 +18,6 @@ USAGE: @G{shield} jobs --tenant @Y{TENANT} [OPTIONS]
   --store         Only show backup jobs for the given cloud storage
                   system (given by name or UUID).
 
-  --policy        Only show backup jobs for the given retention
-                  policy (given by name or UUID).
-
   --paused        Only show jobs that are not scheduled (@W{paused}),
   --unpaused      or that are (@W{unpaused}).  These two options are
                   mutually exclusive.

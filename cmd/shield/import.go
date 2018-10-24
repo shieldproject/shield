@@ -76,7 +76,7 @@ type ImportTenant struct {
 		Jobs []struct {
 			Name     string `yaml:"name"`
 			When     string `yaml:"when"`
-			Policy   string `yaml:"policy"`
+			Retain   string `yaml:"retain"`
 			Storage  string `yaml:"storage"`
 			FixedKey bool   `yaml:"fixed_key"`
 			Paused   bool   `yaml:"paused"`
@@ -157,8 +157,8 @@ func (m *ImportManifest) Normalize() error {
 				if job.When == "" {
 					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `when' attribute", tenant.Name, system.Name, job.Name)
 				}
-				if job.Policy == "" {
-					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `policy' attribute", tenant.Name, system.Name, job.Name)
+				if job.Retain == "" {
+					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `retain' attribute", tenant.Name, system.Name, job.Name)
 				}
 				if job.Storage == "" {
 					return fmt.Errorf("Tenant '%s', data system '%s', job '%s' is missing its `storage' attribute", tenant.Name, system.Name, job.Name)
@@ -293,30 +293,6 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 		}
 	}
 
-	fmt.Printf("\n@G{Importing Retention Policy Templates...}\n")
-	for _, policy := range m.Global.Policies {
-		p, _ := c.FindPolicyTemplate(policy.Name, false)
-		if p == nil {
-			fmt.Printf("creating retention policy template @M{%s}, keeping archives for @Y{%d} days\n", policy.Name, policy.Days)
-			_, err = c.CreatePolicyTemplate(&shield.Policy{
-				Name:    policy.Name,
-				Summary: policy.Summary,
-				Expires: policy.Days,
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create retention policy template '%s': %s", policy.Name, err)
-			}
-		} else {
-			fmt.Printf("updating retention policy template @M{%s}, keeping archives for @Y{%d} days\n", policy.Name, policy.Days)
-			p.Summary = policy.Summary
-			p.Expires = policy.Days
-			_, err := c.UpdatePolicyTemplate(p)
-			if err != nil {
-				return fmt.Errorf("failed to update retention policy template '%s': %s", policy.Name, err)
-			}
-		}
-	}
-
 	fmt.Printf("\n@G{Importing Tenants...}\n")
 	for _, tenant := range m.Tenants {
 		fmt.Printf("importing tenant @C{%s}...\n", tenant.Name)
@@ -377,30 +353,6 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 			}
 		}
 
-		fmt.Printf("@C{%s}> @G{importing retention policies...}\n", tenant.Name)
-		for _, policy := range tenant.Policies {
-			p, _ := c.FindPolicy(t, policy.Name, false)
-			if p == nil {
-				fmt.Printf("@C{%s}> creating retention policy @M{%s}, keeping archives for @Y{%d} days\n", tenant.Name, policy.Name, policy.Days)
-				_, err = c.CreatePolicy(t, &shield.Policy{
-					Name:    policy.Name,
-					Summary: policy.Summary,
-					Expires: policy.Days,
-				})
-				if err != nil {
-					return fmt.Errorf("failed to create retention policy '%s' for tenant '%s': %s", policy.Name, tenant.Name, err)
-				}
-			} else {
-				fmt.Printf("@C{%s}> updating retention policy @M{%s}, keeping archives for @Y{%d} days\n", tenant.Name, policy.Name, policy.Days)
-				p.Summary = policy.Summary
-				p.Expires = policy.Days
-				_, err := c.UpdatePolicy(t, p)
-				if err != nil {
-					return fmt.Errorf("failed to update retention policy '%s' on tenant '%s': %s", policy.Name, tenant.Name, err)
-				}
-			}
-		}
-
 		fmt.Printf("@C{%s}> @G{importing data systems...}\n", tenant.Name)
 		for _, system := range tenant.Systems {
 			sys, _ := c.FindTarget(t, system.Name, false)
@@ -433,17 +385,12 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 				if err != nil {
 					return fmt.Errorf("unable to find storage system '%s' for '%s' job on tenant '%s': %s", job.Storage, job.Name, tenant.Name, err)
 				}
-				policy, err := c.FindPolicy(t, job.Policy, false)
-				if err != nil {
-					return fmt.Errorf("unable to find retention policy '%s' for '%s' job on tenant '%s': %s", job.Policy, job.Name, tenant.Name, err)
-				}
 
 				ll, err := c.ListJobs(t, &shield.JobFilter{
 					Fuzzy:  false,
 					Name:   job.Name,
 					Target: sys.UUID,
 					Store:  store.UUID,
-					Policy: policy.UUID,
 				})
 				if err != nil || len(ll) == 0 {
 					fmt.Printf("@C{%s} :: @B{%s}> creating @M{%s} job, running at @W{%s}\n", tenant.Name, system.Name, job.Name, job.When)
@@ -451,8 +398,8 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 						Name:       job.Name,
 						TargetUUID: sys.UUID,
 						StoreUUID:  store.UUID,
-						PolicyUUID: policy.UUID,
 						Schedule:   job.When,
+						Retain:     job.Retain,
 						FixedKey:   job.FixedKey,
 						Paused:     job.Paused,
 					})
@@ -464,8 +411,8 @@ func (m *ImportManifest) Deploy(c *shield.Client) error {
 				} else {
 					fmt.Printf("@C{%s} :: @B{%s}> updating @M{%s} job, running at @W{%s}\n", tenant.Name, system.Name, job.Name, job.When)
 					ll[0].StoreUUID = store.UUID
-					ll[0].PolicyUUID = policy.UUID
 					ll[0].Schedule = job.When
+					ll[0].Retain = job.Retain
 					_, err := c.UpdateJob(t, ll[0])
 					if err != nil {
 						return fmt.Errorf("failed to reconfigure job '%s' of data system '%s' on tenant '%s': %s", job.Name, system.Name, tenant.Name, err)

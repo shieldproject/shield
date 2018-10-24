@@ -3,8 +3,7 @@ USAGE: @G{shield} create-tenant [--name @Y{NAME}]
   Create a new SHIELD Tenant.
 
   Each SHIELD Core defines one or more tenants, each with their own
-  set of cloud storage configurations, retention policies, data systems,
-  and backup jobs.
+  set of cloud storage configurations, data systems, and backup jobs.
 
   @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.
 
