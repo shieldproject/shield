@@ -1254,6 +1254,25 @@ form button.go {
   cursor: pointer;
 }
 
+a button.confirm {
+  background-color: #e7360a;
+  border: 1px solid #e7360a;
+  color: #fff;
+  font-size: 16pt;
+  height: 36px;
+  border-radius: 4px;
+  padding: 0 0.6em;
+  margin: 0;
+  box-sizing: border-box;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.submit {
+  float: left;
+  padding-left: 2px;
+}
+
 .e404 {
   max-width: 800px;
 }

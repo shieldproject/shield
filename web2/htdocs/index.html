@@ -2681,6 +2681,9 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       ]]
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
+            [[ if ($global.auth.is.system.manager) { ]]
+            <a class="new" href="#!/admin/users/chgpwd:uuid:[[= _.user.uuid ]]">Update User Password &raquo;</a>
+            [[ } ]]
             <h2>Update SHIELD User [[= _.user.account ]]</h2>
             <form>
               <div class="ctl" data-field="name">
@@ -2706,10 +2709,17 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   </select>
                 </div>
               </div>
-
+              <div class="submit">
               <button class="go">Update</button>
+              </div>
             </form>
-          </div>
+            [[ if ($global.auth.user.uuid != _.user.uuid && ($global.auth.is.system.manager)) { ]]
+            <div class="submit">
+              <a href="#!/admin/users/delete:uuid:[[= _.user.uuid ]]"> 
+                <button class="confirm">Delete User</button>
+              </a>
+            [[ } ]]
+            </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--sessions"><!-- {{{ -->
         [[#
@@ -2768,6 +2778,62 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 <button class="safe" rel="close">No, Cancel This Operation</button>
               </div>
             </div>
+      <!-- }}} --></script>
+      <script type="text/html" id="tpl--users-delete"><!-- {{{ -->
+        [[#
+          {users-delete}
+
+          A modal interaction screen that requires the operator to acknowledge
+          that what they are about to do will result in the destruction of
+          a users account.
+        ]]
+            <div class="confirm">
+              <h2>Delete Account For: <em>[[= _.user.name ]]</em>?</h2>
+
+              <p>You have requested that S.H.I.E.L.D. remove the account for
+              the user "[[= _.user.name ]]".</p>
+
+              <p class="q">Are you sure you want to delete the user for <em>[[= _.user.name ]]</em>?</p>
+              <div class="a">
+                <button class="danger" rel="yes">Yes, Delete It</button>
+                <button class="safe" rel="close">No, Cancel This Operation</button>
+              </div>
+            </div>
+      <!-- }}} --></script>
+      <script type="text/html" id="tpl--admin-users-chgpwd"><!-- {{{ -->
+        [[#
+        {admin-users-edit} template
+
+        Renders a form that administrators can use to edit existing local
+        SHIELD user's passwords.
+      ]]
+          <div class="gutter blk" id="admin-users">
+            <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
+            <h2>Update SHIELD Password For [[= _.user.account ]]</h2>
+            <form>
+                <div class="ctl" data-field="password">
+                    <label for="update-user-password">Password</label>
+                    <span class="errors">
+                      <span data-error="missing">Please provide a password for this new user.</span>
+                    </span>
+                    <div class="widget">
+                      <input type="password" name="password" id="update-user-password">
+                    </div>
+                  </div>
+    
+                  <div class="ctl" data-field="confirm">
+                    <label for="update-user-confirm">Confirm</label>
+                    <span class="errors">
+                      <span data-error="missing">Please confirm this user's new password.</span>
+                      <span data-error="mismatch">These passwords don't match.</span>
+                    </span>
+                    <div class="widget">
+                      <input type="password" name="confirm" id="update-user-confirm">
+                    </div>
+                  </div>
+                <button class="go">Submit</button>
+            </form>
+          </div>
       <!-- }}} --></script>
     <script type="text/html" id="tpl--"><!-- {{{ -->
     <!-- }}} --></script>

@@ -3024,8 +3024,79 @@ function dispatch(page) {
           }));
       }
     });
-    break; // #!/admin/users/new
+    break; 
+    case "#!/admin/users/chgpwd": /* {{{ */
+      if (!$global.auth.is.system.manager) {
+        $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+        break;
+      }
+      api({
+        type: 'GET',
+        url:  '/v2/auth/local/users/'+args.uuid,
+        error: "Unable to retrieve user information from the SHIELD API.",
+        success: function (data) {
+          $('#main').html($(template('admin-users-chgpwd', { user: data }))
+            .autofocus()
+            .on('submit', 'form', function (event) {
+              event.preventDefault();
+              var $form = $(event.target);
+  
+              var payload = {
+                password:    $form.find('[name=password]').val(),
+              };
+  
+              banner("Updating user...", "info");
+              api({
+                type: 'PATCH',
+                url:  '/v2/auth/local/users/'+args.uuid,
+                data: payload,
+                success: function (data) {
+                  banner('User updated successfully.');
+                  goto("#!/admin/users");
+                },
+                error: function (xhr) {
+                  banner("Failed to update user", "error");
+                }
+              });
+            }));
+        }
+      });
+      break;// #!/admin/users/new
     // }}}
+
+    case '#!/admin/users/delete': /* {{{ */
+      if (!$global.auth.is.system.admin) {
+        $('#main').html(template('access-denied', { level: 'system', need: 'admin' }));
+        break;
+      }
+      api({
+        type: 'GET',
+        url:  '/v2/auth/local/users/'+args.uuid,
+        error: "Failed to retrieve session information from the SHIELD API.",
+        success: function (data) {
+        modal($(template('users-delete', { user: data }))
+          .on('click', '[rel="yes"]', function (event) {
+          event.preventDefault();
+          api({
+              type: 'DELETE',
+              url:  '/v2/auth/local/users/'+args.uuid,
+              error: "Unable to delete session",
+              complete: function () {
+              modal(true);
+              },
+              success: function (event) {
+              goto('#!/admin/users');
+              }
+          });
+          })
+          .on('click', '[rel="close"]', function (event) {
+          modal(true);
+          goto('#!/admin/users/edit:uuid:'+args.uuid);
+          })
+      );
+      }
+      });
+      break; /* #!/admin/sess
 
   case '#!/admin/stores': /* {{{ */
     if (!$global.auth.is.system.engineer) {
