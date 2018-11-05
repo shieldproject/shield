@@ -16,6 +16,7 @@ const (
 	ShieldRestoreOperation = "shield-restore"
 	PurgeOperation         = "purge"
 	TestStoreOperation     = "test-store"
+	AgentStatusOperation   = "agent-status"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"
@@ -400,6 +401,25 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		 WHERE uuid=?`,
 		id, store.UUID,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return db.GetTask(id)
+}
+
+func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
+	id := RandomID()
+	err := db.exec(`
+	   INSERT INTO tasks (uuid, op, status, log, requested_at,
+	                      agent, attempts, owner)
+	
+	              VALUES (?, ?, ?, ?, ?,
+	                      ?, ?, ?)`,
+		id, AgentStatusOperation, PendingStatus, "", time.Now().Unix(),
+		agent.Address, 0, owner,
+	)
+
 	if err != nil {
 		return nil, err
 	}

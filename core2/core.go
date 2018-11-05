@@ -6,9 +6,11 @@ import (
 	"os"
 
 	"github.com/jhunt/go-log"
+	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 
 	"github.com/starkandwayne/shield/core/bus"
+	"github.com/starkandwayne/shield/core/fabric"
 	"github.com/starkandwayne/shield/core/scheduler"
 	"github.com/starkandwayne/shield/core/vault"
 	"github.com/starkandwayne/shield/db"
@@ -79,8 +81,13 @@ type Config struct {
 	} `yaml:"auth"`
 
 	Fabrics []struct {
-		Type   string `yaml:"type"`
+		Name string `yaml:"name"`
+
 		SSHKey string `yaml:"ssh-key"`
+
+		legacy struct {
+			cc *ssh.ClientConfig
+		}
 	} `yaml:"fabrics"`
 
 	Vault struct {
@@ -190,6 +197,31 @@ func Configure(file string, config Config) (*Core, error) {
 		c.Config.Vault.ca = string(b)
 	}
 
+	/* validate fabrics */
+	if len(c.Config.Fabrics) == 0 {
+		return nil, fmt.Errorf("No agent comunication fabrics have been configured")
+	}
+	for i, fc := range c.Config.Fabrics {
+		switch fc.Name {
+		default:
+			return nil, fmt.Errorf("Unrecognized fabric '%s' configured", fc.Name)
+
+		case "legacy":
+			if fc.SSHKey == "" {
+				return nil, fmt.Errorf("No ssh-key provided in legacy fabric configuration")
+			}
+
+			signer, err := ssh.ParsePrivateKey([]byte(fc.SSHKey))
+			if err != nil {
+				return nil, fmt.Errorf("Invalid 'ssh-key' provided in legacy fabric configuration: %s", err)
+			}
+
+			c.Config.Fabrics[i].legacy.cc = &ssh.ClientConfig{
+				Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+			}
+		}
+	}
+
 	/* set up information for /v2/info and /init.js */
 	c.info.API = 2
 	c.info.Version = Version
@@ -283,4 +315,16 @@ func (c *Core) DataFile(rel string) string {
 
 func (c *Core) CryptFile() string {
 	return c.DataFile("vault.crypt")
+}
+
+func (c *Core) FabricFor(task *db.Task) (fabric.Fabric, error) {
+	for _, config := range c.Config.Fabrics {
+		if config.Name != "legacy" {
+			continue
+		}
+
+		return fabric.Legacy(task.Agent, config.legacy.cc, c.db), nil
+	}
+
+	return nil, fmt.Errorf("no fabric configured to handle agent '%s'", task.Agent)
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/core/bus"
-	"github.com/starkandwayne/shield/core/fabric"
 	"github.com/starkandwayne/shield/core/scheduler"
 	"github.com/starkandwayne/shield/core/vault"
 	"github.com/starkandwayne/shield/db"
@@ -270,7 +269,10 @@ func (c *Core) ScheduleAgentStatusCheckTasks(f *db.AgentFilter) {
 	}
 
 	for _, agent := range agents {
-		c.scheduler.Schedule(0, fabric.Legacy(agent.Address, "FIXME/ssh/key/missing").Status())
+		if _, err := c.db.CreateAgentStatusTask("system", agent); err != nil {
+			log.Errorf("error scheduling status check of agent %s: %s", agent.Name, err)
+			continue
+		}
 	}
 }
 
@@ -286,7 +288,7 @@ func (c *Core) RunScheduler() {
 	for _, task := range tasks {
 		log.Infof("SCHEDULER: scheduling [%s] task %s", task.Op, task.UUID)
 
-		// FIXME: fabric, err := c.FabricFor(task)
+		fabric, err := c.FabricFor(task)
 		if err != nil {
 			log.Errorf("unable to find a fabric to facilitate execution of [%s] task %s: %s", task.Op, task.UUID, err)
 			log.Errorf("marking [%s] task %s as errored", task.Op, task.UUID)
@@ -295,7 +297,38 @@ func (c *Core) RunScheduler() {
 			c.db.FailTask(task.UUID, time.Now())
 			continue
 		}
-		// FIXME c.scheduler.Schedule(task)
+
+		switch task.Op {
+		default:
+			c.TaskErrored(task, "unrecognized task type '%s'\n", task.Op)
+			continue
+
+		case db.BackupOperation:
+			task.ArchiveUUID = db.RandomID()
+			encryption, err := c.vault.NewParameters(task.ArchiveUUID, c.Config.Cipher, task.FixedKey)
+			if err != nil {
+				c.TaskErrored(task, "unable to generate encryption parameters:\n%s\n", err)
+				continue
+			}
+			c.scheduler.Schedule(20, fabric.Backup(task, encryption))
+
+		case db.RestoreOperation:
+			encryption, err := c.vault.Retrieve(task.ArchiveUUID)
+			if err != nil {
+				c.TaskErrored(task, "unable to retrieve encryption parameters:\n%s\n", err)
+				continue
+			}
+			c.scheduler.Schedule(20, fabric.Restore(task, encryption))
+
+		case db.PurgeOperation:
+			c.scheduler.Schedule(50, fabric.Purge(task))
+
+		case db.AgentStatusOperation:
+			c.scheduler.Schedule(30, fabric.Status())
+
+		case db.TestStoreOperation:
+			c.scheduler.Schedule(40, fabric.TestStore(task))
+		}
 
 		if err := c.db.ScheduledTask(task.UUID); err != nil {
 			log.Errorf("unable to mark task %s as 'scheduled' in the database: %s", err)

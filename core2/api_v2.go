@@ -174,6 +174,14 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("GET /v2/scheduler/status", func(r *route.Request) { // {{{
+		if c.IsNotSystemManager(r) {
+			return
+		}
+		r.OK(c.scheduler.Status())
+	})
+	// }}}
+
 	r.Dispatch("GET /v2/events", func(r *route.Request) { // {{{
 		//you must be logged into shield to access the event stream
 		if c.IsNotAuthenticated(r) {
