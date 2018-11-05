@@ -6,6 +6,10 @@ import (
 	"github.com/starkandwayne/shield/db"
 )
 
+func Error(err error) ErrorFabric {
+	return ErrorFabric{e: err}
+}
+
 type ErrorFabric struct {
 	e error
 }
@@ -21,11 +25,11 @@ func (f ErrorFabric) chore() scheduler.Chore {
 	})
 }
 
-func (f ErrorFabric) Backup(*db.Target, *db.Store, string, *vault.Parameters) scheduler.Chore {
+func (f ErrorFabric) Backup(*db.Task, vault.Parameters) scheduler.Chore {
 	return f.chore()
 }
 
-func (f ErrorFabric) Restore(*db.Archive, *db.Target, *vault.Parameters) scheduler.Chore {
+func (f ErrorFabric) Restore(*db.Task, vault.Parameters) scheduler.Chore {
 	return f.chore()
 }
 
@@ -33,10 +37,10 @@ func (f ErrorFabric) Status() scheduler.Chore {
 	return f.chore()
 }
 
-func (f ErrorFabric) Purge(*db.Archive) scheduler.Chore {
+func (f ErrorFabric) Purge(*db.Task) scheduler.Chore {
 	return f.chore()
 }
 
-func (f ErrorFabric) TestStore(*db.Store) scheduler.Chore {
+func (f ErrorFabric) TestStore(*db.Task) scheduler.Chore {
 	return f.chore()
 }

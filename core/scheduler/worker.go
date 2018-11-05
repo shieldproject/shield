@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"fmt"
+
+	"github.com/jhunt/go-log"
 )
 
 var serial = 0
@@ -9,6 +11,8 @@ var serial = 0
 type Worker struct {
 	id        int
 	available bool
+	task      string
+	last      int
 }
 
 func NewWorker() Worker {
@@ -28,9 +32,11 @@ func (t Worker) Available() bool {
 }
 
 func (t *Worker) Reserve() {
+	log.Infof("reserving %s...", t)
 	t.available = false
 }
 
 func (t *Worker) Release() {
+	log.Infof("releasing %s...", t)
 	t.available = true
 }

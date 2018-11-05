@@ -5,29 +5,25 @@ import (
 	"encoding/json"
 
 	"golang.org/x/crypto/ssh"
+	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/core/scheduler"
 	"github.com/starkandwayne/shield/core/vault"
 	"github.com/starkandwayne/shield/db"
 )
 
-type LegacyFabric struct {
-	ip     string
-	config *ssh.ClientConfig
+func Legacy(ip string, config *ssh.ClientConfig, db *db.DB) LegacyFabric {
+	return LegacyFabric{
+		ip:  ip,
+		ssh: config,
+		db:  db,
+	}
 }
 
-func Legacy(ip, key string) Fabric {
-	signer, err := ssh.ParsePrivateKey([]byte(key))
-	if err != nil {
-		return ErrorFabric{e: err}
-	}
-
-	return LegacyFabric{
-		ip: ip,
-		config: &ssh.ClientConfig{
-			Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
-		},
-	}
+type LegacyFabric struct {
+	ip  string
+	ssh *ssh.ClientConfig
+	db  *db.DB
 }
 
 type Command struct {
@@ -48,29 +44,19 @@ type Command struct {
 	Compression string `json:"compression,omitempty"`
 }
 
-func (f LegacyFabric) Backup(target *db.Target, store *db.Store, compression string, encryption *vault.Parameters) scheduler.Chore {
+func (f LegacyFabric) Backup(task *db.Task, encryption vault.Parameters) scheduler.Chore {
 	op := "backup"
 
-	t, err := target.ConfigJSON()
-	if err != nil {
-		return f.Error(op, err)
-	}
-
-	s, err := store.ConfigJSON()
-	if err != nil {
-		return f.Error(op, err)
-	}
-
 	return f.Execute(op, Command{
-		Op: "backup",
+		Op: op,
 
-		TargetPlugin:   target.Plugin,
-		TargetEndpoint: t,
+		TargetPlugin:   task.TargetPlugin,
+		TargetEndpoint: task.TargetEndpoint,
 
-		StorePlugin:   store.Plugin,
-		StoreEndpoint: s,
+		StorePlugin:   task.StorePlugin,
+		StoreEndpoint: task.StoreEndpoint,
 
-		Compression: compression,
+		Compression: task.Compression,
 
 		EncryptType: encryption.Type,
 		EncryptKey:  encryption.Key,
@@ -78,25 +64,20 @@ func (f LegacyFabric) Backup(target *db.Target, store *db.Store, compression str
 	})
 }
 
-func (f LegacyFabric) Restore(archive *db.Archive, target *db.Target, encryption *vault.Parameters) scheduler.Chore {
+func (f LegacyFabric) Restore(task *db.Task, encryption vault.Parameters) scheduler.Chore {
 	op := "restore"
 
-	t, err := target.ConfigJSON()
-	if err != nil {
-		return f.Error(op, err)
-	}
-
 	return f.Execute(op, Command{
-		Op: "restore",
+		Op: op,
 
-		RestoreKey:     archive.StoreKey,
-		TargetPlugin:   target.Plugin,
-		TargetEndpoint: t,
+		RestoreKey:     task.RestoreKey,
+		TargetPlugin:   task.TargetPlugin,
+		TargetEndpoint: task.TargetEndpoint,
 
-		StorePlugin:   archive.StorePlugin,
-		StoreEndpoint: archive.StoreEndpoint,
+		StorePlugin:   task.StorePlugin,
+		StoreEndpoint: task.StoreEndpoint,
 
-		Compression: archive.Compression,
+		Compression: task.Compression,
 
 		EncryptType: encryption.Type,
 		EncryptKey:  encryption.Key,
@@ -110,28 +91,23 @@ func (f LegacyFabric) Status() scheduler.Chore {
 	})
 }
 
-func (f LegacyFabric) Purge(archive *db.Archive) scheduler.Chore {
+func (f LegacyFabric) Purge(task *db.Task) scheduler.Chore {
 	return f.Execute("archive purge", Command{
 		Op: "purge",
 
-		StorePlugin:   archive.StorePlugin,
-		StoreEndpoint: archive.StoreEndpoint,
+		StorePlugin:   task.StorePlugin,
+		StoreEndpoint: task.StoreEndpoint,
 	})
 }
 
-func (f LegacyFabric) TestStore(store *db.Store) scheduler.Chore {
+func (f LegacyFabric) TestStore(task *db.Task) scheduler.Chore {
 	op := "storage test"
-
-	s, err := store.ConfigJSON()
-	if err != nil {
-		return f.Error(op, err)
-	}
 
 	return f.Execute(op, Command{
 		Op: "test-store",
 
-		StorePlugin:   store.Plugin,
-		StoreEndpoint: s,
+		StorePlugin:   task.StorePlugin,
+		StoreEndpoint: task.StoreEndpoint,
 	})
 }
 
@@ -147,6 +123,8 @@ func (f LegacyFabric) Error(op string, err error) scheduler.Chore {
 func (f LegacyFabric) Execute(op string, command Command) scheduler.Chore {
 	return scheduler.NewChore(
 		func(chore scheduler.Chore) {
+			log.Debugf("starting up legacy agent execution...")
+			log.Debugf("marshaling command into JSON for transport across SSH (legacy) fabric")
 			b, err := json.Marshal(command)
 			if err != nil {
 				chore.Errorf("ERR> unable to marshal %s task payload: %s\n", op, err)
@@ -155,7 +133,8 @@ func (f LegacyFabric) Execute(op string, command Command) scheduler.Chore {
 			}
 			payload := string(b)
 
-			conn, err := ssh.Dial("tcp4", f.ip, f.config)
+			chore.Infof("connecing to %s (tcp/ipv4)\n", f.ip)
+			conn, err := ssh.Dial("tcp4", f.ip, f.ssh)
 			if err != nil {
 				chore.Errorf("ERR> unable to connect to %s: %s\n", err)
 				chore.UnixExit(2)

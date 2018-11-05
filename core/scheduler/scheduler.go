@@ -77,6 +77,6 @@ func (s *Scheduler) Run() {
 		chore := s.chores[prio][0]
 		s.chores[prio] = s.chores[prio][1:]
 
-		worker.Execute(chore)
+		go worker.Execute(chore)
 	}
 }
