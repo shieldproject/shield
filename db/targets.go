@@ -175,7 +175,7 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 }
 
 func (db *DB) CreateTarget(target *Target) (*Target, error) {
-	target.UUID = randomID()
+	target.UUID = RandomID()
 	rawconfig, err := json.Marshal(target.Config)
 	if err != nil {
 		return nil, err

@@ -186,7 +186,7 @@ func (db *DB) CreateSession(session *Session) (*Session, error) {
 		return nil, fmt.Errorf("cannot create an empty (user-less) session")
 	}
 
-	id := randomID()
+	id := RandomID()
 	err := db.exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, last_seen, ip_addr, user_agent)
 	                 VALUES (   ?,         ?,          ?,         ?,       ?,          ?)`,

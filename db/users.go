@@ -177,7 +177,7 @@ func (db *DB) GetUser(account string, backend string) (*User, error) {
 
 func (db *DB) CreateUser(user *User) (*User, error) {
 	if user.UUID == "" {
-		user.UUID = randomID()
+		user.UUID = RandomID()
 	}
 	err := db.exec(`
 	    INSERT INTO users (uuid, name, account, backend, sysrole, pwhash)

@@ -315,7 +315,7 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 		return nil, fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
-	store.UUID = randomID()
+	store.UUID = RandomID()
 	err = db.exec(`
 	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
 	                       plugin, endpoint, private_config, public_config,

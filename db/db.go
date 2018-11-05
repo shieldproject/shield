@@ -139,6 +139,6 @@ func (db *DB) statement(sql string) (*sql.Stmt, error) {
 }
 
 // Generate a randomized UUID
-func randomID() string {
+func RandomID() string {
 	return uuid.NewRandom().String()
 }

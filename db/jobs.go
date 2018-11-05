@@ -210,7 +210,7 @@ func (db *DB) UnpauseJob(id string) (bool, error) {
 }
 
 func (db *DB) CreateJob(job *Job) (*Job, error) {
-	job.UUID = randomID()
+	job.UUID = RandomID()
 
 	err := db.exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,

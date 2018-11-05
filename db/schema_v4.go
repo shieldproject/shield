@@ -36,7 +36,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	tenant := randomID()
+	tenant := RandomID()
 	err = db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant, "tenant1")
 	if err != nil {
 		return err

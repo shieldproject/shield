@@ -193,7 +193,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 		return nil
 	}
 
-	id := randomID()
+	id := RandomID()
 	err = db.exec(`
 	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
 	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,

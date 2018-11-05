@@ -85,8 +85,8 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 		return nil, "", fmt.Errorf("cannot generate a token without a user")
 	}
 
-	id := randomID()
-	token := randomID()
+	id := RandomID()
+	token := RandomID()
 	err := db.exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, token, name)
 	                 VALUES (?,    ?,         ?,          ?,     ?)`,

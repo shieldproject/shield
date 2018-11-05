@@ -11,10 +11,10 @@ import (
 )
 
 var _ = Describe("Archive Management", func() {
-	TARGET_UUID := randomID()
-	STORE_UUID := randomID()
-	ARCHIVE_UUID := randomID()
-	TENANT_UUID := randomID()
+	TARGET_UUID := RandomID()
+	STORE_UUID := RandomID()
+	ARCHIVE_UUID := RandomID()
+	TENANT_UUID := RandomID()
 
 	var db *DB
 
@@ -97,13 +97,13 @@ var _ = Describe("Archive Management", func() {
 	})
 
 	Describe("Archive Retrieval", func() {
-		TARGET2_UUID := randomID()
-		STORE2_UUID := randomID()
-		ARCHIVE_PURGED := randomID()
-		ARCHIVE_INVALID := randomID()
-		ARCHIVE_EXPIRED := randomID()
-		ARCHIVE_TARGET2 := randomID()
-		ARCHIVE_STORE2 := randomID()
+		TARGET2_UUID := RandomID()
+		STORE2_UUID := RandomID()
+		ARCHIVE_PURGED := RandomID()
+		ARCHIVE_INVALID := RandomID()
+		ARCHIVE_EXPIRED := RandomID()
+		ARCHIVE_TARGET2 := RandomID()
+		ARCHIVE_STORE2 := RandomID()
 		BeforeEach(func() {
 			var err error
 			db.exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444", "target_name2")`)
@@ -156,7 +156,7 @@ var _ = Describe("Archive Management", func() {
 				}))
 			})
 			It("Should return error nil/nil if no records exist", func() {
-				a, err := db.GetArchive(randomID())
+				a, err := db.GetArchive(RandomID())
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(a).Should(BeNil())
 			})
@@ -298,9 +298,9 @@ var _ = Describe("Archive Management", func() {
 		})
 
 		Describe("GetExpiredArchives()", func() {
-			UNEXPIRED_ARCHIVE := randomID()
-			UNEXPIRED_ARCHIVE2 := randomID()
-			EXPIRABLE_ARCHIVE := randomID()
+			UNEXPIRED_ARCHIVE := RandomID()
+			UNEXPIRED_ARCHIVE2 := RandomID()
+			EXPIRABLE_ARCHIVE := RandomID()
 
 			var expectedArchiveCount int
 			BeforeEach(func() {

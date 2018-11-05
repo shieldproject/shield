@@ -42,11 +42,11 @@ var _ = Describe("Task Management", func() {
 
 	BeforeEach(func() {
 		var err error
-		SomeTenant = &Tenant{UUID: randomID()}
-		SomeJob = &Job{UUID: randomID()}
-		SomeTarget = &Target{UUID: randomID()}
-		SomeStore = &Store{UUID: randomID()}
-		SomeArchive = &Archive{UUID: randomID()}
+		SomeTenant = &Tenant{UUID: RandomID()}
+		SomeJob = &Job{UUID: RandomID()}
+		SomeTarget = &Target{UUID: RandomID()}
+		SomeStore = &Store{UUID: RandomID()}
+		SomeArchive = &Archive{UUID: RandomID()}
 
 		db, err = Database(
 			// need a tenant
@@ -243,7 +243,7 @@ var _ = Describe("Task Management", func() {
 
 		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Ω(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, randomID(), "SOME-KEY", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
+		archive_id, err := db.CreateTaskArchive(task.UUID, RandomID(), "SOME-KEY", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(archive_id).ShouldNot(BeNil())
 
@@ -265,7 +265,7 @@ var _ = Describe("Task Management", func() {
 
 		Expect(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Expect(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, randomID(), "", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
+		archive_id, err := db.CreateTaskArchive(task.UUID, RandomID(), "", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
 		Expect(err).Should(HaveOccurred())
 		Expect(archive_id).Should(BeEmpty())
 
@@ -323,10 +323,10 @@ var _ = Describe("Task Management", func() {
 	})
 
 	Describe("GetTask", func() {
-		TASK1_UUID := randomID()
-		TASK2_UUID := randomID()
-		TENANT1_UUID := randomID()
-		TENANT2_UUID := randomID()
+		TASK1_UUID := RandomID()
+		TASK2_UUID := RandomID()
+		TENANT1_UUID := RandomID()
+		TENANT2_UUID := RandomID()
 
 		BeforeEach(func() {
 			err := db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, tenant_uuid)`+
@@ -380,17 +380,17 @@ var _ = Describe("Task Management", func() {
 	})
 
 	Describe("IsTaskRunnable", func() {
-		notRunningTaskTargetUUID := randomID()
-		runningTaskTargetUUID := randomID()
+		notRunningTaskTargetUUID := RandomID()
+		runningTaskTargetUUID := RandomID()
 
 		BeforeEach(func() {
 			err := db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
 				`VALUES('%s', '%s', '%s', %d, '%s')`,
-				randomID(), BackupOperation, PendingStatus, 0, notRunningTaskTargetUUID))
+				RandomID(), BackupOperation, PendingStatus, 0, notRunningTaskTargetUUID))
 			Expect(err).ShouldNot(HaveOccurred())
 			err = db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
 				`VALUES('%s', '%s', '%s', %d, '%s')`,
-				randomID(), BackupOperation, RunningStatus, 0, runningTaskTargetUUID))
+				RandomID(), BackupOperation, RunningStatus, 0, runningTaskTargetUUID))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Returns true if no other task with same target uuid is running", func() {

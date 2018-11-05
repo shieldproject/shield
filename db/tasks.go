@@ -260,7 +260,7 @@ func (db *DB) GetTask(id string) (*Task, error) {
 }
 
 func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
-	id := randomID()
+	id := RandomID()
 	err := db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
@@ -285,7 +285,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 }
 
 func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) {
-	id := randomID()
+	id := RandomID()
 	now := time.Now().Unix()
 	err := db.exec(
 		`INSERT INTO tasks
@@ -319,7 +319,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		return nil, err
 	}
 
-	id := randomID()
+	id := RandomID()
 	err = db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
@@ -344,7 +344,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 }
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
-	id := randomID()
+	id := RandomID()
 	err := db.exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
@@ -373,7 +373,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	id := randomID()
+	id := RandomID()
 	err = db.exec(
 		`INSERT INTO tasks
 			(uuid, op,

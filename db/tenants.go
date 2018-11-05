@@ -151,7 +151,7 @@ func (db *DB) EnsureTenant(name string) (*Tenant, error) {
 
 func (db *DB) CreateTenant(tenant *Tenant) (*Tenant, error) {
 	if tenant.UUID == "" {
-		tenant.UUID = randomID()
+		tenant.UUID = RandomID()
 	}
 	err := db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant.UUID, tenant.Name)
 	if err != nil {
