@@ -45,6 +45,24 @@ func gen(t string, k, i int) (Parameters, error) {
 	}, nil
 }
 
+func (c *Client) NewParameters(id, typ string, fixed bool) (Parameters, error) {
+	var (
+		enc Parameters
+		err error
+	)
+
+	if fixed {
+		enc, err = c.Retrieve("fixed_key")
+	} else {
+		enc, err = c.RandomParameters(typ)
+	}
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	return enc, c.Store(id, enc)
+}
+
 func (c *Client) RandomParameters(typ string) (Parameters, error) {
 	cipher := strings.Split(typ, "-")[0]
 	switch cipher {
