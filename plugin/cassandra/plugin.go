@@ -90,106 +90,151 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"sorts"
 	"strings"
 
-	fmt "github.com/jhunt/go-ansi"
+	fmt "github.com/jhunt/go-ansi" // est un alias
 
 	"github.com/starkandwayne/shield/plugin"
 )
 
+// Default configuration values for the plugin
 const (
-	DefaultHost     = "127.0.0.1"
-	DefaultPort     = "9042"
-	DefaultUser     = "cassandra"
-	DefaultPassword = "cassandra"
-	DefaultDataDir  = "/var/vcap/store/cassandra/data"
+	DefaultHost      = "127.0.0.1"
+	DefaultPort      = "9042"
+	DefaultUser      = "cassandra"
+	DefaultPassword  = "cassandra"
+	DefaultSaveUsers = true
+	DefaultBinDir    = "/var/vcap/jobs/cassandra/bin"
+	DefaultDataDir   = "/var/vcap/store/cassandra/data"
 
 	VcapOwnership = "vcap:vcap"
 	SnapshotName  = "shield-backup"
+)
+
+// Array or slices aren't immutable by nature; you can't make them constant
+var (
+	DefaultExcludeKeyspaces = []string{"system_schema", "system_distributed", "system_auth", "system", "system_traces"}
+	SystemAuthTables        = []string{"roles", "role_permissions", "role_members", "resource_role_permissons_index"}
 )
 
 func main() {
 	p := CassandraPlugin{
 		Name:    "Cassandra Backup Plugin",
 		Author:  "Orange",
-		Version: "0.1.0",
+		Version: "1.0.0",
 		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
 		Example: `
 {
-  "host"         : "127.0.0.1",      # optional
-  "port"         : "9042",           # optional
-  "user"         : "username",
-  "password"     : "password",
-  "keyspace"     : "db",
-  "datadir"      : "/path/to/data"   # optional
+  "host"              : "127.0.0.1",      # optional
+  "port"              : "9042",           # optional
+  "user"              : "username",
+  "password"          : "password",
+  "include_keyspaces" : ["db"],
+  "exclude_keyspaces" : ["system"],
+  "save_users"        : true,
+  "bindir"            : "/path/to/bin",   # optional
+  "datadir"           : "/path/to/data",  # optional
 }
 `,
 		Defaults: `
 {
-  "host"     : "127.0.0.1",
-  "port"     : "9042",
-  "user"     : "cassandra",
-  "password" : "cassandra",
-  "datadir"  : "/var/vcap/store/cassandra/data"
+  "host"              : "127.0.0.1",
+  "port"              : "9042",
+  "user"              : "cassandra",
+  "password"          : "cassandra",
+  "exclude_keyspaces" : [ "system_schema", "system_distributed", "system_auth", "system", "system_traces" ],
+  "save_users"        : true,
+  "bindir"            : "/var/vcap/jobs/cassandra/bin",
+  "datadir"           : "/var/vcap/store/cassandra/data"
 }
 `,
 		Fields: []plugin.Field{
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "host",
 				Type:     "string",
 				Title:    "Cassandra Host",
 				Help:     "The hostname or IP address of your Cassandra server.",
 				Default:  "127.0.0.1",
-				Required: true,
+				Required: false,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "port",
 				Type:     "port",
 				Title:    "Cassandra Port",
 				Help:     "The 'native transport' TCP port that Cassandra server is bound to, listening for incoming connections.",
 				Default:  "9042",
-				Required: true,
+				Required: false,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "user",
 				Type:     "string",
 				Title:    "Cassandra Username",
 				Help:     "Username to authenticate to Cassandra as.",
 				Default:  "cassandra",
-				Required: true,
+				Required: false,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
 				Name:     "password",
 				Type:     "password",
 				Title:    "Cassandra Password",
 				Help:     "Password to authenticate to Cassandra as.",
 				Default:  "cassandra",
-				Required: true,
+				Required: false,
 			},
-			plugin.Field{
+			{
 				Mode:     "target",
-				Name:     "keyspace",
-				Type:     "string",
-				Title:    "Keyspace to Backup",
-				Help:     "The name of the keyspace to backup.",
-				Example:  "system",
-				Required: true,
+				Name:     "include_keyspaces",
+				Type:     "array",
+				Title:    "Keyspaces to Include in the Backup",
+				Help:     "The name of the keyspace to include in the backup.",
+				Example:  "['system']",
+				Required: false,
 			},
-			plugin.Field{
+			{
+				Mode:     "target",
+				Name:     "exclude_keyspaces",
+				Type:     "array",
+				Title:    "Keyspaces to Exclude from Backup",
+				Help:     "The name of the keyspace to exclude from backup.",
+				Example:  "[system']",
+				Default:  "['system_schema', 'system_distributed', 'system_auth', 'system', 'system_traces']",
+				Required: false,
+			},
+			{
+				Mode:     "target",
+				Name:     "save_users",
+				Type:     "boolean",
+				Title:    "to restore users and permissions along with the keyspaces that are restored",
+				Help:     "The name of the keyspace to exclude from backup.",
+				Example:  "true or false",
+				Required: false,
+			},
+			{
+				Mode:     "target",
+				Name:     "bindir",
+				Type:     "abspath",
+				Title:    "Path to binaries nodetool, sstableloader and cqlsh needed for the backup",
+				Help:     "where  to find binaries nodetool, sstableloader and cqlsh",
+				Example:  "true or false",
+				Default:  "/var/vcap/jobs/cassandra/bin",
+				Required: false,
+			},
+			{
 				Mode:     "target",
 				Name:     "datadir",
 				Type:     "abspath",
 				Title:    "Path to Cassandra data/ directory",
 				Help:     "The absolute path to the data/ directory that contains the Cassandra database files.",
 				Default:  "/var/vcap/store/cassandra/data",
-				Required: true,
+				Required: false,
 			},
 		},
 	}
@@ -200,12 +245,16 @@ func main() {
 type CassandraPlugin plugin.PluginInfo
 
 type CassandraInfo struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Keyspace string
-	DataDir  string
+	Host             string
+	Port             string
+	User             string
+	Password         string
+	IncludeKeyspaces []string
+	ExcludeKeyspaces []string
+	SaveUsers        bool
+	//BinDir           string  no need in Shield V8
+	BinDir  string
+	DataDir string
 }
 
 // This function should be used to return the plugin's PluginInfo, however you decide to implement it
@@ -216,9 +265,11 @@ func (p CassandraPlugin) Meta() plugin.PluginInfo {
 // Called to validate endpoints from the command line
 func (p CassandraPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
+		a    []string
 		s    string
 		err  error
 		fail bool
+		b    bool
 	)
 
 	s, err = endpoint.StringValueDefault("host", "")
@@ -261,12 +312,42 @@ func (p CassandraPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 password}      @C{%s}\n", s)
 	}
 
-	s, err = endpoint.StringValue("keyspace")
+	a, err = endpoint.ArrayValueDefault("include_keyspaces", nil)
 	if err != nil {
-		fmt.Printf("@R{\u2717 keyspace      %s}\n", err)
+		fmt.Printf("@R{\u2717 include_keyspaces      %s}\n", err)
+		fail = true
+	} else if a == nil {
+		fmt.Printf("@G{\u2713 include_keyspaces}      backing up *all* keyspaces\n")
+	} else {
+		fmt.Printf("@G{\u2713 include_keyspaces}      @C{%v}\n", a)
+	}
+
+	a, err = endpoint.ArrayValueDefault("exclude_keyspace", DefaultExcludeKeyspaces)
+	if err != nil {
+		fmt.Printf("@R{\u2717 exclude_keyspaces      %s}\n", err)
+		fail = true
+	} else if len(a) == 0 {
+		fmt.Printf("@G{\u2713 exclude_keyspaces}      including *all* keyspaces\n")
+	} else {
+		fmt.Printf("@G{\u2713 exclude_keyspaces}      @C{%v}\n", a)
+	}
+
+	b, err = endpoint.BooleanValueDefault("save_users", DefaultSaveUsers)
+	if err != nil {
+		fmt.Printf("@R{\u2717 save_users      %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 keyspace}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 save_users}      @C{%t}\n", b)
+	}
+
+	s, err = endpoint.StringValueDefault("bindir", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 bindir          %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 bindir}          using default @C{%s}\n", DefaultBinDir)
+	} else {
+		fmt.Printf("@G{\u2713 bindir}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("datadir", "")
@@ -285,6 +366,25 @@ func (p CassandraPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
+func computeSavedKeyspaces(includeKeyspaces, excludeKeyspaces []string) []string {
+	if includeKeyspaces == nil {
+		return nil
+	}
+	savedKeyspaces := []string{}
+
+	sort.Strings(excludeKeyspaces)
+	for _, keyspace := range includeKeyspaces {
+		idx := sort.SearchStrings(excludeKeyspaces, keyspace)
+		if idx < len(excludeKeyspaces) && excludeKeyspaces[idx] == keyspace {
+			continue
+		}
+		savedKeyspaces = append(savedKeyspaces, keyspace)
+	}
+	sort.Strings(savedKeyspaces)
+
+	return savedKeyspaces
+}
+
 // Backup one cassandra keyspace
 func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	cassandra, err := cassandraInfo(endpoint)
@@ -293,83 +393,83 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	plugin.DEBUG("Cleaning any stale '%s' snapshot", SnapshotName)
-	cmd := fmt.Sprintf("nodetool clearsnapshot -t %s \"%s\"", SnapshotName, cassandra.Keyspace)
+	cmd := fmt.Sprintf("%s/nodetool clearsnapshot -t %s", cassandra.BinDir, SnapshotName)
 	plugin.DEBUG("Executing: `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Clean any stale snapshot}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Clean up anyale snapshot}\n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Clean any stale snapshot}\n")
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Clean uny stale snapshot}\n")
 
 	defer func() {
 		plugin.DEBUG("Clearing snapshot '%s'", SnapshotName)
-		cmd := fmt.Sprintf("nodetool clearsnapshot -t %s \"%s\"", SnapshotName, cassandra.Keyspace)
+		cmd := fmt.Sprintf("%s/nodetool clearsnapshot -t %s", cassandra.BinDir, SnapshotName)
 		plugin.DEBUG("Executing: `%s`", cmd)
 		err := plugin.Exec(cmd, plugin.STDIN)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Clean snapshot}\n")
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Clear snapshot}\n")
 			return
 		}
-		fmt.Fprintf(os.Stderr, "@G{\u2713 Clean snapshot}\n")
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Clear snapshot}\n")
 	}()
 
+	sort.Strings(cassandra.ExcludeKeyspaces)
+	savedKeyspaces := computeSavedKeyspaces(cassandra.IncludeKeyspaces, cassandra.ExcludeKeyspaces)
+
 	plugin.DEBUG("Creating a new '%s' snapshot", SnapshotName)
-	cmd = fmt.Sprintf("nodetool snapshot -t %s \"%s\"", SnapshotName, cassandra.Keyspace)
+	cmd = fmt.Sprintf("%s/nodetool snapshot -t %s", cassandra.BinDir, SnapshotName)
+	if savedKeyspaces != nil {
+		for _, keyspace := range savedKeyspaces {
+			cmd = fmt.Sprintf("%s \"%s\"", cmd, keyspace)
+		}
+	}
 	plugin.DEBUG("Executing: `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Create new snapshot}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Creanew snapshot}\n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Create new snapshot}\n")
+	fmt.Fprintf(os.Stderr, "@G{\u2713eate new snapshot}\n")
 
-	// Here we need to hard-link the snapshots/shield-backup directories into
-	// a {keyspace}/{tablename} structure that we'll temporarily put in
+	// Here we need to copy the snapshots/shield-backup directories into a
+	// {keyspace}/{tablename} structure that we'll temporarily put in
 	// /var/vcap/store/shield/cassandra. Then we can tar it all and stream
 	// that to stdout.
 
 	baseDir := "/var/vcap/store/shield/cassandra"
-	plugin.DEBUG("Creating any missing directories for '%s', with 0755 permissions", baseDir)
-	err = os.MkdirAll(baseDir, 0755)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Create base temporary directory}\n")
-		return err
-	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Create base temporary directory}\n")
 
-	// Recursively remove /var/vcap/store/shield/cassandra/{keyspace}, if any
-	tmpKeyspaceDir := filepath.Join(baseDir, cassandra.Keyspace)
-	plugin.DEBUG("Removing any stale '%s' directory", tmpKeyspaceDir)
-	cmd = fmt.Sprintf("rm -rf \"%s\"", tmpKeyspaceDir)
+	// Recursively remove /var/vcap/store/shield/cassandra, if any
+	plugin.DEBUG("Removing any stale '%s' directory", baseDir)
+	cmd = fmt.Sprintf("rm -rf \"%s\"", baseDir)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDOUT)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Clear base temporary directory}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Clean up any stale base tempry directory}\n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Clear base temporary directory}\n")
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Clean up any stale basemporary directory}\n")
+
+	plugin.DEBUG("Creating base directories for '%s', with 0755 permissions", baseDir)
+	err = os.MkdirAll(baseDir, 0755)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Create base tempry directory}\n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Create basemporary directory}\n")
 
 	defer func() {
-		// Recursively remove /var/vcap/store/shield/cassandra/{keyspace}, if any
-		plugin.DEBUG("Cleaning the '%s' directory up", tmpKeyspaceDir)
-		cmd := fmt.Sprintf("rm -rf \"%s\"", tmpKeyspaceDir)
+		// Recursively remove /var/vcap/store/shield/cassandra directory
+		plugin.DEBUG("Cleaning the '%s' directory up", baseDir)
+		cmd := fmt.Sprintf("rm -rf \"%s\"", baseDir)
 		plugin.DEBUG("Executing `%s`", cmd)
 		err := plugin.Exec(cmd, plugin.STDOUT)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Clean base temporary directory}\n")
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Clear base tempoy directory}\n")
 			return
 		}
-		fmt.Fprintf(os.Stderr, "@G{\u2713 Clean base temporary directory}\n")
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Clear base temary directory}\n")
 	}()
-
-	plugin.DEBUG("Creating directory '%s' with 0700 permissions", tmpKeyspaceDir)
-	err = os.Mkdir(tmpKeyspaceDir, 0700)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Create temporary directory}\n")
-		return err
-	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Create temporary directory}\n")
 
 	// Iterate through {dataDir}/{keyspace}/{tablename}/snapshots/shield-backup/*
 	// and for all the immutable files we find here, we hard-link them
@@ -381,25 +481,101 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	info, err := os.Lstat(cassandra.DataDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot files}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot fi in temp dir}\n")
 		return err
 	}
 	if !info.IsDir() {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot files}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot fi in temp dir}\n")
 		return fmt.Errorf("cassandra DataDir is not a directory")
 	}
 
-	srcKeyspaceDir := filepath.Join(cassandra.DataDir, cassandra.Keyspace)
-	dir, err := os.Open(srcKeyspaceDir)
+	dir, err := os.Open(cassandra.DataDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot files}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot fi in temp dir}\n")
 		return err
 	}
 	defer dir.Close()
 
 	entries, err := dir.Readdir(-1)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot files}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot fi in temp dir}\n")
+		return err
+	}
+	for _, keyspaceDirInfo := range entries {
+		if !keyspaceDirInfo.IsDir() {
+			continue
+		}
+		keyspace := keyspaceDirInfo.Name()
+		if savedKeyspaces == nil {
+			idx := sort.SearchStrings(cassandra.ExcludeKeyspaces, keyspace)
+			if idx < len(cassandra.ExcludeKeyspaces) && cassandra.ExcludeKeyspaces[idx] == keyspace {
+				plugin.DEBUG("Excluding keyspace '%s'", keyspace)
+				continue
+			}
+		} else {
+			idx := sort.SearchStrings(savedKeyspaces, keyspace)
+			if idx >= len(savedKeyspaces) || savedKeyspaces[idx] != keyspace {
+				plugin.DEBUG("Excluding keyspace '%s'", keyspace)
+				continue
+			}
+		}
+		err = hardLinkKeyspace(cassandra.DataDir, baseDir, keyspace)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot filin temp dir}\n")
+			return err
+		}
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Recursive hard-link snapshfiles in temp dir}\n")
+
+	if cassandra.SaveUsers {
+		err = backupUsers(cassandra, baseDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2713 Backup users}\n")
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Backup users}\n")
+	}
+
+	plugin.DEBUG("Setting ownership of all backup files to '%s'", VcapOwnership)
+	cmd = fmt.Sprintf("chown -R vcap:vcap \"%s\"", baseDir)
+	plugin.DEBUG("Executing `%s`", cmd)
+	err = plugin.Exec(cmd, plugin.STDOUT)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Set ownership of snapt hard-links}\n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Set ownership ofapshot hard-links}\n")
+
+	plugin.DEBUG("Streaming output tar file")
+	cmd = fmt.Sprintf("%s -c -C %s -f - .", cassandra.Tar, baseDir)
+	plugin.DEBUG("Executing `%s`", cmd)
+	err = plugin.Exec(cmd, plugin.STDOUT)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Stream tar of pshots files}\n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Stream taf snapshots files}\n")
+
+	return nil
+}
+
+func hardLinkKeyspace(srcDataDir string, dstBaseDir string, keyspace string) error {
+	tmpKeyspaceDir := filepath.Join(dstBaseDir, keyspace)
+	plugin.DEBUG("Creating destination keyspace directory '%s' with 0700 permissions", tmpKeyspaceDir)
+	err := os.Mkdir(tmpKeyspaceDir, 0700)
+	if err != nil {
+		return err
+	}
+
+	srcKeyspaceDir := filepath.Join(srcDataDir, keyspace)
+	dir, err := os.Open(srcKeyspaceDir)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+
+	entries, err := dir.Readdir(-1)
+	if err != nil {
 		return err
 	}
 	for _, tableDirInfo := range entries {
@@ -407,57 +583,39 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			continue
 		}
 
-		src_dir := filepath.Join(srcKeyspaceDir, tableDirInfo.Name(), "snapshots", SnapshotName)
+		srcDir := filepath.Join(srcKeyspaceDir, tableDirInfo.Name(), "snapshots", SnapshotName)
+		_, err = os.Lstat(srcDir)
+		if os.IsNotExist(err) {
+			continue
+		} else if err != nil {
+			return err
+		}
 
 		tableName := tableDirInfo.Name()
 		if idx := strings.LastIndex(tableName, "-"); idx >= 0 {
 			tableName = tableName[:idx]
 		}
 
-		dst_dir := filepath.Join(tmpKeyspaceDir, tableName)
-		plugin.DEBUG("Creating destination directory '%s'", dst_dir)
-		err = os.MkdirAll(dst_dir, 0755)
+		dstDir := filepath.Join(tmpKeyspaceDir, tableName)
+		plugin.DEBUG("Creating destination table directory '%s'", dstDir)
+		err = os.MkdirAll(dstDir, 0755)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot files}\n")
 			return err
 		}
 
-		plugin.DEBUG("Hard-linking all '%s/*' files to '%s/'", src_dir, dst_dir)
-		err = hardLinkAll(src_dir, dst_dir)
+		plugin.DEBUG("Hard-linking all '%s/*' files to '%s/'", srcDir, dstDir)
+		err = hardLinkAll(srcDir, dstDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Recursive hard-link snapshot files in temp dir}\n")
 			return err
 		}
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Recursive hard-link snapshot files in temp dir}\n")
-
-	plugin.DEBUG("Setting ownership of all backup files to '%s'", VcapOwnership)
-	cmd = fmt.Sprintf("chown -R vcap:vcap \"%s\"", tmpKeyspaceDir)
-	plugin.DEBUG("Executing `%s`", cmd)
-	err = plugin.Exec(cmd, plugin.STDOUT)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Set ownership of snapshot hard-links}\n")
-		return err
-	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Set ownership of snapshot hard-links}\n")
-
-	plugin.DEBUG("Streaming output tar file")
-	cmd = fmt.Sprintf("tar -c -C /var/vcap/store/shield/cassandra -f - \"%s\"", cassandra.Keyspace)
-	plugin.DEBUG("Executing `%s`", cmd)
-	err = plugin.Exec(cmd, plugin.STDOUT)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Stream tar of snapshots files}\n")
-		return err
-	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Stream tar of snapshots files}\n")
-
 	return nil
 }
 
-// Hard-link all files from 'src_dir' to the 'dst_dir'
-func hardLinkAll(src_dir string, dst_dir string) (err error) {
+// Hard-link all files from 'srcDir' to the 'dstDir'
+func hardLinkAll(srcDir string, dstDir string) (err error) {
 
-	dir, err := os.Open(src_dir)
+	dir, err := os.Open(srcDir)
 	if err != nil {
 		return err
 	}
@@ -474,8 +632,8 @@ func hardLinkAll(src_dir string, dst_dir string) (err error) {
 		if tableDirInfo.IsDir() {
 			continue
 		}
-		src := filepath.Join(src_dir, tableDirInfo.Name())
-		dst := filepath.Join(dst_dir, tableDirInfo.Name())
+		src := filepath.Join(srcDir, tableDirInfo.Name())
+		dst := filepath.Join(dstDir, tableDirInfo.Name())
 
 		err = os.Link(src, dst)
 		if err != nil {
@@ -485,6 +643,21 @@ func hardLinkAll(src_dir string, dst_dir string) (err error) {
 	return nil
 }
 
+func backupUsers(cassandra *CassandraInfo, baseDir string) error {
+	for _, table := range SystemAuthTables {
+		plugin.DEBUG("Saving cassandra %s", table)
+		cmd = fmt.Sprintf("%s/cqlsh -u \"%s\" -p \"%s\" -e \"COPY system_auth.%s TO '%s/system_auth.%s.csv' WITH HEADER=true;\" \"%s\"",
+			cassandra.BinDir, cassandra.User, cassandra.Password, table, baseDir, table, cassandra.Host)
+		plugin.DEBUG("Executing `%s`", cmd)
+		err = plugin.Exec(cmd, plugin.NOPIPE)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Saving cassaa %s}\n", table)
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Saving candra %s}\n", table)
+	}
+}
+
 // Restore one cassandra keyspace
 func (p CassandraPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	cassandra, err := cassandraInfo(endpoint)
@@ -492,60 +665,113 @@ func (p CassandraPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	plugin.DEBUG("Creating directory '%s' with 0755 permissions", "/var/vcap/store/shield/cassandra")
-	err = os.MkdirAll("/var/vcap/store/shield/cassandra", 0755)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Create base temporary directory}\n")
-		return err
-	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Create base temporary directory}\n")
+	baseDir := "/var/vcap/store/shield/cassandra"
 
-	keyspaceDirPath := filepath.Join("/var/vcap/store/shield/cassandra", cassandra.Keyspace)
-
-	// Recursively remove /var/vcap/store/shield/cassandra/{cassandra.Keyspace}, if any
-	cmd := fmt.Sprintf("rm -rf \"%s\"", keyspaceDirPath)
+	// Recursively remove /var/vcap/store/shield/cassandra, if any
+	cmd := fmt.Sprintf("rm -rf \"%s\"", baseDir)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDOUT)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Clear base temporary directory}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Clean up any stale base tempry directory}\n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Clear base temporary directory}\n")
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Clean up any stale basemporary directory}\n")
+
+	plugin.DEBUG("Creating directory '%s' with 0755 permissions", baseDir)
+	err = os.MkdirAll(baseDir, 0755)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Create base tempry directory}\n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Create basemporary directory}\n")
 
 	defer func() {
-		// plugin.DEBUG("Skipping recursive deletion of directory '%s'", keyspaceDirPath)
-
-		// Recursively remove /var/vcap/store/shield/cassandra/{cassandra.Keyspace}, if any
-		cmd := fmt.Sprintf("rm -rf \"%s\"", keyspaceDirPath)
+		// Recursively remove /var/vcap/store/shield/cassandra, if any
+		cmd := fmt.Sprintf("rm -rf \"%s\"", baseDir)
 		plugin.DEBUG("Executing `%s`", cmd)
 		err := plugin.Exec(cmd, plugin.STDOUT)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Clean base temporary directory}\n")
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Clear base tempoy directory}\n")
 			return
 		}
-		fmt.Fprintf(os.Stderr, "@G{\u2713 Clean base temporary directory}\n")
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Clear base temary directory}\n")
 	}()
 
-	cmd = fmt.Sprintf("tar -x -C /var/vcap/store/shield/cassandra -f -")
+	sort.Strings(cassandra.ExcludeKeyspaces)
+	savedKeyspaces := computeSavedKeyspaces(cassandra.IncludeKeyspaces, cassandra.ExcludeKeyspaces)
+
+	// TODO: here we should extract only the necessary keyspaces
+	cmd = fmt.Sprintf("%s -x -C %s -f -", cassandra.Tar, baseDir)
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDIN)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Extract tar to temporary directory}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Extract tar to tempry directory}\n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Extract tar to temporary directory}\n")
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Extract tar tomporary directory}\n")
 
-	// Iterate through all table directories /var/vcap/store/shield/cassandra/{cassandra.Keyspace}/{tablename}
-	dir, err := os.Open(keyspaceDirPath)
+	dir, err := os.Open(baseDir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Load all tables data}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 L tables data}\n")
 		return err
 	}
 	defer dir.Close()
 
 	entries, err := dir.Readdir(-1)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Load all tables data}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 L tables data}\n")
+		return err
+	}
+	for _, keyspaceDirInfo := range entries {
+		if !keyspaceDirInfo.IsDir() {
+			continue
+		}
+		keyspace := keyspaceDirInfo.Name()
+		if savedKeyspaces == nil {
+			idx := sort.SearchStrings(cassandra.ExcludeKeyspaces, keyspace)
+			if idx < len(cassandra.ExcludeKeyspaces) && cassandra.ExcludeKeyspaces[idx] == keyspace {
+				plugin.DEBUG("Excluding keyspace '%s'", keyspace)
+				continue
+			}
+		} else {
+			idx := sort.SearchStrings(savedKeyspaces, keyspace)
+			if idx >= len(savedKeyspaces) || savedKeyspaces[idx] != keyspace {
+				plugin.DEBUG("Excluding keyspace '%s'", keyspace)
+				continue
+			}
+		}
+		keyspaceDirPath := filepath.Join(baseDir, keyspace)
+		err = restoreKeyspace(cassandra, keyspaceDirPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Load tables data for keyspace '}\n", keyspace)
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Load tables data for keysp '%s'}\n", keyspace)
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Load tables data}\n")
+
+	if cassandra.SaveUsers {
+		err = restoreUsers(cassandra, baseDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717store users}\n")
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Restore users}\n")
+	}
+
+	return nil
+}
+
+func restoreKeyspace(cassandra *CassandraInfo, keyspaceDirPath string) error {
+	// Iterate through all table directories /var/vcap/store/shield/cassandra/{cassandra.IncludeKeyspaces}/{tablename}
+	dir, err := os.Open(keyspaceDirPath)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+
+	entries, err := dir.Readdir(-1)
+	if err != nil {
 		return err
 	}
 	for _, tableDirInfo := range entries {
@@ -554,16 +780,39 @@ func (p CassandraPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		}
 		// Run sstableloader on each sub-directory found, assuming it is a table backup
 		tableDirPath := filepath.Join(keyspaceDirPath, tableDirInfo.Name())
-		cmd := fmt.Sprintf("sstableloader -u \"%s\" -pw \"%s\" -d \"%s\" \"%s\"", cassandra.User, cassandra.Password, cassandra.Host, tableDirPath)
+		cmd := fmt.Sprintf("%s/sstableloader -u \"%s\" -pw \"%s\" -d \"%s\" \"%s\"", cassandra.BinDir, cassandra.User, cassandra.Password, cassandra.Host, tableDirPath)
 		plugin.DEBUG("Executing: `%s`", cmd)
 		err = plugin.Exec(cmd, plugin.STDIN)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Load all tables data}\n")
 			return err
 		}
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Load all tables data}\n")
+	return nil
+}
 
+func restoreUsers(cassandra *CassandraInfo, baseDir string) error {
+	plugin.DEBUG("Excluding cassandra user from 'system_auth.roles' table content")
+	cmd := fmt.Sprintf("sed -i -e '/^cassandra,/d' \"%s/system_auth.roles.csv\"", baseDir)
+	plugin.DEBUG("Executing: `%s`", cmd)
+	err := plugin.Exec(cmd, plugin.STDIN)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Exclude cassandra user from 'system_auth.rolesable content}\n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Exclude cassandra user from 'system_auth.es' table content}\n")
+
+	for _, table := range SystemAuthTables {
+		plugin.DEBUG("Restoring 'system_auth.%s' table content", table)
+		cmd := fmt.Sprintf("%s/cqlsh -u \"%s\" -p \"%s\" -e \"COPY system_auth.%s FROM '%s/system_auth.%s.csv' WITH HEADER=true;\" \"%s\"",
+			cassandra.BinDir, cassandra.User, cassandra.Password, table, baseDir, table, cassandra.Host)
+		plugin.DEBUG("Executing: `%s`", cmd)
+		err := plugin.Exec(cmd, plugin.STDIN)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Restore 'system_auth.%s' table tent}\n", table)
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Restore 'system_auth.%s' ta content}\n", table)
+	}
 	return nil
 }
 
