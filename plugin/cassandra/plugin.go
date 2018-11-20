@@ -90,7 +90,7 @@ package main
 import (
 	"os"
 	"path/filepath"
-	"sorts"
+	"sort"
 	"strings"
 
 	fmt "github.com/jhunt/go-ansi" // est un alias
