@@ -3,8 +3,9 @@ package main
 import (
 	"os"
 
+	"github.com/jhunt/go-table"
+
 	"github.com/starkandwayne/shield/client/v2/shield"
-	"github.com/starkandwayne/shield/tui"
 )
 
 func SearchTargets(c *shield.Client, tenant *shield.Tenant, q string) {
@@ -14,7 +15,7 @@ func SearchTargets(c *shield.Client, tenant *shield.Tenant, q string) {
 	})
 	bail(err)
 
-	tbl := tui.NewTable("UUID", "Name", "SHIELD Agent", "Plugin")
+	tbl := table.NewTable("UUID", "Name", "SHIELD Agent", "Plugin")
 	for _, x := range l {
 		tbl.Row(x, x.UUID, x.Name, x.Agent, x.Plugin)
 	}
@@ -34,7 +35,7 @@ func SearchStores(c *shield.Client, tenant *shield.Tenant, q string) {
 	})
 	bail(err)
 
-	tbl := tui.NewTable("UUID", "Scope", "Name", "SHIELD Agent", "Plugin")
+	tbl := table.NewTable("UUID", "Scope", "Name", "SHIELD Agent", "Plugin")
 	for _, x := range g {
 		tbl.Row(x, x.UUID, "global", x.Name, x.Agent, x.Plugin)
 	}

@@ -169,10 +169,10 @@
 			"revision": "402636ff2db998edef392ac6d59210d2170b3ebf"
 		},
 		{
-			"checksumSHA1": "2yWJ+rGPlRU7zuN3RhQvmHGrQiQ=",
+			"checksumSHA1": "wxi3v9rY+IhzvrOU4KUnFodd8IA=",
 			"path": "github.com/jhunt/go-ansi",
-			"revision": "8ad0f7010398b229bc562f3919fcdc9b0aeab9fd",
-			"revisionTime": "2017-10-24T02:42:54Z"
+			"revision": "5fd839f108b6f065c3d1734d82b2f8be8e767b73",
+			"revisionTime": "2018-11-27T19:43:24Z"
 		},
 		{
 			"path": "github.com/jhunt/go-cli",
@@ -199,6 +199,12 @@
 			"path": "github.com/jhunt/go-s3",
 			"revision": "94341002c9be2c159003771d63730e58b6e87d5d",
 			"revisionTime": "2018-06-18T01:23:26Z"
+		},
+		{
+			"checksumSHA1": "1bapbFq53oZ2HcsgJXXdtl1geO8=",
+			"path": "github.com/jhunt/go-table",
+			"revision": "fcc252a20f4cc46b234c37fb611107f6a829486e",
+			"revisionTime": "2018-11-27T19:44:39Z"
 		},
 		{
 			"comment": "sqlx-v1.1-71-gbdae0c3",

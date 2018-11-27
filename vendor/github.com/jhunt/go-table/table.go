@@ -1,7 +1,7 @@
-package tui
+package table
 
 import (
-	"fmt"
+	fmt "github.com/jhunt/go-ansi"
 	"io"
 	"regexp"
 	"strings"

@@ -6,9 +6,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/jhunt/go-table"
 )
 
-func Menu(intro string, t *Table, prompt string) interface{} {
+func Menu(intro string, t *table.Table, prompt string) interface{} {
 	fmt.Printf("%s\n\n", intro)
 	t.OutputWithIndices(os.Stdout)
 

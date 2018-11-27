@@ -13,6 +13,7 @@ import (
 	fmt "github.com/jhunt/go-ansi"
 	"github.com/jhunt/go-cli"
 	env "github.com/jhunt/go-envirotron"
+	"github.com/jhunt/go-table"
 	"gopkg.in/yaml.v2"
 
 	"github.com/starkandwayne/shield/client/v2/shield"
@@ -594,7 +595,7 @@ func main() {
 		return
 
 	case "cores": /* {{{ */
-		tbl := tui.NewTable("Name", "URL", "Verify TLS?")
+		tbl := table.NewTable("Name", "URL", "Verify TLS?")
 		/* FIXME need stable sort */
 		for alias, core := range config.SHIELDs {
 			vfy := fmt.Sprintf("@G{yes}")
@@ -731,7 +732,7 @@ func main() {
 				break
 			}
 
-			tbl := tui.NewTable("Name", "Description", "Type")
+			tbl := table.NewTable("Name", "Description", "Type")
 			for _, provider := range providers {
 				tbl.Row(provider, provider.Identifier, provider.Name, provider.Type)
 			}
@@ -821,7 +822,7 @@ func main() {
 		if len(id.Tenants) == 0 {
 			fmt.Printf("@Y{you are not assigned to any tenants}\n")
 		} else {
-			tbl := tui.NewTable("UUID", "Name", "Role")
+			tbl := table.NewTable("UUID", "Name", "Role")
 			for _, tenant := range id.Tenants {
 				tbl.Row(tenant, tenant.UUID, tenant.Name, tenant.Role)
 			}
@@ -1036,7 +1037,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("Name", "Created at", "Last seen")
+		tbl := table.NewTable("Name", "Created at", "Last seen")
 		for _, token := range tokens {
 			tbl.Row(token, token.Name, strftime(token.CreatedAt), strftimenil(token.LastSeen, "(never)"))
 		}
@@ -1108,7 +1109,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Name")
+		tbl := table.NewTable("UUID", "Name")
 		for _, tenant := range tenants {
 			tbl.Row(tenant, tenant.UUID, tenant.Name)
 		}
@@ -1135,7 +1136,7 @@ func main() {
 
 		if opts.ShowTenant.Members {
 			fmt.Printf("\n")
-			t := tui.NewTable("UUID", "Name", "Account", "Role")
+			t := table.NewTable("UUID", "Name", "Account", "Role")
 			for _, mem := range tenant.Members {
 				t.Row(mem, mem.UUID, mem.Name, fmt.Sprintf("%s@%s", mem.Account, mem.Backend), mem.Role)
 			}
@@ -1279,7 +1280,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration")
 		for _, target := range targets {
 			tbl.Row(target, target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, asJSON(target.Config))
 		}
@@ -1478,7 +1479,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
 		for _, store := range stores {
 			health := fmt.Sprintf("@G{yes}")
 			if !store.Healthy {
@@ -1691,7 +1692,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
 		for _, store := range stores {
 			health := fmt.Sprintf("@G{yes}")
 			if !store.Healthy {
@@ -1900,7 +1901,7 @@ func main() {
 			)
 		*/
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key")
 		for _, job := range jobs {
 			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
 		}
@@ -2248,7 +2249,7 @@ func main() {
 			)
 		*/
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Key", "Compression", "Status")
+		tbl := table.NewTable("UUID", "Key", "Compression", "Status")
 		for _, archive := range archives {
 			tbl.Row(archive, archive.UUID, archive.Key, archive.Compression, archive.Status)
 		}
@@ -2422,7 +2423,7 @@ func main() {
 		}
 
 		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
-		tbl := tui.NewTable("UUID", "Type", "Status", "Owner", "Requested at", "Started at", "Completed at")
+		tbl := table.NewTable("UUID", "Type", "Status", "Owner", "Requested at", "Started at", "Completed at")
 		for _, task := range tasks {
 			started := "(pending)"
 			stopped := "(not yet started)"
@@ -2565,7 +2566,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Name", "Account", "System Role")
+		tbl := table.NewTable("UUID", "Name", "Account", "System Role")
 		for _, user := range users {
 			tbl.Row(user, user.UUID, user.Name, user.Account, user.SysRole)
 		}
@@ -2736,7 +2737,7 @@ func main() {
 			break
 		}
 
-		tbl := tui.NewTable("UUID", "Account", "Created At", "Last Seen", "IP Address", "User Agent")
+		tbl := table.NewTable("UUID", "Account", "Created At", "Last Seen", "IP Address", "User Agent")
 		for _, session := range sessions {
 			tbl.Row(session, session.UUID, session.UserAccount, strftime(session.CreatedAt), strftimenil(session.LastSeen, "(nerver)"), session.IP, session.UserAgent)
 		}
