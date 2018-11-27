@@ -105,8 +105,8 @@ const (
 	DefaultUser      = "cassandra"
 	DefaultPassword  = "cassandra"
 	DefaultSaveUsers = true
-	DefaultBinDir    = "/var/vcap/jobs/cassandra/bin"
-	DefaultDataDir   = "/var/vcap/store/cassandra/data"
+	DefaultBinDir    = "//var/vcap/jobs/cassandra/bin"
+	DefaultDataDir   = "/var/vcap/store/cassandra/deployment_name/data"
 
 	VcapOwnership = "vcap:vcap"
 	SnapshotName  = "shield-backup"
@@ -143,15 +143,15 @@ func main() {
 `,
 		Defaults: `
 {
-  "host"              : "127.0.0.1",
-  "port"              : "9042",
-  "user"              : "cassandra",
-  "password"          : "cassandra",
+  "host"              : "cassandra_host", // "12.0.0.1"
+  "port"              : "9042", // "cassandra_port"
+  "user"              : "cassandra_user",     //cassandra
+  "password"          : "cassandra_password", // "cassandra"
   "include_keyspaces" : [""],
   "exclude_keyspaces" : [ "system_schema", "system_distributed", "system_auth", "system", "system_traces" ],
   "save_users"        : true,
-  "bindir"            : "/var/vcap/jobs/cassandra/bin",
-  "datadir"           : "/var/vcap/store/cassandra/data"
+  "bindir"            : "/var/vcap/jobs/cassandra/bin", 
+  "datadir"           : "/var/vcap/store/cassandra/data" 
   //"cassandra_tar"     : "tar"
 }
 `,
@@ -185,10 +185,10 @@ func main() {
 			},
 			{
 				Mode:     "target",
-				Name:     "password",
+				Name:     "cassandra",
 				Type:     "password",
 				Title:    "Cassandra Password",
-				Help:     "Password to authenticate to Cassandra as.",
+				Help:     "Password to auth_userenv",
 				Default:  "cassandra",
 				Required: false,
 			},
@@ -448,15 +448,15 @@ func (p CassandraPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	plugin.DEBUG("Executing `%s`", cmd)
 	err = plugin.Exec(cmd, plugin.STDOUT)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Clean up any stale base tempry directory}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Clean up any stale base temporary directory}\n")
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Clean up any stale basemporary directory}\n")
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Clean up any stale base temporary directory}\n")
 
 	plugin.DEBUG("Creating base directories for '%s', with 0755 permissions", baseDir)
 	err = os.MkdirAll(baseDir, 0755)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Create base tempry directory}\n")
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Create base temporary directory}\n")
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "@G{\u2713 Create basemporary directory}\n")
