@@ -88,7 +88,6 @@ func (r *Request) OK(resp interface{}) {
 		return
 	}
 
-	log.Debugf("%s responding with HTTP 200, payload [%s]", r, string(b))
 	r.respond(200, "OK", "application/json", string(b))
 }
 
@@ -107,7 +106,6 @@ func (r *Request) Fail(e Error) {
 		return
 	}
 
-	log.Debugf("%s responding with HTTP %d, payload [%s]", r, e.code, string(b))
 	r.respond(e.code, "Fail", "application/json", string(b))
 }
 
