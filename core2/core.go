@@ -83,6 +83,8 @@ type Config struct {
 	Fabrics []struct {
 		Name string `yaml:"name"`
 
+		Delay int `yaml:"delay"`
+
 		SSHKey string `yaml:"ssh-key"`
 
 		legacy struct {
@@ -219,6 +221,11 @@ func Configure(file string, config Config) (*Core, error) {
 			c.Config.Fabrics[i].legacy.cc = &ssh.ClientConfig{
 				Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
 			}
+
+		case "dummy":
+			if len(c.Config.Fabrics) != 1 {
+				return nil, fmt.Errorf("The dummy fabric cannot coexist with any other fabric; it is for test/dev only")
+			}
 		}
 	}
 
@@ -319,6 +326,11 @@ func (c *Core) CryptFile() string {
 
 func (c *Core) FabricFor(task *db.Task) (fabric.Fabric, error) {
 	for _, config := range c.Config.Fabrics {
+		if config.Name == "dummy" {
+			/* if dummy is configured, we always use it (test/dev) */
+			return fabric.Dummy(config.Delay), nil
+		}
+
 		if config.Name != "legacy" {
 			continue
 		}

@@ -33,14 +33,18 @@ func (c Core) Main() {
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
 
+	hype := time.NewTicker(125 * time.Millisecond)
 	fast := time.NewTicker(time.Second * time.Duration(c.Config.Scheduler.FastLoop))
 	slow := time.NewTicker(time.Second * time.Duration(c.Config.Scheduler.SlowLoop))
 	for {
 		select {
+		case <-hype.C:
+			c.scheduler.Run()
+
 		case <-fast.C:
 			c.ScheduleBackupTasks()
 			c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{Status: "pending"})
-			c.RunScheduler()
+			c.TasksToChores()
 
 		case <-slow.C:
 			c.CheckArchiveExpiries()
@@ -196,7 +200,7 @@ func (c *Core) Bind() {
 func (c *Core) StartScheduler() {
 	log.Infof("INITIALIZING: starting up the scheduler...")
 
-	c.scheduler = scheduler.New(c.Config.Scheduler.Threads)
+	c.scheduler = scheduler.New(c.Config.Scheduler.Threads, c.db)
 }
 
 func (c *Core) ConfigureMessageBus() {
@@ -276,8 +280,8 @@ func (c *Core) ScheduleAgentStatusCheckTasks(f *db.AgentFilter) {
 	}
 }
 
-func (c *Core) RunScheduler() {
-	log.Infof("SCHEDULER: initiating a run of the scheduler")
+func (c *Core) TasksToChores() {
+	log.Infof("SCHEDULER: converting tasks (database) into chores (scheduler)")
 
 	tasks, err := c.db.GetAllTasks(&db.TaskFilter{ForStatus: "pending"})
 	if err != nil {
@@ -324,7 +328,7 @@ func (c *Core) RunScheduler() {
 			c.scheduler.Schedule(50, fabric.Purge(task))
 
 		case db.AgentStatusOperation:
-			c.scheduler.Schedule(30, fabric.Status())
+			c.scheduler.Schedule(30, fabric.Status(task))
 
 		case db.TestStoreOperation:
 			c.scheduler.Schedule(40, fabric.TestStore(task))
@@ -335,9 +339,6 @@ func (c *Core) RunScheduler() {
 			log.Errorf("THIS TASK MAY BE INADVERTANTLY RE-SCHEDULED!!!")
 		}
 	}
-
-	log.Infof("SCHEDULER: running the scheduling algorithm")
-	c.scheduler.Run()
 }
 
 func (c *Core) CheckArchiveExpiries() {

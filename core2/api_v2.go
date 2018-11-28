@@ -175,10 +175,280 @@ func (c *Core) v2API() *route.Router {
 	// }}}
 
 	r.Dispatch("GET /v2/scheduler/status", func(r *route.Request) { // {{{
-		if c.IsNotSystemManager(r) {
+		if c.IsNotSystemEngineer(r) {
 			return
 		}
-		r.OK(c.scheduler.Status())
+
+		type named struct {
+			UUID string `json:"uuid"`
+			Name string `json:"name"`
+		}
+
+		type job struct {
+			UUID     string `json:"uuid"`
+			Name     string `json:"name"`
+			Schedule string `json:"schedule"`
+		}
+
+		type archive struct {
+			UUID string `json:"uuid"`
+			Size int64  `json:"size"`
+		}
+
+		type backlogStatus struct {
+			Priority int    `json:"priority"`
+			Position int    `json:"position"`
+			TaskUUID string `json:"task_uuid"`
+
+			Op    string `json:"op"`
+			Agent string `json:"agent"`
+
+			Tenant  *named   `json:"tenant,omitempty"`
+			Store   *named   `json:"store,omitempty"`
+			System  *named   `json:"system,omitempty"`
+			Job     *job     `json:"job,omitempty"`
+			Archive *archive `json:"archive,omitempty"`
+		}
+
+		type workerStatus struct {
+			ID       int    `json:"id"`
+			Idle     bool   `json:"idle"`
+			TaskUUID string `json:"task_uuid"`
+			LastSeen int    `json:"last_seen"`
+
+			Op     string `json:"op"`
+			Status string `json:"status"`
+			Agent  string `json:"agent"`
+
+			Tenant  *named   `json:"tenant,omitempty"`
+			Store   *named   `json:"store,omitempty"`
+			System  *named   `json:"system,omitempty"`
+			Job     *job     `json:"job,omitempty"`
+			Archive *archive `json:"archive,omitempty"`
+		}
+
+		type status struct {
+			Backlog []backlogStatus `json:"backlog"`
+			Workers []workerStatus  `json:"workers"`
+		}
+
+		ps := c.scheduler.Status()
+		out := status{
+			Backlog: make([]backlogStatus, len(ps.Backlog)),
+			Workers: make([]workerStatus, len(ps.Workers)),
+		}
+
+		tenants := make(map[string]*db.Tenant)
+		stores := make(map[string]*db.Store)
+		systems := make(map[string]*db.Target)
+		jobs := make(map[string]*db.Job)
+		archives := make(map[string]*db.Archive)
+
+		for i, x := range ps.Backlog {
+			out.Backlog[i].Priority = x.Priority + 1
+			out.Backlog[i].Position = x.Position
+			out.Backlog[i].TaskUUID = x.TaskUUID
+
+			if task, err := c.db.GetTask(x.TaskUUID); err == nil && task != nil {
+				out.Backlog[i].Op = task.Op
+				out.Backlog[i].Agent = task.Agent
+
+				if task.JobUUID != "" {
+					j, found := jobs[task.JobUUID]
+					if !found {
+						j, err = c.db.GetJob(task.JobUUID)
+						if err == nil {
+							jobs[j.UUID] = j
+							found = true
+						}
+					}
+					if found {
+						out.Backlog[i].Job = &job{
+							UUID: j.UUID,
+							Name: j.Name,
+						}
+					}
+				}
+
+				out.Backlog[i].Tenant = &named{Name: "SYSTEM"}
+				if task.TenantUUID != "" {
+					if task.TenantUUID == db.GlobalTenantUUID {
+						out.Backlog[i].Tenant.Name = "GLOBAL"
+					} else {
+						t, found := tenants[task.TenantUUID]
+						if !found {
+							t, err = c.db.GetTenant(task.TenantUUID)
+							if err == nil {
+								tenants[t.UUID] = t
+								found = true
+							}
+						}
+						if found {
+							out.Backlog[i].Tenant.UUID = t.UUID
+							out.Backlog[i].Tenant.Name = t.Name
+						}
+					}
+				}
+
+				if task.StoreUUID != "" {
+					s, found := stores[task.StoreUUID]
+					if !found {
+						s, err = c.db.GetStore(task.StoreUUID)
+						if err == nil {
+							stores[s.UUID] = s
+							found = true
+						}
+					}
+					if found {
+						out.Backlog[i].Store = &named{
+							UUID: s.UUID,
+							Name: s.Name,
+						}
+					}
+				}
+
+				if task.TargetUUID != "" {
+					t, found := systems[task.TargetUUID]
+					if !found {
+						t, err = c.db.GetTarget(task.TargetUUID)
+						if err == nil {
+							systems[t.UUID] = t
+							found = true
+						}
+					}
+					if found {
+						out.Backlog[i].System = &named{
+							UUID: t.UUID,
+							Name: t.Name,
+						}
+					}
+				}
+
+				if task.ArchiveUUID != "" {
+					a, found := archives[task.ArchiveUUID]
+					if !found {
+						a, err = c.db.GetArchive(task.ArchiveUUID)
+						if err == nil {
+							archives[a.UUID] = a
+							found = true
+						}
+					}
+					if found {
+						out.Backlog[i].Archive = &archive{
+							UUID: a.UUID,
+							Size: a.Size,
+						}
+					}
+				}
+			}
+		}
+
+		for i, x := range ps.Workers {
+			out.Workers[i].ID = x.ID
+			out.Workers[i].Idle = x.Idle
+			out.Workers[i].TaskUUID = x.TaskUUID
+			out.Workers[i].LastSeen = x.LastSeen
+
+			if x.TaskUUID == "" {
+				continue
+			}
+
+			if task, err := c.db.GetTask(x.TaskUUID); err == nil && task != nil {
+				out.Workers[i].Op = task.Op
+				out.Workers[i].Status = task.Status
+				out.Workers[i].Agent = task.Agent
+
+				if task.JobUUID != "" {
+					j, found := jobs[task.JobUUID]
+					if !found {
+						j, err = c.db.GetJob(task.JobUUID)
+						if err == nil {
+							jobs[j.UUID] = j
+							found = true
+						}
+					}
+					if found {
+						out.Workers[i].Job = &job{
+							UUID: j.UUID,
+							Name: j.Name,
+						}
+					}
+				}
+
+				out.Workers[i].Tenant = &named{Name: "SYSTEM"}
+				if task.TenantUUID != "" {
+					if task.TenantUUID == db.GlobalTenantUUID {
+						out.Workers[i].Tenant.Name = "GLOBAL"
+					} else {
+						t, found := tenants[task.TenantUUID]
+						if !found {
+							t, err = c.db.GetTenant(task.TenantUUID)
+							if err == nil {
+								tenants[t.UUID] = t
+								found = true
+							}
+						}
+						if found {
+							out.Workers[i].Tenant.UUID = t.UUID
+							out.Workers[i].Tenant.Name = t.Name
+						}
+					}
+				}
+
+				if task.StoreUUID != "" {
+					s, found := stores[task.StoreUUID]
+					if !found {
+						s, err = c.db.GetStore(task.StoreUUID)
+						if err == nil {
+							stores[s.UUID] = s
+							found = true
+						}
+					}
+					if found {
+						out.Workers[i].Store = &named{
+							UUID: s.UUID,
+							Name: s.Name,
+						}
+					}
+				}
+
+				if task.TargetUUID != "" {
+					t, found := systems[task.TargetUUID]
+					if !found {
+						t, err = c.db.GetTarget(task.TargetUUID)
+						if err == nil {
+							systems[t.UUID] = t
+							found = true
+						}
+					}
+					if found {
+						out.Workers[i].System = &named{
+							UUID: t.UUID,
+							Name: t.Name,
+						}
+					}
+				}
+
+				if task.ArchiveUUID != "" {
+					a, found := archives[task.ArchiveUUID]
+					if !found {
+						a, err = c.db.GetArchive(task.ArchiveUUID)
+						if err == nil {
+							archives[a.UUID] = a
+							found = true
+						}
+					}
+					if found {
+						out.Workers[i].Archive = &archive{
+							UUID: a.UUID,
+							Size: a.Size,
+						}
+					}
+				}
+			}
+		}
+
+		r.OK(out)
 	})
 	// }}}
 
@@ -194,7 +464,10 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		queues := []string{"user:" + user.UUID}
+		queues := []string{
+			"user:" + user.UUID,
+			"tenant:" + db.GlobalTenantUUID,
+		}
 
 		memberships, err := c.db.GetMembershipsForUser(user.UUID)
 		if err != nil {
@@ -203,6 +476,10 @@ func (c *Core) v2API() *route.Router {
 		}
 		for _, membership := range memberships {
 			queues = append(queues, "tenant:"+membership.TenantUUID)
+		}
+
+		if user.SysRole != "" {
+			queues = append(queues, "admins")
 		}
 
 		socket := r.Upgrade()
@@ -228,6 +505,46 @@ func (c *Core) v2API() *route.Router {
 				socket.Write(b)
 			}
 		}
+	})
+	// }}}
+	r.Dispatch("GET /v2/tasks", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		limit, err := strconv.Atoi(r.Param("limit", "30"))
+		if err != nil || limit < 0 || limit > 30 {
+			r.Fail(route.Bad(err, "Invalid limit parameter given"))
+			return
+		}
+
+		// check to see if we're offseting task requests
+		paginationDate, err := strconv.ParseInt(r.Param("before", "0"), 10, 64)
+		if err != nil || paginationDate < 0 {
+			r.Fail(route.Bad(err, "Invalid before parameter given"))
+			return
+		}
+
+		tasks, err := c.db.GetAllTasks(
+			&db.TaskFilter{
+				SkipActive:    r.ParamIs("active", "f"),
+				SkipInactive:  r.ParamIs("active", "t"),
+				ForStatus:     r.Param("status", ""),
+				ForTarget:     r.Param("target", ""),
+				Limit:         limit,
+				Before:        paginationDate,
+				StartedAfter:  r.ParamDuration("started_after"),
+				StoppedAfter:  r.ParamDuration("stopped_after"),
+				StartedBefore: r.ParamDuration("started_before"),
+				StoppedBefore: r.ParamDuration("stopped_before"),
+			},
+		)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+
+		r.OK(tasks)
 	})
 	// }}}
 

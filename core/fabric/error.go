@@ -18,29 +18,29 @@ func (f ErrorFabric) Error() string {
 	return f.e.Error()
 }
 
-func (f ErrorFabric) chore() scheduler.Chore {
-	return scheduler.NewChore(func(chore scheduler.Chore) {
+func (f ErrorFabric) chore(id string) scheduler.Chore {
+	return scheduler.NewChore(id, func(chore scheduler.Chore) {
 		chore.Errorf("[ERROR]: %s\n", f)
 		chore.UnixExit(1)
 	})
 }
 
-func (f ErrorFabric) Backup(*db.Task, vault.Parameters) scheduler.Chore {
-	return f.chore()
+func (f ErrorFabric) Backup(task *db.Task, _ vault.Parameters) scheduler.Chore {
+	return f.chore(task.UUID)
 }
 
-func (f ErrorFabric) Restore(*db.Task, vault.Parameters) scheduler.Chore {
-	return f.chore()
+func (f ErrorFabric) Restore(task *db.Task, _ vault.Parameters) scheduler.Chore {
+	return f.chore(task.UUID)
 }
 
-func (f ErrorFabric) Status() scheduler.Chore {
-	return f.chore()
+func (f ErrorFabric) Status(task *db.Task) scheduler.Chore {
+	return f.chore(task.UUID)
 }
 
-func (f ErrorFabric) Purge(*db.Task) scheduler.Chore {
-	return f.chore()
+func (f ErrorFabric) Purge(task *db.Task) scheduler.Chore {
+	return f.chore(task.UUID)
 }
 
-func (f ErrorFabric) TestStore(*db.Task) scheduler.Chore {
-	return f.chore()
+func (f ErrorFabric) TestStore(task *db.Task) scheduler.Chore {
+	return f.chore(task.UUID)
 }

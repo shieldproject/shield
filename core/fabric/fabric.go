@@ -15,7 +15,7 @@ type Fabric interface {
 	Restore(*db.Task, vault.Parameters) scheduler.Chore
 
 	/* check the status of the agent. */
-	Status() scheduler.Chore
+	Status(*db.Task) scheduler.Chore
 
 	/* purge an from cloud storage archive. */
 	Purge(*db.Task) scheduler.Chore

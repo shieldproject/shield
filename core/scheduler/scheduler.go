@@ -3,6 +3,8 @@ package scheduler
 import (
 	"fmt"
 	"sync"
+
+	"github.com/starkandwayne/shield/db"
 )
 
 const MaxPriority = 100
@@ -23,25 +25,20 @@ const MaxPriority = 100
 
 type Scheduler struct {
 	lock    sync.Mutex
-	workers []Worker
+	workers []*Worker
 	chores  [][]Chore
 }
 
-func New(workers int) *Scheduler {
-	pool := make([]Worker, workers)
+func New(workers int, db *db.DB) *Scheduler {
+	pool := make([]*Worker, workers)
 	for i := range pool {
-		pool[i] = NewWorker()
+		pool[i] = NewWorker(db)
 	}
 
 	return &Scheduler{
 		workers: pool,
 		chores:  make([][]Chore, MaxPriority),
 	}
-}
-
-func (s *Scheduler) RunChore(chore Chore) error {
-	/* ... */
-	return nil
 }
 
 func (s *Scheduler) Schedule(priority int, chore Chore) error {
