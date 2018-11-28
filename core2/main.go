@@ -19,6 +19,7 @@ func (c Core) Main() {
 	/* we need a usable database first */
 	c.ConnectToDatabase()
 	c.ConfigureMessageBus()
+	c.WireUpAuthenticationProviders()
 
 	/* startup cleanup tasks */
 	c.CreateFailsafeUser()
@@ -183,9 +184,9 @@ func (c *Core) Bind() {
 	log.Infof("INITIALIZING: binding the SHIELD Core API/UI on %s...", c.Config.API.Bind)
 	log.Infof("INITIALIZING: serving SHIELD Web UI static assets from %s...", c.Config.WebRoot)
 
-	http.Handle("/init.js", c) /* FIXME: legacy */
-	http.Handle("/v1/", c)     /* FIXME: legacy */
+	http.Handle("/v1/", c) /* FIXME: legacy */
 	http.Handle("/v2/", c.v2API())
+	http.Handle("/auth/", c.authAPI())
 	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
 	go func() {
@@ -207,6 +208,13 @@ func (c *Core) ConfigureMessageBus() {
 	log.Infof("INITIALIZING: configuring message bus...")
 	c.bus = bus.New(2048)
 	c.db.Inform(c.bus)
+}
+
+func (c *Core) WireUpAuthenticationProviders() {
+	log.Infof("INITIALIZING: wiring up authentication providers...")
+	for id := range c.providers {
+		c.providers[id].WireUpTo(c)
+	}
 }
 
 func (c *Core) ScheduleBackupTasks() {

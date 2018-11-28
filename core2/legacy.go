@@ -5,68 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-
-	"github.com/jhunt/go-log"
-
-	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/util"
 )
 
 const APIVersion = 2
 
 func (core *Core) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
-	case match(req, `GET /auth/([^/]+)/(redir|web|cli)`):
-		re := regexp.MustCompile("/auth/([^/]+)/(redir|web|cli)")
-		m := re.FindStringSubmatch(req.URL.Path)
-
-		name := m[1]
-		provider, ok := core.providers[name]
-		if !ok {
-			w.WriteHeader(404)
-			fmt.Fprintf(w, "Unrecognized authentication provider %s", name)
-			return
-		}
-
-		if m[2] == "redir" {
-			via := "web"
-			if cookie, err := req.Cookie("via"); err == nil {
-				via = cookie.Value
-			}
-			log.Debugf("handling redirection for authentication provider flow; via='%s'", via)
-
-			user := provider.HandleRedirect(req)
-			if user == nil {
-				fmt.Fprintf(w, "The authentication process broke down\n")
-				w.WriteHeader(500)
-			}
-
-			session, err := core.db.CreateSession(&db.Session{
-				UserUUID:  user.UUID,
-				IP:        util.RemoteIP(req),
-				UserAgent: req.UserAgent(),
-			})
-			if err != nil {
-				log.Errorf("failed to create a session for user %s@%s: %s", user.Account, user.Backend, err)
-				w.Header().Set("Location", "/")
-			} else if via == "cli" {
-				w.Header().Set("Location", fmt.Sprintf("/#!/cliauth:s:%s", session.UUID))
-			} else {
-				w.Header().Set("Location", "/")
-				http.SetCookie(w, SessionCookie(session.UUID, true))
-			}
-			w.WriteHeader(302)
-
-		} else {
-			http.SetCookie(w, &http.Cookie{
-				Name:  "via",
-				Value: m[2],
-				Path:  "/auth",
-			})
-			provider.Initiate(w, req)
-		}
-		return
-
 	case match(req, `GET /v1/meta/pubkey`):
 		core.v1GetPublicKey(w, req)
 		return

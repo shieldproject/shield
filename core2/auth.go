@@ -8,7 +8,6 @@ import (
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
-	"github.com/starkandwayne/shield/util"
 )
 
 type authTenant struct {
@@ -223,8 +222,8 @@ func (c *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 		log.Errorf("failed to retrieve session [%s] from database: (no such session)", r.SessionID())
 		return nil, err
 	}
-	session.IP = util.RemoteIP(r.Req)
-	session.UserAgent = r.Req.UserAgent()
+	session.IP = r.RemoteIP()
+	session.UserAgent = r.UserAgent()
 
 	if session.Expired(c.Config.API.Session.Timeout) {
 		log.Infof("session %s expired; purging...", r.SessionID())

@@ -13,6 +13,7 @@ import (
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/lib/github"
+	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/util"
 )
 
@@ -32,8 +33,6 @@ type GithubAuthProvider struct {
 			Role string `json:"role"`
 		} `json:"rights"`
 	} `json:"mapping"`
-
-	core *Core
 }
 
 func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
@@ -70,6 +69,10 @@ func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	return nil
 }
 
+func (p *GithubAuthProvider) WireUpTo(c *Core) {
+	p.core = c
+}
+
 func (p *GithubAuthProvider) ReferencedTenants() []string {
 	ll := make([]string, 0)
 	for _, m := range p.Mapping {
@@ -78,12 +81,11 @@ func (p *GithubAuthProvider) ReferencedTenants() []string {
 	return ll
 }
 
-func (p *GithubAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Location", p.authorizeURL("read:org"))
-	w.WriteHeader(302)
+func (p *GithubAuthProvider) Initiate(r *route.Request) {
+	r.Redirect(302, p.authorizeURL("read:org"))
 }
 
-func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
+func (p *GithubAuthProvider) HandleRedirect(r *route.Request) *db.User {
 	var input = struct {
 		ClientID     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
@@ -91,7 +93,7 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	}{
 		ClientID:     p.ClientID,
 		ClientSecret: p.ClientSecret,
-		Code:         req.URL.Query().Get("code"),
+		Code:         r.Param("code", ""),
 	}
 
 	b, err := json.Marshal(input)
@@ -134,7 +136,11 @@ func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 		return nil
 	}
 
-	//Check if the user that logged in via github already exists
+	// check if the user that logged in via github already exists
+	if p.core.db == nil {
+		p.Errorf("no handle for the core database found!")
+		return nil
+	}
 	user, err := p.core.db.GetUser(account, p.Identifier)
 	if err != nil {
 		p.Errorf("failed to retrieve user %s@%s from database: %s", account, p.Identifier, err)

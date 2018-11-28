@@ -3035,8 +3035,8 @@ func (c *Core) v2API() *route.Router {
 
 		session, err := c.db.CreateSession(&db.Session{
 			UserUUID:  user.UUID,
-			IP:        util.RemoteIP(r.Req),
-			UserAgent: r.Req.UserAgent(),
+			IP:        r.RemoteIP(),
+			UserAgent: r.UserAgent(),
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to log you in"))
@@ -3052,8 +3052,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to log you in"))
 		}
 
-		r.SetCookie(SessionCookie(session.UUID, true))
-		r.SetRespHeader("X-Shield-Session", session.UUID)
+		r.SetSession(session.UUID)
 		r.OK(id)
 	})
 	// }}}
@@ -3063,7 +3062,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		r.SetCookie(SessionCookie("-", false))
+		r.ClearSession()
 		r.Success("Successfully logged out")
 	})
 	// }}}

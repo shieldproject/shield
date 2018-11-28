@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"net/http"
 	"regexp"
 	"strconv"
 )
@@ -26,17 +25,6 @@ func StringifyKeys(things interface{}) interface{} {
 	default:
 		return things
 	}
-}
-
-func RemoteIP(req *http.Request) string {
-	ip := ""
-	if xff := req.Header.Get("X-Forwarded-For"); xff != "" {
-		ip = regexp.MustCompile("[, ].*$").ReplaceAllString(xff, "")
-	}
-	if ip == "" {
-		return req.RemoteAddr
-	}
-	return ip
 }
 
 func ParseRetain(s string) int {

@@ -7,6 +7,7 @@ import (
 	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/util"
 )
 
@@ -38,17 +39,20 @@ type AuthProviderConfig struct {
 type AuthProvider interface {
 	Configure(map[interface{}]interface{}) error
 	Configuration(bool) AuthProviderConfig
+	WireUpTo(core *Core)
 
 	ReferencedTenants() []string
 
-	Initiate(http.ResponseWriter, *http.Request)
-	HandleRedirect(*http.Request) *db.User
+	Initiate(*route.Request)
+	HandleRedirect(*route.Request) *db.User
 }
 
 type AuthProviderBase struct {
 	Name       string
 	Identifier string
 	Type       string
+
+	core *Core
 
 	properties map[string]interface{}
 

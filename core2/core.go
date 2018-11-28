@@ -258,7 +258,7 @@ func Configure(file string, config Config) (*Core, error) {
 		switch auth.Backend {
 		case "github":
 			c.providers[id] = &GithubAuthProvider{
-				core: c,
+				/* we will provide a link back to core in c.WireUpAuthenticationProviders() */
 				AuthProviderBase: AuthProviderBase{
 					Name:       auth.Name,
 					Identifier: id,
@@ -267,7 +267,7 @@ func Configure(file string, config Config) (*Core, error) {
 			}
 		case "uaa":
 			c.providers[id] = &UAAAuthProvider{
-				core: c,
+				/* we will provide a link back to core in c.WireUpAuthenticationProviders() */
 				AuthProviderBase: AuthProviderBase{
 					Name:       auth.Name,
 					Identifier: id,

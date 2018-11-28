@@ -3,13 +3,13 @@ package core2
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/pborman/uuid"
 
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/lib/uaa"
+	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/util"
 )
 
@@ -29,8 +29,7 @@ type UAAAuthProvider struct {
 		} `json:"rights"`
 	} `json:"mapping"`
 
-	core *Core
-	uaa  *uaa.Client
+	uaa *uaa.Client
 }
 
 func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
@@ -68,6 +67,10 @@ func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	return nil
 }
 
+func (p *UAAAuthProvider) WireUpTo(c *Core) {
+	p.core = c
+}
+
 func (p *UAAAuthProvider) ReferencedTenants() []string {
 	ll := make([]string, 0)
 	for _, m := range p.Mapping {
@@ -76,13 +79,12 @@ func (p *UAAAuthProvider) ReferencedTenants() []string {
 	return ll
 }
 
-func (p *UAAAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Location", p.uaa.AuthorizationURL(uaa.DefaultScopes))
-	w.WriteHeader(302)
+func (p *UAAAuthProvider) Initiate(r *route.Request) {
+	r.Redirect(302, p.uaa.AuthorizationURL(uaa.DefaultScopes))
 }
 
-func (p *UAAAuthProvider) HandleRedirect(req *http.Request) *db.User {
-	code := req.URL.Query().Get("code")
+func (p *UAAAuthProvider) HandleRedirect(r *route.Request) *db.User {
+	code := r.Param("code", "")
 	if code == "" {
 		p.Errorf("no code parameter was supplied by the remote UAA")
 		return nil
@@ -100,6 +102,11 @@ func (p *UAAAuthProvider) HandleRedirect(req *http.Request) *db.User {
 		return nil
 	}
 
+	// check if the user that logged in via uaa already exists
+	if p.core.db == nil {
+		p.Errorf("no handle for the core database found!")
+		return nil
+	}
 	user, err := p.core.db.GetUser(account, p.Identifier)
 	if err != nil {
 		p.Errorf("failed to retrieve user %s@%s from database: %s", account, p.Identifier, err)

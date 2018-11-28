@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/jhunt/go-log"
@@ -38,20 +39,19 @@ func (r *Request) String() string {
 	return fmt.Sprintf("%s %s", r.Req.Method, r.Req.URL.Path)
 }
 
-func SessionID(req *http.Request) string {
-	if s := req.Header.Get(SessionHeaderKey); s != "" {
-		return s
+func (r *Request) RemoteIP() string {
+	ip := ""
+	if xff := r.Req.Header.Get("X-Forwarded-For"); xff != "" {
+		ip = regexp.MustCompile("[, ].*$").ReplaceAllString(xff, "")
 	}
-
-	if c, err := req.Cookie(SessionCookieKey); err == nil {
-		return c.Value
+	if ip == "" {
+		return r.Req.RemoteAddr
 	}
-
-	return ""
+	return ip
 }
 
-func (r *Request) SessionID() string {
-	return SessionID(r.Req)
+func (r *Request) UserAgent() string {
+	return r.Req.UserAgent()
 }
 
 func (r *Request) Done() bool {
@@ -72,6 +72,25 @@ func (r *Request) respond(code int, fn, typ, msg string) {
 
 	/* track that OK() or Fail() called us... */
 	r.bt = append(r.bt, fn)
+}
+
+func (r *Request) Respond(code int, typ, msg string, args ...interface{}) {
+	r.respond(code, "Respond", typ, fmt.Sprintf(msg, args...))
+}
+
+func (r *Request) Redirect(code int, to string) {
+	/* have we already responded for this request? */
+	if r.Done() {
+		log.Errorf("Redirect handler bug: called %s() having already called [%v]", r, r.bt)
+		return
+	}
+
+	/* respond ... */
+	r.w.Header().Set("Location", to)
+	r.w.WriteHeader(code)
+
+	/* track that we finished via Redirect() */
+	r.bt = append(r.bt, "Redirect")
 }
 
 func (r *Request) Success(msg string, args ...interface{}) {
@@ -164,14 +183,6 @@ func (r *Request) ParamDuration(name string) *time.Duration {
 func (r *Request) ParamIs(name, want string) bool {
 	v, set := r.Req.URL.Query()[name]
 	return set && v[0] == want
-}
-
-func (r *Request) SetRespHeader(header, value string) {
-	r.w.Header().Add(header, value)
-}
-
-func (r *Request) SetCookie(cookie *http.Cookie) {
-	http.SetCookie(r.w, cookie)
 }
 
 func (r *Request) Missing(params ...string) bool {
