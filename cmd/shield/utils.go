@@ -192,3 +192,10 @@ func formatBytes(in int64) string {
 	}
 	return fmt.Sprintf("%0.1fT", float64(in)/1024.0/1024.0/1024.0/1024.0)
 }
+
+func uuid8(s string) string {
+	if len(s) < 8 {
+		return s
+	}
+	return s[0:8]
+}

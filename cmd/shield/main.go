@@ -60,6 +60,8 @@ var opts struct {
 		Skip []string `cli:"--skip"`
 	} `cli:"events"`
 
+	PS struct{} `cli:"ps"`
+
 	/* CORES {{{ */
 	Cores struct{} `cli:"cores"`
 	API   struct {
@@ -1025,6 +1027,124 @@ func main() {
 			fmt.Printf("\n")
 		})
 		bail(err)
+
+	/* }}} */
+	case "ps": /* {{{ */
+		ps, err := c.SchedulerStatus()
+		bail(err)
+
+		none := fmt.Sprintf("@K{(none)}")
+		oops := fmt.Sprintf("@R{(oops)}")
+
+		tbl := table.NewTable("#", "Op", "Status", "Task", "Tenant", "System", "Store", "Job", "Archive", "Agent")
+		for _, worker := range ps.Workers {
+			if worker.Idle {
+				tbl.Row(worker, worker.ID, none, fmt.Sprintf("@C{idle}"),
+					none, none, none, none, none, none)
+
+			} else {
+				op := oops
+				if worker.Op != "" {
+					op = fmt.Sprintf("@G{%s}", worker.Op)
+				}
+
+				status := oops
+				if worker.Status != "" {
+					status = fmt.Sprintf("(%s)", worker.Status)
+				}
+
+				task := oops
+				if worker.TaskUUID != "" {
+					task = fmt.Sprintf("@Y{%s}", uuid8(worker.TaskUUID))
+				}
+
+				tenant := oops
+				if worker.Tenant != nil {
+					tenant = worker.Tenant.Name
+					if worker.Tenant.UUID != "" {
+						tenant = fmt.Sprintf("@W{%s}\n(%s)", worker.Tenant.Name, uuid8(worker.Tenant.UUID))
+					}
+				}
+
+				store := none
+				if worker.Store != nil {
+					store = fmt.Sprintf("@W{%s}\n(%s)", worker.Store.Name, uuid8(worker.Store.UUID))
+				}
+
+				system := none
+				if worker.System != nil {
+					system = fmt.Sprintf("@W{%s}\n(%s)", worker.System.Name, uuid8(worker.System.UUID))
+				}
+
+				job := none
+				if worker.Job != nil {
+					job = fmt.Sprintf("@W{%s}\n(%s)", worker.Job.Name, uuid8(worker.Job.UUID))
+				}
+
+				archive := none
+				if worker.Archive != nil {
+					archive = fmt.Sprintf("@W{%s}\n(%s; %s)\n", worker.Archive.UUID, "-", "-") /* FIXME */
+				}
+
+				agent := oops
+				if worker.Agent != "" {
+					agent = fmt.Sprintf("@Y{%s}", worker.Agent)
+				}
+
+				tbl.Row(worker, worker.ID, op, status, task, tenant, system, store, job, archive, agent)
+			}
+		}
+		fmt.Printf("@M{Scheduler Threads}\n\n")
+		tbl.Output(os.Stdout)
+
+		fmt.Printf("\n\n")
+		fmt.Printf("@M{Task Backlog}\n\n")
+		if len(ps.Backlog) > 0 {
+			tbl = table.NewTable("Priority", "#", "Op", "Task", "System", "Store", "Job", "Archive", "Agent")
+			for _, t := range ps.Backlog {
+				op := oops
+				if t.Op != "" {
+					op = fmt.Sprintf("@G{%s}", t.Op)
+				}
+
+				task := oops
+				if t.TaskUUID != "" {
+					task = fmt.Sprintf("@Y{%s}", uuid8(t.TaskUUID))
+				}
+
+				system := none
+				if t.System != nil {
+					system = fmt.Sprintf("@W{%s}\n(%s)", t.System.Name, uuid8(t.System.UUID))
+				}
+
+				store := none
+				if t.Store != nil {
+					store = fmt.Sprintf("@W{%s}\n(%s)", t.Store.Name, uuid8(t.Store.UUID))
+				}
+
+				job := none
+				if t.Job != nil {
+					system = fmt.Sprintf("@W{%s}\n(%s)", t.Job.Name, uuid8(t.Job.UUID))
+				}
+
+				archive := none
+				if t.Archive != nil {
+					archive = fmt.Sprintf("@W{%s}\n(%s; %s)\n", t.Archive.UUID, "-", "-") /* FIXME */
+				}
+
+				agent := oops
+				if t.Agent != "" {
+					agent = fmt.Sprintf("@Y{%s}", t.Agent)
+				}
+				tbl.Row(t, t.Priority, t.Position, op, task, system, store, job, archive, agent)
+			}
+			tbl.Output(os.Stdout)
+
+		} else {
+			fmt.Printf("  none\n")
+		}
+
+		fmt.Printf("\n\n")
 
 	/* }}} */
 
