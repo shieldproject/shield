@@ -19,6 +19,8 @@ func datatype(thing interface{}) string {
 		return "target"
 	case Tenant, *Tenant:
 		return "tenant"
+	case Task, *Task:
+		return "task"
 	default:
 		panic("SHIELD was unable to determine the type of thing, in order to craft a message bus event for it.  This is most certainly a bug in SHIELD itself.")
 	}
@@ -39,14 +41,17 @@ func (db *DB) sendDeleteObjectEvent(thing interface{}, queues ...string) {
 
 func (db *DB) sendTaskStatusUpdateEvent(task *Task, queues ...string) {
 	db.bus.Send(bus.TaskStatusUpdateEvent, "", map[string]interface{}{
-		"uuid":   task.UUID,
-		"status": task.Status,
+		"uuid":       task.UUID,
+		"status":     task.Status,
+		"started_at": task.StartedAt,
+		"stopped_at": task.StoppedAt,
+		"ok":         task.OK,
 	}, queues...)
 }
 
-func (db *DB) sendTaskLogUpdateEvent(task *Task, log string, queues ...string) {
+func (db *DB) sendTaskLogUpdateEvent(id, log string, queues ...string) {
 	db.bus.Send(bus.TaskLogUpdateEvent, "", map[string]interface{}{
-		"uuid": task.UUID,
+		"uuid": id,
 		"tail": log,
 	}, queues...)
 }

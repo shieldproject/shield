@@ -282,7 +282,14 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db.GetTask(id)
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
+	return task, nil
 }
 
 func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) {
@@ -311,7 +318,14 @@ func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) 
 	if err != nil {
 		return nil, err
 	}
-	return db.GetTask(id)
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
+	return task, nil
 }
 
 func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) (*Task, error) {
@@ -341,7 +355,14 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	if err != nil {
 		return nil, err
 	}
-	return db.GetTask(id)
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
+	return task, nil
 }
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
@@ -366,7 +387,14 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db.GetTask(id)
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
+	return task, nil
 }
 
 func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
@@ -405,26 +433,43 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		return nil, err
 	}
 
-	return db.GetTask(id)
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if store.TenantUUID != "" {
+		db.sendCreateObjectEvent(task, "tenant:"+store.TenantUUID)
+	} else {
+		db.sendCreateObjectEvent(task, "*")
+	}
+	return task, nil
 }
 
 func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 	id := RandomID()
 	err := db.exec(`
 	   INSERT INTO tasks (uuid, op, status, log, requested_at,
-	                      agent, attempts, owner)
+	                      agent, attempts, owner, tenant_uuid)
 	
 	              VALUES (?, ?, ?, ?, ?,
-	                      ?, ?, ?)`,
+	                      ?, ?, ?, ?)`,
 		id, AgentStatusOperation, PendingStatus, "", time.Now().Unix(),
-		agent.Address, 0, owner,
+		agent.Address, 0, owner, "",
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return db.GetTask(id)
+	task, err := db.GetTask(id)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(task, "admins")
+	return task, nil
 }
 
 func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
@@ -446,24 +491,76 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	return false, nil
 }
 
+func (db *DB) taskQueue(id string) string {
+	r, err := db.query(`SELECT tenant_uuid FROM tasks WHERE uuid = ?`, id)
+	if err != nil {
+		return ""
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return ""
+	}
+
+	var uuid string
+	if err = r.Scan(&uuid); err != nil {
+		return ""
+	}
+	return fmt.Sprintf("tenant:%s", uuid)
+}
+
 func (db *DB) StartTask(id string, at time.Time) error {
-	return db.exec(
+	err := db.exec(
 		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
 		RunningStatus, effectively(at), id,
 	)
+	if err != nil {
+		return err
+	}
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return err
+	}
+
+	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
+	return nil
 }
 
 func (db *DB) ScheduledTask(id string) error {
-	return db.exec(
+	err := db.exec(
 		`UPDATE tasks SET status = ? WHERE uuid = ?`,
 		ScheduledStatus, id)
+	if err != nil {
+		return err
+	}
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return err
+	}
+
+	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
+	return nil
 }
 
 func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
-	return db.exec(
+	err := db.exec(
 		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
 		status, at, ok, id)
+	if err != nil {
+		return err
+	}
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return err
+	}
+
+	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
+	return nil
 }
+
 func (db *DB) CancelTask(id string, at time.Time) error {
 	return db.updateTaskStatus(id, CanceledStatus, effectively(at), 1)
 }
@@ -477,10 +574,16 @@ func (db *DB) CompleteTask(id string, at time.Time) error {
 }
 
 func (db *DB) UpdateTaskLog(id string, more string) error {
-	return db.exec(
+	err := db.exec(
 		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
 		more, id,
 	)
+	if err != nil {
+		return err
+	}
+
+	db.sendTaskLogUpdateEvent(id, more, db.taskQueue(id))
+	return nil
 }
 
 func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
