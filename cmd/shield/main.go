@@ -2457,7 +2457,6 @@ func main() {
 	/* FIXME: allow partial search by UUID */
 
 	case "tasks": /* {{{ */
-		required(opts.Tenant != "", "Missing required --tenant option.")
 		required(!(opts.Tasks.Active && opts.Tasks.Inactive),
 			"The --active and --inactive options are mutually exclusive.")
 		required(!(opts.Tasks.All && opts.Tasks.Inactive),
@@ -2465,6 +2464,8 @@ func main() {
 		required(!(opts.Tasks.All && opts.Tasks.Active),
 			"The --all and --active options are mutually exclusive.")
 		required(len(args) <= 0, "Too many arguments.")
+		required(opts.Tasks.Target == "" || opts.Tenant != "",
+			"You must select a tenant (via --tenant) if you want to filter by target / system")
 
 		switch opts.Tasks.Status {
 		case "":
@@ -2481,13 +2482,16 @@ func main() {
 			opts.Tasks.Status = ""
 		}
 
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
-
-		if opts.Tasks.Target != "" {
-			t, err := c.FindTarget(tenant, opts.Tasks.Target, !opts.Exact)
+		var tenant *shield.Tenant
+		if opts.Tenant != "" {
+			tenant, err := c.FindMyTenant(opts.Tenant, true)
 			bail(err)
-			opts.Tasks.Target = t.UUID
+
+			if opts.Tasks.Target != "" {
+				t, err := c.FindTarget(tenant, opts.Tasks.Target, !opts.Exact)
+				bail(err)
+				opts.Tasks.Target = t.UUID
+			}
 		}
 
 		var timeBefore int64
