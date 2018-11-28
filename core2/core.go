@@ -1,6 +1,7 @@
 package core2
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -88,7 +89,8 @@ type Config struct {
 		SSHKey string `yaml:"ssh-key"`
 
 		legacy struct {
-			cc *ssh.ClientConfig
+			cc  *ssh.ClientConfig
+			pub string
 		}
 	} `yaml:"fabrics"`
 
@@ -217,6 +219,9 @@ func Configure(file string, config Config) (*Core, error) {
 			if err != nil {
 				return nil, fmt.Errorf("Invalid 'ssh-key' provided in legacy fabric configuration: %s", err)
 			}
+			c.Config.Fabrics[i].legacy.pub = fmt.Sprintf("%s %s",
+				signer.PublicKey().Type(),
+				base64.StdEncoding.EncodeToString(signer.PublicKey().Marshal()))
 
 			c.Config.Fabrics[i].legacy.cc = &ssh.ClientConfig{
 				Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
