@@ -52,8 +52,7 @@ func (c Core) Main() {
 			c.SchedulePurgeTasks()
 			c.MarkIrrelevantTasks()
 			c.ScheduleAgentStatusCheckTasks(nil)
-			c.UpdateGlobalStorageUsage()
-			c.UpdateTenantStorageUsage()
+			c.AnalyzeStorage()
 
 			if c.Unlocked() {
 				c.PurgeExpiredAPISessions()
@@ -396,126 +395,165 @@ func (c *Core) MarkIrrelevantTasks() {
 	c.db.MarkTasksIrrelevant()
 }
 
-func (c *Core) UpdateGlobalStorageUsage() {
-	log.Infof("UPKEEP: updating global storage usage statistics...")
-
-	base := time.Now()
-	threshold := base.Add(0 - time.Duration(24)*time.Hour)
-
-	stores, err := c.db.GetAllStores(nil)
+func (c *Core) AnalyzeStorage() {
+	task, err := c.db.CreateInternalTask("system", db.AnalyzeStorageOperation, db.GlobalTenantUUID)
 	if err != nil {
-		log.Errorf("Failed to get stores for daily storage statistics: %s", err)
+		log.Errorf("failed to schedule internal task to analyze cloud storage: %s", err)
 		return
 	}
 
-	for _, store := range stores {
-		delta, err := c.DeltaIncrease(
-			&db.ArchiveFilter{
-				ForStore:      store.UUID,
-				Before:        &base,
-				After:         &threshold,
-				ExpiresBefore: &base,
-				ExpiresAfter:  &threshold,
-			},
-		)
-		if err != nil {
-			log.Errorf("Failed to get archive stats for daily storage statistics: %s", err)
-			continue
-		}
+	c.scheduler.Schedule(50, scheduler.NewChore(
+		task.UUID,
+		func(chore scheduler.Chore) {
+			delta := func(filter db.ArchiveFilter) (int64, int64, error) {
+				filter.WithStatus = []string{"valid"}
+				increase, err := c.db.ArchiveStorageFootprint(&filter)
+				if err != nil {
+					return 0, 0, err
+				}
 
-		total_size, err := c.db.ArchiveStorageFootprint(
-			&db.ArchiveFilter{
-				ForStore:   store.UUID,
-				WithStatus: []string{"valid"},
-			},
-		)
-		if err != nil {
-			log.Errorf("Failed to get archive stats for daily storage statistics: %s", err)
-			continue
-		}
+				filter.WithStatus = []string{"purged"}
+				purged, err := c.db.ArchiveStorageFootprint(&filter)
+				if err != nil {
+					return 0, 0, err
+				}
 
-		total_count, err := c.db.CountArchives(
-			&db.ArchiveFilter{
-				ForStore:   store.UUID,
-				WithStatus: []string{"valid"},
-			},
-		)
-		if err != nil {
-			log.Errorf("Failed to get archive stats for daily storage statistics: %s", err)
-			continue
-		}
+				return increase, purged, nil
+			}
 
-		store.DailyIncrease = delta
-		store.StorageUsed = total_size
-		store.ArchiveCount = total_count
-		log.Debugf("updating store '%s' (%s) %d archives, %db storage used, %db increase",
-			store.Name, store.UUID, store.ArchiveCount, store.StorageUsed, store.DailyIncrease)
-		err = c.db.UpdateStore(store)
-		if err != nil {
-			log.Errorf("Failed to update stores with daily storage statistics: %s", err)
-		}
-	}
-}
+			base := time.Now()
+			threshold := base.Add(0 - time.Duration(24)*time.Hour)
 
-func (c *Core) UpdateTenantStorageUsage() {
-	log.Infof("UPKEEP: updating per-tenant storage usage statistics...")
+			chore.Errorf("GLOBAL CLOUD STORAGE")
+			chore.Errorf("====================")
 
-	base := time.Now()
-	threshold := base.Add(0 - time.Duration(24)*time.Hour)
+			stores, err := c.db.GetAllStores(nil)
+			if err != nil {
+				chore.Errorf("FAILED to get stores for daily storage statistics: %s", err)
+				return
+			}
 
-	tenants, err := c.db.GetAllTenants(nil)
-	if err != nil {
-		log.Errorf("Failed to get tenants for daily storage statistics: %s", err)
-		return
-	}
+			for _, store := range stores {
+				chore.Errorf("")
+				chore.Errorf(">> analyzing usage of store '%s' (uuid %s)...", store.Name, store.UUID)
+				up, down, err := delta(db.ArchiveFilter{
+					ForStore:      store.UUID,
+					Before:        &base,
+					After:         &threshold,
+					ExpiresBefore: &base,
+					ExpiresAfter:  &threshold,
+				})
+				if err != nil {
+					chore.Errorf("      ERROR: failed to calculate daily usage increase:")
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
 
-	for _, tenant := range tenants {
-		delta, err := c.DeltaIncrease(
-			&db.ArchiveFilter{
-				ForTenant:     tenant.UUID,
-				Before:        &base,
-				After:         &threshold,
-				ExpiresBefore: &base,
-				ExpiresAfter:  &threshold,
-			},
-		)
-		if err != nil {
-			log.Errorf("Failed to get archive stats for daily storage statistics: %s", err)
-			continue
-		}
+				total, err := c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
+					ForStore:   store.UUID,
+					WithStatus: []string{"valid"},
+				})
+				if err != nil {
+					chore.Errorf("      ERROR: failed to calculate total usage:")
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
 
-		total_size, err := c.db.ArchiveStorageFootprint(
-			&db.ArchiveFilter{
-				ForTenant:  tenant.UUID,
-				WithStatus: []string{"valid"},
-			},
-		)
-		if err != nil {
-			log.Errorf("Failed to get archive stats for daily storage statistics: %s", err)
-			continue
-		}
+				count, err := c.db.CountArchives(&db.ArchiveFilter{
+					ForStore:   store.UUID,
+					WithStatus: []string{"valid"},
+				})
+				if err != nil {
+					chore.Errorf("      ERROR: failed to calculate total archive count:")
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
 
-		total_count, err := c.db.CountArchives(
-			&db.ArchiveFilter{
-				ForTenant:  tenant.UUID,
-				WithStatus: []string{"valid"},
-			},
-		)
-		if err != nil {
-			log.Errorf("Failed to get archive stats for daily storage statistics: %s", err)
-			continue
-		}
+				store.DailyIncrease = up - down
+				store.StorageUsed = total
+				store.ArchiveCount = count
+				chore.Errorf("      new archives in the last 24h used %d bytes", up)
+				chore.Errorf("      expired archives purged reclaimed %d bytes", down)
+				chore.Errorf("")
+				chore.Errorf("      net daily increase: %d bytes", store.DailyIncrease)
+				chore.Errorf("      total storage used: %d bytes", store.StorageUsed)
+				chore.Errorf("      # archives present: %d", store.ArchiveCount)
 
-		tenant.StorageUsed = total_size
-		tenant.ArchiveCount = total_count
-		tenant.DailyIncrease = delta
+				err = c.db.UpdateStore(store)
+				if err != nil {
+					chore.Errorf("      ERROR: failed to update store '%s':", store.UUID)
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
+			}
 
-		log.Debugf("updating tenant '%s' (%s) %d archives, %db storage used, %db increase",
-			tenant.Name, tenant.UUID, tenant.ArchiveCount, tenant.StorageUsed, tenant.DailyIncrease)
-		if _, err = c.db.UpdateTenant(tenant); err != nil {
-			log.Errorf("Failed to update tenant with daily storage statistics: %s", err)
-		}
-	}
+			chore.Errorf("")
+			chore.Errorf("TENANT CLOUD STORAGE")
+			chore.Errorf("====================")
+
+			tenants, err := c.db.GetAllTenants(nil)
+			if err != nil {
+				chore.Errorf("FAILED to get tenants for daily storage statistics: %s", err)
+				return
+			}
+
+			for _, tenant := range tenants {
+				chore.Errorf("")
+				chore.Errorf(">> analyzing usage of tenant '%s' (uuid %s)...", tenant.Name, tenant.UUID)
+				up, down, err := delta(db.ArchiveFilter{
+					ForTenant:     tenant.UUID,
+					Before:        &base,
+					After:         &threshold,
+					ExpiresBefore: &base,
+					ExpiresAfter:  &threshold,
+				})
+				if err != nil {
+					chore.Errorf("      ERROR: failed to calculate daily usage increase:")
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
+
+				total, err := c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
+					ForTenant:  tenant.UUID,
+					WithStatus: []string{"valid"},
+				})
+				if err != nil {
+					chore.Errorf("      ERROR: failed to calculate total usage:")
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
+
+				count, err := c.db.CountArchives(&db.ArchiveFilter{
+					ForTenant:  tenant.UUID,
+					WithStatus: []string{"valid"},
+				})
+				if err != nil {
+					chore.Errorf("      ERROR: failed to calculate total archive count:")
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
+
+				tenant.DailyIncrease = up - down
+				tenant.StorageUsed = total
+				tenant.ArchiveCount = count
+				chore.Errorf("      new archives in the last 24h used %d bytes", up)
+				chore.Errorf("      expired archives purged reclaimed %d bytes", down)
+				chore.Errorf("")
+				chore.Errorf("      net daily increase: %d bytes", tenant.DailyIncrease)
+				chore.Errorf("      total storage used: %d bytes", tenant.StorageUsed)
+				chore.Errorf("      # archives present: %d", tenant.ArchiveCount)
+
+				_, err = c.db.UpdateTenant(tenant)
+				if err != nil {
+					chore.Errorf("      ERROR: failed to update tenant '%s':", tenant.UUID)
+					chore.Errorf("      ERROR: %s", err)
+					continue
+				}
+			}
+
+			chore.Errorf("")
+			chore.Errorf("COMPLETE")
+		}))
 }
 
 func (c *Core) PurgeExpiredAPISessions() {

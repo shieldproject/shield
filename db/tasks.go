@@ -11,12 +11,13 @@ import (
 )
 
 const (
-	BackupOperation        = "backup"
-	RestoreOperation       = "restore"
-	ShieldRestoreOperation = "shield-restore"
-	PurgeOperation         = "purge"
-	TestStoreOperation     = "test-store"
-	AgentStatusOperation   = "agent-status"
+	BackupOperation         = "backup"
+	RestoreOperation        = "restore"
+	ShieldRestoreOperation  = "shield-restore"
+	PurgeOperation          = "purge"
+	TestStoreOperation      = "test-store"
+	AgentStatusOperation    = "agent-status"
+	AnalyzeStorageOperation = "analyze-storage"
 
 	PendingStatus   = "pending"
 	ScheduledStatus = "scheduled"
@@ -456,7 +457,6 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-
 
 	task, err := db.GetTask(id)
 	if err != nil {
