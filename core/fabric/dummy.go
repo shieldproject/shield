@@ -44,6 +44,9 @@ func (f DummyFabric) Backup(task *db.Task, encryption vault.Parameters) schedule
 			f.Sleep()
 			chore.Errorf("DUMMY>")
 			chore.Errorf("DUMMY> backup operation complete.")
+			chore.Infof(`{"key":"%s","archive_size":1337,"compression":"%s"}`,
+				time.Now().Format("2006/01/02/15/04/05/2006-01-02T1504.archive"),
+				task.Compression)
 			chore.UnixExit(0)
 			return
 		})
