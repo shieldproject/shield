@@ -316,7 +316,6 @@ func (c *Core) TasksToChores() {
 			continue
 
 		case db.BackupOperation:
-			task.ArchiveUUID = db.RandomID()
 			encryption, err := c.vault.NewParameters(task.ArchiveUUID, c.Config.Cipher, task.FixedKey)
 			if err != nil {
 				c.TaskErrored(task, "unable to generate encryption parameters:\n%s\n", err)

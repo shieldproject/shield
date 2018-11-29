@@ -260,21 +260,45 @@ func (db *DB) GetTask(id string) (*Task, error) {
 	return r[0], nil
 }
 
-func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
+func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 	id := RandomID()
 	err := db.exec(
 		`INSERT INTO tasks
+		    (uuid, owner, op, status, tenant_uuid, log, requested_at)
+		  VALUES
+		    (?, ?, ?, ?, ?, ?)`,
+		id, owner, op, ScheduledStatus, tenant, "", time.Now().Unix())
+
+	if err != nil {
+		return nil, err
+	}
+
+	task, err := db.GetTask(id)
+	if err != nil {
+		return nil, err
+	}
+
+	db.sendCreateObjectEvent(task, "tenant:"+task.TenantUUID)
+	return task, nil
+}
+
+func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
+	id := RandomID()
+	archive := RandomID()
+
+	err := db.exec(
+		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
-		     store_uuid, store_plugin, store_endpoint,
+		     archive_uuid, store_uuid, store_plugin, store_endpoint,
 		     target_uuid, target_plugin, target_endpoint, restore_key,
 		     agent, attempts, tenant_uuid, fixed_key, compression)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?,
-		     ?, ?, ?,
+		     ?, ?, ?, ?,
 		     ?, ?, ?, ?,
 		     ?, ?, ?, ?, ?)`,
 		id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
-		job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
+		archive, job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
 		job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
 		job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression,
 	)
