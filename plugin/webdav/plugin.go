@@ -248,7 +248,7 @@ func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
 	for i := 1; i < len(parts); i++ {
 		dir := strings.Join(parts[:i], "/")
 		fmt.Fprintf(os.Stderr, "creating directory '%s'\n", dir)
-		res, err := dav.do("MKCOL", dir + "/", nil)
+		res, err := dav.do("MKCOL", dir+"/", nil)
 		if err != nil {
 			return 0, fmt.Errorf("unable to create parent directory %s: %s", dir, err)
 		}

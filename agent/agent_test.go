@@ -360,7 +360,7 @@ var _ = Describe("Agent", func() {
 			var s string
 			Eventually(out).Should(Receive(&s)) // stdout
 			// sha1sum value depends on bzip2 compression
-			Ω(s).Should(MatchJSON(`{"key":"9ea61fef3024caadf35dd65d466a41fb51a3c152"}`))
+			Ω(s).Should(MatchJSON(`{"compression": "bzip2", "key":"9ea61fef3024caadf35dd65d466a41fb51a3c152"}`))
 
 			Eventually(out).Should(Receive(&s)) // stderr
 			Ω(s).Should(MatchRegexp(`\Q(dummy) store:  starting up...\E`))
@@ -387,7 +387,7 @@ var _ = Describe("Agent", func() {
 			var s string
 			Eventually(out).Should(Receive(&s)) // stdout
 			// sha1sum value depends on bzip2 compression
-			Ω(s).Should(MatchJSON(`{"key":"acfd124b56584c471d7e03572fe62222ee4862e9"}`))
+			Ω(s).Should(MatchJSON(`{"compression": "bzip2", "key":"acfd124b56584c471d7e03572fe62222ee4862e9"}`))
 
 			Eventually(out).Should(Receive(&s)) // stderr
 			Eventually(out).Should(Receive(&s)) // misc
