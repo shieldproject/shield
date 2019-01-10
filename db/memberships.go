@@ -137,3 +137,7 @@ func (db *DB) GetUsersForTenant(tenant uuid.UUID) ([]*User, error) {
 
 	return l, nil
 }
+
+func (db *DB) CleanMemberships() error {
+	return db.Exec(`DELETE FROM memberships WHERE tenant_uuid IN ( SELECT j1.tenant_uuid FROM memberships j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL)`)
+}

@@ -329,3 +329,7 @@ func (j *Job) Reschedule() error {
 func (j *Job) Runnable() bool {
 	return j.Paused == false && j.NextRun <= time.Now().Unix()
 }
+
+func (db *DB) CleanJobs() error {
+	return db.Exec(`DELETE FROM jobs WHERE uuid IN ( SELECT j1.uuid FROM jobs j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL)`)
+}

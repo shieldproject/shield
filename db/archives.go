@@ -103,7 +103,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		       a.compression, a.tenant_uuid, a.size
 
 		FROM archives a
-		   INNER JOIN targets t   ON t.uuid = a.target_uuid
+		   LEFT JOIN targets t   ON t.uuid = a.target_uuid
 		   INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
@@ -265,6 +265,15 @@ func (db *DB) GetArchivesNeedingPurge() ([]*Archive, error) {
 }
 
 func (db *DB) GetExpiredArchives() ([]*Archive, error) {
+	now := time.Now()
+	filter := &ArchiveFilter{
+		ExpiresBefore: &now,
+		WithStatus:    []string{"valid"},
+	}
+	return db.GetAllArchives(filter)
+}
+
+func (db *DB) GetTennantlessArchives() ([]*Archive, error) {
 	now := time.Now()
 	filter := &ArchiveFilter{
 		ExpiresBefore: &now,

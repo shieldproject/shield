@@ -606,3 +606,7 @@ func (db *DB) RedactAllTaskLogs(tasks []*Task) {
 		db.RedactTaskLog(task)
 	}
 }
+
+func (db *DB) CleanTasks() error {
+	return db.Exec(`DELETE FROM tasks WHERE uuid IN ( SELECT j1.uuid FROM tasks j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL AND op IN ("backup","restore","shield-restore"))`)
+}

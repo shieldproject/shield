@@ -296,6 +296,7 @@ func (core *Core) Run() error {
 			core.checkAllAgents()
 			core.updateStorageUsage()
 			core.purgeExpiredSessions()
+			core.cleanupConfig()
 
 			sealed, _ := core.vault.IsSealed()
 			initialized, _ := core.vault.IsInitialized()
@@ -472,6 +473,34 @@ func (core *Core) expireArchives() {
 			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
 		}
 	}
+}
+
+func (core *Core) cleanupConfig() {
+	log.Debugf("Cleaning out any configurations from a deleted tennant")
+	err := core.DB.CleanMemberships()
+	if err != nil {
+		log.Errorf("error cleaning memberships: %s", err)
+		return
+	}
+
+	err = core.DB.CleanTargets()
+	if err != nil {
+		log.Errorf("error cleaning memberships: %s", err)
+		return
+	}
+
+	err = core.DB.CleanJobs()
+	if err != nil {
+		log.Errorf("error cleaning memberships: %s", err)
+		return
+	}
+
+	err = core.DB.CleanTasks()
+	if err != nil {
+		log.Errorf("error cleaning memberships: %s", err)
+		return
+	}
+
 }
 
 func (core *Core) purge() {

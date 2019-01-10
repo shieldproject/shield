@@ -108,6 +108,9 @@ var opts struct {
 	UpdateTenant struct {
 		Name string `cli:"-n, --name"`
 	} `cli:"update-tenant"`
+	DeleteTenant struct {
+		Recursive bool `cli:"-r, --recursive"`
+	} `cli:"delete-tenant"`
 
 	/* }}} */
 	/* MEMBERSHIP {{{ */
@@ -551,6 +554,7 @@ func main() {
 			printc("  tenant                   Display the details for a single SHIELD Tenant.\n")
 			printc("  create-tenant            Create a new SHIELD Tenant.\n")
 			printc("  update-tenant            Update the metadata for a single tenant.\n")
+			printc("  delete-tenant            Update the metadata for a single tenant.\n")
 			blank()
 			printc("  invite                   Invite a local user to a SHIELD Tenant.\n")
 			printc("  banish                   Remove a local user from a SHIELD Tenant.\n")
@@ -1176,6 +1180,36 @@ func main() {
 		}
 
 		_, err = c.UpdateTenant(t)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(t))
+			break
+		}
+
+		r := tui.NewReport()
+		r.Add("UUID", t.UUID)
+		r.Add("Name", t.Name)
+		r.Output(os.Stdout)
+
+	/* }}} */
+	case "delete-tenant": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s [OPTIONS] NAME-or-UUID\n", command)
+		}
+		t, err := c.FindTenant(args[0], true)
+		bail(err)
+
+		if !opts.DeleteTenant.Recursive {
+			//check and warn of no recursive flay
+			fail(2, "Not using --recursive flag", command)
+		}
+
+		if !confirm(opts.Yes, "Are you sure you want to delete all configuration under this tennant?") {
+			break
+		}
+
+		_, err = c.DeleteTenant(t)
 		bail(err)
 
 		if opts.JSON {
