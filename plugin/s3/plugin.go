@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -543,7 +544,14 @@ func (e s3Endpoint) genBackupPath() string {
 }
 
 func (e s3Endpoint) Connect() (*s3.Client, error) {
+	var protocol string
 	host := e.Host
+
+	if u, err := url.Parse(host); err == nil {
+		protocol = u.Scheme
+		host = u.Host
+	}
+
 	if e.Port != "" {
 		host = host + ":" + e.Port
 	}
@@ -559,6 +567,7 @@ func (e s3Endpoint) Connect() (*s3.Client, error) {
 		InsecureSkipVerify: e.SkipSSLValidation,
 		SOCKS5Proxy:        e.SOCKS5Proxy,
 		UsePathBuckets:     true,
+		Protocol:           protocol,
 		/* FIXME: CA Certs */
 	})
 }
