@@ -246,5 +246,5 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 }
 
 func (db *DB) CleanTargets() error {
-	return db.Exec(`DELETE FROM targets WHERE uuid IN ( SELECT j1.uuid FROM targets j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL)`)
+	return db.Exec(`DELETE from targets WHERE uuid in (SELECT uuid FROM targets tar WHERE (select COUNT(*) from tenants ten where ten.uuid = tar.tenant_uuid) = 0 and (SELECT count(*) from archives arch where arch.target_uuid = tar.uuid AND arch.status = 'valid') = 0)`)
 }

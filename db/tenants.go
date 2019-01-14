@@ -228,8 +228,73 @@ func (db *DB) GetTenantRole(org string, team string) (uuid.UUID, string, error) 
 	return uuid.Parse(tenantUUID), role, nil
 }
 
-func (db *DB) DeleteTenant(tenant *Tenant) error {
+func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
+	//delete tasks
+	if recurse {
+		err := db.Exec(`
+			DELETE FROM tasks
+			WHERE stopped_at IS NOT NULL 
+			AND tenant_uuid = ?`, tenant.UUID.String())
+		if err != nil {
+			return fmt.Errorf("unable to delete tenant tasks: %s", err)
+		}
+
+		//delete jobs
+		err = db.Exec(`
+			DELETE FROM jobs
+			WHERE tenant_uuid = ?`, tenant.UUID.String())
+		if err != nil {
+			return fmt.Errorf("unable to delete tenant jobs: %s", err)
+		}
+
+		err = db.Exec(`
+			UPDATE targets
+			SET tenant_uuid = ''
+			WHERE tenant_uuid = ?`, tenant.UUID.String())
+		if err != nil {
+			return fmt.Errorf("unable to clear tenant targets: %s", err)
+		}
+
+		err = db.Exec(`
+			UPDATE stores
+			SET tenant_uuid = ''
+			WHERE tenant_uuid = ?`, tenant.UUID.String())
+		if err != nil {
+			return fmt.Errorf("unable to clear tenant stores: %s", err)
+		}
+
+		err = db.Exec(`
+			UPDATE archives
+			SET tenant_uuid = ''
+			WHERE tenant_uuid = ?`, tenant.UUID.String())
+		if err != nil {
+			return fmt.Errorf("unable to clear tenant archives: %s", err)
+		}
+	} else {
+
+		if n, _ := db.Count(`SELECT uuid FROM jobs WHERE tenant_uuid = ?`, tenant.UUID.String()); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding jobs")
+		}
+
+		if n, _ := db.Count(`SELECT uuid FROM stores WHERE tenant_uuid = ?`, tenant.UUID.String()); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding stores")
+		}
+
+		if n, _ := db.Count(`SELECT uuid FROM targets WHERE tenant_uuid = ?`, tenant.UUID.String()); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding targets")
+		}
+
+		if n, _ := db.Count(`SELECT uuid FROM archives WHERE tenant_uuid = ?`, tenant.UUID.String()); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding archives")
+		}
+
+		if n, _ := db.Count(`SELECT uuid FROM tasks WHERE tenant_uuid = ?`, tenant.UUID.String()); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding tasks")
+		}
+		//return fmt.Errorf("fell through both conditionals, %s", tenant.UUID.String())
+	}
+
 	return db.Exec(`
 		DELETE FROM tenants
-		      WHERE uuid = ?`, tenant.UUID.String())
+		  WHERE uuid = ?`, tenant.UUID.String())
 }
