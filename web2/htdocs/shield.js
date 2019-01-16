@@ -631,7 +631,11 @@ null==d?void 0:d))},attrHooks:{type:{set:function(a,b){if(!o.radioValue&&"radio"
         console.log('compiling template %s', name);
         Templates[name] = compile($('script#tpl--'+name).html());
       }
-      console.log('rendering template %s, with data:', name, data);
+      if (data) {
+        console.log('rendering template %s, with data:', name, data);
+      } else {
+        console.log('rendering template %s, with no data...', name);
+      }
       return Templates[name](data);
     }
   })();
