@@ -1314,17 +1314,6 @@
     }
   })();
 
-  exported.sockify = function (tenant) {
-    var socket = new WebSocket(document.location.protocol.replace(/http/, 'ws')+"//"+document.location.host+"/v2/tenants/"+tenant+"/events");
-    socket.onopen    = function () { console.log('socket open: ',    arguments); };
-    socket.onclose   = function () { console.log('socket close: ',   arguments); };
-    socket.onmessage = function () { console.log('socket message: ', arguments);
-      console.log(arguments[0].message.data);
-      console.dir(JSON.parse(arguments[0].message.data));
-    };
-    return socket;
-  };
-
   /***************************************************
      $(...).serializePluginObject() - Serialize Data from a Plugin Form
 
