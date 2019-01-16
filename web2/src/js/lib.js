@@ -1,6 +1,28 @@
 ;(function (exported, document, undefined) {
 
   /***************************************************
+    pluralize(n, word [, words]) - Pluralize a number + unit.
+
+    In the two-argument form, `word` will have an 's' appended to it if
+    `n` is any quantity other than 1.  In the three-argument form, `word`
+    is used as the singular unit, and `words` as the plural.
+
+   ***************************************************/
+  exported.pluralize = function (n, word, words) { // {{{
+    if (typeof(n) === 'undefined') {
+      n = 0;
+    }
+    if (n == 1) {
+      return '1 '+word;
+    }
+    if (typeof(words) === 'undefined') {
+      return n.toString()+' '+word+'s';
+    }
+    return n.toString()+' '+words;
+  }
+  // }}}
+
+  /***************************************************
     tparse(d) - Parse `d` intelligently.
 
     If `d` is already a Date, it gets returned as-is. Strings are parsed
