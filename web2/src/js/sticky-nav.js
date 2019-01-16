@@ -7,6 +7,8 @@
   document.addEventListener('scroll', function(event) {
     var nav = document.getElementById("sticky-nav");
     var hud = document.getElementById("hud");
+    if (!hud) { return; }
+
     var y = hud.clientHeight + hud.offsetTop;
 
     if (y - 29 <= window.scrollY) {
