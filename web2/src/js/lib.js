@@ -1252,7 +1252,7 @@
         $parent.find('#choose-plugin').html(template('loading'));
         api({
           type: 'GET',
-          url:  '/v2/tenants/'+$global.auth.tenant.uuid+'/agents/'+uuid,
+          url:  '/v2/tenants/'+SHIELD.tenant.uuid+'/agents/'+uuid,
           success: function (data) {
             cache = data;
             data.type = opts.type;
@@ -1301,18 +1301,6 @@
   };
   // }}}
 
-
-  exported.watchTasks = (function () {
-    var socket = undefined;
-
-    return function (tenant, target, cb) {
-      if (socket) { socket.close(); }
-
-      console.log("watching tasks for tenant "+tenant+", target "+target)
-      socket = new WebSocket(document.location.protocol.replace(/http/, 'ws')+"//"+document.location.host+"/v2/tenants/"+tenant+"/systems/"+target+"/events");
-      socket.onmessage = cb;
-    }
-  })();
 
   /***************************************************
      $(...).serializePluginObject() - Serialize Data from a Plugin Form

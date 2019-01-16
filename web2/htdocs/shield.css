@@ -881,6 +881,20 @@ footer p {
   float: none;
   font-style: italic;
 }
+table.lean td.name > .tag,
+.store h2 .tag {
+  background-color: #0071bcaa;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 8pt;
+  font-weight: bold;
+  padding: 4px 8px;
+  display: inline;
+
+  position: relative;
+  top: -3px;
+  left: 3px;
+}
 .card:nth-child(2n+1) {
   clear: both;
   margin: 2% 2% 2% 0;
@@ -953,44 +967,6 @@ footer p {
   padding: 0;
 }
 
-.picks .card {
-  padding-bottom: 2em;
-}
-.picks .card h3 {
-  padding-bottom: 1em;
-}
-.policy.card h3 input {
-  font-size: inherit;
-  background-color: transparent;
-  border: none;
-  height: 17px;
-  font-weight: inherit;
-  color: #0071bc;
-}
-.policy.card .days,
-.policy.card .days input {
-  height: 1em;
-  font-size: 48pt;
-  padding: 0.5em;
-  text-align: center;
-  color: #0071bc;
-}
-.policy.card .days input {
-  width: 2.5em;
-  background-color: transparent;
-  margin: 0; padding: 0;
-  border: none;
-  border-bottom: 2px solid #0071bc;
-
-}
-.policy.card .days span {
-  font-size: 24pt;
-  color: black;
-}
-.picks .policy.card .days {
-  font-size: 24pt;
-}
-
 .summary h2 {
   font-size: 18px;
   font-weight: bold;
@@ -1003,6 +979,15 @@ footer p {
 .lean .name {
   font-size: 18px;
   font-weight: bold;
+}
+.lean .name a {
+  text-decoration: none;
+  color: inherit;
+}
+.lean .uuid {
+  font-size: 18px;
+  font-weight: bold;
+  font-family: monospace;
 }
 .lean .fail .name { color: #FF1D25; }
 .lean .schedule,
@@ -1467,7 +1452,7 @@ pre.task-failed.override   code { background-color: #333; }
   display: inline-block;
   font-size: 14pt;
 }
-.timeline .event .tag{
+.timeline .event .tag {
   background-color: #ccc;
   border-radius: 4px;
   font-size: 8pt;
@@ -1538,6 +1523,14 @@ pre.task-failed.override   code { background-color: #333; }
   color: #0071bc;
 }
 
+.paginate .loading {
+  font-style: italic;
+  text-align: center;
+  opacity: 0.5;
+  font-size: 120%;
+  padding: 2.5em 0 4em 0;
+}
+
 
 #modal.modal-wash {
   position: fixed;
@@ -1603,76 +1596,222 @@ pre.task-failed.override   code { background-color: #333; }
   color: palegreen;
 }
 
-.wizard button.final {
-  display: block;
-  float: right;
-  font-size: 14pt;
-  background-color: #0071bc;
+.wizard2 h1 {
+  margin: 2em 0 0 0;
+  font-size: 28pt;
+  font-weight: bold;
+}
+.wizard2 p.intro-help {
+  width: 60%;
+  background-color: #f2f2f2;
+  padding: 2em;
+}
+.wizard2 h2 {
+  font-size: 22pt;
+  font-weight: bold;
+  margin: 3em 0 0.7em 0;
+}
+.wizard2 h3 {
+  font-size: 18pt;
+  font-weight: bold;
+  margin: 1em 0 0 0;
+}
+.wizard2 h2:first-child {
+  margin-top: 1em;
+}
+.wizard2 .band {
+  clear: both;
+  padding: 0.5em 0;
+  overflow: hidden;
+}
+.wizard2 .band.hover:hover {
+  background-color: #f2f2f2;
+}
+.wizard2 .band.hover input {
+  background-color: transparent;
+}
+.wizard2 .help {
+  font-size: 10pt;
+  color: #0071bc88;
+  font-style: italic;
+}
+.wizard2 .side-help {
+  background-color: #0071bc22;
+  padding: 1em;
+  margin: 1em;
+  position: relative;
+}
+.wizard2 .lean .side-help {
+  margin-top: 50px;
+}
+.wizard2 .lean.selectable tbody tr:hover,
+.wizard2 .lean.selectable.selected tbody tr.selected {
+  cursor: pointer;
+  padding: 0px;
+  background-color: #000;
   color: #fff;
-  padding: 12px 20px;
-  border-radius: 8px;
-  border: none;
-  margin-bottom: 6px;
-  margin-right: 6px;
-  box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
+  opacity: 1.0;
+}
+.wizard2 .lean.selectable.selected tbody tr {
+  opacity: 0.3;
+}
+.wizard2 .lean.selectable tbody tr:hover td.name,
+.wizard2 .lean.selectable.selected tbody tr td.name {
+  color: inherit;
+}
+.wizard2 .x3 label,
+.wizard2 .x2 label {
+  font-weight: bold;
+  text-align: right;
+  display: block;
+  line-height: 38px;
+  padding-right: 16px;
+}
+.wizard2 .scheduling .optgroup li {
+  border-radius: 0px;
+  margin: 4px 0px;
+}
+.wizard2 .scheduling .optgroup li:first-child { border-radius: 4px 0 0 4px; }
+.wizard2 .scheduling .optgroup li:last-child  { border-radius: 0 4px 4px 0; }
+.wizard2 .scheduling .optgroup li+li {
+  border-left: 0;
+}
+
+.new-form1 input::placeholder {
+  color: #888;
+  font-size: 80%;
+  font-style: italic;
+}
+.new-form1 .selected-elsewhere,
+.new-form1 input[type=password],
+.new-form1 input[type=text] {
+  background-color: transparent;
+  border: 2px solid #0071bc;
+  border-width: 0 0 2px 0;
+  font-size: 18pt;
+}
+.new-form1 .selected-elsewhere {
+  border: 0;
+  margin: 0;
+  margin-top: 8px;
+}
+.new-form1 .selected-elsewhere a {
+  font-size: 11pt;
+  color: #0071bc;
+  text-decoration: none;
+  border-bottom: 1px dotted #0071bc;
+}
+.new-form1 input[type=password][!size],
+.new-form1 input[type=text][!size] {
+  width: 60%;
+}
+.new-form1 textarea {
+  height: 7em;
+  border: 1px solid #0071bc;
+  width: 90%;
+  font-family: sans-serif;
+  padding: 0.7em;
+  line-height: 1.2em;
+}
+.new-form1 select {
+  font-size: 12pt;
+  padding: 4px;
+  margin: 4px 0;
+}
+.new-form1 .subform {
+  display: none;
+}
+.new-form1 .subform > div {
+  margin-bottom: 1em;
+}
+ /* The switch - the box around the slider */
+.new-form1 .switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 24px;
+  margin-top: 6px;
+}
+
+/* Hide default HTML checkbox */
+.new-form1 .switch input {
+  opacity: 0; width: 0; height: 0;
+}
+
+/* The slider */
+.new-form1 .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0;
+  right: 0; bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.new-form1 .slider:before {
+  position: absolute;
+  content: "";
+  left: 4px; bottom: 4px;
+  height: 16px; width: 16px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.new-form1 input:checked + .slider { background-color: #0071bc; }
+.new-form1 input:focus   + .slider { box-shadow: 0 0 1px #0071bc; }
+.new-form1 input:checked + .slider:before {
+  -webkit-transform: translateX(16px);
+  -ms-transform: translateX(16px);
+  transform: translateX(16px);
+}
+
+/* Rounded sliders */
+.new-form1 .slider.round {
+  border-radius: 34px;
+}
+
+.new-form1 .slider.round:before {
+  border-radius: 50%;
+} 
+
+.new-form1 .smudge {
+  position: relative;
+  display: inline-block;
+}
+.new-form1 .smudge input {
+  padding-right: 1.4em;
+}
+.new-form1 .smudge > span {
+  position: absolute;
+  right: 0;
+  height: 33px;
+  line-height: 33px;
+  font-size: 7pt;
+  color: #999;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
-.do-caption {
-  font-style: italic;
-  font-size: 11pt;
+.new-form1 button {
+  cursor: pointer;
+  background-color: #0071bc;
+  padding: 0.7em 1.6em;
+  border-radius: 8px;
+  border: none;
+  color: white;
+  font-size: 16pt;
+  font-weight: bold;
+  margin: 1em 1em 1em 0;
+  box-shadow: 4px 4px 5px rgba(0,0,0,0.25)
+}
+
+.wizard2 .summary-section {
+  padding: 1em;
+  background-color: #0071bc22;
   margin-bottom: 2em;
-  color: #0071bc;
 }
-.wizard .picks {
-  border-bottom: 1px solid #ccc;
-  padding-bottom: 20px;
-  margin-bottom: 20px;
-}
-.wizard .picks {
-  overflow: hidden;
-}
-.wizard .picks > div {
-  width: 29%;
-  margin: 0 2% 2% 0;
-}
-.wizard .picks > div:nth-child(2n+1) { clear: none; }
-.wizard .picks > div:nth-child(3n+3) { margin: 0 0 2% 0; }
-.wizard .picks > div:nth-child(3n+1) { clear: both; }
-.wizard .picks .empty {
-  border: 2px dashed #777;
-  padding: 10px;
-  background-color: #eee;
-  opacity: 0.5;
-}
-
-.wizard .step > span.label {
-  color: #aaa;
-  font-size: 24pt;
-  float: right;
-}
-.wizard .step > h3 {
-  font-size: 24px;
-  line-height: 64px;
-  font-weight: bold;
-}
-.wizard .step {
-  clear: both;
-  overflow: hidden;
-}
-.wizard .step p {
-  width: 70%;
-    line-height: 1.2em;
-}
-.wizard .step p strong {
-  font-weight: bold;
-  color: #0071bc;
-  font-size: 110%;
-}
-.do-backup .run-the-backup p {
-  float: left;
-}
-
 
 .flyout {
   position: fixed;
@@ -2090,10 +2229,10 @@ h2 strong,
   max-width: 200px;
 }
 
-form.scheduling .optgroup {
+.scheduling .optgroup {
   display: inline-block;
 }
-form.scheduling .optgroup li {
+.scheduling .optgroup li {
   display: inline-block;
   padding: 8px 6px 6px 6px;
   border: 1px solid #0071bc;
@@ -2104,66 +2243,29 @@ form.scheduling .optgroup li {
   line-height: 0.8em;
 
   cursor: pointer;
+  background-color: #fff;
 }
-form.scheduling .optgroup li.selected {
+.scheduling .optgroup li.selected {
   background-color: #0071bc;
   opacity: 1;
   color: #fff;
   font-weight: bold;
 }
-form.scheduling input.num,
-form.scheduling input.time {
+.scheduling input.num,
+.scheduling input.time {
   border: none;
   border-bottom: 2px solid #0071bc;
   font-size: 18pt;
   text-align: center;
 }
-form.scheduling input.num {
+.scheduling input.num {
   width: 4ex;
 }
-form.scheduling input.time {
+.scheduling input.time {
   width: 6ex;
 }
-form.scheduling .subform {
+.scheduling .subform {
   display: none;
-  margin-left: 4em;
-}
-
-.do-restore .pick-an-archive .archive-row {
-  overflow: hidden;
-  border-radius: 0.5em;
-  padding: 2em;
-  background-color: #eee;
-}
-.do-restore .pick-an-archive .archive-row h4 {
-  font-size: 110%;
-  font-weight: bold;
-  color: #0071bc;
-}
-.do-restore .pick-an-archive .archive-row dl {
-  width: 50%;
-  float: left;
-  margin: 2em;
-  font-size: 120%;
-}
-.do-restore .pick-an-archive .archive-row dd sub {
-  font-style: italic;
-  font-size: 90%;
-  font-weight: normal;
-}
-.do-restore .pick-an-archive .archive-row button {
-  display: block;
-  float: right;
-  font-size: 14pt;
-  background-color: #0071bc;
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 8px;
-  border: none;
-  margin-bottom: 6px;
-  margin-right: 6px;
-  box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
-  cursor: pointer;
 }
 
 redacted {

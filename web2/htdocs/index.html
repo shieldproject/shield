@@ -19,8 +19,8 @@
       ]]
       <div class="story-sidebar">
         <nav>
-          [[ if ($global.auth.tenant && $global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
-            [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].operator) { ]]
+          [[ if (SHIELD.activeTenant() && SHIELD.is('operator', SHIELD.activeTenant())) { ]]
+            [[ if (SHIELD.is('operator', SHIELD.activeTenant())) { ]]
             <li><a href="#!/do/backup">Run an ad hoc backup</a>
                 <p>Run a backup job whenever you need to, regardless of the job's
                 schedule.</p></li>
@@ -29,7 +29,7 @@
                 <p>Restore a protected system back to the state it was in when a
                 backup archive was taken.</p></li>
             [[ } ]]
-            [[ if ($global.auth.is.tenant[$global.auth.tenant.uuid].engineer) { ]]
+            [[ if (SHIELD.is('engineer', SHIELD.activeTenant())) { ]]
               <li><a href="#!/do/configure">Configure a new backup job</a>
                   <p>Set up a new protected system, and configure the how, when,
                   and for how long of managing its backup archives.</p></li>
@@ -48,7 +48,7 @@
         </footer>
       </div>
       <div class="pane">
-        [[ if (($global.auth.tenant && $global.auth.is.tenant[$global.auth.tenant.uuid].operator) || ($global.auth.is.system.engineer)){ ]]
+        [[ if ((SHIELD.activeTenant() && SHIELD.is('operator', SHIELD.activeTenant())) || (SHIELD.is('engineer'))){ ]]
         <div class="hud blk" id="hud">
           <div class="x5"><div class="inst">
             <ul>
@@ -70,10 +70,9 @@
           <nav>
             <li class="cli"><a href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a></li>
             <li class="cli"><a href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a></li>
-            <li><a href="#!/systems">Systems</a></li>
-            <li class="current"><a href="#!/stores">Storage</a></li>
-            <li><a href="#!/policies">Retention</a></li>
-            [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+            <li><a href="#!/systems">Data Systems</a></li>
+            <li class="current"><a href="#!/stores">Cloud Storage</a></li>
+            [[ if (SHIELD.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
           </nav>
         </div>
 
@@ -81,10 +80,9 @@
           <nav>
             <li class="cli"><a href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a></li>
             <li class="cli"><a href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a></li>
-            <li><a href="#!/systems">Systems</a></li>
-            <li class="current"><a href="#!/stores">Storage</a></li>
-            <li><a href="#!/policies">Retention</a></li>
-            [[ if ($global.auth.is.system.engineer) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+            <li><a href="#!/systems">Data Systems</a></li>
+            <li class="current"><a href="#!/stores">Cloud Storage</a></li>
+            [[ if (SHIELD.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
           </nav>
         </div>
 
@@ -170,9 +168,9 @@
       ]]
           <div id="login" class="frontdoor">
             <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
-              <h1>SHIELD<span style="color: [[= $global.shield.color || 'green' ]]">[[= $global.shield.env ]]<span></h1>
+              <h1>SHIELD[[ if (SHIELD._.shield) { ]]<span style="color: [[= SHIELD._.shield.color || 'green' ]]">[[= SHIELD._.shield.env ]]<span>[[ } ]]</h1>
               <div class="dialog">
-                <p class="motd">[[= $global.shield.motd ]]</p>
+                [[ if (SHIELD._.shield) { ]]<p class="motd">[[= SHIELD._.shield.motd ]]</p>[[ } ]]
 
                 [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
@@ -229,9 +227,9 @@
             Displays the initialization template screen (displayed after login on an uninitialized SHIELD)
           ]]
               <div id="initialize" class="frontdoor">
-                  <h1>SHIELD<span style="color: [[= $global.shield.color || 'green' ]]">[[= $global.shield.env ]]<span></h1>
+                  <h1>SHIELD<span style="color: [[= SHIELD._.shield.color || 'green' ]]">[[= SHIELD._.shield.env ]]<span></h1>
                   <div class="dialog">
-                    <p class="motd">[[= $global.shield.motd ]]</p>
+                    <p class="motd">[[= SHIELD._.shield.motd ]]</p>
                     <div class="restore">
                        <h2>Restore SHIELD</h2>
                         <p class="restore_divert">If you'd like to initialize this SHIELD installation with a previous SHIELD self-backup, provide the archive file and the fixed key used to encrypt the backup. </p>
@@ -291,7 +289,7 @@
       ]]
           <div id="cliauth" class="frontdoor">
             <div>
-              <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
+              <h1>SHIELD<span>[[= SHIELD._.shield.env ]]<span></h1>
               <div class="dialog">
                 <h2>CLI Authentication Credentials</h2>
                 <img src="/i/terminal.png" class="highlight">
@@ -318,7 +316,7 @@
         ]]
             <div id="fixed-wrapper" class="frontdoor">
               <div>
-                <h1>SHIELD<span>[[= $global.shield.env ]]<span></h1>
+                <h1>SHIELD<span>[[= SHIELD._.shield.env ]]<span></h1>
                 <div class="dialog">
                   <h2>Shield Fixed Key</h2>
                   <img src="/i/terminal.png" class="highlight">
@@ -387,27 +385,28 @@
         Renders the top-most bar, with the SHIELD name / environment, and the
         current users name / tenant and "personal settings" menu.
       ]]
-        <h1><a href="#!/systems">SHIELD [[ if ($global.shield.color) { ]]<span style="color:[[= $global.shield.color ]]">[[ } ]][[= $global.shield.env ]]</span> <span>[[= $global.shield.ip ]]</span></a></h1>
-        [[ if (_.user) { ]]
-        <a href="#!/account" rel="account">[[= _.user.name ]][[ if (_.tenant) { ]] ([[= _.tenant.name ]] :: [[= _.tenant.role ]])[[ } ]]</a>
+        <h1><a href="#!/systems">SHIELD [[ if (SHIELD._.shield.color) { ]]<span style="color:[[= SHIELD._.shield.color ]]">[[ } ]][[= SHIELD._.shield.env ]]</span> <span>[[= SHIELD._.shield.ip ]]</span></a></h1>
+        [[ if (SHIELD.authenticated()) { ]]
+        <a href="#!/account" rel="account">[[= SHIELD._.user.name ]][[ if (SHIELD.activeTenant()) { ]] ([[= SHIELD.activeTenant().name ]] :: [[= SHIELD.activeTenant().role ]])[[ } ]]</a>
         <div class="flyout ephemeral">
           <div class="menu">
-            <div class="header">Signed in as [[= _.user.account ]]
-              <span>[[= _.user.backend ]]</span>
+            <div class="header">Signed in as [[= SHIELD._.user.account ]]
+              <span>[[= SHIELD._.user.backend ]]</span>
             </div>
             <div class="divider"></div>
             <div class="header">Your Tenants</div>
-            [[ if (_.tenants.length == 0) { ]]
+            [[ var tenants = SHIELD.values(SHIELD._.tenants); ]]
+            [[ if (tenants.length == 0) { ]]
             <span class="dropdown odd">you have no tenants</span>
             [[ } else { ]]
-            [[   $.each(_.tenants.sort(function (a, b) { return a.name > b.name ? 1 : a.name == b.name ? 0 : -1 }), function (i, tenant) { ]]
-            <a class="dropdown[[ if (tenant.uuid == _.tenant.uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
+            [[   SHIELD.each(SHIELD.sortBy(tenants, 'name'), function (i, tenant) { ]]
+            <a class="dropdown[[ if (SHIELD.activeTenant() && tenant.uuid == SHIELD.activeTenant().uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
             [[   }); ]]
             [[ } ]]
             <!--
-            [[ if (_.tenant && $global.auth.is.tenant[_.tenant.uuid].admin) { ]]
+            [[ if (SHIELD.activeTenant() && SHIELD.is('admin', SHIELD.activeTenant())) { ]]
                 <div class="divider"></div>
-                <a class="dropdown" href="#!/tenants/edit:uuid:[[= _.tenant.uuid ]]">Tenant Settings</a>
+                <a class="dropdown" href="#!/tenants/edit:uuid:[[= SHIELD.activeTenant().uuid ]]">Tenant Settings</a>
             [[ } ]]
             -->
             <div class="divider"></div>
@@ -428,12 +427,12 @@
             <div class="x5"><div class="inst">
               <ul>
                 <li class="shield">SHIELD
-                  [[ if ($global.shield.version) { ]]<span class="v">[[= $global.shield.version ]]</span>
+                  [[ if (SHIELD._.shield.version) { ]]<span class="v">[[= SHIELD._.shield.version ]]</span>
                   [[ } else { ]]<span class="v dev">(development)</span>
                   [[ } ]]</li>
-                [[ if ($global.shield.ip)   { ]]<li class="ip">[[= $global.shield.ip ]]</li>[[ } ]]
-                [[ if ($global.shield.fqdn) { ]]<li class="fqdn">[[= $global.shield.fqdn ]]</li>[[ } ]]
-                <li class="env"><span style="color: [[= maybe($global.shield.color, "#8CC63F") ]]">[[= $global.shield.env ]]</span></li>
+                [[ if (SHIELD._.shield.ip)   { ]]<li class="ip">[[= SHIELD._.shield.ip ]]</li>[[ } ]]
+                [[ if (SHIELD._.shield.fqdn) { ]]<li class="fqdn">[[= SHIELD._.shield.fqdn ]]</li>[[ } ]]
+                <li class="env"><span style="color: [[= maybe(SHIELD._.shield.color, "#8CC63F") ]]">[[= SHIELD._.shield.env ]]</span></li>
               </ul>
             </div></div>
 
@@ -448,39 +447,36 @@
                 <object type="image/svg+xml" data="i/jobs-fail.svg"></object>
               </div>
               <ul>
-                [[ if (_.health.core == "unsealed" || _.health.core == "unlocked") { ]]
+                [[ var health = SHIELD.health(); ]]
+                [[ console.log("health: %s", JSON.stringify(health)); ]]
+                [[ if (health.core == "unlocked") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
-                [[ } else if (_.health.core == "sealed" || _.health.core == "locked") { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>LOCKED</span></li>
-                [[ } else if (_.health.core == "uninitialized") { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>UNINITIALIZED</span></li>
-                [[ } else if (_.health.core == "unreachable") { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unreachable</span></li>
-                [[ } else if (_.health.core == "failing") { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>FAILING</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>unknown</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>[[= health.core ]]</span></li>
                 [[ } ]]
-                [[ if (_.health.storage_ok) { ]]
+
+                [[ if (health.storage == "ok") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/cloud-ok.svg"></object> Cloud Storage is <span>connected</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/cloud-fail.svg"></object> Cloud Storage is <span>failing</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/cloud-fail.svg"></object> Cloud Storage is <span>[[= health.storage ]]</span></li>
                 [[ } ]]
-                [[ if (_.health.jobs_ok) { ]]
+
+                [[ if (health.jobs == "ok") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/jobs-ok.svg"></object> All Jobs <span>succeeding</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/jobs-fail.svg"></object> Jobs are <span>failing</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/jobs-fail.svg"></object> Jobs are <span>[[= health.jobs ]]</span></li>
                 [[ } ]]
               </ul>
             </div></div>
 
             <div class="x6"><div class="prot">
               <h3>Data Protection Summary</h3>
+              [[ var stats = SHIELD.stats(); ]]
               <ul>
-                <li>Scheduled Backup Jobs <span>[[= _.stats.jobs ]]</span></li>
-                <li>Backup Archives <span>[[= _.stats.archives ]]</span></li>
-                <li class="warn">Cloud Storage Used <span>[[= bytes(_.stats.storage) ]]</span></li>
-                <li class="ok">Daily Storage Increase <span>[[= bytes(_.stats.daily) ]]</span></li>
+                <li>Scheduled Backup Jobs <span>[[= stats.jobs ]]</span></li>
+                <li>Backup Archives <span>[[= stats.archives ]]</span></li>
+                <li class="warn">Cloud Storage Used <span>[[= bytes(stats.storage) ]]</span></li>
+                <li class="ok">Daily Storage Increase <span>[[= bytes(stats.delta) ]]</span></li>
               </ul>
             </div></div>
     <!-- }}} --></script>
@@ -562,8 +558,8 @@
         </div>
         <div[[ if (_.current == "engineer") { ]] class="current"[[ } ]] data-role="engineer">
           <strong>Engineer</strong>
-          <p>Manages global configuration, including shared cloud
-             storage configurations and retention policy templates.</p>
+          <p>Manages global configuration, namely shared cloud
+             storage configurations.</p>
         </div>
         [[ } ]]
       </div>
@@ -683,178 +679,112 @@
         data system they want to restore, and how fresh the backup needs
         to be.
       ]]
-      [[
-        var stores = {};
-        if (!_.system) {
-          _.store = undefined;
-          _.policy = undefined;
-        }
+      <div class="gutter blk wizard2 do-backup">
+        <form class="new-form1">
+          <h1>Run an Ad Hoc Backup</h1>
+          <p class="intro-help">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis consectetur leo tortor, sed sodales sapien bibendum quis. Praesent euismod lorem sed nulla ullamcorper ullamcorper. Orci varius natoque penatibus et magnis dis parturient montes.</p>
 
-        if (_.system && !_.store) {
-          _.policy = undefined;
-          $.each(_.system.jobs, function (i, job) {
-            _.store = stores[job.store.uuid] = job.store;
-            job.store.plugin = job.to;
-          });
-          if (_.noauto || Object.keys(stores).length != 1) {
-            _.store = undefined;
-          }
-        }
-
-        var policies = {};
-        if (_.system && _.store && !_.policy) {
-          $.each(_.system.jobs, function(i, job) {
-            if (job.store.uuid = _.store.uuid) {
-              _.policy = policies[job.retention.uuid] = job.retention;
-            }
-          });
-          if (_.noauto || Object.keys(policies).length != 1) {
-            _.policy = undefined;
-          }
-        }
-      ]]
-      <div class="gutter blk wizard do-backup">
-        <p class="do-caption">Performing an Ad Hoc Backup</p>
-        <div class="picks">
-          [[ if (_.system) { ]]
-          <div class="job card [[ if (!_.system.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-          <a href="do-backup:unpick">
-            <span class="type">System</span>
-            <img src="i/shield-[[= _.system.ok ? 'ok' : 'fail' ]].svg">
-            <h3>[[= _.system.name ]]</h3>
-            <div class="notes">[[= _.system.notes ]]</div>
-          </a>
-          </div>
-          [[ } else { ]]
-          <div class="job card empty">Protected System</div>
-          [[ } ]]
-          [[ if (_.store) { ]]
-          <div class="store card [[ if (!_.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-          <a href="do-backup:unpick">
-            <span class="type">Cloud Storage</span>
-            <img src="i/shield-[[= _.store.healthy ? 'ok' : 'fail' ]].svg">
-            <h3>[[= _.store.name ]]</h3>
-            <div class="notes">[[ if (_.store.summary) { ]]
-              [[= _.store.summary ]]
-            [[ } else { ]]
-              <div class="no-data">No notes provided.  Too bad.</div>
-            [[ } ]]</div>
-            <div class="graph[[ if (!_.store.healthy) { ]] fail[[ } ]]">
-              <div class="to">[[= _.store.plugin ]]</div>
+          <h2 id="data-systems">Data System</h2>
+          <div class="c12 band">
+            <div class="x9">
+              [[ var systems = SHIELD.systems(); ]]
+              <table class="lean selectable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  [[ SHIELD.each(systems, function (i, target) { ]]
+                  <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
+                    <td class="name">
+                      <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+                      [[= target.name ]]
+                    </td>
+                    <td>[[= target.plugin ]]</td>
+                    <td class="notes">
+                      [[= target.summary ]]
+                    </td>
+                  </tr>
+                  [[ }); ]]
+                </tbody>
+              </table>
             </div>
-          </a>
-          </div>
-          [[ } else { ]]
-          <div class="store card empty">Cloud Storage</div>
-          [[ } ]]
-          [[ if (_.policy) { ]]
-          <div class="policy card">
-          <a href="do-backup:unpick">
-            <h3>[[= _.policy.name ]]</h3>
-            <ul class="details">
-              <li>keep for [[= _.policy.days ]] day[[ if (_.policy.days != 1) { ]]s[[ } ]]</li>
-            </ul>
-            <div class="notes">[[= _.policy.summary ]]</div>
-          </a>
-          </div>
-          [[ } else { ]]
-          <div class="store card empty">Retention Policy</div>
-          [[ } ]]
-        </div>
-
-        [[ if (!_.system) { ]]
-        <div class="step pick-a-system">
-          <span class="label">Step 1</span>
-          <h3>Pick What You Want To Back Up</h3>
-          <p>Which protected system you want to back up?</p>
-
-          <div>
-          [[ $.each(_.systems, function (i, target) { ]]
-          <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-            <a href="do-backup:pick:target:[[= target.uuid ]]">
-            <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
-            <h3>[[= target.name ]]</h3>
-            <div class="notes">[[= target.notes ]]</div>
-            </a>
-          </div>
-          [[ }); ]]
-          </div>
-        </div>
-        [[ } ]]
-
-        [[ if (_.system && !_.store) { ]]
-        <div class="step pick-a-store">
-          <span class="label">Step 2</span>
-          <h3>Select Cloud Storage</h3>
-          <p>Where would you like to store this backup archive?</p>
-
-          <div>
-            [[ $.each(stores, function (uuid, store) { ]]
-            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-              <a href="do-backup:pick:store:[[= store.uuid ]]">
-              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-              <h3>[[= store.name ]]</h3>
-              <div class="notes">[[ if (store.summary) { ]]
-                [[= store.summary ]]
-              [[ } else { ]]
-                <div class="no-data">No notes provided.  Too bad.</div>
-              [[ } ]]</div>
-              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
-                <div class="to">[[= store.plugin ]]</div>
-              </div>
-              </a>
+            <div class="x3">
+              <div class="side-help">Select the target you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
             </div>
-            [[ }); ]]
           </div>
-        </div>
-        [[ } ]]
 
-        [[ if (_.system && _.store && !_.policy) { ]]
-        <div class="step pick-a-retention-policy" style="display: block">
-          <span class="label">Step 3</span>
-          <h3>Choose a Retention Policy</h3>
-          <p>How long should we keep this backup?</p>
+          <h2 id="cloud-storage">Cloud Storage</h2>
+          <div class="c12 band">
+            <div class="x9">
+              [[ var stores = SHIELD.stores(); ]]
+              <table class="lean selectable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Retention</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  [[ SHIELD.each(stores, function (i, store) { ]]
+                  <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
+                    <td class="name">
+                      <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
+                      [[= store.name ]]
+                      [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
+                    </td>
+                    <td>[[= store.plugin ]]</td>
+                    <td class="retain">7 days</td>
+                    <td class="notes">
+                      [[= store.summary ]]
+                    </td>
+                  </tr>
+                  [[ }); ]]
+                </tbody>
+              </table>
+            </div>
+            <div class="x3 lean">
+              <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
+            </div>
+          </div>
 
-          <div>
-            [[ $.each(policies, function (uuid, retention) { ]]
-              <div class="policy card">
-                <a href="do-backup:pick:policy:[[= retention.uuid ]]">
-                <h3>[[= retention.name ]]</h3>
-                <ul class="details">
-                  <li>keep for [[= retention.days ]] days</li>
-                </ul>
-                <div class="notes">[[= retention.summary ]]</div>
-                </a>
+          <h2>Summary</h2>
+          <div class="summary-section">
+            <div class="c12 band">
+              <div class="x2"><label>Data System</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
+                <a class="change-me" href="#data-systems">change</a></p>
               </div>
-            [[ }); ]]
+            </div>
+
+            <div class="c12 band">
+              <div class="x2"><label>Cloud Storage</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">Cloudstore (s3)
+                <a class="change-me" href="#cloud-storage">change</a></p>
+              </div>
+            </div>
+
+            <div class="c12 band">
+              <div class="x2"><label>Retention</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">7 days <span>(expires Monday, February 23rd, 2018)</span>
+                <a class="change-me" href="#cloud-storage">change</a></p>
+              </div>
+            </div>
+          <div class="c12 band">
+            <div class="l2 x8 r2">
+              <button>Run Backup</button>
+            </div>
           </div>
           </div>
-        </div>
-        [[ } ]]
-
-        [[ if (_.system && _.store && _.policy) { ]]
-        [[
-          var uuid;
-          for (var i = 0; i < _.system.jobs.length; i++) {
-            var job = _.system.jobs[i];
-            if (job.store.uuid == _.store.uuid
-              && job.retention.uuid == _.policy.uuid) {
-
-              uuid = job.uuid;
-              break;
-            }
-          }
-        ]]
-        <div class="step run-the-backup" style="display: block">
-          <h3>Review Your Choices</h3>
-          <p>If everything looks correct, click the big button to
-          initiate a manual backup of <strong>[[= _.system.name ]]</strong>
-          to <strong>[[= _.store.name ]]</strong> &mdash; backup archive will be kept
-          for <strong>[[= _.policy.days ]] days</strong>.</p>
-
-          <button class="final" rel="run:[[= uuid ]]">Run Backup &raquo;</button>
-        </div>
-        [[ } ]]
+        </form>
       </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--do-restore"><!-- {{{ -->
@@ -865,118 +795,126 @@
         finding the correct archive to restore, based on what data system
         they want to restore, and how fresh the restore needs to be.
       ]]
-      <div class="gutter blk wizard do-restore">
-        <p class="do-caption">Restoring Data</p>
-        <div class="picks">
-          [[ if (_.system) { ]]
-          <div class="job card">
-          <a href="do-restore:unpick">
-            <span class="type">System to Restore</span>
-            <h3>[[= _.system.name ]]</h3>
-            <div class="notes">[[= _.system.notes ]]</div>
-          </a>
-          </div>
-          [[ } else { ]]
-          <div class="job card empty">Protected System</div>
-          [[ } ]]
-          [[ if (_.archive) { ]]
-          <div class="archive card">
-          <a href="do-restore:unpick">
-            <span class="type">Archive</span>
-            <h3>[[= strftime("%x %X", _.archive.taken_at) ]]</h3>
-            <div class="notes">
-              <strong>[[= bytes(_.archive.size) ]]</strong>,
-              in <strong>[[= _.archive.store_name ]]</strong>.
-            </div>
-            <div class="graph">
-              <div class="to">[[= _.archive.store_plugin ]]</div>
-            </div>
-          </a>
-          </div>
-          [[ } else { ]]
-          <div class="store card empty">Backup Archive to restore</div>
-          [[ } ]]
-        </div>
+      <div class="gutter blk wizard2 do-restore">
+        <form class="new-form1">
+          <h1>Restore a Protected Data System</h1>
+          <p class="intro-help">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis consectetur leo tortor, sed sodales sapien bibendum quis. Praesent euismod lorem sed nulla ullamcorper ullamcorper. Orci varius natoque penatibus et magnis dis parturient montes.</p>
 
-        [[ if (!_.system) { ]]
-        <div class="step pick-a-system">
-          <span class="label">Step 1</span>
-          <h3>What system do you want to restore?</h3>
-          <div>
-          [[ $.each(_.systems, function (i, target) { ]]
-          <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
-            <a href="do-restore:pick:target:[[= target.uuid ]]">
-            <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
-            <h3>[[= target.name ]]</h3>
-            <div class="notes">[[= target.notes ]]</div>
-            </a>
-          </div>
-          [[ }); ]]
-          </div>
-        </div>
-
-        [[ } else if (!_.archive) { ]]
-        <div class="step pick-an-archive">
-          <span class="label">Step 2</span>
-          <h3>Which archive do you want to restore?</h3>
-
-          [[ if (_.system.archives.length == 0) { ]]
-          <div class="no-data">This data system has never been backed up successfully.</div>
-          [[ } else { ]]
-          <div class="archive-row pick-me">
-            <h4>Most Recent Backup</h4>
-            <dl>
-              <dt>Backup Taken</dt>
-              <dd>[[= strftime("%x %X", _.system.archives[0].taken_at) ]]<br>
-                  <sub>[[= duration(tdiff(_.system.archives[0].taken_at, new Date())) ]] ago</sub></dd>
-
-              <dt>Archive size</dt>
-              <dd>[[= bytes(_.system.archives[0].size) ]]</dd>
-
-              <dt>Stored in</dt>
-              <dd>[[= _.system.archives[0].store_name ]]</dd>
-            </dl>
-
-            <button rel="do-restore:pick:archive:[[= _.system.archives[0].uuid ]]">Go &raquo;</button>
-          </div>
-            [[ if (_.system.archives.length > 1) { ]]
-              <table class="archives">
-                <thead><tr>
-                  <th>Date of backup</th>
-                  <th>Age of backup</th>
-                  <th>Archive size</th>
-                  <th>Stored in</th>
-                  <th></th>
-                </tr></thead>
-                <tbody>
-                [[ $.each(_.system.archives, function (i, archive) { ]]
-                  [[ if (i == 0) { return; } ]]
+          <h2 id="data-systems">Data System</h2>
+          <div class="c12 band">
+            <div class="x9">
+              [[ var systems = SHIELD.systems(); ]]
+              <table class="lean selectable">
+                <thead>
                   <tr>
-                    <th>[[= strftime("%x %X", archive.taken_at) ]]</th>
-                    <td>[[= duration(tdiff(archive.taken_at, new Date())) ]]</th>
-                    <td>[[= bytes(archive.size) ]]</td>
-                    <td>[[= archive.store_name ]]</td>
-                    <td><a href="do-restore:pick:archive:[[= archive.uuid ]]">restore this one &raquo;</a></td>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th></th>
                   </tr>
-                [[ }); ]]
+                </thead>
+                <tbody>
+                  [[ SHIELD.each(systems, function (i, target) { ]]
+                  <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
+                    <td class="name">
+                      <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+                      [[= target.name ]]
+                    </td>
+                    <td>[[= target.plugin ]]</td>
+                    <td class="notes">
+                      [[= target.summary ]]
+                    </td>
+                  </tr>
+                  [[ }); ]]
                 </tbody>
               </table>
-            [[ } ]]
-          [[ } ]]
-        </div>
-        [[ } ]]
+            </div>
+            <div class="x3">
+              <div class="side-help">Select the target you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
+            </div>
+          </div>
 
-        [[ if (_.system && _.archive) { ]]
-        <div class="step run-the-restore" style="display: block">
-          <h3>Review Your Choices</h3>
-          <p>If everything looks correct, click the big button to
-          initiate a manual restore of <strong>[[= _.system.name ]]</strong>
-          from the backup archive taken [[= strftime("on %x at %X", _.archive.taken_at) ]].
-          </p>
+          <h2 id="cloud-storage">Backup Archives</h2>
+          <div class="c12 band">
+            <div class="x9">
+              [[# var archives = SHIELD.activeTenant().archives; ]]
+              [[ var archives = [
+                   { uuid: "ce62383e-e3ce-419c-b275-bbcc59a33462",
+                     taken_at: 3600, size: 100789000 },
+                   { uuid: "c0efc1f4-4a96-4032-a080-4082d19009a9",
+                     taken_at: 3500, size: 100789000 },
+                   { uuid: "81a40335-d7ab-424f-9cbf-d6322301bfe9",
+                     taken_at: 3400, size: 1090 }
+                 ]; ]]
+              <table class="lean selectable">
+                <thead>
+                  <tr>
+                    <th>UUID</th>
+                    <th>Date</th>
+                    <th>Size</th>
+                    <th>Store</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  [[ SHIELD.each(archives, function (i, archive) { ]]
+                  <tr>
+                    <td class="uuid">[[= archive.uuid.substr(0,8) ]]</td>
+                    <td class="date">
+                      [[= strftime("%Y-%m-%d %H:%M%P", archive.taken_at) ]]<br>
+                      ([[= duration(tdiff(archive.taken_at, new Date())) ]] ago)
+                    </td>
+                    <td>[[= bytes(archive.size) ]]</td>
+                    <td>BogusStore (s3)</td>
+                  </tr>
+                  [[ }); ]]
+                </tbody>
+              </table>
+            </div>
+            <div class="x3 lean">
+              <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
+            </div>
+          </div>
 
-          <button class="final" rel="do-restore:final:[[= _.archive.uuid ]]">Run Restore &raquo;</button>
-        </div>
-        [[ } ]]
+          <h2>Summary</h2>
+          <div class="summary-section">
+            <div class="c12 band">
+              <div class="x2"><label>Data System</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
+                <a class="change-me" href="#data-systems">change</a></p>
+              </div>
+            </div>
+
+            <div class="c12 band">
+              <div class="x2"><label>Archive</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">[[= archives[0].uuid.substr(0,8) ]] ([[= bytes(archives[0].size) ]])</span>
+                <a class="change-me" href="#cloud-storage">change</a></p>
+              </div>
+            </div>
+
+            <div class="c12 band">
+              <div class="x2"><label>From</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">[[= strftime("%Y-%m-%d %H:%M:%P", archives[0].taken_at) ]] ([[= duration(tdiff(archives[0].taken_at, new Date())) ]] ago)</span>
+                <a class="change-me" href="#cloud-storage">change</a></p>
+              </div>
+            </div>
+
+            <div class="c12 band">
+              <div class="x2"><label>Cloud Storage</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">Cloudstore (s3)
+                <a class="change-me" href="#cloud-storage">change</a></p>
+              </div>
+            </div>
+
+            <div class="c12 band">
+              <div class="l2 x8 r2">
+                <button>Restore Data</button>
+              </div>
+            </div>
+          </div>
+        </form>
       </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--do-configure"><!-- {{{ -->
@@ -984,374 +922,297 @@
         {do-configure} - Job Configuration Wizard
 
       ]]
-      <div class="gutter blk wizard do-configure">
-        <p class="do-caption">Configuring a New Backup Job</p>
-        <div class="picks">[[# {{{ ]]
-          [[ if (_.target) { ]]
-          <div class="job card">
-            <a href="do-configure:unpick">
-              <span class="type">[[= _.target.uuid ? '' : '<strong>New</strong> ' ]]System</span>
-              <h3>[[= _.target.name ]]</h3>
-              <div class="notes">[[ if (_.target.summary) { ]]
-                [[= _.target.summary ]]
-              [[ } else { ]]
-                <div class="no-data">No notes provided.  Too bad.</div>
-              [[ } ]]</div>
-              <div class="graph">
-                <div class="to">[[= _.target.plugin ]]</div>
-              </div>
-            </a>
-          </div>
-          [[ } else { ]]
-          <div class="job card empty">Protected System</div>
-          [[ } ]]
+      <div class="gutter blk wizard2 do-configure">
+        <form class="new-form1">
+          <h1>Configure a New Backup Job</h1>
+          <p class="intro-help">A backup job consists of three main components: the data system you wish to backup, the cloud storage of where you'd like to store the backup, and the job details, which specifies the schedule and an archive retention policy. Below are all the configuration options necessary to create a new backup job.</p>
 
-          [[ if (_.schedule) { ]]
-          <div class="policy card">
-            <a href="do-configure:unpick">
-              [[ if (!_.policy) { ]]
-              <span class="type">Schedule</span>
-              <h3>Runs [[= _.schedule ]]</h3>
-              [[ } else { ]]
-              <span class="type">Schedule + [[= _.policy.uuid ? '' : '<strong>New</strong> ' ]]Policy</span>
-              <h3>Runs [[= _.schedule ]]</h3>
-              <h3>Retain [[= _.policy.expires / 86400 ]] day[[= _.policy.expires == 86400 ? '' : 's' ]] of archives</h3>
-              <div class="notes">using the <strong>[[= _.policy.name]]</strong> policy</div>
-              [[ } ]]
-            </a>
-          </div>
-          [[ } else { ]]
-          <div class="schedule card empty">Schedule + Policy</div>
-          [[ } ]]
-
-          [[ if (_.store) { ]]
-          <div class="store card [[ if (!_.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-            <a href="do-configure:unpick">
-              <span class="type">[[= _.store.uuid ? '' : '<strong>New</strong> ' ]]Cloud Storage</span>
-              <img src="i/shield-[[= _.store.healthy ? 'ok' : 'fail' ]].svg">
-              <h3>[[= _.store.name ]]</h3>
-              <div class="notes">[[ if (_.store.summary) { ]]
-                [[= _.store.summary ]]
-              [[ } else { ]]
-                <div class="no-data">No notes provided.  Too bad.</div>
-              [[ } ]]</div>
-              <div class="graph[[ if (!_.store.healthy) { ]] fail[[ } ]]">
-                <div class="to">[[= _.store.plugin ]]</div>
-              </div>
-            </a>
-          </div>
-          [[ } else { ]]
-          <div class="store card empty">Cloud Storage</div>
-          [[ } ]]
-        </div>[[# }}} ]]
-
-        [[ if (!_.target) { ]]
-        <div class="step pick-a-target">
-          <span class="label">Step 1</span>
-          [[ if (_.targets.length == 0 || _.new_target === true) { ]]
-          [[ if (_.targets.length > 0) { ]]<a class="breadcrumb" href="do-configure:unpick:target:redo">Select a pre-existing system</a>[[ } ]]
-          <h3>Configure a New Protected System</h3>[[# {{{ ]]
-          <form action="do-configure:make:target">
-            <div class="ctl" data-field="name">
-              <label for="target-name">Name</label>
-              <span class="errors">
-                <span data-error="missing">You must name your data system.</span>
-              </span>
-              <div class="widget">
-                <input type="text" id="target-name" name="name" class="autofocus" />
-                <p class="help">Pick a memorable or descriptive name for this data system.</p>
-              </div>
-            </div>
-
-            <div class="ctl" data-field="summary">
-              <label for="target-summary">Notes</label>
-              <span class="errors">
-              </span>
-              <div class="widget">
-                <textarea id="target-summary" name="summary" class="autofocus"></textarea>
-                <p class="help">If you want, you can add a longer description.</p>
-              </div>
-            </div>
-
-            <div class="ctl" data-field="agent">
-              <label for="store-agent">Agent</label>
-              <span class="errors">
-                <span data-error="missing">You must select which SHIELD Agent to use to access this protected system.</span>
-              </span>
-              <div class="widget">
-                <select id="store-agent" name="agent" value="[[= _.store ? _.store.agent : '' ]]">
-                  <option></option>
-                  [[ var found = false; ]]
-                  [[ $.each(_.agents, function (i, agent) { ]]
-                  <option value="[[= agent.uuid ]]|[[= agent.address ]]">[[= agent.name ]] (at [[= agent.address ]])</option>
+          <h2 id="data-systems">Data System</h2>
+          <div class="c12 band">
+            <div class="x9">
+              [[ var systems = SHIELD.systems(); ]]
+              <table class="lean selectable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  [[ SHIELD.each(systems, function (i, target) { ]]
+                  <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
+                    <td class="name">
+                      <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+                      [[= target.name ]]
+                    </td>
+                    <td>[[= target.plugin ]]</td>
+                    <td class="notes">
+                      [[= target.summary ]]
+                    </td>
+                  </tr>
                   [[ }); ]]
-                </select>
-              </div>
-            </div>
+                  <tr><td colspan="3" rel="new-data-system">Define a new system...</td></tr>
+                </tbody>
+              </table>
+              <div class="c12 subform" id="new-data-system">
+                <div class="l3 x9"><h3>Define a New Data System</h3></div>
 
-            <div id="choose-plugin"></div>
-            <div id="configure-plugin"></div>
-
-            <div class="ctl" data-field="compression">
-              <label for="target-compresion">Compression?</label>
-              <div class="widget">
-                <input class="large-checkbox" name="compression" type="checkbox" value="true" checked />
-                <p class="help">By default, SHIELD compresses all backup archives using <tt>bzip2</tt>
-                compression.</p>
-              </div>
-            </div>
-
-            <div class="ctl" data-field="fixed-key">
-              <label for="target-fixed-key">Fixed-Key Encryption?</label>
-              <div class="widget">
-                <input class="large-checkbox" name="fixed_key" type="checkbox" value="true" />
-                <p class="help">Select if backups should use the Fixed Key for encryption.
-                (Required for backups of Shield itself) </p>
-              </div>
-            </div>
-
-            <button class="go">Next</button>
-          </form>
-          [[ } else { ]][[# }}} ]]
-          <h3>What Do You Want To Back Up?</h3>[[# {{{ ]]
-          <div>
-            [[ $.each(_.targets, function (i, target) { ]]
-            <div class="job card">
-              <a href="do-configure:pick:target:[[= target.uuid ]]">
-                <h3>[[= target.name ]]</h3>
-                <div class="notes">[[= target.summary ]]</div>
-                <div class="graph">
-                  <div class="to">[[= target.plugin ]]</div>
+                <div class="x3"><label>Name</label></div>
+                <div class="x9">
+                  <input type="text" placeholder="Name Your Data System">
+                  <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
                 </div>
-              </a>
-            </div>
-            [[ }); ]]
-            <div class="shadow card">
-              <a href="do-configure:new:target">
-              ... or configure a new target
-              </a>
-            </div>
-          </div>[[# }}} ]]
-          [[ } ]]
-        </div>
 
-        [[ } else if (!_.schedule) { ]]
-        <div class="step pick-a-schedule">[[# {{{ ]]
-          <span class="label">Step 2</span>
-          <h3>Select a Schedule</h3>
+                <div class="x3"><label>Notes</label></div>
+                <div class="x9">
+                  <textarea></textarea>
+                  <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
+                </div>
 
-          <form class="scheduling" action="do-configure:make:schedule">
-            <div class="error"></div>
-            <div>
-              <label>Run the backup</label>
-              <ul class="optgroup">
-                <li data-subform="schedule-hourly">Hourly</li>
-                <li data-subform="schedule-daily">Daily</li>
-                <li data-subform="schedule-weekly">Weekly</li>
-                <li data-subform="schedule-monthly">Monthly</li>
+                <div class="x3"><label>Plugin</label></div>
+                <div class="x9">
+                  <select>
+                    <option value="pg">pg - PostreSQL</option>
+                    <option value="mysql">mysql - MySQL</option>
+                  </select>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="x3"><label>Agent</label></div>
+                <div class="x9">
+                  <select>
+                    <option value="">bosh/depl1/vm1 - 10.78.0.8 (legacy ssh)</option>
+                    <option value="">bosh/depl1/vm2 - 10.78.0.9 (legacy ssh)</option>
+                  </select>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="l3 x9"><h3>Plugin Properties (Amazon S3)</h3></div>
+
+                <div class="x3"><label>A Simple String</label></div>
+                <div class="x9">
+                  <input type="text" placeholder="e.g.: some, example text">
+                  <p class="help">Help text from the plugin.</p>
+                </div>
+
+                <div class="x3"><label>A Checkbox</label></div>
+                <div class="x9">
+                  <label for="cb-1" class="switch">
+                    <input name="cb-1" id="cb-1" type="checkbox"><span class="slider round"></span>
+                  </label>
+                  <p class="help">Help text from the plugin.</p>
+                </div>
+
+                <div class="x3"><label>Enumerated Stuff</label></div>
+                <div class="x9">
+                  <select>
+                    <option value=""></option>
+                    <option value="">The First Option</option>
+                    <option value="">The Second Option</option>
+                  </select>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="x3"><label>Password Thing</label></div>
+                <div class="x9">
+                  <div class="smudge"><span>show</span><input type="password"></div>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+              </div>
+            </div>
+            <div class="x3">
+              <div class="side-help">Select the target you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
+            </div>
+          </div>
+
+          <h2 id="cloud-storage">Cloud Storage</h2>
+          <div class="c12 band">
+            <div class="x9">
+              [[ var stores = SHIELD.stores(); ]]
+              <table class="lean selectable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  [[ SHIELD.each(stores, function (i, store) { ]]
+                  <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
+                    <td class="name">
+                      <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
+                      [[= store.name ]]
+                      [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
+                    </td>
+                    <td>[[= store.plugin ]]</td>
+                    <td class="notes">
+                      [[= store.summary ]]
+                    </td>
+                  </tr>
+                  [[ }); ]]
+                  <tr><td colspan="3" rel="new-cloud-storage">Define a new system...</td></tr>
+                </tbody>
+              </table>
+              <div class="c12 subform" id="new-cloud-storage">
+                <div class="l3 x9"><h3>Define a New Cloud Storage System</h3></div>
+
+                <div class="x3"><label>Name</label></div>
+                <div class="x9">
+                  <input type="text" placeholder="Name Your Storage System">
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="x3"><label>Notes</label></div>
+                <div class="x9">
+                  <textarea></textarea>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="x3"><label>Threshold</label></div>
+                <div class="x9">
+                  <input type="text" placeholder="i.e. 10G, 500M, etc.">
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="x3"><label>Plugin</label></div>
+                <div class="x9">
+                  <select>
+                    <option value="s3">s3 - Amazon Simple Storage</option>
+                    <option value="azure">azure - Microsoft Public Cloud Azure Blobstore</option>
+                  </select>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="x3"><label>Agent</label></div>
+                <div class="x9">
+                  <select>
+                    <option value="">bosh/depl1/vm1 - 10.78.0.8 (legacy ssh)</option>
+                    <option value="">bosh/depl1/vm2 - 10.78.0.9 (legacy ssh)</option>
+                  </select>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="l3 x9"><h3>Plugin Properties (Amazon S3)</h3></div>
+
+                <div class="x3"><label>A Simple String</label></div>
+                <div class="x9">
+                  <input type="text" placeholder="e.g.: some, example text">
+                  <p class="help">Help text from the plugin.</p>
+                </div>
+
+                <div class="x3"><label>A Checkbox</label></div>
+                <div class="x9">
+                  <label for="cb-1" class="switch">
+                    <input name="cb-1" id="cb-1" type="checkbox"><span class="slider round"></span>
+                  </label>
+                  <p class="help">Help text from the plugin.</p>
+                </div>
+
+                <div class="x3"><label>Enumerated Stuff</label></div>
+                <div class="x9">
+                  <select>
+                    <option value=""></option>
+                    <option value="">The First Option</option>
+                    <option value="">The Second Option</option>
+                  </select>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+
+                <div class="x3"><label>Password Thing</label></div>
+                <div class="x9">
+                  <div class="smudge"><span>show</span><input type="password"></div>
+                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                </div>
+              </div>
+            </div>
+            <div class="x3 lean">
+              <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
+            </div>
+          </div>
+
+          <h2>Job Details</h2>
+          <div class="summary-section">
+            <div class="c12 band">
+              <div class="x2"><label>Data System</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
+                <a class="change-me" href="#data-systems">change</a></p>
+              </div>
+            </div>
+
+            <div class="c12 band">
+              <div class="x2"><label>Cloud Storage</label></div>
+              <div class="x7">
+                <p class="selected-elsewhere">Cloudstore (s3)
+                <a class="change-me" href="#cloud-storage">change</a></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="c12 band hover" data-field="name">
+            <div class="x2"><label>Name</label>
+              <ul class="errors">
+                <li class="error foo-error">Please specify a name for this backup job.</li>
               </ul>
-
-              <div id="schedule-hourly" class="subform">
-                <div>Every <input name="hourlyn" class="num" type="text" value="1"> hour(s)</div>
-                <div>from <input name="hourlyat" class="time" type="text" value="12:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-              </div>
-
-              <div id="schedule-daily" class="subform">
-                <div>Every day</div>
-                <div>at <input name="dailyat" class="time" type="text" value="3:00"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-              </div>
-
-              <div id="schedule-weekly" class="subform">
-                <div>Every week</div>
-                <div>on <ul class="wday optgroup">[[= optgroup(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
-                <div>at <input name="weeklyat" class="time" type="text" value="4:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-              </div>
-
-              <div id="schedule-monthly" class="subform">
-                <div>Every month(s)</div>
-                <div>on the <input name="monthlynth" class="num" type="text" value="1st">
-                     <ul class="mday optgroup">[[= optgroup(['day', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
-                <div>at <input name="monthlyat" class="time" type="text" value="5:30"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-              </div>
-
             </div>
-
-            <button class="go">Next</button>
-          </form>
-        </div>[[# }}} ]]
-
-        [[ } else if (!_.policy) { ]]
-        <div class="step pick-a-policy">
-          <span class="label">Step 3</span>
-          [[ if (_.policies.length == 0 || _.new_policy) { ]]
-          [[ if (_.policies.length > 0) { ]]<a class="breadcrumb" href="do-configure:unpick:policy:redo">Select a pre-existing retention policy</a>[[ } ]]
-          <h3>Configure a New Retention Policy</h3>[[# {{{ ]]
-          <form action="do-configure:make:policy">
-            <div class="error"></div>
-
-            <div class="ctl" data-field="name">
-              <label for="policy-name">Name</label>
-              <span class="errors">
-                <span data-error="missing">You must provide a name for this new retention policy.</span>
-                <span data-error="too-big">The name cannot exceed 100 characters</span>
-              </span>
-              <div class="widget">
-                <input type="text" id="policy-name" name="name" maxlength="100" class="autofocus" tabindex="0" />
-                <p class="help">Pick a memorable or descriptive name for this retention policy,
-                so that other operators can determine what to use it for.</p>
-              </div>
-            </div>
-
-            <div class="ctl" data-field="expires">
-              <label for="policy-days">Expiry (in days)</label>
-              <span class="errors">
-                <span data-error="missing">You must specify an expiry of at least 1 day.</span>
-                <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
-                <span data-error="too-big">Retention expiry cannot exceed 10 years (3660 days)</span>
-              </span>
-              <div class="widget">
-                <input type="text" id="policy-days" name="days" />
-                <p class="help">How long should archives be kept, under this retention policy.
-                At a minimum, archives must be kept for one day.</p>
-              </div>
-            </div>
-
-            <button class="go">Create</button>
-          </form>
-          [[ } else { ]][[# }}} ]]
-          <h3>How Long Should SHIELD Keep The Backup Archives?</h3>[[# {{{ ]]
-          <div>
-          [[ $.each(_.policies, function (i, policy) { ]]
-            <div class="policy card">
-              <a href="do-configure:pick:policy:[[= policy.uuid ]]">
-              <h3>[[= policy.name ]]</h3>
-              <div class="days">[[= policy.expires / 86400 ]]<span> days</span></div>
-              </a>
-            </div>
-          [[ }); ]]
-            <div class="shadow card">
-              <a href="do-configure:new:policy">
-              ... or configure a new retention policy
-              </a>
-            </div>
-          </div>[[# }}} ]]
-          [[ } ]]
-        </div>
-
-        [[ } else if (!_.store) { ]]
-        <div class="step pick-a-store">
-          <span class="label">Step 4</span>
-          [[ if (_.stores.length == 0 || _.new_store) { ]]
-          [[ if (_.stores.length > 0) { ]]<a class="breadcrumb" href="do-configure:unpick:store:redo">Select a pre-existing cloud storage system</a>[[ } ]]
-          <h3>Configure a New Cloud Storage System</h3>[[# {{{ ]]
-          <form action="do-configure:make:store">
-            <div class="error"></div>
-
-            <div class="ctl" data-field="name">
-              <label for="store-name">Name</label>
-              <span class="errors">
-                <span data-error="missing">You must provide a name for this new storage system.</span>
-              </span>
-              <div class="widget">
-                <input type="text" id="store-name" name="name" class="autofocus" />
-                <p class="help">Pick a memorable or descriptive name for this storage system,
-                so that other operators can determine when to use it.</p>
-              </div>
-            </div>
-
-            <div class="ctl" data-field="summary">
-              <label for="store-summary">Notes</label>
-              <div class="widget">
-                <textarea id="store-summary" name="summary"></textarea>
-                <p class="help">If you want, you can add a longer description.</p>
-              </div>
-            </div>
-
-            <div class="ctl" data-field="threshold">
-              <label for="store-threshold">Threshold</label>
-              <span class="errors">
-                <span data-error="missing">You must provide a threshold for this new storage system.</span>
-              </span>
-              <div class="widget">
-                <input type="text" id="store-threshold" name="threshold" placeholder="10G, 500M, etc."/>
-                  <p class="help">Select a reasonable threshold for storage size warnings.</p>
-              </div>
-            </div>
-
-            <div class="ctl" data-field="agent">
-              <label for="store-agent">Agent</label>
-              <span class="errors">
-                <span data-error="missing">You must select which SHIELD Agent to use to access this storage system.</span>
-              </span>
-              <div class="widget">
-                <select id="store-agent" name="agent">
-                  <option></option>
-                  [[ $.each(_.agents, function (i, agent) { ]]
-                  <option value="[[= agent.uuid ]]|[[= agent.address ]]">[[= agent.name ]] (at [[= agent.address ]])</option>
-                  [[ }); ]]
-                </select>
-              </div>
-            </div>
-
-            <div id="choose-plugin"></div>
-            <div id="configure-plugin"></div>
-
-            <button class="go">Next</button>
-          </form>
-          [[ } else { ]][[# }}} ]]
-          <h3>Where Should SHIELD Store The Backup Archives?</h3>[[# {{{ ]]
-
-          <div>
-            [[ $.each(_.stores, function (uuid, store) { ]]
-            <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-              <a href="do-configure:pick:store:[[= store.uuid ]]">
-              [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
-              <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-              <h3>[[= store.name ]]</h3>
-              <div class="notes">[[ if (store.summary) { ]]
-                [[= store.summary ]]
-              [[ } else { ]]
-                <div class="no-data">No notes provided.  Too bad.</div>
-              [[ } ]]</div>
-              <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
-                <div class="to">[[= store.plugin ]]</div>
-              </div>
-              </a>
-            </div>
-            [[ }); ]]
-            <div class="shadow card">
-              <a href="do-configure:new:store">
-              ... or configure new cloud storage
-              </a>
+            <div class="x7">
+              <input type="text" placeholder="A Name for Your Backup Job">
+              <p class="help">Lorem ipsum dolor sit amet, consectetur adipiscing elit</p>
             </div>
           </div>
-        </div>[[# }}} ]]
-          [[ } ]]
 
-        [[ } else { ]]
-        <div class="step review" style="display: block">[[# {{{ ]]
-          <h3>Review Your Choices</h3>
-          <form action="do-configure:finalize">
-            <div class="ctl" data-field="name">
-              <label for="job-name">Job Name</label>
-              <div class="widget">
-                <div class="errors">
-                  <span data-error="missing">You must name your new backup job.</span>
+          <div class="c12 band hover">
+            <div class="x2"><label>Schedule</label></div>
+            <div class="x7">
+              <div class="error"></div>
+              <div class="scheduling">
+                <ul class="optgroup">
+                  <li data-subform="schedule-hourly">Hourly</li><li data-subform="schedule-daily">Daily</li><li data-subform="schedule-weekly">Weekly</li><li data-subform="schedule-monthly">Monthly</li>
+                </ul>
+
+                <div id="schedule-hourly" class="subform">
+                  <div>Every <input name="hourlyn" class="num" type="text" value="1"> hour(s)</div>
+                  <div>from <input name="hourlyat" class="time" type="text" value="12:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
                 </div>
-                <input type="text" name="name" value="[[= _.name || '' ]]" />
-              </div>
-            </div>
 
-            <div class="ctl" data-field="summary">
-              <label for="job-name">Notes</label>
-              <div class="widget">
-                <textarea name="summary">[[= _.summary || '' ]]</textarea>
+                <div id="schedule-daily" class="subform">
+                  <div>at <input name="dailyat" class="time" type="text" value="3:00"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                </div>
+
+                <div id="schedule-weekly" class="subform">
+                  <div>on <ul class="wday optgroup">[[= optgroup(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                  <div>at <input name="weeklyat" class="time" type="text" value="4:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                </div>
+
+                <div id="schedule-monthly" class="subform">
+                  <div>on the <input name="monthlynth" class="num" type="text" value="1st">
+                       <ul class="mday optgroup">[[= optgroup(['day', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                  <div>at <input name="monthlyat" class="time" type="text" value="5:30"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                </div>
+
               </div>
             </div>
-            <button class="final">Save &raquo;</button>
-          </form>
-        </div>[[# }}} ]]
-        [[ } ]]
+            <div class="x3">
+              <div class="side-help">How often would you like the backup to be preformed?</div>
+            </div>
+          </div>
+
+          <div class="c12 band hover">
+            <div class="x2"><label>Retention</label></div>
+            <div class="x7">
+              <input type="text" size="3" /> days
+              <p class="help">How long should SHIELD keep each backup archive?</p>
+            </div>
+          </div>
+
+          <div class="c12 band">
+            <div class="l2 x8 r2">
+              <button>Schedule</button>
+            </div>
+          </div>
+        </form>
       </div>
     <!-- }}} --></script>
 
@@ -1468,8 +1329,9 @@
         Renders all targets visible to / manageable by the current user.
       ]]
       [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
+      [[ var systems = SHIELD.systems(); ]]
       <div class="gutter blk switch-me [[= view ]]">
-        [[ if (_.systems.length == 0) { ]]
+        [[ if (systems.length == 0) { ]]
           <h2>Protected Data Systems</h2>
           <div class="no-data">You have not yet configured any data systems to protect.</div>
         [[ } else { ]]
@@ -1489,11 +1351,13 @@
               </tr>
             </thead>
             <tbody>
-              [[ $.each(_.systems, function (i, target) { ]]
-              <tr class="[[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+              [[ SHIELD.each(systems, function (i, target) { ]]
+              <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
                 <td class="name">
-                  <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
-                  [[= target.name ]]
+                  <a href="#!/systems/system:uuid:[[= target.uuid ]]">
+                    <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+                    [[= target.name ]]
+                  </a>
                 </td>
                 <td class="schedule">
                   [[ $.each(target.jobs, function (j, job) { ]]
@@ -1502,7 +1366,7 @@
                 </td>
                 <td class="retain">
                   [[ $.each(target.jobs, function (j, job) { ]]
-                  [[= job.keep.n ]] backups / [[= job.keep.days ]] days<br>
+                  [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   [[ }); ]]
                 </td>
                 <td><a href="#!/systems/system:uuid:[[= target.uuid ]]">view details</a></td>
@@ -1512,10 +1376,10 @@
           </table>
 
           <div class="cards">
-            [[ $.each(_.systems, function (i, target) { ]]
-            <div class="job card [[ if (!target.ok) { ]]fail[[ } else { ]]ok[[ } ]]">
+            [[ SHIELD.each(systems, function (i, target) { ]]
+            <div class="job card [[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="#!/systems/system:uuid:[[= target.uuid ]]">
-              <img src="i/shield-[[= target.ok ? 'ok' : 'fail' ]].svg">
+              <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= target.name ]]</h3>
               <ul class="details">
                 <li>[[ if (target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
@@ -1524,12 +1388,12 @@
               [[ $.each(target.jobs, function (j, job) { ]]
               <ul class="details">
                 <li>runs [[= job.schedule ]]</li>
-                <li>keep [[= job.keep.n ]] backups ([[= job.keep.days ]] days)</li>
+                <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
               </ul>
-              <div class="graph[[ if (!job.ok) { ]] fail[[ } ]]">
-                <div class="from">[[= job.from ]]</div>
+              <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
+                <div class="from">[[= (job.target ? job.target.plugin : false) || 'unknown' ]]</div>
                 <div class="bar"></div>
-                <div class="to">[[= job.to ]]</div>
+                <div class="to">[[= (job.store ? job.store.plugin : false) || 'unknown' ]]</div>
               </div>
               [[ }); ]]
               </a>
@@ -1548,8 +1412,8 @@
         and facilitates quick and easy access to restore valid archives.
       ]]
           <div class="gutter" data-system-uuid="[[= _.target.uuid ]]" data-system-name="[[= _.target.name ]]">
-            <div class="job card [[= _.target.ok ? 'ok' : 'fail' ]]">
-              <img src="i/shield-[[= _.target.ok ? 'ok' : 'fail' ]].svg">
+            <div class="job card [[= _.target.healthy ? 'ok' : 'fail' ]]">
+              <img src="i/shield-[[= _.target.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= _.target.name ]]</h3>
               <ul class="details">
                 <li>[[ if (_.target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
@@ -1558,75 +1422,79 @@
               [[ $.each(_.target.jobs, function (i, job) { ]]
               <ul class="details">
                 <li>runs [[= job.schedule ]] &mdash; <a href="run:[[= job.uuid ]]">run now</a></li>
-                <li>keep [[= job.keep.n ]] backups ([[= job.keep.days ]] days)</li>
+                <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
               </ul>
-              <div class="graph[[ if (!job.ok) { ]] fail[[ } ]]">
-                <div class="from">[[= job.from ]]</div>
+              <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
+                <div class="from">[[= (job.target ? job.target.plugin : false) || 'unknown' ]]</div>
                 <div class="bar"></div>
-                <div class="to">[[= job.to ]]</div>
+                <div class="to">[[= (job.store ? job.store.plugin : false) || 'unknown' ]]</div>
               </div>
               [[ }); ]]
             </div>
 
             <div class="job summary">
               <h2>Notes</h2>
-              <div class="notes">[[ if (_.target.notes) { ]]
-                [[= _.target.notes ]]
+              <div class="notes">[[ if (_.target.summary) { ]]
+                [[= _.target.summary ]]
               [[ } else { ]]
-                <div class="no-data">No notes provided.  Too bad.</div>
+                <div class="no-data">No additional information available.</div>
               [[ } ]]</div>
             </div>
 
             <h2>Timeline</h2>
-            [[ if (_.target.tasks.length > 0) { ]]
-            <div class="timeline">
-                [[ $.each(_.target.tasks, function (i, task) { ]]
-                  [[ task.is = {};
-                     task.is.handled  = (task.stopped_at
-                                      && task.status != 'done'
-                                      && task.ok);
-                  ]]
-                <div class="event [[= task.type ]] [[= (task.status == 'done' ? 'ok' : task.status) ]][[ if (task.notes != "") { ]] noted[[ } ]][[ if (task.is.handled) { ]] handled[[ } ]]" data-task-uuid="[[= task.uuid ]]"[[ if (task.archive) { ]] data-archive-uuid="[[= task.archive.uuid ]]" data-archive-taken="[[= task.started_at ]]"[[ } ]]>
-                  <ul>
-                    <li class="date">[[ if (task.started_at == "") { ]]
-                      <em>scheduled / pending</em>
-                    [[ } else { ]]
-                      [[= strftime("%b %d %Y", task.started_at) ]]
-                    [[ } ]]</li>
-                    [[ if (task.type != "backup") { ]]
-                      <li class="tag">[[= task.type ]]</li>
-                    [[ } ]]
-                    [[ if (task.type == "backup") { ]]
-                      [[ if (task.owner == "system") { ]]
-                      <li class="desc">[[= maybe(task.archive && task.archive.schedule, 'Scheduled Backup') ]]</li>
-                      <li class="meta">run automatically per job schedule at [[= strftime("%l:%M%P", task.requested_at) ]]</li>
-                      [[ } else { ]]
-                      <li class="desc">Ad Hoc Backup</li>
-                      <li class="meta">initiated by [[= task.owner ]] at [[= strftime("%l:%M%P", task.requested_at) ]]</li>
-                      [[ } ]]
-                    [[ } else if (task.type == "restore") { ]]
-                      <li class="desc">Manual Restore</li>
-                      <li class="meta">initiated by [[= task.owner ]] at [[= strftime("%l:%M%P", task.requested_at) ]]</li>
-                    [[ } else if (task.type == "purge") { ]]
-                      <li class="desc">Purge Expired Archive</li>
-                      <li class="meta">...</li>
-                    [[ } else { ]]
-                      <li class="desc">[[= task.type ]] Task</li>
-                    [[ } ]]
-                    [[ if (task.notes != "") { ]]
-                    <li class="note"><strong>Note:</strong> [[= html(task.notes) ]]</li>
-                    [[ } ]]
-                    <li class="expand"><a href="task:[[= task.uuid ]]">full task log</a></li>
-                  </ul>
-                  <div class="task"></div>
-                </div>
-                [[ }); ]]
+            <div class="paginate" data-url="/v2/tenants/[[= SHIELD.activeTenant().uuid ]]/systems/[[= _.target.uuid ]]?before={oldest}" data-oldest="[[= new Date().getTime() ]]">
+              <div class="timeline results"></div>
+              <div class="loading">Fetching more tasks...</div>
+              <a class="load-more" href="">More Tasks...</a>
             </div>
-            [[ } else { ]]
-            <div class="no-data">No backups or restores have been performed.</div>
-            [[ } ]]
-            <a class="paginated-loading" href="load_more">Load More</a>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="tpl--timeline-entry"><!-- {{{ -->
+      [[#
+        {timeline-entry} template
+
+        Renders a single entry in the System View Timeline, for use
+        in pagination logic and partial rendering (infini-scroll)
+      ]]
+      [[ _.is = {};
+         _.is.handled  = (_.stopped_at
+                       && _.status != 'done'
+                       && _.ok);
+      ]]
+      <div class="event [[= _.type ]] [[= (_.status == 'done' ? 'ok' : _.status) ]][[ if (_.notes != "") { ]] noted[[ } ]][[ if (_.is.handled) { ]] handled[[ } ]]" data-task-uuid="[[= _.uuid ]]"[[ if (_.archive) { ]] data-archive-uuid="[[= _.archive.uuid ]]" data-archive-taken="[[= _.started_at ]]"[[ } ]]>
+        <ul>
+          <li class="date">[[ if (_.started_at == "") { ]]
+            <em>scheduled / pending</em>
+          [[ } else { ]]
+            [[= strftime("%b %d %Y", _.started_at) ]]
+          [[ } ]]</li>
+          [[ if (_.type != "backup") { ]]
+            <li class="tag">[[= _.type ]]</li>
+          [[ } ]]
+          [[ if (_.type == "backup") { ]]
+            [[ if (_.owner == "system") { ]]
+            <li class="desc">[[= maybe(_.archive && _.archive.schedule, 'Scheduled Backup') ]]</li>
+            <li class="meta">run automatically per job schedule at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
+            [[ } else { ]]
+            <li class="desc">Ad Hoc Backup</li>
+            <li class="meta">initiated by [[= _.owner ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
+            [[ } ]]
+          [[ } else if (_.type == "restore") { ]]
+            <li class="desc">Manual Restore</li>
+            <li class="meta">initiated by [[= _.owner ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
+          [[ } else if (_.type == "purge") { ]]
+            <li class="desc">Purge Expired Archive</li>
+            <li class="meta">...</li>
+          [[ } else { ]]
+            <li class="desc">[[= _.type ]] Task</li>
+          [[ } ]]
+          [[ if (_.notes != "") { ]]
+          <li class="note"><strong>Note:</strong> [[= html(_.notes) ]]</li>
+          [[ } ]]
+          <li class="expand"><a href="task:[[= _.uuid ]]">full task log</a></li>
+        </ul>
+        <div class="task"></div>
+      </div>
     <!-- }}} --></script>
     <script type="text/html" id="tpl--task"><!-- {{{ -->
       [[#
@@ -1688,14 +1556,16 @@ for job <em>[[= _.task.job_uuid ]]</em>
         and in some cases allows for user-management of their configurations.
       ]]
       [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
+      [[ var stores = SHIELD.stores({ includeGlobal: true }); ]]
           <div class="gutter blk switch-me [[= view ]]">
-            [[ if ((_.admin  && $global.auth.is.system.engineer)
-                || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
-            <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/new">Configure a New Cloud Storage System&raquo;</a>
+          [[ /* fixme i think use of SHIELD.admin is wrong here */ ]]
+            [[ if ((SHIELD.admin  && SHIELD.is('engineer'))
+                || (!SHIELD.admin && SHIELD.is('engineer', SHIELD.activeTenant()))) { ]]
+            <a class="new" href="#!/[[= SHIELD.admin ? 'admin/' : '' ]]stores/new">Configure a New Cloud Storage System&raquo;</a>
             [[ } ]]
-            [[ if (_.admin) { ]]
+            [[ if (SHIELD.admin) { ]]
               <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
-              <h2><strong>Global</strong> Cloud Storage Systems[[ if (_.stores.length > 0) { ]]
+              <h2><strong>Global</strong> Cloud Storage Systems[[ if (stores.length > 0) { ]]
                 <ul class="switcher">
                   <li><a href="switch:card-view" title="Card-based View"><img src="/i/cards.png" /></a></li>
                   <li><a href="switch:lean-view" title="Lean Table View"><img src="/i/table.png" /></a></li>
@@ -1705,7 +1575,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               configurations can be used by any tenant, although they will be unable to see
               any of the sensitive details.</p>
             [[ } else { ]]
-            <h2>Cloud Storage Systems[[ if (_.stores.length > 0) { ]]
+            <h2>Cloud Storage Systems[[ if (stores.length > 0) { ]]
                 <ul class="switcher">
                   <li><a href="switch:card-view" title="Card-based View"><img src="/i/cards.png" /></a></li>
                   <li><a href="switch:lean-view" title="Lean Table View"><img src="/i/table.png" /></a></li>
@@ -1713,7 +1583,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               [[ } ]]</h2>
             [[ } ]]
 
-            [[ if (_.stores.length == 0) { ]]
+            [[ if (stores.length == 0) { ]]
             <div class="no-data">No Cloud Storage Systems have been configured yet.</div>
             [[ } else { ]]
             <table class="lean">
@@ -1726,11 +1596,14 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 </tr>
               </thead>
               <tbody>
-                [[ $.each(_.stores, function (i, store) { ]]
+                [[ SHIELD.each(stores, function (i, store) { ]]
                 <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
                   <td class="name">
-                    <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                    [[= store.name ]]
+                    <a href="#!/[[= SHIELD.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
+                      <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
+                      [[= store.name ]]
+                    </a>
+                    [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
                   </td>
                   <td class="type">[[= store.plugin ]]</td>
                   <td class="notes">
@@ -1740,17 +1613,17 @@ for job <em>[[= _.task.job_uuid ]]</em>
                       <div class="no-data">No notes provided.  Too bad.</div>
                     [[ } ]]
                   </td>
-                  <td><a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">view details</a></td>
+                  <td><a href="#!/[[= SHIELD.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">view details</a></td>
                 </tr>
                 [[ }); ]]
               </tbody>
             </table>
 
             <div class="cards">
-            [[ $.each(_.stores, function (i, store) { ]]
+            [[ SHIELD.each(stores, function (i, store) { ]]
             <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
-              <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
+              <a href="#!/[[= SHIELD.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
               <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
               <h3>[[= store.name ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
@@ -1775,31 +1648,39 @@ for job <em>[[= _.task.job_uuid ]]</em>
         Renders a single storage endpoint configuration, including its
         usage information and provide management capabilities.
       ]]
+      [[
+         var store = SHIELD.activeTenant().stores[_.uuid];
+         if (!store) {
+           store = SHIELD.first(SHIELD._.global.stores, function (store) {
+             return store.uuid == _.uuid;
+           });
+         }
+      ]]
           <div class="gutter blk store">
             <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
-            <h2><div class="plugin">[[= _.store.plugin ]]</div>[[= _.store.name ]]</h2>
+            <h2><div class="plugin">[[= store.plugin ]]</div>[[= store.name ]][[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]</h2>
 
-            [[ if (_.admin || !_.store.global) { ]]
-              [[ if ((_.admin && $global.auth.is.system.engineer)
-                  || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
-              <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= _.store.uuid ]]">Edit</a>
-              <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= _.store.uuid ]]">Delete</a>
+            [[ if (_.admin || !store.global) { ]]
+              [[ if ((_.admin && SHIELD.is('engineer'))
+                  || (!_.admin && SHIELD.is('engineer', _.tenant))) { ]]
+              <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= store.uuid ]]">Edit</a>
+              <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= store.uuid ]]">Delete</a>
               [[ } ]]
             [[ } ]]
 
-            <div class="summary">[[= _.store.summary ]]</div>
+            <div class="summary">[[= store.summary ]]</div>
 
             <div class="side-by-side">
               <h3>Storage Details</h3>
               <dl>
                 <dt>Backup Archives</dt>
-                <dd>[[= _.store.archives ]]</dd>
+                <dd>[[= store.archive_count ]]</dd>
 
                 <dt>Storage Used</dt>
-                <dd>[[= bytes(_.store.used) ]]</dd>
+                <dd>[[= bytes(store.storage_used) ]]</dd>
 
                 <dt>Daily Delta</dt>
-                <dd>[[= bytes(_.store.daily_delta) ]]</dd>
+                <dd>[[= bytes(store.daily_increase) ]]</dd>
               </dl>
             </div>
 
@@ -1807,9 +1688,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
               <h3>Configuration</h3>
               <dl>
                 <dt>SHIELD Agent</dt>
-                <dd>[[= _.store.agent ]]</dd>
+                <dd>[[= store.agent ]]</dd>
 
-                [[ $.each(_.store.display_config, function (i, kv) {
+                [[ $.each(store.display_config, function (i, kv) {
                      if (kv.value == "" || kv.value == false) { return; } ]]
                 <dt>[[= kv.label ]]</dt>
                 <dd>[[= kv.value ]]</dd>
@@ -1817,7 +1698,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </dl>
             </div>
 
-            [[ if (_.store.archives > 0) { ]]
+            [[ if (store.archives > 0) { ]]
             <div class="meter">
               <svg width="500" height="400" xmlns="http://www.w3.org/2000/svg">
                 <defs>
@@ -1839,49 +1720,49 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 </defs>
 
                 [[# Base value of 1M, add 20% padding for spacing ]]
-                [[ var total = Math.max(_.store.used, _.store.threshold, readableToBytes("1M")) * 1.2; ]]
+                [[ var total = Math.max(store.used, store.threshold, readableToBytes("1M")) * 1.2; ]]
                 <rect class="outer" x="0" y="200" width="100%" height="36"></rect>
-                <rect class="fill" x="2" y="202" width="[[= 100.0 * _.store.used / total ]]%" height="32"></rect>
+                <rect class="fill" x="2" y="202" width="[[= 100.0 * store.used / total ]]%" height="32"></rect>
 
-                [[ if (_.store.threshold > _.store.used) { ]]
+                [[ if (store.threshold > store.used) { ]]
                 [[# "current" marker ]]
                 <g class="current" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * _.store.used / total ]]%" x2="[[= 100.0 * _.store.used / total ]]%" y1="198" y2="53"></line>
-                  <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="53" r="3"></circle>
+                  <line class="marker" x1="[[= 100.0 * store.used / total ]]%" x2="[[= 100.0 * store.used / total ]]%" y1="198" y2="53"></line>
+                  <circle class="marker" cx="[[= 100.0 * store.used / total ]]%" cy="53" r="3"></circle>
                   <g transform="translate(6)">
-                    <text x="[[= 100.0 * _.store.used / total ]]%" y="60" class="label">Current</text>
-                    <text x="[[= 100.0 * _.store.used / total ]]%" y="100" class="size">[[= bytes(_.store.used) ]]</text>
+                    <text x="[[= 100.0 * store.used / total ]]%" y="60" class="label">Current</text>
+                    <text x="[[= 100.0 * store.used / total ]]%" y="100" class="size">[[= bytes(store.used) ]]</text>
                   </g>
                 </g>
 
                 [[# "threshold" marker ]]
                 <g class="threshold" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * _.store.threshold / total ]]%" x2="[[= 100.0 * _.store.threshold / total ]]%" y1="198" y2="133"></line>
-                  <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="133" r="3"></circle>
+                  <line class="marker" x1="[[= 100.0 * store.threshold / total ]]%" x2="[[= 100.0 * store.threshold / total ]]%" y1="198" y2="133"></line>
+                  <circle class="marker" cx="[[= 100.0 * store.threshold / total ]]%" cy="133" r="3"></circle>
                   <g transform="translate(6)">
-                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="140" class="label">Threshold</text>
-                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="180" class="size">[[= bytes(_.store.threshold) ]]</text>
+                    <text x="[[= 100.0 * store.threshold / total ]]%" y="140" class="label">Threshold</text>
+                    <text x="[[= 100.0 * store.threshold / total ]]%" y="180" class="size">[[= bytes(store.threshold) ]]</text>
                   </g>
                 </g>
                 [[ } else { ]]
 
                 [[# "threshold" marker ]]
                 <g class="threshold" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * _.store.threshold / total ]]%" x2="[[= 100.0 * _.store.threshold / total ]]%" y1="198" y2="53"></line>
-                  <circle class="marker" cx="[[= 100.0 * _.store.threshold / total ]]%" cy="53" r="3"></circle>
+                  <line class="marker" x1="[[= 100.0 * store.threshold / total ]]%" x2="[[= 100.0 * store.threshold / total ]]%" y1="198" y2="53"></line>
+                  <circle class="marker" cx="[[= 100.0 * store.threshold / total ]]%" cy="53" r="3"></circle>
                   <g transform="translate(6)">
-                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="60" class="label">Threshold</text>
-                    <text x="[[= 100.0 * _.store.threshold / total ]]%" y="100" class="size">[[= bytes(_.store.threshold) ]]</text>
+                    <text x="[[= 100.0 * store.threshold / total ]]%" y="60" class="label">Threshold</text>
+                    <text x="[[= 100.0 * store.threshold / total ]]%" y="100" class="size">[[= bytes(store.threshold) ]]</text>
                   </g>
                 </g>
 
                 [[# "current" marker ]]
                 <g class="current warn" transform="translate(2)">
-                  <line class="marker" x1="[[= 100.0 * _.store.used / total ]]%" x2="[[= 100.0 * _.store.used / total ]]%" y1="198" y2="133"></line>
-                  <circle class="marker" cx="[[= 100.0 * _.store.used / total ]]%" cy="133" r="3"></circle>
+                  <line class="marker" x1="[[= 100.0 * store.used / total ]]%" x2="[[= 100.0 * store.used / total ]]%" y1="198" y2="133"></line>
+                  <circle class="marker" cx="[[= 100.0 * store.used / total ]]%" cy="133" r="3"></circle>
                   <g transform="translate(6)">
-                    <text x="[[= 100.0 * _.store.used / total ]]%" y="140" class="label">Current</text>
-                    <text x="[[= 100.0 * _.store.used / total ]]%" y="180" class="size">[[= bytes(_.store.used) ]]</text>
+                    <text x="[[= 100.0 * store.used / total ]]%" y="140" class="label">Current</text>
+                    <text x="[[= 100.0 * store.used / total ]]%" y="180" class="size">[[= bytes(store.used) ]]</text>
                   </g>
                 </g>
                 [[ } ]]
@@ -1889,10 +1770,10 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 [[ if (false) { ]]
                 [[# "projected" marker ]]
                 <g class="projected" transform="translate(-3)">
-                  <line class="marker" x1="[[= 100.0 * _.store.projected / total ]]%" x2="[[= 100.0 * _.store.projected / total ]]%" y1="238" y2="293"></line>
-                  <circle class="marker" cx="[[= 100.0 * _.store.projected / total ]]%" cy="293" r="3"></circle>
-                  <g transform="translate(-6)"><text x="[[= 100.0 * _.store.projected / total ]]%" y="260" class="label" text-anchor="end">Projected</text>
-                    <text x="[[= 100.0 * _.store.projected / total ]]%" y="300" class="size" text-anchor="end">[[= bytes(_.store.projected) ]]</text>
+                  <line class="marker" x1="[[= 100.0 * store.projected / total ]]%" x2="[[= 100.0 * store.projected / total ]]%" y1="238" y2="293"></line>
+                  <circle class="marker" cx="[[= 100.0 * store.projected / total ]]%" cy="293" r="3"></circle>
+                  <g transform="translate(-6)"><text x="[[= 100.0 * store.projected / total ]]%" y="260" class="label" text-anchor="end">Projected</text>
+                    <text x="[[= 100.0 * store.projected / total ]]%" y="300" class="size" text-anchor="end">[[= bytes(store.projected) ]]</text>
                   </g>
                 </g>
                 [[}]]
@@ -2001,120 +1882,6 @@ for job <em>[[= _.task.job_uuid ]]</em>
             irreversible action; it cannot be undone.</em></p>
 
             <p class="q">Are you sure you want to delete <em>[[= _.store.name ]]</em>?</p>
-            <div class="a">
-              <button class="danger" rel="yes">Yes, Delete It</button>
-              <button class="safe" rel="close">No, Cancel This Operation</button>
-            </div>
-          </div>
-    <!-- }}} --></script>
-
-    <script type="text/html" id="tpl--policies"><!-- {{{ -->
-      [[#
-        {policies} template
-
-        Renders the list of all retention policies
-      ]]
-          <div class="gutter blk">
-            [[ if ((_.admin  && $global.auth.is.system.engineer)
-                || (!_.admin && $global.auth.is.tenant[$global.auth.tenant.uuid].engineer)) { ]]
-            <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]policies/new">Create a New Retention Policy [[= _.admin ? 'Template ' : '' ]]&raquo;</a>
-            [[ } ]]
-            [[ if (_.admin) { ]]
-            <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
-            <h2>Retention Policy <strong>Templates</strong></h2>
-            <p class="notice">These are <strong>template</strong> definitions; they will be
-            copied into new tenants as they are created.  Changes here will <strong>not</strong>
-            take effect on pre-existing tenants.</p>
-            [[ } else { ]]
-            <h2>Retention Policies</h2>
-            [[ } ]]
-            [[ if (_.policies.length == 0) { ]]
-            <div class="no-data">No Retention [[= _.admin ? 'Policy Templates' : 'Policies' ]] have been created yet.</div>
-            [[ } else { ]]
-            <table>
-              <thead><tr>
-                <th>Name</th>
-                <th>Retention Period</th>
-                <th></th>
-                <th></th>
-              </tr></thead>
-              <tbody>
-                [[ $.each(_.policies, function (i, policy) { ]]
-                <tr>
-                  <td>[[= policy.name ]]</td>
-                  <td>[[= policy.days ]] day[[ if (policy.days != 1) { ]]s[[ } ]]</td>
-                  <td><a href="#!/[[= _.admin ? 'admin/' : '']]policies/edit:uuid:[[= policy.uuid ]]">edit</a></td>
-                  <td><a href="#!/[[= _.admin ? 'admin/' : '']]policies/delete:uuid:[[= policy.uuid ]]">delete</a></td>
-                </tr>
-                [[ }); ]]
-              </tbody>
-            </table>
-            [[ } ]]
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="tpl--policies-form"><!-- {{{ -->
-      [[#
-        {policies-form} template
-
-        Renders a form for creating new retention policies, and
-        editing existing retention policies.
-      ]]
-          <div class="gutter blk">
-            <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]policies">&laquo; Back to Retention [[= _.admin ? 'Policy Templates' : 'Policies' ]]</a>
-            <h2>[[ if (_.policy) { ]]Edit[[ } else { ]]New[[ } ]] Retention Policy[[= _.admin ? ' Template' : '' ]]</h2>
-
-            <form>
-              <div class="error"></div>
-
-              <div class="ctl" data-field="name">
-                <label for="policy-name">Name</label>
-                <span class="errors">
-                  <span data-error="missing">You must provide a name for this [[=  (_.policy) ? "existing" : "new" ]] retention policy.</span>
-                  <span data-error="too-big">The name cannot exceed 100 characters</span>
-                </span>
-                <div class="widget">
-                  <input type="text" id="policy-name" name="name" maxlength="100" class="autofocus" tabindex="0"
-                    [[ if (_.policy) { ]]value="[[= _.policy.name ]]"[[ } ]]/>
-                  <p class="help">Pick a memorable or descriptive name for this retention policy,
-                  so that other operators can determine what to use it for.</p>
-                </div>
-              </div>
-
-              <div class="ctl" data-field="expires">
-                <label for="policy-days">Expiry (in days)</label>
-                <span class="errors">
-                  <span data-error="missing">You must specify an expiry of at least 1 day.</span>
-                  <span data-error="invalid">This must be a positive, non-zero, whole number.</span>
-                  <span data-error="too-big">Retention expiry cannot exceed 10 years (3660 days)</span>
-
-                </span>
-                <div class="widget">
-                  <input type="text" id="policy-days" name="days"
-                    [[ if (_.policy) { ]]value="[[= _.policy.days ]]"[[ } ]]/>
-                  <p class="help">How long should archives be kept, under this retention policy.
-                  At a minimum, archives must be kept for one day.</p>
-                </div>
-              </div>
-
-              <button class="go">[[ if (_.policy) { ]]Save[[ } else { ]]Create[[ } ]]</button>
-            </form>
-          </div>
-    <!-- }}} --></script>
-    <script type="text/html" id="tpl--policies-delete"><!-- {{{ -->
-      [[#
-        {policies-delete}
-
-        A modal interaction screen that requires the operator to acknowledge
-        that what they are about to do will result in the destruction of
-        configuration data.
-      ]]
-          <div class="confirm">
-            <h2>Delete The <em>[[= _.policy.name ]]</em> Retention Policy[[= _.admin ? ' Template' : '' ]]?</h2>
-
-            <p>You have requested that S.H.I.E.L.D. remove the configuration for
-            the retention policy[[= _.admin ? ' template' : '' ]] "[[= _.policy.name ]]".</p>
-
-            <p class="q">Are you sure you want to delete <em>[[= _.policy.name ]]</em>?</p>
             <div class="a">
               <button class="danger" rel="yes">Yes, Delete It</button>
               <button class="safe" rel="close">No, Cancel This Operation</button>
@@ -2267,10 +2034,10 @@ for job <em>[[= _.task.job_uuid ]]</em>
           <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
-              [[ if ($global.auth.is.system.manager) { ]]
+              [[ if (SHIELD.is('manager')) { ]]
               <li><a href="#!/admin/tenants">Tenants</a>
                 <p>Tenants separate and isolate subsets of your users from one another, so that
-                they can neither see nor affect the systems, storage, and retention policies
+                they can neither see nor affect the data systems, or cloud storage configurations
                 of one another.</p>
               </li>
               [[ } ]]
@@ -2281,13 +2048,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 admins are able to view and edit their configuration.</p>
               </li>
 
-              <li><a href="#!/admin/policies">Retention Policy Templates</a>
-                <p>You can define retention policy templates that will be copied into each
-                new tenant as they are created.  This can be handy for getting people started
-                quickly, and using your best practices for data retention.</p>
-              </li>
-
-              [[ if ($global.auth.is.system.admin) { ]]
+              [[ if (SHIELD.is('admin')) { ]]
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
                 on other machines.  These agents register with the SHIELD Core, and provide
@@ -2301,7 +2062,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </li>
               [[ } ]]
 
-              [[ if ($global.auth.is.system.manager) { ]]
+              [[ if (SHIELD.is('manager')) { ]]
               <li><a href="#!/admin/users">Local User Management</a>
                 <p>Local SHIELD user accounts can be set up to provide access to your SHIELD if
                 you do not want to use a 3rd party authentication provider.  Local users can be
@@ -2315,7 +2076,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 want to, you can rekey this SHIELD Core and pick a new master password.</p>
               </li>
 
-              [[ if ($global.auth.is.system.admin) { ]]
+              [[ if (SHIELD.is('admin')) { ]]
               <li><a href="#!/admin/sessions">Manage User Sessions</a>
                 <p>Upon login, users are granted a session token to be used for the duration of
                 their access. These sessions can be revoked via this interface, or expire
@@ -2559,7 +2320,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       ]]
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
-            [[ if ($global.auth.is.system.manager) { ]]
+            [[ if (SHIELD.is('manager')) { ]]
             <a class="new" href="#!/admin/users/new">Create a New Local User &raquo;</a>
             [[ } ]]
             <h2>Local User Management</h2>
@@ -2592,7 +2353,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     [[ } ]]
                   </td>
                   <td>
-                    [[ if ($global.auth.is.system.manager) { ]]
+                    [[ if (SHIELD.is('manager')) { ]]
                     <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a>
                     [[ } ]]
                   </td>
@@ -2698,7 +2459,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 <label for="edit-user-sysrole">System Role</label>
                 <div class="widget">
                   <select name="sysrole" id="edit-user-sysrole"
-                    [[ if ($global.auth.user.uuid == _.user.uuid || (!$global.auth.is.system.admin && _.user.sysrole == "admin")) { ]] disabled[[ } ]]>
+                    [[ if (SHIELD.is(_.user) || (!SHIELD.is('admin') && _.user.sysrole == "admin")) { ]] disabled[[ } ]]>
                     <option value="">None</option>
                     <option value="engineer"[[ if (_.user.sysrole == "engineer") { ]] selected[[ } ]]>Engineer</option>
                     <option value="manager"[[ if (_.user.sysrole == "manager") { ]] selected[[ } ]]>Manager</option>
@@ -2772,7 +2533,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/html" id="tpl--"><!-- {{{ -->
     <!-- }}} --></script>
 
-    <script src="/init.js"></script>
     <script src="/shield.js"></script>
   </body>
 </html>
