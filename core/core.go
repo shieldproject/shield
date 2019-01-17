@@ -477,27 +477,16 @@ func (core *Core) expireArchives() {
 
 func (core *Core) cleanupConfig() {
 	log.Debugf("Cleaning out any configurations from a deleted tennant")
-	err := core.DB.CleanMemberships()
+
+	err := core.DB.CleanTargets()
 	if err != nil {
-		log.Errorf("error cleaning memberships: %s", err)
+		log.Errorf("error cleaning targets: %s", err)
 		return
 	}
 
-	err = core.DB.CleanTargets()
+	err = core.DB.CleanStores()
 	if err != nil {
-		log.Errorf("error cleaning memberships: %s", err)
-		return
-	}
-
-	err = core.DB.CleanJobs()
-	if err != nil {
-		log.Errorf("error cleaning memberships: %s", err)
-		return
-	}
-
-	err = core.DB.CleanTasks()
-	if err != nil {
-		log.Errorf("error cleaning memberships: %s", err)
+		log.Errorf("error cleaning stores: %s", err)
 		return
 	}
 

@@ -1201,15 +1201,15 @@ func main() {
 		bail(err)
 
 		if !opts.DeleteTenant.Recursive {
-			//check and warn of no recursive flay
-			fail(2, "Not using --recursive flag", command)
+			_, err = c.DeleteTenant(t, false)
+			bail(err)
 		}
 
 		if !confirm(opts.Yes, "Are you sure you want to delete all configuration under this tennant?") {
 			break
 		}
 
-		_, err = c.DeleteTenant(t)
+		_, err = c.DeleteTenant(t, true)
 		bail(err)
 
 		if opts.JSON {

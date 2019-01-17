@@ -126,7 +126,11 @@ func (c *Client) UpdateTenant(in *Tenant) (*Tenant, error) {
 	return out, c.patch(fmt.Sprintf("/v2/tenants/%s", in.UUID), in, &out)
 }
 
-func (c *Client) DeleteTenant(in *Tenant) (Response, error) {
+func (c *Client) DeleteTenant(in *Tenant, recurse bool) (Response, error) {
+	r := "false"
+	if recurse {
+		r = "true"
+	}
 	var out Response
-	return out, c.delete(fmt.Sprintf("/v2/tenants/%s", in.UUID), &out)
+	return out, c.delete(fmt.Sprintf("/v2/tenants/%s?recurse=%s", in.UUID, r), &out)
 }

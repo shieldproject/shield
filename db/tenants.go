@@ -239,6 +239,13 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 			return fmt.Errorf("unable to delete tenant tasks: %s", err)
 		}
 
+		err = db.Exec(`
+			DELETE FROM memberships 
+			WHERE tenant_uuid = ?`, tenant.UUID.String())
+		if err != nil {
+			return fmt.Errorf("unable to delete tenant memberships: %s", err)
+		}
+
 		//delete jobs
 		err = db.Exec(`
 			DELETE FROM jobs
@@ -265,7 +272,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 
 		err = db.Exec(`
 			UPDATE archives
-			SET tenant_uuid = ''
+			SET tenant_uuid = '', status = 'expired'
 			WHERE tenant_uuid = ?`, tenant.UUID.String())
 		if err != nil {
 			return fmt.Errorf("unable to clear tenant archives: %s", err)
@@ -291,7 +298,6 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		if n, _ := db.Count(`SELECT uuid FROM tasks WHERE tenant_uuid = ?`, tenant.UUID.String()); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding tasks")
 		}
-		//return fmt.Errorf("fell through both conditionals, %s", tenant.UUID.String())
 	}
 
 	return db.Exec(`

@@ -388,3 +388,7 @@ func (s Store) ConfigJSON() (string, error) {
 	}
 	return string(b), err
 }
+
+func (db *DB) CleanStores() error {
+	return db.Exec(`DELETE from stores WHERE uuid in (SELECT uuid FROM stores sto WHERE tenant_uuid = '' and (SELECT count(*) from archives arch where arch.store_uuid = sto.uuid AND arch.status = 'purged') = (SELECT count(*) from archives arch where arch.store_uuid = sto.uuid))`)
+}
