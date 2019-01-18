@@ -43,18 +43,6 @@ var _ = Describe("tenant Management", func() {
 		OtherUser     *User
 	)
 
-	//shouldExist := func(q string, params ...interface{}) {
-	//	n, err := db.Count(q, params...)
-	//	Ω(err).ShouldNot(HaveOccurred())
-	//	Ω(n).Should(BeNumerically(">", 0))
-	//}
-
-	//shouldNotExist := func(q string, params ...interface{}) {
-	//	n, err := db.Count(q, params...)
-	//	Expect(err).ShouldNot(HaveOccurred())
-	//	Expect(n).Should(BeNumerically("==", 0))
-	//}
-
 	BeforeEach(func() {
 		var err error
 		SomeJob = &Job{UUID: uuid.Parse("8dcb45ef-581a-415e-abc0-0234bc70c7a9")}
@@ -64,9 +52,9 @@ var _ = Describe("tenant Management", func() {
 		SomeStore = &Store{UUID: uuid.NewRandom()}
 		SomeStore2 = &Store{UUID: uuid.NewRandom()}
 		SomeRetention = &RetentionPolicy{UUID: uuid.Parse("565a53c2-18a0-45ad-b45b-41e92b2e152c")}
-		SomeArchive = &Archive{UUID: uuid.NewRandom()}
+		SomeArchive = &Archive{UUID: uuid.Parse("ecc69879-ad06-4396-a523-da1086716b68")}
 		SomeArchive2 = &Archive{UUID: uuid.Parse("863d1c48-e7f4-45fc-9047-4c28be4caaad")}
-		SomeTask = &Task{UUID: uuid.NewRandom()}
+		SomeTask = &Task{UUID: uuid.Parse("9fde7a6d-8fa7-47f5-b858-b40987496372")}
 		PurgeTask = &Task{UUID: uuid.Parse("bbae5dc2-7839-4dc1-9d9d-69bb057254e1")}
 		Ten3Task = &Task{UUID: uuid.Parse("3874908e-e4c6-48b9-8700-ed814688abaa")}
 		Tenant2 = &Tenant{UUID: uuid.Parse("3f950780-120f-4e00-b46b-28f35e5882df")}
@@ -78,8 +66,8 @@ var _ = Describe("tenant Management", func() {
 
 		db, err = Database(
 			// need a target1
-			`INSERT INTO targets (tenant_uuid, uuid, name, summary, plugin, endpoint, agent)
-			   VALUES ("`+Tenant2.UUID.String()+`", "`+SomeTarget.UUID.String()+`", "name", "a summary", "plugin", "endpoint", "127.0.0.1:5444")`,
+			`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent, tenant_uuid)
+			   VALUES ("`+SomeTarget.UUID.String()+`", "name", "a summary", "plugin", "endpoint", "127.0.0.1:5444", "`+Tenant2.UUID.String()+`")`,
 			// need a target2
 			`INSERT INTO targets (tenant_uuid, uuid, name, summary, plugin, endpoint, agent)
 			VALUES ("`+Tenant3.UUID.String()+`", "`+SomeTarget2.UUID.String()+`", "name2", "a summary2", "plugin2", "endpoint2", "127.0.0.2:5444")`,
@@ -106,7 +94,7 @@ var _ = Describe("tenant Management", func() {
 			    VALUES ("`+Tenant3.UUID.String()+`", "`+SomeArchive2.UUID.String()+`", "`+SomeTarget2.UUID.String()+`", "`+SomeStore2.UUID.String()+`", "key", 0, 0, "(no notes)", "valid", "")`,
 			// need a purge task for tenant1
 			`INSERT INTO tasks (tenant_uuid, uuid, owner, op, requested_at, status, stopped_at)
-			    VALUES ("`+Tenant2.UUID.String()+`", "`+PurgeTask.UUID.String()+`", "some owner", "purge", 0, "done", 0)`,
+			    VALUES ("`+Tenant2.UUID.String()+`", "`+PurgeTask.UUID.String()+`", "some owner", "valid", 0, "done", 0)`,
 			//need a archive tasks for tenant1
 			`INSERT INTO tasks (uuid, owner, op, requested_at, status, tenant_uuid)
 			VALUES ("`+SomeTask.UUID.String()+`", "some owner", "backup", 0, "done", "`+Tenant2.UUID.String()+`")`,
@@ -194,6 +182,9 @@ var _ = Describe("tenant Management", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(len(Members)).Should(Equal(1))
 
+		num, err := db.CountTargets(&TargetFilter{ForTenant: Tenant2.UUID.String()})
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(num).Should(Equal(1))
 	})
 
 	It("Will fail non recursive with jobs", func() {
@@ -270,15 +261,68 @@ var _ = Describe("tenant Management", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))
 
-		//only delete the membership for the deleted tenant for
+		//only delete the membership for the deleted tenant for admin user
 		Members, err := db.GetMembershipsForUser(AdminUser.UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(len(Members)).Should(Equal(1))
 
-		//only delete the membership for the deleted tenant for
+		//deleted the membership for the deleted tenant for other user
 		Members, err = db.GetMembershipsForUser(OtherUser.UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(len(Members)).Should(Equal(0))
+	})
+
+	It("Targets are cleaned properly after tenant delete", func() {
+		err := db.DeleteTenant(Tenant2, true)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		targets, err := db.GetTarget(SomeTarget.UUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(targets).ShouldNot(BeNil())
+
+		//show archive in expired but pre purged status
+		archives, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"expired"}})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(archives)).Should(Equal(1))
+
+		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'expired'`)
+		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(archives)).Should(Equal(1))
+
+		err = db.CleanTargets()
+		Ω(err).ShouldNot(HaveOccurred())
+
+		targets, err = db.GetTarget(SomeTarget.UUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(targets).Should(BeNil())
+	})
+
+	It("Stores are cleaned properly after tenant delete", func() {
+		err := db.DeleteTenant(Tenant2, true)
+		Ω(err).ShouldNot(HaveOccurred())
+
+		store, err := db.GetStore(SomeStore.UUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(store).ShouldNot(BeNil())
+
+		//show archive in expired but pre purged status
+		archives, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"expired"}})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(archives)).Should(Equal(1))
+
+		//"purge" archive
+		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'expired'`)
+		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(archives)).Should(Equal(1))
+
+		err = db.CleanStores()
+		Ω(err).ShouldNot(HaveOccurred())
+
+		store, err = db.GetStore(SomeStore.UUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(store).Should(BeNil())
 	})
 
 })

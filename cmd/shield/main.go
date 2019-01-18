@@ -1200,17 +1200,17 @@ func main() {
 		t, err := c.FindTenant(args[0], true)
 		bail(err)
 
-		if !opts.DeleteTenant.Recursive {
-			_, err = c.DeleteTenant(t, false)
-			bail(err)
-		}
-
 		if !confirm(opts.Yes, "Are you sure you want to delete all configuration under this tennant?") {
 			break
 		}
 
-		_, err = c.DeleteTenant(t, true)
-		bail(err)
+		if !opts.DeleteTenant.Recursive {
+			_, err = c.DeleteTenant(t, false)
+			bail(err)
+		} else {
+			_, err = c.DeleteTenant(t, true)
+			bail(err)
+		}
 
 		if opts.JSON {
 			fmt.Printf("%s\n", asJSON(t))
