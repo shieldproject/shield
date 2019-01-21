@@ -1205,6 +1205,7 @@ func main() {
 		}
 
 		_, err = c.DeleteTenant(t, opts.DeleteTenant.Recursive)
+		bail(err)
 
 		if opts.JSON {
 			fmt.Printf("%s has been deleted\n", asJSON(t))
