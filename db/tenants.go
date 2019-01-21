@@ -275,7 +275,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 			SET tenant_uuid = '', status = 'expired'
 			WHERE tenant_uuid = ?`, tenant.UUID.String())
 		if err != nil {
-			return fmt.Errorf("unable to clear tenant archives: %s", err)
+			return fmt.Errorf("unable to mark tenant archives for deletion: %s", err)
 		}
 	} else {
 
@@ -291,7 +291,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding targets")
 		}
 
-		if n, _ := db.Count(`SELECT uuid FROM archives WHERE tenant_uuid = ?`, tenant.UUID.String()); n > 0 {
+		if n, _ := db.Count(`SELECT uuid FROM archives WHERE tenant_uuid = ? and status NOT IN ("purged")`, tenant.UUID.String()); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding archives")
 		}
 
@@ -302,5 +302,5 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 
 	return db.Exec(`
 		DELETE FROM tenants
-		  WHERE uuid = ?`, tenant.UUID.String())
+		WHERE uuid = ?`, tenant.UUID.String())
 }

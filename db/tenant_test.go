@@ -1,8 +1,6 @@
 package db_test
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -189,37 +187,46 @@ var _ = Describe("tenant Management", func() {
 
 	It("Will fail non recursive with jobs", func() {
 		err := db.DeleteTenant(Tenant2, false)
-		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding jobs"))
 	})
 
 	It("Will fail non recursive with stores", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
-		Expect(err).ShouldNot(HaveOccurred())
 		err = db.DeleteTenant(Tenant2, false)
-		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding stores"))
 	})
 
 	It("Will fail non recursive with targets", func() {
-		_, err := db.DeleteStore(SomeStore.UUID)
+		_, err := db.DeleteJob(SomeJob.UUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID.String())
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.DeleteTenant(Tenant2, false)
-		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding targets"))
 	})
 
 	It("Will fail non recursive with archives", func() {
-		_, err := db.DeleteStore(SomeStore.UUID)
+		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		_, err = db.DeleteTarget(SomeTarget.UUID)
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID.String())
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID.String())
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.DeleteTenant(Tenant2, false)
-		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding archives"))
 	})
 
 	It("Will fail non recursive with tasks", func() {
-		fmt.Fprintf(os.Stdout, "\ntenant uuid is %s \n", Tenant2.UUID.String())
-		fmt.Fprintf(os.Stdout, "\ntenant uuid from task %s\n", SomeTask.TenantUUID.String())
-		err := db.DeleteTenant(Tenant2, false)
-		Expect(err).Should(HaveOccurred())
+		_, err := db.DeleteJob(SomeJob.UUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID.String())
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID.String())
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.Exec(`UPDATE archives SET status= "purged" where uuid=?`, SomeArchive.UUID.String())
+		Expect(err).ShouldNot(HaveOccurred())
+		err = db.DeleteTenant(Tenant2, false)
+		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding tasks"))
 	})
 
 	It("Will pass a recursive delete", func() {

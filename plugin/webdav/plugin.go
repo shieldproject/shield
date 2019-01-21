@@ -300,5 +300,5 @@ func (dav WebDAV) Delete(path string) error {
 		return nil
 	}
 
-	return fmt.Errorf("Received a %s from %s: %s", res.Status, dav.URL, err)
+	return fmt.Errorf("Received a %s from %s", res.Status, dav.URL)
 }

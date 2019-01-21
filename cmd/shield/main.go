@@ -554,7 +554,7 @@ func main() {
 			printc("  tenant                   Display the details for a single SHIELD Tenant.\n")
 			printc("  create-tenant            Create a new SHIELD Tenant.\n")
 			printc("  update-tenant            Update the metadata for a single tenant.\n")
-			printc("  delete-tenant            Update the metadata for a single tenant.\n")
+			printc("  delete-tenant            Remove a tenant\n")
 			blank()
 			printc("  invite                   Invite a local user to a SHIELD Tenant.\n")
 			printc("  banish                   Remove a local user from a SHIELD Tenant.\n")
@@ -1200,20 +1200,14 @@ func main() {
 		t, err := c.FindTenant(args[0], true)
 		bail(err)
 
-		if !confirm(opts.Yes, "Are you sure you want to delete all configuration under this tennant?") {
+		if !confirm(opts.Yes, "Are you sure you want to delete all configuration under this tenant?") {
 			break
 		}
 
-		if !opts.DeleteTenant.Recursive {
-			_, err = c.DeleteTenant(t, false)
-			bail(err)
-		} else {
-			_, err = c.DeleteTenant(t, true)
-			bail(err)
-		}
+		_, err = c.DeleteTenant(t, opts.DeleteTenant.Recursive)
 
 		if opts.JSON {
-			fmt.Printf("%s\n", asJSON(t))
+			fmt.Printf("%s has been deleted\n", asJSON(t))
 			break
 		}
 

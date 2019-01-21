@@ -127,9 +127,9 @@ func (c *Client) UpdateTenant(in *Tenant) (*Tenant, error) {
 }
 
 func (c *Client) DeleteTenant(in *Tenant, recurse bool) (Response, error) {
-	r := "false"
+	r := "f"
 	if recurse {
-		r = "true"
+		r = "t"
 	}
 	var out Response
 	return out, c.delete(fmt.Sprintf("/v2/tenants/%s?recurse=%s", in.UUID, r), &out)

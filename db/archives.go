@@ -271,15 +271,6 @@ func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 	return db.GetAllArchives(filter)
 }
 
-func (db *DB) GetTennantlessArchives() ([]*Archive, error) {
-	now := time.Now()
-	filter := &ArchiveFilter{
-		ExpiresBefore: &now,
-		WithStatus:    []string{"valid"},
-	}
-	return db.GetAllArchives(filter)
-}
-
 func (db *DB) InvalidateArchive(id uuid.UUID) error {
 	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id.String())
 }
@@ -287,7 +278,7 @@ func (db *DB) InvalidateArchive(id uuid.UUID) error {
 func (db *DB) PurgeArchive(id uuid.UUID) error {
 	a, err := db.GetArchive(id)
 	if err != nil {
-		return fmt.Errorf("Error grabbing archive")
+		return fmt.Errorf("Error grabbing archive %s", id)
 	}
 
 	if a.Status == "valid" {

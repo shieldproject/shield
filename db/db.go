@@ -78,10 +78,6 @@ func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
 	if err != nil {
 		return err
 	}
-
-	if os.Getenv("SHIELD_DB_TRACE") != "" {
-		fmt.Fprintf(os.Stdout, "DB is execing '%s' ", sql_or_name)
-	}
 	_, err = s.Exec(args...)
 	if err != nil {
 		return err
