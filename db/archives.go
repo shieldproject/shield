@@ -389,5 +389,7 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
 }
 
 func (db *DB) CleanArchives() error {
-	return db.Exec(`UPDATE archives SET status = "expired" WHERE uuid IN (SELECT j1.uuid FROM archives j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL)`)
+	return db.Exec(`UPDATE archives SET status = "expired"
+					WHERE uuid IN
+					(SELECT j1.uuid FROM archives j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL)`)
 }
