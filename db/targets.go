@@ -244,3 +244,9 @@ func (db *DB) DeleteTarget(id uuid.UUID) (bool, error) {
 		id.String(),
 	)
 }
+
+func (db *DB) CleanTargets() error {
+	return db.Exec(`DELETE from targets
+					WHERE uuid in (SELECT uuid FROM targets tar WHERE tenant_uuid = ''
+					and (SELECT count(*) from archives arch where arch.target_uuid = tar.uuid AND arch.status != 'purged') = 0)`)
+}

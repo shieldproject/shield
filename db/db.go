@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -77,7 +78,6 @@ func (db *DB) Exec(sql_or_name string, args ...interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	_, err = s.Exec(args...)
 	if err != nil {
 		return err
@@ -94,6 +94,10 @@ func (db *DB) Query(sql_or_name string, args ...interface{}) (*sql.Rows, error) 
 	s, err := db.statement(sql_or_name)
 	if err != nil {
 		return nil, err
+	}
+
+	if os.Getenv("SHIELD_DB_TRACE") != "" {
+		fmt.Fprintf(os.Stdout, "\n DB is querying '%s' args:['%s'] \n", sql_or_name, args)
 	}
 
 	r, err := s.Query(args...)

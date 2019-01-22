@@ -97,13 +97,12 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
-		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint,
 		       a.status, a.purge_reason, a.job, a.encryption_type,
 		       a.compression, a.tenant_uuid, a.size
 
 		FROM archives a
-		   INNER JOIN targets t   ON t.uuid = a.target_uuid
+		   LEFT JOIN targets t   ON t.uuid = a.target_uuid
 		   INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
@@ -151,7 +150,6 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		var this, target, store, tenant NullUUID
 		if err = r.Scan(
 			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
 			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
 			&ann.Compression, &tenant, &size); err != nil {
@@ -280,7 +278,7 @@ func (db *DB) InvalidateArchive(id uuid.UUID) error {
 func (db *DB) PurgeArchive(id uuid.UUID) error {
 	a, err := db.GetArchive(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error grabbing archive %s", id)
 	}
 
 	if a.Status == "valid" {
@@ -388,4 +386,10 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
 	}
 
 	return i, fmt.Errorf("no results from SUM(size) query...")
+}
+
+func (db *DB) CleanArchives() error {
+	return db.Exec(`UPDATE archives SET status = "expired"
+					WHERE uuid IN
+					(SELECT j1.uuid FROM archives j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL)`)
 }
