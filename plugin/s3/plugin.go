@@ -382,7 +382,7 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	path := c.genBackupPath()
 	plugin.DEBUG("Storing data in %s", path)
 
-	upload, err := client.NewUpload(path)
+	upload, err := client.NewUpload(path, nil)
 	if err != nil {
 		return "", 0, err
 	}
