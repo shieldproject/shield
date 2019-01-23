@@ -9,6 +9,8 @@
 - New `shield op pry` for decrypting and inspecting the contents
   of a SHIELD Vault Crypt.
 
+- New shield cli command 'delete-tenant' which will delete a tenant and clean up it's underlying configs with a -r 
+
 # Improvements
 
 - SHIELD now cleans up the Vault when archives are marked as
@@ -25,6 +27,8 @@
 - The `shield` CLI now handles API endpoints with any number of
   trailing forward slash (`/`) characters.
 
+- Update --help page on import to reflect correct roles
+
 # Bug Fixes
 
 - Web UI page dispatch logic now properly cancels all outstanding
@@ -32,3 +36,5 @@
   where pages would flip "back" to a previous node in the history,
   because a delayed AJAX request was still working away in the
   background.
+
+- Updated go-s3 to help fix connection closing issue
