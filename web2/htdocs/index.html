@@ -11,7 +11,7 @@
     <div class="top-bar"><h1>SHIELD</h1></div>
     <div id="viewport" class="full"></div>
 
-    <script type="text/html" id="tpl--layout"><!-- {{{ -->
+    <script type="text/html" id="template:layout"><!-- {{{ -->
       [[#
         {layout}
 
@@ -91,7 +91,7 @@
         </div>
       </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--loading"><!-- {{{ -->
+    <script type="text/html" id="template:loading"><!-- {{{ -->
       [[#
         {loading} template
 
@@ -100,7 +100,7 @@
       ]]
       <img id="loading" src="/i/loading.svg"/>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--overlay"><!-- {{{ -->
+    <script type="text/html" id="template:overlay"><!-- {{{ -->
       [[#
         {overlay}
 
@@ -109,11 +109,11 @@
         or update to ensure that the viewer sees it.
       ]]
       <div id="overlay">
-        <div class="header"><h2>[[= maybe(_.title, "SHIELD") ]]</h2></div>
+        <div class="header"><h2>[[= lens.maybe(_.title, "SHIELD") ]]</h2></div>
         <div class="frame">[[= _.html ]]</div>
       </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--banner"><!-- {{{ -->
+    <script type="text/html" id="template:banner"><!-- {{{ -->
       [[#
         {banner} template
 
@@ -121,7 +121,7 @@
       ]]
       <p class="[[= _.type ]]">[[= _.message ]] <a href="#">dismiss</a></p>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--error"><!-- {{{ -->
+    <script type="text/html" id="template:error"><!-- {{{ -->
       [[#
         {error} template
 
@@ -133,7 +133,7 @@
             <p id="message">[[= _.message ]]</p>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--restore-are-you-sure"><!-- {{{ -->
+    <script type="text/html" id="template:restore-are-you-sure"><!-- {{{ -->
       [[#
         {restore-are-you-sure}
 
@@ -157,7 +157,7 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--login"><!-- {{{ -->
+    <script type="text/html" id="template:login"><!-- {{{ -->
       [[#
         {login} template
 
@@ -220,7 +220,7 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--init"><!-- {{{ -->
+    <script type="text/html" id="template:init"><!-- {{{ -->
           [[#
             {init} template
 
@@ -280,7 +280,7 @@
                   </div>
               </div>
         <!-- }}} --></script>
-    <script type="text/html" id="tpl--cliauth"><!-- {{{ -->
+    <script type="text/html" id="template:cliauth"><!-- {{{ -->
       [[#
         {cliauth} template
 
@@ -307,7 +307,7 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--fixedkey"><!-- {{{ -->
+    <script type="text/html" id="template:fixedkey"><!-- {{{ -->
         [[#
           {fixedkey} template
 
@@ -337,7 +337,7 @@
               </div>
             </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--logging-in"><!-- {{{ -->
+    <script type="text/html" id="template:logging-in"><!-- {{{ -->
       [[#
         {logging-in} template
 
@@ -350,7 +350,7 @@
            Signing into <span>SHIELD</span> via <span>[[= _.auth ]]</span>...</p>
       </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--BOOM"><!-- {{{ -->
+    <script type="text/html" id="template:BOOM"><!-- {{{ -->
       [[#
         {BOOM} template
 
@@ -378,7 +378,7 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--top-bar"><!-- {{{ -->
+    <script type="text/html" id="template:top-bar"><!-- {{{ -->
       [[#
         {top-bar} template
 
@@ -416,7 +416,7 @@
         </div>
         [[ } ]]
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--hud"><!-- {{{ -->
+    <script type="text/html" id="template:hud"><!-- {{{ -->
         [[#
           {hud} template
 
@@ -432,7 +432,7 @@
                   [[ } ]]</li>
                 [[ if (SHIELD._.shield.ip)   { ]]<li class="ip">[[= SHIELD._.shield.ip ]]</li>[[ } ]]
                 [[ if (SHIELD._.shield.fqdn) { ]]<li class="fqdn">[[= SHIELD._.shield.fqdn ]]</li>[[ } ]]
-                <li class="env"><span style="color: [[= maybe(SHIELD._.shield.color, "#8CC63F") ]]">[[= SHIELD._.shield.env ]]</span></li>
+                <li class="env"><span style="color: [[= lens.maybe(SHIELD._.shield.color, "#8CC63F") ]]">[[= SHIELD._.shield.env ]]</span></li>
               </ul>
             </div></div>
 
@@ -480,7 +480,7 @@
               </ul>
             </div></div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--404"><!-- {{{ -->
+    <script type="text/html" id="template:404"><!-- {{{ -->
       [[#
         {404} template
 
@@ -500,11 +500,11 @@
 
       - **Wanted URL**: [[= _.wanted ]]
       - **Arguments**:  ([[= _.args.join(', ') ]])
-      - **Referer**:    [[= maybe(_.referer, '_none_') ]]
+      - **Referer**:    [[= lens.maybe(_.referer, '_none_') ]]
       </pre>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--account"><!-- {{{ -->
+    <script type="text/html" id="template:account"><!-- {{{ -->
       [[#
         {account}
 
@@ -522,7 +522,7 @@
             </form>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--roles-menu"><!-- {{{ -->
+    <script type="text/html" id="template:roles-menu"><!-- {{{ -->
       [[#
         {roles-menu}
 
@@ -564,7 +564,7 @@
         [[ } ]]
       </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--you-have-no-tenants"><!-- {{{ -->
+    <script type="text/html" id="template:you-have-no-tenants"><!-- {{{ -->
       [[#
         {you-have-no-tenants} template
 
@@ -584,7 +584,7 @@
             you ought to just be automagically assigned to one by the system.</p>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--access-denied"><!-- {{{ -->
+    <script type="text/html" id="template:access-denied"><!-- {{{ -->
       [[#
         {access-denied} template
 
@@ -642,7 +642,7 @@
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--unlock"><!-- {{{ -->
+    <script type="text/html" id="template:unlock"><!-- {{{ -->
       [[#
         {unlock} template
 
@@ -670,7 +670,7 @@
         </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--do-backup"><!-- {{{ -->
+    <script type="text/html" id="template:do-backup"><!-- {{{ -->
       [[#
         {do-backup} - Backup Wizard Template
 
@@ -787,7 +787,7 @@
         </form>
       </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--do-restore"><!-- {{{ -->
+    <script type="text/html" id="template:do-restore"><!-- {{{ -->
       [[#
         {do-restore} - Restore Wizard Template
 
@@ -917,7 +917,7 @@
         </form>
       </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--do-configure"><!-- {{{ -->
+    <script type="text/html" id="template:do-configure"><!-- {{{ -->
       [[#
         {do-configure} - Job Configuration Wizard
 
@@ -1216,7 +1216,7 @@
       </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--subform-choose-plugin"><!-- {{{ -->
+    <script type="text/html" id="template:subform-choose-plugin"><!-- {{{ -->
       [[#
         {subform-choose-plugin} template
 
@@ -1254,7 +1254,7 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--subform-configure-plugin"><!-- {{{ -->
+    <script type="text/html" id="template:subform-configure-plugin"><!-- {{{ -->
       [[#
         {subform-configure-plugin} template
 
@@ -1322,7 +1322,7 @@
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--systems"><!-- {{{ -->
+    <script type="text/html" id="template:systems"><!-- {{{ -->
       [[#
         {systems} template
 
@@ -1403,7 +1403,7 @@
         </div>
         [[ } ]]
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--system"><!-- {{{ -->
+    <script type="text/html" id="template:system"><!-- {{{ -->
       [[#
         {system} template
 
@@ -1449,7 +1449,7 @@
             </div>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--timeline-entry"><!-- {{{ -->
+    <script type="text/html" id="template:timeline-entry"><!-- {{{ -->
       [[#
         {timeline-entry} template
 
@@ -1473,7 +1473,7 @@
           [[ } ]]
           [[ if (_.type == "backup") { ]]
             [[ if (_.owner == "system") { ]]
-            <li class="desc">[[= maybe(_.archive && _.archive.schedule, 'Scheduled Backup') ]]</li>
+            <li class="desc">[[= lens.maybe(_.archive && _.archive.schedule, 'Scheduled Backup') ]]</li>
             <li class="meta">run automatically per job schedule at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
             [[ } else { ]]
             <li class="desc">Ad Hoc Backup</li>
@@ -1496,7 +1496,7 @@
         <div class="task"></div>
       </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--task"><!-- {{{ -->
+    <script type="text/html" id="template:task"><!-- {{{ -->
       [[#
         {task} template
 
@@ -1514,7 +1514,7 @@
             id="annotask-ok"[[ if (_.task.ok) { ]] checked[[ } ]]><label for="annotask-ok">Nothing to worry about</label></p>
 [[ } ]]
 <p><textarea name="notes" id="notes"
-            placeholder="no notes recorded yet...">[[= maybe(_.task.notes, '') ]]</textarea></p>
+            placeholder="no notes recorded yet...">[[= lens.maybe(_.task.notes, '') ]]</textarea></p>
 <button>Save</button>
 </form>
 
@@ -1548,7 +1548,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
 ]]</em></code></pre>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--stores"><!-- {{{ -->
+    <script type="text/html" id="template:stores"><!-- {{{ -->
       [[#
         {stores} template
 
@@ -1641,7 +1641,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--store"><!-- {{{ -->
+    <script type="text/html" id="template:store"><!-- {{{ -->
       [[#
         {store} template
 
@@ -1782,7 +1782,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
           </div>
           [[ } ]]
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--stores-form"><!-- {{{ -->
+    <script type="text/html" id="template:stores-form"><!-- {{{ -->
       [[#
         {stores-form} template
 
@@ -1866,7 +1866,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--stores-delete"><!-- {{{ -->
+    <script type="text/html" id="template:stores-delete"><!-- {{{ -->
       [[#
         {stores-delete}
 
@@ -1889,7 +1889,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
           </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--tenants"><!-- {{{ -->
+    <script type="text/html" id="template:tenants"><!-- {{{ -->
       [[#
         {tenants} template
 
@@ -1921,7 +1921,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--tenants-form"><!-- {{{ -->
+    <script type="text/html" id="template:tenants-form"><!-- {{{ -->
       [[#
         {tenants-form} template
 
@@ -1991,7 +1991,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             </form>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--tenants-form-invitee"><!-- {{{ -->
+    <script type="text/html" id="template:tenants-form-invitee"><!-- {{{ -->
       [[#
         {tenants-form-invitee} template
 
@@ -2008,7 +2008,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                         </span></td>
                       </tr>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--userlookup-results"><!-- {{{ -->
+    <script type="text/html" id="template:userlookup-results"><!-- {{{ -->
       [[#
         {userlookup-results} template
 
@@ -2025,7 +2025,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
       </div>
     <!-- }}} --></script>
 
-    <script type="text/html" id="tpl--admin"><!-- {{{ -->
+    <script type="text/html" id="template:admin"><!-- {{{ -->
       [[#
         {admin} template
 
@@ -2086,7 +2086,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             </ul>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--agents"><!-- {{{ -->
+    <script type="text/html" id="template:agents"><!-- {{{ -->
       [[#
         {agents} template
 
@@ -2143,7 +2143,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--auth-providers"><!-- {{{ -->
+    <script type="text/html" id="template:auth-providers"><!-- {{{ -->
       [[#
         {auth-providers} template
 
@@ -2175,7 +2175,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             </table>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--auth-provider-config"><!-- {{{ -->
+    <script type="text/html" id="template:auth-provider-config"><!-- {{{ -->
       [[#
         {auth-provider-config} template
 
@@ -2244,7 +2244,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             <pre><code>[[= JSON.stringify(_.provider, null, 2) ]]</code></pre>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--rekey"><!-- {{{ -->
+    <script type="text/html" id="template:rekey"><!-- {{{ -->
       [[#
         {rekey} template
 
@@ -2311,7 +2311,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             </form>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--admin-users"><!-- {{{ -->
+    <script type="text/html" id="template:admin-users"><!-- {{{ -->
       [[#
         {admin-users} template
 
@@ -2364,7 +2364,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             [[ } ]]
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--admin-users-new"><!-- {{{ -->
+    <script type="text/html" id="template:admin-users-new"><!-- {{{ -->
       [[#
         {admin-users-new} template
 
@@ -2433,7 +2433,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             </form>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--admin-users-edit"><!-- {{{ -->
+    <script type="text/html" id="template:admin-users-edit"><!-- {{{ -->
       [[#
         {admin-users-edit} template
 
@@ -2472,7 +2472,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             </form>
           </div>
     <!-- }}} --></script>
-    <script type="text/html" id="tpl--sessions"><!-- {{{ -->
+    <script type="text/html" id="template:sessions"><!-- {{{ -->
         [[#
           {sessions} template
 
@@ -2509,7 +2509,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               [[ } ]]
             </div>
       <!-- }}} --></script>
-    <script type="text/html" id="tpl--sessions-delete"><!-- {{{ -->
+    <script type="text/html" id="template:sessions-delete"><!-- {{{ -->
         [[#
           {sessions-delete}
 
@@ -2530,7 +2530,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               </div>
             </div>
       <!-- }}} --></script>
-    <script type="text/html" id="tpl--"><!-- {{{ -->
+    <script type="text/html" id="template:"><!-- {{{ -->
     <!-- }}} --></script>
 
     <script src="/shield.js"></script>

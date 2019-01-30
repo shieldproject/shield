@@ -451,11 +451,11 @@ window.S.H.I.E.L.D.Database = (function () {
 
   Database.prototype.redraw = function () {
     if (this.authenticated()) {
-      $('#viewport').html(template('layout'));
+      $('#viewport').template('layout');
     }
 
-    $('#hud').html(template('hud'));
-    $('.top-bar').html(template('top-bar'));
+    $('#hud').template('hud');
+    $('.top-bar').template('top-bar');
     document.title = "SHIELD "+this._.shield.env;
   };
 

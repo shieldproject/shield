@@ -135,6 +135,7 @@ release:
 
 
 JAVASCRIPTS := web2/src/js/jquery.js
+JAVASCRIPTS += web2/src/js/lens.js
 JAVASCRIPTS += web2/src/js/lib.js
 JAVASCRIPTS += web2/src/js/sticky-nav.js
 JAVASCRIPTS += web2/src/js/shield.js

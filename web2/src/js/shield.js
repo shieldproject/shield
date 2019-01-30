@@ -53,14 +53,14 @@ function dispatch(page) {
     (function () {
       var progress = function (how) {
         $('#viewport').find('#logging-in').remove();
-        $('#viewport').append(template('logging-in', {auth: how}));
+        $('#viewport').append($.template('logging-in', {auth: how}));
       }
 
       api({
         type: 'GET',
         url:  '/v2/auth/providers?for=web',
         success: function (data) {
-          $('#viewport').html($(template('login', { providers: data }))
+          $('#viewport').html($($.template('login', { providers: data }))
             .on("click", ".login", function (event) {
               progress($(event.target).text());
             })
@@ -92,14 +92,14 @@ function dispatch(page) {
             }));
         },
         error: function (xhr) {
-          $('#viewport').html(template('BOOM'));
+          $('#viewport').template('BOOM');
         }
       });
     })();
     break; /* #!/login */
     // }}}
   case "#!/cliauth": /* {{{ */
-    $('#viewport').html(template('cliauth', args));
+    $('#viewport').template('cliauth', args);
     break; /* #!/cliauth */
     // }}}
   case "#!/logout": /* {{{ */
@@ -112,7 +112,7 @@ function dispatch(page) {
         },
         error: function (xhr) {
           if (xhr.status >= 500) {
-            $('#viewport').html(template('BOOM'));
+            $('#viewport').template('BOOM');
           } else {
             document.location.href = '/';
           }
@@ -124,8 +124,8 @@ function dispatch(page) {
 
     case "#!/init": /* {{{ */
       (function () {
-        $('#viewport').html(template('init'));
-        $('#viewport').html($(template('init'))
+        $('#viewport').template('init');
+        $('#viewport').html($($.template('init'))
           .on("submit", ".restore", function (event) {
             event.preventDefault();
            // progress('Initializing SHIELD with prior backup');
@@ -142,7 +142,7 @@ function dispatch(page) {
 
             $form.reset();
             $('.dialog').html("")
-            $('.dialog').html(template('loading'))
+            $('.dialog').template('loading')
             $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD is initializing from a previous backup, please wait...</h2>")
 
             $.ajax({
@@ -153,11 +153,11 @@ function dispatch(page) {
               contentType: false,
               processData: false,
               success: function () {
-                $('.dialog').html(template('loading'))
+                $('.dialog').template('loading')
                 $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization success, taking you authentication...</h2>")
               },
               error: function () {
-                $('.dialog').html(template('loading'))
+                $('.dialog').template('loading')
                 $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, restarting initialization process...</h2>")
               }
             });
@@ -185,7 +185,7 @@ function dispatch(page) {
               data: { "master": data.masterpass },
               success: function (data) {
                 console.log("success");
-                $('#viewport').html(template('fixedkey', data));
+                $('#viewport').template('fixedkey', data);
               },
               error: function (xhr) {
                 $(event.target).error(xhr.responseJSON);
@@ -200,7 +200,7 @@ function dispatch(page) {
             if (data["task"]["log"] != "") {
               $('.restore_divert').html("It looks like there was a previous attempt to self-restore SHIELD that failed. Below is the task log to help debug the problem. ")
               $('#initialize').append("<div class=\"dialog\" id=\"log\"></div>")
-              $('#log').append(template('task', data))
+              $('#log').append($.template('task', data))
             }
           }
         });
@@ -210,38 +210,38 @@ function dispatch(page) {
 
   case "#!/do/backup": /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
     if (!SHIELD.is('operator', SHIELD.activeTenant())) {
-      $('#main').html(template('access-denied', { level: 'tenant', need: 'operator' }));
+      $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
       break;
     }
-    $('#main').html(template('do-backup'));
+    $('#main').template('do-backup');
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
     if (!SHIELD.is('operator', SHIELD.activeTenant())) {
-      $('#main').html(template('access-denied', { level: 'tenant', need: 'operator' }));
+      $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
       break;
     }
-    $('#main').html(template('do-restore'));
+    $('#main').template('do-restore');
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
     if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
-      $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
-    $('#main').html(template('do-configure'));
+    $('#main').template('do-configure');
     $('#main .optgroup').optgroup(); $('.scheduling').subform();
     $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
 
@@ -252,19 +252,19 @@ function dispatch(page) {
 
   case "#!/systems": /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
-    $('#main').html(template('systems'));
+    $('#main').template('systems');
     break; /* #!/systems */
     // }}}
   case '#!/systems/system': /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
-    $('#main').html(template('loading'));
-    $('#main').html(template('system', { target: SHIELD.system(args.uuid) }));
+    $('#main').template('loading');
+    $('#main').template('system', { target: SHIELD.system(args.uuid) });
     window.setTimeout(function () {
       /* for some reason, we need a small delay before we trigger the load-more */
       $('#main .paginate .load-more').trigger('click');
@@ -274,30 +274,30 @@ function dispatch(page) {
 
   case '#!/stores': /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
-    $('#main').html(template('stores'));
+    $('#main').template('stores');
     break; /* #!/stores */
     // }}}
   case '#!/stores/store': /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
-    $('#main').html(template('store', args));
+    $('#main').template('store', args);
     break; /* #!/stores/store */
     // }}}
   case '#!/stores/new': /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
     if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
-      $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/agents',
@@ -305,7 +305,7 @@ function dispatch(page) {
       success: function (data) {
         var cache = {};
 
-        $('#main').html($(template('stores-form', { agents: data }))
+        $('#main').html($($.template('stores-form', { agents: data }))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -332,11 +332,11 @@ function dispatch(page) {
     // }}}
   case '#!/stores/edit': /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
     if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
-      $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
     apis({
@@ -347,7 +347,7 @@ function dispatch(page) {
       },
       error: "Failed to retrieve storage system information from the SHIELD API.",
       success: function (data) {
-        $('#main').html($(template('stores-form', data))
+        $('#main').html($($.template('stores-form', data))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -381,11 +381,11 @@ function dispatch(page) {
     // }}}
   case '#!/stores/delete': /* {{{ */
     if (!SHIELD.activeTenant()) {
-      $('#main').html(template('you-have-no-tenants'));
+      $('#main').template('you-have-no-tenants');
       break;
     }
     if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
-      $('#main').html(template('access-denied', { level: 'tenant', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
     api({
@@ -393,7 +393,7 @@ function dispatch(page) {
       url:  '/v2/tenants/'+SHIELD.activeTenant()+'/stores/'+args.uuid,
       error: "Failed to retrieve storage system information from the SHIELD API.",
       success: function (store) {
-        modal($(template('stores-delete', { store: store }))
+        modal($($.template('stores-delete', { store: store }))
           .on('click', '[rel="yes"]', function (event) {
             event.preventDefault();
             api({
@@ -421,11 +421,11 @@ function dispatch(page) {
 
   case '#!/tenants/edit': /* {{{ */
     if (!SHIELD.activeTenant()) {
-        $('#main').html(template('you-have-no-tenants'));
+        $('#main').template('you-have-no-tenants');
         break;
     }
     if (!SHIELD.is('admin', args.uuid)) {
-        $('#main').html(template('access-denied', { level: 'tenant', need: 'admin' }));
+        $('#main').template('access-denied', { level: 'tenant', need: 'admin' });
         break;
     }
     api({
@@ -437,7 +437,7 @@ function dispatch(page) {
         $.each(data.members, function (i, user) {
           members[user.uuid] = user;
         });
-        $('#main').html($(template('tenants-form', { tenant: data, admin: false }))
+        $('#main').html($($.template('tenants-form', { tenant: data, admin: false }))
           .userlookup('input[name=invite]', {
             filter: function (users) {
               var lst = [];
@@ -450,7 +450,7 @@ function dispatch(page) {
             },
             onclick: function (user) {
               user.role = 'operator';
-              $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+              $('#main table tbody').append($.template('tenants-form-invitee', { user: user }));
               members[user.uuid] = user;
 
               api({
@@ -517,24 +517,24 @@ function dispatch(page) {
 
   case '#!/admin': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('admin'));
+    $('#main').template('admin');
     break; /* #!/admin */
     // }}}
   case '#!/admin/agents': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/agents',
       error: "Failed retrieving the list of agents from the SHIELD API.",
       success: function (data) {
-        $('#main').html($(template('agents', data))
+        $('#main').html($($.template('agents', data))
           .on('click', 'a[rel]', function (event) {
             var action = $(event.target).closest('a[rel]').attr('rel');
             if (action == 'hide' || action == 'show') {
@@ -563,42 +563,42 @@ function dispatch(page) {
     // }}}
   case '#!/admin/auth': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/auth/providers',
       error: "Failed retrieving the list of configured authentication providers from the SHIELD API.",
       success: function (data) {
-        $('#main').html(template('auth-providers', { providers: data }));
+        $('#main').template('auth-providers', { providers: data });
       }
     });
     break; /* #!/admin/auth */
     // }}}
   case '#!/admin/auth/config': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/auth/providers/'+args.name,
       error: "Failed retrieving the authentication provider configuration from the SHIELD API.",
       success: function (data) {
-        $('#main').html(template('auth-provider-config', { provider: data }));
+        $('#main').template('auth-provider-config', { provider: data });
       }
     });
     break; /* #!/admin/auth */
     // }}}
   case '#!/admin/rekey': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html($(template('rekey')))
+    $('#main').html($($.template('rekey')))
       .autofocus()
       .on('submit', 'form', function (event) {
         event.preventDefault();
@@ -634,7 +634,7 @@ function dispatch(page) {
           data: data,
           success: function (data) {
             if (data.fixed_key != "") {
-              $('#viewport').html(template('fixedkey', data));
+              $('#viewport').template('fixedkey', data);
             } else {
               goto("#!/admin");
             }
@@ -651,28 +651,28 @@ function dispatch(page) {
 
   case '#!/admin/tenants': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/tenants',
       error: 'Failed to retrieve tenant information from the SHIELD API.',
       success: function (data) {
-        $('#main').html(template('tenants', { tenants: data, admin: true }));
+        $('#main').template('tenants', { tenants: data, admin: true });
       }
     });
     break; /* #!/admin/tenants */
     // }}}
   case '#!/admin/tenants/new': /* {{{ */
     if (!SHIELD.is('manager')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+      $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
     var members = {};
 
-    $('#main').html($(template('tenants-form', { policy: null, admin: true }))
+    $('#main').html($($.template('tenants-form', { policy: null, admin: true }))
       .userlookup('input[name=invite]', {
         // {{{
         filter: function (users) {
@@ -686,7 +686,7 @@ function dispatch(page) {
         },
         onclick: function (user) {
           user.role = 'operator';
-          $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+          $('#main table tbody').append($.template('tenants-form-invitee', { user: user }));
           members[user.uuid] = user.role;
         }
         // }}}
@@ -736,7 +736,7 @@ function dispatch(page) {
     // }}}
   case '#!/admin/tenants/edit': /* {{{ */
     if (!SHIELD.is('manager')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+      $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
     api({
@@ -748,7 +748,7 @@ function dispatch(page) {
         $.each(data.members, function (i, user) {
           members[user.uuid] = user;
         });
-        $('#main').html($(template('tenants-form', { tenant: data, admin: true }))
+        $('#main').html($($.template('tenants-form', { tenant: data, admin: true }))
           .userlookup('input[name=invite]', {
             filter: function (users) {
               var lst = [];
@@ -761,7 +761,7 @@ function dispatch(page) {
             },
             onclick: function (user) {
               user.role = 'operator';
-              $('#main table tbody').append(template('tenants-form-invitee', { user: user }));
+              $('#main table tbody').append($.template('tenants-form-invitee', { user: user }));
               members[user.uuid] = user;
 
               api({
@@ -848,7 +848,7 @@ function dispatch(page) {
 
   case '#!/admin/users': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
     api({
@@ -856,17 +856,17 @@ function dispatch(page) {
       url:  '/v2/auth/local/users',
       error: "Failed retrieving the list of local SHIELD users from the SHIELD API.",
       success: function (data) {
-        $('#main').html(template('admin-users', { users: data }));
+        $('#main').template('admin-users', { users: data });
       }
     });
     break; /* #!/admin/users */
     // }}}
   case "#!/admin/users/new": /* {{{ */
     if (!SHIELD.is('manager')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+      $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
-    $('#main').html($(template('admin-users-new', {}))
+    $('#main').html($($.template('admin-users-new', {}))
       .autofocus()
       .on('submit', 'form', function (event) {
         event.preventDefault();
@@ -902,7 +902,7 @@ function dispatch(page) {
     // }}}
   case "#!/admin/users/edit": /* {{{ */
     if (!SHIELD.is('manager')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'manager' }));
+      $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
     api({
@@ -910,7 +910,7 @@ function dispatch(page) {
       url:  '/v2/auth/local/users/'+args.uuid,
       error: "Unable to retrieve user information from the SHIELD API.",
       success: function (data) {
-        $('#main').html($(template('admin-users-edit', { user: data }))
+        $('#main').html($($.template('admin-users-edit', { user: data }))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -942,10 +942,10 @@ function dispatch(page) {
 
   case '#!/admin/stores': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/global/stores',
@@ -957,17 +957,17 @@ function dispatch(page) {
             data[key].ok = true;
           }
         }
-        $('#main').html(template('stores', { stores: data, admin: true }));
+        $('#main').template('stores', { stores: data, admin: true });
       }
     });
     break; /* #!/admin/stores */
     // }}}
   case '#!/admin/stores/store': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/global/stores/'+args.uuid,
@@ -980,17 +980,17 @@ function dispatch(page) {
         data.threshold = data.threshold;
         data.projected = 2.1;
         data.daily_delta = data.daily_increase;
-        $('#main').html(template('store', { store: data, admin: true }));
+        $('#main').template('store', { store: data, admin: true });
       }
     });
     break; /* #!/admin/stores/store */
     // }}}
   case '#!/admin/stores/new': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/agents',
@@ -998,7 +998,7 @@ function dispatch(page) {
       success: function (data) {
         var cache = {};
 
-        $('#main').html($(template('stores-form', {
+        $('#main').html($($.template('stores-form', {
             agents: data.agents,
             admin:  true,
           }))
@@ -1029,7 +1029,7 @@ function dispatch(page) {
     // }}}
   case '#!/admin/stores/edit': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
     apis({
@@ -1041,7 +1041,7 @@ function dispatch(page) {
       success: function (data) {
         data.admin = true;
         data.agents = data.agents.agents;
-        $('#main').html($(template('stores-form', data))
+        $('#main').html($($.template('stores-form', data))
           .autofocus()
           .on('submit', 'form', function (event) {
             event.preventDefault();
@@ -1075,7 +1075,7 @@ function dispatch(page) {
     // }}}
   case '#!/admin/stores/delete': /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
     api({
@@ -1083,7 +1083,7 @@ function dispatch(page) {
       url:  '/v2/global/stores/'+args.uuid,
       error: "Failed to retrieve storage system information from the SHIELD API.",
       success: function (store) {
-        modal($(template('stores-delete', { store: store }))
+        modal($($.template('stores-delete', { store: store }))
           .on('click', '[rel="yes"]', function (event) {
             event.preventDefault();
             api({
@@ -1111,10 +1111,10 @@ function dispatch(page) {
 
   case '#!/admin/sessions': /* {{{ */
     if (!SHIELD.is('admin')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'admin' }));
+      $('#main').template('access-denied', { level: 'system', need: 'admin' });
       break;
     }
-    $('#main').html(template('loading'));
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/auth/sessions',
@@ -1126,14 +1126,14 @@ function dispatch(page) {
         }
         return tparse(a.last_seen_at).getTime() < tparse(b.last_seen_at).getTime();
       });
-      $('#main').html(template('sessions', { sessions: data, admin: true }));
+      $('#main').template('sessions', { sessions: data, admin: true });
       }
     });
     break; /* #!/admin/sessions */
     // }}}
   case '#!/admin/sessions/delete': /* {{{ */
     if (!SHIELD.is('admin')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'admin' }));
+      $('#main').template('access-denied', { level: 'system', need: 'admin' });
       break;
     }
     api({
@@ -1141,7 +1141,7 @@ function dispatch(page) {
       url:  '/v2/auth/sessions/'+args.uuid,
       error: "Failed to retrieve session information from the SHIELD API.",
       success: function (data) {
-      modal($(template('sessions-delete', { session: data }))
+      modal($($.template('sessions-delete', { session: data }))
         .on('click', '[rel="yes"]', function (event) {
         event.preventDefault();
         api({
@@ -1167,10 +1167,10 @@ function dispatch(page) {
     // }}}
   case "#!/unlock": /* {{{ */
     if (!SHIELD.is('engineer')) {
-      $('#main').html(template('access-denied', { level: 'system', need: 'engineer' }));
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html($(template('unlock', {}))
+    $('#main').html($($.template('unlock', {}))
       .autofocus()
       .on('submit', 'form', function (event) {
         event.preventDefault();
@@ -1205,11 +1205,11 @@ function dispatch(page) {
     // }}}
 
   default: /* 404 {{{ */
-    $('#main').html(template('404', {
+    $('#main').template('404', {
       wanted:  page,
       args:    argv,
       referer: referer,
-    }));
+    });
     return; /* 404 */
     // }}}
   }
@@ -1218,14 +1218,14 @@ function dispatch(page) {
 
 function redraw(complete) {
   if (complete && SHIELD.authenticated()) {
-    $('#viewport').html(template('layout', {}));
+    $('#viewport').template('layout', {});
   }
-  $('#hud').html(template('hud'), {});
-  $('.top-bar').html(template('top-bar', {
+  $('#hud').template('hud');
+  $('.top-bar').template('top-bar', {
     user:    SHIELD._.user,
     tenants: SHIELD._.tenants,
     tenant:  SHIELD._.tenant
-  }));
+  });
   document.title = "SHIELD "+SHIELD.shield.env;
 }
 function goto(page) {
@@ -1324,17 +1324,17 @@ $(function () {
       var $task = $ev.find('.task');
 
       $task = $task.show()
-                  .html(template('loading'));
+                  .template('loading');
 
       api({
         type: 'GET',
         url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/tasks/'+uuid,
         error: "Failed to retrieve task information from the SHIELD API.",
         success: function (data) {
-          $task.html(template('task', {
+          $task.template('task', {
             task: data,
             restorable: data.type == "backup" && data.archive_uuid != "" && data.status == "done",
-          }));
+          });
           $(event.target).closest('li').hide();
         }
       });
@@ -1463,7 +1463,7 @@ $(function () {
           for (var i = 0; i < system.tasks.length; i++) {
             //console.log('task: ', system.tasks[i]);
             //window.SHIELD.set('task', system.tasks[i]);
-            $outer.append(template('timeline-entry', system.tasks[i]));
+            $outer.append($.template('timeline-entry', system.tasks[i]));
             if (oldest > system.tasks[i].requested_at) {
                 oldest = system.tasks[i].requested_at;
             }
