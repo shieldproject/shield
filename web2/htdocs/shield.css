@@ -1601,10 +1601,10 @@ pre.task-failed.override   code { background-color: #333; }
   font-size: 28pt;
   font-weight: bold;
 }
-.wizard2 p.intro-help {
-  width: 60%;
-  background-color: #f2f2f2;
-  padding: 2em;
+.wizard2 .intro p {
+  width: 70%;
+  margin: 1em;
+  line-height: 1.2em;
 }
 .wizard2 h2 {
   font-size: 22pt;
@@ -1614,7 +1614,7 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2 h3 {
   font-size: 18pt;
   font-weight: bold;
-  margin: 1em 0 0 0;
+  margin: 4em 0 1.5em 0;
 }
 .wizard2 h2:first-child {
   margin-top: 1em;
@@ -1636,14 +1636,12 @@ pre.task-failed.override   code { background-color: #333; }
   font-style: italic;
 }
 .wizard2 .side-help {
-  background-color: #0071bc22;
   padding: 1em;
   margin: 1em;
   position: relative;
+  background-color: #0071bc22;
 }
-.wizard2 .lean .side-help {
-  margin-top: 50px;
-}
+
 .wizard2 .lean.selectable tbody tr:hover,
 .wizard2 .lean.selectable.selected tbody tr.selected {
   cursor: pointer;
@@ -1664,8 +1662,8 @@ pre.task-failed.override   code { background-color: #333; }
   font-weight: bold;
   text-align: right;
   display: block;
-  line-height: 38px;
   padding-right: 16px;
+  padding-top: 10px;
 }
 .wizard2 .scheduling .optgroup li {
   border-radius: 0px;
@@ -1677,35 +1675,144 @@ pre.task-failed.override   code { background-color: #333; }
   border-left: 0;
 }
 
-.new-form1 input::placeholder {
+.wizard2 [data-step] [data-mode] { display: none; }
+.wizard2 [data-step][data-mode="choose"] [data-mode="choose"],
+.wizard2 [data-step][data-mode="create"] [data-mode="choose"],
+.wizard2 [data-step][data-mode="create"] [data-mode="create"] { display: block; }
+.wizard2 [data-step][data-mode="create"] [data-mode="choose"] .buttons { display: none; }
+
+.wizard2 .progress {
+  position: relative;
+}
+.wizard2 .progress .line {
+  height: 4px;
+  margin: 0 auto;
+  top: 23px;
+  position: absolute;
+  left: 10%;
+  z-index: -1;
+}
+.wizard2 .progress .back.line {
+  background-color: #ccc;
+}
+.wizard2 .progress .front.line {
+  background-color: #0071bc;
+  width: 0%;
+}
+.wizard2 .progress ul {
+  display: flex;
+}
+.wizard2 .progress li {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 9pt;
+  text-align: center;
+  padding: 0 1em;
+}
+.wizard2 .progress strong {
+  font-weight: bold;
+  font-size: 12pt;
+  display: block;
+  margin: 0.7em;
+}
+.wizard2 .progress i {
+  text-decoration: none;
+  background-color: #ccc;
+  border-radius: 100%;
+  padding: 4px;
+  font-size: 15pt;
+  width: 32px;
+  height: 32px;
+  display: block;
+  margin: 0 auto;
+  color: #fff;
+  font-weight: bold;
+  line-height: 32px;
+  text-align: center;
+  border: 4px solid #fff;
+}
+.wizard2 .progress li.completed i {
+  background-color: #0071bc;
+}
+.wizard2 .progress li.current i {
+  background-color: #8cc63f;
+}
+
+.wizard2.steps4 .progress .back.line { width: 75%; }
+.wizard2.steps4 .progress li { width: 25%; }
+.wizard2.steps4[data-on-step="2"] .progress .front.line { width: 25%; }
+.wizard2.steps4[data-on-step="3"] .progress .front.line { width: 50%; }
+.wizard2.steps4[data-on-step="4"] .progress .front.line { width: 75%; }
+
+.wizard2.steps5 .progress .back.line { width: 80%; }
+.wizard2.steps5 .progress li { width: 20%; }
+.wizard2.steps5[data-on-step="2"] .progress .front.line { width: 20%; }
+.wizard2.steps5[data-on-step="3"] .progress .front.line { width: 40%; }
+.wizard2.steps5[data-on-step="4"] .progress .front.line { width: 60%; }
+.wizard2.steps5[data-on-step="5"] .progress .front.line { width: 80%; }
+
+.wizard2 .buttons button[rel=prev] { float: left; }
+.wizard2 .buttons button[rel=next],
+.wizard2 .buttons button.final { float: right; }
+
+.wizard2 button {  font-size: 12pt; }
+.wizard2 button span { color: yellow; }
+.wizard2 button[rel=prev] {
+  background: none;
+  box-shadow: none;
+  color: #333;
+}
+.wizard2 button[rel=prev] span {
+  color: #0071bc;
+}
+.wizard2 button.final {
+  font-size: 140%;
+}
+
+
+.wizard2 input::placeholder {
   color: #888;
   font-size: 80%;
   font-style: italic;
 }
-.new-form1 .selected-elsewhere,
-.new-form1 input[type=password],
-.new-form1 input[type=text] {
+.wizard2 .selected-elsewhere,
+.wizard2 input[type=password],
+.wizard2 input[type=text] {
   background-color: transparent;
   border: 2px solid #0071bc;
   border-width: 0 0 2px 0;
   font-size: 18pt;
 }
-.new-form1 .selected-elsewhere {
+.wizard2 .selected-elsewhere {
   border: 0;
   margin: 0;
   margin-top: 8px;
 }
-.new-form1 .selected-elsewhere a {
+.wizard2 .selected-elsewhere span.tag {
+  display: inline-block;
+  background-color: #8cc63f;
+  color: #fff;
+  font-size: 8pt;
+  line-height: 6pt;
+  font-weight: bold;
+
+  padding: 4pt 6pt 3pt 6pt;
+  position: relative;
+  top: -10pt;
+  border-radius: 2pt;
+}
+.wizard2 .selected-elsewhere a {
   font-size: 11pt;
   color: #0071bc;
   text-decoration: none;
   border-bottom: 1px dotted #0071bc;
 }
-.new-form1 input[type=password][!size],
-.new-form1 input[type=text][!size] {
+.wizard2 input[type=password][!size],
+.wizard2 input[type=text][!size] {
   width: 60%;
 }
-.new-form1 textarea {
+.wizard2 textarea {
   height: 7em;
   border: 1px solid #0071bc;
   width: 90%;
@@ -1713,19 +1820,19 @@ pre.task-failed.override   code { background-color: #333; }
   padding: 0.7em;
   line-height: 1.2em;
 }
-.new-form1 select {
+.wizard2 select {
   font-size: 12pt;
   padding: 4px;
   margin: 4px 0;
 }
-.new-form1 .subform {
+.wizard2 .subform {
   display: none;
 }
-.new-form1 .subform > div {
+.wizard2 .subform > div {
   margin-bottom: 1em;
 }
  /* The switch - the box around the slider */
-.new-form1 .switch {
+.wizard2 .switch {
   position: relative;
   display: inline-block;
   width: 40px;
@@ -1734,12 +1841,12 @@ pre.task-failed.override   code { background-color: #333; }
 }
 
 /* Hide default HTML checkbox */
-.new-form1 .switch input {
+.wizard2 .switch input {
   opacity: 0; width: 0; height: 0;
 }
 
 /* The slider */
-.new-form1 .slider {
+.wizard2 .slider {
   position: absolute;
   cursor: pointer;
   top: 0; left: 0;
@@ -1749,7 +1856,7 @@ pre.task-failed.override   code { background-color: #333; }
   transition: .4s;
 }
 
-.new-form1 .slider:before {
+.wizard2 .slider:before {
   position: absolute;
   content: "";
   left: 4px; bottom: 4px;
@@ -1759,31 +1866,31 @@ pre.task-failed.override   code { background-color: #333; }
   transition: .4s;
 }
 
-.new-form1 input:checked + .slider { background-color: #0071bc; }
-.new-form1 input:focus   + .slider { box-shadow: 0 0 1px #0071bc; }
-.new-form1 input:checked + .slider:before {
+.wizard2 input:checked + .slider { background-color: #0071bc; }
+.wizard2 input:focus   + .slider { box-shadow: 0 0 1px #0071bc; }
+.wizard2 input:checked + .slider:before {
   -webkit-transform: translateX(16px);
   -ms-transform: translateX(16px);
   transform: translateX(16px);
 }
 
 /* Rounded sliders */
-.new-form1 .slider.round {
+.wizard2 .slider.round {
   border-radius: 34px;
 }
 
-.new-form1 .slider.round:before {
+.wizard2 .slider.round:before {
   border-radius: 50%;
 } 
 
-.new-form1 .smudge {
+.wizard2 .smudge {
   position: relative;
   display: inline-block;
 }
-.new-form1 .smudge input {
+.wizard2 .smudge input {
   padding-right: 1.4em;
 }
-.new-form1 .smudge > span {
+.wizard2 .smudge > span {
   position: absolute;
   right: 0;
   height: 33px;
@@ -1792,9 +1899,10 @@ pre.task-failed.override   code { background-color: #333; }
   color: #999;
   text-transform: uppercase;
   cursor: pointer;
+  font-family: monospace;
 }
 
-.new-form1 button {
+.wizard2 button {
   cursor: pointer;
   background-color: #0071bc;
   padding: 0.7em 1.6em;

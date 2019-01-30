@@ -681,109 +681,154 @@
       ]]
       <div class="gutter blk wizard2 do-backup">
         <form class="new-form1">
-          <h1>Run an Ad Hoc Backup</h1>
-          <p class="intro-help">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis consectetur leo tortor, sed sodales sapien bibendum quis. Praesent euismod lorem sed nulla ullamcorper ullamcorper. Orci varius natoque penatibus et magnis dis parturient montes.</p>
+          <div class="progress">[[# {{{ ]]
+            <div class="back line"></div>
+            <div class="front line"></div>
+            <ul>
+              <li><i>1</i><strong>Start</strong></li>
+              <li><i>2</i><strong>Data System</strong>
+                The data you want to back up.</li>
+              <li><i>3</i><strong>Cloud Storage</strong>
+                Where the archives are..</li>
+              <li><i>4</i><strong>Review</strong></li>
+            </ul>
+          </div>[[# }}} ]]
 
-          <h2 id="data-systems">Data System</h2>
-          <div class="c12 band">
-            <div class="x9">
-              [[ var systems = SHIELD.systems(); ]]
-              <table class="lean selectable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  [[ SHIELD.each(systems, function (i, target) { ]]
-                  <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-                    <td class="name">
-                      <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-                      [[= target.name ]]
-                    </td>
-                    <td>[[= target.plugin ]]</td>
-                    <td class="notes">
-                      [[= target.summary ]]
-                    </td>
-                  </tr>
-                  [[ }); ]]
-                </tbody>
-              </table>
-            </div>
-            <div class="x3">
-              <div class="side-help">Select the target you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
-            </div>
+          <div data-step="1">
+            <h2>Run an Ad Hoc Backup</h2>
+            <div class="c12">[[# intro text {{{ ]]
+              <div class="x9">
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Duis consectetur leo tortor, sed sodales sapien bibendum quis.
+                Praesent euismod lorem sed nulla ullamcorper ullamcorper.
+                Orci varius natoque penatibus et magnis dis parturient montes.</p>
+
+                <div class="buttons">
+                  <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
+                </div>
+              </div>
+            </div>[[# }}} ]]
           </div>
 
-          <h2 id="cloud-storage">Cloud Storage</h2>
-          <div class="c12 band">
-            <div class="x9">
-              [[ var stores = SHIELD.stores(); ]]
-              <table class="lean selectable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Retention</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  [[ SHIELD.each(stores, function (i, store) { ]]
-                  <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-                    <td class="name">
-                      <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                      [[= store.name ]]
-                      [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
-                    </td>
-                    <td>[[= store.plugin ]]</td>
-                    <td class="retain">7 days</td>
-                    <td class="notes">
-                      [[= store.summary ]]
-                    </td>
-                  </tr>
-                  [[ }); ]]
-                </tbody>
-              </table>
-            </div>
-            <div class="x3 lean">
-              <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
-            </div>
+          <div data-step="2">
+            <h2 id="data-systems">Data System</h2>
+            <div class="c12 band">[[# {{{ ]]
+              <div class="x9">
+                [[ var systems = SHIELD.systems(); ]]
+                <table class="lean selectable choose target">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    [[ SHIELD.each(systems, function (i, target) { ]]
+                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
+                        data-target-uuid="[[= target.uuid ]]">
+                      <td class="name">
+                        <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+                        [[= target.name ]]
+                      </td>
+                      <td>[[= target.plugin ]]</td>
+                      <td class="notes">
+                        [[= target.summary ]]
+                      </td>
+                    </tr>
+                    [[ }); ]]
+                  </tbody>
+                </table>
+                <div class="buttons">
+                  <button rel="prev">◀ Back to <span>Start</span></button>
+                  <button rel="next">Next up: <span>Cloud Storage</span> ▶</button>
+                </div>
+              </div>
+              <div class="x3">
+                <div class="side-help">Select what you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
+              </div>
+            </div>[[# }}} ]]
           </div>
 
-          <h2>Summary</h2>
-          <div class="summary-section">
-            <div class="c12 band">
-              <div class="x2"><label>Data System</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
-                <a class="change-me" href="#data-systems">change</a></p>
+          <div data-step="3">
+            <h2 id="cloud-storage">Cloud Storage</h2>
+            <div class="c12 band">[[# {{{ ]]
+              <div class="x9">
+                [[ var stores = SHIELD.stores(); ]]
+                <table class="lean selectable choose store">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>Retention</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    [[ SHIELD.each(stores, function (i, store) { ]]
+                    <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
+                        data-store-uuid="[[= store.uuid ]]">
+                      <td class="name">
+                        <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
+                        [[= store.name ]]
+                        [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
+                      </td>
+                      <td>[[= store.plugin ]]</td>
+                      <td class="retain">7 days</td>
+                      <td class="notes">
+                        [[= store.summary ]]
+                      </td>
+                    </tr>
+                    [[ }); ]]
+                  </tbody>
+                </table>
+                <div class="buttons">
+                  <button rel="prev">◀ Back to <span>Data System</span></button>
+                  <button rel="next">Next up: <span>Review</span> ▶</button>
+                </div>
+              </div>
+              <div class="x3 lean">
+                <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
+              </div>
+            </div>[[# }}} ]]
+          </div>
+
+          <div data-step="4">
+            <h2>Review</h2>
+            <div class="summary-section">[[# {{{ ]]
+              <div class="c12 band">
+                <div class="x2"><label>Data System</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
+                  <a class="change-me" href="#data-systems">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Cloud Storage</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">Cloudstore (s3)
+                  <a class="change-me" href="#cloud-storage">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Retention</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">7 days <span>(expires Monday, February 23rd, 2018)</span>
+                  <a class="change-me" href="#cloud-storage">change</a></p>
+                </div>
+              </div>
+
+            </div>[[# }}} ]]
+            <div class="c12">
+              <div class="x9 r2 buttons">
+                <button rel="prev">◀ Back to <span>Cloud Storage</span></button>
+                <button class="final">Run Backup</button>
               </div>
             </div>
-
-            <div class="c12 band">
-              <div class="x2"><label>Cloud Storage</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">Cloudstore (s3)
-                <a class="change-me" href="#cloud-storage">change</a></p>
-              </div>
-            </div>
-
-            <div class="c12 band">
-              <div class="x2"><label>Retention</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">7 days <span>(expires Monday, February 23rd, 2018)</span>
-                <a class="change-me" href="#cloud-storage">change</a></p>
-              </div>
-            </div>
-          <div class="c12 band">
-            <div class="l2 x8 r2">
-              <button>Run Backup</button>
-            </div>
           </div>
-          </div>
+
         </form>
       </div>
     <!-- }}} --></script>
@@ -797,120 +842,161 @@
       ]]
       <div class="gutter blk wizard2 do-restore">
         <form class="new-form1">
-          <h1>Restore a Protected Data System</h1>
-          <p class="intro-help">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis consectetur leo tortor, sed sodales sapien bibendum quis. Praesent euismod lorem sed nulla ullamcorper ullamcorper. Orci varius natoque penatibus et magnis dis parturient montes.</p>
+          <div class="progress">[[# {{{ ]]
+            <div class="back line"></div>
+            <div class="front line"></div>
+            <ul>
+              <li><i>1</i><strong>Start</strong></li>
+              <li><i>2</i><strong>Data System</strong>
+                The data you want to back up.</li>
+              <li><i>3</i><strong>Archive</strong>
+                Select the backup archive you want to restore.</li>
+              <li><i>4</i><strong>Review</strong></li>
+            </ul>
+          </div>[[# }}} ]]
 
-          <h2 id="data-systems">Data System</h2>
-          <div class="c12 band">
-            <div class="x9">
-              [[ var systems = SHIELD.systems(); ]]
-              <table class="lean selectable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  [[ SHIELD.each(systems, function (i, target) { ]]
-                  <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-                    <td class="name">
-                      <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-                      [[= target.name ]]
-                    </td>
-                    <td>[[= target.plugin ]]</td>
-                    <td class="notes">
-                      [[= target.summary ]]
-                    </td>
-                  </tr>
-                  [[ }); ]]
-                </tbody>
-              </table>
-            </div>
-            <div class="x3">
-              <div class="side-help">Select the target you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
-            </div>
+          <div data-step="1">
+            <h2>Restore a Protected Data System</h2>
+
+            <div class="c12">[[# intro text {{{ ]]
+              <div class="x9">
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis consectetur leo tortor, sed sodales sapien bibendum quis. Praesent euismod lorem sed nulla ullamcorper ullamcorper. Orci varius natoque penatibus et magnis dis parturient montes.</p>
+
+                <div class="buttons">
+                  <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
+                </div>
+              </div>
+            </div>[[# }}} ]]
           </div>
 
-          <h2 id="cloud-storage">Backup Archives</h2>
-          <div class="c12 band">
-            <div class="x9">
-              [[# var archives = SHIELD.activeTenant().archives; ]]
-              [[ var archives = [
-                   { uuid: "ce62383e-e3ce-419c-b275-bbcc59a33462",
-                     taken_at: 3600, size: 100789000 },
-                   { uuid: "c0efc1f4-4a96-4032-a080-4082d19009a9",
-                     taken_at: 3500, size: 100789000 },
-                   { uuid: "81a40335-d7ab-424f-9cbf-d6322301bfe9",
-                     taken_at: 3400, size: 1090 }
-                 ]; ]]
-              <table class="lean selectable">
-                <thead>
-                  <tr>
-                    <th>UUID</th>
-                    <th>Date</th>
-                    <th>Size</th>
-                    <th>Store</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  [[ SHIELD.each(archives, function (i, archive) { ]]
-                  <tr>
-                    <td class="uuid">[[= archive.uuid.substr(0,8) ]]</td>
-                    <td class="date">
-                      [[= strftime("%Y-%m-%d %H:%M%P", archive.taken_at) ]]<br>
-                      ([[= duration(tdiff(archive.taken_at, new Date())) ]] ago)
-                    </td>
-                    <td>[[= bytes(archive.size) ]]</td>
-                    <td>BogusStore (s3)</td>
-                  </tr>
-                  [[ }); ]]
-                </tbody>
-              </table>
-            </div>
-            <div class="x3 lean">
-              <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
-            </div>
+          <div data-step="2">
+            <h2 id="data-systems">Choose Your Data System</h2>
+            <div class="c12 band">[[# {{{ ]]
+              <div class="x9">
+                [[ var systems = SHIELD.systems(); ]]
+                <table class="lean selectable choose target">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    [[ SHIELD.each(systems, function (i, target) { ]]
+                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
+                        data-target-uuid="[[= target.uuid ]]">
+                      <td class="name">
+                        <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+                        [[= target.name ]]
+                      </td>
+                      <td>[[= target.plugin ]]</td>
+                      <td class="notes">
+                        [[= target.summary ]]
+                      </td>
+                    </tr>
+                    [[ }); ]]
+                  </tbody>
+                </table>
+                <div class="buttons">
+                  <button rel="prev">◀ Back to <span>Start</span></button>
+                  <button rel="next">Next up: <span>Choose an Archive</span> ▶</button>
+                </div>
+              </div>
+
+              <div class="x3 lean">
+                <div class="side-help">Select the system you would like to restore data to.</div>
+              </div>
+            </div>[[# }}} ]]
           </div>
 
-          <h2>Summary</h2>
-          <div class="summary-section">
-            <div class="c12 band">
-              <div class="x2"><label>Data System</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
-                <a class="change-me" href="#data-systems">change</a></p>
+          <div data-step="3">
+            <h2 id="cloud-storage">Backup Archives</h2>
+            <div class="c12 band">[[# {{{ ]]]
+              <div class="x9">
+                [[# var archives = SHIELD.activeTenant().archives; ]]
+                [[ var archives = [
+                     { uuid: "ce62383e-e3ce-419c-b275-bbcc59a33462",
+                       taken_at: 3600, size: 100789000 },
+                     { uuid: "c0efc1f4-4a96-4032-a080-4082d19009a9",
+                       taken_at: 3500, size: 100789000 },
+                     { uuid: "81a40335-d7ab-424f-9cbf-d6322301bfe9",
+                       taken_at: 3400, size: 1090 }
+                   ]; ]]
+                <table class="lean selectable choose archive">
+                  <thead>
+                    <tr>
+                      <th>UUID</th>
+                      <th>Date</th>
+                      <th>Size</th>
+                      <th>Store</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    [[ SHIELD.each(archives, function (i, archive) { ]]
+                    <tr data-archive-uuid="[[= archive.uuid ]]">
+                      <td class="uuid">[[= archive.uuid.substr(0,8) ]]</td>
+                      <td class="date">
+                        [[= strftime("%Y-%m-%d %H:%M%P", archive.taken_at) ]]<br>
+                        ([[= duration(tdiff(archive.taken_at, new Date())) ]] ago)
+                      </td>
+                      <td>[[= bytes(archive.size) ]]</td>
+                      <td>BogusStore (s3)</td>
+                    </tr>
+                    [[ }); ]]
+                  </tbody>
+                </table>
+                <div class="buttons">
+                  <button rel="prev">◀ Back to <span>Data System</span></button>
+                  <button rel="next">Next up: <span>Review</span> ▶</button>
+                </div>
               </div>
-            </div>
-
-            <div class="c12 band">
-              <div class="x2"><label>Archive</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">[[= archives[0].uuid.substr(0,8) ]] ([[= bytes(archives[0].size) ]])</span>
-                <a class="change-me" href="#cloud-storage">change</a></p>
+              <div class="x3 lean">
+                <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
               </div>
-            </div>
+            </div>[[# }}} ]]
+          </div>
 
-            <div class="c12 band">
-              <div class="x2"><label>From</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">[[= strftime("%Y-%m-%d %H:%M:%P", archives[0].taken_at) ]] ([[= duration(tdiff(archives[0].taken_at, new Date())) ]] ago)</span>
-                <a class="change-me" href="#cloud-storage">change</a></p>
+          <div data-step="4">
+            <h2>Review</h2>
+            <div class="summary-section">[[# {{{ ]]
+              <div class="c12 band">
+                <div class="x2"><label>Data System</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
+                  <a class="change-me" href="step:2">change</a></p>
+                </div>
               </div>
-            </div>
 
-            <div class="c12 band">
-              <div class="x2"><label>Cloud Storage</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">Cloudstore (s3)
-                <a class="change-me" href="#cloud-storage">change</a></p>
+              <div class="c12 band">
+                <div class="x2"><label>Archive</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">[[= archives[0].uuid.substr(0,8) ]] ([[= bytes(archives[0].size) ]])</span>
+                  <a class="change-me" href="step:3">change</a></p>
+                </div>
               </div>
-            </div>
 
-            <div class="c12 band">
-              <div class="l2 x8 r2">
-                <button>Restore Data</button>
+              <div class="c12 band">
+                <div class="x2"><label>From</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">[[= strftime("%Y-%m-%d %H:%M:%P", archives[0].taken_at) ]] ([[= duration(tdiff(archives[0].taken_at, new Date())) ]] ago)</span>
+                  <a class="change-me" href="step:3">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Cloud Storage</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">Cloudstore (s3)
+                  <a class="change-me" href="step:3">change</a></p>
+                </div>
+              </div>
+            </div>[[# }}} ]]
+
+            <div class="c12">
+              <div class="x9 r2 buttons">
+                <button rel="prev">◀ Back to <span>Choose an Archive</span></button>
+                <button class="final">Restore Data</button>
               </div>
             </div>
           </div>
@@ -923,297 +1009,456 @@
 
       ]]
       <div class="gutter blk wizard2 do-configure">
-        <form class="new-form1">
-          <h1>Configure a New Backup Job</h1>
-          <p class="intro-help">A backup job consists of three main components: the data system you wish to backup, the cloud storage of where you'd like to store the backup, and the job details, which specifies the schedule and an archive retention policy. Below are all the configuration options necessary to create a new backup job.</p>
+          <div class="progress">[[# {{{ ]]
+            <div class="back line"></div>
+            <div class="front line"></div>
+            <ul>
+              <li><i>1</i><strong>Start</strong></li>
+              <li><i>2</i><strong>Data System</strong>
+                The data you want to back up.</li>
+              <li><i>3</i><strong>Cloud Storage</strong>
+                Where you want to store the backup archives.</li>
+              <li><i>4</i><strong>Scheduling</strong>
+                How often to run backups, and how long to keep archives.</li>
+              <li><i>5</i><strong>Review</strong></li>
+            </ul>
+          </div>[[# }}} ]]
 
-          <h2 id="data-systems">Data System</h2>
-          <div class="c12 band">
-            <div class="x9">
-              [[ var systems = SHIELD.systems(); ]]
-              <table class="lean selectable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  [[ SHIELD.each(systems, function (i, target) { ]]
-                  <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-                    <td class="name">
-                      <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-                      [[= target.name ]]
-                    </td>
-                    <td>[[= target.plugin ]]</td>
-                    <td class="notes">
-                      [[= target.summary ]]
-                    </td>
-                  </tr>
-                  [[ }); ]]
-                  <tr><td colspan="3" rel="new-data-system">Define a new system...</td></tr>
-                </tbody>
-              </table>
-              <div class="c12 subform" id="new-data-system">
-                <div class="l3 x9"><h3>Define a New Data System</h3></div>
+          <div data-step="1">
+            <h2>Configure a New Backup Job</h2>
 
-                <div class="x3"><label>Name</label></div>
-                <div class="x9">
-                  <input type="text" placeholder="Name Your Data System">
-                  <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
-                </div>
+            <div class="c12">[[# intro text {{{ ]]
+              <div class="x9 intro">
+                <p>This wizard will guide you through the process of configuring a new backup
+                job, for SHIELD to run according to a schedule.  A backup job consists of a
+                target data system to back up, a storage system to store the backup archives in,
+                a schedule for running the job, and a retention policy.</p>
 
-                <div class="x3"><label>Notes</label></div>
-                <div class="x9">
-                  <textarea></textarea>
-                  <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
-                </div>
+                <p>Before you begin, you may want to assemble credentials and endpoint information
+                for your target system.  This includes usernames, passwords, hostnames, IP addresses,
+                keys, etc.</p>
 
-                <div class="x3"><label>Plugin</label></div>
-                <div class="x9">
-                  <select>
-                    <option value="pg">pg - PostreSQL</option>
-                    <option value="mysql">mysql - MySQL</option>
-                  </select>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
+                <p>If you haven't already configured Cloud Storage, you'll be given the option
+                to create a new one.  If that's the route you wish to take, you'll need connectivity
+                details for your backend storage system (S3, WebDAV, etc.) as well.</p>
 
-                <div class="x3"><label>Agent</label></div>
-                <div class="x9">
-                  <select>
-                    <option value="">bosh/depl1/vm1 - 10.78.0.8 (legacy ssh)</option>
-                    <option value="">bosh/depl1/vm2 - 10.78.0.9 (legacy ssh)</option>
-                  </select>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
-
-                <div class="l3 x9"><h3>Plugin Properties (Amazon S3)</h3></div>
-
-                <div class="x3"><label>A Simple String</label></div>
-                <div class="x9">
-                  <input type="text" placeholder="e.g.: some, example text">
-                  <p class="help">Help text from the plugin.</p>
-                </div>
-
-                <div class="x3"><label>A Checkbox</label></div>
-                <div class="x9">
-                  <label for="cb-1" class="switch">
-                    <input name="cb-1" id="cb-1" type="checkbox"><span class="slider round"></span>
-                  </label>
-                  <p class="help">Help text from the plugin.</p>
-                </div>
-
-                <div class="x3"><label>Enumerated Stuff</label></div>
-                <div class="x9">
-                  <select>
-                    <option value=""></option>
-                    <option value="">The First Option</option>
-                    <option value="">The Second Option</option>
-                  </select>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
-
-                <div class="x3"><label>Password Thing</label></div>
-                <div class="x9">
-                  <div class="smudge"><span>show</span><input type="password"></div>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                <div class="buttons">
+                  <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
                 </div>
               </div>
-            </div>
-            <div class="x3">
-              <div class="side-help">Select the target you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
-            </div>
+            </div>[[# }}} ]]
           </div>
 
-          <h2 id="cloud-storage">Cloud Storage</h2>
-          <div class="c12 band">
-            <div class="x9">
-              [[ var stores = SHIELD.stores(); ]]
-              <table class="lean selectable">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  [[ SHIELD.each(stores, function (i, store) { ]]
-                  <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-                    <td class="name">
-                      <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                      [[= store.name ]]
-                      [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
-                    </td>
-                    <td>[[= store.plugin ]]</td>
-                    <td class="notes">
-                      [[= store.summary ]]
-                    </td>
-                  </tr>
-                  [[ }); ]]
-                  <tr><td colspan="3" rel="new-cloud-storage">Define a new system...</td></tr>
-                </tbody>
-              </table>
-              <div class="c12 subform" id="new-cloud-storage">
-                <div class="l3 x9"><h3>Define a New Cloud Storage System</h3></div>
-
-                <div class="x3"><label>Name</label></div>
+          <div data-step="2" data-mode="choose">
+            <div data-mode="choose">[[# {{{ ]]
+              <h2 id="data-systems">Choose Your Data System</h2>
+              <div class="c12 band">
                 <div class="x9">
-                  <input type="text" placeholder="Name Your Storage System">
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                  [[ var systems = SHIELD.systems(); ]]
+                  <table class="lean selectable choose target">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      [[ SHIELD.each(systems, function (i, target) { ]]
+                      <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
+                          data-target-uuid="[[= target.uuid ]]">
+                        <td class="name">
+                          <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+                          [[= target.name ]]
+                        </td>
+                        <td>[[= target.plugin ]]</td>
+                        <td class="notes">
+                          [[= target.summary ]]
+                        </td>
+                      </tr>
+                      [[ }); ]]
+                      <tr><td colspan="3" rel="new">Define a new system...</td></tr>
+                    </tbody>
+                  </table>
+                  <div class="buttons">
+                    <button rel="prev">◀ Back to <span>Start</span></button>
+                    <button rel="next">Next up: <span>Cloud Storage</span> ▶</button>
+                  </div>
                 </div>
 
-                <div class="x3"><label>Notes</label></div>
-                <div class="x9">
-                  <textarea></textarea>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
-
-                <div class="x3"><label>Threshold</label></div>
-                <div class="x9">
-                  <input type="text" placeholder="i.e. 10G, 500M, etc.">
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
-
-                <div class="x3"><label>Plugin</label></div>
-                <div class="x9">
-                  <select>
-                    <option value="s3">s3 - Amazon Simple Storage</option>
-                    <option value="azure">azure - Microsoft Public Cloud Azure Blobstore</option>
-                  </select>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
-
-                <div class="x3"><label>Agent</label></div>
-                <div class="x9">
-                  <select>
-                    <option value="">bosh/depl1/vm1 - 10.78.0.8 (legacy ssh)</option>
-                    <option value="">bosh/depl1/vm2 - 10.78.0.9 (legacy ssh)</option>
-                  </select>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
-
-                <div class="l3 x9"><h3>Plugin Properties (Amazon S3)</h3></div>
-
-                <div class="x3"><label>A Simple String</label></div>
-                <div class="x9">
-                  <input type="text" placeholder="e.g.: some, example text">
-                  <p class="help">Help text from the plugin.</p>
-                </div>
-
-                <div class="x3"><label>A Checkbox</label></div>
-                <div class="x9">
-                  <label for="cb-1" class="switch">
-                    <input name="cb-1" id="cb-1" type="checkbox"><span class="slider round"></span>
-                  </label>
-                  <p class="help">Help text from the plugin.</p>
-                </div>
-
-                <div class="x3"><label>Enumerated Stuff</label></div>
-                <div class="x9">
-                  <select>
-                    <option value=""></option>
-                    <option value="">The First Option</option>
-                    <option value="">The Second Option</option>
-                  </select>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
-                </div>
-
-                <div class="x3"><label>Password Thing</label></div>
-                <div class="x9">
-                  <div class="smudge"><span>show</span><input type="password"></div>
-                  <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                <div class="x3 lean">
+                  <div class="side-help">Select what you'd like to backup. You can choose from an existing data system that SHIELD already knows, or configure a new one.</div>
                 </div>
               </div>
-            </div>
-            <div class="x3 lean">
-              <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
-            </div>
+            </div>[[# }}} ]]
+            <div data-mode="create">[[# {{{ ]]
+              <form class="new-form1">
+              <h2>Define a New Data System</h2>
+              <div class="c12 band">
+                <div class="x9">
+                  <div class="c12">
+                    <div class="x3"><label>Name</label></div>
+                    <div class="x9">
+                      <input type="text" name="target.name"
+                             placeholder="Name Your Data System">
+                      <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
+                    </div>
+
+                    <div class="x3"><label>Notes</label></div>
+                    <div class="x9">
+                      <textarea></textarea>
+                    </div>
+
+                    <div class="x3"><label>Plugin</label></div>
+                    <div class="x9">
+                      <select name="target.plugin">
+                        <option></option>
+                        [[ $.each(_.target_plugins, function (i, plugin) { ]]
+                        <option value="[[= plugin.id ]]">[[= plugin.label ]]</option>
+                        [[ }); ]]
+                      </select>
+                    </div>
+
+                    <div class="redraw target">
+                    [[ include('do-configure-target-plugin', _); ]]
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </form>
+            </div>[[# }}} ]]
           </div>
 
-          <h2>Job Details</h2>
-          <div class="summary-section">
-            <div class="c12 band">
-              <div class="x2"><label>Data System</label></div>
+          <div data-step="3" class="cloud-storage" data-mode="choose">
+            <div data-mode="choose">[[# {{{ ]]
+              <h2 id="cloud-storage">Choose Cloud Storage</h2>
+              <div class="c12 band">
+                <div class="x9">
+                  [[ var stores = SHIELD.stores(); ]]
+                  <table class="lean selectable choose store">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      [[ SHIELD.each(stores, function (i, store) { ]]
+                      <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
+                          data-store-uuid="[[= store.uuid ]]">
+                        <td class="name">
+                          <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
+                          [[= store.name ]]
+                          [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
+                        </td>
+                        <td>[[= store.plugin ]]</td>
+                        <td class="notes">
+                          [[= store.summary ]]
+                        </td>
+                      </tr>
+                      [[ }); ]]
+                      <tr><td colspan="3" rel="new">Define a new system...</td></tr>
+                    </tbody>
+                  </table>
+                  <div class="buttons">
+                    <button rel="prev">◀ Back to <span>Data System</span></button>
+                    <button rel="next">Next up: <span>Scheduling</span> ▶</button>
+                  </div>
+                </div>
+                <div class="x3 lean">
+                  <div class="side-help">Select where you'd like to store your backup archives. You can choose from existing storage systems, or configure a new one.</div>
+                </div>
+              </div>
+            </div>[[# }}} ]]
+            <div data-mode="create">[[# {{{ ]]
+              <form class="new-form1">
+              <h2>Define a New Cloud Storage System</h2>
+              <div class="c12 band">
+                <div class="x9">
+                  <div class="c12">
+                    <div class="x3"><label>Name</label></div>
+                    <div class="x9">
+                      <input type="text" name="store.name"
+                             placeholder="Name Your Storage System">
+                      <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                    </div>
+
+                    <div class="x3"><label>Notes</label></div>
+                    <div class="x9">
+                      <textarea name="store.notes"></textarea>
+                      <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                    </div>
+
+                    <div class="x3"><label>Threshold</label></div>
+                    <div class="x9">
+                      <input type="text" name="store.threshold"
+                             placeholder="i.e. 10G, 500M, etc.">
+                      <p class="help">Pick a memorable or descriptive name for this storage system, so that other operators can determine when to use it.</p>
+                    </div>
+
+                    <div class="x3"><label>Plugin</label></div>
+                    <div class="x9">
+                      <select name="store.plugin">
+                        <option></option>
+                        [[ $.each(_.store_plugins, function (i, plugin) { ]]
+                        <option value="[[= plugin.id ]]">[[= plugin.label ]]</option>
+                        [[ }); ]]
+                      </select>
+                    </div>
+
+                    <div class="redraw store">
+                    [[ include('do-configure-store-plugin', _); ]]
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </form>
+            </div>[[# }}} ]]
+          </div>
+
+          <div data-step="4">
+            <form class="new-form1">
+            <h2>Scheduling &amp; Retention</h2>[[# {{{ ]]
+            <div class="c12 band hover">
+              <div class="x2"><label>Schedule</label></div>
               <div class="x7">
-                <p class="selected-elsewhere">Cloud Foundry CCDB (postgres)
-                <a class="change-me" href="#data-systems">change</a></p>
+                <div class="error"></div>
+                <div class="scheduling">
+                  <ul class="optgroup">[[#
+                    ]]<li data-subform="schedule-hourly"  data-retain="4">Hourly</li>[[#
+                    ]]<li data-subform="schedule-daily"   data-retain="14">Daily</li>[[#
+                    ]]<li data-subform="schedule-weekly"  data-retain="36">Weekly</li>[[#
+                    ]]<li data-subform="schedule-monthly" data-retain="90">Monthly</li>
+                  </ul>
+
+                  <div id="schedule-hourly" class="subform">
+                    <div>Every <input name="hourlyn" class="num" type="text" value="1"> hour(s)</div>
+                    <div>from <input name="hourlyat" class="time" type="text" value="12:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                  <div id="schedule-daily" class="subform">
+                    <div>at <input name="dailyat" class="time" type="text" value="3:00"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                  <div id="schedule-weekly" class="subform">
+                    <div>on <ul class="wday optgroup">[[= optgroup(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                    <div>at <input name="weeklyat" class="time" type="text" value="4:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                  <div id="schedule-monthly" class="subform">
+                    <div>on the <input name="monthlynth" class="num" type="text" value="1st">
+                         <ul class="mday optgroup">[[= optgroup(['day', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                    <div>at <input name="monthlyat" class="time" type="text" value="5:30"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                </div>
+              </div>
+              <div class="x3">
+                <div class="side-help">How often would you like the backup to be preformed?</div>
+              </div>
+            </div>
+
+            <div class="c12 band hover">
+              <div class="x2"><label>Retention</label></div>
+              <div class="x7">
+                <input type="text" size="3" name="keep_days" /> days
+                <p class="help">How long should SHIELD keep each backup archive?</p>
               </div>
             </div>
 
             <div class="c12 band">
-              <div class="x2"><label>Cloud Storage</label></div>
-              <div class="x7">
-                <p class="selected-elsewhere">Cloudstore (s3)
-                <a class="change-me" href="#cloud-storage">change</a></p>
+              <div class="x9 r2 buttons">
+                <button rel="prev">◀ Back to <span>Cloud Storage</span></button>
+                <button rel="next">Next up: <span>Review</span> ▶</button>
               </div>
-            </div>
+            </div>[[# }}} ]]
+            </form>
           </div>
 
-          <div class="c12 band hover" data-field="name">
-            <div class="x2"><label>Name</label>
-              <ul class="errors">
-                <li class="error foo-error">Please specify a name for this backup job.</li>
-              </ul>
-            </div>
-            <div class="x7">
-              <input type="text" placeholder="A Name for Your Backup Job">
-              <p class="help">Lorem ipsum dolor sit amet, consectetur adipiscing elit</p>
-            </div>
-          </div>
-
-          <div class="c12 band hover">
-            <div class="x2"><label>Schedule</label></div>
-            <div class="x7">
-              <div class="error"></div>
-              <div class="scheduling">
-                <ul class="optgroup">
-                  <li data-subform="schedule-hourly">Hourly</li><li data-subform="schedule-daily">Daily</li><li data-subform="schedule-weekly">Weekly</li><li data-subform="schedule-monthly">Monthly</li>
-                </ul>
-
-                <div id="schedule-hourly" class="subform">
-                  <div>Every <input name="hourlyn" class="num" type="text" value="1"> hour(s)</div>
-                  <div>from <input name="hourlyat" class="time" type="text" value="12:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-                </div>
-
-                <div id="schedule-daily" class="subform">
-                  <div>at <input name="dailyat" class="time" type="text" value="3:00"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-                </div>
-
-                <div id="schedule-weekly" class="subform">
-                  <div>on <ul class="wday optgroup">[[= optgroup(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
-                  <div>at <input name="weeklyat" class="time" type="text" value="4:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-                </div>
-
-                <div id="schedule-monthly" class="subform">
-                  <div>on the <input name="monthlynth" class="num" type="text" value="1st">
-                       <ul class="mday optgroup">[[= optgroup(['day', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
-                  <div>at <input name="monthlyat" class="time" type="text" value="5:30"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-                </div>
-
-              </div>
-            </div>
-            <div class="x3">
-              <div class="side-help">How often would you like the backup to be preformed?</div>
-            </div>
-          </div>
-
-          <div class="c12 band hover">
-            <div class="x2"><label>Retention</label></div>
-            <div class="x7">
-              <input type="text" size="3" /> days
-              <p class="help">How long should SHIELD keep each backup archive?</p>
-            </div>
-          </div>
-
-          <div class="c12 band">
-            <div class="l2 x8 r2">
-              <button>Schedule</button>
-            </div>
+          <div data-step="5" class="review"></div>
           </div>
         </form>
       </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:do-configure-target-plugin"><!-- {{{ -->
+      [[#
+        {do-configure-target-plugin} - Target Plugin Selection (Sub)Form
+
+        This fragment template exists so that we can redraw it when selections
+        are made.
+
+      ]]
+      <div class="x3"><label>Agent</label></div>
+      <div class="x9">
+        [[ if (!_.selected_target_plugin) { ]]
+        <p class="awaiting-selection">A list of suitable SHIELD Agents will appear here once you select a target plugin.</p>
+        [[ } else { ]]
+        [[ console.log('selected target plugin %s', _.selected_target_plugin); ]]
+        <select name="target.agent">
+          <option></option>
+          [[ $.each(_.plugins[_.selected_target_plugin], function (i, uuid) { ]]
+            <option value="[[= uuid ]]">[[= _.agents[uuid].name ]] - [[= _.agents[uuid].address ]] (legacy ssh)</option>
+          [[ }); ]]
+        </select>
+        <p class="help">The SHIELD Agent will be responsible for executing the programs and processes that will back up and restore data for this system.</p>
+        [[ } ]]
+      </div>
+
+      [[ if (_.selected_target_plugin && _.selected_target_agent) { ]]
+        [[ var plugin = _.agents[_.selected_target_agent].plugins[_.selected_target_plugin]; ]]
+        <div class="l1 x10"><h3>Plugin Properties ([[= plugin.name ]])</h3></div>
+        [[ include('plugin-form', { prefix: 'target.config.', plugin: plugin }); ]]
+        <div class="x12 buttons">
+          <button rel="prev">◀ Back to <span>Start</span></button>
+          <button rel="next">Next up: <span>Cloud Storage</span> ▶</button>
+        </div>
+        [[ } else { ]]
+        <div class="x12 buttons">
+          <button rel="prev">◀ Back to <span>Start</span></button>
+        </div>
+        [[ } ]]
+    <!-- }}} --></script>
+    <script type="text/html" id="template:do-configure-store-plugin"><!-- {{{ -->
+      [[#
+        {do-configure-store-plugin} - Target Plugin Selection (Sub)Form
+
+        This fragment template exists so that we can redraw it when selections
+        are made.
+
+      ]]
+      <div class="x3"><label>Agent</label></div>
+      <div class="x9">
+        [[ if (!_.selected_store_plugin) { ]]
+        <p class="awaiting-selection">A list of suitable SHIELD Agents will appear here once you select a store plugin.</p>
+        [[ } else { ]]
+        [[ console.log('selected store plugin %s', _.selected_target_plugin); ]]
+        <select name="store.agent">
+          <option></option>
+          [[ $.each(_.plugins[_.selected_store_plugin], function (i, uuid) { ]]
+            <option value="[[= uuid ]]">[[= _.agents[uuid].name ]] - [[= _.agents[uuid].address ]] (legacy ssh)</option>
+          [[ }); ]]
+        </select>
+        <p class="help">The SHIELD Agent will be responsible for executing store-specific operations, like archive purges and storage health checks.</p>
+        [[ } ]]
+      </div>
+
+      [[ if (_.selected_store_plugin && _.selected_store_agent) { ]]
+        [[ var plugin = _.agents[_.selected_store_agent].plugins[_.selected_store_plugin]; ]]
+        <div class="l1 x10"><h3>Plugin Properties ([[= plugin.name ]])</h3></div>
+        [[ include('plugin-form', { prefix: 'store.config.', plugin: plugin }); ]]
+        <div class="x12 buttons">
+          <button rel="prev">◀ Back to <span>Data System</span></button>
+          <button rel="next">Next up: <span>Scheduling</span> ▶</button>
+        </div>
+        [[ } else { ]]
+        <div class="x12 buttons">
+          <button rel="prev">◀ Back to <span>Data System</span></button>
+        </div>
+        [[ } ]]
+    <!-- }}} --></script>
+    <script type="text/html" id="template:do-configure-review"><!-- {{{ -->
+      [[#
+        {do-configure-review} - Target Plugin Selection (Sub)Form
+
+        This fragment template exists so that we can redraw it when the final
+        review is performed.
+
+      ]]
+            <h2>Review Your Selections</h2>
+            <div class="summary-section">
+              <div class="c12 band">
+                <div class="x2"><label>Data System</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">
+                  [[ if (!_.target.uuid) { ]]<span class="tag">NEW</span>[[ } ]]
+                  [[= _.target.name ]] ([[= _.target.plugin ]])
+                  <a class="change-me" href="step:2">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Cloud Storage</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">
+                  [[ if (!_.store.uuid) { ]]<span class="tag">NEW</span>[[ } ]]
+                  [[= _.store.name ]] ([[= _.store.plugin ]])
+                  <a class="change-me" href="step:3">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Schedule</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">runs [[= _.schedule.spec ]]
+                  <a class="change-me" href="step:4">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Retention</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">keep [[= _.schedule.keep ]] day(s) of backup archives
+                  <a class="change-me" href="step:4">change</a></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="c12">
+              <div class="x9 r2 buttons">
+                <button rel="prev">◀ Back to <span>Scheduling</span></button>
+                <button class="final">Create <span>Backup Job</span> ▶</button>
+              </div>
+            </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:plugin-form"><!-- {{{ -->
+      [[#
+        {plugin-form} - Store / Target Plugin Configuration Form
+
+        This template takes two parameters:
+
+          plugin: The plugin metadata from the Agent, as-is.
+          config: The current plugin configuration.
+
+      ]]
+      [[
+        if (!(_.config)) { _.config = {}; }
+        if (!(_.prefix)) { _.prefix = ''; }
+      ]]
+      [[ $.each(_.plugin.fields, function (i, field) { ]]
+        <div class="x3">
+          <label>[[= field.title ]]</label>
+        </div>
+        <div class="x9 plugin[[= i ]]th">
+          [[ switch (field.type) {
+             default: /* "string" */ ]]
+            <input type="text" name="[[= _.prefix ]][[= field.name ]]"[[ if (field.default) { ]] placeholder="[[= field.default ]]"[[ } ]] value="[[= _.config[field.name] || '' ]]">
+            [[ break;
+
+             case "password": ]]
+            <div class="smudge"><span>show</span><input type="password" name="[[= _.prefix ]][[= field.name ]]" [[ if (field.default) { ]] placeholder="[[= field.default ]]"[[ } ]] value="[[= _.config[field.name] || '' ]]"></div>
+            [[ break;
+
+             case "bool": ]]
+            <label for="cb-[[= field.name ]]" class="switch">
+              <input id="cb-[[= field.name ]]" name="[[= _.prefix ]][[= field.name ]]" type="checkbox"[[ if (_.config[field.name]) { ]] checked[[ } ]]><span class="slider round"></span>
+            </label>
+            [[ break;
+
+             case "enum": ]]
+             [[ value = (field.name in _.config ? _.config[field.name] : null); ]]
+            <select>
+              <option value="">[[ if (field.default) { ]][[= field.default ]][[ } ]]</option>
+              [[ for (var n = 0; n < field.enum.length; n++) { ]]
+              <option value="[[= field.enum[n] ]]"[[ if (value == field.enum[n]) { ]] selected[[ } ]]>[[= field.enum[n] ]]</option>
+              [[ } ]]
+            </select>
+            [[ break;
+
+             } ]]
+          [[ if (field.help) { ]]<p class="help">[[= field.help ]]</p>[[ } ]]
+        </div>
+      [[ }); ]]
     <!-- }}} --></script>
 
     <script type="text/html" id="template:subform-choose-plugin"><!-- {{{ -->

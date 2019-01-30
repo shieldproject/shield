@@ -445,6 +445,35 @@ window.S.H.I.E.L.D.Database = (function () {
     return stores;
   };
 
+  Database.prototype.store = function (id) {
+    var stores = this.stores(),
+        found;
+
+    this.each(stores, function (_, store) {
+      if (found || store.uuid != id) { return; }
+      found = store;
+    });
+
+    return found;
+  };
+
+  Database.prototype.storesForTarget = function (id) {
+    var system = this.system(id),
+        stores = [],
+        seen   = {};
+
+    this.each(this.stores(), function (_, store) {
+      this.each(system.jobs, function (_, job) {
+        if (job.store.uuid == store.uuid && !seen[store.uuid]) {
+          stores.push(store);
+          seen[store.uuid] = true;
+        }
+      });
+    });
+
+    return stores;
+  };
+
 
 
 

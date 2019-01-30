@@ -1,4 +1,4 @@
-;(function (exported, document, undefined) {
+;(function ($, exported, document, undefined) {
 
   /***************************************************
     pluralize(n, word [, words]) - Pluralize a number + unit.
@@ -363,7 +363,7 @@
     into multi-level javascript objects, like: { config: { host: x }}
 
    ***************************************************/
-  exported.jQuery.fn.serializeObject = function () { // {{{
+  $.fn.serializeObject = function () { // {{{
     var a = this.serializeArray();
     var o = {};
     for (var i = 0; i < a.length; i++) {
@@ -385,7 +385,7 @@
     autofocus() - Set focus to the first '.autofocus' element
 
    ***************************************************/
-  exported.jQuery.fn.autofocus = function () { // {{{
+  $.fn.autofocus = function () { // {{{
     var $self = this;
     window.setTimeout(function () {
       $self.find('.autofocus').focus();
@@ -403,7 +403,7 @@
     data intact.
 
    ***************************************************/
-  exported.jQuery.fn.reset = function () { // {{{
+  $.fn.reset = function () { // {{{
     this.find('.error, [data-error]').hide();
     return this;
   };
@@ -418,7 +418,7 @@
     error for each.  Other errors will be suppressed.
 
    ***************************************************/
-  exported.jQuery.fn.missing = function (fields) { // {{{
+  $.fn.missing = function (fields) { // {{{
     for (var i = 0; i < fields.length; i++) {
       this.error(fields[i], 'missing');
     }
@@ -453,7 +453,7 @@
     will be suppressed.
 
    ***************************************************/
-  exported.jQuery.fn.error = function () { // {{{
+  $.fn.error = function () { // {{{
     if (arguments.length == 1 && typeof(arguments[0]) === 'string') {
       this.find('.error').html(arguments[0]).show();
 
@@ -483,7 +483,7 @@
     no visible error messages, and the form can be submitted.
 
    ***************************************************/
-  exported.jQuery.fn.isOK = function () { // {{{
+  $.fn.isOK = function () { // {{{
     return this.find('.error:visible, [data-error]:visible').length == 0;
   }; // }}}
 
@@ -509,7 +509,7 @@
                      tenant: admin, manager, or operator
 
    ***************************************************/
-  exported.jQuery.fn.roles = (function () { /// {{{
+  $.fn.roles = (function () { /// {{{
     var elem, menu, fn;
     fn = function () { }
     $(document.body).on('click', '.roles-menu', function (event) {
@@ -562,7 +562,7 @@
      
 
    ***************************************************/
-  exported.jQuery.fn.userlookup = function (sel, opts) { // {{{
+  $.fn.userlookup = function (sel, opts) { // {{{
     opts = $.extend({}, {
       filter: function (l) { return l },
       onclick: function () { }
@@ -601,7 +601,7 @@
 
               $('.userlookup-results').remove();
               $(event.target).after(
-                $(exported.template('userlookup-results', data))
+                $($.template('userlookup-results', data))
                   .on('click', 'li', function (event) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -637,8 +637,28 @@
      value via jQuery's .data()
 
    ***************************************************/
-  exported.jQuery.fn.extract = function (key) { // {{{
-    return this.closest('[data-'+key+']').data(key);
+  $.fn.extract = function (key) { // {{{
+    key = 'data-'+key;
+    return this.closest('['+key+']').attr(key);
+  };
+  // }}}
+
+
+  /***************************************************
+     $(...).transitionClass(class1, class2)
+
+     This helper wraps up the common idiom:
+
+       $target.removeClass('class1').addClass('class2');
+
+     which is a sort of toggleClass() with two classes,
+     representing a transition from class1 -> class2.
+
+   ***************************************************/
+  $.fn.transitionClass = function (class1, class2) { // {{{
+    if (class1) { this.removeClass(class1); }
+    if (class2) { this.addClass(class2); }
+    return this;
   };
   // }}}
 
@@ -647,7 +667,7 @@
      $(...).validate(data) - Validate a Plugin configuration form.
 
    ***************************************************/
-  exported.jQuery.fn.validate = function (data) { // {{{
+  $.fn.validate = function (data) { // {{{
     var $form = this;
     if (!('config' in data)) { data.config = {}; }
 
@@ -721,28 +741,10 @@
 
 
   /***************************************************
-     $(...).subform() - Set up a subform widget
-
-   ***************************************************/
-  exported.jQuery.fn.subform = function () { // {{{
-    var $form = this;
-
-    $form.find('.subform').hide();
-    $form.find('[data-subform]').on('click', function (event) {
-      $form.find('.subform').hide();
-      $form.find('.subform#'+$(event.target).extract('subform')).show();
-    });
-
-    return this;
-  };
-  // }}}
-
-
-  /***************************************************
      $(...).optgroup() - Set up an optgroup widget
 
    ***************************************************/
-  exported.jQuery.fn.optgroup = function () { // {{{
+  $.fn.optgroup = function () { // {{{
     this.each(function (i, optgroup) {
       var $optgroup = $(optgroup);
       $optgroup.find('li').on('click', function (event) {
@@ -782,7 +784,7 @@
      $(...).timespec() - Summarize a Timespec Form
 
    ***************************************************/
-  exported.jQuery.fn.timespec = function () { // {{{
+  $.fn.timespec = function () { // {{{
     var $form = $(this);
     var d = $form.serializeObject();
     var s = '';
@@ -819,7 +821,7 @@
      $(...).pluginForm() - Plugin Form UI Widget
 
    ***************************************************/
-  exported.jQuery.fn.pluginForm = function (opts) { // {{{
+  $.fn.pluginForm = function (opts) { // {{{
     opts = $.extend({}, {}, opts);
     if (!('type' in opts)) {
       throw 'pluginForm() requires a "type" option (either "store" or "target")';
@@ -865,7 +867,7 @@
      $(...).serializePluginObject() - Serialize Data from a Plugin Form
 
    ***************************************************/
-  exported.jQuery.fn.serializePluginObject = function () { // {{{
+  $.fn.serializePluginObject = function () { // {{{
     var data       = this.serializeObject();
     data.agent     = data.agent.replace(/.*\|/, '');
     if ('threshold' in data) {
@@ -903,4 +905,4 @@
       swtch.addClass(view);
     });
   };
-})(window, document);
+})(jQuery, window, document);

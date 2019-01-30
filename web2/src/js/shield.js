@@ -218,6 +218,7 @@ function dispatch(page) {
       break;
     }
     $('#main').template('do-backup');
+    new DoAdHocWizard('.do-backup');
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
@@ -230,6 +231,7 @@ function dispatch(page) {
       break;
     }
     $('#main').template('do-restore');
+    new DoRestoreWizard('.do-restore');
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
@@ -241,12 +243,121 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
-    $('#main').template('do-configure');
-    $('#main .optgroup').optgroup(); $('.scheduling').subform();
-    $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
+    $.ajax({
+      type: 'GET',
+      url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/agents',
+      success: function (data) {
+        /* what we get:
+           ------------
+           {
+             "agents": [
+               { "details"  : { ... },
+                 "metadata" : { "plugins: [ ... ] } },
+               ...
+             ]
+           }
 
-    $('#main [action="do-configure:make:target"]').pluginForm({ type: 'target' });
-    $('#main [action="do-configure:make:store"]').pluginForm({ type: 'store' });
+           what we want:
+           -------------
+           a list of storage plugins, alphabetized
+           a list of target plugins, alphabetized
+           a map of plugin name to agents, alphabetized
+         */
+        var seen           = {}; /* de-duplicating map */
+        var target_plugins = []; /* a list of [label, name] tuples, for dropdowns */
+        var store_plugins  = []; /* a list of [label, name] tuples, for dropdowns */
+        var agents         = {}; /* lookup map of uuid => { agent } */
+        var map            = {}; /* lookup map of plugin => [agent*, ...] */
+
+        for (var i = 0; i < data.agents.length; i++) {
+          var agent = data.agents[i].details;
+          agent.plugins = data.agents[i].metadata.plugins;
+
+          /* track this agent for lookup in rendering code */
+          agents[agent.uuid] = agent;
+
+          /* enumerate the plugins, and wire up the `map` associations */
+          for (var name in agent.plugins) {
+            var plugin = agent.plugins[name];
+
+            /* track that this plugin can be used on this agent */
+            if (!(name in map)) { map[name] = []; }
+            map[name].push(agent.uuid);
+
+            /* if we've already seen this plugin, don't add it to the list
+               that we will use to render the dropdowns; this does mean that,
+               in the event of conflicting names for the same plugin (i.e.
+               different versions of the same plugin), we may not have a
+               deterministic sort, but ¯\_(ツ)_/¯
+             */
+            if (name in seen) { continue; }
+            seen[name] = true;
+
+            /* plugins that can be used as store plugins... */
+            if (plugin.features.store == "yes") {
+              store_plugins.push({
+                id:     name,
+                label:  plugin.name + ' (' + name + ')'
+              });
+            }
+
+            /* plugins that can be used as target plugins... */
+            if (agent.plugins[name].features.target == "yes") {
+              target_plugins.push({
+                id:     name,
+                label:  plugin.name + ' (' + name + ')'
+              });
+            }
+          }
+        }
+
+        /* sort plugin lists by metadata name ("Amazon" instead of "s3") */
+        store_plugins.sort(function (a, b) {
+          return a.label > b.label ?  1 :
+                 a.label < b.label ? -1 : 0;
+        });
+        target_plugins.sort(function (a, b) {
+          return a.label > b.label ?  1 :
+                 a.label < b.label ? -1 : 0;
+        });
+
+        var data = {
+          store_plugins:  store_plugins,
+          target_plugins: target_plugins,
+          agents:         agents,
+          plugins:        map
+        };
+
+        $('#main').template('do-configure', data);
+        $(document.body)
+          .on('change', '#main select[name="target.plugin"]', function (event) {
+            data.selected_target_plugin = $(event.target).val();
+            $('#main .redraw.target').template('do-configure-target-plugin', data)
+                                    .find('[name="target.agent"]').focus();
+          })
+          .on('change', '#main select[name="target.agent"]', function (event) {
+            data.selected_target_agent = $(event.target).val();
+            $('#main .redraw.target').template('do-configure-target-plugin', data)
+                                     .find('.plugin0th input').focus();
+          })
+          .on('change', '#main select[name="store.plugin"]', function (event) {
+            data.selected_store_plugin = $(event.target).val();
+            $('#main .redraw.store').template('do-configure-store-plugin', data)
+                                    .find('[name="store.agent"]').focus();
+          })
+          .on('change', '#main select[name="store.agent"]', function (event) {
+            data.selected_store_agent = $(event.target).val();
+            $('#main .redraw.store').template('do-configure-store-plugin', data)
+                                    .find('.plugin0th input').focus();
+          });
+        window.setTimeout(function () {
+          $('#main .optgroup').optgroup();
+
+          window.x = new DoConfigureWizard('.do-configure');
+          $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
+        }, 150);
+      }
+    });
     break; /* #!/do/configure */
     // }}}
 
@@ -1308,12 +1419,6 @@ $(function () {
         $tbl.addClass('selected');
         $tr.addClass('selected');
       }
-    });
-    $(document.body).on('click', '.lean.selectable [rel=new-data-system]', function (event) {
-      $(event.target).closest('.band').find('#new-data-system').toggle();
-    });
-    $(document.body).on('click', '.lean.selectable [rel=new-cloud-storage]', function (event) {
-      $(event.target).closest('.band').find('#new-cloud-storage').toggle();
     });
 
     /* global: show a task log in the next row down {{{ */
