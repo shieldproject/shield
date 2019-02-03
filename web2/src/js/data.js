@@ -60,6 +60,7 @@ window.S.H.I.E.L.D.Database = (function () {
             self._.tenants[uuid].jobs     = self.keyBy(self._.tenants[uuid].jobs,     'uuid');
             self._.tenants[uuid].targets  = self.keyBy(self._.tenants[uuid].targets,  'uuid');
             self._.tenants[uuid].stores   = self.keyBy(self._.tenants[uuid].stores,   'uuid');
+            self._.tenants[uuid].agents   = self.keyBy(self._.tenants[uuid].agents,   'uuid');
             for (var k in self._.tenants[uuid].tenant) {
               self._.tenants[uuid][k] = self._.tenants[uuid].tenant[k];
             }
@@ -174,14 +175,14 @@ window.S.H.I.E.L.D.Database = (function () {
   Database.prototype.each = function (thing, fn) {
     if (thing instanceof Array) {
       for (var i = 0; i < thing.length; i++) {
-        fn.apply(this, [i, thing[i]], thing);
+        fn.apply(this, [i, thing[i]]);
       }
       return
     }
 
     for (var k in thing) {
       if (thing.hasOwnProperty(k)) {
-        fn.apply(this, [k, thing[k]], thing);
+        fn.apply(this, [k, thing[k]]);
       }
     }
   };
@@ -248,6 +249,9 @@ window.S.H.I.E.L.D.Database = (function () {
   */
 
   Database.prototype._set = function (collection, idx, object) {
+    if (!collection) {
+      return;
+    }
     if (!(idx in collection)) {
       collection[idx] = {};
     }
@@ -379,7 +383,74 @@ window.S.H.I.E.L.D.Database = (function () {
   };
 
 
+  Database.prototype.plugins = function (type) {
+    var seen = {}; /* de-duplicating map */
+    var list = []; /* sorted list of [label, name] tuples */
+    var map  = {}; /* plugin.id => [agent, ...] */
 
+    var tenant = this.activeTenant();
+    if (!tenant) {
+      return undefined;
+    }
+
+    for (var agent_uuid in tenant.agents) {
+      var agent = tenant.agents[agent_uuid];
+      agent.plugins = agent.metadata.plugins;
+
+      /* enumerate the plugins, and wire up the `map` associations */
+      for (var name in agent.plugins) {
+        var plugin = agent.plugins[name];
+
+        /* track that this plugin can be used on this agent */
+        if (!(name in map)) { map[name] = []; }
+        map[name].push(agent);
+
+        /* if we've already seen this plugin, don't add it to the list
+           that we will use to render the dropdowns; this does mean that,
+           in the event of conflicting names for the same plugin (i.e.
+           different versions of the same plugin), we may not have a
+           deterministic sort, but ¯\_(ツ)_/¯
+         */
+        if (name in seen) { continue; }
+        seen[name] = true;
+
+        if (plugin.features[type] == "yes") {
+          list.push({
+            id:     name,
+            label:  plugin.name + ' (' + name + ')'
+          });
+        }
+      }
+    }
+
+    /* sort plugin lists by metadata name ("Amazon" instead of "s3") */
+    list.sort(function (a, b) {
+      return a.label > b.label ?  1 :
+             a.label < b.label ? -1 : 0;
+    });
+
+    return {
+      list:   list,
+      agents: map
+    };
+  };
+
+
+  Database.prototype.agent = function (id) {
+    var tenant = this.activeTenant();
+    if (!tenant) {
+      return undefined;
+    }
+
+    if (!(id in tenant.agents)) {
+      for (var uuid in tenant.agents) {
+        if (tenant.agents[uuid].address == id) {
+          return tenant.agents[uuid];
+        }
+      }
+    }
+    return tenant.agents[id];
+  };
 
 
   Database.prototype.systems = function () {
@@ -408,6 +479,13 @@ window.S.H.I.E.L.D.Database = (function () {
         }
       });
 
+      system.archives = [];
+      this.each(tenant.archives, function (i, archive) {
+        if (archive.target_uuid == system.uuid && archive.status == 'valid') {
+          system.archives.push(archive);
+        }
+      });
+
       systems.push(system);
     });
 
@@ -423,6 +501,24 @@ window.S.H.I.E.L.D.Database = (function () {
       found = system;
     });
 
+    return found;
+  };
+
+  Database.prototype.findArchive = function (id, filter) {
+    if (!filter) {
+      filter = {};
+    }
+
+    var tenant = this.activeTenant();
+    if (!tenant) {
+      return undefined;
+    }
+
+    var found;
+    this.each(tenant.archives, function (_, archive) {
+      if (found || archive.uuid != id) { return; }
+      found = archive;
+    });
     return found;
   };
 
@@ -445,8 +541,8 @@ window.S.H.I.E.L.D.Database = (function () {
     return stores;
   };
 
-  Database.prototype.store = function (id) {
-    var stores = this.stores(),
+  Database.prototype.store = function (id, options) {
+    var stores = this.stores(options),
         found;
 
     this.each(stores, function (_, store) {

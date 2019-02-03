@@ -22,6 +22,11 @@
   }
   // }}}
 
+  exported.tnow = function () {
+    var d = new Date();
+    return d.getTime() / 1000;
+  };
+
   /***************************************************
     tparse(d) - Parse `d` intelligently.
 
@@ -363,19 +368,28 @@
     into multi-level javascript objects, like: { config: { host: x }}
 
    ***************************************************/
-  $.fn.serializeObject = function () { // {{{
+  $.fn.serializeObject = function (flat) { // {{{
     var a = this.serializeArray();
     var o = {};
-    for (var i = 0; i < a.length; i++) {
-      var parts = a[i].name.split(/\./);
-      t = o;
-      while (parts.length > 1) {
-        if (!(parts[0] in t)) { t[parts[0]] = {}; }
-        t = t[parts[0]];
-        parts.shift();
+
+    if (flat) {
+      for (var i = 0; i < a.length; i++) {
+        o[a[i].name] = a[i].value;
       }
-      t[parts[0]] = a[i].value;
+
+    } else {
+      for (var i = 0; i < a.length; i++) {
+        var parts = a[i].name.split(/\./);
+        t = o;
+        while (parts.length > 1) {
+          if (!(parts[0] in t)) { t[parts[0]] = {}; }
+          t = t[parts[0]];
+          parts.shift();
+        }
+        t[parts[0]] = a[i].value;
+      }
     }
+
     return o;
   };
   // }}}
@@ -464,7 +478,7 @@
 
     } else if (arguments.length == 2) {
       var what = arguments[1];
-      this.find('.ctl[data-field="'+arguments[0]+'"] [data-error]').each(function (i, e) {
+      this.find('[data-field="'+arguments[0]+'"] [data-error]').each(function (i, e) {
         var $e = $(e);
         $e.toggle($e.is('[data-error="'+what+'"]'));
       });
@@ -667,32 +681,36 @@
      $(...).validate(data) - Validate a Plugin configuration form.
 
    ***************************************************/
-  $.fn.validate = function (data) { // {{{
+  $.fn.validate = function () { // {{{
     var $form = this;
-    if (!('config' in data)) { data.config = {}; }
 
-    $form.find('.ctl').each(function (i, ctl) {
+    $form.find('[data-field]').each(function (i, ctl) {
       var $ctl  = $(ctl);
-      var type  = $ctl.data('type');
-      var field = $ctl.data('field');
-      var key   = field.replace(/^config\./, '');
+      var type  = $ctl.attr('data-type');
+      var field = $ctl.attr('data-field');
+      var value = $ctl.find('[name="'+field+'"]').val() || '';
 
-      if ($ctl.is('.required') && !(key in data.config)) {
+      console.log('checking field "%s" of type "%s" (value="%s")', field, type, value);
+
+      if ($ctl.is('.required') && value == "") {
         $form.error(field, 'missing');
+        console.log('%s is required (value="%s")', field, value);
 
-      } else if (key in data.config) {
+      } else if (value != "") {
         switch (type) {
         case "abspath":
-          if (!data.config[key].match(/^\//)) {
+          console.log(ctl, ' checking value abspath (', value, ')');
+          if (!value.match(/^\//)) {
             $form.error(field, 'invalid');
           }
           break;
 
         case "port":
-          if (!data.config[key].match(/^[0-9]+/)) {
+          console.log(ctl, ' checking value port (', value, ')');
+          if (!value.match(/^[0-9]+/)) {
             $form.error(field, 'invalid');
           } else {
-            var n = parseInt(data.config[key]);
+            var n = parseInt(value);
             if (n < 1 || n > 65535) {
               $form.error(field, 'invalid');
             }
@@ -818,77 +836,7 @@
 
 
   /***************************************************
-     $(...).pluginForm() - Plugin Form UI Widget
-
-   ***************************************************/
-  $.fn.pluginForm = function (opts) { // {{{
-    opts = $.extend({}, {}, opts);
-    if (!('type' in opts)) {
-      throw 'pluginForm() requires a "type" option (either "store" or "target")';
-    }
-
-    var $parent = this;
-    var cache   = {};
-
-    $parent
-      .on('change', 'select[name=agent]', function (event) {
-        var uuid = $(event.target).val().replace(/\|.*/, '');
-        if (uuid == "") { return; }
-
-        $parent.find('#choose-plugin').template('loading');
-        api({
-          type: 'GET',
-          url:  '/v2/tenants/'+SHIELD.tenant.uuid+'/agents/'+uuid,
-          success: function (data) {
-            cache = data;
-            data.type = opts.type;
-            $parent.find('#choose-plugin').template('subform-choose-plugin', data);
-            if (opts.plugin) {
-              $parent.find('[name=plugin]').val(opts.plugin).trigger('change');
-            }
-          }
-        });
-      })
-      .on('change', 'select[name=plugin]', function (event) {
-        var plugin = $(event.target).val();
-        if (plugin == '') { return; }
-
-        $parent.find('#configure-plugin').template('subform-configure-plugin', {
-            type:   opts.type,
-            plugin: cache.metadata.plugins[plugin],
-            config: (plugin == opts.plugin ? opts.config : undefined)
-          });
-      });
-  };
-  // }}}
-
-
-  /***************************************************
-     $(...).serializePluginObject() - Serialize Data from a Plugin Form
-
-   ***************************************************/
-  $.fn.serializePluginObject = function () { // {{{
-    var data       = this.serializeObject();
-    data.agent     = data.agent.replace(/.*\|/, '');
-    if ('threshold' in data) {
-      data.threshold = readableToBytes(data.threshold || '0');
-    }
-    if (!('config' in data)) {
-      data.config = {};
-    }
-    for (var k in data.config) {
-      if (data.config[k] == "") {
-        delete data.config[k];
-      }
-    }
-
-    return data;
-  };
-  // }}}
-
-
-  /***************************************************
-     $(...).serializePluginObject() - Serialize Data from a Plugin Form
+     $(...).viewSwitcher()
 
    ***************************************************/
   exported.viewSwitcher = function() {

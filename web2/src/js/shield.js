@@ -218,7 +218,7 @@ function dispatch(page) {
       break;
     }
     $('#main').template('do-backup');
-    new DoAdHocWizard('.do-backup');
+    (new DoAdHocWizard('.do-backup')).mount('#main', '.do-backup');
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
@@ -230,8 +230,9 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
       break;
     }
-    $('#main').template('do-restore');
-    new DoRestoreWizard('.do-restore');
+
+    $('#main').template('do-restore', {});
+    (new DoRestoreWizard('.do-restore')).mount('#main', '.do-restore');
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
@@ -243,121 +244,36 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
-    $.ajax({
-      type: 'GET',
-      url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/agents',
-      success: function (data) {
-        /* what we get:
-           ------------
-           {
-             "agents": [
-               { "details"  : { ... },
-                 "metadata" : { "plugins: [ ... ] } },
-               ...
-             ]
-           }
 
-           what we want:
-           -------------
-           a list of storage plugins, alphabetized
-           a list of target plugins, alphabetized
-           a map of plugin name to agents, alphabetized
-         */
-        var seen           = {}; /* de-duplicating map */
-        var target_plugins = []; /* a list of [label, name] tuples, for dropdowns */
-        var store_plugins  = []; /* a list of [label, name] tuples, for dropdowns */
-        var agents         = {}; /* lookup map of uuid => { agent } */
-        var map            = {}; /* lookup map of plugin => [agent*, ...] */
+    var data = {};
+    $('#main').template('do-configure', data);
+    $(document.body)
+      .on('change', '#main select[name="target.plugin"]', function (event) {
+        data.selected_target_plugin = $(event.target).val();
+        $('#main .redraw.target').template('do-configure-target-plugin', data)
+                                .find('[name="target.agent"]').focus();
+      })
+      .on('change', '#main select[name="target.agent"]', function (event) {
+        data.selected_target_agent = $(event.target).val();
+        $('#main .redraw.target').template('do-configure-target-plugin', data)
+                                 .find('.plugin0th input').focus();
+      })
+      .on('change', '#main select[name="store.plugin"]', function (event) {
+        data.selected_store_plugin = $(event.target).val();
+        $('#main .redraw.store').template('do-configure-store-plugin', data)
+                                .find('[name="store.agent"]').focus();
+      })
+      .on('change', '#main select[name="store.agent"]', function (event) {
+        data.selected_store_agent = $(event.target).val();
+        $('#main .redraw.store').template('do-configure-store-plugin', data)
+                                .find('.plugin0th input').focus();
+      });
+    window.setTimeout(function () {
+      $('#main .optgroup').optgroup();
 
-        for (var i = 0; i < data.agents.length; i++) {
-          var agent = data.agents[i].details;
-          agent.plugins = data.agents[i].metadata.plugins;
-
-          /* track this agent for lookup in rendering code */
-          agents[agent.uuid] = agent;
-
-          /* enumerate the plugins, and wire up the `map` associations */
-          for (var name in agent.plugins) {
-            var plugin = agent.plugins[name];
-
-            /* track that this plugin can be used on this agent */
-            if (!(name in map)) { map[name] = []; }
-            map[name].push(agent.uuid);
-
-            /* if we've already seen this plugin, don't add it to the list
-               that we will use to render the dropdowns; this does mean that,
-               in the event of conflicting names for the same plugin (i.e.
-               different versions of the same plugin), we may not have a
-               deterministic sort, but ¯\_(ツ)_/¯
-             */
-            if (name in seen) { continue; }
-            seen[name] = true;
-
-            /* plugins that can be used as store plugins... */
-            if (plugin.features.store == "yes") {
-              store_plugins.push({
-                id:     name,
-                label:  plugin.name + ' (' + name + ')'
-              });
-            }
-
-            /* plugins that can be used as target plugins... */
-            if (agent.plugins[name].features.target == "yes") {
-              target_plugins.push({
-                id:     name,
-                label:  plugin.name + ' (' + name + ')'
-              });
-            }
-          }
-        }
-
-        /* sort plugin lists by metadata name ("Amazon" instead of "s3") */
-        store_plugins.sort(function (a, b) {
-          return a.label > b.label ?  1 :
-                 a.label < b.label ? -1 : 0;
-        });
-        target_plugins.sort(function (a, b) {
-          return a.label > b.label ?  1 :
-                 a.label < b.label ? -1 : 0;
-        });
-
-        var data = {
-          store_plugins:  store_plugins,
-          target_plugins: target_plugins,
-          agents:         agents,
-          plugins:        map
-        };
-
-        $('#main').template('do-configure', data);
-        $(document.body)
-          .on('change', '#main select[name="target.plugin"]', function (event) {
-            data.selected_target_plugin = $(event.target).val();
-            $('#main .redraw.target').template('do-configure-target-plugin', data)
-                                    .find('[name="target.agent"]').focus();
-          })
-          .on('change', '#main select[name="target.agent"]', function (event) {
-            data.selected_target_agent = $(event.target).val();
-            $('#main .redraw.target').template('do-configure-target-plugin', data)
-                                     .find('.plugin0th input').focus();
-          })
-          .on('change', '#main select[name="store.plugin"]', function (event) {
-            data.selected_store_plugin = $(event.target).val();
-            $('#main .redraw.store').template('do-configure-store-plugin', data)
-                                    .find('[name="store.agent"]').focus();
-          })
-          .on('change', '#main select[name="store.agent"]', function (event) {
-            data.selected_store_agent = $(event.target).val();
-            $('#main .redraw.store').template('do-configure-store-plugin', data)
-                                    .find('.plugin0th input').focus();
-          });
-        window.setTimeout(function () {
-          $('#main .optgroup').optgroup();
-
-          window.x = new DoConfigureWizard('.do-configure');
-          $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
-        }, 150);
-      }
-    });
+      doConfigureWizard($('#main'), '.do-configure');
+      $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
+    }, 150);
     break; /* #!/do/configure */
     // }}}
 
@@ -409,36 +325,38 @@ function dispatch(page) {
       break;
     }
     $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/agents',
-      error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
-      success: function (data) {
-        var cache = {};
+    var data = { type: 'store' };
+    $('#main').html($($.template('stores-form', data))
+      .autofocus()
+      .on('change', 'select[name="store.plugin"]', function (event) {
+        data.plugin = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('change', 'select[name="store.agent"]', function (event) {
+        data.agent = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-        $('#main').html($($.template('stores-form', { agents: data }))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
-
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores',
-              data: data,
-              success: function () {
-                goto("#!/stores");
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({ type: 'store' });
-      }
-    });
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores',
+          data: data,
+          success: function () {
+            goto("#!/stores");
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
+        });
+      }));
     break; /* #!/stores */
     // }}}
   case '#!/stores/edit': /* {{{ */
@@ -450,43 +368,30 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
-    apis({
-      base: '/v2/tenants/'+SHIELD.activeTenant().uuid,
-      multiplex: {
-        store:  { type: 'GET', url: '+/stores/'+args.uuid },
-        agents: { type: 'GET', url: '+/agents' },
-      },
-      error: "Failed to retrieve storage system information from the SHIELD API.",
-      success: function (data) {
-        $('#main').html($($.template('stores-form', data))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
+    $('#main').html($($.template('stores-form', {
+        store: SHIELD.store(args.uuid)
+      }))
+      .autofocus()
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'PUT',
-              url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores/'+args.uuid,
-              data: data,
-              success: function () {
-                goto("#!/stores/store:uuid:"+args.uuid);
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({
-          type   : 'store',
-          plugin : data.store.plugin,
-          config : data.store.config
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+
+        api({
+          type: 'PUT',
+          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores/'+args.uuid,
+          data: data,
+          success: function () {
+            goto("#!/stores/store:uuid:"+args.uuid);
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
         });
-        $('#main select[name="agent"]').trigger('change');
-        $('#main select[name="plugin"]').trigger('change');
-      }
-    });
+      }));
 
     break; /* #!/stores/edit */
     // }}}
@@ -1056,20 +961,9 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/global/stores',
-      error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
-      success: function (data) {
-        /* FIXME fixups that need to migrate into the SHIELD code */
-        for (key in data) {
-          if (!('ok' in data[key])) {
-            data[key].ok = true;
-          }
-        }
-        $('#main').template('stores', { stores: data, admin: true });
-      }
+    $('#main').template('stores', {
+      admin: true,
+      stores: SHIELD._.global.stores
     });
     break; /* #!/admin/stores */
     // }}}
@@ -1078,22 +972,8 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/global/stores/'+args.uuid,
-      error: "Unable to retrieve storage systems from SHIELD API.",
-      success: function (data) {
-        /* FIXME fixups that need to migrate into the SHIELD code */
-        data.ok = true;
-        data.archives = data.archive_count;
-        data.used = data.storage_used;
-        data.threshold = data.threshold;
-        data.projected = 2.1;
-        data.daily_delta = data.daily_increase;
-        $('#main').template('store', { store: data, admin: true });
-      }
-    });
+    args.admin = true;
+    $('#main').template('store', args);
     break; /* #!/admin/stores/store */
     // }}}
   case '#!/admin/stores/new': /* {{{ */
@@ -1101,40 +981,40 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/agents',
-      error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
-      success: function (data) {
-        var cache = {};
+    var data = { type: 'store' };
+    $('#main').html($($.template('stores-form', { admin:  true }))
+      .autofocus()
+      .on('change', 'select[name="store.plugin"]', function (event) {
+        data.plugin = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('change', 'select[name="store.agent"]', function (event) {
+        data.agent = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-        $('#main').html($($.template('stores-form', {
-            agents: data.agents,
-            admin:  true,
-          }))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
 
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'POST',
-              url:  '/v2/global/stores',
-              data: data,
-              success: function () {
-                goto("#!/admin/stores");
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({ type: 'store' });
-      }
-    });
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+
+        api({
+          type: 'POST',
+          url:  '/v2/global/stores',
+          data: data,
+          success: function () {
+            goto("#!/admin/stores");
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
+        });
+      }));
 
     break; /* #!/admin/stores */
     // }}}
@@ -1143,44 +1023,32 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    apis({
-      multiplex: {
-        store:  { type: 'GET', url: '/v2/global/stores/'+args.uuid },
-        agents: { type: 'GET', url: '/v2/agents' }
-      },
-      error: "Failed to retrieve storage system information from the SHIELD API.",
-      success: function (data) {
-        data.admin = true;
-        data.agents = data.agents.agents;
-        $('#main').html($($.template('stores-form', data))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
+    var data = {
+      admin: true,
+      store: SHIELD.store(args.uuid, { includeGlobal: true })
+    };
+    $('#main').html($($.template('stores-form', data))
+      .autofocus()
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'PUT',
-              url:  '/v2/global/stores/'+args.uuid,
-              data: data,
-              success: function () {
-                goto("#!/admin/stores/store:uuid:"+args.uuid);
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({
-          type   : 'store',
-          plugin : data.store.plugin,
-          config : data.store.config
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
+
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+        api({
+          type: 'PUT',
+          url:  '/v2/global/stores/'+args.uuid,
+          data: data,
+          success: function () {
+            goto("#!/admin/stores/store:uuid:"+args.uuid);
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
         });
-        $('#main select[name="agent"]').trigger('change');
-        $('#main select[name="plugin"]').trigger('change');
-      }
-    });
+      }));
 
     break; /* #!/admin/stores/edit */
     // }}}

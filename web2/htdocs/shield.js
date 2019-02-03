@@ -754,6 +754,11 @@ var Lens = {};
   }
   // }}}
 
+  exported.tnow = function () {
+    var d = new Date();
+    return d.getTime() / 1000;
+  };
+
   /***************************************************
     tparse(d) - Parse `d` intelligently.
 
@@ -1095,19 +1100,28 @@ var Lens = {};
     into multi-level javascript objects, like: { config: { host: x }}
 
    ***************************************************/
-  $.fn.serializeObject = function () { // {{{
+  $.fn.serializeObject = function (flat) { // {{{
     var a = this.serializeArray();
     var o = {};
-    for (var i = 0; i < a.length; i++) {
-      var parts = a[i].name.split(/\./);
-      t = o;
-      while (parts.length > 1) {
-        if (!(parts[0] in t)) { t[parts[0]] = {}; }
-        t = t[parts[0]];
-        parts.shift();
+
+    if (flat) {
+      for (var i = 0; i < a.length; i++) {
+        o[a[i].name] = a[i].value;
       }
-      t[parts[0]] = a[i].value;
+
+    } else {
+      for (var i = 0; i < a.length; i++) {
+        var parts = a[i].name.split(/\./);
+        t = o;
+        while (parts.length > 1) {
+          if (!(parts[0] in t)) { t[parts[0]] = {}; }
+          t = t[parts[0]];
+          parts.shift();
+        }
+        t[parts[0]] = a[i].value;
+      }
     }
+
     return o;
   };
   // }}}
@@ -1196,7 +1210,7 @@ var Lens = {};
 
     } else if (arguments.length == 2) {
       var what = arguments[1];
-      this.find('.ctl[data-field="'+arguments[0]+'"] [data-error]').each(function (i, e) {
+      this.find('[data-field="'+arguments[0]+'"] [data-error]').each(function (i, e) {
         var $e = $(e);
         $e.toggle($e.is('[data-error="'+what+'"]'));
       });
@@ -1399,32 +1413,36 @@ var Lens = {};
      $(...).validate(data) - Validate a Plugin configuration form.
 
    ***************************************************/
-  $.fn.validate = function (data) { // {{{
+  $.fn.validate = function () { // {{{
     var $form = this;
-    if (!('config' in data)) { data.config = {}; }
 
-    $form.find('.ctl').each(function (i, ctl) {
+    $form.find('[data-field]').each(function (i, ctl) {
       var $ctl  = $(ctl);
-      var type  = $ctl.data('type');
-      var field = $ctl.data('field');
-      var key   = field.replace(/^config\./, '');
+      var type  = $ctl.attr('data-type');
+      var field = $ctl.attr('data-field');
+      var value = $ctl.find('[name="'+field+'"]').val() || '';
 
-      if ($ctl.is('.required') && !(key in data.config)) {
+      console.log('checking field "%s" of type "%s" (value="%s")', field, type, value);
+
+      if ($ctl.is('.required') && value == "") {
         $form.error(field, 'missing');
+        console.log('%s is required (value="%s")', field, value);
 
-      } else if (key in data.config) {
+      } else if (value != "") {
         switch (type) {
         case "abspath":
-          if (!data.config[key].match(/^\//)) {
+          console.log(ctl, ' checking value abspath (', value, ')');
+          if (!value.match(/^\//)) {
             $form.error(field, 'invalid');
           }
           break;
 
         case "port":
-          if (!data.config[key].match(/^[0-9]+/)) {
+          console.log(ctl, ' checking value port (', value, ')');
+          if (!value.match(/^[0-9]+/)) {
             $form.error(field, 'invalid');
           } else {
-            var n = parseInt(data.config[key]);
+            var n = parseInt(value);
             if (n < 1 || n > 65535) {
               $form.error(field, 'invalid');
             }
@@ -1550,52 +1568,6 @@ var Lens = {};
 
 
   /***************************************************
-     $(...).pluginForm() - Plugin Form UI Widget
-
-   ***************************************************/
-  $.fn.pluginForm = function (opts) { // {{{
-    opts = $.extend({}, {}, opts);
-    if (!('type' in opts)) {
-      throw 'pluginForm() requires a "type" option (either "store" or "target")';
-    }
-
-    var $parent = this;
-    var cache   = {};
-
-    $parent
-      .on('change', 'select[name=agent]', function (event) {
-        var uuid = $(event.target).val().replace(/\|.*/, '');
-        if (uuid == "") { return; }
-
-        $parent.find('#choose-plugin').template('loading');
-        api({
-          type: 'GET',
-          url:  '/v2/tenants/'+SHIELD.tenant.uuid+'/agents/'+uuid,
-          success: function (data) {
-            cache = data;
-            data.type = opts.type;
-            $parent.find('#choose-plugin').template('subform-choose-plugin', data);
-            if (opts.plugin) {
-              $parent.find('[name=plugin]').val(opts.plugin).trigger('change');
-            }
-          }
-        });
-      })
-      .on('change', 'select[name=plugin]', function (event) {
-        var plugin = $(event.target).val();
-        if (plugin == '') { return; }
-
-        $parent.find('#configure-plugin').template('subform-configure-plugin', {
-            type:   opts.type,
-            plugin: cache.metadata.plugins[plugin],
-            config: (plugin == opts.plugin ? opts.config : undefined)
-          });
-      });
-  };
-  // }}}
-
-
-  /***************************************************
      $(...).serializePluginObject() - Serialize Data from a Plugin Form
 
    ***************************************************/
@@ -1620,7 +1592,7 @@ var Lens = {};
 
 
   /***************************************************
-     $(...).serializePluginObject() - Serialize Data from a Plugin Form
+     $(...).viewSwitcher()
 
    ***************************************************/
   exported.viewSwitcher = function() {
@@ -1700,6 +1672,7 @@ window.S.H.I.E.L.D.Database = (function () {
             self._.tenants[uuid].jobs     = self.keyBy(self._.tenants[uuid].jobs,     'uuid');
             self._.tenants[uuid].targets  = self.keyBy(self._.tenants[uuid].targets,  'uuid');
             self._.tenants[uuid].stores   = self.keyBy(self._.tenants[uuid].stores,   'uuid');
+            self._.tenants[uuid].agents   = self.keyBy(self._.tenants[uuid].agents,   'uuid');
             for (var k in self._.tenants[uuid].tenant) {
               self._.tenants[uuid][k] = self._.tenants[uuid].tenant[k];
             }
@@ -1814,14 +1787,14 @@ window.S.H.I.E.L.D.Database = (function () {
   Database.prototype.each = function (thing, fn) {
     if (thing instanceof Array) {
       for (var i = 0; i < thing.length; i++) {
-        fn.apply(this, [i, thing[i]], thing);
+        fn.apply(this, [i, thing[i]]);
       }
       return
     }
 
     for (var k in thing) {
       if (thing.hasOwnProperty(k)) {
-        fn.apply(this, [k, thing[k]], thing);
+        fn.apply(this, [k, thing[k]]);
       }
     }
   };
@@ -1888,6 +1861,9 @@ window.S.H.I.E.L.D.Database = (function () {
   */
 
   Database.prototype._set = function (collection, idx, object) {
+    if (!collection) {
+      return;
+    }
     if (!(idx in collection)) {
       collection[idx] = {};
     }
@@ -2019,7 +1995,74 @@ window.S.H.I.E.L.D.Database = (function () {
   };
 
 
+  Database.prototype.plugins = function (type) {
+    var seen = {}; /* de-duplicating map */
+    var list = []; /* sorted list of [label, name] tuples */
+    var map  = {}; /* plugin.id => [agent, ...] */
 
+    var tenant = this.activeTenant();
+    if (!tenant) {
+      return undefined;
+    }
+
+    for (var agent_uuid in tenant.agents) {
+      var agent = tenant.agents[agent_uuid];
+      agent.plugins = agent.metadata.plugins;
+
+      /* enumerate the plugins, and wire up the `map` associations */
+      for (var name in agent.plugins) {
+        var plugin = agent.plugins[name];
+
+        /* track that this plugin can be used on this agent */
+        if (!(name in map)) { map[name] = []; }
+        map[name].push(agent);
+
+        /* if we've already seen this plugin, don't add it to the list
+           that we will use to render the dropdowns; this does mean that,
+           in the event of conflicting names for the same plugin (i.e.
+           different versions of the same plugin), we may not have a
+           deterministic sort, but ¯\_(ツ)_/¯
+         */
+        if (name in seen) { continue; }
+        seen[name] = true;
+
+        if (plugin.features[type] == "yes") {
+          list.push({
+            id:     name,
+            label:  plugin.name + ' (' + name + ')'
+          });
+        }
+      }
+    }
+
+    /* sort plugin lists by metadata name ("Amazon" instead of "s3") */
+    list.sort(function (a, b) {
+      return a.label > b.label ?  1 :
+             a.label < b.label ? -1 : 0;
+    });
+
+    return {
+      list:   list,
+      agents: map
+    };
+  };
+
+
+  Database.prototype.agent = function (id) {
+    var tenant = this.activeTenant();
+    if (!tenant) {
+      return undefined;
+    }
+
+    if (!(id in tenant.agents)) {
+      for (var uuid in tenant.agents) {
+        if (tenant.agents[uuid].address == id) {
+          return tenant.agents[uuid];
+        }
+      }
+    }
+    return tenant.agents[id];
+  };
 
 
   Database.prototype.systems = function () {
@@ -2048,6 +2091,13 @@ window.S.H.I.E.L.D.Database = (function () {
         }
       });
 
+      system.archives = [];
+      this.each(tenant.archives, function (i, archive) {
+        if (archive.target_uuid == system.uuid && archive.status == 'valid') {
+          system.archives.push(archive);
+        }
+      });
+
       systems.push(system);
     });
 
@@ -2063,6 +2113,24 @@ window.S.H.I.E.L.D.Database = (function () {
       found = system;
     });
 
+    return found;
+  };
+
+  Database.prototype.findArchive = function (id, filter) {
+    if (!filter) {
+      filter = {};
+    }
+
+    var tenant = this.activeTenant();
+    if (!tenant) {
+      return undefined;
+    }
+
+    var found;
+    this.each(tenant.archives, function (_, archive) {
+      if (found || archive.uuid != id) { return; }
+      found = archive;
+    });
     return found;
   };
 
@@ -2085,8 +2153,8 @@ window.S.H.I.E.L.D.Database = (function () {
     return stores;
   };
 
-  Database.prototype.store = function (id) {
-    var stores = this.stores(),
+  Database.prototype.store = function (id, options) {
+    var stores = this.stores(options),
         found;
 
     this.each(stores, function (_, store) {
@@ -2184,38 +2252,23 @@ window.S.H.I.E.L.D.Database = (function () {
 
   return Database;
 })();
-;(function (exported, document, undefined) {
+;(function (exported, jQuery, document, undefined) {
 
-  var Wizard2 = function (e) {
-    this.root     = $(e); /* root HTML element */
-    this.handlers = {};   /* event handlers */
-
-    /* set the number of steps as a class, for CSS progress bar styling */
-    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
-  };
-
-  Wizard2.prototype.step = function (n, mode) {
+  var step = function (root, n, mode) {
+    console.log('step()', { root: root, n: n, mode: mode });
     console.log('Wizard: transitioning to step %d (in "%s" mode)', n, mode);
 
-    /* the before:$step hook fires before we show the step page */
-    if ('before:'+n.toString() in this.handlers) {
-      this.handler['before:'+n.toString()].call(this, {
-        step: n,
-        mode: mode
-      });
-    }
-
-    var $progress = this.root.find('.progress li');
-    this.root.find('[data-step]').each(function (i,e) {
+    var $progress = root.find('.progress li');
+    root.find('[data-step]').each(function (i,e) {
       var $step = $(e);
       var num   = parseInt($step.attr('data-step'));
       var $li   = $($progress[num-1]);
 
-      if (num < step) {
+      if (num < n) {
         $li.transitionClass('current', 'completed');
         $step.hide();
 
-      } else if (num == step) {
+      } else if (num == n) {
         $li.transitionClass('completed', 'current');
         if (mode) {
           $step.attr('data-mode', mode);
@@ -2228,286 +2281,249 @@ window.S.H.I.E.L.D.Database = (function () {
       }
     });
 
-    /* the after:$step hook fires before we show the step page */
-    if ('after:'+n.toString() in this.handlers) {
-      this.handler['after:'+n.toString()].call(this, {
-        step: n,
-        mode: mode
-      });
-    }
-
-    $root.attr('data-on-step', step);
+    root.attr('data-on-step', n);
   };
 
-  Wizard2.prototype.on = function (ev, fn) {
-    this.handers[ev] = fn;
-  };
+  var doConfigureWizard = function ($main, prefix) {
+    this.root = $main.find(prefix);
+    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
+    step(this.root, 1, 'choose');
 
-  var Wizard = {
-    setup: function ($root) {
-      $root.addClass('steps'+$root.find('[data-step]').length.toString());
-    },
-    step: function ($root, step, mode) {
-      console.log('Wizard: transitioning to step %d (in "%s" mode)', step, mode);
-
-      var $progress = $root.find('.progress li');
-      $root.find('[data-step]').each(function (i,e) {
-        var $step = $(e);
-        var num   = parseInt($step.attr('data-step'));
-        var $li   = $($progress[num-1]);
-
-        if (num < step) {
-          $li.transitionClass('current', 'completed');
-          $step.hide();
-        } else if (num == step) {
-          $li.transitionClass('completed', 'current');
-          if (mode) {
-            $step.attr('data-mode', mode);
-          }
-          $step.autofocus().show();
-        } else {
-          $li.removeClass('current completed');
-          $step.hide();
-        }
-
-      });
-
-      $root.attr('data-on-step', step);
-    }
-  };
-
-  exported.DoConfigureWizard = function (root) {
-    this.root = $(root);
-    this._    = {};
-
-    this.mount(this.root);
-  };
-
-  exported.DoConfigureWizard.prototype.step = function (next, mode) {
-    Wizard.step(this.root, next, mode);
-  };
-
-  exported.DoConfigureWizard.prototype.mount = function ($root) {
-    $root = $($root);
-    Wizard.setup($root);
-    Wizard.step($root, 1, 'choose');
-
-    if ($root.data('do-configure-wizard:initialized')) {
+    if ($main.data('do-configure-wizard:initialized')) {
       return; /* already mounted event handlers */
     }
-    $root.data('do-configure-wizard:initialized', 'yes');
+    $main.data('do-configure-wizard:initialized', 'yes');
 
-    console.log('mounting do-configure-wizard to ', $root);
     var self = this;
-    $root
-      .on('click', 'a[href^="step:"]', function (event) {
+    $main
+      .on('click', prefix+' a[href^="step:"]', function (event) {
         event.preventDefault();
-        var step = parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, ''));
-        self.step(step);
+        step(self.root, parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, '')));
       })
-      .on('click', '[rel=prev]', function (event) {
+      .on('click', prefix+' [rel=prev]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now - 1);
+        var now = parseInt(self.root.extract('on-step'));
+        step(self.root, now - 1);
       })
-      .on('click', '[rel=next]', function (event) {
+      .on('click', prefix+' [rel=next]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
+        var now = parseInt(self.root.extract('on-step'));
 
-        if (now + 1 == 5) { /* moving to Review step */
-          self.root.find('.review').template('do-configure-review', self.val());
+        if (now + 1 == 3 && self.root.find('[data-step=2]').extract('mode') == 'create') {
+          var $form = self.root.find('[data-step=2] form');
+          if (!$form.reset().validate().isOK()) { return; }
         }
 
-        self.step(now + 1);
+        if (now + 1 == 4 && self.root.find('[data-step=3]').extract('mode') == 'create') {
+          var $form = self.root.find('[data-step=3] form');
+          if (!$form.reset().validate().isOK()) { return; }
+        }
+
+        if (now + 1 == 5) { /* moving to Review step */
+          var val = {};
+
+          /* TARGET */
+          val.target = {};
+          if (self.root.find('[data-step=2]').extract('mode') == 'choose') {
+            val.target = { uuid: self.root.find('[data-step=2] tr.selected').extract('target-uuid') };
+
+            var t = window.SHIELD.system(val.target.uuid);
+            if (t) {
+              val.target.name = t.name;
+              val.target.plugin = t.plugin;
+            }
+
+          } else {
+            val.target = self.root.find('[data-step=2] form').serializeObject().target;
+          }
+
+          /* STORE */
+          val.store = {};
+          if (self.root.find('[data-step=3]').extract('mode') == 'choose') {
+            val.store = { uuid: self.root.find('[data-step=3] tr.selected').extract('store-uuid') };
+
+            var t = window.SHIELD.store(val.store.uuid);
+            if (t) {
+              val.store.name = t.name;
+              val.store.plugin = t.plugin;
+            }
+
+          } else {
+            val.store = self.root.find('[data-step=3] form').serializeObject().store;
+          }
+
+          /* SCHEDULING */
+          val.schedule = {
+            spec: self.root.find('[data-step=4] form').timespec(),
+            keep: self.root.find('[name=keep_days]').val()
+          };
+          if (!val.schedule.keep) {
+            val.schedule.keep = self.root.find('[data-step=4] [name=keep_days]').attr('placeholder');
+          }
+          self.root.find('.review').template('do-configure-review', val);
+        }
+
+        step(self.root, now + 1);
       })
-      .on('click', '.choose.target [rel=new]', function (event) {
+      .on('click', prefix+' .choose.target [rel=new]', function (event) {
           event.preventDefault();
-          self.step(2, 'create');
+          step(self.root, 2, 'create');
       })
-      .on('click', '.choose.target tbody tr', function (event) {
+      .on('click', prefix+' .choose.target tbody tr', function (event) {
         var $row = $(event.target).closest('tr');
 
         if (!$row.is('.selected')) { /* user wants to select ... */
           var uuid = $row.extract('target-uuid');
           console.log('choosing target: "%s"', uuid);
-          self.step(2, uuid ? 'choose' : 'create');
+          step(self.root, 2, uuid ? 'choose' : 'create');
         }
       })
-      .on('click', '.choose.store [rel=new]', function (event) {
+      .on('click', prefix+' .choose.store [rel=new]', function (event) {
           event.preventDefault();
-          self.step(3, 'create');
+          step(self.root, 3, 'create');
       })
-      .on('click', '.choose.store tbody tr', function (event) {
+      .on('click', prefix+' .choose.store tbody tr[data-store-uuid]', function (event) {
         var $row = $(event.target).closest('tr');
 
         if (!$row.is('.selected')) { /* user wants to select ... */
           var uuid = $row.extract('store-uuid');
           console.log('choosing store: "%s"', uuid);
+          step(self.root, 3, uuid ? 'choose' : 'create');
         }
       })
 
-      .on('click', '.scheduling .optgroup [data-subform]', function (event) {
+      .on('click', prefix+' .scheduling .optgroup [data-subform]', function (event) {
         var sub = $(event.target).extract('subform');
-        $root.find('.scheduling .subform').hide();
-        $root.find('.scheduling .subform#'+sub).show();
-        $root.find('input[name=keep_days]')
-               .attr('placeholder', $(event.target).extract('retain'));
-      });
+        self.root.find('.scheduling .subform').hide();
+        self.root.find('.scheduling .subform#'+sub).show();
+        self.root.find('input[name=keep_days]')
+            .attr('placeholder', $(event.target).extract('retain'));
+      })
     ;
+
+    return this;
   };
 
-  exported.DoConfigureWizard.prototype.val = function () {
-    var val = {};
+  exported.doConfigureWizard = doConfigureWizard;
 
-    /* TARGET */
-    val.target = {};
-    if (this.root.find('[data-step=2]').extract('mode') == 'choose') {
-      val.target = { uuid: this.root.find('[data-step=2] tr.selected').extract('target-uuid') };
-
-      var t = window.SHIELD.system(val.target.uuid);
-      if (t) {
-        val.target.name = t.name;
-        val.target.plugin = t.plugin;
-      }
-
-    } else {
-      val.target = this.root.find('[data-step=2] form').serializeObject().target;
-    }
-
-    /* STORE */
-    val.store = {};
-    if (this.root.find('[data-step=3]').extract('mode') == 'choose') {
-      val.store = { uuid: this.root.find('[data-step=3] tr.selected').extract('store-uuid') };
-
-      var t = window.SHIELD.store(val.store.uuid);
-      if (t) {
-        val.store.name = t.name;
-        val.store.plugin = t.plugin;
-      }
-
-    } else {
-      val.store = this.root.find('[data-step=3] form').serializeObject().store;
-    }
-
-    /* SCHEDULING */
-    val.schedule = {
-      spec: this.root.find('[data-step=4] form').timespec(),
-      keep: this.root.find('[name=keep_days]').val()
-    };
-    if (!val.schedule.keep) {
-      val.schedule.keep = this.root.find('[data-step=4] [name=keep_days]').attr('placeholder');
-    }
-
-    return val;
-  };
-
-  exported.DoAdHocWizard = function (root) {
+  var doAdHocWizard = function (root) {
     this.root = $(root);
-    this._    = {};
-
-    this.mount(this.root);
   };
 
-  exported.DoAdHocWizard.prototype.step = function (next, mode) {
-    Wizard.step(this.root, next, mode);
-  };
+  doAdHocWizard.prototype.mount = function (e, prefix) {
+    var $main = $(e);
+    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
+    step(this.root, 1);
 
-  exported.DoAdHocWizard.prototype.mount = function ($root) {
-    $root = $($root);
-    Wizard.setup($root);
-    Wizard.step($root, 1);
-
-    if ($root.data('do-ad-hoc-wizard:initialized')) {
+    if ($main.data('do-ad-hoc-wizard:initialized')) {
       return; /* already mounted event handlers */
     }
-    $root.data('do-ad-hoc-wizard:initialized', 'yes');
+    $main.data('do-ad-hoc-wizard:initialized', 'yes');
 
-    console.log('mounting do-ad-hoc-wizard to ', $root);
     var self = this;
-    $root
-      .on('click', 'a[href^="step:"]', function (event) {
+    $main
+      .on('click', prefix+' a[href^="step:"]', function (event) {
         event.preventDefault();
-        var step = parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, ''));
-        self.step(step);
+        step(self.root, parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, '')));
       })
-      .on('click', '[rel=prev]', function (event) {
+      .on('click', prefix+' [rel=prev]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now - 1);
+        var now = parseInt(self.root.extract('on-step'));
+        step(self.root, now - 1);
       })
-      .on('click', '[rel=next]', function (event) {
+      .on('click', prefix+' [rel=next]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now + 1);
-      })
-      .on('click', '.choose.target tbody tr', function (event) {
-        var $row = $(event.target).closest('tr')
+        var now = parseInt(self.root.extract('on-step'));
 
-        if (!$row.is('.selected')) { /* user wants to select ... */
-          var uuid = $row.extract('target-uuid');
-          console.log('choosing target: "%s"', uuid);
+        if (now + 1 == 3) {
+          var uuid = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          console.log('selecting target %s', uuid);
+          if (!uuid) { return; }
+
+          $('#main .do-backup .redraw.jobs').template('do-backup-choose-job', {
+            selected_target: uuid,
+          });
         }
-      })
-      .on('click', '.choose.store tbody tr', function (event) {
-        /* ... */
+
+        if (now + 1 == 4) { /* moving to Review step */
+          var data = {};
+
+          data.selected_target = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          if (!data.selected_target) { return; }
+          data.selected_job = self.root.find('[data-step=3] tr.selected').extract('job-uuid');
+          if (!data.selected_job) { return; }
+
+          $('#main .do-backup .review').template('do-backup-review', data);
+        }
+
+        step(self.root, now + 1);
       })
     ;
+
+    return self;
   };
 
-  exported.DoRestoreWizard = function (root) {
+  exported.DoAdHocWizard = doAdHocWizard;
+
+  var doRestoreWizard = function (root) {
     this.root = $(root);
-    this._    = {};
-
-    this.mount(this.root);
   };
 
-  exported.DoRestoreWizard.prototype.step = function (next, mode) {
-    Wizard.step(this.root, next, mode);
-  };
+  doRestoreWizard.prototype.mount = function (e, prefix) {
+    var $main = $(e);
+    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
+    step(this.root, 1);
 
-  exported.DoRestoreWizard.prototype.mount = function ($root) {
-    $root = $($root);
-    Wizard.setup($root);
-    Wizard.step($root, 1);
-
-    if ($root.data('do-restore-wizard:initialized')) {
+    if ($main.data('do-restore-wizard:initialized')) {
       return; /* already mounted event handlers */
     }
-    $root.data('do-restore-wizard:initialized', 'yes');
+    $main.data('do-restore-wizard:initialized', 'yes');
 
-    console.log('mounting do-restore-wizard to ', $root);
     var self = this;
-    $root
-      .on('click', 'a[href^="step:"]', function (event) {
+    $main
+      .on('click', prefix+' a[href^="step:"]', function (event) {
         event.preventDefault();
-        var step = parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, ''));
-        self.step(step);
+        step(self.root, parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, '')));
       })
-      .on('click', '[rel=prev]', function (event) {
+      .on('click', prefix+' [rel=prev]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now - 1);
+        var now = parseInt(self.root.extract('on-step'));
+        step(self.root, now - 1);
       })
-      .on('click', '[rel=next]', function (event) {
+      .on('click', prefix+' [rel=next]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now + 1, 'choose');
-      })
-      .on('click', '.choose.target tbody tr', function (event) {
-        var $row = $(event.target).closest('tr');
+        var now = parseInt(self.root.extract('on-step'));
 
-        if (!$row.is('.selected')) { /* user wants to select ... */
-          var uuid = $row.extract('target-uuid');
-          console.log('choosing target: "%s"', uuid);
+        if (now + 1 == 3) {
+          var uuid = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          console.log('selecting target %s', uuid);
+          if (!uuid) { return; }
+
+          $('#main .do-restore .redraw.archives').template('do-restore-choose-archive', {
+            selected_target: uuid,
+          });
         }
-      })
-      .on('click', '.choose.archive tbody tr', function (event) {
-        /* ... */
+
+        if (now + 1 == 4) { /* moving to Review step */
+          var data = {};
+
+          data.selected_target = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          if (!data.selected_target) { return; }
+
+          data.selected_archive = self.root.find('[data-step=3] tr.selected').extract('archive-uuid');
+          if (!data.selected_archive) { return; }
+
+          $('#main .do-restore .review').template('do-restore-review', data);
+        }
+
+        step(self.root, now + 1);
       })
     ;
   };
 
-})(window, document);
+  exported.DoRestoreWizard = doRestoreWizard;
+
+})(window, window.jQuery, document);
 ;(function () {
   /*
     When the viewer scrolls the browser window, check to see if we
@@ -2748,7 +2764,7 @@ function dispatch(page) {
       break;
     }
     $('#main').template('do-backup');
-    new DoAdHocWizard('.do-backup');
+    (new DoAdHocWizard('.do-backup')).mount('#main', '.do-backup');
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
@@ -2760,8 +2776,9 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
       break;
     }
-    $('#main').template('do-restore');
-    new DoRestoreWizard('.do-restore');
+
+    $('#main').template('do-restore', {});
+    (new DoRestoreWizard('.do-restore')).mount('#main', '.do-restore');
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
@@ -2773,121 +2790,36 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
-    $.ajax({
-      type: 'GET',
-      url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/agents',
-      success: function (data) {
-        /* what we get:
-           ------------
-           {
-             "agents": [
-               { "details"  : { ... },
-                 "metadata" : { "plugins: [ ... ] } },
-               ...
-             ]
-           }
 
-           what we want:
-           -------------
-           a list of storage plugins, alphabetized
-           a list of target plugins, alphabetized
-           a map of plugin name to agents, alphabetized
-         */
-        var seen           = {}; /* de-duplicating map */
-        var target_plugins = []; /* a list of [label, name] tuples, for dropdowns */
-        var store_plugins  = []; /* a list of [label, name] tuples, for dropdowns */
-        var agents         = {}; /* lookup map of uuid => { agent } */
-        var map            = {}; /* lookup map of plugin => [agent*, ...] */
+    var data = {};
+    $('#main').template('do-configure', data);
+    $(document.body)
+      .on('change', '#main select[name="target.plugin"]', function (event) {
+        data.selected_target_plugin = $(event.target).val();
+        $('#main .redraw.target').template('do-configure-target-plugin', data)
+                                .find('[name="target.agent"]').focus();
+      })
+      .on('change', '#main select[name="target.agent"]', function (event) {
+        data.selected_target_agent = $(event.target).val();
+        $('#main .redraw.target').template('do-configure-target-plugin', data)
+                                 .find('.plugin0th input').focus();
+      })
+      .on('change', '#main select[name="store.plugin"]', function (event) {
+        data.selected_store_plugin = $(event.target).val();
+        $('#main .redraw.store').template('do-configure-store-plugin', data)
+                                .find('[name="store.agent"]').focus();
+      })
+      .on('change', '#main select[name="store.agent"]', function (event) {
+        data.selected_store_agent = $(event.target).val();
+        $('#main .redraw.store').template('do-configure-store-plugin', data)
+                                .find('.plugin0th input').focus();
+      });
+    window.setTimeout(function () {
+      $('#main .optgroup').optgroup();
 
-        for (var i = 0; i < data.agents.length; i++) {
-          var agent = data.agents[i].details;
-          agent.plugins = data.agents[i].metadata.plugins;
-
-          /* track this agent for lookup in rendering code */
-          agents[agent.uuid] = agent;
-
-          /* enumerate the plugins, and wire up the `map` associations */
-          for (var name in agent.plugins) {
-            var plugin = agent.plugins[name];
-
-            /* track that this plugin can be used on this agent */
-            if (!(name in map)) { map[name] = []; }
-            map[name].push(agent.uuid);
-
-            /* if we've already seen this plugin, don't add it to the list
-               that we will use to render the dropdowns; this does mean that,
-               in the event of conflicting names for the same plugin (i.e.
-               different versions of the same plugin), we may not have a
-               deterministic sort, but ¯\_(ツ)_/¯
-             */
-            if (name in seen) { continue; }
-            seen[name] = true;
-
-            /* plugins that can be used as store plugins... */
-            if (plugin.features.store == "yes") {
-              store_plugins.push({
-                id:     name,
-                label:  plugin.name + ' (' + name + ')'
-              });
-            }
-
-            /* plugins that can be used as target plugins... */
-            if (agent.plugins[name].features.target == "yes") {
-              target_plugins.push({
-                id:     name,
-                label:  plugin.name + ' (' + name + ')'
-              });
-            }
-          }
-        }
-
-        /* sort plugin lists by metadata name ("Amazon" instead of "s3") */
-        store_plugins.sort(function (a, b) {
-          return a.label > b.label ?  1 :
-                 a.label < b.label ? -1 : 0;
-        });
-        target_plugins.sort(function (a, b) {
-          return a.label > b.label ?  1 :
-                 a.label < b.label ? -1 : 0;
-        });
-
-        var data = {
-          store_plugins:  store_plugins,
-          target_plugins: target_plugins,
-          agents:         agents,
-          plugins:        map
-        };
-
-        $('#main').template('do-configure', data);
-        $(document.body)
-          .on('change', '#main select[name="target.plugin"]', function (event) {
-            data.selected_target_plugin = $(event.target).val();
-            $('#main .redraw.target').template('do-configure-target-plugin', data)
-                                    .find('[name="target.agent"]').focus();
-          })
-          .on('change', '#main select[name="target.agent"]', function (event) {
-            data.selected_target_agent = $(event.target).val();
-            $('#main .redraw.target').template('do-configure-target-plugin', data)
-                                     .find('.plugin0th input').focus();
-          })
-          .on('change', '#main select[name="store.plugin"]', function (event) {
-            data.selected_store_plugin = $(event.target).val();
-            $('#main .redraw.store').template('do-configure-store-plugin', data)
-                                    .find('[name="store.agent"]').focus();
-          })
-          .on('change', '#main select[name="store.agent"]', function (event) {
-            data.selected_store_agent = $(event.target).val();
-            $('#main .redraw.store').template('do-configure-store-plugin', data)
-                                    .find('.plugin0th input').focus();
-          });
-        window.setTimeout(function () {
-          $('#main .optgroup').optgroup();
-
-          window.x = new DoConfigureWizard('.do-configure');
-          $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
-        }, 150);
-      }
-    });
+      doConfigureWizard($('#main'), '.do-configure');
+      $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
+    }, 150);
     break; /* #!/do/configure */
     // }}}
 
@@ -2939,36 +2871,38 @@ function dispatch(page) {
       break;
     }
     $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/agents',
-      error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
-      success: function (data) {
-        var cache = {};
+    var data = { type: 'store' };
+    $('#main').html($($.template('stores-form', data))
+      .autofocus()
+      .on('change', 'select[name="store.plugin"]', function (event) {
+        data.plugin = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('change', 'select[name="store.agent"]', function (event) {
+        data.agent = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-        $('#main').html($($.template('stores-form', { agents: data }))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
-
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores',
-              data: data,
-              success: function () {
-                goto("#!/stores");
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({ type: 'store' });
-      }
-    });
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores',
+          data: data,
+          success: function () {
+            goto("#!/stores");
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
+        });
+      }));
     break; /* #!/stores */
     // }}}
   case '#!/stores/edit': /* {{{ */
@@ -2980,43 +2914,30 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
-    apis({
-      base: '/v2/tenants/'+SHIELD.activeTenant().uuid,
-      multiplex: {
-        store:  { type: 'GET', url: '+/stores/'+args.uuid },
-        agents: { type: 'GET', url: '+/agents' },
-      },
-      error: "Failed to retrieve storage system information from the SHIELD API.",
-      success: function (data) {
-        $('#main').html($($.template('stores-form', data))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
+    $('#main').html($($.template('stores-form', {
+        store: SHIELD.store(args.uuid)
+      }))
+      .autofocus()
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'PUT',
-              url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores/'+args.uuid,
-              data: data,
-              success: function () {
-                goto("#!/stores/store:uuid:"+args.uuid);
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({
-          type   : 'store',
-          plugin : data.store.plugin,
-          config : data.store.config
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+
+        api({
+          type: 'PUT',
+          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores/'+args.uuid,
+          data: data,
+          success: function () {
+            goto("#!/stores/store:uuid:"+args.uuid);
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
         });
-        $('#main select[name="agent"]').trigger('change');
-        $('#main select[name="plugin"]').trigger('change');
-      }
-    });
+      }));
 
     break; /* #!/stores/edit */
     // }}}
@@ -3586,20 +3507,9 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/global/stores',
-      error: "Failed retrieving the list of storage endpoints from the SHIELD API.",
-      success: function (data) {
-        /* FIXME fixups that need to migrate into the SHIELD code */
-        for (key in data) {
-          if (!('ok' in data[key])) {
-            data[key].ok = true;
-          }
-        }
-        $('#main').template('stores', { stores: data, admin: true });
-      }
+    $('#main').template('stores', {
+      admin: true,
+      stores: SHIELD._.global.stores
     });
     break; /* #!/admin/stores */
     // }}}
@@ -3608,22 +3518,8 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/global/stores/'+args.uuid,
-      error: "Unable to retrieve storage systems from SHIELD API.",
-      success: function (data) {
-        /* FIXME fixups that need to migrate into the SHIELD code */
-        data.ok = true;
-        data.archives = data.archive_count;
-        data.used = data.storage_used;
-        data.threshold = data.threshold;
-        data.projected = 2.1;
-        data.daily_delta = data.daily_increase;
-        $('#main').template('store', { store: data, admin: true });
-      }
-    });
+    args.admin = true;
+    $('#main').template('store', args);
     break; /* #!/admin/stores/store */
     // }}}
   case '#!/admin/stores/new': /* {{{ */
@@ -3631,40 +3527,40 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').template('loading');
-    api({
-      type: 'GET',
-      url:  '/v2/agents',
-      error: "Unable to retrieve list of SHIELD Agents from the SHIELD API",
-      success: function (data) {
-        var cache = {};
+    var data = { type: 'store' };
+    $('#main').html($($.template('stores-form', { admin:  true }))
+      .autofocus()
+      .on('change', 'select[name="store.plugin"]', function (event) {
+        data.plugin = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('change', 'select[name="store.agent"]', function (event) {
+        data.agent = $(event.target).val();
+        console.log(data);
+        $('#main .redraw.store').template('plugin-form-agent-selector', data);
+      })
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-        $('#main').html($($.template('stores-form', {
-            agents: data.agents,
-            admin:  true,
-          }))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
 
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'POST',
-              url:  '/v2/global/stores',
-              data: data,
-              success: function () {
-                goto("#!/admin/stores");
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({ type: 'store' });
-      }
-    });
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+
+        api({
+          type: 'POST',
+          url:  '/v2/global/stores',
+          data: data,
+          success: function () {
+            goto("#!/admin/stores");
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
+        });
+      }));
 
     break; /* #!/admin/stores */
     // }}}
@@ -3673,44 +3569,32 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    apis({
-      multiplex: {
-        store:  { type: 'GET', url: '/v2/global/stores/'+args.uuid },
-        agents: { type: 'GET', url: '/v2/agents' }
-      },
-      error: "Failed to retrieve storage system information from the SHIELD API.",
-      success: function (data) {
-        data.admin = true;
-        data.agents = data.agents.agents;
-        $('#main').html($($.template('stores-form', data))
-          .autofocus()
-          .on('submit', 'form', function (event) {
-            event.preventDefault();
+    var data = {
+      admin: true,
+      store: SHIELD.store(args.uuid, { includeGlobal: true })
+    };
+    $('#main').html($($.template('stores-form', data))
+      .autofocus()
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
 
-            var $form = $(event.target);
-            var data = $form.serializePluginObject();
-            if (!$form.reset().validate(data).isOK()) { return; }
-            api({
-              type: 'PUT',
-              url:  '/v2/global/stores/'+args.uuid,
-              data: data,
-              success: function () {
-                goto("#!/admin/stores/store:uuid:"+args.uuid);
-              },
-              error: function (xhr) {
-                $form.error(xhr.responseJSON);
-              }
-            });
-          }));
-        $('#main form').pluginForm({
-          type   : 'store',
-          plugin : data.store.plugin,
-          config : data.store.config
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
+
+        var data = $form.serializeObject().store;
+        data.threshold = readableToBytes(data.threshold);
+        api({
+          type: 'PUT',
+          url:  '/v2/global/stores/'+args.uuid,
+          data: data,
+          success: function () {
+            goto("#!/admin/stores/store:uuid:"+args.uuid);
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
         });
-        $('#main select[name="agent"]').trigger('change');
-        $('#main select[name="plugin"]').trigger('change');
-      }
-    });
+      }));
 
     break; /* #!/admin/stores/edit */
     // }}}

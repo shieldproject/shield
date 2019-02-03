@@ -1006,6 +1006,11 @@ table.lean td.name > .tag,
   background-color: #F2F2F2;
 }
 
+
+.choose.target .not-selectable {
+  opacity: 0.2;
+}
+
 h2 ul.switcher {
   float: right;
 }
@@ -1619,6 +1624,12 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2 h2:first-child {
   margin-top: 1em;
 }
+.wizard2 h2 span {
+  font-size: 14pt;
+  color: #0071bc;
+  display: block;
+  margin: 1em 0 0.33em 0;
+}
 .wizard2 .band {
   clear: both;
   padding: 0.5em 0;
@@ -1630,10 +1641,21 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2 .band.hover input {
   background-color: transparent;
 }
+.wizard2 .errors span {
+  display: none;
+  padding: 8px 2px;
+  font-size: 13px;
+  color: crimson;
+}
 .wizard2 .help {
   font-size: 10pt;
+  line-height: 1.2em;
   color: #0071bc88;
   font-style: italic;
+}
+.wizard2 .help .example {
+  color: orange;
+  font-weight: bold;
 }
 .wizard2 .side-help {
   padding: 1em;
@@ -1642,7 +1664,7 @@ pre.task-failed.override   code { background-color: #333; }
   background-color: #0071bc22;
 }
 
-.wizard2 .lean.selectable tbody tr:hover,
+.wizard2 .lean.selectable tbody tr:not(.not-selectable):hover,
 .wizard2 .lean.selectable.selected tbody tr.selected {
   cursor: pointer;
   padding: 0px;
@@ -1653,7 +1675,7 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2 .lean.selectable.selected tbody tr {
   opacity: 0.3;
 }
-.wizard2 .lean.selectable tbody tr:hover td.name,
+.wizard2 .lean.selectable tbody tr:not(.not-selectable):hover td.name,
 .wizard2 .lean.selectable.selected tbody tr td.name {
   color: inherit;
 }
@@ -1665,6 +1687,20 @@ pre.task-failed.override   code { background-color: #333; }
   padding-right: 16px;
   padding-top: 10px;
 }
+.wizard2 label span {
+  display: block;
+  text-align: right;
+  font-size: 11pt;
+  font-size: 9pt;
+  font-weight: normal;
+  color: #aaa;
+  line-height: 1.4em;
+}
+
+.wizard2 .errors {
+  display: block;
+}
+
 .wizard2 .scheduling .optgroup li {
   border-radius: 0px;
   margin: 4px 0px;
@@ -1739,13 +1775,15 @@ pre.task-failed.override   code { background-color: #333; }
   background-color: #8cc63f;
 }
 
-.wizard2.steps4 .progress .back.line { width: 75%; }
+.wizard2.steps4 .progress .line { width: 75%; left: 12.5%; }
+.wizard2.steps4 .progress .front.line { width: 0%; }
 .wizard2.steps4 .progress li { width: 25%; }
 .wizard2.steps4[data-on-step="2"] .progress .front.line { width: 25%; }
 .wizard2.steps4[data-on-step="3"] .progress .front.line { width: 50%; }
 .wizard2.steps4[data-on-step="4"] .progress .front.line { width: 75%; }
 
-.wizard2.steps5 .progress .back.line { width: 80%; }
+.wizard2.steps5 .progress .line { width: 80%; left: 10%; }
+.wizard2.steps4 .progress .front.line { width: 0%; }
 .wizard2.steps5 .progress li { width: 20%; }
 .wizard2.steps5[data-on-step="2"] .progress .front.line { width: 20%; }
 .wizard2.steps5[data-on-step="3"] .progress .front.line { width: 40%; }
@@ -1756,7 +1794,7 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2 .buttons button[rel=next],
 .wizard2 .buttons button.final { float: right; }
 
-.wizard2 button {  font-size: 12pt; }
+.wizard2 button { font-size: 12pt; }
 .wizard2 button span { color: yellow; }
 .wizard2 button[rel=prev] {
   background: none;

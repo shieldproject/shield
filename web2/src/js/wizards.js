@@ -1,35 +1,20 @@
-;(function (exported, document, undefined) {
+;(function (exported, jQuery, document, undefined) {
 
-  var Wizard2 = function (e) {
-    this.root     = $(e); /* root HTML element */
-    this.handlers = {};   /* event handlers */
-
-    /* set the number of steps as a class, for CSS progress bar styling */
-    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
-  };
-
-  Wizard2.prototype.step = function (n, mode) {
+  var step = function (root, n, mode) {
+    console.log('step()', { root: root, n: n, mode: mode });
     console.log('Wizard: transitioning to step %d (in "%s" mode)', n, mode);
 
-    /* the before:$step hook fires before we show the step page */
-    if ('before:'+n.toString() in this.handlers) {
-      this.handler['before:'+n.toString()].call(this, {
-        step: n,
-        mode: mode
-      });
-    }
-
-    var $progress = this.root.find('.progress li');
-    this.root.find('[data-step]').each(function (i,e) {
+    var $progress = root.find('.progress li');
+    root.find('[data-step]').each(function (i,e) {
       var $step = $(e);
       var num   = parseInt($step.attr('data-step'));
       var $li   = $($progress[num-1]);
 
-      if (num < step) {
+      if (num < n) {
         $li.transitionClass('current', 'completed');
         $step.hide();
 
-      } else if (num == step) {
+      } else if (num == n) {
         $li.transitionClass('completed', 'current');
         if (mode) {
           $step.attr('data-mode', mode);
@@ -42,283 +27,246 @@
       }
     });
 
-    /* the after:$step hook fires before we show the step page */
-    if ('after:'+n.toString() in this.handlers) {
-      this.handler['after:'+n.toString()].call(this, {
-        step: n,
-        mode: mode
-      });
-    }
-
-    $root.attr('data-on-step', step);
+    root.attr('data-on-step', n);
   };
 
-  Wizard2.prototype.on = function (ev, fn) {
-    this.handers[ev] = fn;
-  };
+  var doConfigureWizard = function ($main, prefix) {
+    this.root = $main.find(prefix);
+    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
+    step(this.root, 1, 'choose');
 
-  var Wizard = {
-    setup: function ($root) {
-      $root.addClass('steps'+$root.find('[data-step]').length.toString());
-    },
-    step: function ($root, step, mode) {
-      console.log('Wizard: transitioning to step %d (in "%s" mode)', step, mode);
-
-      var $progress = $root.find('.progress li');
-      $root.find('[data-step]').each(function (i,e) {
-        var $step = $(e);
-        var num   = parseInt($step.attr('data-step'));
-        var $li   = $($progress[num-1]);
-
-        if (num < step) {
-          $li.transitionClass('current', 'completed');
-          $step.hide();
-        } else if (num == step) {
-          $li.transitionClass('completed', 'current');
-          if (mode) {
-            $step.attr('data-mode', mode);
-          }
-          $step.autofocus().show();
-        } else {
-          $li.removeClass('current completed');
-          $step.hide();
-        }
-
-      });
-
-      $root.attr('data-on-step', step);
-    }
-  };
-
-  exported.DoConfigureWizard = function (root) {
-    this.root = $(root);
-    this._    = {};
-
-    this.mount(this.root);
-  };
-
-  exported.DoConfigureWizard.prototype.step = function (next, mode) {
-    Wizard.step(this.root, next, mode);
-  };
-
-  exported.DoConfigureWizard.prototype.mount = function ($root) {
-    $root = $($root);
-    Wizard.setup($root);
-    Wizard.step($root, 1, 'choose');
-
-    if ($root.data('do-configure-wizard:initialized')) {
+    if ($main.data('do-configure-wizard:initialized')) {
       return; /* already mounted event handlers */
     }
-    $root.data('do-configure-wizard:initialized', 'yes');
+    $main.data('do-configure-wizard:initialized', 'yes');
 
-    console.log('mounting do-configure-wizard to ', $root);
     var self = this;
-    $root
-      .on('click', 'a[href^="step:"]', function (event) {
+    $main
+      .on('click', prefix+' a[href^="step:"]', function (event) {
         event.preventDefault();
-        var step = parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, ''));
-        self.step(step);
+        step(self.root, parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, '')));
       })
-      .on('click', '[rel=prev]', function (event) {
+      .on('click', prefix+' [rel=prev]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now - 1);
+        var now = parseInt(self.root.extract('on-step'));
+        step(self.root, now - 1);
       })
-      .on('click', '[rel=next]', function (event) {
+      .on('click', prefix+' [rel=next]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
+        var now = parseInt(self.root.extract('on-step'));
 
-        if (now + 1 == 5) { /* moving to Review step */
-          self.root.find('.review').template('do-configure-review', self.val());
+        if (now + 1 == 3 && self.root.find('[data-step=2]').extract('mode') == 'create') {
+          var $form = self.root.find('[data-step=2] form');
+          if (!$form.reset().validate().isOK()) { return; }
         }
 
-        self.step(now + 1);
+        if (now + 1 == 4 && self.root.find('[data-step=3]').extract('mode') == 'create') {
+          var $form = self.root.find('[data-step=3] form');
+          if (!$form.reset().validate().isOK()) { return; }
+        }
+
+        if (now + 1 == 5) { /* moving to Review step */
+          var val = {};
+
+          /* TARGET */
+          val.target = {};
+          if (self.root.find('[data-step=2]').extract('mode') == 'choose') {
+            val.target = { uuid: self.root.find('[data-step=2] tr.selected').extract('target-uuid') };
+
+            var t = window.SHIELD.system(val.target.uuid);
+            if (t) {
+              val.target.name = t.name;
+              val.target.plugin = t.plugin;
+            }
+
+          } else {
+            val.target = self.root.find('[data-step=2] form').serializeObject().target;
+          }
+
+          /* STORE */
+          val.store = {};
+          if (self.root.find('[data-step=3]').extract('mode') == 'choose') {
+            val.store = { uuid: self.root.find('[data-step=3] tr.selected').extract('store-uuid') };
+
+            var t = window.SHIELD.store(val.store.uuid);
+            if (t) {
+              val.store.name = t.name;
+              val.store.plugin = t.plugin;
+            }
+
+          } else {
+            val.store = self.root.find('[data-step=3] form').serializeObject().store;
+          }
+
+          /* SCHEDULING */
+          val.schedule = {
+            spec: self.root.find('[data-step=4] form').timespec(),
+            keep: self.root.find('[name=keep_days]').val()
+          };
+          if (!val.schedule.keep) {
+            val.schedule.keep = self.root.find('[data-step=4] [name=keep_days]').attr('placeholder');
+          }
+          self.root.find('.review').template('do-configure-review', val);
+        }
+
+        step(self.root, now + 1);
       })
-      .on('click', '.choose.target [rel=new]', function (event) {
+      .on('click', prefix+' .choose.target [rel=new]', function (event) {
           event.preventDefault();
-          self.step(2, 'create');
+          step(self.root, 2, 'create');
       })
-      .on('click', '.choose.target tbody tr', function (event) {
+      .on('click', prefix+' .choose.target tbody tr', function (event) {
         var $row = $(event.target).closest('tr');
 
         if (!$row.is('.selected')) { /* user wants to select ... */
           var uuid = $row.extract('target-uuid');
           console.log('choosing target: "%s"', uuid);
-          self.step(2, uuid ? 'choose' : 'create');
+          step(self.root, 2, uuid ? 'choose' : 'create');
         }
       })
-      .on('click', '.choose.store [rel=new]', function (event) {
+      .on('click', prefix+' .choose.store [rel=new]', function (event) {
           event.preventDefault();
-          self.step(3, 'create');
+          step(self.root, 3, 'create');
       })
-      .on('click', '.choose.store tbody tr', function (event) {
+      .on('click', prefix+' .choose.store tbody tr[data-store-uuid]', function (event) {
         var $row = $(event.target).closest('tr');
 
         if (!$row.is('.selected')) { /* user wants to select ... */
           var uuid = $row.extract('store-uuid');
           console.log('choosing store: "%s"', uuid);
+          step(self.root, 3, uuid ? 'choose' : 'create');
         }
       })
 
-      .on('click', '.scheduling .optgroup [data-subform]', function (event) {
+      .on('click', prefix+' .scheduling .optgroup [data-subform]', function (event) {
         var sub = $(event.target).extract('subform');
-        $root.find('.scheduling .subform').hide();
-        $root.find('.scheduling .subform#'+sub).show();
-        $root.find('input[name=keep_days]')
-               .attr('placeholder', $(event.target).extract('retain'));
-      });
+        self.root.find('.scheduling .subform').hide();
+        self.root.find('.scheduling .subform#'+sub).show();
+        self.root.find('input[name=keep_days]')
+            .attr('placeholder', $(event.target).extract('retain'));
+      })
     ;
+
+    return this;
   };
 
-  exported.DoConfigureWizard.prototype.val = function () {
-    var val = {};
+  exported.doConfigureWizard = doConfigureWizard;
 
-    /* TARGET */
-    val.target = {};
-    if (this.root.find('[data-step=2]').extract('mode') == 'choose') {
-      val.target = { uuid: this.root.find('[data-step=2] tr.selected').extract('target-uuid') };
-
-      var t = window.SHIELD.system(val.target.uuid);
-      if (t) {
-        val.target.name = t.name;
-        val.target.plugin = t.plugin;
-      }
-
-    } else {
-      val.target = this.root.find('[data-step=2] form').serializeObject().target;
-    }
-
-    /* STORE */
-    val.store = {};
-    if (this.root.find('[data-step=3]').extract('mode') == 'choose') {
-      val.store = { uuid: this.root.find('[data-step=3] tr.selected').extract('store-uuid') };
-
-      var t = window.SHIELD.store(val.store.uuid);
-      if (t) {
-        val.store.name = t.name;
-        val.store.plugin = t.plugin;
-      }
-
-    } else {
-      val.store = this.root.find('[data-step=3] form').serializeObject().store;
-    }
-
-    /* SCHEDULING */
-    val.schedule = {
-      spec: this.root.find('[data-step=4] form').timespec(),
-      keep: this.root.find('[name=keep_days]').val()
-    };
-    if (!val.schedule.keep) {
-      val.schedule.keep = this.root.find('[data-step=4] [name=keep_days]').attr('placeholder');
-    }
-
-    return val;
-  };
-
-  exported.DoAdHocWizard = function (root) {
+  var doAdHocWizard = function (root) {
     this.root = $(root);
-    this._    = {};
-
-    this.mount(this.root);
   };
 
-  exported.DoAdHocWizard.prototype.step = function (next, mode) {
-    Wizard.step(this.root, next, mode);
-  };
+  doAdHocWizard.prototype.mount = function (e, prefix) {
+    var $main = $(e);
+    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
+    step(this.root, 1);
 
-  exported.DoAdHocWizard.prototype.mount = function ($root) {
-    $root = $($root);
-    Wizard.setup($root);
-    Wizard.step($root, 1);
-
-    if ($root.data('do-ad-hoc-wizard:initialized')) {
+    if ($main.data('do-ad-hoc-wizard:initialized')) {
       return; /* already mounted event handlers */
     }
-    $root.data('do-ad-hoc-wizard:initialized', 'yes');
+    $main.data('do-ad-hoc-wizard:initialized', 'yes');
 
-    console.log('mounting do-ad-hoc-wizard to ', $root);
     var self = this;
-    $root
-      .on('click', 'a[href^="step:"]', function (event) {
+    $main
+      .on('click', prefix+' a[href^="step:"]', function (event) {
         event.preventDefault();
-        var step = parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, ''));
-        self.step(step);
+        step(self.root, parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, '')));
       })
-      .on('click', '[rel=prev]', function (event) {
+      .on('click', prefix+' [rel=prev]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now - 1);
+        var now = parseInt(self.root.extract('on-step'));
+        step(self.root, now - 1);
       })
-      .on('click', '[rel=next]', function (event) {
+      .on('click', prefix+' [rel=next]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now + 1);
-      })
-      .on('click', '.choose.target tbody tr', function (event) {
-        var $row = $(event.target).closest('tr')
+        var now = parseInt(self.root.extract('on-step'));
 
-        if (!$row.is('.selected')) { /* user wants to select ... */
-          var uuid = $row.extract('target-uuid');
-          console.log('choosing target: "%s"', uuid);
+        if (now + 1 == 3) {
+          var uuid = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          console.log('selecting target %s', uuid);
+          if (!uuid) { return; }
+
+          $('#main .do-backup .redraw.jobs').template('do-backup-choose-job', {
+            selected_target: uuid,
+          });
         }
-      })
-      .on('click', '.choose.store tbody tr', function (event) {
-        /* ... */
+
+        if (now + 1 == 4) { /* moving to Review step */
+          var data = {};
+
+          data.selected_target = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          if (!data.selected_target) { return; }
+          data.selected_job = self.root.find('[data-step=3] tr.selected').extract('job-uuid');
+          if (!data.selected_job) { return; }
+
+          $('#main .do-backup .review').template('do-backup-review', data);
+        }
+
+        step(self.root, now + 1);
       })
     ;
+
+    return self;
   };
 
-  exported.DoRestoreWizard = function (root) {
+  exported.DoAdHocWizard = doAdHocWizard;
+
+  var doRestoreWizard = function (root) {
     this.root = $(root);
-    this._    = {};
-
-    this.mount(this.root);
   };
 
-  exported.DoRestoreWizard.prototype.step = function (next, mode) {
-    Wizard.step(this.root, next, mode);
-  };
+  doRestoreWizard.prototype.mount = function (e, prefix) {
+    var $main = $(e);
+    this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
+    step(this.root, 1);
 
-  exported.DoRestoreWizard.prototype.mount = function ($root) {
-    $root = $($root);
-    Wizard.setup($root);
-    Wizard.step($root, 1);
-
-    if ($root.data('do-restore-wizard:initialized')) {
+    if ($main.data('do-restore-wizard:initialized')) {
       return; /* already mounted event handlers */
     }
-    $root.data('do-restore-wizard:initialized', 'yes');
+    $main.data('do-restore-wizard:initialized', 'yes');
 
-    console.log('mounting do-restore-wizard to ', $root);
     var self = this;
-    $root
-      .on('click', 'a[href^="step:"]', function (event) {
+    $main
+      .on('click', prefix+' a[href^="step:"]', function (event) {
         event.preventDefault();
-        var step = parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, ''));
-        self.step(step);
+        step(self.root, parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, '')));
       })
-      .on('click', '[rel=prev]', function (event) {
+      .on('click', prefix+' [rel=prev]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now - 1);
+        var now = parseInt(self.root.extract('on-step'));
+        step(self.root, now - 1);
       })
-      .on('click', '[rel=next]', function (event) {
+      .on('click', prefix+' [rel=next]', function (event) {
         event.preventDefault();
-        var now = parseInt($root.extract('on-step'));
-        self.step(now + 1, 'choose');
-      })
-      .on('click', '.choose.target tbody tr', function (event) {
-        var $row = $(event.target).closest('tr');
+        var now = parseInt(self.root.extract('on-step'));
 
-        if (!$row.is('.selected')) { /* user wants to select ... */
-          var uuid = $row.extract('target-uuid');
-          console.log('choosing target: "%s"', uuid);
+        if (now + 1 == 3) {
+          var uuid = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          console.log('selecting target %s', uuid);
+          if (!uuid) { return; }
+
+          $('#main .do-restore .redraw.archives').template('do-restore-choose-archive', {
+            selected_target: uuid,
+          });
         }
-      })
-      .on('click', '.choose.archive tbody tr', function (event) {
-        /* ... */
+
+        if (now + 1 == 4) { /* moving to Review step */
+          var data = {};
+
+          data.selected_target = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
+          if (!data.selected_target) { return; }
+
+          data.selected_archive = self.root.find('[data-step=3] tr.selected').extract('archive-uuid');
+          if (!data.selected_archive) { return; }
+
+          $('#main .do-restore .review').template('do-restore-review', data);
+        }
+
+        step(self.root, now + 1);
       })
     ;
   };
 
-})(window, document);
+  exported.DoRestoreWizard = doRestoreWizard;
+
+})(window, window.jQuery, document);
