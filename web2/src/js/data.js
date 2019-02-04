@@ -395,6 +395,8 @@ window.S.H.I.E.L.D.Database = (function () {
 
     for (var agent_uuid in tenant.agents) {
       var agent = tenant.agents[agent_uuid];
+      if (!agent.metadata || !agent.metadata.plugins) { continue; }
+
       agent.plugins = agent.metadata.plugins;
 
       /* enumerate the plugins, and wire up the `map` associations */
@@ -444,7 +446,7 @@ window.S.H.I.E.L.D.Database = (function () {
 
     if (!(id in tenant.agents)) {
       for (var uuid in tenant.agents) {
-        if (tenant.agents[uuid].address == id) {
+        if (tenant.agents[uuid].address == id && tenant.agents[uuid].status != 'checking') {
           return tenant.agents[uuid];
         }
       }

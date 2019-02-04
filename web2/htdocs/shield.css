@@ -1807,6 +1807,12 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2 button.final {
   font-size: 140%;
 }
+.wizard2 button.final.submitting {
+  opacity: 0.5;
+}
+.wizard2 button.final.submitting :after {
+  content: "...";
+}
 
 
 .wizard2 input::placeholder {

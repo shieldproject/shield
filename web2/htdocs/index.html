@@ -698,10 +698,14 @@
             <h2>Run an Ad Hoc Backup</h2>
             <div class="c12">[[# intro text {{{ ]]
               <div class="x9 intro">
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                Duis consectetur leo tortor, sed sodales sapien bibendum quis.
-                Praesent euismod lorem sed nulla ullamcorper ullamcorper.
-                Orci varius natoque penatibus et magnis dis parturient montes.</p>
+                <p>This wizard will run a one-off, ad hoc backup job, regardless
+                of its schedule.  You pick the data system you want to run a backup
+                for, and a cloud storage system / retention policy, and let SHIELD
+                do the rest.</p>
+
+                <p><strong>Note:</strong> SHIELD can only run previously configured
+                jobs; this wizard will not allow you to arbitrarily choose storage
+                and data systems.</p>
 
                 <div class="buttons">
                   <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
@@ -766,7 +770,7 @@
       ]]
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
-                [[ var system = SHIELD.system(_.selected_target); ]]
+                [[ var system = SHIELD.system(_.target.uuid); ]]
                 <table class="lean selectable choose store">
                   <thead>
                     <tr>
@@ -813,10 +817,9 @@
 
       ]]
             <h2><span>Run Ad Hoc Backup</span>Review Your Selections</h2>
-            [[ var system  = SHIELD.system(_.selected_target); ]]
-            [[ console.log(system); ]]
+            [[ var system  = SHIELD.system(_.target.uuid); ]]
             [[ var job; SHIELD.each(system.jobs, function (i, j) {
-                 if (!job && j.uuid == _.selected_job) { job = j; }
+                 if (!job && j.uuid == _.job.uuid) { job = j; }
                }); ]]
             <div class="summary-section">[[# {{{ ]]
               <div class="c12 band">
@@ -880,7 +883,11 @@
 
             <div class="c12">[[# intro text {{{ ]]
               <div class="x9 intro">
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis consectetur leo tortor, sed sodales sapien bibendum quis. Praesent euismod lorem sed nulla ullamcorper ullamcorper. Orci varius natoque penatibus et magnis dis parturient montes.</p>
+                <p>This wizard will guide you through the process of restoring a
+                protected data system from a backup archive.  You choose the system
+                that needs restored, and SHIELD will narrow the field of archives
+                to include only those that were taken from that system, and are in
+                a valid, restorable state.</p>
 
                 <div class="buttons">
                   <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
@@ -955,7 +962,7 @@
               var archives = [];
               var all = SHIELD.activeTenant().archives;
               SHIELD.each(all, function (i, archive) {
-                if (all[i].status == "valid" && all[i].target_uuid == _.selected_target) {
+                if (all[i].status == "valid" && all[i].target_uuid == _.target.uuid) {
                   archives.push(all[i]);
                 } else {
                   console.log('rejecting archive %s (status: %s, target: %s)', all[i].uuid, all[i].status, all[i].target_uuid);
@@ -1013,8 +1020,8 @@
 
       ]]
             <h2><span>Restore Data</span>Review Your Selections</h2>
-            [[ var system  = SHIELD.system(_.selected_target); ]]
-            [[ var archive = SHIELD.findArchive(_.selected_archive); ]]
+            [[ var system  = SHIELD.system(_.target.uuid); ]]
+            [[ var archive = SHIELD.findArchive(_.archive.uuid); ]]
             <div class="summary-section">[[# {{{ ]]
               <div class="c12 band">
                 <div class="x2"><label>Data System</label></div>
@@ -1063,6 +1070,7 @@
         {do-configure} - Job Configuration Wizard
 
       ]]
+      [[ console.log(_, SHIELD); ]]
       <div class="gutter blk wizard2 steps5 do-configure">
         <div class="progress">[[# {{{ ]]
           <div class="back line"></div>
@@ -1073,8 +1081,8 @@
               The data you want to back up.</li>
             <li><i>3</i><strong>Cloud Storage</strong>
               Where you want to store the backup archives.</li>
-            <li><i>4</i><strong>Scheduling</strong>
-              How often to run backups, and how long to keep archives.</li>
+            <li><i>4</i><strong>Job Details</strong>
+              How often to run backups, how long to keep archives, encryption parameters, etc.</li>
             <li><i>5</i><strong>Review</strong></li>
           </ul>
         </div>[[# }}} ]]
@@ -1172,6 +1180,17 @@
                       </div>
                     </div>
 
+                    <div class="field">
+                      <div class="x3"><label for="job.compression">Archive Compression</label></div>
+                      <div class="x9">
+                        <select name="job.compression">
+                          <option value="bzip2">bzip2</option>
+                          <option value="none">No Compression</option>
+                        </select>
+                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, but may substantially increase time-to-backup (especially for large data sets).</p>
+                      </div>
+                    </div>
+
                     <div class="field required" data-field="target.plugin" data-type="selection">
                       <div class="x3"><label for="target.plugin">Plugin</label></div>
                       <div class="x9">
@@ -1228,7 +1247,7 @@
                 </table>
                 <div class="buttons">
                   <button rel="prev">◀ Back to <span>Data System</span></button>
-                  <button rel="next">Next up: <span>Scheduling</span> ▶</button>
+                  <button rel="next">Next up: <span>Job Details</span> ▶</button>
                 </div>
               </div>
               <div class="x3 lean">
@@ -1298,8 +1317,8 @@
 
         <div data-step="4">
           <form class="new-form1">
-          <h2><span>Configure a New Backup Job</span>Scheduling &amp; Retention</h2>[[# {{{ ]]
-          <div class="c12 band hover">
+          <h2><span>Configure a New Backup Job</span>Job Details</h2>
+          <div class="c12 band hover">[[# schedule {{{ ]]
             <div class="x2"><label>Schedule</label></div>
             <div class="x7">
               <div class="error"></div>
@@ -1337,21 +1356,41 @@
               <div class="side-help">How often would you like the backup to be preformed?</div>
             </div>
           </div>
-
-          <div class="c12 band hover">
-            <div class="x2"><label for="keep_days">Retention</label></div>
+          [[# }}} ]]
+          <div class="c12 band hover">[[# paused {{{ ]]
+            <div class="x2"><label for="job.paused">Paused</label></div>
             <div class="x7">
-              <input type="text" size="3" name="keep_days" /> days
+              <label for="cb-job.paused" class="switch">
+                <input id="cb-job.paused" name="job.paused" type="checkbox"><span class="slider round"></span>
+              </label>
+              <p class="help">Paused jobs will not be run by the SHIELD job scheduler, but can still be run manually.</p>
+            </div>
+          </div>
+          [[# }}} ]]
+          <div class="c12 band hover">[[# retention {{{ ]]
+            <div class="x2"><label for="job.keep_days">Retention</label></div>
+            <div class="x7">
+              <input type="text" size="3" name="job.keep_days" /> days
               <p class="help">How long should SHIELD keep each backup archive?</p>
             </div>
           </div>
-
+          [[# }}} ]]
+          <div class="c12 band hover">[[# encryption {{{ ]]
+            <div class="x2"><label for="job.randomize_keys">Randomize Encryption Keys</label></div>
+            <div class="x7">
+              <label for="cb-job.randomize_keys" class="switch">
+                <input id="cb-job.randomize_keys" name="job.randomize_keys" type="checkbox" checked><span class="slider round"></span>
+              </label>
+              <p class="help">For increased security, SHIELD randomizes the encryption key used for each archive it creates.  This helps to defeat statistical attacks against encrypted archives for data sets that change very little.</p>
+            </div>
+          </div>
+          [[# }}} ]]
           <div class="c12 band">
             <div class="x9 r2 buttons">
               <button rel="prev">◀ Back to <span>Cloud Storage</span></button>
               <button rel="next">Next up: <span>Review</span> ▶</button>
             </div>
-          </div>[[# }}} ]]
+          </div>
           </form>
         </div>
 
@@ -1429,7 +1468,7 @@
         [[ include('plugin-configuration-form', { prefix: 'store.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
           <button rel="prev">◀ Back to <span>Data System</span></button>
-          <button rel="next">Next up: <span>Scheduling</span> ▶</button>
+          <button rel="next">Next up: <span>Job Details</span> ▶</button>
         </div>
         [[ } else { ]]
         <div class="x12 buttons">
@@ -1470,7 +1509,7 @@
               <div class="c12 band">
                 <div class="x2"><label>Schedule</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">runs [[= _.schedule.spec ]]
+                  <p class="selected-elsewhere">runs [[= _.job.schedule ]][[ if (_.job.paused) { ]] (paused)[[ } ]]
                   <a class="change-me" href="step:4">change</a></p>
                 </div>
               </div>
@@ -1478,7 +1517,15 @@
               <div class="c12 band">
                 <div class="x2"><label>Retention</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">keep [[= pluralize(_.schedule.keep, 'day') ]] of backup archives
+                  <p class="selected-elsewhere">keep [[= pluralize(_.job.keep_days, 'day') ]] of backup archives
+                  <a class="change-me" href="step:4">change</a></p>
+                </div>
+              </div>
+
+              <div class="c12 band">
+                <div class="x2"><label>Encryption Keys</label></div>
+                <div class="x7">
+                  <p class="selected-elsewhere">[[ if (_.job.fixed_key) { ]]fixed[[ } else { ]]randomized[[ } ]]
                   <a class="change-me" href="step:4">change</a></p>
                 </div>
               </div>
@@ -1486,8 +1533,8 @@
 
             <div class="c12">
               <div class="x9 r2 buttons">
-                <button rel="prev">◀ Back to <span>Scheduling</span></button>
-                <button class="final">Create <span>Backup Job</span> ▶</button>
+                <button rel="prev">◀ Back to <span>Job Details</span></button>
+                <button class="final">Create <span>Backup Job</span></button>
               </div>
             </div>
     <!-- }}} --></script>

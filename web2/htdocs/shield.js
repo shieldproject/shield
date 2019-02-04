@@ -1568,30 +1568,6 @@ var Lens = {};
 
 
   /***************************************************
-     $(...).serializePluginObject() - Serialize Data from a Plugin Form
-
-   ***************************************************/
-  $.fn.serializePluginObject = function () { // {{{
-    var data       = this.serializeObject();
-    data.agent     = data.agent.replace(/.*\|/, '');
-    if ('threshold' in data) {
-      data.threshold = readableToBytes(data.threshold || '0');
-    }
-    if (!('config' in data)) {
-      data.config = {};
-    }
-    for (var k in data.config) {
-      if (data.config[k] == "") {
-        delete data.config[k];
-      }
-    }
-
-    return data;
-  };
-  // }}}
-
-
-  /***************************************************
      $(...).viewSwitcher()
 
    ***************************************************/
@@ -2007,6 +1983,8 @@ window.S.H.I.E.L.D.Database = (function () {
 
     for (var agent_uuid in tenant.agents) {
       var agent = tenant.agents[agent_uuid];
+      if (!agent.metadata || !agent.metadata.plugins) { continue; }
+
       agent.plugins = agent.metadata.plugins;
 
       /* enumerate the plugins, and wire up the `map` associations */
@@ -2056,7 +2034,7 @@ window.S.H.I.E.L.D.Database = (function () {
 
     if (!(id in tenant.agents)) {
       for (var uuid in tenant.agents) {
-        if (tenant.agents[uuid].address == id) {
+        if (tenant.agents[uuid].address == id && tenant.agents[uuid].status != 'checking') {
           return tenant.agents[uuid];
         }
       }
@@ -2320,47 +2298,7 @@ window.S.H.I.E.L.D.Database = (function () {
         }
 
         if (now + 1 == 5) { /* moving to Review step */
-          var val = {};
-
-          /* TARGET */
-          val.target = {};
-          if (self.root.find('[data-step=2]').extract('mode') == 'choose') {
-            val.target = { uuid: self.root.find('[data-step=2] tr.selected').extract('target-uuid') };
-
-            var t = window.SHIELD.system(val.target.uuid);
-            if (t) {
-              val.target.name = t.name;
-              val.target.plugin = t.plugin;
-            }
-
-          } else {
-            val.target = self.root.find('[data-step=2] form').serializeObject().target;
-          }
-
-          /* STORE */
-          val.store = {};
-          if (self.root.find('[data-step=3]').extract('mode') == 'choose') {
-            val.store = { uuid: self.root.find('[data-step=3] tr.selected').extract('store-uuid') };
-
-            var t = window.SHIELD.store(val.store.uuid);
-            if (t) {
-              val.store.name = t.name;
-              val.store.plugin = t.plugin;
-            }
-
-          } else {
-            val.store = self.root.find('[data-step=3] form').serializeObject().store;
-          }
-
-          /* SCHEDULING */
-          val.schedule = {
-            spec: self.root.find('[data-step=4] form').timespec(),
-            keep: self.root.find('[name=keep_days]').val()
-          };
-          if (!val.schedule.keep) {
-            val.schedule.keep = self.root.find('[data-step=4] [name=keep_days]').attr('placeholder');
-          }
-          self.root.find('.review').template('do-configure-review', val);
+          self.root.find('.review').template('do-configure-review', self.data());
         }
 
         step(self.root, now + 1);
@@ -2396,22 +2334,88 @@ window.S.H.I.E.L.D.Database = (function () {
         var sub = $(event.target).extract('subform');
         self.root.find('.scheduling .subform').hide();
         self.root.find('.scheduling .subform#'+sub).show();
-        self.root.find('input[name=keep_days]')
+        self.root.find('input[name="job.keep_days"]')
             .attr('placeholder', $(event.target).extract('retain'));
       })
+
+      .on('click', prefix+' button.final', function (event) {
+        event.preventDefault();
+        $(event.target).addClass('submitting');
+
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/systems',
+          data: self.data(),
+
+          error: "Failed to create system via the SHIELD API.",
+          complete: function () {
+            $(event.target).removeClass('submitting');
+          },
+          success: function (data) {
+            goto('#!/systems/system:uuid'+data.uuid);
+          }
+        });
+      })
     ;
-
-    return this;
   };
 
-  exported.doConfigureWizard = doConfigureWizard;
+  doConfigureWizard.prototype.data = function () {
+    var data = {};
+    var step = parseInt(this.root.attr('data-on-step'));
 
-  var doAdHocWizard = function (root) {
-    this.root = $(root);
+    /* TARGET */
+    if (step >= 2) {
+      data.target = {};
+      if (this.root.find('[data-step=2]').extract('mode') == 'choose') {
+        data.target.uuid = this.root.find('[data-step=2] tr.selected').extract('target-uuid');
+
+        var t = window.SHIELD.system(data.target.uuid);
+        if (t) {
+          data.target.name   = t.name;
+          data.target.plugin = t.plugin;
+        }
+
+      } else {
+        data.target = this.root.find('[data-step=2] form').serializeObject().target;
+      }
+    }
+
+    /* STORE */
+    if (step >= 3) {
+      data.store = {};
+      if (this.root.find('[data-step=3]').extract('mode') == 'choose') {
+        data.store.uuid = this.root.find('[data-step=3] tr.selected').extract('store-uuid');
+
+        var t = window.SHIELD.store(data.store.uuid);
+        if (t) {
+          data.store.name = t.name;
+          data.store.plugin = t.plugin;
+        }
+
+      } else {
+        data.store = this.root.find('[data-step=3] form').serializeObject().store;
+      }
+    }
+
+    /* SCHEDULING */
+    if (step >= 4) {
+      data.job = this.root.find('[data-step=4] form').serializeObject().job;
+      data.job.schedule = this.root.find('[data-step=4] form').timespec();
+      if (!data.job.keep_days) {
+        data.job.keep_days = this.root.find('[data-step=4] [name="job.keep_days"]').attr('placeholder');
+      }
+      data.job.keep_days = parseInt(data.job.keep_days);
+      data.job.fixed_key = !data.job.randomize_keys;
+      delete data.job.randomize_keys;
+    }
+
+    return data;
   };
 
-  doAdHocWizard.prototype.mount = function (e, prefix) {
-    var $main = $(e);
+  exported.DoConfigureWizard = doConfigureWizard;
+
+  var doAdHocWizard = function ($main, prefix) {
+    this.root = $main.find(prefix);
     this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
     step(this.root, 1);
 
@@ -2436,41 +2440,64 @@ window.S.H.I.E.L.D.Database = (function () {
         var now = parseInt(self.root.extract('on-step'));
 
         if (now + 1 == 3) {
-          var uuid = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
-          console.log('selecting target %s', uuid);
-          if (!uuid) { return; }
-
-          $('#main .do-backup .redraw.jobs').template('do-backup-choose-job', {
-            selected_target: uuid,
-          });
+          var data = self.data();
+          if (!data.target) { return; }
+          $('#main .do-backup .redraw.jobs').template('do-backup-choose-job', data);
         }
 
         if (now + 1 == 4) { /* moving to Review step */
-          var data = {};
-
-          data.selected_target = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
-          if (!data.selected_target) { return; }
-          data.selected_job = self.root.find('[data-step=3] tr.selected').extract('job-uuid');
-          if (!data.selected_job) { return; }
-
+          var data = self.data();
+          if (!data.target || !data.job) { return; }
           $('#main .do-backup .review').template('do-backup-review', data);
         }
 
         step(self.root, now + 1);
       })
-    ;
+      .on('click', prefix+' button.final', function (event) {
+        event.preventDefault();
+        $(event.target).addClass('submitting');
 
-    return self;
+        var data = self.data();
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/jobs/'+data.job.uuid+'/run',
+          data: {},
+
+          error: "Failed to create system via the SHIELD API.",
+          complete: function () {
+            $(event.target).removeClass('submitting');
+          },
+          success: function () {
+            goto('#!/systems/system:uuid'+data.target.uuid);
+          }
+        });
+      })
+    ;
+  };
+
+  doAdHocWizard.prototype.data = function () {
+    var data = {};
+    var step = parseInt(this.root.attr('data-on-step'));
+
+    /* TARGET */
+    if (step >= 2) {
+      data.target = {};
+      data.target.uuid = this.root.find('[data-step=2] tr.selected').extract('target-uuid');
+    }
+
+    /* JOB */
+    if (step >= 3) {
+      data.job = {};
+      data.job.uuid = this.root.find('[data-step=3] tr.selected').extract('job-uuid');
+    }
+
+    return data;
   };
 
   exported.DoAdHocWizard = doAdHocWizard;
 
-  var doRestoreWizard = function (root) {
-    this.root = $(root);
-  };
-
-  doRestoreWizard.prototype.mount = function (e, prefix) {
-    var $main = $(e);
+  var doRestoreWizard = function ($main, prefix) {
+    this.root = $main.find(prefix);
     this.root.addClass('steps'+this.root.find('[data-step]').length.toString());
     step(this.root, 1);
 
@@ -2495,30 +2522,58 @@ window.S.H.I.E.L.D.Database = (function () {
         var now = parseInt(self.root.extract('on-step'));
 
         if (now + 1 == 3) {
-          var uuid = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
-          console.log('selecting target %s', uuid);
-          if (!uuid) { return; }
-
-          $('#main .do-restore .redraw.archives').template('do-restore-choose-archive', {
-            selected_target: uuid,
-          });
+          var data = self.data();
+          if (!data.target) { return; }
+          $('#main .do-restore .redraw.archives').template('do-restore-choose-archive', data);
         }
 
         if (now + 1 == 4) { /* moving to Review step */
-          var data = {};
-
-          data.selected_target = self.root.find('[data-step=2] tr.selected').extract('target-uuid');
-          if (!data.selected_target) { return; }
-
-          data.selected_archive = self.root.find('[data-step=3] tr.selected').extract('archive-uuid');
-          if (!data.selected_archive) { return; }
-
+          var data = self.data();
+          if (!data.target || !data.archive) { return; }
           $('#main .do-restore .review').template('do-restore-review', data);
         }
 
         step(self.root, now + 1);
       })
+      .on('click', prefix+' button.final', function (event) {
+        event.preventDefault();
+        $(event.target).addClass('submitting');
+
+        var data = self.data();
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/archives/'+data.archive.uuid+'/restore',
+          data: {},
+
+          error: "Failed to create system via the SHIELD API.",
+          complete: function () {
+            $(event.target).removeClass('submitting');
+          },
+          success: function () {
+            goto('#!/systems/system:uuid'+data.target.uuid);
+          }
+        });
+      })
     ;
+  };
+
+  doRestoreWizard.prototype.data = function () {
+    var data = {};
+    var step = parseInt(this.root.attr('data-on-step'));
+
+    /* TARGET */
+    if (step >= 2) {
+      data.target = {};
+      data.target.uuid = this.root.find('[data-step=2] tr.selected').extract('target-uuid');
+    }
+
+    /* ARCHIVE */
+    if (step >= 3) {
+      data.archive = {};
+      data.archive.uuid = this.root.find('[data-step=3] tr.selected').extract('archive-uuid');
+    }
+
+    return data;
   };
 
   exported.DoRestoreWizard = doRestoreWizard;
@@ -2764,7 +2819,7 @@ function dispatch(page) {
       break;
     }
     $('#main').template('do-backup');
-    (new DoAdHocWizard('.do-backup')).mount('#main', '.do-backup');
+    new DoAdHocWizard($('#main'), '.do-backup');
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
@@ -2777,8 +2832,8 @@ function dispatch(page) {
       break;
     }
 
-    $('#main').template('do-restore', {});
-    (new DoRestoreWizard('.do-restore')).mount('#main', '.do-restore');
+    $('#main').template('do-restore');
+    new DoRestoreWizard($('#main'), '.do-restore');
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
@@ -2817,7 +2872,7 @@ function dispatch(page) {
     window.setTimeout(function () {
       $('#main .optgroup').optgroup();
 
-      doConfigureWizard($('#main'), '.do-configure');
+      new DoConfigureWizard($('#main'), '.do-configure');
       $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
     }, 150);
     break; /* #!/do/configure */
