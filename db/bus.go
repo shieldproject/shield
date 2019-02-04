@@ -27,46 +27,60 @@ func datatype(thing interface{}) string {
 }
 
 func (db *DB) sendCreateObjectEvent(thing interface{}, queues ...string) {
-	fmt.Printf("sending %s to [%s] for %s\n", bus.CreateObjectEvent, strings.Join(queues, ", "), datatype(thing))
-	db.bus.Send(bus.CreateObjectEvent, datatype(thing), thing, queues...)
+	if db.bus != nil {
+		fmt.Printf("sending %s to [%s] for %s\n", bus.CreateObjectEvent, strings.Join(queues, ", "), datatype(thing))
+		db.bus.Send(bus.CreateObjectEvent, datatype(thing), thing, queues...)
+	}
 }
 
 func (db *DB) sendUpdateObjectEvent(thing interface{}, queues ...string) {
-	db.bus.Send(bus.UpdateObjectEvent, datatype(thing), thing, queues...)
+	if db.bus != nil {
+		db.bus.Send(bus.UpdateObjectEvent, datatype(thing), thing, queues...)
+	}
 }
 
 func (db *DB) sendDeleteObjectEvent(thing interface{}, queues ...string) {
-	db.bus.Send(bus.DeleteObjectEvent, datatype(thing), thing, queues...)
+	if db.bus != nil {
+		db.bus.Send(bus.DeleteObjectEvent, datatype(thing), thing, queues...)
+	}
 }
 
 func (db *DB) sendTaskStatusUpdateEvent(task *Task, queues ...string) {
-	db.bus.Send(bus.TaskStatusUpdateEvent, "", map[string]interface{}{
-		"uuid":       task.UUID,
-		"status":     task.Status,
-		"started_at": task.StartedAt,
-		"stopped_at": task.StoppedAt,
-		"ok":         task.OK,
-	}, queues...)
+	if db.bus != nil {
+		db.bus.Send(bus.TaskStatusUpdateEvent, "", map[string]interface{}{
+			"uuid":       task.UUID,
+			"status":     task.Status,
+			"started_at": task.StartedAt,
+			"stopped_at": task.StoppedAt,
+			"ok":         task.OK,
+		}, queues...)
+	}
 }
 
 func (db *DB) sendTaskLogUpdateEvent(id, log string, queues ...string) {
-	db.bus.Send(bus.TaskLogUpdateEvent, "", map[string]interface{}{
-		"uuid": id,
-		"tail": log,
-	}, queues...)
+	if db.bus != nil {
+		db.bus.Send(bus.TaskLogUpdateEvent, "", map[string]interface{}{
+			"uuid": id,
+			"tail": log,
+		}, queues...)
+	}
 }
 
 func (db *DB) sendTenantInviteEvent(user, tenant, role string) {
-	db.bus.Send(bus.TenantInviteEvent, "", map[string]interface{}{
-		"user_uuid":   user,
-		"tenant_uuid": tenant,
-		"role":        role,
-	}, "user:"+user, "tenant:"+tenant, "admins")
+	if db.bus != nil {
+		db.bus.Send(bus.TenantInviteEvent, "", map[string]interface{}{
+			"user_uuid":   user,
+			"tenant_uuid": tenant,
+			"role":        role,
+		}, "user:"+user, "tenant:"+tenant, "admins")
+	}
 }
 
 func (db *DB) sendTenantBanishEvent(user, tenant string) {
-	db.bus.Send(bus.TenantBanishEvent, "", map[string]interface{}{
-		"user_uuid":   user,
-		"tenant_uuid": tenant,
-	}, "user:"+user, "tenant:"+tenant, "admins")
+	if db.bus != nil {
+		db.bus.Send(bus.TenantBanishEvent, "", map[string]interface{}{
+			"user_uuid":   user,
+			"tenant_uuid": tenant,
+		}, "user:"+user, "tenant:"+tenant, "admins")
+	}
 }
