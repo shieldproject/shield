@@ -201,7 +201,7 @@ func (p BbrPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	// execut bbr cli
 	cmd := exec.Command(fmt.Sprintf("%s/bbr", bbr.Bin), "deployment", "--target", bbr.Target, "--username", bbr.Username, "--password", bbr.Password, "--deployment", bbr.Deployment, "--ca-cert", caCertPath, "backup")
-	plugin.DEBUG("Executing: `%s`", cmd)
+	plugin.DEBUG("Executing: `%v`", cmd)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -280,7 +280,7 @@ func (p BbrPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 	// execut bbr cli
 	cmd := exec.Command(fmt.Sprintf("%s/bbr", bbr.Bin), "deployment", "--target", bbr.Target, "--username", bbr.Username, "--password", bbr.Password, "--deployment", bbr.Deployment, "--ca-cert", caCertPath, "restore", "--artifact-path", backups[0])
-	plugin.DEBUG("Executing: `%s`", cmd)
+	plugin.DEBUG("Executing: `%v`", cmd)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()

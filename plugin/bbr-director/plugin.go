@@ -160,7 +160,7 @@ func (p BbrPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 	// TODO: are we going to do pre-backup-check and or clean if there is an unclean director or should this be a manuall step?
 	cmd := exec.Command(fmt.Sprintf("%s/bbr", bbr.Bin), "director", "--host", bbr.Host, "--username", bbr.SSHUsername, "--private-key-path", privateKeyPath, "backup")
-	plugin.DEBUG("Executing: `%s`", cmd)
+	plugin.DEBUG("Executing: `%v`", cmd)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -230,7 +230,7 @@ func (p BbrPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	cmd := exec.Command(fmt.Sprintf("%s/bbr", bbr.Bin), "director", "--host", bbr.Host, "--username", bbr.SSHUsername, "--private-key-path", privateKeyPath, "restore", "--artifact-path", backups[0])
-	plugin.DEBUG("Executing: `%s`", cmd)
+	plugin.DEBUG("Executing: `%v`", cmd)
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
