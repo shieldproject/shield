@@ -240,6 +240,7 @@ EOF
 (shieldd)
   ssh-keygen -m PEM -t rsa -f ${workdir}/config/shieldd_key -N '' >/dev/null
   rm ${workdir}/config/shieldd_key.pub
+  legacy_ssh_key=$(cat ${workdir}/config/shieldd_key | sed -e 's/^/      /')
 
   cat >${workdir}/etc/shieldd.conf <<EOF
 ---
@@ -265,7 +266,10 @@ api:
   session:
     timeout: 8
 
-#private_key:   ${workdir}/config/shieldd_key
+fabrics:
+  - name: legacy
+    ssh-key: |
+${legacy_ssh_key}
 
 auth:
   - name:       Github
