@@ -271,7 +271,7 @@ func (w *Worker) Execute(chore Chore) {
 
 		store, err := w.db.GetStore(task.StoreUUID)
 		if err != nil {
-			panic(fmt.Errorf("failed to retrieve store '%s' from database: %s", task.UUID, err))
+			panic(fmt.Errorf("failed to retrieve store '%s' from database: %s", task.StoreUUID, err))
 		}
 		if store == nil {
 			panic(fmt.Errorf("store '%s' not found in database", task.StoreUUID))
