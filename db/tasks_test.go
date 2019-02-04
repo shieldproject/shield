@@ -55,11 +55,11 @@ var _ = Describe("Task Management", func() {
 
 			// need a target
 			`INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
-			   VALUES ("`+SomeTarget.UUID+`", "`+SomeTenant.UUID+`", "Some Target", "", "plugin", "endpoint", "127.0.0.1:5444")`,
+			   VALUES ("`+SomeTarget.UUID+`", "`+SomeTenant.UUID+`", "Some Target", "", "plugin", '{"end":"point"}', "127.0.0.1:5444")`,
 
 			// need a store
 			`INSERT INTO stores (uuid, tenant_uuid, name, summary, plugin, endpoint, agent)
-			   VALUES ("`+SomeStore.UUID+`", "`+SomeTenant.UUID+`", "Some Store", "", "plugin", "endpoint", "127.0.0.1:9938")`,
+			   VALUES ("`+SomeStore.UUID+`", "`+SomeTenant.UUID+`", "Some Store", "", "plugin", '{"end":"point"}', "127.0.0.1:9938")`,
 
 			// need a job
 			`INSERT INTO jobs (uuid, tenant_uuid, name, summary, paused,
