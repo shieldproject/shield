@@ -151,7 +151,7 @@ func (w *Worker) Execute(chore Chore) {
 		}
 
 		if v.Key == "" {
-			panic(fmt.Errorf("no restore key detected in %s operation output", chore, task.Op))
+			panic(fmt.Errorf("%s: no restore key detected in %s operation output", chore, task.Op))
 		}
 
 		if v.Compression == "" {
