@@ -563,6 +563,9 @@ func (db *DB) ScheduledTask(id string) error {
 	if err != nil {
 		return err
 	}
+	if task == nil {
+		return fmt.Errorf("task '%s' not found", id)
+	}
 
 	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
 	return nil
