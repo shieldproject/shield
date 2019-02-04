@@ -1275,8 +1275,123 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME */
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+		var in struct {
+			Target struct {
+				UUID        string `json:"uuid"`
+				Name        string `json:"name"`
+				Summary     string `json:"summary"`
+				Plugin      string `json:"plugin"`
+				Agent       string `json:"agent"`
+				Compression string `json:"compression"`
+
+				Config map[string]interface{} `json:"config"`
+			} `json:"target"`
+
+			Store struct {
+				UUID      string `json:"uuid"`
+				Name      string `json:"name"`
+				Summary   string `json:"summary"`
+				Plugin    string `json:"plugin"`
+				Agent     string `json:"agent"`
+				Threshold int64  `json:"threshold"`
+
+				Config map[string]interface{} `json:"config"`
+			} `json:"store"`
+
+			Job struct {
+				Schedule string `json:"schedule"`
+				KeepDays int    `json:"keep_days"`
+				FixedKey bool   `json:"fixed_key"`
+				Paused   bool   `json:"paused"`
+			} `json:"job"`
+		}
+		if !r.Payload(&in) {
+			return
+		}
+
+		var (
+			err    error
+			target *db.Target
+			store  *db.Store
+		)
+
+		if in.Target.UUID != "" {
+			target, err = c.db.GetTarget(in.Target.UUID)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve system information"))
+				return
+			}
+			if target == nil || target.TenantUUID != r.Args[1] {
+				r.Fail(route.NotFound(nil, "No such system"))
+				return
+			}
+
+		} else {
+			target, err = c.db.CreateTarget(&db.Target{
+				TenantUUID:  r.Args[1],
+				Name:        in.Target.Name,
+				Summary:     in.Target.Summary,
+				Plugin:      in.Target.Plugin,
+				Config:      in.Target.Config,
+				Agent:       in.Target.Agent,
+				Compression: in.Target.Compression,
+			})
+			if target == nil || err != nil {
+				r.Fail(route.Oops(err, "Unable to create new data target"))
+				return
+			}
+		}
+
+		if in.Store.UUID != "" {
+			store, err = c.db.GetStore(in.Store.UUID)
+			if err != nil {
+				r.Fail(route.Oops(err, "Unable to retrieve cloud storage information"))
+				return
+			}
+			if store == nil || (!store.Global && store.TenantUUID != r.Args[1]) {
+				r.Fail(route.NotFound(nil, "No such store"))
+				return
+			}
+
+		} else {
+			store, err = c.db.CreateStore(&db.Store{
+				TenantUUID: r.Args[1],
+				Name:       in.Store.Name,
+				Summary:    in.Store.Summary,
+				Agent:      in.Store.Agent,
+				Plugin:     in.Store.Plugin,
+				Config:     in.Store.Config,
+				Threshold:  in.Store.Threshold,
+				Healthy:    true, /* let's be optimistic */
+			})
+			if store == nil || err != nil {
+				r.Fail(route.Oops(err, "Unable to create new storage system"))
+				return
+			}
+
+			if _, err := c.db.CreateTestStoreTask("system", store); err != nil {
+				log.Errorf("failed to schedule storage test task (non-critical) for %s (%s): %s",
+					store.Name, store.UUID, err)
+			}
+		}
+
+		job, err := c.db.CreateJob(&db.Job{
+			TenantUUID: r.Args[1],
+			Name:       "backups", /* FIXME: remove job names! */
+			Summary:    "",        /* FIXME: remove job summaries! */
+			Schedule:   in.Job.Schedule,
+			KeepDays:   in.Job.KeepDays,
+			Paused:     in.Job.Paused,
+			StoreUUID:  store.UUID,
+			TargetUUID: target.UUID,
+			FixedKey:   in.Job.FixedKey,
+		})
+		if job == nil || err != nil {
+			r.Fail(route.Oops(err, "Unable to create new job"))
+			return
+		}
+
+		r.OK(target)
 	})
 	// }}}
 	r.Dispatch("PUT /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
