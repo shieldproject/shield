@@ -63,7 +63,7 @@ var _ = Describe("Task Management", func() {
 
 			// need a job
 			`INSERT INTO jobs (uuid, tenant_uuid, name, summary, paused,
-			                   target_uuid, store_uuid, schedule, expiry)
+			                   target_uuid, store_uuid, schedule, keep_days)
 			   VALUES ("`+SomeJob.UUID+`", "`+SomeTenant.UUID+`", "Some Job", "just a job...", 0,
 			           "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", "daily 3am", 7)`,
 
@@ -102,7 +102,6 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
 		shouldExist(`SELECT * FROM tasks WHERE op = ?`, BackupOperation)
 		shouldExist(`SELECT * FROM tasks WHERE job_uuid = ?`, SomeJob.UUID)
-		shouldExist(`SELECT * FROM tasks WHERE archive_uuid IS NULL`)
 		shouldExist(`SELECT * from tasks WHERE store_uuid = ?`, SomeStore.UUID)
 		shouldExist(`SELECT * FROM tasks WHERE target_uuid = ?`, SomeTarget.UUID)
 		shouldExist(`SELECT * FROM tasks WHERE status = ?`, PendingStatus)
