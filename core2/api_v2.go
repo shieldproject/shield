@@ -3362,7 +3362,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
-		if store == nil || store.TenantUUID == db.GlobalTenantUUID {
+		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
 			r.Fail(route.Oops(err, "No such storage system"))
 			return
 		}
