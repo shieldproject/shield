@@ -288,6 +288,13 @@ func (c *Core) ScheduleAgentStatusCheckTasks(f *db.AgentFilter) {
 			log.Errorf("error scheduling status check of agent %s: %s", agent.Name, err)
 			continue
 		}
+		if agent.Status == "pending" {
+			agent.Status = "checking"
+			if err := c.db.UpdateAgent(agent); err != nil {
+				log.Errorf("error update agent '%s' status to 'checking': %s", err)
+				continue
+			}
+		}
 	}
 }
 
