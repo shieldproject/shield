@@ -10,6 +10,7 @@ type Bearing struct {
 	Jobs     []*db.Job     `json:"jobs"`
 	Targets  []*db.Target  `json:"targets"`
 	Stores   []*db.Store   `json:"stores"`
+	Agents   []*db.Agent   `json:"agents"`
 	Role     string        `json:"role"`
 
 	Grants struct {
@@ -60,6 +61,12 @@ func (c *Core) BearingFor(m *db.Membership) (Bearing, error) {
 
 	/* assemble stores for this tenant */
 	b.Stores, err = c.db.GetAllStores(&db.StoreFilter{ForTenant: b.Tenant.UUID})
+	if err != nil {
+		return b, err
+	}
+
+	/* assemble agents and plugins for this tenant */
+	b.Agents, err = c.db.GetAllAgents(&db.AgentFilter{SkipHidden: true, InflateMetadata: true})
 	if err != nil {
 		return b, err
 	}

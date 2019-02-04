@@ -18,7 +18,9 @@ type Agent struct {
 	LastSeenAt int64  `json:"last_seen_at"`
 	LastError  string `json:"last_error"`
 	Status     string `json:"status"`
-	RawMeta    string `json:"-"`
+
+	Meta    map[string]interface{} `json:"metadata,omitempty"`
+	RawMeta string                 `json:"-"`
 }
 
 func (a *Agent) Metadata() (map[string]interface{}, error) {
@@ -36,6 +38,8 @@ type AgentFilter struct {
 	Status     string
 	OnlyHidden bool
 	SkipHidden bool
+
+	InflateMetadata bool
 }
 
 func (f *AgentFilter) Query() (string, []interface{}) {
@@ -105,6 +109,10 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 		}
 		if last != nil {
 			agent.LastSeenAt = *last
+		}
+
+		if filter.InflateMetadata {
+			agent.Meta, _ = agent.Metadata()
 		}
 
 		l = append(l, agent)
