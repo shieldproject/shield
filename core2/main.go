@@ -154,6 +154,10 @@ func (c *Core) CleanupLeftoverTasks() {
 					task.ArchiveUUID, task.UUID, err)
 				continue
 			}
+			if archive == nil {
+				log.Infof("task %s was a backup task, but associated archive (%s) was never created; skipping...", task.UUID, task.ArchiveUUID)
+				continue
+			}
 			log.Infof("task %s was a backup task, associated with archive %s; purging the archive", task.UUID, archive.UUID)
 			task, err := c.db.CreatePurgeTask("", archive)
 			if err != nil {
