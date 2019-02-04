@@ -527,6 +527,7 @@ func (core *Core) checkAgents(agents []*db.Agent) {
 					a.Status = x.Health
 					a.Version = x.Version
 					a.RawMeta = response
+					log.Debugf("  [monitor] %s> updating (agent=%s) with metadata '%s'...", a.RawMeta)
 
 					log.Debugf("  [monitor] %s> updating (agent=%s) with status '%s'...", a.Address, a.UUID, a.Status)
 					if err := core.DB.UpdateAgent(a); err != nil {

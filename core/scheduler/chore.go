@@ -282,6 +282,36 @@ func (w *Worker) Execute(chore Chore) {
 		if err != nil {
 			panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
 		}
+
+	case db.AgentStatusOperation:
+		var v struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+			Health  string `json:"health"`
+		}
+
+		err = json.Unmarshal([]byte(output), &v)
+		if err != nil {
+			panic(fmt.Errorf("failed to unmarshal output [%s] from %s operation: %s", output, task.Op, err))
+		}
+
+		agents, err := w.db.GetAllAgents(&db.AgentFilter{Address: task.Agent})
+		if err != nil {
+			panic(fmt.Errorf("failed to retrieve agent '%s' from database: %s", task.Agent, err))
+		}
+		if len(agents) != 1 {
+			panic(fmt.Errorf("found %d agent records for address '%s' (expected 1)", len(agents), task.Agent))
+		}
+
+		agent := agents[0]
+		agent.Name = v.Name
+		agent.Version = v.Version
+		agent.Status = v.Health
+		agent.RawMeta = output
+		err = w.db.UpdateAgent(agent)
+		if err != nil {
+			panic(fmt.Errorf("failed to update agent '%s' record in database: %s", task.Agent, err))
+		}
 	}
 
 	if rc == 0 {
