@@ -9,7 +9,7 @@ import (
 
 const MaxPriority = 100
 
-/* prioritzation discipline
+/* prioritization discipline
 
    0 - ad hoc backup
        ad hoc restore

@@ -745,3 +745,9 @@ func (db *DB) RedactAllTaskLogs(tasks []*Task) {
 		db.RedactTaskLog(task)
 	}
 }
+
+//UnscheduleAllTasks takes all tasks which are in the scheduled state and puts
+//them back in a pending state.
+func (db *DB) UnscheduleAllTasks() error {
+	return db.exec(`UPDATE tasks SET status = 'pending' WHERE status = 'scheduled'`)
+}

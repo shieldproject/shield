@@ -167,6 +167,11 @@ func (c *Core) CleanupLeftoverTasks() {
 			}
 		}
 	}
+
+	err = c.db.UnscheduleAllTasks()
+	if err != nil {
+		log.Errorf("failed to reset previously scheduled tasks into a pending state at boot: %s", err)
+	}
 }
 
 func (c *Core) ConnectToVault() {
