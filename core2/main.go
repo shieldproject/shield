@@ -43,7 +43,9 @@ func (c Core) Main() {
 			c.scheduler.Run()
 
 		case <-fast.C:
-			c.ScheduleBackupTasks()
+			if c.Unlocked() {
+				c.ScheduleBackupTasks()
+			}
 			c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{Status: "pending"})
 			c.TasksToChores()
 
