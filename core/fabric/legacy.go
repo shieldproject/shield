@@ -125,7 +125,7 @@ func (f LegacyFabric) Execute(op, id string, command Command) scheduler.Chore {
 			}
 			payload := string(b)
 
-			chore.Errorf("connecing to %s (tcp/ipv4)", f.ip)
+			chore.Errorf("connecting to %s (tcp/ipv4)", f.ip)
 			conn, err := ssh.Dial("tcp4", f.ip, f.ssh)
 			if err != nil {
 				chore.Errorf("ERR> unable to connect to %s: %s", err)
