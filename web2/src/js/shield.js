@@ -488,7 +488,7 @@ function dispatch(page) {
             var data = {
               uuid    : e.extract('uuid'),
               account : e.extract('account'),
-              role    : e.extract('role')
+              role    : role
             };
             api({
               type: 'POST',

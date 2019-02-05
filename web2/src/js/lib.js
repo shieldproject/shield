@@ -532,10 +532,10 @@
 
       var $role = $(event.target).closest('div[data-role]');
       if ($role.length == 1) {
-        elem.data('role', $role.data('role'));
+        elem.attr('data-role', $role.attr('data-role'));
         elem.html($role.find('strong').html());
         menu.remove();
-        fn(elem, $role.data('role'));
+        fn(elem, $role.attr('data-role'));
         menu = elem = undefined;
         fn = function () { };
       }
