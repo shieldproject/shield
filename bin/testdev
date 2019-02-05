@@ -85,6 +85,8 @@ preflight() {
   v0.8.*) ;;
   v0.9.*) ;;
   v0.10.*) ;;
+  v0.11.*) ;;
+  v1.0.*) ;;
   *) echo
      echo "The installed version of vault ($v) has not been verified"
      echo "to work with this version of SHIELD testdev.  Please try v0.9.6"
