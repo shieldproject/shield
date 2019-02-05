@@ -178,6 +178,10 @@ func (f LegacyFabric) Execute(op, id string, command Command) scheduler.Chore {
 			<-wait
 			if err != nil {
 				chore.Errorf("ERR> remote execution failed: %s", err)
+				chore.UnixExit(1)
+				return
 			}
+
+			chore.UnixExit(0)
 		})
 }
