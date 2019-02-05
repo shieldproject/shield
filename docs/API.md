@@ -136,6 +136,182 @@ This endpoint requires no authentication or authorization.
 
 This API endpoint does not return any error conditions.
 
+### GET /v2/bearings
+
+Returns a baseline set of information about the data related to the
+current session's view of SHIELD, including targets, jobs, stores for
+all assigned tenants, and global storage.
+
+
+**Request**
+
+    curl -H 'Accept: application/json' \
+            https://shield.host/v2/bearings
+
+
+This endpoint takes no query string parameters.
+
+**Response**
+
+    {
+      "vault"  : "unlocked",
+      "shield" : {
+        "version" : "6.7.2",
+        "env"     : "PRODUCTION",
+        "color"   : "yellow",
+        "motd"    : "Welcome to S.H.I.E.L.D.",
+        "ip"      : "10.0.0.5",
+        "api"     : 2
+      },
+    
+      "user" : {
+        "uuid"           : "229db66f-ad6b-40ee-b0c9-36b3eb957503",
+        "name"           : "Persephone Jones",
+        "account"        : "pjones",
+        "backend"        : "local",
+        "sysrole"        : "technician",
+        "default_tenant" : "c76869df-3535-4a59-b33b-2f650e660bf1"
+      },
+    
+      "stores": [
+        {
+          "uuid"    : "8f4dd8c4-9677-4660-ad53-b0a5b718628c",
+          "name"    : "Global Storage",
+          "summary" : "Global Storage, for use by any and all",
+          "global"  : true,
+    
+          "agent"  : "127.0.0.1:5444",
+          "plugin" : "webdav",
+    
+          "healthy"        : true,
+          "archive_count"  : 0,
+          "storage_used"   : 0,
+          "threshold"      : 0,
+          "daily_increase" : 0,
+    
+          "config": {
+            "url": "http://localhost:8182"
+          },
+    
+          "last_test_task_uuid": ""
+        }
+      ],
+    
+      "tenants" : {
+        "c76869df-3535-4a59-b33b-2f650e660bf1" : {
+          "tenant" : {
+            "uuid"           : "c76869df-3535-4a59-b33b-2f650e660bf1",
+            "name"           : "My Tenant",
+            "archive_count"  : 0,
+            "storage_used"   : 0,
+            "daily_increase" : 0
+          },
+    
+          "role"   : "admin",
+          "grants" : {
+            "admin"    : true,
+            "engineer" : true,
+            "operator" : true
+          },
+    
+          "archives": [],
+          "jobs": [
+            {
+              "uuid"      : "c623b8bf-b631-43ee-bb44-949454702716",
+              "name"      : "Hourly",
+              "summary"   : "",
+    
+              "keep_n"    : 48,
+              "keep_days" : 2,
+    
+              "schedule"  : "hourly at :05",
+              "paused"    : true,
+    
+              "agent"     : "127.0.0.1:5444",
+              "fixed_key" : false,
+    
+              "healthy"          : false,
+              "last_run"         : 1543328457,
+              "last_task_status" : "canceled",
+    
+              "target" : {
+                "uuid" : "5c180612-05e8-4ae6-9046-9d40d50d1a3c",
+                "name" : "SHIELD",
+    
+                "agent"  : "",
+                "plugin" : "fs",
+    
+                "compression" : "bzip2",
+                "endpoint"    : "{\"base_dir\":\"/e/no/ent\",\"bsdtar\":\"bsdtar\",\"exclude\":\"var/*.db\"}"
+              },
+              "store" : {
+                "uuid"     : "a5d64d9e-acc7-4621-8489-2ede2d3b31bf",
+                "name"     : "CloudStor",
+                "summary"  : "A temporary store for the dev environment.",
+    
+                "healthy"  : true,
+    
+                "agent"    : "",
+                "plugin"   : "webdav",
+                "endpoint" : "{\"url\":\"http://localhost:8182\"}"
+              }
+            }
+          ],
+    
+          "targets" : [
+            {
+              "uuid"    : "5c180612-05e8-4ae6-9046-9d40d50d1a3c",
+              "name"    : "SHIELD",
+              "summary" : "The working directory of the dev environment.",
+    
+              "compression" : "bzip2",
+    
+              "agent"  : "127.0.0.1:5444",
+              "plugin" : "fs",
+              "config" : {
+                "base_dir" : "/e/no/ent",
+                "bsdtar"   : "bsdtar",
+                "exclude"  : "var/*.db"
+              }
+            }
+          ],
+    
+          "stores" : [
+            {
+              "uuid"    : "a5d64d9e-acc7-4621-8489-2ede2d3b31bf",
+              "name"    : "CloudStor",
+              "summary" : "A temporary store for the dev environment.",
+              "global"  : false,
+    
+              "healthy"        : true,
+              "archive_count"  : 0,
+              "storage_used"   : 0,
+              "daily_increase" : 0,
+              "threshold"      : 0,
+    
+              "agent"   : "127.0.0.1:5444",
+              "plugin"  : "webdav",
+              "config"  : {
+                "url": "http://localhost:8182"
+              },
+    
+              "last_test_task_uuid": "4320b06d-dd3d-4c00-a2cd-9fec9b2520d6"
+            }
+          ]
+        }
+      }
+    }
+
+FIXME
+
+**Access Control**
+
+This endpoint requires no authentication or authorization.
+
+**Errors**
+
+This API endpoint does not return any error conditions.
+
 ### GET /v2/health
 
 Returns health information about the SHIELD Core, connected
