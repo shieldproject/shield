@@ -1,0 +1,48 @@
+version: '3'
+services:
+  vault:
+    image: vault:1.0.2
+    ports: [8200]
+    networks: [internal]
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+    volumes:
+      - 'vault-data:/vault/file'
+
+  core:
+    depends_on:
+      - vault
+    image: 'shield:dev'
+    ports: [80]
+    networks: [internal]
+    command: ['/shield/init/core', '--log-level', 'debug']
+    environment:
+      VAULT_ADDR: http://vault:8200
+      DEBUG:      'yes'
+    volumes:
+      - 'shield-data:/var/shield'
+      - 'shield-etc:/etc/shield'
+    ports:
+      - '9009:80'
+
+  agent:
+    depends_on:
+      - core
+    image: 'shield:dev'
+    ports: [5444]
+    networks: [internal]
+    command: ['/shield/init/agent', '--log-level', 'debug']
+    environment:
+      SHIELD_API: 'http://core:80'
+      DEBUG:      'yes'
+    volumes:
+      - 'shield-data:/var/shield'
+      - 'shield-etc:/etc/shield'
+
+networks:
+  internal:
+
+volumes:
+  vault-data:
+  shield-data:
+  shield-etc:
