@@ -1783,7 +1783,7 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2.steps4[data-on-step="4"] .progress .front.line { width: 75%; }
 
 .wizard2.steps5 .progress .line { width: 80%; left: 10%; }
-.wizard2.steps4 .progress .front.line { width: 0%; }
+.wizard2.steps5 .progress .front.line { width: 0%; }
 .wizard2.steps5 .progress li { width: 20%; }
 .wizard2.steps5[data-on-step="2"] .progress .front.line { width: 20%; }
 .wizard2.steps5[data-on-step="3"] .progress .front.line { width: 40%; }
