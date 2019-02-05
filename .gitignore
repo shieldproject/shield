@@ -13,6 +13,7 @@
 
 # stuff we use in t/*
 /bin/vault
+/bin/.init
 
 # ignore the plugin
 /azure
