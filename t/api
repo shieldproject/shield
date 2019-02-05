@@ -67,7 +67,9 @@ EOF
 }
 
 spin_shieldd() {
-  ssh-keygen -t rsa -f ${WORKDIR}/config/shieldd_key -N '' >/dev/null
+  ssh-keygen -m PEM -t rsa -f ${WORKDIR}/config/shieldd_key -N '' >/dev/null
+  rm ${WORKDIR}/config/shieldd_key.pub
+  legacy_ssh_key=$(cat ${WORKDIR}/config/shieldd_key | sed -e 's/^/      /')
 
   cat >${WORKDIR}/etc/shieldd.conf <<EOF
 ---
@@ -88,8 +90,10 @@ api:
     username: ${SHIELD_USER}
     password: ${SHIELD_PASS}
 
-
-#private_key:    ${WORKDIR}/config/shieldd_key
+fabrics:
+  - name: legacy
+    ssh-key: |
+${legacy_ssh_key}
 
 auth:
   - identifier: public-github
@@ -149,7 +153,7 @@ EOF
 }
 
 spin_agent() {
-  ssh-keygen -t rsa -f ${WORKDIR}/var/shield-agent_key -N '' >/dev/null
+  ssh-keygen -m PEM -t rsa -f ${WORKDIR}/var/shield-agent_key -N '' >/dev/null
   rm ${WORKDIR}/var/shield-agent_key.pub
 
   curl -Lsk -XGET  http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys
@@ -160,6 +164,11 @@ host_key_file: ${WORKDIR}/var/shield-agent_key
 listen_address: ${SHIELD_AGENT_ADDR}
 plugin_paths:
   - $(pwd)
+
+name: t-api-agent
+registration:
+  url: http://${SHIELD_DAEMON_ADDR}
+  interval: 15
 EOF
 
   set -e
@@ -599,7 +608,6 @@ run login --username tony --password J.A.R.V.I.S.
 try "Checking that initial database is empty" # {{{
 (run targets     ; none "Initial targets list should be empty"
  run stores      ; none "Initial stores list should be empty"
- run policies    ; none "Initial policies list should be empty"
  run jobs        ; none "Initial jobs list should be empty"
  run users       ; some "Initial users list should have the failsafe user"
  run tenants     ; some "Initial tenants list shouldn't be empty"
@@ -651,23 +659,6 @@ run create-store \
 
 
 
-run create-policy \
-      --name    short-term \
-      --summary "Short-term Backup Retention Policy" \
-      --days    8
-
-run create-policy \
-      --name    long-term \
-      --summary "A Longer-term Backup Retention Policy" \
-      --days    90
-
-run create-policy \
-      --name    shield \
-      --summary "SHIELD retention policy" \
-      --days    100
-
-
-
 run create-job \
       --name     redis-daily-to-fs \
       --summary  "Daily Backups of Redis to the local fs" \
@@ -675,7 +666,7 @@ run create-job \
       --target   redis-shared \
       --store    fs \
       --schedule "daily at 11:24pm" \
-      --policy   short-term \
+      --retain   8 \
       --paused
 
 run create-job \
@@ -685,7 +676,7 @@ run create-job \
       --target   shield \
       --store    shield \
       --schedule "tuesdays at 11am" \
-      --policy   shield \
+      --retain   100 \
 
 ) 2>&1 | indent
 
@@ -1179,98 +1170,6 @@ try "Running through store lifecycle" # {{{
 # }}}
 fi
 
-if testing policy; then
-try "Finding a single policy" # {{{
-(run policy $(uuidof policy short-term)
- context 'a single retention policy'
- attr name    'short-term'
- attr summary 'Short-term Backup Retention Policy'
- attr expires 8
-) 2>&1 | indent
-
-
-# }}}
-try "Listing retention policies" # {{{
-(run policies
- context 'all retention policies'
- includes policy short-term
- includes policy long-term
-
- pick 'short-term'
- attr uuid    "$(uuidof policy short-term)"
- attr summary "Short-term Backup Retention Policy"
- attr expires 8
-
- run policies short-term
- context 'policies named "short-term"'
- includes policy short-term
- excludes policy long-term
-
- run policies --fuzzy or
- context 'policies named "*or*"'
- includes policy short-term
- excludes policy long-term
-
- run policies --fuzzy term
- context 'policies named "*term*"'
- includes policy short-term
- includes policy long-term
-
- run policies --fuzzy xyzzy
- none 'no policies are named "*xyzzy*"'
-
- run policies --used
- context 'in-use policies'
- excludes policy long-term
- includes policy short-term
-
- run policies --unused
- context 'unused policies'
- includes policy long-term
- excludes policy short-term
-) 2>&1 | indent
-
-
-# }}}
-try "Running through policy lifecycle" # {{{
-(run create-policy \
-       --name    my-new-policy \
-       --summary 'A policy suitable for editing' \
-       --days    15
- run policy --exact my-new-policy
- context 'a newly-created policy'
-  attr name    my-new-policy
-  attr summary 'A policy suitable for editing'
-  attr expires 15
-
- run update-policy my-new-policy \
-       --name    my-updated-policy \
-       --summary 'A New Summary'
- run policy --exact my-updated-policy
- context 'a newly-updated policy'
-  attr name       my-updated-policy
-  attr summary    'A New Summary'
-  attr expires    15
-
- run update-policy my-updated-policy \
-       --days 365
- run policy --exact my-updated-policy
- context 'a newly-updated policy'
-  attr name       my-updated-policy
-  attr summary    'A New Summary'
-  attr expires    365
-
- context 'it is in use by at least one job'
-  cannot_delete policy short-term
-
- context 'it is not in use by any jobs'
-  can_delete policy my-updated-policy
-) 2>&1 | indent
-
-
-# }}}
-fi
-
 if testing job; then
 try "Finding a single job" # {{{
 (run job redis-daily-to-fs
@@ -1278,10 +1177,8 @@ try "Finding a single job" # {{{
  attr name            redis-daily-to-fs
  attr summary         'Daily Backups of Redis to the local fs'
 
- attr policy.name     short-term
- attr policy.uuid     "$(uuidof policy short-term)"
-
  attr schedule        'daily at 11:24pm'
+ attr keep_days       8
 
  attr store.uuid      "$(uuidof store fs)"
  attr store.name      fs
@@ -1294,7 +1191,6 @@ try "Finding a single job" # {{{
  attr target.endpoint '{"bgsave":"BGSAVE","host":"127.0.0.1"}'
 
  attr agent           "$SHIELD_AGENT_ADDR"
- attr expiry          8
  attr paused          true
 ) 2>&1 | indent
 
@@ -1311,10 +1207,8 @@ try "Listing jobs" # {{{
  attr name            redis-daily-to-fs
  attr summary         'Daily Backups of Redis to the local fs'
 
- attr policy.name     short-term
- attr policy.uuid     "$(uuidof policy short-term)"
-
  attr schedule        'daily at 11:24pm'
+ attr keep_days       8
 
  attr store.uuid      "$(uuidof store fs)"
  attr store.name      fs
@@ -1327,9 +1221,8 @@ try "Listing jobs" # {{{
  attr target.endpoint '{"bgsave":"BGSAVE","host":"127.0.0.1"}'
 
  attr agent           "$SHIELD_AGENT_ADDR"
- attr expiry          8
  attr paused          true
- pick redis-daily-to-fs
+ #pick redis-daily-to-fs
 
  run jobs redis-daily-to-fs
  context 'jobs named "redis-daily-to-fs" (exact match)'
@@ -1357,11 +1250,6 @@ try "Listing jobs" # {{{
  run jobs --store $(uuidof store shield)
  context 'jobs for the "shield" store'
  ok $? "\`shield jobs --store <uuid>' should succeed"
- includes job shield-itself
- excludes job redis-daily-to-fs
-
- run jobs --policy $(uuidof policy shield)
- context 'jobs for the "shield" retention policy'
  includes job shield-itself
  excludes job redis-daily-to-fs
 
@@ -1395,9 +1283,6 @@ try "Running through job lifecycle" # {{{
        --name   job-store \
        --agent  "$SHIELD_AGENT_ADDR" \
        --plugin fs
- run create-policy \
-       --name   job-policy \
-       --days   5
 
  run create-job \
         --name my-new-job \
@@ -1406,14 +1291,14 @@ try "Running through job lifecycle" # {{{
         --exact \
         --target job-target \
         --store  job-store \
-        --policy job-policy
+        --retain 5
  run job my-new-job
  context 'a newly-created job'
   attr summary        'A new job, suitable for editing'
   attr schedule       'daily 4am'
+  attr keep_days      5
   attr target.name    job-target
   attr store.name     job-store
-  attr policy.name    job-policy
 
  run update-job my-new-job \
        --name    my-updated-job \
@@ -1424,23 +1309,21 @@ try "Running through job lifecycle" # {{{
   attr schedule       'daily 4am'
   attr target.name    job-target
   attr store.name     job-store
-  attr policy.name    job-policy
 
  context 'it is in use by our test lifecycle job'
   cannot_delete target job-target
   cannot_delete store  job-store
-  cannot_delete policy job-policy
 
  run update-job my-updated-job \
        --schedule 'daily 3:30am' \
-       --policy   short-term
+       --retain   8
  run job my-updated-job
  context 'a newly-rescheduled job'
   attr summary        'A New Summary'
   attr schedule       'daily 3:30am'
   attr target.name    job-target
   attr store.name     job-store
-  attr policy.name    short-term
+  attr keep_days      8
 
  run update-job my-updated-job \
         --target shield \
@@ -1451,12 +1334,11 @@ try "Running through job lifecycle" # {{{
   attr schedule       'daily 3:30am'
   attr target.name    shield
   attr store.name     s3
-  attr policy.name    short-term
+  attr keep_days      8
 
  context 'is no longer in use by our test lifecycle job'
   can_delete target job-target
   can_delete store  job-store
-  can_delete policy job-policy
 
  context 'jobs can always be deleted'
   can_delete job my-updated-job
