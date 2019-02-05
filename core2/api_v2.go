@@ -1567,7 +1567,7 @@ func (c *Core) v2API() *route.Router {
 
 		peer := regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.Header.Get("X-Forwarded-For"), "")
 		if peer == "" {
-			peer := regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.RemoteAddr, "")
+			peer = regexp.MustCompile(`:\d+$`).ReplaceAllString(r.Req.RemoteAddr, "")
 			if peer == "" {
 				r.Fail(route.Oops(nil, "Unable to determine remote peer address from '%s'", r.Req.RemoteAddr))
 				return
