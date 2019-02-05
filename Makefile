@@ -7,7 +7,7 @@ DOCKER_TAG   ?= dev
 
 # Everything; this is the default behavior
 all: build test
-build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins web2
+build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins
 docker:
 	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
@@ -139,16 +139,4 @@ release:
 	done
 
 
-JAVASCRIPTS := web2/src/js/jquery.js
-JAVASCRIPTS += web2/src/js/lens.js
-JAVASCRIPTS += web2/src/js/lib.js
-JAVASCRIPTS += web2/src/js/data.js
-JAVASCRIPTS += web2/src/js/wizards.js
-JAVASCRIPTS += web2/src/js/sticky-nav.js
-JAVASCRIPTS += web2/src/js/shield.js
-web2/htdocs/shield.js: $(JAVASCRIPTS)
-	cat $+ >$@
-
-web2: web2/htdocs/shield.js
-
-.PHONY: plugins dev web2 shield shieldd shield-schema shield-agent shield-crypt shield-report demo
+.PHONY: plugins dev shield shieldd shield-schema shield-agent shield-crypt shield-report demo
