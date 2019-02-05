@@ -328,7 +328,7 @@ func (c *Core) v2API() *route.Router {
 					a, found := archives[task.ArchiveUUID]
 					if !found {
 						a, err = c.db.GetArchive(task.ArchiveUUID)
-						if err == nil {
+						if err == nil && a != nil {
 							archives[a.UUID] = a
 							found = true
 						}
@@ -433,7 +433,7 @@ func (c *Core) v2API() *route.Router {
 					a, found := archives[task.ArchiveUUID]
 					if !found {
 						a, err = c.db.GetArchive(task.ArchiveUUID)
-						if err == nil {
+						if err == nil && a != nil {
 							archives[a.UUID] = a
 							found = true
 						}
