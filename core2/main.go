@@ -110,8 +110,10 @@ func (c *Core) CreateFailsafeUser() {
 }
 
 func (c *Core) ExpireInteractiveSessions() {
-	log.Infof("INITIALIZING: expiring all interactive sessions...")
-	c.db.ClearExpiredSessions(time.Now())
+	if c.Config.API.Session.ClearOnBoot {
+		log.Infof("INITIALIZING: expiring all interactive sessions...")
+		c.db.ClearExpiredSessions(time.Now())
+	}
 }
 
 func (c *Core) PrecreateTenants() {

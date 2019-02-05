@@ -53,7 +53,8 @@ type Config struct {
 	API struct {
 		Bind    string `yaml:"bind"`
 		Session struct {
-			Timeout int `yaml:"timeout"`
+			ClearOnBoot bool `yaml:"clear-on-boot"`
+			Timeout     int  `yaml:"timeout"`
 		} `yaml:"session"`
 
 		Failsafe struct {
