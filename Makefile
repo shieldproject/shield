@@ -2,9 +2,14 @@
 # If you do not, then Travis will be sad.
 
 BUILD_TYPE?=build
+DOCKER_IMAGE ?= shield
+DOCKER_TAG   ?= dev
 
 # Everything; this is the default behavior
-all: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins test
+all: build test
+build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins web2
+docker:
+	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
 # go fmt ftw
 format:
@@ -17,7 +22,7 @@ plugin-tests: plugins
 	./t/plugins
 	@rm -f mock
 go-tests: shield
-	export PATH=$$PWD:$$PWD/bin:$$PWD/test/bin:$$PATH; go list ./... | grep -v vendor | xargs go test
+	go list ./... | grep -v vendor/ | PATH=$$PWD:$$PWD/bin:$$PWD/test/bin:$$PATH xargs go test
 api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
 	./t/api
 
