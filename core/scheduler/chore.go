@@ -89,7 +89,7 @@ func (w *Worker) Execute(chore Chore) {
 		for s := range chore.Stderr {
 			w.db.UpdateTaskLog(chore.TaskUUID, s)
 		}
-		log.Debugf("%s: no more standard error; [stderr] gooutine shutting down...", chore)
+		log.Debugf("%s: no more standard error; [stderr] goroutine shutting down...", chore)
 		wait.Done()
 	}()
 
@@ -100,7 +100,7 @@ func (w *Worker) Execute(chore Chore) {
 		for s := range chore.Stdout {
 			output += s
 		}
-		log.Debugf("%s: no more standard output; [stdout] gooutine shutting down...", chore)
+		log.Debugf("%s: no more standard output; [stdout] goroutine shutting down...", chore)
 		wait.Done()
 	}()
 
