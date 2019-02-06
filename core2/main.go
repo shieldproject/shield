@@ -47,6 +47,7 @@ func (c Core) Main() {
 				c.ScheduleBackupTasks()
 			}
 			c.ScheduleAgentStatusCheckTasks(&db.AgentFilter{Status: "pending"})
+			c.scheduler.Elevate()
 			c.TasksToChores()
 
 		case <-slow.C:
