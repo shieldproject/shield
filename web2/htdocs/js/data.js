@@ -1,3 +1,144 @@
+;(function ($, window, document, undefined) {
+  window.AEGIS = function () {
+    this.data = {};
+  };
+
+  $.extend(window.AEGIS.prototype, {
+    insert: function (type, object) {
+      if (!('uuid' in object)) { return undefined; }
+      if (!(type in this.data)) { this.data[type] = {}; }
+      this.data[type][object.uuid] = object;
+      return this;
+    },
+
+    update: function (type, object) {
+      if (!('uuid' in object)) { return undefined; }
+      if (!(type in this.data)) { this.data[type] = {}; }
+      if (!(object.uuid in this.data[type])) {
+        this.data[type][object.uuid] = object;
+      } else {
+        for (var k in object) {
+          this.data[type][object.uuid][k] = object[k];
+        }
+      }
+      return this;
+    },
+
+    delete: function (type, object) {
+      delete this.data[type][object.uuid];
+    },
+
+    find: function (type, query) {
+      if (!(type in this.data)) { return undefined; }
+      if ('uuid' in query) { return this.data[type][query.uuid]; }
+      throw 'not implemented'; /* FIXME */
+    },
+
+    systems: function (q) {
+      if ('tenant' in q) {
+        if (!('target' in this.data)) { return []; }
+        var systems = [];
+        for (var uuid in this.data.target) {
+          if (this.data.target[uuid].tenant_uuid == q.tenant) {
+            systems.push(this.data.target[uuid]);
+          }
+        }
+        return systems;
+      }
+    },
+    system: function (uuid) {
+      return this.find('target', { uuid: uuid });
+    },
+
+    stores: function (q) {
+      if (!('store' in this.data)) { return []; }
+
+      var stores = [];
+      for (var uuid in this.data.store) {
+        var store = this.data.store[uuid];
+        if ('tenant' in q && store.tenant_uuid == q.tenant) {
+          stores.push(store);
+
+        } else if ('global' in q && store.global && q.global) {
+          stores.push(store);
+        }
+      }
+      return stores;
+    },
+    store: function (uuid) {
+      return this.find('store', { uuid: uuid });
+    },
+
+    jobs: function (q) {
+      if (!('job' in this.data)) { return []; }
+
+      var jobs = [];
+      if ('system' in q) {
+        for (var uuid in this.data.job) {
+          var job = this.data.job[uuid];
+          if (job.target_uuid != q.system) {
+            continue;
+          }
+          if ('tenant' in q && job.tenant_uuid != q.tenant) {
+            continue;
+          }
+          jobs.push(job);
+        }
+      }
+      return jobs;
+    },
+    job: function (uuid) {
+      return this.find('job', { uuid: uuid });
+    },
+
+    tasks: function (q) {
+      if (!('task' in this.data)) { return []; }
+
+      var tasks = [];
+      if ('tenant' in q) {
+        for (var uuid in this.data.task) {
+          var task = this.data.task[uuid];
+          if (task.tenant_uuid != q.tenant
+           || ('system'  in q && task.target_uuid  != q.system)
+           || ('job'     in q && task.job_uuid     != q.job)
+           || ('store'   in q && task.store_uuid   != q.store)
+           || ('archive' in q && task.archive_uuid != q.archive)) {
+            continue;
+          }
+          tasks.push(task);
+        }
+      }
+
+      return tasks;
+    },
+    task: function (uuid) {
+      return this.find('task', { uuid: uuid });
+    },
+
+    archives: function (q) {
+      if (!('archive' in this.data)) { return []; }
+
+      var archives = [];
+      if ('tenant' in q) {
+        for (var uuid in this.data.archive) {
+          var archive = this.data.archive[uuid];
+          if (archive.tenant_uuid != q.tenant
+           || ('system'  in q && archive.target_uuid  != q.system)
+           || ('store'   in q && archive.store_uuid   != q.store)) {
+            continue;
+          }
+          archives.push(archive);
+        }
+      }
+
+      return archives;
+    },
+    archive: function (uuid) {
+      return this.find('archive', { uuid: uuid });
+    }
+  });
+})(jQuery, window, document);
+
 if (typeof window.S           === 'undefined') { window.S           = {}; }
 if (typeof window.S.H         === 'undefined') { window.S.H         = {}; }
 if (typeof window.S.H.I       === 'undefined') { window.S.H.I       = {}; }
@@ -36,7 +177,7 @@ window.S.H.I.E.L.D.Database = (function () {
 
       //case 'update-object':
       }
-    }
+    };
 
     this._.ws.onopen = function () {
       console.log('connected to event stream.');
