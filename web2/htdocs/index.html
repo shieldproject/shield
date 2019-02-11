@@ -715,7 +715,7 @@
           </div>
 
           <div data-step="2">
-            <h2><span>Run Ad Hoc Backup</span>Choose Your Data System</h2>
+            <h2><span>Run an Ad Hoc Backup</span>Choose Your Data System</h2>
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
                 [[ var systems = SHIELD.systems(); ]]
@@ -755,7 +755,7 @@
           </div>
 
           <div data-step="3">
-            <h2>Run Ad Hoc Backup</span>Choose Your Cloud Storage</h2>
+            <h2><span>Run an Ad Hoc Backup</span>Choose Your Cloud Storage</h2>
             <div class="redraw jobs"></div>
           </div>
 
@@ -816,7 +816,7 @@
         review is performed.
 
       ]]
-            <h2><span>Run Ad Hoc Backup</span>Review Your Selections</h2>
+            <h2><span>Run an Ad Hoc Backup</span>Review Your Selections</h2>
             [[ var system  = SHIELD.system(_.target.uuid); ]]
             [[ var job; SHIELD.each(system.jobs, function (i, j) {
                  if (!job && j.uuid == _.job.uuid) { job = j; }
