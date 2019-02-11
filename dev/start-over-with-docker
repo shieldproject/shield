@@ -1,0 +1,12 @@
+#!/bin/sh
+set -ex
+
+docker rm -f shield_agent_1 || true
+docker rm -f shield_vault_1 || true
+docker rm -f shield_core_1  || true
+
+docker volume rm -f shield_shield-data || true
+docker volume rm -f shield_shield-etc  || true
+docker volume rm -f shield_vault-data  || true
+
+docker-compose up

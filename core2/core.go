@@ -316,7 +316,7 @@ func (c *Core) Unlocked() bool {
 			return false
 		}
 
-		return sealed
+		return !sealed
 	}
 
 	return false

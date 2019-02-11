@@ -1,0 +1,168 @@
+core:  http://127.0.0.1:9009
+token: YOUR-TOKEN-HERE
+
+users:
+  - name:     Administrator
+    username: admin
+    password: admin
+    sysrole:  admin
+
+  - name:     Engineer
+    username: engineer
+    password: engineer
+    sysrole:  engineer
+
+  - name:     Road Runner
+    username: rrunner
+    password: password
+    sysrole:  ~
+
+  - name:     Wile E. Coyote
+    username: wcoyote
+    password: password
+    sysrole:  ~
+
+  - name:     Chuck Jones
+    username: cjones
+    password: password
+    sysrole:  ~
+
+global:
+  storage:
+    - name:    Globus
+      summary: Global Storage, for use by any and all
+      agent:   'agent:5444'
+      plugin:  webdav
+      config:
+        url: http://webdav/globus
+
+tenants:
+  - name: Acme, Inc.
+    members:
+      - { user: cjones@local,  role: operator }
+      - { user: wcoyote@local, role: engineer }
+      - { user: rrunner@local, role: admin    }
+
+    storage:
+      - name: S3
+        summary: A fake S3 store for pretending and web UI development.
+        agent:   'agent:5444'
+        plugin:  webdav
+        config:
+          url: http://webdav/s3
+
+      - name: Scality (On-Prem)
+        summary: A fake Scality (on-premise) store for pretending and web UI development.
+        agent:   'agent:5444'
+        plugin:  webdav
+        config:
+          url: http://webdav/scality
+
+    systems:
+      - name:    'System #427/a01'
+        summary: A test system for generating lots of web UI output and pushing the limits of the web UI
+        agent:   vault:5444
+        plugin:  fs
+        config:
+          base_dir: /tmp
+        jobs:
+          - name:     Fast
+            when:     every minute
+            paused:   yes
+            storage:  S3
+            retain:   1d
+
+      - name:    'System #427/a02'
+        summary: A test system for generating lots of web UI output and pushing the limits of the web UI
+        agent:   vault:5444
+        plugin:  fs
+        config:
+          base_dir: /tmp
+        jobs:
+          - name:     Daily
+            when:     daily 4:10am
+            paused:   yes
+            storage:  S3
+            retain:   1d
+
+          - name:     Weekly
+            when:     sundays at 2:45am
+            paused:   yes
+            storage:  S3
+            retain:   14d
+
+      - name:    'System #427/a03'
+        summary: A test system for generating lots of web UI output and pushing the limits of the web UI
+        agent:   vault:5444
+        plugin:  fs
+        config:
+          base_dir: /tmp
+        jobs:
+          - name:     Weekly
+            when:     sundays at 3am
+            paused:   yes
+            storage:  S3
+            retain:   14d
+
+          - name:     Daily
+            when:     daily 4:20am
+            paused:   yes
+            storage:  S3
+            retain:   1d
+
+      - name:    'System #427/a04'
+        summary: A test system for generating lots of web UI output and pushing the limits of the web UI
+        agent:   vault:5444
+        plugin:  fs
+        config:
+          base_dir: /tmp
+        jobs:
+          - name:     Daily
+            when:     daily 4:30am
+            paused:   yes
+            storage:  S3
+            retain:   1d
+
+      - name:    'System #427/a05'
+        summary: A test system for generating lots of web UI output and pushing the limits of the web UI
+        agent:   vault:5444
+        plugin:  fs
+        config:
+          base_dir: /tmp
+        jobs:
+          - name:     Daily
+            when:     daily 4:40am
+            paused:   yes
+            storage:  S3
+            retain:   1d
+
+  - name: Other Tenant
+    members:
+      - { user: cjones@local,  role: operator }
+      - { user: wcoyote@local, role: operator }
+      - { user: rrunner@local, role: operator }
+      - { user: admin@local,   role: admin    }
+
+    storage:
+      - name:    CloudStor
+        summary: A temporary store for the dev environment.
+        agent:   'vault:5444'
+        plugin:  webdav
+        config:
+          url: http://webdav/s3
+
+    systems:
+      - name: SHIELD
+        summary: The working directory of the dev environment.
+        agent:   'agent:5444'
+        plugin:  fs
+        config:
+          base_dir: /var/shield
+          exclude:  '/var/*.db'
+
+        jobs:
+          - name:     Hourly
+            paused:   yes
+            when:     'hourly at :05'
+            storage:  CloudStor
+            retain:   2d
