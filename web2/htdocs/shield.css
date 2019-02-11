@@ -2321,6 +2321,10 @@ td span.role {
   color: yellow;
 }
 
+#fixed-wrapper {
+  overflow: scroll;
+}
+
 #fixed-wrapper #fixedkey {
     display: inline-block;
     background-color: #000;
