@@ -290,6 +290,16 @@
   })();
   // }}}
 
+  /***************************************************
+    website() - Return the base URL of this SHIELD, per document.location
+  ***************************************************/
+  exported.website = function () { // {{{
+    return document.location.toString().replace(/#.*/, '').replace(/\/$/, '');
+  }
+  // }}}
+
+
+
 
   /***************************************************
     $(...).serializeObject()
