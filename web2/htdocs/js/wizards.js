@@ -120,7 +120,7 @@
             $(event.target).removeClass('submitting');
           },
           success: function (data) {
-            goto('#!/systems/system:uuid'+data.uuid);
+            goto('#!/systems/system:uuid:'+data.uuid);
           }
         });
       })
@@ -236,7 +236,7 @@
             $(event.target).removeClass('submitting');
           },
           success: function () {
-            goto('#!/systems/system:uuid'+data.target.uuid);
+            goto('#!/systems/system:uuid:'+data.target.uuid);
           }
         });
       })
@@ -318,7 +318,7 @@
             $(event.target).removeClass('submitting');
           },
           success: function () {
-            goto('#!/systems/system:uuid'+data.target.uuid);
+            goto('#!/systems/system:uuid:'+data.target.uuid);
           }
         });
       })
