@@ -66,7 +66,7 @@ func (core *Core) testStorage() {
 
 // DeltaIncrease calculates the delta in storage space over the period specified.
 // It stores the number of bytes increased/decreased in the period specified in the stores table.
-// Calculation is preformed by taking (total new archives created - any archives newly purged)
+// Calculation is performed by taking (total new archives created - any archives newly purged)
 func (core *Core) DeltaIncrease(filter *db.ArchiveFilter) (int64, error) {
 	delta_increase, err := core.DB.ArchiveStorageFootprint(&db.ArchiveFilter{
 		ForStore:   filter.ForStore,
