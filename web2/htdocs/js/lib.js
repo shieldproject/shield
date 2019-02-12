@@ -295,7 +295,7 @@
   ***************************************************/
   exported.website = function () { // {{{
     return document.location.toString().replace(/#.*/, '').replace(/\/$/, '');
-  }
+  };
   // }}}
 
 
