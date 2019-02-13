@@ -1,5 +1,4 @@
 QUnit.assert.empty = function (lst, message) {
-  console.log(lst, lst.length);
   this.pushResult({
     result:   (lst instanceof Array) && lst.length == 0,
     actual:   lst,
