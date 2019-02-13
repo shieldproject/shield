@@ -1,0 +1,9 @@
+USAGE: @G{shield} job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Show a single Backup Job.
+
+  Backup Jobs are the linchpin of SHIELD configuration; they
+  provide the what, when, and where, tying together target data
+  systems (the "what"), cloud storage ("where"), a schedule, and
+  a retention policy into one schedulable unit of data protection.
+

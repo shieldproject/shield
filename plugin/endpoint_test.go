@@ -92,6 +92,33 @@ var _ = Describe("ShieldEndpoint", func() {
 			Expect(got).Should(BeEquivalentTo(expected))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
+		Describe("interprets properly formatted strings as booleans", func() {
+			truish := func(s string, shouldbe bool) func() {
+				return func() {
+					endpoint["truish"] = s
+					got, err := endpoint.BooleanValue("truish")
+					Expect(got).Should(BeEquivalentTo(shouldbe))
+					Expect(err).ShouldNot(HaveOccurred())
+				}
+			}
+			truths := []string{
+				"y", "yes", "YES", "YeS",
+				"t", "true", "TRUE", "TrUe",
+				"on", "ON", "On",
+			}
+			for _, s := range truths {
+				It("should interpret '"+s+"' as true", truish(s, true))
+			}
+
+			falsehoods := []string{
+				"n", "no", "NO", "No",
+				"f", "false", "FALSE", "FaLsE",
+				"off", "OFF", "Off",
+			}
+			for _, s := range falsehoods {
+				It("should interpret '"+s+"' as false", truish(s, false))
+			}
+		})
 		It("errors out when not pointed at a bool", func() {
 			got, err := endpoint.BooleanValue("stringVal")
 			Expect(got).Should(Equal(false))

@@ -20,6 +20,10 @@ type User struct {
 	Backend string    `json:"backend"`
 	SysRole string    `json:"sysrole"`
 
+	Role string `json:"role,omitempty"`
+
+	DefaultTenant string `json:"default_tenant"`
+
 	pwhash string
 }
 
@@ -28,15 +32,9 @@ func (u *User) IsLocal() bool {
 }
 
 func (u *User) Authenticate(password string) bool {
-	if !u.IsLocal() {
-		return false
-	}
-
-	if password == "sekrit" { // FIXME DO NOT ALLOW THIS INTO A COMMIT
-		return true
-	}
+	/* always do this first, to avoid timing attacks */
 	err := bcrypt.CompareHashAndPassword([]byte(u.pwhash), []byte(password))
-	return err == nil
+	return u.IsLocal() && err == nil
 }
 
 func (u *User) SetPassword(password string) error {
@@ -53,10 +51,13 @@ func (u *User) SetPassword(password string) error {
 }
 
 type UserFilter struct {
-	UUID    string
-	Backend string
-	Account string
-	Limit   string
+	UUID       string
+	Backend    string
+	Account    string
+	SysRole    string
+	ExactMatch bool
+	Search     string
+	Limit      int
 }
 
 func (f *UserFilter) Query() (string, []interface{}) {
@@ -74,18 +75,34 @@ func (f *UserFilter) Query() (string, []interface{}) {
 	}
 
 	if f.Account != "" {
-		wheres = append(wheres, "u.account = ?")
-		args = append(args, f.Account)
+		if f.ExactMatch {
+			wheres = append(wheres, "u.account = ?")
+			args = append(args, f.Account)
+		} else {
+			wheres = append(wheres, "u.account LIKE ?")
+			args = append(args, Pattern(f.Account))
+		}
+	}
+
+	if f.SysRole != "" {
+		wheres = append(wheres, "sysrole = ?")
+		args = append(args, f.SysRole)
+	}
+
+	if f.Search != "" {
+		wheres = append(wheres, "(u.account LIKE ? OR u.name LIKE ?)")
+		args = append(args, Pattern(f.Search), Pattern(f.Search))
 	}
 
 	limit := ""
-	if f.Limit != "" {
+	if f.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, f.Limit)
 	}
 
 	return `
-	    SELECT u.uuid, u.name, u.account, u.backend, sysrole, pwhash
+	    SELECT u.uuid, u.name, u.account, u.backend, sysrole, pwhash,
+	           u.default_tenant
 	      FROM users u
 	     WHERE ` + strings.Join(wheres, " AND ") + `
 	` + limit, args
@@ -107,8 +124,8 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 	for r.Next() {
 		u := &User{}
 		var this NullUUID
-		if err = r.Scan(
-			&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash); err != nil {
+		if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash,
+			&u.DefaultTenant); err != nil {
 			return l, err
 		}
 		u.UUID = this.UUID
@@ -121,7 +138,8 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 
 func (db *DB) GetUserByID(id string) (*User, error) {
 	r, err := db.Query(`
-	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash
+	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
+	           u.default_tenant
 	      FROM users u
 	     WHERE u.uuid = ?`, id)
 	if err != nil {
@@ -135,7 +153,8 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 
 	u := &User{}
 	var this NullUUID
-	if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash); err != nil {
+	if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash,
+		&u.DefaultTenant); err != nil {
 		return nil, err
 	}
 	u.UUID = this.UUID
@@ -145,7 +164,8 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 
 func (db *DB) GetUser(account string, backend string) (*User, error) {
 	r, err := db.Query(`
-	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash
+	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
+	           u.default_tenant
 	      FROM users u
 	     WHERE u.account = ? AND backend = ?`, account, backend)
 	if err != nil {
@@ -159,7 +179,8 @@ func (db *DB) GetUser(account string, backend string) (*User, error) {
 
 	u := &User{}
 	var this NullUUID
-	if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash); err != nil {
+	if err = r.Scan(&this, &u.Name, &u.Account, &u.Backend, &u.SysRole, &u.pwhash,
+		&u.DefaultTenant); err != nil {
 		return nil, err
 	}
 	u.UUID = this.UUID
@@ -167,7 +188,7 @@ func (db *DB) GetUser(account string, backend string) (*User, error) {
 	return u, nil
 }
 
-func (db *DB) CreateUser(user *User) (uuid.UUID, error) {
+func (db *DB) CreateUser(user *User) (*User, error) {
 	if user.UUID == nil {
 		user.UUID = uuid.NewRandom()
 	}
@@ -175,16 +196,23 @@ func (db *DB) CreateUser(user *User) (uuid.UUID, error) {
 	    INSERT INTO users (uuid, name, account, backend, sysrole, pwhash)
 	               VALUES (?, ?, ?, ?, ?, ?)
 	`, user.UUID.String(), user.Name, user.Account, user.Backend, user.SysRole, user.pwhash)
-	return user.UUID, err
+	return user, err
 }
 
 func (db *DB) UpdateUser(user *User) error {
 	return db.Exec(`
-		UPDATE users
-		   SET name = ?, account = ?, backend = ?, sysrole = ?, pwhash  = ?
-		 WHERE uuid = ?`,
-		user.Name, user.Account, user.Backend, user.SysRole, user.pwhash,
-		user.UUID.String())
+	   UPDATE users
+	      SET name = ?, account = ?, backend = ?, sysrole = ?, pwhash = ?
+	    WHERE uuid = ?
+	`, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash, user.UUID.String())
+}
+
+func (db *DB) UpdateUserSettings(user *User) error {
+	return db.Exec(`
+	   UPDATE users
+	      SET default_tenant = ?
+	    WHERE uuid = ?
+	`, user.DefaultTenant, user.UUID.String())
 }
 
 func (db *DB) DeleteUser(user *User) error {

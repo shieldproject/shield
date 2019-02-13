@@ -8,10 +8,9 @@ of what is needed in a backup plugin, and how they execute.
 */
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -56,10 +55,10 @@ func (p DummyPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("data")
 	if err != nil {
-		ansi.Printf("@R{\u2717 data   %s}\n", err)
+		fmt.Printf("@R{\u2717 data   %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 data}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 data}  @C{%s}\n", s)
 	}
 
 	if fail {
@@ -89,16 +88,21 @@ func (p DummyPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 }
 
 // Called when you want to store backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p DummyPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	directory, err := endpoint.StringValue("directory")
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	file := plugin.GenUUID()
 
 	err = plugin.Exec(fmt.Sprintf("/bin/sh -c \"/bin/cat > %s/%s\"", directory, file), plugin.STDIN)
-	return file, err
+	info, e := os.Stat(fmt.Sprintf("%s/%s", directory, file))
+	if e != nil {
+		return file, 0, e
+	}
+
+	return file, info.Size(), err
 }
 
 // Called when you want to retreive backup data. Examine the ShieldEndpoint passed in, and perform actions accordingly

@@ -3,16 +3,17 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
+	"github.com/jhunt/go-log"
 	"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/goutils/log"
-	"github.com/starkandwayne/goutils/timestamp"
 	"github.com/starkandwayne/shield/crypter"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/timespec"
@@ -22,6 +23,8 @@ var Version = "(development)"
 
 const SessionCookieName = "shield7"
 
+var DataDir = "setme"
+
 type Core struct {
 	fastloop *time.Ticker
 	slowloop *time.Ticker
@@ -29,16 +32,27 @@ type Core struct {
 	timeout int
 	agent   *AgentClient
 
+	debug bool //For exposing debug API endpoints
+
 	/* cached for /v2/health */
 	ip   string
 	fqdn string
 
+	/* poison pill to os.Exit() SHIELD in contexts where
+	it cannot be called direct safely (i.e. r.Dispatch) */
+	seppuku int
+
 	/* foreman */
 	numWorkers int
 	workers    chan *db.Task
+	broadcast  Broadcaster
+	events     chan Event
 
 	/* monitor */
 	agents map[string]chan *db.Agent
+
+	/* data dir */
+	dataDir string
 
 	/* janitor */
 	purgeAgent string
@@ -46,13 +60,22 @@ type Core struct {
 	/* api */
 	webroot string
 	listen  string
-	auth    []AuthConfig
+	auth    map[string]AuthProvider
+	env     string
+	color   string
 	motd    string
 
 	/* vault */
 	vault          crypter.Vault
 	encryptionType string
 	vaultKeyfile   string
+	vaultAddress   string
+	vaultCACert    string
+
+	/* sessions */
+	sessionTimeout int
+
+	failsafe FailsafeConfig
 
 	DB *db.DB
 }
@@ -69,22 +92,34 @@ func NewCore(file string) (*Core, error) {
 
 	ip, fqdn := networkIdentity()
 
-	return &Core{
+	DataDir = config.DataDir
+
+	core := &Core{
 		fastloop: time.NewTicker(time.Second * time.Duration(config.FastLoop)),
 		slowloop: time.NewTicker(time.Second * time.Duration(config.SlowLoop)),
 
 		timeout: config.Timeout,
 		agent:   agent,
 
+		/* poison pill */
+		seppuku: -1,
+
 		ip:   ip,
 		fqdn: fqdn,
+
+		debug: config.Debug,
 
 		/* foreman */
 		numWorkers: config.Workers,
 		workers:    make(chan *db.Task),
+		broadcast:  NewBroadcaster(2048),
+		events:     make(chan Event),
 
 		/* monitor */
 		agents: make(map[string]chan *db.Agent),
+
+		/* data dir */
+		dataDir: config.DataDir,
 
 		/* janitor */
 		purgeAgent: config.Purge,
@@ -92,19 +127,77 @@ func NewCore(file string) (*Core, error) {
 		/* api */
 		webroot: config.WebRoot,
 		listen:  config.Addr,
-		auth:    config.Auth,
+		env:     config.Environment,
+		color:   config.Color,
 		motd:    config.MOTD,
 
 		/* encryption */
 		encryptionType: config.EncryptionType,
-		vaultKeyfile:   config.VaultKeyfile,
+		vaultKeyfile:   path.Join(config.DataDir, "/vault.crypt"),
+		vaultAddress:   config.VaultAddress,
+
+		/* session */
+		sessionTimeout: config.SessionTimeout,
+
+		failsafe: config.Failsafe,
 
 		/* db */
 		DB: &db.DB{
 			Driver: "sqlite3",
-			DSN:    config.DBPath,
+			DSN:    path.Join(config.DataDir, "/shield.db"),
 		},
-	}, nil
+	}
+
+	if config.VaultCACert != "" {
+		b, err := ioutil.ReadFile(config.VaultCACert)
+		if err != nil {
+			return nil, err
+		}
+		core.vaultCACert = string(b)
+	}
+
+	core.auth = make(map[string]AuthProvider)
+	for i, auth := range config.Auth {
+		if auth.Identifier == "" {
+			return nil, fmt.Errorf("provider #%d lacks the required `identifier' field", i+1)
+		}
+		if auth.Name == "" {
+			return nil, fmt.Errorf("%s provider lacks the required `name' field", auth.Identifier)
+		}
+		if auth.Backend == "" {
+			return nil, fmt.Errorf("%s provider lacks the required `backend' field", auth.Identifier)
+		}
+
+		switch auth.Backend {
+		case "github":
+			core.auth[auth.Identifier] = &GithubAuthProvider{
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: auth.Identifier,
+					Type:       auth.Backend,
+				},
+				core: core,
+			}
+		case "uaa":
+			core.auth[auth.Identifier] = &UAAAuthProvider{
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: auth.Identifier,
+					Type:       auth.Backend,
+				},
+				core: core,
+			}
+		default:
+			return nil, fmt.Errorf("%s provider has an unrecognized `backend' of '%s'; must be one of github or uaa", auth.Identifier, auth.Backend)
+		}
+
+		if err := core.auth[auth.Identifier].Configure(auth.Properties); err != nil {
+			return nil, fmt.Errorf("failed to configure '%s' auth provider '%s': %s",
+				auth.Backend, auth.Identifier, err)
+		}
+	}
+
+	return core, nil
 }
 
 func (core *Core) Run() error {
@@ -116,9 +209,52 @@ func (core *Core) Run() error {
 		return fmt.Errorf("database failed schema version check: %s", err)
 	}
 
+	if core.failsafe.Username != "" {
+		log.Infof("checking to see if we should re-instate the failsafe administrator account '%s'", core.failsafe.Username)
+		existing, err := core.DB.GetAllUsers(&db.UserFilter{Backend: "local"})
+		if err != nil {
+			return fmt.Errorf("Failed to retrieve list of local users: %s", err)
+		}
+		if len(existing) == 0 {
+			log.Infof("no local users detected; creating failsafe administrator account '%s'", core.failsafe.Username)
+			user := &db.User{
+				Name:    "Administrator",
+				Account: core.failsafe.Username,
+				Backend: "local",
+				SysRole: "admin",
+			}
+
+			user.SetPassword(core.failsafe.Password)
+			_, err := core.DB.CreateUser(user)
+			if err != nil {
+				return fmt.Errorf("Failed to create failsafe administative account '%s': %s", core.failsafe.Username, err)
+			}
+		}
+	}
+
+	log.Infof("Purging prior authenticated sessions from previous SHIELD instance.")
+	core.DB.Exec("DELETE FROM `sessions`")
+
+	tenants := make(map[string]bool)
+	for _, auth := range core.auth {
+		for _, tenant := range auth.ReferencedTenants() {
+			if tenant != "SYSTEM" {
+				tenants[tenant] = true
+			}
+		}
+	}
+	for tenant := range tenants {
+		if _, err := core.DB.EnsureTenant(tenant); err != nil {
+			return fmt.Errorf("unable to pre-create tenant '%s' (referenced in authentication providers): %s", tenant, err)
+		}
+	}
+
+	if err = core.fixups(); err != nil {
+		return fmt.Errorf("failed to run (idempotent) fixups against database: %s", err)
+	}
 	core.cleanup()
 
-	core.vault, err = crypter.NewVault()
+	core.vault, err = crypter.NewVault(core.vaultAddress, core.vaultCACert)
 	if err != nil {
 		log.Errorf("Failed to create core vault instance with error: %s", err)
 		os.Exit(2)
@@ -133,15 +269,21 @@ func (core *Core) Run() error {
 
 	core.api()
 	core.runWorkers()
+	core.runBroadcast()
 
 	for {
 		select {
 		case <-core.fastloop.C:
 			sealed, err := core.vault.IsSealed()
 			initialized, initErr := core.vault.IsInitialized()
+			if core.seppuku != -1 {
+				log.Infof("core.sepukku was set to non-negative value, sayonara my friend")
+				os.Exit(core.seppuku)
+			}
 			if initialized && !sealed {
 				core.scheduleTasks()
 				core.runPending()
+				core.checkPendingAgents()
 			} else {
 				if err != nil || initErr != nil {
 					log.Errorf("Failed to schedule tasks due to Vault error: %s %s", err, initErr)
@@ -150,9 +292,18 @@ func (core *Core) Run() error {
 
 		case <-core.slowloop.C:
 			core.expireArchives()
-			core.purge()
 			core.markTasks()
-			core.checkAgents()
+			core.checkAllAgents()
+			core.updateStorageUsage()
+			core.purgeExpiredSessions()
+			core.cleanupConfig()
+
+			sealed, _ := core.vault.IsSealed()
+			initialized, _ := core.vault.IsInitialized()
+			if initialized && !sealed {
+				core.purge()
+				core.testStorage()
+			}
 		}
 	}
 }
@@ -172,6 +323,14 @@ func (core *Core) api() {
 			os.Exit(2)
 		}
 		log.Infof("shutting down shield core api")
+	}()
+}
+
+func (core *Core) runBroadcast() {
+	go func() {
+		for ev := range core.events {
+			core.broadcast.Broadcast(ev)
+		}
 	}()
 }
 
@@ -222,9 +381,36 @@ func (core *Core) scheduleTasks() {
 		return
 	}
 
+	tasks, err := core.DB.GetAllTasks(&db.TaskFilter{
+		ForOp:        "backup",
+		SkipInactive: true,
+	})
+	if err != nil {
+		log.Errorf("error retrieving in-flight tasks from database: %s", err)
+		return
+	}
+
+	lookup := make(map[string]string)
+	for _, task := range tasks {
+		lookup[task.JobUUID.String()] = task.UUID.String()
+	}
+
 	for _, job := range l {
-		log.Infof("scheduling a run of job %s [%s]", job.Name, job.UUID)
-		core.DB.CreateBackupTask("system", job)
+		if tid, running := lookup[job.UUID.String()]; running {
+			log.Infof("skipping next run of job %s [%s]; already running in task [%s]...", job.Name, job.UUID, tid)
+			_, err := core.DB.SkipBackupTask("system", job,
+				fmt.Sprintf("... skipping this run; task %s is still not finished ...\n", tid))
+			if err != nil {
+				log.Errorf("failed to insert skipped backup task record: %s", err)
+			}
+
+		} else {
+			log.Infof("scheduling a run of job %s [%s]", job.Name, job.UUID)
+			_, err := core.DB.CreateBackupTask("system", job)
+			if err != nil {
+				log.Errorf("failed to insert backup task record: %s", err)
+			}
+		}
 
 		if spec, err := timespec.Parse(job.Schedule); err != nil {
 			log.Errorf("error re-scheduling job %s [%s]: %s", job.Name, job.UUID, err)
@@ -249,7 +435,7 @@ func (core *Core) runPending() {
 
 	for _, task := range l {
 		/* set up the deadline for execution */
-		task.TimeoutAt = timestamp.Now().Add(time.Duration(core.timeout))
+		task.TimeoutAt = time.Now().Unix() + (int64)(core.timeout)
 		log.Infof("schedule task %s with deadline %v", task.UUID, task.TimeoutAt)
 
 		/* mark the task as scheduled, so we don't pick it up again */
@@ -258,10 +444,10 @@ func (core *Core) runPending() {
 		/* spin up a goroutine so that we can block in the write
 		   to the workers channel, yet return immediately to here,
 		   and 'queue up' the remaining pending tasks */
-		go func() {
-			core.workers <- task
+		go func(task db.Task) {
+			core.workers <- &task
 			log.Debugf("dispatched task %s to a worker goroutine", task.UUID)
-		}()
+		}(*task)
 	}
 }
 
@@ -280,7 +466,30 @@ func (core *Core) expireArchives() {
 			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
 			continue
 		}
+
+		log.Infof("deleting encryption parameters for archive %s", archive.UUID)
+		err = core.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID.String()))
+		if err != nil {
+			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
+		}
 	}
+}
+
+func (core *Core) cleanupConfig() {
+	log.Debugf("Cleaning out any configurations from a deleted tenant")
+
+	err := core.DB.CleanTargets()
+	if err != nil {
+		log.Errorf("unable to clean up orphaned targets: %s", err)
+		return
+	}
+
+	err = core.DB.CleanStores()
+	if err != nil {
+		log.Errorf("unable to clean up orphaned stores: %s", err)
+		return
+	}
+
 }
 
 func (core *Core) purge() {
@@ -305,14 +514,7 @@ func (core *Core) markTasks() {
 	core.DB.MarkTasksIrrelevant()
 }
 
-func (core *Core) checkAgents() {
-	log.Debugf("scanning for agents that need to be checked")
-
-	agents, err := core.DB.GetAllAgents(nil)
-	if err != nil {
-		log.Errorf("error retrieving agent registration records from database: %s", err)
-		return
-	}
+func (core *Core) checkAgents(agents []*db.Agent) {
 	for _, a := range agents {
 		if c, ok := core.agents[a.Address]; ok {
 			select {
@@ -360,7 +562,7 @@ func (core *Core) checkAgents() {
 						Version string `json:"version"`
 						Health  string `json:"health"`
 					}
-					if err = json.Unmarshal([]byte(response), &x); err != nil {
+					if err := json.Unmarshal([]byte(response), &x); err != nil {
 						log.Errorf("  [monitor] %s: !! failed to parse status op response: %s", a.Address, err)
 
 						a.Status = "failing"
@@ -388,7 +590,7 @@ func (core *Core) checkAgents() {
 
 					a.Status = x.Health
 					a.Version = x.Version
-					a.Metadata = response
+					a.RawMeta = response
 
 					log.Debugf("  [monitor] %s> updating (agent=%s) with status '%s'...", a.Address, a.UUID, a.Status)
 					if err := core.DB.UpdateAgent(a); err != nil {
@@ -401,25 +603,34 @@ func (core *Core) checkAgents() {
 	}
 }
 
+func (core *Core) checkAllAgents() {
+	log.Debugf("scanning for agents that need to be checked")
+
+	agents, err := core.DB.GetAllAgents(nil)
+	if err != nil {
+		log.Errorf("error retrieving agent registration records from database: %s", err)
+		return
+	}
+	core.checkAgents(agents)
+}
+
+func (core *Core) checkPendingAgents() {
+	agents, err := core.DB.GetAllAgents(&db.AgentFilter{Status: "pending"})
+	if err != nil {
+		log.Errorf("error retrieving agent registration records from database: %s", err)
+		return
+	}
+	core.checkAgents(agents)
+}
+
 func (core *Core) worker(id int) {
 	/* read a task from the core */
 	for task := range core.workers {
 		log.Debugf("worker %d starting to execute task %s", id, task.UUID)
 
-		if err := core.DB.StartTask(task.UUID, time.Now()); err != nil {
-			log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-		}
-
+		core.startTask(task)
 		if task.Agent == "" {
-			err := core.DB.UpdateTaskLog(
-				task.UUID,
-				fmt.Sprintf("TASK FAILED!!  no remote agent specified for task %s", task.UUID),
-			)
-			if err != nil {
-				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-			}
-
-			core.handleFailure(task)
+			core.failTask(task, "no remote agent specified for task %s", task.UUID)
 			continue
 		}
 
@@ -427,57 +638,66 @@ func (core *Core) worker(id int) {
 		stderr := make(chan string)
 		go func() {
 			for s := range stderr {
-				core.handleOutput(task, "%s", s)
+				core.logToTask(task, s)
 			}
 		}()
 
 		if task.Op == db.BackupOperation {
 			task.ArchiveUUID = uuid.NewRandom()
-
-			enc_key, enc_iv, err := core.vault.CreateBackupEncryptionConfig(core.encryptionType)
-			if err != nil {
-				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to generate encryption key/iv pair: %s\n", id, err)
-				core.handleFailure(task)
-				continue
+			var enc_key, enc_iv string
+			if task.FixedKey {
+				data, exists, err := core.vault.Get("secret/archives/fixed_key")
+				if err != nil || !exists {
+					core.failTask(task, "shield worker %d unable retrieve fixed-key encryption parameters: %s\n", id, err)
+					continue
+				}
+				enc_key = crypter.ASCIIHexDecode(data["key"].(string))
+				enc_iv = crypter.ASCIIHexDecode(data["iv"].(string))
+			} else {
+				var err error
+				enc_key, enc_iv, err = core.vault.CreateBackupEncryptionConfig(core.encryptionType)
+				if err != nil {
+					core.failTask(task, "shield worker %d failed to generate encryption parameters: %s\n", id, err)
+					continue
+				}
 			}
 
-			err = core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
-				"key":  core.vault.ASCIIHexEncode(enc_key, 4),
-				"iv":   core.vault.ASCIIHexEncode(enc_iv, 4),
+			err := core.vault.Put("secret/archives/"+task.ArchiveUUID.String(), map[string]interface{}{
+				"key":  crypter.ASCIIHexEncode(enc_key, 4),
+				"iv":   crypter.ASCIIHexEncode(enc_iv, 4),
 				"type": core.encryptionType,
 				"uuid": task.ArchiveUUID.String(),
 			})
 
 			if err != nil {
-				core.handleOutput(task, "TASK FAILED!!  shield worker %d failed to set encryption vars: %s\n", id, err)
-				core.handleFailure(task)
+				core.failTask(task, "shield worker %d failed to set encryption parameters: %s\n", id, err)
 				continue
 			}
-
-		}
-
-		data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
-		if err != nil {
-			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to set encryption uuid: %s\n", id, err)
-			core.handleFailure(task)
-			continue
 		}
 
 		var encType, encKey, encIV string
-		if exists {
-			encType = data["type"].(string)
-			encKey = data["key"].(string)
-			encIV = data["iv"].(string)
-		}
+		if task.Op == db.BackupOperation || task.Op == db.RestoreOperation {
+			data, exists, err := core.vault.Get("secret/archives/" + task.ArchiveUUID.String())
+			if err != nil {
+				core.failTask(task, "shield worker %d unable retrieve encryption parameters: %s\n", id, err)
+				continue
+			}
 
+			if exists {
+				encType = data["type"].(string)
+				encKey = data["key"].(string)
+				encIV = data["iv"].(string)
+			}
+		}
 		/* connect to the remote SSH agent for this specific request
 		   (a worker may connect to lots of different agents in its
 		    lifetime; these connections endure long enough to submit
 		    the agent command and gather the exit code + output) */
-		err = core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
+		err := core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
 			Op:             task.Op,
 			TargetPlugin:   task.TargetPlugin,
 			TargetEndpoint: task.TargetEndpoint,
+			Compression:    task.Compression,
 			StorePlugin:    task.StorePlugin,
 			StoreEndpoint:  task.StoreEndpoint,
 			RestoreKey:     task.RestoreKey,
@@ -487,67 +707,99 @@ func (core *Core) worker(id int) {
 		})
 
 		if err != nil {
-			core.handleOutput(task, "TASK FAILED!!  shield worker %d unable to run command against %s: %s\n", id, task.Agent, err)
-			core.handleFailure(task)
+			/* N.B.: there is a temptation to print the error here, but in all the
+			   time we've run this code in production, the error message is
+			   ALWAYS 'process exited X, reason was ()', which is useless. */
+			core.failTask(task, "shield worker %d unable to run command against %s\n", id, task.Agent)
+			if task.Op == db.TestStoreOperation {
+				store, err := core.DB.GetStore(task.StoreUUID)
+				if err != nil {
+					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
+				}
+				if store == nil {
+					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
+					continue
+				}
+				log.Infof("marking store %s [%s] as unhealthy", store.Name, store.UUID)
+				store.Healthy = false
+				err = core.DB.UpdateStore(store)
+				if err != nil {
+					log.Errorf("error updating store %s [%s]: %s", store.Name, store.UUID, err)
+				}
+			}
 			continue
 		}
 
-		failed := false
 		response := <-stdout
 		if task.Op == db.BackupOperation {
 			var v struct {
-				Key string `json:"key"`
+				Key         string `json:"key"`
+				Size        int64  `json:"archive_size"`
+				Compression string `json:"compression"`
 			}
 			if err := json.Unmarshal([]byte(response), &v); err != nil {
-				failed = true
-				core.handleOutput(task, "WORKER FAILED!!  shield worker %d failed to parse JSON response from remote agent %s (%s)\n", id, task.Agent, err)
+				core.failTask(task, "shield worker %d failed to parse JSON response from remote agent %s: %s\n", id, task.Agent, err)
+				continue
 
 			} else {
+				if v.Compression == "" {
+					/* older shield-pipes will always bzip2; and if they aren't
+					   reporting their compression type, it's gotta be bzip2 */
+					v.Compression = "bzip2"
+				}
 				if v.Key != "" {
 					log.Infof("  %s: restore key is %s", task.UUID, v.Key)
-					if id, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType); err != nil {
+					if _, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Compression, v.Size, task.TenantUUID); err != nil {
 						log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-					} else if failed {
-						core.DB.InvalidateArchive(id)
 					}
 
 				} else {
-					failed = true
-					core.handleOutput(task, "TASK FAILED!! No restore key detected in worker %d. Cowardly refusing to create an archive record\n", id)
+					core.failTask(task, "shield worker %d did not detect a restore key in the store plugin output\nCowardly refusing to create an archive record\n", id)
+					continue
 				}
 			}
 		}
 
-		if task.Op == db.PurgeOperation && !failed {
+		if task.Op == db.PurgeOperation {
 			log.Infof("  %s: archive %s purged from storage", task.UUID, task.ArchiveUUID)
 			if err := core.DB.PurgeArchive(task.ArchiveUUID); err != nil {
 				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
 			}
 		}
 
-		if failed {
-			core.handleFailure(task)
-		} else {
-			log.Infof("  %s: job completed successfully", task.UUID)
-			if err := core.DB.CompleteTask(task.UUID, time.Now()); err != nil {
-				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
+		if task.Op == db.TestStoreOperation {
+			var v struct {
+				Healthy bool `json:"healthy"`
 			}
+
+			if err := json.Unmarshal([]byte(response), &v); err != nil {
+				core.failTask(task, "shield worker %d failed to parse JSON response from remote agent %s: %s\n", id, task.Agent, err)
+				continue
+
+			} else {
+				store, err := core.DB.GetStore(task.StoreUUID)
+				if err != nil {
+					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
+				}
+				if store == nil {
+					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
+					continue
+				}
+				store.Healthy = v.Healthy
+				err = core.DB.UpdateStore(store)
+				if err != nil {
+					log.Errorf("error updating store: %s", err)
+				}
+			}
+			log.Infof("  %s: cloud storage %s tested", task.UUID, task.StoreUUID)
 		}
-	}
-}
 
-func (core *Core) handleFailure(task *db.Task) {
-	log.Warnf("  %s: task failed!", task.UUID)
-	if err := core.DB.FailTask(task.UUID, time.Now()); err != nil {
-		log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-	}
-}
-
-func (core *Core) handleOutput(task *db.Task, f string, args ...interface{}) {
-	s := fmt.Sprintf(f, args...)
-	log.Infof("  %s> %s", task.UUID, strings.Trim(s, "\n"))
-	if err := core.DB.UpdateTaskLog(task.UUID, s); err != nil {
-		log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
+		log.Infof("  %s: job completed successfully", task.UUID)
+		core.finishTask(task)
+		if task.Op == db.BackupOperation {
+			log.Infof("  %s: triggering an update to storage analytics", task.UUID)
+			core.updateStorageUsage()
+		}
 	}
 }
 

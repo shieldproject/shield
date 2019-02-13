@@ -1,0 +1,37 @@
+USAGE: @G{shield} global-stores [OPTIONS]
+
+  List Shared Cloud Storage Systems
+
+  SHIELD needs a place to store all of the backup archives it is
+  going to generate, and Cloud Storage is where it's at.  Each
+  Cloud Storage System provides the configuration details needed
+  to write to and read from some external storage endpoint, be it
+  Amazon S3, Google Cloud Storage, or a local WebDav instance.
+
+  @Y{NOTE:} This command only display shared storage systems, which
+  are visible to all SHIELD tenants.  If you only want to see the
+  systems defined for your tenant(s), see @C{shield stores}.
+
+@B{Options:}
+
+  By default, all shared cloud storage systems will be displayed.
+  You may filter the results with the following command-line flags.
+
+  --used          Only show storage systems that are either @W{used}
+  --unused        (referenced by a job configurtion) or @W{unused}.
+                  These options are mutually exclusive.
+
+  --with-plugin   Only show storage systems that are using the given
+                  storage plugin.
+
+@B{Examples:}
+
+  # Where are we using Amazon S3?
+  @W{shield global-stores}  \
+     @Y{--used}             \
+     @Y{--with-plugin} @C{s3}
+
+  # Which shared storage systems can we decomission?
+  @W{shield global-stores} \
+    @Y{--unused}
+

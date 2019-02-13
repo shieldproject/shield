@@ -1,0 +1,61 @@
+USAGE: @G{shield} create-user [OPTIONS]
+
+  Create a new local SHIELD User.
+
+  SHIELD supports a several 3rd party authentication providers,
+  including Github and Cloud Foundry UAA, but for sheer simplicity,
+  nothing beats local users.  Local SHIELD users exist inside the
+  SHIELD database, and can be assigned tenant- and system-roles
+  arbitrarily.
+
+  @Y{NOTE:} This command can only be used by SHIELD site managers.
+
+@B{Options:}
+
+  The entire configuration of the new local SHIELD user can be
+  specified via command-line arguments.  You may also omit any or
+  all of these flags and shield will prompt interactively for the
+  missing information it needs (unless @C{--batch} is active.)
+
+  -n, --name        The full display name of your new user.
+
+  -u, --username    The username this user will use to sign in.
+                    This field is @W{required}.
+
+  -p, --password    A secret password that the user must supply
+                    in order to authenticate successfully.
+                    This field is @W{required}.
+
+     --system-role  Optionally assign this new user a system role,
+                    one of @M{engineer}, @M{manager}, or @M{admin}.
+
+@B{System Roles:}
+
+  Assigning a user a System Role grants them special access into
+  SHIELD itself, giving them the ability to view and modify the
+  configuration of the software, authentication, tenancy, etc.
+
+  The following system roles are defined:
+
+    @M{admin}     Complete access to SHIELD, including the ability
+              to view and manage registered agents, manage user
+              sessions, and more.
+
+    @M{manager}   System Managers are responsible for the creation
+              and management of SHIELD Tenants; they have the
+              ability to invite and banish users to / from any
+              tenant.  They also manage local SHIELD users.
+
+    @M{engineer}  Full access to everything that is shared between
+              tenants, including retention policy templates and
+              shared cloud storage systems.
+
+@B{Example:}
+
+  # We want jhunt engineering stuff on our SHIELD.
+  @W{shield create-user}             \
+      @Y{--name}        "James Hunt" \
+      @Y{--username}    jhunt        \
+      @Y{--password}    sekrit       \
+      @Y{--system-role} engineer
+

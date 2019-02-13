@@ -1,57 +1,6 @@
-// The `docker-postgres` plugin for SHIELD implements backup + restore functionality
-// specific to the `docker-boshrelease`'s cf-containers-broker, in conjunction with
-// Postgres docker containers. It is very specific to backing up postgres docker containers
-// on this service broker, and will likely not work with other implementations.
-//
-// PLUGIN FEATURES
-//
-// This plugin implements functionality suitable for use with the following SHIELD
-// Job components:
-//
-//    Target: yes
-//    Store:  no
-//
-// PLUGIN CONFIGURATION
-//
-// No configuration is required for this plugin, as the docker deployments are self-contained
-// on a single VM, and all the data for backing up + restoring services can be detected
-// automatically. Your endpoint JSON should look something like this:
-//
-//    {}
-//
-// Default Configuration
-//
-//    {}
-//
-// BACKUP DETAILS
-//
-// The `docker-postgres` plugin backs up by connecting to docker, finding all running
-// containers, and loops through each, grabbing its connection info from docker, and runs
-// a pg_dump on the docker database. Each dump is written into a tar archive, along with metadata
-// about the service ID and connection info.
-//
-// RESTORE DETAILS
-//
-// During restore, `docker-postgres` iterates through each backup in the archive, parsing
-// out service information + data. It then deletes any existing containers using the ID
-// of the container to be restored, recreates its volume directories if necessary, and
-// creates a new container with the original name, id, and port mappings. Finally, it
-// restores the data to the new postgres instance via `psql`.
-//
-// Restores with `docker-postgres` are service-impacting. Postgres containers are potentially
-// deleted and re-created, preventing apps from communicating with them during the backup.
-//
-// DEPENDENCIES
-//
-// This plugin relies on the `pg_dump` and `psql` commands. Please ensure that they
-// are present on the system that will be running the backups + restores for postgres.
-// If you are using shield-boshrelease to deploy SHIELD, these tools are provided, if you
-// include the `agent-pgtools` job template along side your `shield-agent`.
-//
 package main
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -61,7 +10,7 @@ import (
 	"time"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -125,9 +74,9 @@ func (p DockerPostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	)
 	s, err = endpoint.StringValue("socket")
 	if err != nil {
-		ansi.Printf("@G{\u2713 socket}  using default socket @C{%s}\n", DefaultSocket)
+		fmt.Printf("@G{\u2713 socket}  using default socket @C{%s}\n", DefaultSocket)
 	} else {
-		ansi.Printf("@G{\u2713 socket}  using socket @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 socket}  using socket @C{%s}\n", s)
 	}
 	return nil
 }
@@ -307,8 +256,8 @@ func (p DockerPostgresPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return nil
 }
 
-func (p DockerPostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p DockerPostgresPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p DockerPostgresPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

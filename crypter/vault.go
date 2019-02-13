@@ -1,31 +1,25 @@
 package crypter
 
 import (
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
-	"encoding/base64"
+	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"math/big"
 	"net/http"
-	"regexp"
 	"strings"
+	"time"
 
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 type Vault struct {
-	URL      string
-	Token    string
-	Insecure bool
-	HTTP     *http.Client
+	URL   string
+	Token string
+	HTTP  *http.Client
 }
 
 type VaultCreds struct {
@@ -37,17 +31,25 @@ var status struct {
 	Sealed bool `json:"sealed"`
 }
 
-func NewVault() (Vault, error) {
+func NewVault(url, cacert string) (Vault, error) {
+	pool := x509.NewCertPool()
+	if cacert != "" {
+		if ok := pool.AppendCertsFromPEM([]byte(cacert)); !ok {
+			return Vault{}, fmt.Errorf("Invalid or malformed CA Certificate")
+		}
+	}
+
 	return Vault{
-		URL:      "http://127.0.0.1:8200",
-		Token:    "",
-		Insecure: true,
+		URL:   url,
+		Token: "",
 		HTTP: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					RootCAs: pool,
 				},
+				DisableKeepAlives: true,
 			},
+			Timeout: 30 * time.Second,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) > 10 {
 					return fmt.Errorf("stopped after 10 redirects")
@@ -59,21 +61,21 @@ func NewVault() (Vault, error) {
 	}, nil
 }
 
-func (vault *Vault) Init(store string, master string) error {
+func (vault *Vault) Init(store string, master string) (string, error) {
 	initialized, err := vault.IsInitialized()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if initialized {
 		log.Infof("vault is already initialized")
 
-		creds, err := vault.ReadConfig(store, master)
+		creds, err := ReadConfig(store, master)
 		if err != nil {
-			return err
+			return "", err
 		}
 		vault.Token = creds.RootToken
-		return vault.Unseal(creds.SealKey)
+		return "", vault.Unseal(creds.SealKey)
 	}
 
 	//////////////////////////////////////////
@@ -85,12 +87,12 @@ func (vault *Vault) Init(store string, master string) error {
 	})
 	if err != nil {
 		log.Errorf("failed to initialize the vault: %s", err)
-		return err
+		return "", err
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Errorf("failed to read response from the vault, concerning our initialization attempt: %s", err)
-		return err
+		return "", err
 	}
 
 	var keys struct {
@@ -99,7 +101,7 @@ func (vault *Vault) Init(store string, master string) error {
 	}
 	if err = json.Unmarshal(b, &keys); err != nil {
 		log.Errorf("failed to parse response from the vault, concerning our initialization attempt: %s", err)
-		return err
+		return "", err
 	}
 	if keys.RootToken == "" || len(keys.Keys) != 1 {
 		if keys.RootToken == "" {
@@ -109,7 +111,7 @@ func (vault *Vault) Init(store string, master string) error {
 			log.Errorf("failed to initialize vault: incorrect number of seal keys (%d) returned", len(keys.Keys))
 		}
 		err = fmt.Errorf("invalid response from vault: token '%s' and %d keys", keys.RootToken, len(keys.Keys))
-		return err
+		return "", err
 	}
 
 	creds := VaultCreds{
@@ -117,13 +119,22 @@ func (vault *Vault) Init(store string, master string) error {
 		RootToken: keys.RootToken,
 	}
 
-	err = vault.WriteConfig(store, master, creds)
+	err = WriteConfig(store, master, creds)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	vault.Token = creds.RootToken
-	return vault.Unseal(creds.SealKey)
+
+	//////////////////////////////////////////
+	// Unseal and Initialize DR Keys
+
+	err = vault.Unseal(creds.SealKey)
+	if err != nil {
+		return "", err
+	}
+
+	return vault.FixedKeygen()
 }
 
 func (vault *Vault) Unseal(key string) error {
@@ -235,66 +246,13 @@ func (vault *Vault) Put(path string, data interface{}) error {
 	return nil
 }
 
-func (vault *Vault) ReadConfig(store string, master string) (VaultCreds, error) {
-	if !regexp.MustCompile(`^[\x20-\x7e]+$`).Match([]byte(master)) {
-		log.Errorf("Failed to decrypt vault credentials: Master Password must contain only printable chars")
-		return VaultCreds{}, errors.New("Failed to decrypt vault credentials: Master Password must contain only printable chars")
-	}
-
-	key := sha256.Sum256([]byte(master))
-	log.Debugf("reading credentials files from %s", store)
-	b, err := ioutil.ReadFile(store)
+func (vault *Vault) Delete(path string) error {
+	res, err := vault.Do("DELETE", fmt.Sprintf("/v1/secret/%s", path), nil)
 	if err != nil {
-		log.Errorf("failed to read vault credentials from %s: %s", store, err)
-		return VaultCreds{}, err
-	}
-
-	jsonCreds, err := vault.decrypt(key[:], b)
-	if err != nil {
-		log.Errorf("Failed to decrypt sealkey for longterm storage: %s", err)
-		return VaultCreds{}, err
-	}
-
-	plainCreds := VaultCreds{}
-	err = json.Unmarshal([]byte(jsonCreds), &plainCreds)
-	if err != nil {
-		log.Errorf("Failed to decrypt vault credentials: Incorrect Password")
-		return VaultCreds{}, errors.New("Failed to decrypt vault credentials: Incorrect Password")
-	}
-
-	return plainCreds, err
-}
-
-func (vault *Vault) WriteConfig(store string, master string, creds VaultCreds) error {
-	if !regexp.MustCompile(`^[\x20-\x7e]+$`).Match([]byte(master)) {
-		log.Errorf("Failed to encrypt vault credentials: Master Password must contain only printable chars")
-		return errors.New("Failed to encrypt vault credentials: Master Password must contain only printable chars")
-	}
-
-	key := sha256.Sum256([]byte(master))
-	encryptedCreds := VaultCreds{
-		SealKey:   creds.SealKey,
-		RootToken: creds.RootToken,
-	}
-
-	log.Debugf("marshaling credentials for longterm storage")
-	jsonCreds, err := json.Marshal(encryptedCreds)
-	if err != nil {
-		log.Errorf("failed to marshal vault root token / seal key for longterm storage: %s", err)
 		return err
 	}
-
-	encCreds, err := vault.encrypt(key[:], jsonCreds)
-	if err != nil {
-		log.Errorf("Failed to encrypt vault credentials for longterm storage: %s", err)
-		return err
-	}
-
-	log.Debugf("storing credentials at %s (mode 0600)", store)
-	err = ioutil.WriteFile(store, []byte(encCreds), 0600)
-	if err != nil {
-		log.Errorf("failed to write credentials to longterm storage file %s: %s", store, err)
-		return err
+	if res.StatusCode != 204 {
+		return fmt.Errorf("API %s", res.Status)
 	}
 	return nil
 }
@@ -307,35 +265,35 @@ func (vault *Vault) CreateBackupEncryptionConfig(enctype string) (string, string
 	cipher := strings.Split(enctype, "-")[0]
 	switch cipher {
 	case "aes128":
-		key, err := vault.Keygen(32)
+		key, err := keygen(32)
 		if err != nil {
 			return "", "", err
 		}
 
-		iv, err := vault.Keygen(32)
+		iv, err := keygen(32)
 		if err != nil {
 			return "", "", err
 		}
 		return key, iv, nil
 
 	case "aes256":
-		key, err := vault.Keygen(64)
+		key, err := keygen(64)
 		if err != nil {
 			return "", "", err
 		}
 
-		iv, err := vault.Keygen(32)
+		iv, err := keygen(32)
 		if err != nil {
 			return "", "", err
 		}
 		return key, iv, nil
 	case "twofish":
-		key, err := vault.Keygen(64)
+		key, err := keygen(64)
 		if err != nil {
 			return "", "", err
 		}
 
-		iv, err := vault.Keygen(32)
+		iv, err := keygen(32)
 		if err != nil {
 			return "", "", err
 		}
@@ -343,32 +301,6 @@ func (vault *Vault) CreateBackupEncryptionConfig(enctype string) (string, string
 	default:
 		return "", "", fmt.Errorf("Invalid cipher '%s' specified for key/iv generation", cipher)
 	}
-}
-
-func (vault *Vault) Keygen(length int) (string, error) {
-	chars := "0123456789ABCDEF"
-	var buffer bytes.Buffer
-
-	for i := 0; i < length; i++ {
-		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
-		if err != nil {
-			return "", err
-		}
-		indexInt := index.Int64()
-		buffer.WriteString(string(chars[indexInt]))
-	}
-	return buffer.String(), nil
-}
-
-func (vault *Vault) ASCIIHexEncode(s string, n int) string {
-	var buffer bytes.Buffer
-	for i, rune := range s {
-		buffer.WriteRune(rune)
-		if i%n == (n-1) && i != (len(s)-1) {
-			buffer.WriteRune('-')
-		}
-	}
-	return buffer.String()
 }
 
 func (vault *Vault) IsSealed() (bool, error) {
@@ -438,37 +370,20 @@ func (vault *Vault) Status() (string, error) {
 	return "uninitialized", nil
 }
 
-func (vault *Vault) encrypt(key, text []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	ciphertext := make([]byte, aes.BlockSize+len(text))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
-	}
-	cfb := cipher.NewCFBEncrypter(block, iv)
-	cfb.XORKeyStream(ciphertext[aes.BlockSize:], text)
-	return base64.StdEncoding.EncodeToString(ciphertext), nil
-}
-
-func (vault *Vault) decrypt(key, text []byte) (string, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-	if len(text) < aes.BlockSize {
-		return "", errors.New("ciphertext too short")
-	}
-	text, err = base64.StdEncoding.DecodeString(string(text))
+func (vault *Vault) FixedKeygen() (string, error) {
+	fixedKey, err := keygen(512)
 	if err != nil {
 		return "", err
 	}
 
-	iv := text[:aes.BlockSize]
-	text = text[aes.BlockSize:]
-	cfb := cipher.NewCFBDecrypter(block, iv)
-	cfb.XORKeyStream(text, text)
-	return string(text), nil
+	generatedMaterial := pbkdf2.Key([]byte(fixedKey[32:]), []byte(fixedKey[:32]), 4096, 48, sha256.New)
+
+	err = vault.Put("secret/archives/fixed_key", map[string]interface{}{
+		"key":  ASCIIHexEncode(hex.EncodeToString(generatedMaterial[:32]), 4),
+		"iv":   ASCIIHexEncode(hex.EncodeToString(generatedMaterial[32:]), 4),
+		"type": "aes256-ctr",
+		"uuid": "fixed-key",
+	})
+
+	return fixedKey, err
 }

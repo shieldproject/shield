@@ -10,9 +10,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/jhunt/go-log"
 	"golang.org/x/crypto/ssh"
-
-	"github.com/starkandwayne/goutils/log"
 )
 
 type Agent struct {
@@ -27,9 +26,10 @@ type Agent struct {
 	Port    int
 
 	Registration struct {
-		URL        string
-		Interval   int
-		SkipVerify bool
+		URL          string
+		Interval     int
+		ShieldCACert string
+		SkipVerify   bool
 	}
 }
 

@@ -2,7 +2,6 @@ package db_test
 
 import (
 	"fmt"
-	"github.com/starkandwayne/goutils/timestamp"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -60,7 +59,6 @@ var _ = Describe("Task Management", func() {
 			// need a store
 			`INSERT INTO stores (uuid, name, summary, plugin, endpoint)
 			   VALUES ("`+SomeStore.UUID.String()+`", "Some Store", "", "plugin", "endpoint")`,
-
 			// need a retention policy
 			`INSERT INTO retention (uuid, name, summary, expiry)
 			   VALUES ("`+SomeRetention.UUID.String()+`", "Some Retention", "", 3600)`,
@@ -162,6 +160,27 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks WHERE stopped_at IS NULL`)
 	})
 
+	It("Can create a new TestStore task", func() {
+		//`json:"config,omitempty"`
+		SomeStore.Config = map[string]interface{}{"argkey": "fake"}
+		task, err := db.CreateTestStoreTask("owner-name", SomeStore)
+		Ω(err).ShouldNot(HaveOccurred())
+		Ω(task).ShouldNot(BeNil())
+		shouldExist(`SELECT * FROM tasks`)
+		shouldExist(`SELECT * FROM tasks WHERE uuid = ?`, task.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE owner = ?`, "owner-name")
+		shouldExist(`SELECT * FROM tasks WHERE op = ?`, TestStoreOperation)
+		shouldExist(`SELECT * FROM tasks WHERE store_plugin = ?`, SomeStore.Plugin)
+		shouldExist(`SELECT * from tasks WHERE store_uuid = ?`, SomeStore.UUID.String())
+		shouldExist(`SELECT * FROM tasks WHERE store_endpoint IS NOT NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE status = ?`, PendingStatus)
+		shouldExist(`SELECT * FROM tasks WHERE requested_at IS NOT NULL`)
+		shouldExist(`SELECT * FROM tasks WHERE agent = ?`, SomeStore.Agent)
+		shouldExist(`SELECT * FROM tasks WHERE attempts >= 0`)
+		shouldExist(`SELECT * FROM tasks WHERE tenant_uuid = ?`, SomeStore.TenantUUID.String())
+
+	})
+
 	It("Can start an existing task", func() {
 		task, err := db.CreateBackupTask("bob", SomeJob)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -231,7 +250,7 @@ var _ = Describe("Task Management", func() {
 
 		Ω(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Ω(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "SOME-KEY", time.Now(), "aes-256-ctr")
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "SOME-KEY", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(archive_id).ShouldNot(BeNil())
 
@@ -253,7 +272,7 @@ var _ = Describe("Task Management", func() {
 
 		Expect(db.StartTask(task.UUID, time.Now())).Should(Succeed())
 		Expect(db.CompleteTask(task.UUID, time.Now())).Should(Succeed())
-		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "", time.Now(), "aes-256-ctr")
+		archive_id, err := db.CreateTaskArchive(task.UUID, uuid.NewRandom(), "", time.Now(), "aes-256-ctr", "gz", 0, task.TenantUUID)
 		Expect(err).Should(HaveOccurred())
 		Expect(archive_id).Should(BeNil())
 
@@ -283,7 +302,7 @@ var _ = Describe("Task Management", func() {
 		shouldExist(`SELECT * FROM tasks`)
 
 		filter := TaskFilter{
-			Limit: "2",
+			Limit: 2,
 		}
 		tasks, err := db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
@@ -293,7 +312,7 @@ var _ = Describe("Task Management", func() {
 
 		filter = TaskFilter{
 			ForStatus: DoneStatus,
-			Limit:     "2",
+			Limit:     2,
 		}
 		tasks, err = db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
@@ -303,7 +322,7 @@ var _ = Describe("Task Management", func() {
 
 		// Negative values return all tasks, these are prevented in the API
 		filter = TaskFilter{
-			Limit: "-1",
+			Limit: -1,
 		}
 		tasks, err = db.GetAllTasks(&filter)
 		Ω(err).ShouldNot(HaveOccurred(), "does not error")
@@ -313,18 +332,20 @@ var _ = Describe("Task Management", func() {
 	Describe("GetTask", func() {
 		TASK1_UUID := uuid.NewRandom()
 		TASK2_UUID := uuid.NewRandom()
+		TENANT1_UUID := uuid.NewRandom()
+		TENANT2_UUID := uuid.NewRandom()
 
 		BeforeEach(func() {
-			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at)`+
-				`VALUES('%s', '%s', '%s', '%s', %d)`,
-				TASK1_UUID.String(), "system", BackupOperation, PendingStatus, 0))
+			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, tenant_uuid)`+
+				`VALUES('%s', '%s', '%s', '%s', %d, '%s')`,
+				TASK1_UUID.String(), "system", BackupOperation, PendingStatus, 0, TENANT1_UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = db.Exec(
-				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid)`+
-					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s')`,
+				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid, tenant_uuid)`+
+					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s', '%s')`,
 					TASK2_UUID.String(), "system", RestoreOperation, PendingStatus, 2,
-					SomeArchive.UUID.String(), SomeJob.UUID.String()))
+					SomeArchive.UUID.String(), SomeJob.UUID.String(), TENANT2_UUID.String()))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("Returns an individual task even when not associated with anything", func() {
@@ -332,13 +353,13 @@ var _ = Describe("Task Management", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK1_UUID,
+				TenantUUID:  TENANT1_UUID,
 				Owner:       "system",
 				Op:          BackupOperation,
 				JobUUID:     nil,
 				ArchiveUUID: nil,
 				Status:      PendingStatus,
-				StartedAt:   timestamp.Timestamp{},
-				StoppedAt:   timestamp.Timestamp{},
+				RequestedAt: task.RequestedAt,
 				Log:         "",
 				OK:          true,
 				Notes:       "",
@@ -350,13 +371,13 @@ var _ = Describe("Task Management", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(task).Should(BeEquivalentTo(&Task{
 				UUID:        TASK2_UUID,
+				TenantUUID:  TENANT2_UUID,
 				Owner:       "system",
 				Op:          RestoreOperation,
 				JobUUID:     SomeJob.UUID,
 				ArchiveUUID: SomeArchive.UUID,
+				RequestedAt: task.RequestedAt,
 				Status:      PendingStatus,
-				StartedAt:   timestamp.Timestamp{},
-				StoppedAt:   timestamp.Timestamp{},
 				Log:         "",
 				OK:          true,
 				Notes:       "",

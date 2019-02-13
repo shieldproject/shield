@@ -7,28 +7,28 @@
 #
 # author:  James Hunt <james@niftylogic.com>
 #          Dennis Bell <dennis.j.bell@gmail.com>
-# created: 2016-03-04
 
 need_command() {
-	local cmd=${1:?need_command() - no command name given}
+  local cmd=${1:?need_command() - no command name given}
+  local url=${2:-}
 
-	if [[ ! -x "$(command -v $cmd)" ]]; then
-		echo >&2 "${cmd} is not installed."
-		if [[ "${cmd}" == "spruce" ]]; then
-			echo >&2 "Please download it from https://github.com/geofffranks/spruce/releases"
-		fi
-		exit 2
-	fi
+  if [[ ! -x "$(command -v $cmd)" ]]; then
+    echo >&2 "${cmd} is not installed."
+    if [[ -n "$url" ]]; then
+      echo >&2 "Please download it from ${url}"
+    fi
+    exit 2
+  fi
 }
 
 cd $(dirname $BASH_SOURCE[0])
 echo "Working in $(pwd)"
-need_command spruce
+need_command spruce "https://github.com/geofffranks/spruce/releases"
+need_command jq
 
 # Allow for target-specific settings
 settings_file="$(ls -1 settings.yml ${CONCOURSE_TARGET:+"settings-${CONCOURSE_TARGET}.yml"} 2>/dev/null | tail -n1)"
-if [[ -z "$settings_file" ]]
-then
+if [[ -z "$settings_file" ]]; then
   echo >&2 "Missing local settings in ci/settings.yml${CONCOURSE_TARGET:+" or ci/settings-${CONCOURSE_TARGET}.yml"}!"
   exit 1
 fi
@@ -40,8 +40,8 @@ trap "rm -f .deploy.yml" QUIT TERM EXIT INT
 spruce merge pipeline.yml ${settings_file} > .deploy.yml
 PIPELINE=$(spruce json .deploy.yml | jq -r '.meta.pipeline // ""')
 if [[ -z ${PIPELINE} ]]; then
-	echo >&2 "Missing pipeline name in ci/settings.yml!"
-	exit 1
+  echo >&2 "Missing pipeline name in ci/settings.yml!"
+  exit 1
 fi
 
 TARGET_FROM_SETTINGS=$(spruce json .deploy.yml | jq -r '.meta.target // ""')
@@ -58,12 +58,17 @@ else
 fi
 
 if [[ -z ${TARGET} ]]; then
-	echo >&2 "Missing Concourse Target in ci/settings.yml!"
-	exit 1
+  echo >&2 "Missing Concourse Target in ci/settings.yml!"
+  exit 1
 fi
 
-fly_cmd="${FLY_CMD:-fly}"
+EXPOSED=$(spruce json .deploy.yml | jq -r '.meta.exposed // false')
+EXPOSE=expose
+if [[ ${EXPOSED} == "true" ]]; then
+  EXPOSE=hide
+fi
 
 set +x
-$fly_cmd --target ${TARGET} set-pipeline     --pipeline ${PIPELINE} --config .deploy.yml
-$fly_cmd --target ${TARGET} unpause-pipeline --pipeline ${PIPELINE}
+fly --target ${TARGET} set-pipeline       --pipeline ${PIPELINE} --config .deploy.yml
+fly --target ${TARGET} unpause-pipeline   --pipeline ${PIPELINE}
+fly --target ${TARGET} ${EXPOSE}-pipeline --pipeline ${PIPELINE}

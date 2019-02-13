@@ -1,0 +1,19 @@
+USAGE: @G{shield} delete-global-store @Y{NAME-OR-UUID}
+
+  Delete a Shared Cloud Storage System
+
+  SHIELD needs a place to store all of the backup archives it is
+  going to generate, and Cloud Storage is where it's at.  Each
+  Cloud Storage System provides the configuration details needed
+  to write to and read from some external storage endpoint, be it
+  Amazon S3, Google Cloud Storage, or a local WebDav instance.
+
+  @Y{NOTE:} This command can only be used to delete shared storage
+  systems, and you must be a site engineer to use it.  If you need to
+  delete a storage system that belongs to one of your tenants, please
+  see @C{shield delete-store}.
+
+  @Y{ALSO NOTE:} You will only be able to delete @W{unused} storage
+  systems; if the system is being referenced by any backup job
+  configuration (in any tenant), you will be unable to delete it.
+

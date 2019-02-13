@@ -31,23 +31,36 @@
 #endif
 
 #include <stddef.h> // NULL size_t
-#include <stdarg.h> // va_list va_start va_end 
+#include <stdarg.h> // va_list va_start va_end
 #include <stdlib.h> // malloc(3) setenv(3) clearenv(3) setproctitle(3) getprogname(3)
 #include <stdio.h>  // vsnprintf(3) snprintf(3)
 #include <string.h> // strlen(3) strdup(3) memset(3) memcpy(3)
 #include <errno.h>  /* program_invocation_name program_invocation_short_name */
+#include <sys/param.h> /* os versions */
 #include <sys/types.h> /* freebsd setproctitle(3) */
 #include <unistd.h>    /* freebsd setproctitle(3) */
 
 #if !defined(HAVE_SETPROCTITLE)
-#define HAVE_SETPROCTITLE (defined __NetBSD__ || defined __FreeBSD__ || defined __OpenBSD__)
+#if (__NetBSD__ || __FreeBSD__ || __OpenBSD__)
+#define HAVE_SETPROCTITLE 1
+#if (__FreeBSD__ && __FreeBSD_version > 1200000)
+#define HAVE_SETPROCTITLE_FAST 1
+#else
+#define HAVE_SETPROCTITLE_FAST 0
+#endif
+#else
+#define HAVE_SETPROCTITLE 0
+#define HAVE_SETPROCTITLE_FAST 0
+#endif
 #endif
 
 
 #if HAVE_SETPROCTITLE
 #define HAVE_SETPROCTITLE_REPLACEMENT 0
+#elif (defined __linux || defined __APPLE__)
+#define HAVE_SETPROCTITLE_REPLACEMENT 1
 #else
-#define HAVE_SETPROCTITLE_REPLACEMENT (defined __linux || defined __APPLE__)
+#define HAVE_SETPROCTITLE_REPLACEMENT 0
 #endif
 
 
@@ -74,11 +87,13 @@ static struct {
 
   // Pointer to original nul character within base.
   char *nul;
+
+  int reset;
 } SPT;
 
 
 #ifndef SPT_MIN
-#define SPT_MIN(a, b) (((a) < (b))? (a) : (b))   
+#define SPT_MIN(a, b) (((a) < (b))? (a) : (b))
 #endif
 
 
@@ -132,13 +147,17 @@ static char **spt_find_argv_from_env(int argc, char *arg0) {
     return buf;
 }
 
-  
+
 static int spt_init1() {
-  // Store a pointer to the first enviroment variable since go
-  // will overwrite enviroment.
+  // Store a pointer to the first environment variable since go
+  // will overwrite environment.
   SPT.env0 = environ[0];
 
   return 2;
+}
+
+static int spt_fast_init1() {
+  return 0;
 }
 
 
@@ -219,12 +238,19 @@ static void setproctitle(const char *fmt, ...) {
     return;
   }
 
+  if (!SPT.reset) {
+    memset(SPT.base, 0, SPT.end - SPT.base);
+    SPT.reset = 1;
+  } else {
+    memset(SPT.base, 0, spt_min(sizeof buf, SPT.end - SPT.base));
+  }
+
   len = spt_min(len, spt_min(sizeof buf, SPT.end - SPT.base) - 1);
   memcpy(SPT.base, buf, len);
   nul = &SPT.base[len];
 
   if (nul < SPT.nul) {
-    *SPT.nul = '.';
+    memset(nul, ' ', SPT.nul - nul);
   } else if (nul == SPT.nul && &nul[1] < SPT.end) {
     *SPT.nul = ' ';
     *++nul = '\0';
@@ -236,6 +262,14 @@ static void setproctitle(const char *fmt, ...) {
 
 static int spt_init1() {
 #if HAVE_SETPROCTITLE
+  return 1;
+#else
+  return 0;
+#endif
+}
+
+static int spt_fast_init1() {
+#if HAVE_SETPROCTITLE_FAST
   return 1;
 #else
   return 0;
@@ -254,6 +288,14 @@ static void spt_init2(int argc, char *arg0) {
 static void spt_setproctitle(const char *title) {
 #if HAVE_SETPROCTITLE || HAVE_SETPROCTITLE_REPLACEMENT
   setproctitle("%s", title);
+#else
+  (void)title;
+#endif
+}
+
+static void spt_setproctitle_fast(const char *title) {
+#if HAVE_SETPROCTITLE_FAST
+  setproctitle_fast("%s", title);
 #else
   (void)title;
 #endif

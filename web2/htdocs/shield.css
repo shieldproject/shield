@@ -327,7 +327,7 @@ body { font-family: sans-serif; }
   margin: 2em 0;
 }
 
-#login > div.local-only { width: 400px; }
+#login > div.local-only .dialog { width: 400px; }
 #login p.motd {
   margin: 0 0 2em 0;
 }
@@ -425,6 +425,10 @@ body { font-family: sans-serif; }
   font-size: 10pt;
   float: right;
 }
+#login .local .errors {
+  color: crimson;
+  font-size: 13px;
+}
 #login .local button {
   display: block;
   font-size: 12pt;
@@ -435,26 +439,266 @@ body { font-family: sans-serif; }
   margin-bottom: 6px;
   margin-right: 6px;
   cursor: pointer;
+  float: right;
 }
 
-.banner-top {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100vw;
-  text-align: center;
-  z-index: 200;
+
+#initialize {
+  overflow: scroll;
 }
+
+#initialize > div.setpass-only .dialog { width: 400px; }
+#initialize p.motd {
+  margin: 0 0 2em 0;
+}
+#initialize .restore,
+#initialize .setpass {
+  width: 50%;
+  margin: 0;
+  box-sizing: border-box;
+  float: left;
+}
+#initialize .restore { width: 45%; padding-right: 10px; }
+#initialize .setpass  { width: 55%; padding-left:  20px; border-left: 1px solid #aaa; }
+#initialize > div.setpass-only .setpass { width: 100%; padding: 0; border: none; }
+
+#initialize .restore li a {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 12px;
+  margin-right: 6px;
+  cursor: pointer;
+  text-decoration: none;
+}
+#initialize .restore ul {
+  margin: 20px 0;
+}
+
+#initialize .setpass a {
+  color: #0071bc;
+  text-decoration: none;
+}
+
+#initialize .file-upload {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  float: right;
+}
+
+#initialize .setpass p.divert {
+  font-size: 10pt;
+  margin-top: 0.4em;
+  margin-bottom: 1em;
+}
+#initialize .setpass .ctl {
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+#initialize .setpass label {
+  font-weight: normal;
+}
+
+#initialize .setpass input[type=text],
+#initialize .setpass input[type=password] {
+  border: none;
+  width: 100%;
+  font-size: 14pt;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  color: #fff;
+
+  box-sizing: border-box;
+  padding: 8px;
+}
+#initialize .setpass .cbdark {
+  width: 16px;
+  position: relative;
+}
+#initialize .setpass .cbdark label {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  position: absolute;
+  left: 0px; top: 0px;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  border-radius: 4px;
+  box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+}
+#initialize .setpass .cbdark label::after {
+  content: '';
+  width: 8px;
+  height: 4px;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  border: 3px solid #fcfff4;
+  border-top: none;
+  border-right: none;
+  background: transparent;
+  opacity: 0;
+  transform: rotate(-45deg);
+}
+#initialize .setpass .cbdark label:hover::after {
+  opacity: 0.3;
+}
+#initialize .setpass .cbdark input {
+  visibility: hidden;
+}
+#initialize .setpass .cbdark input:checked + label:after {
+  opacity: 1;
+}
+#initialize .setpass a.forgotpw {
+  font-size: 10pt;
+  float: right;
+}
+#initialize .setpass .errors {
+  color: crimson;
+  font-size: 13px;
+}
+#initialize .setpass button {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  float: right;
+}
+
+
+
+
+#initialize .restore a {
+  color: #0071bc;
+  text-decoration: none;
+}
+#initialize .restore p.restore_divert {
+  font-size: 10pt;
+  margin-top: 0.4em;
+  margin-bottom: 3em;
+}
+#initialize .restore .ctl {
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+
+#initialize .restore label .restore-file {
+  width: 75%;
+  font-weight: normal;
+} 
+#initialize .restore label {
+  width: 75%;
+  font-weight: normal;
+}
+
+#initialize .restore input[type=file] {
+  display: none;
+}
+#initialize .restore input[type=text],
+#initialize .restore input[type=password] {
+  width: 100%;
+  font-size: 14pt;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  color: #fff;
+
+  box-sizing: border-box;
+  padding: 8px;
+}
+#initialize .restore .cbdark {
+  width: 16px;
+  position: relative;
+}
+#initialize .restore .cbdark label {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  position: absolute;
+  left: 0px; top: 0px;
+  background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
+  border-radius: 4px;
+  box-shadow: inset 0px 1px 1px rgba(0,0,0,0.5), 0px 1px 0px rgba(255,255,255,.4);
+}
+#initialize .file-upload button {
+  margin: auto;
+}
+#initialize .restore .cbdark label::after {
+  content: '';
+  width: 8px;
+  height: 4px;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  border: 3px solid #fcfff4;
+  border-top: none;
+  border-right: none;
+  background: transparent;
+  opacity: 0;
+  transform: rotate(-45deg);
+}
+#initialize .restore .cbdark label:hover::after {
+  opacity: 0.3;
+}
+#initialize .restore .cbdark input {
+  visibility: hidden;
+}
+#initialize .restore .cbdark input:checked + label:after {
+  opacity: 1;
+}
+#initialize .restore a.forgotpw {
+  font-size: 10pt;
+  float: right;
+}
+#initialize .restore .errors {
+  color: crimson;
+  font-size: 13px;
+}
+#initialize .restore button {
+  display: block;
+  font-size: 12pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 8px 10px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  float: right;
+}
+
 .banner-top p {
-  display: inline-block;
-  width: auto;
+  color: #fff;
+  background-color: #FF1D25;
+  box-shadow: 0px 4px 5px rgba(0,0,0,0.25);
+
+  position: fixed;
+  top: 0px; left: 0; right: 0;
+  z-index: 100;
+
+  padding: 7px 0 9px 0;
   text-align: center;
-  padding: 1ex;
-  margin: 1em;
-  box-shadow: 0px 0px 8px #333;
-  border-radius: 0.75ex;
-  background-color: #ccc;
-  color: #000;
+  border-top: 1px solid #000;
+  border-bottom: 1px solid #000;
+}
+.banner-top p a {
+  display: inline-block;
+  text-decoration: none;
+  border-bottom: 1px dotted #fff;
+  color: #fff;
+  font-size: 80%;
+  margin-left: 1em;
 }
 .banner-top p.info     { color: #fff; background-color: #729849; }
 .banner-top p.error    { color: #fff; background-color: #ff1d25; }
@@ -486,6 +730,25 @@ body { font-family: sans-serif; }
 .story-sidebar li p {
   font-size: 14px;
   margin: 0 0 0 7px;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  padding: 4px;
+  background-color: #f2f2f2;
+}
+
+footer a {
+  display: inline-block;
+  width: 20px;
+}
+footer a object,
+footer a img {
+  width: 100%;
+}
+footer p {
+  font-size: 9pt;
 }
 
 .pane {
@@ -533,7 +796,6 @@ body { font-family: sans-serif; }
 .hud .warn span { color: #FCEE21; }
 .hud .fail span { color: #FF6161; text-transform: uppercase }
 
-
 .nav {
   background-color: #000;
   color: #fff;
@@ -557,13 +819,17 @@ body { font-family: sans-serif; }
   padding-right: 22.5px;
   line-height: 40px;
 }
+.nav li.cli {
+  float: left;
+  padding: 0 0 0 8px;
+}
 
 .nav.sticky {
   display: none;
   position: fixed;
   top: 29px;
   width: 75%;
-  z-index: 100;
+  z-index: 99;
 }
 .nav.sticky.on { display: block; }
 
@@ -573,6 +839,21 @@ body { font-family: sans-serif; }
 .field .card {
   background-color: #F2F2F2;
   box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
+}
+
+.field .shadow.card {
+  color: #999;
+  font-size: 18pt;
+  text-align: center;
+  line-height: 3em;
+  opacity: 0.4;
+  cursor: pointer;
+}
+.field .shadow.card:hover {
+  opacity: 0.9;
+}
+.field .shadow.card a {
+  display: block;
 }
 .field .card h3 {
   font-size: 18px;
@@ -594,11 +875,27 @@ body { font-family: sans-serif; }
   margin: 2% 0 10% 2%;
   float: left;
 }
+.store .summary {
+  width: 100%;
+  margin: 1em;
+  float: none;
+  font-style: italic;
+}
 .card:nth-child(2n+1) {
   clear: both;
   margin: 2% 2% 2% 0;
 }
 .card > a { color: inherit; text-decoration: none; }
+.card {
+  position: relative;
+}
+.card .type {
+  font-size: 7.5pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  position: absolute;
+  left: 8px; bottom: 4px;
+}
 
 .card .details {
   font-size: 14px;
@@ -640,11 +937,58 @@ body { font-family: sans-serif; }
   margin-top: -2px;
   z-index: 49;
 }
+.summary .notes,
 .card .notes {
   font-size: 14px;
   padding: 1em;
   font-style: italic;
   line-height: 1.2em;
+}
+.card .notes strong {
+  font-weight: bold;
+}
+
+.card .notes .no-data {
+  font-size: inherit;
+  padding: 0;
+}
+
+.picks .card {
+  padding-bottom: 2em;
+}
+.picks .card h3 {
+  padding-bottom: 1em;
+}
+.policy.card h3 input {
+  font-size: inherit;
+  background-color: transparent;
+  border: none;
+  height: 17px;
+  font-weight: inherit;
+  color: #0071bc;
+}
+.policy.card .days,
+.policy.card .days input {
+  height: 1em;
+  font-size: 48pt;
+  padding: 0.5em;
+  text-align: center;
+  color: #0071bc;
+}
+.policy.card .days input {
+  width: 2.5em;
+  background-color: transparent;
+  margin: 0; padding: 0;
+  border: none;
+  border-bottom: 2px solid #0071bc;
+
+}
+.policy.card .days span {
+  font-size: 24pt;
+  color: black;
+}
+.picks .policy.card .days {
+  font-size: 24pt;
 }
 
 .summary h2 {
@@ -654,6 +998,49 @@ body { font-family: sans-serif; }
 .summary p {
   margin: 0.5em;
 }
+
+.lean img { width: 16px; }
+.lean .name {
+  font-size: 18px;
+  font-weight: bold;
+}
+.lean .fail .name { color: #FF1D25; }
+.lean .schedule,
+.lean .notes,
+.lean .retain {
+  line-height: 1.1em;
+}
+.lean .notes {
+  width: 40%;
+}
+.lean .notes .no-data {
+  padding: 0px;
+  font-size: 100%;
+}
+.lean tbody tr:nth-child(2n+1) {
+  background-color: #F2F2F2;
+}
+
+h2 ul.switcher {
+  float: right;
+}
+h2 ul.switcher li {
+  float: right;
+  padding: 4px;
+}
+h2 ul.switcher li img {
+  width: 20px;
+  opacity: 0.5;
+}
+h2 ul.switcher li:hover img {
+  opacity: 1.0;
+}
+
+.switch-me.card-view .lean,
+.switch-me.lean-view .cards { display: none; }
+
+.switch-me.card-view a[href^="switch:card-view"] img { opacity: 0.8; }
+.switch-me.lean-view a[href^="switch:lean-view"] img { opacity: 0.95; }
 
 .gutter > h2 { font-size: 28px; font-weight: bold; clear: both; }
 .gutter > h3 { font-size: 22px; font-weight: bold; }
@@ -671,11 +1058,25 @@ body { font-family: sans-serif; }
   color: #0071bc;
 }
 
-.field a.breadcrumb {
+.field a.breadcrumb,
+.field a.new, .field a.edit, .field a.delete {
   text-decoration: none;
   color: #0071bc;
   font-size: 11pt;
   border-bottom: 1px dotted #0071bc;
+  display: inline-block;
+}
+.field a.new {
+  display: block;
+  float: right;
+}
+.field a.edit, .field a.delete {
+  margin-left: 1ex;
+  font-weight: bold;
+}
+.field a.delete {
+  color: #FF6161;
+  border-color: #FF6161;
 }
 
 .field table {
@@ -728,7 +1129,7 @@ body { font-family: sans-serif; }
 .field table tr.task { display: none; }
 
 
-form .ctl { width: 50%; }
+form .ctl { width: 70%; margin: 1em 0 2em 0; }
 form .info { width: 45%; float: right; clear: right; }
 form .info {
   border-radius: 8px;
@@ -741,13 +1142,21 @@ form .info { display: none; }
 form .band.active .info { display: block; }
 
 form .ctl {
-  margin-bottom: 1em;
+  margin-bottom: 2em;
 }
 form .ctl label {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 20px;
   display: block;
+
+  width: 50%;
+  float: left;
+}
+form .ctl .widget {
+  display: block;
+  clear: both;
+  margin-top: 0.5em;
 }
 form .ctl input,
 form .ctl select,
@@ -757,7 +1166,8 @@ form .ctl textarea {
   margin-bottom: 4px;
 }
 form .ctl select,
-form .ctl input[type=text] {
+form .ctl input[type=text],
+form .ctl input[type=password] {
   width: 100%;
 }
 form .ctl input[type=text],
@@ -785,10 +1195,63 @@ form .ctl p strong {
 
 form .ctl .help {
 }
+form .ctl tt {
+  font-family: monospace;
+  color: #0071bc;
+  font-weight: bold;
+  font-style: normal;
+  padding: 2px 4px;
+}
 form .ctl .if-missing {
   color: darkred;
   font-size: 13px;
   display: none;
+}
+
+form .error,
+form .ctl span.errors {
+  color: crimson;
+  font-size: 13px;
+}
+form .ctl span.errors {
+  width: 60%;
+  display: block;
+  float: right;
+  text-align: right;
+}
+form .error,
+form .ctl span[data-error] {
+  display: none;
+}
+.ctl.required label span {
+  font-size: 10pt;
+  font-weight: normal;
+  color: #0071bc;
+  vertical-align: top;
+}
+
+form .subform .ctl {
+  margin-left: 1em;
+}
+form .subform h2 {
+  font-size: 18pt;
+  font-weight: bold;
+  color: #0071bc;
+}
+
+form button.go {
+  background-color: #0071BC;
+  border: 1px solid #0071BC;
+  color: #fff;
+
+  font-size: 16pt;
+  height: 36px;
+  border-radius: 4px;
+  padding: 0 0.6em;
+  margin: 0;
+  box-sizing: border-box;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .e404 {
@@ -866,7 +1329,11 @@ dl dd {
   font-weight: bold;
   padding: 0 0 0.5em 0;
 }
-
+dl dd em {
+  color: crimson;
+}
+dl dd em:before { content: "«"; }
+dl dd em:after  { content: "»"; }
 
 pre code {
   display: block;
@@ -896,6 +1363,7 @@ pre code button {
 }
 pre code button.restore:hover { background-color: #8CC63F; }
 pre code button.annotate:hover { background-color: purple; }
+pre code button.close:hover { background-color: red; }
 
 pre code div {
   white-space: normal;
@@ -943,12 +1411,17 @@ pre code form ul {
   margin: 1em 0;
 }
 
-pre.task-failed code { background-color: #5e0000; }
-pre.task-failed code em { color: #eee; }
-pre.task-failed code em em { color: salmon; }
-pre.task-failed code button { background-color: #222; }
+pre.task-canceled code,
+pre.task-failed   code { background-color: #5e0000; }
+pre.task-canceled code em,
+pre.task-failed   code em { color: #eee; }
+pre.task-canceled code em em,
+pre.task-failed   code em em { color: salmon; }
+pre.task-canceled code button,
+pre.task-failed   code button { background-color: #222; }
 
-pre.task-failed.override code { background-color: #333; }
+pre.task-canceled.override code,
+pre.task-failed.override   code { background-color: #333; }
 
 
 .timeline {
@@ -981,10 +1454,14 @@ pre.task-failed.override code { background-color: #333; }
 
 .timeline .event.ok               { border-left-color: #8cc63f; }
 .timeline .event.ok::before       { background-color:  #8cc63f; }
+.timeline .event.canceled,
 .timeline .event.failed           { border-left-color: #ff1d25; }
+.timeline .event.canceled::before,
 .timeline .event.failed::before   { background-color:  #ff1d25; }
-.timeline .event.handled          { border-left-color: #0071bc; }
+.timeline .event.running          { border-left-color: #0071bc; }
 .timeline .event.handled::before  { background-color:  #0071bc; }
+.timeline .event.running          { border-left-color: #777777; }
+.timeline .event.handled::before  { background-color:  #777777; }
 
 .timeline .event .date {
   display: inline-block;
@@ -1002,6 +1479,7 @@ pre.task-failed.override code { background-color: #333; }
   top: -3px;
   left: 3px;
 }
+.timeline .event.canceled .tag,
 .timeline .event.failed .tag { display: none; }
 .timeline .event.backup .tag {
   color: #fff;
@@ -1016,8 +1494,10 @@ pre.task-failed.override code { background-color: #333; }
   line-height: 24pt;
   font-weight: bold;
 }
-.timeline .event.failed  .desc        { color: #ff1d25; }
-.timeline .event.failed  .desc::after { content: " — FAILED"; }
+.timeline .event.canceled .desc,
+.timeline .event.failed   .desc        { color: #ff1d25; }
+.timeline .event.canceled .desc::after { content: " — CANCELED"; }
+.timeline .event.failed   .desc::after { content: " — FAILED"; }
 .timeline .event.handled .desc        { color: inherit; }
 .timeline .event.handled .desc::after { content: " — handled"; }
 
@@ -1123,7 +1603,7 @@ pre.task-failed.override code { background-color: #333; }
   color: palegreen;
 }
 
-button[rel^="run:"] {
+.wizard button.final {
   display: block;
   float: right;
   font-size: 14pt;
@@ -1144,42 +1624,47 @@ button[rel^="run:"] {
   margin-bottom: 2em;
   color: #0071bc;
 }
-.do-backup .picks {
+.wizard .picks {
   border-bottom: 1px solid #ccc;
   padding-bottom: 20px;
   margin-bottom: 20px;
 }
-.do-backup .picks {
+.wizard .picks {
   overflow: hidden;
 }
-.do-backup .picks > div {
+.wizard .picks > div {
   width: 29%;
   margin: 0 2% 2% 0;
 }
-.do-backup .picks > div:nth-child(2n+1) { clear: none; }
-.do-backup .picks > div:nth-child(3n+3) { margin: 0 0 2% 0; }
-.do-backup .picks > div:nth-child(3n+1) { clear: both; }
-.do-backup .picks .empty {
+.wizard .picks > div:nth-child(2n+1) { clear: none; }
+.wizard .picks > div:nth-child(3n+3) { margin: 0 0 2% 0; }
+.wizard .picks > div:nth-child(3n+1) { clear: both; }
+.wizard .picks .empty {
   border: 2px dashed #777;
   padding: 10px;
   background-color: #eee;
   opacity: 0.5;
 }
 
-.do-backup .step > h3 {
+.wizard .step > span.label {
+  color: #aaa;
+  font-size: 24pt;
+  float: right;
+}
+.wizard .step > h3 {
   font-size: 24px;
   line-height: 64px;
   font-weight: bold;
 }
-.do-backup .step {
+.wizard .step {
   clear: both;
   overflow: hidden;
 }
-.do-backup .step p {
+.wizard .step p {
   width: 70%;
     line-height: 1.2em;
 }
-.do-backup .step p strong {
+.wizard .step p strong {
   font-weight: bold;
   color: #0071bc;
   font-size: 110%;
@@ -1190,9 +1675,10 @@ button[rel^="run:"] {
 
 
 .flyout {
-  position: absolute;
+  position: fixed;
   top: 38px;
   right: 8px;
+  z-index: 110;
 
   color: #000;
   background-color: #F2F2F2;
@@ -1308,6 +1794,13 @@ button[rel^="run:"] {
 .unlock-shield input {
   display: inline-block;
 }
+
+.unlock-shield .errors {
+  color: crimson;
+  font-size: 13px;
+  position: fixed;
+}
+
 .unlock-shield button {
   background-color: #0071BC;
   border: 1px solid #0071BC;
@@ -1428,3 +1921,259 @@ button[rel^="run:"] {
 }
 .github-auth-overlay-app .client-id     { top: 215px; width: 141px; }
 .github-auth-overlay-app .client-secret { top: 256px; width: 273px; }
+
+table.tenant-members tbody td:nth-child(1) { width: 12px; padding: 0; }
+table.tenant-members tbody td:nth-child(2) { width: 30%; }
+table.tenant-members tbody td:nth-child(3) { width: 30%; }
+table.tenant-members tbody td:nth-child(4) { width: 40%; }
+
+table.tenant-members tbody td:nth-child(2) {
+  font-size: 14pt;
+  font-weight: bold;
+}
+table.tenant-members tbody .role {
+  cursor: pointer;
+}
+
+.roles-menu {
+  width: 300px;
+  border: 1px solid #ccc;
+  border-top-width: 0;
+}
+.roles-menu > div {
+  border-top: 1px solid #ccc;
+  padding: 11pt;
+  background: linear-gradient(#fff,#eee);
+  cursor: pointer;
+}
+.roles-menu > div.current {
+  background: linear-gradient(lightcyan,lightblue);
+}
+.roles-menu strong {
+  font-weight: bold;
+  font-size: 12pt;
+}
+.roles-menu p {
+  margin: 0.5em 0;
+  color: #555;
+}
+
+.ctl .widget .invite {
+  display: block;
+  font-size: 14pt;
+  width: 60%;
+  box-sizing: border-box;
+  margin-bottom: 0;
+}
+
+.userlookup-results {
+  border: 1px solid #ccc;
+  position: relative;
+  top: -1px;
+  background-color: #ffe;
+  width: 60%;
+  box-sizing: border-box;
+}
+.userlookup-results li {
+  border-bottom: 1px solid #ccc;
+  padding: 6px;
+  background: linear-gradient(#fff,#eee);
+  cursor: pointer;
+}
+.userlookup-results li:hover {
+  background: linear-gradient(lightcyan,lightblue);
+}
+.userlookup-results strong {
+  font-weight: bold;
+}
+.userlookup-results p {
+  margin: 0;
+  float: right;
+}
+
+td span.role {
+  background: url(/i/dropdown.png) no-repeat 0% 40%;
+  padding-left: 14px;
+  display: inline-block;
+}
+
+#logging-in {
+  position: fixed;
+  background-color: rgba(255,255,255,0.9);
+  z-index: 150;
+  width: 100%;
+  height: 100%;
+}
+#logging-in p {
+  margin: 20% auto;
+  width: 100%;
+  background-color: #fff;
+  box-shadow: 4px 0px 10px rgba(0,0,0,0.25);
+  padding: 1em;
+  text-align: center;
+}
+#logging-in p span {
+  font-weight: bold;
+  color: #0071bc;
+}
+#logging-in p img {
+  display: inline;
+  height: 1em;
+}
+
+#cliauth #creds {
+  display: inline-block;
+  background-color: #000;
+  font-family: monospace;
+  padding: 1em;
+  font-size: 16px;
+  color: yellow;
+}
+
+#fixed-wrapper #fixedkey {
+    display: inline-block;
+    background-color: #000;
+    font-family: monospace;
+    padding: 1em;
+    font-size: 16px;
+    width: 63%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: yellow;
+}
+
+#fixed-wrapper #accept {
+    height: 40px;
+    width: 150px;
+    margin: -20px -75px;
+    position: relative;
+    top: 50%;
+    left: 50%;
+    background-color: #ffff00;
+    color: #000;
+    font-size: 16px;
+    font-family: monospace;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 0px;
+    font-weight: bold;
+}
+
+.large-checkbox {
+    transform: scale(1.75);
+    margin: 14px 20px;
+}
+
+#dr-explain {
+    font-size: 12pt;
+}
+
+.notice {
+  background-color: #b2e1ff;
+  padding: 1em;
+  border-radius: 0.5em;
+  font-size: 11pt;
+}
+h2 strong,
+.notice strong {
+  font-weight: bold;
+  color: #0071bc;
+}
+.notice.failure {
+  background-color: #FF6161;
+  color: #fff;
+  font-size: 120%;
+  line-height: 1.4em;
+}
+
+#user-agent{
+  max-width: 200px;
+}
+
+form.scheduling .optgroup {
+  display: inline-block;
+}
+form.scheduling .optgroup li {
+  display: inline-block;
+  padding: 8px 6px 6px 6px;
+  border: 1px solid #0071bc;
+  border-radius: 4px;
+  opacity: 0.6;
+  color: #0071bc;
+  margin: 11px 2px;
+  line-height: 0.8em;
+
+  cursor: pointer;
+}
+form.scheduling .optgroup li.selected {
+  background-color: #0071bc;
+  opacity: 1;
+  color: #fff;
+  font-weight: bold;
+}
+form.scheduling input.num,
+form.scheduling input.time {
+  border: none;
+  border-bottom: 2px solid #0071bc;
+  font-size: 18pt;
+  text-align: center;
+}
+form.scheduling input.num {
+  width: 4ex;
+}
+form.scheduling input.time {
+  width: 6ex;
+}
+form.scheduling .subform {
+  display: none;
+  margin-left: 4em;
+}
+
+.do-restore .pick-an-archive .archive-row {
+  overflow: hidden;
+  border-radius: 0.5em;
+  padding: 2em;
+  background-color: #eee;
+}
+.do-restore .pick-an-archive .archive-row h4 {
+  font-size: 110%;
+  font-weight: bold;
+  color: #0071bc;
+}
+.do-restore .pick-an-archive .archive-row dl {
+  width: 50%;
+  float: left;
+  margin: 2em;
+  font-size: 120%;
+}
+.do-restore .pick-an-archive .archive-row dd sub {
+  font-style: italic;
+  font-size: 90%;
+  font-weight: normal;
+}
+.do-restore .pick-an-archive .archive-row button {
+  display: block;
+  float: right;
+  font-size: 14pt;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 6px;
+  margin-right: 6px;
+  box-shadow: 4px 4px 5px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
+
+redacted {
+  background-color: transparent;
+  color: inherit;
+  filter: blur(10px);
+	font-weight: 900;
+}
+
+redacted:hover {
+	filter: none;
+	font-weight: inherit
+}

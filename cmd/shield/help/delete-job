@@ -1,0 +1,11 @@
+USAGE: @G{shield} delete-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Delete a Backup Job.
+
+  Backup Jobs are the linchpin of SHIELD configuration; they
+  provide the what, when, and where, tying together target data
+  systems (the "what"), cloud storage ("where"), a schedule, and
+  a retention policy into one schedulable unit of data protection.
+
+  @R{This is a dangerous operation that cannot be undone.}
+

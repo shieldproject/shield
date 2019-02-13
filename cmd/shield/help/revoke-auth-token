@@ -1,0 +1,12 @@
+USAGE: @G{shield} revoke-auth-token
+
+  Revoke an issued authentication token.
+
+  SHIELD users can issue @W{authentication tokens}, which can be
+  used in scripts and other automatons to represent the issuing
+  account, and all of their privileges within the system.
+
+  This command contacts your currently targeted SHIELD Core, and
+  asks it to revoke a specific authentication token.  Once revoked,
+  that token will no longer be usable to authentication to SHIELD.
+

@@ -4,7 +4,7 @@
 BUILD_TYPE?=build
 
 # Everything; this is the default behavior
-all: format shield plugins test
+all: format shieldd shield shield-agent shield-schema shield-migrate shield-crypt shield-report plugins test
 
 # go fmt ftw
 format:
@@ -16,9 +16,9 @@ plugin-tests: plugins
 	go build ./plugin/mock
 	./t/plugins
 	@rm -f mock
-go-tests:
-	go list ./... | grep -v vendor | xargs go test
-api-tests:
+go-tests: shield
+	export PATH=test/bin:$$PATH; go list ./... | grep -v vendor | xargs go test
+api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
 	./t/api
 
 # Running Tests for race conditions
@@ -26,41 +26,53 @@ race:
 	ginkgo -race *
 
 # Building Shield
-shield:
-	go $(BUILD_TYPE) ./cmd/shieldd
-	go $(BUILD_TYPE) ./cmd/shield-agent
-	go $(BUILD_TYPE) ./cmd/shield-schema
-	go $(BUILD_TYPE) ./cmd/shield
+shield: shieldd shield-agent shield-schema shield-crypt shield-report
 
-# Building the Shield CLI *only*
-shield-cli:
+shield-crypt:
+	go $(BUILD_TYPE) ./cmd/shield-crypt
+shieldd:
+	go $(BUILD_TYPE) ./cmd/shieldd
+shield-agent:
+	go $(BUILD_TYPE) ./cmd/shield-agent
+shield-schema:
+	go $(BUILD_TYPE) ./cmd/shield-schema
+shield-migrate:
+	go $(BUILD_TYPE) ./cmd/shield-migrate
+shield-report:
+	go $(BUILD_TYPE) ./cmd/shield-report
+
+shield: cmd/shield/help.go
 	go $(BUILD_TYPE) ./cmd/shield
+help.all: cmd/shield/main.go
+	grep case $< | grep '{''{{' | cut -d\" -f 2 | sort | xargs -n1 -I@ ./shield @ -h > $@
 
 # Building Plugins
 plugin: plugins
 plugins:
-	go $(BUILD_TYPE) ./plugin/fs
-	go $(BUILD_TYPE) ./plugin/docker-postgres
 	go $(BUILD_TYPE) ./plugin/dummy
-	go $(BUILD_TYPE) ./plugin/postgres
-	go $(BUILD_TYPE) ./plugin/redis-broker
-	go $(BUILD_TYPE) ./plugin/s3
-	go $(BUILD_TYPE) ./plugin/swift
-	go $(BUILD_TYPE) ./plugin/azure
-	go $(BUILD_TYPE) ./plugin/mysql
-	go $(BUILD_TYPE) ./plugin/xtrabackup
-	go $(BUILD_TYPE) ./plugin/rabbitmq-broker
-	go $(BUILD_TYPE) ./plugin/scality
-	go $(BUILD_TYPE) ./plugin/consul
-	go $(BUILD_TYPE) ./plugin/consul-snapshot
-	go $(BUILD_TYPE) ./plugin/mongo
-	go $(BUILD_TYPE) ./plugin/google
+	for plugin in $$(cat plugins); do \
+		go $(BUILD_TYPE) ./plugin/$$plugin; \
+	done
+
+
+demo: clean shield plugins
+	./demo/build
+	(cd demo && docker-compose up)
+
+docs: docs/API.md
+docs/API.md: docs/API.yml
+	perl ./docs/regen.pl <$+ >$@~
+	mv $@~ $@
 
 clean:
-	rm -f shieldd shield-agent shield-schema shield
-	rm -f fs docker-postgres dummy postgres redis-broker
-	rm -f s3 swift azure mysql xtrabackup rabbitmq-broker
-	rm -f consul consul-snapshot mongo scality google
+	rm -f shield shieldd shield-agent shield-schema shield-crypt shield-migrate shield-report
+	rm -f $$(cat plugins) dummy
+
+
+# Assemble the CLI help with some assistance from our friend, Perl
+HELP := $(shell ls -1 cmd/shield/help/*)
+cmd/shield/help.go: $(HELP) cmd/shield/help.pl
+	./cmd/shield/help.pl $(HELP) > $@
 
 
 # Run tests with coverage tracking, writing output to coverage/
@@ -76,50 +88,62 @@ fixmes: fixme
 fixme:
 	@grep -rn FIXME * | grep -v vendor/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
 
-dev: shield
+dev:
 	./bin/testdev
 
 # Deferred: Naming plugins individually, e.g. make plugin dummy
-# Deferred: Looping through plugins instead of listing them
 
-restore-deps:
-	godep restore ./...
+init:
+	go get github.com/kardianos/govendor
+	go install github.com/kardianos/govendor
 
 save-deps:
-	godep save ./...
+	govendor add +external
 
-ARTIFACTS := artifacts/shield-server-{{.OS}}-{{.Arch}}
+ARTIFACTS := artifacts/shield-server-linux-amd64
 LDFLAGS := -X main.Version=$(VERSION)
 release:
 	@echo "Checking that VERSION was defined in the calling environment"
 	@test -n "$(VERSION)"
 	@echo "OK.  VERSION=$(VERSION)"
 
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/fs"                ./plugin/fs
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/docker-postgres"   ./plugin/docker-postgres
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/dummy"             ./plugin/dummy
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/postgres"          ./plugin/postgres
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/redis-broker"      ./plugin/redis-broker
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/s3"                ./plugin/s3
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/swift"             ./plugin/swift
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/azure"             ./plugin/azure
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mysql"             ./plugin/mysql
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/rabbitmq-broker"   ./plugin/rabbitmq-broker
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/scality"           ./plugin/scality
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/mongo"             ./plugin/mongo
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul"            ./plugin/consul
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/consul-snapshot"   ./plugin/consul-snapshot
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/xtrabackup"        ./plugin/xtrabackup
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/plugins/google"            ./plugin/google
+	@echo "Compiling SHIELD Linux Server Distribution..."
+	export GOOS=linux GOARCH=amd64
+	for plugin in $$(cat plugins); do \
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/plugins/$$plugin"      ./plugin/$$plugin; \
+	done
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/crypter/shield-crypt"  ./cmd/shield-crypt
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-agent"    ./cmd/shield-agent
+	              go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/agent/shield-report"   ./cmd/shield-report
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-schema"  ./cmd/shield-schema
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shield-migrate" ./cmd/shield-migrate
+	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o "$(ARTIFACTS)/daemon/shieldd"        ./cmd/shieldd
 
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/agent/shield-agent"        ./cmd/shield-agent
+	@echo "Compiling SHIELD CLI For Linux and macOS..."
+	GOOS=linux  GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-linux-amd64  ./cmd/shield
+	GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o artifacts/shield-darwin-amd64 ./cmd/shield
+	mkdir -p "$(ARTIFACTS)/cli"
+	cp artifacts/shield-linux-amd64 "$(ARTIFACTS)/cli/shield"
 
-	gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/cli/shield"                ./cmd/shield
-
-	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shield-schema" ./cmd/shield-schema
-	CGO_ENABLED=1 gox -osarch="linux/amd64" -ldflags="$(LDFLAGS)" --output="$(ARTIFACTS)/daemon/shieldd"       ./cmd/shieldd
-
+	@echo "Assembling Linux Server Distribution..."
 	rm -f artifacts/*.tar.gz
-	cd artifacts && for x in shield-server-*; do cp -a ../webui/ $$x/webui; cp ../bin/shield-pipe $$x/daemon; tar -czvf $$x.tar.gz $$x; rm -r $$x;  done
+	cd artifacts && for x in shield-server-*; do \
+	  cp -a ../web2/htdocs $$x/webui; \
+	  mkdir -p $$x/webui/cli/linux; cp ../artifacts/shield-linux-amd64   $$x/webui/cli/linux/shield; \
+	  mkdir -p $$x/webui/cli/mac;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/mac/shield; \
+	  cp ../bin/shield-pipe $$x/daemon; \
+	  tar -czvf $$x.tar.gz $$x; \
+	  rm -r $$x; \
+	done
 
-.PHONY: shield
+
+JAVASCRIPTS := web2/src/js/jquery.js
+JAVASCRIPTS += web2/src/js/lib.js
+JAVASCRIPTS += web2/src/js/sticky-nav.js
+JAVASCRIPTS += web2/src/js/shield.js
+web2/htdocs/shield.js: $(JAVASCRIPTS)
+	cat $+ >$@
+
+web2: web2/htdocs/shield.js
+
+.PHONY: plugins dev web2 shield shieldd shield-schema shield-agent shield-crypt shield-report demo

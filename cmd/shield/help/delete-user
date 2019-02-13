@@ -1,0 +1,17 @@
+USAGE: @G{shield} delete-user @Y{NAME-OR-UUID}
+
+  Delete a local SHIELD User.
+
+  SHIELD supports a several 3rd party authentication providers,
+  including Github and Cloud Foundry UAA, but for sheer simplicity,
+  nothing beats local users.  Local SHIELD users exist inside the
+  SHIELD database, and can be assigned tenant- and system-roles
+  arbitrarily.
+
+  @Y{NOTE:} This command can only be used by SHIELD site managers.
+
+  Deleting a user will remove all of their authenticated sessions,
+  and also remove any auth tokens they may have issued.
+
+  @R{This is a dangerous operation that cannot be undone.}
+

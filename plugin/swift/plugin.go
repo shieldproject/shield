@@ -1,68 +1,9 @@
-// The `swift` plugin for SHIELD is intended to be a back-end storage
-// plugin, wrapping OpenStack Swift.
-//
-// PLUGIN FEATURES
-//
-// This plugin implements functionality suitable for use with the following
-// SHIELD Job components:
-//
-//  Target: no
-//  Store:  yes
-//
-// PLUGIN CONFIGURATION
-//
-// The endpoint configuration passed to this plugin is used to determine
-// how to connect to S3, and where to place/retrieve the data once connected.
-// your endpoint JSON should look something like this:
-//
-//    {
-//        "auth_url":      "host",
-//        "project_name":  "openstack-project",
-//        "username":      "your-username",
-//        "password":      "secret-access-key",
-//        "container":     "bucket-name",
-//        "prefix":        "/path/inside/bucket/to/place/backup/data",
-//        "debug":         false
-//    }
-//
-// Default Configuration
-//
-//    {
-//        "prefix" : "",
-//        "debug"  : false
-//    }
-//
-// STORE DETAILS
-//
-// When storing data, this plugin connects to the Swift service, and uploads the data
-// into the specified container, using a path/filename with the following format:
-//
-//    <prefix>/<YYYY>/<MM>/<DD>/<HH-mm-SS>-<UUID>
-//
-// Upon successful storage, the plugin then returns this filename to SHIELD to use
-// as the `store_key` when the data needs to be retrieved, or purged.
-//
-// RETRIEVE DETAILS
-//
-// When retrieving data, this plugin connects to the Swift service, and retrieves the data
-// located in the specified container, identified by the `store_key` provided by SHIELD.
-//
-// PURGE DETAILS
-//
-// When purging data, this plugin connects to the Swift service, and deletes the data
-// located in the specified container, identified by the `store_key` provided by SHIELD.
-//
-// DEPENDENCIES
-//
-// None.
-//
 package main
 
 // https://github.com/openstack/golang-client/blob/master/examples/objectstorage/objectstorage.go
 
 import (
 	"bufio"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -71,8 +12,8 @@ import (
 
 	"git.openstack.org/openstack/golang-client/objectstorage/v1"
 	"git.openstack.org/openstack/golang-client/openstack"
+	fmt "github.com/jhunt/go-ansi"
 
-	"github.com/starkandwayne/goutils/ansi"
 	"github.com/starkandwayne/shield/plugin"
 )
 
@@ -83,7 +24,7 @@ const (
 
 func main() {
 	p := SwiftPlugin{
-		Name:    "OpenStack Swift Backup + Storage Plugin",
+		Name:    "OpenStack Swift Storage Plugin",
 		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -107,6 +48,57 @@ func main() {
   "debug":         false
 }
 `,
+
+		Fields: []plugin.Field{
+			plugin.Field{
+				Mode:     "store",
+				Name:     "auth_url",
+				Type:     "string",
+				Title:    "Authentication URL",
+				Help:     "The URL of the authentication API",
+				Example:  "https://identity.api.rackspacecloud.com/v2.0",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "project_name",
+				Type:     "string",
+				Title:    "Project Name",
+				Help:     "Name of the openstack project",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "username",
+				Type:     "string",
+				Title:    "Username",
+				Help:     "The username used to authenticate to swift",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "password",
+				Type:     "password",
+				Title:    "Password",
+				Help:     "The password used to authenticate to swift",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "container",
+				Type:     "string",
+				Title:    "Container",
+				Help:     "Name of the container to store backup archives in.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:  "store",
+				Name:  "prefix",
+				Type:  "string",
+				Title: "Bucket Path Prefix",
+				Help:  "An optional sub-path of the container to use for storing archives.  By default, archives are stored in the root of the container.",
+			},
+		},
 	}
 
 	plugin.Run(p)
@@ -136,10 +128,14 @@ func (p SwiftPlugin) Validate(endpoint plugin.ShieldEndpoint) (err error) {
 	for _, reqConfig := range requiredConfig {
 		s, err = endpoint.StringValue(reqConfig)
 		if err != nil {
-			ansi.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
+			fmt.Printf("@R{\u2717 %s   %s}\n", reqConfig, err)
 			fail = true
 		} else {
-			ansi.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
+			if reqConfig == "auth_url" || reqConfig == "project_name" {
+				fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, s)
+			} else {
+				fmt.Printf("@G{\u2713 %s}   @C{%s}\n", reqConfig, plugin.Redact(s))
+			}
 		}
 	}
 	if fail {
@@ -156,16 +152,16 @@ func (p SwiftPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
+func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	openstack.Debug = &swift.Debug
 
 	baseURL, session, err := swift.Connect()
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	path := swift.genBackupPath()
@@ -174,17 +170,17 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
 	r := bufio.NewReader(os.Stdin)
 	contents, err := ioutil.ReadAll(r)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	headers := http.Header{}
 	url := baseURL + "/" + swift.Container + "/" + path
 	err = objectstorage.PutObject(session, &contents, url, headers)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	return path, nil
+	return path, int64(len(contents)), nil
 }
 
 func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (err error) {

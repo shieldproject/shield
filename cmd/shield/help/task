@@ -1,0 +1,9 @@
+USAGE: @G{shield} task --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Show a single SHIELD Task.
+
+  Whenever SHIELD needs to perform some bit of work, it generates a
+  task object to keep track of the state of that work and hand it off
+  to the various workers and SHIELD agents that will be responsible
+  for seeing that the work gets done.
+

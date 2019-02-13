@@ -1,0 +1,17 @@
+USAGE: @G{shield} delete-session @Y{UUID}
+
+  Delete a SHIELD Session.
+
+  Whenever users authenticate to SHIELD, whether they do so via
+  the snazzy web UI, or via the rock-solid CLI utility, they
+  generate an authenticated session in the SHIELD database.  These
+  sessions are created for local users as well as 3rd-party users
+  who come in by way of authentication providers.
+
+  @Y{NOTE:} This command can only be used by SHIELD site engineers.
+
+  When a session is deleted, any clients using that session are
+  forcibly logged out.  CLI users will begin to receive errors about
+  not being authenticated;  Web UI users will be redirected to the
+  main login page.
+

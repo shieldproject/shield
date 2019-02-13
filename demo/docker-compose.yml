@@ -1,0 +1,54 @@
+version: '2'
+services:
+  core:
+    image: shieldproject/shield-core
+    ports:
+      - "8181:8181"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.5
+
+  webdav:
+    image: shieldproject/shield-store
+    ports:
+      - "8182:80"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.6
+
+  crmdb:
+    image: shieldproject/postgres-demo
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.7
+  crm:
+    image: shieldproject/crm-demo
+    ports:
+      - "8183:8069"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.8
+
+  aegis:
+    image: shieldproject/aegis-demo
+    ports:
+      - "8184:80"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.9
+
+  #shipit:
+  #  image: shieldproject/shipit-demo
+  #  ports:
+  #    - "8080:8080"
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+      config:
+        - subnet:  10.5.0.0/16
+          gateway: 10.5.0.1

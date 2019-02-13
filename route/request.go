@@ -5,20 +5,53 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
+)
+
+const (
+	SessionHeaderKey = "X-Shield-Session"
+	SessionCookieKey = "shield7"
 )
 
 type Request struct {
 	Req  *http.Request
 	Args []string
 
-	w    http.ResponseWriter
-	done bool
+	w     http.ResponseWriter
+	done  bool
+	debug bool
+}
+
+//NewRequest initializes and returns a new request object. Setting debug to
+// true will cause errors to be logged.
+func NewRequest(w http.ResponseWriter, r *http.Request, debug bool) *Request {
+	return &Request{
+		Req:   r,
+		w:     w,
+		debug: debug,
+	}
 }
 
 func (r *Request) String() string {
 	return fmt.Sprintf("%s %s", r.Req.Method, r.Req.URL.Path)
+}
+
+func SessionID(req *http.Request) string {
+	if s := req.Header.Get(SessionHeaderKey); s != "" {
+		return s
+	}
+
+	if c, err := req.Cookie(SessionCookieKey); err == nil {
+		return c.Value
+	}
+
+	return ""
+}
+
+func (r *Request) SessionID() string {
+	return SessionID(r.Req)
 }
 
 func (r *Request) Success(msg string, args ...interface{}) {
@@ -58,6 +91,9 @@ func (r *Request) Fail(e Error) {
 		log.Errorf("%s errored: %s", r, e.e)
 	}
 	r.w.Header().Set("Content-Type", "application/json")
+	if r.debug {
+		e.ProvideDiagnostic()
+	}
 
 	b, err := json.Marshal(e)
 	if err != nil {
@@ -72,6 +108,8 @@ func (r *Request) Fail(e Error) {
 	r.done = true
 }
 
+//Payload unmarshals the JSON body of this request into the given interface.
+// Returns true if successful and false otherwise.
 func (r *Request) Payload(v interface{}) bool {
 	if r.Req.Body == nil {
 		r.Fail(Bad(nil, "no JSON input payload present in request"))
@@ -94,7 +132,65 @@ func (r *Request) Param(name, def string) string {
 	return def
 }
 
+func (r *Request) ParamDate(name string) *time.Time {
+	v, set := r.Req.URL.Query()[name]
+	if !set {
+		return nil
+	}
+
+	t, err := time.Parse("20060102", v[0])
+	if err != nil {
+		return nil
+	}
+	return &t
+}
+
+// ParamDuration parses a duration string, example: "1m30s"
+// that will be 1 minute and 30 seconds
+func (r *Request) ParamDuration(name string) *time.Duration {
+	v, set := r.Req.URL.Query()[name]
+	if !set {
+		return nil
+	}
+
+	d, err := time.ParseDuration(v[0])
+	if err != nil {
+		return nil
+	}
+	return &d
+}
+
 func (r *Request) ParamIs(name, want string) bool {
 	v, set := r.Req.URL.Query()[name]
 	return set && v[0] == want
+}
+
+func (r *Request) SetRespHeader(header, value string) {
+	r.w.Header().Add(header, value)
+}
+
+func (r *Request) SetCookie(cookie *http.Cookie) {
+	http.SetCookie(r.w, cookie)
+}
+
+func (r *Request) Missing(params ...string) bool {
+	e := Error{code: 400}
+
+	for len(params) > 1 {
+		if params[1] == "" {
+			e.Missing = append(e.Missing, params[0])
+		}
+		params = params[2:]
+	}
+
+	if len(params) > 0 {
+		log.Errorf("%s called Missing() with an odd number of arguments")
+	}
+
+	if len(e.Missing) > 0 {
+		r.Fail(e)
+		return true
+	}
+
+	return false
 }

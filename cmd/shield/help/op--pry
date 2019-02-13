@@ -1,0 +1,14 @@
+USAGE: @G{shield} op pry @Y{/path/to/vault.crypt}
+
+  Decrypt and inspect a SHIELD Vault Crypt.
+
+  @R{NOTE: This is an advanced operation, made available for}
+  @R{      troubleshooting and development purposes.  It is not}
+  @R{      to be used lightly.}
+
+  The SHIELD Vault Crypt contains the encrypted Vault Seal Key
+  and Root Token, which are necessary for accessing the Vault.
+
+  This utility asks for the SHIELD Master Password and decrypts
+  the crypt file, printing its contents to standard output.
+

@@ -14,12 +14,10 @@ var (
 )
 
 func init() {
-	uuidSlug = regexp.MustCompile(":uuid")
 	anySlug = regexp.MustCompile(":[a-z]+")
 }
 
 func newMatch(pat string) matcher {
-	pat = uuidSlug.ReplaceAllString(pat, "([a-fA-F0-9-]+)")
 	pat = anySlug.ReplaceAllString(pat, "([^/]+)")
 
 	re := regexp.MustCompile(fmt.Sprintf("^%s$", pat))

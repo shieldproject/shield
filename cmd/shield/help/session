@@ -1,0 +1,12 @@
+USAGE: @G{shield} session @Y{UUID}
+
+  Print Details for a Single SHIELD Sessions.
+
+  Whenever users authenticate to SHIELD, whether they do so via
+  the snazzy web UI, or via the rock-solid CLI utility, they
+  generate an authenticated session in the SHIELD database.  These
+  sessions are created for local users as well as 3rd-party users
+  who come in by way of authentication providers.
+
+  @Y{NOTE:} This command can only be used by SHIELD site engineers.
+

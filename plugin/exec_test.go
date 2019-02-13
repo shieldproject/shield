@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -98,8 +99,8 @@ var _ = Describe("Plugin Commands", func() {
 		stdout := <-stdoutC
 
 		Expect(err).ShouldNot(HaveOccurred())
-		if os.Getenv("TRAVIS") != "yes" {
-			Expect(stdout).Should(Equal("This should go to stdout"))
+		if runtime.GOOS != "linux" {
+			Expect(stdout).Should(Equal("{{This should go to stdout}}\n"))
 		}
 		Expect(stderr).Should(Equal("This goes to stderr\n"))
 	})

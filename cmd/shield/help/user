@@ -1,0 +1,12 @@
+USAGE: @G{shield} user @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Show a single Local SHIELD User.
+
+  SHIELD supports a several 3rd party authentication providers,
+  including Github and Cloud Foundry UAA, but for sheer simplicity,
+  nothing beats local users.  Local SHIELD users exist inside the
+  SHIELD database, and can be assigned tenant- and system-roles
+  arbitrarily.
+
+  @Y{NOTE:} This command can only be used by SHIELD site managers.
+

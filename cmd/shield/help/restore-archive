@@ -1,0 +1,25 @@
+USAGE: @G{shield} restore-archive --tenant @Y{TENANT} [OPTIONS] @Y{UUID}
+
+  Restore a Backup Archive.
+
+  When SHIELD successfully performs a backup operation, it generates
+  a backup archive containing all of the protected data form that
+  particular system, at that particular point in time.  This archive
+  is then placed in cloud storage, awaiting either expiry and purgation,
+  or restoration to a data system.
+
+  You are not constrained to restoring a backup archive to the target
+  system it was generated from.  This allows you to migrate data by
+  way of the backup system.
+
+  @R{NOTE: Restoring data may cause an outage} in the target data system
+  as the data is replayed.  SHIELD cannot guarantee that plugins will not
+  disconnect end users, block new connections, prohibit writes to the data
+  store, etc.  Please consult your plugin documentation.
+
+@B{Options:}
+
+  --to, --target   The name or UUID of an alternate target data system
+                   to restore the data to.  By default, archives will
+                   be restored to their originating target system.
+

@@ -21,40 +21,66 @@ It looks something like this:
 ```
 [
   {
-    "name"        : "s3_host",
-    "label"       : "S3 Host",
-    "required"    : false,
-    "placeholder" : "s3.amazonaws.com",
-    "type"        : "string",
-    "help"        : "If you use something other than Amazon S3 itself, you will need to provide the name/address of the storage solution.",
-    "examples"    : [ "192.168.99.43", "storage.example.com" ]
+    "mode"     : "target",
+    "name"     : "base_dir",
+    "type"     : "abspath",
+    "title"    : "Base Directory",
+    "help"     : "Absolute path of the directory to backup.",
+    "example"  : "/srv/www/htdocs",
+    "required" : true
   },
   {
-    "name"         : "s3_port",
-    "label"        : "S3 Port",
-    "placeholder"  : "(auto-detect)",
-    "required"     : false,
-    "type"         : "string",
-    "format"       : "^\d+$",
-    "help"         : "If your non-AWS solution runs on a non-standard port (i.e. not 80/443), you will need to provide it.",
-    "examples"     : ["9920", "4443", "8080"]
+    "mode"     : "store",
+    "name"     : "base_dir",
+    "type"     : "abspath",
+    "title"    : "Base Directory",
+    "help"     : "Where to store the backup archives, on-disk.  This must be an absolute path, and the directory must exist.",
+    "example"  : "/var/store/backups",
+    "required" : true
   },
   {
-    "name"     : "s3_access_key",
-    "label"    : "Access Key ID",
-    "required" : true,
-    "missing"  : "Your Access Key ID is required to authenticate to S3",
-    "type"     : "string"
+    "mode"     : "target",
+    "name"     : "include",
+    "type"     : "string",
+    "title"    : "Files to Include",
+    "help"     : "Only files that match this pattern will be included in the backup archive.  If not specified, all files will be included."
   },
-  ...
+  {
+    "mode"     : "target",
+    "name"     : "exclude",
+    "type"     : "abspath",
+    "title"    : "Files to Exclude",
+    "help"     : "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded."
+  },
+  {
+    "mode"    : "both",
+    "name"    : "bsdtar",
+    "type"    : "abspath",
+    "title"   : "Path to `bsdtar` Utility",
+    "help"    : "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
+    "default" : "/var/vcap/packages/shield/bin/bsdtar"
+  }
 ]
 ```
+
+(example taken from the `fs` plugin)
 
 Each element in the list is a map describing exactly one field.
 The order of the fields is significant; the SHIELD UIs will honor
 it when rendering its form (web UI) or asking questions (CLI).
 
 The following fields are valid for a field definition:
+
+#### mode
+
+One of either `target`, `store`, or `both`, indiciating which mode
+of operation this field metadata definition applies to.  Some
+fields are used only when a plugin is being used as a data target,
+while other fields are used differently, and may have different
+semantics, or different default values, when used during storage
+operations vs. target system mode.
+
+This field is required.
 
 #### name
 
@@ -63,7 +89,37 @@ endpoint configuration.  It will never be shown to the end user.
 
 This field is required.
 
-#### label
+#### type
+
+The type of data, indicating what type of form field should be
+presented to the user.  Valid types are:
+
+- **string** - A (usually short) single-line string.  For the web
+  UI, this would be displayed as an `<input type="text">` HTML
+  form field, and the CLI might read from standard input until a
+  newline is reached.
+
+- **bool** - A yes/no proposition, sent to the backend as a
+  boolean true / false value.  The web UI will display this as a
+  checkbox; the CLI will ask a "yes/no" question.
+
+- **enum** - An enumerate field, whose values must be members of a
+  closed set of text strings.  The allowable values are specified
+  in the `enum` key.
+
+- **password** - Like "text", but sensitive.  Whatever the user
+  enters into this field should not be visible.
+
+- **port** - A numeric value that must be greater than 0 and less
+  than 65536, for use in TCP or UDP port number configuration.
+
+- **asbpath** - A string that represents an absolute path on a
+  compatible UNIX filesystem.  Absolute paths _must_ begin with a
+  forward slash `/`).
+
+This field is required.
+
+#### title
 
 A display name of the field.  UIs can use this to prompt the user,
 either via forms or CLI.  This value will almost always be sent to
@@ -80,6 +136,11 @@ configuration JSON (their keys will be omitted entirely).
 This field is required, on the pretense that it is better to be
 explicit about what needs filled in.
 
+#### default
+
+The literal default value that the plugin will infer if the field
+is not specified (or is given as an empty value like "", or 0).
+
 #### placeholder
 
 Placeholder text that can be used in (at least) the Web UI HTML
@@ -95,46 +156,11 @@ This field is not required; if not present, there will be no
 placeholder text.  Required fields with straightforward semantics,
 like a _Username_ field, do not need placeholder text.
 
-#### type
+#### enum
 
-The type of data, indicating what type of form field should be
-presented to the user.  Valid types are:
-
-- **text** - A (usually short) single-line string.  For the web
-  UI, this would be displayed as an `<input type="text">` HTML
-  form field, and the CLI might read from standard input until a
-  newline is reached.
-- **password** - Like "text", but sensitive.  Whatever the user
-  enters into this field should not be visible.
-- **multiline** - A (possibly long) multi-line field that may
-  contain embedded newline characters.
-- **number** - Like "text" (for presentation), but the
-  configuration parameter must be sent as a bare numeric, not a
-  quoted string.
-- **boolean** - A yes/no proposition, sent to the backend as a
-  boolean true / false value.  The web UI will display this as a
-  checkbox; the CLI will ask a "yes/no" question.
-
-#### format
-
-For text-based fields (`text`, `password`, and `multiline`), the
-"format" key lets the plugin author provide a regular expression
-for evaluating the entered value against.  If it does not match,
-the `invalid` message (see below) will be printed as an error.
-
-Note: this is not a substitute for proper input validation and
-sanitation in the plugin code itself; it exists solely to provide
-early feedback to operators on what is and is not acceptable to
-the plugin.
-
-This field is optional.
-
-#### invalid
-
-Provides a message for format validation errors.
-
-This field is required, but only if the `format` field is
-specified.
+A list of values that are allowed for fields of type `enum`.  If
+the type of this field is `enum`, this key is **required**.
+Otherrwise, this key is **forbidden**, and must not appear.
 
 #### help
 
@@ -142,10 +168,11 @@ A helpful couple of sentences that explains what the field is used
 for, what one might want to put in it, what format is expected,
 etc.
 
-#### examples
+#### example
 
-A list of example values, because some people work better with
-examples than descriptions.
+A string that (in English) list possible values that could be
+input _verbatim_, to assist operators in determining things like
+proper formatting, whether to include the `https://` in URLs, etc.
 
 ### Web UI Form Field Display Example
 

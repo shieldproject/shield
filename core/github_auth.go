@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/pborman/uuid"
@@ -18,10 +17,15 @@ import (
 )
 
 type GithubAuthProvider struct {
-	ClientID       string `json:"client_id"`
-	ClientSecret   string `json:"client_secret"`
-	GithubEndpoint string `json:"github_endpoint"`
-	Mapping        map[string]struct {
+	AuthProviderBase
+
+	ClientID         string `json:"client_id"`
+	ClientSecret     string `json:"client_secret"`
+	GithubEndpoint   string `json:"github_endpoint"`
+	GithubAPI        string `json:"github_api"`
+	GithubEnterprise bool   `json:"github_enterprise"`
+	Mapping          []struct {
+		Github string `json:"github"`
 		Tenant string `json:"tenant"`
 		Rights []struct {
 			Team string `json:"team"`
@@ -29,181 +33,160 @@ type GithubAuthProvider struct {
 		} `json:"rights"`
 	} `json:"mapping"`
 
-	Name       string
-	Identifier string
-	core       *Core
+	core *Core
 }
 
-func (gh *GithubAuthProvider) DisplayName() string {
-	return gh.Name
-}
-
-func (gh *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
+func (p *GithubAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	b, err := json.Marshal(util.StringifyKeys(raw))
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(b, gh)
+	err = json.Unmarshal(b, p)
 	if err != nil {
 		return err
 	}
 
-	if gh.ClientID == "" {
+	if p.ClientID == "" {
 		return fmt.Errorf("invalid configuration for Github OAuth Provider: missing `client_id' value")
 	}
 
-	if gh.ClientSecret == "" {
+	if p.ClientSecret == "" {
 		return fmt.Errorf("invalid configuration for Github OAuth Provider: missing `client_secret' value")
 	}
 
-	if gh.GithubEndpoint == "" {
-		gh.GithubEndpoint = "https://github.com"
+	if p.GithubEndpoint == "" {
+		p.GithubEndpoint = "https://github.com"
+		p.GithubAPI = "https://api.github.com/"
 	}
-	gh.GithubEndpoint = strings.TrimSuffix(gh.GithubEndpoint, "/")
+
+	p.GithubEndpoint = strings.TrimSuffix(p.GithubEndpoint, "/")
+	if p.GithubAPI == "" {
+		p.GithubAPI = p.GithubEndpoint + "/api/v3/"
+	}
+
+	p.properties = util.StringifyKeys(raw).(map[string]interface{})
 
 	return nil
 }
 
-func (gh *GithubAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Location", gh.authorizeURL("read:org"))
+func (p *GithubAuthProvider) ReferencedTenants() []string {
+	ll := make([]string, 0)
+	for _, m := range p.Mapping {
+		ll = append(ll, m.Tenant)
+	}
+	return ll
+}
+
+func (p *GithubAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Location", p.authorizeURL("read:org"))
 	w.WriteHeader(302)
 }
 
-func (gh *GithubAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Request) {
+func (p *GithubAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	var input = struct {
 		ClientID     string `json:"client_id"`
 		ClientSecret string `json:"client_secret"`
 		Code         string `json:"code"`
 	}{
-		ClientID:     gh.ClientID,
-		ClientSecret: gh.ClientSecret,
+		ClientID:     p.ClientID,
+		ClientSecret: p.ClientSecret,
 		Code:         req.URL.Query().Get("code"),
 	}
 
 	b, err := json.Marshal(input)
 	if err != nil {
-		gh.log("failed to marshal access token request: %s\n", err)
-		gh.fail(w)
-		return
+		p.Errorf("failed to marshal access token request: %s", err)
+		return nil
 	}
 
-	res, err := http.Post(gh.accessTokenURL(), "application/json", bytes.NewBuffer(b))
+	uri := p.accessTokenURL()
+	res, err := http.Post(uri, "application/json", bytes.NewBuffer(b))
 	if err != nil {
-		gh.log("failed to POST to Github access_token endpoint %s: %s\n", gh.accessTokenURL(), err)
-		gh.fail(w)
-		return
+		p.Errorf("failed to POST to Github access_token endpoint %s: %s", uri, err)
+		return nil
 	}
 	b, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		gh.log("failed to read response from POST %s: %s\n", gh.accessTokenURL(), err)
-		gh.fail(w)
-		return
+		p.Errorf("failed to read response from POST %s: %s", uri, err)
+		return nil
 	}
 	u, err := url.Parse("?" + string(b))
 	if err != nil {
-		gh.log("failed to parse response '%s' from POST %s: %s\n", string(b), gh.accessTokenURL(), err)
-		gh.fail(w)
-		return
+		p.Errorf("failed to parse response '%s' from POST %s: %s", string(b), uri, err)
+		return nil
 	}
 	token := u.Query().Get("access_token")
 	if token == "" {
-		gh.log("no access_token found in response '%s'\n", string(b))
-		gh.fail(w)
-		return
+		p.Errorf("no access_token found in response '%s' from POST %s", string(b), u)
+		return nil
 	}
 
-	client := github.NewClient(token)
+	client, err := github.NewClient(p.GithubAPI, token)
+	if err != nil {
+		p.Errorf("failed to perform lookup against Github: %s", err)
+		return nil
+	}
+
 	account, name, orgs, err := client.Lookup()
 	if err != nil {
-		gh.log("failed to perform lookup against Github: %s\n", err)
-		gh.fail(w)
-		return
+		p.Errorf("failed to perform lookup against Github: %s", err)
+		return nil
 	}
 
 	//Check if the user that logged in via github already exists
-	user, err := gh.core.DB.GetUser(account, gh.Identifier)
+	user, err := p.core.DB.GetUser(account, p.Identifier)
 	if err != nil {
-		gh.log("failed to retrieve user %s@%s from database: %s\n", account, gh.Identifier, err)
-		gh.fail(w)
-		return
+		p.Errorf("failed to retrieve user %s@%s from database: %s", account, p.Identifier, err)
+		return nil
 	}
 	if user == nil {
 		user = &db.User{
 			UUID:    uuid.NewRandom(),
 			Name:    name,
 			Account: account,
-			Backend: gh.Identifier,
+			Backend: p.Identifier,
 			SysRole: "",
 		}
-		gh.core.DB.CreateUser(user)
-	}
-	session, err := gh.core.createSession(user)
-	if err != nil {
-		gh.log("failed to create a session for user %s: %s\n", account, err)
-		gh.fail(w)
-		return
+		p.core.DB.CreateUser(user)
 	}
 
-	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
+	p.ClearAssignments()
+Mapping:
+	for _, candidate := range p.Mapping {
+		for org, teams := range orgs {
+			if candidate.Github == org {
+				for _, match := range candidate.Rights {
+					if match.Team == "" {
+						if !p.Assign(user, candidate.Tenant, match.Role) {
+							return nil
+						}
+						continue Mapping
+					}
 
-	if err := gh.core.DB.ClearMembershipsFor(user); err != nil {
-		gh.log("failed to clear memberships for user %s: %s\n", account, err)
-		gh.fail(w)
-		return
-	}
-	for org, teams := range orgs {
-		tname, role, assigned := gh.resolveOrgAndTeam(org, teams)
-		if assigned {
-			gh.log("ensuring tenant '%s' for Github org '%s'\n", tname, org)
-			tenant, err := gh.core.DB.EnsureTenant(tname)
-			if err != nil {
-				gh.log("failed to find/create tenant '%s' for Github org '%s': %s\n", tname, org, err)
-				gh.fail(w)
-				return
-			}
-			gh.log("user = %v; tenant = %v\n", user, tenant)
-			gh.log("assigning %s (user %s) to tenant '%s' as role '%s'\n", account, user.UUID, tenant.UUID, role)
-			err = gh.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
-			if err != nil {
-				gh.log("failed to assign %s to tenant '%s' as role '%s': %s\n", account, tname, role, err)
-				gh.fail(w)
-				return
-			}
-		}
-	}
-
-	w.Header().Set("Location", "/")
-	w.WriteHeader(302)
-}
-
-func (gh GithubAuthProvider) resolveOrgAndTeam(org string, teams []string) (string, string, bool) {
-	if candidate, ok := gh.Mapping[org]; ok {
-		for _, match := range candidate.Rights {
-			for _, team := range teams {
-				if match.Team == "" || match.Team == team {
-					return candidate.Tenant, match.Role, true
+					for _, team := range teams {
+						if match.Team == team {
+							if !p.Assign(user, candidate.Tenant, match.Role) {
+								return nil
+							}
+							continue Mapping
+						}
+					}
 				}
 			}
 		}
 	}
-	return "", "", false /* not recognized; not allowed */
+	if !p.SaveAssignments(p.core.DB, user) {
+		return nil
+	}
+
+	return user
 }
 
-func (gh GithubAuthProvider) accessTokenURL() string {
-	return fmt.Sprintf("%s/login/oauth/access_token", gh.GithubEndpoint)
+func (p GithubAuthProvider) accessTokenURL() string {
+	return fmt.Sprintf("%s/login/oauth/access_token", p.GithubEndpoint)
 }
 
-func (gh GithubAuthProvider) authorizeURL(scope string) string {
-	return fmt.Sprintf("%s/login/oauth/authorize?scope=%s&client_id=%s", gh.GithubEndpoint, scope, gh.ClientID)
-}
-
-func (gh GithubAuthProvider) log(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "github-auth[%s]: ", gh.Identifier)
-	fmt.Fprintf(os.Stderr, msg, args...)
-}
-
-func (gh GithubAuthProvider) fail(w http.ResponseWriter) {
-	w.Header().Set("Location", "/fail/e500")
-	w.WriteHeader(302)
+func (p GithubAuthProvider) authorizeURL(scope string) string {
+	return fmt.Sprintf("%s/login/oauth/authorize?scope=%s&client_id=%s", p.GithubEndpoint, scope, p.ClientID)
 }

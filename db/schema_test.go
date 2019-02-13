@@ -23,7 +23,7 @@ func Database(sqls ...string) (*DB, error) {
 		return nil, err
 	}
 
-	if err := db.Setup(); err != nil {
+	if _, err := db.Setup(0); err != nil {
 		db.Disconnect()
 		return nil, err
 	}
@@ -60,13 +60,15 @@ var _ = Describe("Database Schema", func() {
 			})
 
 			It("should create tables during Setup()", func() {
-				Ω(db.Setup()).Should(Succeed())
+				_, err := db.Setup(0)
+				Ω(err).ShouldNot(HaveOccurred())
 				Ω(db.Exec("SELECT * FROM schema_info")).
 					Should(Succeed())
 			})
 
 			It("should set the version number in schema_info", func() {
-				Ω(db.Setup()).Should(Succeed())
+				_, err := db.Setup(0)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				r, err := db.Query(`SELECT version FROM schema_info`)
 				Ω(err).ShouldNot(HaveOccurred())
@@ -75,11 +77,12 @@ var _ = Describe("Database Schema", func() {
 
 				var v int
 				Ω(r.Scan(&v)).Should(Succeed())
-				Ω(v).Should(Equal(4))
+				Ω(v).Should(Equal(5))
 			})
 
 			It("creates the correct tables", func() {
-				Ω(db.Setup()).Should(Succeed())
+				_, err := db.Setup(0)
+				Ω(err).ShouldNot(HaveOccurred())
 
 				tableExists := func(table string) {
 					sql := fmt.Sprintf("SELECT * FROM %s", table)

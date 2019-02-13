@@ -1,0 +1,59 @@
+USAGE: @G{shield} update-global-store [OPTIONS] @Y{NAME-OR-UUID}
+
+  Update an existing Shared Cloud Storage System
+
+  SHIELD needs a place to store all of the backup archives it is
+  going to generate, and Cloud Storage is where it's at.  Each
+  Cloud Storage System provides the configuration details needed
+  to write to and read from some external storage endpoint, be it
+  Amazon S3, Google Cloud Storage, or a local WebDav instance.
+
+  @Y{NOTE:} This command manages existing shared storage systems,
+  and you must be a SHIELD site engineer to use it.  For managing
+  storage defined for your tenant(s), see @C{shield update-store}.
+
+@B{Options:}
+
+  Updates are entirely specified via command-line arguments.
+
+  -n, --name        A new name for the Cloud Storage System.
+
+  -s, --summary     An optional, long-form description for the
+                    storage system.
+
+  -a, --agent       The address (in ip:port format) of the SHIELD
+                    Agent that will be used for testing access to
+                    the storage system, and also for purging expired
+                    or manually deleted backup archives.
+
+  -p, --plugin      The name of the plugin binary to use.  The chosen
+                    plugin must support "store" operations, and must
+                    be available on the selected agent.
+
+      --clear-data  Clear the plugin configuration before applying new
+                    configuration from @Y{--data ...} flags.  If not
+                    specified, existing keys will be left alone, new
+                    keys will be added, and overridden keys will be
+                    updated.
+
+  -d, --data        Configuration data for the storage plugin, in the
+                    format @Y{--data} @G{key_name}=@C{value}.  Note that you may
+                    be required to quote this to avoid tokenization of
+                    the provided value by your shell.
+
+                    This field may be specified multiple times, either 
+                    to provide new configuration key / values, or to
+                    override configuration specified earlier in the
+                    command-line invocation.
+
+@B{Examples:}
+
+  # Rename "Local WebDAV" storage to just "WebDAV":
+  @W{shield update-global-store} "Local WebDAV" \
+      @Y{--name} WebDAV
+
+  # Change the credentials for accessing the WebDAV Store
+  @W{shield update-global-store} WebDAV \
+      @Y{--data} @G{username}=@C{new-webdave}    \
+      @Y{--data} @G{password}=@C{dont-forget-it}
+

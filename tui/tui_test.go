@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 	"github.com/starkandwayne/shield/tui"
 )
 
@@ -50,7 +50,7 @@ var _ = Describe("Cell Management", func() {
 
 		Context("With colorization", func() {
 			BeforeEach(func() {
-				c = tui.ParseCell(ansi.Sprintf("@G{hello}"))
+				c = tui.ParseCell(fmt.Sprintf("@G{hello}"))
 			})
 
 			It("should calculate the width as the length of the string", func() {
@@ -61,7 +61,7 @@ var _ = Describe("Cell Management", func() {
 			})
 
 			It("should return the original string for line 0", func() {
-				Ω(c.Line(0)).Should(Equal(ansi.Sprintf("@G{hello}")))
+				Ω(c.Line(0)).Should(Equal(fmt.Sprintf("@G{hello}")))
 			})
 
 			It("should return the empty string for all line indices > 0", func() {
@@ -258,7 +258,7 @@ var _ = Describe("Table Management", func() {
 				t.Row("Batman", "Bruce Wayne")
 				t.Row("Iron Man", "Tony Stark")
 				t.Row("The Green Lantern", "Alan / Hal / Guy / Kyle / John")
-				t.Row(ansi.Sprintf("@R{Deadpool(?)}"), "Wade Winston Wilson")
+				t.Row(fmt.Sprintf("@R{Deadpool(?)}"), "Wade Winston Wilson")
 				t.Row("The Spectre", "Jim Corrigan")
 			})
 
@@ -269,7 +269,7 @@ var _ = Describe("Table Management", func() {
 				Ω(t.Line(2)).Should(Equal("Batman             Bruce Wayne\n"), `third line`)
 				Ω(t.Line(3)).Should(Equal("Iron Man           Tony Stark\n"), `fourth line`)
 				Ω(t.Line(4)).Should(Equal("The Green Lantern  Alan / Hal / Guy / Kyle / John\n"), `fifth line`)
-				Ω(t.Line(5)).Should(Equal(ansi.Sprintf("@R{Deadpool(?)}        Wade Winston Wilson\n")), `sixth line`)
+				Ω(t.Line(5)).Should(Equal(fmt.Sprintf("@R{Deadpool(?)}        Wade Winston Wilson\n")), `sixth line`)
 				Ω(t.Line(6)).Should(Equal("The Spectre        Jim Corrigan\n"), `seventh line`)
 			})
 		})

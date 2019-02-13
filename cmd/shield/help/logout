@@ -1,0 +1,4 @@
+USAGE: @G{shield} logout
+
+  Logs you out of your active, authenticated session.
+

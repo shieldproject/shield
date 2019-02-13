@@ -4,33 +4,45 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/voxelbrain/goptions"
+	"github.com/jhunt/go-cli"
+	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/goutils/log"
 	"github.com/starkandwayne/shield/agent"
 )
-
-type ShieldAgentOpts struct {
-	Help       bool   `goptions:"-h, --help, description='Show the help screen'"`
-	ConfigFile string `goptions:"-c, --config, description='Path to the shield-agent configuration file'"`
-	Log        string `goptions:"-l, --log-level, description='Set logging level to debug, info, notice, warn, error, crit, alert, or emerg'"`
-	Version    bool   `goptions:"-v, --version, description='Display the SHIELD version'"`
-}
 
 var Version = ""
 
 func main() {
-	var opts ShieldAgentOpts
-	opts.Log = "Info"
-	if err := goptions.Parse(&opts); err != nil {
-		fmt.Printf("%s\n", err)
-		goptions.PrintHelp()
-		return
+	var opts struct {
+		Help       bool   `cli:"-h, --help"`
+		Version    bool   `cli:"-v, --version"`
+		ConfigFile string `cli:"-c, --config"`
+		Log        string `cli:"-l, --log-level"`
 	}
+	opts.Log = "info"
+
+	_, args, err := cli.Parse(&opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
+		os.Exit(1)
+	}
+	if len(args) != 0 {
+		fmt.Fprintf(os.Stderr, "!!! extra arguments found\n")
+		os.Exit(1)
+	}
+
 	if opts.Help {
-		goptions.PrintHelp()
+		fmt.Printf("shield-agent - Run a remote SHIELD orchestration agent\n\n")
+		fmt.Printf("Options\n")
+		fmt.Printf("  -h, --help       Show this help screen.\n")
+		fmt.Printf("  -v, --version    Display the SHIELD version.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  -l, --log-level  What messages to log (error, warning, info, or debug).\n")
+		fmt.Printf("  -c, --config     Path to the agent configuration file.\n")
+		fmt.Printf("\n")
 		os.Exit(0)
 	}
+
 	if opts.Version {
 		if Version == "" {
 			fmt.Printf("shield-agent (development)%s\n", Version)
@@ -39,12 +51,16 @@ func main() {
 		}
 		os.Exit(0)
 	}
+
 	if opts.ConfigFile == "" {
 		fmt.Fprintf(os.Stderr, "You must specify a configuration file via `--config`\n")
 		os.Exit(1)
 	}
 
-	log.SetupLogging(log.LogConfig{Type: "console", Level: opts.Log})
+	log.SetupLogging(log.LogConfig{
+		Type:  "console",
+		Level: opts.Log,
+	})
 	log.Infof("starting agent")
 
 	ag := agent.NewAgent()

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/pborman/uuid"
@@ -14,18 +13,9 @@ import (
 	"github.com/starkandwayne/shield/util"
 )
 
-/*
-UAAAuthProvider contains all of the fields UAA needs to give us a token,
-and contains a mapping of the uaa roles
-
-client_id	String	Optional	A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.
-grant_type	String	Required	the type of authentication being used to obtain the token, in this case client_credentials
-client_secret	String	Optional	The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.
-response_type	String	Optional	The type of token that should be issued.
-token_format	String	Optional	UAA 3.3.0 Can be set to 'opaque' to retrieve an opaque and revocable token.
-
-*/
 type UAAAuthProvider struct {
+	AuthProviderBase
+
 	ClientID      string `json:"client_id"`
 	ClientSecret  string `json:"client_secret"`
 	UAAEndpoint   string `json:"uaa_endpoint"`
@@ -39,15 +29,9 @@ type UAAAuthProvider struct {
 		} `json:"rights"`
 	} `json:"mapping"`
 
-	Name       string
-	Identifier string
-	core       *Core
-	uaa        *uaa.Client
-	http       *http.Client
-}
-
-func (p *UAAAuthProvider) DisplayName() string {
-	return p.Name
+	core *Core
+	uaa  *uaa.Client
+	http *http.Client
 }
 
 func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
@@ -74,6 +58,7 @@ func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	}
 
 	p.UAAEndpoint = strings.TrimSuffix(p.UAAEndpoint, "/")
+	p.properties = util.StringifyKeys(raw).(map[string]interface{})
 
 	p.uaa = uaa.NewClient(uaa.Client{
 		ID:       p.ClientID,
@@ -84,34 +69,42 @@ func (p *UAAAuthProvider) Configure(raw map[interface{}]interface{}) error {
 	return nil
 }
 
+func (p *UAAAuthProvider) ReferencedTenants() []string {
+	ll := make([]string, 0)
+	for _, m := range p.Mapping {
+		ll = append(ll, m.Tenant)
+	}
+	return ll
+}
+
 func (p *UAAAuthProvider) Initiate(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Location", p.uaa.AuthorizationURL(uaa.DefaultScopes))
 	w.WriteHeader(302)
 }
 
-func (p *UAAAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Request) {
+func (p *UAAAuthProvider) HandleRedirect(req *http.Request) *db.User {
 	code := req.URL.Query().Get("code")
 	if code == "" {
-		p.fail(w, fmt.Errorf("No code was supplied by the remote UAA"))
-		return
+		p.Errorf("no code parameter was supplied by the remote UAA")
+		return nil
 	}
 
 	token, err := p.uaa.GetAccessToken(code)
 	if err != nil {
-		p.fail(w, fmt.Errorf("Unable to fetch access token: %s", err))
-		return
+		p.Errorf("unable to fetch access token: %s", err)
+		return nil
 	}
 
 	account, name, scims, err := p.uaa.Lookup(token)
 	if err != nil {
-		p.fail(w, fmt.Errorf("Unable to retrieve user information: %s", err))
-		return
+		p.Errorf("unable to retrieve user information: %s", err)
+		return nil
 	}
 
 	user, err := p.core.DB.GetUser(account, p.Identifier)
 	if err != nil {
-		p.fail(w, fmt.Errorf("failed to retrieve user %s@%s from database: %s", account, p.Identifier, err))
-		return
+		p.Errorf("failed to retrieve user %s@%s from database: %s", account, p.Identifier, err)
+		return nil
 	}
 	if user == nil {
 		user = &db.User{
@@ -123,36 +116,18 @@ func (p *UAAAuthProvider) HandleRedirect(w http.ResponseWriter, req *http.Reques
 		}
 		p.core.DB.CreateUser(user)
 	}
-	session, err := p.core.createSession(user)
-	if err != nil {
-		p.fail(w, fmt.Errorf("failed to create a session for user %s: %s", account, err))
-		return
-	}
 
-	http.SetCookie(w, SessionCookie(session.UUID.String(), true))
-
-	if err := p.core.DB.ClearMembershipsFor(user); err != nil {
-		p.fail(w, fmt.Errorf("failed to clear memberships for user %s: %s", account, err))
-		return
-	}
-	for tname, role := range p.resolveSCIM(scims) {
-		p.log("ensuring that tenant '%s' exists", tname)
-		tenant, err := p.core.DB.EnsureTenant(tname)
-		if err != nil {
-			p.fail(w, fmt.Errorf("failed to find/create tenant '%s': %s", tname, err))
-			return
-		}
-		p.log("user = %v; tenant = %s", user, tname)
-		p.log("assigning %s (user %s) to tenant '%s' as role '%s'", account, user.UUID, tenant.UUID, role)
-		err = p.core.DB.AddUserToTenant(user.UUID.String(), tenant.UUID.String(), role)
-		if err != nil {
-			p.fail(w, fmt.Errorf("failed to assign %s to tenant '%s' as role '%s': %s", account, tname, role, err))
-			return
+	p.ClearAssignments()
+	for tenant, role := range p.resolveSCIM(scims) {
+		if !p.Assign(user, tenant, role) {
+			return nil
 		}
 	}
+	if !p.SaveAssignments(p.core.DB, user) {
+		return nil
+	}
 
-	w.Header().Set("Location", "/")
-	w.WriteHeader(302)
+	return user
 }
 
 func (p UAAAuthProvider) resolveSCIM(scims []string) map[string]string {
@@ -171,14 +146,4 @@ func (p UAAAuthProvider) resolveSCIM(scims []string) map[string]string {
 	}
 
 	return rights
-}
-
-func (p UAAAuthProvider) log(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "uaa auth provider [%s]: %s\n", p.Identifier, fmt.Sprintf(msg, args...))
-}
-
-func (p UAAAuthProvider) fail(w http.ResponseWriter, err error) {
-	p.log("%s", err)
-	w.Header().Set("Location", "/fail/e500")
-	w.WriteHeader(302)
 }

@@ -3,7 +3,7 @@ package route
 import (
 	"net/http"
 
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 type Handler func(r *Request)
@@ -14,6 +14,7 @@ type route struct {
 }
 
 type Router struct {
+	Debug  bool
 	routes []route
 }
 
@@ -25,11 +26,7 @@ func (r *Router) Dispatch(match string, handler Handler) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	request := &Request{
-		Req:  req,
-		w:    w,
-		done: false,
-	}
+	request := NewRequest(w, req, r.Debug)
 
 	for _, rt := range r.routes {
 		if args, ok := rt.matcher(req); ok {
@@ -38,7 +35,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			request.Args = args
 			rt.handler(request)
 			if !request.done {
-				log.Errorf("%s handler bug: failed to call either OK() or Fail()")
+				log.Errorf("%s handler bug: failed to call either OK() or Fail()", request)
 				request.Fail(Oops(nil, "an unknown error has occurred"))
 			}
 			return

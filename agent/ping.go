@@ -3,12 +3,12 @@ package agent
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/starkandwayne/goutils/log"
+	"github.com/jhunt/go-log"
 )
 
 func (agent *Agent) Ping() {
@@ -17,14 +17,23 @@ func (agent *Agent) Ping() {
 		return
 	}
 	if agent.Registration.Interval <= 0 {
-		log.Errorf("invalid registration.interval %d supplied; skipping agent auto-registration")
+		log.Errorf("invalid registration.interval %d supplied; skipping agent auto-registration", agent.Registration.Interval)
 		return
+	}
+
+	pool := x509.NewCertPool()
+	if agent.Registration.ShieldCACert != "" {
+		if ok := pool.AppendCertsFromPEM([]byte(agent.Registration.ShieldCACert)); !ok {
+			log.Errorf("Invalid or malformed CA Certificate")
+			return
+		}
 	}
 
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: agent.Registration.SkipVerify,
+				RootCAs:            pool,
 			},
 			Proxy:             http.ProxyFromEnvironment,
 			DisableKeepAlives: true,
@@ -47,7 +56,7 @@ func (agent *Agent) Ping() {
 			return
 		}
 
-		log.Debugf("attempting to pre-register with %s/v2/agents as %s", agent.Registration.URL, string(b))
+		log.Debugf("pre-registering with %s/v2/agents as %s", agent.Registration.URL, string(b))
 		req, err := http.NewRequest("POST", agent.Registration.URL+"/v2/agents", bytes.NewBuffer(b))
 		if err != nil {
 			log.Errorf("failed to issue POST %s/v2/agents: %s", agent.Registration.URL, err)
@@ -56,10 +65,16 @@ func (agent *Agent) Ping() {
 
 		res, err := client.Do(req)
 		if err != nil {
-			fmt.Errorf("failed to issue POST /v2/agents: %s", err)
+			log.Errorf("failed to issue POST /v2/agents: %s", err)
 			return
 		}
 
+		if res.StatusCode != 200 {
+			log.Errorf("pre-registration with %s failed; SHIELD Core responeded HTTP %s", agent.Registration.URL, res.Status)
+			return
+		}
+
+		log.Infof("pre-registered with %s as %s (port %d)", agent.Registration.URL, agent.Name, agent.Port)
 		log.Debugf("POST /v2/agents returned [%s]", res.Status)
 	}
 

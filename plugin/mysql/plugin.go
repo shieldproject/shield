@@ -1,80 +1,15 @@
-// The `mysql` plugin for SHIELD implements generic backup + restore
-// functionality for a MySQL-compatible server. It can be used against
-// any mysql server compatible with the `mysql` and `mysqldump` tools
-// installed on the system where this plugin is run.
-//
-// PLUGIN FEATURES
-//
-// This plugin implements functionality suitable for use with the following
-// SHIELD Job components:
-//
-//   Target: yes
-//   Store:  no
-//
-// PLUGIN CONFIGURATION
-//
-// The endpoint configuration passed to this plugin is used to identify what
-// potgres instance to back up, and how to connect to it. Your endpoint JSON
-// should look something like this:
-//
-//    {
-//        "mysql_host"         : "127.0.0.1",    # optional
-//        "mysql_port"         : "3306",         # optional
-//        "mysql_user"         : "username",
-//        "mysql_password"     : "password",
-//        "mysql_read_replica" : "hostname/ip",  # optional
-//        "mysql_database"     : "db",           # optional
-//        "mysql_options"      : "--quick",      # optional
-//        "mysql_bindir"       : "/path/to/bin"  # optional
-//    }
-//
-// Default Configuration
-//
-//    {
-//        "mysql_host"   : "127.0.0.1",
-//        "mysql_port"   : "3306",
-//        "mysql_bindir" : "/var/vcap/packages/shield-mysql/bin"
-//    }
-//
-// BACKUP DETAILS
-//
-// If `mysql_database` is not specified in the plugin configuration, the `mysql` plugin makes
-// use of `mysqldump --all-databases` to back up all databases on the mysql server it connects to.
-// Otherwise, it backs up ONLY the specified database. The dumps generated include
-// SQL to clean up existing tables of the databases, so that the restores will go smoothly.
-//
-// The mysql_options setting can apply mysqldump specific options like --force, --quick and/or
-// --single-transaction
-//
-// Backing up with the `mysql` plugin will not drop any existing connections to the database,
-// or restart the service.
-//
-//RESTORE DETAILS
-//
-// To restore, the `mysql` plugin connects to the mysql server using the `mysql` command.
-// It then feeds in the backup data (`mysqldump` output). Unlike the the `postgres` plugin,
-// this plugin does NOT need to disconnect any open connections to mysql to perform the
-// restoration.
-//
-// Restoring with the `mysql` plugin should not interrupt established connections to the service.
-//
-// DEPENDENCIES
-//
-// This plugin relies on the `mysqldump` and `mysql` utilities. Please ensure
-// that they are present on the system that will be running the backups + restores
-// for postgres. If you are using shield-boshrelease to deploy SHIELD, these tools
-// are provided so long as you include the `agent-mysql` job template along side
-// your `shield agent`.
-//
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
+	"database/sql"
+	"errors"
 	"github.com/starkandwayne/shield/plugin"
+	// sql drivers
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -207,67 +142,67 @@ func (p MySQLPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("mysql_host", DefaultHost)
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_host          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_host          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_host}          using default host @C{%s}\n", DefaultHost)
+		fmt.Printf("@G{\u2713 mysql_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
-		ansi.Printf("@G{\u2713 mysql_host}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_host}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_port", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_port          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_port          %s}\n", err)
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_port}          using default port @C{%s}\n", DefaultPort)
+		fmt.Printf("@G{\u2713 mysql_port}          using default port @C{%s}\n", DefaultPort)
 	} else {
-		ansi.Printf("@G{\u2713 mysql_port}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_port}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("mysql_user")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_user          %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_user          %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_user}          @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValue("mysql_password")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_password      %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_password      %s}\n", err)
 		fail = true
 	} else {
-		ansi.Printf("@G{\u2713 mysql_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_password}      @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_read_replica", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_read_replica  %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_read_replica  %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_read_replica}  no read replica given\n")
+		fmt.Printf("@G{\u2713 mysql_read_replica}  no read replica given\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_read_replica}  @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_database", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_database      %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_database      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_database}      backing up *all* databases\n")
+		fmt.Printf("@G{\u2713 mysql_database}      backing up *all* databases\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_database}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_database}      @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mysql_options", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mysql_options       %s}\n", err)
+		fmt.Printf("@R{\u2717 mysql_options       %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mysql_options}       no options given\n")
+		fmt.Printf("@G{\u2713 mysql_options}       no options given\n")
 	} else {
-		ansi.Printf("@G{\u2713 mysql_options}       @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mysql_options}       @C{%s}\n", s)
 	}
 
 	if fail {
@@ -289,6 +224,7 @@ func (p MySQLPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	cmd := fmt.Sprintf("%s/mysqldump %s %s", mysql.Bin, mysql.Options, connectionString(mysql, true))
 	plugin.DEBUG("Executing: `%s`", cmd)
+	fmt.Printf("SET SESSION SQL_LOG_BIN=0;\n")
 	return plugin.Exec(cmd, plugin.STDOUT)
 }
 
@@ -298,14 +234,22 @@ func (p MySQLPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	if err != nil {
 		return err
 	}
-
 	cmd := fmt.Sprintf("%s/mysql %s", mysql.Bin, connectionString(mysql, false))
-	plugin.DEBUG("Exec: %s", cmd)
-	return plugin.Exec(cmd, plugin.STDIN)
+	dbname, err := endpoint.StringValueDefault("mysql_database", "")
+	if err != nil {
+		return err
+	} else if dbname == "" {
+		fmt.Fprintf(os.Stderr, "Restore Full Database \n")
+		return mysqlrestorefull(mysql, cmd)
+	} else {
+		fmt.Fprintf(os.Stderr, "Restore Database %s \n", dbname)
+		plugin.DEBUG("Exec: %s", cmd)
+		return plugin.Exec(cmd, plugin.STDIN)
+	}
 }
 
-func (p MySQLPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p MySQLPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p MySQLPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
@@ -321,13 +265,105 @@ func connectionString(info *MySQLConnectionInfo, backup bool) string {
 	os.Setenv("MYSQL_PWD", info.Password)
 
 	var db string
-	if info.Database != "" {
+	if backup {
+		if info.Database != "" {
+			db = fmt.Sprintf("--databases %s", info.Database)
+		} else {
+			db = "--all-databases"
+		}
+	} else {
 		db = info.Database
-	} else if backup {
-		db = "--all-databases"
+	}
+	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
+}
+
+func connectionclientString(info *MySQLConnectionInfo) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/", info.User, info.Password, info.Host, info.Port)
+}
+
+func mysqlrestorefull(info *MySQLConnectionInfo, cmd string) error {
+	var gblvar = []struct {
+		name     string
+		oldvalue string
+		newvalue string
+	}{
+		{"slow_query_log", "", "false"},
+		{"general_log", "", "false"},
+		{"enforce_storage_engine", "", "NULL"},
 	}
 
-	return fmt.Sprintf("%s -h %s -P %s -u %s", db, info.Host, info.Port, info.User)
+	var i int
+	db, err := sql.Open("mysql", connectionclientString(info))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Instance Connection}\n")
+		return err
+	}
+	defer db.Close()
+	err = db.Ping()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Instance Connection}\n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Instance Connection}\n")
+
+	for i = 0; i < 3; i++ {
+		gblvar[i].oldvalue, err = mysqlshowvariable(db, gblvar[i].name)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Backing up original parameters}\n")
+			return err
+		}
+	}
+	fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Backing up original parameters}\n")
+	for i = 0; i < 3; i++ {
+		_, err = db.Exec(fmt.Sprintf("SET GLOBAL %s=%s", gblvar[i].name, gblvar[i].newvalue))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Updating restore parameters}\n")
+			return err
+		}
+		{
+			idx := i
+			defer func() {
+				_, err := db.Exec(fmt.Sprintf("SET GLOBAL %s=%s", gblvar[idx].name, gblvar[idx].oldvalue))
+				if err != nil {
+					fmt.Fprintf(os.Stderr, " @R{\u2717 MySQL Restoring original parameter %s}\n", gblvar[idx].name)
+				}
+				fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Restoring original parameter %s}\n", gblvar[idx].name)
+			}()
+		}
+	}
+	fmt.Fprintf(os.Stderr, " @G{\u2713 MySQL Updating restore parameters}\n")
+	plugin.DEBUG("Exec: %s --init-command='set sql_log_bin=0'", cmd)
+	err = plugin.Exec(fmt.Sprintf("%s --init-command='set sql_log_bin=0'", cmd), plugin.STDIN)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, " @R{\u2717 Restoring instance} \n")
+		return err
+	}
+	fmt.Fprintf(os.Stderr, " @G{\u2713 Restoring instance} \n")
+
+	return nil
+}
+
+func mysqlshowvariable(mydb *sql.DB, varname string) (string, error) {
+	var dummy, varvalue string
+	row, err := mydb.Query(fmt.Sprintf("SHOW GLOBAL VARIABLES LIKE '%s'", varname))
+	if err != nil {
+		return "", err
+	}
+	defer row.Close()
+
+	if row.Next() {
+		err := row.Scan(&dummy, &varvalue)
+		if err != nil {
+			return "", err
+		}
+		if row.Next() {
+			return "", errors.New("sql: unexpected second row in result set")
+		}
+		err = row.Err()
+	} else {
+		return "", sql.ErrNoRows
+	}
+	return varvalue, err
 }
 
 func mysqlConnectionInfo(endpoint plugin.ShieldEndpoint) (*MySQLConnectionInfo, error) {

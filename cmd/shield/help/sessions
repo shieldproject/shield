@@ -1,0 +1,39 @@
+USAGE: @G{shield} sessions [OPTIONS]
+
+  List Authenticated SHIELD Sessions.
+
+  Whenever users authenticate to SHIELD, whether they do so via
+  the snazzy web UI, or via the rock-solid CLI utility, they
+  generate an authenticated session in the SHIELD database.  These
+  sessions are created for local users as well as 3rd-party users
+  who come in by way of authentication providers.
+
+  @Y{NOTE:} This command can only be used by SHIELD site engineers.
+
+@B{Options:}
+
+  By default, all shared cloud storage systems will be displayed.
+  You may filter the results with the following command-line flags.
+
+  -l, --limit     Only show this many sessions, instead of all.
+                  Currently, there is no way to paginate the results
+                  of this command.  Sad.
+
+  -u, --user      Limit the list of sessions to only those associated
+                  with the given user (specified by UUID).  Note that
+                  this will also include any sessions authenticated by
+                  that users auth tokens (i.e. scripts, pipelines, etc.)
+
+      --ip        Limit the list of sessions to only those originating
+                  from a given IP address.
+
+@B{Examples:}
+
+  # Where is jhunt (assuming that's the right UUID) logged in from?
+  @W{shield sessions} \
+     @Y{--user} @C{0c14cc60-f001-400e-9858-1a5ab888b823}
+
+  # Who is logging in from 10.56.78.9?
+  @W{shield sessions} \
+    @Y{--ip} @C{10.56.78.9}
+

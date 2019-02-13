@@ -1,13 +1,14 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
 
-	. "github.com/starkandwayne/goutils/timestamp"
+	"github.com/starkandwayne/shield/plugin"
 )
 
 type Agent struct {
@@ -16,15 +17,24 @@ type Agent struct {
 	Address    string    `json:"address"`
 	Version    string    `json:"version"`
 	Hidden     bool      `json:"hidden"`
-	LastSeenAt Timestamp `json:"last_seen_at"`
+	LastSeenAt int64     `json:"last_seen_at"`
 	LastError  string    `json:"last_error"`
 	Status     string    `json:"status"`
-	Metadata   string    `json:"metadata"`
+	RawMeta    string    `json:"-"`
+}
+
+func (a *Agent) Metadata() (map[string]interface{}, error) {
+	raw := make(map[string]interface{})
+	if a.RawMeta == "" {
+		return raw, nil
+	}
+	return raw, json.Unmarshal([]byte(a.RawMeta), &raw)
 }
 
 type AgentFilter struct {
 	Address    string
 	Name       string
+	Status     string
 	OnlyHidden bool
 	SkipHidden bool
 }
@@ -39,6 +49,11 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 	} else if f.SkipHidden {
 		wheres = append(wheres, "a.hidden = ?")
 		args = append(args, false)
+	}
+
+	if f.Status != "" {
+		wheres = append(wheres, "a.status = ?")
+		args = append(args, f.Status)
 	}
 
 	if f.Address != "" {
@@ -79,19 +94,16 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 	for r.Next() {
 		agent := &Agent{}
 
-		var lastSeenAt *int64
-		var hidden *bool
+		var last *int64
 		var this NullUUID
 		if err = r.Scan(
 			&this, &agent.Name, &agent.Address, &agent.Version,
-			&hidden, &lastSeenAt, &agent.Status,
-			&agent.Metadata); err != nil {
-
+			&agent.Hidden, &last, &agent.Status, &agent.RawMeta); err != nil {
 			return l, err
 		}
 		agent.UUID = this.UUID
-		if lastSeenAt != nil {
-			agent.LastSeenAt = parseEpochTime(*lastSeenAt)
+		if last != nil {
+			agent.LastSeenAt = *last
 		}
 
 		l = append(l, agent)
@@ -120,23 +132,51 @@ func (db *DB) GetAgent(id uuid.UUID) (*Agent, error) {
 
 	agent := &Agent{}
 
-	var lastSeenAt *int64
-	var hidden *bool
+	var last *int64
 	var this NullUUID
-
 	if err = r.Scan(
-		&agent.UUID, &agent.Name, &agent.Address, &agent.Version,
-		&hidden, &lastSeenAt, &agent.LastError, &agent.Status,
-		&agent.Metadata); err != nil {
+		&this, &agent.Name, &agent.Address, &agent.Version,
+		&agent.Hidden, &last, &agent.LastError, &agent.Status,
+		&agent.RawMeta); err != nil {
 
 		return nil, err
 	}
 	agent.UUID = this.UUID
-	if lastSeenAt != nil {
-		agent.LastSeenAt = parseEpochTime(*lastSeenAt)
+	if last != nil {
+		agent.LastSeenAt = *last
 	}
 
 	return agent, nil
+}
+
+func (db *DB) GetAgentPluginMetadata(addr, name string) (*plugin.PluginInfo, error) {
+	r, err := db.Query(`SELECT metadata FROM agents WHERE address = ?`, addr)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return nil, nil
+	}
+
+	var (
+		raw  []byte
+		meta struct {
+			Plugins map[string]plugin.PluginInfo `json:"plugins"`
+		}
+	)
+	if err = r.Scan(&raw); err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(raw, &meta); err != nil {
+		return nil, err
+	}
+
+	if p, ok := meta.Plugins[name]; ok {
+		return &p, nil
+	}
+	return nil, nil
 }
 
 func (db *DB) PreRegisterAgent(host, name string, port int) error {
@@ -155,10 +195,10 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	}
 
 	id := uuid.NewRandom()
-	return db.Exec(
-		`INSERT INTO agents (uuid, name, address, status, last_seen_at)
-		             VALUES (?, ?, ?, ?, ?)`,
-		id.String(), name, address, "pending", time.Now().Unix(),
+	return db.Exec(`
+	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
+	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
+		id.String(), name, address, false, "pending", time.Now().Unix(),
 	)
 }
 
@@ -168,11 +208,12 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		                   address      = ?,
 		                   version      = ?,
 		                   status       = ?,
+		                   hidden       = ?,
 		                   metadata     = ?,
 		                   last_seen_at = ?,
 		                   last_error   = ?
 		        WHERE uuid = ?`,
-		agent.Name, agent.Address, agent.Version, agent.Status, agent.Metadata,
+		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
 		time.Now().Unix(), agent.LastError,
 		agent.UUID.String())
 }

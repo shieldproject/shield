@@ -57,6 +57,7 @@ done_testing() {
 # try "A Suite of Tests" {{{
 try() {
 	CONTEXT=""
+	echo
 	echo ">> $*:"
 }
 # }}}
@@ -184,7 +185,7 @@ GOOD_ENDPOINT='{
 
 ####################################################################################
 try "basic -h (short help) output"
-./mock -h &> $WORKDIR/out
+(./mock -h &> $WORKDIR/out
 ok $? "retrieved help from mock plugin"
 with "Mock Plugin v0.0.1 - Stark & Wayne"
 with "USAGE: .*OPTIONS.*COMMAND.*OPTIONS"
@@ -199,11 +200,11 @@ with "  store    -e JSON \\[--text\\] "
 with "  retrieve -e JSON -k KEY  "
 with "  purge    -e JSON -k KEY  "
 with "EXAMPLE ENDPOINT CONFIGURATION"
-with "DEFAULT ENDPOINT"
+with "DEFAULT ENDPOINT") 2>&1 | indent
 
 ####################################################################################
 try "basic --help (long help) output"
-./mock --help &> $WORKDIR/out
+(./mock --help &> $WORKDIR/out
 ok $? "retrieved long help from mock plugin"
 with "Mock Plugin v0.0.1 - Stark & Wayne"
 with "USAGE: .*OPTIONS.*COMMAND.*OPTIONS"
@@ -216,11 +217,11 @@ with "backup --endpoint TARGET-ENDPOINT-JSON$"
 with "restore --endpoint TARGET-ENDPOINT-JSON$"
 with "store --endpoint STORE-ENDPOINT-JSON \\[--text\\]$"
 with "retrieve --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON$"
-with "purge --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON$"
+with "purge --key STORAGE-HANDLE --endpoint STORE-ENDPOINT-JSON$") 2>&1 | indent
 
 ####################################################################################
 try "validation failure"
-./mock validate &> $WORKDIR/out
+(./mock validate &> $WORKDIR/out
 notok $? "validate requires --endpoint flag"
 with "Missing required --endpoint"
 ./mock validate -e "[]" &> $WORKDIR/out
@@ -288,11 +289,11 @@ with "✓ float2  * 42"            # default
 with "✓ bool1   * true"
 with "✓ bool2   * true"          # default
 with "✓ list    * \\[0] = 1"
-with "✓ map     * 'a' = 1"
+with "✓ map     * 'a' = 1") 2>&1 | indent
 
 ####################################################################################
 try "retrieving info from the mock plugin"
-./mock info &>$WORKDIR/out
+(./mock info &>$WORKDIR/out
 ok $? "\`mock info\` succeded"
 is "$(cat $WORKDIR/out)" '{
     "name": "Mock Plugin",
@@ -303,39 +304,40 @@ is "$(cat $WORKDIR/out)" '{
         "store": "yes"
     },
     "fields": []
-}' "mock plugin information"
+}' "mock plugin information") 2>&1 | indent
 
 ####################################################################################
 try "backup"
-./mock backup &>$WORKDIR/out
+(./mock backup &>$WORKDIR/out
 notok $? "backup command requires an --endpoint"
 with "Missing required --endpoint flag"
 ./mock backup -e "$GOOD_ENDPOINT" &>$WORKDIR/out
 ok $? "backup command is happy with the GOOD_ENDPOINT"
-with "mock data" # the 'data' to be backed up...
+# the 'data' to be backed up...
+with "mock data") 2>&1 | indent
 
 ####################################################################################
 try "restore"
-echo "test" | ./mock restore &>$WORKDIR/out
+(echo "test" | ./mock restore &>$WORKDIR/out
 notok $? "restore command requires an --endpoint"
 with "Missing required --endpoint flag"
 echo "test" | ./mock restore -e "$GOOD_ENDPOINT" &>$WORKDIR/out
-ok $? "restore command is happy with the GOOD_ENDPOINT"
+ok $? "restore command is happy with the GOOD_ENDPOINT") 2>&1 | indent
 
 ####################################################################################
 try "store"
-echo "test" | ./mock store &>$WORKDIR/out
+(echo "test" | ./mock store &>$WORKDIR/out
 notok $? "store command requires an --endpoint"
 with "Missing required --endpoint flag"
 echo "test" | ./mock store -e "$GOOD_ENDPOINT" &>$WORKDIR/out
 ok $? "store command is happy with the GOOD_ENDPOINT"
 with '{
   "key":"fake-storage-key"
-}' out "prints storage key after store op"
+}' out "prints storage key after store op") 2>&1 | indent
 
 ####################################################################################
 try "retrieve"
-./mock retrieve &>$WORKDIR/out
+(./mock retrieve &>$WORKDIR/out
 notok $? "retrieve command requires an --endpoint and a --key"
 with "Missing required --endpoint flag"
 ./mock retrieve --key STORAGE-KEY &>$WORKDIR/out
@@ -344,11 +346,11 @@ with "Missing required --endpoint flag"
 ./mock retrieve --endpoint "$GOOD_ENDPOINT" &>$WORKDIR/out
 notok $? "retrieve command requires a --key"
 without "Missing required --endpoint flag"
-with "Missing required --key flag"
+with "Missing required --key flag") 2>&1 | indent
 
 ####################################################################################
 try "purge"
-./mock purge &>$WORKDIR/out
+(./mock purge &>$WORKDIR/out
 notok $? "purge command requires an --endpoint and a --key"
 with "Missing required --endpoint flag"
 ./mock purge --key STORAGE-KEY &>$WORKDIR/out
@@ -357,11 +359,11 @@ with "Missing required --endpoint flag"
 ./mock purge --endpoint "$GOOD_ENDPOINT" &>$WORKDIR/out
 notok $? "purge command requires a --key"
 without "Missing required --endpoint flag"
-with "Missing required --key flag"
+with "Missing required --key flag") 2>&1 | indent
 
 
 ####################################################################################
-for x in s3 scality \
+for x in s3 \
          fs \
          azure \
          consul \
@@ -370,17 +372,19 @@ for x in s3 scality \
          mongo \
          mysql \
          redis-broker \
-         rabbitmq-broker
+         rabbitmq-broker \
+         webdav \
+         xtrabackup
 do
 	strip $x
 	try "$x help"
-	./$x -h &>$WORKDIR/out
+	(./$x -h &>$WORKDIR/out
 	with "EXAMPLE ENDPOINT CONFIGURATION"
-	with "DEFAULT ENDPOINT"
+	with "DEFAULT ENDPOINT") 2>&1 | indent
 
 	try "$x info"
-	SHIELD_PEDANTIC_INFO=yes ./$x info >/dev/null
-	ok $? "$x info should not have bailed."
+	(SHIELD_PEDANTIC_INFO=yes ./$x info >/dev/null
+	ok $? "$x info should not have bailed.") 2>&1 | indent
 
 done
 ####################################################################################

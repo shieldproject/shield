@@ -2,20 +2,17 @@ package db
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
-
-	. "github.com/starkandwayne/goutils/timestamp"
 )
 
 type Archive struct {
 	UUID           uuid.UUID `json:"uuid"`
 	StoreKey       string    `json:"key"`
-	TakenAt        Timestamp `json:"taken_at"`
-	ExpiresAt      Timestamp `json:"expires_at"`
+	TakenAt        int64     `json:"taken_at"`
+	ExpiresAt      int64     `json:"expires_at"`
 	Notes          string    `json:"notes"`
 	Status         string    `json:"status"`
 	PurgeReason    string    `json:"purge_reason"`
@@ -29,6 +26,9 @@ type Archive struct {
 	StoreEndpoint  string    `json:"store_endpoint"`
 	Job            string    `json:"job"`
 	EncryptionType string    `json:"encryption_type"`
+	Compression    string    `json:"compression"`
+	TenantUUID     uuid.UUID `json:"tenant_uuid"`
+	Size           int64     `json:"size"`
 }
 
 type ArchiveFilter struct {
@@ -37,10 +37,11 @@ type ArchiveFilter struct {
 	Before        *time.Time
 	After         *time.Time
 	ExpiresBefore *time.Time
+	ExpiresAfter  *time.Time
 	WithStatus    []string
 	WithOutStatus []string
-	Limit         string
-	TenantUUID    []string
+	ForTenant     string
+	Limit         int
 }
 
 func (f *ArchiveFilter) Query() (string, []interface{}) {
@@ -82,16 +83,13 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "expires_at < ?")
 		args = append(args, f.ExpiresBefore.Unix())
 	}
-	if len(f.TenantUUID) > 0 {
-		var params []string
-		for _, e := range f.TenantUUID {
-			params = append(params, "?")
-			args = append(args, e)
-		}
-		wheres = append(wheres, fmt.Sprintf("tenant_uuid IN (%s)", strings.Join(params, ", ")))
+
+	if f.ForTenant != "" {
+		wheres = append(wheres, "a.tenant_uuid = ?")
+		args = append(args, f.ForTenant)
 	}
 	limit := ""
-	if f.Limit != "" {
+	if f.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, f.Limit)
 	}
@@ -99,13 +97,13 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
-		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint,
-		       a.status, a.purge_reason, a.job, a.encryption_type
+		       a.status, a.purge_reason, a.job, a.encryption_type,
+		       a.compression, a.tenant_uuid, a.size
 
 		FROM archives a
-			INNER JOIN targets t   ON t.uuid = a.target_uuid
-			INNER JOIN stores  s   ON s.uuid = a.store_uuid
+		   LEFT JOIN targets t   ON t.uuid = a.target_uuid
+		   INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
 		ORDER BY a.taken_at DESC, a.uuid ASC
@@ -117,23 +115,17 @@ func (db *DB) CountArchives(filter *ArchiveFilter) (int, error) {
 		filter = &ArchiveFilter{}
 	}
 
-	var i int
-	if filter.Limit != "" {
-		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
-			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
-		}
-	}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
-		return i, err
+		return 0, err
 	}
 	defer r.Close()
 
+	i := 0
 	for r.Next() {
 		i++
 	}
-
 	return i, nil
 }
 
@@ -143,11 +135,6 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	}
 
 	l := []*Archive{}
-	if filter.Limit != "" {
-		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
-			return l, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
-		}
-	}
 	query, args := filter.Query()
 	r, err := db.Query(query, args...)
 	if err != nil {
@@ -158,31 +145,35 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	for r.Next() {
 		ann := &Archive{}
 
-		var takenAt, expiresAt *int64
+		var takenAt, expiresAt, size *int64
 		var targetName, storeName *string
-		var this, target, store NullUUID
+		var this, target, store, tenant NullUUID
 		if err = r.Scan(
 			&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
-			&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 			&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType); err != nil {
+			&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
+			&ann.Compression, &tenant, &size); err != nil {
 
 			return l, err
 		}
 		ann.UUID = this.UUID
 		ann.TargetUUID = target.UUID
 		ann.StoreUUID = store.UUID
+		ann.TenantUUID = tenant.UUID
 		if takenAt != nil {
-			ann.TakenAt = parseEpochTime(*takenAt)
+			ann.TakenAt = *takenAt
 		}
 		if expiresAt != nil {
-			ann.ExpiresAt = parseEpochTime(*expiresAt)
+			ann.ExpiresAt = *expiresAt
 		}
 		if targetName != nil {
 			ann.TargetName = *targetName
 		}
 		if storeName != nil {
 			ann.StoreName = *storeName
+		}
+		if size != nil {
+			ann.Size = *size
 		}
 
 		l = append(l, ann)
@@ -197,7 +188,8 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint, a.status,
-		       a.purge_reason, a.job, a.encryption_type
+		       a.purge_reason, a.job, a.encryption_type,
+		       a.compression, a.tenant_uuid, a.size
 
 		FROM archives a
 		   INNER JOIN targets t   ON t.uuid = a.target_uuid
@@ -214,25 +206,27 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	}
 	ann := &Archive{}
 
-	var takenAt, expiresAt *int64
+	var takenAt, expiresAt, size *int64
 	var targetName, storeName *string
-	var this, target, store NullUUID
+	var this, target, store, tenant NullUUID
 	if err = r.Scan(
 		&this, &ann.StoreKey, &takenAt, &expiresAt, &ann.Notes,
 		&target, &targetName, &ann.TargetPlugin, &ann.TargetEndpoint,
 		&store, &storeName, &ann.StorePlugin, &ann.StoreEndpoint,
-		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType); err != nil {
+		&ann.Status, &ann.PurgeReason, &ann.Job, &ann.EncryptionType,
+		&ann.Compression, &tenant, &size); err != nil {
 
 		return nil, err
 	}
 	ann.UUID = this.UUID
 	ann.TargetUUID = target.UUID
 	ann.StoreUUID = store.UUID
+	ann.TenantUUID = tenant.UUID
 	if takenAt != nil {
-		ann.TakenAt = parseEpochTime(*takenAt)
+		ann.TakenAt = *takenAt
 	}
 	if expiresAt != nil {
-		ann.ExpiresAt = parseEpochTime(*expiresAt)
+		ann.ExpiresAt = *expiresAt
 	}
 	if targetName != nil {
 		ann.TargetName = *targetName
@@ -240,14 +234,17 @@ func (db *DB) GetArchive(id uuid.UUID) (*Archive, error) {
 	if storeName != nil {
 		ann.StoreName = *storeName
 	}
+	if size != nil {
+		ann.Size = *size
+	}
 
 	return ann, nil
 }
 
-func (db *DB) AnnotateArchive(id uuid.UUID, notes string) error {
+func (db *DB) UpdateArchive(update *Archive) error {
 	return db.Exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ?`,
-		notes, id.String(),
+		update.Notes, update.UUID.String(),
 	)
 }
 
@@ -281,7 +278,7 @@ func (db *DB) InvalidateArchive(id uuid.UUID) error {
 func (db *DB) PurgeArchive(id uuid.UUID) error {
 	a, err := db.GetArchive(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error grabbing archive %s", id)
 	}
 
 	if a.Status == "valid" {
@@ -307,16 +304,11 @@ func (db *DB) DeleteArchive(id uuid.UUID) (bool, error) {
 	)
 }
 
-func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
-	var i int
+func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
+	var i int64
 
 	if filter == nil {
 		filter = &ArchiveFilter{}
-	}
-	if filter.Limit != "" {
-		if lim, err := strconv.Atoi(filter.Limit); err != nil || lim < 0 {
-			return i, fmt.Errorf("Invalid limit given: '%s'", filter.Limit)
-		}
 	}
 
 	wheres := []string{"a.uuid = a.uuid"}
@@ -354,11 +346,19 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
 		wheres = append(wheres, fmt.Sprintf("status NOT IN (%s)", strings.Join(params, ", ")))
 	}
 	if filter.ExpiresBefore != nil {
-		wheres = append(wheres, "expires_at < ?")
+		wheres = append(wheres, "expires_at <= ?")
 		args = append(args, filter.ExpiresBefore.Unix())
 	}
+	if filter.ExpiresAfter != nil {
+		wheres = append(wheres, "expires_at >= ?")
+		args = append(args, filter.ExpiresAfter.Unix())
+	}
+	if filter.ForTenant != "" {
+		wheres = append(wheres, "a.tenant_uuid = ?")
+		args = append(args, filter.ForTenant)
+	}
 	limit := ""
-	if filter.Limit != "" {
+	if filter.Limit > 0 {
 		limit = " LIMIT ?"
 		args = append(args, filter.Limit)
 	}
@@ -374,7 +374,7 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
 	}
 	defer r.Close()
 
-	var p *int
+	var p *int64
 	for r.Next() {
 		if err = r.Scan(&p); err != nil {
 			return i, err
@@ -386,4 +386,10 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int, error) {
 	}
 
 	return i, fmt.Errorf("no results from SUM(size) query...")
+}
+
+func (db *DB) CleanArchives() error {
+	return db.Exec(`UPDATE archives SET status = "expired"
+					WHERE uuid IN
+					(SELECT j1.uuid FROM archives j1 LEFT JOIN tenants t1 ON t1.uuid = j1.tenant_uuid WHERE t1.uuid IS NULL)`)
 }

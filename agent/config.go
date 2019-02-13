@@ -3,12 +3,12 @@ package agent
 import (
 	"bytes"
 	"fmt"
-	"github.com/starkandwayne/goutils/log"
 	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
 
+	"github.com/jhunt/go-log"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )
@@ -20,9 +20,10 @@ type Config struct {
 	ListenAddress      string   `yaml:"listen_address"`
 	PluginPaths        []string `yaml:"plugin_paths"`
 	Registration       struct {
-		URL        string `yaml:"url"`
-		Interval   int    `yaml:"interval"`
-		SkipVerify bool   `yaml:"skip_verify"`
+		URL          string `yaml:"url"`
+		Interval     int    `yaml:"interval"`
+		ShieldCACert string `yaml:"shield_ca_cert"`
+		SkipVerify   bool   `yaml:"skip_verify"`
 	} `yaml:"registration"`
 }
 
@@ -99,6 +100,15 @@ func (agent *Agent) ReadConfig(path string) error {
 	agent.Registration.URL = config.Registration.URL
 	agent.Registration.Interval = config.Registration.Interval
 	agent.Registration.SkipVerify = config.Registration.SkipVerify
+
+	if config.Registration.ShieldCACert != "" {
+		b, err := ioutil.ReadFile(config.Registration.ShieldCACert)
+		if err != nil {
+			log.Errorf("failed to configure shield-agent: failed to read CA-Cert with err '%s' ", err)
+			return err
+		}
+		agent.Registration.ShieldCACert = string(b)
+	}
 
 	return nil
 }

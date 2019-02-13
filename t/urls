@@ -1,0 +1,47 @@
+system engineer #!/admin
+
+system engineer #!/admin/agents
+
+system engineer #!/admin/auth
+system engineer #!/admin/auth/config
+
+system engineer #!/admin/rekey
+
+system engineer #!/admin/tenants
+system manager  #!/admin/tenants/new
+system manager  #!/admin/tenants/edit
+
+system engineer #!/admin/users
+system manager  #!/admin/users/new
+
+system engineer #!/admin/stores
+system engineer #!/admin/stores/store
+system engineer #!/admin/stores/new
+system engineer #!/admin/stores/edit
+system engineer #!/admin/stores/delete
+
+system engineer #!/admin/policies
+system engineer #!/admin/policies/store
+system engineer #!/admin/policies/new
+system engineer #!/admin/policies/edit
+system engineer #!/admin/policies/delete
+
+system engineer #!/unlock
+system engineer #!/init
+
+
+
+tenant operator #!/do/backup
+tenant operator #!/systems/system
+
+tenant operator #!/stores
+tenant operator #!/stores/store
+tenant engineer #!/stores/new
+tenant engineer #!/stores/edit
+tenant engineer #!/stores/delete
+
+tenant operator #!/policies
+tenant operator #!/policies/store
+tenant engineer #!/policies/new
+tenant engineer #!/policies/edit
+tenant engineer #!/policies/delete

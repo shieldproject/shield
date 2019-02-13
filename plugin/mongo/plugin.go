@@ -1,75 +1,7 @@
-// The `mongo` plugin for SHIELD implements generic backup + restore
-// functionality for mongodb. It can be used against
-// mongodb server with `mongodump` and `mongorestore` tools
-// installed on the system where this plugin is run.
-//
-// PLUGIN FEATURES
-//
-// This plugin implements functionality suitable for use with the following
-// SHIELD Job components:
-//
-//   Target: yes
-//   Store:  no
-//
-// PLUGIN CONFIGURATION
-//
-// The endpoint configuration passed to this plugin is used to identify what
-// mongodb instance to back up, and how to connect to it. Your endpoint JSON
-// should look something like this:
-//
-//    {
-//        "mongo_host"     : "127.0.0.1",   # optional
-//        "mongo_port"     : "27017",       # optional
-//        "mongo_user"     : "username",    # optional
-//        "mongo_password" : "password",    # optional
-//        "mongo_database" : "db",          # optional
-//        "mongo_bindir"   : "/path/to/bin" # optional
-//        "mongo_options"  : "--ssl"        # optional
-//    }
-//
-// Default Configuration
-//
-//    {
-//        "mongo_host"   : "127.0.0.1",
-//        "mongo_port"   : "27017",
-//        "mongo_bindir" : "/var/vcap/packages/shield-mongo/bin"
-//    }
-//
-// BACKUP DETAILS
-//
-// If `mongo_database` is specified in the plugin configuration, the `mongo` plugin backs up ONLY
-// the specified database using `mongodump` command.
-// If `mongo_database` is not specified, all databases are backed up.
-//
-// Backing up with the `mongo` plugin will not drop any existing connections to the database,
-// or restart the service.
-//
-//
-//RESTORE DETAILS
-//
-// To restore, the `mongo` plugin connects to the mongodb server using the `mongorestore` command.
-// It then feeds in the backup data (`mongodump` output). Unlike the the `postgres` plugin,
-// this plugin does NOT need to disconnect any open connections to mongodb to perform the
-// restoration.
-//
-// Restoring with the `mongo` plugin should not interrupt established connections to the service.
-//
-// DEPENDENCIES
-//
-// This plugin relies on the `mongodump` and `mongorestore` utilities. Please ensure
-// that they are present on the system that will be running the backups + restores
-// for mongodb.
-// TODO: add agent-mongodb job template to shield-boshrelease
-// If you are using shield-boshrelease to deploy SHIELD, these tools
-// are provided so long as you include the `agent-mongodb` job template along side
-// your `shield agent`.
-//
 package main
 
 import (
-	"fmt"
-
-	"github.com/starkandwayne/goutils/ansi"
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/starkandwayne/shield/plugin"
 )
@@ -82,7 +14,7 @@ var (
 
 func main() {
 	p := MongoPlugin{
-		Name:    "Mongo Backup Plugin",
+		Name:    "MongoDB Backup Plugin",
 		Author:  "Szlachta, Jacek",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
@@ -195,41 +127,41 @@ func (p MongoPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("mongo_host", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_host          %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_host          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_host}          using default host @C{%s}\n", DefaultHost)
+		fmt.Printf("@G{\u2713 mongo_host}          using default host @C{%s}\n", DefaultHost)
 	} else {
-		ansi.Printf("@G{\u2713 mongo_host}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_host}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_port", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_port          %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_port          %s}\n", err)
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_port}          using default port @C{%s}\n", DefaultPort)
+		fmt.Printf("@G{\u2713 mongo_port}          using default port @C{%s}\n", DefaultPort)
 	} else {
-		ansi.Printf("@G{\u2713 mongo_port}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_port}          @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_user", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_user          %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_user          %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_user}          (none)\n")
+		fmt.Printf("@G{\u2713 mongo_user}          (none)\n")
 	} else {
-		ansi.Printf("@G{\u2713 mongo_user}          @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_user}          @C{%s}\n", plugin.Redact(s))
 	}
 
 	s, err = endpoint.StringValueDefault("mongo_password", "")
 	if err != nil {
-		ansi.Printf("@R{\u2717 mongo_password      %s}\n", err)
+		fmt.Printf("@R{\u2717 mongo_password      %s}\n", err)
 		fail = true
 	} else if s == "" {
-		ansi.Printf("@G{\u2713 mongo_password}      (none)\n")
+		fmt.Printf("@G{\u2713 mongo_password}      (none)\n")
 	} else {
-		ansi.Printf("@G{\u2713 mongo_password}      @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 mongo_password}      @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -262,8 +194,8 @@ func (p MongoPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	return plugin.Exec(cmd, plugin.STDIN)
 }
 
-func (p MongoPlugin) Store(endpoint plugin.ShieldEndpoint) (string, error) {
-	return "", plugin.UNIMPLEMENTED
+func (p MongoPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+	return "", 0, plugin.UNIMPLEMENTED
 }
 
 func (p MongoPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {

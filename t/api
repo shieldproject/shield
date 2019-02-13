@@ -1,63 +1,84 @@
 #!/bin/bash
 set -u
+exec </dev/null
+
+echo "S.H.I.E.L.D. API TESTS"
+echo "======================"
+echo
 
 PATH=$(pwd):$(pwd)/bin:${PATH}
-WORKDIR=$(mktemp -d /tmp/shield.test.XXXXXXX)
-DATABASE=${DATABASE:-$WORKDIR/var/shield.db}
-SHIELD_API_TOKEN=LETMEIN
+WORKDIR=$(pwd)/tmp/t
+DATA_DIRECTORY=${WORKDIR}/var/
 SHIELD_DAEMON_HOST=127.0.0.1
-SHIELD_DAEMON_PORT=8181
+SHIELD_DAEMON_PORT=8282
 SHIELD_DAEMON_ADDR="$SHIELD_DAEMON_HOST:$SHIELD_DAEMON_PORT"
 SHIELD_AGENT_HOST=127.0.0.1
 SHIELD_AGENT_PORT=5441
 SHIELD_AGENT_ADDR="$SHIELD_AGENT_HOST:$SHIELD_AGENT_PORT"
-SHIELD_WEB_USER=admin
-SHIELD_WEB_PASS=secret
+SHIELD_USER=initio
+SHIELD_PASS=sekrit
 SHIELD_NAME="T.E.S.T. S.H.I.E.L.D."
 SHIELD_MASTER_PASSWORD="master-chief-117"
 
+rm -rf   ${WORKDIR}
+mkdir -p ${WORKDIR}/{etc,var,data,config}
+
 # TEST HARNESS APPARATUS {{{
-export PATH SHIELD_NAME SHIELD_API_TOKEN
+export PATH SHIELD_NAME
 cleanup () {
-	rm -rf ${WORKDIR}
-	if [[ -n "$(jobs -p)" ]]; then
-		kill $(jobs -p) 2>/dev/null
-	fi
+  if [[ -n "$(jobs -p)" ]]; then
+    kill $(jobs -p) 2>/dev/null
+  fi
 }
 trap "cleanup >&2" EXIT QUIT INT TERM
 
-mkdir ${WORKDIR}/etc
-mkdir ${WORKDIR}/var
-mkdir ${WORKDIR}/data
-
 spin_vault() {
+  if [[ ! -f $(pwd)/bin/vault ]]; then
+    VAULT_VERSION=0.9.0
+    echo "... retrieving vault $VAULT_VERSION form the web..."
+    case $OSTYPE in
+    *darwin*) curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_darwin_amd64.zip ;;
+    *linux*)  curl -C - -sLo ${WORKDIR}/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip  ;;
+    *) echo >&2 "unable to determine OSTYPE, and the vault command was not found.  bailing..."; exit 1 ;;
+    esac
+
+    pushd $WORKDIR
+      rm -f vault
+      unzip vault.zip
+    popd
+    mv $WORKDIR/vault $(pwd)/bin/vault
+  fi
+
   cat >${WORKDIR}/etc/vault.conf <<EOF
 storage "inmem" {}
 disable_mlock = true
 listener "tcp" {
-  address = "127.0.0.1:8200"
+  address = "127.0.0.1:8219"
   tls_disable = true
 }
 EOF
 
   set -e
   echo ">> Setting up a local (loopback) Vault"
-  vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
+  export PATH=$PATH:$WORKDIR
+  $(pwd)/bin/vault version
+  $(pwd)/bin/vault server -config ${WORKDIR}/etc/vault.conf 2>&1 &
   set +e
 }
 
 spin_shieldd() {
-  ssh-keygen -t rsa -f ${WORKDIR}/var/shieldd_key -N '' >/dev/null
+  ssh-keygen -t rsa -f ${WORKDIR}/config/shieldd_key -N '' >/dev/null
 
   cat >${WORKDIR}/etc/shieldd.conf <<EOF
 ---
-listen_addr:   ${SHIELD_DAEMON_ADDR}
-database:      ${DATABASE}
-private_key:   ${WORKDIR}/var/shieldd_key
-vault_keyfile: ${WORKDIR}/var/vault
-workers:       3
-max_timeout:   10
-web_root: ./webui
+listen_addr:    ${SHIELD_DAEMON_ADDR}
+data_directory: ${DATA_DIRECTORY}
+private_key:    ${WORKDIR}/config/shieldd_key
+workers:        3
+max_timeout:    10
+debug:          true
+web_root:       ./web2/htdocs
+vault_address:  http://127.0.0.1:8219
 auth:
   - identifier: public-github
     backend:    github
@@ -75,16 +96,15 @@ auth:
       client_secret:   BAR
       github_endpoint: https://git.corporate.internal
 
-# api_tokens:
-#   test: ${SHIELD_API_TOKEN}
-# basic:
-#   user:     ${SHIELD_WEB_USER}
-#   password: ${SHIELD_WEB_PASS}
+failsafe:
+  username: ${SHIELD_USER}
+  password: ${SHIELD_PASS}
+
 EOF
 
   set -e
   echo ">> Setting up SHIELD schema"
-  ./shield-schema -d "${DATABASE}"
+  ./shield-schema -d "${DATA_DIRECTORY}/shield.db"
   echo
 
   echo ">> RUNNING SHIELDD"
@@ -92,27 +112,31 @@ EOF
   echo
 
   echo ">> WAITING FOR SHIELD CORE TO COME ONLINE"
-  up="1"
   n=60
-  while [ $up -eq 1 ]; do
-      sleep 1
-      up=$(nc -z ${SHIELD_DAEMON_HOST} ${SHIELD_DAEMON_PORT} &>/dev/null; echo $?)
-      n=$(( n - 1 ))
+  while ! curl -Ls --fail http://${SHIELD_DAEMON_ADDR}/v2/info; do
       if [[ $n -eq 0 ]]; then
         echo >&2 "SHIELD core did not spin up within 60s; aborting"
+        echo >&2 "---[ vault log ]-------------------------------------------"
+        cat  >&2 ${WORKDIR}/vault.log || true
+        echo >&2
+        echo >&2 "---[ agent log ]-------------------------------------------"
+        cat  >&2 ${WORKDIR}/agent.log || true
+        echo >&2
         echo >&2 "---[ shieldd log ]-----------------------------------------"
-        cat  >&2 ${WORKDIR}/daemon.log
+        cat  >&2 ${WORKDIR}/core.log || true
         echo >&2 "-----------------------------------------------------------"
         echo >&2
         exit 4;
       fi
+      sleep 1
+      n=$(( n - 1 ))
   done
 
   echo ">> INITIALIZING SHIELD CORE"
-  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/init -H Content-type:application/json -d '{"master":"'$SHIELD_MASTER_PASSWORD'"}'
 
   echo ">> UNLOCKING SHIELD CORE"
-  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master_password":"'$SHIELD_MASTER_PASSWORD'"}'
+  curl -sL -XPOST http://${SHIELD_DAEMON_ADDR}/v2/unlock -H Content-type:application/json -d '{"master":"'$SHIELD_MASTER_PASSWORD'"}'
   set +e
 }
 
@@ -120,7 +144,7 @@ spin_agent() {
   ssh-keygen -t rsa -f ${WORKDIR}/var/shield-agent_key -N '' >/dev/null
   rm ${WORKDIR}/var/shield-agent_key.pub
 
-  curl -Lsk -XGET -H "X-Shield-Token: ${SHIELD_API_TOKEN}" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys
+  curl -Lsk -XGET  http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey >> ${WORKDIR}/var/authorized_keys
   cat >${WORKDIR}/etc/shield-agent.conf <<EOF
 ---
 authorized_keys_file: ${WORKDIR}/var/authorized_keys
@@ -137,512 +161,736 @@ EOF
 
 CONTEXT=""
 context() {
-	CONTEXT=$1
+  CONTEXT=$1
 }
 
 pass() {
-	local msg=$1
-	echo -e "\033[1;32m[ OK ]\033[0m $msg" | tee -a $WORKDIR/summary
+  local msg=$1
+  echo -e "\033[1;32m[ OK ]\033[0m $msg" | tee -a $WORKDIR/summary
 }
 
 fail() {
-	local msg=$1
-	echo -e "\033[1;31m[FAIL]\033[0m $msg" | tee -a $WORKDIR/summary
+  local msg=$1
+  echo -e "\033[1;31m[FAIL]\033[0m $msg" | tee -a $WORKDIR/summary
 }
 
 nocolor() {
-	sed -e 's,'$(printf "\x1b")'\[[0-9;]*m,,g'
+  sed -e 's,'$(printf "\x1b")'\[[0-9;]*m,,g'
 }
 
 done_testing() {
-	echo
-	if [[ ! -f $WORKDIR/summary ]]; then
-		echo "NO TESTS RUN"
-		exit 2
-	fi
+  echo
+  if [[ ! -f $WORKDIR/summary ]]; then
+    echo "NO TESTS RUN"
+    exit 2
+  fi
 
-	tests=$(wc -l $WORKDIR/summary | awk '{print $1}')
-	fails=$(nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | wc -l | awk '{print $1}')
-	if [[ $fails == 0 ]]; then
-		echo "ALL $tests TESTS PASS"
-		exit 0
-	else
-		echo "$fails/$tests TESTS FAILED"
-		echo
-		nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | sed -e 's/^/   /'
-		exit 1
-	fi
+  tests=$(wc -l $WORKDIR/summary | awk '{print $1}')
+  fails=$(nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | wc -l | awk '{print $1}')
+  if [[ $fails == 0 ]]; then
+    echo "ALL $tests TESTS PASS"
+    exit 0
+  else
+    echo "$fails/$tests TESTS FAILED"
+    echo
+    nocolor <$WORKDIR/summary | grep '^\[FAIL\] ' | sed -e 's/^/   /'
+    exit 1
+  fi
 }
+
+
+TESTS=""
+testing() {
+	[ -z "$TESTS" ] && return 0
+	grep -iq " -$1 "  <<<" $TESTS " && return 1
+	grep -iq  " $1 "  <<<" $TESTS " && return 0
+	grep -iq  " all " <<<" $TESTS " && return 0
+	return 1
+}
+while [[ $# -ne 0 ]]; do
+	TESTS="$TESTS $1 "
+	shift
+done
+echo "running: ${TESTS:-(all tests)}" | sed -e 's/  */ /'
 # }}}
 
 spin_vault   2>&1 > ${WORKDIR}/vault.log
-spin_shieldd 2>&1 > ${WORKDIR}/daemon.log
+spin_shieldd 2>&1 > ${WORKDIR}/core.log
 spin_agent   2>&1 > ${WORKDIR}/agent.log
 
 # try "A Suite of Tests" {{{
 try() {
-	CONTEXT=""
-	echo ">> $*:"
+  CONTEXT=""
+  echo
+  echo ">> $*:"
 }
 # }}}
 # (run some tests) 2>&1 | indent {{{
 indent() {
-	sed -e 's/^/   /'
+  sed -e 's/^/   /'
+}
+# }}}
+# errors file | indent {{{
+errors() {
+  echo -e "\033[1;31m"
+  cat $1
+  echo -e "\033[0m"
 }
 # }}}
 # ok $? "what should have happened..." {{{
 ok() {
-	local rc=$1
-	local msg=$2
+  local rc=$1
+  local msg=$2
 
-	if [[ $rc == 0 ]]; then
-		pass "$msg"
-	else
-		fail "$msg"
-	fi
+  if [[ $rc == 0 ]]; then
+    pass "$msg"
+  else
+    fail "$msg"
+  fi
+}
+# }}}
+# notok $? "what should have happened..." {{{
+notok() {
+  local rc=$1
+  local msg=$2
+
+  if [[ $rc != 0 ]]; then
+    pass "$msg"
+  else
+    fail "$msg"
+  fi
 }
 # }}}
 # is $got $expected "why it should have been that way..." {{{
 is() {
-	local got=$1
-	local want=$2
-	local msg=${3:-}
-	if [[ -z "$msg" ]]; then
-		msg="'${got}' should equal '${want}'"
-	fi
+  local got=$1
+  local want=$2
+  local msg=${3:-}
+  if [[ -z "$msg" ]]; then
+    msg="'${got}' should equal '${want}'"
+  fi
 
-	if [[ "$got" != "$want" ]]; then
-		fail "$msg"
-		echo "     got '${got}'"
-		echo "  wanted '${want}'"
-		echo
-		return
-	fi
+  if [[ "$got" != "$want" ]]; then
+    fail "$msg"
+    echo "     got '${got}'"
+    echo "  wanted '${want}'"
+    echo
+    return
+  fi
 
-	pass "$msg"
+  pass "$msg"
 }
 # }}}
 # isnt $got $expected "why it should not have been that way..." {{{
 isnt(){
-	local got=$1
-	local want=$2
-	local msg=${3:-}
-	if [[ -z "$msg" ]]; then
-		msg="'${got}' should NOT equal '${want}'"
-	fi
+  local got=$1
+  local want=$2
+  local msg=${3:-}
+  if [[ -z "$msg" ]]; then
+    msg="'${got}' should NOT equal '${want}'"
+  fi
 
-	if [[ "$got" == "$want" ]]; then
-		fail "$msg"
-		echo "     got '${got}'"
-		echo "  wanted pretty much anything else."
-		echo
-		return
-	fi
+  if [[ "$got" == "$want" ]]; then
+    fail "$msg"
+    echo "     got '${got}'"
+    echo "  wanted pretty much anything else."
+    echo
+    return
+  fi
 
-	pass "$msg"
+  pass "$msg"
 }
 # }}}
-
 # httpstat $method $url "some optional JSON data, probably" {{{
 httpstat() {
-	local method=$1
-	local url=$2
-	local body=${3:-}
-	opts="-X$method"
-	if [[ ${method} == "HEAD" ]]; then
-		opts="-I"
-	fi
-	if [[ -n "${body}" ]]; then
-		opts="$opts --data-binary ${body} -H Content-type:application/json"
-	fi
-	curl -s -o /dev/null -w '%{http_code}' $opts -H "X-Shield-Token: $SHIELD_API_TOKEN" $url 2>/dev/null
+  local method=$1
+  local url=$2
+  local body=${3:-}
+  opts="-X$method"
+  if [[ ${method} == "HEAD" ]]; then
+    opts="-I"
+  fi
+  if [[ -n "${body}" ]]; then
+    opts="$opts --data-binary ${body} -H Content-type:application/json"
+  fi
+  curl -s -o /dev/null -w '%{http_code}' $opts -H "X-Shield-Session: $SHIELD_API_TOKEN" $url 2>/dev/null
 }
 # }}}
+
+ping() {
+  curl -s -o /dev/null -w '%{http_code}' "http://$SHIELD_DAEMON_ADDR/v1/ping" 2>/dev/null
+}
+
 # create $type $name <<<$JSON {{{
 create() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	run create-$type
-	mkdir -p $WORKDIR/data/$type
-	jq -r '.uuid' < $WORKDIR/out > $WORKDIR/data/$type/$name
-	isnt "$(uuidof $type $name)" "" \
-	     "$type '$name' should have a valid (non-empty) UUID"
+  run create-$type
+  mkdir -p $WORKDIR/data/$type
+  jq -r '.uuid' < $WORKDIR/out > $WORKDIR/data/$type/$name
+  isnt "$(uuidof $type "$name")" "" \
+       "$type '$name' should have a valid (non-empty) UUID"
 }
 # }}}
 # update $type $name <<<$JSON {{{
 update() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	run edit-$type $(uuidof $type $name)
+  run edit-$type $(uuidof $type "$name")
 }
 # }}}
 # uuidof $type $name {{{
 uuidof() {
-	local type=$1
-	local name=$2
-	uuid=$(cat $WORKDIR/data/$type/$name)
-	if [[ -z $uuid ]]; then
-		echo >&2 "!!! unable to find UUID of $type '$name'"
-		echo "uuid-not-found"
-		exit 77
-	fi
-	echo $uuid
+  shield $1 --exact "$2" | jq -r .uuid
 }
 # }}}
 # pick $name {{{
 pick() {
-	local name=$1
+  local name=$1
 
-	jq -r '.[] | select(.name == "'$name'") | .' < $WORKDIR/out > $WORKDIR/out.tmp
-	mv $WORKDIR/out.tmp $WORKDIR/out
+  jq -r '.[] | select(.'"${INDEX_BY:-name}"' == "'$name'") | .' < $WORKDIR/out > $WORKDIR/out.tmp
+  mv $WORKDIR/out.tmp $WORKDIR/out
 }
 # }}}
 # attr $name $want "optionally, why $name should be $want" {{{
 attr() {
-	local attr=$1
-	local expect=$2
-	local what=${3:-$CONTEXT}
+  local attr=$1
+  local expect=$2
+  local what=${3:-$CONTEXT}
 
-	is "$(jq -r ".$attr" < $WORKDIR/out)" \
-	   "$expect" \
-	   "'$attr' was present when we asked for $what"
+  is "$(jq -r ".$attr // empty" < $WORKDIR/out)" \
+     "$expect" \
+     "'$attr' was present when we asked for $what"
+}
+# }}}
+# hasattr $name "optionally, why $name should be present" {{{
+hasattr() {
+  local attr=$1
+  local what=${2:-$CONTEXT}
+
+  isnt "$(jq -r ".$attr // empty" < $WORKDIR/out)" \
+       "" \
+       "'$attr' was not present when we asked for $what"
 }
 # }}}
 # run command --plus --arg u ments {{{
 run() {
-	shield -k --raw "$@" > $WORKDIR/out
-	ok $? "\`shield $*' should succeed"
+  shield --yes "$@" >$WORKDIR/out 2>$WORKDIR/err
+  rc=$?
+  ok $rc "\`shield $*' should succeed"
+  if [[ $rc != 0 ]]; then
+    errors $WORKDIR/err | indent
+  fi
+}
+# }}}
+# runerr command --plus --arg u ments {{{
+runerr() {
+  shield --yes "$@" > $WORKDIR/out
+  notok $? "\`shield $*' should not succeed"
 }
 # }}}
 # none "why the last list retrieved should be empty" {{{
 none() {
-	local why=$1
-	is "$(cat $WORKDIR/out)" "[]" "$why"
+  local why=$1
+  is "$(cat $WORKDIR/out)" "[]" "$why"
 }
+
+# }}}
+# some "why the list retrieved should not be empty" {{{
+some() {
+ local why=$1
+  isnt "$(cat $WORKDIR/out)" "[]" "$why"
+}
+
 # }}}
 # include $type $name "optional description of the list" {{{
 includes() {
-	local type=$1
-	local name=$2
-	local list=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local list=${3:-$CONTEXT}
 
-	if [[ "$(uuidof $type $name)" == "" ]]; then
-		fail "$type '$name' is not a thing.  this is a bug in the test"
-		return
-	fi
-	is "$(jq -r '.[] | select(.name == "'"$name"'") | .uuid' < $WORKDIR/out)" \
-	   "$(uuidof $type $name)" \
-	   "$type '$name' should show up in the list of $list"
+  if [[ "$(uuidof $type "$name")" == "" ]]; then
+    fail "$type '$name' is not a thing.  this is a bug in the test"
+    return
+  fi
+  if [[ "$(jq -r '.'"${INDEX_WHAT:-}"' // empty' < $WORKDIR/out)" = "" ]]; then
+    fail "$type '$name' should show up in the list of $list"
+  else
+    is "$(jq -r '.'"${INDEX_WHAT:-}"'[] | select(.'"${INDEX_BY:-name}"' == "'"$name"'") | .uuid' < $WORKDIR/out)" \
+       "$(uuidof $type "$name")" \
+       "$type '$name' should show up in the list of $list"
+  fi
 }
 # }}}
 # excludes $type $name "optional description of the list" {{{
 excludes() {
-	local type=$1
-	local name=$2
-	local list=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local list=${3:-$CONTEXT}
 
-	if [[ "$(uuidof $type $name)" == "" ]]; then
-		fail "$type '$name' is not a thing.  this is a bug in the test"
-		return
-	fi
-	is "$(jq -r '.[] | select(.name == "'"$name"'") | .uuid' < $WORKDIR/out)" \
-	   "" \
-	   "$type '$name' should NOT show up in the list of $list"
+  if [[ "$(uuidof $type "$name")" == "" ]]; then
+    fail "$type '$name' is not a thing.  this is a bug in the test"
+    return
+  fi
+  if [[ "$(jq -r '.'"${INDEX_WHAT:-}"' // empty' < $WORKDIR/out)" = "" ]]; then
+    pass "$type '$name' should NOT show up in the list of $list"
+  else
+    is "$(jq -r '.'"${INDEX_WHAT:-}"'[] | select(.'"${INDEX_BY:-name}"' == "'"$name"'") | .uuid' < $WORKDIR/out)" \
+       "" \
+       "$type '$name' should NOT show up in the list of $list"
+  fi
+}
+# }}}
+# isrole $user $role {{{
+isrole() {
+  user=$1
+  role=$2
+  is "$(jq -r '.members[] | select(.account == "'"$user"'") | .role' < $WORKDIR/out)" \
+     "$role" \
+     "$user should have the $role role $CONTEXT"
 }
 # }}}
 # cannot_delete $type $name "optionally, why you shouldn't be able to delete it" {{{
 cannot_delete() {
-	local type=$1
-	local name=$2
-	local why=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local why=${3:-$CONTEXT}
 
-	! shield -k --raw delete-$type $name > $WORKDIR/out
-	ok $? "Should not be allowed to delete $type '$name': $why"
+  ! shield delete-$type "$name" &> $WORKDIR/out
+  rc=$?
+  ok $rc "Should not be allowed to delete $type '$name': $why"
+  if [[ $rc -ne 0 ]]; then
+    errors $WORKDIR/out | indent
+  fi
 
-	run $type $(uuidof $type $name)
-	attr name "$name" "$type '$name' should be unaffected by failed DELETE attempt"
+  run $type $(uuidof $type "$name")
+  attr name "$name" "$type '$name' should be unaffected by failed DELETE attempt"
 }
 # }}}
 # can_delete $type $name "optionally, why you should be able to delete it" {{{
 can_delete() {
-	local type=$1
-	local name=$2
-	local why=${3:-$CONTEXT}
+  local type=$1
+  local name=$2
+  local why=${3:-$CONTEXT}
 
-	shield -k --raw delete-$type $name > $WORKDIR/out
-	ok $? "Should be allowed to delete $type '$name': $why"
+  shield --exact --yes delete-$type "$name" > $WORKDIR/out 2> $WORKDIR/err
+  rc=$?
+  ok $rc "Should be allowed to delete $type '$name': $why"
+  if [[ $rc -ne 0 ]]; then
+    errors $WORKDIR/err | indent
+  fi
 
-	! shield -k $type $(uuidof $type $name) > $WORKDIR/out 2>/dev/null
-	ok $? "$type '$name' should not be retrievable after successful delete attempt"
+  shield --exact $type "$name" >$WORKDIR/out 2>/dev/null
+  rc=$?
+  notok $rc "$type '$name' should not be retrievable after successful delete attempt"
+  if [[ $rc -eq 0 ]]; then
+    errors $WORKDIR/out | indent
+  fi
 }
 # }}}
 # pause job $name {{{
 pause() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	if [[ $type != "job" ]]; then
-		echo >&2 "Attempted to pause a $type (must be a job)"
-		exit 77
-	fi
+  if [[ $type != "job" ]]; then
+    echo >&2 "Attempted to pause a $type (must be a job)"
+    exit 77
+  fi
 
-	context "pausing job '$name'"
-	run pause "$(uuidof $type $name)"
-	run $type "$(uuidof $type $name)"
-	context "paused job ($name)"
-	attr paused true
+  context "pausing job '$name'"
+  run pause-job "$(uuidof $type "$name")"
+  run $type "$(uuidof $type "$name")"
+  context "paused job ($name)"
+  attr paused true
 }
 # }}}
 # unpause job $name {{{
 unpause() {
-	local type=$1
-	local name=$2
+  local type=$1
+  local name=$2
 
-	if [[ $type != "job" ]]; then
-		echo >&2 "Attempted to unpause a $type (must be a job)"
-		exit 77
-	fi
+  if [[ $type != "job" ]]; then
+    echo >&2 "Attempted to unpause a $type (must be a job)"
+    exit 77
+  fi
 
-	context "unpausing job '$name'"
-	run unpause "$(uuidof $type $name)"
-	run $type "$(uuidof $type $name)"
-	context "unpaused job ($name)"
-	attr paused false
+  context "unpausing job '$name'"
+  run unpause-job "$(uuidof $type "$name")"
+  run $type "$(uuidof $type "$name")"
+  context "unpaused job ($name)"
+  attr paused '' # jq returns false as empty
 }
 # }}}
 
-echo "S.H.I.E.L.D. API TESTS"
-echo "======================"
-echo
+export SHIELD_CLI_CONFIG="$WORKDIR/etc/.shield"
+export SHIELD_JSON_MODE=yes
+export SHIELD_BATCH_MODE=yes
+export SHIELD_CORE=test
+export SHIELD_TENANT="Stark Enterprises"
 
-try "Connecting to our test SHIELD instance" # {{{
-(shield -k --raw create-backend test http://${SHIELD_DAEMON_ADDR}
- shield -k --raw status | jq -r .
- is "$(httpstat GET http://$SHIELD_DAEMON_ADDR/v1/ping)" \
-    "200" "/v1/ping should ping ok"
+try "Setting up our test SHIELD instance" # {{{
+(
+shield api "$SHIELD_CORE" http://${SHIELD_DAEMON_ADDR}
+shield login --username "$SHIELD_USER" --password "$SHIELD_PASS"
+shield status --global | jq -r .
 
- is "$(curl -H "X-Shield-Token: $SHIELD_API_TOKEN" http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey)" \
-    "$(ssh-keygen -yf $WORKDIR/var/shieldd_key)" \
-    "/v1/meta/pubkey gives out the daemon PUBLIC key"
+is "$(ping)" "200" "/v1/ping should ping ok"
+
+is "$(curl -Ls http://${SHIELD_DAEMON_ADDR}/v1/meta/pubkey)" \
+   "$(ssh-keygen -yf $WORKDIR/config/shieldd_key)" \
+   "/v1/meta/pubkey gives out the daemon PUBLIC key"
+
+run create-tenant \
+      --name "Stark Enterprises"
+
+run create-user \
+      --name        "Tony Stark" \
+      --username    tony \
+      --password    J.A.R.V.I.S. \
+      --system-role admin
+
+run invite --tenant 'Stark Enterprises' --role admin tony
+
+run create-user \
+      --name        J.A.R.V.I.S. \
+      --username    jarvis \
+      --password    T.O.N.Y.
+
+run invite --tenant 'Stark Enterprises' --role operator jarvis
+
+
+run create-tenant \
+      --name "Wayne Industries"
+
+run create-user \
+      --name        "Bruce Wayne" \
+      --username    bruce \
+      --password    by-day \
+
+run invite --tenant 'Wayne Industries' --role operator bruce
+
+run create-user \
+      --name        Batman \
+      --username    batman \
+      --password    by-knight
+
+run invite --role admin batman
+
+
+
+run login --username tony --password J.A.R.V.I.S.
+
 ) 2>&1 | indent
+
 
 
 # }}}
 try "Checking that initial database is empty" # {{{
-(run targets   ; none "Initial targets list should be empty"
- run stores    ; none "Initial stores list should be empty"
- run policies  ; none "Initial policies list should be empty"
- run jobs      ; none "Initial jobs list should be empty"
+(run targets     ; none "Initial targets list should be empty"
+ run stores      ; none "Initial stores list should be empty"
+ run policies    ; none "Initial policies list should be empty"
+ run jobs        ; none "Initial jobs list should be empty"
+ run users       ; some "Initial users list should have the failsafe user"
+ run tenants     ; some "Initial tenants list shouldn't be empty"
+ run auth-tokens ; none "Initial tokens list should be empty"
 ) 2>&1 | indent
+#}}}
 
-
-# }}}
-#
-try "Checking that unimplemented HTTP methods return 501s" # {{{
-(for method in PUT DELETE PATCH OPTIONS TRACE; do
-   for type in targets stores retention jobs archives tasks \
-               meta/pubkey status ping; do
-     is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type")" \
-        "501" "/v1/$type should HTTP 501 (not implemented) on a $method request"
-   done
- done
- for method in GET HEAD POST PATCH OPTIONS TRACE; do
-   for type in target{,s} store{,s} retention job{,s} archive{,s} task{,s} \
-               meta status; do
-     is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/sub/requests")" \
-        "501" "/v1/$type/sub/requests should HTTP 501 (not implemented) on a $method request"
-   done
- done
-) 2>&1 | indent
-
-
-# }}}
-try "Checking that various API endpoints validate UUIDs" # {{{
-(for uuid in malformed-uuid-01234 "" "(abcdef-01234-56-789)"; do
-   for method in GET PUT; do
-     for type in target store retention archive job task; do
-       is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/$type/$uuid")" \
-          "501" "$method /v1/$type/$uuid should HTTP 501 (not implemented) on a malformed UUID"
-     done
-     if [[ -n $uuid ]]; then
-       for action in pause unpause; do
-         is "$(httpstat $method "http://$SHIELD_DAEMON_ADDR/v1/job/$uuid/$action")" \
-            "501" "$method /v1/job/$uuid/$action should HTTP 501 (not implemented) on a malformed UUID"
-       done
-     fi
-   done
- done
-) 2>&1 | indent
-
-
-# }}}
-try "Checking that various API endpoints require JSON payloads" # {{{
-(uuid=053d66fd-441d-4801-9d26-3e11b99d34a7
- badjson="}"
- for type in targets stores retention jobs; do
-   is "$(httpstat POST "http://$SHIELD_DAEMON_ADDR/v1/$type" "$badjson")" \
-      "400" "POST /v1/$type should HTTP 400 (bad request) on a malformed JSON payload"
- done
- for type in target store retention job archive; do
-   is "$(httpstat PUT "http://$SHIELD_DAEMON_ADDR/v1/$type/$uuid" "$badjson")" \
-      "400" "PUT /v1/$type/$uuid should HTTP 400 (bad request) on a malformed JSON payload"
- done
-
- # special POST cases
- for url in v1/archive/$uuid/restore \
-            v1/job/$uuid/run
- do
-   is "$(httpstat POST "http://$SHIELD_DAEMON_ADDR/$url" "$badjson")" \
-      "400" "POST /$url should HTTP 400 (bad request) on a malformed JSON payload"
- done
-) 2>&1 | indent
-
-
-# }}}
-
-try "Creating invalid things (validation)" # {{{
-(for type in target store policy job; do
-   ! shield -k --raw create-$type <<<'{}' > $WORKDIR/out
-   ok $? "\`shield create-$type' should fail if validation fails"
-   # FIXME this is a terrible error message
-   is "$(jq -r .error < $WORKDIR/out)" \
-      "Error 400 Bad Request" \
-      "shield CLI should print an error message when fields are missing"
- done
-
- ! shield -k --raw create-policy <<EOF > $WORKDIR/out
-{
-  "name"    : "invalid-term",
-  "summary" : "Should Just Straight Up Fail",
-  "expires" : 3599
-}
-EOF
- ok $? "\`shield create-policy' should fail if retention period is <1h"
- # FIXME this is a terrible error message
- is "$(jq -r .error < $WORKDIR/out)" \
-    "Error 400 Bad Request" \
-    "shield CLI should print an error message about minimum retention period"
-) 2>&1 | indent
-
-
-# }}}
 try "Creating testing objects" # {{{
-(create target redis-shared <<EOF
-{
-  "name"    : "redis-shared",
-  "summary" : "Shared Redis services for CF",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "redis",
-  "endpoint": "{}"
-}
-EOF
+(
+run create-target \
+      --name    redis-shared \
+      --summary "Shared Redis services for CF" \
+      --agent   "$SHIELD_AGENT_ADDR" \
+      --plugin  redis \
+      --data    host=127.0.0.1 \
+      --data    bgsave=BGSAVE
 
- create target s3 <<EOF
-{
-  "name"    : "s3",
-  "summary" : "Amazon S3 Blobstore",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "s3",
-  "endpoint": "{}"
-}
-EOF
+run create-target \
+      --name    s3 \
+      --summary "Amazon S3 Blobstore" \
+      --agent   "$SHIELD_AGENT_ADDR" \
+      --plugin  s3
 
- create target shield <<EOF
-{
-  "name"    : "shield",
-  "summary" : "SHIELD itself",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "postgres",
-  "endpoint": "{}"
-}
-EOF
+run create-target \
+      --name    shield \
+      --summary "SHIELD itself" \
+      --agent   "$SHIELD_AGENT_ADDR" \
+      --plugin  postgres
 
- create store fs <<EOF
-{
-  "name"    : "fs",
-  "summary" : "A filesystem store",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "fs",
-  "endpoint": "{}"
-}
-EOF
+run create-store \
+      --name    fs \
+      --summary "A filesystem store" \
+      --agent   "$SHIELD_AGENT_ADDR" \
+      --plugin  fs \
+      --data    dir=/path/to/data \
+      --data    tar=bsdtar
 
- create store s3 <<EOF
-{
-  "name"    : "s3",
-  "summary" : "Amazon S3 Archival Storage",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "s3",
-  "endpoint": "{}"
-}
-EOF
+run create-store \
+      --name    s3 \
+      --summary "Amazon S3 Archival Storage" \
+      --agent   "$SHIELD_AGENT_ADDR" \
+      --plugin  s3
 
- create store shield <<EOF
-{
-  "name"    : "shield",
-  "summary" : "SHIELD-FS",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "fs",
-  "endpoint": "{}"
-}
-EOF
+run create-store \
+      --name    shield \
+      --summary SHIELD-FS \
+      --agent   "$SHIELD_AGENT_ADDR" \
+      --plugin  fs
 
- create policy short-term <<EOF
-{
-  "name"    : "short-term",
-  "summary" : "Short-term Backup Retention Policy",
-  "expires" : $(( 8 * 86400 ))
-}
-EOF
 
- create policy long-term <<EOF
-{
-  "name"    : "long-term",
-  "summary" : "A Longer-term Backup Retention Policy",
-  "expires" : $(( 90 * 86400 ))
-}
-EOF
 
- create policy shield <<EOF
-{
-  "name"    : "shield",
-  "summary" : "SHIELD retention",
-  "expires" : $(( 100 * 86400 ))
-}
-EOF
+run create-policy \
+      --name    short-term \
+      --summary "Short-term Backup Retention Policy" \
+      --days    8
 
- create job redis-daily-to-fs <<EOF
-{
-  "name"      : "redis-daily-to-fs",
-  "summary"   : "Daily Backups of Redis to the local fs",
-  "retention" : "$(uuidof policy short-term)",
-  "schedule"  : "daily at 11:24pm",
-  "store"     : "$(uuidof store fs)",
-  "target"    : "$(uuidof target redis-shared)",
-  "paused"    : true
-}
-EOF
+run create-policy \
+      --name    long-term \
+      --summary "A Longer-term Backup Retention Policy" \
+      --days    90
 
- create job shield-itself <<EOF
-{
-  "name"      : "shield-itself",
-  "summary"   : "Backing up SHIELDs database, via SHIELD...",
-  "retention" : "$(uuidof policy shield)",
-  "schedule"  : "tuesdays at 11am",
-  "store"     : "$(uuidof store shield)",
-  "target"    : "$(uuidof target shield)",
-  "paused"    : false
-}
-EOF
+run create-policy \
+      --name    shield \
+      --summary "SHIELD retention policy" \
+      --days    100
+
+
+
+run create-job \
+      --name     redis-daily-to-fs \
+      --summary  "Daily Backups of Redis to the local fs" \
+      --exact \
+      --target   redis-shared \
+      --store    fs \
+      --schedule "daily at 11:24pm" \
+      --policy   short-term \
+      --paused
+
+run create-job \
+      --name     shield-itself \
+      --summary  "Backing up SHIELDs database, via SHIELD..." \
+      --exact \
+      --target   shield \
+      --store    shield \
+      --schedule "tuesdays at 11am" \
+      --policy   shield \
+
+) 2>&1 | indent
+
+# }}}
+
+if testing tokens; then
+try "Creating an auth-token" # {{{
+(run create-auth-token "test1"
+ context 'a newly-created token'
+ attr name "test1"
+ hasattr session
+
+ run auth-tokens
+ is "$(jq -r '.[] | select(.name == "test1") | .name' < $WORKDIR/out)" \
+    "test1" \
+    "token 'test1' should show up in the list of auth-tokens"
 ) 2>&1 | indent
 
 
 # }}}
+try "Revoking an auth-token" # {{{
+(run revoke-auth-token "test1"
+ run auth-tokens
+ isnt "$(jq -r '.[] | select(.name == "test1") | .name' < $WORKDIR/out)" \
+      "test1" \
+      "token 'test1' should not show up in the list of auth-tokens (post-revocation)"
+) 2>&1 | indent
 
+
+# }}}
+fi
+
+if testing tenant; then
+try "Finding a single tenant" # {{{
+(run tenant "Stark Enterprises"
+ context 'a single tenant'
+ attr name "Stark Enterprises"
+) 2>&1 | indent
+
+
+# }}}
+try "Listing tenants" # {{{
+(run tenants
+ context 'all tenants'
+ includes tenant 'Stark Enterprises'
+ includes tenant 'Wayne Industries'
+
+ run tenants stark
+ context 'tenants matching *stark*'
+ includes tenant 'Stark Enterprises'
+ excludes tenant 'Wayne Industries'
+) 2>&1 | indent
+
+
+# }}}
+try "Running through tenant lifecycle" # {{{
+(run create-tenant \
+       --name my-new-tenant
+ run tenant my-new-tenant
+ context 'a newly-created tenant'
+  attr name my-new-tenant
+
+ run update-tenant my-new-tenant \
+       --name my-updated-tenant
+ run tenant my-updated-tenant
+ context 'a newly-renamed tenant'
+  attr name my-updated-tenant
+) 2>&1 | indent
+
+# }}}
+try "Testing tenancy memberships" # {{{
+(INDEX_WHAT=members
+ INDEX_BY=account
+
+ run create-tenant --name tenant3
+ run tenant tenant3
+ context 'members for tenant with no members'
+  excludes user tony
+
+ run invite --tenant tenant3 --role operator tony jarvis
+ run tenant tenant3
+ context 'members after inviting tony and jarvis as operators'
+  includes user tony
+  includes user jarvis
+ context 'after inviting tony and jarvis as operators'
+  isrole tony   operator
+  isrole jarvis operator
+
+ run invite --tenant tenant3 --role engineer jarvis
+ run tenant tenant3
+ context 'members after re-inviting jarvis as an engineer'
+  includes user tony
+  includes user jarvis
+ context 'after re-inviting jarvis as an engineer'
+  isrole tony   operator
+  isrole jarvis engineer
+
+ run banish --tenant tenant3 tony
+ run tenant tenant3
+ context 'members after banishing tony'
+  excludes user tony
+  includes user jarvis
+ context 'after banishing tony'
+  isrole jarvis engineer
+
+ run banish --tenant tenant3 tony
+ run tenant tenant3
+ context 'members after banishing tony (a second time)'
+  excludes user tony
+  includes user jarvis
+  context 'after banishing tony (a second time)'
+  isrole jarvis engineer
+) 2>&1 | indent
+# }}}
+fi
+
+if testing user; then
+try "Finding a single user" # {{{
+(run user jarvis
+ context 'a single non-system user'
+ attr name    J.A.R.V.I.S.
+ attr account jarvis
+ attr sysrole ''
+
+ run user tony
+ context 'a single system user'
+ attr name    'Tony Stark'
+ attr account tony
+ attr sysrole admin
+) 2>&1 | indent
+
+
+# }}}
+try "Listing users" # {{{
+(INDEX_BY=account
+run users
+ context 'all users'
+ includes user tony
+ includes user jarvis
+
+ pick tony
+ context 'the tony account (in all users)'
+ attr name    'Tony Stark'
+ attr account tony
+ attr sysrole admin
+
+ run users --fuzzy a
+ context 'users with account "*a*"'
+ excludes user tony
+ includes user jarvis
+
+ run users --fuzzy xyzzy
+ none 'no users with account "*xyzzy*"'
+
+ run users --with-system-role admin
+ context 'users with system-level admin rights'
+ includes user tony
+ excludes user jarvis
+) 2>&1 | indent
+
+
+# }}}
+try "Running through user lifecycle" # {{{
+(run create-user \
+       --name     my-new-user \
+       --username user42 \
+       --password temp-password
+ run user user42
+ context 'a newly-created user'
+  attr name    my-new-user
+  attr account user42
+  attr sysrole ''
+
+ run update-user user42 \
+       --name my-updated-user
+ run user user42
+ context 'a newly-updated user'
+  attr name    my-updated-user
+  attr account user42
+  attr sysrole ''
+
+ run update-user user42 \
+       --system-role engineer
+ run user user42
+ context 'a newly-updated user'
+  attr name    my-updated-user
+  attr account user42
+  attr sysrole engineer
+
+ run logout
+ run login --username user42 --password temp-password
+
+ (echo temp-password ; sleep 0.1
+  echo new-password  ; sleep 0.1
+  echo new-password  ; sleep 0.1
+ ) | run passwd --no-batch
+
+ run logout
+ run login --username user42 --password new-password
+
+ run logout
+ run login --username tony --password J.A.R.V.I.S.
+
+ context 'users can always be deleted'
+  can_delete user user42
+) 2>&1 | indent
+
+# }}}
+fi
+
+if testing target; then
 try "Finding a single target" # {{{
-(run target $(uuidof target s3)
+(run target s3
  context 'a single target'
  attr name    s3
  attr summary 'Amazon S3 Blobstore'
@@ -674,12 +922,12 @@ try "Listing targets" # {{{
  excludes target s3
  includes target redis-shared
 
- run targets --fuzzy s
+ run targets s
  context 'targets named "*s*"'
  includes target s3
  includes target redis-shared
 
- run targets --fuzzy xyzzy
+ run targets xyzzy
  none 'no targets are named "*xyzzy*"'
 
  run targets --used
@@ -692,18 +940,18 @@ try "Listing targets" # {{{
  includes target s3
  excludes target redis-shared
 
- run targets --plugin redis
+ run targets --with-plugin redis
  context 'targets using the "redis" plugin'
  excludes target s3
  includes target redis-shared
 
- run targets --plugin enoent
+ run targets --with-plugin enoent
  none "Should find no results for bogus target plugin search"
 
- run targets --plugin redis --unused
- none "No targets matched unused && plugin-redis"
+ run targets --with-plugin redis --unused
+ none "No targets matched unused && plugin=redis"
 
- run targets --plugin redis --used
+ run targets --with-plugin redis --used
  context 'used targets using the "redis" plugin'
  excludes target s3
  includes target redis-shared
@@ -711,13 +959,85 @@ try "Listing targets" # {{{
 
 
 # }}}
+try "Running through target lifecycle" # {{{
+(run create-target \
+       --name    my-new-target \
+       --summary 'A target suitable for editing' \
+       --agent   "$SHIELD_AGENT_ADDR" \
+       --plugin  fs \
+       --data    dir=/path/to/data
+ run target --exact my-new-target
+ context 'a newly-created target'
+  attr name       my-new-target
+  attr summary    'A target suitable for editing'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     fs
+  attr config.dir /path/to/data
 
+ run update-target my-new-target \
+       --name    my-updated-target \
+       --summary 'A New Summary' \
+       --data    dir=/new/path
+ run target --exact my-updated-target
+ context 'a newly-updated target'
+  attr name       my-updated-target
+  attr summary    'A New Summary'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     fs
+  attr config.dir /new/path
+
+ run update-target my-updated-target \
+       --data new=data
+ run target --exact my-updated-target
+ context 'a newly-updated target'
+  attr name       my-updated-target
+  attr summary    'A New Summary'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     fs
+  attr config.dir /new/path
+  attr config.new data
+
+ run update-target my-updated-target \
+       --clear-data \
+       --data dir=/another/path
+ run target --exact my-updated-target
+ context 'a target with a newly-reconfigured plugin'
+  attr name       my-updated-target
+  attr summary    'A New Summary'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     fs
+  attr config.dir /another/path
+  attr config.new ''
+
+ run update-target my-updated-target \
+       --plugin s3
+ run target --exact my-updated-target
+ context 'a target with a newly-changed plugin'
+  attr name       my-updated-target
+  attr summary    'A New Summary'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     s3
+  attr config.dir ''
+  attr config.new ''
+
+ context 'it is in use by at least one job'
+  cannot_delete target redis-shared
+
+ context 'it is not in use by any jobs'
+  can_delete target my-updated-target
+) 2>&1 | indent
+
+
+# }}}
+fi
+
+if testing store; then
 try "Finding a single store" # {{{
-(run store $(uuidof store s3)
+(run store s3
  context 'a single store'
- attr name    s3
- attr summary 'Amazon S3 Archival Storage'
- attr plugin  s3
+  attr name    s3
+  attr summary 'Amazon S3 Archival Storage'
+  attr plugin  s3
 ) 2>&1 | indent
 
 
@@ -761,18 +1081,18 @@ try "Listing stores" # {{{
  includes store s3
  excludes store fs
 
- run stores --plugin fs
+ run stores --with-plugin fs
  context 'stores using the "fs" plugin'
  excludes store s3
  includes store fs
 
- run stores --plugin enoent
+ run stores --with-plugin enoent
  none "Should find no results for bogus store plugin search"
 
- run stores --plugin fs --unused
+ run stores --with-plugin fs --unused
  none "No stores matched unused && plugin=fs"
 
- run stores --plugin fs --used
+ run stores --with-plugin fs --used
  context 'in-use stores using the "fs" plugin'
  excludes store s3
  includes store fs
@@ -780,13 +1100,84 @@ try "Listing stores" # {{{
 
 
 # }}}
+try "Running through store lifecycle" # {{{
+(run create-store \
+       --name    my-new-store \
+       --summary 'A store, suitable for editing' \
+       --agent   "$SHIELD_AGENT_ADDR" \
+       --plugin  s3 \
+       --data    aki=my-aki
+ run store --exact my-new-store
+ context 'a newly-created store'
+  attr name       my-new-store
+  attr summary    'A store, suitable for editing'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     s3
+  attr config.aki my-aki
 
+ run update-store my-new-store \
+       --name    my-updated-store \
+       --summary "A Newer, Different AWS"
+ run store --exact my-updated-store
+ context 'a newly-updated store'
+  attr name       my-updated-store
+  attr summary    'A Newer, Different AWS'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     s3
+  attr config.aki my-aki
+
+ run update-store my-updated-store \
+       --data    key=sekrit
+ run store --exact my-updated-store
+ context 'a newly-updated store'
+  attr name       my-updated-store
+  attr summary    'A Newer, Different AWS'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     s3
+  attr config.aki my-aki
+  attr config.key sekrit
+
+ run update-store my-updated-store \
+       --clear-data \
+       --data aki=my-other-aki
+ run store --exact my-updated-store
+ context 'a store with a newly-reconfigured plugin'
+  attr name       my-updated-store
+  attr summary    'A Newer, Different AWS'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     s3
+  attr config.aki my-other-aki
+  attr config.key ''
+
+ run update-store my-updated-store \
+       --plugin fs
+ run store --exact my-updated-store
+ context 'a store with a newly-changed plugin'
+  attr name       my-updated-store
+  attr summary    'A Newer, Different AWS'
+  attr agent      "$SHIELD_AGENT_ADDR"
+  attr plugin     fs
+  attr config.aki ''
+  attr config.key ''
+
+ context 'it is in use by at least one job'
+  cannot_delete store fs
+
+ context 'it is not in use by any jobs'
+  can_delete store my-updated-store
+) 2>&1 | indent
+
+
+# }}}
+fi
+
+if testing policy; then
 try "Finding a single policy" # {{{
 (run policy $(uuidof policy short-term)
  context 'a single retention policy'
  attr name    'short-term'
  attr summary 'Short-term Backup Retention Policy'
- attr expires $(( 8 * 86400 ))
+ attr expires 8
 ) 2>&1 | indent
 
 
@@ -800,7 +1191,7 @@ try "Listing retention policies" # {{{
  pick 'short-term'
  attr uuid    "$(uuidof policy short-term)"
  attr summary "Short-term Backup Retention Policy"
- attr expires $(( 8 * 86400 ))
+ attr expires 8
 
  run policies short-term
  context 'policies named "short-term"'
@@ -833,30 +1224,69 @@ try "Listing retention policies" # {{{
 
 
 # }}}
+try "Running through policy lifecycle" # {{{
+(run create-policy \
+       --name    my-new-policy \
+       --summary 'A policy suitable for editing' \
+       --days    15
+ run policy --exact my-new-policy
+ context 'a newly-created policy'
+  attr name    my-new-policy
+  attr summary 'A policy suitable for editing'
+  attr expires 15
 
+ run update-policy my-new-policy \
+       --name    my-updated-policy \
+       --summary 'A New Summary'
+ run policy --exact my-updated-policy
+ context 'a newly-updated policy'
+  attr name       my-updated-policy
+  attr summary    'A New Summary'
+  attr expires    15
+
+ run update-policy my-updated-policy \
+       --days 365
+ run policy --exact my-updated-policy
+ context 'a newly-updated policy'
+  attr name       my-updated-policy
+  attr summary    'A New Summary'
+  attr expires    365
+
+ context 'it is in use by at least one job'
+  cannot_delete policy short-term
+
+ context 'it is not in use by any jobs'
+  can_delete policy my-updated-policy
+) 2>&1 | indent
+
+
+# }}}
+fi
+
+if testing job; then
 try "Finding a single job" # {{{
-(run job $(uuidof job redis-daily-to-fs)
+(run job redis-daily-to-fs
  context 'a single job'
  attr name            redis-daily-to-fs
  attr summary         'Daily Backups of Redis to the local fs'
 
- attr retention_name  short-term
- attr retention_uuid  "$(uuidof policy short-term)"
+ attr policy.name     short-term
+ attr policy.uuid     "$(uuidof policy short-term)"
 
  attr schedule        'daily at 11:24pm'
 
- attr store_uuid      "$(uuidof store fs)"
- attr store_name      fs
- attr store_plugin    fs
- attr store_endpoint  '{}'
+ attr store.uuid      "$(uuidof store fs)"
+ attr store.name      fs
+ attr store.plugin    fs
+ attr store.endpoint  '{"dir":"/path/to/data","tar":"bsdtar"}'
 
- attr target_uuid     "$(uuidof target redis-shared)"
- attr target_name     redis-shared
- attr target_plugin   redis
- attr target_endpoint '{}'
+ attr target.uuid     "$(uuidof target redis-shared)"
+ attr target.name     redis-shared
+ attr target.plugin   redis
+ attr target.endpoint '{"bgsave":"BGSAVE","host":"127.0.0.1"}'
 
  attr agent           "$SHIELD_AGENT_ADDR"
- attr expiry          $(( 8 * 86400 ))
+ attr expiry          8
  attr paused          true
 ) 2>&1 | indent
 
@@ -873,23 +1303,23 @@ try "Listing jobs" # {{{
  attr name            redis-daily-to-fs
  attr summary         'Daily Backups of Redis to the local fs'
 
- attr retention_name  short-term
- attr retention_uuid  "$(uuidof policy short-term)"
+ attr policy.name     short-term
+ attr policy.uuid     "$(uuidof policy short-term)"
 
  attr schedule        'daily at 11:24pm'
 
- attr store_uuid      "$(uuidof store fs)"
- attr store_name      fs
- attr store_plugin    fs
- attr store_endpoint  '{}'
+ attr store.uuid      "$(uuidof store fs)"
+ attr store.name      fs
+ attr store.plugin    fs
+ attr store.endpoint  '{"dir":"/path/to/data","tar":"bsdtar"}'
 
- attr target_uuid     "$(uuidof target redis-shared)"
- attr target_name     redis-shared
- attr target_plugin   redis
- attr target_endpoint '{}'
+ attr target.uuid     "$(uuidof target redis-shared)"
+ attr target.name     redis-shared
+ attr target.plugin   redis
+ attr target.endpoint '{"bgsave":"BGSAVE","host":"127.0.0.1"}'
 
  attr agent           "$SHIELD_AGENT_ADDR"
- attr expiry          $(( 8 * 86400 ))
+ attr expiry          8
  attr paused          true
  pick redis-daily-to-fs
 
@@ -948,107 +1378,84 @@ try "Pausing and unpausing jobs" # {{{
 
 
 # }}}
+try "Running through job lifecycle" # {{{
+(run create-target \
+       --name   job-target \
+       --agent  "$SHIELD_AGENT_ADDR" \
+       --plugin fs
+ run create-store \
+       --name   job-store \
+       --agent  "$SHIELD_AGENT_ADDR" \
+       --plugin fs
+ run create-policy \
+       --name   job-policy \
+       --days   5
 
-try "Updating things" # {{{
-(update target s3 <<EOF
-{
-  "name"    : "s3",
-  "summary" : "A New Summary",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "s3",
-  "endpoint": "{}"
-}
-EOF
- context 'post-update of target s3'
- run target s3
- attr uuid $(uuidof target s3)
- attr summary 'A New Summary'
+ run create-job \
+        --name my-new-job \
+        --summary "A new job, suitable for editing" \
+        --schedule 'daily 4am' \
+        --exact \
+        --target job-target \
+        --store  job-store \
+        --policy job-policy
+ run job my-new-job
+ context 'a newly-created job'
+  attr summary        'A new job, suitable for editing'
+  attr schedule       'daily 4am'
+  attr target.name    job-target
+  attr store.name     job-store
+  attr policy.name    job-policy
 
- update store s3 <<EOF
-{
-  "name"    : "s3",
-  "summary" : "A New, Different AWS",
-  "agent"   : "$SHIELD_AGENT_ADDR",
-  "plugin"  : "s3",
-  "endpoint": "{}"
-}
-EOF
- context 'post-update of store s3'
- run store s3
- attr uuid $(uuidof store s3)
- attr summary 'A New, Different AWS'
+ run update-job my-new-job \
+       --name    my-updated-job \
+       --summary 'A New Summary'
+ run job my-updated-job
+ context 'a newly-updated job'
+  attr summary        'A New Summary'
+  attr schedule       'daily 4am'
+  attr target.name    job-target
+  attr store.name     job-store
+  attr policy.name    job-policy
 
- update policy long-term <<EOF
-{
-  "name"    : "long-term",
-  "summary" : "Even Longer of A Term",
-  "expires" : $(( 100 * 86400 ))
-}
-EOF
- context 'post-update of retention policy long-term'
- run policy long-term
- attr uuid $(uuidof policy long-term)
- attr summary 'Even Longer of A Term'
- attr expires $(( 100 * 86400 ))
+ context 'it is in use by our test lifecycle job'
+  cannot_delete target job-target
+  cannot_delete store  job-store
+  cannot_delete policy job-policy
 
- update job shield-itself <<EOF
-{
-  "name"      : "shield-itself",
-  "summary"   : "SHIELD or something",
-  "retention" : "$(uuidof policy long-term)",
-  "schedule"  : "sundays at 3:15am",
-  "store"     : "$(uuidof store s3)",
-  "target"    : "$(uuidof target shield)"
-}
-EOF
- context 'post-update of job shield-itself'
- run job shield-itself
- attr uuid $(uuidof job shield-itself)
- attr summary 'SHIELD or something'
- attr retention_uuid $(uuidof policy long-term)
- attr retention_name long-term
- attr schedule       "sundays at 3:15am"
- attr store_uuid     $(uuidof store s3)
- attr store_name     s3
- attr target_uuid    $(uuidof target shield)
- attr target_name    shield
+ run update-job my-updated-job \
+       --schedule 'daily 3:30am' \
+       --policy   short-term
+ run job my-updated-job
+ context 'a newly-rescheduled job'
+  attr summary        'A New Summary'
+  attr schedule       'daily 3:30am'
+  attr target.name    job-target
+  attr store.name     job-store
+  attr policy.name    short-term
 
- # then put it back
- update job shield-itself <<EOF
-{
-  "name"      : "shield-itself",
-  "summary"   : "SHIELD or something",
-  "retention" : "$(uuidof policy shield)",
-  "schedule"  : "tuesdays at 11am",
-  "store"     : "$(uuidof store shield)",
-  "target"    : "$(uuidof target shield)",
-  "paused"    : false
-}
-EOF
-) 2>&1 | indent
-# }}}
-try "Deleting things" # {{{
-(context 'it is in use by at least one job'
- cannot_delete target   redis-shared
- cannot_delete store    fs
- cannot_delete policy   short-term
+ run update-job my-updated-job \
+        --target shield \
+        --store  s3
+ run job my-updated-job
+ context 'a newly-reconfiguredd job'
+  attr summary        'A New Summary'
+  attr schedule       'daily 3:30am'
+  attr target.name    shield
+  attr store.name     s3
+  attr policy.name    short-term
 
- context 'it is not in use by any job'
- can_delete target   s3
- can_delete store    s3
- can_delete policy   long-term
+ context 'is no longer in use by our test lifecycle job'
+  can_delete target job-target
+  can_delete store  job-store
+  can_delete policy job-policy
 
  context 'jobs can always be deleted'
- can_delete job redis-daily-to-fs
-
- context 'we deleted the job it was used by'
- can_delete target   redis-shared
- can_delete store    fs
- can_delete policy   short-term
+  can_delete job my-updated-job
 ) 2>&1 | indent
-
-
 # }}}
+fi
+
 done_testing
 
 # vim:ft=bash

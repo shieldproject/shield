@@ -1,0 +1,13 @@
+USAGE: @G{shield} pause-job --tenant @Y{TENANT} @Y{NAME-OR-UUID}
+
+  Pause a Backup Job.
+
+  Backup Jobs are the linchpin of SHIELD configuration; they
+  provide the what, when, and where, tying together target data
+  systems (the "what"), cloud storage ("where"), a schedule, and
+  a retention policy into one schedulable unit of data protection.
+
+  Paused backup jobs will not be automatically scheduled by SHIELD.
+  In order to execute them, an operator will need to manually kick
+  them off, via @C{shield run-job}.
+
