@@ -349,24 +349,19 @@ QUnit.test('Updates', function (is) {
   };
 
   QUnit.test('System Retrieval', function (is) {
-    var system, systems, db = Dataset();
+    var db = Dataset();
 
-    systems = db.systems({ tenant: 'the-system-tenant' })
-    is.ok(systems, 'the-system-tenant has targets/systems');
-    is.equal(systems.length, 1, 'the-system-tenant has a single system');
-    is.equal(systems[0].name, 'The SHIELD Target',
-             'the-system-tenants single system is SHIELD');
+    is.set(db.systems({ tenant: 'the-system-tenant' }),
+      [ { name: 'The SHIELD Target' } ],
+      'the-system-tenants single system is SHIELD');
 
-    systems = db.systems({ tenant: 'the-acme-tenant' });
-    is.ok(systems, 'the-acme-tenant has targets/systems');
-    is.equal(systems.length, 2, 'the-acme-tenant should have two systems');
-    is.any(systems, { name: 'The CCDB Target' },
-           'the-acme-tenant should have a CCDB target');
-    is.any(systems, { name: 'The UAADB Target' },
-           'the-acme-tenant should have a UAADB target');
+    is.set(db.systems({ tenant: 'the-acme-tenant' }),
+      [ { name: 'The CCDB Target' },
+        { name: 'The UAADB Target' } ],
+      'the-acme-tenant has two systems: CCDB and UAADB');
 
-    systems = db.systems({ tenant: 'a-non-existent-tenant' });
-    is.empty(systems, 'a-non-existent-tenant has no targets/systems');
+    is.empty(db.systems({ tenant: 'a-non-existent-tenant' }),
+      'a-non-existent-tenant has no targets/systems');
 
     /* single-system retrieval */
     is.contained(
@@ -382,28 +377,28 @@ QUnit.test('Updates', function (is) {
   });
 
   QUnit.test('Store Retrieval', function (is) {
-    var stores, db = Dataset();
+    var db = Dataset();
 
-    stores = db.stores({ tenant: 'the-system-tenant' })
-    is.ok(stores, 'the-system-tenant has stores');
-    is.equal(stores.length, 1, 'the-system-tenant has a single store');
-    is.equal(stores[0].name, 'The System S3 Store',
-             'the-system-tenants single store is System S3');
+    is.set(db.stores(),
+      [ { name: 'The Global Store' },
+        { name: 'The System S3 Store' } ],
+      'without a filter, all stores should be retrieved');
 
-    stores = db.stores({ tenant: 'the-acme-tenant' });
-    is.ok(stores, 'the-acme-tenant has targets/stores');
-    is.empty(stores, 'the-acme-tenant should have no stores');
+    is.set(db.stores({ tenant: 'the-system-tenant' }),
+      [ { name: 'The System S3 Store' } ],
+      'the-system-tenants single store is System S3');
 
-    stores = db.stores({ tenant: 'the-system-tenant',
-                         global: true });
-    is.equal(stores.length, 2, 'ths-system-tenant can access two stores');
-    is.any(stores, { name: 'The System S3 Store' },
-           'the-system-tenant should have access to the System S3 store');
-    is.any(stores, { name: 'The Global Store' },
-           'the-system-tenant should have access to the Global store');
+    is.empty(db.stores({ tenant: 'the-acme-tenant' }),
+      'the-acme-tenant should have no stores');
 
-    stores = db.stores({ tenant: 'a-non-existent-tenant' });
-    is.empty(stores, 'a-non-existent-tenant has no stores');
+    is.set(db.stores({ tenant: 'the-system-tenant',
+                       global: true }),
+      [ { name: 'The System S3 Store' },
+        { name: 'The Global Store' } ],
+      'the-system-tenant should have access to global and tenant-specific stores');
+
+    is.empty(db.stores({ tenant: 'a-non-existent-tenant' }),
+      'a-non-existent-tenant has no stores');
 
     is.contained(
       db.store('the-system-s3-store'),
@@ -426,26 +421,22 @@ QUnit.test('Updates', function (is) {
   });
 
   QUnit.test('Job Retrieval', function (is) {
-    var jobs, db = Dataset();
+    var db = Dataset();
 
-    jobs = db.jobs({ system: 'the-shield-target' });
-    is.equal(jobs.length, 2, 'the-shield-target has two jobs');
-    is.any(jobs, { name: 'Daily', schedule: 'daily 3:35am' },
-           'the-shield-target has a daily (3:35am) job');
-    is.any(jobs, { name: 'Weekly', schedule: 'weekly on sundays at 6:15am' },
-           'the-shield-target has a weekly (sun 6:15am) job');
+    is.set(db.jobs({ system: 'the-shield-target' }),
+      [ { name: 'Daily',  schedule: 'daily 3:35am' },
+        { name: 'Weekly', schedule: 'weekly on sundays at 6:15am' } ],
+      'the-shield-target has a daily job (3:35am) and a weekly job (sun 6:15am)');
 
-    jobs = db.jobs({ system: 'the-shield-target',
-                     tenant: 'the-system-tenant' });
-    is.equal(jobs.length, 2, 'the-shield-target (on the-system-tenant) has two jobs');
-    is.any(jobs, { name: 'Daily', schedule: 'daily 3:35am' },
-           'the-shield-target (on the-system-tenant) has a daily (3:35am) job');
-    is.any(jobs, { name: 'Weekly', schedule: 'weekly on sundays at 6:15am' },
-           'the-shield-target (on the-system-tenant) has a weekly (sun 6:15am) job');
+    is.set(db.jobs({ system: 'the-shield-target',
+                     tenant: 'the-system-tenant' }),
+      [ { name: 'Daily',  schedule: 'daily 3:35am' },
+        { name: 'Weekly', schedule: 'weekly on sundays at 6:15am' } ],
+      'the-shield-target (on the system-tenant) has a daily job (3:35am) and a weekly job (sun 6:15am)');
 
-    jobs = db.jobs({ system: 'the-shield-target',
-                     tenant: 'the-acme-tenant' });
-    is.empty(jobs, 'the-acme-tenant does not have the-shield-target as a system, so it can have no jobs for it');
+    is.empty(db.jobs({ system: 'the-shield-target',
+                       tenant: 'the-acme-tenant' }),
+      'the-acme-tenant does not have the-shield-target as a system, so it can have no jobs for it');
 
     /* single job retrieval */
     is.contained(
@@ -459,46 +450,41 @@ QUnit.test('Updates', function (is) {
   });
 
   QUnit.test('Task Retrieval', function (is) {
-    var tasks, db = Dataset();
+    var db = Dataset();
 
-    tasks = db.tasks({ tenant: 'the-system-tenant' });
-    is.set(tasks, [
-      { uuid: 'test-system-s3-store-task-1' },
-      { uuid: 'shield-backup-task-1' },
-      { uuid: 'shield-backup-task-2' },
-      { uuid: 'shield-backup-task-3' },
-      { uuid: 'shield-purge-task-1'  } ],
+    is.set(db.tasks({ tenant: 'the-system-tenant' }),
+      [ { uuid: 'test-system-s3-store-task-1' },
+        { uuid: 'shield-backup-task-1' },
+        { uuid: 'shield-backup-task-2' },
+        { uuid: 'shield-backup-task-3' },
+        { uuid: 'shield-purge-task-1'  } ],
       'the-system-tenant has four total tasks');
 
-    tasks = db.tasks({ tenant: 'the-system-tenant',
-                       system: 'the-shield-target' });
-    is.set(tasks, [
-      { uuid: 'shield-backup-task-1' },
-      { uuid: 'shield-backup-task-2' },
-      { uuid: 'shield-backup-task-3' } ],
+    is.set(db.tasks({ tenant: 'the-system-tenant',
+                      system: 'the-shield-target' }),
+      [ { uuid: 'shield-backup-task-1' },
+        { uuid: 'shield-backup-task-2' },
+        { uuid: 'shield-backup-task-3' } ],
       'the-system-tenant has three total tasks for system the-shield-target');
 
-    tasks = db.tasks({ tenant: 'the-system-tenant',
-                       system: 'the-shield-target',
-                       job:    'the-shield-weekly-job' });
-    is.set(tasks, [
-      { uuid: 'shield-backup-task-3' } ],
+    is.set(db.tasks({ tenant: 'the-system-tenant',
+                      system: 'the-shield-target',
+                      job:    'the-shield-weekly-job' }),
+      [ { uuid: 'shield-backup-task-3' } ],
       'the-system-tenant has one task for system the-shield-target (weekly job)');
 
-    tasks = db.tasks({ tenant: 'the-system-tenant',
-                       store:  'the-system-s3-store' });
-    is.set(tasks, [
-      { uuid: 'shield-backup-task-1' },
-      { uuid: 'shield-backup-task-2' },
-      { uuid: 'shield-purge-task-1'  },
-      { uuid: 'test-system-s3-store-task-1' } ],
+    is.set(db.tasks({ tenant: 'the-system-tenant',
+                      store:  'the-system-s3-store' }),
+      [ { uuid: 'shield-backup-task-1' },
+        { uuid: 'shield-backup-task-2' },
+        { uuid: 'shield-purge-task-1'  },
+        { uuid: 'test-system-s3-store-task-1' } ],
       'the-system-tenant has three tasks for system the-shield-target in the-system-s3-store');
 
-    tasks = db.tasks({ tenant: 'the-system-tenant',
-                       archive: 'shield-backup-archive-1' });
-    is.set(tasks, [
-      { uuid: 'shield-backup-task-1' },
-      { uuid: 'shield-purge-task-1'  } ],
+    is.set(db.tasks({ tenant: 'the-system-tenant',
+                      archive: 'shield-backup-archive-1' }),
+      [ { uuid: 'shield-backup-task-1' },
+        { uuid: 'shield-purge-task-1'  } ],
       'the-system-tenant has two tasks for system the-shield-target, archive shield-backup-archive-1');
 
     /* single task retrieval */
@@ -513,32 +499,27 @@ QUnit.test('Updates', function (is) {
   });
 
   QUnit.test('Archive Retrieval', function (is) {
-    var archives, db = Dataset();
-
-    is.ok(true, 'TBD');
+    var db = Dataset();
 
     /* by tenant */
-    archives = db.archives({tenant: 'the-system-tenant' });
-    is.set(archives, [
-      { uuid: 'shield-backup-archive-1' },
-      { uuid: 'shield-backup-archive-2' },
-      { uuid: 'shield-backup-archive-3' } ],
+    is.set(db.archives({tenant: 'the-system-tenant' }),
+      [ { uuid: 'shield-backup-archive-1' },
+        { uuid: 'shield-backup-archive-2' },
+        { uuid: 'shield-backup-archive-3' } ],
       'the-system-tenant has three archives total');
 
     /* by tenant + target */
-    archives = db.archives({ tenant: 'the-acme-tenant',
-                             system: 'the-ccdb-target' });
-    is.set(archives, [
-      { uuid: 'ccdb-backup-archive-1' } ],
+    is.set(db.archives({ tenant: 'the-acme-tenant',
+                         system: 'the-ccdb-target' }),
+      [ { uuid: 'ccdb-backup-archive-1' } ],
       'the-acme-tenant has one archive for the-ccdb-target, total');
 
     /* by tenant + target + store */
-    archives = db.archives({ tenant: 'the-system-tenant',
-                             system: 'the-shield-target',
-                             store:  'the-system-s3-store'});
-    is.set(archives, [
-      { uuid: 'shield-backup-archive-1' },
-      { uuid: 'shield-backup-archive-2' } ],
+    is.set(db.archives({ tenant: 'the-system-tenant',
+                         system: 'the-shield-target',
+                         store:  'the-system-s3-store'}),
+      [ { uuid: 'shield-backup-archive-1' },
+        { uuid: 'shield-backup-archive-2' } ],
       'the-system-tenant has two archives for the-shield-target in the-system-s3-store');
 
     /* single archive retrieval */
