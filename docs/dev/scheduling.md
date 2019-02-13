@@ -214,6 +214,46 @@ the scheduler's scheduling algorithm in the _hyper_ loop, but runs
 the elevator algorithm in the _fast_ loop; this is by design.
 
 
+Internal Tasks
+--------------
+
+Sometimes, there is a bit of work that we need the SHIELD core to
+perform, that we would like for SHIELD administrators to be able
+to review.  Tasks are a great fit for this, except that the work
+doesn't always require an agent.
+
+A prime example of this is the storage analysis work that needs to
+be done regularly, for deltas and forecasting.  There is stepwise
+information that can be invaluable in debugging or troubleshooting
+usage / forecasting data, or determining _where_ space in a shared
+(global) cloud store is going.
+
+To accomplish this, SHIELD has the concept of an _internal task_,
+which leverages the task+chore apparatus to execute, but bypasses
+the fabrics and their connected agents.
+
+When an internal task is "scheduled", a Task record gets put into
+the database by calling CreateInternalTask, like this:
+
+    t, err := db.CreateInternalTask(owner, op, tenantUUID)
+
+This new task will be put into the database in the _running_ state
+(`db.RunningStatus`), so that the scheduling process skips it.
+This means that it is up to you, the caller, to schedule the
+chore, and provide the chore function:
+
+    s.Schedule(priority, scheduler.NewChore(
+      t.UUID, /* our task, returned from the database call */
+      func (chore scheduler.Chore) {
+        // do the work here.
+      }
+    )
+
+This lets us use the chore framework to write the work function,
+and provides a log (via the "output" of the chore) of what was
+done, all in a package convenient and familiar to SHIELD
+operators.
+
 
 [thunk]:  https://en.wikipedia.org/wiki/Thunk
 [fabric]: $docs/dev/fabric.md
