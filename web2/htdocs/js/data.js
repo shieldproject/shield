@@ -56,7 +56,10 @@
       var stores = [];
       for (var uuid in this.data.store) {
         var store = this.data.store[uuid];
-        if ('tenant' in q && store.tenant_uuid == q.tenant) {
+        if (!q) {
+          stores.push(store);
+
+        } else if ('tenant' in q && store.tenant_uuid == q.tenant) {
           stores.push(store);
 
         } else if ('global' in q && store.global && q.global) {
