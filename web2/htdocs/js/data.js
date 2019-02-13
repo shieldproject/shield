@@ -49,6 +49,7 @@
     },
 
     systems: function (q) {
+      if (!q) { q = {}; }
       if ('tenant' in q) {
         if (!('target' in this.data)) { return []; }
         var systems = [];
@@ -65,6 +66,7 @@
     },
 
     stores: function (q) {
+      /* don't auto-vivify q */
       if (!('store' in this.data)) { return []; }
 
       var stores = [];
@@ -87,6 +89,7 @@
     },
 
     jobs: function (q) {
+      if (!q) { q = {}; }
       if (!('job' in this.data)) { return []; }
 
       var jobs = [];
@@ -109,6 +112,7 @@
     },
 
     tasks: function (q) {
+      if (!q) { q = {}; }
       if (!('task' in this.data)) { return []; }
 
       var tasks = [];
@@ -133,6 +137,7 @@
     },
 
     archives: function (q) {
+      if (!q) { q = {}; }
       if (!('archive' in this.data)) { return []; }
 
       var archives = [];
