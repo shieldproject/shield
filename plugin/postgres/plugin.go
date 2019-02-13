@@ -34,13 +34,15 @@ func main() {
   "pg_port"     : "5432",             # Port that PostgreSQL is listening on
   "pg_database" : "db1",              # Limit backup/restore operation to this database
   "pg_bindir"   : "/path/to/pg/bin"   # Where to find the psql command
+  "pg_sslmode   : "prefer"            # sslmode to use
   "pg_options"  : "",                 # optional
 }
 `,
 		Defaults: `
 {
-  "pg_port"   : "5432",
-  "pg_bindir" : "/var/vcap/packages/postgres-9.4/bin"
+  "pg_port"    : "5432",
+  "pg_bindir"  : "/var/vcap/packages/postgres-9.4/bin"
+  "pg_sslmode" : "prefer"
 }
 `,
 		Fields: []plugin.Field{
@@ -111,6 +113,14 @@ func main() {
 				Help:    "The absolute path to the bin/ directory that contains the `psql` command.",
 				Default: "/var/vcap/packages/postgres-9.4/bin",
 			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "pg_sslmode",
+				Type:    "string",
+				Title:   "The sslmode to use",
+				Help:    "The `sslmode` value to use.  The 6 possible values are: disable, allow, prefer, require, verify-ca, verify-full",
+				Default: "prefer",
+			},
 		},
 	}
 
@@ -129,6 +139,7 @@ type PostgresConnectionInfo struct {
 	ReplicaPort string
 	Database    string
 	Options     string
+	SslMode     string
 }
 
 func (p PostgresPlugin) Meta() plugin.PluginInfo {
@@ -217,6 +228,16 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 pg_options}  no options given\n")
 	} else {
 		fmt.Printf("@G{\u2713 pg_options}  @C{%s}\n", s)
+	}
+
+	s, err = endpoint.StringValueDefault("pg_sslmode", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 pg_sslmode  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 pg_sslmode}  default value prefer will be used n\n")
+	} else {
+		fmt.Printf("@G{\u2713 pg_sslmode}  @C{%s}\n", s)
 	}
 
 	if fail {
@@ -335,6 +356,7 @@ func setupEnvironmentVariables(pg *PostgresConnectionInfo) {
 	os.Setenv("PGPASSWORD", pg.Password)
 	os.Setenv("PGHOST", pg.Host)
 	os.Setenv("PGPORT", pg.Port)
+	os.Setenv("PGSSLMODE", pg.SslMode)
 }
 
 func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, error) {
@@ -380,6 +402,12 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	}
 	plugin.DEBUG("PG_OPTIONS: '%s'", options)
 
+	sslmode, err := endpoint.StringValueDefault("pg_sslmode", "prefer")
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("PGSSLMODE: '%s'", options)
+
 	database, err := endpoint.StringValueDefault("pg_database", "")
 	if err != nil {
 		return nil, err
@@ -402,5 +430,6 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 		Bin:         bin,
 		Database:    database,
 		Options:     options,
+		SslMode:     sslmode,
 	}, nil
 }
