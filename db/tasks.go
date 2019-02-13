@@ -268,7 +268,7 @@ func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 		    (uuid, owner, op, status, tenant_uuid, log, requested_at)
 		  VALUES
 		    (?, ?, ?, ?, ?, ?, ?)`,
-		id, owner, op, ScheduledStatus, tenant, "", time.Now().Unix())
+		id, owner, op, RunningStatus, tenant, "", time.Now().Unix())
 
 	if err != nil {
 		return nil, err
