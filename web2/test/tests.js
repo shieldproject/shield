@@ -348,6 +348,21 @@ QUnit.test('Updates', function (is) {
     ;
   };
 
+  QUnit.test('Tenant Retrieval', function (is) {
+    var db = Dataset();
+
+    is.set(db.tenants(),
+      [ { uuid: 'the-system-tenant' },
+        { uuid: 'the-acme-tenant' } ],
+      'without a filter, all tenants should be retrieved');
+
+    is.contained(db.tenant('the-acme-tenant'),
+      { name: 'Acme, Inc' },
+      'the-acme-tenant can be retrieved directly');
+    is.ok(!db.tenant('a-nonexistent-tenant'),
+          'a non-existent-tenant cannot be retrieved');
+  });
+
   QUnit.test('System Retrieval', function (is) {
     var db = Dataset();
 

@@ -34,6 +34,20 @@
       throw 'not implemented'; /* FIXME */
     },
 
+    tenants: function () {
+      if (!('tenant' in this.data)) { return []; }
+
+      var tenants = [];
+      for (var uuid in this.data.tenant) {
+        var tenant = this.data.tenant[uuid];
+        tenants.push(tenant);
+      }
+      return tenants;
+    },
+    tenant: function (uuid) {
+      return this.find('tenant', { uuid: uuid });
+    },
+
     systems: function (q) {
       if ('tenant' in q) {
         if (!('target' in this.data)) { return []; }
