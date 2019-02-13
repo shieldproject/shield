@@ -95,6 +95,10 @@ func (c *Client) FindJob(tenant *Tenant, q string, fuzzy bool) (*Job, error) {
 }
 
 func (c *Client) GetJob(parent *Tenant, uuid string) (*Job, error) {
+	if parent == nil {
+		return nil, nil
+	}
+
 	var out *Job
 	if err := c.get(fmt.Sprintf("/v2/tenants/%s/jobs/%s", parent.UUID, uuid), &out); err != nil {
 		return nil, err

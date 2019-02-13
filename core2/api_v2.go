@@ -507,6 +507,7 @@ func (c *Core) v2API() *route.Router {
 		}
 	})
 	// }}}
+
 	r.Dispatch("GET /v2/tasks", func(r *route.Request) { // {{{
 		if c.IsNotSystemEngineer(r) {
 			return
@@ -545,6 +546,46 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		r.OK(tasks)
+	})
+	// }}}
+	r.Dispatch("GET /v2/tasks/:uuid", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		task, err := c.db.GetTask(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+		if task == nil || task.TenantUUID != db.GlobalTenantUUID {
+			r.Fail(route.NotFound(err, "No such task"))
+			return
+		}
+		r.OK(task)
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/tenants/:uuid/tasks/:uuid", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		task, err := c.db.GetTask(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve task information"))
+			return
+		}
+		if task == nil || task.TenantUUID != db.GlobalTenantUUID {
+			r.Fail(route.NotFound(err, "No such task"))
+			return
+		}
+
+		if err := c.db.CancelTask(task.UUID, time.Now()); err != nil {
+			r.Fail(route.Oops(err, "Unable to cancel task"))
+			return
+		}
+
+		r.Success("Canceled task successfully")
 	})
 	// }}}
 

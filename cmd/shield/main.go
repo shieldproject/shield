@@ -2568,9 +2568,11 @@ func main() {
 			fail(2, "Usage: shield %s UUID\n", command)
 		}
 
-		required(opts.Tenant != "", "Missing required --tenant option.")
-		tenant, err := c.FindMyTenant(opts.Tenant, true)
-		bail(err)
+		var tenant *shield.Tenant
+		if opts.Tenant != "" {
+			tenant, err = c.FindMyTenant(opts.Tenant, true)
+			bail(err)
+		}
 
 		task, err := c.GetTask(tenant, args[0])
 		bail(err)
@@ -2600,7 +2602,7 @@ func main() {
 		r.Add("Stopped at", stopped)
 		r.Break()
 
-		if job, err := c.GetJob(tenant, task.JobUUID); err == nil {
+		if job, err := c.GetJob(tenant, task.JobUUID); err == nil && job != nil {
 			r.Add("Job", fmt.Sprintf("%s (%s)", job.Name, task.JobUUID))
 		}
 		if task.ArchiveUUID != "" {
