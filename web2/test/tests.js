@@ -19,7 +19,7 @@ var contains = function (got, want) {
 
 QUnit.assert.contained = function (actual, expected, message) {
   this.pushResult({
-    result:   contains(actual, expected),
+    result:   actual ? contains(actual, expected) : false,
     actual:   actual,
     expected: expected,
     message:  message || 'object mismatch'
@@ -368,6 +368,7 @@ QUnit.test('Updates', function (is) {
     systems = db.systems({ tenant: 'a-non-existent-tenant' });
     is.empty(systems, 'a-non-existent-tenant has no targets/systems');
 
+    /* single-system retrieval */
     is.contained(
       db.system('the-ccdb-target'),
       { name: 'The CCDB Target' },
@@ -381,7 +382,7 @@ QUnit.test('Updates', function (is) {
   });
 
   QUnit.test('Store Retrieval', function (is) {
-    var store, stores, db = Dataset();
+    var stores, db = Dataset();
 
     stores = db.stores({ tenant: 'the-system-tenant' })
     is.ok(stores, 'the-system-tenant has stores');
@@ -414,10 +415,18 @@ QUnit.test('Updates', function (is) {
       'the-global-store store exists and can be retrieved');
     is.ok(!db.store('a-nonexistent-store'),
           'a-nonexistent-store cannot be retrieved');
+
+    /* single store retrieval */
+    is.contained(
+      db.store('the-system-s3-store'),
+      { name: 'The System S3 Store' },
+      'the-system-s3-store can be retrieved');
+    is.ok(!db.store('a-nonexistent-store'),
+          'a non-existent-store cannot be retrieved');
   });
 
   QUnit.test('Job Retrieval', function (is) {
-    var job, jobs, db = Dataset();
+    var jobs, db = Dataset();
 
     jobs = db.jobs({ system: 'the-shield-target' });
     is.equal(jobs.length, 2, 'the-shield-target has two jobs');
@@ -437,10 +446,20 @@ QUnit.test('Updates', function (is) {
     jobs = db.jobs({ system: 'the-shield-target',
                      tenant: 'the-acme-tenant' });
     is.empty(jobs, 'the-acme-tenant does not have the-shield-target as a system, so it can have no jobs for it');
+
+    /* single job retrieval */
+    is.contained(
+      db.job('the-shield-daily-job'),
+      { tenant_uuid: 'the-system-tenant',
+        target_uuid: 'the-shield-target',
+        store_uuid:  'the-system-s3-store' },
+      'the-shield-daily-job can be retrieved');
+    is.ok(!db.job('a-nonexistent-job'),
+          'a non-existent-job cannot be retrieved');
   });
 
   QUnit.test('Task Retrieval', function (is) {
-    var task, tasks, db = Dataset();
+    var tasks, db = Dataset();
 
     tasks = db.tasks({ tenant: 'the-system-tenant' });
     is.set(tasks, [
@@ -481,10 +500,20 @@ QUnit.test('Updates', function (is) {
       { uuid: 'shield-backup-task-1' },
       { uuid: 'shield-purge-task-1'  } ],
       'the-system-tenant has two tasks for system the-shield-target, archive shield-backup-archive-1');
+
+    /* single task retrieval */
+    is.contained(
+      db.task('shield-backup-task-1'),
+      { tenant_uuid: 'the-system-tenant',
+        target_uuid: 'the-shield-target',
+        store_uuid:  'the-system-s3-store' },
+      'the shield-backup-task-1 task can be retrieved');
+    is.ok(!db.task('a-nonexistent-task'),
+          'a non-existent-task task cannot be retrieved');
   });
 
   QUnit.test('Archive Retrieval', function (is) {
-    var archive, archives, db = Dataset();
+    var archives, db = Dataset();
 
     is.ok(true, 'TBD');
 
@@ -511,5 +540,15 @@ QUnit.test('Updates', function (is) {
       { uuid: 'shield-backup-archive-1' },
       { uuid: 'shield-backup-archive-2' } ],
       'the-system-tenant has two archives for the-shield-target in the-system-s3-store');
+
+    /* single archive retrieval */
+    is.contained(
+      db.archive('shield-backup-archive-1'),
+      { tenant_uuid: 'the-system-tenant',
+        target_uuid: 'the-shield-target',
+        store_uuid:  'the-system-s3-store' },
+      'the shield-backup-archive-1 archive can be retrieved');
+    is.ok(!db.archive('a-nonexistent-archive'),
+          'a non-existent-archive archive cannot be retrieved');
   });
 }
