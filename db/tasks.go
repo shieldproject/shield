@@ -584,7 +584,13 @@ func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
 		return err
 	}
 
-	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
+	queues := []string{}
+	if task.TenantUUID == GlobalTenantUUID {
+		queues = append(queues, "admins")
+	} else {
+		queues = append(queues, "tenant:"+task.TenantUUID)
+	}
+	db.sendTaskStatusUpdateEvent(task, queues...)
 	return nil
 }
 

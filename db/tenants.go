@@ -158,7 +158,6 @@ func (db *DB) CreateTenant(tenant *Tenant) (*Tenant, error) {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(tenant, "admins")
 	return tenant, nil
 }
 
@@ -176,7 +175,7 @@ func (db *DB) UpdateTenant(tenant *Tenant) (*Tenant, error) {
 		return nil, err
 	}
 
-	db.sendUpdateObjectEvent(tenant, "admins", tenant.UUID)
+	db.sendUpdateObjectEvent(tenant, "tenant:"+tenant.UUID)
 	return tenant, nil
 }
 
@@ -205,6 +204,6 @@ func (db *DB) DeleteTenant(tenant *Tenant) error {
 		return err
 	}
 
-	db.sendDeleteObjectEvent(tenant, "admins", tenant.UUID)
+	db.sendDeleteObjectEvent(tenant, "tenant:"+tenant.UUID)
 	return nil
 }

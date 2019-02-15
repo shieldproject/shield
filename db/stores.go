@@ -10,8 +10,8 @@ import (
 )
 
 type StoreConfigItem struct {
-	Label string `json:"label"`
-	Value string `json:"value"`
+	Label string `json:"label" mbus:"label"`
+	Value string `json:"value" mbus:"value"`
 }
 
 type Store struct {
@@ -330,7 +330,11 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 		return nil, err
 	}
 
-	db.sendCreateObjectEvent(store, "tenant:"+store.TenantUUID)
+	if store.TenantUUID == GlobalTenantUUID {
+		db.sendCreateObjectEvent(store, "*")
+	} else {
+		db.sendCreateObjectEvent(store, "tenant:"+store.TenantUUID)
+	}
 	return store, nil
 }
 

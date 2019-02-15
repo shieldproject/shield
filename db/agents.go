@@ -10,14 +10,14 @@ import (
 )
 
 type Agent struct {
-	UUID       string `json:"uuid"`
-	Name       string `json:"name"`
-	Address    string `json:"address"`
-	Version    string `json:"version"`
+	UUID       string `json:"uuid"    mbus:"uuid"`
+	Name       string `json:"name"    mbus:"name"`
+	Address    string `json:"address" mbus:"address"`
+	Version    string `json:"version" mbus:"version"`
 	Hidden     bool   `json:"hidden"`
-	LastSeenAt int64  `json:"last_seen_at"`
-	LastError  string `json:"last_error"`
-	Status     string `json:"status"`
+	LastSeenAt int64  `json:"last_seen_at" mbus:"last_seen_at"`
+	LastError  string `json:"last_error"   mbus:"last_error"`
+	Status     string `json:"status"       mbus:"status"`
 
 	Meta    map[string]interface{} `json:"metadata,omitempty"`
 	RawMeta string                 `json:"-"`

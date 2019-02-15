@@ -72,7 +72,7 @@ func (db *DB) sendTenantInviteEvent(user, tenant, role string) {
 			"user_uuid":   user,
 			"tenant_uuid": tenant,
 			"role":        role,
-		}, "user:"+user, "tenant:"+tenant, "admins")
+		}, "user:"+user, "tenant:"+tenant)
 	}
 }
 
@@ -81,6 +81,6 @@ func (db *DB) sendTenantBanishEvent(user, tenant string) {
 		db.bus.Send(bus.TenantBanishEvent, "", map[string]interface{}{
 			"user_uuid":   user,
 			"tenant_uuid": tenant,
-		}, "user:"+user, "tenant:"+tenant, "admins")
+		}, "user:"+user, "tenant:"+tenant)
 	}
 }
