@@ -89,10 +89,9 @@
     },
 
     tenants: function () {
-      if (!('tenant' in this.data)) { return []; }
 
       var tenants = [];
-      for (var uuid in this.data.tenant) {
+      for (var uuid in this.data.tenant || {}) {
         var tenant = this.data.tenant[uuid];
         tenants.push(tenant);
       }
@@ -103,12 +102,11 @@
     },
 
     systems: function (q) {
-      if (!q) { q = {}; }
-      if (!('target' in this.data)) { return []; }
+      q = q || {};
 
       var systems = [];
       if ('tenant' in q) {
-        for (var uuid in this.data.target) {
+        for (var uuid in this.data.target || {}) {
           if (this.data.target[uuid].tenant_uuid == q.tenant) {
             systems.push(this.data.target[uuid]);
           }
@@ -122,10 +120,9 @@
 
     stores: function (q) {
       /* don't auto-vivify q */
-      if (!('store' in this.data)) { return []; }
 
       var stores = [];
-      for (var uuid in this.data.store) {
+      for (var uuid in this.data.store || {}) {
         var store = this.data.store[uuid];
         if (!q) {
           stores.push(store);
@@ -144,11 +141,10 @@
     },
 
     jobs: function (q) {
-      if (!q) { q = {}; }
-      if (!('job' in this.data)) { return []; }
+      q = q || {};
 
       var jobs = [];
-      for (var uuid in this.data.job) {
+      for (var uuid in this.data.job || {}) {
         var job = this.data.job[uuid];
         if ('system' in q && job.target_uuid != q.system) {
           continue;
@@ -165,12 +161,11 @@
     },
 
     tasks: function (q) {
-      if (!q) { q = {}; }
-      if (!('task' in this.data)) { return []; }
+      q = q || {};
 
       var tasks = [];
       if ('tenant' in q) {
-        for (var uuid in this.data.task) {
+        for (var uuid in this.data.task || {}) {
           var task = this.data.task[uuid];
           if (task.tenant_uuid != q.tenant
            || ('system'  in q && task.target_uuid  != q.system)
@@ -208,12 +203,11 @@
     },
 
     archives: function (q) {
-      if (!q) { q = {}; }
-      if (!('archive' in this.data)) { return []; }
+      q = q || {};
 
       var archives = [];
       if ('tenant' in q) {
-        for (var uuid in this.data.archive) {
+        for (var uuid in this.data.archive || {}) {
           var archive = this.data.archive[uuid];
           if (archive.tenant_uuid != q.tenant
            || ('system'  in q && archive.target_uuid  != q.system)
