@@ -69,9 +69,9 @@
           url:  '/v2/auth/user/settings',
           data: { default_tenant: uuid }
         });
-        SHIELD._.tenant = uuid;
+        AEGIS.use(uuid);
 
-        SHIELD.redraw();
+        //SHIELD.redraw();
         var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
         if (page == "#!/do")      { page = "#!/systems"; }
         if (page == "#!/tenants") { page = "#!/systems"; }
@@ -108,7 +108,7 @@
         banner('scheduling ad hoc backup...', 'progress');
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/jobs/'+uuid+'/run',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/run',
           success: function () {
             banner('ad hoc backup job scheduled');
           },
@@ -134,8 +134,7 @@
             success: function (system) {
               var $outer = $(event.target).closest('.paginate').find('.results');
               for (var i = 0; i < system.tasks.length; i++) {
-                //console.log('task: ', system.tasks[i]);
-                //window.SHIELD.set('task', system.tasks[i]);
+                AEGIS.insert('task', system.tasks[i]);
                 $outer.append($.template('timeline-entry', system.tasks[i]));
                 if (oldest > system.tasks[i].requested_at) {
                     oldest = system.tasks[i].requested_at;
@@ -162,7 +161,7 @@
 
         api({
           type: 'GET',
-          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/tasks/'+uuid,
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/tasks/'+uuid,
           error: "Failed to retrieve task information from the SHIELD API.",
           success: function (data) {
             $task.template('task', {
@@ -204,7 +203,7 @@
 
           api({
             type: 'PATCH',
-            url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/systems/'+uuid,
+            url:  '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+uuid,
             data: { "annotations": [ann] },
             success: function (data) {
               $form.hide();
@@ -236,7 +235,7 @@
           event.preventDefault();
           api({
             type: 'POST',
-            url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/archives/'+uuid+'/restore',
+            url:  '/v2/tenants/'+AEGIS.current.uuid+'/archives/'+uuid+'/restore',
             success: function() {
               banner("restore operation started");
               redraw(false);
@@ -245,6 +244,37 @@
               banner("unable to schedule restore operation", "error");
             }
           });
+        });
+      }) /* }}} */
+
+      /* SHIELD Unlock Form */
+      .on('submit', 'form.unlock-shield', function (event) { /* {{{ */
+        event.preventDefault();
+
+        var $form = $(event.target);
+        $form.reset()
+        var data = $form.serializeObject();
+        if (data.master == "") {
+          $form.error('unlock-master', 'missing');
+          return;
+        }
+
+        api({
+          type: 'POST',
+          url:  '/v2/unlock',
+          data: data,
+          success: function (data) {
+            goto("");
+          },
+          statusCode: {
+            403: function () {
+              $form.error('unlock-master', 'incorrect')
+            },
+            500: function (xhr) {
+              $form.error(xhr.responseJSON);
+            }
+          },
+          error: {}
         });
       }) /* }}} */
     ;

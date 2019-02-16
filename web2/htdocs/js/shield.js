@@ -1,5 +1,5 @@
 // vim:et:sts=2:ts=2:sw=2
-var SHIELD, referer;
+var referer;
 
 function divert(page) { // {{{
   if (page.match(/^#!\/(login|logout|cliauth)$/)) {
@@ -7,25 +7,25 @@ function divert(page) { // {{{
     return page;
   }
 
-  if (!SHIELD.authenticated()) {
+  if (!AEGIS.authenticated()) {
     console.log('session not authenticated; diverting to #!/login page...');
     return "#!/login";
   }
 
-  if (SHIELD.is('engineer') && SHIELD.shield) {
+  if (AEGIS.is('engineer') && AEGIS.shield) {
     /* process 'system' team diverts */
-    if (SHIELD.shield.core == "uninitialized") {
+    if (AEGIS.vault == "uninitialized") {
       console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
       return "#!/init";
 
-    } else if (SHIELD.shield.core == "sealed" || SHIELD.shield.core == "locked") {
+    } else if (AEGIS.vault == "locked") {
       console.log('system user detected, and this SHIELD core is locked; diverting to #!/unlock page...');
       return "#!/unlock";
     }
   }
 
   if (!page || page == "") {
-    return SHIELD.is('engineer') ? '#!/admin' : '#!/systems';
+    return AEGIS.is('engineer') ? '#!/admin' : '#!/systems';
   }
 
   return page;
@@ -209,11 +209,11 @@ function dispatch(page) {
     // }}}
 
   case "#!/do/backup": /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
-    if (!SHIELD.is('operator', SHIELD.activeTenant())) {
+    if (!AEGIS.is('tenant', 'operator')) {
       $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
       break;
     }
@@ -222,11 +222,11 @@ function dispatch(page) {
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
-    if (!SHIELD.is('operator', SHIELD.activeTenant())) {
+    if (!AEGIS.is('tenant', 'operator')) {
       $('#main').template('access-denied', { level: 'tenant', need: 'operator' });
       break;
     }
@@ -236,11 +236,11 @@ function dispatch(page) {
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
-    if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
+    if (!AEGIS.is('tenant', 'engineer')) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
@@ -278,7 +278,7 @@ function dispatch(page) {
     // }}}
 
   case "#!/systems": /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -286,12 +286,12 @@ function dispatch(page) {
     break; /* #!/systems */
     // }}}
   case '#!/systems/system': /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
     $('#main').template('loading');
-    $('#main').template('system', { target: SHIELD.system(args.uuid) });
+    $('#main').template('system', { target: AEGIS.system(args.uuid) });
     window.setTimeout(function () {
       /* for some reason, we need a small delay before we trigger the load-more */
       $('#main .paginate .load-more').trigger('click');
@@ -300,7 +300,7 @@ function dispatch(page) {
     // }}}
 
   case '#!/stores': /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -308,7 +308,7 @@ function dispatch(page) {
     break; /* #!/stores */
     // }}}
   case '#!/stores/store': /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -316,11 +316,11 @@ function dispatch(page) {
     break; /* #!/stores/store */
     // }}}
   case '#!/stores/new': /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
-    if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
+    if (!AEGIS.is('tenant', 'engineer')) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
@@ -347,7 +347,7 @@ function dispatch(page) {
         data.threshold = readableToBytes(data.threshold);
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/stores',
           data: data,
           success: function () {
             goto("#!/stores");
@@ -360,16 +360,16 @@ function dispatch(page) {
     break; /* #!/stores */
     // }}}
   case '#!/stores/edit': /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
-    if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
+    if (!AEGIS.is('tenant', 'engineer')) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
     $('#main').html($($.template('stores-form', {
-        store: SHIELD.store(args.uuid)
+        store: AEGIS.store(args.uuid)
       }))
       .autofocus()
       .on('submit', 'form', function (event) {
@@ -382,7 +382,7 @@ function dispatch(page) {
 
         api({
           type: 'PUT',
-          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores/'+args.uuid,
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid,
           data: data,
           success: function () {
             goto("#!/stores/store:uuid:"+args.uuid);
@@ -396,17 +396,17 @@ function dispatch(page) {
     break; /* #!/stores/edit */
     // }}}
   case '#!/stores/delete': /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
       $('#main').template('you-have-no-tenants');
       break;
     }
-    if (!SHIELD.is('engineer', SHIELD.activeTenant())) {
+    if (!AEGIS.is('tenant', 'engineer')) {
       $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
       break;
     }
     api({
       type: 'GET',
-      url:  '/v2/tenants/'+SHIELD.activeTenant()+'/stores/'+args.uuid,
+      url:  '/v2/tenants/'+AEGIS.tenant+'/stores/'+args.uuid,
       error: "Failed to retrieve storage system information from the SHIELD API.",
       success: function (store) {
         modal($($.template('stores-delete', { store: store }))
@@ -414,7 +414,7 @@ function dispatch(page) {
             event.preventDefault();
             api({
               type: 'DELETE',
-              url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/stores/'+args.uuid,
+              url:  '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid,
               error: "Unable to delete storage system",
               complete: function () {
                 modal(true);
@@ -436,11 +436,11 @@ function dispatch(page) {
     // }}}
 
   case '#!/tenants/edit': /* {{{ */
-    if (!SHIELD.activeTenant()) {
+    if (!AEGIS.tenant) {
         $('#main').template('you-have-no-tenants');
         break;
     }
-    if (!SHIELD.is('admin', args.uuid)) {
+    if (!AEGIS.is(args.uuid, 'admin')) {
         $('#main').template('access-denied', { level: 'tenant', need: 'admin' });
         break;
     }
@@ -532,7 +532,7 @@ function dispatch(page) {
     // }}}
 
   case '#!/admin': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -540,7 +540,7 @@ function dispatch(page) {
     break; /* #!/admin */
     // }}}
   case '#!/admin/agents': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -578,7 +578,7 @@ function dispatch(page) {
     break; /* #!/admin/agents */
     // }}}
   case '#!/admin/auth': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -594,7 +594,7 @@ function dispatch(page) {
     break; /* #!/admin/auth */
     // }}}
   case '#!/admin/auth/config': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -610,7 +610,7 @@ function dispatch(page) {
     break; /* #!/admin/auth */
     // }}}
   case '#!/admin/rekey': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -666,7 +666,7 @@ function dispatch(page) {
     // }}}
 
   case '#!/admin/tenants': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -682,7 +682,7 @@ function dispatch(page) {
     break; /* #!/admin/tenants */
     // }}}
   case '#!/admin/tenants/new': /* {{{ */
-    if (!SHIELD.is('manager')) {
+    if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
@@ -751,7 +751,7 @@ function dispatch(page) {
     break; /* #!/admin/tenants/new */
     // }}}
   case '#!/admin/tenants/edit': /* {{{ */
-    if (!SHIELD.is('manager')) {
+    if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
@@ -863,7 +863,7 @@ function dispatch(page) {
     // }}}
 
   case '#!/admin/users': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -878,7 +878,7 @@ function dispatch(page) {
     break; /* #!/admin/users */
     // }}}
   case "#!/admin/users/new": /* {{{ */
-    if (!SHIELD.is('manager')) {
+    if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
@@ -917,7 +917,7 @@ function dispatch(page) {
     break; // #!/admin/users/new
     // }}}
   case "#!/admin/users/edit": /* {{{ */
-    if (!SHIELD.is('manager')) {
+    if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
     }
@@ -957,18 +957,18 @@ function dispatch(page) {
     // }}}
 
   case '#!/admin/stores': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
     $('#main').template('stores', {
       admin: true,
-      stores: SHIELD._.global.stores
+      stores: AEGIS.stores({ global: true })
     });
     break; /* #!/admin/stores */
     // }}}
   case '#!/admin/stores/store': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -977,7 +977,7 @@ function dispatch(page) {
     break; /* #!/admin/stores/store */
     // }}}
   case '#!/admin/stores/new': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -1019,13 +1019,13 @@ function dispatch(page) {
     break; /* #!/admin/stores */
     // }}}
   case '#!/admin/stores/edit': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
     var data = {
       admin: true,
-      store: SHIELD.store(args.uuid, { includeGlobal: true })
+      store: AEGIS.store(args.uuid)
     };
     $('#main').html($($.template('stores-form', data))
       .autofocus()
@@ -1053,7 +1053,7 @@ function dispatch(page) {
     break; /* #!/admin/stores/edit */
     // }}}
   case '#!/admin/stores/delete': /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
@@ -1089,7 +1089,7 @@ function dispatch(page) {
     // }}}
 
   case '#!/admin/sessions': /* {{{ */
-    if (!SHIELD.is('admin')) {
+    if (!AEGIS.is('admin')) {
       $('#main').template('access-denied', { level: 'system', need: 'admin' });
       break;
     }
@@ -1111,7 +1111,7 @@ function dispatch(page) {
     break; /* #!/admin/sessions */
     // }}}
   case '#!/admin/sessions/delete': /* {{{ */
-    if (!SHIELD.is('admin')) {
+    if (!AEGIS.is('admin')) {
       $('#main').template('access-denied', { level: 'system', need: 'admin' });
       break;
     }
@@ -1145,41 +1145,14 @@ function dispatch(page) {
     break; /* #!/admin/sessions/delete */
     // }}}
   case "#!/unlock": /* {{{ */
-    if (!SHIELD.is('engineer')) {
+    console.log('#!/unlock: checking for system-level engineer role...');
+    if (!AEGIS.is('engineer')) {
+      console.log('#!/unlock: access is denied!');
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
-    $('#main').html($($.template('unlock', {}))
-      .autofocus()
-      .on('submit', 'form', function (event) {
-        event.preventDefault();
-
-        var $form = $(event.target);
-        $form.reset()
-        var data = $form.serializeObject();
-        if (data.master == "") {
-          $form.error('unlock-master', 'missing');
-          return;
-        }
-
-        api({
-          type: 'POST',
-          url:  '/v2/unlock',
-          data: data,
-          success: function (data) {
-            goto("");
-          },
-          statusCode: {
-            403: function () {
-              $form.error('unlock-master', 'incorrect')
-            },
-            500: function (xhr) {
-              $form.error(xhr.responseJSON);
-            }
-          },
-          error: {}
-        });
-      }));
+    console.log('#!/unlock: rendering "unlock" template...');
+    $('#main').template('unlock');//.autofocus();
     break;
     // }}}
 
@@ -1196,16 +1169,6 @@ function dispatch(page) {
 }
 
 function redraw(complete) {
-  if (complete && SHIELD.authenticated()) {
-    $('#viewport').template('layout', {});
-  }
-  $('#hud').template('hud');
-  $('.top-bar').template('top-bar', {
-    user:    SHIELD._.user,
-    tenants: SHIELD._.tenants,
-    tenant:  SHIELD._.tenant
-  });
-  document.title = "SHIELD "+SHIELD.shield.env;
 }
 function goto(page) {
   if (document.location.hash == page) {
@@ -1219,9 +1182,13 @@ function reload() {
 }
 
 $(function () {
-  new S.H.I.E.L.D.Database(function (db) {
-    console.log('starting up...');
-
+  window.AEGIS = new AEGIS().subscribe({}, function () {
+    document.title = "SHIELD "+AEGIS.shield.env;
+    $('.top-bar').template('top-bar');
+    if (AEGIS.authenticated()) {
+      $('#viewport').template('layout');
+      $('#hud').template('hud');
+    }
     $(window).on('hashchange', function (event) {
       dispatch(document.location.hash);
     }).trigger('hashchange');

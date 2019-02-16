@@ -189,6 +189,24 @@
       return this.find('task', { uuid: uuid });
     },
 
+    agents: function (q) {
+      q = q || {};
+
+      var agents = [];
+      for (var uuid in this.data.agent || {}) {
+        var agent = this.data.agent[uuid];
+        if (!q.hidden && agent.hidden) {
+          continue;
+        }
+        agents.push(agent);
+      }
+
+      return agents;
+    },
+    agent: function (uuid) {
+      return this.find('agent', { uuid: uuid });
+    },
+
     archives: function (q) {
       if (!q) { q = {}; }
       if (!('archive' in this.data)) { return []; }
@@ -396,7 +414,7 @@
               }
 
               for (var i = 0; i < tenant.agents.length; i++) {
-              //  self.insert('agent', tenant.agents[i]);
+                self.insert('agent', tenant.agents[i]);
               }
               delete tenant.agents;
 
@@ -432,117 +450,50 @@
       };
 
       return this;
+    },
+
+    plugins: function (type) {
+      var seen = {}; /* de-duplicating map */
+      var list = []; /* sorted list of [label, name] tuples */
+      var map  = {}; /* plugin.id => [agent, ...] */
+
+      $.each(this.agents({ hidden: false }), function (i, agent) {
+        if (!agent.metadata || !agent.metadata.plugins) { return; }
+
+        /* enumerate the plugins, and wire up the `map` associations */
+        $.each(agent.metadata.plugins, function (name, plugin) {
+          /* track that this plugin can be used on this agent */
+          if (!(name in map)) { map[name] = []; }
+          map[name].push(agent);
+
+          /* if we've already seen this plugin, don't add it to the list
+             that we will use to render the dropdowns; this does mean that,
+             in the event of conflicting names for the same plugin (i.e.
+             different versions of the same plugin), we may not have a
+             deterministic sort, but ¯\_(ツ)_/¯
+           */
+          if (name in seen) { return; }
+          seen[name] = true;
+
+          if (plugin.features[type] == "yes") {
+            list.push({
+              id:     name,
+              label:  plugin.name + ' (' + name + ')'
+            });
+          }
+        });
+      });
+
+      /* sort plugin lists by metadata name ("Amazon" instead of "s3") */
+      list.sort(function (a, b) {
+        return a.label > b.label ?  1 :
+               a.label < b.label ? -1 : 0;
+      });
+
+      return {
+        list:   list,
+        agents: map
+      };
     }
   });
 })(jQuery, window, document);
-
-window.S = {H:{I:{E:{L:{D:{}}}}}};
-window.S.H.I.E.L.D.Database = (function () {
-  function Database(db) {
-    var self = window.SHIELD = this;
-
-    if (db) {
-      this.db = db;
-    } else {
-      console.log('firing up an AEGIS instance...');
-      this.db = new AEGIS();
-    }
-    this.db.ubscribe();
-
-    return this;
-  }
-
-  /*
-
-  ########     ###    ########    ###        #######  ########   ######
-  ##     ##   ## ##      ##      ## ##      ##     ## ##     ## ##    ##
-  ##     ##  ##   ##     ##     ##   ##     ##     ## ##     ## ##
-  ##     ## ##     ##    ##    ##     ##    ##     ## ########   ######
-  ##     ## #########    ##    #########    ##     ## ##              ##
-  ##     ## ##     ##    ##    ##     ##    ##     ## ##        ##    ##
-  ########  ##     ##    ##    ##     ##     #######  ##         ######
-
-  */
-
-  Database.prototype.plugins = function (type) {
-    var seen = {}; /* de-duplicating map */
-    var list = []; /* sorted list of [label, name] tuples */
-    var map  = {}; /* plugin.id => [agent, ...] */
-
-    var tenant = this.activeTenant();
-    if (!tenant) {
-      return undefined;
-    }
-
-    for (var agent_uuid in tenant.agents) {
-      var agent = tenant.agents[agent_uuid];
-      if (!agent.metadata || !agent.metadata.plugins) { continue; }
-
-      agent.plugins = agent.metadata.plugins;
-
-      /* enumerate the plugins, and wire up the `map` associations */
-      for (var name in agent.plugins) {
-        var plugin = agent.plugins[name];
-
-        /* track that this plugin can be used on this agent */
-        if (!(name in map)) { map[name] = []; }
-        map[name].push(agent);
-
-        /* if we've already seen this plugin, don't add it to the list
-           that we will use to render the dropdowns; this does mean that,
-           in the event of conflicting names for the same plugin (i.e.
-           different versions of the same plugin), we may not have a
-           deterministic sort, but ¯\_(ツ)_/¯
-         */
-        if (name in seen) { continue; }
-        seen[name] = true;
-
-        if (plugin.features[type] == "yes") {
-          list.push({
-            id:     name,
-            label:  plugin.name + ' (' + name + ')'
-          });
-        }
-      }
-    }
-
-    /* sort plugin lists by metadata name ("Amazon" instead of "s3") */
-    list.sort(function (a, b) {
-      return a.label > b.label ?  1 :
-             a.label < b.label ? -1 : 0;
-    });
-
-    return {
-      list:   list,
-      agents: map
-    };
-  };
-
-  Database.prototype.agent = function (id) {
-    var tenant = this.activeTenant();
-    if (!tenant) {
-      return undefined;
-    }
-
-    if (!(id in tenant.agents)) {
-      for (var uuid in tenant.agents) {
-        if (tenant.agents[uuid].address == id && tenant.agents[uuid].status != 'checking') {
-          return tenant.agents[uuid];
-        }
-      }
-    }
-    return tenant.agents[id];
-  };
-
-  Database.prototype.redraw = function () {
-    if (this.authenticated()) {
-      $('#viewport').template('layout');
-    }
-
-    $('#hud').template('hud');
-    $('.top-bar').template('top-bar');
-    document.title = "SHIELD "+this._.shield.env;
-  };
-
-  return Database;
-})();

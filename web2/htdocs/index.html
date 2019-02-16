@@ -19,8 +19,7 @@
       ]]
       <div class="story-sidebar">
         <nav>
-          [[ if (SHIELD.activeTenant() && SHIELD.is('operator', SHIELD.activeTenant())) { ]]
-            [[ if (SHIELD.is('operator', SHIELD.activeTenant())) { ]]
+          [[ if (AEGIS.is('tenant', 'operator')) { ]]
             <li><a href="#!/do/backup">Run an ad hoc backup</a>
                 <p>Run a backup job whenever you need to, regardless of the job's
                 schedule.</p></li>
@@ -28,8 +27,7 @@
             <li><a href="#!/do/restore">Restore data from a backup</a>
                 <p>Restore a protected system back to the state it was in when a
                 backup archive was taken.</p></li>
-            [[ } ]]
-            [[ if (SHIELD.is('engineer', SHIELD.activeTenant())) { ]]
+            [[ if (AEGIS.is('tenant', 'engineer')) { ]]
               <li><a href="#!/do/configure">Configure a new backup job</a>
                   <p>Set up a new protected system, and configure the how, when,
                   and for how long of managing its backup archives.</p></li>
@@ -48,7 +46,7 @@
         </footer>
       </div>
       <div class="pane">
-        [[ if ((SHIELD.activeTenant() && SHIELD.is('operator', SHIELD.activeTenant())) || (SHIELD.is('engineer'))){ ]]
+        [[ if (AEGIS.is('engineer') || AEGIS.is('tenant', 'operator')) { ]]
         <div class="hud blk" id="hud">
           <div class="x5"><div class="inst">
             <ul>
@@ -72,7 +70,7 @@
             <li class="cli"><a href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a></li>
             <li><a href="#!/systems">Data Systems</a></li>
             <li class="current"><a href="#!/stores">Cloud Storage</a></li>
-            [[ if (SHIELD.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+            [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
           </nav>
         </div>
 
@@ -82,7 +80,7 @@
             <li class="cli"><a href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a></li>
             <li><a href="#!/systems">Data Systems</a></li>
             <li class="current"><a href="#!/stores">Cloud Storage</a></li>
-            [[ if (SHIELD.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
+            [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
           </nav>
         </div>
 
@@ -168,9 +166,9 @@
       ]]
           <div id="login" class="frontdoor">
             <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
-              <h1>SHIELD[[ if (SHIELD._.shield) { ]]<span style="color: [[= SHIELD._.shield.color || 'green' ]]">[[= SHIELD._.shield.env ]]<span>[[ } ]]</h1>
+              <h1>SHIELD[[ if (AEGIS.shield) { ]]<span style="color: [[= AEGIS.shield.color || 'green' ]]">[[= AEGIS.shield.env ]]<span>[[ } ]]</h1>
               <div class="dialog">
-                [[ if (SHIELD._.shield) { ]]<p class="motd">[[= SHIELD._.shield.motd ]]</p>[[ } ]]
+                [[ if (AEGIS.shield) { ]]<p class="motd">[[= AEGIS.shield.motd ]]</p>[[ } ]]
 
                 [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
@@ -227,9 +225,9 @@
             Displays the initialization template screen (displayed after login on an uninitialized SHIELD)
           ]]
               <div id="initialize" class="frontdoor">
-                  <h1>SHIELD<span style="color: [[= SHIELD._.shield.color || 'green' ]]">[[= SHIELD._.shield.env ]]<span></h1>
+                  <h1>SHIELD<span style="color: [[= AEGIS.shield.color || 'green' ]]">[[= AEGIS.shield.env ]]<span></h1>
                   <div class="dialog">
-                    <p class="motd">[[= SHIELD._.shield.motd ]]</p>
+                    <p class="motd">[[= AEGIS.shield.motd ]]</p>
                     <div class="restore">
                        <h2>Restore SHIELD</h2>
                         <p class="restore_divert">If you'd like to initialize this SHIELD installation with a previous SHIELD self-backup, provide the archive file and the fixed key used to encrypt the backup. </p>
@@ -289,7 +287,7 @@
       ]]
           <div id="cliauth" class="frontdoor">
             <div>
-              <h1>SHIELD<span>[[= SHIELD._.shield.env ]]<span></h1>
+              <h1>SHIELD<span>[[= AEGIS.shield.env ]]<span></h1>
               <div class="dialog">
                 <h2>CLI Authentication Credentials</h2>
                 <img src="/i/terminal.png" class="highlight">
@@ -316,7 +314,7 @@
         ]]
             <div id="fixed-wrapper" class="frontdoor">
               <div>
-                <h1>SHIELD<span>[[= SHIELD._.shield.env ]]<span></h1>
+                <h1>SHIELD<span>[[= AEGIS.shield.env ]]<span></h1>
                 <div class="dialog">
                   <h2>Shield Fixed Key</h2>
                   <img src="/i/terminal.png" class="highlight">
@@ -385,28 +383,28 @@
         Renders the top-most bar, with the SHIELD name / environment, and the
         current users name / tenant and "personal settings" menu.
       ]]
-        <h1><a href="#!/systems">SHIELD [[ if (SHIELD._.shield.color) { ]]<span style="color:[[= SHIELD._.shield.color ]]">[[ } ]][[= SHIELD._.shield.env ]]</span> <span>[[= SHIELD._.shield.ip ]]</span></a></h1>
-        [[ if (SHIELD.authenticated()) { ]]
-        <a href="#!/account" rel="account">[[= SHIELD._.user.name ]][[ if (SHIELD.activeTenant()) { ]] ([[= SHIELD.activeTenant().name ]] :: [[= SHIELD.activeTenant().role ]])[[ } ]]</a>
+        <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= AEGIS.shield.env ]]</span> <span>[[= AEGIS.shield.ip ]]</span></a></h1>
+        [[ if (AEGIS.authenticated()) { ]]
+        <a href="#!/account" rel="account">[[= AEGIS.user.name ]][[ if (AEGIS.current) { ]] ([[= AEGIS.current.name ]] :: [[= AEGIS.role(AEGIS.current.uuid) ]])[[ } ]]</a>
         <div class="flyout ephemeral">
           <div class="menu">
-            <div class="header">Signed in as [[= SHIELD._.user.account ]]
-              <span>[[= SHIELD._.user.backend ]]</span>
+            <div class="header">Signed in as [[= AEGIS.user.account ]]
+              <span>[[= AEGIS.user.backend ]]</span>
             </div>
             <div class="divider"></div>
             <div class="header">Your Tenants</div>
-            [[ var tenants = SHIELD.values(SHIELD._.tenants); ]]
+            [[ var tenants = AEGIS.tenants(); ]]
             [[ if (tenants.length == 0) { ]]
             <span class="dropdown odd">you have no tenants</span>
             [[ } else { ]]
-            [[   SHIELD.each(SHIELD.sortBy(tenants, 'name'), function (i, tenant) { ]]
-            <a class="dropdown[[ if (SHIELD.activeTenant() && tenant.uuid == SHIELD.activeTenant().uuid) { ]] current-tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]]</a>
+            [[   $.each($.sortBy(tenants, 'name'), function (i, tenant) { ]]
+            <a class="dropdown[[ if (AEGIS.current && tenant.uuid == AEGIS.current.uuid) { ]] current.tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]] ([[= AEGIS.role(tenant.uuid) ]])</a>
             [[   }); ]]
             [[ } ]]
             <!--
-            [[ if (SHIELD.activeTenant() && SHIELD.is('admin', SHIELD.activeTenant())) { ]]
+            [[ if (AEGIS.is('tenant', 'admin')) { ]]
                 <div class="divider"></div>
-                <a class="dropdown" href="#!/tenants/edit:uuid:[[= SHIELD.activeTenant().uuid ]]">Tenant Settings</a>
+                <a class="dropdown" href="#!/tenants/edit:uuid:[[= AEGIS.current.uuid ]]">Tenant Settings</a>
             [[ } ]]
             -->
             <div class="divider"></div>
@@ -427,12 +425,12 @@
             <div class="x5"><div class="inst">
               <ul>
                 <li class="shield">SHIELD
-                  [[ if (SHIELD._.shield.version) { ]]<span class="v">[[= SHIELD._.shield.version ]]</span>
+                  [[ if (AEGIS.shield.version) { ]]<span class="v">[[= AEGIS.shield.version ]]</span>
                   [[ } else { ]]<span class="v dev">(development)</span>
                   [[ } ]]</li>
-                [[ if (SHIELD._.shield.ip)   { ]]<li class="ip">[[= SHIELD._.shield.ip ]]</li>[[ } ]]
-                [[ if (SHIELD._.shield.fqdn) { ]]<li class="fqdn">[[= SHIELD._.shield.fqdn ]]</li>[[ } ]]
-                <li class="env"><span style="color: [[= lens.maybe(SHIELD._.shield.color, "#8CC63F") ]]">[[= SHIELD._.shield.env ]]</span></li>
+                [[ if (AEGIS.shield.ip)   { ]]<li class="ip">[[= AEGIS.shield.ip ]]</li>[[ } ]]
+                [[ if (AEGIS.shield.fqdn) { ]]<li class="fqdn">[[= AEGIS.shield.fqdn ]]</li>[[ } ]]
+                <li class="env"><span style="color: [[= lens.maybe(AEGIS.shield.color, "#8CC63F") ]]">[[= AEGIS.shield.env ]]</span></li>
               </ul>
             </div></div>
 
@@ -447,8 +445,29 @@
                 <object type="image/svg+xml" data="i/jobs-fail.svg"></object>
               </div>
               <ul>
-                [[ var health = SHIELD.health(); ]]
-                [[ console.log("health: %s", JSON.stringify(health)); ]]
+                [[
+                    var health = {
+                      core:    AEGIS.vault,
+                      storage: "ok",
+                      jobs:    "ok"
+                    };
+
+                    if (AEGIS.current) {
+                      $.each(AEGIS.stores({ tenant: AEGIS.current.uuid }),
+                             function (_, store) {
+                               if (!store.healthy) {
+                                 health.storage = "failing";
+                               }
+                             });
+
+                      $.each(AEGIS.jobs({ tenant: AEGIS.current.uuid }),
+                             function (_, job) {
+                               if (!job.healthy) {
+                                 health.jobs = "failing";
+                               }
+                             });
+                    }
+                ]]
                 [[ if (health.core == "unlocked") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
                 [[ } else { ]]
@@ -471,12 +490,11 @@
 
             <div class="x6"><div class="prot">
               <h3>Data Protection Summary</h3>
-              [[ var stats = SHIELD.stats(); ]]
               <ul>
-                <li>Scheduled Backup Jobs <span>[[= stats.jobs ]]</span></li>
-                <li>Backup Archives <span>[[= stats.archives ]]</span></li>
-                <li class="warn">Cloud Storage Used <span>[[= bytes(stats.storage) ]]</span></li>
-                <li class="ok">Daily Storage Increase <span>[[= bytes(stats.delta) ]]</span></li>
+                <li>Scheduled Backup Jobs <span>[[= AEGIS.jobs({ tenant: AEGIS.current.uuid }).length ]]</span></li>
+                <li>Backup Archives <span>[[= AEGIS.current.archive_count ]]</span></li>
+                <li class="warn">Cloud Storage Used <span>[[= bytes(AEGIS.current.storage_used) ]]</span></li>
+                <li class="ok">Daily Storage Increase <span>[[= bytes(AEGIS.current.daily_increase) ]]</span></li>
               </ul>
             </div></div>
     <!-- }}} --></script>
@@ -718,7 +736,7 @@
             <h2><span>Run an Ad Hoc Backup</span>Choose Your Data System</h2>
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
-                [[ var systems = SHIELD.systems(); ]]
+                [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
                 <table class="lean selectable choose target">
                   <thead>
                     <tr>
@@ -728,7 +746,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    [[ SHIELD.each(systems, function (i, target) { ]]
+                    [[ $.each(systems, function (i, target) { ]]
                     <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
@@ -770,7 +788,7 @@
       ]]
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
-                [[ var system = SHIELD.system(_.target.uuid); ]]
+                [[ var system = AEGIS.system(_.target.uuid); ]]
                 <table class="lean selectable choose store">
                   <thead>
                     <tr>
@@ -781,7 +799,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    [[ SHIELD.each(system.jobs, function (i, job) { ]]
+                    [[ $.each(AEGIS.jobs({ system: system.uuid }), function (i, job) { ]]
                     <tr class="[[ if (!job.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
                         data-job-uuid="[[= job.uuid ]]">
                       <td class="name">
@@ -817,8 +835,8 @@
 
       ]]
             <h2><span>Run an Ad Hoc Backup</span>Review Your Selections</h2>
-            [[ var system  = SHIELD.system(_.target.uuid); ]]
-            [[ var job; SHIELD.each(system.jobs, function (i, j) {
+            [[ var system  = AEGIS.system(_.target.uuid); ]]
+            [[ var job; $.each(AEGIS.jobs({ system: system.uuid }), function (i, j) {
                  if (!job && j.uuid == _.job.uuid) { job = j; }
                }); ]]
             <div class="summary-section">[[# {{{ ]]
@@ -900,7 +918,7 @@
             <h2><span>Restore Data</span>Choose Your Data System</h2>
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
-                [[ var systems = SHIELD.systems(); ]]
+                [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
                 <table class="lean selectable choose target">
                   <thead>
                     <tr>
@@ -911,7 +929,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    [[ SHIELD.each(systems, function (i, target) { ]]
+                    [[ $.each(systems, function (i, target) { ]]
                     <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]][[ if (target.archives.length == 0) { ]] no-archive not-selectable[[ } ]]"
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
@@ -960,8 +978,8 @@
         <div class="x9">
           [[
               var archives = [];
-              var all = SHIELD.activeTenant().archives;
-              SHIELD.each(all, function (i, archive) {
+              var all = AEGIS.archives({ tenant: AEGIS.current.uuid });
+              $.each(all, function (i, archive) {
                 if (all[i].status == "valid" && all[i].target_uuid == _.target.uuid) {
                   archives.push(all[i]);
                 } else {
@@ -985,7 +1003,7 @@
               </tr>
             </thead>
             <tbody>
-              [[ SHIELD.each(archives, function (i, archive) { ]]
+              [[ $.each(archives, function (i, archive) { ]]
               <tr data-archive-uuid="[[= archive.uuid ]]">
                 <td class="uuid">[[= archive.uuid.substr(0,8) ]]</td>
                 <td class="date">
@@ -1020,8 +1038,8 @@
 
       ]]
             <h2><span>Restore Data</span>Review Your Selections</h2>
-            [[ var system  = SHIELD.system(_.target.uuid); ]]
-            [[ var archive = SHIELD.findArchive(_.archive.uuid); ]]
+            [[ var system  = AEGIS.system(_.target.uuid); ]]
+            [[ var archive = AEGIS.archive(_.archive.uuid); ]]
             <div class="summary-section">[[# {{{ ]]
               <div class="c12 band">
                 <div class="x2"><label>Data System</label></div>
@@ -1070,7 +1088,6 @@
         {do-configure} - Job Configuration Wizard
 
       ]]
-      [[ console.log(_, SHIELD); ]]
       <div class="gutter blk wizard2 steps5 do-configure">
         <div class="progress">[[# {{{ ]]
           <div class="back line"></div>
@@ -1117,7 +1134,7 @@
             <h2><span>Configure a New Backup Job</span>Choose Your Data System</h2>
             <div class="c12 band">
               <div class="x9">
-                [[ var systems = SHIELD.systems(); ]]
+                [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
                 <table class="lean selectable choose target">
                   <thead>
                     <tr>
@@ -1127,7 +1144,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    [[ SHIELD.each(systems, function (i, target) { ]]
+                    [[ $.each(systems, function (i, target) { ]]
                     <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
@@ -1196,7 +1213,7 @@
                       <div class="x9">
                         <select name="target.plugin">
                           <option></option>
-                          [[ $.each(SHIELD.plugins('target').list, function (i, plugin) { ]]
+                          [[ $.each(AEGIS.plugins('target').list, function (i, plugin) { ]]
                           <option value="[[= plugin.id ]]">[[= plugin.label ]]</option>
                           [[ }); ]]
                         </select>
@@ -1218,7 +1235,8 @@
             <h2><span>Configure a New Backup Job</span>Choose Cloud Storage</h2>
             <div class="c12 band">
               <div class="x9">
-                [[ var stores = SHIELD.stores(); ]]
+                [[ var stores = AEGIS.stores({ tenant: AEGIS.current.uuid,
+                                               global: true }); ]]
                 <table class="lean selectable choose store">
                   <thead>
                     <tr>
@@ -1228,7 +1246,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    [[ SHIELD.each(stores, function (i, store) { ]]
+                    [[ $.each(stores, function (i, store) { ]]
                     <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
                         data-store-uuid="[[= store.uuid ]]">
                       <td class="name">
@@ -1298,7 +1316,7 @@
                       <div class="x9">
                         <select name="store.plugin">
                           <option></option>
-                          [[ $.each(SHIELD.plugins('store').list, function (i, plugin) { ]]
+                          [[ $.each(AEGIS.plugins('store').list, function (i, plugin) { ]]
                           <option value="[[= plugin.id ]]">[[= plugin.label ]]</option>
                           [[ }); ]]
                         </select>
@@ -1413,7 +1431,7 @@
           [[ } else { ]]
           <select name="target.agent">
             <option></option>
-            [[ $.each(SHIELD.plugins('target').agents[_.selected_target_plugin], function (i, agent) { ]]
+            [[ $.each(AEGIS.plugins('target').agents[_.selected_target_plugin], function (i, agent) { ]]
               <option value="[[= agent.address ]]">[[= agent.name ]] - [[= agent.address ]] (legacy ssh)</option>
             [[ }); ]]
           </select>
@@ -1423,7 +1441,7 @@
       </div>
 
       [[ if (_.selected_target_plugin && _.selected_target_agent) { ]]
-        [[ var plugin = SHIELD.agent(_.selected_target_agent).plugins[_.selected_target_plugin]; ]]
+        [[ var plugin = AEGIS.agent(_.selected_target_agent).plugins[_.selected_target_plugin]; ]]
         <div class="l1 x10"><h3>Plugin Properties ([[= plugin.name ]])</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'target.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
@@ -1453,7 +1471,7 @@
           [[ console.log('selected store plugin %s', _.selected_target_plugin); ]]
           <select name="store.agent">
             <option></option>
-            [[ $.each(SHIELD.plugins('store').agents[_.selected_store_plugin], function (i, agent) { ]]
+            [[ $.each(AEGIS.plugins('store').agents[_.selected_store_plugin], function (i, agent) { ]]
               <option value="[[= agent.address ]]">[[= agent.name ]] - [[= agent.address ]] (legacy ssh)</option>
             [[ }); ]]
           </select>
@@ -1463,7 +1481,7 @@
       </div>
 
       [[ if (_.selected_store_plugin && _.selected_store_agent) { ]]
-        [[ var plugin = SHIELD.agent(_.selected_store_agent).plugins[_.selected_store_plugin]; ]]
+        [[ var plugin = AEGIS.agent(_.selected_store_agent).plugins[_.selected_store_plugin]; ]]
         <div class="l1 x10"><h3>Plugin Properties ([[= plugin.name ]])</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'store.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
@@ -1553,7 +1571,7 @@
           [[ console.log('selected '+_.type+' plugin %s', _.plugin); ]]
           <select name="[[= _.type ]].agent">
             <option></option>
-            [[ $.each(SHIELD.plugins(_.type).agents[_.plugin], function (i, agent) { ]]
+            [[ $.each(AEGIS.plugins(_.type).agents[_.plugin], function (i, agent) { ]]
               <option value="[[= agent.address ]]"[[ if (_.agent == agent.address) { ]] selected[[ } ]]>[[= agent.name ]] - [[= agent.address ]] (legacy ssh)</option>
             [[ }); ]]
           </select>
@@ -1568,7 +1586,7 @@
         [[ if (_.agent) { ]]
           [[ include('plugin-configuration-form', {
                prefix: _.type+'.config.',
-               plugin: SHIELD.agent(_.agent).plugins[_.plugin],
+               plugin: AEGIS.agent(_.agent).plugins[_.plugin],
                config: _.config
              }); ]]
           <div class="x9 buttons">
@@ -1654,9 +1672,9 @@
         Renders all targets visible to / manageable by the current user.
       ]]
       [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
-      [[ var systems = SHIELD.systems(); ]]
+      [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
       <div class="gutter blk switch-me [[= view ]]">
-        [[ if (SHIELD.activeTenant() && SHIELD.is('engineer', SHIELD.activeTenant())) { ]]
+        [[ if (AEGIS.is('tenant', 'engineer')) { ]]
           <a class="new" href="#!/do/configure">Configure a New Backup Job&raquo;</a>
         [[ } ]]
         [[ if (systems.length == 0) { ]]
@@ -1679,7 +1697,7 @@
               </tr>
             </thead>
             <tbody>
-              [[ SHIELD.each(systems, function (i, target) { ]]
+              [[ $.each(systems, function (i, target) { ]]
               <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
                 <td class="name">
                   <a href="#!/systems/system:uuid:[[= target.uuid ]]">
@@ -1688,12 +1706,12 @@
                   </a>
                 </td>
                 <td class="schedule">
-                  [[ $.each(target.jobs, function (j, job) { ]]
+                  [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) { ]]
                   runs [[= job.schedule ]]<br>
                   [[ }); ]]
                 </td>
                 <td class="retain">
-                  [[ $.each(target.jobs, function (j, job) { ]]
+                  [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) { ]]
                   [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   [[ }); ]]
                 </td>
@@ -1704,7 +1722,7 @@
           </table>
 
           <div class="cards">
-            [[ SHIELD.each(systems, function (i, target) { ]]
+            [[ $.each(systems, function (i, target) { ]]
             <div class="job card [[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="#!/systems/system:uuid:[[= target.uuid ]]">
               <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
@@ -1713,7 +1731,7 @@
                 <li>[[ if (target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
                     [[ } else { ]]backups will be compressed via <tt>[[= target.compression ]]</tt>[[ } ]]</li>
               </ul>
-              [[ $.each(target.jobs, function (j, job) { ]]
+              [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) { ]]
               <ul class="details">
                 <li>runs [[= job.schedule ]]</li>
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
@@ -1747,7 +1765,7 @@
                 <li>[[ if (_.target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
                     [[ } else { ]]backups will be compressed via <tt>[[= _.target.compression ]]</tt>[[ } ]]</li>
               </ul>
-              [[ $.each(_.target.jobs, function (i, job) { ]]
+              [[ $.each(AEGIS.jobs({ system: _.target.uuid }), function (i, job) { ]]
               <ul class="details">
                 <li>runs [[= job.schedule ]] &mdash; <a href="run:[[= job.uuid ]]">run now</a></li>
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
@@ -1770,7 +1788,7 @@
             </div>
 
             <h2>Timeline</h2>
-            <div class="paginate" data-url="/v2/tenants/[[= SHIELD.activeTenant().uuid ]]/systems/[[= _.target.uuid ]]?before={oldest}" data-oldest="[[= new Date().getTime() ]]">
+            <div class="paginate" data-url="/v2/tenants/[[= AEGIS.current.uuid ]]/systems/[[= _.target.uuid ]]?before={oldest}" data-oldest="[[= new Date().getTime() ]]">
               <div class="timeline results"></div>
               <div class="loading">Fetching more tasks...</div>
               <a class="load-more" href="">More Tasks...</a>
@@ -1884,10 +1902,11 @@ for job <em>[[= _.task.job_uuid ]]</em>
         and in some cases allows for user-management of their configurations.
       ]]
       [[ var view = localStorage.getItem('view-preference') || 'card-view'; ]]
-      [[ var stores = _.stores ? _.stores : SHIELD.stores({ includeGlobal: true }); ]]
+      [[ var stores = _.stores ? _.stores : AEGIS.stores({ tenant: AEGIS.current.uuid,
+                                                           global: true }); ]]
           <div class="gutter blk switch-me [[= view ]]">
-            [[ if ((_.admin  && SHIELD.is('engineer'))
-                || (!_.admin && SHIELD.is('engineer', SHIELD.activeTenant()))) { ]]
+            [[ if ((_.admin  && AEGIS.is('engineer'))
+                || (!_.admin && AEGIS.is('tenant', 'engineer'))) { ]]
             <a class="new" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/new">Configure a New Cloud Storage System&raquo;</a>
             [[ } ]]
             [[ if (_.admin) { ]]
@@ -1923,7 +1942,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 </tr>
               </thead>
               <tbody>
-                [[ SHIELD.each(stores, function (i, store) { ]]
+                [[ $.each(stores, function (i, store) { ]]
                 <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
                   <td class="name">
                     <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
@@ -1947,7 +1966,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             </table>
 
             <div class="cards">
-            [[ SHIELD.each(stores, function (i, store) { ]]
+            [[ $.each(stores, function (i, store) { ]]
             <div class="store card [[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
               <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
@@ -1976,21 +1995,15 @@ for job <em>[[= _.task.job_uuid ]]</em>
         usage information and provide management capabilities.
       ]]
       [[
-         var tenant = SHIELD.activeTenant();
-         var store = tenant.stores[_.uuid];
-         if (!store) {
-           store = SHIELD.first(SHIELD._.global.stores, function (store) {
-             return store.uuid == _.uuid;
-           });
-         }
+         var store = AEGIS.store(_.uuid);
       ]]
           <div class="gutter blk store">
             <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
             <h2><div class="plugin">[[= store.plugin ]]</div>[[= store.name ]][[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]</h2>
 
             [[ if (_.admin || !store.global) { ]]
-              [[ if ((_.admin && SHIELD.is('engineer'))
-                  || (!_.admin && SHIELD.is('engineer', tenant))) { ]]
+              [[ if ((_.admin && AEGIS.is('engineer'))
+                  || (!_.admin && AEGIS.is(tenant.uuid, 'engineer'))) { ]]
               <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= store.uuid ]]">Edit</a>
               <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= store.uuid ]]">Delete</a>
               [[ } ]]
@@ -2176,7 +2189,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                       <div class="x9">
                         <select name="store.plugin">
                           <option></option>
-                          [[ $.each(SHIELD.plugins('store').list, function (i, plugin) { ]]
+                          [[ $.each(AEGIS.plugins('store').list, function (i, plugin) { ]]
                           <option value="[[= plugin.id ]]"[[ if (_.store && _.store.plugin == plugin.id) { ]] selected[[ } ]]>[[= plugin.label ]]</option>
                           [[ }); ]]
                         </select>
@@ -2366,7 +2379,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
           <div class="gutter blk" id="admin-home">
             <h2>SHIELD Administration</h2>
             <ul>
-              [[ if (SHIELD.is('manager')) { ]]
+              [[ if (AEGIS.is('manager')) { ]]
               <li><a href="#!/admin/tenants">Tenants</a>
                 <p>Tenants separate and isolate subsets of your users from one another, so that
                 they can neither see nor affect the data systems, or cloud storage configurations
@@ -2380,7 +2393,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 admins are able to view and edit their configuration.</p>
               </li>
 
-              [[ if (SHIELD.is('admin')) { ]]
+              [[ if (AEGIS.is('admin')) { ]]
               <li><a href="#!/admin/agents">Agents of SHIELD</a>
                 <p>SHIELD performs backup and restore operations through <em>agents</em> that run
                 on other machines.  These agents register with the SHIELD Core, and provide
@@ -2394,7 +2407,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </li>
               [[ } ]]
 
-              [[ if (SHIELD.is('manager')) { ]]
+              [[ if (AEGIS.is('manager')) { ]]
               <li><a href="#!/admin/users">Local User Management</a>
                 <p>Local SHIELD user accounts can be set up to provide access to your SHIELD if
                 you do not want to use a 3rd party authentication provider.  Local users can be
@@ -2408,7 +2421,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 want to, you can rekey this SHIELD Core and pick a new master password.</p>
               </li>
 
-              [[ if (SHIELD.is('admin')) { ]]
+              [[ if (AEGIS.is('admin')) { ]]
               <li><a href="#!/admin/sessions">Manage User Sessions</a>
                 <p>Upon login, users are granted a session token to be used for the duration of
                 their access. These sessions can be revoked via this interface, or expire
@@ -2652,7 +2665,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       ]]
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
-            [[ if (SHIELD.is('manager')) { ]]
+            [[ if (AEGIS.is('manager')) { ]]
             <a class="new" href="#!/admin/users/new">Create a New Local User &raquo;</a>
             [[ } ]]
             <h2>Local User Management</h2>
@@ -2685,7 +2698,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     [[ } ]]
                   </td>
                   <td>
-                    [[ if (SHIELD.is('manager')) { ]]
+                    [[ if (AEGIS.is('manager')) { ]]
                     <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a>
                     [[ } ]]
                   </td>
@@ -2791,7 +2804,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 <label for="edit-user-sysrole">System Role</label>
                 <div class="widget">
                   <select name="sysrole" id="edit-user-sysrole"
-                    [[ if (SHIELD.is(_.user) || (!SHIELD.is('admin') && _.user.sysrole == "admin")) { ]] disabled[[ } ]]>
+                    [[ if (AEGIS.user.uuid == _.user.uuid || (!AEGIS.is('admin') && _.user.sysrole == "admin")) { ]] disabled[[ } ]]>
                     <option value="">None</option>
                     <option value="engineer"[[ if (_.user.sysrole == "engineer") { ]] selected[[ } ]]>Engineer</option>
                     <option value="manager"[[ if (_.user.sysrole == "manager") { ]] selected[[ } ]]>Manager</option>

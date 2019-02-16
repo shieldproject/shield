@@ -112,7 +112,7 @@
 
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/systems',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/systems',
           data: self.data(),
 
           error: "Failed to create system via the SHIELD API.",
@@ -137,7 +137,7 @@
       if (this.root.find('[data-step=2]').extract('mode') == 'choose') {
         data.target.uuid = this.root.find('[data-step=2] tr.selected').extract('target-uuid');
 
-        var t = window.SHIELD.system(data.target.uuid);
+        var t = AEGIS.system(data.target.uuid);
         if (t) {
           data.target.name   = t.name;
           data.target.plugin = t.plugin;
@@ -154,7 +154,7 @@
       if (this.root.find('[data-step=3]').extract('mode') == 'choose') {
         data.store.uuid = this.root.find('[data-step=3] tr.selected').extract('store-uuid');
 
-        var t = window.SHIELD.store(data.store.uuid);
+        var t = AEGIS.store(data.store.uuid);
         if (t) {
           data.store.name = t.name;
           data.store.plugin = t.plugin;
@@ -228,7 +228,7 @@
         var data = self.data();
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/jobs/'+data.job.uuid+'/run',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+data.job.uuid+'/run',
           data: {},
 
           error: "Failed to create system via the SHIELD API.",
@@ -310,7 +310,7 @@
         var data = self.data();
         api({
           type: 'POST',
-          url:  '/v2/tenants/'+SHIELD.activeTenant().uuid+'/archives/'+data.archive.uuid+'/restore',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/archives/'+data.archive.uuid+'/restore',
           data: {},
 
           error: "Failed to create system via the SHIELD API.",
