@@ -1,6 +1,60 @@
 ;(function ($, window, document, undefined) {
+
+  /*
+
+  ##     ## ######## #### ##       #### ######## #### ########  ######
+  ##     ##    ##     ##  ##        ##     ##     ##  ##       ##    ##
+  ##     ##    ##     ##  ##        ##     ##     ##  ##       ##
+  ##     ##    ##     ##  ##        ##     ##     ##  ######    ######
+  ##     ##    ##     ##  ##        ##     ##     ##  ##             ##
+  ##     ##    ##     ##  ##        ##     ##     ##  ##       ##    ##
+   #######     ##    #### ######## ####    ##    #### ########  ######
+
+   */
+  $.sortBy = function (l, k) {
+    return l.sort(function (a, b) {
+      return a[k] > b[k] ? 1 : a[k] == b[k] ? 0 : -1;
+    });
+  };
+
+  $.first = function (thing, fn) {
+    if (typeof(thing) === 'undefined') {
+      return undefined;
+    }
+
+    if (!thing instanceof Array) {
+      console.log('first() called with a non-array first argument: ', thing);
+      throw 'first() can only be used on arrays';
+    }
+
+    for (var i = 0; i < thing.length; i++) {
+      if (fn(thing[i])) { return thing[i]; }
+    }
+
+    return undefined;
+  };
+
+  /*
+
+     ###    ########  ######   ####  ######
+    ## ##   ##       ##    ##   ##  ##    ##
+   ##   ##  ##       ##         ##  ##
+  ##     ## ######   ##   ####  ##   ######
+  ######### ##       ##    ##   ##        ##
+  ##     ## ##       ##    ##   ##  ##    ##
+  ##     ## ########  ######   ####  ######
+
+   */
   window.AEGIS = function () {
     this.data = {};
+    this.grants = {
+      tenant: {},
+      system: {
+        admin:    false,
+        manager:  false,
+        engineer: false
+      }
+    };
   };
 
   $.extend(window.AEGIS.prototype, {
@@ -50,16 +104,17 @@
 
     systems: function (q) {
       if (!q) { q = {}; }
+      if (!('target' in this.data)) { return []; }
+
+      var systems = [];
       if ('tenant' in q) {
-        if (!('target' in this.data)) { return []; }
-        var systems = [];
         for (var uuid in this.data.target) {
           if (this.data.target[uuid].tenant_uuid == q.tenant) {
             systems.push(this.data.target[uuid]);
           }
         }
-        return systems;
       }
+      return systems;
     },
     system: function (uuid) {
       return this.find('target', { uuid: uuid });
@@ -93,17 +148,15 @@
       if (!('job' in this.data)) { return []; }
 
       var jobs = [];
-      if ('system' in q) {
-        for (var uuid in this.data.job) {
-          var job = this.data.job[uuid];
-          if (job.target_uuid != q.system) {
-            continue;
-          }
-          if ('tenant' in q && job.tenant_uuid != q.tenant) {
-            continue;
-          }
-          jobs.push(job);
+      for (var uuid in this.data.job) {
+        var job = this.data.job[uuid];
+        if ('system' in q && job.target_uuid != q.system) {
+          continue;
         }
+        if ('tenant' in q && job.tenant_uuid != q.tenant) {
+          continue;
+        }
+        jobs.push(job);
       }
       return jobs;
     },
@@ -157,247 +210,247 @@
     },
     archive: function (uuid) {
       return this.find('archive', { uuid: uuid });
+    },
+
+    uuid: function (uuid) {
+      if (typeof(uuid) === 'object' && ('uuid' in uuid)) {
+        uuid = uuid.uuid;
+      }
+      if (uuid === 'tenant') {
+        return this.current ? this.current.uuid : '';
+      }
+      return uuid;
+    },
+
+    use: function (uuid) {
+      this.current = this.tenant(uuid);
+      return this;
+    },
+
+    authenticated: function () {
+      return typeof(this.user) !== 'undefined';
+    },
+    grant: function () {
+      if (arguments.length == 1) {
+        /* grant a system role: grant($role) */
+
+        /* first revoke all explicit / implicit grants */
+        this.grants.system.admin    = false;
+        this.grants.system.manager  = false;
+        this.grants.system.engineer = false;
+
+        /* then grant only the privileges for this role */
+        switch (arguments[0]) {
+        case 'admin':    this.grants.system.admin    = true;
+        case 'manager':  this.grants.system.manager  = true;
+        case 'engineer': this.grants.system.engineer = true;
+        }
+
+      } else {
+        /* grant a tenant role: grant($tenant, $role) */
+        var uuid = arguments[0];
+
+        /* first revoke all expliit / implicit grants */
+        this.grants.tenant[uuid] = {
+          admin:    false,
+          engineer: false,
+          operator: false
+        };
+
+        /* then grant only the privileges for this role */
+        switch (arguments[1]) {
+        case 'admin':    this.grants.tenant[uuid].admin    = true;
+        case 'engineer': this.grants.tenant[uuid].engineer = true;
+        case 'operator': this.grants.tenant[uuid].operator = true;
+        }
+      }
+      return this;
+    },
+    role: function () {
+      if (arguments.length == 0) {
+        return this.grants.system.admin    ? 'Administrator'
+             : this.grants.system.manager  ? 'Manager'
+             : this.grants.system.engineer ? 'Engineer'
+             : '';
+      }
+
+      var uuid = arguments[0];
+      if (!(uuid in this.grants.tenant)) { return ''; }
+
+      return this.grants.tenant[uuid].admin    ? 'Administrator'
+           : this.grants.tenant[uuid].engineer ? 'Engineer'
+           : this.grants.tenant[uuid].operator ? 'Operator'
+           : '';
+    },
+    is: function () {
+      if (arguments.length == 1) {
+        /* look up system rights: is($role) */
+        return !!this.grants.system[arguments[0]];
+
+      } else {
+        /* look up tenant rights: is($tenant, $role) */
+        var uuid = arguments[0];
+        if (uuid === 'tenant') {
+          uuid = this.current;
+        }
+        if (typeof(uuid) === 'object' && 'uuid' in uuid) {
+          uuid = uuid.uuid;
+        }
+        if (uuid in this.grants.tenant) {
+          return !!this.grants.tenant[uuid][arguments[1]];
+        }
+        return false;
+      }
+    },
+
+    subscribe: function (opts, continuation) {
+      opts = $.extend({
+        bearings:  '/v2/bearings',
+        websocket: document.location.protocol.replace(/http/, 'ws')+'//'+document.location.host+'/v2/events'
+      }, opts || {});
+
+      var self = this; /* save off 'this' for the continuation call */
+      self.cc = continuation;
+
+      console.log('connecting to websocket at %s', opts.websocket);
+      this.ws = new WebSocket(opts.websocket);
+      this.ws.onclose = function () {
+        self.ws = undefined;
+        if (self.cc) {
+          var fn = self.cc; self.cc = undefined;
+          fn.call(self);
+        }
+      };
+
+      this.ws.onmessage = function (m) {
+        var update = {};
+
+        try {
+          update = JSON.parse(m.data);
+        } catch (e) {
+          console.log("unable to parse event '%s' from stream: ", m.data, e);
+          return;
+        }
+
+        //console.log('event (%s): ', update.event, JSON.stringify(update.data));
+        switch (update.event) {
+        case 'create-object': self.insert(update.type, update.data); break;
+        case 'update-object': self.update(update.type, update.data); break;
+        case 'delete-object': self.delete(update.type, update.data); break;
+        case 'task-log-update':
+          var task = self.task(update.data.uuid);
+          if (task) { task.log += update.data.tail; }
+          break;
+        case 'task-status-update':
+          self.update('task', update.data);
+          break;
+        default:
+          console.log('unrecognized websocket message "%s": %s', update.event, JSON.stringify(update.data));
+          return;
+        }
+      };
+
+      this.ws.onopen = function () {
+        console.log('connected to event stream.');
+        console.log('getting our bearings (via %s)...', opts.bearings);
+        api({
+          type: 'GET',
+          url:  opts.bearings,
+          success: function (bearings) {
+            self.shield = bearings.shield;
+            self.vault  = bearings.vault;
+            self.user   = bearings.user;
+
+            for (var i = 0; i < bearings.stores.length; i++) {
+              self.insert('store', bearings.stores[i]);
+            }
+            for (var uuid in bearings.tenants) {
+              var tenant = bearings.tenants[uuid];
+
+              console.log(uuid, tenant.role);
+              self.grant(uuid, tenant.role); /* FIXME: we don't need .grants anymore... */
+
+              for (var i = 0; i < tenant.archives.length; i++) {
+                self.insert('archive', tenant.archives[i]);
+              }
+
+              for (var i = 0; i < tenant.jobs.length; i++) {
+                tenant.jobs[i].tenant_uuid = uuid;
+                tenant.jobs[i].store_uuid = tenant.jobs[i].store.uuid;
+                delete tenant.jobs[i].store;
+
+                tenant.jobs[i].target_uuid = tenant.jobs[i].target.uuid;
+                delete tenant.jobs[i].target;
+
+                self.insert('job', tenant.jobs[i]);
+              }
+
+              for (var i = 0; i < tenant.targets.length; i++) {
+                tenant.targets[i].tenant_uuid = uuid;
+                self.insert('target', tenant.targets[i]);
+              }
+
+              for (var i = 0; i < tenant.stores.length; i++) {
+                tenant.stores[i].tenant_uuid = uuid;
+                self.insert('store', tenant.stores[i]);
+              }
+
+              for (var i = 0; i < tenant.agents.length; i++) {
+              //  self.insert('agent', tenant.agents[i]);
+              }
+              delete tenant.agents;
+
+              self.insert('tenant', tenant.tenant);
+              if (!AEGIS.current) {
+                AEGIS.current = tenant.tenant;
+              }
+            }
+            console.log(bearings);
+
+            /* process grants... */
+            self.grant(self.user.sysrole);
+
+            /* set default tenant */
+            if (!self.tenant) {
+              var l = [];
+              for (var k in self.data.tenant) {
+                l.push(self.data.tenant[k]);
+              }
+              l.sort(function (a, b) {
+                return a.name > b.name ? 1 : a.name == b.name ? 0 : -1;
+              });
+              if (l.length > 0) { self.tenant = l[0]; }
+            }
+          },
+          complete: function () {
+            if (self.cc) {
+              var fn = self.cc; self.cc = undefined;
+              fn.call(self);
+            }
+          }
+        });
+      };
+
+      return this;
     }
   });
 })(jQuery, window, document);
 
-if (typeof window.S           === 'undefined') { window.S           = {}; }
-if (typeof window.S.H         === 'undefined') { window.S.H         = {}; }
-if (typeof window.S.H.I       === 'undefined') { window.S.H.I       = {}; }
-if (typeof window.S.H.I.E     === 'undefined') { window.S.H.I.E     = {}; }
-if (typeof window.S.H.I.E.L   === 'undefined') { window.S.H.I.E.L   = {}; }
-if (typeof window.S.H.I.E.L.D === 'undefined') { window.S.H.I.E.L.D = {}; }
+window.S = {H:{I:{E:{L:{D:{}}}}}};
 window.S.H.I.E.L.D.Database = (function () {
-  function Database(continuation) {
+  function Database(db) {
     var self = window.SHIELD = this;
 
-    this._ = { data: {} };
+    if (db) {
+      this.db = db;
+    } else {
+      console.log('firing up an AEGIS instance...');
+      this.db = new AEGIS();
+    }
+    this.db.ubscribe();
 
-    console.log('connecting to SHIELD event stream at /v2/events...');
-    this._.ws = new WebSocket(document.location.protocol.replace(/http/, 'ws')+'//'+document.location.host+'/v2/events');
-
-    this._.ws.onclose = function (event) {
-      console.log('websocket closing...');
-      if (continuation) {
-        continuation(self);
-      }
-    };
-
-    this._.ws.onmessage = function (m) {
-      var update = {};
-
-      try {
-        update = JSON.parse(m.data);
-      } catch (e) {
-        console.log("unable to parse event '%s' from stream: ", m.data, e);
-        return;
-      }
-
-      switch (update.event) {
-      case 'create-object':
-        self.set(update.type, update.data);
-
-      //case 'update-object':
-      }
-    };
-
-    this._.ws.onopen = function () {
-      console.log('connected to event stream.');
-      console.log('getting our bearings (via /v2/bearings)...');
-      api({
-        type: 'GET',
-        url:  '/v2/bearings',
-        success: function (bearings) {
-          self._.shield = bearings.shield;
-          self._.vault  = bearings.vault;
-          self._.user   = bearings.user;
-          self._.global = {
-            stores: bearings.stores
-          };
-
-          self._.tasks   = {};
-          self._.tenant  = self._.user.default_tenant;
-          self._.tenants = bearings.tenants;
-          for (var uuid in self._.tenants) {
-            self._.tenants[uuid].archives = self.keyBy(self._.tenants[uuid].archives, 'uuid');
-            self._.tenants[uuid].jobs     = self.keyBy(self._.tenants[uuid].jobs,     'uuid');
-            self._.tenants[uuid].targets  = self.keyBy(self._.tenants[uuid].targets,  'uuid');
-            self._.tenants[uuid].stores   = self.keyBy(self._.tenants[uuid].stores,   'uuid');
-            self._.tenants[uuid].agents   = self.keyBy(self._.tenants[uuid].agents,   'uuid');
-            for (var k in self._.tenants[uuid].tenant) {
-              self._.tenants[uuid][k] = self._.tenants[uuid].tenant[k];
-            }
-            delete self._.tenants[uuid].tenant;
-          }
-
-          /* process grants... */
-          self._.system = {};
-          self._.system.grants = {
-            admin:    false,
-            manager:  false,
-            engineer: false
-          }
-          switch (self._.user.sysrole) {
-          case "admin":    self._.system.grants.admin    = true;
-          case "manager":  self._.system.grants.manager  = true;
-          case "engineer": self._.system.grants.engineer = true;
-          }
-
-          /* set default tenant */
-          if (!self._.tenant) {
-            tenants = self.sortBy(self.values(self._.tenants), 'name');
-            if (tenants.length > 0) { self._.tenant = tenants[0]; }
-          }
-
-          self.redraw();
-          var fn = continuation;
-          continuation = undefined;
-          fn(self);
-        }
-      });
-    };
+    return this;
   }
-
-  /*
-
-  ##     ## ######## #### ##       #### ######## #### ########  ######
-  ##     ##    ##     ##  ##        ##     ##     ##  ##       ##    ##
-  ##     ##    ##     ##  ##        ##     ##     ##  ##       ##
-  ##     ##    ##     ##  ##        ##     ##     ##  ######    ######
-  ##     ##    ##     ##  ##        ##     ##     ##  ##             ##
-  ##     ##    ##     ##  ##        ##     ##     ##  ##       ##    ##
-   #######     ##    #### ######## ####    ##    #### ########  ######
-
-   */
-
-  /*
-     _.merge(base, update) -> Object
-
-     Perform a key-wise merge of `base` and `update`, overriding keys
-     in `base` that are present in `update` with the values from `update`.
-
-     This is a dumb merge at the moment; it does not recurse, and it does
-     not compare lists item-wise.
-   */
-  Database.prototype.merge = function (base, update) {
-    if (typeof(update) !== 'undefined') {
-      for (var k in update) {
-        if (update.hasOwnProperty(k)) {
-          base[k] = update[k];
-        }
-      }
-    }
-    return base;
-  };
-
-  Database.prototype.keys = function (o) {
-    var l = [];
-    if (o) { for (var k in o) { l.push(k); } }
-    return l;
-  }
-
-  Database.prototype.values = function (o) {
-    var l = [];
-    if (o) { for (var k in o) { l.push(o[k]); } }
-    return l;
-  }
-
-  Database.prototype.sortBy = function (l, k) {
-    return l.sort(function (a, b) {
-      return a[k] > b[k] ? 1 : a[k] == b[k] ? 0 : -1;
-    });
-  };
-
-  Database.prototype.keyBy = function (l,k) {
-    var o = {};
-    if (l) {
-      for (var i = 0; i < l.length; i++) {
-        o[l[i][k]] = l[i];
-      }
-    }
-    return o;
-  };
-
-  Database.prototype.first = function (thing, fn) {
-    if (typeof(thing) === 'undefined') {
-      return undefined;
-    }
-
-    if (!thing instanceof Array) {
-      console.log('first() called with a non-array first argument: ', thing);
-      throw 'first() can only be used on arrays';
-    }
-
-    for (var i = 0; i < thing.length; i++) {
-      if (fn(thing[i])) { return thing[i]; }
-    }
-
-    return undefined;
-  };
-
-  Database.prototype.each = function (thing, fn) {
-    if (thing instanceof Array) {
-      for (var i = 0; i < thing.length; i++) {
-        fn.apply(this, [i, thing[i]]);
-      }
-      return
-    }
-
-    for (var k in thing) {
-      if (thing.hasOwnProperty(k)) {
-        fn.apply(this, [k, thing[k]]);
-      }
-    }
-  };
-
-  Database.prototype.map = function (thing, fn) {
-    if (thing instanceof Array) {
-      var l = [];
-      for (var i = 0; i < thing.length; i++) {
-        var x = fn.apply(this, [i, thing[i], thing]);
-        if (typeof(x) !== 'undefined') {
-          l.push(x);
-        }
-      }
-      return l;
-    }
-
-    var o = {};
-    for (var k in thing) {
-      if (thing.hasOwnProperty(k)) {
-        var x = fn.apply(this, [k, thing[k], thing]);
-        if (typeof(x) !== 'undefined') {
-          o[k] = x;
-        }
-      }
-    }
-    return o;
-  };
-
-  Database.prototype.clone = function (thing) {
-    return this.map(thing, function (k,v) { return v; });
-  };
-
-  Database.prototype.diff = function (a, b) {
-    if (typeof(a) === 'undefined' || typeof(b) === 'undefined') { return true; }
-    return JSON.stringify(a) != JSON.stringify(b);
-  }
-
-  Database.prototype.is = function (role, context) {
-    if (arguments.length == 1) {
-      if (typeof(role) === 'object' && ('uuid' in role)) {
-        return this._.user && this._.user.uuid == role.uuid;
-      }
-      return !!this._.system.grants[role];
-    }
-    if (typeof(context) === 'object' && ('uuid' in context)) {
-      context = context.uuid;
-    }
-    if (this._.tenants[context]) {
-      return !!this._.tenants[context].grants[role];
-    }
-    return false;
-  };
 
   /*
 
@@ -410,141 +463,6 @@ window.S.H.I.E.L.D.Database = (function () {
   ########  ##     ##    ##    ##     ##     #######  ##         ######
 
   */
-
-  Database.prototype._set = function (collection, idx, object) {
-    if (!collection) {
-      return;
-    }
-    if (!(idx in collection)) {
-      collection[idx] = {};
-    }
-    if (object) {
-      this.merge(collection[idx], object);
-    }
-  };
-
-  Database.prototype.set = function (/* ... */) {
-    if (arguments.length != 2 && arguments.length != 3) {
-      console.log('set() called with the wrong number of arguments (want 2 or 3, but got %d): ', arguments.length, arguments);
-      throw 'set() called with the wrong number of arguments';
-    }
-
-    var type = arguments[0],
-        id, object;
-
-    if (arguments.length == 2) {
-      object = arguments[1];
-      if (!('uuid' in object)) {
-        console.log('set() [2-argument form] called with an object that does not have a UUID: ', object);
-        throw 'set() called with a bad object (no UUID); either use the 3-argument form, or set the `uuid` property';
-      }
-      id = object.uuid;
-
-    } else {
-      id = arguments[1];
-      object = arguments[2];
-    };
-
-    console.log('set(): updating object [%s %s] to be ', type, id, object);
-    if (type == 'tenant') {
-      this._set(this._.tenants, id, object);
-      return;
-    }
-
-    if (type == 'task') {
-      this._set(this._.tasks, id, object);
-      return;
-    }
-
-    if (!('tenant_uuid' in object)) {
-      console.log('unable to set object [%s %s]: object has no tenant_uuid: ', type, id, object);
-      throw 'set() called with a bad object: '+type+' objects MUST have a `tenant_uuid` property';
-    }
-    if (!(object.tenant_uuid in this._.tenants)) {
-      console.log('unable to set object [%s %s] on tenant "%s": tenant not found', type, id, object.tenant_uuid);
-      return; /* this is just a warning... */
-    }
-
-    switch (type) {
-    case 'archive': this._set(this._.tenants[object.tenant_uuid].archives, id, object); break;
-    case 'job':     this._set(this._.tenants[object.tenant_uuid].jobs,     id, object); break;
-    case 'target':  this._set(this._.tenants[object.tenant_uuid].targets,  id, object); break;
-    case 'store':   this._set(this._.tenants[object.tenant_uuid].stores,   id, object); break;
-    default:
-      console.log('unable to set object [%s %s]: unrecognized type for object: ', type, id, object);
-      throw 'set() called with a bad object: '+type+' is an unrecognized type';
-    }
-  };
-
-  Database.prototype.unset = function (type, id) { /* FIXME */
-    if (arguments.length != 2 && arguments.length != 3) {
-      console.log('unset() called with the wrong number of arguments (want 2 or 3, but got %d): ', arguments.length, arguments);
-      throw 'unset() called with the wrong number of arguments';
-    }
-
-    var type = arguments[0],
-        id, object;
-
-    if (arguments.length == 2) {
-      object = arguments[1];
-      if (!('uuid' in object)) {
-        console.log('unset() [2-argument form] called with an object that does not have a UUID: ', object);
-        throw 'unset() called with a bad object (no UUID); either use the 3-argument form, or set the `uuid` property';
-      }
-      id = object.uuid;
-
-    } else {
-      id = arguments[1];
-      object = arguments[2];
-    };
-
-    if (type == 'tenant') {
-      console.log('unset(): deleting object [%s %s]', type, id);
-      delete this._.tenants[id];
-      return;
-    }
-
-    if (type == 'task') {
-      console.log('unset(): deleting object [%s %s]', type, id);
-      delete this._.tasks[id];
-      return;
-    }
-
-    if (!('tenant_uuid' in object)) {
-      console.log('unable to delete object [%s %s]: object has no tenant_uuid: ', type, id, object);
-      throw 'unset() called with a bad object: '+type+' objects MUST have a `tenant_uuid` property';
-    }
-    if (!(object.tenant_uuid in this._.tenants)) {
-      console.log('unable to delete object [%s %s] on tenant %s: tenant not found', type, id, object.tenant_uuid);
-      return; /* this is just a warning... */
-    }
-
-    console.log('unset(): deleting object [%s %s] from tenant %s', type, id, object.tenant_uuid);
-    switch (type) {
-    case 'archive': delete this._.tenants[object.tenant_uuid].archives[id]; break;
-    case 'job':     delete this._.tenants[object.tenant_uuid].jobs[id];     break;
-    case 'target':  delete this._.tenants[object.tenant_uuid].targets[id];  break;
-    case 'store':   delete this._.tenants[object.tenant_uuid].stores[id];   break;
-    default:
-      console.log('unable to delete object [%s %s]: unrecognized type for object: ', type, id, object);
-      throw 'unset() called with a bad object: '+type+' is an unrecognized type';
-    }
-  };
-
-
-
-
-  Database.prototype.authenticated = function () {
-    return typeof(this._.user) !== 'undefined';
-  };
-
-  Database.prototype.activeTenant = function () {
-    if (this._.tenant && this._.tenants) {
-      return this._.tenants[this._.tenant];
-    }
-    return undefined;
-  };
-
 
   Database.prototype.plugins = function (type) {
     var seen = {}; /* de-duplicating map */
@@ -600,7 +518,6 @@ window.S.H.I.E.L.D.Database = (function () {
     };
   };
 
-
   Database.prototype.agent = function (id) {
     var tenant = this.activeTenant();
     if (!tenant) {
@@ -617,128 +534,6 @@ window.S.H.I.E.L.D.Database = (function () {
     return tenant.agents[id];
   };
 
-
-  Database.prototype.systems = function () {
-    var tenant = this.activeTenant();
-    if (!tenant) {
-      return [];
-    }
-
-    var systems = [];
-    this.each(tenant.targets, function (uuid, target) {
-      var system = this.clone(target);
-
-      system.jobs = [];
-      system.healthy = true;
-
-      this.each(tenant.jobs, function (uuid, job) {
-        if (system.uuid == job.target.uuid) {
-          job = this.clone(job);
-          //job.store = tenant.stores[job.store_uuid];
-
-          if (!job.healthy) {
-            system.healthy = false;
-          }
-
-          system.jobs.push(job);
-        }
-      });
-
-      system.archives = [];
-      this.each(tenant.archives, function (i, archive) {
-        if (archive.target_uuid == system.uuid && archive.status == 'valid') {
-          system.archives.push(archive);
-        }
-      });
-
-      systems.push(system);
-    });
-
-    return systems;
-  };
-
-  Database.prototype.system = function (id) {
-    var systems = this.systems(),
-        found;
-
-    this.each(systems, function (_, system) {
-      if (found || system.uuid != id) { return; }
-      found = system;
-    });
-
-    return found;
-  };
-
-  Database.prototype.findArchive = function (id, filter) {
-    if (!filter) {
-      filter = {};
-    }
-
-    var tenant = this.activeTenant();
-    if (!tenant) {
-      return undefined;
-    }
-
-    var found;
-    this.each(tenant.archives, function (_, archive) {
-      if (found || archive.uuid != id) { return; }
-      found = archive;
-    });
-    return found;
-  };
-
-  Database.prototype.stores = function (options) {
-    options = this.merge({includeGlobal: true}, options);
-
-    var tenant = this.activeTenant();
-    if (!tenant) {
-      return [];
-    }
-
-    var stores = [];
-    if (options.includeGlobal) {
-      stores = this.clone(this._.global.stores);
-    }
-    this.each(tenant.stores, function (uuid, store) {
-      stores.push(this.clone(store));
-    });
-
-    return stores;
-  };
-
-  Database.prototype.store = function (id, options) {
-    var stores = this.stores(options),
-        found;
-
-    this.each(stores, function (_, store) {
-      if (found || store.uuid != id) { return; }
-      found = store;
-    });
-
-    return found;
-  };
-
-  Database.prototype.storesForTarget = function (id) {
-    var system = this.system(id),
-        stores = [],
-        seen   = {};
-
-    this.each(this.stores(), function (_, store) {
-      this.each(system.jobs, function (_, job) {
-        if (job.store.uuid == store.uuid && !seen[store.uuid]) {
-          stores.push(store);
-          seen[store.uuid] = true;
-        }
-      });
-    });
-
-    return stores;
-  };
-
-
-
-
-
   Database.prototype.redraw = function () {
     if (this.authenticated()) {
       $('#viewport').template('layout');
@@ -747,60 +542,6 @@ window.S.H.I.E.L.D.Database = (function () {
     $('#hud').template('hud');
     $('.top-bar').template('top-bar');
     document.title = "SHIELD "+this._.shield.env;
-  };
-
-  Database.prototype.health = function () {
-    var h = {
-      core:    this._.vault,
-      storage: "ok",
-      jobs:    "ok"
-    };
-
-    if (this.activeTenant()) {
-      var tenant = this.activeTenant();
-      for (var uuid in tenant.stores) {
-        if (!tenant.stores[uuid].healthy) {
-          console.log('HEALTH: storage system %s is failing!', tenant.stores[uuid].uuid);
-          h.storage = "failing";
-        }
-      }
-
-      for (var uuid in tenant.jobs) {
-        if (!tenant.jobs[uuid].healthy) {
-          console.log('HEALTH: job %s is failing!', tenant.jobs[uuid].uuid);
-          h.jobs = "failing";
-        }
-      }
-    };
-
-    return h;
-  }
-
-  Database.prototype.stats = function () {
-    var s = {
-      jobs:     0,
-      archives: 0,
-      storage:  0,
-      delta:    0
-    };
-
-    /* count our jobs */
-    for (var uuid in this._.data.job) {
-      if (this._.data.job[uuid].tenant_uuid == this._.tenant) {
-        s.jobs++;
-      }
-    }
-
-    /* count archives and storage footprint */
-    for (var uuid in this._.data.archive) {
-      if (this._.data.archive[uuid].tenant_uuid == this._.tenant) {
-        s.archives++;
-        s.storage += this._.data.archive[uuid].size;
-      }
-    }
-
-    /* FIXME delta! */
-    return s;
   };
 
   return Database;

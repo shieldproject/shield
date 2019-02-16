@@ -75,7 +75,7 @@ QUnit.assert.any = function (actual, expected, message) {
   });
 };
 
-QUnit.module('SHIELD AEGIS');
+QUnit.module('AEGIS Data Operations');
 QUnit.test('Basic Operations', function(is) {
   var thing, db = new AEGIS();
   is.ok(typeof(db) !== 'undefined',
@@ -160,7 +160,8 @@ QUnit.test('Updates', function (is) {
            'update() adds the attributes that were in the update.');
 });
 
-{
+QUnit.module('AEGIS Object Queries');
+(function () {
   var Dataset = function () {
     return new AEGIS()
 
@@ -546,4 +547,112 @@ QUnit.test('Updates', function (is) {
     is.ok(!db.archive('a-nonexistent-archive'),
           'a non-existent-archive archive cannot be retrieved');
   });
-}
+})();
+
+QUnit.module('AEGIS RBAC');
+(function () {
+  var Dataset = function () {
+    return new AEGIS()
+
+      /* TENANTS */
+      .insert('tenant', {
+        uuid: 'the-system-tenant',
+        name: 'tenant1'
+      })
+      .insert('tenant', {
+        uuid: 'the-acme-tenant',
+        name: 'Acme, Inc'
+      })
+    ;
+  };
+
+  QUnit.test('System-wide Roles', function (is) {
+    var AEGIS = Dataset()
+
+    AEGIS.grant('admin');
+    is.equal(AEGIS.role(), 'Administrator');
+    is.ok(AEGIS.is('admin'),    'A SHIELD administrator is considered an admin');
+    is.ok(AEGIS.is('manager'),  'A SHIELD administrator is considered a manager');
+    is.ok(AEGIS.is('engineer'), 'A SHIELD administrator is considered an engineer');
+
+    is.ok(!AEGIS.is('the-acme-tenant', 'manager'),  'A SHIELD administrator is NOT implicitly a tenant manager');
+    is.ok(!AEGIS.is('the-acme-tenant', 'engineer'), 'A SHIELD administrator is NOT implicitly a tenant engineer');
+    is.ok(!AEGIS.is('the-acme-tenant', 'operator'), 'A SHIELD administrator is NOT implicitly a tenant operator');
+
+    AEGIS.grant('manager');
+    is.equal(AEGIS.role(), 'Manager');
+    is.ok(!AEGIS.is('admin'),    'A SHIELD manager is NOT considered an admin');
+    is.ok( AEGIS.is('manager'),  'A SHIELD manager is considered a manager');
+    is.ok( AEGIS.is('engineer'), 'A SHIELD manager is considered an engineer');
+
+    is.ok(!AEGIS.is('the-acme-tenant', 'manager'),  'A SHIELD manager is NOT implicitly a tenant manager');
+    is.ok(!AEGIS.is('the-acme-tenant', 'engineer'), 'A SHIELD manager is NOT implicitly a tenant engineer');
+    is.ok(!AEGIS.is('the-acme-tenant', 'operator'), 'A SHIELD manager is NOT implicitly a tenant operator');
+
+    AEGIS.grant('engineer');
+    is.equal(AEGIS.role(), 'Engineer');
+    is.ok(!AEGIS.is('admin'),    'A SHIELD engineer is NOT considered an admin');
+    is.ok(!AEGIS.is('manager'),  'A SHIELD engineer is NOT considered a manager');
+    is.ok( AEGIS.is('engineer'), 'A SHIELD engineer is considered an engineer');
+
+    is.ok(!AEGIS.is('the-acme-tenant', 'manager'),  'A SHIELD engineer is NOT implicitly a tenant manager');
+    is.ok(!AEGIS.is('the-acme-tenant', 'engineer'), 'A SHIELD engineer is NOT implicitly a tenant engineer');
+    is.ok(!AEGIS.is('the-acme-tenant', 'operator'), 'A SHIELD engineer is NOT implicitly a tenant operator');
+
+    AEGIS.grant('none');
+    is.equal(AEGIS.role(), '');
+    is.ok(!AEGIS.is('admin'),    'A SHIELD (nothing) is NOT considered an admin');
+    is.ok(!AEGIS.is('manager'),  'A SHIELD (nothing) is NOT considered a manager');
+    is.ok(!AEGIS.is('engineer'), 'A SHIELD (nothing) is NOT considered an engineer');
+
+    is.ok(!AEGIS.is('the-acme-tenant', 'manager'),  'A SHIELD (nothing) is NOT implicitly a tenant manager');
+    is.ok(!AEGIS.is('the-acme-tenant', 'engineer'), 'A SHIELD (nothing) is NOT implicitly a tenant engineer');
+    is.ok(!AEGIS.is('the-acme-tenant', 'operator'), 'A SHIELD (nothing) is NOT implicitly a tenant operator');
+  });
+
+  QUnit.test('Tenant-Specific Roles', function (is) {
+    var AEGIS = Dataset()
+
+    AEGIS.grant('the-acme-tenant', 'admin');
+    is.equal(AEGIS.role('the-acme-tenant'), 'Administrator');
+    is.ok(!AEGIS.is('admin'),    'A Tenant admin is NOT considered a SHIELD admin');
+    is.ok(!AEGIS.is('manager'),  'A Tenant admin is NOT considered a SHIELD manager');
+    is.ok(!AEGIS.is('engineer'), 'A Tenant admin is NOT considered a SHIELD engineer');
+
+    is.ok(AEGIS.is('the-acme-tenant', 'admin'),    'A Tenant admin is a tenant admin');
+    is.ok(AEGIS.is('the-acme-tenant', 'engineer'), 'A Tenant admin is a tenant engineer');
+    is.ok(AEGIS.is('the-acme-tenant', 'operator'), 'A Tenant admin is a tenant operator');
+
+    AEGIS.grant('the-acme-tenant', 'engineer');
+    is.equal(AEGIS.role('the-acme-tenant'), 'Engineer');
+    is.ok(!AEGIS.is('admin'),    'A Tenant engineer is NOT considered a SHIELD admin');
+    is.ok(!AEGIS.is('manager'),  'A Tenant engineer is NOT considered a SHIELD manager');
+    is.ok(!AEGIS.is('engineer'), 'A Tenant engineer is NOT considered a SHIELD engineer');
+
+    is.ok(!AEGIS.is('the-acme-tenant', 'admin'),    'A Tenant engineer is NOT a tenant admin');
+    is.ok( AEGIS.is('the-acme-tenant', 'engineer'), 'A Tenant engineer is a tenant engineer');
+    is.ok( AEGIS.is('the-acme-tenant', 'operator'), 'A Tenant engineer is a tenant operator');
+
+    AEGIS.grant('the-acme-tenant', 'operator');
+    is.equal(AEGIS.role('the-acme-tenant'), 'Operator');
+    is.ok(!AEGIS.is('admin'),    'A Tenant operator is NOT considered a SHIELD admin');
+    is.ok(!AEGIS.is('manager'),  'A Tenant operator is NOT considered a SHIELD manager');
+    is.ok(!AEGIS.is('engineer'), 'A Tenant operator is NOT considered a SHIELD engineer');
+
+    is.ok(!AEGIS.is('the-acme-tenant', 'admin'),    'A Tenant operator is NOT a tenant admin');
+    is.ok(!AEGIS.is('the-acme-tenant', 'engineer'), 'A Tenant operator is NOT a tenant engineer');
+    is.ok( AEGIS.is('the-acme-tenant', 'operator'), 'A Tenant operator is a tenant operator');
+  });
+
+  QUnit.test('Default Tenant Selection', function (is) {
+    var AEGIS = Dataset().grant('the-acme-tenant', 'admin');
+
+    is.ok( AEGIS.is('the-acme-tenant',   'admin'), '[sanity check] should be an admin on acme');
+    is.ok(!AEGIS.is('the-system-tenant', 'admin'), '[sanity check] should not be an admin on systme');
+
+    AEGIS.use('the-acme-tenant');
+    is.ok(AEGIS.is('tenant', 'admin'), 'AEGIS should use selected tenant for UUID "tenant"');
+    AEGIS.use('the-system-tenant');
+    is.ok(!AEGIS.is('tenant', 'admin'), 'When the-system-tenant is current, we are not an admin');
+  });
+})();
