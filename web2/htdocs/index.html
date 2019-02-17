@@ -1341,73 +1341,87 @@
         <div data-step="4">
           <form class="new-form1">
           <h2><span>Configure a New Backup Job</span>Job Details</h2>
-          <div class="c12 band hover">[[# schedule {{{ ]]
-            <div class="x2"><label>Schedule</label></div>
-            <div class="x7">
-              <div class="error"></div>
-              <div class="scheduling">
-                <ul class="optgroup">[[#
-                  ]]<li data-subform="schedule-hourly"  data-retain="4">Hourly</li>[[#
-                  ]]<li data-subform="schedule-daily"   data-retain="14">Daily</li>[[#
-                  ]]<li data-subform="schedule-weekly"  data-retain="36">Weekly</li>[[#
-                  ]]<li data-subform="schedule-monthly" data-retain="90">Monthly</li>
-                </ul>
+          <div class="c12 band">
+            <div class="x9">
+              <div class="c12">
+                <div class="field required" data-field="job.name" data-type="string">[[# name {{{ ]]
+                  <div class="x3"><label for="job.name">Name</label></div>
+                  <div class="x9">
+                    <div class="error"></div>
+                    <input type="text" name="job.name" placeholder="Name Your Backup Job">
+                    <span class="errors">
+                      <span data-error="missing">Please provide a name for ths backup job.</span>
+                    </span>
+                    <p class="help">A descriptive name for this backup job.</p>
+                  </div>
+                </div>[[# }}} ]]
+            <div class="field">[[# schedule {{{ ]]
+              <div class="x3"><label>Schedule</label></div>
+              <div class="x9">
+                <div class="error"></div>
+                <div class="scheduling">
+                  <ul class="optgroup">[[#
+                    ]]<li data-subform="schedule-hourly"  data-retain="4">Hourly</li>[[#
+                    ]]<li data-subform="schedule-daily"   data-retain="14">Daily</li>[[#
+                    ]]<li data-subform="schedule-weekly"  data-retain="36">Weekly</li>[[#
+                    ]]<li data-subform="schedule-monthly" data-retain="90">Monthly</li>
+                  </ul>
 
-                <div id="schedule-hourly" class="subform">
-                  <div>Every <input name="hourlyn" class="num" type="text" value="1"> hour(s)</div>
-                  <div>from <input name="hourlyat" class="time" type="text" value="12:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  <div id="schedule-hourly" class="subform">
+                    <div>Every <input name="hourlyn" class="num" type="text" value="1"> hour(s)</div>
+                    <div>from <input name="hourlyat" class="time" type="text" value="12:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                  <div id="schedule-daily" class="subform">
+                    <div>at <input name="dailyat" class="time" type="text" value="3:00"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                  <div id="schedule-weekly" class="subform">
+                    <div>on <ul class="wday optgroup">[[= optgroup(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                    <div>at <input name="weeklyat" class="time" type="text" value="4:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                  <div id="schedule-monthly" class="subform">
+                    <div>on the <input name="monthlynth" class="num" type="text" value="1st">
+                         <ul class="mday optgroup">[[= optgroup(['day', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
+                    <div>at <input name="monthlyat" class="time" type="text" value="5:30"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
+                  </div>
+
+                  <p class="help">How often would you like the backup to be performed?</p>
                 </div>
-
-                <div id="schedule-daily" class="subform">
-                  <div>at <input name="dailyat" class="time" type="text" value="3:00"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-                </div>
-
-                <div id="schedule-weekly" class="subform">
-                  <div>on <ul class="wday optgroup">[[= optgroup(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
-                  <div>at <input name="weeklyat" class="time" type="text" value="4:15"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-                </div>
-
-                <div id="schedule-monthly" class="subform">
-                  <div>on the <input name="monthlynth" class="num" type="text" value="1st">
-                       <ul class="mday optgroup">[[= optgroup(['day', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) ]]</ul></div>
-                  <div>at <input name="monthlyat" class="time" type="text" value="5:30"> <ul class="ampm optgroup">[[= optgroup(['am', 'pm']) ]]</div>
-                </div>
-
+              </div>
+            </div>[[# }}} ]]
+            <div class="field">[[# paused {{{ ]]
+              <div class="x3"><label for="job.paused">Paused</label></div>
+              <div class="x9">
+                <label for="cb-job.paused" class="switch">
+                  <input id="cb-job.paused" name="job.paused" type="checkbox"><span class="slider round"></span>
+                </label>
+                <p class="help">Paused jobs will not be run by the SHIELD job scheduler, but can still be run manually.</p>
               </div>
             </div>
-            <div class="x3">
-              <div class="side-help">How often would you like the backup to be performed?</div>
+          [[# }}} ]]
+            <div class="field">[[# retention {{{ ]]
+              <div class="x3"><label for="job.keep_days">Retention</label></div>
+              <div class="x9">
+                <input type="text" size="3" name="job.keep_days" /> days
+                <p class="help">How long should SHIELD keep each backup archive?</p>
+              </div>
+            </div>[[# }}} ]]
+            <div class="field required">[[# encryption {{{ ]]
+              <div class="x3"><label for="job.randomize_keys">Randomize Encryption Keys</label></div>
+              <div class="x9">
+                <label for="cb-job.randomize_keys" class="switch">
+                  <input id="cb-job.randomize_keys" name="job.randomize_keys" type="checkbox" checked><span class="slider round"></span>
+                </label>
+                <p class="help">For increased security, SHIELD randomizes the encryption key used for each archive it creates.  This helps to defeat statistical attacks against encrypted archives for data sets that change very little.</p>
+              </div>
+            </div>[[# }}} ]]
+              </div>
             </div>
           </div>
-          [[# }}} ]]
-          <div class="c12 band hover">[[# paused {{{ ]]
-            <div class="x2"><label for="job.paused">Paused</label></div>
-            <div class="x7">
-              <label for="cb-job.paused" class="switch">
-                <input id="cb-job.paused" name="job.paused" type="checkbox"><span class="slider round"></span>
-              </label>
-              <p class="help">Paused jobs will not be run by the SHIELD job scheduler, but can still be run manually.</p>
-            </div>
+          <div class="c12 band">
           </div>
-          [[# }}} ]]
-          <div class="c12 band hover">[[# retention {{{ ]]
-            <div class="x2"><label for="job.keep_days">Retention</label></div>
-            <div class="x7">
-              <input type="text" size="3" name="job.keep_days" /> days
-              <p class="help">How long should SHIELD keep each backup archive?</p>
-            </div>
-          </div>
-          [[# }}} ]]
-          <div class="c12 band hover">[[# encryption {{{ ]]
-            <div class="x2"><label for="job.randomize_keys">Randomize Encryption Keys</label></div>
-            <div class="x7">
-              <label for="cb-job.randomize_keys" class="switch">
-                <input id="cb-job.randomize_keys" name="job.randomize_keys" type="checkbox" checked><span class="slider round"></span>
-              </label>
-              <p class="help">For increased security, SHIELD randomizes the encryption key used for each archive it creates.  This helps to defeat statistical attacks against encrypted archives for data sets that change very little.</p>
-            </div>
-          </div>
-          [[# }}} ]]
           <div class="c12 band">
             <div class="x9 r2 buttons">
               <button rel="prev">◀ Back to <span>Cloud Storage</span></button>

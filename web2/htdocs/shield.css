@@ -1119,6 +1119,12 @@ h2 ul.switcher li:hover img {
 .field table tr.task { display: none; }
 
 
+form .band .field {
+  clear: both;
+  overflow: hidden;
+  margin: 1.33em 0;
+}
+
 form .ctl { width: 70%; margin: 1em 0 2em 0; }
 form .info { width: 45%; float: right; clear: right; }
 form .info {
