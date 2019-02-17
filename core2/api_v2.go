@@ -1340,6 +1340,7 @@ func (c *Core) v2API() *route.Router {
 			} `json:"store"`
 
 			Job struct {
+				Name     string `json:"name"`
 				Schedule string `json:"schedule"`
 				KeepDays int    `json:"keep_days"`
 				FixedKey bool   `json:"fixed_key"`
@@ -1418,7 +1419,7 @@ func (c *Core) v2API() *route.Router {
 
 		job, err := c.db.CreateJob(&db.Job{
 			TenantUUID: r.Args[1],
-			Name:       "backups", /* FIXME: remove job names! */
+			Name:       in.Job.Name,
 			Summary:    "",        /* FIXME: remove job summaries! */
 			Schedule:   in.Job.Schedule,
 			KeepDays:   in.Job.KeepDays,
