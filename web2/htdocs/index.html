@@ -1731,15 +1731,17 @@
                 <li>[[ if (target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
                     [[ } else { ]]backups will be compressed via <tt>[[= target.compression ]]</tt>[[ } ]]</li>
               </ul>
-              [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) { ]]
+              [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) {
+                   var store = AEGIS.store(job.store_uuid);
+              ]]
               <ul class="details">
                 <li>runs [[= job.schedule ]]</li>
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
               </ul>
               <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
-                <div class="from">[[= (job.target ? job.target.plugin : false) || 'unknown' ]]</div>
+                <div class="from">[[= (target ? target.plugin : false) || 'unknown' ]]</div>
                 <div class="bar"></div>
-                <div class="to">[[= (job.store ? job.store.plugin : false) || 'unknown' ]]</div>
+                <div class="to">[[= (store ? store.name : false) || 'unknown' ]]</div>
               </div>
               [[ }); ]]
               </a>
@@ -1765,15 +1767,18 @@
                 <li>[[ if (_.target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
                     [[ } else { ]]backups will be compressed via <tt>[[= _.target.compression ]]</tt>[[ } ]]</li>
               </ul>
-              [[ $.each(AEGIS.jobs({ system: _.target.uuid }), function (i, job) { ]]
+              [[ $.each(AEGIS.jobs({ system: _.target.uuid }), function (i, job) {
+                   var store = AEGIS.store(job.store_uuid);
+              ]]
               <ul class="details">
+                <li>[[= job.name ]]</li>
                 <li>runs [[= job.schedule ]] &mdash; <a href="run:[[= job.uuid ]]">run now</a></li>
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
               </ul>
               <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
-                <div class="from">[[= (job.target ? job.target.plugin : false) || 'unknown' ]]</div>
+                <div class="from">[[= _.target.plugin || 'unknown' ]]</div>
                 <div class="bar"></div>
-                <div class="to">[[= (job.store ? job.store.plugin : false) || 'unknown' ]]</div>
+                <div class="to">[[= (store ? store.name : false) || 'unknown' ]]</div>
               </div>
               [[ }); ]]
             </div>
