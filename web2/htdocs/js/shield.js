@@ -1167,11 +1167,9 @@ function dispatch(page) {
   referer = page;
 }
 
-function redraw(complete) {
-}
 function goto(page) {
   if (document.location.hash == page) {
-    dispatch(page); // re-dispatch
+    $(document.body).trigger('shield:navigate', page);
   } else {
     document.location.hash = page;
   }
