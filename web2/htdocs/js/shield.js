@@ -1182,15 +1182,30 @@ function reload() {
 }
 
 $(function () {
-  window.AEGIS = new AEGIS().subscribe({}, function () {
-    document.title = "SHIELD "+AEGIS.shield.env;
-    $('.top-bar').template('top-bar');
-    if (AEGIS.authenticated()) {
-      $('#viewport').template('layout');
-      $('#hud').template('hud');
-    }
-    $(window).on('hashchange', function (event) {
-      dispatch(document.location.hash);
-    }).trigger('hashchange');
-  });
+  $('#viewport').template('loading');
+  window.AEGIS = $.aegis();
+  window.AEGIS.subscribe()
+    .then(
+      function () {
+        document.title = "SHIELD "+AEGIS.shield.env;
+        $('.top-bar').template('top-bar');
+        if (AEGIS.authenticated()) {
+          $('#viewport').template('layout');
+          $('#hud').template('hud');
+        }
+        $(document.body)
+          .on('shield:navigate', function (event, to) {
+            dispatch(to);
+          })
+          .on('click', 'a[href^="#"]', function (event) {
+            goto($(event.target).closest('[href]').attr('href'));
+          });
+        $(window).on('hashchange', function (event) {
+          $(document.body).trigger('shield:navigate', document.location.hash);
+        }).trigger('hashchange');
+      },
+      function () {
+        console.log('AEGIS subscription setup failed, redirecting to login page...');
+        dispatch("#!/login");
+      });
 });

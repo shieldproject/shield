@@ -45,7 +45,7 @@
   ##     ## ########  ######   ####  ######
 
    */
-  window.AEGIS = function () {
+  var AEGIS = function () {
     this.data = {};
     this.grants = {
       tenant: {},
@@ -57,7 +57,7 @@
     };
   };
 
-  $.extend(window.AEGIS.prototype, {
+  $.extend(AEGIS.prototype, {
     insert: function (type, object) {
       if (!('uuid' in object)) { return undefined; }
       if (!(type in this.data)) { this.data[type] = {}; }
@@ -315,23 +315,25 @@
       }
     },
 
-    subscribe: function (opts, continuation) {
+    subscribe: function (opts) {
       opts = $.extend({
         bearings:  '/v2/bearings',
         websocket: document.location.protocol.replace(/http/, 'ws')+'//'+document.location.host+'/v2/events'
       }, opts || {});
 
+      var df = $.Deferred();
       var self = this; /* save off 'this' for the continuation call */
-      self.cc = continuation;
 
       console.log('connecting to websocket at %s', opts.websocket);
       this.ws = new WebSocket(opts.websocket);
+      this.ws.onerror = function (event) {
+        self.ws = undefined;
+        console.log('websocket failed: ', event);
+        df.reject();
+      };
       this.ws.onclose = function () {
         self.ws = undefined;
-        if (self.cc) {
-          var fn = self.cc; self.cc = undefined;
-          fn.call(self);
-        }
+        df.reject();
       };
 
       this.ws.onmessage = function (m) {
@@ -413,8 +415,8 @@
               delete tenant.agents;
 
               self.insert('tenant', tenant.tenant);
-              if (!AEGIS.current) {
-                AEGIS.current = tenant.tenant;
+              if (!self.current) {
+                self.current = tenant.tenant;
               }
             }
             console.log(bearings);
@@ -433,17 +435,16 @@
               });
               if (l.length > 0) { self.tenant = l[0]; }
             }
+
+            df.resolve();
           },
-          complete: function () {
-            if (self.cc) {
-              var fn = self.cc; self.cc = undefined;
-              fn.call(self);
-            }
+          error: function () {
+            df.reject();
           }
         });
       };
 
-      return this;
+      return df.promise();
     },
 
     plugins: function (type) {
@@ -490,4 +491,8 @@
       };
     }
   });
+
+  $.aegis = function () {
+    return new AEGIS();
+  }
 })(jQuery, window, document);

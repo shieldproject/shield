@@ -77,9 +77,9 @@ QUnit.assert.any = function (actual, expected, message) {
 
 QUnit.module('AEGIS Data Operations');
 QUnit.test('Basic Operations', function(is) {
-  var thing, db = new AEGIS();
+  var thing, db = $.aegis();
   is.ok(typeof(db) !== 'undefined',
-        'new AEGIS() returns a valid object');
+        '$.aegis() returns a valid object');
 
   thing = db.find('thing', { uuid: 'thing-the-first' });
   is.ok(typeof(thing) === 'undefined',
@@ -114,7 +114,7 @@ QUnit.test('Basic Operations', function(is) {
 });
 
 QUnit.test('Insertion', function (is) {
-  var thing, db = new AEGIS();
+  var thing, db = $.aegis();
 
   is.ok(!db.insert('thing', { no_uuid: true }),
         'Inserting a thing without a UUID should fail');
@@ -139,7 +139,7 @@ QUnit.test('Insertion', function (is) {
 });
 
 QUnit.test('Updates', function (is) {
-  var thing, db = new AEGIS();
+  var thing, db = $.aegis();
 
   db.insert('thing', { uuid: '1-2-3', key1: 'value1' });
   thing = db.find('thing', { uuid: '1-2-3' });
@@ -163,7 +163,7 @@ QUnit.test('Updates', function (is) {
 QUnit.module('AEGIS Object Queries');
 (function () {
   var Dataset = function () {
-    return new AEGIS()
+    return $.aegis()
 
       /* TENANTS */
       .insert('tenant', {
@@ -552,7 +552,7 @@ QUnit.module('AEGIS Object Queries');
 QUnit.module('AEGIS RBAC');
 (function () {
   var Dataset = function () {
-    return new AEGIS()
+    return $.aegis()
 
       /* TENANTS */
       .insert('tenant', {
