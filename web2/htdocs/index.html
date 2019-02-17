@@ -799,18 +799,20 @@
                     </tr>
                   </thead>
                   <tbody>
-                    [[ $.each(AEGIS.jobs({ system: system.uuid }), function (i, job) { ]]
-                    <tr class="[[ if (!job.store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
+                    [[ $.each(AEGIS.jobs({ system: system.uuid }), function (i, job) {
+                         var store = AEGIS.store(job.store_uuid);
+                    ]]
+                    <tr class="[[ if (!store.healthy) { ]]fail[[ } else { ]]ok[[ } ]]"
                         data-job-uuid="[[= job.uuid ]]">
                       <td class="name">
-                        <img src="i/shield-[[= job.store.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= job.store.name ]]
-                        [[ if (job.store.global) { ]]<span class="tag">global</span>[[ } ]]
+                        <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
+                        [[= store.name ]]
+                        [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
                       </td>
-                      <td>[[= job.store.plugin ]]</td>
+                      <td>[[= store.plugin ]]</td>
                       <td class="retain">[[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]</td>
                       <td class="notes">
-                        [[= job.store.summary ]]
+                        [[= store.summary ]]
                       </td>
                     </tr>
                     [[ }); ]]
@@ -835,10 +837,10 @@
 
       ]]
             <h2><span>Run an Ad Hoc Backup</span>Review Your Selections</h2>
-            [[ var system  = AEGIS.system(_.target.uuid); ]]
-            [[ var job; $.each(AEGIS.jobs({ system: system.uuid }), function (i, j) {
-                 if (!job && j.uuid == _.job.uuid) { job = j; }
-               }); ]]
+            [[ var system  = AEGIS.system(_.target.uuid);
+               var job     = AEGIS.job(_.job.uuid);
+               var store   = AEGIS.store(job.store_uuid);
+            ]]
             <div class="summary-section">[[# {{{ ]]
               <div class="c12 band">
                 <div class="x2"><label>Data System</label></div>
@@ -851,7 +853,7 @@
               <div class="c12 band">
                 <div class="x2"><label>Cloud Storage</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">[[= job.store.name ]] ([[= job.store.plugin ]])
+                  <p class="selected-elsewhere">[[= store.name ]] ([[= store.plugin ]])
                   <a class="change-me" href="step:3">change</a></p>
                 </div>
               </div>
@@ -929,14 +931,17 @@
                     </tr>
                   </thead>
                   <tbody>
-                    [[ $.each(systems, function (i, target) { ]]
-                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]][[ if (target.archives.length == 0) { ]] no-archive not-selectable[[ } ]]"
+                    [[ $.each(systems, function (i, target) {
+                         var archives = AEGIS.archives({ tenant: target.tenant_uuid,
+                                                         system: target.uuid });
+                    ]]
+                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]][[ if (archives.length == 0) { ]] no-archive not-selectable[[ } ]]"
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
                         [[= target.name ]]
                       </td>
-                      <td>[[ if (target.archives.length == 0) { ]]<em>none</em>[[ } else { ]][[= target.archives.length ]][[ } ]]</td>
+                      <td>[[ if (archives.length == 0) { ]]<em>none</em>[[ } else { ]][[= archives.length ]][[ } ]]</td>
                       <td>[[= target.plugin ]]</td>
                       <td class="notes">
                         [[= target.summary ]]
@@ -2889,7 +2894,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/javascript" src="/js/lib.js"></script>
     <script type="text/javascript" src="/js/shield.js"></script>
     <script type="text/javascript" src="/js/sticky-nav.js"></script>
-    <script type="text/javascript" src="/js/wizards.js"></script>
     <script type="text/javascript" src="/js/events.js"></script>
   </body>
 </html>

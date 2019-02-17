@@ -87,10 +87,12 @@
         if ($tr.hasClass('selected')) {
           $tbl.removeClass('selected');
           $tr.removeClass('selected');
+          $tbl.trigger('lean:deselected', [$tr]);
         } else {
           $tbl.find('tr.selected').removeClass('selected');
           $tbl.addClass('selected');
           $tr.addClass('selected');
+          $tbl.trigger('lean:selected', [$tr]);
         }
       }) /* }}} */
 
@@ -277,6 +279,208 @@
           error: {}
         });
       }) /* }}} */
+
+      /* Wizard: Configure New Backup Job */
+      .on('wizard:step', '.do-configure.wizard2', function (event, moving) { /* {{{ */
+        var $w = $(event.target);
+
+        if (moving.to == 5) {
+          var build_or_buy = function (prefix, type) {
+            if ($w.find(prefix).extract('mode') == 'choose') {
+              var uuid = $w.find(prefix+' tr.selected').extract(type+'-uuid');
+              switch (type) {
+              case 'target': return AEGIS.system(uuid);
+              case 'store':  return AEGIS.store(uuid);
+              default:       return { uuid: uuid };
+              }
+            }
+            return $step.find('form').serializeObject()[type];
+          };
+
+          var data = {
+            target: build_or_buy('[data-step=2]', 'target'),
+            store:  build_or_buy('[data-step=3]', 'store'),
+            job:    $w.find('[data-step=4] form').serializeObject().job
+          };
+
+          data.job.schedule = $w.find('[data-step=4] form').timespec();
+          if (!data.job.keep_days) {
+            data.job.keep_days = $w.find('[data-step=4] [name="job.keep_days"]').attr('placeholder');
+          }
+          data.job.keep_days = parseInt(data.job.keep_days);
+          data.job.fixed_key = !data.job.randomize_keys;
+          delete data.job.randomize_keys;
+
+          $(event.target).data('submission', data);
+          $w.find('.review').template('do-configure-review', data);
+        }
+      }) /* }}} */
+      .on('click', '.do-configure.wizard2 button.final', function (event) { /* {{{ */
+        event.preventDefault();
+        $(event.target).addClass('submitting');
+
+        var data = $(event.target).closest('.wizard2').data('submission');
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/systems',
+          data: data,
+
+          error: "Failed to create system via the SHIELD API.",
+          complete: function () {
+            $(event.target).removeClass('submitting');
+          },
+          success: function (data) {
+            goto('#!/systems/system:uuid:'+data.uuid);
+          }
+        });
+      }) /* }}} */
+      .on('click', '.do-configure.wizard2 .scheduling .optgroup [data-subform]', function (event) { /* {{{ */
+        var $w = $(event.target).closest('.wizard2');
+        var sub = $(event.target).extract('subform');
+        $w.find('.scheduling .subform').hide();
+        $w.find('.scheduling .subform#'+sub).show();
+        $w.find('input[name="job.keep_days"]')
+            .attr('placeholder', $(event.target).extract('retain'));
+      }) /* }}} */
+      .on('lean:selected', '.do-configure.wizard2', function (event, $tr) { /* {{{ */
+        $tr.closest('[data-step]').attr('data-mode', 'choose');
+      }) /* }}} */
+      .on('click', '.do-configure.wizard2 .choose [rel=new]', function (event) { /* {{{ */
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        $(event.target).closest('[data-step]').attr('data-mode', 'create');
+      }) /* }}} */
+
+      /* Wizard: Run Ad Hoc Backup */
+      .on('wizard:step', '.do-backup.wizard2', function (event, moving) { /* {{{ */
+        var $w = $(event.target);
+
+        if (moving.to == 3) { /* choose your backup archive */
+          var data = {
+            target:  { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
+          };
+          $w.find('.redraw.jobs').template('do-backup-choose-job', data);
+        }
+
+        if (moving.to == 4) {
+          var data = {
+            target: { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
+            job:    { uuid: $w.find('[data-step=3] tr.selected').extract('job-uuid') }
+          };
+
+          $(event.target).data('submission', data);
+          $w.find('.review').template('do-backup-review', data);
+        }
+      }) /* }}} */
+      .on('click', '.do-backup.wizard2 button.final', function (event) { /* {{{ */
+        event.preventDefault();
+        $(event.target).addClass('submitting');
+
+        var data = $(event.target).closest('.wizard2').data('submission');
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+data.job.uuid+'/run',
+          data: {},
+
+          error: "Failed to schedule a backup operation via the SHIELD API.",
+          complete: function () {
+            $(event.target).removeClass('submitting');
+          },
+          success: function () {
+            goto('#!/systems/system:uuid:'+data.target.uuid);
+          }
+        });
+      }) /* }}} */
+
+      /* Wizard: Restore Data */
+      .on('wizard:step', '.do-restore.wizard2', function (event, moving) { /* {{{ */
+        var $w = $(event.target);
+
+        if (moving.to == 3) { /* choose your backup archive */
+          var data = {
+            target:  { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
+          };
+          $w.find('.redraw.archives').template('do-restore-choose-archive', data);
+        }
+
+        if (moving.to == 4) {
+          var data = {
+            target:  { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
+            archive: { uuid: $w.find('[data-step=3] tr.selected').extract('archive-uuid') }
+          };
+
+          $(event.target).data('submission', data);
+          $w.find('.review').template('do-restore-review', data);
+        }
+      }) /* }}} */
+      .on('click', '.do-restore.wizard2 button.final', function (event) { /* {{{ */
+        event.preventDefault();
+        $(event.target).addClass('submitting');
+
+        var data = $(event.target).closest('.wizard2').data('submission');
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/archives/'+data.archive.uuid+'/restore',
+          data: {},
+
+          error: "Failed to schedule a restore operation via the SHIELD API.",
+          complete: function () {
+            $(event.target).removeClass('submitting');
+          },
+          success: function () {
+            goto('#!/systems/system:uuid:'+data.target.uuid);
+          }
+        });
+      }) /* }}} */
+
+      /* Wizards (Shared) */
+      .on('wizard:step', '.wizard2', function (event, moving) { /* {{{ */
+        var $progress = $(event.target).find('.progress li');
+        $(event.target).find('[data-step]').each(function (i,e) {
+          var $step = $(e);
+          var num   = parseInt($step.attr('data-step'));
+          var $li   = $($progress[num-1]);
+
+          if (num < moving.to) {
+            $li.transitionClass('current', 'completed');
+            $step.hide();
+
+          } else if (num == moving.to) {
+            $li.transitionClass('completed', 'current');
+            $step.autofocus().show();
+
+          } else {
+            $li.removeClass('current completed');
+            $step.hide();
+          }
+        });
+
+        $(event.target).attr('data-on-step', moving.to);
+      }) /* }}} */
+      .on('click', '.wizard2 a[href^="step:"]', function (event) { /* {{{ */
+        var from = parseInt($(event.target).extract('on-step'));
+        var to   = parseInt($(event.target).closest('[href]').attr('href').replace(/^step:/, ''));
+        event.preventDefault();
+        $(event.target).closest('.wizard2')
+                       .trigger('wizard:step', [{ from : from,
+                                                  to   : to }]);
+      }) /* }}} */
+      .on('click', '.wizard2 [rel=prev]', function (event) { /* {{{ */
+        event.preventDefault();
+        var from = parseInt($(event.target).extract('on-step'));
+        $(event.target).closest('.wizard2')
+                       .trigger('wizard:step', [{ from : from,
+                                                  to   : from - 1 }]);
+      }) /* }}} */
+      .on('click', '.wizard2 [rel=next]', function (event) { /* {{{ */
+        event.preventDefault();
+        var from = parseInt($(event.target).extract('on-step'));
+        $(event.target).closest('.wizard2')
+                       .trigger('wizard:step', [{ from : from,
+                                                  to   : from + 1 }]);
+      }) /* }}} */
+
     ;
   });
 

@@ -218,7 +218,7 @@ function dispatch(page) {
       break;
     }
     $('#main').template('do-backup');
-    new DoAdHocWizard($('#main'), '.do-backup');
+    $('#main .do-backup').trigger('wizard:step', { to: 1 });
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
@@ -232,7 +232,7 @@ function dispatch(page) {
     }
 
     $('#main').template('do-restore');
-    new DoRestoreWizard($('#main'), '.do-restore');
+    $('#main .do-restore').trigger('wizard:step', { to: 1 });
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
@@ -269,9 +269,8 @@ function dispatch(page) {
                                 .find('.plugin0th input').focus();
       });
     window.setTimeout(function () {
+      $('#main .do-configure').trigger('wizard:step', { to: 1 });
       $('#main .optgroup').optgroup();
-
-      new DoConfigureWizard($('#main'), '.do-configure');
       $('#main .scheduling [data-subform=schedule-daily]').trigger('click');
     }, 150);
     break; /* #!/do/configure */
