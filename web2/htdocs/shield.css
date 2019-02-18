@@ -2513,3 +2513,19 @@ redacted:hover {
   padding: 8px 24px;
   border-radius: 0 8px 8px 0;
 }
+
+
+table th.sortable {
+  cursor: pointer;
+}
+table th.sortable.asc ::before,
+table th.sortable.desc ::before {
+  margin-left: 4px;
+  content: "\25b4";
+  display: inline-block;
+  opacity: 0.4;
+  font-size: 11pt;
+}
+table th.sortable.asc ::before {
+  transform: rotate(180deg);
+}

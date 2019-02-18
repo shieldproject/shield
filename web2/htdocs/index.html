@@ -723,11 +723,11 @@
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
                 [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
-                <table class="lean selectable choose target">
+                <table class="lean sortable selectable choose target">
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Type</th>
+                      <th class="sortable">Name</th>
+                      <th class="sortable">Type</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -775,12 +775,12 @@
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
                 [[ var system = AEGIS.system(_.target.uuid); ]]
-                <table class="lean selectable choose store">
+                <table class="lean sortable selectable choose store">
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Type</th>
-                      <th>Retention</th>
+                      <th class="sortable">Name</th>
+                      <th class="sortable">Type</th>
+                      <th class="sortable">Retention</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -907,12 +907,12 @@
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
                 [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
-                <table class="lean selectable choose target">
+                <table class="lean sortable selectable choose target">
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Archives</th>
-                      <th>Type</th>
+                      <th class="sortable">Name</th>
+                      <th class="sortable">Archives</th>
+                      <th class="sortable">Type</th>
                       <th></th>
                     </tr>
                   </thead>
@@ -984,13 +984,13 @@
             <button rel="prev">◀ Back to <span>Data System</span></button>
           </div>
           [[ } else { ]]
-          <table class="lean selectable choose archive">
+          <table class="lean sortable selectable choose archive">
             <thead>
               <tr>
-                <th>UUID</th>
-                <th>Date</th>
-                <th>Size</th>
-                <th>Store</th>
+                <th class="sortable">UUID</th>
+                <th class="sortable">Date</th>
+                <th class="sortable">Size</th>
+                <th class="sortable">Store</th>
               </tr>
             </thead>
             <tbody>
@@ -1692,10 +1692,10 @@
               <li><a href="switch:lean-view" title="Lean Table View"><img src="/i/table.png" /></a></li>
             </ul>
           </h2>
-          <table class="lean">
+          <table class="lean sortable">
             <thead>
               <tr>
-                <th>Name</th>
+                <th class="sortable">Name</th>
                 <th>Schedule</th>
                 <th>Retention</th>
                 <th></th>
@@ -1821,12 +1821,12 @@
             </div>
 
             <h2>Scheduled Backups</h2>
-            <table class="lean">
+            <table class="lean sortable">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Schedule</th>
-                  <th>Retention</th>
+                  <th class="sortable">Name</th>
+                  <th class="sortable">Schedule</th>
+                  <th class="sortable">Retention</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1839,10 +1839,10 @@
                     <img src="i/shield-[[= job.healthy ? 'ok' : 'fail' ]].svg">
                     [[= job.name ]]
                   </td>
-                  <td class="schedule">
+                  <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
                     [[= job.schedule ]]
                   </td>
-                  <td class="retain">
+                  <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   </td>
                   <td><a href="#">edit</a> | <a href="#">delete</a> | <a href="#">run</a></td>
@@ -1996,11 +1996,11 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ if (stores.length == 0) { ]]
             <div class="no-data">No Cloud Storage Systems have been configured yet.</div>
             [[ } else { ]]
-            <table class="lean">
+            <table class="lean sortable">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Type</th>
+                  <th class="sortable">Name</th>
+                  <th class="sortable">Type</th>
                   <th>Notes</th>
                   <th></th>
                 </tr>
@@ -2323,9 +2323,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ if (_.tenants.length == 0) { ]]
             <div class="no-data">No Tenants have been created yet.</div>
             [[ } else { ]]
-            <table>
+            <table class="lean sortable">
               <thead><tr>
-                <th>Name</th>
+                <th class="sortable">Name</th>
                 <th></th>
               </tr></thead>
               <tbody>
@@ -2518,7 +2518,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             [[ if (_.agents.length == 0) { ]]
             <div class="no-data">No Agents have registered with this S.H.I.E.L.D. instance yet.</div>
             [[ } else { ]]
-            <table>
+            <table class="lean">
               <thead><tr>
                 <th>Name</th>
                 <th>Address</th>
@@ -2574,12 +2574,11 @@ for job <em>[[= _.task.job_uuid ]]</em>
           <div class="gutter blk" id="auth-providers">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2>Authentication Providers</h2>
-            <table>
+            <table class="lean sortable">
               <thead><tr>
-                <th>Name</th>
-                <th>Identifier</th>
-                <th>Type</th>
-                <th>Usage</th>
+                <th class="sortable">Name</th>
+                <th class="sortable">Identifier</th>
+                <th class="sortable">Type</th>
               </tr></thead>
               <tbody>
               [[ $.each(_.providers, function (i, provider) { ]]
@@ -2587,7 +2586,6 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   <td>[[= provider.name ]]</td>
                   <td><span class="tag">[[= provider.identifier ]]</span></td>
                   <td>[[= provider.type ]] (<a href="#!/admin/auth/config:name:[[= provider.identifier ]]">configuration</a>)</td>
-                  <td>[[= provider.usage ]]</td>
                 </tr>
               [[ }); ]]
               </tbody>
@@ -2746,11 +2744,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
             [[ if (_.users.length == 0) { ]]
             <div class="no-data">No local SHIELD users have been created yet.</div>
             [[ } else { ]]
-            <table>
+            <table class="lean sortable">
               <thead><tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>System Role</th>
+                <th class="sortable">Name</th>
+                <th class="sortable">Username</th>
+                <th class="sortable">System Role</th>
                 <th>Tenants</th>
                 <th></th>
               </tr></thead>
@@ -2903,13 +2901,13 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               [[ if (_.sessions.length == 0) { ]]
               <div class="no-data">No sessions have been created yet.</div>
               [[ } else { ]]
-              <table>
+              <table class="lean sortable">
                 <thead><tr>
-                  <th>Account</th>
-                  <th>Created At</th>
-                  <th>Last Seen</th>
-                  <th>IP Address</th>
-                  <th>User Agent</th>
+                  <th class="sortable">Account</th>
+                  <th class="sortable">Created At</th>
+                  <th class="sortable">Last Seen</th>
+                  <th class="sortable">IP Address</th>
+                  <th class="sortable">User Agent</th>
                   <th></th>
                 </tr></thead>
                 <tbody>

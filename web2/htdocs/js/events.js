@@ -96,6 +96,45 @@
         }
       }) /* }}} */
 
+      /* Sortable Table UI Widget */
+      .on('click', 'table.sortable th.sortable', function (event) {
+        var $thead = $(this).closest('thead');
+        var $tbody = $(this).closest('table.sortable').find('tbody');
+
+        var mode = ($(this).is('.sort.asc') ? -1 : 1);
+        $(this).closest('thead').find('th').removeClass('sort asc desc');
+        $(this).addClass('sort').addClass(mode == 1 ? 'asc' : 'desc');
+        if ($(this).find('span').length == 0) {
+          $(this).append('<span>');
+        }
+
+        var idx  = $(this).index();
+        var type = $(this).attr('data-sort-as') || 'text';
+
+        var rows = [];
+        $tbody.find('tr').each(function (_, e) {
+          var $tr = $(e).detach();
+          var $td = $($tr.find('td')[idx]);
+          var key = $td.is('[data-sort]') ? $td.attr('data-sort') : $td.text();
+
+          switch (type) {
+          case 'number': key = parseFloat(key); break;
+          default:        break;
+          }
+
+          rows.push([key, $tr]);
+        });
+
+        rows.sort(function (a, b) {
+          return mode * (a[0] > b[0] ?  1 :
+                         a[0] < b[0] ? -1 : 0);
+        });
+
+        for (var i = 0; i < rows.length; i++) {
+          $tbody.append(rows[i][1]);
+        }
+      })
+
       /* "Run Job" links (href="run:...") */
       .on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) { /* {{{ */
         event.preventDefault();
