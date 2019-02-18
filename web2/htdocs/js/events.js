@@ -250,12 +250,13 @@
       }) /* }}} */
 
       /* SHIELD Unlock Form */
-      .on('submit', 'form.unlock-shield', function (event) { /* {{{ */
+      .on('submit', 'form#unlock-shield', function (event) { /* {{{ */
         event.preventDefault();
 
         var $form = $(event.target);
         $form.reset()
         var data = $form.serializeObject();
+        $form.find('[name=master]').val('');
         if (data.master == "") {
           $form.error('unlock-master', 'missing');
           return;
@@ -266,7 +267,8 @@
           url:  '/v2/unlock',
           data: data,
           success: function (data) {
-            goto("");
+            $('#lock-state .locked').fadeOut();
+            goto(AEGIS.is('engineer') ? '#!/admin' : '#!/systems');
           },
           statusCode: {
             403: function () {

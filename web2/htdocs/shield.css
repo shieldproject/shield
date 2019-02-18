@@ -2475,3 +2475,41 @@ redacted:hover {
   color: #aaa;
   padding: 12px 0;
 }
+
+.locked {
+  background-color: darkred;
+  color: #fff;
+  padding: 2em;
+  display: none;
+}
+.locked h1 {
+  font-size: 36px;
+  font-weight: bold;
+}
+.locked p {
+  font-size: 20px;
+  width: 27em;
+  margin: 1.3em 0;
+  line-height: 1.2em;
+}
+
+.locked form * {
+  font-size: 20px;
+}
+.locked form input {
+  background-color: #111;
+  color: #fff;
+  padding: 8px 24px;
+  border-radius: 8px 0 0 8px;
+  border: none;
+  border-right: 1px solid #666;
+  width: 25em;
+  max-width: 70%;
+}
+.locked form button {
+  background-color: #222;
+  color: #fff;
+  border: 0;
+  padding: 8px 24px;
+  border-radius: 0 8px 8px 0;
+}

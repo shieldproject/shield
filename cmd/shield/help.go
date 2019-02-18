@@ -812,6 +812,24 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "lock": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} lock\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Lock a SHIELD Core.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  SHIELD maintains an internal encrypted vault of secrets,\n")
+		fmt.Printf("  for protecting your data archives with strong encryption.\n")
+		fmt.Printf("  Locking the SHIELD core seals this vault, and prevents\n")
+		fmt.Printf("  all backup and restore tasks from being scheduled until\n")
+		fmt.Printf("  SHIELD is unlocked, using the SHIELD master password.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  (none)\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "login": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} login [--username @Y{USERNAME}] [--password @Y{PASSWORD}]\n")
 		fmt.Printf("       @G{shield} login --token @Y{AUTH-TOKEN}\n")

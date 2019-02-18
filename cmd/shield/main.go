@@ -89,6 +89,7 @@ var opts struct {
 	Init struct {
 		Master string `cli:"--master" env:"SHIELD_CORE_MASTER"`
 	} `cli:"init, initialize"`
+	Lock struct {} `cli:"lock"`
 	Unlock struct {
 		Master string `cli:"--master" env:"SHIELD_CORE_MASTER"`
 	} `cli:"unlock"`
@@ -494,6 +495,7 @@ func main() {
 		if show("admin", "administration", "administrative") {
 			header("Administrative Tasks")
 			printc("  init                     Initialize a new SHIELD Core.\n")
+			printc("  lock                     Lock a SHIELD Core.\n")
 			printc("  unlock                   Unlock a SHIELD Core (i.e. after a reboot).\n")
 			printc("  rekey                    Change a SHIELD Core master (unlock) password.\n")
 			blank()
@@ -859,6 +861,11 @@ func main() {
 		} else {
 			bail(fmt.Errorf("Failed to initialize Fixed Key!"))
 		}
+
+	/* }}} */
+	case "lock": /* {{{ */
+		bail(c.Lock())
+		fmt.Printf("SHIELD core locked successfully.\n")
 
 	/* }}} */
 	case "unlock": /* {{{ */

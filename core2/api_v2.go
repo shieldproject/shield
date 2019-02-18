@@ -640,6 +640,29 @@ func (c *Core) v2API() *route.Router {
 			})
 	})
 	// }}}
+	r.Dispatch("POST /v2/lock", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		status, err := c.vault.Status()
+		if err != nil {
+			r.Fail(route.Forbidden(err, "Unable to lock the SHIELD Core"))
+			return
+		}
+		if status == "uninitialized" {
+			r.Fail(route.Bad(nil, "this SHIELD Core has not yet been initialized"))
+			return
+		}
+		if err := c.vault.Seal(); err != nil {
+			r.Fail(route.Oops(err, "Unable to lock the SHIELD Core"))
+			return
+		}
+
+		c.bus.Send("lock-core", "", nil, "*")
+		r.Success("Successfully locked the SHIELD Core")
+	})
+	// }}}
 	r.Dispatch("POST /v2/unlock", func(r *route.Request) { // {{{
 		var in struct {
 			Master string `json:"master"`

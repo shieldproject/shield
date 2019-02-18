@@ -348,6 +348,10 @@
 
         //console.log('event (%s): ', update.event, JSON.stringify(update.data));
         switch (update.event) {
+        case 'lock-core':     self.vault = "locked";   $('#hud').template('hud');
+                                                       $('#lock-state').fadeIn(); break
+        case 'unlock-core':   self.vault = "unlocked"; $('#hud').template('hud');
+                                                       $('#lock-state').fadeOut(); break
         case 'create-object': self.insert(update.type, update.data); break;
         case 'update-object': self.update(update.type, update.data); break;
         case 'delete-object': self.delete(update.type, update.data); break;

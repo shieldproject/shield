@@ -17,10 +17,6 @@ function divert(page) { // {{{
     if (AEGIS.vault == "uninitialized") {
       console.log('system user detected, and this SHIELD core is uninitialized; diverting to #!/init page...');
       return "#!/init";
-
-    } else if (AEGIS.vault == "locked") {
-      console.log('system user detected, and this SHIELD core is locked; diverting to #!/unlock page...');
-      return "#!/unlock";
     }
   }
 
@@ -1164,17 +1160,6 @@ function dispatch(page) {
     });
     break; /* #!/admin/sessions/delete */
     // }}}
-  case "#!/unlock": /* {{{ */
-    console.log('#!/unlock: checking for system-level engineer role...');
-    if (!AEGIS.is('engineer')) {
-      console.log('#!/unlock: access is denied!');
-      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
-      break;
-    }
-    console.log('#!/unlock: rendering "unlock" template...');
-    $('#main').template('unlock');//.autofocus();
-    break;
-    // }}}
 
   default: /* 404 {{{ */
     $('#main').template('404', {
@@ -1210,6 +1195,9 @@ $(function () {
         if (AEGIS.authenticated()) {
           $('#viewport').template('layout');
           $('#hud').template('hud');
+          if (AEGIS.vault == "locked") {
+            $('#lock-state').fadeIn();
+          }
         }
         $(document.body)
           .on('shield:navigate', function (event, to) {

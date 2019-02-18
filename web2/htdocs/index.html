@@ -84,6 +84,20 @@
           </nav>
         </div>
 
+        <div id="lock-state" class="locked">
+          <h1>This SHIELD Core is LOCKED</h1>
+          <p>SHIELD needs to be unlocked before backup jobs (scheduled or ad hoc),
+          or restore jobs can be run.</p>
+
+          [[ if (AEGIS.is('engineer')) { ]]
+          <form id="unlock-shield">
+            <input type="password" name="master" placeholder="SHIELD Master Password">[[#
+            ]]<button type="submit">Unlock</button>
+          </form>
+          [[ } else { ]]
+          <p>Please contact your SHIELD administrator(s) and ask them to kindly unlock SHIELD.</p>
+          [[ } ]]
+        </div>
         <div class="field" id="main">
           <img id="loading" src="/i/loading.svg"/>
         </div>
@@ -658,34 +672,6 @@
                     access, which seems to be an invalid role.  Please submit a bug report.</p>
             [[ } ]]
           </div>
-    <!-- }}} --></script>
-
-    <script type="text/html" id="template:unlock"><!-- {{{ -->
-      [[#
-        {unlock} template
-
-        Renders a form allowing anyone with knowledge of the SHIELD master
-        password to unlock the SHIELD core, and resume normal operations.
-      ]]
-        <div class="gutter blk">
-          <h2>This SHIELD Core is LOCKED</h2>
-          <p>SHIELD maintains an internal encrypted vault of secrets, for protecting
-          your data archives with strong encryption.  This vault must be unlocked
-          before SHIELD will be able to use it.</p>
-
-          <form class="unlock-shield">
-            <div class="ctl" data-field="unlock-master">
-              <label for="masterpass">Enter your SHIELD Master Password</label>
-              <div class="errors">
-                <span class="error"></span>
-                <span data-error="missing">Please supply your password.</span>
-                <span data-error="incorrect">Incorrect password, please try again.</span>
-              </div>
-              <input type="password" id="unlock-master" name="master">
-            </div>
-            <button>Unlock</button>
-          </form>
-        </div>
     <!-- }}} --></script>
 
     <script type="text/html" id="template:do-backup"><!-- {{{ -->

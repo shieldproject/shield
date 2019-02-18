@@ -34,3 +34,10 @@ func (c *Client) Unseal(crypt, master string) error {
 	/* unseal the vault */
 	return c.unseal(creds.SealKey)
 }
+
+func (c *Client) Seal() error {
+	if err := c.Put("/v1/sys/seal", nil, nil); err != nil {
+		return fmt.Errorf("failed to seal vault: %s", err)
+	}
+	return nil
+}

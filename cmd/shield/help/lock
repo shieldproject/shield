@@ -1,0 +1,14 @@
+USAGE: @G{shield} lock
+
+  Lock a SHIELD Core.
+
+  SHIELD maintains an internal encrypted vault of secrets,
+  for protecting your data archives with strong encryption.
+  Locking the SHIELD core seals this vault, and prevents
+  all backup and restore tasks from being scheduled until
+  SHIELD is unlocked, using the SHIELD master password.
+
+@B{Options:}
+
+  (none)
+
