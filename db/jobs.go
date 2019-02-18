@@ -175,6 +175,8 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 			j.Healthy = j.LastTaskStatus == "done"
 		}
 
+		j.StoreUUID = j.Store.UUID
+		j.TargetUUID = j.Target.UUID
 		l = append(l, j)
 	}
 
