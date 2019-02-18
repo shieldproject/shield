@@ -472,8 +472,29 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 }
 
 func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
+	r, err := db.query(`
+	   SELECT uuid
+
+	     FROM tasks
+
+	    WHERE op         = ?
+	      AND agent      = ?
+	      AND stopped_at IS NULL`,
+		AgentStatusOperation, agent.Address);
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	if r.Next() {
+		var id string
+		if err = r.Scan(&id); err != nil {
+			return nil, err
+		}
+		return db.GetTask(id)
+	}
+
 	id := RandomID()
-	err := db.exec(`
+	err = db.exec(`
 	   INSERT INTO tasks (uuid, op, status, log, requested_at,
 	                      agent, attempts, owner, tenant_uuid)
 	
