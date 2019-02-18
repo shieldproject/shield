@@ -17,7 +17,7 @@ type Target struct {
 	Agent       string `json:"agent"       mbus:"agent"`
 	Compression string `json:"compression" mbus:"compression"`
 
-	Config map[string]interface{} `json:"config,omitempty" mbus:"config"`
+	Config        map[string]interface{} `json:"config,omitempty"`
 }
 
 func (t Target) ConfigJSON() (string, error) {
@@ -26,6 +26,19 @@ func (t Target) ConfigJSON() (string, error) {
 		return "", err
 	}
 	return string(b), err
+}
+
+func (target *Target) Configuration(db *DB, private bool) ([]ConfigItem, error) {
+	if target.Config == nil {
+		return nil, nil
+	}
+
+	meta, err := db.GetAgentPluginMetadata(target.Agent, target.Plugin)
+	if meta == nil || err != nil {
+		return nil, err
+	}
+
+	return DisplayableConfig("target", meta, target.Config, private), nil
 }
 
 type TargetFilter struct {
@@ -175,12 +188,12 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 }
 
 func (db *DB) CreateTarget(target *Target) (*Target, error) {
-	target.UUID = RandomID()
 	rawconfig, err := json.Marshal(target.Config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to marshal target endpoint configs: %s", err)
 	}
 
+	target.UUID = RandomID()
 	err = db.exec(`
 	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
 	                         endpoint, agent, compression)

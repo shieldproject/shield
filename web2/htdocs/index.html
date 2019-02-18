@@ -1778,41 +1778,94 @@
         Enables operators to easily see when a given system is backed up,
         and facilitates quick and easy access to restore valid archives.
       ]]
-          <div class="gutter" data-system-uuid="[[= _.target.uuid ]]" data-system-name="[[= _.target.name ]]">
-            <div class="job card [[= _.target.healthy ? 'ok' : 'fail' ]]">
-              <img src="i/shield-[[= _.target.healthy ? 'ok' : 'fail' ]].svg">
-              <h3>[[= _.target.name ]]</h3>
-              <ul class="details">
-                <li>[[ if (_.target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
-                    [[ } else { ]]backups will be compressed via <tt>[[= _.target.compression ]]</tt>[[ } ]]</li>
-              </ul>
-              [[ $.each(AEGIS.jobs({ system: _.target.uuid }), function (i, job) {
-                   var store = AEGIS.store(job.store_uuid);
-              ]]
-              <ul class="details">
-                <li>[[= job.name ]]</li>
-                <li>runs [[= job.schedule ]] &mdash; <a href="run:[[= job.uuid ]]">run now</a></li>
-                <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
-              </ul>
-              <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
-                <div class="from">[[= _.target.plugin || 'unknown' ]]</div>
-                <div class="bar"></div>
-                <div class="to">[[= (store ? store.name : false) || 'unknown' ]]</div>
-              </div>
-              [[ }); ]]
+      [[
+          var target = AEGIS.system(args.uuid);
+      ]]
+          <div class="system view gutter" data-system-uuid="[[= target.uuid ]]" data-system-name="[[= target.name ]]">
+            <h2 class="[[= target.healthy ? 'ok' : 'fail' ]]">
+              <span>Data System</span>[[= target.name ]]
+              <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
+            </h2>
+            <div>[[= target.summary ]]</div>
+
+            <div class="side-by-side">
+              <h3>Storage Footprint</h3>
+              [[ var n = 0, used = 0;
+                 $.each(AEGIS.archives({ tenant: target.tenant_uuid,
+                                         system: target.uuid }),
+                        function (i, archive) {
+                          n++;
+                          used += archive.size;
+                        }); ]]
+              <dl>
+                <dt>Backup Archives</dt>
+                <dd>[[= n ]]</dd>
+
+                <dt>Compression</dt>
+                <dd>[[= target.compression ]]</dd>
+
+                <dt>Storage Used</dt>
+                <dd>[[= bytes(used) ]]</dd>
+              </dl>
             </div>
 
-            <div class="job summary">
-              <h2>Notes</h2>
-              <div class="notes">[[ if (_.target.summary) { ]]
-                [[= _.target.summary ]]
+            <div class="side-by-side redraw">
+              <h3>Configuration</h3>
+              [[ if (_.config) { ]]
+              <dl>
+                <dt>SHIELD Agent</dt>
+                <dd>[[= target.agent ]]</dd>
+
+                <dt>Target Plugin</dt>
+                <dd>[[= target.plugin ]]</dd>
+
+                [[   $.each(_.config, function (i, kv) { ]]
+                <dt>[[= kv.label ]]</dt>
+                <dd>[[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
+                } else if (kv.value)    { ]][[= kv.value ]][[
+                } else if (kv.default)  { ]]<span class="not-configured">[[= kv.default ]]</span>[[
+                } else                  { ]]<span class="not-configured">not configured.</span>[[
+                } ]]</dd>
+                [[   }); ]]
+              </dl>
               [[ } else { ]]
-                <div class="no-data">No additional information available.</div>
-              [[ } ]]</div>
+              <span class="deferred">fetching configuration...</span>
+              [[ } ]]
             </div>
+
+            <h2>Scheduled Backups</h2>
+            <table class="lean">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Schedule</th>
+                  <th>Retention</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                [[ $.each(AEGIS.jobs({ system: target.uuid }), function (i, job) {
+                     var store = AEGIS.store(job.store_uuid);
+                ]]
+                <tr class="[[ if (!job.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
+                  <td class="name">
+                    <img src="i/shield-[[= job.healthy ? 'ok' : 'fail' ]].svg">
+                    [[= job.name ]]
+                  </td>
+                  <td class="schedule">
+                    [[= job.schedule ]]
+                  </td>
+                  <td class="retain">
+                    [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
+                  </td>
+                  <td><a href="#">edit</a> | <a href="#">delete</a> | <a href="#">run</a></td>
+                </tr>
+                [[ }); ]]
+              </tbody>
+            </table>
 
             <h2>Timeline</h2>
-            <div class="paginate" data-url="/v2/tenants/[[= AEGIS.current.uuid ]]/systems/[[= _.target.uuid ]]?before={oldest}" data-oldest="[[= new Date().getTime() ]]">
+            <div class="paginate" data-url="/v2/tenants/[[= AEGIS.current.uuid ]]/systems/[[= target.uuid ]]?before={oldest}" data-oldest="[[= new Date().getTime() ]]">
               <div class="timeline results"></div>
               <div class="loading">Fetching more tasks...</div>
               <a class="load-more" href="">More Tasks...</a>
@@ -2021,13 +2074,13 @@ for job <em>[[= _.task.job_uuid ]]</em>
       [[
          var store = AEGIS.store(_.uuid);
       ]]
-          <div class="gutter blk store">
+          <div class="gutter blk store view">
             <a class="breadcrumb" href="#!/[[= _.admin ? 'admin/' : '' ]]stores">&laquo; Back to Cloud Storage Systems</a>
-            <h2><div class="plugin">[[= store.plugin ]]</div>[[= store.name ]][[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]</h2>
+            <h2>[[= store.name ]][[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]</h2>
 
             [[ if (_.admin || !store.global) { ]]
               [[ if ((_.admin && AEGIS.is('engineer'))
-                  || (!_.admin && AEGIS.is(tenant.uuid, 'engineer'))) { ]]
+                  || (!_.admin && AEGIS.is(store.tenant_uuid, 'engineer'))) { ]]
               <a class="edit"   href="#!/[[= _.admin ? 'admin/' : '' ]]stores/edit:uuid:[[= store.uuid ]]">Edit</a>
               <a class="delete" href="#!/[[= _.admin ? 'admin/' : '' ]]stores/delete:uuid:[[= store.uuid ]]">Delete</a>
               [[ } ]]
@@ -2049,18 +2102,28 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </dl>
             </div>
 
-            <div class="side-by-side">
+            <div class="side-by-side redraw">
               <h3>Configuration</h3>
+              [[ if (_.config) { ]]
               <dl>
                 <dt>SHIELD Agent</dt>
                 <dd>[[= store.agent ]]</dd>
 
-                [[ $.each(store.display_config, function (i, kv) {
-                     if (kv.value == "" || kv.value == false) { return; } ]]
+                <dt>Store Plugin</dt>
+                <dd>[[= store.plugin ]]</dd>
+
+                [[   $.each(_.config, function (i, kv) { ]]
                 <dt>[[= kv.label ]]</dt>
-                <dd>[[= kv.value ]]</dd>
-                [[ }); ]]
+                <dd>[[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
+                } else if (kv.value)    { ]][[= kv.value ]][[
+                } else if (kv.default)  { ]]<span class="not-configured">[[= kv.default ]]</span>[[
+                } else                  { ]]<span class="not-configured">not configured.</span>[[
+                } ]]</dd>
+              [[   }); ]]
               </dl>
+              [[ } else { ]]
+              <span class="deferred">fetching configuration...</span>
+              [[ } ]]
             </div>
 
             [[ if (store.archives > 0) { ]]

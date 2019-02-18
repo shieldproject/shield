@@ -289,12 +289,16 @@ function dispatch(page) {
       $('#main').template('you-have-no-tenants');
       break;
     }
-    $('#main').template('loading');
-    $('#main').template('system', { target: AEGIS.system(args.uuid) });
-    window.setTimeout(function () {
-      /* for some reason, we need a small delay before we trigger the load-more */
-      $('#main .paginate .load-more').trigger('click');
-    }, 210);
+    $('#main').template('system', args);
+    $('#main .paginate .load-more').trigger('click');
+    $.ajax({
+      type:     'GET',
+      url:      '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+args.uuid+'/config',
+      dataType: 'json',
+    }).then(function (config) {
+      args.config = config;
+      $('#main').template('system', args);
+    });
     break; /* #!/systems/system */
     // }}}
 
@@ -312,6 +316,23 @@ function dispatch(page) {
       break;
     }
     $('#main').template('store', args);
+    $.ajax({
+      type:     'GET',
+      url:      '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid+'/config',
+      dataType: 'json',
+    }).then(function (config) {
+      args.config = config || [];
+      $('#main').template('store', args);
+    }, function () {
+      $.ajax({
+        type:     'GET',
+        url:      '/v2/global/stores/'+args.uuid+'/config',
+        dataType: 'json'
+      }).then(function (config) {
+        args.config = config || []
+        $('#main').template('store', args);
+      });
+    });
     break; /* #!/stores/store */
     // }}}
   case '#!/stores/new': /* {{{ */

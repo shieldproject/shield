@@ -975,6 +975,21 @@ table.lean td.name > .tag,
   margin: 0.5em;
 }
 
+.system.view h1 {
+  font-size: 36px;
+  font-weight: bold;
+  clear: both;
+  margin-bottom: 1em;
+}
+.system.view h2 span {
+  font-size: 18px;
+  color: #0071bc;
+  display: block;
+}
+.system.view h2 img {
+  height: 0.9em;
+}
+
 .lean img { width: 16px; }
 .lean .name {
   font-size: 18px;
@@ -1318,15 +1333,20 @@ dl dt {
   float: left;
   display: block;
   width: 40%;
-  padding: 0 0 0.5em 0;
+  padding: 0 0 0.75em 0;
 }
 dl dd {
   float: left;
   font-weight: bold;
-  padding: 0 0 0.5em 0;
+  padding: 0 0 0.75em 0;
 }
-dl dd em {
+dl dd span.redacted {
   color: crimson;
+}
+dl dd span.not-configured {
+  font-style: italic;
+  font-weight: normal;
+  color: #aaa;
 }
 dl dd em:before { content: "«"; }
 dl dd em:after  { content: "»"; }
@@ -2440,4 +2460,15 @@ redacted {
 redacted:hover {
 	filter: none;
 	font-weight: inherit
+}
+
+
+
+.redraw .deferred {
+  text-align: center;
+  display: block;
+  font-size: 14px;
+  font-style: italic;
+  color: #aaa;
+  padding: 12px 0;
 }

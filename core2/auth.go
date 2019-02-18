@@ -283,3 +283,6 @@ func (c *Core) CanSeeCredentials(r *route.Request, tenant string) bool {
 	return c.hasRole(false, r, tenant, "tenant/engineer", "tenant/admin", "system/*") &&
 		c.hasTenant(false, r, tenant)
 }
+func (c *Core) CanSeeGlobalCredentials(r *route.Request) bool {
+	return c.hasRole(false, r, "", "system/*")
+}

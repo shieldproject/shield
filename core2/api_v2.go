@@ -1311,6 +1311,31 @@ func (c *Core) v2API() *route.Router {
 		r.OK(system)
 	})
 	// }}}
+	r.Dispatch("GET /v2/tenants/:uuid/systems/:uuid/config", func(r *route.Request) { // {{{
+		if c.IsNotTenantOperator(r, r.Args[1]) {
+			return
+		}
+
+		target, err := c.db.GetTarget(r.Args[2])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve system information"))
+			return
+		}
+
+		if target == nil || target.TenantUUID != r.Args[1] {
+			r.Fail(route.NotFound(err, "No such system"))
+			return
+		}
+
+		config, err := target.Configuration(c.db, c.CanSeeCredentials(r, target.TenantUUID))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve system information"))
+			return
+		}
+
+		r.OK(config)
+	})
+	// }}}
 	r.Dispatch("POST /v2/tenants/:uuid/systems", func(r *route.Request) { // {{{
 		if c.IsNotTenantEngineer(r, r.Args[1]) {
 			return
@@ -2293,13 +2318,32 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME: we also have to handle public, for operators */
-		if err := store.DisplayPublic(); err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
+		r.OK(store)
+	})
+	// }}}""
+	r.Dispatch("GET /v2/tenants/:uuid/stores/:uuid/config", func(r *route.Request) { // {{{
+		if c.IsNotTenantOperator(r, r.Args[1]) {
 			return
 		}
 
-		r.OK(store)
+		store, err := c.db.GetStore(r.Args[2])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+
+		if store == nil || store.TenantUUID != r.Args[1] {
+			r.Fail(route.NotFound(nil, "No such storage system"))
+			return
+		}
+
+		config, err := store.Configuration(c.db, c.CanSeeCredentials(r, store.TenantUUID))
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+
+		r.OK(config)
 	})
 	// }}}""
 	r.Dispatch("POST /v2/tenants/:uuid/stores", func(r *route.Request) { // {{{
@@ -3325,18 +3369,41 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		if store == nil || store.TenantUUID == db.GlobalTenantUUID {
+		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
 			r.Fail(route.NotFound(nil, "No such storage system"))
 			return
 		}
 
-		/* FIXME: we also have to handle public, for operators */
-		if err := store.DisplayPublic(); err != nil {
-			r.Fail(route.Oops(err, "Unable to retrieve storage systems information"))
+		r.OK(store)
+	})
+	// }}}""
+	r.Dispatch("GET /v2/global/stores/:uuid/config", func(r *route.Request) { // {{{
+		if c.IsNotAuthenticated(r) {
 			return
 		}
 
-		r.OK(store)
+		store, err := c.db.GetStore(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+
+		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
+			r.Fail(route.NotFound(nil, "No such storage system"))
+			return
+		}
+
+		if !c.CanSeeGlobalCredentials(r) {
+			r.OK([]bool{})
+			return
+		}
+
+		config, err := store.Configuration(c.db, true)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
+			return
+		}
+		r.OK(config)
 	})
 	// }}}""
 	r.Dispatch("POST /v2/global/stores", func(r *route.Request) { // {{{
