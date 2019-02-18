@@ -311,6 +311,21 @@ func (c *Core) ScheduleAgentStatusCheckTasks(f *db.AgentFilter) {
 func (c *Core) TasksToChores() {
 	log.Infof("SCHEDULER: converting tasks (database) into chores (scheduler)")
 
+	inflight := make(map[string]*db.Task)
+	if active, err := c.db.GetAllTasks(&db.TaskFilter{SkipInactive: true }); err != nil {
+		log.Errorf("unable to retrieve active tasks from database, in order to avoid scheduling conflicts: %s", err)
+		return
+	} else {
+		for _, task := range active {
+			if task.Status == "pending" {
+				continue
+			}
+			if task.Op == db.BackupOperation || task.Op == db.RestoreOperation {
+				inflight[task.TargetUUID] = task
+			}
+		}
+	}
+
 	tasks, err := c.db.GetAllTasks(&db.TaskFilter{ForStatus: "pending"})
 	if err != nil {
 		log.Errorf("unable to retrieve pending tasks from database, in order to schedule them: %s", err)
@@ -336,20 +351,30 @@ func (c *Core) TasksToChores() {
 			continue
 
 		case db.BackupOperation:
+			if other, ok := inflight[task.TargetUUID]; ok {
+				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s task [%s] is already in-flight for target [%s]", task.Op, task.UUID, other.Op, other.UUID, task.TargetUUID)
+				continue
+			}
 			encryption, err := c.vault.NewParameters(task.ArchiveUUID, c.Config.Cipher, task.FixedKey)
 			if err != nil {
 				c.TaskErrored(task, "unable to generate encryption parameters:\n%s\n", err)
 				continue
 			}
 			c.scheduler.Schedule(20, fabric.Backup(task, encryption))
+			inflight[task.TargetUUID] = task
 
 		case db.RestoreOperation:
+			if op, ok := inflight[task.TargetUUID]; ok {
+				log.Infof("SCHEDULER: SKIPPING [%s] task %s, another %s operation is already in-flight for target [%s]", task.Op, task.UUID, op, task.TargetUUID)
+				continue
+			}
 			encryption, err := c.vault.Retrieve(task.ArchiveUUID)
 			if err != nil {
 				c.TaskErrored(task, "unable to retrieve encryption parameters:\n%s\n", err)
 				continue
 			}
 			c.scheduler.Schedule(20, fabric.Restore(task, encryption))
+			inflight[task.TargetUUID] = task
 
 		case db.PurgeOperation:
 			c.scheduler.Schedule(50, fabric.Purge(task))
