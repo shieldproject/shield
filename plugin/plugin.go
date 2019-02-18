@@ -27,7 +27,7 @@ import (
 type Opt struct {
 	HelpShort bool   `cli:"-h"`
 	HelpFull  bool   `cli:"--help"`
-	Debug     bool   `cli:"-D, --debug",env:"DEBUG"`
+	Debug     bool   `cli:"-D, --debug"     env:"DEBUG"`
 	Version   bool   `cli:"-v, --version"`
 	Endpoint  string `cli:"-e,--endpoint"`
 	Key       string `cli:"-k, --key"`
