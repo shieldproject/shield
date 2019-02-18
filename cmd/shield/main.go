@@ -1131,7 +1131,7 @@ func main() {
 
 				job := none
 				if t.Job != nil {
-					system = fmt.Sprintf("@W{%s}\n(%s)", t.Job.Name, uuid8(t.Job.UUID))
+					job = fmt.Sprintf("@W{%s}\n(%s)", t.Job.Name, uuid8(t.Job.UUID))
 				}
 
 				archive := none
