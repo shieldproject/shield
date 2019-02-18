@@ -209,7 +209,7 @@ function dispatch(page) {
     // }}}
 
   case "#!/do/backup": /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -222,7 +222,7 @@ function dispatch(page) {
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -236,7 +236,7 @@ function dispatch(page) {
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -277,7 +277,7 @@ function dispatch(page) {
     // }}}
 
   case "#!/systems": /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -285,7 +285,7 @@ function dispatch(page) {
     break; /* #!/systems */
     // }}}
   case '#!/systems/system': /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -303,7 +303,7 @@ function dispatch(page) {
     // }}}
 
   case '#!/stores': /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -311,7 +311,7 @@ function dispatch(page) {
     break; /* #!/stores */
     // }}}
   case '#!/stores/store': /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -336,7 +336,7 @@ function dispatch(page) {
     break; /* #!/stores/store */
     // }}}
   case '#!/stores/new': /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -380,7 +380,7 @@ function dispatch(page) {
     break; /* #!/stores */
     // }}}
   case '#!/stores/edit': /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -416,7 +416,7 @@ function dispatch(page) {
     break; /* #!/stores/edit */
     // }}}
   case '#!/stores/delete': /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
     }
@@ -426,7 +426,7 @@ function dispatch(page) {
     }
     api({
       type: 'GET',
-      url:  '/v2/tenants/'+AEGIS.tenant+'/stores/'+args.uuid,
+      url:  '/v2/tenants/'+AEGIS.current+'/stores/'+args.uuid,
       error: "Failed to retrieve storage system information from the SHIELD API.",
       success: function (store) {
         modal($($.template('stores-delete', { store: store }))
@@ -456,7 +456,7 @@ function dispatch(page) {
     // }}}
 
   case '#!/tenants/edit': /* {{{ */
-    if (!AEGIS.tenant) {
+    if (!AEGIS.current) {
         $('#main').template('you-have-no-tenants');
         break;
     }
