@@ -1445,7 +1445,7 @@ func (c *Core) v2API() *route.Router {
 		job, err := c.db.CreateJob(&db.Job{
 			TenantUUID: r.Args[1],
 			Name:       in.Job.Name,
-			Summary:    "",        /* FIXME: remove job summaries! */
+			Summary:    "", /* FIXME: remove job summaries! */
 			Schedule:   in.Job.Schedule,
 			KeepDays:   in.Job.KeepDays,
 			Paused:     in.Job.Paused,
