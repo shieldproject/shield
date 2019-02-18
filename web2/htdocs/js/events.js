@@ -97,7 +97,7 @@
       }) /* }}} */
 
       /* Sortable Table UI Widget */
-      .on('click', 'table.sortable th.sortable', function (event) {
+      .on('click', 'table.sortable th.sortable', function (event) { /* {{{ */
         var $thead = $(this).closest('thead');
         var $tbody = $(this).closest('table.sortable').find('tbody');
 
@@ -133,7 +133,7 @@
         for (var i = 0; i < rows.length; i++) {
           $tbody.append(rows[i][1]);
         }
-      })
+      }) /* }}} */
 
       /* "Run Job" links (href="run:...") */
       .on('click', 'a[href^="run:"], button[rel^="run:"]', function (event) { /* {{{ */
