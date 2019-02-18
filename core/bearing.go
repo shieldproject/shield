@@ -1,4 +1,4 @@
-package core2
+package core
 
 import (
 	"github.com/starkandwayne/shield/db"

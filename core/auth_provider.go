@@ -7,6 +7,7 @@ import (
 	"github.com/jhunt/go-log"
 
 	"github.com/starkandwayne/shield/db"
+	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/util"
 )
 
@@ -38,17 +39,20 @@ type AuthProviderConfig struct {
 type AuthProvider interface {
 	Configure(map[interface{}]interface{}) error
 	Configuration(bool) AuthProviderConfig
+	WireUpTo(core *Core)
 
 	ReferencedTenants() []string
 
-	Initiate(http.ResponseWriter, *http.Request)
-	HandleRedirect(*http.Request) *db.User
+	Initiate(*route.Request)
+	HandleRedirect(*route.Request) *db.User
 }
 
 type AuthProviderBase struct {
 	Name       string
 	Identifier string
 	Type       string
+
+	core *Core
 
 	properties map[string]interface{}
 
@@ -101,9 +105,17 @@ func (p *AuthProviderBase) Assign(user *db.User, tenant, role string) bool {
 	who := fmt.Sprintf("%s (%s@%s)", user.Name, user.Account, user.Backend)
 	if tenant == "SYSTEM" {
 		p.Infof("assigning system role %s to %s", role, who)
+		if !IsValidSystemRole(role) {
+			p.Errorf("unable to assign system role %s to %s: '%s' is not a valid system role", role, who, role)
+			return false
+		}
 
 	} else {
 		p.Infof("assigning tenant role %s on '%s' to %s", role, tenant, who)
+		if !IsValidTenantRole(role) {
+			p.Errorf("unable to assign tenant role %s on '%s' to %s: '%s' is not a valid tenant role", role, tenant, who, role)
+			return false
+		}
 	}
 
 	if existing, already := p.assignments[tenant]; already {

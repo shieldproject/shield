@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 
+	"github.com/jhunt/go-log"
+
 	"github.com/starkandwayne/shield/db"
 )
 
@@ -36,11 +38,20 @@ type Health struct {
 	} `json:"stats"`
 }
 
-func (core *Core) checkHealth() (Health, error) {
+func (c *Core) checkHealth() (Health, error) {
 	var health Health
 
-	health.Health.Storage = core.AreStoresHealthy()
-	stores, err := core.DB.GetAllStores(nil)
+	stores, err := c.db.GetAllStores(nil)
+	if err != nil {
+		log.Errorf("Failed to get stores for health tests: %s", err)
+	}
+	health.Health.Storage = true
+	for _, store := range stores {
+		if !store.Healthy {
+			health.Health.Storage = false
+		}
+	}
+
 	if err != nil {
 		return health, fmt.Errorf("failed to retrieve all stores: %s", err)
 	}
@@ -55,7 +66,7 @@ func (core *Core) checkHealth() (Health, error) {
 	}
 
 	health.Health.Jobs = true
-	jobs, err := core.DB.GetAllJobs(nil)
+	jobs, err := c.db.GetAllJobs(nil)
 	if err != nil {
 		return health, fmt.Errorf("failed to retrieve all jobs: %s", err)
 	}
@@ -72,21 +83,21 @@ func (core *Core) checkHealth() (Health, error) {
 	}
 	health.Stats.Jobs = len(jobs)
 
-	if health.Health.Core, err = core.vault.Status(); err != nil {
+	if health.Health.Core, err = c.vault.Status(); err != nil {
 		return health, fmt.Errorf("failed to retrieve vault status: %s", err)
 	}
 
-	if health.Stats.Systems, err = core.DB.CountTargets(nil); err != nil {
+	if health.Stats.Systems, err = c.db.CountTargets(nil); err != nil {
 		return health, fmt.Errorf("failed to count systems/targets: %s", err)
 	}
 
-	if health.Stats.Archives, err = core.DB.CountArchives(&db.ArchiveFilter{
+	if health.Stats.Archives, err = c.db.CountArchives(&db.ArchiveFilter{
 		WithStatus: []string{"valid"},
 	}); err != nil {
 		return health, fmt.Errorf("failed to retrieve count of valid archives: %s", err)
 	}
 
-	if health.Stats.Storage, err = core.DB.ArchiveStorageFootprint(&db.ArchiveFilter{
+	if health.Stats.Storage, err = c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
 		WithStatus: []string{"valid"},
 	}); err != nil {
 		return health, fmt.Errorf("failed to calcualte storage footprint: %s", err)
@@ -96,10 +107,10 @@ func (core *Core) checkHealth() (Health, error) {
 	return health, nil
 }
 
-func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
+func (c *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	var health Health
 	health.Health.Storage = true
-	stores, err := core.DB.GetAllStores(&db.StoreFilter{
+	stores, err := c.db.GetAllStores(&db.StoreFilter{
 		ForTenant: tenantUUID,
 	})
 	if err != nil {
@@ -116,7 +127,7 @@ func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	}
 
 	health.Health.Jobs = true
-	jobs, err := core.DB.GetAllJobs(&db.JobFilter{
+	jobs, err := c.db.GetAllJobs(&db.JobFilter{
 		ForTenant: tenantUUID,
 	})
 	if err != nil {
@@ -135,17 +146,17 @@ func (core *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 	}
 	health.Stats.Jobs = len(jobs)
 
-	if health.Stats.Systems, err = core.DB.CountTargets(&db.TargetFilter{
+	if health.Stats.Systems, err = c.db.CountTargets(&db.TargetFilter{
 		ForTenant: tenantUUID,
 	}); err != nil {
 		return health, err
 	}
 
-	if health.Health.Core, err = core.vault.Status(); err != nil {
+	if health.Health.Core, err = c.vault.Status(); err != nil {
 		return health, err
 	}
 
-	tenant, err := core.DB.GetTenant(tenantUUID)
+	tenant, err := c.db.GetTenant(tenantUUID)
 	if err != nil {
 		return health, err
 	}

@@ -1,789 +1,348 @@
 package core
 
 import (
-	"encoding/json"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/http"
 	"os"
-	"path"
-	"strings"
-	"time"
 
 	"github.com/jhunt/go-log"
-	"github.com/pborman/uuid"
+	"golang.org/x/crypto/ssh"
+	"gopkg.in/yaml.v2"
 
+	"github.com/starkandwayne/shield/core/bus"
+	"github.com/starkandwayne/shield/core/fabric"
+	"github.com/starkandwayne/shield/core/scheduler"
 	"github.com/starkandwayne/shield/core/vault"
 	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/timespec"
 )
 
-var Version = "(development)"
-
-const SessionCookieName = "shield7"
-
-var DataDir = "setme"
-
 type Core struct {
-	fastloop *time.Ticker
-	slowloop *time.Ticker
+	Config Config
 
-	timeout int
-	agent   *AgentClient
+	db        *db.DB
+	vault     *vault.Client
+	providers map[string]AuthProvider
+	bus       *bus.Bus
+	scheduler *scheduler.Scheduler
 
-	debug bool //For exposing debug API endpoints
+	restart bool
 
-	/* cached for /v2/health */
-	ip   string
-	fqdn string
-
-	/* poison pill to os.Exit() SHIELD in contexts where
-	it cannot be called direct safely (i.e. r.Dispatch) */
-	seppuku int
-
-	/* foreman */
-	numWorkers int
-	workers    chan *db.Task
-	broadcast  Broadcaster
-	events     chan Event
-
-	/* monitor */
-	agents map[string]chan *db.Agent
-
-	/* data dir */
-	dataDir string
-
-	/* janitor */
-	purgeAgent string
-
-	/* api */
-	webroot string
-	listen  string
-	auth    map[string]AuthProvider
-	env     string
-	color   string
-	motd    string
-
-	/* vault */
-	vault          *vault.Client
-	encryptionType string
-	vaultKeyfile   string
-	vaultAddress   string
-	vaultCACert    string
-
-	/* sessions */
-	sessionTimeout int
-
-	failsafe FailsafeConfig
-
-	DB *db.DB
+	info struct {
+		API     int    `json:"api"`
+		Version string `json:"version,omitempty"`
+		IP      string `json:"ip,omitempty"`
+		Env     string `json:"env,omitempty"`
+		Color   string `json:"color,omitempty"`
+		MOTD    string `json:"motd,omitempty"`
+	}
 }
 
-func NewCore(file string) (*Core, error) {
-	config, err := ReadConfig(file)
-	if err != nil {
-		return nil, err
-	}
-	agent, err := NewAgentClient(config.KeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read agent key file %s: %s", config.KeyFile, err)
-	}
+type Config struct {
+	Debug   bool   `yaml:"debug"`
+	DataDir string `yaml:"data-dir"`
+	WebRoot string `yaml:"web-root"`
 
-	ip, fqdn := networkIdentity()
+	Scheduler struct {
+		FastLoop int `yaml:"fast-loop"`
+		SlowLoop int `yaml:"slow-loop"`
+		Threads  int `yaml:"threads"`
+		Timeout  int `yaml:"timeout"`
+	} `yaml:"scheduler"`
 
-	DataDir = config.DataDir
+	API struct {
+		Bind    string `yaml:"bind"`
+		Session struct {
+			ClearOnBoot bool `yaml:"clear-on-boot"`
+			Timeout     int  `yaml:"timeout"`
+		} `yaml:"session"`
 
-	core := &Core{
-		fastloop: time.NewTicker(time.Second * time.Duration(config.FastLoop)),
-		slowloop: time.NewTicker(time.Second * time.Duration(config.SlowLoop)),
+		Failsafe struct {
+			Username string `yaml:"username"`
+			Password string `yaml:"password"`
+		} `yaml:"failsafe"`
 
-		timeout: config.Timeout,
-		agent:   agent,
+		Env   string `yaml:"env"`
+		Color string `yaml:"color"`
+		MOTD  string `yaml:"motd"`
+	} `yaml:"api"`
 
-		/* poison pill */
-		seppuku: -1,
+	Limit struct {
+		Retention struct {
+			Min int `yaml:"min"`
+			Max int `yaml:"max"`
+		} `yaml:"retention"`
+	} `yaml:"limit"`
 
-		ip:   ip,
-		fqdn: fqdn,
+	Auth []struct {
+		Name       string `yaml:"name"`
+		Identifier string `yaml:"identifier"`
+		Backend    string `yaml:"backend"`
 
-		debug: config.Debug,
+		Properties map[interface{}]interface{} `yaml:"properties"`
+	} `yaml:"auth"`
 
-		/* foreman */
-		numWorkers: config.Workers,
-		workers:    make(chan *db.Task),
-		broadcast:  NewBroadcaster(2048),
-		events:     make(chan Event),
+	Fabrics []struct {
+		Name string `yaml:"name"`
 
-		/* monitor */
-		agents: make(map[string]chan *db.Agent),
+		Delay int `yaml:"delay"`
 
-		/* data dir */
-		dataDir: config.DataDir,
+		SSHKey string `yaml:"ssh-key"`
 
-		/* janitor */
-		purgeAgent: config.Purge,
+		legacy struct {
+			cc  *ssh.ClientConfig
+			pub string
+		}
+	} `yaml:"fabrics"`
 
-		/* api */
-		webroot: config.WebRoot,
-		listen:  config.Addr,
-		env:     config.Environment,
-		color:   config.Color,
-		motd:    config.MOTD,
+	Vault struct {
+		Address string `yaml:"address"`
+		CACert  string `yaml:"ca"`
+		ca      string /* PEM-encoded contents */
+	} `yaml:"vault"`
 
-		/* encryption */
-		encryptionType: config.EncryptionType,
-		vaultKeyfile:   path.Join(config.DataDir, "/vault.crypt"),
-		vaultAddress:   config.VaultAddress,
+	Cipher string `yaml:"cipher"`
+}
 
-		/* session */
-		sessionTimeout: config.SessionTimeout,
+var (
+	Version       string
+	DefaultConfig Config
+)
 
-		failsafe: config.Failsafe,
-	}
+func init() {
+	DefaultConfig.DataDir = "/shield/data"
+	DefaultConfig.WebRoot = "/shield/ui"
 
-	db, err := db.Connect(path.Join(config.DataDir, "/shield.db"))
-	if err != nil {
-		return nil, err
-	}
-	core.DB = db
+	DefaultConfig.Scheduler.FastLoop = 1
+	DefaultConfig.Scheduler.SlowLoop = 300
+	DefaultConfig.Scheduler.Threads = 5
+	DefaultConfig.Scheduler.Timeout = 12 /* hours */
 
-	if config.VaultCACert != "" {
-		b, err := ioutil.ReadFile(config.VaultCACert)
+	DefaultConfig.API.Bind = "*:8888"
+	DefaultConfig.API.Session.Timeout = 720 /* hours; 30 days */
+	DefaultConfig.API.Failsafe.Username = "admin"
+	DefaultConfig.API.Failsafe.Password = "shield"
+
+	DefaultConfig.API.Env = "SHIELD"
+	DefaultConfig.API.Color = "yellow"
+
+	DefaultConfig.Limit.Retention.Min = 1
+	DefaultConfig.Limit.Retention.Max = 390
+
+	DefaultConfig.Vault.Address = "http://127.0.0.1:8200"
+
+	DefaultConfig.Cipher = "aes256-ctr"
+}
+
+func Configure(file string, config Config) (*Core, error) {
+	c := &Core{Config: config}
+
+	if file != "" {
+		b, err := ioutil.ReadFile(file)
 		if err != nil {
 			return nil, err
 		}
-		core.vaultCACert = string(b)
-	}
 
-	core.auth = make(map[string]AuthProvider)
-	return core, nil
-}
-
-func (core *Core) Run() error {
-	var err error
-	if err = core.DB.CheckCurrentSchema(); err != nil {
-		return fmt.Errorf("database failed schema version check: %s", err)
-	}
-
-	if core.failsafe.Username != "" {
-		log.Infof("checking to see if we should re-instate the failsafe administrator account '%s'", core.failsafe.Username)
-		existing, err := core.DB.GetAllUsers(&db.UserFilter{Backend: "local"})
-		if err != nil {
-			return fmt.Errorf("Failed to retrieve list of local users: %s", err)
+		if err = yaml.Unmarshal(b, &c.Config); err != nil {
+			return nil, err
 		}
-		if len(existing) == 0 {
-			log.Infof("no local users detected; creating failsafe administrator account '%s'", core.failsafe.Username)
-			user := &db.User{
-				Name:    "Administrator",
-				Account: core.failsafe.Username,
-				Backend: "local",
-				SysRole: "admin",
+	}
+
+	/* validate configuration */
+	if c.Config.Scheduler.FastLoop <= 0 {
+		return nil, fmt.Errorf("scheduler.fast-loop value '%d' is invalid (must be greater than zero)", c.Config.Scheduler.FastLoop)
+	}
+
+	if c.Config.Scheduler.SlowLoop <= 0 {
+		return nil, fmt.Errorf("scheduler.slow-loop value '%d' is invalid (must be greater than zero)", c.Config.Scheduler.SlowLoop)
+	}
+
+	if c.Config.Scheduler.Timeout <= 0 {
+		return nil, fmt.Errorf("scheduler.timeout value '%d' hours is invalid (must be greater than zero)", c.Config.Scheduler.Timeout)
+	}
+	if c.Config.Scheduler.Timeout > 48 {
+		return nil, fmt.Errorf("scheduler.timeout value '%d' hours is invalid (must be no larger than 48h)", c.Config.Scheduler.Timeout)
+	}
+
+	if c.Config.Scheduler.Threads <= 0 {
+		return nil, fmt.Errorf("scheduler.threads value '%d' is invalid (must be greater than zero)", c.Config.Scheduler.Threads)
+	}
+
+	if c.Config.API.Session.Timeout <= 0 {
+		return nil, fmt.Errorf("api.session.timeout of '%d' hours is invalid (must be greater than zero)", c.Config.API.Session.Timeout)
+	}
+
+	if c.Config.Cipher == "" {
+		return nil, fmt.Errorf("cipher '%s' is invalid (see documentation for supported ciphers)", c.Config.Cipher)
+	}
+
+	if c.Config.DataDir == "" {
+		return nil, fmt.Errorf("SHIELD data directory '%s' is invalid (must be a valid path)", c.Config.DataDir)
+	}
+	if st, err := os.Stat(c.Config.DataDir); err != nil {
+		return nil, fmt.Errorf("SHIELD data directory '%s' is invalid (%s)", c.Config.DataDir, err)
+	} else if !st.Mode().IsDir() {
+		return nil, fmt.Errorf("SHIELD data directory '%s' is invalid (not a directory)", c.Config.DataDir)
+	}
+
+	if c.Config.WebRoot == "" {
+		return nil, fmt.Errorf("SHIELD web root directory '%s' is invalid (must be a valid path)", c.Config.WebRoot)
+	}
+	if st, err := os.Stat(c.Config.WebRoot); err != nil {
+		return nil, fmt.Errorf("SHIELD web root directory '%s' is invalid (%s)", c.Config.WebRoot, err)
+	} else if !st.Mode().IsDir() {
+		return nil, fmt.Errorf("SHIELD web root directory '%s' is invalid (not a directory)", c.Config.WebRoot)
+	}
+
+	if c.Config.Vault.CACert != "" {
+		b, err := ioutil.ReadFile(c.Config.Vault.CACert)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to read Vault CA Certificate '%s': %s", c.Config.Vault.CACert, err)
+		}
+		c.Config.Vault.ca = string(b)
+	}
+
+	/* validate fabrics */
+	if len(c.Config.Fabrics) == 0 {
+		return nil, fmt.Errorf("No agent comunication fabrics have been configured")
+	}
+	for i, fc := range c.Config.Fabrics {
+		switch fc.Name {
+		default:
+			return nil, fmt.Errorf("Unrecognized fabric '%s' configured", fc.Name)
+
+		case "legacy":
+			if fc.SSHKey == "" {
+				return nil, fmt.Errorf("No ssh-key provided in legacy fabric configuration")
 			}
 
-			user.SetPassword(core.failsafe.Password)
-			_, err := core.DB.CreateUser(user)
+			signer, err := ssh.ParsePrivateKey([]byte(fc.SSHKey))
 			if err != nil {
-				return fmt.Errorf("Failed to create failsafe administative account '%s': %s", core.failsafe.Username, err)
+				return nil, fmt.Errorf("Invalid 'ssh-key' provided in legacy fabric configuration: %s", err)
+			}
+			c.Config.Fabrics[i].legacy.pub = fmt.Sprintf("%s %s",
+				signer.PublicKey().Type(),
+				base64.StdEncoding.EncodeToString(signer.PublicKey().Marshal()))
+
+			c.Config.Fabrics[i].legacy.cc = &ssh.ClientConfig{
+				Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+			}
+
+		case "dummy":
+			if len(c.Config.Fabrics) != 1 {
+				return nil, fmt.Errorf("The dummy fabric cannot coexist with any other fabric; it is for test/dev only")
 			}
 		}
 	}
 
-	log.Infof("Purging prior authenticated sessions from previous SHIELD instance.")
-	core.DB.ClearExpiredSessions(time.Now())
+	/* set up information for /v2/info and /init.js */
+	c.info.API = 2
+	c.info.Version = Version
+	c.info.IP = ip()
+	c.info.MOTD = c.Config.API.MOTD
+	c.info.Env = c.Config.API.Env
+	c.info.Color = c.Config.API.Color
 
-	tenants := make(map[string]bool)
-	for _, auth := range core.auth {
-		for _, tenant := range auth.ReferencedTenants() {
-			if tenant != "SYSTEM" {
-				tenants[tenant] = true
+	/* set up authentication providers */
+	c.providers = make(map[string]AuthProvider)
+	for i, auth := range c.Config.Auth {
+		if auth.Name == "local" {
+			return nil, fmt.Errorf("authentication provider #%d is named 'local', which is reserved for internal use by SHIELD itself;please rename this provider", i+1)
+		}
+
+		id := auth.Identifier
+		if id == "" {
+			return nil, fmt.Errorf("provider #%d lacks the required `identifier' field", i+1)
+		}
+		if auth.Name == "" {
+			return nil, fmt.Errorf("%s provider lacks the required `name' field", id)
+		}
+		if auth.Backend == "" {
+			return nil, fmt.Errorf("%s provider lacks the required `backend' field", id)
+		}
+
+		switch auth.Backend {
+		case "github":
+			c.providers[id] = &GithubAuthProvider{
+				/* we will provide a link back to core in c.WireUpAuthenticationProviders() */
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: id,
+					Type:       auth.Backend,
+				},
 			}
+		case "uaa":
+			c.providers[id] = &UAAAuthProvider{
+				/* we will provide a link back to core in c.WireUpAuthenticationProviders() */
+				AuthProviderBase: AuthProviderBase{
+					Name:       auth.Name,
+					Identifier: id,
+					Type:       auth.Backend,
+				},
+			}
+		default:
+			return nil, fmt.Errorf("%s authentication provider has an unrecognized `backend' of '%s'; must be one of github or uaa", id, auth.Backend)
 		}
-	}
-	for tenant := range tenants {
-		if _, err := core.DB.EnsureTenant(tenant); err != nil {
-			return fmt.Errorf("unable to pre-create tenant '%s' (referenced in authentication providers): %s", tenant, err)
+
+		if err := c.providers[id].Configure(auth.Properties); err != nil {
+			return nil, fmt.Errorf("failed to configure '%s' authentication provider '%s': %s", auth.Backend, id, err)
 		}
 	}
 
-	core.cleanup()
+	return c, nil
+}
 
-	core.vault, err = vault.Connect(core.vaultAddress, core.vaultCACert)
+func (c *Core) Terminate(err error) {
+	log.Alertf("SHIELD Core terminating abnormally: %s\n", err)
+	os.Exit(3)
+}
+
+func (c *Core) MaybeTerminate(err error) {
 	if err != nil {
-		log.Errorf("Failed to create core vault instance with error: %s", err)
-		os.Exit(2)
-	}
-
-	if vault_status, err := core.vault.Status(); err != nil || vault_status != "unsealed" {
-		if err != nil {
-			return err
-		}
-		log.Errorf("Vault is currently %s, please initialize or unseal the vault via the WebUI or CLI", vault_status)
-	}
-
-	core.api()
-	core.runWorkers()
-	core.runBroadcast()
-
-	for {
-		select {
-		case <-core.fastloop.C:
-			sealed, err := core.vault.Sealed()
-			initialized, initErr := core.vault.Initialized()
-			if core.seppuku != -1 {
-				log.Infof("core.sepukku was set to non-negative value, sayonara my friend")
-				os.Exit(core.seppuku)
-			}
-			if initialized && !sealed {
-				core.scheduleTasks()      /* schedule backup */
-				core.runPending()         /* RUN */
-				core.checkPendingAgents() /* schedule adhoc status */
-			} else {
-				if err != nil || initErr != nil {
-					log.Errorf("Failed to schedule tasks due to Vault error: %s %s", err, initErr)
-				}
-			}
-
-		case <-core.slowloop.C:
-			core.expireArchives()       /* db bg + schedule purge */
-			core.markTasks()            /* db bg */
-			core.checkAllAgents()       /* schedule status */
-			core.updateStorageUsage()   /* db bg */
-			core.purgeExpiredSessions() /* db bg */
-
-			sealed, _ := core.vault.Sealed()
-			initialized, _ := core.vault.Initialized()
-			if initialized && !sealed {
-				core.purge()       /* schedule purge */
-				core.testStorage() /* schedule test-store */
-			}
-		}
+		c.Terminate(err)
 	}
 }
 
-func (core *Core) api() {
-	http.Handle("/v1/", core)
-	//http.Handle("/v2/", core.v2API())
-	http.Handle("/auth/", core)
-	http.Handle("/init.js", core)
-	http.Handle("/", http.FileServer(http.Dir(core.webroot)))
-
-	log.Infof("starting up api listener on %s", core.listen)
-	go func() {
-		err := http.ListenAndServe(core.listen, nil)
-		if err != nil {
-			log.Errorf("shield core api failed to start up: %s", err)
-			os.Exit(2)
-		}
-		log.Infof("shutting down shield core api")
-	}()
-}
-
-func (core *Core) runBroadcast() {
-	go func() {
-		for ev := range core.events {
-			core.broadcast.Broadcast(ev)
-		}
-	}()
-}
-
-func (core *Core) runWorkers() {
-	log.Infof("shield core spinning %d worker threads", core.numWorkers)
-	for id := 1; id <= core.numWorkers; id++ {
-		log.Debugf("spawning worker %d", id)
-		go core.worker(id)
-	}
-}
-
-func (core *Core) cleanup() {
-	tasks, err := core.DB.GetAllTasks(&db.TaskFilter{ForStatus: db.RunningStatus})
+func (c *Core) Unlocked() bool {
+	init, err := c.vault.Initialized()
 	if err != nil {
-		log.Errorf("failed to cleanup leftover running tasks: %s", err)
-		return
+		log.Errorf("unable to check Vault initialization status: %s", err)
+		return false
+	}
+	if init {
+		sealed, err := c.vault.Sealed()
+		if err != nil {
+			log.Errorf("unable to check Vault sealed status: %s", err)
+			return false
+		}
+
+		return !sealed
 	}
 
-	now := time.Now()
-	for _, task := range tasks {
-		log.Warnf("found task %s in 'running' state at startup; setting to 'failed'", task.UUID)
-		if err := core.DB.FailTask(task.UUID, now); err != nil {
-			log.Errorf("failed to sweep database of running tasks [%s]: %s", task.UUID, err)
+	return false
+}
+
+func (c *Core) DataFile(rel string) string {
+	return fmt.Sprintf("%s/%s", c.Config.DataDir, rel)
+}
+
+func (c *Core) CryptFile() string {
+	return c.DataFile("vault.crypt")
+}
+
+func (c *Core) FabricFor(task *db.Task) (fabric.Fabric, error) {
+	for _, config := range c.Config.Fabrics {
+		if config.Name == "dummy" {
+			/* if dummy is configured, we always use it (test/dev) */
+			return fabric.Dummy(config.Delay), nil
+		}
+
+		if config.Name != "legacy" {
 			continue
 		}
 
-		if task.Op == db.BackupOperation && task.ArchiveUUID != "" {
-			archive, err := core.DB.GetArchive(task.ArchiveUUID)
-			if err != nil {
-				log.Warnf("unable to retrieve archive %s (for task %s) from the database: %s",
-					task.ArchiveUUID, task.UUID, err)
-				continue
-			}
-			log.Warnf("found archive %s for task %s, purging", archive.UUID, task.UUID)
-			task, err := core.DB.CreatePurgeTask("", archive)
-			if err != nil {
-				log.Errorf("failed to purge archive %s (for task %s, which was running at boot): %s",
-					archive.UUID, task.UUID, err)
-			}
-		}
-	}
-}
-
-func (core *Core) scheduleTasks() {
-	l, err := core.DB.GetAllJobs(&db.JobFilter{Overdue: true})
-	if err != nil {
-		log.Errorf("error retrieving all overdue jobs from database: %s", err)
-		return
+		return fabric.Legacy(task.Agent, config.legacy.cc, c.db), nil
 	}
 
-	tasks, err := core.DB.GetAllTasks(&db.TaskFilter{
-		ForOp:        "backup",
-		SkipInactive: true,
-	})
-	if err != nil {
-		log.Errorf("error retrieving in-flight tasks from database: %s", err)
-		return
-	}
-
-	lookup := make(map[string]string)
-	for _, task := range tasks {
-		lookup[task.JobUUID] = task.UUID
-	}
-
-	for _, job := range l {
-		if tid, running := lookup[job.UUID]; running {
-			log.Infof("skipping next run of job %s [%s]; already running in task [%s]...", job.Name, job.UUID, tid)
-			_, err := core.DB.SkipBackupTask("system", job,
-				fmt.Sprintf("... skipping this run; task %s is still not finished ...\n", tid))
-			if err != nil {
-				log.Errorf("failed to insert skipped backup task record: %s", err)
-			}
-
-		} else {
-			log.Infof("scheduling a run of job %s [%s]", job.Name, job.UUID)
-			_, err := core.DB.CreateBackupTask("system", job)
-			if err != nil {
-				log.Errorf("failed to insert backup task record: %s", err)
-			}
-		}
-
-		if spec, err := timespec.Parse(job.Schedule); err != nil {
-			log.Errorf("error re-scheduling job %s [%s]: %s", job.Name, job.UUID, err)
-		} else {
-			if next, err := spec.Next(time.Now()); err != nil {
-				log.Errorf("error re-scheduling job %s [%s]: %s", job.Name, job.UUID, err)
-			} else {
-				if err = core.DB.RescheduleJob(job, next); err != nil {
-					log.Errorf("error re-scheduling job %s [%s]: %s", job.Name, job.UUID, err)
-				}
-			}
-		}
-	}
-}
-
-func (core *Core) runPending() {
-	l, err := core.DB.GetAllTasks(&db.TaskFilter{ForStatus: "pending"})
-	if err != nil {
-		log.Errorf("error retrieving pending tasks from database: %s", err)
-		return
-	}
-
-	for _, task := range l {
-		/* set up the deadline for execution */
-		task.TimeoutAt = time.Now().Unix() + (int64)(core.timeout)
-		log.Infof("schedule task %s with deadline %v", task.UUID, task.TimeoutAt)
-
-		/* mark the task as scheduled, so we don't pick it up again */
-		core.DB.ScheduledTask(task.UUID)
-
-		/* spin up a goroutine so that we can block in the write
-		   to the workers channel, yet return immediately to here,
-		   and 'queue up' the remaining pending tasks */
-		go func(task db.Task) {
-			core.workers <- &task
-			log.Debugf("dispatched task %s to a worker goroutine", task.UUID)
-		}(*task)
-	}
-}
-
-func (core *Core) expireArchives() {
-	log.Debugf("scanning for archives that outlived their retention policy")
-	l, err := core.DB.GetExpiredArchives()
-	if err != nil {
-		log.Errorf("error retrieving archives that have outlived their retention policy: %s", err)
-		return
-
-	}
-	for _, archive := range l {
-		log.Infof("marking archive %s has expiration date %s, marking as expired", archive.UUID, archive.ExpiresAt)
-		err := core.DB.ExpireArchive(archive.UUID)
-		if err != nil {
-			log.Errorf("error marking archive %s as expired: %s", archive.UUID, err)
-			continue
-		}
-
-		log.Infof("deleting encryption parameters for archive %s", archive.UUID)
-		err = core.vault.Delete(fmt.Sprintf("secret/archives/%s", archive.UUID))
-		if err != nil {
-			log.Errorf("failed to delete encryption parameters for archive %s: %s", archive.UUID, err)
-		}
-	}
-}
-
-func (core *Core) purge() {
-	log.Debugf("scanning for archvies that need purged")
-	l, err := core.DB.GetArchivesNeedingPurge()
-	if err != nil {
-		log.Errorf("error retrieving archives to purge: %s", err)
-		return
-	}
-
-	for _, archive := range l {
-		log.Infof("requesting purge of archive %s due to status '%s'", archive.UUID, archive.Status)
-		_, err := core.DB.CreatePurgeTask("system", archive)
-		if err != nil {
-			log.Errorf("error scheduling purge of archive %s: %s", archive.UUID, err)
-			continue
-		}
-	}
-}
-
-func (core *Core) markTasks() {
-	core.DB.MarkTasksIrrelevant()
-}
-
-func (core *Core) checkAgents(agents []*db.Agent) {
-	for _, a := range agents {
-		if c, ok := core.agents[a.Address]; ok {
-			select {
-			case c <- a:
-				log.Infof("monitor: dispatched agent health check for '%s' to a monitor thread", a.Address)
-
-			default:
-				log.Infof("monitor: dropped agent health check for '%s'; there is already an operation in-flight",
-					a.Address)
-			}
-			return
-		}
-
-		/* spin up a new goroutine to this and future
-		   health checks of this SHIELD agent */
-		core.agents[a.Address] = make(chan *db.Agent)
-		go func(in chan *db.Agent) {
-			for a := range in {
-				func() {
-					stdout := make(chan string, 1)
-					stderr := make(chan string)
-					go func() {
-						for s := range stderr {
-							log.Debugf("  [monitor] %s> %s", a.Address, strings.Trim(s, "\n"))
-						}
-					}()
-
-					if err := core.agent.Run(a.Address, stdout, stderr, &AgentCommand{Op: "status"}); err != nil {
-						log.Errorf("  [monitor] %s: !! failed to run status op: %s", a.Address, err)
-
-						a.Status = "failing"
-						a.LastError = fmt.Sprintf("failed to run status op: %s", err)
-
-						log.Debugf("  [monitor] %s> updating (agent=%s) with status '%s'...", a.Address, a.UUID, a.Status)
-						if err := core.DB.UpdateAgent(a); err != nil {
-							log.Errorf("  [monitor] %s: !! failed to update database: %s", a.Address, err)
-						}
-						return
-					}
-
-					response := <-stdout
-
-					var x struct {
-						Name    string `json:"name"`
-						Version string `json:"version"`
-						Health  string `json:"health"`
-					}
-					if err := json.Unmarshal([]byte(response), &x); err != nil {
-						log.Errorf("  [monitor] %s: !! failed to parse status op response: %s", a.Address, err)
-
-						a.Status = "failing"
-						a.LastError = fmt.Sprintf("failed to parse status op response: %s", err)
-
-						log.Debugf("  [monitor] %s> updating (agent=%s) with status '%s'...", a.Address, a.UUID, a.Status)
-						if err := core.DB.UpdateAgent(a); err != nil {
-							log.Errorf("  [monitor] %s: !! failed to update database: %s", a.Address, err)
-						}
-						return
-					}
-
-					if a.Name != x.Name {
-						log.Errorf("  [monitor] %s: !! got response for agent '%s' (not '%s')", a.Address, x.Name, a.Name)
-
-						a.Status = "degraded"
-						a.LastError = fmt.Sprintf("got response for agent '%s' (not '%s')", x.Name, a.Name)
-
-						log.Debugf("  [monitor] %s> updating (agent=%s) with status '%s'...", a.Address, a.UUID, a.Status)
-						if err := core.DB.UpdateAgent(a); err != nil {
-							log.Errorf("  [monitor] %s: !! failed to update database: %s", a.Address, err)
-						}
-						return
-					}
-
-					a.Status = x.Health
-					a.Version = x.Version
-					a.RawMeta = response
-					log.Debugf("  [monitor] %s> updating (agent=%s) with metadata '%s'...", a.RawMeta)
-
-					log.Debugf("  [monitor] %s> updating (agent=%s) with status '%s'...", a.Address, a.UUID, a.Status)
-					if err := core.DB.UpdateAgent(a); err != nil {
-						log.Errorf("  [monitor] %s: !! failed to update database: %s", a.Address, err)
-					}
-				}()
-			}
-		}(core.agents[a.Address])
-		core.agents[a.Address] <- a
-	}
-}
-
-func (core *Core) checkAllAgents() {
-	log.Debugf("scanning for agents that need to be checked")
-
-	agents, err := core.DB.GetAllAgents(nil)
-	if err != nil {
-		log.Errorf("error retrieving agent registration records from database: %s", err)
-		return
-	}
-	core.checkAgents(agents)
-}
-
-func (core *Core) checkPendingAgents() {
-	agents, err := core.DB.GetAllAgents(&db.AgentFilter{Status: "pending"})
-	if err != nil {
-		log.Errorf("error retrieving agent registration records from database: %s", err)
-		return
-	}
-	core.checkAgents(agents)
-}
-
-func (core *Core) worker(id int) {
-	/* read a task from the core */
-	for task := range core.workers {
-		log.Debugf("worker %d starting to execute task %s", id, task.UUID)
-
-		core.startTask(task)
-		if task.Agent == "" {
-			core.failTask(task, "no remote agent specified for task %s", task.UUID)
-			continue
-		}
-
-		stdout := make(chan string, 1)
-		stderr := make(chan string)
-		go func() {
-			for s := range stderr {
-				core.logToTask(task, s)
-			}
-		}()
-
-		var enc vault.Parameters
-		var err error
-		if task.Op == db.BackupOperation {
-			task.ArchiveUUID = uuid.NewRandom().String()
-
-			if task.FixedKey {
-				enc, err = core.vault.RetrieveFixed()
-				if err != nil {
-					core.failTask(task, "shield workder %d: %s", id, err)
-					continue
-				}
-			} else {
-				enc, err = core.vault.RandomParameters(core.encryptionType)
-				if err != nil {
-					core.failTask(task, "shield worker %d: %s\n", id, err)
-					continue
-				}
-			}
-
-			err = core.vault.Store(task.ArchiveUUID, enc)
-			if err != nil {
-				core.failTask(task, "shield worker %d failed to store encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID)
-				continue
-			}
-		}
-
-		if task.Op == db.BackupOperation || task.Op == db.RestoreOperation {
-			enc, err = core.vault.Retrieve(task.ArchiveUUID)
-			if err != nil {
-				core.failTask(task, "shield worker %d failed to retrieve encryption parameters for [%s]: %s\n", id, err, task.ArchiveUUID)
-				continue
-			}
-		}
-		/* connect to the remote SSH agent for this specific request
-		   (a worker may connect to lots of different agents in its
-		    lifetime; these connections endure long enough to submit
-		    the agent command and gather the exit code + output) */
-		err = core.agent.Run(task.Agent, stdout, stderr, &AgentCommand{
-			Op:             task.Op,
-			TargetPlugin:   task.TargetPlugin,
-			TargetEndpoint: task.TargetEndpoint,
-			Compression:    task.Compression,
-			StorePlugin:    task.StorePlugin,
-			StoreEndpoint:  task.StoreEndpoint,
-			RestoreKey:     task.RestoreKey,
-			EncryptType:    enc.Type,
-			EncryptKey:     enc.Key,
-			EncryptIV:      enc.IV,
-		})
-
-		if err != nil {
-			/* N.B.: there is a temptation to print the error here, but in all the
-			   time we've run this code in production, the error message is
-			   ALWAYS 'process exited X, reason was ()', which is useless. */
-			core.failTask(task, "shield worker %d unable to run command against %s\n", id, task.Agent)
-			if task.Op == db.TestStoreOperation {
-				store, err := core.DB.GetStore(task.StoreUUID)
-				if err != nil {
-					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
-				}
-				if store == nil {
-					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
-					continue
-				}
-				log.Infof("marking store %s [%s] as unhealthy", store.Name, store.UUID)
-				store.Healthy = false
-				err = core.DB.UpdateStore(store)
-				if err != nil {
-					log.Errorf("error updating store %s [%s]: %s", store.Name, store.UUID, err)
-				}
-			}
-			continue
-		}
-
-		response := <-stdout
-		if task.Op == db.BackupOperation {
-			var v struct {
-				Key         string `json:"key"`
-				Size        int64  `json:"archive_size"`
-				Compression string `json:"compression"`
-			}
-			if err := json.Unmarshal([]byte(response), &v); err != nil {
-				core.failTask(task, "shield worker %d failed to parse JSON response from remote agent %s: %s\n", id, task.Agent, err)
-				continue
-
-			} else {
-				if v.Compression == "" {
-					/* older shield-pipes will always bzip2; and if they aren't
-					   reporting their compression type, it's gotta be bzip2 */
-					v.Compression = "bzip2"
-				}
-				if v.Key != "" {
-					log.Infof("  %s: restore key is %s", task.UUID, v.Key)
-					if _, err := core.DB.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(), core.encryptionType, v.Compression, v.Size, task.TenantUUID); err != nil {
-						log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-					}
-
-				} else {
-					core.failTask(task, "shield worker %d did not detect a restore key in the store plugin output\nCowardly refusing to create an archive record\n", id)
-					continue
-				}
-			}
-		}
-
-		if task.Op == db.PurgeOperation {
-			log.Infof("  %s: archive %s purged from storage", task.UUID, task.ArchiveUUID)
-			if err := core.DB.PurgeArchive(task.ArchiveUUID); err != nil {
-				log.Errorf("  %s: !! failed to update database: %s", task.UUID, err)
-			}
-		}
-
-		if task.Op == db.TestStoreOperation {
-			var v struct {
-				Healthy bool `json:"healthy"`
-			}
-
-			if err := json.Unmarshal([]byte(response), &v); err != nil {
-				core.failTask(task, "shield worker %d failed to parse JSON response from remote agent %s: %s\n", id, task.Agent, err)
-				continue
-
-			} else {
-				store, err := core.DB.GetStore(task.StoreUUID)
-				if err != nil {
-					log.Errorf("error retrieving store %s from task %s:  %s", task.StoreUUID, task.UUID, err)
-				}
-				if store == nil {
-					core.failTask(task, "shield worker %d unable to retrieve store object from database", id)
-					continue
-				}
-				store.Healthy = v.Healthy
-				err = core.DB.UpdateStore(store)
-				if err != nil {
-					log.Errorf("error updating store: %s", err)
-				}
-			}
-			log.Infof("  %s: cloud storage %s tested", task.UUID, task.StoreUUID)
-		}
-
-		log.Infof("  %s: job completed successfully", task.UUID)
-		core.finishTask(task)
-		if task.Op == db.BackupOperation {
-			log.Infof("  %s: triggering an update to storage analytics", task.UUID)
-			core.updateStorageUsage()
-		}
-	}
-}
-
-func networkIdentity() (string, string) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return "(unknown)", ""
-	}
-
-	var v4ip, v6ip, host string
-
-	for _, iface := range ifaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			continue
-		}
-
-		for _, addr := range addrs {
-			var (
-				found bool
-				ip    net.IP
-			)
-
-			switch addr.(type) {
-			case *net.IPNet:
-				ip = addr.(*net.IPNet).IP
-				found = !ip.IsLoopback()
-			case *net.IPAddr:
-				ip = addr.(*net.IPAddr).IP
-				found = !ip.IsLoopback()
-			}
-			log.Debugf("net: found interface with address %s", ip.String())
-			isv4 := ip.To4() != nil
-			log.Debugf("net: (found=%v, isv4=%v, v4ip=%s, v6ip=%s)",
-				found, isv4, v4ip, v6ip)
-			if !found || (!isv4 && v6ip != "") || (isv4 && v4ip != "") {
-				log.Debugf("net: SKIPPING")
-				continue
-			}
-
-			if isv4 {
-				v4ip = ip.String()
-			} else {
-				v6ip = ip.String()
-			}
-
-			names, err := net.LookupAddr(ip.String())
-			if err != nil {
-				continue
-			}
-			if len(names) != 0 {
-				host = names[0]
-			}
-		}
-	}
-
-	if v4ip != "" {
-		return v4ip, host
-	}
-	if v6ip != "" {
-		return v6ip, host
-	}
-	return "(unknown)", ""
+	return nil, fmt.Errorf("no fabric configured to handle agent '%s'", task.Agent)
 }

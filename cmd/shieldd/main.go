@@ -10,7 +10,7 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	core "github.com/starkandwayne/shield/core2"
+	"github.com/starkandwayne/shield/core"
 )
 
 func main() {
