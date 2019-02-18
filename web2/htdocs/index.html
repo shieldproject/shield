@@ -1754,6 +1754,7 @@
                    var store = AEGIS.store(job.store_uuid);
               ]]
               <ul class="details">
+                <li><strong>[[= job.name ]]</strong></li>
                 <li>runs [[= job.schedule ]]</li>
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
               </ul>

@@ -915,6 +915,9 @@ table.lean td.name > .tag,
   font-size: 14px;
   padding: 7px;
 }
+.card .details strong {
+  font-weight: bold;
+}
 .card img {
   width: 24px;
   float: right;
