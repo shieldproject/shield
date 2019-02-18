@@ -17,7 +17,7 @@ type Target struct {
 	Agent       string `json:"agent"       mbus:"agent"`
 	Compression string `json:"compression" mbus:"compression"`
 
-	Config        map[string]interface{} `json:"config,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
 }
 
 func (t Target) ConfigJSON() (string, error) {
