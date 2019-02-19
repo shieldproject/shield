@@ -64,8 +64,14 @@ func (f *UserFilter) Query() (string, []interface{}) {
 	var args []interface{}
 
 	if f.UUID != "" {
-		wheres = append(wheres, "u.uuid = ?")
-		args = append(args, f.UUID)
+		if f.ExactMatch {
+			wheres = append(wheres, "u.uuid = ?")
+			args = append(args, f.UUID)
+		} else {
+
+			wheres = append(wheres, "u.uuid LIKE ? ESCAPE '/'")
+			args = append(args, PatternPrefix(f.UUID))
+		}
 	}
 
 	if f.Backend != "" {

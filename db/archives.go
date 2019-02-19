@@ -32,6 +32,8 @@ type Archive struct {
 }
 
 type ArchiveFilter struct {
+	UUID          string
+	ExactMatch    bool
 	ForTarget     string
 	ForStore      string
 	Before        *time.Time
@@ -47,6 +49,15 @@ type ArchiveFilter struct {
 func (f *ArchiveFilter) Query() (string, []interface{}) {
 	wheres := []string{"a.uuid = a.uuid"}
 	var args []interface{}
+	if f.UUID != "" {
+		if f.ExactMatch {
+			wheres = append(wheres, "a.uuid = ?")
+			args = append(args, f.UUID)
+		} else {
+			wheres = append(wheres, "a.uuid LIKE ? ESCAPE '/'")
+			args = append(args, PatternPrefix(f.UUID))
+		}
+	}
 	if f.ForTarget != "" {
 		wheres = append(wheres, "target_uuid = ?")
 		args = append(args, f.ForTarget)

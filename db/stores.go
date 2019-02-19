@@ -49,6 +49,7 @@ func (store *Store) Configuration(db *DB, private bool) ([]ConfigItem, error) {
 }
 
 type StoreFilter struct {
+	UUID       string
 	SkipUsed   bool
 	SkipUnused bool
 	SearchName string
@@ -60,6 +61,15 @@ type StoreFilter struct {
 func (f *StoreFilter) Query() (string, []interface{}) {
 	wheres := []string{"s.uuid = s.uuid"}
 	args := []interface{}{}
+	if f.UUID != "" {
+		if f.ExactMatch {
+			wheres = append(wheres, "s.uuid = ?")
+			args = append(args, f.UUID)
+		} else {
+			wheres = append(wheres, "s.uuid LIKE ? ESCAPE '/'")
+			args = append(args, PatternPrefix(f.UUID))
+		}
+	}
 	if f.SearchName != "" {
 		if f.ExactMatch {
 			wheres = append(wheres, "s.name = ?")

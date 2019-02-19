@@ -42,6 +42,7 @@ func (target *Target) Configuration(db *DB, private bool) ([]ConfigItem, error) 
 }
 
 type TargetFilter struct {
+	UUID       string
 	SkipUsed   bool
 	SkipUnused bool
 	SearchName string
@@ -53,6 +54,16 @@ type TargetFilter struct {
 func (f *TargetFilter) Query() (string, []interface{}) {
 	wheres := []string{"t.uuid = t.uuid"}
 	args := []interface{}{}
+
+	if f.UUID != "" {
+		if f.ExactMatch {
+			wheres = append(wheres, "t.uuid = ?")
+			args = append(args, f.UUID)
+		} else {
+			wheres = append(wheres, "t.uuid LIKE ? ESCAPE '/'")
+			args = append(args, PatternPrefix(f.UUID))
+		}
+	}
 
 	if f.SearchName != "" {
 		if f.ExactMatch {

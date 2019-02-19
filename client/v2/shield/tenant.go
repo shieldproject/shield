@@ -14,6 +14,7 @@ type Tenant struct {
 
 	Members []struct {
 		UUID    string `json:"uuid,omitempty"`
+		Fuzzy   bool   `json:"exact:f:t"`
 		Name    string `json:"name"`
 		Account string `json:"account"`
 		Backend string `json:"backend"`

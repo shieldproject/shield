@@ -26,8 +26,13 @@ func (f *TenantFilter) Query() (string, []interface{}) {
 	var args []interface{}
 
 	if f.UUID != "" {
-		wheres = append(wheres, "t.uuid = ?")
-		args = append(args, f.UUID)
+		if f.ExactMatch {
+			wheres = append(wheres, "t.uuid = ?")
+			args = append(args, f.UUID)
+		} else {
+			wheres = append(wheres, "t.uuid LIKE ? ESCAPE '/'")
+			args = append(args, PatternPrefix(f.UUID))
+		}
 	}
 
 	if f.Name != "" {

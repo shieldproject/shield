@@ -64,6 +64,7 @@ type TaskInfo struct {
 
 type TaskFilter struct {
 	UUID          string
+	ExactMatch    bool
 	SkipActive    bool
 	SkipInactive  bool
 	OnlyRelevant  bool
@@ -113,8 +114,13 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	}
 
 	if f.UUID != "" {
-		wheres = append(wheres, "t.uuid = ?")
-		args = append(args, f.UUID)
+		if f.ExactMatch {
+			wheres = append(wheres, "t.uuid = ?")
+			args = append(args, f.UUID)
+		} else {
+			wheres = append(wheres, "t.uuid LIKE ? ESCAPE '/'")
+			args = append(args, PatternPrefix(f.UUID))
+		}
 	}
 
 	if f.ForArchive != "" {

@@ -20,6 +20,7 @@ type Store struct {
 }
 
 type StoreFilter struct {
+	UUID   string `qs:"uuid"`
 	Fuzzy  bool   `qs:"exact:f:t"`
 	Name   string `qs:"name"`
 	Plugin string `qs:"plugin"`

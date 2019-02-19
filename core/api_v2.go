@@ -528,6 +528,8 @@ func (c *Core) v2API() *route.Router {
 
 		tasks, err := c.db.GetAllTasks(
 			&db.TaskFilter{
+				UUID:          r.Param("uuid", ""),
+				ExactMatch:    r.ParamIs("exact", "t"),
 				SkipActive:    r.ParamIs("active", "f"),
 				SkipInactive:  r.ParamIs("active", "t"),
 				ForStatus:     r.Param("status", ""),
@@ -1575,7 +1577,10 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		agents, err := c.db.GetAllAgents(nil)
+		agents, err := c.db.GetAllAgents(&db.AgentFilter{
+			UUID:       r.Param("uuid", ""),
+			ExactMatch: r.ParamIs("exact", "t"),
+		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
 			return
@@ -2090,6 +2095,7 @@ func (c *Core) v2API() *route.Router {
 
 		targets, err := c.db.GetAllTargets(
 			&db.TargetFilter{
+				UUID:       r.Param("uuid", ""),
 				ForTenant:  r.Args[1],
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
@@ -2853,6 +2859,8 @@ func (c *Core) v2API() *route.Router {
 
 		tasks, err := c.db.GetAllTasks(
 			&db.TaskFilter{
+				UUID:          r.Param("uuid", ""),
+				ExactMatch:    r.ParamIs("exact", "t"),
 				SkipActive:    r.ParamIs("active", "f"),
 				SkipInactive:  r.ParamIs("active", "t"),
 				ForStatus:     r.Param("status", ""),
@@ -2939,6 +2947,8 @@ func (c *Core) v2API() *route.Router {
 
 		archives, err := c.db.GetAllArchives(
 			&db.ArchiveFilter{
+				UUID:       r.Param("uuid", ""),
+				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  r.Args[1],
 				ForTarget:  r.Param("target", ""),
 				ForStore:   r.Param("store", ""),
@@ -3365,6 +3375,7 @@ func (c *Core) v2API() *route.Router {
 
 		stores, err := c.db.GetAllStores(
 			&db.StoreFilter{
+				UUID:       r.Param("uuid", ""),
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
 				SearchName: r.Param("name", ""),

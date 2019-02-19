@@ -23,6 +23,8 @@ type Task struct {
 }
 
 type TaskFilter struct {
+	UUID   string `qs:"uuid"`
+	Fuzzy  bool   `qs:"exact:f:t"`
 	Status string `qs:"status"`
 	Active *bool  `qs:"active:t:f"`
 	Debug  *bool  `qs:"debug:t:f"`

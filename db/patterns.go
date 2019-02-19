@@ -16,6 +16,10 @@ func Pattern(glob string) string {
 	return squeezer.ReplaceAllString(s, "%")
 }
 
+func PatternPrefix(prefix string) string {
+	return strings.Replace(prefix, "%", "\\%", -1) + "%"
+}
+
 // Compile regexn once
 func init() {
 	squeezer = regexp.MustCompile("%+")

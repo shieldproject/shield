@@ -33,6 +33,7 @@ func (a *Agent) Metadata() (map[string]interface{}, error) {
 
 type AgentFilter struct {
 	UUID       string
+	ExactMatch bool
 	Address    string
 	Name       string
 	Status     string
@@ -47,8 +48,13 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 	var args []interface{}
 
 	if f.UUID != "" {
-		wheres = []string{"a.uuid = ?"}
-		args = []interface{}{f.UUID}
+		if f.ExactMatch {
+			wheres = []string{"a.uuid = ?"}
+			args = []interface{}{f.UUID}
+		} else {
+			wheres = []string{"a.uuid LIKE ? ESCAPE '/'"}
+			args = []interface{}{PatternPrefix(f.UUID)}
+		}
 	}
 
 	if f.OnlyHidden {

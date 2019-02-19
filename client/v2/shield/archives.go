@@ -21,6 +21,8 @@ type Archive struct {
 }
 
 type ArchiveFilter struct {
+	UUID   string `qs:"uuid"`
+	Fuzzy  string `qs:"exact:f:t"`
 	Target string `qs:"target"`
 	Store  string `qs:"store"`
 	Status string `qs:"status"`

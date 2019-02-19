@@ -22,6 +22,7 @@ type User struct {
 }
 
 type UserFilter struct {
+	UUID    string `qs:"uuid"`
 	Fuzzy   bool   `qs:"exact:f:t"`
 	Account string `qs:"account"`
 	SysRole string `qs:"sysrole"`

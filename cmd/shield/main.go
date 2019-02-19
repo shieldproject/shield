@@ -2490,8 +2490,9 @@ func main() {
 		}
 
 		var tenant *shield.Tenant
+		var err error
 		if opts.Tenant != "" {
-			tenant, err := c.FindMyTenant(opts.Tenant, true)
+			tenant, err = c.FindMyTenant(opts.Tenant, true)
 			bail(err)
 
 			if opts.Tasks.Target != "" {
@@ -2579,6 +2580,15 @@ func main() {
 		if opts.Tenant != "" {
 			tenant, err = c.FindMyTenant(opts.Tenant, true)
 			bail(err)
+		}
+
+		tasks, err := c.ListTasks(tenant, &shield.TaskFilter{UUID: args[0], Fuzzy: true})
+		bail(err)
+		if len(tasks) > 1 {
+			bail(fmt.Errorf("Ambiguous UUID prefix given for task"))
+		}
+		if len(tasks) == 0 {
+			bail(fmt.Errorf("No task found with UUID prefix `%s'", args[0]))
 		}
 
 		task, err := c.GetTask(tenant, args[0])
