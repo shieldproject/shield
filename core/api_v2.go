@@ -496,8 +496,6 @@ func (c *Core) v2API() *route.Router {
 
 		go socket.Discard()
 		for event := range ch {
-			/* FIXME: access control for *, admin and <uuid> queues */
-
 			b, err := json.Marshal(event)
 			if err != nil {
 				log.Errorf("message bus web client failed to marshal JSON for websocket relay: %s", err)
@@ -952,11 +950,6 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME rules for updating accounts:
-		   1. you can update your own account (except for sysrole)
-		   2. managers can update engineers and ''
-		   3. admins can update managers, engineers and ''
-		*/
 		var in struct {
 			Name     string `json:"name"`
 			Password string `json:"password"`
@@ -1010,11 +1003,6 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		/* FIXME rules for deleting accounts:
-		   1. you cannot delete your own account
-		   2. managers can delete engineers and ''
-		   3. admins can delete managers, engineers and ''
-		*/
 		user, err := c.db.GetUserByID(r.Args[1])
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve local user information"))
@@ -1470,7 +1458,6 @@ func (c *Core) v2API() *route.Router {
 		job, err := c.db.CreateJob(&db.Job{
 			TenantUUID: r.Args[1],
 			Name:       in.Job.Name,
-			Summary:    "", /* FIXME: remove job summaries! */
 			Schedule:   in.Job.Schedule,
 			KeepDays:   in.Job.KeepDays,
 			Paused:     in.Job.Paused,
