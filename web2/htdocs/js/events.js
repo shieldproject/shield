@@ -72,7 +72,9 @@
         });
         AEGIS.use(uuid);
 
-        //SHIELD.redraw();
+        $('.top-bar').template('top-bar');
+        $('#hud').template('hud');
+
         var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
         if (page == "#!/do")      { page = "#!/systems"; }
         if (page == "#!/tenants") { page = "#!/systems"; }
