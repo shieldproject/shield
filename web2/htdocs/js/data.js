@@ -199,7 +199,13 @@
       return agents;
     },
     agent: function (uuid) {
-      return this.find('agent', { uuid: uuid });
+      for (var uuid in this.data.agent || {}) {
+        var agent = this.data.agent[uuid];
+        if (!agent.hidden && (agent.uuid == uuid || agent.address == uuid)) {
+          return agent;
+        }
+      }
+      return undefined;
     },
 
     archives: function (q) {
