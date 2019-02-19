@@ -1,0 +1,41 @@
+users:
+  - name:     <h4x0r>
+    username: <hacker>
+    password: admin
+    sysrole:  admin
+
+global:
+  storage:
+    - name:    Hacked <Global> Store
+      summary: A <a href="http://example.com">hacked</a> **global** storage system. <http://google.com>
+      agent:   'agent:5444'
+      plugin:  webdav
+      config:
+        url: http://webdav/<globus>
+
+tenants:
+  - name: Hacked <Tenant>
+    members:
+      - { user: <hacker>@local, role: admin }
+
+    storage:
+      - name: Hacked <Local> Store
+        summary: A <a href="http://example.com">hacked</a> **local** storage system. <http://google.com>
+        agent:   'agent:5444'
+        plugin:  webdav
+        config:
+          url: http://webdav/<hacked>
+
+    systems:
+      - name:    A <Hacked> System
+        summary: A test system for <grin>testing</grin> HTML sanitizers and _Markdown_.
+        agent:   vault:5444
+        plugin:  fs>/etc/passwd
+        config:
+          base_dir: /tmp
+        jobs:
+          - name:     '**DAILY** <blink>'
+            when:     daily 4:10am
+            paused:   yes
+            storage:  Hacked <Local> Store
+            retain:   1d

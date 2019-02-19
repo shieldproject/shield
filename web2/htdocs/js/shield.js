@@ -50,46 +50,46 @@ function dispatch(page) {
       var progress = function (how) {
         $('#viewport').find('#logging-in').remove();
         $('#viewport').append($.template('logging-in', {auth: how}));
-      }
+      };
 
-      api({
-        type: 'GET',
-        url:  '/v2/auth/providers?for=web',
-        success: function (data) {
-          $('#viewport').html($($.template('login', { providers: data }))
-            .on("click", ".login", function (event) {
-              progress($(event.target).text());
-            })
-            .on("submit", "form", function (event) {
-              event.preventDefault()
-              progress('local SHIELD authentication');
+      $.when(
+        $.ajax({ type: 'GET', url: '/v2/auth/providers?for=web' }),
+        $.ajax({ type: 'GET', url: '/v2/info' })
+      ).then(function (providers, info) {
+        $('#viewport').html($($.template('login', { providers: providers[0],
+                                                    info:      info[0] }))
+          .on("click", ".login", function (event) {
+            progress($(event.target).text());
+          })
+          .on("submit", "form", function (event) {
+            event.preventDefault()
+            progress('local SHIELD authentication');
 
-              var $form = $(event.target);
-              var data = $form.serializeObject();
-              $form.reset();
+            var $form = $(event.target);
+            var data = $form.serializeObject();
+            $form.reset();
 
-              api({
-                type: "POST",
-                url:  "/v2/auth/login",
-                data: data,
-                success: function () {
-                  /* this makes the chrome re-render unnecessary */
-                  document.location.href = "/"
-                },
-                error: function (xhr) {
-                  $(event.target).error(xhr.responseJSON);
-                },
-                complete: function () {
-                  $('#viewport').find('#logging-in').remove();
-                  //using the systems page as our landing page when a user logs in
-                  document.location.href = "/#!/systems"
-                }
-              });
-            }));
-        },
-        error: function (xhr) {
-          $('#viewport').template('BOOM');
-        }
+            api({
+              type: "POST",
+              url:  "/v2/auth/login",
+              data: data,
+              success: function () {
+                /* this makes the chrome re-render unnecessary */
+                document.location.href = "/"
+              },
+              error: function (xhr) {
+                $(event.target).error(xhr.responseJSON);
+              },
+              complete: function () {
+                $('#viewport').find('#logging-in').remove();
+                //using the systems page as our landing page when a user logs in
+                document.location.href = "/#!/systems"
+              }
+            });
+          }));
+      }, function () {
+        console.dir(arguments);
+        $('#viewport').template('BOOM');
       });
     })();
     break; /* #!/login */

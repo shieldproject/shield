@@ -121,7 +121,7 @@
         or update to ensure that the viewer sees it.
       ]]
       <div id="overlay">
-        <div class="header"><h2>[[= lens.maybe(_.title, "SHIELD") ]]</h2></div>
+        <div class="header"><h2>[[= h(lens.maybe(_.title, "SHIELD")) ]]</h2></div>
         <div class="frame">[[= _.html ]]</div>
       </div>
     <!-- }}} --></script>
@@ -180,9 +180,9 @@
       ]]
           <div id="login" class="frontdoor">
             <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
-              <h1>SHIELD[[ if (AEGIS.shield) { ]]<span style="color: [[= AEGIS.shield.color || 'green' ]]">[[= AEGIS.shield.env ]]<span>[[ } ]]</h1>
+              <h1>SHIELD<span style="color: [[= h(_.info.color || 'green') ]]">[[= h(_.info.env) ]]<span></h1>
               <div class="dialog">
-                [[ if (AEGIS.shield) { ]]<p class="motd">[[= AEGIS.shield.motd ]]</p>[[ } ]]
+                <div class="motd">[[= md(_.info.motd) ]]</div>
 
                 [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
@@ -227,9 +227,9 @@
             Displays the initialization template screen (displayed after login on an uninitialized SHIELD)
           ]]
               <div id="initialize" class="frontdoor">
-                  <h1>SHIELD<span style="color: [[= AEGIS.shield.color || 'green' ]]">[[= AEGIS.shield.env ]]<span></h1>
+                  <h1>SHIELD<span style="color: [[= h(AEGIS.shield.color || 'green') ]]">[[= h(AEGIS.shield.env) ]]<span></h1>
                   <div class="dialog">
-                    <p class="motd">[[= AEGIS.shield.motd ]]</p>
+                    <p class="motd">[[= md(AEGIS.shield.motd) ]]</p>
                     <div class="restore">
                        <h2>Restore SHIELD</h2>
                         <p class="restore_divert">If you'd like to initialize this SHIELD installation with a previous SHIELD self-backup, provide the archive file and the fixed key used to encrypt the backup. </p>
@@ -289,7 +289,7 @@
       ]]
           <div id="cliauth" class="frontdoor">
             <div>
-              <h1>SHIELD<span>[[= AEGIS.shield.env ]]<span></h1>
+              <h1>SHIELD<span>[[= h(AEGIS.shield.env) ]]<span></h1>
               <div class="dialog">
                 <h2>CLI Authentication Credentials</h2>
                 <img src="/i/terminal.png" class="highlight">
@@ -316,7 +316,7 @@
         ]]
             <div id="fixed-wrapper" class="frontdoor">
               <div>
-                <h1>SHIELD<span>[[= AEGIS.shield.env ]]<span></h1>
+                <h1>SHIELD<span>[[= h(AEGIS.shield.env) ]]<span></h1>
                 <div class="dialog">
                   <h2>Shield Fixed Key</h2>
                   <img src="/i/terminal.png" class="highlight">
@@ -385,13 +385,13 @@
         Renders the top-most bar, with the SHIELD name / environment, and the
         current users name / tenant and "personal settings" menu.
       ]]
-        <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= AEGIS.shield.env ]]</span> <span>[[= AEGIS.shield.ip ]]</span></a></h1>
+        <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= h(AEGIS.shield.env) ]]</span> <span>[[= h(AEGIS.shield.ip) ]]</span></a></h1>
         [[ if (AEGIS.authenticated()) { ]]
-        <a href="#!/account" rel="account">[[= AEGIS.user.name ]][[ if (AEGIS.current) { ]] ([[= AEGIS.current.name ]] :: [[= AEGIS.role(AEGIS.current.uuid) ]])[[ } ]]</a>
+        <a href="#!/account" rel="account">[[= h(AEGIS.user.name) ]][[ if (AEGIS.current) { ]] ([[= h(AEGIS.current.name) ]] :: [[= AEGIS.role(AEGIS.current.uuid) ]])[[ } ]]</a>
         <div class="flyout ephemeral">
           <div class="menu">
-            <div class="header">Signed in as [[= AEGIS.user.account ]]
-              <span>[[= AEGIS.user.backend ]]</span>
+            <div class="header">Signed in as [[= h(AEGIS.user.account) ]]
+              <span>[[= h(AEGIS.user.backend) ]]</span>
             </div>
             <div class="divider"></div>
             <div class="header">Your Tenants</div>
@@ -400,7 +400,7 @@
             <span class="dropdown odd">you have no tenants</span>
             [[ } else { ]]
             [[   $.each($.sortBy(tenants, 'name'), function (i, tenant) { ]]
-            <a class="dropdown[[ if (AEGIS.current && tenant.uuid == AEGIS.current.uuid) { ]] current.tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= tenant.name ]] ([[= AEGIS.role(tenant.uuid) ]])</a>
+            <a class="dropdown[[ if (AEGIS.current && tenant.uuid == AEGIS.current.uuid) { ]] current.tenant[[ } ]]" href="switchto:[[= tenant.uuid ]]">[[= h(tenant.name) ]] ([[= AEGIS.role(tenant.uuid) ]])</a>
             [[   }); ]]
             [[ } ]]
             <!--
@@ -427,12 +427,12 @@
             <div class="x5"><div class="inst">
               <ul>
                 <li class="shield">SHIELD
-                  [[ if (AEGIS.shield.version) { ]]<span class="v">[[= AEGIS.shield.version ]]</span>
+                  [[ if (AEGIS.shield.version) { ]]<span class="v">[[= h(AEGIS.shield.version) ]]</span>
                   [[ } else { ]]<span class="v dev">(development)</span>
                   [[ } ]]</li>
-                [[ if (AEGIS.shield.ip)   { ]]<li class="ip">[[= AEGIS.shield.ip ]]</li>[[ } ]]
-                [[ if (AEGIS.shield.fqdn) { ]]<li class="fqdn">[[= AEGIS.shield.fqdn ]]</li>[[ } ]]
-                <li class="env"><span style="color: [[= lens.maybe(AEGIS.shield.color, "#8CC63F") ]]">[[= AEGIS.shield.env ]]</span></li>
+                [[ if (AEGIS.shield.ip)   { ]]<li class="ip">[[= h(AEGIS.shield.ip) ]]</li>[[ } ]]
+                [[ if (AEGIS.shield.fqdn) { ]]<li class="fqdn">[[= h(AEGIS.shield.fqdn) ]]</li>[[ } ]]
+                <li class="env"><span style="color: [[= h(lens.maybe(AEGIS.shield.color, "#8CC63F")) ]]">[[= h(AEGIS.shield.env) ]]</span></li>
               </ul>
             </div></div>
 
@@ -473,19 +473,19 @@
                 [[ if (health.core == "unlocked") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/api-ok.svg"></object> SHIELD is <span>up</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>[[= health.core ]]</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/api-fail.svg"></object> SHIELD is <span>[[= h(health.core) ]]</span></li>
                 [[ } ]]
 
                 [[ if (health.storage == "ok") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/cloud-ok.svg"></object> Cloud Storage is <span>connected</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/cloud-fail.svg"></object> Cloud Storage is <span>[[= health.storage ]]</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/cloud-fail.svg"></object> Cloud Storage is <span>[[= h(health.storage) ]]</span></li>
                 [[ } ]]
 
                 [[ if (health.jobs == "ok") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/jobs-ok.svg"></object> All Jobs <span>succeeding</span></li>
                 [[ } else { ]]
-                <li class="fail"><object type="image/svg+xml" data="i/jobs-fail.svg"></object> Jobs are <span>[[= health.jobs ]]</span></li>
+                <li class="fail"><object type="image/svg+xml" data="i/jobs-fail.svg"></object> Jobs are <span>[[= h(health.jobs) ]]</span></li>
                 [[ } ]]
               </ul>
             </div></div>
@@ -494,9 +494,9 @@
               <h3>Data Protection Summary</h3>
               <ul>
                 <li>Scheduled Backup Jobs <span>[[= AEGIS.jobs({ tenant: AEGIS.current.uuid }).length ]]</span></li>
-                <li>Backup Archives <span>[[= AEGIS.current.archive_count ]]</span></li>
-                <li class="warn">Cloud Storage Used <span>[[= bytes(AEGIS.current.storage_used) ]]</span></li>
-                <li class="ok">Daily Storage Increase <span>[[= bytes(AEGIS.current.daily_increase) ]]</span></li>
+                <li>Backup Archives <span>[[= h(AEGIS.current.archive_count) ]]</span></li>
+                <li class="warn">Cloud Storage Used <span>[[= h(bytes(AEGIS.current.storage_used)) ]]</span></li>
+                <li class="ok">Daily Storage Increase <span>[[= h(bytes(AEGIS.current.daily_increase)) ]]</span></li>
               </ul>
             </div></div>
     <!-- }}} --></script>
@@ -518,9 +518,9 @@
             <pre>You can paste this additional information
       into your Github issue:
 
-      - **Wanted URL**: [[= _.wanted ]]
-      - **Arguments**:  ([[= _.args.join(', ') ]])
-      - **Referer**:    [[= lens.maybe(_.referer, '_none_') ]]
+      - **Wanted URL**: [[= h(_.wanted) ]]
+      - **Arguments**:  ([[= h(_.args.join(', ')) ]])
+      - **Referer**:    [[= h(lens.maybe(_.referer, '_none_')) ]]
       </pre>
           </div>
     <!-- }}} --></script>
@@ -656,7 +656,7 @@
                  <p>Please consult your administrators if you believe you should
                  have this level of access.</p>
             [[ } else { ]]
-                 <p>This part of SHIELD requires <strong>[[= _.level ]]/[[= _.need ]]</strong>
+                 <p>This part of SHIELD requires <strong>[[= h(_.level) ]]/[[= h(_.need) ]]</strong>
                     access, which seems to be an invalid role.  Please submit a bug report.</p>
             [[ } ]]
           </div>
@@ -725,11 +725,11 @@
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= target.name ]]
+                        [[= h(target.name) ]]
                       </td>
-                      <td>[[= target.plugin ]]</td>
+                      <td>[[= h(target.plugin) ]]</td>
                       <td class="notes">
-                        [[= target.summary ]]
+                        [[= md(target.summary) ]]
                       </td>
                     </tr>
                     [[ }); ]]
@@ -780,13 +780,13 @@
                         data-job-uuid="[[= job.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= store.name ]]
+                        [[= h(store.name) ]]
                         [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
                       </td>
-                      <td>[[= store.plugin ]]</td>
+                      <td>[[= h(store.plugin) ]]</td>
                       <td class="retain">[[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]</td>
                       <td class="notes">
-                        [[= store.summary ]]
+                        [[= md(store.summary) ]]
                       </td>
                     </tr>
                     [[ }); ]]
@@ -819,7 +819,7 @@
               <div class="c12 band">
                 <div class="x2"><label>Data System</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">[[= system.name ]] ([[= system.plugin ]])
+                  <p class="selected-elsewhere">[[= h(system.name) ]] ([[= h(system.plugin) ]])
                   <a class="change-me" href="step:2">change</a></p>
                 </div>
               </div>
@@ -827,7 +827,7 @@
               <div class="c12 band">
                 <div class="x2"><label>Cloud Storage</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">[[= store.name ]] ([[= store.plugin ]])
+                  <p class="selected-elsewhere">[[= h(store.name) ]] ([[= h(store.plugin) ]])
                   <a class="change-me" href="step:3">change</a></p>
                 </div>
               </div>
@@ -913,12 +913,12 @@
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= target.name ]]
+                        [[= h(target.name) ]]
                       </td>
                       <td>[[ if (archives.length == 0) { ]]<em>none</em>[[ } else { ]][[= archives.length ]][[ } ]]</td>
-                      <td>[[= target.plugin ]]</td>
+                      <td>[[= h(target.plugin) ]]</td>
                       <td class="notes">
-                        [[= target.summary ]]
+                        [[= md(target.summary) ]]
                       </td>
                     </tr>
                     [[ }); ]]
@@ -1023,7 +1023,7 @@
               <div class="c12 band">
                 <div class="x2"><label>Data System</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">[[= system.name ]] ([[= system.plugin ]])
+                  <p class="selected-elsewhere">[[= h(system.name) ]] ([[= h(system.plugin) ]])
                   <a class="change-me" href="step:2">change</a></p>
                 </div>
               </div>
@@ -1048,7 +1048,7 @@
               <div class="c12 band">
                 <div class="x2"><label>Cloud Storage</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">[[= _.store.name ]] ([[= _.store.plugin ]])</p>
+                  <p class="selected-elsewhere">[[= h(_.store.name) ]] ([[= h(_.store.plugin) ]])</p>
                 </div>
               </div>
 [[ } ]]
@@ -1128,11 +1128,11 @@
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= target.name ]]
+                        [[= h(target.name) ]]
                       </td>
-                      <td>[[= target.plugin ]]</td>
+                      <td>[[= h(target.plugin) ]]</td>
                       <td class="notes">
-                        [[= target.summary ]]
+                        [[= md(target.summary) ]]
                       </td>
                     </tr>
                     [[ }); ]]
@@ -1193,7 +1193,7 @@
                         <select name="target.plugin">
                           <option></option>
                           [[ $.each(AEGIS.plugins('target').list, function (i, plugin) { ]]
-                          <option value="[[= plugin.id ]]">[[= plugin.label ]]</option>
+                          <option value="[[= plugin.id ]]">[[= h(plugin.label) ]]</option>
                           [[ }); ]]
                         </select>
                       </div>
@@ -1230,12 +1230,12 @@
                         data-store-uuid="[[= store.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                        [[= store.name ]]
+                        [[= h(store.name) ]]
                         [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
                       </td>
-                      <td>[[= store.plugin ]]</td>
+                      <td>[[= h(store.plugin) ]]</td>
                       <td class="notes">
-                        [[= store.summary ]]
+                        [[= md(store.summary) ]]
                       </td>
                     </tr>
                     [[ }); ]]
@@ -1296,7 +1296,7 @@
                         <select name="store.plugin">
                           <option></option>
                           [[ $.each(AEGIS.plugins('store').list, function (i, plugin) { ]]
-                          <option value="[[= plugin.id ]]">[[= plugin.label ]]</option>
+                          <option value="[[= plugin.id ]]">[[= h(plugin.label) ]]</option>
                           [[ }); ]]
                         </select>
                       </div>
@@ -1425,7 +1425,7 @@
           <select name="target.agent">
             <option></option>
             [[ $.each(AEGIS.plugins('target').agents[_.selected_target_plugin], function (i, agent) { ]]
-              <option value="[[= agent.address ]]">[[= agent.name ]] - [[= agent.address ]] (legacy ssh)</option>
+              <option value="[[= h(agent.address) ]]">[[= h(agent.name) ]] - [[= h(agent.address) ]] (legacy ssh)</option>
             [[ }); ]]
           </select>
           <p class="help">The SHIELD Agent will be responsible for executing the programs and processes that will back up and restore data for this system.</p>
@@ -1435,7 +1435,7 @@
 
       [[ if (_.selected_target_plugin && _.selected_target_agent) { ]]
         [[ var plugin = AEGIS.agent(_.selected_target_agent).plugins[_.selected_target_plugin]; ]]
-        <div class="l1 x10"><h3>Plugin Properties ([[= plugin.name ]])</h3></div>
+        <div class="l1 x10"><h3>Plugin Properties ([[= h(plugin.name) ]])</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'target.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
           <button rel="prev">◀ Back to <span>Start</span></button>
@@ -1465,7 +1465,7 @@
           <select name="store.agent">
             <option></option>
             [[ $.each(AEGIS.plugins('store').agents[_.selected_store_plugin], function (i, agent) { ]]
-              <option value="[[= agent.address ]]">[[= agent.name ]] - [[= agent.address ]] (legacy ssh)</option>
+              <option value="[[= h(agent.address) ]]">[[= h(agent.name) ]] - [[= h(agent.address) ]] (legacy ssh)</option>
             [[ }); ]]
           </select>
           <p class="help">The SHIELD Agent will be responsible for executing store-specific operations, like archive purges and storage health checks.</p>
@@ -1475,7 +1475,7 @@
 
       [[ if (_.selected_store_plugin && _.selected_store_agent) { ]]
         [[ var plugin = AEGIS.agent(_.selected_store_agent).plugins[_.selected_store_plugin]; ]]
-        <div class="l1 x10"><h3>Plugin Properties ([[= plugin.name ]])</h3></div>
+        <div class="l1 x10"><h3>Plugin Properties ([[= h(plugin.name) ]])</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'store.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
           <button rel="prev">◀ Back to <span>Data System</span></button>
@@ -1502,7 +1502,7 @@
                 <div class="x7">
                   <p class="selected-elsewhere">
                   [[ if (!_.target.uuid) { ]]<span class="tag">NEW</span>[[ } ]]
-                  [[= _.target.name ]] ([[= _.target.plugin ]])
+                  [[= h(_.target.name) ]] ([[= h(_.target.plugin) ]])
                   <a class="change-me" href="step:2">change</a></p>
                 </div>
               </div>
@@ -1512,7 +1512,7 @@
                 <div class="x7">
                   <p class="selected-elsewhere">
                   [[ if (!_.store.uuid) { ]]<span class="tag">NEW</span>[[ } ]]
-                  [[= _.store.name ]] ([[= _.store.plugin ]])
+                  [[= h(_.store.name) ]] ([[= h(_.store.plugin) ]])
                   <a class="change-me" href="step:3">change</a></p>
                 </div>
               </div>
@@ -1520,7 +1520,7 @@
               <div class="c12 band">
                 <div class="x2"><label>Schedule</label></div>
                 <div class="x7">
-                  <p class="selected-elsewhere">runs [[= _.job.schedule ]][[ if (_.job.paused) { ]] (paused)[[ } ]]
+                  <p class="selected-elsewhere">runs [[= h(_.job.schedule) ]][[ if (_.job.paused) { ]] (paused)[[ } ]]
                   <a class="change-me" href="step:4">change</a></p>
                 </div>
               </div>
@@ -1565,7 +1565,7 @@
           <select name="[[= _.type ]].agent">
             <option></option>
             [[ $.each(AEGIS.plugins(_.type).agents[_.plugin], function (i, agent) { ]]
-              <option value="[[= agent.address ]]"[[ if (_.agent == agent.address) { ]] selected[[ } ]]>[[= agent.name ]] - [[= agent.address ]] (legacy ssh)</option>
+              <option value="[[= h(agent.address) ]]"[[ if (_.agent == agent.address) { ]] selected[[ } ]]>[[= h(agent.name) ]] - [[= h(agent.address) ]] (legacy ssh)</option>
             [[ }); ]]
           </select>
           [[ if (_.type == 'store') { ]]
@@ -1608,7 +1608,7 @@
       [[ $.each(_.plugin.fields, function (i, field) { ]]
         <div class="field[[ if (field.required) { ]] required[[ } ]]" data-field="[[= _.prefix ]][[= field.name ]]" data-type="[[= field.type ]]">
           <div class="x3">
-            <label for="[[= _.prefix ]][[= field.name ]]">[[= esc(field.title) ]][[ if (!field.required) { ]] <span>(optional)</span>[[ } ]]</label>
+            <label for="[[= _.prefix ]][[= field.name ]]">[[= esc(h(field.title)) ]][[ if (!field.required) { ]] <span>(optional)</span>[[ } ]]</label>
           </div>
           <div class="x9 plugin[[= i ]]th">
             [[ switch (field.type) {
@@ -1631,7 +1631,7 @@
               <select>
                 <option value="">[[ if (field.default) { ]][[= field.default ]][[ } ]]</option>
                 [[ for (var n = 0; n < field.enum.length; n++) { ]]
-                <option value="[[= field.enum[n] ]]"[[ if (value == field.enum[n]) { ]] selected[[ } ]]>[[= field.enum[n] ]]</option>
+                <option value="[[= field.enum[n] ]]"[[ if (value == field.enum[n]) { ]] selected[[ } ]]>[[= h(field.enum[n]) ]]</option>
                 [[ } ]]
               </select>
               [[ break;
@@ -1648,9 +1648,9 @@
             </span>
             [[ if (field.help || field.example) { ]]
             <p class="help">
-            [[ if (field.help) { ]][[= esc(field.help) ]][[ } ]]
+            [[ if (field.help) { ]][[= esc(h(field.help)) ]][[ } ]]
             [[ if (field.help && field.example) { ]]<br>[[ } ]]
-            [[ if (field.example) { ]]For example: <span class="example">[[= esc(field.example) ]]</span>[[ } ]]
+            [[ if (field.example) { ]]For example: <span class="example">[[= esc(h(field.example)) ]]</span>[[ } ]]
             </p>
             [[ } ]]
           </div>
@@ -1695,12 +1695,12 @@
                 <td class="name">
                   <a href="#!/systems/system:uuid:[[= target.uuid ]]">
                     <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-                    [[= target.name ]]
+                    [[= h(target.name) ]]
                   </a>
                 </td>
                 <td class="schedule">
                   [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) { ]]
-                  runs [[= job.schedule ]]<br>
+                  runs [[= h(job.schedule) ]]<br>
                   [[ }); ]]
                 </td>
                 <td class="retain">
@@ -1719,23 +1719,23 @@
             <div class="job card [[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
               <a href="#!/systems/system:uuid:[[= target.uuid ]]">
               <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
-              <h3>[[= target.name ]]</h3>
+              <h3>[[= h(target.name) ]]</h3>
               <ul class="details">
                 <li>[[ if (target.compression == "none") { ]]backups will <strong>not</strong> be compressed.
-                    [[ } else { ]]backups will be compressed via <tt>[[= target.compression ]]</tt>[[ } ]]</li>
+                    [[ } else { ]]backups will be compressed via <tt>[[= h(target.compression) ]]</tt>[[ } ]]</li>
               </ul>
               [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) {
                    var store = AEGIS.store(job.store_uuid);
               ]]
               <ul class="details">
-                <li><strong>[[= job.name ]]</strong></li>
-                <li>runs [[= job.schedule ]]</li>
+                <li><strong>[[= h(job.name) ]]</strong></li>
+                <li>runs [[= h(job.schedule) ]]</li>
                 <li>keep [[= pluralize(job.keep_n, 'backup') ]] ([[= pluralize(job.keep_days, 'day') ]])</li>
               </ul>
               <div class="graph[[ if (!job.healthy) { ]] fail[[ } ]]">
-                <div class="from">[[= (target ? target.plugin : false) || 'unknown' ]]</div>
+                <div class="from">[[= h(target ? target.plugin : false) || 'unknown' ]]</div>
                 <div class="bar"></div>
-                <div class="to">[[= (store ? store.name : false) || 'unknown' ]]</div>
+                <div class="to">[[= h(store ? store.name : false) || 'unknown' ]]</div>
               </div>
               [[ }); ]]
               </a>
@@ -1756,12 +1756,12 @@
       [[
           var target = AEGIS.system(args.uuid);
       ]]
-          <div class="system view gutter" data-system-uuid="[[= target.uuid ]]" data-system-name="[[= target.name ]]">
+          <div class="system view gutter" data-system-uuid="[[= target.uuid ]]" data-system-name="[[= h(target.name) ]]">
             <h2 class="[[= target.healthy ? 'ok' : 'fail' ]]">
-              <span>Data System</span>[[= target.name ]]
+              <span>Data System</span>[[= h(target.name) ]]
               <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
             </h2>
-            <div>[[= target.summary ]]</div>
+            <div>[[= md(target.summary) ]]</div>
 
             <div class="side-by-side">
               <h3>Storage Footprint</h3>
@@ -1774,10 +1774,10 @@
                         }); ]]
               <dl>
                 <dt>Backup Archives</dt>
-                <dd>[[= n ]]</dd>
+                <dd>[[= h(n) ]]</dd>
 
                 <dt>Compression</dt>
-                <dd>[[= target.compression ]]</dd>
+                <dd>[[= h(target.compression) ]]</dd>
 
                 <dt>Storage Used</dt>
                 <dd>[[= bytes(used) ]]</dd>
@@ -1789,16 +1789,16 @@
               [[ if (_.config) { ]]
               <dl>
                 <dt>SHIELD Agent</dt>
-                <dd>[[= target.agent ]]</dd>
+                <dd>[[= h(target.agent) ]]</dd>
 
                 <dt>Target Plugin</dt>
-                <dd>[[= target.plugin ]]</dd>
+                <dd>[[= h(target.plugin) ]]</dd>
 
                 [[   $.each(_.config, function (i, kv) { ]]
-                <dt>[[= kv.label ]]</dt>
+                <dt>[[= h(kv.label) ]]</dt>
                 <dd>[[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
-                } else if (kv.value)    { ]][[= kv.value ]][[
-                } else if (kv.default)  { ]]<span class="not-configured">[[= kv.default ]]</span>[[
+                } else if (kv.value)    { ]][[= h(kv.value) ]][[
+                } else if (kv.default)  { ]]<span class="not-configured">[[= h(kv.default) ]]</span>[[
                 } else                  { ]]<span class="not-configured">not configured.</span>[[
                 } ]]</dd>
                 [[   }); ]]
@@ -1825,10 +1825,10 @@
                 <tr class="[[ if (!job.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
                   <td class="name">
                     <img src="i/shield-[[= job.healthy ? 'ok' : 'fail' ]].svg">
-                    [[= job.name ]]
+                    [[= h(job.name) ]]
                   </td>
                   <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
-                    [[= job.schedule ]]
+                    [[= h(job.schedule) ]]
                   </td>
                   <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
@@ -1871,23 +1871,23 @@
           [[ } ]]
           [[ if (_.type == "backup") { ]]
             [[ if (_.owner == "system") { ]]
-            <li class="desc">[[= lens.maybe(_.archive && _.archive.schedule, 'Scheduled Backup') ]]</li>
+            <li class="desc">[[= h(lens.maybe(_.archive && _.archive.schedule, 'Scheduled Backup')) ]]</li>
             <li class="meta">run automatically per job schedule at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
             [[ } else { ]]
             <li class="desc">Ad Hoc Backup</li>
-            <li class="meta">initiated by [[= _.owner ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
+            <li class="meta">initiated by [[= h(_.owner) ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
             [[ } ]]
           [[ } else if (_.type == "restore") { ]]
             <li class="desc">Manual Restore</li>
-            <li class="meta">initiated by [[= _.owner ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
+            <li class="meta">initiated by [[= h(_.owner) ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
           [[ } else if (_.type == "purge") { ]]
             <li class="desc">Purge Expired Archive</li>
             <li class="meta">...</li>
           [[ } else { ]]
-            <li class="desc">[[= _.type ]] Task</li>
+            <li class="desc">[[= h(_.type) ]] Task</li>
           [[ } ]]
           [[ if (_.notes != "") { ]]
-          <li class="note"><strong>Note:</strong> [[= html(_.notes) ]]</li>
+          <li class="note"><strong>Note:</strong> [[= h(_.notes) ]]</li>
           [[ } ]]
           <li class="expand"><a href="task:[[= _.uuid ]]">full task log</a></li>
         </ul>
@@ -1912,7 +1912,7 @@
             id="annotask-ok"[[ if (_.task.ok) { ]] checked[[ } ]]><label for="annotask-ok">Nothing to worry about</label></p>
 [[ } ]]
 <p><textarea name="notes" id="notes"
-            placeholder="no notes recorded yet...">[[= lens.maybe(_.task.notes, '') ]]</textarea></p>
+            placeholder="no notes recorded yet...">[[= h(lens.maybe(_.task.notes, '')) ]]</textarea></p>
 <button>Save</button>
 </form>
 
@@ -1923,9 +1923,9 @@ purging archive <em>[[= _.task.archive_uuid ]]</em>[[
 } else if (_.task.type == "restore") { ]]
 restoring from archive <em>[[= _.task.archive_uuid ]]</em>[[
 } ]]
-initiated by <em>[[= _.task.owner ]]</em> at <em>[[= strftime("%c", _.task.requested_at) ]]</em></em>
+initiated by <em>[[= h(_.task.owner) ]]</em> at <em>[[= strftime("%c", _.task.requested_at) ]]</em></em>
 
-[[= _.task.log ]]
+[[= h(_.task.log) ]]
 
 <em>[[ if (_.task.stopped_at > _.task.started_at && _.task.status != "pending") {
 ]]task ran for <em>[[= duration(tdiff(_.task.started_at, _.task.stopped_at)) ]]</em>
@@ -1999,14 +1999,14 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   <td class="name">
                     <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
                       <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-                      [[= store.name ]]
+                      [[= h(store.name) ]]
                     </a>
                     [[ if (store.global) { ]]<span class="tag">global</span>[[ } ]]
                   </td>
-                  <td class="type">[[= store.plugin ]]</td>
+                  <td class="type">[[= h(store.plugin) ]]</td>
                   <td class="notes">
                     [[ if (store.summary) { ]]
-                      [[= store.summary ]]
+                      [[= md(store.summary) ]]
                     [[ } else { ]]
                       <div class="no-data">No notes provided.  Too bad.</div>
                     [[ } ]]
@@ -2023,14 +2023,14 @@ for job <em>[[= _.task.job_uuid ]]</em>
               [[ if (store.global) { ]]<span class="type">Shared</span>[[ } ]]
               <a href="#!/[[= _.admin ? 'admin/' : '' ]]stores/store:uuid:[[= store.uuid ]]">
               <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
-              <h3>[[= store.name ]]</h3>
+              <h3>[[= h(store.name) ]]</h3>
               <div class="notes">[[ if (store.summary) { ]]
-                [[= store.summary ]]
+                [[= md(store.summary) ]]
               [[ } else { ]]
                 <div class="no-data">No notes provided.  Too bad.</div>
               [[ } ]]</div>
               <div class="graph[[ if (!store.healthy) { ]] fail[[ } ]]">
-                <div class="to">[[= store.plugin ]]</div>
+                <div class="to">[[= h(store.plugin) ]]</div>
               </div>
               </a>
             </div>
@@ -2228,7 +2228,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                     <div class="field">
                       <div class="x3"><label for="store.summary">Notes</label></div>
                       <div class="x9">
-                        <textarea name="store.summary">[[ if (_.store && _.store.summary) { ]][[= _.store.summary ]][[ } ]]</textarea>
+                        <textarea name="store.summary">[[ if (_.store && _.store.summary) { ]][[= h(_.store.summary) ]][[ } ]]</textarea>
                         <p class="help">Notes can help other operators (including future you!) understand the configuration / role / purpose of this storage system.</p>
                       </div>
                     </div>
@@ -2252,7 +2252,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                         <select name="store.plugin">
                           <option></option>
                           [[ $.each(AEGIS.plugins('store').list, function (i, plugin) { ]]
-                          <option value="[[= plugin.id ]]"[[ if (_.store && _.store.plugin == plugin.id) { ]] selected[[ } ]]>[[= plugin.label ]]</option>
+                          <option value="[[= plugin.id ]]"[[ if (_.store && _.store.plugin == plugin.id) { ]] selected[[ } ]]>[[= h(plugin.label) ]]</option>
                           [[ }); ]]
                         </select>
                       </div>
@@ -2282,13 +2282,13 @@ for job <em>[[= _.task.job_uuid ]]</em>
         configuration data.
       ]]
           <div class="confirm">
-            <h2>Delete The <em>[[= _.store.name ]]</em> Cloud Storage System?</h2>
+            <h2>Delete The <em>[[= h(_.store.name) ]]</em> Cloud Storage System?</h2>
 
             <p>You have requested that S.H.I.E.L.D. remove the configuration for
-            the cloud storage system "[[= _.store.name ]]".  <em>This is a
+            the cloud storage system "[[= h(_.store.name) ]]".  <em>This is a
             irreversible action; it cannot be undone.</em></p>
 
-            <p class="q">Are you sure you want to delete <em>[[= _.store.name ]]</em>?</p>
+            <p class="q">Are you sure you want to delete <em>[[= h(_.store.name) ]]</em>?</p>
             <div class="a">
               <button class="danger" rel="yes">Yes, Delete It</button>
               <button class="safe" rel="close">No, Cancel This Operation</button>
@@ -2319,7 +2319,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
               <tbody>
                 [[ $.each(_.tenants, function (i, tenant) { ]]
                 <tr>
-                  <td>[[= tenant.name ]]</td>
+                  <td>[[= h(tenant.name) ]]</td>
                   <td><a href="#!/[[= _.admin ? 'admin/' : '' ]]tenants/edit:uuid:[[= tenant.uuid ]]">edit</a></td>
                 </tr>
                 [[ }); ]]
@@ -2341,7 +2341,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
             [[ } else { ]]
                 <a class="breadcrumb" href="#!/systems">&laquo; Back to Systems</a>
-                <h2> [[= _.tenant.name ]] - Tenant Settings</h2>
+                <h2> [[= h(_.tenant.name) ]] - Tenant Settings</h2>
             [[ } ]]
 
             <form>
@@ -2354,7 +2354,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                     </span>
                     <div class="widget">
                     <input type="text" id="tenant-name" name="name" class="autofocus"
-                        [[ if (_.tenant) { ]]value="[[= _.tenant.name ]]"[[ } ]]/>
+                        [[ if (_.tenant) { ]]value="[[= h(_.tenant.name) ]]"[[ } ]]/>
                     <p class="help">Pick a memorable or descriptive name for this tenant.</p>
                     </div>
               </div>
@@ -2376,10 +2376,10 @@ for job <em>[[= _.task.job_uuid ]]</em>
                     <tbody data-type="tenant">
                       [[ if (_.tenant) { ]]
                         [[ $.each(_.tenant.members, function (i, user) { ]]
-                        <tr data-uuid="[[= user.uuid ]]" data-account="[[= user.account ]]">
+                        <tr data-uuid="[[= user.uuid ]]" data-account="[[= h(user.account) ]]">
                           <td><a href="banish:user"><img src="/i/delete.png"></a></td>
-                          <td>[[= user.name ]]</td>
-                          <td>[[= user.account ]]</td>
+                          <td>[[= h(user.name) ]]</td>
+                          <td>[[= h(user.account) ]]</td>
                           <td><span class="role" data-role="[[= user.role ]]">
                           [[= { admin      : "Administrator",
                                 engineer   : "Engineer",
@@ -2404,11 +2404,11 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
         Renders a table row in the invitee management UI control.
       ]]
-                      <tr data-uuid="[[= _.user.uuid ]]" data-account="[[= _.user.account ]]">
+                      <tr data-uuid="[[= _.user.uuid ]]" data-account="[[= h(_.user.account) ]]">
                         <td><a href="banish:user"><img src="/i/delete.png"></a></td>
-                        <td>[[= _.user.name ]]</td>
-                        <td>[[= _.user.account ]]</td>
-                        <td><span class="role" data-role="[[= _.user.role ]]">
+                        <td>[[= h(_.user.name) ]]</td>
+                        <td>[[= h(_.user.account) ]]</td>
+                        <td><span class="role" data-role="[[= h(_.user.role) ]]">
                         [[= { admin      : "Administrator",
                               engineer   : "Engineer",
                               operator   : "Operator" }[_.user.role] ]]
@@ -2426,7 +2426,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
       <div class="userlookup-results">
         <ul>
           [[ $.each(_, function (i, user) { ]]
-          <li data-idx="[[= i ]]" data-uuid="[[= user.uuid ]]"><strong>[[= user.name ]]</strong><p>[[= user.account ]]</p></li>
+          <li data-idx="[[= i ]]" data-uuid="[[= user.uuid ]]"><strong>[[= h(user.name) ]]</strong><p>[[= h(user.account) ]]</p></li>
           [[ }); ]]
         </ul>
       </div>
@@ -2520,13 +2520,13 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 [[ $.each(_.agents, function (i, agent) { ]]
                     [[ var problems = _.problems[agent.uuid]; ]]
                 <tr data-agent-uuid="[[= agent.uuid ]]"[[ if (problems.length != 0) { ]] class="noted fail"[[ } ]]>
-                  <td class="k">[[= agent.name ]]</td>
-                  <td>[[= agent.address ]]</td>
-                  <td>[[= agent.version ]]</td>
+                  <td class="k">[[= h(agent.name) ]]</td>
+                  <td>[[= h(agent.address) ]]</td>
+                  <td>[[= h(agent.version) ]]</td>
                   <td>[[ if (agent.status == "ok") { ]]
-                    <span class="ok">[[= agent.status ]]</span>
+                    <span class="ok">[[= h(agent.status) ]]</span>
                   [[ } else { ]]
-                    <span class="fail">[[= agent.status ]]</span>
+                    <span class="fail">[[= h(agent.status) ]]</span>
                   [[ } ]]
                   </td>
                   <td>[[= trelative(agent.last_seen_at, 90*86400) ]]</td>
@@ -2539,7 +2539,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 <tr class="note fail">
                   <td colspan="7">
                     [[ $.each(problems, function (j, problem) { ]]
-                    <strong>Note:</strong><div>[[= problem ]]</div>
+                    <strong>Note:</strong><div>[[= md(problem) ]]</div>
                     [[ }); ]]
                   </td>
                 </tr>
@@ -2571,9 +2571,9 @@ for job <em>[[= _.task.job_uuid ]]</em>
               <tbody>
               [[ $.each(_.providers, function (i, provider) { ]]
                 <tr>
-                  <td>[[= provider.name ]]</td>
-                  <td><span class="tag">[[= provider.identifier ]]</span></td>
-                  <td>[[= provider.type ]] (<a href="#!/admin/auth/config:name:[[= provider.identifier ]]">configuration</a>)</td>
+                  <td>[[= h(provider.name) ]]</td>
+                  <td><span class="tag">[[= h(provider.identifier) ]]</span></td>
+                  <td>[[= h(provider.type) ]] (<a href="#!/admin/auth/config:name:[[= h(provider.identifier) ]]">configuration</a>)</td>
                 </tr>
               [[ }); ]]
               </tbody>
@@ -2591,7 +2591,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
       ]]
           <div class="gutter blk" id="auth-provider">
             <a class="breadcrumb" href="#!/admin/auth">&laquo; Back to Authentication Providers</a>
-            <h2>[[= _.provider.name ]] Authentication Provider ([[= _.provider.identifier ]])</h2>
+            <h2>[[= h(_.provider.name) ]] Authentication Provider ([[= h(_.provider.identifier) ]])</h2>
             [[ var p = _.provider.properties; ]]
             [[ if (_.provider.type == 'github') { ]]
             <p>This is a <strong>Github</strong>-backed authentication provider, targeting
@@ -2646,7 +2646,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
             [[ } ]]
             <h3>Raw Configuration</h3>
-            <pre><code>[[= JSON.stringify(_.provider, null, 2) ]]</code></pre>
+            <pre><code>[[= h(JSON.stringify(_.provider, null, 2)) ]]</code></pre>
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:rekey"><!-- {{{ -->
@@ -2743,16 +2743,16 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               <tbody>
                 [[ $.each(_.users, function (i, user) { ]]
                 <tr>
-                  <td><strong>[[= user.name ]]</strong></td>
-                  <td>[[= user.account ]]</td>
-                  <td>[[ if (user.sysrole == "") { ]]<span class="none">none</span>[[ } else { ]][[= user.sysrole ]][[ } ]]</td>
+                  <td><strong>[[= h(user.name) ]]</strong></td>
+                  <td>[[= h(user.account) ]]</td>
+                  <td>[[ if (user.sysrole == "") { ]]<span class="none">none</span>[[ } else { ]][[= h(user.sysrole) ]][[ } ]]</td>
                   <td>
                     [[ if ((user.tenants || []).length == 0) { ]]
                     <span class="none">none</span>
                     [[ } else { ]]
                     <ul>
                       [[ $.each(user.tenants || [], function (j, tenant) { ]]
-                      <li><strong>[[= tenant.name ]]</strong> ([[= tenant.role ]])</li>
+                      <li><strong>[[= h(tenant.name) ]]</strong> ([[= h(tenant.role) ]])</li>
                       [[ }); ]]
                     </ul>
                     [[ } ]]
@@ -2847,7 +2847,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       ]]
           <div class="gutter blk" id="admin-users">
             <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
-            <h2>Update SHIELD User [[= _.user.account ]]</h2>
+            <h2>Update SHIELD User [[= h(_.user.account) ]]</h2>
             <form>
               <div class="ctl" data-field="name">
                 <label for="edit-user-name">Display Name</label>
@@ -2901,11 +2901,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 <tbody>
                   [[ $.each(_.sessions, function (i, session) { ]]
                   <tr>
-                    <td>[[= session.user_account ]]</td>
-                    <td>[[= strftime("%Y-%m-%d %I:%M:%S%P", session.created_at) ]]</td>
-                    <td>[[= trelative(session.last_seen_at, 14*86400) ]]</td>
-                    <td>[[= session.ip_addr ]]</td>
-                    <td id="user-agent">[[= session.user_agent ]]</td>
+                    <td>[[= h(session.user_account) ]]</td>
+                    <td data-sort="[[= session.created_at ]]" data-sort-as="number">[[= strftime("%Y-%m-%d %I:%M:%S%P", session.created_at) ]]</td>
+                    <td data-sort="[[= session.last_seen_at ]]" data-sort-as="number">[[= trelative(session.last_seen_at, 14*86400) ]]</td>
+                    <td>[[= h(session.ip_addr) ]]</td>
+                    <td id="user-agent">[[= h(session.user_agent) ]]</td>
                     <td>[[ if (!session.current_session) {]]<a href="#!/admin/sessions/delete:uuid:[[= session.uuid ]]">delete</a> [[ } ]]</td>
                   </tr>
                   [[ }); ]]
@@ -2923,12 +2923,12 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
           session data.
         ]]
             <div class="confirm">
-              <h2>Delete The Session For Account:<em>[[= _.session.user_account ]]</em>?</h2>
+              <h2>Delete The Session For Account:<em>[[= h(_.session.user_accoun)t ]]</em>?</h2>
 
               <p>You have requested that S.H.I.E.L.D. remove the session for
-              the account "[[= _.session.user_account ]]".</p>
+              the account "[[= h(_.session.user_account) ]]".</p>
 
-              <p class="q">Are you sure you want to delete the session for <em>[[= _.session.user_account ]]</em>?</p>
+              <p class="q">Are you sure you want to delete the session for <em>[[= h(_.session.user_account) ]]</em>?</p>
               <div class="a">
                 <button class="danger" rel="yes">Yes, Delete It</button>
                 <button class="safe" rel="close">No, Cancel This Operation</button>
@@ -2938,8 +2938,11 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
     <script type="text/html" id="template:"><!-- {{{ -->
     <!-- }}} --></script>
 
+    <!-- 3rd-party libraries -->
     <script type="text/javascript" src="/js/jquery.js"></script>
+    <script type="text/javascript" src="/js/showdown.js"></script>
     <script type="text/javascript" src="/js/lens.js"></script>
+    <!-- SHIELD-specific libraries -->
     <script type="text/javascript" src="/js/data.js"></script>
     <script type="text/javascript" src="/js/lib.js"></script>
     <script type="text/javascript" src="/js/shield.js"></script>

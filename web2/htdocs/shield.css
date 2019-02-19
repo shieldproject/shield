@@ -322,14 +322,15 @@ body { font-family: sans-serif; }
   float: right;
 }
 .frontdoor .dialog p {
-  font-size: 10pt;
+  font-size: 12pt;
   line-height: 1.1em;
-  margin: 2em 0;
+  margin: 0 0 1em 0;
 }
 
 #login > div.local-only .dialog { width: 400px; }
-#login p.motd {
+#login .motd {
   margin: 0 0 2em 0;
+  border-bottom: 1px solid #ccc;
 }
 #login .oauth2,
 #login .local {

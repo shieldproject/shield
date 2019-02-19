@@ -1,5 +1,31 @@
 ;(function ($, exported, document, undefined) {
 
+  exported.h = (function () {
+    var e = document.createElement('div');
+    return function (s) {
+      e.innerText = (s || '').toString();
+      return e.innerHTML;
+    };
+  })();
+
+  exported.md = (function () {
+    var converter = new showdown.Converter({
+      omitExtraWLInCodeBlocks:   true,
+      simplifiedAutoLink:        true,
+      literalMidWordUnderscores: true,
+      strikethrough:             true,
+      tables:                    true,
+      simpleLineBreaks:          true,
+      openLinksInNewWindow:      true
+    });
+    return function (s) {
+      /* h() translates newlines into <br> tags, so we
+         have to translate them back to avoid confusing
+         the markdown parser / reformatter. */
+      return converter.makeHtml(h(s).replace(/<br>/g, "\n"));
+    };
+  })();
+
   /***************************************************
     pluralize(n, word [, words]) - Pluralize a number + unit.
 
