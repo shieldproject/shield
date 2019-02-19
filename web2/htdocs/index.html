@@ -468,6 +468,13 @@
                                  health.jobs = "failing";
                                }
                              });
+                    } else {
+                      $.each(AEGIS.stores({ global: true }),
+                             function (_, store) {
+                               if (!store.healthy) {
+                                 health.storage = "failing";
+                               }
+                             });
                     }
                 ]]
                 [[ if (health.core == "unlocked") { ]]
@@ -482,10 +489,12 @@
                 <li class="fail"><object type="image/svg+xml" data="i/cloud-fail.svg"></object> Cloud Storage is <span>[[= h(health.storage) ]]</span></li>
                 [[ } ]]
 
+                [[ if (AEGIS.current) { ]]
                 [[ if (health.jobs == "ok") { ]]
                 <li class="ok"><object type="image/svg+xml" data="i/jobs-ok.svg"></object> All Jobs <span>succeeding</span></li>
                 [[ } else { ]]
                 <li class="fail"><object type="image/svg+xml" data="i/jobs-fail.svg"></object> Jobs are <span>[[= h(health.jobs) ]]</span></li>
+                [[ } ]]
                 [[ } ]]
               </ul>
             </div></div>
@@ -493,10 +502,14 @@
             <div class="x6"><div class="prot">
               <h3>Data Protection Summary</h3>
               <ul>
+                [[ if (AEGIS.current) { ]]
                 <li>Scheduled Backup Jobs <span>[[= AEGIS.jobs({ tenant: AEGIS.current.uuid }).length ]]</span></li>
                 <li>Backup Archives <span>[[= h(AEGIS.current.archive_count) ]]</span></li>
                 <li class="warn">Cloud Storage Used <span>[[= h(bytes(AEGIS.current.storage_used)) ]]</span></li>
                 <li class="ok">Daily Storage Increase <span>[[= h(bytes(AEGIS.current.daily_increase)) ]]</span></li>
+                [[ } else { ]]
+                <li>you do not belong to any tenants...</li>
+                [[ } ]]
               </ul>
             </div></div>
     <!-- }}} --></script>
