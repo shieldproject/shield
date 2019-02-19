@@ -535,12 +535,12 @@ var Lens = {};
         //      %Y, except that if the ISO week number belongs to the previous
         //      or next year, that year is used instead.
         case 71:
-          throw "this strftime() does not support '%G'"; // FIXME
+          throw "this strftime() does not support '%G'";
 
         // %g   Like %G, but without century, that is, with a 2-digit year
         //      (00-99).
         case 103:
-          throw "this strftime() does not support '%g'"; // FIXME
+          throw "this strftime() does not support '%g'";
 
         // %H   The hour as a decimal number using a 24-hour clock (range 00 to 23).
         case 72:
@@ -554,7 +554,7 @@ var Lens = {};
 
         // %j   The day of the year as a decimal number (range 001 to 366).
         case 106:
-          throw "this strftime() does not support '%j'"; // FIXME
+          throw "this strftime() does not support '%j'";
 
         // %k   The hour (24-hour clock) as a decimal number (range 0 to 23);
         //      single digits are preceded by a blank.  (See also %H.)
@@ -653,13 +653,13 @@ var Lens = {};
         //      00 to 53, starting with the first Sunday as the first day of
         //      week 01.  See also %V and %W.
         case 85:
-          throw "this strftime() does not support '%U'"; // FIXME
+          throw "this strftime() does not support '%U'";
 
         // %V   The ISO 8601 week number (see NOTES) of the current year as a
         //      decimal number, range 01 to 53, where week 1 is the first week
         //      that has at least 4 days in the new year.  See also %U and %W.
         case 86:
-          throw "this strftime() does not support '%V'"; // FIXME
+          throw "this strftime() does not support '%V'";
 
         // %w   The day of the week as a decimal, range 0 to 6, Sunday being 0
         //      See also %u.
@@ -671,7 +671,7 @@ var Lens = {};
         //      00 to 53, starting with the first Monday as the first day of
         //      week 01.
         case 87:
-          throw "this strftime() does not support '%W'"; // FIXME
+          throw "this strftime() does not support '%W'";
 
         // %x   The preferred date representation for the current locale
         //      without the time.
@@ -698,11 +698,11 @@ var Lens = {};
         // %z   The +hhmm or -hhmm numeric timezone (that is, the hour and
         //      minute offset from UTC).
         case 122:
-          throw "this strftime() does not support '%z'"; // FIXME
+          throw "this strftime() does not support '%z'";
 
         // %Z   The timezone name or abbreviation.
         case 90:
-          throw "this strftime() does not support '%Z'"; // FIXME
+          throw "this strftime() does not support '%Z'";
 
         default:
           throw "unrecognized strftime sequence '%"+fmt[i]+"'";
