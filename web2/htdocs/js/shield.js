@@ -1118,13 +1118,13 @@ function dispatch(page) {
       url:  '/v2/auth/sessions',
       error: "Failed retrieving the list of sessions from the SHIELD API.",
       success: function (data) {
-      data = data.sort(function(a, b) {
-        if (a.user_account != b.user_account){
-            return a.user_account > b.user_account;
-        }
-        return tparse(a.last_seen_at).getTime() < tparse(b.last_seen_at).getTime();
-      });
-      $('#main').template('sessions', { sessions: data, admin: true });
+        data = data.sort(function(a, b) {
+          if (a.user_account != b.user_account){
+              return a.user_account > b.user_account;
+          }
+          return tparse(a.last_seen_at).getTime() < tparse(b.last_seen_at).getTime();
+        });
+        $('#main').template('sessions', { sessions: data, admin: true });
       }
     });
     break; /* #!/admin/sessions */
