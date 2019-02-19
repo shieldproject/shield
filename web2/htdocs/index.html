@@ -2365,7 +2365,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
         Renders a form for creating new tenants, and editing
         existing tenants.
       ]]
-          <div class="gutter blk">
+          <div class="gutter blk wizard2">
             [[ if (_.admin) { ]]
                 <a class="breadcrumb" href="#!/admin/tenants">&laquo; Back to Tenants</a>
                 <h2>[[ if (_.tenant) { ]]Edit[[ } else { ]]New[[ } ]] Tenant</h2>
@@ -2376,55 +2376,67 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
             <form>
               <div class="error"></div>
-              [[ if (_.admin) { ]]
-              <div class="ctl" data-field="name">
-                    <label for="tenant-name">Name</label>
-                    <span class="errors">
-                    <span data-error="missing">You must provide a name for this new tenant.</span>
-                    </span>
-                    <div class="widget">
-                    <input type="text" id="tenant-name" name="name" class="autofocus"
-                        [[ if (_.tenant) { ]]value="[[= h(_.tenant.name) ]]"[[ } ]]/>
-                    <p class="help">Pick a memorable or descriptive name for this tenant.</p>
+              <div class="c12 band">
+                <div class="x9">
+                  <div class="c12">
+                    [[ if (_.admin) { ]]
+                    <div class="field required" data-field="name" data-type="string">
+                      <div class="x3"><label for="name">Name</label></div>
+                      <div class="x9">
+                        <input type="text"
+                               name="name"
+                               [[ if (_.tenant) { ]]value="[[= h(_.tenant.name) ]]"[[ } ]]
+                               class="autofocus"
+                               placeholder="Name Your Tenant" />
+                        <span class="errors">
+                          <span data-error="missing">Please provide a name for this new tenant.</span>
+                        </span>
+                        <p class="help">Pick a memorable or descriptive name for this tenant.</p>
+                        </div>
+                      </div>
                     </div>
-              </div>
-              [[ } ]]
+                    [[ } ]]
 
-              <div class="ctl">
-                <label for="tenant-invite">People In This Tenant</label>
-                <div class="widget">
-                  <input type="text" name="invite" id="tenant-invite" autocomplete="off"
-                         class="invite" placeholder="Invite people to join..." />
+                    <div class="field">
+                      <div class="x3"><label for="invite">People</label></div>
+                      <div class="x9">
+                        <div class="widget">
+                          <input type="text" name="invite" autocomplete="off"
+                                 class="invite" placeholder="Invite people to join..." />
 
-                  <table class="tenant-members">
-                    <thead><tr>
-                      <th></th>
-                      <th>Display Name</th>
-                      <th>Username</th>
-                      <th>Role</th>
-                    </tr></thead>
-                    <tbody data-type="tenant">
-                      [[ if (_.tenant) { ]]
-                        [[ $.each(_.tenant.members, function (i, user) { ]]
-                        <tr data-uuid="[[= user.uuid ]]" data-account="[[= h(user.account) ]]">
-                          <td><a href="banish:user"><img src="/i/delete.png"></a></td>
-                          <td>[[= h(user.name) ]]</td>
-                          <td>[[= h(user.account) ]]</td>
-                          <td><span class="role" data-role="[[= user.role ]]">
-                          [[= { admin      : "Administrator",
-                                engineer   : "Engineer",
-                                operator   : "Operator" }[user.role] ]]
-                          </span></td>
-                        </tr>
-                        [[ }); ]]
-                      [[ } ]]
-                    </tbody>
-                  </table>
+                          <table class="tenant-members lean sortable">
+                            <thead><tr>
+                              <th></th>
+                              <th class="sortable">Display Name</th>
+                              <th class="sortable">Username</th>
+                              <th class="sortable">Role</th>
+                            </tr></thead>
+                            <tbody data-type="tenant">
+                              [[ if (_.tenant) { ]]
+                                [[ $.each(_.tenant.members, function (i, user) { ]]
+                                <tr data-uuid="[[= user.uuid ]]" data-account="[[= h(user.account) ]]">
+                                  <td><a href="banish:user"><img src="/i/delete.png"></a></td>
+                                  <td>[[= h(user.name) ]]</td>
+                                  <td>[[= h(user.account) ]]</td>
+                                  <td><span class="role" data-role="[[= user.role ]]">
+                                  [[= { admin      : "Administrator",
+                                        engineer   : "Engineer",
+                                        operator   : "Operator" }[user.role] ]]
+                                  </span></td>
+                                </tr>
+                                [[ }); ]]
+                              [[ } ]]
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="x12 buttons">
+                      <button class="final">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
+                    </div>
+                  </div>
                 </div>
               </div>
-              [[ if (_.admin) { ]]
-                <button class="go">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
-              [[ } ]]
             </form>
           </div>
     <!-- }}} --></script>
@@ -2688,61 +2700,71 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         systems, i.e. Github OAuth2 App registration, CF/UAA client creation,
         etc.
       ]]
-          <div class="gutter blk" id="rekey">
+          <div class="gutter blk wizard2" id="rekey">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
             <h2>Rekey Shield Master Password</h2>
 
             <form class="rekey">
               <div class="error"></div>
 
-              <div class="ctl" data-field="current">
-                <label for="rekey-current">Current Master Password</label>
-                <span class="errors">
-                  <span data-error="missing">You must supply the current SHIELD master password</span>
-                </span>
-                <div class="widget">
-                  <input type="password" id="rekey-current" name="current"
-                         class="autofocus">
-                  <p class="help">In order to rekey this SHIELD core, you must specify your
-                  current master password so that SHIELD can temporarily decrypt the secure
-                  storage credentials.</p>
-                </div>
-              </div>
-
-              <div class="ctl" data-field="new">
-                <label for="rekey-new">New Master Password</label>
-                <span class="errors">
-                  <span data-error="missing">You must supply a new master password</span>
-                </span>
-                <div class="widget">
-                  <input type="password" id="rekey-new" name="new">
-                </div>
-              </div>
-
-              <div class="ctl" data-field="confirm">
-                <label for="rekey-confirm">Confirm</label>
-                <span class="errors">
-                  <span data-error="missing">You must confirm your new master password</span>
-                  <span data-error="mismatch">Your passwords do not match</span>
-                </span>
-                <div class="widget">
-                  <input type="password" id="rekey-confirm" name="confirm">
-                  <p class="help">Once your SHIELD is rekeyed, you will have to use the
-                  <strong>new master password</strong> to unlock it.</p>
-                </div>
-              </div>
-
-              <div class="ctl" data-field="confirm">
-                    <label for="rekey-fixed">Rekey Shield Fixed Key?</label>
-                    <div class="widget">
-                      <input class="large-checkbox" name="rotate_fixed_key" type="checkbox" value="true" />
-                      <p class="help">This rotates the <strong>Shield Fixed Key</strong>
-                      used for fixed-key backups. Once rekeyed, this new key must be used to manually
-                      restore all future fixed-key backups in a disaster scenario.</p>
+              <div class="c12 band">
+                <div class="x9">
+                  <div class="c12">
+                    <div class="field required" data-field="current">
+                      <div class="x3"><label for="current">Current Master Password</label></div>
+                      <div class="x9">
+                        <input type="password"
+                               name="current"
+                               class="autofocus">
+                        <span class="errors">
+                          <span data-error="missing">You must supply the current SHIELD master password</span>
+                        </span>
+                        <p class="help">In order to rekey this SHIELD core, you must specify your
+                        current master password so that SHIELD can temporarily decrypt the secure
+                        storage credentials.</p>
+                      </div>
                     </div>
-                </div>
 
-              <button class="go">Rekey</button>
+                    <div class="field required" data-field="new">
+                      <div class="x3"><label for="new">New Master Password</label></div>
+                      <div class="x9">
+                      <div class="x9">
+                        <input type="password" name="new">
+                        <span class="errors">
+                          <span data-error="missing">You must supply a new master password</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field required" data-field="confirm">
+                      <div class="x3"><label for="confirm">Confirm</label></div>
+                      <div class="x9">
+                        <input type="password" name="confirm">
+                        <span class="errors">
+                          <span data-error="missing">You must confirm your new master password</span>
+                          <span data-error="mismatch">Your passwords do not match</span>
+                        </span>
+                        <p class="help">Once your SHIELD is rekeyed, you will have to use the
+                        <strong>new master password</strong> to unlock it.</p>
+                      </div>
+                    </div>
+
+                    <div class="field" data-field="confirm">
+                      <div class="x3"><label for="fixed">Rekey Shield Fixed Key?</label></div>
+                      <div class="x9">
+                        <label for="cb-rotate" class="switch">
+                          <input id="cb-rotate" name="rotate_fixed_key" type="checkbox" checked /><span class="slider round"></span>
+                        </label>
+                        <p class="help">Rotates the key used for fixed-key backups.</p>
+                      </div>
+                    </div>
+
+                    <div class="x12">
+                      <button class="final">Rekey</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </form>
           </div>
     <!-- }}} --></script>
@@ -2806,65 +2828,73 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         Renders a form that administrators can use to create new local
         SHIELD user accounts, specifying their passwords and system roles.
       ]]
-          <div class="gutter blk" id="admin-users">
+          <div class="gutter blk wizard2" id="admin-users">
             <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
             <h2>New SHIELD User</h2>
             <form>
-              <div class="ctl" data-field="name">
-                <label for="new-user-name">Display Name</label>
-                <span class="errors">
-                  <span data-error="missing">Please provide a display name.</span>
-                </span>
-                <div class="widget">
-                  <input type="text" name="name" id="new-user-name">
-                  <p class="help"></p>
+              <div class="c12 band">
+                <div class="x9">
+                  <div class="c12">
+                    <div class="field required" data-field="name">
+                      <div class="x3"><label for="name">Display Name</label></div>
+                      <div class="x9">
+                        <input type="text" name="name">
+                        <span class="errors">
+                          <span data-error="missing">Please provide a display name.</span>
+                        </span>
+                        <p class="help">A User's display name is primarily how they are identified in the web interface.</p>
+                      </div>
+                    </div>
+
+                    <div class="field required" data-field="account">
+                      <div class="x3"><label for="account">Username</label></div>
+                      <div class="x9">
+                        <input type="text" name="account">
+                        <span class="errors">
+                          <span data-error="missing">Please provide a username.</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field required" data-field="password">
+                      <div class="x3"><label for="-password">Password</label></div>
+                      <div class="x9">
+                        <input type="password" name="password">
+                        <span class="errors">
+                          <span data-error="missing">Please provide a password for this new user.</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field required" data-field="confirm">
+                      <div class="x3"><label for="confirm">Confirm</label></div>
+                      <div class="x9">
+                        <input type="password" name="confirm">
+                        <span class="errors">
+                          <span data-error="missing">Please confirm this new user's password.</span>
+                          <span data-error="mismatch">These passwords don't match.</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field" data-field="sysrole">
+                      <div class="x3"><label for="sysrole">System Role</label></div>
+                      <div class="x9">
+                        <select name="sysrole">
+                          <option value="">(none)</option>
+                          <option value="engineer">Engineer</option>
+                          <option value="manager">Manager</option>
+                          <option value="admin">Administrator</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="x12 buttons">
+                      <button class="final">Create</button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div class="ctl" data-field="account">
-                <label for="new-user-account">Username</label>
-                <span class="errors">
-                  <span data-error="missing">Please provide a username.</span>
-                </span>
-                <div class="widget">
-                  <input type="text" name="account" id="new-user-account">
-                </div>
-              </div>
-
-              <div class="ctl" data-field="password">
-                <label for="new-user-password">Password</label>
-                <span class="errors">
-                  <span data-error="missing">Please provide a password for this new user.</span>
-                </span>
-                <div class="widget">
-                  <input type="password" name="password" id="new-user-password">
-                </div>
-              </div>
-
-              <div class="ctl" data-field="confirm">
-                <label for="new-user-confirm">Confirm</label>
-                <span class="errors">
-                  <span data-error="missing">Please confirm this new user's password.</span>
-                  <span data-error="mismatch">These passwords don't match.</span>
-                </span>
-                <div class="widget">
-                  <input type="password" name="confirm" id="new-user-confirm">
-                </div>
-              </div>
-
-              <div class="ctl" data-field="sysrole">
-                <label for="new-user-sysrole">System Role</label>
-                <div class="widget">
-                  <select name="sysrole" id="new-user-sysrole">
-                    <option value="">None</option>
-                    <option value="engineer">Engineer</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Administrator</option>
-                  </select>
-                </div>
-              </div>
-
-              <button class="go">Create</button>
             </form>
           </div>
     <!-- }}} --></script>
@@ -2875,35 +2905,42 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
         Renders a form that administrators can use to edit existing local
         SHIELD user accounts, specifying their passwords and system roles.
       ]]
-          <div class="gutter blk" id="admin-users">
+          <div class="gutter blk wizard2" id="admin-users">
             <a class="breadcrumb" href="#!/admin/users">&laquo; Back to Local User Management</a>
             <h2>Update SHIELD User [[= h(_.user.account) ]]</h2>
             <form>
-              <div class="ctl" data-field="name">
-                <label for="edit-user-name">Display Name</label>
-                <span class="errors">
-                  <span data-error="missing">Please provide a display name.</span>
-                </span>
-                <div class="widget">
-                  <input type="text" name="name" id="edit-user-name" value="[[= _.user.name ]]">
-                  <p class="help"></p>
+              <div class="c12 band">
+                <div class="x9">
+                  <div class="c12">
+                    <div class="field required" data-field="name">
+                      <div class="x3"><label for="name">Display Name</label></div>
+                      <div class="x9">
+                        <input type="text" name="name" id="edit-user-name" value="[[= _.user.name ]]">
+                        <span class="errors">
+                          <span data-error="missing">Please provide a display name.</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field" data-field="sysrole">
+                      <div class="x3"><label for="edit-user-sysrole">System Role</label></div>
+                      <div class="x9">
+                        <select name="sysrole" id="edit-user-sysrole"
+                          [[ if (AEGIS.user.uuid == _.user.uuid || (!AEGIS.is('admin') && _.user.sysrole == "admin")) { ]] disabled[[ } ]]>
+                          <option value="">None</option>
+                          <option value="engineer"[[ if (_.user.sysrole == "engineer") { ]] selected[[ } ]]>Engineer</option>
+                          <option value="manager"[[ if (_.user.sysrole == "manager") { ]] selected[[ } ]]>Manager</option>
+                          <option value="admin"[[ if (_.user.sysrole == "admin") { ]] selected[[ } ]]>Administrator</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="x12 buttons">
+                      <button class="final">Update</button>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div class="ctl" data-field="sysrole">
-                <label for="edit-user-sysrole">System Role</label>
-                <div class="widget">
-                  <select name="sysrole" id="edit-user-sysrole"
-                    [[ if (AEGIS.user.uuid == _.user.uuid || (!AEGIS.is('admin') && _.user.sysrole == "admin")) { ]] disabled[[ } ]]>
-                    <option value="">None</option>
-                    <option value="engineer"[[ if (_.user.sysrole == "engineer") { ]] selected[[ } ]]>Engineer</option>
-                    <option value="manager"[[ if (_.user.sysrole == "manager") { ]] selected[[ } ]]>Manager</option>
-                    <option value="admin"[[ if (_.user.sysrole == "admin") { ]] selected[[ } ]]>Administrator</option>
-                  </select>
-                </div>
-              </div>
-
-              <button class="go">Update</button>
             </form>
           </div>
     <!-- }}} --></script>
