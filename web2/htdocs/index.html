@@ -1577,13 +1577,15 @@
         </div>
 
         [[ if (_.agent) { ]]
+          [[ var plugin = AEGIS.agent(_.agent).metadata.plugins[_.plugin]; ]]
+          <div class="l1 x10"><h3>Plugin Properties ([[= h(plugin.name) ]])</h3></div>
           [[ include('plugin-configuration-form', {
                prefix: _.type+'.config.',
-               plugin: AEGIS.agent(_.agent).plugins[_.plugin],
+               plugin: plugin,
                config: _.config
              }); ]]
-          <div class="x9 buttons">
-            <button class="final">Save</button>
+          <div class="x12 buttons">
+            <button class="final">Save Changes</button>
           </div>
         [[ } ]]
 
@@ -2265,15 +2267,15 @@ for job <em>[[= _.task.job_uuid ]]</em>
                           [[ }); ]]
                         </select>
                       </div>
+                    </div>
 
-                      <div class="redraw store">
-                      [[ include('plugin-form-agent-selector', $.extend({
-                            type:   'store',
-                            agent:  (_.store && _.store.agent  ? _.store.agent  : undefined),
-                            plugin: (_.store && _.store.plugin ? _.store.plugin : undefined),
-                            config: (_.store && _.store.config ? _.store.config : undefined)
-                         }, _)); ]]
-                      </div>
+                    <div class="redraw store">
+                    [[ include('plugin-form-agent-selector', $.extend({
+                          type:   'store',
+                          agent:  (_.store && _.store.agent  ? _.store.agent  : undefined),
+                          plugin: (_.store && _.store.plugin ? _.store.plugin : undefined),
+                          config: (_.store && _.store.config ? _.store.config : undefined)
+                       }, _)); ]]
                     </div>
                   </div>
                 </div>
