@@ -1814,6 +1814,7 @@
                 <tr>
                   <th class="sortable">Name</th>
                   <th class="sortable">Schedule</th>
+                  <th class="sortable">Cloud Storage</th>
                   <th class="sortable">Retention</th>
                   <th></th>
                 </tr>
@@ -1829,6 +1830,10 @@
                   </td>
                   <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
                     [[= h(job.schedule) ]]
+                  </td>
+                  <td class="name">
+                    <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
+                    [[= h(store.name) ]]
                   </td>
                   <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
