@@ -97,13 +97,17 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 		var (
 			backend string
 			last    *int64
+			token   sql.NullString
 		)
-		if err := r.Scan(&s.UUID, &s.UserUUID, &s.CreatedAt, &last, &s.Token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
+		if err := r.Scan(&s.UUID, &s.UserUUID, &s.CreatedAt, &last, &token, &s.Name, &s.IP, &s.UserAgent, &s.UserAccount, &backend); err != nil {
 			return nil, err
 		}
 		s.UserAccount = s.UserAccount + "@" + backend
 		if last != nil {
 			s.LastSeen = *last
+		}
+		if token.Valid {
+			s.Token = token.String
 		}
 
 		l = append(l, s)
