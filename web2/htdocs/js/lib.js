@@ -111,6 +111,7 @@
 
    ***************************************************/
   exported.duration = function (t) { // {{{
+    var d, h, m;
       t = parseInt(t);
       if (t < 0) { t = 0; }
       if (t < 60) {
