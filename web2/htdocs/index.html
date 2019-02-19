@@ -1080,6 +1080,11 @@
         {do-configure} - Job Configuration Wizard
 
       ]]
+      [[
+        var systems = AEGIS.systems({ tenant: AEGIS.current.uuid });
+        var stores = AEGIS.stores({ tenant: AEGIS.current.uuid,
+                                    global: true });
+      ]]
       <div class="gutter blk wizard2 steps5 do-configure">
         <div class="progress">[[# {{{ ]]
           <div class="back line"></div>
@@ -1115,18 +1120,18 @@
               details for your backend storage system (S3, WebDAV, etc.) as well.</p>
 
               <div class="buttons">
-                <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
+                <button rel="next">First up: <span>[[= systems.length == 0 ? 'Define' : 'Choose' ]] a Data System</span> ▶</button>
               </div>
             </div>
           </div>[[# }}} ]]
         </div>
 
-        <div data-step="2" data-mode="choose">
+        <div data-step="2" data-mode="[[= systems.length == 0 ? 'create' : 'choose' ]]">
+          [[ if (systems.length > 0) { ]]
           <div data-mode="choose">[[# {{{ ]]
             <h2><span>Configure a New Backup Job</span>Choose Your Data System</h2>
             <div class="c12 band">
               <div class="x9">
-                [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
                 <table class="lean selectable choose target">
                   <thead>
                     <tr>
@@ -1163,6 +1168,7 @@
               </div>
             </div>
           </div>[[# }}} ]]
+          [[ } ]]
           <div data-mode="create">[[# {{{ ]]
             <form class="new-form1">
               <h2><span>Configure a New Backup Job</span>Define a New Data System</h2>
@@ -1222,13 +1228,12 @@
           </div>[[# }}} ]]
         </div>
 
-        <div data-step="3" class="cloud-storage" data-mode="choose">
+        <div data-step="3" class="cloud-storage" data-mode="[[= stores.length == 0 ? 'create' : 'choose' ]]">
+          [[ if (stores.length > 0) { ]]
           <div data-mode="choose">[[# {{{ ]]
             <h2><span>Configure a New Backup Job</span>Choose Cloud Storage</h2>
             <div class="c12 band">
               <div class="x9">
-                [[ var stores = AEGIS.stores({ tenant: AEGIS.current.uuid,
-                                               global: true }); ]]
                 <table class="lean selectable choose store">
                   <thead>
                     <tr>
@@ -1265,6 +1270,7 @@
               </div>
             </div>
           </div>[[# }}} ]]
+          [[ } ]]
           <div data-mode="create">[[# {{{ ]]
             <form class="new-form1">
               <h2><span>Configure a New Backup Job</span>Define a New Cloud Storage System</h2>
@@ -1447,7 +1453,7 @@
       </div>
 
       [[ if (_.selected_target_plugin && _.selected_target_agent) { ]]
-        [[ var plugin = AEGIS.agent(_.selected_target_agent).plugins[_.selected_target_plugin]; ]]
+        [[ var plugin = AEGIS.agent(_.selected_target_agent).metadata.plugins[_.selected_target_plugin]; ]]
         <div class="l1 x10"><h3>Plugin Properties ([[= h(plugin.name) ]])</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'target.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
@@ -1487,7 +1493,7 @@
       </div>
 
       [[ if (_.selected_store_plugin && _.selected_store_agent) { ]]
-        [[ var plugin = AEGIS.agent(_.selected_store_agent).plugins[_.selected_store_plugin]; ]]
+        [[ var plugin = AEGIS.agent(_.selected_store_agent).metadata.plugins[_.selected_store_plugin]; ]]
         <div class="l1 x10"><h3>Plugin Properties ([[= h(plugin.name) ]])</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'store.config.', plugin: plugin }); ]]
         <div class="x12 buttons">

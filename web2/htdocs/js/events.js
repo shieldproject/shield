@@ -338,7 +338,7 @@
               default:       return { uuid: uuid };
               }
             }
-            return $step.find('form').serializeObject()[type];
+            return $w.find(prefix + ' form').serializeObject()[type];
           };
 
           var data = {
@@ -347,11 +347,16 @@
             job:    $w.find('[data-step=4] form').serializeObject().job
           };
 
+          if (data.store.threshold) {
+            data.store.threshold = readableToBytes(data.store.threshold);
+          }
+
           data.job.schedule = $w.find('[data-step=4] form').timespec();
           if (!data.job.keep_days) {
             data.job.keep_days = $w.find('[data-step=4] [name="job.keep_days"]').attr('placeholder');
           }
           data.job.keep_days = parseInt(data.job.keep_days);
+          data.job.paused    = !!data.job.paused;
           data.job.fixed_key = !data.job.randomize_keys;
           delete data.job.randomize_keys;
 
