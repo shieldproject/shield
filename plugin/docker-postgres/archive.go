@@ -29,7 +29,7 @@ func (a *ArchiveReader) Next(metadata interface{}) (io.Reader, error) {
 		return nil, err
 	}
 
-	header, err = a.reader.Next()
+	_, err = a.reader.Next()
 	if err != nil {
 		return nil, err
 	}

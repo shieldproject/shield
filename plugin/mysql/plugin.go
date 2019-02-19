@@ -352,7 +352,7 @@ func mysqlshowvariable(mydb *sql.DB, varname string) (string, error) {
 	defer row.Close()
 
 	if row.Next() {
-		err := row.Scan(&dummy, &varvalue)
+		err = row.Scan(&dummy, &varvalue)
 		if err != nil {
 			return "", err
 		}

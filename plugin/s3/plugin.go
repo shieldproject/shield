@@ -466,6 +466,9 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	prefix = strings.TrimLeft(prefix, "/")
 
 	s, err := e.StringValueDefault("signature_version", DefaultSigVersion)
+	if err != nil {
+		return s3Endpoint{}, err
+	}
 	if !validSigVersion(s) {
 		return s3Endpoint{}, fmt.Errorf("Invalid `signature_version` specified (`%s`). Expected `2` or `4`", s)
 	}
@@ -475,6 +478,9 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	}
 
 	s, err = e.StringValueDefault("part_size", DefaultPartSize)
+	if err != nil {
+		return s3Endpoint{}, err
+	}
 	if !validPartSize(s) {
 		return s3Endpoint{}, fmt.Errorf("Invalid `part_size` specified (`%s`).", s)
 	}
