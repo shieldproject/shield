@@ -53,6 +53,7 @@
       .on('click', '.top-bar a[rel=account]', function (event) { /* {{{ */
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
         $('.top-bar .flyout').toggle();
       }) /* }}} */
       .on('click', '.top-bar .fly-out', function (event) { /* {{{ */
