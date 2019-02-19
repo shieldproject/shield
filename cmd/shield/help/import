@@ -1,0 +1,29 @@
+USAGE: @G{shield} import @Y{FILE}
+       @G{shield} import @Y{-} <FILE
+
+  Import configuration into SHIELD, in bulk.
+
+  SHIELD has a lot of configuration, between storage systems and
+  target data systems, users and tenants, etc.  While you could
+  conceivably write a script to automate the stand-up of a new
+  SHIELD environment, we've provided a much simpler alternative,
+  vis-a-vis a YAML-based import command!
+
+
+@B{Options:}
+
+  --example      Print out an annotated example import file, and exit.
+
+  Note: the global --core flag comes in handy.
+
+@B{Example:}
+
+  @W{shield import} -c a-new-shield ~/shield/prod.yml
+
+or, if you'd like to fit the import task into a pipeline that generates
+the YAML data for you:
+
+  spruce merge ... | @W{shield import} -c a-new-shield -
+
+(The '-' means 'read from standard input')
+

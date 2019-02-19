@@ -54,7 +54,9 @@ var opts struct {
 		Global bool `cli:"--global"`
 	} `cli:"status"`
 
-	Import struct{} `cli:"import"`
+	Import struct{
+		Example bool `cli:"--example"`
+	} `cli:"import"`
 
 	Events struct {
 		Skip []string `cli:"--skip"`
@@ -668,12 +670,86 @@ func main() {
 		/* }}} */
 
 	case "import": /* {{{ */
+		if opts.Import.Example {
+			fmt.Printf(`---
+#
+# THIS IS AN EXAMPLE import file to demonstrate the
+# syntax used for a shield import.
+#
+
+# Local Users can be defined:
+users:
+  - name:     Administrator
+    username: admin
+    password: sekrit
+    sysrole:  admin      # valid system roles are:
+                         #
+                         #   admin    - full access to SHIELD
+                         #
+                         #   manager  - handles tenants and tenant
+                         #              role assignments.
+                         #
+                         #   engineer - for the technical stuff
+                         #              (mostly just global cloud storage)
+                         #
+
+  - name:     J User
+    username: juser
+    password: password
+    sysrole:  ~          # juser has no system-level privileges
+                         # (but they can still be invited to tenants)
+
+global:
+  # These cloud storage systems will be usable by all tenants,
+  # but the specific configuration will be hidden from anyone
+  # lacking system-level (sysrole) privileges.
+  #
+  storage:
+    - name:    Global Storage
+      summary: Shared global cloud storage, for use by anyone.
+      agent:   '10.0.0.6:5444'
+      plugin:  webdav
+      config:                           # this configuration depends entirely
+        url: http://webdav/global       # on the store plugin used (here, webdav)
+
+tenants:
+  - name: A Tenant
+    members:
+      - { user: juser@local, role: admin }
+
+    storage:
+      - name:    Local Storage
+        summary: Dedicated cloud storage, just for this tenant.
+        agent:   '10.0.0.6:5444'
+        plugin:  webdav
+        config:
+          url: http://webdav/a-tenant
+
+    systems:
+      - name:    A System
+        summary: A protected data system, owned by A Tenant.
+        agent:   10.255.6.7:5444
+        plugin:  fs
+        config:
+          base_dir: /tmp
+
+        jobs:
+          - name:     Daily
+            when:     daily 4:10am
+            paused:   no
+            storage:  Local Storage
+            retain:   4d
+
+          - name:     Weekly
+            when:     sundays at 2:45am
+            paused:   yes
+            storage:  Local Storage
+            retain:   28d
+`)
+			return
+		}
 		if len(args) < 1 {
 			fail(2, "Usage: shield %s /path/to/manifest.yml ...\n", command)
-		}
-		if opts.Core != "" {
-			fmt.Fprintf(os.Stderr, "@Y{WARNING: ignoring the SHIELD Core set by either --core or the $SHIELD_CORE environment variable.}\n")
-			fmt.Fprintf(os.Stderr, "(@C{shield import} uses the import file to determine what SHIELD Core to contact.)\n\n")
 		}
 		readin := false
 		for _, file := range args {
@@ -700,6 +776,15 @@ func main() {
 
 			err = m.Normalize()
 			bailon(file, err)
+
+			if m.Core == "" {
+				bail(config.Select(opts.Core))
+
+				m.Core = config.Current.URL
+				m.Token = config.Current.Session
+				m.CA = config.Current.CACertificate
+				m.InsecureSkipVerify = config.Current.InsecureSkipVerify
+			}
 
 			err = m.Deploy(&shield.Client{
 				Debug: opts.Debug,
