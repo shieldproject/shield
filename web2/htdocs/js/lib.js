@@ -3,7 +3,7 @@
   exported.h = (function () {
     var e = document.createElement('div');
     return function (s) {
-      e.innerText = (s || '').toString();
+      e.innerText = (typeof(s) === 'undefined' ? '' : s).toString();
       return e.innerHTML;
     };
   })();
