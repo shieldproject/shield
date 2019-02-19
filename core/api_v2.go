@@ -3412,7 +3412,7 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}""
 	r.Dispatch("GET /v2/global/stores/:uuid/config", func(r *route.Request) { // {{{
-		if c.IsNotAuthenticated(r) {
+		if c.IsNotSystemEngineer(r) {
 			return
 		}
 
@@ -3424,11 +3424,6 @@ func (c *Core) v2API() *route.Router {
 
 		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
 			r.Fail(route.NotFound(nil, "No such storage system"))
-			return
-		}
-
-		if !c.CanSeeGlobalCredentials(r) {
-			r.OK([]bool{})
 			return
 		}
 

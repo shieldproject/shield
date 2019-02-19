@@ -2530,3 +2530,12 @@ table th.sortable.desc ::before {
 table th.sortable.asc ::before {
   transform: rotate(180deg);
 }
+
+
+.denied {
+  font-style: italic;
+  color: #999;
+  font-size: 12px;
+  padding: 0em 3em;
+  display: block;
+}

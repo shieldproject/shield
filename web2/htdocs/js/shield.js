@@ -327,6 +327,9 @@ function dispatch(page) {
       }).then(function (config) {
         args.config = config || []
         $('#main').template('store', args);
+      }, function () {
+        args.config = "denied"
+        $('#main').template('store', args);
       });
     });
     break; /* #!/stores/store */

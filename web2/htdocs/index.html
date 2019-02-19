@@ -2080,22 +2080,26 @@ for job <em>[[= _.task.job_uuid ]]</em>
             <div class="side-by-side redraw">
               <h3>Configuration</h3>
               [[ if (_.config) { ]]
-              <dl>
-                <dt>SHIELD Agent</dt>
-                <dd>[[= store.agent ]]</dd>
+                [[ if (_.config == 'denied') { ]]
+                <span class="denied">You are not authorized to view this cloud storage configuration.</span>
+                [[ } else { ]]
+                <dl>
+                  <dt>SHIELD Agent</dt>
+                  <dd>[[= store.agent ]]</dd>
 
-                <dt>Store Plugin</dt>
-                <dd>[[= store.plugin ]]</dd>
+                  <dt>Store Plugin</dt>
+                  <dd>[[= store.plugin ]]</dd>
 
-                [[   $.each(_.config, function (i, kv) { ]]
-                <dt>[[= kv.label ]]</dt>
-                <dd>[[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
-                } else if (kv.value)    { ]][[= kv.value ]][[
-                } else if (kv.default)  { ]]<span class="not-configured">[[= kv.default ]]</span>[[
-                } else                  { ]]<span class="not-configured">not configured.</span>[[
-                } ]]</dd>
-              [[   }); ]]
-              </dl>
+                  [[   $.each(_.config, function (i, kv) { ]]
+                  <dt>[[= kv.label ]]</dt>
+                  <dd>[[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
+                  } else if (kv.value)    { ]][[= kv.value ]][[
+                  } else if (kv.default)  { ]]<span class="not-configured">[[= kv.default ]]</span>[[
+                  } else                  { ]]<span class="not-configured">not configured.</span>[[
+                  } ]]</dd>
+                [[   }); ]]
+                </dl>
+                [[ } ]]
               [[ } else { ]]
               <span class="deferred">fetching configuration...</span>
               [[ } ]]
