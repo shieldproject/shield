@@ -15,8 +15,9 @@ import (
 var next = 0
 
 type Chore struct {
-	ID       string
-	TaskUUID string
+	ID         string
+	TaskUUID   string
+	Encryption string
 
 	Do func(chore Chore)
 
@@ -166,7 +167,7 @@ func (w *Worker) Execute(chore Chore) {
 
 		log.Infof("%s: restore key for this %s operation is '%s'", chore, task.Op, v.Key)
 		_, err = w.db.CreateTaskArchive(task.UUID, task.ArchiveUUID, v.Key, time.Now(),
-			"FIXME - cipher", v.Compression, v.Size, task.TenantUUID)
+			chore.Encryption, v.Compression, v.Size, task.TenantUUID)
 		if err != nil {
 			panic(fmt.Errorf("failed to create task archive database record '%s': %s", task.ArchiveUUID, err))
 		}

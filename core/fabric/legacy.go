@@ -47,7 +47,7 @@ type Command struct {
 func (f LegacyFabric) Backup(task *db.Task, encryption vault.Parameters) scheduler.Chore {
 	op := "backup"
 
-	return f.Execute(op, task.UUID, Command{
+	chore := f.Execute(op, task.UUID, Command{
 		Op: op,
 
 		TargetPlugin:   task.TargetPlugin,
@@ -62,6 +62,9 @@ func (f LegacyFabric) Backup(task *db.Task, encryption vault.Parameters) schedul
 		EncryptKey:  encryption.Key,
 		EncryptIV:   encryption.IV,
 	})
+
+	chore.Encryption = encryption.Type
+	return chore
 }
 
 func (f LegacyFabric) Restore(task *db.Task, encryption vault.Parameters) scheduler.Chore {
