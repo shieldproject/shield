@@ -1004,7 +1004,8 @@
                   ([[= duration(tdiff(archive.taken_at, new Date())) ]] ago)
                 </td>
                 <td>[[= bytes(archive.size) ]]</td>
-                <td>BogusStore (s3)</td>
+                [[ var store = AEGIS.store(archive.store_uuid); ]]
+                <td>[[= store.name ]] ([[= store.plugin ]])</td>
               </tr>
               [[ }); ]]
             </tbody>
