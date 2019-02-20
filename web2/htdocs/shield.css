@@ -1824,6 +1824,14 @@ pre.task-failed.override   code { background-color: #333; }
 .wizard2 .buttons button[rel=next],
 .wizard2 .buttons button.final { float: right; }
 
+.wizard2 .buttons .wizard-cannot-continue {
+  font-size: 12pt;
+  line-height: 1.2em;
+  background-color: darkred;
+  color: #fff;
+  border-radius: 0.6em;
+  padding: 1em;
+}
 .wizard2 button { font-size: 12pt; }
 .wizard2 button span { color: yellow; }
 .wizard2 button[rel=prev] {
@@ -1842,6 +1850,10 @@ pre.task-failed.override   code { background-color: #333; }
 }
 .wizard2 button.final.submitting :after {
   content: "...";
+}
+.wizard2 button.final:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 

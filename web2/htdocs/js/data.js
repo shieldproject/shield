@@ -245,6 +245,10 @@
       return this;
     },
 
+    locked: function () {
+      return !!(this.vault && this.vault == "locked");
+    },
+
     authenticated: function () {
       return typeof(this.user) !== 'undefined';
     },

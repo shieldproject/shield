@@ -856,8 +856,9 @@
             </div>[[# }}} ]]
             <div class="c12">
               <div class="x9 r2 buttons">
+                [[ if (AEGIS.locked()) { ]]<p class="wizard-cannot-continue">Uh-oh, it looks like this SHIELD Is locked, so you cannot schedule a backup task!</p>[[ } ]]
                 <button rel="prev">◀ Back to <span>Cloud Storage</span></button>
-                <button class="final">Run Backup</button>
+                <button class="final"[[ if (AEGIS.locked()) { ]] disabled[[ } ]]>Run Backup</button>
               </div>
             </div>
     <!-- }}} --></script>
@@ -1069,8 +1070,9 @@
 
             <div class="c12">
               <div class="x9 r2 buttons">
+                [[ if (AEGIS.locked()) { ]]<p class="wizard-cannot-continue">Uh-oh, it looks like this SHIELD Is locked, so you cannot schedule a restore task!</p>[[ } ]]
                 <button rel="prev">◀ Back to <span>Choose an Archive</span></button>
-                <button class="final">Restore Data</button>
+                <button class="final"[[ if (AEGIS.locked()) { ]] disabled[[ } ]]>Restore Data</button>
               </div>
             </div>
     <!-- }}} --></script>
