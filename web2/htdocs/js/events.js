@@ -332,7 +332,39 @@
       .on('wizard:step', '.do-configure.wizard2', function (event, moving) { /* {{{ */
         var $w = $(event.target);
 
+        if (moving.from && moving.from == moving.to - 1 && (moving.to == 3 || moving.to == 4)) {
+          var prefix = '[data-step='+moving.from+']';
+          if ($w.find(prefix).extract('mode') == 'create') {
+            /* validate the create-new-thing form */
+            var $form = $w.find(prefix+' form');
+            $form.reset().validate();
+            if (!$form.isOK()) {
+              console.log('halting the wizard!');
+              event.stopPropagation();
+              event.stopImmediatePropagation();
+            }
+          } else {
+            /* validate that the user has selected a pre-existing thing */
+            if ($w.find(prefix+' tr.selected').length == 0) {
+              console.log('halting the wizard!');
+              event.stopPropagation();
+              event.stopImmediatePropagation();
+            }
+          }
+        }
+
         if (moving.to == 5) {
+          /* validate the job details form */
+          var prefix = '[data-step=4]';
+          var $form = $w.find(prefix+' form');
+          $form.reset().validate();
+          if (!$form.isOK()) {
+            console.log('halting the wizard!');
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return;
+          }
+
           var build_or_buy = function (prefix, type) {
             if ($w.find(prefix).extract('mode') == 'choose') {
               var uuid = $w.find(prefix+' tr.selected').extract(type+'-uuid');
@@ -409,14 +441,29 @@
       .on('wizard:step', '.do-backup.wizard2', function (event, moving) { /* {{{ */
         var $w = $(event.target);
 
-        if (moving.to == 3) { /* choose your backup archive */
-          var data = {
+        if (moving.to == 3) { /* choose your backup job */
+          /* validate that the target has been chosen */
+          if ($w.find('[data-step=2] tr.selected').length == 0) {
+            console.log('halting the wizard!');
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return;
+          }
+
+          $w.find('.redraw.jobs').template('do-backup-choose-job', {
             target:  { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
-          };
-          $w.find('.redraw.jobs').template('do-backup-choose-job', data);
+          });
         }
 
         if (moving.to == 4) {
+          /* validate that the job has been chosen */
+          if ($w.find('[data-step=3] tr.selected').length == 0) {
+            console.log('halting the wizard!');
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return;
+          }
+
           var data = {
             target: { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
             job:    { uuid: $w.find('[data-step=3] tr.selected').extract('job-uuid') }
@@ -451,13 +498,28 @@
         var $w = $(event.target);
 
         if (moving.to == 3) { /* choose your backup archive */
-          var data = {
+          /* validate that the target has been chosen */
+          if ($w.find('[data-step=2] tr.selected').length == 0) {
+            console.log('halting the wizard!');
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return;
+          }
+
+          $w.find('.redraw.archives').template('do-restore-choose-archive', {
             target:  { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
-          };
-          $w.find('.redraw.archives').template('do-restore-choose-archive', data);
+          });
         }
 
         if (moving.to == 4) {
+          /* validate that the archive has been chosen */
+          if ($w.find('[data-step=3] tr.selected').length == 0) {
+            console.log('halting the wizard!');
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return;
+          }
+
           var data = {
             target:  { uuid: $w.find('[data-step=2] tr.selected').extract('target-uuid') },
             archive: { uuid: $w.find('[data-step=3] tr.selected').extract('archive-uuid') }
