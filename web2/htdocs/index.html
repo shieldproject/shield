@@ -1457,7 +1457,7 @@
 
       [[ if (_.selected_target_plugin && _.selected_target_agent) { ]]
         [[ var plugin = AEGIS.agent(_.selected_target_agent).metadata.plugins[_.selected_target_plugin]; ]]
-        <div class="l1 x10"><h3>Plugin Properties ([[= h(plugin.name) ]])</h3></div>
+        <div class="l1 x10"><h3><strong>[[= h(plugin.name) ]]</strong> Properties</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'target.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
           <button rel="prev">◀ Back to <span>Start</span></button>
@@ -1497,7 +1497,7 @@
 
       [[ if (_.selected_store_plugin && _.selected_store_agent) { ]]
         [[ var plugin = AEGIS.agent(_.selected_store_agent).metadata.plugins[_.selected_store_plugin]; ]]
-        <div class="l1 x10"><h3>Plugin Properties ([[= h(plugin.name) ]])</h3></div>
+        <div class="l1 x10"><h3><strong>[[= h(plugin.name) ]]</strong> Properties</h3></div>
         [[ include('plugin-configuration-form', { prefix: 'store.config.', plugin: plugin }); ]]
         <div class="x12 buttons">
           <button rel="prev">◀ Back to <span>Data System</span></button>
@@ -1629,6 +1629,9 @@
 
         var esc = function (s) { return s.replace(/`([^`]*)`/g, '<tt>$1</tt>'); }
       ]]
+      [[ if (!_.plugin.fields || _.plugin.fields.length == 0) { ]]
+        <div class="l3 x9 no-data">This plugin does not require any specific configuration.  Hooray!</div>
+      [[ } else { ]]
       [[ $.each(_.plugin.fields, function (i, field) { ]]
         <div class="field[[ if (field.required) { ]] required[[ } ]]" data-field="[[= _.prefix ]][[= field.name ]]" data-type="[[= field.type ]]">
           <div class="x3">
@@ -1680,6 +1683,7 @@
           </div>
         </div>
       [[ }); ]]
+      [[ } ]]
     <!-- }}} --></script>
 
     <script type="text/html" id="template:systems"><!-- {{{ -->
