@@ -312,7 +312,7 @@ func (c *Core) TasksToChores() {
 	log.Infof("SCHEDULER: converting tasks (database) into chores (scheduler)")
 
 	inflight := make(map[string]*db.Task)
-	if active, err := c.db.GetAllTasks(&db.TaskFilter{SkipInactive: true }); err != nil {
+	if active, err := c.db.GetAllTasks(&db.TaskFilter{SkipInactive: true}); err != nil {
 		log.Errorf("unable to retrieve active tasks from database, in order to avoid scheduling conflicts: %s", err)
 		return
 	} else {
