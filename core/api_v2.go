@@ -1389,6 +1389,10 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
+		if in.Target.Compression == "" {
+			in.Target.Compression = DefaultCompressionType
+		}
+
 		var (
 			err    error
 			target *db.Target
