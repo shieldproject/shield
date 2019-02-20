@@ -86,13 +86,9 @@ var debug bool
 
 func DEBUG(format string, args ...interface{}) {
 	if debug {
-		content := fmt.Sprintf(format, args...)
-		lines := strings.Split(content, "\n")
-		for i, line := range lines {
-			lines[i] = "DEBUG> " + line
+		for _, line := range strings.Split(fmt.Sprintf(format, args...), "\n") {
+			fmt.Fprintf(os.Stderr, "DEBUG> %s\n", line)
 		}
-		content = strings.Join(lines, "\n")
-		fmt.Fprintf(os.Stderr, "%s\n", content)
 	}
 }
 
@@ -102,7 +98,7 @@ func Run(p Plugin) {
 	env.Override(&opt)
 	command, args, err := cli.Parse(&opt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "!!! %s\n", err.Error())
+		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
 		fmt.Fprintf(os.Stderr, "USAGE: %s [OPTIONS...] COMMAND [OPTIONS...]\n\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Try %s --help for more information.\n", os.Args[0])
 		os.Exit(USAGE)
@@ -273,8 +269,8 @@ STORAGE COMMANDS
 
 	default:
 		err = dispatch(p, command, opt)
-		DEBUG("'%s' action returned %#v", command, err)
 		if err != nil {
+			DEBUG("'%s' action returned error: %s", command, err)
 			switch err.(type) {
 			case UnsupportedActionError:
 				if err.(UnsupportedActionError).Action == "" {
@@ -283,7 +279,7 @@ STORAGE COMMANDS
 					err = e
 				}
 			}
-			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			fmt.Fprintf(os.Stderr, "%s\n", err)
 			os.Exit(codeForError(err))
 		}
 	}
@@ -291,12 +287,34 @@ STORAGE COMMANDS
 }
 
 func dispatch(p Plugin, mode string, opt Opt) error {
-	var err error
-	var key string
-	var size int64
-	var endpoint ShieldEndpoint
+	var (
+		err      error
+		key      string
+		size     int64
+		endpoint ShieldEndpoint
+	)
 
-	DEBUG("'%s' action requested with options %#v", mode, opt)
+	if debug {
+		DEBUG("'%s' action requested with the following options:", mode)
+		if opt.HelpShort {
+			DEBUG("  -h (shorter --help)")
+		}
+		if opt.HelpFull {
+			DEBUG("  --help")
+		}
+		if opt.Version {
+			DEBUG("  --version")
+		}
+		if opt.Endpoint != "" {
+			DEBUG("  --endpoint '%s'", opt.Endpoint)
+		}
+		if opt.Key != "" {
+			DEBUG("  --key '%s'", opt.Key)
+		}
+		if opt.Text  {
+			DEBUG("  --text")
+		}
+	}
 
 	switch mode {
 	case "validate":
@@ -329,14 +347,20 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 		key, size, err = p.Store(endpoint)
 		if opt.Text {
 			fmt.Printf("%s\n", key)
+
 		} else {
-			output, jsonErr := json.MarshalIndent(struct {
+			output, err := json.MarshalIndent(struct {
 				Key  string `json:"key"`
 				Size int64  `json:"archive_size"`
-			}{Key: key, Size: size}, "", "    ")
-			if jsonErr != nil {
-				return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", jsonErr.Error())}
+			}{
+				Key:  key,
+				Size: size,
+			}, "", "    ")
+
+			if err != nil {
+				return JSONError{Err: fmt.Sprintf("Could not JSON encode blob key: %s", err)}
 			}
+
 			fmt.Printf("%s\n", string(output))
 		}
 
@@ -359,6 +383,7 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 			return MissingRestoreKeyError{}
 		}
 		err = p.Purge(endpoint, opt.Key)
+
 	default:
 		return UnsupportedActionError{Action: mode}
 	}
