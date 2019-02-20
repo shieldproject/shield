@@ -2551,3 +2551,15 @@ table th.sortable.asc ::before {
   padding: 0em 3em;
   display: block;
 }
+
+a.load-more {
+  text-decoration: none;
+  color: #555;
+  display: block;
+  border: 1px solid #ccc;
+  padding: 2em;
+  margin: 1em auto;
+  width: 10em;
+  text-align: center;
+  border-radius: 1em;
+}
