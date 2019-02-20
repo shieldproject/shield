@@ -436,17 +436,17 @@
               delete tenant.agents;
 
               self.insert('tenant', tenant.tenant);
-              if (!self.current) {
-                self.current = tenant.tenant;
-              }
             }
             console.log(bearings);
 
-            /* process grants... */
+            /* process system grants... */
             self.grant(self.user.sysrole);
 
             /* set default tenant */
-            if (!self.tenant) {
+            if (!self.current) {
+              self.current = self.data.tenant[self.user.default_tenant];
+            }
+            if (!self.current) {
               var l = [];
               for (var k in self.data.tenant) {
                 l.push(self.data.tenant[k]);
