@@ -2,6 +2,12 @@
 #vim:ft=bash
 set -e -o pipefail
 
+targetdir=tmp/data
+storedir=tmp/store
+mkdir -p $targetdir
+echo "this is an important file, dated $(date)" > $targetdir/important
+
+
 cd "$(dirname "${BASH_SOURCE[0]}")"
 export PORT=$1
 export WEBDAV_PORT=$(( PORT + 1 ))
@@ -12,9 +18,6 @@ if [[ ! -f "../shield" ]]; then pushd .. && go build ./cmd/shield ; popd; fi
 shield() { ../shield "$@"; }
 indent2() { sed -e 's/^/  /'; }
 indent4() { sed -e 's/^/    /'; }
-
-targetdir=tmp/work
-storedir=tmp/store
 
 echo "waiting for SHIELD Core to spin up on http://127.0.0.1:8180..."
 while ! curl -Ls --fail http://127.0.0.1:8180/v2/info 2>/dev/null | grep -q TESTDEV; do
