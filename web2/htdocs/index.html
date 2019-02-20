@@ -164,8 +164,8 @@
 
             <p class="q">Are you sure you want to restore <em>[[= _.target ]]</em>?</p>
             <div class="a">
-              <button class="closes danger" rel="yes">Yes, Initiate Restore</button>
               <button class="closes safe" rel="close">No, Cancel This Operation</button>
+              <button class="closes danger" rel="yes">Yes, Initiate Restore</button>
             </div>
           </div>
     <!-- }}} --></script>
@@ -2323,8 +2323,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
             <p class="q">Are you sure you want to delete <em>[[= h(_.store.name) ]]</em>?</p>
             <div class="a">
+              <button class="safe" rel="close">No, Keep It</button>
               <button class="danger" rel="yes">Yes, Delete It</button>
-              <button class="safe" rel="close">No, Cancel This Operation</button>
             </div>
           </div>
     <!-- }}} --></script>
@@ -3000,8 +3000,8 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
 
               <p class="q">Are you sure you want to delete the session for <em>[[= h(_.session.user_account) ]]</em>?</p>
               <div class="a">
+                <button class="safe" rel="close">No, Keep It</button>
                 <button class="danger" rel="yes">Yes, Delete It</button>
-                <button class="safe" rel="close">No, Cancel This Operation</button>
               </div>
             </div>
       <!-- }}} --></script>

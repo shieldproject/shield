@@ -1574,25 +1574,28 @@ pre.task-failed.override   code { background-color: #333; }
   left: 0px;
   width: 100vw;
   height: 100vw;
-  background-color: rgba(16,16,16,0.85);
+  background-color: rgba(255,255,255,0.85);
   z-index: 140;
 }
 #modal > .confirm {
   box-sizing: border-box;
+  box-shadow: 0 0 12px #333;
   width: 70vw;
-  height: 70vh;
+  min-height: 30vh;
+  max-height: 70vh;
   margin: 15vh 15vw;
-  padding: 20px;
+  padding: 0 0 20px 0;
   overflow: scroll;
 
-  background-color: #111;
-  border: 1px solid #777;
-  color: #fff;
+  border-radius: 0.6em;
+  background-color: #fff;
+  color: #000;
 }
 #modal > .confirm h2 {
-  font-size: 250%;
-  color: yellow;
-  font-variant: small-caps;
+  font-size: 150%;
+  background-color: firebrick;
+  color: #fff;
+  padding: 0.5em;
   font-weight: bold;
   text-align: center;
 }
@@ -1604,11 +1607,13 @@ pre.task-failed.override   code { background-color: #333; }
 }
 #modal > .confirm p em {
   font-weight: bold;
-  color: yellow;
+  color: #0071bc;
 }
 #modal > .confirm p.q {
   font-size: 160%;
   margin: 1em auto;
+  width: 60%;
+  text-align: center;
 }
 #modal .confirm .a {
   max-width: 680px;
@@ -1621,15 +1626,20 @@ pre.task-failed.override   code { background-color: #333; }
   border-radius: 2px;
   font-size: 140%;
   padding: 8px 16px;
+  margin: 0.33em;
   cursor: pointer;
 }
-#modal > .confirm button.danger {
-  background-color: yellow;
-  color: #000;
+#modal > .confirm button {
+  border-radius: 0.33em;
+  border: 2px solid #0071bc;
+  background-color: transparent;
+  color: #0071bc;
+  font-size: 120%;
+  padding: 0.5em 2em;
 }
 #modal > .confirm button.safe {
-  background-color: transparent;
-  color: palegreen;
+  background-color: #0071bc;
+  color: #fff;
 }
 
 .wizard2 h1 {

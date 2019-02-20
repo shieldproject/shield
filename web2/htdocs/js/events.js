@@ -149,17 +149,21 @@
         }
         uuid = uuid.replace(/^run:/, '');
 
-        banner('scheduling ad hoc backup...', 'progress');
-        api({
-          type: 'POST',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/run',
-          success: function () {
-            banner('ad hoc backup job scheduled');
-          },
-          error: function () {
-            banner('unable to schedule ad hoc backup job', 'error');
-          }
-        });
+        modal($.template('backup-are-you-sure', {
+            uuid: uuid
+          })).on('click', '[rel=yes]', function(event) {
+            banner('scheduling ad hoc backup...', 'progress');
+            api({
+              type: 'POST',
+              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/run',
+              success: function () {
+                banner('ad hoc backup job scheduled');
+              },
+              error: function () {
+                banner('unable to schedule ad hoc backup job', 'error');
+              }
+            });
+          });
       }) /* }}} */
 
       /* Task Pagination */
