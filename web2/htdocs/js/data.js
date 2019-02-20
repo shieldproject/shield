@@ -403,7 +403,6 @@
             for (var uuid in bearings.tenants) {
               var tenant = bearings.tenants[uuid];
 
-              console.log(uuid, tenant.role);
               self.grant(uuid, tenant.role); /* FIXME: we don't need .grants anymore... */
 
               for (var i = 0; i < tenant.archives.length; i++) {
