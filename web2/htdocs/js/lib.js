@@ -26,6 +26,14 @@
     };
   })();
 
+  $.all = function (l, fn) {
+    var ok = true;
+    $.each(l, function (i, o) {
+      if (!fn(o)) { ok = false; }
+    })
+    return ok
+  };
+
   /***************************************************
     pluralize(n, word [, words]) - Pluralize a number + unit.
 

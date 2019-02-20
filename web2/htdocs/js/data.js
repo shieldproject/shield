@@ -108,14 +108,22 @@
       if ('tenant' in q) {
         for (var uuid in this.data.target || {}) {
           if (this.data.target[uuid].tenant_uuid == q.tenant) {
-            systems.push(this.data.target[uuid]);
+            var target = this.data.target[uuid];
+            target.healthy = $.all(this.jobs({ system: target.uuid }),
+                                   function (j) { return j.healthy; });
+            systems.push(target);
           }
         }
       }
       return systems;
     },
     system: function (uuid) {
-      return this.find('target', { uuid: uuid });
+      var target = this.find('target', { uuid: uuid });
+      if (target) {
+        target.healthy = $.all(this.jobs({ system: target.uuid }),
+                               function (j) { return j.healthy; });
+      }
+      return target;
     },
 
     stores: function (q) {
