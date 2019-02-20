@@ -1847,15 +1847,15 @@
                 [[ $.each(AEGIS.jobs({ system: target.uuid }), function (i, job) {
                      var store = AEGIS.store(job.store_uuid);
                 ]]
-                <tr class="[[ if (!job.healthy) { ]]fail[[ } else { ]]ok[[ } ]]">
-                  <td class="name">
+                <tr>
+                  <td class="name [[= job.healthy ? 'ok' : 'fail' ]]">
                     <img src="i/shield-[[= job.healthy ? 'ok' : 'fail' ]].svg">
                     [[= h(job.name) ]]
                   </td>
                   <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
                     [[= h(job.schedule) ]]
                   </td>
-                  <td class="name">
+                  <td class="name [[= store.healthy ? 'ok' : 'fail' ]]">
                     <img src="i/shield-[[= store.healthy ? 'ok' : 'fail' ]].svg">
                     [[= h(store.name) ]]
                   </td>
