@@ -621,11 +621,6 @@ including:
   both global (shared) cloud storage systems, and those specific to your
   tenant.
 
-- **Retention** - SHIELD doesn't keep backup archives forever.  Every backup
-  job needs a _retention policy_ so that SHIELD knows when it is okay to
-  delete older archives, to conserve space.  This page lets you review and
-  manage those policies.
-
 - **Admin** - This one is for SHIELD administrators only.  It provides
   access to a host of administrative functions like tenant and user
   management, global cloud storage management, etc.
