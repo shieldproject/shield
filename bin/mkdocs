@@ -1,0 +1,287 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use File::Find;
+use Getopt::Long;
+use Text::Markdown qw/markdown/;
+
+my %options;
+GetOptions(\%options, qw/
+	help|h
+
+	version|v=s
+	docroot=s
+	srcroot=s
+	output|o=s
+
+	style=s
+/);
+
+my %STYLES = (
+	none => { # {{{
+		preamble => '',
+		postamble => '',
+	}, # }}}
+	basic => { # {{{
+		preamble => <<EOF,
+<!DOCTYPE html>
+<html>
+<head>
+<title>SHIELD Documentation</title>
+<style type="text/css">
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section {
+  display: block;
+}
+body {
+  line-height: 1;
+}
+ol, ul {
+  list-style: none;
+}
+blockquote, q {
+  quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+  content: '';
+  content: none;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+nav {
+  max-width: 25vw;
+  position: fixed;
+  height: 80vh;
+  overflow: auto;
+  padding-right: 2em;
+}
+#main {
+  max-width: 35em;
+  padding-left: 25vw;
+  margin: 2em auto;
+}
+p, ul, ol, blockquote {
+  line-height: 1.4em;
+  margin: 1.4em 0;
+  font-family: Palatino, serif;
+  font-size: 13.5pt;
+  color: #333;
+}
+ul ul {
+  margin: 0.4em 0;
+}
+nav ul {
+  padding-left: 1.5em;
+  list-style: none;
+}
+nav a {
+  border: none;
+}
+strong, b {
+  font-weight: bold;
+}
+em, i {
+  font-style: italic;
+}
+tt, kbd, var, samp, code {
+  font-weight: bold;
+  font-family: monospace;
+}
+pre code {
+  display: block;
+  background-color: #0071bc;
+  color: #fff;
+  padding: 1em;
+  line-height: 1.2em;
+  border-radius: 0.6em;
+  font-size: 125%;
+  font-weight: normal;
+}
+pre code span.highlight {
+  font-weight: bold;
+  color: yellow;
+}
+a {
+  text-decoration: none;
+  color: #0071bc;
+  font-weight: bold;
+  border-bottom: 2px dotted #0071bc;
+}
+ul {
+  padding-left: 2.5em;
+  list-style: disc;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-weight: bold;
+  font-family: Avenir, sans-serif;
+  margin: 2em 0 1em 0;
+}
+h1 { font-size: 32pt; }
+h2 { font-size: 28pt; }
+h3 { font-size: 24pt; }
+h4 { font-size: 16pt; }
+
+img:-moz-broken {
+	background-color: firebrick;
+	color: #fff;
+	font-family: monospace;
+	text-align: center;
+	padding: 1em;
+	width: 100%;
+	height: 10em;
+	display: block;
+}
+</style>
+</head>
+<body>
+<nav></nav>
+<div id="main">
+EOF
+		postamble => <<'EOF',
+</div>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script type="text/javascript">
+$(function () {
+    var headings = $('#main').find('h1,h2,h3,h4'),
+           stack = [],
+            main = $('<ul>'),
+       outer, inner, li;
+
+    headings.each(function (i,e) {
+      var type = e.nodeName,
+          text = $(e).text();
+
+      var anchor = $(e).attr('id');
+      if (typeof(anchor) === 'undefined' || anchor == '') {
+        anchor = text.toLowerCase()
+                     .replace(/['"+()[]]+/g,  '')
+                     .replace(/[^a-z0-9-]+/g, '-')
+                     .replace(/^-/g, '')
+                     .replace(/-$/g, '')
+      }
+
+      if (type == 'H2') {
+        stack = [anchor];
+      } else if (type == 'H3') {
+        stack = stack.slice(0,1); /* h2 only */
+        stack.push(anchor);
+        anchor = stack.join(':');
+      } else if (type == 'H4') {
+        stack = stack.slice(0,2); /* h2 + h3 */
+        stack.push(anchor);
+        anchor = stack.join(':');
+      }
+      $(e).attr('id', anchor);
+
+      //$(e).prepend('<a href="#'+anchor+'"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>');
+
+      li = $('<li><a href="#'+anchor+'">'+text+'</a></li>');
+      if (type == 'H2') {
+        outer = $(li);
+        main.append(outer);
+        inner = undefined;
+      } else if (type == 'H3') {
+        if (typeof(inner) === 'undefined') {
+          inner = $('<ul>');
+          outer.append(inner);
+        }
+        inner.append($(li));
+      }
+    });
+    $('nav').html(main);
+});
+</script>
+</body>
+</html>
+EOF
+	}, # }}}
+);
+
+if (!$options{docroot} && $options{version}) {
+	$options{docroot} = "/docs/$options{version}";
+}
+if (!$options{srcroot} && $options{version}) {
+	$options{srcroot} = "https://github.com/starkandwayne/shield/tree/$options{version}";
+}
+if (!$options{output} && $options{version}) {
+	$options{output} = "./docs-v$options{version}";
+}
+if (!$options{docroot} || !$options{srcroot} || !$options{output}) {
+	my $s = $0; $s =~ s/./ /g;
+	print STDERR "USAGE: $0 --version 8.1\n";
+	print STDERR "USAGE: $0 --docroot /docs/web/root \\\n";
+	print STDERR "       $s --srcroot https://github.com/starkandwayne/shield/tree/master \\\n";
+	print STDERR "       $s --output  ./generated-docs\n";
+	exit 1;
+}
+
+`mkdir -p $options{output}`;
+find({
+	no_chdir => 1,
+	wanted => sub {
+		if (-d $_) {
+			print "[mkdir]  $options{output}/$_\n";
+			`mkdir -p $options{output}/$_`;
+
+		} elsif (m/\.md$/) {
+			print "[render] $options{output}/$_\n";
+			open my $in,  "<", $_
+				or die "$_: $!\n";
+			s|.md$||;
+			`mkdir -p $options{output}/$_`;
+			s|$|/index.html|;
+			open my $out, ">", "$options{output}/$_"
+				or die "$options{output}/$_: $!\n";
+			my $markdown = '';
+
+			while (<$in>) {
+				next if m|^\s*//|;
+				s/\$docs/$options{docroot}/g;
+				s/\$src/$options{srcroot}/g;
+				$markdown .= $_;
+			}
+			close $in;
+
+			$markdown = markdown($markdown);
+			$markdown =~ s|:::(.*?):::|<span class="highlight">$1</span>|gs;
+			if ($options{style}) {
+				print $out $STYLES{$options{style}}{preamble};
+			}
+			print $out "$markdown\n";
+			if ($options{style}) {
+				print $out $STYLES{$options{style}}{postamble};
+			}
+			close $out;
+
+		} else {
+			print "[copy]   $options{output}/$_\n";
+			`cp $_ $options{output}/$_`;
+		}
+	},
+}, 'docs');

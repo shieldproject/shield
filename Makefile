@@ -62,8 +62,8 @@ demo: clean shield plugins
 	./demo/build
 	(cd demo && docker-compose up)
 
-docs: docs/API.md
-docs/API.md: docs/API.yml
+docs: docs/dev/API.md
+docs/dev/API.md: docs/dev/API.yml
 	perl ./docs/regen.pl <$+ >$@~
 	mv $@~ $@
 

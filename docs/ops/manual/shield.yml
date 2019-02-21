@@ -1,0 +1,99 @@
+name: shield
+
+instance_groups:
+- name: shield
+  instances: 1
+  azs:       [z1]
+  vm_type:              default
+  stemcell:             default
+  persistent_disk: 1_024
+
+  networks:
+  - name: default
+    static_ips:
+      ((static_ip))
+
+  jobs:
+    - name: core
+      release: shield
+      provides:
+        shield: {shared: true, as: shield}
+      properties:
+        domain: ((domain))
+        agent:
+          key: ((shield-agent-key.private_key))
+        tls:
+          certificate: ((shield-tls.certificate))
+          key:         ((shield-tls.private_key))
+        vault:
+          tls:
+            ca:          ((vault-tls.ca))
+            certificate: ((vault-tls.certificate))
+            key:         ((vault-tls.private_key))
+
+    - name: shield-agent
+      release: shield
+      consumes:
+        shield: {from: shield}
+      properties:
+        core:
+          ca: ((shield-tls.ca))
+
+variables:
+  - name: shield-agent-key
+    type: ssh
+
+  - name: shield-ca
+    type: certificate
+    options:
+      is_ca: true
+      common_name: shieldca
+
+  - name: shield-tls
+    type: certificate
+    options:
+      ca: shield-ca
+      common_name: shield
+      extended_key_usage:
+        - client_auth
+        - server_auth
+      alternative_names:
+        - 127.0.0.1
+        - ((static_ip))
+        - "*.shield.default.shield.bosh"
+
+  - name: vault-ca
+    type: certificate
+    options:
+      is_ca: true
+      common_name: vaultca
+
+  - name: vault-tls
+    type: certificate
+    options:
+      ca: vault-ca
+      common_name: vault
+      extended_key_usage:
+        - client_auth
+        - server_auth
+      alternative_names:
+        - 127.0.0.1
+        - "*.vault.default.shield.bosh"
+
+update:
+  canaries: 0
+  max_in_flight: 1
+  serial: true
+  canary_watch_time: 1000-120000
+  update_watch_time: 1000-120000
+
+stemcells:
+- alias: default
+  os: ubuntu-trusty
+  version: latest
+
+releases:
+- name: shield
+  version: 8.0.8
+  url: https://github.com/starkandwayne/shield-boshrelease/releases/download/v8.0.8/shield-8.0.8.tgz
+  sha1: 55d1d6d8557f9b185fef7b5c6d73017b4c654f03

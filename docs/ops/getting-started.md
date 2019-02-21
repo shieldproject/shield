@@ -1,6 +1,5 @@
-Shield Getting Started
-====================
-![Shield](images/image00.png)
+Getting Started
+===============
 
 SHIELD is a data protection solution designed to make it easier for operations
 to protect their critical infrastructural data. It provides primitives for
@@ -9,7 +8,10 @@ Consul, Redis and MongoDB, as well as a means for restoring backups in the event
 of an outage. Backups can be stored in a variety of cloud providers, including
 S3, Scality, Microsoft Azure Blobstore, and more.
 
-## Deploying SHIELD
+![Shield]($docs/ops/getting-started/image00.png)
+
+Deploying SHIELD
+----------------
 
 Currently there are four ways to get a Shield up and running: Using genesis to
 deploy to BOSH, deploying a template manifest directly to BOSH, spinning up a
@@ -18,7 +20,7 @@ Docker and Local versions of Shield are useful for demo, testing, and
 development, they are **not** recommended to use either in a prodiction
 capacity.
 
-#### Genesis
+### Using Genesis
 
 We'll start out with the Genesis template for SHIELD:
 
@@ -98,7 +100,7 @@ Once that's complete, you will be able to access your SHIELD
 deployment, and start configuring your backup jobs via the WebUI or CLI
 accessable at the IP you specified for SHIELD.
 
-#### Bosh Manifest Template
+### Using BOSH
 
 If a direct manifest deployment is preferred, example manifests, opsfiles, and
 more information can be found here:
@@ -117,7 +119,9 @@ add it to the manifest under the `properties.core.authentication:` key.
 
 After the deployment finishes, shield will be accessabile via https://10.244.9.2
 (the static IP selected for deployment in this case)
-#### Docker
+
+
+### Using Docker
 
 Running shield from docker-compose is a great way to test out shield as it comes
 preconfigured with test targets, storage systems, tenants, and users to give a
@@ -137,7 +141,7 @@ example ERP/CRM suite on http://localhost:8183, and an example ticketing system
 on http://localhost:8184. The example systems can be backed up and restored via
 shield as a demo.
 
-#### Local Development
+### Local Development
 
 If you are looking to contribute to Shield, a local development environment is
 necessary for quick testing and iteration. To set up a local dev environment on
@@ -154,7 +158,8 @@ be notified. `make dev` runs tmux with several windows giving you insight into
 different parts of shield with debugging logs. Shield itself will be accessable
 from http://localhost:8181
 
-## Deploying SHIELD Agents
+Deploying SHIELD Agents
+-----------------------
 
 To deploy SHIELD a shield agent via a new genesis deployment, simply
 answer `yes` to
@@ -188,7 +193,7 @@ If you are adding an agent to an existing genesis deployment, modify the
         # This is usually something like "https://shield.example.com" or "https://xxx.xxx.xxx.xxx"
         shield_core_url: https://192.168.10.121
 
-#### Adding SHIELD Agents to manual bosh manifests
+### Adding SHIELD Agents to manual bosh manifests
 
 To add a shield agent to a bosh deployment, add the following to the manifest
 under `jobs`.
@@ -204,11 +209,12 @@ under `jobs`.
 In addition to adding the shield agent job, ensure to add the shield release and
 any other custom parameters required for your environment (Proxy/etc)
 
-## How to Use SHIELD
+How to Use SHIELD
+-----------------
 
 Backup jobs for SHIELD are created and maintained in the SHIELD UI:
 
-![SHIELD UI](images/shield_ui.png)
+![SHIELD UI]($docs/ops/getting-started/shield-ui.png)
 
 To access the SHIELD UI, go to <https://shield-ip>. The default user
 name is `admin` and the default password is `shield`. We recommend
@@ -228,7 +234,7 @@ backups or restores manually will fail until SHIELD is unsealed. The
 current status of SHIELD is displayed in the HUD at the top of the
 WebUI.
 
-![SHIELD Fixed Key](images/shield_fixed_key.png)
+![SHIELD Fixed Key]($docs/ops/getting-started/fixed-key.png)
 
 Upon entering the master password you will be directed to the above screen. This
 is the SHIELD key used for the recovery of fixed-key encrypted backups. To
@@ -240,7 +246,7 @@ way to recover this key once you acknowledge. The key can be rotated when you
 rotate the master key, however the current key can not be recovered after
 navigating away from this screen.
 
-**Configuring Users and Tenants**
+### Configuring Users and Tenants
 
 When Shield is first deployed it will have one user (admin) and one tenant
 (tenant1). The default tenant (tenant1) is used for migrations from shield v6/v7
@@ -260,7 +266,7 @@ User Sessions can also be managed from the `Admin` tab and cleared if necessary.
 Whenever Shield is restarted, all sessions will be cleared and users will be
 forced to log in again.
 
-**Configuring A Job**
+### Configuring A Job
 
 To configure SHIELD backup jobs, on the left hand sidebar select the
 Configure a new backup job menu option. From here it will guide you
@@ -304,7 +310,7 @@ time last year" or "I wonder what last Monday looked like", so you
 might want to consider making your 1 year backups actually 13 months or
 your weekly backups 8 days. (And so on.)
 
-Next up is configuring **sotrage systems** for the backup archives.
+Next up is configuring **storage systems** for the backup archives.
 Currently SHIELD has s3, gcp, azure, swift, and webdav plugins for
 storage. For this example, we will use Amazon S3. Select a name for the
 storage system to be used for configuring future jobs and managing the
@@ -328,7 +334,7 @@ When creating new jobs, the target and storage system created for previous jobs
 will be accessible should you want to reuse a storage system, target, or
 retention policy.
 
-**Other Notes**
+### Other Notes
 
 In addition to running at the scheduled time, you can run a job at any
 time by clicking the target on the systems page and then `run now` or
@@ -345,7 +351,7 @@ most tasks are expected to have a very short duration but as time goes
 on and your environment grows you will notice the time required for the
 various backups will increase.
 
-**Backing Up Other Services**
+### Backing Up Other Services
 
 This section will list the target configuration for other services. That
 said, these parameters may vary from environment to environment and
@@ -353,7 +359,7 @@ parameters may have asterisks denoting notes below to clarify these
 cases. Also, parameters denoted as `blank` can be left blank as they are
 optional in most cases, however they can be configured if necessary.
 
-**Bosh Director Backup** :
+#### Bosh Director
 
     "Name": "Bosh"
     "Notes": "Bosh Director Backup"
@@ -376,7 +382,7 @@ Verify this via ssh to the bosh director and check the
 `/var/vcap/packages` folder for the proper version of postgres and the
 bin directory.
 
-**Concourse** :
+#### Concourse
 
     "Name": "Concourse"
     "Notes": "Concourse Backup"
@@ -399,7 +405,7 @@ Verify this via ssh to the bosh director and check the
 `/var/vcap/packages` folder for the proper version of postgres and the
 bin directory.
 
-**Cloud Foundry Backup** :
+#### Cloud Foundry
 
     "Name": "Cloud Foundry"
     "Notes": "Cloud Foundry Backup"
@@ -422,7 +428,7 @@ Verify this via ssh to the bosh director and check the
 `/var/vcap/packages` folder for the proper version of postgres and the
 bin directory.
 
-**Vault** :
+#### Vault
 
     "Name": "Vault"
     "Notes": "Vault Backup"
