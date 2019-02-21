@@ -21,6 +21,18 @@ For the markdown document, write it as though it is the only set
 of headers; start with an <h1>, and follow outline format from
 there.
 
+The Documentum Instance
+-----------------------
+
+To ensure that screenshots of SHIELD are uniform, we supply a
+docker-compose recipe that spins up a fixed configuration of
+SHIELD.  It can be found in `docs/docker-compose.yml`, and you run
+it like this:
+
+    $ docker-compose -f docs/docker-compose up
+
+Then, you can access the SHIELD instance at http://localhost:9009.
+
 Hyperlink References
 --------------------
 
