@@ -242,6 +242,16 @@ func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) 
 }
 
 func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
+	paths := strings.Split(path, "/")
+	for i := range paths {
+		if i == 0 {
+			continue
+		}
+		if _, err := dav.do("MKCOL", strings.Join(paths[0:i], "/"), nil); err != nil {
+			return 0, err
+		}
+	}
+
 	res, err := dav.do("PUT", path, in)
 	if err != nil {
 		return 0, err
