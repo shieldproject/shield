@@ -32,6 +32,12 @@ it like this:
     $ docker-compose -f docs/docker-compose up
 
 Then, you can access the SHIELD instance at http://localhost:9009.
+You can log into it with the username `admin`, and the password
+`password`, and may want to import the documentation data set:
+
+    $ ./shield api http://localhost:9009 documentum
+    $ ./shield -c documentum login
+    $ ./shield -c documentum import docs/import.yml
 
 Hyperlink References
 --------------------

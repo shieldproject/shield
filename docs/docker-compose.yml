@@ -64,6 +64,7 @@ services:
     volumes:
       - 'shield-data:/var/shield'
       - 'shield-etc:/etc/shield'
+      - 'shield-test:/data'
 
   webdav:
     image: 'morrisjobke/webdav:latest'
@@ -83,3 +84,4 @@ volumes:
   shield-data:
   shield-etc:
   webdav-data:
+  shield-test:

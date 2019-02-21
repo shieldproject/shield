@@ -1,0 +1,62 @@
+---
+global:
+  storage:
+    - name: Tier 1 Storage
+      summary: |
+        Tier 1 (fast disk) storage for important, near-line backups.
+
+        Please don't use this store for long-term storage of archives
+        (greater than 30 days old).
+
+      agent:  agent:5444
+      plugin: webdav
+      config:
+        url:      http://webdav/webdav/tier1
+        username: webdav
+        password: password
+
+    - name: Tier 2 Storage
+      summary: |
+        Tier 2 (large disk) storage for long-term storage of archives.
+
+        For near-line archive storage (< 30 days), you should use
+        Tier 1 Storage instead.
+
+      agent:  agent:5444
+      plugin: webdav
+      config:
+        url:      http://webdav/webdav/tier2
+        username: webdav
+        password: password
+
+users:
+  - name:     James Hunt
+    username: jhunt
+    password: password
+    sysrole:  engineer
+
+  - name:     Pat Jones
+    username: pjones
+    password: password
+
+tenants:
+  - name: Stark & Wayne
+    members:
+      - user: jhunt@local
+        role: admin
+      - user: pjones@local
+        role: engineer
+
+    systems:
+      - name:   Important Files
+        agent:  agent:5444
+        plugin: fs
+        config:
+          base_dir: /data
+
+        jobs:
+          - name:    Hourly
+            when:    hourly at *:15
+            retain:  1d
+            storage: Tier 1 Storage
+            paused:  true
