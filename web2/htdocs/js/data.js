@@ -443,7 +443,7 @@
             self.grant(self.user.sysrole);
 
             /* set default tenant */
-            if (!self.current) {
+            if (!self.current && self.data.tenant) {
               self.current = self.data.tenant[self.user.default_tenant];
             }
             if (!self.current) {
@@ -454,7 +454,7 @@
               l.sort(function (a, b) {
                 return a.name > b.name ? 1 : a.name == b.name ? 0 : -1;
               });
-              if (l.length > 0) { self.tenant = l[0]; }
+              if (l.length > 0) { self.current = l[0]; }
             }
 
             df.resolve();
