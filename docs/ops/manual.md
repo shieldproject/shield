@@ -763,7 +763,9 @@ TBD
 Administration
 --------------
 
-TBD
+All Administrative tasks are done from the admin panel 
+
+![The Shield Admin Panel]($docs/docs/images/admin-panel.png)
 
 ### Initializing A SHIELD Core
 
@@ -779,11 +781,19 @@ TBD
 
 #### Tenants
 
-TBD
+Under `Tenants` admins have the ability to see all current teneants as well as create new tenants.
+Users can be invited to tenants by editing the tenant or during tenant creation. 
+
+![Tenants]($docs/docs/images/tenant-panel.png)
 
 #### Shared Storage
 
-TBD
+Shared storage can be found under `Global Storage Systems`, from this page you can view all existing
+global stores as well as create new ones. Shared or global storage can be configured for use across
+multiple tenants.
+
+![Global Storage]($docs/docs/images/storage-panel.png)
+
 
 #### Retention Policy Templates
 
@@ -791,11 +801,17 @@ TBD
 
 #### Managing Agents
 
-TBD
+Information on Shield Agents can be found under `Agents of Shield`. This can be helpful for keeping
+inventory on agents throughout your deployments or to resync any disconnected agents. 
+
+![Shield Agents]($docs/docs/images/agents-panel.png)
 
 #### Authentication Providers
 
-TBD
+You can view the configuration of your shield authentication providers under `Authemtication Providers`.
+Please note that configuring an additonal auth provider is done from deploying shield itself.
+
+![Authentication]($docs/docs/images/auth-panel.png)
 
 #### Local User Management
 
@@ -856,3 +872,16 @@ TBD
 ### Log messages to watch
 
 TBD
+
+Glossary
+--------
+Shield has a number of terms and abstractions that are important for an operator to know when working with the tool.
+
+- **Shield Core**: The shield core servers as the main deployed shield box that includes the shield daemon and api.
+
+- **Shield Agents**: A shield agent is software that is co-loacted on a deployment you wish to back up that leverages plugins to back up given data system
+
+- **Tenants**: Shield provides tenancy to allow the seperation of teams/environments by allowing tenants to be created. Under a tenant users can be assigned 
+               and given roles, stores can be created, and indivdual systems can be backed up.
+
+- **Targets**: A target is the name of a configured data system. They can be under the data systems tab.
