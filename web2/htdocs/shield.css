@@ -269,6 +269,8 @@ body { font-family: sans-serif; }
   z-index: 100;
 }
 .top-bar > * { display: block; padding: 7px; }
+.top-bar .cli { float: left; }
+.top-bar .cli:nth-child(2) { padding: 7px 10px 7px 0; }
 .top-bar h1 { float: left; }
 .top-bar a  { text-decoration: none; color: inherit; }
 .top-bar a[rel=account]  { float: right; }
@@ -819,10 +821,6 @@ footer p {
   display: inline-block;
   padding-right: 22.5px;
   line-height: 40px;
-}
-.nav li.cli {
-  float: left;
-  padding: 0 0 0 8px;
 }
 
 .nav.sticky {

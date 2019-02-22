@@ -8,7 +8,10 @@
     <title>SHIELD</title>
   </head>
   <body>
-    <div class="top-bar"><h1>SHIELD</h1></div>
+    <div class="top-bar">
+      <a class="cli" href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a>
+      <a class="cli" href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a>
+      <h1>SHIELD</h1></div>
     <div id="viewport" class="full"></div>
 
     <script type="text/html" id="template:layout"><!-- {{{ -->
@@ -66,8 +69,6 @@
 
         <div class="nav sticky" id="sticky-nav">
           <nav>
-            <li class="cli"><a href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a></li>
-            <li class="cli"><a href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a></li>
             <li><a href="#!/systems">Data Systems</a></li>
             <li class="current"><a href="#!/stores">Cloud Storage</a></li>
             [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
@@ -76,8 +77,6 @@
 
         <div class="nav">
           <nav>
-            <li class="cli"><a href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a></li>
-            <li class="cli"><a href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a></li>
             <li><a href="#!/systems">Data Systems</a></li>
             <li class="current"><a href="#!/stores">Cloud Storage</a></li>
             [[ if (AEGIS.is('engineer')) { ]]<li><a href="#!/admin">Admin</a></li>[[ } ]]
@@ -385,6 +384,8 @@
         Renders the top-most bar, with the SHIELD name / environment, and the
         current users name / tenant and "personal settings" menu.
       ]]
+        <a class="cli" href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a>
+        <a class="cli" href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a>
         <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= h(AEGIS.shield.env) ]]</span> <span>[[= h(AEGIS.shield.ip) ]]</span></a></h1>
         [[ if (AEGIS.authenticated()) { ]]
         <a href="#!/account" rel="account">[[= h(AEGIS.user.name) ]][[ if (AEGIS.current) { ]] ([[= h(AEGIS.current.name) ]] :: [[= AEGIS.role(AEGIS.current.uuid) ]])[[ } ]]</a>
