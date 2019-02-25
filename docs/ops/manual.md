@@ -815,15 +815,25 @@ Please note that configuring an additonal auth provider is done from deploying s
 
 #### Local User Management
 
-TBD
+Shield users can be managed under `Local User Management`. Here admins can view a list of all Shield users,
+edit permissions of users, and onboard new users.
+
+![Users]($docs/docs/images/user-panel.png)
 
 #### Rekeying SHIELD
 
-TBD
+If you wish to Change your shield master password, you can find this option under `Rekeying SHIELD`
+
+**Note** You need your current master password to complete this.
+
+![Panel]($docs/docs/images/rekey-panel.png)
 
 #### Session Management
 
-TBD
+Admins can manage user sessions under `Manage User Sessions`. Here You can get information on all current sessons
+and expire session tokens if desired.
+
+![Sessions]($docs/docs/images/session-panel.png)
 
 How Do I Backup _X_?
 --------------------
