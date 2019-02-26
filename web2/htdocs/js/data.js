@@ -200,18 +200,16 @@
       q = q || {};
 
       var tasks = [];
-      if ('tenant' in q) {
-        for (var uuid in this.data.task || {}) {
-          var task = this.data.task[uuid];
-          if (task.tenant_uuid != q.tenant
-           || ('system'  in q && task.target_uuid  != q.system)
-           || ('job'     in q && task.job_uuid     != q.job)
-           || ('store'   in q && task.store_uuid   != q.store)
-           || ('archive' in q && task.archive_uuid != q.archive)) {
-            continue;
-          }
-          tasks.push(task);
+      for (var uuid in this.data.task || {}) {
+        var task = this.data.task[uuid];
+        if (('tenant'  in q && task.tenant_uuid != q.tenant)
+         || ('system'  in q && task.target_uuid  != q.system)
+         || ('job'     in q && task.job_uuid     != q.job)
+         || ('store'   in q && task.store_uuid   != q.store)
+         || ('archive' in q && task.archive_uuid != q.archive)) {
+          continue;
         }
+        tasks.push(task);
       }
 
       return tasks;
@@ -403,7 +401,9 @@
         case 'delete-object': self.delete(update.type, update.data); break;
         case 'task-log-update':
           var task = self.task(update.data.uuid);
-          if (task) { task.log += update.data.tail; }
+          if (task) {
+            if (!task.log) { task.log = ''; }
+            task.log += update.data.tail; }
           break;
         case 'task-status-update':
           self.update('task', update.data);

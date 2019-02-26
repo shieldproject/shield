@@ -1901,9 +1901,13 @@
 
             <h2>Timeline</h2>
             <div class="paginate" data-url="/v2/tenants/[[= AEGIS.current.uuid ]]/systems/[[= target.uuid ]]?before={oldest}" data-oldest="[[= new Date().getTime() ]]">
-              <div class="timeline results"></div>
+              <div class="timeline results">
+                [[ $.each($.sortBy(AEGIS.tasks({ system: target.uuid }), 'requested_at').reverse(), function (i, task) { ]]
+                [[ include('timeline-entry', task); ]]
+                [[ }); ]]
+              </div>
               <div class="loading">Fetching more tasks...</div>
-              <a class="load-more" href="">More Tasks...</a>
+              <a class="load-more tasks" href="">More Tasks...</a>
             </div>
           </div>
     <!-- }}} --></script>
@@ -1918,6 +1922,9 @@
          _.is.handled  = (_.stopped_at
                        && _.status != 'done'
                        && _.ok);
+         if (_.op && !_.type) {
+           _.type = _.op;
+         }
       ]]
       <div class="event [[= _.type ]] [[= (_.status == 'done' ? 'ok' : _.status) ]][[ if (_.notes != "") { ]] noted[[ } ]][[ if (_.is.handled) { ]] handled[[ } ]]" data-task-uuid="[[= _.uuid ]]"[[ if (_.archive) { ]] data-archive-uuid="[[= _.archive.uuid ]]" data-archive-taken="[[= _.started_at ]]"[[ } ]]>
         <ul>
@@ -1949,9 +1956,15 @@
           [[ if (_.notes != "") { ]]
           <li class="note"><strong>Note:</strong> [[= h(_.notes) ]]</li>
           [[ } ]]
-          <li class="expand"><a href="task:[[= _.uuid ]]">full task log</a></li>
+          <li class="expand"[[ if (Scratch('task:'+_.uuid) == 'open') { ]] style="display: none"[[ } ]]><a href="task:[[= _.uuid ]]">full task log</a></li>
         </ul>
-        <div class="task"></div>
+        [[ if (Scratch('task:'+_.uuid) == 'open') { ]]
+          <div class="task" style="display: block;">
+          [[ include('task', { task: _ }); ]]
+          </div>
+        [[ } else { ]]
+          <div class="task"></div>
+        [[ } ]]
       </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:task"><!-- {{{ -->
@@ -1963,9 +1976,9 @@
         also display a big RESTORE button in the task output.
       ]]
 <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
-<button class="close" rel="close">X</button>
+<button class="close" rel="close">X</button>[[ if (_.task.stopped_at) { ]]
 <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
-<form class="annotate">
+<form class="annotate"[[ if (Scratch('anno:'+_.task.uuid)) { ]] style="display: block;"[[ } ]]>
 <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
 [[ if (_.task.status == "failed") { ]]
 <p><input type="checkbox" name="disposition"
@@ -1974,7 +1987,7 @@
 <p><textarea name="notes" id="notes"
             placeholder="no notes recorded yet...">[[= h(lens.maybe(_.task.notes, '')) ]]</textarea></p>
 <button>Save</button>
-</form>
+</form>[[ } ]]
 
 </div><em>task <em>[[= _.task.uuid ]]</em></em>
 <em>[[= _.task.type ]] task[[ if (_.task.started_at != "") { ]] started <em>[[= strftime("%c", _.task.started_at) ]][[ } ]]</em>[[

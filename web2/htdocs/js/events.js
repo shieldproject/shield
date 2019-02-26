@@ -204,29 +204,44 @@
         var $ev   = $(event.target).closest('.event');
         var $task = $ev.find('.task');
 
-        $task = $task.show()
-                    .template('loading');
+        var task = AEGIS.task(uuid);
+        if (task) {
+          $task.template('task', {
+            task: task,
+            restorable: task.type == "backup" && task.archive_uuid != "" && task.status == "done",
+          }).show();
+          $(event.target).closest('li').hide();
+          console.log('scratch task:'+task.uuid+' = open');
+          Scratch.track('task:'+task.uuid, 'open');
+        } else {
 
-        api({
-          type: 'GET',
-          url:  '/v2/tenants/'+AEGIS.current.uuid+'/tasks/'+uuid,
-          error: "Failed to retrieve task information from the SHIELD API.",
-          success: function (data) {
-            $task.template('task', {
-              task: data,
-              restorable: data.type == "backup" && data.archive_uuid != "" && data.status == "done",
-            });
-            $(event.target).closest('li').hide();
-          }
-        });
+          $task = $task.show()
+                      .template('loading');
+
+          api({
+            type: 'GET',
+            url:  '/v2/tenants/'+AEGIS.current.uuid+'/tasks/'+uuid,
+            error: "Failed to retrieve task information from the SHIELD API.",
+            success: function (data) {
+              $task.template('task', {
+                task: data,
+                restorable: data.type == "backup" && data.archive_uuid != "" && data.status == "done",
+              });
+              $(event.target).closest('li').hide();
+            }
+          });
+        }
       }) /* }}} */
       .on('click', '.task button[rel="close"]', function (event) { /* {{{ */
         $ev = $(event.target).closest('.event');
         $ev.find('li.expand').show();
         $ev.find('.task').hide();
+        Scratch.track('task:'+$ev.extract('task-uuid'), false);
       }) /* }}} */
       .on('click', '.task button[rel^="annotate:"]', function (event) { /* {{{ */
+        var uuid  = $(event.target).closest('[rel^="annotate:"]').attr('rel').replace(/^annotate:/, '');
         $(event.target).closest('.task').find('form.annotate').toggle();
+        Scratch.track('anno:'+uuid, true);
       }) /* }}} */
       .on('submit', '.task form.annotate', function (event) { /* {{{ */
         event.preventDefault();
@@ -270,13 +285,14 @@
       }) /* }}} */
 
       /* "Restore Archive" links (rel="restore:...") */
-      .on('click', '.task button[rel^="restore:"]', function (event) { /* {{{ */
+      .on('click', '.task button[rel^="restore:"], a[href^="restore:"]', function (event) { /* {{{ */
+        event.preventDefault();
         var uuid   = $(event.target).extract('archive-uuid');
         var target = $(event.target).extract('system-name');
         var taken  = $(event.target).extract('archive-taken');
         console.log('restoring archive %s!', uuid);
 
-        modal(template('restore-are-you-sure', {
+        modal($.template('restore-are-you-sure', {
             target: target,
             taken:  taken
           })).on('click', '[rel=yes]', function(event) {
