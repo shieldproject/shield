@@ -368,10 +368,28 @@ var Lens = {};
 
     jQuery.fn.template = function (name, data, force) {
       if (force || this.length == 0) {
-        this.html(template(name, data));
-      } else {
-        window.patch(this[0], diff(this[0], $('<div>'+template(name, data)+'</div>')[0]));
+        this.html(template(name, data)).data('lens:template', {
+          template: name,
+          data:     data
+        });
+        return this;
       }
+
+      var was = this.data('lens:template');
+      if (was && (!name || was.template == name)) {
+        data = typeof(data) === 'undefined' ? was.data : data;
+        window.patch(this[0], diff(this[0], $('<div>'+template(was.template, data)+'</div>')[0]));
+        this.data('lens:template', {
+          template: was.template,
+          data:     data
+        });
+        return this;
+      }
+
+      this.html(template(name, data)).data('lens:template', {
+        template: name,
+        data:     data
+      });
       return this;
     };
 

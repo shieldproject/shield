@@ -36,6 +36,34 @@
 
   /*
 
+   ######   ######  ########     ###    ########  ######  ##     ##
+  ##    ## ##    ## ##     ##   ## ##      ##    ##    ## ##     ##
+  ##       ##       ##     ##  ##   ##     ##    ##       ##     ##
+   ######  ##       ########  ##     ##    ##    ##       #########
+        ## ##       ##   ##   #########    ##    ##       ##     ##
+  ##    ## ##    ## ##    ##  ##     ##    ##    ##    ## ##     ##
+   ######   ######  ##     ## ##     ##    ##     ######  ##     ##
+
+   */
+  var Scratch = (function () {
+    var scratch = {};
+
+    var fn = function (k) {
+      return scratch[k];
+    };
+    fn.clear = function () {
+      scratch = {};
+    };
+    fn.track = function (k, v) {
+      scratch[k] = v;
+    };
+
+    return fn;
+  })();
+  window.Scratch = Scratch;
+
+  /*
+
      ###    ########  ######   ####  ######
     ## ##   ##       ##    ##   ##  ##    ##
    ##   ##  ##       ##         ##  ##
@@ -383,6 +411,10 @@
         default:
           console.log('unrecognized websocket message "%s": %s', update.event, JSON.stringify(update.data));
           return;
+        }
+
+        if (Scratch('redrawable') && $('#main').is(':visible')) {
+          $('#main').template();
         }
       };
 

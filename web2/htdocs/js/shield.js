@@ -43,6 +43,8 @@ function dispatch(page) {
   $('nav li.current').removeClass('current');
   $('nav a[href="'+top+'"]').closest('li').addClass('current');
 
+  Scratch.clear();
+  Scratch.track('redrawable', true);
   switch (page) {
 
   case "#!/login": /* {{{ */
@@ -205,6 +207,7 @@ function dispatch(page) {
     // }}}
 
   case "#!/do/backup": /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
@@ -218,6 +221,7 @@ function dispatch(page) {
     break; /* #!/do/backup */
     // }}}
   case "#!/do/restore": /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
@@ -232,6 +236,7 @@ function dispatch(page) {
     break; /* #!/do/restore */
     // }}}
   case "#!/do/configure": /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
