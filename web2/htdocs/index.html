@@ -168,6 +168,32 @@
             </div>
           </div>
     <!-- }}} --></script>
+    <script type="text/html" id="template:backup-are-you-sure"><!-- {{{ -->
+      [[#
+        {backup-are-you-sure}
+
+        A modal interaction screen that requires the operator to acknowledge
+        that what they are about to do is in fact to backup data, that it
+        might be dangerous, and it might not work out.
+      ]]
+      [[
+        var job     = AEGIS.job(_.uuid);
+        var target  = AEGIS.system(job.target_uuid);
+      ]]
+          <div class="confirm">
+            <h2>Run Ad Hoc Backup?</h2>
+            <p>You have requested that SHIELD perform an ad hoc backup of <em>[[= target.name ]]</em>
+
+            <p>The target system may be <em>offline or non-operational</em>
+            while the backup operation is carried out.</p>
+
+            <p class="q">Are you sure you want to backup <em>[[= target.name ]]</em>?</p>
+            <div class="a">
+              <button class="closes safe" rel="close">No, Cancel This Operation</button>
+              <button class="closes danger" rel="yes">Yes, Initiate Backup</button>
+            </div>
+          </div>
+    <!-- }}} --></script>
     <script type="text/html" id="template:login"><!-- {{{ -->
       [[#
         {login} template
@@ -1867,7 +1893,7 @@
                   <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   </td>
-                  <td><a href="#">edit</a> | <a href="#">delete</a> | <a href="#">run</a></td>
+                  <td><a href="#">edit</a> | <a href="#">delete</a> | <a href="run:[[= job.uuid ]]">run</a></td>
                 </tr>
                 [[ }); ]]
               </tbody>
