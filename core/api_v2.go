@@ -457,6 +457,14 @@ func (c *Core) v2API() *route.Router {
 		r.OK(out)
 	})
 	// }}}
+	r.Dispatch("GET /v2/mbus/status", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		r.OK(c.bus.DumpState())
+	})
+	// }}}
 
 	r.Dispatch("GET /v2/events", func(r *route.Request) { // {{{
 		//you must be logged into shield to access the event stream
