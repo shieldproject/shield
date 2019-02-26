@@ -38,6 +38,12 @@ type v2SystemTask struct {
 	Notes       string           `json:"notes"`
 	Archive     *v2SystemArchive `json:"archive,omitempty"`
 	Log         string           `json:"log"`
+
+	JobUUID     string `json:"job_uuid"`
+	TenantUUID  string `json:"tenant_uuid"`
+	ArchiveUUID string `json:"archive_uuid"`
+	StoreUUID   string `json:"store_uuid"`
+	TargetUUID  string `json:"target_uuid"`
 }
 type v2SystemJob struct {
 	UUID        string `json:"uuid"`
@@ -1309,6 +1315,12 @@ func (c *Core) v2API() *route.Router {
 			system.Tasks[i].StartedAt = task.StartedAt
 			system.Tasks[i].StoppedAt = task.StoppedAt
 			system.Tasks[i].Log = task.Log
+
+			system.Tasks[i].JobUUID = task.JobUUID
+			system.Tasks[i].TenantUUID = task.TenantUUID
+			system.Tasks[i].StoreUUID = task.StoreUUID
+			system.Tasks[i].ArchiveUUID = task.ArchiveUUID
+			system.Tasks[i].TargetUUID = task.TargetUUID
 
 			if archive, ok := archives[task.ArchiveUUID]; ok {
 				system.Tasks[i].Archive = &v2SystemArchive{
