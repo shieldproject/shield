@@ -122,6 +122,7 @@ pre code {
   border-radius: 0.6em;
   font-size: 125%;
   font-weight: normal;
+  white-space: pre-wrap;
 }
 pre code span.highlight {
   font-weight: bold;
@@ -284,4 +285,4 @@ find({
 			`cp $_ $options{output}/$_`;
 		}
 	},
-}, 'docs');
+}, 'docs/ops', 'docs/dev');
