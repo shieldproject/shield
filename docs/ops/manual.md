@@ -628,11 +628,34 @@ including:
 
 ### The CLI
 
-TBD
+If you prefer life in the terminal, you're in luck &mdash; SHIELD
+has a command-line interface packed with just as much
+functionality as the web interface.  To get started with the CLI,
+you first must configure access to the SHIELD core by identifying
+the API endpoint and logging in:
+
+    $ shield api https://:::shield-ip::: my-shield
+
+    $ shield -c my-shield login
+    Username: admin
+    Password:
+    logged in successfully!
+
+To see what more the CLI can do, check out the following helpful
+commands:
+
+    $ shield -h
+    $ shield commands
+
+Note: the remainder of this guide will focus on the web user
+interface.  Terminal fans are encouraged to explore the SHIELD CLI
+to see how those same concepts can be applied in a textual world.
+
 
 
 Configuring Backups
 -------------------
+
 
 TBD
 
