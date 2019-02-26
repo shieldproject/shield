@@ -1863,6 +1863,42 @@
               [[ } ]]
             </div>
 
+            [[ var archives = AEGIS.archives({ tenant: target.tenant_uuid, system: target.uuid }); ]]
+            [[ if (archives.length > 0) { ]]
+              [[ archives = $.sortBy(archives, 'created_at').reverse(); ]]
+              [[ var show = Scratch('archives:all') ? archives : archives.slice(0, 4); ]]
+            <h2>Backup Archives</h2>
+            <table class="lean sortable">
+              <thead><tr>
+                <th class="sortable">UUID</th>
+                <th class="sortable">Date</th>
+                <th class="sortable">Size</th>
+                <th class="sortable">Store</th>
+                <th>Status</th>
+                <th></th>
+              </tr></thead>
+              <tbody>
+                [[ $.each(show, function (i, archive) { ]]
+                <tr data-archive-uuid="[[= archive.uuid ]]">
+                  <td class="uuid">[[= archive.uuid.substr(0,8) ]]</td>
+                  <td class="date" data-sort-as="number" data-sort="[[= archive.taken_at ]]">
+                    [[= strftime("%Y-%m-%d %H:%M%P", archive.taken_at) ]]<br>
+                    ([[= duration(tdiff(archive.taken_at, new Date())) ]] ago)
+                  </td>
+                  <td data-sort-as="number" data-sort="[[= archive.size ]]">[[= bytes(archive.size) ]]</td>
+                  [[ var store = AEGIS.store(archive.store_uuid); ]]
+                  <td>[[= store.name ]] ([[= store.plugin ]])</td>
+                  <td>[[= archive.status ]]</td>
+                  <td><a href="restore:[[= archive.uuid ]]">restore</a></td>
+                </tr>
+                [[ }); ]]
+              </tbody>
+            </table>
+            [[ if (show.length != archives.length) { ]]
+            <a class="load-more archives" href="">More Archives</a>
+            [[ } ]]
+          [[ } ]]
+
             <h2>Scheduled Backups</h2>
             <table class="lean sortable">
               <thead>
