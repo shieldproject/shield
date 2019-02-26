@@ -256,8 +256,7 @@ func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 }
 
 func (db *DB) GetTask(id string) (*Task, error) {
-	filter := TaskFilter{UUID: id}
-	r, err := db.GetAllTasks(&filter)
+	r, err := db.GetAllTasks(&TaskFilter{UUID: id, ExactMatch: true})
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +282,9 @@ func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
+	}
+	if task == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+task.TenantUUID)
@@ -318,12 +320,15 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
+	if task == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
+	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
 	return task, nil
 }
 
-func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) {
+func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) {
 	id := RandomID()
 	now := time.Now().Unix()
 	err := db.exec(
@@ -339,7 +344,7 @@ func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) 
 		     ?, ?, ?,
 		     ?, ?, ?, ?,
 		     ?, ?, ?, ?, ?)`,
-		id, owner, BackupOperation, job.UUID, CanceledStatus, log,
+		id, owner, BackupOperation, job.UUID, CanceledStatus, msg,
 		now, now, now, 0,
 		job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
 		job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
@@ -353,6 +358,9 @@ func (db *DB) SkipBackupTask(owner string, job *Job, log string) (*Task, error) 
 	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
+	}
+	if task == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+job.TenantUUID)
@@ -391,6 +399,9 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	if err != nil {
 		return nil, err
 	}
+	if task == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
+	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
 	return task, nil
@@ -422,6 +433,9 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
+	}
+	if task == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
 	}
 
 	db.sendCreateObjectEvent(task, "tenant:"+archive.TenantUUID)
@@ -467,6 +481,9 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
+	}
+	if task == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
 	}
 
 	if store.TenantUUID != "" {
@@ -517,6 +534,9 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
+	}
+	if task == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted task [%s]: not found in database.", id)
 	}
 
 	db.sendCreateObjectEvent(task, "admins")
@@ -573,6 +593,9 @@ func (db *DB) StartTask(id string, at time.Time) error {
 	if err != nil {
 		return err
 	}
+	if task == nil {
+		return fmt.Errorf("task '%s' not found", id)
+	}
 
 	db.sendTaskStatusUpdateEvent(task, "tenant:"+task.TenantUUID)
 	return nil
@@ -609,6 +632,9 @@ func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
 	task, err := db.GetTask(id)
 	if err != nil {
 		return err
+	}
+	if task == nil {
+		return fmt.Errorf("task '%s' not found", id)
 	}
 
 	queues := []string{}
