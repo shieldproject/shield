@@ -248,16 +248,16 @@ func (c *Core) ScheduleBackupTasks() {
 		return
 	}
 
-	lookup := make(map[string]string)
+	lookup := make(map[string]*db.Task)
 	for _, task := range tasks {
-		lookup[task.JobUUID] = task.UUID
+		lookup[task.JobUUID] = task
 	}
 
 	for _, job := range l {
-		if tid, running := lookup[job.UUID]; running {
-			log.Infof("skipping next run of job %s [%s]; already running in task [%s]...", job.Name, job.UUID, tid)
+		if task, running := lookup[job.UUID]; running {
+			log.Infof("skipping next run of job %s [%s]; already running in task [%s] (status %s)...", job.Name, job.UUID, task.UUID, task.Status)
 			_, err := c.db.SkipBackupTask("system", job,
-				fmt.Sprintf("... skipping this run; task %s is still not finished ...\n", tid))
+				fmt.Sprintf("... skipping this run; task %s is still not finished ...\n", task.UUID))
 			if err != nil {
 				log.Errorf("failed to insert skipped backup task record: %s", err)
 			}
