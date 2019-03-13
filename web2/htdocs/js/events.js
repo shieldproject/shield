@@ -165,6 +165,94 @@
             });
           });
       }) /* }}} */
+      /* }}} */
+
+      /* "Pause Job" links (href="pause:...") */
+      .on('click', 'a[href^="pause:"], button[rel^="pause:"]', function (event) { /* {{{ */
+        event.preventDefault();
+        var uuid;
+        if ($(event.target).is('button')) {
+          uuid = $(event.target).attr('rel');
+        } else {
+          uuid  = $(event.target).closest('a[href^="pause:"]').attr('href');
+        }
+        uuid = uuid.replace(/^pause:/, '');
+
+        modal($.template('pause-are-you-sure', {
+            uuid: uuid
+          })).on('click', '[rel=yes]', function(event) {
+            banner('pausing...', 'progress');
+            api({
+              type: 'POST',
+              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/pause',
+              success: function () {
+                banner('pause');
+              },
+              error: function () {
+                banner('unable to pause', 'error');
+              }
+            });
+          });
+      }) /* }}} */
+      /* }}} */
+
+      /* "Unpause Job" links (href="unpause:...") */
+      .on('click', 'a[href^="unpause:"], button[rel^="unpause:"]', function (event) { /* {{{ */
+        event.preventDefault();
+        var uuid;
+        if ($(event.target).is('button')) {
+          uuid = $(event.target).attr('rel');
+        } else {
+          uuid  = $(event.target).closest('a[href^="unpause:"]').attr('href');
+        }
+        uuid = uuid.replace(/^unpause:/, '');
+
+        modal($.template('unpause-are-you-sure', {
+            uuid: uuid
+          })).on('click', '[rel=yes]', function(event) {
+            banner('pausing...', 'progress');
+            api({
+              type: 'POST',
+              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/unpause',
+              success: function () {
+                banner('unpause');
+              },
+              error: function () {
+                banner('unable to unpause', 'error');
+              }
+            });
+          });
+      }) /* }}} */
+      /* }}} */
+
+      /* "Delete Job" links (href="delete:...") */
+      .on('click', 'a[href^="delete:"], button[rel^="delete:"]', function (event) { /* {{{ */
+        event.preventDefault();
+        var uuid;
+        if ($(event.target).is('button')) {
+          uuid = $(event.target).attr('rel');
+        } else {
+          uuid  = $(event.target).closest('a[href^="delete:"]').attr('href');
+        }
+        uuid = uuid.replace(/^delete:/, '');
+
+        modal($.template('delete-are-you-sure', {
+            uuid: uuid
+          })).on('click', '[rel=yes]', function(event) {
+            banner('pausing...', 'progress');
+            api({
+              type: 'DELETE',
+              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid,
+              success: function () {
+                banner('delete');
+              },
+              error: function () {
+                banner('unable to delete', 'error');
+              }
+            });
+          });
+      }) /* }}} */
+      /* }}} */
 
       /* Task Pagination */
         .on('click', '.paginate .load-more', function (event) { /* {{{ */
