@@ -1339,6 +1339,19 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "timespec": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} timespec @Y{\"a timespec string\"}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Validate a scheduling timespec against a SHIELD Core\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When you schedule backup jobs in SHIELD, you use a language\n")
+		fmt.Printf("  called \"timespec\" to indicate when and how often you want the\n")
+		fmt.Printf("  job to execute.  This command parses a timespec (server-side)\n")
+		fmt.Printf("  and re-assembles it into canonical form.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "unlock": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} unlock [--master @Y{PASSWORD}]\n")
 		fmt.Printf("\n")

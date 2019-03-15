@@ -1,0 +1,9 @@
+USAGE: @G{shield} timespec @Y{"a timespec string"}
+
+  Validate a scheduling timespec against a SHIELD Core
+
+  When you schedule backup jobs in SHIELD, you use a language
+  called "timespec" to indicate when and how often you want the
+  job to execute.  This command parses a timespec (server-side)
+  and re-assembles it into canonical form.
+

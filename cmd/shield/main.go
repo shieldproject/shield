@@ -49,6 +49,7 @@ var opts struct {
 	} `cli:"commands"`
 
 	Curl struct{} `cli:"curl"`
+	TimeSpec struct {} `cli:"timespec"`
 
 	Status struct {
 		Global bool `cli:"--global"`
@@ -479,6 +480,7 @@ func main() {
 			header("Miscellaneous")
 			printc("  commands                 Print this list of commands.\n")
 			printc("  curl                     Issue raw HTTP requests to the targeted SHIELD Core.\n")
+			printc("  timespec                 Explain Timespec scheduling strings.\n")
 			printc("  status                   Show the status of the targeted SHIELD Core.\n")
 			printc("  events                   Watch the even stream from the targeted SHIELD Core.\n")
 		}
@@ -1047,6 +1049,22 @@ tenants:
 		if code >= 400 {
 			os.Exit(code / 100)
 		}
+
+	/* }}} */
+	case "timespec": /* {{{ */
+		if len(args) < 1 {
+			fail(2, "Usage: shield %s \"a schedule string\"\n", command)
+		}
+		ok, spec, err := c.CheckTimespec(strings.Join(args, " "))
+		if err != nil {
+			bail(fmt.Errorf("Failed to check timespec: %s\n", err))
+		}
+		if !ok {
+			fail(1, "Invalid timespec\n")
+		}
+
+		fmt.Printf("%s\n", spec)
+		return
 
 	/* }}} */
 	case "status": /* {{{ */
