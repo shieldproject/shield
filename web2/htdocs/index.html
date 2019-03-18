@@ -2008,9 +2008,9 @@
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   </td>
                   [[ if (job.paused == 0) { ]]
-                    <td><a href="#">edit</a> | <a href="#">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | <a href="pause:[[= job.uuid ]]">pause</a></td>
+                    <td><a href="#">edit</a> | <a href="delete:[[= job.uuid ]]">delete</a> | <a href= "run:[[= job.uuid ]]">run</a> | <a href="pause:[[= job.uuid ]]">pause</a></td>
                      [[ } else { ]]
-                     <td><a href="#">edit</a> | <a href="#">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | <a href="unpause:[[= job.uuid ]]">unpause</a></td>
+                     <td><a href="#">edit</a> | <a href="delete:[[= job.uuid ]]">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | <a href="unpause:[[= job.uuid ]]">unpause</a></td>
                     [[ } ]]                </tr>
                 [[ }); ]]
               </tbody>
