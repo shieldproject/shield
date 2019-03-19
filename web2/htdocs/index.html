@@ -169,71 +169,27 @@
           </div>
           
     <!-- }}} --></script>
-    <script type="text/html" id="template:pause-are-you-sure"><!-- {{{ -->
+
+    <script type="text/html" id="template:delete-are-you-sure"><!-- {{{ -->
       [[#
-        {pause-are-you-sure}
+        {delete-are-you-sure}
 
         A modal interaction screen that requires the operator to acknowledge
-        that what they are about to do is in fact to pause data, that it
+        that what they are about to do is in fact to delete data, that it
         might be dangerous, and it might not work out.
       ]]
           <div class="confirm">
-            <h2>You Are About To Pause Your Backup</h2>
-            <p>You have requested that SHIELD pause <em>[[= _.target ]]</em>
-            it's current scheduled backup <em>[[= strftime("on %A, %B %d, %Y at %H:%M%P", _.taken) ]]</em> ([[= duration(tdiff(_.taken, new Date())) ]] ago).
-            Any new data created after that point in time <em>will be lost</em>.</p>
+            <h2>You Are About To Delete Your Backup Job</h2>
 
-            <p class="q">Are you sure you want to pause <em>[[= _.target ]]</em>?</p>
+            <p>You have requested that SHIELD delete <em>[[= _.name]]</em>.
+            Backups can no longer be created from this job when destroy.</p>
+            
+            <p class="q">Are you sure you want to delete <em>[[= _.name ]]</em>?</p>
             <div class="a">
               <button class="closes safe" rel="close">No, Cancel This Operation</button>
-              <button class="closes danger" rel="yes">Yes, Initiate Pause</button>
+              <button class="closes danger" rel="yes">Yes, Initiate delete</button>
             </div>
           </div>
-          
-    <!-- }}} --></script>
-
-        <script type="text/html" id="template:unpause-are-you-sure"><!-- {{{ -->
-          [[#
-            {unpause-are-you-sure}
-    
-            A modal interaction screen that requires the operator to acknowledge
-            that what they are about to do is in fact to unpause data, that it
-            might be dangerous, and it might not work out.
-          ]]
-              <div class="confirm">
-                <h2>You Are About To Unpause Your Backup</h2>
-                <p>You have requested that SHIELD unpause <em>[[= _.target ]]</em>
-                it's current scheduled backup <em>[[= strftime("on %A, %B %d, %Y at %H:%M%P", _.taken) ]]</em> ([[= duration(tdiff(_.taken, new Date())) ]] ago).
-                Any new data created after that point in time <em>will be lost</em>.</p>
-    
-                <p class="q">Are you sure you want to unpause <em>[[= _.target ]]</em>?</p>
-                <div class="a">
-                  <button class="closes safe" rel="close">No, Cancel This Operation</button>
-                  <button class="closes danger" rel="yes">Yes, Initiate unpause</button>
-                </div>
-              </div>
-
-        <!-- }}} --></script>
-        <script type="text/html" id="template:delete-are-you-sure"><!-- {{{ -->
-          [[#
-            {delete-are-you-sure}
-    
-            A modal interaction screen that requires the operator to acknowledge
-            that what they are about to do is in fact to delete data, that it
-            might be dangerous, and it might not work out.
-          ]]
-              <div class="confirm">
-                <h2>You Are About To Delete Your Backup Job</h2>
-
-                <p>You have requested that SHIELD delete <em>[[= _.name]]</em>.
-                Backups can no longer be created from this job when destroy.</p>
-                
-                <p class="q">Are you sure you want to delete <em>[[= _.name ]]</em>?</p>
-                <div class="a">
-                  <button class="closes safe" rel="close">No, Cancel This Operation</button>
-                  <button class="closes danger" rel="yes">Yes, Initiate delete</button>
-                </div>
-              </div>
               
         <!-- }}} --></script>
 
