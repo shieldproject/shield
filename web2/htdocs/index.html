@@ -223,12 +223,12 @@
             might be dangerous, and it might not work out.
           ]]
               <div class="confirm">
-                <h2>You Are About To Delete Your Backup</h2>
-                <p>You have requested that SHIELD delete <em>[[= _.target ]]</em>
-                it's current scheduled backup <em>[[= strftime("on %A, %B %d, %Y at %H:%M%P", _.taken) ]]</em> ([[= duration(tdiff(_.taken, new Date())) ]] ago).
-                Any new data created after that point in time <em>will be lost</em>.</p>
+                <h2>You Are About To Delete Your Backup Job</h2>
+
+                <p>You have requested that SHIELD delete <em>[[= _.name]]</em>.
+                Backups can no longer be created from this job when destroy.</p>
                 
-                <p class="q">Are you sure you want to delete <em>[[= _.target ]]</em>?</p>
+                <p class="q">Are you sure you want to delete <em>[[= _.name ]]</em>?</p>
                 <div class="a">
                   <button class="closes safe" rel="close">No, Cancel This Operation</button>
                   <button class="closes danger" rel="yes">Yes, Initiate delete</button>
@@ -1999,9 +1999,9 @@
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   </td>
                   [[ if (job.paused == 0) { ]]
-                    <td><a href="#">edit</a> | <a href="delete:[[= job.uuid ]]">delete</a> | <a href=   "run:[[= job.uuid ]]">run</a> | <a href="pause:[[= job.uuid ]]">pause</a></td>
+                    <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href=   "run:[[= job.uuid ]]">run</a> | <a href="pause:[[= job.uuid ]]">pause</a></td>
                      [[ } else { ]]
-                     <td><a href="#">edit</a> | <a href="delete:[[= job.uuid ]]">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | <a href="unpause:[[= job.uuid ]]">unpause</a></td>
+                     <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | <a href="unpause:[[= job.uuid ]]">unpause</a></td>
                     [[ } ]]                </tr>
                 [[ }); ]]
               </tbody>

@@ -178,21 +178,16 @@
         }
         uuid = uuid.replace(/^pause:/, '');
 
-        modal($.template('pause-are-you-sure', {
-            uuid: uuid
-          })).on('click', '[rel=yes]', function(event) {
-            banner('pausing...', 'progress');
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/pause',
-              success: function () {
-                banner('pause');
-              },
-              error: function () {
-                banner('unable to pause', 'error');
-              }
-            });
-          });
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/pause',
+          success: function () {
+            banner('Pausing');
+          },
+          error: function () {
+            banner('unable to pause', 'error');
+          }
+        });
       }) /* }}} */
       /* }}} */
 
@@ -207,21 +202,16 @@
         }
         uuid = uuid.replace(/^unpause:/, '');
 
-        modal($.template('unpause-are-you-sure', {
-            uuid: uuid
-          })).on('click', '[rel=yes]', function(event) {
-            banner('pausing...', 'progress');
-            api({
-              type: 'POST',
-              url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/unpause',
-              success: function () {
-                banner('unpause');
-              },
-              error: function () {
-                banner('unable to unpause', 'error');
-              }
-            });
-          });
+        api({
+          type: 'POST',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/unpause',
+          success: function () {
+            banner('Unpausing');
+          },
+          error: function () {
+            banner('unable to unpause', 'error');
+          }
+        });
       }) /* }}} */
       /* }}} */
 
@@ -235,16 +225,19 @@
           uuid  = $(event.target).closest('a[href^="delete:"]').attr('href');
         }
         uuid = uuid.replace(/^delete:/, '');
+        var job = AEGIS.job(uuid);
+        var name = job.name
 
         modal($.template('delete-are-you-sure', {
-            uuid: uuid
+            uuid: uuid,
+            name: name
           })).on('click', '[rel=yes]', function(event) {
             banner('pausing...', 'progress');
             api({
               type: 'DELETE',
               url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid,
               success: function () {
-                banner('delete');
+                banner('Deleted');
               },
               error: function () {
                 banner('unable to delete', 'error');
