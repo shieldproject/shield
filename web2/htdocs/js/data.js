@@ -251,6 +251,7 @@
           var archive = this.data.archive[uuid];
           if (archive.tenant_uuid != q.tenant
            || ('system'  in q && archive.target_uuid  != q.system)
+           || ('job'     in q && archive.job          != q.job)
            || ('store'   in q && archive.store_uuid   != q.store)) {
             continue;
           }

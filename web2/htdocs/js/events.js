@@ -177,12 +177,13 @@
           uuid  = $(event.target).closest('a[href^="pause:"]').attr('href');
         }
         uuid = uuid.replace(/^pause:/, '');
+        var job = AEGIS.job(uuid);
 
         api({
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/pause',
           success: function () {
-            banner('Pausing');
+            banner('Paused Scheduled Backup Job '+`${job.name}`);
           },
           error: function () {
             banner('unable to pause', 'error');
@@ -201,12 +202,13 @@
           uuid  = $(event.target).closest('a[href^="unpause:"]').attr('href');
         }
         uuid = uuid.replace(/^unpause:/, '');
+        var job = AEGIS.job(uuid);
 
         api({
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/unpause',
           success: function () {
-            banner('Unpausing');
+            banner('Unpaused Scheduled Backup Job '+`${job.name}`);
           },
           error: function () {
             banner('unable to unpause', 'error');
@@ -226,18 +228,20 @@
         }
         uuid = uuid.replace(/^delete:/, '');
         var job = AEGIS.job(uuid);
-        var name = job.name
 
         modal($.template('delete-are-you-sure', {
             uuid: uuid,
-            name: name
+            name: job.name,
+            schedule: job.schedule,
+            archives: AEGIS.archives({tenant: job.tenant_uuid, job: job.name})
+
           })).on('click', '[rel=yes]', function(event) {
             banner('pausing...', 'progress');
             api({
               type: 'DELETE',
               url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid,
               success: function () {
-                banner('Deleted');
+                banner("Deleted Scheduled Backup Job "+`${job.name}`);
               },
               error: function () {
                 banner('unable to delete', 'error');

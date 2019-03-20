@@ -182,7 +182,23 @@
             <h2>You Are About To Delete Your Backup Job</h2>
 
             <p>You have requested that SHIELD delete <em>[[= _.name]]</em>.
-            Backups can no longer be created from this job when destroy.</p>
+            Backups can no longer be created from this job when destroyed.
+            This jobs runs <em>[[= _.schedule]]</em>.
+            Existing archives will remain untill they expire or are deleted.</p>
+            <p> Existing archives include: <em>[[= _.archives.length ]]</em> </p>
+            <p>
+            <tbody>
+            [[ $.each(_.archives, function (i, archive) { ]]
+              <tr data-archive-uuid="[[= archive.uuid ]]">
+                <td class="uuid"><em>[[= archive.uuid.substr(0,8) ]]</em></td>
+                <td class="date">
+                  [[= strftime("%Y-%m-%d %H:%M%P", archive.taken_at) ]]<br>
+                </td>
+              </tr>
+              [[ }); ]]
+            </tbody>
+            </p>
+
             
             <p class="q">Are you sure you want to delete <em>[[= _.name ]]</em>?</p>
             <div class="a">
