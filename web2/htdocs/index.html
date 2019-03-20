@@ -181,26 +181,12 @@
           <div class="confirm">
             <h2>You Are About To Delete Your Backup Job</h2>
 
-            <p>You have requested that SHIELD delete <em>[[= _.name]]</em>.
-            Backups can no longer be created from this job when destroyed.
-            This jobs runs <em>[[= _.schedule]]</em>.
-            Existing archives will remain untill they expire or are deleted.</p>
-            <p> Existing archives include: <em>[[= _.archives.length ]]</em> </p>
-            <p>
-            <tbody>
-            [[ $.each(_.archives, function (i, archive) { ]]
-              <tr data-archive-uuid="[[= archive.uuid ]]">
-                <td class="uuid"><em>[[= archive.uuid.substr(0,8) ]]</em></td>
-                <td class="date">
-                  [[= strftime("%Y-%m-%d %H:%M%P", archive.taken_at) ]]<br>
-                </td>
-              </tr>
-              [[ }); ]]
-            </tbody>
-            </p>
+            <p>You have requested that SHIELD delete backup job <em>[[= _.name]]</em>.</p>
+            <p>This jobs runs <em>[[= _.schedule]]</em>.</p>
 
+            <p>Existing archives created with this job will remain untill they expire or are deleted.</p>
             
-            <p class="q">Are you sure you want to delete <em>[[= _.name ]]</em>?</p>
+            <p class="q">Are you sure you want to delete backup job <em>[[= _.name ]]</em>?</p>
             <div class="a">
               <button class="closes safe" rel="close">No, Cancel This Operation</button>
               <button class="closes danger" rel="yes">Yes, Initiate delete</button>
