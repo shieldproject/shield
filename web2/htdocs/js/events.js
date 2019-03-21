@@ -183,7 +183,7 @@
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/pause',
           success: function () {
-            banner('Paused Scheduled Backup Job '+`${job.name}`);
+            banner('Paused Scheduled Backup Job "'+job.name+'" ');
           },
           error: function () {
             banner('unable to pause', 'error');
@@ -208,7 +208,7 @@
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid+'/unpause',
           success: function () {
-            banner('Unpaused Scheduled Backup Job '+`${job.name}`);
+            banner('Unpaused Scheduled Backup Job "'+job.name+'" ');
           },
           error: function () {
             banner('unable to unpause', 'error');
@@ -236,12 +236,11 @@
             archives: AEGIS.archives({tenant: job.tenant_uuid, job: job.name})
 
           })).on('click', '[rel=yes]', function(event) {
-            banner('pausing...', 'progress');
             api({
               type: 'DELETE',
               url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+uuid,
               success: function () {
-                banner("Deleted Scheduled Backup Job "+`${job.name}`);
+                banner('Deleted Scheduled Backup Job "'+job.name+'" ');
               },
               error: function () {
                 banner('unable to delete', 'error');

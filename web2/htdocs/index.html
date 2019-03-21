@@ -184,12 +184,12 @@
             <p>You have requested that SHIELD delete backup job <em>[[= _.name]]</em>.</p>
             <p>This jobs runs <em>[[= _.schedule]]</em>.</p>
 
-            <p>Existing archives created with this job will remain untill they expire or are deleted.</p>
+            <p>Existing archives created with this job will remain until they expire or are deleted.</p>
             
             <p class="q">Are you sure you want to delete backup job <em>[[= _.name ]]</em>?</p>
             <div class="a">
               <button class="closes safe" rel="close">No, Cancel This Operation</button>
-              <button class="closes danger" rel="yes">Yes, Initiate delete</button>
+              <button class="closes danger" rel="yes">Yes, Delete Job</button>
             </div>
           </div>
               
@@ -1956,11 +1956,14 @@
                   <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   </td>
-                  [[ if (job.paused == 0) { ]]
-                    <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href=   "run:[[= job.uuid ]]">run</a> | <a href="pause:[[= job.uuid ]]">pause</a></td>
-                     [[ } else { ]]
-                     <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | <a href="unpause:[[= job.uuid ]]">unpause</a></td>
-                    [[ } ]]                </tr>
+                    <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href=   "run:[[= job.uuid ]]">run</a> | 
+                          [[ if (job.paused == 0) { ]]
+                            <a href="pause:[[= job.uuid ]]">pause</a>
+                          [[ } else { ]]
+                            <a href="unpause:[[= job.uuid ]]">unpause</a>
+                          [[ } ]]
+                    </td>
+                </tr>
                 [[ }); ]]
               </tbody>
             </table>
