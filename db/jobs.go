@@ -204,8 +204,16 @@ func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
 	if n == 0 || err != nil {
 		return false, err
 	}
-
-	return true, db.exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
+	err = db.exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
+	if err != nil {
+		return true, err
+	}
+	job, err := db.GetJob(id)
+	if err != nil {
+		return true, err
+	}
+	db.sendUpdateObjectEvent(job, "tenant:"+job.TenantUUID)
+	return true, nil
 }
 
 func (db *DB) PauseJob(id string) (bool, error) {
