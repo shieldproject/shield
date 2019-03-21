@@ -1956,7 +1956,7 @@
                   <td class="retain" data-sort="[[= job.keep_n ]]" data-sort-as="number">
                     [[= pluralize(job.keep_n, 'backup') ]] / [[= pluralize(job.keep_days, 'day') ]]<br>
                   </td>
-                    <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href=   "run:[[= job.uuid ]]">run</a> | 
+                    <td> <a href="delete:[[= job.uuid ]]">delete</a> | <a href="run:[[= job.uuid ]]">run</a> | 
                           [[ if (job.paused == 0) { ]]
                             <a href="pause:[[= job.uuid ]]">pause</a>
                           [[ } else { ]]
