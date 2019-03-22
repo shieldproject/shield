@@ -278,20 +278,7 @@ func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 }
 
 func (p FSPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
-	cfg, err := getFSConfig(endpoint)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.Open(fmt.Sprintf("%s/%s", cfg.BasePath, file))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = io.Copy(os.Stdout, f)
-	return err
-
+	return plugin.UNIMPLEMENTED
 }
 
 func (p FSPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
