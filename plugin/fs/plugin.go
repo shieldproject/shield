@@ -58,6 +58,13 @@ func main() {
 				Title: "Files to Exclude",
 				Help:  "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded.",
 			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "strict",
+				Type:  "boolean",
+				Title: "Strict Mode",
+				Help:  "If files go missing while walking the directory, consider that a fatal error.",
+			},
 		},
 	}
 
@@ -71,6 +78,7 @@ type FSConfig struct {
 	Include  string
 	Exclude  string
 	BasePath string
+	Strict   bool
 }
 
 func (cfg *FSConfig) Match(path string) bool {
@@ -108,19 +116,36 @@ func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
 		return nil, err
 	}
 
+	strict, err := endpoint.BooleanValue("strict")
+	if err != nil {
+		return nil, err
+	}
+
 	return &FSConfig{
 		Include:  include,
 		Exclude:  exclude,
 		BasePath: base_dir,
+		Strict:   strict,
 	}, nil
 }
 
 func (p FSPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
+		b    bool
 		err  error
 		fail bool
 	)
+
+	b, err = endpoint.BooleanValueDefault("strict", false)
+	if err != nil {
+		fmt.Printf("@R{\u2717 strict    %s}\n", err)
+		fail = true
+	} else if b {
+		fmt.Printf("@G{\u2713 strict}    @C{yes} - files that go missing are considered an error\n")
+	} else {
+		fmt.Printf("@G{\u2713 strict}    @C{no} (default)\n")
+	}
 
 	s, err = endpoint.StringValue("base_dir")
 	if err != nil {
@@ -164,21 +189,30 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	archive := tar.NewWriter(os.Stdout)
 	walker := func(path string, info os.FileInfo, err error) error {
+		baseRelative := strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
+		if baseRelative == "" { /* musta been cfg.BasePath or cfg.BasePath + '/' */
+			return nil
+		}
+
+		fmt.Fprintf(os.Stderr, " - found '%s' ... ", path)
 		if info == nil {
-			return fmt.Errorf("fs: failed to walk %s: %s", path, err)
+			if _, ok := err.(*os.PathError); !cfg.Strict && ok {
+				fmt.Fprintf(os.Stderr, "no longer exists; skipping.\n")
+				return nil
+			} else {
+				fmt.Fprintf(os.Stderr, "FAILED\n");
+				return fmt.Errorf("failed to walk %s: %s", path, err)
+			}
 		}
 
 		if !cfg.Match(info.Name()) {
+			fmt.Fprintf(os.Stderr, "ignoring (per include/exclude)\n")
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-
-		baseRelative := strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
-		if baseRelative == "" { /* musta been cfg.BasePath or cfg.BasePath + '/' */
-			return nil
-		}
+		fmt.Fprintf(os.Stderr, "ok\n")
 
 		link := ""
 		if info.Mode()&os.ModeType == os.ModeSymlink {
@@ -213,9 +247,11 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return fmt.Errorf("unable to archive special file '%s'", path)
 	}
 
+	fmt.Fprintf(os.Stderr, "backing up files in '%s'...\n", cfg.BasePath)
 	if err := filepath.Walk(cfg.BasePath, walker); err != nil {
 		return err
 	}
+	fmt.Fprintf(os.Stderr, "done\n")
 
 	return archive.Close()
 }
@@ -242,34 +278,46 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 		info := header.FileInfo()
 		path := fmt.Sprintf("%s/%s", cfg.BasePath, header.Name)
+		fmt.Fprintf(os.Stderr, " - restoring '%s'... ", path)
 		if info.Mode().IsDir() {
 			if err := os.MkdirAll(path, 0777); err != nil {
+				fmt.Fprintf(os.Stderr, "FAILED (could not create directory)\n")
 				return err
 			}
+			fmt.Fprintf(os.Stderr, "created directory\n")
 
 		} else if info.Mode().IsRegular() {
 			f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, info.Mode())
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "FAILED (could not create new file)\n")
 				return err
 			}
 			if _, err := io.Copy(f, archive); err != nil {
+				fmt.Fprintf(os.Stderr, "FAILED (could not copy data to disk)\n")
 				return err
 			}
+			fmt.Fprintf(os.Stderr, "created file\n")
 
 		} else {
+			fmt.Fprintf(os.Stderr, "FAILED (not a regular file or a directory)\n")
 			return fmt.Errorf("unable to unpack special file '%s'", path)
 		}
 
 		/* put things back the way they were... */
 		if err := os.Chtimes(path, header.AccessTime, header.ModTime); err != nil {
+			fmt.Fprintf(os.Stderr, "FAILED (could not set atime / mtime / ctime)\n")
 			return err
 		}
 		if err := os.Chown(path, header.Uid, header.Gid); err != nil {
+			fmt.Fprintf(os.Stderr, "FAILED (could not set user ownership)\n")
 			return err
 		}
 		if err := os.Chmod(path, info.Mode()); err != nil {
+			fmt.Fprintf(os.Stderr, "FAILED (could not set group ownership)\n")
 			return err
 		}
+
+		fmt.Fprintf(os.Stderr, "ok\n")
 	}
 }
 
