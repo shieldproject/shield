@@ -142,13 +142,13 @@ func (p AzurePlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix               %s}\n", err)
+		fmt.Printf("@R{\u2717 prefix              %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 prefix}               (none)\n")
+		fmt.Printf("@G{\u2713 prefix}              (none)\n")
 	} else {
 		s = strings.TrimLeft(s, "/")
-		fmt.Printf("@G{\u2713 prefix}               @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 prefix}              @C{%s}\n", s)
 	}
 
 	if fail {
