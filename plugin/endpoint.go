@@ -38,6 +38,9 @@ func (endpoint ShieldEndpoint) StringValue(key string) (string, error) {
 func (endpoint ShieldEndpoint) StringValueDefault(key string, def string) (string, error) {
 	s, err := endpoint.StringValue(key)
 	if err == nil {
+		if s == "" {
+			return def, nil
+		}
 		return s, nil
 	}
 	if _, ok := err.(EndpointMissingRequiredDataError); ok {
