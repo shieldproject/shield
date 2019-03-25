@@ -226,13 +226,13 @@ func (p BBRPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		} else {
 			/* FIXME: validate that it's an RSA formatted key */
 			lines := strings.Split(s, "\n")
-			fmt.Printf("@G{\u2713 system_key}       <redact>@C{%s}\n", lines[0])
+			fmt.Printf("@G{\u2713 system_key}       <redacted>@C{%s}\n", lines[0])
 			if len(lines) > 1 {
 				for _, line := range lines[1:] {
 					fmt.Printf("                  @C{%s}\n", line)
 				}
 			}
-			fmt.Printf("</redact>\n")
+			fmt.Printf("</redacted>\n")
 		}
 
 	}
