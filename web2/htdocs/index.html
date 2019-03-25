@@ -1697,6 +1697,10 @@
               <input type="text" name="[[= _.prefix ]][[= field.name ]]"[[ if (field.default) { ]] placeholder="[[= field.default ]]"[[ } ]] value="[[= _.config[field.name] || '' ]]">
               [[ break;
 
+               case "text": ]]
+              <textarea name="[[= _.prefix ]][[= field.name ]]">[[ if (field.default) { ]][[= _.config[field.name] ]][[ } ]]</textarea>
+              [[ break;
+
                case "password": ]]
               <div class="smudge"><span>show</span><input type="password" name="[[= _.prefix ]][[= field.name ]]" [[ if (field.default) { ]] placeholder="[[= field.default ]]"[[ } ]] value="[[= _.config[field.name] || '' ]]"></div>
               [[ break;
