@@ -92,6 +92,17 @@ func DEBUG(format string, args ...interface{}) {
 	}
 }
 
+func Debugf(f string, args ...interface{}) {
+	if debug {
+		for _, line := range strings.Split(fmt.Sprintf(f, args...), "\n") {
+			fmt.Fprintf(os.Stderr, "DEBUG> %s\n", line)
+		}
+	}
+}
+func Infof(f string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, f+"\n", args...)
+}
+
 func Run(p Plugin) {
 	var opt Opt
 	info := p.Meta()

@@ -353,24 +353,29 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 		return "", 0, err
 	}
 
+	plugin.Infof("connecting to s3...")
 	client, err := c.Connect()
 	if err != nil {
 		return "", 0, err
 	}
 
 	path := c.genBackupPath()
-	plugin.DEBUG("Storing data in %s", path)
+	plugin.Infof("storing backup archive\n"+
+		"    at path   '%s'\n"+
+		"    in bucket '%s'", path, c.Bucket)
 
 	upload, err := client.NewUpload(path)
 	if err != nil {
 		return "", 0, err
 	}
 
+	plugin.Infof("streaming standard input to s3 in %d-byte blocks", c.PartSize)
 	size, err := upload.Stream(os.Stdin, c.PartSize)
 	if err != nil {
 		return "", 0, err
 	}
 
+	plugin.Infof("upload complete; uploaded %d bytes of data", size)
 	err = upload.Done()
 	if err != nil {
 		return "", 0, err
@@ -385,17 +390,28 @@ func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 		return err
 	}
 
-	client, err := e.Connect()
+	plugin.Infof("connecting to s3...")
+	c, err := e.Connect()
 	if err != nil {
 		return err
 	}
 
-	reader, err := client.Get(file)
+	plugin.Infof("retrieving backup archive\n"+
+		"    from path '%s\n"+
+		"    in bucket '%s'", file, c.Bucket)
+	reader, err := c.Get(file)
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(os.Stdout, reader)
-	return err
+
+	plugin.Infof("streaming backup archive to standard output")
+	n, err := io.Copy(os.Stdout, reader)
+	if err != nil {
+		return err
+	}
+
+	plugin.Infof("retrieved %d bytes of data", n)
+	return nil
 }
 
 func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
@@ -404,12 +420,16 @@ func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 		return err
 	}
 
-	client, err := e.Connect()
+	plugin.Infof("connecting to s3...")
+	c, err := e.Connect()
 	if err != nil {
 		return err
 	}
 
-	return client.Delete(file)
+	plugin.Infof("deleting backup archive\n"+
+		"    at path   '%s'\n"+
+		"    in bucket '%s'", file, c.Bucket)
+	return c.Delete(file)
 }
 
 func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
