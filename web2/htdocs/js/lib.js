@@ -4,7 +4,7 @@
     var e = document.createElement('div');
     return function (s) {
       e.innerText = (typeof(s) === 'undefined' ? '' : s).toString();
-      return e.innerHTML;
+      return e.innerHTML.replace(/&lt;(\/?redacted)&gt;/g, '<$1>');
     };
   })();
 
