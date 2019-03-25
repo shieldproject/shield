@@ -226,7 +226,6 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 s3_host}               @C{%s}\n", s)
 	}
 
-
 	useInstanceProfiles, err := endpoint.BooleanValueDefault("use_instance_profile", DefaultUseInstanceProfiles)
 	if err != nil {
 		fmt.Printf("@R{\u2717 use_instance_profile   %s}\n", err)

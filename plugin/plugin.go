@@ -311,7 +311,7 @@ func dispatch(p Plugin, mode string, opt Opt) error {
 		if opt.Key != "" {
 			DEBUG("  --key '%s'", opt.Key)
 		}
-		if opt.Text  {
+		if opt.Text {
 			DEBUG("  --text")
 		}
 	}

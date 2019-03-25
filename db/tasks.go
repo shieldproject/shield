@@ -503,7 +503,7 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 	    WHERE op         = ?
 	      AND agent      = ?
 	      AND stopped_at IS NULL`,
-		AgentStatusOperation, agent.Address);
+		AgentStatusOperation, agent.Address)
 	if err != nil {
 		return nil, err
 	}

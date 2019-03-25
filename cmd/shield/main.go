@@ -54,7 +54,7 @@ var opts struct {
 		Global bool `cli:"--global"`
 	} `cli:"status"`
 
-	Import struct{
+	Import struct {
 		Example bool `cli:"--example"`
 	} `cli:"import"`
 
@@ -91,7 +91,7 @@ var opts struct {
 	Init struct {
 		Master string `cli:"--master" env:"SHIELD_CORE_MASTER"`
 	} `cli:"init, initialize"`
-	Lock struct {} `cli:"lock"`
+	Lock   struct{} `cli:"lock"`
 	Unlock struct {
 		Master string `cli:"--master" env:"SHIELD_CORE_MASTER"`
 	} `cli:"unlock"`

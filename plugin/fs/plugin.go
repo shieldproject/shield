@@ -200,7 +200,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 				fmt.Fprintf(os.Stderr, "no longer exists; skipping.\n")
 				return nil
 			} else {
-				fmt.Fprintf(os.Stderr, "FAILED\n");
+				fmt.Fprintf(os.Stderr, "FAILED\n")
 				return fmt.Errorf("failed to walk %s: %s", path, err)
 			}
 		}

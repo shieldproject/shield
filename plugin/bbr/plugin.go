@@ -572,7 +572,7 @@ func getDetails(endpoint plugin.ShieldEndpoint) (*details, error) {
 
 	return &details{
 		BinDir:         bin,
-		TempDir:      tmp,
+		TempDir:        tmp,
 		Director:       director,
 		SystemUsername: username,
 		SystemKey:      key,
