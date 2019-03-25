@@ -116,7 +116,7 @@ func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
 		return nil, err
 	}
 
-	strict, err := endpoint.BooleanValue("strict")
+	strict, err := endpoint.BooleanValueDefault("strict", false)
 	if err != nil {
 		return nil, err
 	}
