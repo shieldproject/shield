@@ -61,7 +61,7 @@ func main() {
 			plugin.Field{
 				Mode:  "target",
 				Name:  "strict",
-				Type:  "boolean",
+				Type:  "bool",
 				Title: "Strict Mode",
 				Help:  "If files go missing while walking the directory, consider that a fatal error.",
 			},
