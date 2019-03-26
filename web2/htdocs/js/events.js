@@ -251,8 +251,8 @@
       /* }}} */
 
       /* Task Pagination */
-        .on('click', '.paginate .load-more', function (event) { /* {{{ */
-          console.log('loading more tasks...'); /* FIXME: need "loading" div... */
+        .on('click', '.paginate .load-more.tasks', function (event) { /* {{{ */
+          console.log('loading more tasks...');
           event.preventDefault();
 
           $(event.target).closest('.paginate').find('.loading').show();
@@ -279,6 +279,11 @@
               $(event.target).closest('.paginate').find('.loading').hide();
             }
           });
+        }) /* }}} */
+        .on('click', '.load-more.archives', function (event) { /* {{{ */
+          event.preventDefault();
+          Scratch.track('archives:all', 'yes');
+          $('#main').template();
         }) /* }}} */
 
       /* Tasks View */
