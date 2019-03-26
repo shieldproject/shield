@@ -1853,6 +1853,9 @@
               <span>Data System</span>[[= h(target.name) ]]
               <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
             </h2>
+              [[ if (!_.admin && AEGIS.is(target.tenant_uuid, 'engineer')) { ]]
+              <a class="edit"   href="#!/systems/edit:uuid:[[= target.uuid ]]">Edit</a>
+              [[ } ]]
             <div>[[= md(target.summary) ]]</div>
 
             <div class="side-by-side">
@@ -1988,6 +1991,112 @@
               <div class="loading">Fetching more tasks...</div>
               <a class="load-more tasks" href="">More Tasks...</a>
             </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:targets-form-plugin"><!-- {{{ -->
+      [[#
+        {targets-form-plugin} - Target Plugin Selection (Sub)Form
+
+        This fragment template exists so that we can redraw it when selections
+        are made.
+
+      ]]
+      <div class="field required" data-field="target.agent">
+        <div class="x3"><label for="target.agent">Agent</label></div>
+        <div class="x9">
+          [[ if (!_.selected_target_plugin) { ]]
+          <p class="awaiting-selection">A list of suitable SHIELD Agents will appear here once you select a target plugin.</p>
+          [[ } else { ]]
+          <select name="agent">
+            <option></option>
+            [[ $.each(AEGIS.plugins('target').agents[_.selected_target_plugin], function (i, agent) { ]]
+              <option value="[[= h(agent.address) ]]"[[ if (_.selected_target_agent == agent.address) { ]] selected[[ } ]]>[[= h(agent.name) ]] - [[= h(agent.address) ]] (legacy ssh)</option>
+            [[ }); ]]
+          </select>
+          <p class="help">The SHIELD Agent will be responsible for executing the programs and processes that will back up and restore data for this system.</p>
+          [[ } ]]
+        </div>
+      </div>
+
+      [[ if (_.selected_target_plugin && _.selected_target_agent) { ]]
+        [[ var plugin = AEGIS.agent(_.selected_target_agent).metadata.plugins[_.selected_target_plugin]; ]]
+        <div class="l1 x10"><h3><strong>[[= h(plugin.name) ]]</strong> Properties</h3></div>
+        [[ include('plugin-configuration-form', { prefix: 'config.', plugin: plugin, config: _.target.config }); ]]
+        <div class="x12 buttons">
+          <button class="final">Save Changes</button>
+        </div>
+        [[ } ]]
+    <!-- }}} --></script>
+    <script type="text/html" id="template:targets-form"><!-- {{{ -->
+      [[#
+        {targets-form} template
+
+        Renders a form for editing the target properties of a system,
+        without giving options or changing jobs / storage, etc.
+      ]]
+      [[
+          var target = AEGIS.system(args.uuid);
+      ]]
+          <div class="gutter blk wizard2">
+            <form class="new-form1">
+              <h2><span>Edit Data System</h2>
+              <div class="c12 band">
+                <div class="x9">
+                  <div class="c12">
+                    <div class="field required" data-field="name" data-type="string">
+                      <div class="x3"><label for="name">Name</label></div>
+                      <div class="x9">
+                        <input type="text" name="name"
+                               value="[[= h(target.name) ]]"
+                               placeholder="Name Your Data System">
+                        <span class="errors">
+                          <span data-error="missing">Please name your data system.</span>
+                        </span>
+                        <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <div class="x3"><label for="summary">Notes</label></div>
+                      <div class="x9">
+                        <textarea name="summary">[[= h(target.summary) ]]</textarea>
+                          <p class="help">Pick a memorable or descriptive name for this data system, so that other operators can determine when to use it.</p>
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <div class="x3"><label for="compression">Archive Compression</label></div>
+                      <div class="x9">
+                        <select name="compression">
+                          <option value="bzip2"[[ if (target.compression == 'bzip2') { ]] selected[[ } ]]>bzip2</option>
+                          <option value="none"[[ if (target.compression == 'none') { ]] selected[[ } ]]>No Compression</option>
+                        </select>
+                        <p class="help">What type of compression should SHIELD use to reduce the size of backup archives?  <em>bzip2</em> results in smaller archives, but may substantially increase time-to-backup (especially for large data sets).</p>
+                      </div>
+                    </div>
+
+                    <div class="field required" data-field="plugin" data-type="selection">
+                      <div class="x3"><label for="plugin">Plugin</label></div>
+                      <div class="x9">
+                        <select name="plugin">
+                          <option></option>
+                          [[ $.each(AEGIS.plugins('target').list, function (i, plugin) { ]]
+                          <option value="[[= plugin.id ]]"[[ if (target.plugin == plugin.id) { ]] selected [[ } ]]>[[= h(plugin.label) ]]</option>
+                          [[ }); ]]
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="redraw target">
+                    [[ _.selected_target_plugin = target.plugin; ]]
+                    [[ _.selected_target_agent = target.agent; ]]
+                    [[ _.target = target; ]]
+                    [[ include('targets-form-plugin', _); ]]
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
           </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:timeline-entry"><!-- {{{ -->

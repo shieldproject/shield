@@ -302,6 +302,36 @@ function dispatch(page) {
     });
     break; /* #!/systems/system */
     // }}}
+  case '#!/systems/edit': /* {{{ */
+    Scratch.track('redrawable', false);
+    if (!AEGIS.is('tenant', 'engineer')) {
+      $('#main').template('access-denied', { level: 'tenant', need: 'engineer' });
+      break;
+    }
+    $('#main').html($($.template('targets-form', args))
+      .autofocus()
+      .on('submit', 'form', function (event) {
+        event.preventDefault();
+
+        var $form = $(event.target);
+        if (!$form.reset().validate().isOK()) { return; }
+
+        var data = $form.serializeObject();
+        api({
+          type: 'PUT',
+          url:  '/v2/tenants/'+AEGIS.current.uuid+'/targets/'+args.uuid,
+          data: data,
+          success: function () {
+            goto("#!/systems/system:uuid:"+args.uuid);
+          },
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
+        });
+      }));
+
+    break; /* #!/systems/edit */
+    // }}}
 
   case '#!/stores': /* {{{ */
     if (!AEGIS.current) {
