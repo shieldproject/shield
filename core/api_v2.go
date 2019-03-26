@@ -1497,15 +1497,6 @@ func (c *Core) v2API() *route.Router {
 		r.OK(target)
 	})
 	// }}}
-	r.Dispatch("PUT /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
-		if c.IsNotTenantEngineer(r, r.Args[1]) {
-			return
-		}
-
-		/* FIXME */
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-	})
-	// }}}
 	r.Dispatch("PATCH /v2/tenants/:uuid/systems/:uuid", func(r *route.Request) { // {{{
 		if c.IsNotTenantEngineer(r, r.Args[1]) {
 			return
