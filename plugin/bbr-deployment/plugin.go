@@ -1,356 +1,445 @@
 package main
 
 import (
+	"archive/tar"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
-	"github.com/mholt/archiver"
 	"github.com/starkandwayne/shield/plugin"
 )
 
+const (
+	DefaultBinDir = "/var/vcap/packages/bbr/bin"
+)
+
 func main() {
-	bbr := BbrPlugin{
-		Name:    "BOSH BBR Deployment Plugin",
+	bbr := BBRPlugin{
+		Name:    "BBR Deployment Plugin",
 		Author:  "Stark & Wayne",
-		Version: "1.0.0",
+		Version: "1.4.0",
 		Features: plugin.PluginFeatures{
 			Target: "yes",
 			Store:  "no",
 		},
 		Example: `
-// example to make online keys "sed ':a;N;$!ba;s/\n/\\n/g' state/ssh.key"
 {
-  "bbr_bindir"     : "/path/to/bbr-package/bin",
-  "bbr_username"   : "admin",
-  "bbr_password"   : "c1oudc0w",
-  "bbr_target"     : "192.168.50.6",
-  "bbr_deployment" : "cf",
-  "bbr_cacert"     : "-----BEGIN CERTIFICATE----- my single line certs -----END CERTIFICATE-----"
+  "bindir"     : "/path/to/bbr-package/bin",
+  "username"   : "admin",
+  "password"   : "c1oudc0w",
+  "director"   : "192.168.50.6",
+  "deployment" : "cf",
+  "cacert"     : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"
 }
 `,
 		Defaults: `
 {
-  "bbr_bindir"   : "/var/vcap/packages/bbr/bin",
-  "bbr_target"   : "192.168.50.6",
-  "bbr_username" : "admin"
+  "bindir"   : "/var/vcap/packages/bbr/bin",
 }
 `,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
-				Name:     "bbr_target",
+				Name:     "director",
 				Type:     "string",
-				Title:    "BOSH Director Host",
-				Help:     "The hostname or IP address of your BOSH director.",
+				Title:    "BOSH Director",
+				Help:     "The hostname or IP address of your BOSH Director.",
 				Required: true,
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "bbr_username",
+				Name:     "deployment",
 				Type:     "string",
-				Title:    "BOSH Director username",
-				Help:     "Username to authenticate to the BOSH director.",
+				Title:    "Deployment",
+				Help:     "The name of the BOSH deployment to back up.",
 				Required: true,
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "bbr_password",
+				Name:     "ca_cert",
+				Type:     "pem-x509",
+				Title:    "CA Certificate",
+				Help:     "Certificate Authority X.509 Certificate that signed the BOSH Director's TLS certificate.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "username",
+				Type:     "string",
+				Title:    "BOSH Username",
+				Help:     "Username for authenticating to the BOSH Director.",
+				Required: true,
+			},
+			plugin.Field{
+				Mode:     "target",
+				Name:     "password",
 				Type:     "password",
-				Title:    "BOSH Director Password",
-				Help:     "Password to authenticate to the BOSH director.",
-				Required: true,
-			},
-			plugin.Field{
-				Mode:     "target",
-				Name:     "bbr_cacert",
-				Type:     "string",
-				Title:    "BOSH director vm private ssh key",
-				Help:     "CaCert for BOSH director, in a single line, use `sed ':a;N;$!ba;s/\n/\\n/g' ca.pem` to create one.",
+				Title:    "BOSH Password",
+				Help:     "Password for authenticating to the BOSH Director.",
 				Required: true,
 			},
 			plugin.Field{
 				Mode:    "target",
-				Name:    "bbr_bindir",
+				Name:    "bindir",
 				Type:    "abspath",
-				Title:   "Path to BBR bin/ directory",
+				Title:   "BBR bin/ Path",
 				Help:    "The absolute path to the bin/ directory that contains the `bbr` command.",
 				Default: "/var/vcap/packages/bbr/bin",
 			},
 			plugin.Field{
-				Mode:     "target",
-				Name:     "bbr_deployment",
-				Type:     "string",
-				Title:    "BOSH Deployment Name",
-				Help:     "The deployment name on the director your targeting",
-				Required: true,
+				Mode:    "target",
+				Name:    "tmpdir",
+				Type:    "abspath",
+				Title:   "Temporary Directory",
+				Help:    "The absolute path to a temporary directory (like /tmp) in which to stage backup files.",
+				Default: "",
 			},
 		},
 	}
 
 	fmt.Fprintf(os.Stderr, "bbr plugin starting up...\n")
-	// Run the plugin - the plugin framework handles all arg parsing, exit handling, error/debug formatting for you
 	plugin.Run(bbr)
 }
 
-type BbrPlugin plugin.PluginInfo
+type BBRPlugin plugin.PluginInfo
 
-type BbrConnectionInfo struct {
-	Bin        string // location of the bbr binary
-	Username   string // used for deployment
-	Password   string // used for deployment
-	Target     string // used for deployment
-	Deployment string // used for deployment
-	CaCert     string // used for deployment
+type details struct {
+	BinDir     string
+	TempDir    string
+	Username   string
+	Password   string
+	Director   string
+	Deployment string
+	CACert     string
 }
 
-// This function should be used to return the plugin's PluginInfo, however you decide to implement it
-func (p BbrPlugin) Meta() plugin.PluginInfo {
+func (p BBRPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-// Called to validate endpoints from the command line
-func (p BbrPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
-	var (
-		s    string
-		err  error
-		fail bool
-	)
-	s, err = endpoint.StringValue("bbr_deployment")
-	if err != nil {
-		fmt.Printf("@R{\u2717 bbr_deployment   %s}\n", err)
+func (p BBRPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
+	fail := false
+
+	if s, err := endpoint.StringValueDefault("bindir", DefaultBinDir); err != nil {
+		fmt.Printf("@R{\u2717 bindir           %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bbr_deployment}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 bindir}           @C{%s}\n", s)
 	}
-	s, err = endpoint.StringValue("bbr_target")
-	if err != nil {
-		fmt.Printf("@R{\u2717 bbr_target   %s}\n", err)
+
+	if s, err := endpoint.StringValueDefault("tmpdir", os.TempDir()); err != nil {
+		fmt.Printf("@R{\u2717 tmpdir           %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bbr_target}  @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 tmpdir}           @C{%s}\n", s)
 	}
-	s, err = endpoint.StringValue("bbr_username")
-	if err != nil {
-		fmt.Printf("@R{\u2717 bbr_username   %s}\n", err)
+
+	if s, err := endpoint.StringValue("director"); err != nil {
+		fmt.Printf("@R{\u2717 director         %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bbr_username}  @C{%s}\n", plugin.Redact(s))
+		fmt.Printf("@G{\u2713 director}         @C{%s}\n", s)
 	}
-	s, err = endpoint.StringValue("bbr_password")
-	if err != nil {
-		fmt.Printf("@R{\u2717 bbr_password   %s}\n", err)
+
+	if s, err := endpoint.StringValue("ca_cert"); err != nil {
+		fmt.Printf("@R{\u2717 ca_cert          %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bbr_password}  @C{%s}\n", plugin.Redact(s))
+		/* FIXME: validate that it is an X.509 PEM certificate */
+		lines := strings.Split(s, "\n")
+		fmt.Printf("@G{\u2713 ca_cert}          @C{%s}\n", lines[0])
+		if len(lines) > 1 {
+			for _, line := range lines[1:] {
+				fmt.Printf("                   @C{%s}\n", line)
+			}
+		}
 	}
-	s, err = endpoint.StringValue("bbr_cacert")
-	if err != nil {
-		fmt.Printf("@R{\u2717 bbr_cacert   %s}\n", err)
+
+	if s, err := endpoint.StringValue("username"); err != nil {
+		fmt.Printf("@R{\u2717 username    %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 bbr_cacert}  @C{%s}\n", plugin.Redact(s))
+		fmt.Printf("@G{\u2713 username}    @C{%s}\n", s)
 	}
+
+	if s, err := endpoint.StringValue("password"); err != nil {
+		fmt.Printf("@R{\u2717 password    %s}\n", err)
+		fail = true
+	} else {
+		fmt.Printf("@G{\u2713 password}    @C{%s}\n", plugin.Redact(s))
+	}
+
+	if s, err := endpoint.StringValue("deployment"); err != nil {
+		fmt.Printf("@R{\u2717 deployment       %s}\n", err)
+		fail = true
+	} else {
+		fmt.Printf("@G{\u2713 deployment}       @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("bbr: invalid configuration")
 	}
 	return nil
 }
 
-func tmpfile(body string) (path string, err error) {
-	// write privatekey from string
-	file, err := ioutil.TempFile("", "test")
+func persist(dir, contents string) (string, error) {
+	f, err := ioutil.TempFile("", "shield-bbr-*")
 	if err != nil {
 		return "", err
 	}
-	// defer os.Remove(file.Name()) // clean up
-	plugin.DEBUG("writing: `%s`", body)
-	if _, err := file.WriteString(body); err != nil {
+
+	if _, err := f.WriteString(contents); err != nil {
 		return "", err
 	}
-	if err := file.Close(); err != nil {
+
+	if err := f.Close(); err != nil {
 		return "", err
 	}
-	return file.Name(), nil
+
+	return f.Name(), nil
 }
 
-// // Called when you want to back data up. Examine the ShieldEndpoint passed in, and perform actions accordingly
-func (p BbrPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	bbr, err := BConnectionInfo(endpoint)
-	if err != nil {
-		return err
-	}
-	caCertPath, err := tmpfile(bbr.CaCert)
-	if err != nil {
-		return err
-	}
-	tmpdir, err := ioutil.TempDir("", "bbr")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpdir)
-	err = os.Chdir(tmpdir)
+func (p BBRPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
+	var cmd *exec.Cmd
+
+	bbr, err := getDetails(endpoint)
 	if err != nil {
 		return err
 	}
 
-	// execut bbr cli
-	cmd := exec.Command(fmt.Sprintf("%s/bbr", bbr.Bin), "deployment", "--target", bbr.Target, "--username", bbr.Username, "--password", bbr.Password, "--deployment", bbr.Deployment, "--ca-cert", caCertPath, "backup")
-	plugin.DEBUG("Executing: `%v`", cmd)
+	fmt.Fprintf(os.Stderr, "Setting up temporary workspace directory...\n")
+	workspace, err := ioutil.TempDir(bbr.TempDir, "shield-bbr-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(workspace)
+	fmt.Fprintf(os.Stderr, "  workspace is '%s'\n", workspace)
+
+	fmt.Fprintf(os.Stderr, "Changing working directory to workspace...\n")
+	if err := os.Chdir(workspace); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "Writing CA Certificate file to disk...\n")
+	ca, err := persist(bbr.TempDir, bbr.CACert)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(ca)
+	fmt.Fprintf(os.Stderr, "  wrote to '%s'\n", ca)
+
+	cmd = exec.Command(fmt.Sprintf("%s/bbr", bbr.BinDir),
+		"deployment",
+		"--target", bbr.Director,
+		"--username", bbr.Username,
+		"--password", bbr.Password,
+		"--deployment", bbr.Deployment,
+		"--ca-cert", ca,
+		"backup")
+	fmt.Fprintf(os.Stderr, "\nRunning BRR CLI...\n")
+	fmt.Fprintf(os.Stderr, "  %s/bbr deployment \\\n", bbr.BinDir)
+	fmt.Fprintf(os.Stderr, "    --target %s \\\n", bbr.Director)
+	fmt.Fprintf(os.Stderr, "    --username %s \\\n", bbr.Username)
+	fmt.Fprintf(os.Stderr, "    --password %s \\\n", plugin.Redact(bbr.Password))
+	fmt.Fprintf(os.Stderr, "    --deployment %s \\\n", bbr.Deployment)
+	fmt.Fprintf(os.Stderr, "    --ca-cert %s \\\n", ca)
+	fmt.Fprintf(os.Stderr, "    backup\n\n\n")
+
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
+
+	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n")
 	err = cmd.Run()
+	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n\n\n")
 	if err != nil {
 		return err
 	}
 
-	// //TODO: join string can't this be a onliner?
-	s := []string{bbr.Deployment, "*"}
-	joined := strings.Join(s, "")
+	fmt.Fprintf(os.Stderr, "Combining BBR output files into an uncompressed tarball...\n")
+	archive := tar.NewWriter(os.Stdout)
+	err = filepath.Walk(workspace, func(path string, info os.FileInfo, err error) error {
+		fmt.Fprintf(os.Stderr, "  - analyzing %s ... ", path)
+		rel, err := filepath.Rel(workspace, path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "@R{FAILED}\n")
+			return err
+		}
 
-	// create path so we can use it this path to zip the directory
-	backups, err := filepath.Glob(path.Join(tmpdir, joined))
-	if err != nil {
-		return err
-	}
-	plugin.DEBUG("PATHS: `%s`", backups)
-	// Write our backuped directory to zip
-	tmpfile, err := ioutil.TempFile("", ".zip")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmpfile.Name())
-	err = archiver.Zip.Make(tmpfile.Name(), backups)
-	if err != nil {
-		return err
-	}
-	// open zip for reader
-	reader, err := os.Open(tmpfile.Name())
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(os.Stdout, reader)
+		if !strings.HasPrefix(rel, bbr.Deployment) {
+			fmt.Fprintf(os.Stderr, "skipping\n")
+			return nil
+		}
+
+		fmt.Fprintf(os.Stderr, "INCLUDING\n")
+		h, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return err
+		}
+		h.Name = rel
+		archive.WriteHeader(h)
+
+		f, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		io.Copy(archive, f)
+		f.Close()
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 
+	archive.Close()
 	return nil
 }
 
-// Called when you want to restore data Examine the plugin.ShieldEndpoint passed in, and perform actions accordingly
-func (p BbrPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
-	bbr, err := BConnectionInfo(endpoint)
+func (p BBRPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
+	var cmd *exec.Cmd
+
+	bbr, err := getDetails(endpoint)
 	if err != nil {
 		return err
 	}
-	caCertPath, err := tmpfile(bbr.CaCert)
+
+	fmt.Fprintf(os.Stderr, "Setting up temporary workspace directory...\n")
+	workspace, err := ioutil.TempDir(bbr.TempDir, "shield-bbr-*")
 	if err != nil {
 		return err
 	}
-	tmpdir, err := ioutil.TempDir("", "bbr")
+	defer os.RemoveAll(workspace)
+	fmt.Fprintf(os.Stderr, "  workspace is '%s'\n", workspace)
+
+	fmt.Fprintf(os.Stderr, "Changing working directory to workspace...\n")
+	if err := os.Chdir(workspace); err != nil {
+		return err
+	}
+
+	archive := tar.NewReader(os.Stdin)
+	for {
+		h, err := archive.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		f, err := os.Create(h.Name)
+		if err != nil {
+			return err
+		}
+		io.Copy(f, archive)
+		f.Close()
+	}
+
+	artifacts, err := filepath.Glob("*")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmpdir)
-	// Write our backuped directory to zip
-	tmpfile, err := ioutil.TempFile("", ".zip")
+	if len(artifacts) == 0 {
+		return fmt.Errorf("Found no BBR artifacts in backup archive!")
+	}
+	if len(artifacts) > 1 {
+		return fmt.Errorf("Found too many BBR artifacts (%d) in backup archive!", len(artifacts))
+	}
+
+	fmt.Fprintf(os.Stderr, "Writing CA Certificate file to disk...\n")
+	ca, err := persist(bbr.TempDir, bbr.CACert)
 	if err != nil {
 		return err
 	}
-	defer os.Remove(tmpfile.Name())
-	_, err = io.Copy(tmpfile, os.Stdin)
-	if err != nil {
-		return err
-	}
-	err = archiver.Zip.Open(tmpfile.Name(), tmpdir)
-	if err != nil {
-		return err
-	}
-	//TODO: join string can't this be a onliner?
-	s := []string{bbr.Deployment, "*"}
-	joined := strings.Join(s, "")
-	backups, err := filepath.Glob(path.Join(tmpdir, joined))
-	if err != nil {
-		return err
-	}
-	// execut bbr cli
-	cmd := exec.Command(fmt.Sprintf("%s/bbr", bbr.Bin), "deployment", "--target", bbr.Target, "--username", bbr.Username, "--password", bbr.Password, "--deployment", bbr.Deployment, "--ca-cert", caCertPath, "restore", "--artifact-path", backups[0])
-	plugin.DEBUG("Executing: `%v`", cmd)
+	defer os.Remove(ca)
+	fmt.Fprintf(os.Stderr, "  wrote to '%s'\n", ca)
+
+	cmd = exec.Command(fmt.Sprintf("%s/bbr", bbr.BinDir),
+		"deployment",
+		"--target", bbr.Director,
+		"--username", bbr.Username,
+		"--password", bbr.Password,
+		"--deployment", bbr.Deployment,
+		"--ca-cert", ca,
+		"restore",
+		"--artifact-path", artifacts[0])
+
+	fmt.Fprintf(os.Stderr, "\nRunning BRR CLI...\n")
+	fmt.Fprintf(os.Stderr, "  %s/bbr deployment \\\n", bbr.BinDir)
+	fmt.Fprintf(os.Stderr, "    --target %s \\\n", bbr.Director)
+	fmt.Fprintf(os.Stderr, "    --username %s \\\n", bbr.Username)
+	fmt.Fprintf(os.Stderr, "    --password %s \\\n", plugin.Redact(bbr.Password))
+	fmt.Fprintf(os.Stderr, "    --deployment %s \\\n", bbr.Deployment)
+	fmt.Fprintf(os.Stderr, "    --ca-cert %s \\\n", ca)
+	fmt.Fprintf(os.Stderr, "    restore \\\n")
+	fmt.Fprintf(os.Stderr, "    --artifact-path %s \\\n\n\n", artifacts[0])
+
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
+	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n")
 	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	fmt.Fprintf(os.Stderr, "----------------------------------------------------------\n\n\n")
+	return err
 }
 
-// Called when you want to store backup data. Examine the plugin.ShieldEndpoint passed in, and perform actions accordingly
-func (p BbrPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
+func (p BBRPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 	return "", 0, plugin.UNIMPLEMENTED
 }
 
-// Called when you want to retreive backup data. Examine the plugin.ShieldEndpoint passed in, and perform actions accordingly
-func (p BbrPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
+func (p BBRPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func (p BbrPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
+func (p BBRPlugin) Purge(endpoint plugin.ShieldEndpoint, key string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-//That's all there is to writing a plugin. If your plugin doesn't need to implement Store/Retrieve, or Backup/Restore,
-// Define the functions, and have them return plugin.UNIMPLEMENTED
-
-func BConnectionInfo(endpoint plugin.ShieldEndpoint) (*BbrConnectionInfo, error) {
-	bin, err := endpoint.StringValueDefault("bbr_bindir", "/var/vcap/packages/bbr/bin")
+func getDetails(endpoint plugin.ShieldEndpoint) (*details, error) {
+	deployment, err := endpoint.StringValueDefault("deployment", "")
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("BBRBINDIR: '%s'", bin)
 
-	username, err := endpoint.StringValue("bbr_username")
+	director, err := endpoint.StringValue("director")
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("BBRUSERNAME: '%s'", username)
 
-	password, err := endpoint.StringValue("bbr_password")
+	bin, err := endpoint.StringValueDefault("bindir", DefaultBinDir)
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("BBRPASSWORD: '%s'", password)
 
-	target, err := endpoint.StringValueDefault("bbr_target", "")
+	tmp, err := endpoint.StringValueDefault("tmpdir", os.TempDir())
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("BBRTARGET: '%s'", target)
 
-	deployment, err := endpoint.StringValueDefault("bbr_deployment", "")
+	cacert, err := endpoint.StringValue("ca_cert")
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("BBRDEPLOYMENT: '%s'", deployment)
 
-	cacert, err := endpoint.StringValueDefault("bbr_cacert", "")
+	username, err := endpoint.StringValue("username")
 	if err != nil {
 		return nil, err
 	}
-	plugin.DEBUG("BBRCACERT: '%s'", cacert)
 
-	return &BbrConnectionInfo{
-		Bin:        bin,
+	password, err := endpoint.StringValue("password")
+	if err != nil {
+		return nil, err
+	}
+
+	return &details{
+		BinDir:     bin,
+		TempDir:    tmp,
+		Director:   director,
 		Username:   username,
 		Password:   password,
-		Target:     target,
+		CACert:     cacert,
 		Deployment: deployment,
-		CaCert:     cacert,
 	}, nil
 }

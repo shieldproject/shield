@@ -18,7 +18,6 @@
 # ignore the plugin
 /azure
 /backblaze
-/bbr
 /bbr-deployment
 /bbr-director
 /cassandra
