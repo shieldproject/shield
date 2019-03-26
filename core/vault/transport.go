@@ -60,7 +60,7 @@ func (c *Client) Get(path string, out interface{}) (bool, error) {
 			return true, err
 		}
 
-		return true, json.Unmarshal(b, &out)
+		return true, json.Unmarshal(b, out)
 	}
 
 	/* everything else is an eror */

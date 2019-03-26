@@ -98,18 +98,18 @@ func (c *Client) Store(id string, params Parameters) error {
 }
 
 func (c *Client) Retrieve(id string) (Parameters, error) {
-	var out Parameters
+	var out struct { Data Parameters `json:"data"` }
 	ok, err := c.Get(fmt.Sprintf("secret/archives/%s", id), &out)
 	if !ok {
 		err = fmt.Errorf("not found in vault")
 	}
 	if err != nil {
-		return out, fmt.Errorf("failed to retrieve encryption parameters for [%s]: %s", id, err)
+		return out.Data, fmt.Errorf("failed to retrieve encryption parameters for [%s]: %s", id, err)
 	}
 
-	out.Key = Decode(out.Key)
-	out.IV = Decode(out.IV)
-	return out, nil
+	out.Data.Key = Decode(out.Data.Key)
+	out.Data.IV = Decode(out.Data.IV)
+	return out.Data, nil
 }
 
 func (c *Client) RetrieveFixed() (Parameters, error) {

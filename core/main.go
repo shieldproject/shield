@@ -373,6 +373,10 @@ func (c *Core) TasksToChores() {
 				c.TaskErrored(task, "unable to retrieve encryption parameters:\n%s\n", err)
 				continue
 			}
+			if encryption.Type == "" {
+				c.TaskErrored(task, "unable to retrieve encryption parameters:\nencryption parameters for archive '%s' not found in vault\n", task.ArchiveUUID)
+				continue
+			}
 			c.scheduler.Schedule(20, fabric.Restore(task, encryption))
 			inflight[task.TargetUUID] = task
 

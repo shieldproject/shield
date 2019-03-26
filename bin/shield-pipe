@@ -77,7 +77,6 @@ validate() {
 }
 
 needenv() {
-	header "Validating environment..."
 	for var in "$@"; do
 		eval v=\$$var
 		if [[ -z ${v} ]]; then
@@ -92,19 +91,31 @@ needenv() {
 
 trap 'exiting $?' EXIT
 
-if [ -n "$SHIELD_ENCRYPT_KEY" ]; then
-	enc_key="${SHIELD_ENCRYPT_KEY}"
-	unset SHIELD_ENCRYPT_KEY
-fi  
-
-if [ -n "$SHIELD_ENCRYPT_TYPE" ]; then
+echo >&2
+echo >&2
+header "Validating environment..."
+if [[ -n "${SHIELD_ENCRYPT_TYPE}" ]]; then
 	enc_type="${SHIELD_ENCRYPT_TYPE}"
 	unset SHIELD_ENCRYPT_TYPE
-fi  
+	echo >&2 "SHIELD_ENCRYPT_TYPE ... $enc_type"
+else
+	echo >&2 "SHIELD_ENCRYPT_TYPE not set..."
+fi
 
-if [ -n "$SHIELD_ENCRYPT_IV" ]; then
+if [[ -n "${SHIELD_ENCRYPT_KEY}" ]]; then
+	enc_key="${SHIELD_ENCRYPT_KEY}"
+	unset SHIELD_ENCRYPT_KEY
+	echo >&2 "SHIELD_ENCRYPT_KEY ... found"
+else
+	echo >&2 "SHIELD_ENCRYPT_KEY not set..."
+fi
+
+if [[ -n "${SHIELD_ENCRYPT_IV}" ]]; then
 	enc_iv="${SHIELD_ENCRYPT_IV}"
 	unset SHIELD_ENCRYPT_IV
+	echo >&2 "SHIELD_ENCRYPT_IV ... found"
+else
+	echo >&2 "SHIELD_ENCRYPT_IV not set..."
 fi
 
 SHIELD_COMPRESSION=${SHIELD_COMPRESSION:-bzip2}
