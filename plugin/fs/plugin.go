@@ -188,6 +188,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	archive := tar.NewWriter(os.Stdout)
+	n := 0
 	walker := func(path string, info os.FileInfo, err error) error {
 		baseRelative := strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
 		if baseRelative == "" { /* musta been cfg.BasePath or cfg.BasePath + '/' */
@@ -212,6 +213,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			}
 			return nil
 		}
+		n += 1
 		fmt.Fprintf(os.Stderr, "ok\n")
 
 		link := ""
@@ -251,7 +253,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	if err := filepath.Walk(cfg.BasePath, walker); err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stderr, "done\n")
+	fmt.Fprintf(os.Stderr, "done; found %d files / directories to archive...\n\n", n)
 
 	return archive.Close()
 }
@@ -266,6 +268,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
+	n := 0
 	archive := tar.NewReader(os.Stdin)
 	for {
 		header, err := archive.Next()
@@ -278,6 +281,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 		info := header.FileInfo()
 		path := fmt.Sprintf("%s/%s", cfg.BasePath, header.Name)
+		n += 1
 		fmt.Fprintf(os.Stderr, " - restoring '%s'... ", path)
 		if info.Mode().IsDir() {
 			if err := os.MkdirAll(path, 0777); err != nil {
@@ -319,6 +323,9 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 		fmt.Fprintf(os.Stderr, "ok\n")
 	}
+
+	fmt.Fprintf(os.Stderr, "done; restored %d files / directories...\n\n", n)
+	return nil
 }
 
 func (p FSPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
