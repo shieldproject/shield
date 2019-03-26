@@ -1905,7 +1905,7 @@
 
             [[ var archives = AEGIS.archives({ tenant: target.tenant_uuid, system: target.uuid }); ]]
             [[ if (archives.length > 0) { ]]
-              [[ archives = $.sortBy(archives, 'created_at').reverse(); ]]
+              [[ archives = $.sortBy(archives, 'taken_at').reverse(); ]]
               [[ var show = Scratch('archives:all') ? archives : archives.slice(0, 4); ]]
             <h2>Backup Archives</h2>
             <table class="lean sortable">
