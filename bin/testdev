@@ -256,6 +256,7 @@ scheduler:
 
 api:
   bind: 127.0.0.1:8180
+  pprof: ':8185'
   env:   TESTDEV
   color: yellow
   motd: |
@@ -335,7 +336,7 @@ EOF
 
     echo ">> RUNNING SHIELDD"
     trap ":" INT # ignore Ctrl-C
-    ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
+    GODEBUG=schedtrace=1000 ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
     echo
     echo "shieldd exited."
     echo "Do you want to restart it?"

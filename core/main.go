@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -194,6 +195,22 @@ func (c *Core) ConnectToVault() {
 }
 
 func (c *Core) Bind() {
+	pprofMux := http.DefaultServeMux
+	http.DefaultServeMux = http.NewServeMux()
+
+	if c.Config.API.PProf != "" {
+		log.Infof("INITIALIZING: binding profiling endpoints to %s", c.Config.API.PProf)
+		go func() {
+			s := &http.Server{
+				Addr:    c.Config.API.PProf,
+				Handler: pprofMux,
+			}
+			if err := s.ListenAndServe(); err != nil {
+				log.Alertf("SHIELD Core API/pprof failed: %s", err)
+			}
+		}()
+	}
+
 	log.Infof("INITIALIZING: binding the SHIELD Core API/UI on %s...", c.Config.API.Bind)
 	log.Infof("INITIALIZING: serving SHIELD Web UI static assets from %s...", c.Config.WebRoot)
 
