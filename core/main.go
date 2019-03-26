@@ -111,6 +111,17 @@ func (c *Core) CreateFailsafeUser() {
 	user.SetPassword(c.Config.API.Failsafe.Password)
 	_, err = c.db.CreateUser(user)
 	c.MaybeTerminate(err)
+
+	tenants, err := c.db.GetAllTenants(&db.TenantFilter{
+		Name:       "Default Tenant",
+		ExactMatch: true,
+	})
+	if err == nil && len(tenants) == 1 {
+		log.Debugf("adding failsafe account to 'Default Tenant' as an admin")
+		tenant := tenants[0]
+		err = c.db.AddUserToTenant(user.UUID, tenant.UUID, "admin")
+		c.MaybeTerminate(err)
+	}
 }
 
 func (c *Core) ExpireInteractiveSessions() {
