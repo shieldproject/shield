@@ -340,6 +340,7 @@ function dispatch(page) {
     break; /* #!/stores/store */
     // }}}
   case '#!/stores/new': /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
@@ -384,6 +385,7 @@ function dispatch(page) {
     break; /* #!/stores */
     // }}}
   case '#!/stores/edit': /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.current) {
       $('#main').template('you-have-no-tenants');
       break;
@@ -634,6 +636,7 @@ function dispatch(page) {
     break; /* #!/admin/auth */
     // }}}
   case '#!/admin/rekey': /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
@@ -706,6 +709,7 @@ function dispatch(page) {
     break; /* #!/admin/tenants */
     // }}}
   case '#!/admin/tenants/new': /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
@@ -775,6 +779,7 @@ function dispatch(page) {
     break; /* #!/admin/tenants/new */
     // }}}
   case '#!/admin/tenants/edit': /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
@@ -902,6 +907,7 @@ function dispatch(page) {
     break; /* #!/admin/users */
     // }}}
   case "#!/admin/users/new": /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
@@ -941,6 +947,7 @@ function dispatch(page) {
     break; // #!/admin/users/new
     // }}}
   case "#!/admin/users/edit": /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.is('manager')) {
       $('#main').template('access-denied', { level: 'system', need: 'manager' });
       break;
@@ -1001,6 +1008,7 @@ function dispatch(page) {
     break; /* #!/admin/stores/store */
     // }}}
   case '#!/admin/stores/new': /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
@@ -1043,6 +1051,7 @@ function dispatch(page) {
     break; /* #!/admin/stores */
     // }}}
   case '#!/admin/stores/edit': /* {{{ */
+    Scratch.track('redrawable', false);
     if (!AEGIS.is('engineer')) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
