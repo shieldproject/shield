@@ -54,7 +54,7 @@ func main() {
 			plugin.Field{
 				Mode:  "target",
 				Name:  "exclude",
-				Type:  "abspath",
+				Type:  "string",
 				Title: "Files to Exclude",
 				Help:  "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded.",
 			},
