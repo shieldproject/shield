@@ -675,6 +675,16 @@
 
       } else if (value != "") {
         switch (type) {
+        case "pem-x509":
+          if (!value.match(/----- BEGIN PUBLIC CERTIFICATE -----.*----- END PUBLIC CERTIFICATE -----/)) {
+            $form.error(field, 'invalid');
+          }
+          break;
+        case "pem-rsa-pk":
+          if (!value.match(/----- BEGIN (RSA )?PRIVATE KEY -----.*----- END (RSA )?PRIVATE KEY -----/)) {
+            $form.error(field, 'invalid');
+          }
+          break;
         case "abspath":
           console.log(ctl, ' checking value abspath (', value, ')');
           if (!value.match(/^\//)) {

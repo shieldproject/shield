@@ -60,7 +60,7 @@ func main() {
 			plugin.Field{
 				Mode:  "target",
 				Name:  "ca_cert",
-				Type:  "text",
+				Type:  "pem-x509",
 				Title: "CA Certificate",
 				Help:  "Certificate Authority X.509 Certificate that signed the BOSH Director's TLS certificate.",
 			},
@@ -88,7 +88,7 @@ func main() {
 			plugin.Field{
 				Mode:  "target",
 				Name:  "system_key",
-				Type:  "text",
+				Type:  "pem-rsa-pk",
 				Title: "VM Private Key",
 				Help:  "RSA Private Key for the System user.",
 			},

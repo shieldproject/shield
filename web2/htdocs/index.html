@@ -1697,6 +1697,8 @@
               <input type="text" name="[[= _.prefix ]][[= field.name ]]"[[ if (field.default) { ]] placeholder="[[= field.default ]]"[[ } ]] value="[[= _.config[field.name] || '' ]]">
               [[ break;
 
+               case "pem-x509":
+               case "pem-rsa-pk":
                case "text": ]]
               <textarea name="[[= _.prefix ]][[= field.name ]]">[[ if (field.default) { ]][[= _.config[field.name] ]][[ } ]]</textarea>
               [[ break;
@@ -1729,6 +1731,10 @@
               <span data-error="invalid">Please supply a valid port number, between 1 and 65535 (inclusive).</span>
             [[ } else if (field.type == "abspath") { ]]
               <span data-error="invalid">Please supply an absolute filesystem path, starting with a forward slash.</span>
+            [[ } else if (field.type == "pem-x509") { ]]
+              <span data-error="invalid">Please supply a PEM-encoded X.509 public certificate.</span>
+            [[ } else if (field.type == "pem-rsa-pk") { ]]
+              <span data-error="invalid">Please supply a PEM-encoded RSA private key.</span>
             [[ } ]]
             </span>
             [[ if (field.help || field.example) { ]]

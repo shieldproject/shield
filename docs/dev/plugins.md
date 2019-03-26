@@ -99,6 +99,10 @@ presented to the user.  Valid types are:
   form field, and the CLI might read from standard input until a
   newline is reached.
 
+- **text** - A multi-line string  For the web UI, this is
+  displayed as a `<textarea>` HTML form field, and the CLI might
+  allow reading from a file, or open up an editor.
+
 - **bool** - A yes/no proposition, sent to the backend as a
   boolean true / false value.  The web UI will display this as a
   checkbox; the CLI will ask a "yes/no" question.
@@ -116,6 +120,15 @@ presented to the user.  Valid types are:
 - **asbpath** - A string that represents an absolute path on a
   compatible UNIX filesystem.  Absolute paths _must_ begin with a
   forward slash `/`).
+
+- **pem-x509** - A text field that ought to contain an X.509
+  public certificate.  Additional validation can be carried out in
+  UI / CLI contexts, to ensure that the proposed value _looks_
+  like an X.509 PEM-encoded certificate.
+
+- **pem-rsa-pk** - A text field that ought to contain an RSA
+  private key.  The Web UI / CLI can then redact this properly, as
+  well as validate that it contains the right BEGIN / END markers.
 
 This field is required.
 
