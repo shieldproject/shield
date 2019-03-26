@@ -926,6 +926,7 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
+    $('#main').template('loading');
     api({
       type: 'GET',
       url:  '/v2/auth/local/users',
