@@ -74,7 +74,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "mysql_pass",
+				Name:     "mysql_password",
 				Type:     "password",
 				Title:    "MySQL Password",
 				Help:     "Password to authenticate to MySQL as.",
