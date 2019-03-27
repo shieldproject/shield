@@ -20,7 +20,7 @@ import (
 
 const (
 	DefaultS3Host              = "s3.amazonaws.com"
-	DefaultPrefix              = ""
+	DefaultRegion              = "us-east-1"
 	DefaultSigVersion          = "4"
 	DefaultPartSize            = "5M"
 	DefaultSkipSSLValidation   = false
@@ -116,6 +116,14 @@ func main() {
 				Help:  "The Secret Access Key to use when authenticating against S3.",
 			},
 			plugin.Field{
+				Mode:    "store",
+				Name:    "region",
+				Type:    "string",
+				Title:   "Region",
+				Help:    "Name of the region this bucket exists in.",
+				Default: DefaultRegion,
+			},
+			plugin.Field{
 				Mode:     "store",
 				Name:     "bucket",
 				Type:     "string",
@@ -193,6 +201,7 @@ type s3Endpoint struct {
 	AccessKey           string
 	SecretKey           string
 	Token               string
+	Region              string
 	Bucket              string
 	PathPrefix          string
 	SignatureVersion    int
@@ -269,6 +278,16 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		}
 	}
 
+	s, err = endpoint.StringValueDefault("region", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 bucket                %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 bucket}                @C{%s} (default)\n", DefaultRegion)
+	} else {
+		fmt.Printf("@G{\u2713 bucket}                @C{%s}\n", s)
+	}
+
 	s, err = endpoint.StringValue("bucket")
 	if err != nil {
 		fmt.Printf("@R{\u2717 bucket                %s}\n", err)
@@ -280,7 +299,7 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 bucket}                @C{%s}\n", plugin.Redact(s))
 	}
 
-	s, err = endpoint.StringValueDefault("prefix", DefaultPrefix)
+	s, err = endpoint.StringValueDefault("prefix", "")
 	if err != nil {
 		fmt.Printf("@R{\u2717 prefix                %s}\n", err)
 		fail = true
@@ -473,12 +492,17 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		token = instanceProfileCreds.Token
 	}
 
+	region, err := e.StringValueDefault("region", DefaultRegion)
+	if err != nil {
+		return s3Endpoint{}, err
+	}
+
 	bucket, err := e.StringValue("bucket")
 	if err != nil {
 		return s3Endpoint{}, err
 	}
 
-	prefix, err := e.StringValueDefault("prefix", DefaultPrefix)
+	prefix, err := e.StringValueDefault("prefix", "")
 	if err != nil {
 		return s3Endpoint{}, err
 	}
@@ -522,6 +546,7 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		AccessKey:           key,
 		SecretKey:           secret,
 		Token:               token,
+		Region:              region,
 		Bucket:              bucket,
 		PathPrefix:          prefix,
 		SignatureVersion:    sigVer,
@@ -553,7 +578,7 @@ func (e s3Endpoint) Connect() (*s3.Client, error) {
 		AccessKeyID:        e.AccessKey,
 		SecretAccessKey:    e.SecretKey,
 		Token:              e.Token,
-		Region:             "us-east-1", /* FIXME: make this configurable */
+		Region:             e.Region,
 		Domain:             host,
 		Bucket:             e.Bucket,
 		InsecureSkipVerify: e.SkipSSLValidation,
