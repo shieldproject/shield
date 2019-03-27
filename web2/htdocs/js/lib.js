@@ -676,12 +676,12 @@
       } else if (value != "") {
         switch (type) {
         case "pem-x509":
-          if (!value.match(/----- BEGIN PUBLIC CERTIFICATE -----.*----- END PUBLIC CERTIFICATE -----/)) {
+          if (!value.match(/^\s*-----BEGIN CERTIFICATE-----.*-----END CERTIFICATE-----/s)) {
             $form.error(field, 'invalid');
           }
           break;
         case "pem-rsa-pk":
-          if (!value.match(/----- BEGIN (RSA )?PRIVATE KEY -----.*----- END (RSA )?PRIVATE KEY -----/)) {
+          if (!value.match(/^\s*-----BEGIN (RSA )?PRIVATE KEY-----.*-----END (RSA )?PRIVATE KEY-----/s)) {
             $form.error(field, 'invalid');
           }
           break;
