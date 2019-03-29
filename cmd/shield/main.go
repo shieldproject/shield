@@ -602,7 +602,6 @@ func main() {
 
 	case "cores": /* {{{ */
 		tbl := table.NewTable("Name", "URL", "Verify TLS?")
-		/* FIXME need stable sort */
 		for alias, core := range config.SHIELDs {
 			vfy := fmt.Sprintf("@G{yes}")
 			if core.InsecureSkipVerify {
@@ -2102,17 +2101,6 @@ tenants:
 			break
 		}
 
-		/*
-			tbl := table.New(
-				opts.Output,
-				&table.Map{
-					"%uuid": "UUID",
-					"%name": "Name",
-				},
-				jobs...
-			)
-		*/
-		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
 		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key")
 		for _, job := range jobs {
 			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
@@ -2450,17 +2438,6 @@ tenants:
 			break
 		}
 
-		/*
-			tbl := table.New(
-				opts.Output,
-				&table.Map{
-					"%uuid": "UUID",
-					"%name": "Name",
-				},
-				archives...
-			)
-		*/
-		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
 		tbl := table.NewTable("UUID", "Key", "Compression", "Status")
 		for _, archive := range archives {
 			tbl.Row(archive, archive.UUID, archive.Key, archive.Compression, archive.Status)
@@ -2639,7 +2616,6 @@ tenants:
 			break
 		}
 
-		/* FIXME: support --long / -l and maybe --output / -o "fmt-str" */
 		tbl := table.NewTable("UUID", "Type", "Status", "Owner", "Requested at", "Started at", "Completed at")
 		for _, task := range tasks {
 			started := "(pending)"

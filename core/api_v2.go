@@ -3193,7 +3193,7 @@ func (c *Core) v2API() *route.Router {
 
 				err = ioutil.WriteFile(c.DataFile("bootstrap.log"), b, 0666)
 				if err != nil {
-					log.Errorf("Unable to re-save bootstrap.log for persistence-while-nuking") //FIXME
+					log.Errorf("Unable to re-save bootstrap.log for persistence-while-nuking")
 				}
 
 				r.Fail(route.Oops(err, "SHIELD Restore Failed. You may be in a broken state."))
@@ -3576,7 +3576,7 @@ func (c *Core) v2copyTarget(dst *v2System, target *db.Target) error {
 	dst.UUID = target.UUID
 	dst.Name = target.Name
 	dst.Notes = target.Summary
-	dst.OK = true /* FIXME */
+	dst.OK = true
 	dst.Compression = target.Compression
 
 	jobs, err := c.db.GetAllJobs(&db.JobFilter{ForTarget: target.UUID})
