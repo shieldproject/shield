@@ -22,7 +22,7 @@ type v2SystemArchive struct {
 	Schedule string `json:"schedule"`
 	TakenAt  int64  `json:"taken_at"`
 	Expiry   int    `json:"expiry"`
-	Size     int    `json:"size"`
+	Size     int64  `json:"size"`
 	OK       bool   `json:"ok"`
 	Notes    string `json:"notes"`
 }
@@ -1336,7 +1336,7 @@ func (c *Core) v2API() *route.Router {
 					Schedule: archive.Job,
 					Expiry:   (int)((archive.ExpiresAt - archive.TakenAt) / 86400),
 					Notes:    archive.Notes,
-					Size:     -1, // FIXME
+					Size:     archive.Size,
 				}
 			}
 		}
