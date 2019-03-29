@@ -2019,12 +2019,15 @@
       </div>
 
       [[ if (_.selected_target_plugin && _.selected_target_agent) { ]]
-        [[ var plugin = AEGIS.agent(_.selected_target_agent).metadata.plugins[_.selected_target_plugin]; ]]
-        <div class="l1 x10"><h3><strong>[[= h(plugin.name) ]]</strong> Properties</h3></div>
-        [[ include('plugin-configuration-form', { prefix: 'config.', plugin: plugin, config: _.target.config }); ]]
-        <div class="x12 buttons">
-          <button class="final">Save Changes</button>
-        </div>
+        [[ var agent = AEGIS.agent(_.selected_target_agent); ]]
+        [[ if (agent && agent.metadata && agent.metadata.plugins[_.selected_target_plugin]) { ]]
+          [[ var plugin = agent.metadata.plugins[_.selected_target_plugin]; ]]
+          <div class="l1 x10"><h3><strong>[[= h(plugin.name) ]]</strong> Properties</h3></div>
+          [[ include('plugin-configuration-form', { prefix: 'config.', plugin: plugin, config: _.target.config }); ]]
+          <div class="x12 buttons">
+            <button class="final">Save Changes</button>
+          </div>
+          [[ } ]]
         [[ } ]]
     <!-- }}} --></script>
     <script type="text/html" id="template:targets-form"><!-- {{{ -->
