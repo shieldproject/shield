@@ -336,7 +336,7 @@ EOF
 
     echo ">> RUNNING SHIELDD"
     trap ":" INT # ignore Ctrl-C
-    GODEBUG=schedtrace=1000 ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug
+    GODEBUG=schedtrace=1000 ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug 2>&1 | tee ${workdir}/var/shieldd.log
     echo
     echo "shieldd exited."
     echo "Do you want to restart it?"
@@ -377,7 +377,7 @@ EOF
   while true; do
     echo ">> RUNNING SHIELD AGENT"
     trap ":" INT # ignore Ctrl-C
-    ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug
+    ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug 2>&1 | tee ${workdir}/var/shield-agent.log
     echo
     echo "shield-agent exited."
     echo "Do you want to restart it?"
