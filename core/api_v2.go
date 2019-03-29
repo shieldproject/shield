@@ -2699,8 +2699,8 @@ func (c *Core) v2API() *route.Router {
 
 			job.KeepDays = keepdays
 			job.KeepN = -1
-			if sched, err := timespec.Parse(job.Schedule); err != nil {
-				job.KeepN = sched.KeepN(keepdays)
+			if sched, err := timespec.Parse(job.Schedule); err == nil {
+				job.KeepN = sched.KeepN(job.KeepDays)
 			}
 		}
 
