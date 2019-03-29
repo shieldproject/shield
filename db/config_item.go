@@ -10,6 +10,7 @@ type ConfigItem struct {
 	Label    string `json:"label"`
 	Key      string `json:"key"`
 	Value    string `json:"value"`
+	Type     string `json:"type"`
 	Default  string `json:"default"`
 	Redacted bool   `json:"redacted"`
 }
@@ -26,6 +27,7 @@ func DisplayableConfig(typ string, info *plugin.PluginInfo, config map[string]in
 			Label:    field.Title,
 			Default:  field.Default,
 			Value:    fmt.Sprintf("%v", config[field.Name]),
+			Type:     field.Type,
 			Redacted: false,
 		}
 		if field.Type == "bool" {

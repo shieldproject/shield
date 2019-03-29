@@ -2356,10 +2356,12 @@ for job <em>[[= _.task.job_uuid ]]</em>
 
                   [[   $.each(_.config, function (i, kv) { ]]
                   <dt>[[= kv.label ]]</dt>
-                  <dd>[[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
+                  <dd>[[ if (kv.type == "password" || kv.type == "pem-rsa-pk") { ]]<redacted>[[
+                  } ]][[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
                   } else if (kv.value)    { ]][[= kv.value ]][[
                   } else if (kv.default)  { ]]<span class="not-configured">[[= kv.default ]]</span>[[
                   } else                  { ]]<span class="not-configured">not configured.</span>[[
+                  } ]][[ if (kv.type == "password" || kv.type == "pem-rsa-pk") { ]]</redacted>[[
                   } ]]</dd>
                 [[   }); ]]
                 </dl>
