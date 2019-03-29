@@ -1792,7 +1792,7 @@
                 </td>
                 <td class="schedule">
                   [[ $.each(AEGIS.jobs({ system: target.uuid }), function (j, job) { ]]
-                  runs [[= h(job.schedule) ]]<br>
+                  runs [[= h(job.schedule) ]][[ if (job.paused) { ]] (paused)[[ } ]]<br>
                   [[ }); ]]
                 </td>
                 <td class="retain">
