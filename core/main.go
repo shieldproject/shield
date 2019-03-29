@@ -261,7 +261,10 @@ func (c *Core) WireUpAuthenticationProviders() {
 func (c *Core) ScheduleBackupTasks() {
 	log.Infof("UPKEEP: scheduling backup tasks...")
 
-	l, err := c.db.GetAllJobs(&db.JobFilter{Overdue: true})
+	l, err := c.db.GetAllJobs(&db.JobFilter{
+		Overdue: true,
+		SkipPaused: true,
+	})
 	if err != nil {
 		log.Errorf("error retrieving all overdue jobs from database: %s", err)
 		return
