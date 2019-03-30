@@ -108,7 +108,7 @@ func (c *Client) Rekey(path, current, proposed string, rotate bool) (string, err
 	}
 
 	if rotate {
-		k, p, err := c.FixedParameters()
+		k, p, err := GenerateFixedParameters()
 		if err != nil {
 			return "", err
 		}

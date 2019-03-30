@@ -39,7 +39,7 @@ func (c *Client) Initialize(crypt, master string) (string, error) {
 		return "", err
 	}
 
-	k, p, err := c.FixedParameters()
+	k, p, err := GenerateFixedParameters()
 	if err != nil {
 		return "", err
 	}

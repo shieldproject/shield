@@ -54,7 +54,7 @@ func (c *Client) NewParameters(id, typ string, fixed bool) (Parameters, error) {
 	if fixed {
 		enc, err = c.Retrieve("fixed_key")
 	} else {
-		enc, err = c.RandomParameters(typ)
+		enc, err = GenerateRandomParameters(typ)
 	}
 	if err != nil {
 		return Parameters{}, err
@@ -63,7 +63,7 @@ func (c *Client) NewParameters(id, typ string, fixed bool) (Parameters, error) {
 	return enc, c.Store(id, enc)
 }
 
-func (c *Client) RandomParameters(typ string) (Parameters, error) {
+func GenerateRandomParameters(typ string) (Parameters, error) {
 	cipher := strings.Split(typ, "-")[0]
 	switch cipher {
 	case "aes128":
@@ -77,19 +77,25 @@ func (c *Client) RandomParameters(typ string) (Parameters, error) {
 	}
 }
 
-func (c *Client) FixedParameters() (string, Parameters, error) {
+func GenerateFixedParameters() (string, Parameters, error) {
 	k, err := keygen(512)
 	if err != nil {
 		return "", Parameters{}, err
 	}
 
-	g := pbkdf2.Key([]byte(k[32:]), []byte(k), 4096, 48, sha256.New)
-	return k, Parameters{
+	params, err := DeriveFixedParameters([]byte(k))
+	return k, params, err
+}
+
+func DeriveFixedParameters(key []byte) (Parameters, error) {
+	g := pbkdf2.Key(key[32:], key, 4096, 48, sha256.New)
+	return Parameters{
 		Type: "aes256-ctr",
 		Key:  hex.EncodeToString(g[:32]),
 		IV:   hex.EncodeToString(g[32:]),
 	}, nil
 }
+
 func (c *Client) Store(id string, params Parameters) error {
 	params.UUID = id
 	params.Key = Encode(params.Key, 4)
