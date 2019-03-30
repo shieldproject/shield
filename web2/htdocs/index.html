@@ -169,7 +169,6 @@
           </div>
           
     <!-- }}} --></script>
-
     <script type="text/html" id="template:delete-are-you-sure"><!-- {{{ -->
       [[#
         {delete-are-you-sure}
@@ -194,7 +193,6 @@
           </div>
               
         <!-- }}} --></script>
-
     <script type="text/html" id="template:backup-are-you-sure"><!-- {{{ -->
       [[#
         {backup-are-you-sure}
@@ -1944,6 +1942,7 @@
               <thead>
                 <tr>
                   <th class="sortable">Name</th>
+                  <th class="encryption">Encryption</th>
                   <th class="sortable">Schedule</th>
                   <th class="sortable">Cloud Storage</th>
                   <th class="sortable">Retention</th>
@@ -1958,6 +1957,9 @@
                   <td class="name [[= job.healthy ? 'ok' : 'fail' ]]">
                     <img src="i/shield-[[= job.healthy ? 'ok' : 'fail' ]].svg">
                     [[= h(job.name) ]]
+                  </td>
+                  <td class="enc">
+                    [[ if (job.fixed_key) { ]]<span class="tag fixed">fixed</span>[[ } ]]
                   </td>
                   <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
                     [[= h(job.schedule) ]][[ if (job.paused) { ]] (paused)[[ } ]]

@@ -996,6 +996,7 @@ table.lean td.name > .tag,
 .lean .name {
   font-size: 18px;
   font-weight: bold;
+  white-space: nowrap
 }
 .lean .name a {
   text-decoration: none;
@@ -1019,6 +1020,17 @@ table.lean td.name > .tag,
 .lean .notes .no-data {
   padding: 0px;
   font-size: 100%;
+}
+.lean td .tag {
+  font-size: 8pt;
+  font-family: monospace;
+  font-weight: bold;
+  color: #fff;
+  background-color: darkorchid;
+  border-radius: 4px;
+  padding: 3px 5px;
+  border: none;
+  vertical-align: top;
 }
 .lean tbody tr:nth-child(2n+1) {
   background-color: #F2F2F2;
