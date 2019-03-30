@@ -266,7 +266,7 @@ func (c *Core) ScheduleBackupTasks() {
 	log.Infof("UPKEEP: scheduling backup tasks...")
 
 	l, err := c.db.GetAllJobs(&db.JobFilter{
-		Overdue: true,
+		Overdue:    true,
 		SkipPaused: true,
 	})
 	if err != nil {

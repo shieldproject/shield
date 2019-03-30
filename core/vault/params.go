@@ -104,7 +104,9 @@ func (c *Client) Store(id string, params Parameters) error {
 }
 
 func (c *Client) Retrieve(id string) (Parameters, error) {
-	var out struct { Data Parameters `json:"data"` }
+	var out struct {
+		Data Parameters `json:"data"`
+	}
 	ok, err := c.Get(fmt.Sprintf("secret/archives/%s", id), &out)
 	if !ok {
 		err = fmt.Errorf("not found in vault")
