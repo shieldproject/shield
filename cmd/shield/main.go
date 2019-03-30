@@ -302,6 +302,7 @@ var opts struct {
 
 	Op struct {
 		Pry struct{} `cli:"pry"`
+		IFK struct{} `cli:"ifk"`
 	} `cli:"op"`
 }
 
@@ -598,6 +599,28 @@ func main() {
 		bail(err)
 		fmt.Printf("@C{Seal Key:}   %s\n", creds.SealKey)
 		fmt.Printf("@C{Root Token:} %s\n", creds.RootToken)
+		return
+
+	case "op ifk":
+		if len(args) != 0 {
+			fail(2, "Usage: shield %s\n", command)
+		}
+
+		b, err := ioutil.ReadAll(os.Stdin)
+		bail(err)
+
+		key := regexp.MustCompile(`\s`).ReplaceAll(b, nil)
+		enc, err := vault.DeriveFixedParameters(key)
+		bail(err)
+
+		fmt.Printf("@C{Cipher:} %s\n", enc.Type)
+		fmt.Printf("@C{Key:}    %s\n", enc.Key)
+		fmt.Printf("@C{IV:}     %s\n", enc.IV)
+
+		if enc.Type == "aes256-ctr" {
+			fmt.Printf("\n@G{OpenSSL} decryption command:\n")
+			fmt.Printf("  openssl enc -d -md sha256 -aes-256-ctr -K %s -iv %s < file\n\n", enc.Key, enc.IV)
+		}
 		return
 
 	case "cores": /* {{{ */
