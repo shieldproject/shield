@@ -331,7 +331,6 @@ func waitForPostgres(uri string, seconds int) {
 }
 
 func pgdump(uri string, file *os.File) error {
-	// FIXME: make it possible to select what version of postgres (9.x, 8.x, etc.)
 	plugin.DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/pg_dump -cC --format p -d %s`)", uri)
 	cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/pg_dump", "-cC", "--format", "p", "-d", uri)
 	cmd.Stdout = file
@@ -340,7 +339,6 @@ func pgdump(uri string, file *os.File) error {
 }
 
 func pgrestore(uri string, in io.Reader) error {
-	// FIXME: make it possible to select what version of postgres (9.x, 8.x, etc.)
 	plugin.DEBUG("  (running command `/var/vcap/packages/postgres-9.4/bin/psql %s`)", uri)
 	cmd := exec.Command("/var/vcap/packages/postgres-9.4/bin/psql", uri)
 	cmd.Stdin = in // what about the call to Close()?
