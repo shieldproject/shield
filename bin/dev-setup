@@ -272,6 +272,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
           --target   SHIELD \
           --store    CloudStor \
           --retain   2d \
+          --fixed-key \
     2>&1 | indent4
 
 
