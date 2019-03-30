@@ -276,7 +276,7 @@ exit 0
 	exit 0
 	;;
 
-(restore|shield-restore)
+(restore)
 	needenv SHIELD_OP               \
 	        SHIELD_STORE_PLUGIN     \
 	        SHIELD_STORE_ENDPOINT   \

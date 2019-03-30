@@ -41,6 +41,10 @@ func (c Core) Main() {
 	for {
 		select {
 		case <-hype.C:
+			if c.bailout {
+				log.Infof("SHIELD BAILOUT triggered; exiting...")
+				os.Exit(0)
+			}
 			c.scheduler.Run()
 
 		case <-fast.C:

@@ -1,0 +1,6 @@
+#!/bin/bash
+set -eu
+rc=${1:-0}
+echo "[restarter] shield-recover would have exited [$rc]..."
+echo "[restarter] exiting $rc"
+exit $rc

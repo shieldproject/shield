@@ -611,7 +611,7 @@ body { font-family: sans-serif; }
   display: none;
 }
 #initialize .restore input[type=text],
-#initialize .restore input[type=password] {
+#initialize .restore textarea {
   width: 100%;
   font-size: 14pt;
   background: linear-gradient(to bottom, #404040 0%, #4d4d4d 100%);
@@ -619,6 +619,11 @@ body { font-family: sans-serif; }
 
   box-sizing: border-box;
   padding: 8px;
+}
+#initialize .restore textarea {
+  font-size: 8pt;
+  border: none;
+  height: 15em;
 }
 #initialize .restore .cbdark {
   width: 16px;

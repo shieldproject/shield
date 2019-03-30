@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/jhunt/go-log"
 
+	"github.com/starkandwayne/shield/core/vault"
 	"github.com/starkandwayne/shield/db"
 	"github.com/starkandwayne/shield/route"
 	"github.com/starkandwayne/shield/timespec"
@@ -3106,145 +3109,6 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
-	/* This following route is an out-of-band task that self-restores SHIELD if chosen
-	to during the initialization of SHIELD. On success, it stops SHIELD and the web UI
-	waits for a monit restart. On failure, SHIELD will nuke its working directory and crash.
-	Monit will then restart SHIELD, SHIELD will reinitialize, and the operator can try
-	again. */
-	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
-		if c.IsNotSystemAdmin(r) {
-			return
-		}
-		r.Fail(route.Oops(nil, "REGRESSION! THIS SHIELD HAS FIXME CODE THAT NEEDS FIXED"))
-
-		/*
-			file, _, err := r.Req.FormFile("archive")
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to receive uploaded backup file."))
-				return
-			}
-
-			backupStore, err := ioutil.TempFile("", "SHIELDrestoreBOOTSTRAP")
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to save backup file to disk."))
-				return
-			}
-
-			defer backupStore.Close()
-			defer os.Remove(backupStore.Name())                          //clean up tempfile
-			backupPath, backupName := filepath.Split(backupStore.Name()) //necessary for task setup
-
-			io.Copy(backupStore, file)
-
-			err = backupStore.Sync()
-			if err != nil {
-				r.Fail(route.Oops(err, "Unable to save backup file to disk."))
-				return
-			}
-
-			stdout := make(chan string, 1)
-			stderr := make(chan string)
-			go func() {
-				for s := range stderr {
-					log.Errorf(s)
-				}
-			}()
-
-			// check for fixed key validity (otherwise, ASCIIHexEncode panics on bad key)
-			validKeyCheck := regexp.MustCompile("^([A-F,0-9]){512}$")
-			if !validKeyCheck.MatchString(r.Req.FormValue("fixedkey")) || len(r.Req.FormValue("fixedkey")) != 512 {
-				r.Fail(route.Oops(nil, "Invalid fixed key."))
-				return
-			}
-		*/
-
-		/* out-of-band task run to restore SHIELD.*/
-		/*
-			enc, err := c.vault.RetrieveFixed()
-			if err != nil {
-				r.Fail(route.Oops(nil, "Failed to retrieve encryption parameters from the vault"))
-				return
-			}
-		*/
-		/*
-			err = c.agent.Run("127.0.0.1:5444", stdout, stderr, &AgentCommand{
-				Op:             db.ShieldRestoreOperation,
-				TargetPlugin:   "fs",
-				TargetEndpoint: fmt.Sprintf("{\"base_dir\":\"%s\"}", path.Join(c.Config.DataDir, "/../")),
-				StorePlugin:    "fs",
-				StoreEndpoint:  fmt.Sprintf("{\"base_dir\": \"%s\"}", backupPath),
-				RestoreKey:     backupName,
-				EncryptType:    enc.Type,
-				EncryptKey:     enc.Key,
-				EncryptIV:      enc.IV,
-			})
-		*/
-
-		/* if task fails, delete datadir and crash for monit restart; try again */
-		/*
-			if err != nil {
-				b, err := ioutil.ReadFile(c.DataFile("bootstrap.log"))
-				if err != nil {
-					log.Errorf("Unable to locate bootstrap.log for persistence-while-nuking\n")
-				}
-
-				os.RemoveAll(c.Config.DataDir)
-				os.Mkdir(c.Config.DataDir, 0777)
-
-				err = ioutil.WriteFile(c.DataFile("bootstrap.log"), b, 0666)
-				if err != nil {
-					log.Errorf("Unable to re-save bootstrap.log for persistence-while-nuking")
-				}
-
-				r.Fail(route.Oops(err, "SHIELD Restore Failed. You may be in a broken state."))
-				c.restart = true
-				return
-			}
-
-			os.Remove(c.DataFile("bootstrap.log"))
-			r.Success("SHIELD successfully restored")
-			c.restart = false
-			return
-		*/
-	}) // }}}
-
-	r.Dispatch("GET /v2/bootstrap/log", func(r *route.Request) { // {{{
-		if c.IsNotSystemAdmin(r) {
-			return
-		}
-		bsLogFile, err := ioutil.ReadFile(c.DataFile("bootstrap.log"))
-		if err != nil {
-			log.Errorf("Unable to locate bootstrap.log for API\n")
-		}
-
-		type FakeTask struct {
-			UUID        string `json:"uuid"`
-			OK          bool   `json:"ok"`
-			Status      string `json:"status"`
-			Op          string `json:"type"`
-			ArchiveUUID string `json:"archive_uuid"`
-			Log         string `json:"log"`
-			RequestedAt int64  `json:"requested_at"`
-			StoppedAt   int64  `json:"stopped_at"`
-		}
-		type FakeTaskHusk struct {
-			Task FakeTask `json:"task"`
-		}
-
-		r.OK(&FakeTaskHusk{
-			Task: FakeTask{
-				UUID:        "BOOTSTRAP.RESTORE",
-				OK:          true,
-				Status:      "ok",
-				Op:          "restore",
-				ArchiveUUID: "BOOTSTRAP.RESTORE",
-				Log:         string(bsLogFile),
-				RequestedAt: 000000001,
-				StoppedAt:   000000002,
-			}})
-
-	}) // }}}
-
 	r.Dispatch("POST /v2/auth/login", func(r *route.Request) { // {{{
 		var in struct {
 			Username string
@@ -3569,6 +3433,67 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
+		if c.IsNotSystemAdmin(r) {
+			return
+		}
+
+		log.Infof("BOOTSTRAP: streaming uploaded archive file...")
+		in, _, err := r.Req.FormFile("archive")
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to stream uploaded backup archive"))
+			return
+		}
+
+		log.Infof("BOOTSTRAP: deriving encryption parameters from provided fixed key...")
+		/* derive encryption parameters from fixed key */
+		key := regexp.MustCompile(`\s`).ReplaceAll([]byte(r.Req.FormValue("key")), nil)
+		if !regexp.MustCompile(`^[A-Fa-f0-9]*$`).Match(key) || len(key) != 1024 {
+			r.Fail(route.Oops(nil, "Invalid SHIELD Fixed Key (must be 1024 hex digits)"))
+			return
+		}
+		enc, err := vault.DeriveFixedParameters(key)
+		if err != nil {
+			r.Fail(route.Oops(err, "Invalid SHIELD Fixed Key (unable to use it to derive encryption parameters)"))
+			return
+		}
+
+		/* execute the shield-recover command */
+		log.Infof("BOOTSTRAP: executing shield-recover process...")
+		cmd := exec.Command("shield-recover")
+		cmd.Stdin = in
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", os.Getenv("PATH")))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_DATA_DIR=%s", c.Config.DataDir))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_RESTARTER=%s", c.Config.Bootstrapper))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", enc.Type))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_KEY=%s", enc.Key))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", enc.IV))
+
+		c.bailout = true
+		if err := cmd.Run(); err != nil {
+			log.Errorf("BOOTSTRAP: command exited abnormally (%s)", err)
+			r.Fail(route.Oops(err, "SHIELD Restore Failed: You may be in a broken state."))
+			return
+		}
+
+		log.Errorf("BOOTSTRAP: RESTORED SUCCESSFULLY; removing bootstrap.log")
+		os.Remove(c.DataFile("bootstrap.old"))
+		os.Rename(c.DataFile("bootstrap.log"), c.DataFile("bootstrap.old"))
+
+		r.Success("SHIELD successfully restored")
+		return
+	}) // }}}
+	r.Dispatch("GET /v2/bootstrap/log", func(r *route.Request) { // {{{
+		if c.IsNotSystemAdmin(r) {
+			return
+		}
+		b, err := ioutil.ReadFile(c.DataFile("bootstrap.log"))
+		if err != nil {
+			log.Errorf("unable to read bootstrap.log: %s", err)
+		}
+
+		r.OK(struct{Log string `json:"log"`}{Log: string(b)})
+	}) // }}}
 	return r
 }
 

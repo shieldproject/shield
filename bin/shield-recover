@@ -1,0 +1,169 @@
+#!/bin/bash
+set -eu
+
+# shield-recover - Emergency Self-Restoration of a SHIELD
+#
+# This script wraps up all of the external logic of putting the data
+# for _SHIELD_ itself back into place, and effectively bootstrapping
+# a SHIELD Core from nothing but a fixed-key backup provided by an
+# authenticated administrator.
+#
+# Environment Variables
+# ---------------------
+#
+#   SHIELD_DATA_DIR     Path to the SHIELD Core data directory.
+#   SHIELD_RESTARTER    Path to the script to exec to restart.  Should be provided
+#                       by the distribution / packaging method (BOSH, k8s, etc.)
+#
+# Temporary Environment Variables (Unset before call to shield plugin)
+# ---------------------
+#   SHIELD_ENCRYPT_TYPE       Cipher and mode to be used for archive encryption
+#   SHIELD_ENCRYPT_KEY        Encryption key for archive encryption
+#   SHIELD_ENCRYPT_IV         Initialization vector for archive encryption
+#
+# Exit Codes
+# ----------
+#
+#      0    Success
+#    144    Missing a required environment variable
+#
+# Justification
+# -------------
+#
+# This script exists because it's far easier to write the instrumentation
+# and environmental munging work in Bash, than it is in Go itself.
+#
+
+if [[ -n ${SHIELD_DATA_DIR:-} ]]; then
+  mkdir -p $SHIELD_DATA_DIR
+  exec > $SHIELD_DATA_DIR/bootstrap.log 2>&1
+fi
+
+echo "[$(date)] shield-recover starting up..."
+
+header() {
+	echo >&2 $*
+	echo $* | sed -e 's/./=/g' >&2
+}
+
+say() {
+	echo >&2 "$@"
+}
+
+ok() {
+	echo >&2 "OK"
+	echo >&2
+}
+
+fail() {
+	echo -n >&2 "FAILED: "
+	echo    >&2 $*
+}
+
+needenv() {
+	for var in "$@"; do
+		eval v=\$$var
+		if [[ -z ${v} ]]; then
+			fail "Missing required $var environment variable; bailing out"
+			exit 144
+		fi
+
+		say "${var} ... found"
+	done
+	ok
+}
+
+DONE=0
+before_exit() {
+	rc=$?
+	echo >&2 "exiting $rc"
+	echo >&2 "DONE='$DONE'"
+	echo >&2
+
+	if [[ $DONE == 1 ]]; then
+		header "Handing off to SHIELD Restarter ($SHIELD_RESTARTER)"
+		exec $SHIELD_RESTARTER 0
+
+	else
+		echo >&2 "Removing vault and database files and starting over..."
+		rm -rf $SHIELD_DATA_DIR/shield.db \
+		       $SHIELD_DATA_DIR/vault
+		       $SHIELD_DATA_DIR/vault.crypt
+
+		echo >&2
+		echo >&2 "$SHIELD_DATA_DIR:"
+		ls -alh $SHIELD_DATA_DIR
+		echo >&2
+
+		header "Handing off to SHIELD Restarter ($SHIELD_RESTARTER)"
+		exec $SHIELD_RESTARTER $rc
+	fi
+}
+
+trap 'before_exit' EXIT
+
+echo >&2
+echo >&2
+header "Validating environment..."
+if [[ -n "${SHIELD_ENCRYPT_TYPE}" ]]; then
+	enc_type="${SHIELD_ENCRYPT_TYPE}"
+	unset SHIELD_ENCRYPT_TYPE
+	echo >&2 "SHIELD_ENCRYPT_TYPE ... $enc_type"
+else
+	echo >&2 "SHIELD_ENCRYPT_TYPE not set..."
+fi
+
+if [[ -n "${SHIELD_ENCRYPT_KEY}" ]]; then
+	enc_key="${SHIELD_ENCRYPT_KEY}"
+	unset SHIELD_ENCRYPT_KEY
+	echo >&2 "SHIELD_ENCRYPT_KEY ... found"
+else
+	echo >&2 "SHIELD_ENCRYPT_KEY not set..."
+fi
+
+if [[ -n "${SHIELD_ENCRYPT_IV}" ]]; then
+	enc_iv="${SHIELD_ENCRYPT_IV}"
+	unset SHIELD_ENCRYPT_IV
+	echo >&2 "SHIELD_ENCRYPT_IV ... found"
+else
+	echo >&2 "SHIELD_ENCRYPT_IV not set..."
+fi
+
+needenv SHIELD_DATA_DIR \
+        SHIELD_RESTARTER
+
+if [[ -z "$(command -v ${SHIELD_RESTARTER})" ]]; then
+	fail "SHIELD restarter script '$SHIELD_RESTARTER' not found on disk or in \$PATH; bailing out"
+	exit 144
+fi
+if [[ ! -x "$(command -v ${SHIELD_RESTARTER})" ]]; then
+	fail "SHIELD restarter script '$SHIELD_RESTARTER' not executable; bailing out"
+	exit 144
+fi
+
+archive=${SHIELD_DATA_DIR}/.restore
+cat > ${archive}.raw
+shield-crypt --decrypt 3<<<"{\"enc_key\":\"$enc_key\",\"enc_iv\":\"$enc_iv\",\"enc_type\":\"$enc_type\"}" > ${archive} <${archive}.raw
+
+if file ${archive} | grep -q bzip2; then
+	header "Running restore"
+	echo >&2 " - datadir:     ${SHIELD_DATA_DIR}"
+	echo >&2 " - compression: bzip2"
+	echo >&2
+	cat ${archive} | \
+		bunzip2 | \
+		fs restore -e "{\"base_dir\":\"$SHIELD_DATA_DIR\"}"
+
+else
+	header "Running restore"
+	echo >&2 " - datadir:     ${SHIELD_DATA_DIR}"
+	echo >&2 " - compression: none"
+	echo >&2
+	cat ${archive} | \
+		fs restore -e "{\"base_dir\":\"$SHIELD_DATA_DIR\"}"
+fi
+
+# trigger the exit handler,
+# and exec the restarter
+DONE=1
+exit 0

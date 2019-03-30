@@ -26,7 +26,7 @@ type Core struct {
 	bus       *bus.Bus
 	scheduler *scheduler.Scheduler
 
-	restart bool
+	bailout bool
 
 	info struct {
 		API     int    `json:"api"`
@@ -103,6 +103,8 @@ type Config struct {
 	} `yaml:"vault"`
 
 	Cipher string `yaml:"cipher"`
+
+	Bootstrapper string `yaml:"bootstrapper"`
 }
 
 var (
@@ -133,6 +135,8 @@ func init() {
 	DefaultConfig.Vault.Address = "http://127.0.0.1:8200"
 
 	DefaultConfig.Cipher = "aes256-ctr"
+
+	DefaultConfig.Bootstrapper = "shield-restarter"
 }
 
 func Configure(file string, config Config) (*Core, error) {

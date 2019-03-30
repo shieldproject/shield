@@ -126,22 +126,15 @@ function dispatch(page) {
         $('#viewport').html($($.template('init'))
           .on("submit", ".restore", function (event) {
             event.preventDefault();
-           // progress('Initializing SHIELD with prior backup');
 
             var $form = $(event.target);
             var data = new FormData();
 
-            if ($form[0].fixedkey.value.length < 512 || $form[0].fixedkey.value.length > 512) {
-              $form.error('fixedkey', 'missing')
-              return;
-            }
             data.append("archive", $form[0].archive.files[0]);
-            data.append("fixedkey", $form[0].fixedkey.value);
+            data.append("key",     $form[0].key.value);
 
             $form.reset();
-            $('.dialog').html("")
-            $('.dialog').template('loading')
-            $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD is initializing from a previous backup, please wait...</h2>")
+            $('.dialog').template('bootstrap', { step: 'restoring' });
 
             $.ajax({
               type: "POST",
@@ -151,12 +144,27 @@ function dispatch(page) {
               contentType: false,
               processData: false,
               success: function () {
-                $('.dialog').template('loading')
-                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization success, taking you authentication...</h2>")
+                $('.dialog').template('bootstrap', { step: 'done' });
               },
-              error: function () {
-                $('.dialog').template('loading')
-                $('.dialog').prepend("<h2 style=\"text-align: center;\">SHIELD initialization failed, restarting initialization process...</h2>")
+              complete: function () {
+                /* set an interval waiting for the endpoint to come back... */
+                var backoff = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5],
+                    i = 0,
+                    tryagain = function () {
+                      $.ajax({
+                        type: "GET",
+                        url:  "/v2/info",
+                        success: function () {
+                          goto("#!/login");
+                        },
+                        error: function () {
+                          i += i == backoff.length ? 0 : 1;
+                          window.setTimeout(tryagain, backoff[i] * 1000);
+                        }
+                      });
+                    };
+
+                window.setTimeout(tryagain, backoff[i] * 1000);
               }
             });
           })
@@ -195,10 +203,10 @@ function dispatch(page) {
           type: "GET",
           url: "/v2/bootstrap/log",
           success: function (data) {
-            if (data["task"]["log"] != "") {
+            if (data.log) {
               $('.restore_divert').html("It looks like there was a previous attempt to self-restore SHIELD that failed. Below is the task log to help debug the problem. ")
               $('#initialize').append("<div class=\"dialog\" id=\"log\"></div>")
-              $('#log').append($.template('task', data))
+              $('#log').append('<pre><code>'+h(data.log)+'</code></pre>');
             }
           }
         });
