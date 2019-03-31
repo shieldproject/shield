@@ -203,12 +203,83 @@ func (db *DB) GetTenantRole(org string, team string) (string, string, error) {
 	return id, role, nil
 }
 
-func (db *DB) DeleteTenant(tenant *Tenant) error {
-	err := db.exec(`DELETE FROM tenants WHERE uuid = ?`, tenant.UUID)
-	if err != nil {
-		return err
+func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
+	if recurse {
+		/* delete all non-running tasks for this tenant */
+		err := db.exec(`
+		   DELETE FROM tasks
+		         WHERE stopped_at IS NOT NULL 
+		           AND tenant_uuid = ?`, tenant.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to delete tenant tasks: %s", err)
+		}
+
+		/* delete all tenant memberships for this tenant */
+		err = db.exec(`
+		   DELETE FROM memberships 
+		         WHERE tenant_uuid = ?`, tenant.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to delete tenant memberships: %s", err)
+		}
+
+		/* delete all backup jobs for this tenant */
+		err = db.exec(`
+		   DELETE FROM jobs
+		         WHERE tenant_uuid = ?`, tenant.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to delete tenant jobs: %s", err)
+		}
+
+		/* detach all data systems from this tenant */
+		err = db.exec(`
+		  UPDATE targets
+		     SET tenant_uuid = ''
+		   WHERE tenant_uuid = ?`, tenant.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to clear tenant targets: %s", err)
+		}
+
+		/* detach all cloud storage systems from this tenant */
+		err = db.exec(`
+		   UPDATE stores
+		      SET tenant_uuid = ''
+		    WHERE tenant_uuid = ?`, tenant.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to clear tenant stores: %s", err)
+		}
+
+		/* detach and expire all archives from this tenant */
+		err = db.exec(`
+		   UPDATE archives
+		      SET tenant_uuid = '', status = 'expired'
+		    WHERE tenant_uuid = ?`, tenant.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to mark tenant archives for deletion: %s", err)
+		}
+
+	} else {
+		if n, _ := db.count(`SELECT uuid FROM jobs WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding jobs")
+		}
+
+		if n, _ := db.count(`SELECT uuid FROM stores WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding stores")
+		}
+
+		if n, _ := db.count(`SELECT uuid FROM targets WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding targets")
+		}
+
+		if n, _ := db.count(`SELECT uuid FROM archives WHERE tenant_uuid = ? and status NOT IN ("purged")`, tenant.UUID); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding archives")
+		}
+
+		if n, _ := db.count(`SELECT uuid FROM tasks WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+			return fmt.Errorf("unable to delete tenant: tenant has outstanding tasks")
+		}
 	}
 
-	db.sendDeleteObjectEvent(tenant, "tenant:"+tenant.UUID)
-	return nil
+	return db.exec(`
+	   DELETE FROM tenants
+	         WHERE uuid = ?`, tenant.UUID)
 }

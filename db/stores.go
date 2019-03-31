@@ -360,3 +360,14 @@ func (store Store) ConfigJSON() (string, error) {
 	}
 	return string(b), err
 }
+
+func (db *DB) CleanStores() error {
+	return db.exec(`
+	   DELETE FROM stores
+	         WHERE uuid IN (SELECT uuid
+	                          FROM stores s WHERE tenant_uuid = ''
+	                           AND (SELECT COUNT(*)
+	                                  FROM archives a
+	                                 WHERE a.store_uuid = s.uuid
+	                                   AND a.status != 'purged') = 0)`)
+}

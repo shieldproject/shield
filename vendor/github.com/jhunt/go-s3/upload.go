@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 )
 
 type xmlpart struct {
@@ -13,8 +14,7 @@ type xmlpart struct {
 }
 
 type Upload struct {
-	Key string
-
+	Key  string
 	c    *Client
 	n    int
 	id   string
@@ -24,8 +24,8 @@ type Upload struct {
 	parts []xmlpart
 }
 
-func (c *Client) NewUpload(path string) (*Upload, error) {
-	res, err := c.post(path+"?uploads", nil, nil)
+func (c *Client) NewUpload(path string, headers *http.Header) (*Upload, error) {
+	res, err := c.post(path+"?uploads", nil, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +71,7 @@ func (u *Upload) Write(b []byte) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	u.parts = append(u.parts, xmlpart{
 		PartNumber: u.n,
@@ -96,6 +97,7 @@ func (u *Upload) Done() error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != 200 {
 		return ResponseError(res)
 	}

@@ -34,12 +34,13 @@ func main() {
   "pg_port"     : "5432",             # Port that PostgreSQL is listening on
   "pg_database" : "db1",              # Limit backup/restore operation to this database
   "pg_bindir"   : "/path/to/pg/bin"   # Where to find the psql command
+  "pg_options"  : "",                 # optional
 }
 `,
 		Defaults: `
 {
-  "pg_port"  : "5432",
-  "pg_bindir": "/var/vcap/packages/postgres-9.4/bin"
+  "pg_port"   : "5432",
+  "pg_bindir" : "/var/vcap/packages/postgres-9.4/bin"
 }
 `,
 		Fields: []plugin.Field{
@@ -96,6 +97,14 @@ func main() {
 			},
 			plugin.Field{
 				Mode:    "target",
+				Name:    "pg_options",
+				Type:    "string",
+				Title:   "Additional `pg_dump` options",
+				Help:    "You can tune `pg_dump` (which performs the backup) by specifying additional options and command-line arguments.  If you don't know why you might need this, leave it blank.",
+				Example: "--data--only",
+			},
+			plugin.Field{
+				Mode:    "target",
 				Name:    "pg_bindir",
 				Type:    "abspath",
 				Title:   "Path to PostgreSQL bin/ directory",
@@ -119,6 +128,7 @@ type PostgresConnectionInfo struct {
 	ReplicaHost string
 	ReplicaPort string
 	Database    string
+	Options     string
 }
 
 func (p PostgresPlugin) Meta() plugin.PluginInfo {
@@ -199,6 +209,16 @@ func (p PostgresPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 pg_read_replica_port}  @C{%s}\n", plugin.Redact(s))
 	}
 
+	s, err = endpoint.StringValueDefault("pg_options", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 pg_options  %s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 pg_options}  no options given\n")
+	} else {
+		fmt.Printf("@G{\u2713 pg_options}  @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("postgres: invalid configuration")
 	}
@@ -222,10 +242,10 @@ func (p PostgresPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	cmd := ""
 	if pg.Database != "" {
 		// Run dump all on the specified db
-		cmd = fmt.Sprintf("%s/pg_dump %s -C -c --no-password", pg.Bin, pg.Database)
+		cmd = fmt.Sprintf("%s/pg_dump %s -C -c --no-password %s", pg.Bin, pg.Database, pg.Options)
 	} else {
 		// Else run dump on all
-		cmd = fmt.Sprintf("%s/pg_dumpall -c --no-password", pg.Bin)
+		cmd = fmt.Sprintf("%s/pg_dumpall -c --no-password %s", pg.Bin, pg.Options)
 	}
 	plugin.DEBUG("Executing: `%s`", cmd)
 	return plugin.Exec(cmd, plugin.STDOUT)
@@ -354,6 +374,12 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 	}
 	plugin.DEBUG("PG_READ_REPLICA_PORT: '%s'", replicaport)
 
+	options, err := endpoint.StringValueDefault("pg_options", "")
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("PG_OPTIONS: '%s'", options)
+
 	database, err := endpoint.StringValueDefault("pg_database", "")
 	if err != nil {
 		return nil, err
@@ -375,5 +401,6 @@ func pgConnectionInfo(endpoint plugin.ShieldEndpoint) (*PostgresConnectionInfo, 
 		ReplicaPort: replicaport,
 		Bin:         bin,
 		Database:    database,
+		Options:     options,
 	}, nil
 }

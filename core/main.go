@@ -61,6 +61,7 @@ func (c Core) Main() {
 			c.MarkIrrelevantTasks()
 			c.ScheduleAgentStatusCheckTasks(nil)
 			c.AnalyzeStorage()
+			c.CleanupOrphanedObjects()
 
 			if c.Unlocked() {
 				c.PurgeExpiredAPISessions()
@@ -639,6 +640,18 @@ func (c *Core) AnalyzeStorage() {
 			chore.Errorf("")
 			chore.Errorf("COMPLETE")
 		}))
+}
+
+func (c *Core) CleanupOrphanedObjects() {
+	log.Infof("UPKEEP: cleaning up orphaned objects leftover from tenant removal...")
+
+	if err := c.db.CleanTargets(); err != nil {
+		log.Errorf("Failed to clean up orphaned targets: %s", err)
+	}
+
+	if err := c.db.CleanStores(); err != nil {
+		log.Errorf("Failed to clean up orphaned stores: %s", err)
+	}
 }
 
 func (c *Core) PurgeExpiredAPISessions() {

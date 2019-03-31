@@ -2035,7 +2035,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		if err := c.db.DeleteTenant(tenant); err != nil {
+		if err := c.db.DeleteTenant(tenant, r.ParamIs("recurse", "t")); err != nil {
 			r.Fail(route.Oops(err, "Unable to delete tenant '%s' (%s)", r.Args[1], tenant.Name))
 			return
 		}

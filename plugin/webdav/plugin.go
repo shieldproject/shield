@@ -242,16 +242,22 @@ func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) 
 }
 
 func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
-	paths := strings.Split(path, "/")
-	for i := range paths {
-		if i == 0 {
-			continue
+	fmt.Fprintf(os.Stderr, "storing archive at '%s'\n", path)
+
+	parts := strings.Split(path, "/")
+	for i := 1; i < len(parts); i++ {
+		dir := strings.Join(parts[:i], "/")
+		fmt.Fprintf(os.Stderr, "creating directory '%s'\n", dir)
+		res, err := dav.do("MKCOL", dir+"/", nil)
+		if err != nil {
+			return 0, fmt.Errorf("unable to create parent directory %s: %s", dir, err)
 		}
-		if _, err := dav.do("MKCOL", strings.Join(paths[0:i], "/"), nil); err != nil {
-			return 0, err
+		if !(res.StatusCode == 201 || res.StatusCode == 405) {
+			return 0, fmt.Errorf("unable to create parent directory %s: got an HTTP %d response from the WebDAV server", dir, res.StatusCode)
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "\nuploading file to remote WebDAV store...\n")
 	res, err := dav.do("PUT", path, in)
 	if err != nil {
 		return 0, err
@@ -263,6 +269,7 @@ func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
 			return 0, err
 		}
 
+		fmt.Fprintf(os.Stderr, "uploaded %d bytes to %s\n", res.ContentLength, path)
 		return res.ContentLength, nil
 	}
 
@@ -289,7 +296,7 @@ func (dav WebDAV) Delete(path string) error {
 		return err
 	}
 
-	if res.StatusCode == 200 {
+	if res.StatusCode <= 200 || res.StatusCode == 204 || res.StatusCode == 404 || res.StatusCode == 410 {
 		return nil
 	}
 

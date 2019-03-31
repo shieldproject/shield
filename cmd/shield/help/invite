@@ -8,7 +8,7 @@ USAGE: @G{shield} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}
   Local users (accounts defined wholly within SHIELD itself) can be
   arbitrarily assigned to those tenants, and given one of three roles:
 
-    @M{manager}   Complete access to the tenant, including the ability
+    @M{admin}   Complete access to the tenant, including the ability
                   to invite new users and banish existing users.
 
     @M{engineer}  Full control of the configuration of SHIELD within the
@@ -20,7 +20,7 @@ USAGE: @G{shield} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}
                   unpausing jobs, etc.
 
   Each more powerful role includes the rights of the roles beneath.
-  For example, a @M{manager} can do everything an @M{engineer} can do,
+  For example, a @M{admin} can do everything an @M{engineer} can do,
   and an @M{engineer} can do everything an @M{operator} can do.
 
   @Y{NOTE:} This command is only available to @R{SHIELD Site Managers},
@@ -33,5 +33,5 @@ USAGE: @G{shield} invite [--role @Y{ROLE}] --tenant @Y{TENANT} @Y{USER}
 @B{Options:}
 
   -r, --role     The role to assign the new user.  Must be one of
-                 @M{manager}, @M{engineer}, or @M{operator}.
+                 @M{admin}, @M{engineer}, or @M{operator}.
 

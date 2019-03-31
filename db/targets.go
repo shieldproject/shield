@@ -295,3 +295,15 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 	db.sendDeleteObjectEvent(target, "tenant:"+target.TenantUUID)
 	return true, nil
 }
+
+func (db *DB) CleanTargets() error {
+	return db.exec(`
+	   DELETE FROM targets
+	         WHERE uuid in (SELECT uuid
+	                          FROM targets t
+	                         WHERE tenant_uuid = ''
+	                           AND (SELECT COUNT(*)
+	                                  FROM archives a
+	                                 WHERE a.target_uuid = t.uuid
+	                                   AND a.status != 'purged') = 0)`)
+}
