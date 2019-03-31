@@ -108,6 +108,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 	return `
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
+		       t.uuid, t.name, t.plugin, t.endpoint,
 		       s.uuid, s.name, s.plugin, s.endpoint,
 		       a.status, a.purge_reason, a.job, a.encryption_type,
 		       a.compression, a.tenant_uuid, a.size
@@ -280,11 +281,11 @@ func (db *DB) InvalidateArchive(id string) error {
 func (db *DB) PurgeArchive(id string) error {
 	a, err := db.GetArchive(id)
 	if err != nil {
-		return fmt.Errorf("Error grabbing archive %s", id)
+		return fmt.Errorf("unable to retrieve archive [%s]: %s", id, err)
 	}
 
 	if a.Status == "valid" {
-		return fmt.Errorf("Invalid attempt to purge a 'valid' archive detected")
+		return fmt.Errorf("invalid attempt to purge a 'valid' archive detected")
 	}
 
 	err = db.exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id)
