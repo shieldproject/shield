@@ -20,7 +20,7 @@ RUN mkdir -p /dist/bin /dist/plugins \
  && for plugin in $(cat /go/src/github.com/starkandwayne/shield/plugins); do \
       cp /go/src/github.com/starkandwayne/shield/$plugin /dist/plugins; \
     done \
- && cp -R /go/src/github.com/starkandwayne/shield/web2/htdocs /dist/ui
+ && cp -R /go/src/github.com/starkandwayne/shield/web/htdocs /dist/ui
 
 ADD init /dist/init
 RUN chmod 0755 /dist/init/*

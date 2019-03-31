@@ -140,7 +140,7 @@ http {
 
   server {
     listen ${PORT};
-    root   ${ROOT}/web2/htdocs;
+    root   ${ROOT}/web/htdocs;
 
     location / {
       proxy_pass              http://127.0.0.1:8180;
@@ -248,7 +248,7 @@ EOF
 ---
 debug:    true
 data-dir: ${workdir}/var/
-web-root: ./web2/htdocs
+web-root: ./web/htdocs
 
 scheduler:
   fast-loop: 5

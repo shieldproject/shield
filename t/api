@@ -75,7 +75,7 @@ spin_shieldd() {
 ---
 debug:    true
 data-dir: ${DATA_DIRECTORY}
-web-root: ./web2/htdocs
+web-root: ./web/htdocs
 
 vault:
   address: http://127.0.0.1:8219
