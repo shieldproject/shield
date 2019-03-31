@@ -133,7 +133,9 @@ release:
 	  cp -a ../web/htdocs $$x/webui; \
 	  mkdir -p $$x/webui/cli/linux; cp ../artifacts/shield-linux-amd64   $$x/webui/cli/linux/shield; \
 	  mkdir -p $$x/webui/cli/mac;   cp ../artifacts/shield-darwin-amd64  $$x/webui/cli/mac/shield; \
-	  cp ../bin/shield-pipe $$x/daemon; \
+	  cp ../bin/shield-pipe      $$x/daemon; \
+	  cp ../bin/shield-recover   $$x/daemon; \
+	  cp ../bin/shield-restarter $$x/daemon; \
 	  tar -czvf $$x.tar.gz $$x; \
 	  rm -r $$x; \
 	done
