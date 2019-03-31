@@ -48,8 +48,8 @@ var opts struct {
 		List bool `cli:"--list"`
 	} `cli:"commands"`
 
-	Curl struct{} `cli:"curl"`
-	TimeSpec struct {} `cli:"timespec"`
+	Curl     struct{} `cli:"curl"`
+	TimeSpec struct{} `cli:"timespec"`
 
 	Status struct {
 		Global bool `cli:"--global"`

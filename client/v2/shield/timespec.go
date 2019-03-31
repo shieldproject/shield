@@ -1,9 +1,9 @@
 package shield
 
 import (
-	"io/ioutil"
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 )
 

@@ -22,21 +22,21 @@ var _ = Describe("tenant Management", func() {
 	var (
 		db *DB
 
-		SomeJob       *Job
-		SomeJob2      *Job
-		SomeTarget    *Target
-		SomeTarget2   *Target
-		SomeStore     *Store
-		SomeStore2    *Store
-		SomeArchive   *Archive
-		SomeArchive2  *Archive
-		SomeTask      *Task
-		PurgeTask     *Task
-		Ten3Task      *Task
-		Tenant2       *Tenant
-		Tenant3       *Tenant
-		AdminUser     *User
-		OtherUser     *User
+		SomeJob      *Job
+		SomeJob2     *Job
+		SomeTarget   *Target
+		SomeTarget2  *Target
+		SomeStore    *Store
+		SomeStore2   *Store
+		SomeArchive  *Archive
+		SomeArchive2 *Archive
+		SomeTask     *Task
+		PurgeTask    *Task
+		Ten3Task     *Task
+		Tenant2      *Tenant
+		Tenant3      *Tenant
+		AdminUser    *User
+		OtherUser    *User
 	)
 
 	BeforeEach(func() {

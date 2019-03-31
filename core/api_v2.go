@@ -3492,7 +3492,9 @@ func (c *Core) v2API() *route.Router {
 			log.Errorf("unable to read bootstrap.log: %s", err)
 		}
 
-		r.OK(struct{Log string `json:"log"`}{Log: string(b)})
+		r.OK(struct {
+			Log string `json:"log"`
+		}{Log: string(b)})
 	}) // }}}
 	return r
 }
