@@ -98,7 +98,7 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 
 	l := []*Agent{}
 	query, args := filter.Query()
-	r, err := db.query(query, args...)
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -128,7 +128,7 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 }
 
 func (db *DB) GetAgent(id string) (*Agent, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 		SELECT a.uuid, a.name, a.address, a.version,
 		       a.hidden, a.last_seen_at, a.last_error, a.status,
 		       a.metadata
@@ -163,7 +163,7 @@ func (db *DB) GetAgent(id string) (*Agent, error) {
 }
 
 func (db *DB) GetAgentPluginMetadata(addr, name string) (*plugin.PluginInfo, error) {
-	r, err := db.query(`SELECT metadata FROM agents WHERE address = ?`, addr)
+	r, err := db.Query(`SELECT metadata FROM agents WHERE address = ?`, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	}
 
 	id := RandomID()
-	err = db.exec(`
+	err = db.Exec(`
 	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
 	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
 		id, name, address, false, "pending", time.Now().Unix(),
@@ -227,7 +227,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 }
 
 func (db *DB) UpdateAgent(agent *Agent) error {
-	return db.exec(
+	return db.Exec(
 		`UPDATE agents SET name         = ?,
 		                   address      = ?,
 		                   version      = ?,

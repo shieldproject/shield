@@ -127,7 +127,7 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 
 	l := []*Store{}
 	query, args := filter.Query()
-	r, err := db.query(query, args...)
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -180,7 +180,7 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 }
 
 func (db *DB) GetStore(id string) (*Store, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 	       SELECT s.uuid, s.name, s.summary, s.agent,
 	              s.plugin, s.endpoint, s.tenant_uuid,
 	              s.daily_increase,
@@ -247,7 +247,7 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 	}
 
 	store.UUID = RandomID()
-	err = db.exec(`
+	err = db.Exec(`
 	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
 	                       plugin, endpoint,
 	                       threshold, healthy, last_test_task_uuid)
@@ -275,7 +275,7 @@ func (db *DB) UpdateStore(store *Store) error {
 		return fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
-	err = db.exec(`
+	err = db.Exec(`
 	   UPDATE stores
 	      SET name                    = ?,
 	          summary                 = ?,
@@ -321,7 +321,7 @@ func (db *DB) DeleteStore(id string) (bool, error) {
 		return true, nil
 	}
 
-	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`, store.UUID)
+	r, err := db.Query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`, store.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -344,7 +344,7 @@ func (db *DB) DeleteStore(id string) (bool, error) {
 	}
 	r.Close()
 
-	err = db.exec(`DELETE FROM stores WHERE uuid = ?`, store.UUID)
+	err = db.Exec(`DELETE FROM stores WHERE uuid = ?`, store.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -362,7 +362,7 @@ func (store Store) ConfigJSON() (string, error) {
 }
 
 func (db *DB) CleanStores() error {
-	return db.exec(`
+	return db.Exec(`
 	   DELETE FROM stores
 	         WHERE uuid IN (SELECT uuid
 	                          FROM stores s WHERE tenant_uuid = ''

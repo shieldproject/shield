@@ -120,7 +120,7 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 
 	l := []*User{}
 	query, args := filter.Query()
-	r, err := db.query(query, args...)
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -138,7 +138,7 @@ func (db *DB) GetAllUsers(filter *UserFilter) ([]*User, error) {
 }
 
 func (db *DB) GetUserByID(id string) (*User, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
 	           u.default_tenant
 	      FROM users u
@@ -160,7 +160,7 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 }
 
 func (db *DB) GetUser(account string, backend string) (*User, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
 	           u.default_tenant
 	      FROM users u
@@ -185,7 +185,7 @@ func (db *DB) CreateUser(user *User) (*User, error) {
 	if user.UUID == "" {
 		user.UUID = RandomID()
 	}
-	err := db.exec(`
+	err := db.Exec(`
 	    INSERT INTO users (uuid, name, account, backend, sysrole, pwhash)
 	               VALUES (?, ?, ?, ?, ?, ?)
 	`, user.UUID, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash)
@@ -193,7 +193,7 @@ func (db *DB) CreateUser(user *User) (*User, error) {
 }
 
 func (db *DB) UpdateUser(user *User) error {
-	return db.exec(`
+	return db.Exec(`
 	   UPDATE users
 	      SET name = ?, account = ?, backend = ?, sysrole = ?, pwhash = ?
 	    WHERE uuid = ?
@@ -201,7 +201,7 @@ func (db *DB) UpdateUser(user *User) error {
 }
 
 func (db *DB) UpdateUserSettings(user *User) error {
-	return db.exec(`
+	return db.Exec(`
 	   UPDATE users
 	      SET default_tenant = ?
 	    WHERE uuid = ?
@@ -209,7 +209,7 @@ func (db *DB) UpdateUserSettings(user *User) error {
 }
 
 func (db *DB) DeleteUser(user *User) error {
-	return db.exec(`
+	return db.Exec(`
 		DELETE FROM users
 		      WHERE uuid = ?`, user.UUID)
 }

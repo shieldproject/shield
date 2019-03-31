@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pborman/uuid"
 
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
@@ -29,7 +28,6 @@ var _ = Describe("tenant Management", func() {
 		SomeTarget2   *Target
 		SomeStore     *Store
 		SomeStore2    *Store
-		SomeRetention *RetentionPolicy
 		SomeArchive   *Archive
 		SomeArchive2  *Archive
 		SomeTask      *Task
@@ -43,77 +41,73 @@ var _ = Describe("tenant Management", func() {
 
 	BeforeEach(func() {
 		var err error
-		SomeJob = &Job{UUID: uuid.Parse("8dcb45ef-581a-415e-abc0-0234bc70c7a9")}
-		SomeJob2 = &Job{UUID: uuid.Parse("018fc927-569e-4d64-968a-9add3d363ed5")}
-		SomeTarget = &Target{UUID: uuid.Parse("e36850ff-2392-4018-a130-84db28862650")}
-		SomeTarget2 = &Target{UUID: uuid.Parse("3da946be-f17d-4a2a-a9d2-1d6e5bf7e37b")}
-		SomeStore = &Store{UUID: uuid.NewRandom()}
-		SomeStore2 = &Store{UUID: uuid.NewRandom()}
-		SomeRetention = &RetentionPolicy{UUID: uuid.Parse("565a53c2-18a0-45ad-b45b-41e92b2e152c")}
-		SomeArchive = &Archive{UUID: uuid.Parse("ecc69879-ad06-4396-a523-da1086716b68")}
-		SomeArchive2 = &Archive{UUID: uuid.Parse("863d1c48-e7f4-45fc-9047-4c28be4caaad")}
-		SomeTask = &Task{UUID: uuid.Parse("9fde7a6d-8fa7-47f5-b858-b40987496372")}
-		PurgeTask = &Task{UUID: uuid.Parse("bbae5dc2-7839-4dc1-9d9d-69bb057254e1")}
-		Ten3Task = &Task{UUID: uuid.Parse("3874908e-e4c6-48b9-8700-ed814688abaa")}
-		Tenant2 = &Tenant{UUID: uuid.Parse("3f950780-120f-4e00-b46b-28f35e5882df")}
-		Tenant3 = &Tenant{UUID: uuid.Parse("b1d6eeeb-1235-4c93-8800-f5c44ee50f1b")}
-		AdminUser = &User{UUID: uuid.Parse("4cedd497-9af4-484d-a0b2-b79bdb46223f")}
-		OtherUser = &User{UUID: uuid.Parse("e0122b8b-0ca7-480e-a5d8-40aab7e5e8cb")}
+		SomeJob = &Job{UUID: "8dcb45ef-581a-415e-abc0-0234bc70c7a9"}
+		SomeJob2 = &Job{UUID: "018fc927-569e-4d64-968a-9add3d363ed5"}
+		SomeTarget = &Target{UUID: "e36850ff-2392-4018-a130-84db28862650"}
+		SomeTarget2 = &Target{UUID: "3da946be-f17d-4a2a-a9d2-1d6e5bf7e37b"}
+		SomeStore = &Store{UUID: "fe948c51-cc84-4deb-bc1d-9f0afa1cbb63"}
+		SomeStore2 = &Store{UUID: "f5fe2174-0310-4ba1-9067-1a7d828386d5"}
+		SomeArchive = &Archive{UUID: "ecc69879-ad06-4396-a523-da1086716b68"}
+		SomeArchive2 = &Archive{UUID: "863d1c48-e7f4-45fc-9047-4c28be4caaad"}
+		SomeTask = &Task{UUID: "9fde7a6d-8fa7-47f5-b858-b40987496372"}
+		PurgeTask = &Task{UUID: "bbae5dc2-7839-4dc1-9d9d-69bb057254e1"}
+		Ten3Task = &Task{UUID: "3874908e-e4c6-48b9-8700-ed814688abaa"}
+		Tenant2 = &Tenant{UUID: "3f950780-120f-4e00-b46b-28f35e5882df"}
+		Tenant3 = &Tenant{UUID: "b1d6eeeb-1235-4c93-8800-f5c44ee50f1b"}
+		AdminUser = &User{UUID: "4cedd497-9af4-484d-a0b2-b79bdb46223f"}
+		OtherUser = &User{UUID: "e0122b8b-0ca7-480e-a5d8-40aab7e5e8cb"}
 		AdminUser = AdminUser
 		OtherUser = OtherUser
 
 		db, err = Database(
 			// need a target1
 			`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent, tenant_uuid)
-			   VALUES ("`+SomeTarget.UUID.String()+`", "name", "a summary", "plugin", "endpoint", "127.0.0.1:5444", "`+Tenant2.UUID.String()+`")`,
+			   VALUES ("`+SomeTarget.UUID+`", "name", "a summary", "plugin", "endpoint", "127.0.0.1:5444", "`+Tenant2.UUID+`")`,
 			// need a target2
 			`INSERT INTO targets (tenant_uuid, uuid, name, summary, plugin, endpoint, agent)
-			VALUES ("`+Tenant3.UUID.String()+`", "`+SomeTarget2.UUID.String()+`", "name2", "a summary2", "plugin2", "endpoint2", "127.0.0.2:5444")`,
+			VALUES ("`+Tenant3.UUID+`", "`+SomeTarget2.UUID+`", "name2", "a summary2", "plugin2", "endpoint2", "127.0.0.2:5444")`,
 			// need a store1
 			`INSERT INTO stores (tenant_uuid, uuid, name, summary, plugin, endpoint)
-			   VALUES ("`+Tenant2.UUID.String()+`", "`+SomeStore.UUID.String()+`", "name", "", "plugin", "endpoint")`,
+			   VALUES ("`+Tenant2.UUID+`", "`+SomeStore.UUID+`", "name", "", "plugin", "endpoint")`,
 			//need a store2
 			`INSERT INTO stores (tenant_uuid, uuid, name, summary, plugin, endpoint)
-			VALUES ("`+Tenant3.UUID.String()+`", "`+SomeStore2.UUID.String()+`", "name", "", "plugin", "endpoint")`,
-			//need a retention policy
-			`INSERT INTO retention (uuid, name, summary, expiry)
-			VALUES ("`+SomeRetention.UUID.String()+`", "Some Retention", "", 3600)`,
+			VALUES ("`+Tenant3.UUID+`", "`+SomeStore2.UUID+`", "name", "", "plugin", "endpoint")`,
 			// need a job1
-			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, retention_uuid, schedule, tenant_uuid)
-			  VALUES ("`+SomeJob.UUID.String()+`", "Some Job", "A summary", 0, "`+SomeTarget.UUID.String()+`", "`+SomeStore.UUID.String()+`", "`+SomeRetention.UUID.String()+`", "daily 3am", "`+Tenant2.UUID.String()+`")`,
+			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, keep_n, keep_days, schedule, tenant_uuid)
+			  VALUES ("`+SomeJob.UUID+`", "Some Job", "A summary", 0, "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", 4, 4, "daily 3am", "`+Tenant2.UUID+`")`,
 			// need a job2
-			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, retention_uuid, schedule, tenant_uuid)
-			  VALUES ("`+SomeJob2.UUID.String()+`", "Some Job2", "A summary2", 0, "`+SomeTarget.UUID.String()+`", "`+SomeStore.UUID.String()+`", "`+SomeRetention.UUID.String()+`", "daily 3am", "`+Tenant3.UUID.String()+`")`,
+			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, keep_n, keep_days, schedule, tenant_uuid)
+			  VALUES ("`+SomeJob2.UUID+`", "Some Job2", "A summary2", 0, "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", 4, 4, "daily 3am", "`+Tenant3.UUID+`")`,
 			// need an archive1
 			`INSERT INTO archives (tenant_uuid, uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
-			    VALUES ("`+Tenant2.UUID.String()+`", "`+SomeArchive.UUID.String()+`", "`+SomeTarget.UUID.String()+`", "`+SomeStore.UUID.String()+`", "key", 0, 0, "(no notes)", "valid", "")`,
+			    VALUES ("`+Tenant2.UUID+`", "`+SomeArchive.UUID+`", "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", "key", 0, 0, "(no notes)", "valid", "")`,
 			////need an archive2
 			`INSERT INTO archives (tenant_uuid, uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, notes, status, purge_reason)
-			    VALUES ("`+Tenant3.UUID.String()+`", "`+SomeArchive2.UUID.String()+`", "`+SomeTarget2.UUID.String()+`", "`+SomeStore2.UUID.String()+`", "key", 0, 0, "(no notes)", "valid", "")`,
+			    VALUES ("`+Tenant3.UUID+`", "`+SomeArchive2.UUID+`", "`+SomeTarget2.UUID+`", "`+SomeStore2.UUID+`", "key", 0, 0, "(no notes)", "valid", "")`,
 			// need a purge task for tenant1
 			`INSERT INTO tasks (tenant_uuid, uuid, owner, op, requested_at, status, stopped_at)
-			    VALUES ("`+Tenant2.UUID.String()+`", "`+PurgeTask.UUID.String()+`", "some owner", "valid", 0, "done", 0)`,
+			    VALUES ("`+Tenant2.UUID+`", "`+PurgeTask.UUID+`", "some owner", "valid", 0, "done", 0)`,
 			//need a archive tasks for tenant1
 			`INSERT INTO tasks (uuid, owner, op, requested_at, status, tenant_uuid)
-			VALUES ("`+SomeTask.UUID.String()+`", "some owner", "backup", 0, "done", "`+Tenant2.UUID.String()+`")`,
+			VALUES ("`+SomeTask.UUID+`", "some owner", "backup", 0, "done", "`+Tenant2.UUID+`")`,
 			//need archive tasks for tenant2
 			`INSERT INTO tasks (tenant_uuid, uuid, op, owner, requested_at, status)
-			VALUES ("`+Tenant3.UUID.String()+`", "`+Ten3Task.UUID.String()+`", "backup", "different owner", 0, "done")`,
+			VALUES ("`+Tenant3.UUID+`", "`+Ten3Task.UUID+`", "backup", "different owner", 0, "done")`,
 			//need a tenant
 			`INSERT INTO tenants (uuid, name)
-			VALUES ("`+Tenant2.UUID.String()+`", "tenant2")`,
+			VALUES ("`+Tenant2.UUID+`", "tenant2")`,
 			//need a second tenant
 			`INSERT INTO tenants (uuid, name)
-			VALUES ("`+Tenant3.UUID.String()+`", "tenant3")`,
+			VALUES ("`+Tenant3.UUID+`", "tenant3")`,
 			//admin user to tenant 1
 			`INSERT INTO memberships (user_uuid, tenant_uuid, role)
-			VALUES ("`+AdminUser.UUID.String()+`","`+Tenant2.UUID.String()+`",5)`,
+			VALUES ("`+AdminUser.UUID+`","`+Tenant2.UUID+`",5)`,
 			//other user to tenant 2
 			`INSERT INTO memberships (user_uuid, tenant_uuid, role)
-			VALUES ("`+AdminUser.UUID.String()+`","`+Tenant3.UUID.String()+`",6)`,
+			VALUES ("`+AdminUser.UUID+`","`+Tenant3.UUID+`",6)`,
 			//other user to tenant 1
 			`INSERT INTO memberships (user_uuid, tenant_uuid, role)
-			VALUES ("`+OtherUser.UUID.String()+`","`+Tenant2.UUID.String()+`",6)`,
+			VALUES ("`+OtherUser.UUID+`","`+Tenant2.UUID+`",6)`,
 		)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(db).ShouldNot(BeNil())
@@ -154,23 +148,13 @@ var _ = Describe("tenant Management", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(PurgeTask).ShouldNot(BeNil())
 
-		tasks, err := db.GetAllTasks(&TaskFilter{ForTenant: Tenant2.UUID.String()})
+		tasks, err := db.GetAllTasks(&TaskFilter{ForTenant: Tenant2.UUID})
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(len(tasks)).Should(Equal(2))
 
 		Ten3Task, err = db.GetTask(Ten3Task.UUID)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(Ten3Task).ShouldNot(BeNil())
-
-		Tenant2, err = db.GetTenantByName("tenant2")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(Tenant2).ShouldNot(BeNil())
-		Ω(Tenant2.UUID.String()).Should(Equal("3f950780-120f-4e00-b46b-28f35e5882df"))
-
-		Tenant3, err = db.GetTenantByName("tenant3")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(Tenant3).ShouldNot(BeNil())
-		Ω(Tenant3.UUID.String()).Should(Equal("b1d6eeeb-1235-4c93-8800-f5c44ee50f1b"))
 
 		Members, err := db.GetMembershipsForUser(AdminUser.UUID)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -180,7 +164,7 @@ var _ = Describe("tenant Management", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(len(Members)).Should(Equal(1))
 
-		num, err := db.CountTargets(&TargetFilter{ForTenant: Tenant2.UUID.String()})
+		num, err := db.CountTargets(&TargetFilter{ForTenant: Tenant2.UUID})
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(num).Should(Equal(1))
 	})
@@ -199,7 +183,7 @@ var _ = Describe("tenant Management", func() {
 	It("Will fail non recursive with targets", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID.String())
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.DeleteTenant(Tenant2, false)
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding targets"))
@@ -208,9 +192,9 @@ var _ = Describe("tenant Management", func() {
 	It("Will fail non recursive with archives", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID.String())
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID.String())
+		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.DeleteTenant(Tenant2, false)
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding archives"))
@@ -219,11 +203,11 @@ var _ = Describe("tenant Management", func() {
 	It("Will fail non recursive with tasks", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID.String())
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID.String())
+		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		err = db.Exec(`UPDATE archives SET status= "purged" where uuid=?`, SomeArchive.UUID.String())
+		err = db.Exec(`UPDATE archives SET status= "purged" where uuid=?`, SomeArchive.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.DeleteTenant(Tenant2, false)
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding tasks"))
@@ -234,7 +218,7 @@ var _ = Describe("tenant Management", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		//only the purge task remains afters
-		tasks, err := db.GetAllTasks(&TaskFilter{ForTenant: Tenant2.UUID.String()})
+		tasks, err := db.GetAllTasks(&TaskFilter{ForTenant: Tenant2.UUID})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(tasks)).Should(Equal(1))
 
@@ -244,22 +228,22 @@ var _ = Describe("tenant Management", func() {
 		Expect(len(tasks)).Should(Equal(2))
 
 		//no stores remain from the deleted tenant
-		stores, err := db.GetAllStores(&StoreFilter{ForTenant: Tenant2.UUID.String()})
+		stores, err := db.GetAllStores(&StoreFilter{ForTenant: Tenant2.UUID})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(stores)).Should(Equal(0))
 
 		//no jobs remain from the deleted tenant
-		jobs, err := db.GetAllJobs(&JobFilter{ForTenant: Tenant2.UUID.String()})
+		jobs, err := db.GetAllJobs(&JobFilter{ForTenant: Tenant2.UUID})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(jobs)).Should(Equal(0))
 
 		//no targets remain from the deleted tenant
-		targets, err := db.GetAllTargets(&TargetFilter{ForTenant: Tenant2.UUID.String()})
+		targets, err := db.GetAllTargets(&TargetFilter{ForTenant: Tenant2.UUID})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(targets)).Should(Equal(0))
 
 		//no jobs remain from the deleted tenant
-		archives, err := db.GetAllArchives(&ArchiveFilter{ForTenant: Tenant2.UUID.String()})
+		archives, err := db.GetAllArchives(&ArchiveFilter{ForTenant: Tenant2.UUID})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(0))
 

@@ -10,7 +10,7 @@ func (s v4Schema) Deploy(db *DB) error {
 	var err error
 
 	// Set up Multi-Tenancy
-	err = db.exec(`CREATE TABLE tenants (
+	err = db.Exec(`CREATE TABLE tenants (
 	                 uuid              UUID PRIMARY KEY,
 	                 name              TEXT NOT NULL DEFAULT '',
 	                 daily_increase    INTEGER DEFAULT NULL,
@@ -21,70 +21,70 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.exec("ALTER TABLE stores ADD agent TEXT NOT NULL DEFAULT ''")
+	err = db.Exec("ALTER TABLE stores ADD agent TEXT NOT NULL DEFAULT ''")
 	if err != nil {
 		return err
 	}
 
-	err = db.exec("ALTER TABLE stores ADD public_config TEXT NOT NULL DEFAULT '[]'")
+	err = db.Exec("ALTER TABLE stores ADD public_config TEXT NOT NULL DEFAULT '[]'")
 	if err != nil {
 		return err
 	}
 
-	err = db.exec("ALTER TABLE stores ADD private_config TEXT NOT NULL DEFAULT '[]'")
+	err = db.Exec("ALTER TABLE stores ADD private_config TEXT NOT NULL DEFAULT '[]'")
 	if err != nil {
 		return err
 	}
 
 	tenant := RandomID()
-	err = db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant, "tenant1")
+	err = db.Exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant, "tenant1")
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE jobs ADD tenant_uuid UUID NOT NULL DEFAULT '%s'", tenant))
+	err = db.Exec(fmt.Sprintf("ALTER TABLE jobs ADD tenant_uuid UUID NOT NULL DEFAULT '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE stores ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec(fmt.Sprintf("ALTER TABLE stores ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE retention ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec(fmt.Sprintf("ALTER TABLE retention ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE archives ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec(fmt.Sprintf("ALTER TABLE archives ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE tasks ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec(fmt.Sprintf("ALTER TABLE tasks ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
-	err = db.exec(fmt.Sprintf("ALTER TABLE targets ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
+	err = db.Exec(fmt.Sprintf("ALTER TABLE targets ADD tenant_uuid UUID NOT NULL DEFAULT  '%s'", tenant))
 	if err != nil {
 		return err
 	}
 
 	// Add a next_run timestamp to the jobs
-	err = db.exec(`ALTER TABLE jobs ADD COLUMN next_run INTEGER DEFAULT 0`)
+	err = db.Exec(`ALTER TABLE jobs ADD COLUMN next_run INTEGER DEFAULT 0`)
 	if err != nil {
 		return err
 	}
 
 	// Move schedule to be a field on jobs
-	err = db.exec(`ALTER TABLE jobs ADD COLUMN schedule TEXT`)
+	err = db.Exec(`ALTER TABLE jobs ADD COLUMN schedule TEXT`)
 	if err != nil {
 		return err
 	}
-	err = db.exec(`UPDATE jobs SET schedule =
+	err = db.Exec(`UPDATE jobs SET schedule =
 	                  (SELECT timespec FROM schedules
 	                   WHERE schedules.uuid = jobs.schedule_uuid)`)
 	if err != nil {
 		return err
 	}
 	// ... and remove the schedule_uuid field
-	err = db.exec(`CREATE TABLE jobs_new (
+	err = db.Exec(`CREATE TABLE jobs_new (
 	               uuid               UUID PRIMARY KEY,
 	               target_uuid        UUID NOT NULL,
 	               store_uuid         UUID NOT NULL,
@@ -101,7 +101,7 @@ func (s v4Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
-	err = db.exec(`INSERT INTO jobs_new (uuid, target_uuid, store_uuid, tenant_uuid,
+	err = db.Exec(`INSERT INTO jobs_new (uuid, target_uuid, store_uuid, tenant_uuid,
 	                                     schedule, next_run, retention_uuid,
 	                                     priority, paused, name, summary)
 	                              SELECT uuid, target_uuid, store_uuid, ?,
@@ -111,56 +111,56 @@ func (s v4Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
-	err = db.exec(`DROP TABLE jobs`)
+	err = db.Exec(`DROP TABLE jobs`)
 	if err != nil {
 		return err
 	}
-	err = db.exec(`ALTER TABLE jobs_new RENAME TO jobs`)
-	if err != nil {
-		return err
-	}
-
-	err = db.exec(`DROP TABLE schedules`)
+	err = db.Exec(`ALTER TABLE jobs_new RENAME TO jobs`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE tasks ADD COLUMN ok INT NOT NULL DEFAULT 1`)
+	err = db.Exec(`DROP TABLE schedules`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE tasks ADD COLUMN notes TEXT NOT NULL DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN ok INT NOT NULL DEFAULT 1`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE tasks ADD COLUMN clear TEXT NOT NULL DEFAULT 'normal'`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN notes TEXT NOT NULL DEFAULT ''`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE tasks ADD COLUMN relevant INT NOT NULL DEFAULT 1`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN clear TEXT NOT NULL DEFAULT 'normal'`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE archives ADD COLUMN job TEXT NOT NULL DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN relevant INT NOT NULL DEFAULT 1`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE archives ADD COLUMN encryption_type TEXT NOT NULL DEFAULT ''`)
+	err = db.Exec(`ALTER TABLE archives ADD COLUMN job TEXT NOT NULL DEFAULT ''`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE tasks ADD COLUMN fixed_key INT NOT NULL DEFAULT 0`)
+	err = db.Exec(`ALTER TABLE archives ADD COLUMN encryption_type TEXT NOT NULL DEFAULT ''`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`CREATE TABLE agents (
+	err = db.Exec(`ALTER TABLE tasks ADD COLUMN fixed_key INT NOT NULL DEFAULT 0`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`CREATE TABLE agents (
 	                 uuid          UUID PRIMARY KEY,
 	                 name          TEXT NOT NULL DEFAULT '',
 	                 address       TEXT NOT NULL DEFAULT '',
@@ -175,7 +175,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.exec(`CREATE TABLE users (
+	err = db.Exec(`CREATE TABLE users (
 	                 uuid          UUID PRIMARY KEY,
 	                 name          TEXT NOT NULL DEFAULT '',
 	                 account       TEXT NOT NULL DEFAULT '',
@@ -192,7 +192,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.exec(`CREATE TABLE memberships (
+	err = db.Exec(`CREATE TABLE memberships (
 	                 user_uuid     UUID NOT NULL,
 	                 tenant_uuid   UUID NOT NULL,
 	                 role          VARCHAR(100) NOT NULL,
@@ -202,7 +202,7 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.exec(`CREATE TABLE sessions (
+	err = db.Exec(`CREATE TABLE sessions (
 	                 uuid          UUID PRIMARY KEY,
 	                 user_uuid     UUID NOT NULL REFERENCES users(uuid) ON DELETE CASCADE,
 	                 created_at    INTEGER NOT NULL,
@@ -217,55 +217,55 @@ func (s v4Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE stores ADD COLUMN daily_increase INTEGER DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN daily_increase INTEGER DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE stores ADD COLUMN storage_used INTEGER DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN storage_used INTEGER DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE stores ADD COLUMN archive_count INTEGER DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN archive_count INTEGER DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE stores ADD COLUMN threshold INTEGER DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN threshold INTEGER DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE stores ADD COLUMN healthy BOOLEAN DEFAULT FALSE`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN healthy BOOLEAN DEFAULT FALSE`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`ALTER TABLE stores ADD COLUMN last_test_task_uuid BOOLEAN DEFAULT NULL`)
+	err = db.Exec(`ALTER TABLE stores ADD COLUMN last_test_task_uuid BOOLEAN DEFAULT NULL`)
 	if err != nil {
 		return err
 	}
 
 	/* provide summaries */
-	err = db.exec(`UPDATE stores SET summary = '' WHERE summary IS NULL`)
+	err = db.Exec(`UPDATE stores SET summary = '' WHERE summary IS NULL`)
 	if err != nil {
 		return err
 	}
-	err = db.exec(`UPDATE targets SET summary = '' WHERE summary IS NULL`)
+	err = db.Exec(`UPDATE targets SET summary = '' WHERE summary IS NULL`)
 	if err != nil {
 		return err
 	}
-	err = db.exec(`UPDATE retention SET summary = '' WHERE summary IS NULL`)
+	err = db.Exec(`UPDATE retention SET summary = '' WHERE summary IS NULL`)
 	if err != nil {
 		return err
 	}
-	err = db.exec(`UPDATE jobs SET summary = '' WHERE summary IS NULL`)
+	err = db.Exec(`UPDATE jobs SET summary = '' WHERE summary IS NULL`)
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(`UPDATE schema_info set version = 4`)
+	err = db.Exec(`UPDATE schema_info set version = 4`)
 	if err != nil {
 		return err
 	}

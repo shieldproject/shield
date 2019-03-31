@@ -106,26 +106,26 @@ var _ = Describe("Archive Management", func() {
 		ARCHIVE_STORE2 := RandomID()
 		BeforeEach(func() {
 			var err error
-			db.exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444", "target_name2")`)
-			err = db.exec(`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES("` + STORE2_UUID + `","store_plugin2", "store_endpoint2", "store_name2")`)
+			db.Exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444", "target_name2")`)
+			err = db.Exec(`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES("` + STORE2_UUID + `","store_plugin2", "store_endpoint2", "store_name2")`)
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
+			err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 				ARCHIVE_PURGED + `","` + TARGET_UUID + `", "` + STORE_UUID +
 				`", "key", 10, 10, "purged")`)
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
+			err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 				ARCHIVE_INVALID + `","` + TARGET_UUID + `", "` + STORE_UUID +
 				`", "key", 10, 10, "invalid")`)
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
+			err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 				ARCHIVE_EXPIRED + `","` + TARGET_UUID + `", "` + STORE_UUID +
 				`", "key", 20, 20, "expired")`)
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
+			err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 				ARCHIVE_TARGET2 + `","` + TARGET2_UUID + `", "` + STORE_UUID +
 				`", "key", 20, 20, "valid")`)
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
+			err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 				ARCHIVE_STORE2 + `","` + TARGET_UUID + `", "` + STORE2_UUID +
 				`", "key", 20, 20, "invalid")`)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -305,24 +305,24 @@ var _ = Describe("Archive Management", func() {
 			var expectedArchiveCount int
 			BeforeEach(func() {
 				// get us a clean slate for these tests
-				err := db.exec(`DELETE FROM archives`)
+				err := db.Exec(`DELETE FROM archives`)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// insert an archive that should be expired
-				err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
+				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
 					EXPIRABLE_ARCHIVE+`","`+TARGET_UUID+`", "`+STORE2_UUID+
 					`", "key", 20, ?, "valid")`, time.Now().Add(-30*time.Second).Unix())
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// insert archive expiring in a day
-				err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
+				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("`+
 					UNEXPIRED_ARCHIVE+`","`+TARGET_UUID+`", "`+STORE2_UUID+
 					`", "key", 20, ?, "valid")`, time.Now().Unix())
 
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// insert an expired but invalid archive
-				err = db.exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
+				err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
 					UNEXPIRED_ARCHIVE2 + `","` + TARGET_UUID + `", "` + STORE2_UUID +
 					`", "key", 20, 20, "invalid")`)
 				Expect(err).ShouldNot(HaveOccurred())

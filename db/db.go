@@ -67,7 +67,7 @@ func (db *DB) Inform(mbus *bus.Bus) {
 }
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
-func (db *DB) exec(sql string, args ...interface{}) error {
+func (db *DB) Exec(sql string, args ...interface{}) error {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 
@@ -84,7 +84,7 @@ func (db *DB) exec(sql string, args ...interface{}) error {
 }
 
 // Execute a named, data query (SELECT)
-func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
+func (db *DB) Query(sql string, args ...interface{}) (*sql.Rows, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 
@@ -106,8 +106,8 @@ func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
 }
 
 // Execute a data query (SELECT) and return how many rows were returned
-func (db *DB) count(sql string, args ...interface{}) (uint, error) {
-	r, err := db.query(sql, args...)
+func (db *DB) Count(sql string, args ...interface{}) (uint, error) {
+	r, err := db.Query(sql, args...)
 	if err != nil {
 		return 0, err
 	}

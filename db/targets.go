@@ -116,7 +116,7 @@ func (db *DB) CountTargets(filter *TargetFilter) (int, error) {
 
 	var i int
 	query, args := filter.Query()
-	r, err := db.query(query, args...)
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return i, err
 	}
@@ -136,7 +136,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 	l := []*Target{}
 	query, args := filter.Query()
-	r, err := db.query(query, args...)
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -165,7 +165,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 }
 
 func (db *DB) GetTarget(id string) (*Target, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 	    SELECT uuid, tenant_uuid, name, summary, plugin,
 	           endpoint, agent, compression
 
@@ -205,7 +205,7 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 	}
 
 	target.UUID = RandomID()
-	err = db.exec(`
+	err = db.Exec(`
 	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
 	                         endpoint, agent, compression)
 	                 VALUES (?, ?, ?, ?, ?,
@@ -226,7 +226,7 @@ func (db *DB) UpdateTarget(target *Target) error {
 		return err
 	}
 
-	err = db.exec(`
+	err = db.Exec(`
 	  UPDATE targets
 	     SET name        = ?,
 	         summary     = ?,
@@ -264,7 +264,7 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return true, nil
 	}
 
-	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
+	r, err := db.Query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -287,7 +287,7 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 	}
 	r.Close()
 
-	err = db.exec(`DELETE FROM targets WHERE uuid = ?`, id)
+	err = db.Exec(`DELETE FROM targets WHERE uuid = ?`, id)
 	if err != nil {
 		return false, err
 	}
@@ -297,7 +297,7 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 }
 
 func (db *DB) CleanTargets() error {
-	return db.exec(`
+	return db.Exec(`
 	   DELETE FROM targets
 	         WHERE uuid in (SELECT uuid
 	                          FROM targets t

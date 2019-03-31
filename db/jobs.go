@@ -150,7 +150,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 
 	l := []*Job{}
 	query, args := filter.Query()
-	r, err := db.query(query, args...)
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -200,11 +200,11 @@ func (db *DB) GetJob(id string) (*Job, error) {
 }
 
 func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
-	n, err := db.count(`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`, id, !pause)
+	n, err := db.Count(`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`, id, !pause)
 	if n == 0 || err != nil {
 		return false, err
 	}
-	err = db.exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
+	err = db.Exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
 	if err != nil {
 		return true, err
 	}
@@ -227,7 +227,7 @@ func (db *DB) UnpauseJob(id string) (bool, error) {
 func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job.UUID = RandomID()
 
-	err := db.exec(`
+	err := db.Exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,
 	                     name, summary, schedule, keep_n, keep_days, paused,
 	                     target_uuid, store_uuid, fixed_key)
@@ -251,7 +251,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 }
 
 func (db *DB) UpdateJob(job *Job) error {
-	err := db.exec(`
+	err := db.Exec(`
 	   UPDATE jobs
 	      SET name           = ?,
 	          summary        = ?,
@@ -292,7 +292,7 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 		return true, nil
 	}
 
-	err = db.exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID)
+	err = db.Exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -303,7 +303,7 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 
 func (db *DB) RescheduleJob(j *Job, t time.Time) error {
 	/* note: this update does not require a message bus notification */
-	return db.exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID)
+	return db.Exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID)
 }
 
 func (j *Job) Reschedule() error {

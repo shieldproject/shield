@@ -7,7 +7,7 @@ type Membership struct {
 }
 
 func (db *DB) GetMembershipsForUser(user string) ([]*Membership, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 	    SELECT t.uuid, t.name, m.role
 	      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
 	     WHERE m.user_uuid = ?`, user)
@@ -31,11 +31,11 @@ func (db *DB) GetMembershipsForUser(user string) ([]*Membership, error) {
 }
 
 func (db *DB) ClearMembershipsFor(user *User) error {
-	return db.exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID)
+	return db.Exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID)
 }
 
 func (db *DB) AddUserToTenant(user, tenant, role string) error {
-	r, err := db.query(`
+	r, err := db.Query(`
 	    SELECT m.role
 	      FROM memberships m
 	     WHERE m.user_uuid = ?
@@ -48,7 +48,7 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 	r.Close() /* so we can run another query... */
 
 	if exists {
-		err = db.exec(`
+		err = db.Exec(`
 		    UPDATE memberships
 		       SET role = ?
 		     WHERE user_uuid = ?
@@ -56,7 +56,7 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 			role, user, tenant)
 
 	} else {
-		err = db.exec(`
+		err = db.Exec(`
 		    INSERT INTO memberships (user_uuid, tenant_uuid, role)
 		                     VALUES (?, ?, ?)`,
 			user, tenant, role)
@@ -71,7 +71,7 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 }
 
 func (db *DB) RemoveUserFromTenant(user, tenant string) error {
-	err := db.exec(`
+	err := db.Exec(`
 	    DELETE FROM memberships
 	          WHERE user_uuid = ?
 	            AND tenant_uuid = ?`, user, tenant)
@@ -85,7 +85,7 @@ func (db *DB) RemoveUserFromTenant(user, tenant string) error {
 
 //GetTenantsForUser given a user's uuid returns a slice of Tenants that the user has membership with
 func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 	    SELECT t.uuid, t.name
 	      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
 	     WHERE m.user_uuid = ?`, user)
@@ -109,7 +109,7 @@ func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
 }
 
 func (db *DB) GetUsersForTenant(tenant string) ([]*User, error) {
-	r, err := db.query(`
+	r, err := db.Query(`
 	    SELECT u.uuid, u.name, u.account, u.backend,
 	           m.role
 	      FROM users u INNER JOIN memberships m

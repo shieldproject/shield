@@ -52,7 +52,7 @@ func (db *DB) GetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
 
 	l := []*AuthToken{}
 	query, args := filter.Query()
-	r, err := db.query(query, args...)
+	r, err := db.Query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -87,7 +87,7 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 
 	id := RandomID()
 	token := RandomID()
-	err := db.exec(`
+	err := db.Exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, token, name)
 	                 VALUES (?,    ?,         ?,          ?,     ?)`,
 		id, user.UUID, time.Now().Unix(), token, name)
@@ -100,5 +100,5 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 }
 
 func (db *DB) DeleteAuthToken(id string, user *User) error {
-	return db.exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID)
+	return db.Exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID)
 }
