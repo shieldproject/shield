@@ -30,7 +30,7 @@ func (c *Core) BearingFor(m *db.Membership) (Bearing, error) {
 
 	b.Tenant, err = c.db.GetTenant(m.TenantUUID)
 	if err != nil {
-		return b, fmt.Errorf("unable to retrieve tenant [%s]: ", m.TenantUUID, err)
+		return b, fmt.Errorf("unable to retrieve tenant [%s]: %s", m.TenantUUID, err)
 	}
 	b.Role = m.Role
 	switch b.Role {
