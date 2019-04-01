@@ -108,7 +108,7 @@ jobs:
             ok:      no
             link:    (( grab meta.shout.links.build ))
 
-  - name: rc
+  - name: pre
     plan:
       - do:
         - aggregate:
