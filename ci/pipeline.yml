@@ -24,9 +24,7 @@ meta:
   go:
     version: 1.9
     module:  (( concat "github.com/" meta.github.owner "/" meta.github.repo ))
-    cmd_module: (( grab meta.go.module ))
-    binary:  (( grab meta.github.repo ))
-    force_static_binary: false
+    static:  false
 
   image:
     name: starkandwayne/concourse-go
@@ -67,7 +65,7 @@ groups:
   - name: (( grab meta.pipeline ))
     jobs:
       - testflight
-      - pr
+      - pre
       - rc
       - shipit
       - major
@@ -111,117 +109,82 @@ jobs:
             ok:      no
             link:    (( grab meta.shout.links.build ))
 
-  - name: pr
+  - name: pre
     public: true
     serial: true
     plan:
-      - do:
-        - { get: git-prs, trigger: true, version: every }
-        - put: git-prs
-          params:
-            path: git-prs
-            status: pending
-        - task: test
-          config:
-            platform: linux
-            image_resource:
-              type: docker-image
-              source:
-                repository: (( grab meta.image.name ))
-                tag:        (( grab meta.image.tag ))
-            inputs:
-              - name: git-prs
-                path: (( concat "gopath/src/" meta.go.module ))
-            run:
-              path: (( concat "./gopath/src/" meta.go.module "/ci/scripts/test" ))
-              args: []
-            params:
-              MODULE: (( grab meta.go.module ))
-          on_success:
-            put: git-prs
-            params:
-              path: git-prs
-              status: success
-          on_failure:
-            put: git-prs
-            params:
-              path: git-prs
-              status: failure
-        - task: pr-success-message
-          config:
-            platform: linux
-            image_resource:
-              type: docker-image
-              source:
-                repository: (( grab meta.image.name ))
-                tag:        (( grab meta.image.tag ))
-            inputs:
-              - { name: git-prs }
-            outputs:
-              - { name: message }
-            run:
-              path: sh
-              args:
-              - -ce
-              - |
-                cd git-prs
-                pr_url=$(git config --get pullrequest.url)
-                cd -
-                echo "<${pr_url}|Pull request passed test> Merge when ready: ${pr_url}" > message/body
+    - do:
+      - aggregate:
+          - { get: git,     trigger: true,  passed: [testflight] }
+          - { get: version, trigger: true }
+      - task: release-notes
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: (( grab meta.image.name ))
+              tag:        (( grab meta.image.tag ))
+          inputs:
+              - { name: git }
+          run:
+            path: sh
+            args:
+            - -ce
+            - |
+              cd git
+              if [ -f ci/release_notes.md ]; then
+                echo "######   RELEASE NOTES   ###############"
+                echo
+                cat ci/release_notes.md
+                echo
+                echo "########################################"
+                echo
+              else
+                echo "NO RELEASE NOTES HAVE BEEN WRITTEN"
+                echo "You *might* want to do that before"
+                echo "hitting (+) on that shipit job..."
+                echo
+              fi
+      on_success:
+        put: notify
+        params:
+          topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+          message: release candidate job 'pre' succeeded.
+          ok:      yes
+          link:    (( grab meta.shout.links.build ))
+      on_failure:
+        put: notify
+        params:
+          topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+          message: release candidate job 'pre' failed (which is unusual).
+          ok:      no
+          link:    (( grab meta.shout.links.build ))
 
   - name: rc
     public: true
     serial: true
     plan:
-      - do:
-        - aggregate:
-            - { get: git,     trigger: true,  passed: [test] }
-            - { get: version, trigger: true, params: {pre: rc} }
-        - task: release-notes
-          config:
-            platform: linux
-            image_resource:
-              type: docker-image
-              source:
-                repository: (( grab meta.image.name ))
-                tag:        (( grab meta.image.tag ))
-            inputs:
-                - { name: git }
-            run:
-              path: sh
-              args:
-              - -ce
-              - |
-                cd git
-                if [ -f ci/release_notes.md ]; then
-                  echo "######   RELEASE NOTES   ###############"
-                  echo
-                  cat ci/release_notes.md
-                  echo
-                  echo "########################################"
-                  echo
-                else
-                  echo "NO RELEASE NOTES HAVE BEEN WRITTEN"
-                  echo "You *might* want to do that before"
-                  echo "hitting (+) on that shipit job..."
-                  echo
-                fi
-        - put: version
-          params: {file: version/number}
-        on_success:
-          put: notify
-          params:
-            topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
-            message: release candidate job 'rc' succeeded.
-            ok:      yes
-            link:    (( grab meta.shout.links.build ))
-        on_failure:
-          put: notify
-          params:
-            topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
-            message: release candidate job 'rc' failed (which is unusual).
-            ok:      no
-            link:    (( grab meta.shout.links.build ))
+    - do:
+      - aggregate:
+          - { get: git,     trigger: true,  passed: [pre] }
+          - { get: version, trigger: false, passed: [pre], params: {pre: rc} }
+      - put: version
+        params: {file: version/number}
+      on_success:
+        put: notify
+        params:
+          topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+          message: release candidate job 'rc' succeeded.
+          ok:      yes
+          link:    (( grab meta.shout.links.build ))
+      on_failure:
+        put: notify
+        params:
+          topic:   (( concat meta.shout.topic "-$BUILD_JOB_NAME" ))
+          message: release candidate job 'rc' failed (which is unusual).
+          ok:      no
+          link:    (( grab meta.shout.links.build ))
 
   - name: minor
     public: true
@@ -294,17 +257,15 @@ jobs:
               path: (( concat "./gopath/src/" meta.go.module "/ci/scripts/shipit" ))
               args: []
             params:
-              BINARY:       (( grab meta.go.binary ))
               REPO_ROOT:    (( concat "gopath/src/" meta.go.module ))
               VERSION_FROM: version/number
               RELEASE_NAME: (( grab meta.release ))
               RELEASE_ROOT: gh
               REPO_OUT:     pushme
               BRANCH:       (( grab meta.github.branch ))
-              CMD_PKG:      (( grab meta.go.cmd_module ))
-              STATIC_BINARY:  (( grab meta.go.force_static_binary ))
-              GIT_EMAIL:      (( grab meta.git.email ))
-              GIT_NAME:       (( grab meta.git.name ))
+              GIT_EMAIL:    (( grab meta.git.email ))
+              GIT_NAME:     (( grab meta.git.name ))
+              GO_STATIC:    (( grab meta.go.static ))
         - name: git
           put: git
           params:
@@ -387,12 +348,3 @@ resources:
       user:         (( grab meta.github.owner ))
       repository:   (( grab meta.github.repo ))
       access_token: (( grab meta.github.access_token ))
-
-  - name: git-prs
-    type: pull-request
-    check_every: 20m # avoid Github API rate-limiting
-    source:
-      access_token: (( grab meta.github.access_token ))
-      private_key:  (( grab meta.github.private_key ))
-      repo:         (( concat meta.github.owner "/" meta.github.repo ))
-      base:         (( grab meta.github.branch ))

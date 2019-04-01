@@ -32,8 +32,8 @@ checkenv() {
     envok=1
   fi
 }
-checkenv GIT_NAME "${GIT_NAME:-}"
-checkenv GIT_EMAIL "${GIT_EMAIL:-}"
+checkenv GIT_NAME     "${GIT_NAME:-}"
+checkenv GIT_EMAIL    "${GIT_EMAIL:-}"
 checkenv VERSION_FROM "${VERSION_FROM:-}"
 if [[ ! -f ${VERSION_FROM} ]]; then
   echo >&2 "Version file (${VERSION_FROM}) not found."
@@ -75,14 +75,17 @@ if [[ -d ${newgopath} ]]; then
   PATH="${PATH}:${newgopath}/bin"
 fi
 echo ">> Using GOPATH ${GOPATH}"
-popd
 
-######
-######
-######
-header "Building the software"
-pushd $REPO_ROOT
-make release VERSION=$VERSION
+case ${GO_STATIC:-no} in
+(0|false|f|no)
+  ;;
+(*)
+  echo ">> Compiling without CGO; building a static binary..."
+  export CGO_ENABLED=0
+  ;;
+esac
+
+make shipit VERSION=${VERSION}
 popd
 
 
