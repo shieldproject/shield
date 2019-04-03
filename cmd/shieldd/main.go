@@ -19,8 +19,9 @@ func main() {
 	core.Version = Version
 
 	var opts struct {
-		Help       bool   `cli:"-h, --help"`
-		Version    bool   `cli:"-v, --version"`
+		Help    bool `cli:"-h, --help"`
+		Version bool `cli:"-v, --version"`
+
 		ConfigFile string `cli:"-c, --config"`
 		Log        string `cli:"-l, --log-level"`
 	}

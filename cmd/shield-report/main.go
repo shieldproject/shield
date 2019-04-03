@@ -9,24 +9,43 @@ import (
 	"github.com/jhunt/go-cli"
 )
 
+var Version = ""
+
 var opt struct {
-	Help bool `cli:"-h, --help"`
+	Help    bool `cli:"-h, --help"`
+	Version bool `cli:"-v, --version"`
 
 	Compression string `cli:"-c, --compression"`
 }
 
 func main() {
-	if _, _, err := cli.Parse(&opt); err != nil {
-		fmt.Fprintf(os.Stderr, "!!! shield-report utility failed to parse command-line flags: %s\n", err)
-		os.Exit(2)
+	_, args, err := cli.Parse(&opt)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "!!! %s\n", err)
+		os.Exit(1)
+	}
+	if len(args) != 0 {
+		fmt.Fprintf(os.Stderr, "!!! extra arguments found\n")
+		os.Exit(1)
 	}
 
 	if opt.Help {
-		fmt.Printf("echo '{\"some\":\"json\"}' | shield-report [OPTIONS]\n\n")
-		fmt.Printf("OPTIONS\n\n")
+		fmt.Fprintf(os.Stderr, "shield-reporting - Pipeline worker (shield-pipe) for reporting\n\n")
+		fmt.Printf("Options\n")
 		fmt.Printf("  -h, --help             Show this help screen.\n")
-		fmt.Printf("  -c, --compression ...  Set the \"compression\" key in the output JSON.\n")
+		fmt.Printf("  -v, --version          Display the SHIELD version.\n")
 		fmt.Printf("\n")
+		fmt.Printf("  -c, --compression x    Set the \"compression\" key in the output JSON.\n")
+		fmt.Printf("\n")
+		os.Exit(0)
+	}
+
+	if opt.Version {
+		if Version == "" || Version == "dev" {
+			fmt.Printf("shield-report (development)\n")
+		} else {
+			fmt.Printf("shield-report v%s\n", Version)
+		}
 		os.Exit(0)
 	}
 
@@ -51,6 +70,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "!!! shield-report utility failed to encode output JSON: %s\n", err)
 		os.Exit(4)
 	}
-	os.Stdout.Write(b)
+	fmt.Printf("%s\n", string(b))
 	os.Exit(0)
 }

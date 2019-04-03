@@ -24,14 +24,14 @@ import (
 var Version = ""
 
 var opts struct {
-	Help  bool `cli:"-h, --help"`
+	Help    bool `cli:"-h, --help"`
+	Version bool `cli:"-v, --version"`
+
 	Quiet bool `cli:"-q, --quiet"`
 	Yes   bool `cli:"-y, --yes"`
 	Debug bool `cli:"-D, --debug"  env:"SHIELD_DEBUG"`
 	Trace bool `cli:"-T, --trace"  env:"SHIELD_TRACE"`
 	Batch bool `cli:"-b, --batch, --no-batch" env:"SHIELD_BATCH_MODE"`
-
-	Version bool `cli:"-v, --version"`
 
 	Core   string `cli:"-c, --core" env:"SHIELD_CORE"`
 	Config string `cli:"--config" env:"SHIELD_CLI_CONFIG"`

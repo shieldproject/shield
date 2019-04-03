@@ -14,8 +14,9 @@ var Version = ""
 
 func main() {
 	var opts struct {
-		Help       bool   `cli:"-h, --help"`
-		Version    bool   `cli:"-v, --version"`
+		Help    bool `cli:"-h, --help"`
+		Version bool `cli:"-v, --version"`
+
 		ConfigFile string `cli:"-c, --config"`
 		Log        string `cli:"-l, --log-level"`
 	}
@@ -45,7 +46,7 @@ func main() {
 
 	if opts.Version {
 		if Version == "" || Version == "dev" {
-			fmt.Printf("shield-agent (development)%s\n", Version)
+			fmt.Printf("shield-agent (development)\n")
 		} else {
 			fmt.Printf("shield-agent v%s\n", Version)
 		}

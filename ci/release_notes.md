@@ -10,6 +10,10 @@
   reporting the version of the binary as '(development)'.  This is
   mainly for packaing Docker images properly.
 
+- All `shield*` CLI utilities, include the `shield` CLI itself,
+  the `shieldd` daemon, and all helper binaries now sport options
+  for getting their usage (`--help`) and versions (`--versions`).
+
 # Release Engineering
 
 - Docker images can now be built with embedded release versions,
