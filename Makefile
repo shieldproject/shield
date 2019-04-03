@@ -1,7 +1,7 @@
 # Run me to verify that all tests pass and all binaries are buildable before pushing!
 # If you do not, then Travis will be sad.
 
-BUILD_TYPE?=build
+BUILD_TYPE   ?= build
 DOCKER_IMAGE ?= shield
 DOCKER_TAG   ?= dev
 
@@ -9,7 +9,7 @@ DOCKER_TAG   ?= dev
 all: build test
 build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins
 docker:
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) . --build-arg VERSION=$(DOCKER_TAG)
 
 # go fmt ftw
 format:

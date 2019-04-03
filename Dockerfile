@@ -6,9 +6,10 @@ RUN apt-get update \
 RUN curl -sLo /bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 \
  && chmod 0755 /bin/jq
 
+ARG VERSION
 COPY / /go/src/github.com/starkandwayne/shield/
 RUN cd /go/src/github.com/starkandwayne/shield \
- && make build
+ && make build BUILD_TYPE="build -ldflags='-X main.Version=$VERSION'"
 RUN mkdir -p /dist/bin /dist/plugins \
  && mv /go/src/github.com/starkandwayne/shield/shieldd \
        /go/src/github.com/starkandwayne/shield/shield-agent \
