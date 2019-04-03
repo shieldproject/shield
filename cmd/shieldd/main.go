@@ -13,7 +13,11 @@ import (
 	"github.com/starkandwayne/shield/core"
 )
 
+var Version = ""
+
 func main() {
+	core.Version = Version
+
 	var opts struct {
 		Help       bool   `cli:"-h, --help"`
 		Version    bool   `cli:"-v, --version"`
@@ -45,7 +49,7 @@ func main() {
 	}
 
 	if opts.Version {
-		if core.Version == "" {
+		if core.Version == "" || core.Version == "dev" {
 			fmt.Printf("shieldd (development)\n")
 		} else {
 			fmt.Printf("shieldd v%s\n", core.Version)

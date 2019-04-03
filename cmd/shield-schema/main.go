@@ -51,8 +51,8 @@ func main() {
 	}
 
 	if opts.Version {
-		if Version == "" {
-			fmt.Printf("shield-schema (development)%s\n", Version)
+		if Version == "" || Version == "dev" {
+			fmt.Printf("shield-schema (development)\n")
 		} else {
 			fmt.Printf("shield-schema v%s\n", Version)
 		}

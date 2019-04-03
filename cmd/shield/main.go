@@ -387,7 +387,7 @@ func main() {
 	}
 
 	if opts.Version {
-		if Version == "" {
+		if Version == "" || Version == "dev" {
 			fmt.Printf("shield (development)\n")
 		} else {
 			fmt.Printf("shield v%s\n", Version)

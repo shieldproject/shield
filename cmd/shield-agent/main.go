@@ -44,7 +44,7 @@ func main() {
 	}
 
 	if opts.Version {
-		if Version == "" {
+		if Version == "" || Version == "dev" {
 			fmt.Printf("shield-agent (development)%s\n", Version)
 		} else {
 			fmt.Printf("shield-agent v%s\n", Version)
