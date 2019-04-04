@@ -60,6 +60,25 @@ From the root of the codebase, run `./bin/mkdocs` to get the
 help and usage information.
 
 
+Screenshots / Terminal Output
+-----------------------------
+
+To help with consistency, we provide a Docker Compose recipe for
+running a configured v8.x SHIELD core + agent.  Use this
+environment any time you need a screenshot, or some terminal
+output.
+
+To use it (assuming you have Docker and Docker Compose
+[installed][2]):
+
+    $ cd docs
+    $ docker-compose up
+
+SHIELD should be available at http://localhost:9009/; you can
+visit that in your browser, or hit it via the CLI.  The default
+admin (failsafe) credentials are `admin` / `password`.
+
+
 The Document Landscape
 ----------------------
 
@@ -111,3 +130,4 @@ The Document Landscape
 
 
 [1]: https://shieldproject.io
+[2]: https://docs.docker.com/compose/install/
