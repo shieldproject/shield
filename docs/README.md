@@ -27,15 +27,15 @@ style guide:
      than longer sentences.
 
   4. Never leverage a grandiloquent and ornate word when a
-     domminutive one will suffice.
+     diminutive one will suffice.
 
      Small words are okay.
 
-  5. Use `backticks`, in-line, for Commands, file names, and other
+  5. Use `back ticks`, in-line, for Commands, file names, and other
      computer-ish parts.
 
   6. Always spell-check.  Yes, it's a pain thanks to all the
-     jargon and initialisms, but it's worth it every time.
+     jargon and initialism, but it's worth it every time.
 
   7.  Use emphasis _sparingly_, but **use it when you need to.**
 
@@ -126,7 +126,7 @@ The Document Landscape
 
 - **Plugin Architecture**
 
-  Audience: devlopers wishing to write / modify SHIELD plugins
+  Audience: developers wishing to write / modify SHIELD plugins
 
 
 [1]: https://shieldproject.io
