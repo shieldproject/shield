@@ -3,7 +3,7 @@
 S.H.I.E.L.D. Data Protection
 ============================
 
-Questions? Pop in our [slack channel](http://shieldproject.io/community/#slack)!
+Questions? Join us in [Slack!](http://shieldproject.io/community/#slack)
 
 ![SHIELD Architectural Diagram](docs/images/arch.gif)
 
