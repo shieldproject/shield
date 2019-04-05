@@ -9,14 +9,6 @@ assignees: ''
 
 <!--
 
- ######  ##     ## #### ######## ##       ########
-##    ## ##     ##  ##  ##       ##       ##     ##
-##       ##     ##  ##  ##       ##       ##     ##
- ######  #########  ##  ######   ##       ##     ##
-      ## ##     ##  ##  ##       ##       ##     ##
-##    ## ##     ##  ##  ##       ##       ##     ##
- ######  ##     ## #### ######## ######## ########
-
 Thank you for taking the time to report bugs in SHIELD.
 
 Please fill in as much of the template below as you can.

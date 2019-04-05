@@ -9,14 +9,6 @@ assignees: ''
 
 <!--
 
- ######  ##     ## #### ######## ##       ########
-##    ## ##     ##  ##  ##       ##       ##     ##
-##       ##     ##  ##  ##       ##       ##     ##
- ######  #########  ##  ######   ##       ##     ##
-      ## ##     ##  ##  ##       ##       ##     ##
-##    ## ##     ##  ##  ##       ##       ##     ##
- ######  ##     ## #### ######## ######## ########
-
 Thank you for suggesting an idea to make SHIELD better.
 
 Please fill in as much of the template below as you can.
