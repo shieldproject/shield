@@ -8,6 +8,7 @@ services:
       VAULT_API_ADDR: http://127.0.0.1:8200
       VAULT_LOCAL_CONFIG: >-
         {
+          "disable_mlock": 1,
           "backend": {
             "file": {
               "path": "/vault/file"
@@ -41,10 +42,19 @@ services:
     command: ['/shield/init/core', '--log-level', 'debug']
     environment:
       VAULT_ADDR: http://vault:8200
-      DEBUG:      'yes'
     volumes:
       - 'shield-data:/var/shield'
       - 'shield-etc:/etc/shield'
+
+  demo:
+    depends_on:
+      - core
+      - webdav
+    image: 'shieldproject/demo:latest'
+    ports: ['9008:80']
+    networks: [internal]
+    volumes:
+      - 'demo-data:/www'
 
   agent:
     depends_on:
@@ -55,15 +65,16 @@ services:
     networks: [internal]
     command: ['/shield/init/agent', '--log-level', 'debug']
     environment:
-      SHIELD_API: 'http://core:80'
-      DEBUG:      'yes'
+      SHIELD_API:        'http://core:80'
+      SHIELD_AGENT_NAME: 'demo-shield-agent'
     volumes:
       - 'shield-data:/var/shield'
       - 'shield-etc:/etc/shield'
+      - 'demo-data:/www'
 
   webdav:
-    image: 'morrisjobke/webdav:latest'
-    ports: [80]
+    image: 'shieldproject/webdav:latest'
+    ports: ['9007:80']
     networks: [internal]
     environment:
       USERNAME: webdav
@@ -79,3 +90,4 @@ volumes:
   shield-data:
   shield-etc:
   webdav-data:
+  demo-data:

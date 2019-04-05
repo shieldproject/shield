@@ -1,0 +1,6 @@
+#!/bin/bash
+set -eu
+
+mkdir -p /www
+cp -a /var/lib/data/demo/htdocs/* /www
+exec "$@"
