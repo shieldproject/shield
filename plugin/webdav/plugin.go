@@ -219,6 +219,7 @@ func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) 
 		return nil, err
 	}
 	u.Path = fmt.Sprintf("%s/%s", strings.TrimSuffix(u.Path, "/"), path)
+	fmt.Fprintf(os.Stderr, "requesting %s %s\n", method, u)
 
 	req, err := http.NewRequest(method, u.String(), in)
 	if err != nil {
