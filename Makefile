@@ -2,14 +2,11 @@
 # If you do not, then Travis will be sad.
 
 BUILD_TYPE   ?= build
-DOCKER_IMAGE ?= shield
 DOCKER_TAG   ?= dev
 
 # Everything; this is the default behavior
 all: build test
 build: format shieldd shield shield-agent shield-schema shield-crypt shield-report plugins
-docker:
-	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) . --build-arg VERSION=$(DOCKER_TAG)
 
 # go fmt ftw
 format:
@@ -139,6 +136,30 @@ release:
 	  cp ../bin/shield-restarter $$x/daemon; \
 	  tar -czvf $$x.tar.gz $$x; \
 	  rm -r $$x; \
+	done
+
+docker: docker-shield docker-webdav docker-demo
+docker-shield:
+	docker build -t shieldproject/shield:$(DOCKER_TAG) . --build-arg VERSION=$(DOCKER_TAG)
+docker-webdav:
+	docker build -t shieldproject/webdav:$(DOCKER_TAG) docker/webdav
+docker-demo:
+	docker build -t shieldproject/demo:$(DOCKER_TAG) docker/demo
+
+docker-release:
+	@echo "Checking that VERSION was defined in the calling environment"
+	@test -n "$(VERSION)"
+	@echo "OK.  VERSION=$(VERSION)"
+	
+	docker build -t shieldproject/shield:$(VERSION) . --build-arg VERSION=$(VERSION)
+	docker build -t shieldproject/webdav:$(VERSION) docker/webdav
+	docker build -t shieldproject/demo:$(VERSION) docker/demo
+	
+	for I in shieldproject/shield shieldproject/webdav shieldproject/demo; do \
+		for V in $(VERSION) $(shell echo "$(VERSION)" | sed -e 's/\.[^.]*$$//') $(shell echo "$(VERSION)" | sed -e 's/\..*$$//'); do \
+			docker tag $$I:$(VERSION) $$I:$$V; \
+			docker push $$I:$$V; \
+		done \
 	done
 
 
