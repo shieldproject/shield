@@ -13,6 +13,7 @@ GetOptions(\%options, qw/
 	version|v=s
 	docroot=s
 	srcroot=s
+	rawroot=s
 	output|o=s
 
 	style=s
@@ -225,19 +226,23 @@ EOF
 );
 
 if (!$options{docroot} && $options{version}) {
-	$options{docroot} = "/docs/$options{version}";
+	$options{docroot} = "/docs/v$options{version}";
 }
 if (!$options{srcroot} && $options{version}) {
-	$options{srcroot} = "https://github.com/starkandwayne/shield/tree/$options{version}";
+	$options{srcroot} = "https://github.com/starkandwayne/shield/tree/v$options{version}";
+}
+if (!$options{rawroot} && $options{version}) {
+	$options{rawroot} = "https://raw.githubusercontent.com/starkandwayne/shield/v$options{version}";
 }
 if (!$options{output} && $options{version}) {
-	$options{output} = "./docs-v$options{version}";
+	$options{output} = "./build/docs/v$options{version}";
 }
-if (!$options{docroot} || !$options{srcroot} || !$options{output}) {
+if (!$options{docroot} || !$options{srcroot} || !$options{rawroot} || !$options{output}) {
 	my $s = $0; $s =~ s/./ /g;
-	print STDERR "USAGE: $0 --version 8.1\n";
+	print STDERR "USAGE: $0 --version 8.1.0\n";
 	print STDERR "USAGE: $0 --docroot /docs/web/root \\\n";
 	print STDERR "       $s --srcroot https://github.com/starkandwayne/shield/tree/master \\\n";
+	print STDERR "       $s --rawroot https://raw.githubusercontent.com/starkandwayne/shield/master \\\n";
 	print STDERR "       $s --output  ./generated-docs\n";
 	exit 1;
 }
@@ -265,6 +270,7 @@ find({
 				next if m|^\s*//|;
 				s/\$docs/$options{docroot}/g;
 				s/\$src/$options{srcroot}/g;
+				s/\$raw/$options{rawroot}/g;
 				$markdown .= $_;
 			}
 			close $in;
