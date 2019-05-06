@@ -3085,7 +3085,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   </td>
                   <td>
                     [[ if (AEGIS.is('manager')) { ]]
-                    <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a>
+                    <td>
+                      <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a> |
+                      <a data-user-name="[[= user.name]]" href="delete-user:[[= user.uuid ]]">delete</a>
+                    </td>
                     [[ } ]]
                   </td>
                 </tr>
@@ -3217,6 +3220,22 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               </div>
             </form>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:admin-users-delete"><!-- {{{ -->
+      [[#
+        {admin-users-delete} template
+
+        Confirmation and admin really wants to delete a user.
+      ]]
+        <div class="confirm">
+          <h2>You Are About To Delete A User</h2>
+          
+          <p class="q">Are you sure you want to delete user: <em>[[= _.name ]]</em>?</p>
+          <div class="a">
+            <button class="closes safe" rel="close">No, Cancel This Operation</button>
+            <button class="closes danger" rel="yes">Yes, Delete</button>
+          </div>
+        </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:sessions"><!-- {{{ -->
         [[#
