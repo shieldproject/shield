@@ -3212,6 +3212,27 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                       </div>
                     </div>
 
+                    <div class="field required" data-field="password">
+                      <div class="x3"><label for="-password">Password</label></div>
+                      <div class="x9">
+                        <input type="password" name="password">
+                        <span class="errors">
+                          <span data-error="missing">Please provide a password for this new user.</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field required" data-field="confirm">
+                      <div class="x3"><label for="confirm">Confirm</label></div>
+                      <div class="x9">
+                        <input type="password" name="confirm">
+                        <span class="errors">
+                          <span data-error="missing">Please confirm this new user's password.</span>
+                          <span data-error="mismatch">These passwords don't match.</span>
+                        </span>
+                      </div>
+                    </div>
+
                     <div class="x12 buttons">
                       <button class="final">Update</button>
                     </div>
