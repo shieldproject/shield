@@ -3217,7 +3217,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                       <div class="x9">
                         <input type="password" name="password">
                         <span class="errors">
-                          <span data-error="missing">Please provide a password for this new user.</span>
                         </span>
                       </div>
                     </div>
@@ -3227,7 +3226,6 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                       <div class="x9">
                         <input type="password" name="confirm">
                         <span class="errors">
-                          <span data-error="missing">Please confirm this new user's password.</span>
                           <span data-error="mismatch">These passwords don't match.</span>
                         </span>
                       </div>
@@ -3246,7 +3244,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
       [[#
         {admin-users-delete} template
 
-        Confirmation and admin really wants to delete a user.
+        Confirmation an admin really wants to delete a user.
       ]]
         <div class="confirm">
           <h2>You Are About To Delete A User</h2>
