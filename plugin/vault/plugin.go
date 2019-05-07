@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -132,8 +131,6 @@ func (p VaultPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 }
 
 func (p VaultPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	var data Vault
-
 	v, subtree, err := connect(endpoint)
 	if err != nil {
 		return err
@@ -144,19 +141,18 @@ func (p VaultPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	plugin.DEBUG("Reading %s/* from the Vault...", subtree)
-	data = make(Vault)
-	if err = data.Export(v, subtree); err != nil {
+	var output string
+	if output, err = Export(v, subtree); err != nil {
 		return err
 	}
 
-	plugin.DEBUG("Exported %d paths from the Vault successfully.", len(data))
-	return data.Write()
+	return Write(output)
 }
 
 func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	var (
 		preserve   bool
-		data, prev Vault
+		data, prev string
 	)
 
 	v, subtree, err := connect(endpoint)
@@ -170,36 +166,35 @@ func (p VaultPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	plugin.DEBUG("Reading contents of backup archive...")
-	data = make(Vault)
-	if err = data.Read(subtree); err != nil {
+	var input []byte
+	if input, err = Read(subtree); err != nil {
 		return err
 	}
 
 	if preserve {
-		prev = make(Vault)
 		plugin.DEBUG("Saving seal keys for current Vault...")
-		err = prev.Export(v, "secret/vault/seal/keys")
+		prev, err = Export(v, "secret/vault/seal/keys")
 		if err != nil {
 			if !vault.IsNotFound(err) {
 				return err
 			}
-			prev = nil
+			prev = ""
 		}
 	}
 
 	plugin.DEBUG("Deleting pre-existing contents of %s/* from Vault...", subtree)
-	if err = v.DeleteTree(subtree); err != nil && !vault.IsNotFound(err) {
+	if err = v.DeleteTree(subtree, vault.DeleteOpts{Destroy: true, All: true}); err != nil && !vault.IsNotFound(err) {
 		return err
 	}
 
 	plugin.DEBUG("Restoring %d paths to the Vault...", len(data))
-	if err = data.Import(v); err != nil {
+	if err = Import(v, input); err != nil {
 		return err
 	}
 
-	if prev != nil {
+	if prev != "" {
 		plugin.DEBUG("Replacing seal keys for current Vault (overwriting those from the backup archive)...")
-		return prev.Import(v)
+		return Import(v, []byte(prev))
 	}
 	return nil
 }
@@ -247,68 +242,245 @@ func connect(endpoint plugin.ShieldEndpoint) (*vault.Vault, string, error) {
 	return v, subtree, err
 }
 
-type Vault map[string]*vault.Secret
+type v1ExportFormat map[string]*vault.Secret
 
-func (v Vault) Export(from *vault.Vault, path string) error {
-	tree, err := from.Tree(path, vault.TreeOptions{
-		StripSlashes: true,
+type v2ExportFormat struct {
+	ExportVersion uint `json:"export_version"`
+	//map from path string to map from version number to version info
+	Data               map[string]exportSecret `json:"data"`
+	RequiresVersioning map[string]bool         `json:"requires_versioning"`
+}
+
+type exportSecret struct {
+	FirstVersion uint            `json:"first,omitempty"`
+	Versions     []exportVersion `json:"versions"`
+}
+
+type exportVersion struct {
+	Deleted   bool              `json:"deleted,omitempty"`
+	Destroyed bool              `json:"destroyed,omitempty"`
+	Value     map[string]string `json:"value,omitempty"`
+}
+
+func Export(v *vault.Vault, path string) (string, error) {
+	var toExport interface{}
+
+	//Standardize and validate path
+	path = vault.Canonicalize(path)
+	_, key, version := vault.ParsePath(path)
+	if key != "" {
+		return "", fmt.Errorf("Cannot export path with key (%s)", path)
+	}
+
+	if version > 0 {
+		return "", fmt.Errorf("Cannot export path with version (%s)", path)
+	}
+
+	secrets, err := v.ConstructSecrets(path, vault.TreeOpts{
+		FetchKeys:           true,
+		FetchAllVersions:    true,
+		GetDeletedVersions:  true,
+		AllowDeletedSecrets: true,
 	})
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	for _, path := range tree.Paths("/") {
-		s, err := from.Read(path)
+	var mustV2Export bool
+	//Determine if we can get away with a v1 export
+	for _, s := range secrets {
+		if len(s.Versions) > 1 {
+			mustV2Export = true
+			break
+		}
+	}
+
+	v1Export := func() error {
+		export := v1ExportFormat{}
+		for _, s := range secrets {
+			export[s.Path] = s.Versions[0].Data
+		}
+
+		toExport = export
+		return nil
+	}
+
+	v2Export := func() error {
+		export := v2ExportFormat{ExportVersion: 2, Data: map[string]exportSecret{}, RequiresVersioning: map[string]bool{}}
+
+		for _, secret := range secrets {
+			if len(secret.Versions) > 1 {
+				mount, _ := v.Client().MountPath(secret.Path)
+				export.RequiresVersioning[mount] = true
+			}
+
+			thisSecret := exportSecret{FirstVersion: secret.Versions[0].Number}
+			//We want to omit the `first` key in the json if it's 1
+			if thisSecret.FirstVersion == 1 {
+				thisSecret.FirstVersion = 0
+			}
+
+			for _, version := range secret.Versions {
+				thisVersion := exportVersion{
+					Deleted:   version.State == vault.SecretStateDeleted,
+					Destroyed: version.State == vault.SecretStateDestroyed,
+					Value:     map[string]string{},
+				}
+
+				for _, key := range version.Data.Keys() {
+					thisVersion.Value[key] = version.Data.Get(key)
+				}
+
+				thisSecret.Versions = append(thisSecret.Versions, thisVersion)
+			}
+
+			export.Data[secret.Path] = thisSecret
+
+			//Wrap export in array so that older versions of safe don't try to import this improperly.
+			toExport = []v2ExportFormat{export}
+		}
+
+		return nil
+	}
+
+	if mustV2Export {
+		err = v2Export()
+	} else {
+		err = v1Export()
+	}
+
+	if err != nil {
+		return "", err
+	}
+	b, err := json.Marshal(&toExport)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func Import(v *vault.Vault, backup []byte) error {
+	type importFunc func([]byte) error
+
+	v1Import := func(input []byte) error {
+		data := v1ExportFormat{}
+		err := json.Unmarshal(input, &data)
 		if err != nil {
 			return err
 		}
-		plugin.DEBUG(" -- read %s", path)
-		v[path] = s
+		for path, s := range data {
+			err = v.Write(path, s)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(os.Stderr, "wrote %s\n", path)
+		}
+		return nil
 	}
-	return nil
-}
 
-func (v Vault) Import(to *vault.Vault) error {
-	for path, s := range v {
-		err := to.Write(path, s)
+	v2Import := func(input []byte) error {
+		var unmarshalTarget []v2ExportFormat
+		err := json.Unmarshal(input, &unmarshalTarget)
 		if err != nil {
-			return err
+			return fmt.Errorf("Could not interpret export file: %s", err)
 		}
-		plugin.DEBUG(" -- wrote contents to %s", path)
+
+		if len(unmarshalTarget) != 1 {
+			return fmt.Errorf("Improperly formatted export file")
+		}
+
+		data := unmarshalTarget[0]
+
+		//Verify that the mounts that require versioning actually support it. We
+		//can't really detect if v1 mounts exist at this stage unless we assume
+		//the token given has mount listing privileges. Not a big deal, because
+		//it will become very apparent once we start trying to put secrets in it
+		for mount, needsVersioning := range data.RequiresVersioning {
+			if needsVersioning {
+				mountVersion, err := v.MountVersion(mount)
+				if err != nil {
+					return fmt.Errorf("Could not determine existing mount version: %s", err)
+				}
+
+				if mountVersion != 2 {
+					return fmt.Errorf("Export for mount `%s' has secrets with multiple versions, but the mount either\n"+
+						"does not exist or does not support versioning", mount)
+				}
+			}
+		}
+
+		//Put the secrets in the places, writing the versions in the correct order and deleting/destroying secrets that
+		// need to be deleted/destroyed.
+		for path, secret := range data.Data {
+			s := vault.SecretEntry{
+				Path: path,
+			}
+
+			firstVersion := secret.FirstVersion
+			if firstVersion == 0 {
+				firstVersion = 1
+			}
+
+			for i := range secret.Versions {
+				state := vault.SecretStateAlive
+				if secret.Versions[i].Destroyed {
+					state = vault.SecretStateDestroyed
+				} else if secret.Versions[i].Deleted {
+					state = vault.SecretStateDeleted
+				}
+				data := vault.NewSecret()
+				for k, v := range secret.Versions[i].Value {
+					data.Set(k, v, false)
+				}
+				s.Versions = append(s.Versions, vault.SecretVersion{
+					Number: firstVersion + uint(i),
+					State:  state,
+					Data:   data,
+				})
+			}
+
+			err := s.Copy(v, s.Path, vault.TreeCopyOpts{
+				Clear: true,
+				Pad:   true,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
-	return nil
+
+	var fn importFunc
+	//determine which version of the export format this is
+	var typeTest interface{}
+	json.Unmarshal(backup, &typeTest)
+	switch v := typeTest.(type) {
+	case map[string]interface{}:
+		fn = v1Import
+	case []interface{}:
+		if len(v) == 1 {
+			if meta, isMap := (v[0]).(map[string]interface{}); isMap {
+				version, isFloat64 := meta["export_version"].(float64)
+				if isFloat64 && version == 2 {
+					fn = v2Import
+				}
+			}
+		}
+	}
+
+	if fn == nil {
+		return fmt.Errorf("Unknown export file format - aborting")
+	}
+
+	return fn(backup)
 }
 
-func (v Vault) Read(subtree string) error {
-	b, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		return err
-	}
-
-	if err := json.Unmarshal(b, &v); err != nil {
-		return err
-	}
-
-	if !strings.HasSuffix(subtree, "/") {
-		subtree += "/"
-	}
-
-	for key := range v {
-		if !strings.HasPrefix(key, subtree) {
-			plugin.DEBUG(" -- IGNORING %s (not under %s*)", key, subtree)
-			delete(v, key)
-		}
-	}
-
-	return nil
+func Read(subtree string) ([]byte, error) {
+	return ioutil.ReadAll(os.Stdin)
 }
 
-func (v Vault) Write() error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("%s\n", string(b))
+func Write(output string) error {
+	fmt.Printf("%s\n", output)
 	return nil
 }

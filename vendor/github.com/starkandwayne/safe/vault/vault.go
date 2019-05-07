@@ -6,31 +6,28 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 
+	"github.com/cloudfoundry-community/vaultkv"
 	"github.com/jhunt/go-ansi"
-	"github.com/starkandwayne/goutils/tree"
 )
 
-// A Vault represents a means for interacting with a remote Vault
-// instance (unsealed and pre-authenticated) to read and write secrets.
 type Vault struct {
-	URL    string
-	Token  string
-	Client *http.Client
+	client *vaultkv.KV
 }
 
 // NewVault creates a new Vault object.  If an empty token is specified,
 // the current user's token is read from ~/.vault-token.
-func NewVault(url, token string, auth bool) (*Vault, error) {
+func NewVault(u, token string, auth bool) (*Vault, error) {
 	if auth {
 		if token == "" {
-			b, err := ioutil.ReadFile(fmt.Sprintf("%s/.vault-token", os.Getenv("HOME")))
+			b, err := ioutil.ReadFile(fmt.Sprintf("%s/.vault-token", userHomeDir()))
 			if err != nil {
 				return nil, err
 			}
@@ -42,35 +39,70 @@ func NewVault(url, token string, auth bool) (*Vault, error) {
 		}
 	}
 
+	// x509.SystemCertPool is not implemented for windows currently.
+	// If nil is supplied for RootCAs, the system will verify the certs as per
+	// https://golang.org/src/crypto/x509/verify.go (Line 741)
 	roots, err := x509.SystemCertPool()
-	if err != nil {
+	if err != nil && runtime.GOOS != "windows" {
 		return nil, fmt.Errorf("unable to retrieve system root certificate authorities: %s", err)
 	}
 
+	vaultURL, err := url.Parse(strings.TrimSuffix(u, "/"))
+	if err != nil {
+		return nil, fmt.Errorf("Could not parse Vault URL: %s", err)
+	}
+
+	//The default port for Vault is typically 8200 (which is the VaultKV default),
+	// but safe has historically ignored that and used the default http or https
+	// port, depending on which was specified as the scheme
+	if vaultURL.Port() == "" {
+		port := ":80"
+		if strings.ToLower(vaultURL.Scheme) == "https" {
+			port = ":443"
+		}
+		vaultURL.Host = vaultURL.Host + port
+	}
+
 	return &Vault{
-		URL:   strings.TrimSuffix(url, "/"),
-		Token: token,
-		Client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: http.ProxyFromEnvironment,
-				TLSClientConfig: &tls.Config{
-					RootCAs:            roots,
-					InsecureSkipVerify: os.Getenv("VAULT_SKIP_VERIFY") != "",
+		client: (&vaultkv.Client{
+			VaultURL:  vaultURL,
+			AuthToken: token,
+			Client: &http.Client{
+				Transport: &http.Transport{
+					Proxy: http.ProxyFromEnvironment,
+					TLSClientConfig: &tls.Config{
+						RootCAs:            roots,
+						InsecureSkipVerify: os.Getenv("VAULT_SKIP_VERIFY") != "",
+					},
 				},
 			},
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if len(via) > 10 {
-					return fmt.Errorf("stopped after 10 redirects")
+			Trace: func() (ret io.Writer) {
+				if shouldDebug() {
+					ret = os.Stderr
 				}
-				req.Header.Add("X-Vault-Token", token)
-				return nil
-			},
-		},
+				return ret
+			}(),
+		}).NewKV(),
 	}, nil
 }
 
-func (v *Vault) url(f string, args ...interface{}) string {
-	return v.URL + fmt.Sprintf(f, args...)
+func (v *Vault) Client() *vaultkv.KV {
+	return v.client
+}
+
+func (v *Vault) MountVersion(path string) (uint, error) {
+	path = Canonicalize(path)
+	return v.client.MountVersion(path)
+}
+
+func (v *Vault) Versions(path string) ([]vaultkv.KVVersion, error) {
+	path = Canonicalize(path)
+	ret, err := v.client.Versions(path)
+	if vaultkv.IsNotFound(err) {
+		return nil, NewSecretNotFoundError(path)
+	}
+
+	return ret, err
 }
 
 func shouldDebug() bool {
@@ -78,142 +110,62 @@ func shouldDebug() bool {
 	return d != "" && d != "false" && d != "0" && d != "no" && d != "off"
 }
 
-func (v *Vault) request(req *http.Request) (*http.Response, error) {
-	var (
-		body []byte
-		err  error
-	)
-	if req.Body != nil {
-		body, err = ioutil.ReadAll(req.Body)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	req.Header.Add("X-Vault-Token", v.Token)
-	for i := 0; i < 10; i++ {
-		if req.Body != nil {
-			req.Body = ioutil.NopCloser(bytes.NewReader(body))
-		}
-		if shouldDebug() {
-			r, _ := httputil.DumpRequest(req, true)
-			fmt.Fprintf(os.Stderr, "Request:\n%s\n----------------\n", r)
-		}
-		res, err := v.Client.Do(req)
-		if shouldDebug() {
-			r, _ := httputil.DumpResponse(res, true)
-			fmt.Fprintf(os.Stderr, "Response:\n%s\n----------------\n", r)
-		}
-		if err != nil {
-			return nil, err
-		}
-		// Vault returns a 307 to redirect during HA / Auth
-		switch res.StatusCode {
-		case 307:
-			// Note: this does not handle relative Location headers
-			url, err := url.Parse(res.Header.Get("Location"))
-			if err != nil {
-				return nil, err
-			}
-			req.URL = url
-			// ... and try again.
-
-		default:
-			return res, err
-		}
-	}
-
-	return nil, fmt.Errorf("redirection loop detected")
-}
-
 func (v *Vault) Curl(method string, path string, body []byte) (*http.Response, error) {
 	path = Canonicalize(path)
-	req, err := http.NewRequest(method, v.url("/v1/%s", path), bytes.NewBuffer(body))
+	u, err := url.Parse(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Could not parse input path: %s", err.Error())
 	}
-	return v.request(req)
-}
 
-func (v *Vault) Configure(path string, params map[string]string) error {
-	data, err := json.Marshal(params)
+	query, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
-		return err
+		panic("Could not parse query: " + err.Error())
 	}
 
-	res, err := v.Curl("POST", path, data)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != 200 && res.StatusCode != 204 {
-		return fmt.Errorf("configuration via '%s' failed", path)
-	}
-
-	return nil
+	return v.client.Client.Curl(method, u.Path, query, bytes.NewBuffer(body))
 }
 
 // Read checks the Vault for a Secret at the specified path, and returns it.
 // If there is nothing at that path, a nil *Secret will be returned, with no
 // error.
 func (v *Vault) Read(path string) (secret *Secret, err error) {
-	//split at last colon, if present
-	path, key := ParsePath(path)
+	path = Canonicalize(path)
+	path, key, version := ParsePath(path)
 
 	secret = NewSecret()
-	req, err := http.NewRequest("GET", v.url("/v1/%s", path), nil)
+
+	raw := map[string]interface{}{}
+	_, err = v.client.Get(path, &raw, &vaultkv.KVGetOpts{Version: uint(version)})
 	if err != nil {
-		return
-	}
-	res, err := v.request(req)
-	if err != nil {
-		return
-	}
-
-	switch res.StatusCode {
-	case 200:
-		break
-	case 404:
-		err = NewSecretNotFoundError(path)
-		return
-	default:
-		err = fmt.Errorf("API %s", res.Status)
+		if vaultkv.IsNotFound(err) {
+			err = NewSecretNotFoundError(path)
+		}
 		return
 	}
 
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return
+	if key != "" {
+		val, found := raw[key]
+		if !found {
+			return nil, NewKeyNotFoundError(path, key)
+		}
+		raw = map[string]interface{}{key: val}
 	}
 
-	var raw map[string]interface{}
-	if err = json.Unmarshal(b, &raw); err != nil {
-		return
-	}
-
-	if rawdata, ok := raw["data"]; ok {
-		if data, ok := rawdata.(map[string]interface{}); ok {
-			for k, v := range data {
-				if (key != "" && k == key) || key == "" {
-					if s, ok := v.(string); ok {
-						secret.data[k] = s
-					} else {
-						b, err = json.Marshal(v)
-						if err != nil {
-							return
-						}
-						secret.data[k] = string(b)
-					}
+	for k, v := range raw {
+		if (key != "" && k == key) || key == "" {
+			if s, ok := v.(string); ok {
+				secret.data[k] = s
+			} else {
+				var b []byte
+				b, err = json.Marshal(v)
+				if err != nil {
+					return
 				}
+				secret.data[k] = string(b)
 			}
-
-			if key != "" && len(secret.data) == 0 {
-				err = NewKeyNotFoundError(path, key)
-			}
-			return
 		}
 	}
-	err = fmt.Errorf("malformed response from vault")
+
 	return
 }
 
@@ -223,147 +175,12 @@ func (v *Vault) Read(path string) (secret *Secret, err error) {
 func (v *Vault) List(path string) (paths []string, err error) {
 	path = Canonicalize(path)
 
-	req, err := http.NewRequest("GET", v.url("/v1/%s?list=1", path), nil)
-	if err != nil {
-		return
-	}
-	res, err := v.request(req)
-	if err != nil {
-		return
+	paths, err = v.client.List(path)
+	if vaultkv.IsNotFound(err) {
+		err = NewSecretNotFoundError(path)
 	}
 
-	switch res.StatusCode {
-	case 200:
-		break
-	case 404:
-		req, err = http.NewRequest("GET", v.url("/v1/%s", path), nil)
-		if err != nil {
-			return
-		}
-		res, err = v.request(req)
-		if err != nil {
-			return
-		}
-		switch res.StatusCode {
-		case 200:
-			break
-		case 404:
-			err = NewSecretNotFoundError(path)
-			return
-		default:
-			err = fmt.Errorf("API %s", res.Status)
-			return
-		}
-	default:
-		err = fmt.Errorf("API %s", res.Status)
-		return
-	}
-
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return
-	}
-
-	var r struct{ Data struct{ Keys []string } }
-	if err = json.Unmarshal(b, &r); err != nil {
-		return
-	}
-	return r.Data.Keys, nil
-}
-
-type TreeOptions struct {
-	UseANSI      bool /* Use ANSI colorizing sequences */
-	HideLeaves   bool /* Hide leaf nodes of the tree (actual secrets) */
-	ShowKeys     bool /* Include keys in the output */
-	InSubbranch  bool /* If true, suppresses key output on branches */
-	StripSlashes bool /* If true, strip the trailing slashes from interior nodes */
-}
-
-func (v *Vault) walktree(path string, options TreeOptions) (tree.Node, int, error) {
-	t := tree.New(path)
-	l, err := v.List(path)
-	if err != nil {
-		return t, 0, err
-	}
-
-	var key_fmt string
-	if options.UseANSI {
-		key_fmt = "@Y{:%s}"
-	} else {
-		key_fmt = ":%s"
-	}
-	if options.ShowKeys && !options.InSubbranch {
-		if s, err := v.Read(path); err == nil {
-			for _, key := range s.Keys() {
-				key_name := ansi.Sprintf(key_fmt, key)
-				t.Append(tree.New(key_name))
-			}
-		}
-	}
-	options.InSubbranch = true
-	for _, p := range l {
-		if strings.HasSuffix(p, "/") {
-			kid, n, err := v.walktree(path+"/"+p[0:len(p)-1], options)
-			if err != nil {
-				return t, 0, err
-			}
-			if n == 0 {
-				fmt.Fprintf(os.Stderr, "%s\n", kid.Name)
-				continue
-			}
-			if options.StripSlashes {
-				p = p[0 : len(p)-1]
-			}
-			if options.UseANSI {
-				kid.Name = ansi.Sprintf("@B{%s}", p)
-			} else {
-				kid.Name = p
-			}
-			t.Append(kid)
-
-		} else if options.HideLeaves {
-			continue
-
-		} else {
-			var name string
-			if options.UseANSI {
-				name = ansi.Sprintf("@G{%s}", p)
-			} else {
-				name = p
-			}
-			leaf := tree.New(name)
-			if options.ShowKeys {
-				if s, err := v.Read(path + "/" + p); err == nil {
-					for _, key := range s.Keys() {
-						key_name := ansi.Sprintf(key_fmt, key)
-						leaf.Append(tree.New(key_name))
-					}
-				} else {
-					fmt.Fprintf(os.Stderr, "error: %s\n", err)
-				}
-
-			}
-			t.Append(leaf)
-		}
-	}
-	return t, len(l), nil
-}
-
-// Tree returns a tree that represents the hierarchy of paths contained
-// below the given path, inside of the Vault.
-func (v *Vault) Tree(path string, options TreeOptions) (tree.Node, error) {
-	path = Canonicalize(path)
-
-	t, _, err := v.walktree(path, options)
-	if err != nil {
-		return t, err
-	}
-	if options.UseANSI {
-		t.Name = ansi.Sprintf("@C{%s}", path)
-	} else {
-		t.Name = path
-	}
-	return t, nil
+	return paths, err
 }
 
 // Write takes a Secret and writes it to the Vault at the specified path.
@@ -373,52 +190,111 @@ func (v *Vault) Write(path string, s *Secret) error {
 		return fmt.Errorf("cannot write to paths in /path:key notation")
 	}
 
-	//If our secret has become empty (through key deletion, most likely)
-	// make sure to clean up the secret
 	if s.Empty() {
-		return v.deleteIfPresent(path)
+		return v.deleteIfPresent(path, DeleteOpts{})
 	}
 
-	raw := s.JSON()
-
-	req, err := http.NewRequest("POST", v.url("/v1/%s", path), strings.NewReader(raw))
-	if err != nil {
-		return err
-	}
-	res, err := v.request(req)
-	if err != nil {
-		return err
+	_, err := v.client.Set(path, s.data, nil)
+	if vaultkv.IsNotFound(err) {
+		err = NewSecretNotFoundError(path)
 	}
 
-	switch res.StatusCode {
-	case 200:
-		break
-	case 204:
-		break
-	default:
-		return fmt.Errorf("API %s", res.Status)
-	}
-
-	return nil
+	return err
 }
 
-//errIfFolder returns an error with your provided message if the given path exists,
-// either as a secret or a folder.
+//errIfFolder returns an error with your provided message if the given path is a folder.
 // Can also throw an error if contacting the backend failed, in which case that error
 // is returned.
 func (v *Vault) errIfFolder(path, message string, args ...interface{}) error {
 	path = Canonicalize(path)
-
-	//need to check if length of list is 0 because prior to vault 0.6.0, no 404 is
-	//given for attempting to list a path which does not exist.
-	if paths, err := v.List(path); err == nil && len(paths) != 0 { //...see if it is a subtree "folder"
-		// the "== nil" is not a typo. if there is an error, NotFound or otherwise,
-		// simply fall through to the error return below
-		// Otherwise, give a different error signifying that the problem is that
-		// the target is a directory when we expected a secret.
+	if _, err := v.List(path); err == nil {
+		//We don't want the folder error to be ignored because of the -f flag to rm,
+		// so we explicitly don't make this a secretNotFound error
 		return fmt.Errorf(message, args...)
 	} else if err != nil && !IsNotFound(err) {
 		return err
+	}
+	return nil
+}
+
+const (
+	verifyStateAlive uint = iota
+	verifyStateAliveOrDeleted
+)
+
+type verifyOpts struct {
+	AnyVersion bool
+	State      uint
+}
+
+func (v *Vault) verifySecretState(path string, opts verifyOpts) error {
+	secret, _, version := ParsePath(path)
+	mountV, err := v.MountVersion(secret)
+	if err != nil {
+		return err
+	}
+
+	var deletedErr = secretNotFound{fmt.Sprintf("`%s' is deleted", path)}
+	var destroyedErr = secretNotFound{fmt.Sprintf("`%s' is destroyed", path)}
+
+	switch mountV {
+	case 1:
+		return v.verifySecretExists(path)
+	case 2:
+		versions, err := v.Versions(secret)
+		if err != nil {
+			if IsNotFound(err) {
+				err = v.errIfFolder(path, "`%s' points to a folder, not a secret", path)
+				if err != nil {
+					return err
+				}
+
+				return NewSecretNotFoundError(secret)
+			}
+
+			return err
+		}
+
+		if !opts.AnyVersion {
+			var v vaultkv.KVVersion
+			if version == 0 {
+				v = versions[len(versions)-1]
+			} else {
+				if uint64(versions[0].Version) > version {
+					return destroyedErr
+				}
+
+				if version > uint64(versions[len(versions)-1].Version) {
+					return secretNotFound{fmt.Sprintf("`%s' references a version that does not yet exist", path)}
+				}
+
+				idx := version - uint64(versions[0].Version)
+				v = versions[idx]
+			}
+
+			if v.Destroyed {
+				return destroyedErr
+			}
+			if opts.State == verifyStateAlive && v.Deleted {
+				return deletedErr
+			}
+		} else {
+			for i := range versions {
+				if !(versions[i].Deleted || versions[i].Destroyed) || (opts.State == verifyStateAliveOrDeleted && !versions[i].Destroyed) {
+					return nil
+				}
+			}
+
+			//If we got this far, we couldn't find a version that satisfied our constraints
+			if opts.State == verifyStateAlive {
+				return secretNotFound{fmt.Sprintf("No living versions for `%s'", path)}
+			} else {
+				return secretNotFound{fmt.Sprintf("No living or deleted versions for `%s'", path)}
+			}
+		}
+
+	default:
+		return fmt.Errorf("Unsupported mount version: %d", mountV)
 	}
 	return nil
 }
@@ -435,81 +311,240 @@ func (v *Vault) verifySecretExists(path string) error {
 	return err
 }
 
-//DeleteTree recursively deletes the leaf nodes beneath the given root until
-// the root has no children, and then deletes that.
-func (v *Vault) DeleteTree(root string) error {
-	root = Canonicalize(root)
-
-	tree, err := v.Tree(root, TreeOptions{
-		StripSlashes: true,
-	})
-	if err != nil {
-		return err
-	}
-	for _, path := range tree.Paths("/") {
-		err = v.deleteEntireSecret(path)
-		if err != nil {
-			return err
-		}
-	}
-	return v.deleteEntireSecret(root)
-}
-
-// Delete removes the secret or key stored at the specified path.
-func (v *Vault) Delete(path string) error {
+func (v *Vault) verifySecretUndestroyed(path string) error {
 	path = Canonicalize(path)
-
-	if err := v.verifySecretExists(path); err != nil {
-		return err
-	}
-
-	secret, key := ParsePath(path)
-	if key == "" {
-		return v.deleteEntireSecret(path)
-	}
-	return v.deleteSpecificKey(secret, key)
-}
-
-func (v *Vault) deleteEntireSecret(path string) error {
-
-	req, err := http.NewRequest("DELETE", v.url("/v1/%s", path), nil)
-	if err != nil {
-		return err
-	}
-	res, err := v.request(req)
+	secret, _, version := ParsePath(path)
+	allVersions, err := v.Client().Versions(secret)
 	if err != nil {
 		return err
 	}
 
-	switch res.StatusCode {
-	case 200:
-		break
-	case 204:
-		break
-	default:
-		return fmt.Errorf("API %s", res.Status)
+	destroyedErr := fmt.Errorf("`%s' is destroyed", path)
+
+	if version == 0 {
+		if allVersions[len(allVersions)-1].Destroyed {
+			return destroyedErr
+		}
+
+		return nil
+	}
+
+	firstVersion := allVersions[0].Version
+	if uint(version) < firstVersion {
+		return destroyedErr
+	}
+
+	idx := int(uint(version) - firstVersion)
+	if idx >= len(allVersions) {
+		return fmt.Errorf("version %d of `%s' does not yet exist", version, secret)
+	}
+
+	if allVersions[idx].Destroyed {
+		return destroyedErr
 	}
 
 	return nil
 }
 
-func (v *Vault) deleteSpecificKey(path, key string) error {
-	secret, err := v.Read(path)
+//DeleteTree recursively deletes the leaf nodes beneath the given root until
+//the root has no children, and then deletes that.
+func (v *Vault) DeleteTree(root string, opts DeleteOpts) error {
+	root = Canonicalize(root)
+
+	secrets, err := v.ConstructSecrets(root, TreeOpts{FetchKeys: false, SkipVersionInfo: true, AllowDeletedSecrets: true})
+	if err != nil {
+		return err
+	}
+	for _, path := range secrets.Paths() {
+		err = v.deleteEntireSecret(path, opts.Destroy, opts.All)
+		if err != nil {
+			return err
+		}
+	}
+
+	mount, err := v.Client().MountPath(root)
+	if err != nil {
+		return err
+	}
+
+	if strings.Trim(root, "/") != strings.Trim(mount, "/") {
+		err = v.deleteEntireSecret(root, opts.Destroy, opts.All)
+	}
+
+	return err
+}
+
+type DeleteOpts struct {
+	Destroy bool
+	All     bool
+}
+
+func (v *Vault) canSemanticallyDelete(path string) error {
+	justSecret, key, version := ParsePath(path)
+	if key == "" || version == 0 {
+		return nil
+	}
+
+	versions, err := v.Versions(justSecret)
+	if err != nil {
+		return err
+	}
+
+	if versions[len(versions)-1].Version == uint(version) {
+		return nil
+	}
+
+	s, err := v.Read(path)
+	if err != nil {
+		return err
+	}
+
+	if len(s.data) != 1 || !s.Has(key) {
+		return fmt.Errorf("Cannot delete specific non-isolated key of non-latest version")
+	}
+
+	return nil
+}
+
+// Delete removes the secret or key stored at the specified path.
+// If destroy is true and the mount is v2, the latest version is destroyed instead
+func (v *Vault) Delete(path string, opts DeleteOpts) error {
+	path = Canonicalize(path)
+
+	reqState := verifyStateAlive
+	if opts.Destroy {
+		reqState = verifyStateAliveOrDeleted
+	}
+
+	err := v.verifySecretState(path, verifyOpts{
+		AnyVersion: opts.All,
+		State:      reqState,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = v.canSemanticallyDelete(path)
+	if err != nil {
+		return err
+	}
+
+	if !PathHasKey(path) {
+		return v.deleteEntireSecret(path, opts.Destroy, opts.All)
+	}
+
+	return v.deleteSpecificKey(path)
+}
+
+func (v *Vault) deleteEntireSecret(path string, destroy bool, all bool) error {
+	secret, _, version := ParsePath(path)
+
+	if destroy && all {
+		return v.client.DestroyAll(secret)
+	}
+
+	var versions []uint
+	if version != 0 {
+		versions = []uint{uint(version)}
+	}
+
+	if destroy {
+		allVersions, err := v.Versions(secret)
+		if err != nil {
+			return err
+		}
+		//Need to populate latest version to a Destroy call if the
+		// version is not explicitly given
+		if len(versions) == 0 {
+			versions = []uint{allVersions[len(allVersions)-1].Version}
+		}
+		//Check if we should clean up the metadata entirely because there are
+		// no more remaining non-destroyed versions
+		shouldNuke := true
+		verIdx := 0
+		for i := range allVersions {
+			for verIdx < len(versions) && versions[verIdx] < allVersions[i].Version {
+				verIdx++
+			}
+			if !allVersions[i].Destroyed && (verIdx >= len(versions) || versions[verIdx] != allVersions[i].Version) {
+				shouldNuke = false
+				break
+			}
+		}
+
+		if shouldNuke {
+			return v.client.DestroyAll(secret)
+		}
+		return v.client.Destroy(secret, versions)
+	}
+
+	if all {
+		allVersions, err := v.Versions(secret)
+		if err != nil {
+			return err
+		}
+
+		versions = make([]uint, 0, len(allVersions))
+		for i := range allVersions {
+			versions = append(versions, allVersions[i].Version)
+		}
+
+	}
+
+	return v.client.Delete(secret, &vaultkv.KVDeleteOpts{Versions: versions, V1Destroy: true})
+}
+
+func (v *Vault) deleteSpecificKey(path string) error {
+	secretPath, key, _ := ParsePath(path)
+	secret, err := v.Read(secretPath)
 	if err != nil {
 		return err
 	}
 	deleted := secret.Delete(key)
 	if !deleted {
-		return NewKeyNotFoundError(path, key)
+		return NewKeyNotFoundError(secretPath, key)
 	}
-	err = v.Write(path, secret)
-	return err
+	if secret.Empty() {
+		//Gotta avoid call to Write because Write ignores version information (with good reason)
+		// We can only be here and not be on the latest version if this was the only key remaining
+		// and we're just trying to nuke the secret
+		//
+		//At some point, we should probably get Destroy routed into here so that we can destroy
+		// secrets through specifying keys
+		return v.deleteEntireSecret(secretPath, false, false)
+	}
+	return v.Write(secretPath, secret)
+}
+
+//DeleteVersions marks the given versions of the given secret as deleted for
+// a v2 backend or actually deletes it for a v1 backend.
+func (v *Vault) DeleteVersions(path string, versions []uint) error {
+	return v.client.Delete(path, &vaultkv.KVDeleteOpts{Versions: versions, V1Destroy: true})
+}
+
+//DestroyVersions irrevocably destroys the given versions of the given secret
+func (v *Vault) DestroyVersions(path string, versions []uint) error {
+	return v.client.Destroy(path, versions)
+}
+
+func (v *Vault) Undelete(path string) error {
+	secret, key, version := ParsePath(path)
+	if key != "" {
+		return fmt.Errorf("Cannot undelete specific key (%s)", path)
+	}
+
+	err := v.verifySecretUndestroyed(path)
+	if err != nil {
+		return err
+	}
+
+	return v.Client().Undelete(secret, []uint{uint(version)})
 }
 
 //deleteIfPresent first checks to see if there is a Secret at the given path,
 // and if so, it deletes it. Otherwise, no error is thrown
-func (v *Vault) deleteIfPresent(path string) error {
-	secretpath, _ := ParsePath(path)
+func (v *Vault) deleteIfPresent(path string, opts DeleteOpts) error {
+	secretpath, _, _ := ParsePath(path)
 	if _, err := v.Read(secretpath); err != nil {
 		if IsSecretNotFound(err) {
 			return nil
@@ -517,11 +552,38 @@ func (v *Vault) deleteIfPresent(path string) error {
 		return err
 	}
 
-	err := v.Delete(path)
+	err := v.Delete(path, opts)
 	if IsKeyNotFound(err) {
 		return nil
 	}
 	return err
+}
+
+func (v *Vault) verifyMetadataExists(path string) error {
+	versions, err := v.Versions(path)
+	if err != nil {
+		if vaultkv.IsNotFound(err) {
+			return NewSecretNotFoundError(path)
+		}
+		return err
+	}
+
+	if len(versions) == 0 {
+		return NewSecretNotFoundError(path)
+	}
+
+	return nil
+}
+
+type MoveCopyOpts struct {
+	SkipIfExists bool
+	Quiet        bool
+	//Deep copies all versions and overwrites all versions at the target location
+	Deep bool
+	//DeletedVersions undeletes, reads, and redeletes the deleted keys
+	// It also puts in dummy destroyed keys to dest to match destroyed keys from src
+	//Makes no sense without Deep
+	DeletedVersions bool
 }
 
 // Copy copies secrets from one path to another.
@@ -529,16 +591,30 @@ func (v *Vault) deleteIfPresent(path string) error {
 // key -> no-key is okay - we assume to keep old key name
 // no-key -> key is bad. That makes no sense and the user should feel bad.
 // Returns KeyNotFoundError if there is no such specified key in the secret at oldpath
-func (v *Vault) Copy(oldpath, newpath string, skipIfExists bool, quiet bool) error {
+func (v *Vault) Copy(oldpath, newpath string, opts MoveCopyOpts) error {
 	oldpath = Canonicalize(oldpath)
 	newpath = Canonicalize(newpath)
 
-	if err := v.verifySecretExists(oldpath); err != nil {
+	if opts.DeletedVersions && !opts.Deep {
+		panic("Gave DeletedVersions and not Deep")
+	}
+	var err error
+	reqState := verifyStateAlive
+	if opts.DeletedVersions {
+		reqState = verifyStateAliveOrDeleted
+	}
+
+	err = v.verifySecretState(oldpath, verifyOpts{
+		State:      reqState,
+		AnyVersion: opts.Deep,
+	})
+	if err != nil {
 		return err
 	}
-	if skipIfExists {
+
+	if opts.SkipIfExists {
 		if _, err := v.Read(newpath); err == nil {
-			if !quiet {
+			if !opts.Quiet {
 				ansi.Fprintf(os.Stderr, "@R{Cowardly refusing to copy/move data into} @C{%s}@R{, as that would clobber existing data}\n", newpath)
 			}
 			return nil
@@ -547,90 +623,100 @@ func (v *Vault) Copy(oldpath, newpath string, skipIfExists bool, quiet bool) err
 		}
 	}
 
-	srcPath, _ := ParsePath(oldpath)
-	srcSecret, err := v.Read(srcPath)
-	if err != nil {
-		return err
-	}
+	srcPath, srcKey, _ := ParsePath(oldpath)
+	dstPath, dstKey, _ := ParsePath(newpath)
 
-	var copyFn func(string, string, *Secret, bool) error
-	if PathHasKey(oldpath) {
-		copyFn = v.copyKey
+	var toWrite []*Secret
+	if srcKey != "" { //Just a single key.
+		if opts.Deep {
+			return fmt.Errorf("Cannot take deep copy of a specific key")
+		}
+		srcSecret, err := v.Read(oldpath)
+		if err != nil {
+			return err
+		}
+
+		if !srcSecret.Has(srcKey) {
+			return NewKeyNotFoundError(oldpath, srcKey)
+		}
+
+		if dstKey == "" {
+			dstKey = srcKey
+		}
+
+		dstOrig, err := v.Read(dstPath)
+		if err != nil && !IsSecretNotFound(err) {
+			return err
+		}
+
+		if IsSecretNotFound(err) {
+			dstOrig = NewSecret()
+		}
+
+		toWrite = append(toWrite, dstOrig)
+		toWrite[0].Set(dstKey, srcSecret.Get(srcKey), false)
 	} else {
-		copyFn = v.copyEntireSecret
-	}
+		if dstKey != "" {
+			return fmt.Errorf("Cannot move full secret `%s` into specific key `%s`", oldpath, newpath)
+		}
+		t, err := v.ConstructSecrets(srcPath, TreeOpts{
+			FetchKeys:           true,
+			GetOnly:             true,
+			FetchAllVersions:    opts.Deep,
+			GetDeletedVersions:  opts.Deep && opts.DeletedVersions,
+			AllowDeletedSecrets: opts.Deep,
+		})
 
-	return copyFn(oldpath, newpath, srcSecret, skipIfExists)
-}
+		if err != nil {
+			return err
+		}
 
-func (v *Vault) copyEntireSecret(oldpath, newpath string, src *Secret, skipIfExists bool) (err error) {
-	if PathHasKey(newpath) {
-		return fmt.Errorf("Cannot move full secret `%s` into specific key `%s`", oldpath, newpath)
-	}
-	if skipIfExists {
-		if _, err := v.Read(newpath); err == nil {
-			return ansi.Errorf("@R{BUG: Tried to replace} @C{%s} @R{with} @C{%s}@R{, but it already exists}", oldpath, newpath)
-		} else if !IsNotFound(err) {
+		err = t[0].Copy(v, dstPath, TreeCopyOpts{Clear: opts.Deep, Pad: opts.Deep})
+		if err != nil {
 			return err
 		}
 	}
-	return v.Write(newpath, src)
-}
 
-func (v *Vault) copyKey(oldpath, newpath string, src *Secret, skipIfExists bool) (err error) {
-	_, srcKey := ParsePath(oldpath)
-	if !src.Has(srcKey) {
-		return NewKeyNotFoundError(oldpath, srcKey)
-	}
-
-	dstPath, dstKey := ParsePath(newpath)
-	//If destination has no key, then assume to give it the same key as the src
-	if dstKey == "" {
-		dstKey = srcKey
-	}
-	dst, err := v.Read(dstPath)
-	if err != nil {
-		if !IsSecretNotFound(err) {
+	for i := range toWrite {
+		err := v.Write(dstPath, toWrite[i])
+		if err != nil {
 			return err
 		}
-		dst = NewSecret() //If no secret is already at the dst, initialize a new one
 	}
-	err = dst.Set(dstKey, src.Get(srcKey), skipIfExists)
-	if err != nil {
-		return err
-	}
-	return v.Write(dstPath, dst)
+
+	return nil
 }
 
 //MoveCopyTree will recursively copy all nodes from the root to the new location.
 // This function will get confused about 'secret:key' syntax, so don't let those
 // get routed here - they don't make sense for a recursion anyway.
-func (v *Vault) MoveCopyTree(oldRoot, newRoot string, f func(string, string, bool, bool) error, skipIfExists bool, quiet bool) error {
+func (v *Vault) MoveCopyTree(oldRoot, newRoot string, f func(string, string, MoveCopyOpts) error, opts MoveCopyOpts) error {
 	oldRoot = Canonicalize(oldRoot)
 	newRoot = Canonicalize(newRoot)
 
-	tree, err := v.Tree(oldRoot, TreeOptions{})
+	tree, err := v.ConstructSecrets(oldRoot, TreeOpts{FetchKeys: false, AllowDeletedSecrets: opts.Deep, SkipVersionInfo: true})
 	if err != nil {
 		return err
 	}
-	if skipIfExists {
-		newTree, err := v.Tree(newRoot, TreeOptions{})
+	if opts.SkipIfExists {
+		//Writing one secret over a deleted secret isn't clobbering. Completely overwriting a set of deleted secrets would be
+		newTree, err := v.ConstructSecrets(newRoot, TreeOpts{FetchKeys: false, AllowDeletedSecrets: !opts.Deep, SkipVersionInfo: true})
 		if err != nil && !IsNotFound(err) {
 			return err
 		}
 		existing := map[string]bool{}
-		for _, path := range newTree.Paths("/") {
+		for _, path := range newTree.Paths() {
 			existing[path] = true
 		}
 		existingPaths := []string{}
-		for _, path := range tree.Paths("/") {
+		for _, path := range tree.Paths() {
 			newPath := strings.Replace(path, oldRoot, newRoot, 1)
 			if existing[newPath] {
 				existingPaths = append(existingPaths, newPath)
 			}
 		}
 		if len(existingPaths) > 0 {
-			if !quiet {
+			if !opts.Quiet {
 				ansi.Fprintf(os.Stderr, "@R{Cowardly refusing to copy/move data into} @C{%s}@R{, as the following paths would be clobbered:}\n", newRoot)
 				for _, path := range existingPaths {
 					ansi.Fprintf(os.Stderr, "@R{- }@C{%s}\n", path)
@@ -639,16 +725,16 @@ func (v *Vault) MoveCopyTree(oldRoot, newRoot string, f func(string, string, boo
 			return nil
 		}
 	}
-	for _, path := range tree.Paths("/") {
+	for _, path := range tree.Paths() {
 		newPath := strings.Replace(path, oldRoot, newRoot, 1)
-		err = f(path, newPath, skipIfExists, quiet)
+		err = f(path, newPath, opts)
 		if err != nil {
 			return err
 		}
 	}
 
 	if _, err := v.Read(oldRoot); !IsNotFound(err) { // run through a copy unless we successfully got a 404 from this node
-		return f(oldRoot, newRoot, skipIfExists, quiet)
+		return f(oldRoot, newRoot, opts)
 	}
 	return nil
 }
@@ -656,21 +742,30 @@ func (v *Vault) MoveCopyTree(oldRoot, newRoot string, f func(string, string, boo
 // Move moves secrets from one path to another.
 // A move is semantically a copy and then a deletion of the original item. For
 // more information on the behavior of Move pertaining to keys, look at Copy.
-func (v *Vault) Move(oldpath, newpath string, skipIfExists bool, quiet bool) error {
+func (v *Vault) Move(oldpath, newpath string, opts MoveCopyOpts) error {
 	oldpath = Canonicalize(oldpath)
 	newpath = Canonicalize(newpath)
 
-	if err := v.verifySecretExists(oldpath); err != nil {
+	err := v.canSemanticallyDelete(oldpath)
+	if err != nil {
+		return fmt.Errorf("Can't move `%s': %s. Did you mean cp?", oldpath, err)
+	}
+	if err != nil {
 		return err
 	}
 
-	err := v.Copy(oldpath, newpath, skipIfExists, quiet)
+	err = v.Copy(oldpath, newpath, opts)
 	if err != nil {
 		return err
 	}
-	err = v.Delete(oldpath)
-	if err != nil {
-		return err
+
+	if opts.Deep && opts.DeletedVersions {
+		err = v.client.DestroyAll(oldpath)
+	} else {
+		err = v.Delete(oldpath, DeleteOpts{})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -995,7 +1090,7 @@ func (v *Vault) FindSigningCA(cert *X509, certPath string, signPath string) (*X5
 			if err != nil {
 				return nil, "", err
 			}
-			ca, err := s.X509()
+			ca, err := s.X509(true)
 			if err != nil {
 				return nil, "", err
 			}
@@ -1018,7 +1113,7 @@ func (v *Vault) FindSigningCA(cert *X509, certPath string, signPath string) (*X5
 			if err != nil {
 				return nil, "", fmt.Errorf("No signing authority provided and no 'ca' sibling found")
 			}
-			ca, err := s.X509()
+			ca, err := s.X509(true)
 			if err != nil {
 				return nil, "", err
 			}
@@ -1034,4 +1129,12 @@ func (v *Vault) SaveSealKeys(keys []string) {
 		s.Set(fmt.Sprintf("key%d", i+1), key, false)
 	}
 	v.Write(path, s)
+}
+
+func (v *Vault) SetURL(u string) {
+	vaultURL, err := url.Parse(strings.TrimSuffix(u, "/"))
+	if err != nil {
+		panic(fmt.Sprintf("Could not parse Vault URL: %s", err))
+	}
+	v.client.Client.VaultURL = vaultURL
 }
