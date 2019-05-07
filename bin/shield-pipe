@@ -144,7 +144,8 @@ EOF
 	# PLUGIN inventory
 	EXECABLE="/111"
 	case $OSTYPE in
-	*darwin*) EXECABLE="+111"
+	*darwin*)
+		find --version 2>&1 | grep "GNU" >/dev/null || EXECABLE="+111"
 	esac
 	(IFS=:; for x in $SHIELD_PLUGINS_PATH; do
 	   say "checking for plugins in $x..."
