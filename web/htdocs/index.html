@@ -1745,7 +1745,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
 
                case "enum": ]]
                [[ value = (field.name in _.config ? _.config[field.name] : null); ]]
-              <select>
+              <select name="[[= _.prefix ]][[= field.name ]]">
                 <option value="">[[ if (field.default) { ]][[= field.default ]][[ } ]]</option>
                 [[ for (var n = 0; n < field.enum.length; n++) { ]]
                 <option value="[[= field.enum[n] ]]"[[ if (value == field.enum[n]) { ]] selected[[ } ]]>[[= h(field.enum[n]) ]]</option>
