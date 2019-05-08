@@ -142,11 +142,8 @@ case ${SHIELD_OP} in
 EOF
 
 	# PLUGIN inventory
-	EXECABLE="/111"
-	case $OSTYPE in
-	*darwin*)
-		find --version 2>&1 | grep "GNU" >/dev/null || EXECABLE="+111"
-	esac
+	# Choose mode format based on BSD or GNU find
+	find --version 2>&1 | grep "GNU" >/dev/null && EXECABLE="/111" || EXECABLE="+111"
 	(IFS=:; for x in $SHIELD_PLUGINS_PATH; do
 	   say "checking for plugins in $x..."
 	   echo "\"plugins\": {"
