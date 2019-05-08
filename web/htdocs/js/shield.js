@@ -1001,6 +1001,17 @@ function dispatch(page) {
           .on('submit', 'form', function (event) {
             event.preventDefault();
             var $form = $(event.target);
+            var data = $form.serializeObject();
+            
+            $form.reset();
+            if (data.password != data.confirm) {
+              $form.error('confirm', 'mismatch');
+            }
+
+            if (!$form.isOK()) {
+              return;
+            }
+            delete data.confirm;
 
             if ($form.find('[name=password]').val()==""){
               var payload = {
@@ -1013,11 +1024,6 @@ function dispatch(page) {
                 sysrole: $form.find('[name=sysrole]').val(),
                 password: $form.find('[name=password]').val()
               };
-
-              if ($form.find('[name=confirm]').val() != payload.password) {
-                banner("Passwords don't match", "error");
-                return;
-              }
             }
 
             banner("Updating user...", "info");
