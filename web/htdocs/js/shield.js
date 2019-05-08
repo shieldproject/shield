@@ -1001,11 +1001,30 @@ function dispatch(page) {
           .on('submit', 'form', function (event) {
             event.preventDefault();
             var $form = $(event.target);
+            var data = $form.serializeObject();
+            
+            $form.reset();
+            if (data.password != data.confirm) {
+              $form.error('confirm', 'mismatch');
+            }
 
-            var payload = {
-              name:    $form.find('[name=name]').val(),
-              sysrole: $form.find('[name=sysrole]').val()
-            };
+            if (!$form.isOK()) {
+              return;
+            }
+            delete data.confirm;
+
+            if ($form.find('[name=password]').val()==""){
+              var payload = {
+                name:    $form.find('[name=name]').val(),
+                sysrole: $form.find('[name=sysrole]').val(),
+              };
+            } else {
+              var payload = {
+                name:    $form.find('[name=name]').val(),
+                sysrole: $form.find('[name=sysrole]').val(),
+                password: $form.find('[name=password]').val()
+              };
+            }
 
             banner("Updating user...", "info");
             api({

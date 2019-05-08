@@ -3085,7 +3085,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   </td>
                   <td>
                     [[ if (AEGIS.is('manager')) { ]]
-                    <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a>
+                    <td>
+                      <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a> |
+                      <a data-user-name="[[= user.name]]" href="delete-user:[[= user.uuid ]]">delete</a>
+                    </td>
                     [[ } ]]
                   </td>
                 </tr>
@@ -3209,6 +3212,25 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                       </div>
                     </div>
 
+                    <div class="field" data-field="password">
+                      <div class="x3"><label for="password">New Password</label></div>
+                      <div class="x9">
+                        <input type="password" name="password" id="password">
+                        <span class="errors">
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field" data-field="confirm">
+                      <div class="x3"><label for="confirm">Confirm</label></div>
+                      <div class="x9">
+                        <input type="password" name="confirm" id="confirm">
+                        <span class="errors">
+                          <span data-error="mismatch">These passwords don't match.</span>
+                        </span>
+                      </div>
+                    </div>
+
                     <div class="x12 buttons">
                       <button class="final">Update</button>
                     </div>
@@ -3217,6 +3239,26 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               </div>
             </form>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:admin-users-delete"><!-- {{{ -->
+      [[#
+        {admin-users-delete} template
+
+        Confirmation an admin really wants to delete a user.
+      ]]
+        <div class="confirm">
+          <h2>You Are About To Delete A User</h2>
+          
+          <p class="q">Are you sure you want to delete user: <em>[[= _.name ]]</em>?</p>
+
+          <p>As a result this user will no longer be able to log in. Please note any current sessions
+              will continue to exist unless terminated by an admin. This username will still be associated
+              with anything they've done previously in SHIELD.</p>
+          <div class="a">
+            <button class="closes safe" rel="close">No, Cancel This Operation</button>
+            <button class="closes danger" rel="yes">Yes, Delete</button>
+          </div>
+        </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:sessions"><!-- {{{ -->
         [[#
