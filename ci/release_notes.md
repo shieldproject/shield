@@ -18,6 +18,9 @@
   simultaneously ensuring that failed purge tasks are re-tried.
   See #518.
 
+- Purge tasks are now being properly supplied with the restore key
+  necessary for deleting the archive blob.  See #516.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'

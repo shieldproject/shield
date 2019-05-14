@@ -98,6 +98,7 @@ func (f LegacyFabric) Purge(task *db.Task) scheduler.Chore {
 	return f.Execute("archive purge", task.UUID, Command{
 		Op: "purge",
 
+		RestoreKey:    task.RestoreKey,
 		StorePlugin:   task.StorePlugin,
 		StoreEndpoint: task.StoreEndpoint,
 	})
