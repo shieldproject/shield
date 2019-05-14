@@ -14,17 +14,17 @@ To start, access the _Settings_ page by expanding the account
 fly-out menu underneath your profile picture, in the top
 right-hand side of the Github web interface:
 
-![Accessing Settings : Screenshot](/docs/images/githubAuth/github2.png)
+![Accessing Settings : Screenshot](github2.png)
 
 Then, access the _Oauth Apps_ panel, under the _Developer
 Settings_ header on the left side of the screen:
 
-![GitHub Setup](/docs/images/githubAuth/github3.png)
+![GitHub Setup](github3.png)
 
 Then, click on the _Register a new application_ button to bring up
 the form for registering your SHIELD to Github:
 
-![GitHub Setup](/docs/images/githubAuth/github4.png)
+![GitHub Setup](github4.png)
 
 Then, just fill out the form:
 
@@ -49,19 +49,17 @@ To configure SHIELD to work with Github, you need to add a new
 _authentication provider_ configuration stanza to the SHIELD Core
 configuration file:
 
-```yaml
-# ... all the other shield core configuration ...
+    # ... all the other shield core configuration ...
 
-auth:
-  - identifier: github  # or whatever you used when registering
-    name:       Github
-    backend:    github
-    properties:
-      client_id:      YOUR-GITHUB-CLIENT-ID
-      client_secret:  YOUR-GITHUB-CLIENT-SECRET
+    auth:
+      - identifier: github  # or whatever you used when registering
+        name:       Github
+        backend:    github
+        properties:
+          client_id:      YOUR-GITHUB-CLIENT-ID
+          client_secret:  YOUR-GITHUB-CLIENT-SECRET
 
-      mapping:  []    # more on this later
-```
+          mapping:  []    # more on this later
 
 The `auth` key is a list of all configured authentication
 providers; if your configuration already features other providers,
@@ -115,14 +113,12 @@ org into multiple tenants, etc.
 
 The format of each rule is:
 
-```yaml
     - github: Github Organization Name
       tenant: SHIELD Tenant Name
       rights:
         - team: Github Team Name
           role: SHIELD Role
         # ... etc ...
-```
 
 The `github` field matches the Github organization name.  If a
 user is found to belong to this organization, the rest of the rule
@@ -133,25 +129,23 @@ given `tenant`.
 
 Here's an example:
 
-```yaml
-auth:
-  - identifier: github
-    name:       Github
-    backend:    github
-    properties:
-      client_id:      YOUR-GITHUB-CLIENT-ID
-      client_secret:  YOUR-GITHUB-CLIENT-SECRET
+    auth:
+      - identifier: github
+        name:       Github
+        backend:    github
+        properties:
+          client_id:      YOUR-GITHUB-CLIENT-ID
+          client_secret:  YOUR-GITHUB-CLIENT-SECRET
 
-      mapping:
-        - github: cloudfoundry-community
-          tenant: Cloud Foundry Community
-          rights:
-            - team: Owners
-              role: admin
-            - team: Engineers
-              role: engineer
-            - role: operator
-```
+          mapping:
+            - github: cloudfoundry-community
+              tenant: Cloud Foundry Community
+              rights:
+                - team: Owners
+                  role: admin
+                - team: Engineers
+                  role: engineer
+                - role: operator
 
 In this configuration, SHIELD will assign someone in the _Owners_
 team of the _cloudfoundry-community_ org to the _Cloud Foundry

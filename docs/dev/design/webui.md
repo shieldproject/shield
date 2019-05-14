@@ -1,6 +1,10 @@
 SHIELD Web UI Design Notes
 ==========================
 
+<div class="historical-note">This document is primarily of
+historical interest.  The recommendations and ideas contained
+herein have been incorporated into SHIELD, as of version 8.0</div>
+
 SHIELD needs a better Web User Interface.  Here, we have collected
 our thoughts on the matter, and supplied some design mocks.
 
@@ -13,7 +17,7 @@ Main Dashboard
 
 May I present the new SHIELD dashboard.
 
-![Main Dashboard Image](images/uiv2.1b.png)
+![Main Dashboard Image](dashboard.png)
 
 It sure is pretty.
 
@@ -100,7 +104,7 @@ Backup Jobs
 
 The configured backup jobs are displayed in a card interface:
 
-![Backup Jobs Card Interface](images/uiv2.1.png)
+![Backup Jobs Card Interface](backup-cards.png)
 
 Each card provides at least the following information:
 
@@ -128,7 +132,7 @@ The primary downside of this approach is, of course, migrating data.  Perhaps we
 
 The detail page for a backup job looks like this:
 
-![Backup Job Detail Page](images/uiv2.4.png)
+![Backup Job Detail Page](backup-detail.png)
 
 The card from the listing page is repeated, in the top left.  To the right, any summary / notes provided by operators during job configuration should be displayed.  These are not expected to be terribly lengthy, so the side-by-side format should suffice.
 
@@ -146,7 +150,7 @@ Storage Endpoints
 
 As we said before, the primary _cost_ of SHIELD is its storage.  Having better tools to understand the impact SHIELD is having on storage, how it is using storage, etc. makes using and scaling SHIELD easier.
 
-![Storage Endpoint Mock](images/uiv2.2.png)
+![Storage Endpoint Mock](storage-detail.png)
 
 The name of the storage endpoint, as assigned by the operator, is shown on the left, in large font.  The plugin is shown to the right, in the same blue, rounded-corner rectangle as the Backup Jobs Cards use.
 
@@ -168,7 +172,7 @@ Agent Inspection
 
 One thing missing from the current web UI is the ability to see what agents are registered with the system, what version of SHIELD they are running, and what capabilities they have.  The UI doesn't show this information because it cannot.  Both the SHIELD agent implementation and the SHIELD daemon core need to be modified to provide this level of reflection.  For several reasons, this change is on the roadmap.
 
-![Agents of SHIELD](images/uiv2.3.png)
+![Agents of SHIELD](agents.png)
 
 Each known agent is listed in the table, with its:
 

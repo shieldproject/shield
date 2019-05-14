@@ -18,50 +18,48 @@ This is called **plugin configuration metadata**
 
 It looks something like this:
 
-```
-[
-  {
-    "mode"     : "target",
-    "name"     : "base_dir",
-    "type"     : "abspath",
-    "title"    : "Base Directory",
-    "help"     : "Absolute path of the directory to backup.",
-    "example"  : "/srv/www/htdocs",
-    "required" : true
-  },
-  {
-    "mode"     : "store",
-    "name"     : "base_dir",
-    "type"     : "abspath",
-    "title"    : "Base Directory",
-    "help"     : "Where to store the backup archives, on-disk.  This must be an absolute path, and the directory must exist.",
-    "example"  : "/var/store/backups",
-    "required" : true
-  },
-  {
-    "mode"     : "target",
-    "name"     : "include",
-    "type"     : "string",
-    "title"    : "Files to Include",
-    "help"     : "Only files that match this pattern will be included in the backup archive.  If not specified, all files will be included."
-  },
-  {
-    "mode"     : "target",
-    "name"     : "exclude",
-    "type"     : "abspath",
-    "title"    : "Files to Exclude",
-    "help"     : "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded."
-  },
-  {
-    "mode"    : "both",
-    "name"    : "bsdtar",
-    "type"    : "abspath",
-    "title"   : "Path to `bsdtar` Utility",
-    "help"    : "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
-    "default" : "/var/vcap/packages/shield/bin/bsdtar"
-  }
-]
-```
+    [
+      {
+        "mode"     : "target",
+        "name"     : "base_dir",
+        "type"     : "abspath",
+        "title"    : "Base Directory",
+        "help"     : "Absolute path of the directory to backup.",
+        "example"  : "/srv/www/htdocs",
+        "required" : true
+      },
+      {
+        "mode"     : "store",
+        "name"     : "base_dir",
+        "type"     : "abspath",
+        "title"    : "Base Directory",
+        "help"     : "Where to store the backup archives, on-disk.  This must be an absolute path, and the directory must exist.",
+        "example"  : "/var/store/backups",
+        "required" : true
+      },
+      {
+        "mode"     : "target",
+        "name"     : "include",
+        "type"     : "string",
+        "title"    : "Files to Include",
+        "help"     : "Only files that match this pattern will be included in the backup archive.  If not specified, all files will be included."
+      },
+      {
+        "mode"     : "target",
+        "name"     : "exclude",
+        "type"     : "abspath",
+        "title"    : "Files to Exclude",
+        "help"     : "Files that match this pattern will be excluded from the backup archive.  If not specified, no files will be excluded."
+      },
+      {
+        "mode"    : "both",
+        "name"    : "bsdtar",
+        "type"    : "abspath",
+        "title"   : "Path to `bsdtar` Utility",
+        "help"    : "Absolute path to the `bsdtar` utility, which is used for reading and writing backup archives.",
+        "default" : "/var/vcap/packages/shield/bin/bsdtar"
+      }
+    ]
 
 (example taken from the `fs` plugin)
 
@@ -192,27 +190,24 @@ proper formatting, whether to include the `https://` in URLs, etc.
 Here is an example of a field, as displayed in the Web UI, as an
 element of an HTML form:
 
-![Form Field Example](images/plugin-field.png)
+![Form Field Example](field.png)
 
 and here is an example of a field with an error:
 
-![Form Field Error Example](images/plugin-field-error.png)
+![Form Field Error Example](field-error.png)
 
 ### CLI Form Field Display Example
 
 Here is an example of a field, as displayed in the Web UID:
 
-```
-Label
-  (Hints) Lorem ipsum dolor sit amet, consectetur adipisciing
-  elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore
+    Label
+      (Hints) Lorem ipsum dolor sit amet, consectetur adipisciing
+      elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore
 
-  For example: example 1, example 2, or example 3
+      For example: example 1, example 2, or example 3
 
-Label:
-Placeholder> _
-```
+    Label:
+    Placeholder> _
 
 (this is just a mockup, I'm not entirely convinced that all the
  extra text is justified / justifiable)
-

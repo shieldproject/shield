@@ -5,7 +5,7 @@ S.H.I.E.L.D. Data Protection
 
 Questions? Join us in [Slack!](http://shieldproject.io/community/#slack)
 
-![SHIELD Architectural Diagram](docs/images/arch.gif)
+![SHIELD Architectural Diagram](overview.gif)
 
 What is SHIELD?
 ---------------

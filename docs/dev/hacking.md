@@ -11,37 +11,25 @@ Golang Dependencies
 We have ditched `godep` in favor of `govendor`.  You can install
 `govendor` like this:
 
-```
-go get github.com/kardianos/govendor
-go install github.com/kardianos/govendor
-```
+    go get github.com/kardianos/govendor
+    go install github.com/kardianos/govendor
 
 To **remove a dependency** that we no longer need:
 
-```
-govendor remove github.com/markbates/goth/gothic
-```
+    govendor remove github.com/markbates/goth/gothic
 
 To **add a new dependency** manually:
 
-```
-govendor add github.com/jhunt/go-cli
-```
+    govendor add github.com/jhunt/go-cli
 
 To **add all new dependencies, automagically**:
 
-```
-govendor add +external
-```
+    govendor add +external
 
 To **prune the vendored dependencies**:
 
-```
-govendor remove +unused
-```
+    govendor remove +unused
 
 To **see what is currently unnused**:
 
-```
-govendor list +unused
-```
+    govendor list +unused

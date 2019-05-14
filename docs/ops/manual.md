@@ -788,7 +788,7 @@ Administration
 
 All Administrative tasks are done from the admin panel 
 
-![The Shield Admin Panel]($docs/docs/images/admin-panel.png)
+![The Shield Admin Panel](admin-panel.png)
 
 ### Initializing A SHIELD Core
 
@@ -807,7 +807,7 @@ TBD
 Under `Tenants` admins have the ability to see all current teneants as well as create new tenants.
 Users can be invited to tenants by editing the tenant or during tenant creation. 
 
-![Tenants]($docs/docs/images/tenant-panel.png)
+![Tenants](tenant-panel.png)
 
 #### Shared Storage
 
@@ -815,7 +815,7 @@ Shared storage can be found under `Global Storage Systems`, from this page you c
 global stores as well as create new ones. Shared or global storage can be configured for use across
 multiple tenants.
 
-![Global Storage]($docs/docs/images/storage-panel.png)
+![Global Storage](storage-panel.png)
 
 
 #### Retention Policy Templates
@@ -827,21 +827,21 @@ TBD
 Information on Shield Agents can be found under `Agents of Shield`. This can be helpful for keeping
 inventory on agents throughout your deployments or to resync any disconnected agents. 
 
-![Shield Agents]($docs/docs/images/agents-panel.png)
+![Shield Agents](agents-panel.png)
 
 #### Authentication Providers
 
 You can view the configuration of your shield authentication providers under `Authemtication Providers`.
 Please note that configuring an additonal auth provider is done from deploying shield itself.
 
-![Authentication]($docs/docs/images/auth-panel.png)
+![Authentication](auth-panel.png)
 
 #### Local User Management
 
 Shield users can be managed under `Local User Management`. Here admins can view a list of all Shield users,
 edit permissions of users, and onboard new users.
 
-![Users]($docs/docs/images/user-panel.png)
+![Users](user-panel.png)
 
 #### Rekeying SHIELD
 
@@ -849,31 +849,56 @@ If you wish to Change your shield master password, you can find this option unde
 
 **Note** You need your current master password to complete this.
 
-![Panel]($docs/docs/images/rekey-panel.png)
+![Panel](rekey-panel.png)
 
 #### Session Management
 
 Admins can manage user sessions under `Manage User Sessions`. Here You can get information on all current sessons
 and expire session tokens if desired.
 
-![Sessions]($docs/docs/images/session-panel.png)
+![Sessions](session-panel.png)
 
 How Do I Backup _X_?
 --------------------
 
 ### SHIELD Itself
 
+In a disaster recovery situation, it's important to get shield up and running to begin recovering your other data systems
+as soon as possible. It requires backups of SHIELD itself.
+
+#### How do SHIELD backups work? 
+
+The SHIELD state exists as 3 entities found in /var/vcap/store/shield (for a shield deployed by bosh).
+They Include:
+  - The SHIELD database which exists as a sqlite database name shield.db
+  - The vault.crpyt file
+  - The vault directory
+
+We use the file system plugin to backup these 3 items and store them as our SHIELD backup. When using the fs plugin to backup
+shield make sure `Strict Mode` is unchecked. We do this to prevent failures with missing files which can happen with the presence
+or absence of the `shield.db-journal`.
+
 #### The Problem With Encryption
 
-TBD
-
-#### The Important Bits of SHIELD
-
-TBD
+SHIELD backups *must* be taken with fixed key encryption. In this situation of restoring shield, we cannot use generated
+encryption keys because there is no way to restore our vault with keys that exist in that sealed vault. This is why it's
+important to keep the fixed key generated when you initialize SHIELD in a safe and retrievable place.  
 
 #### Configuring the `fs` Plugin
 
-TBD
+Lets walk through creating a SHIELD backup from the shield webui.
+
+#### For the properties make sure you're targeting the agent on the SHIELD box and the correct path.
+
+  ![Recover](shield-recover2.png)
+
+#### Make sure to de-select `Randomize Encryption Keys`
+
+  ![Recover](shield-recover4.png)
+
+#### Lets double check our configuration is correct
+
+  ![Recover](shield-recover5.png)
 
 #### "Normal-mode" Restores
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# vim:ft=perl
 use strict;
 use warnings;
 
@@ -83,7 +84,7 @@ nav {
   padding-right: 2em;
 }
 #main {
-  max-width: 35em;
+  max-width: 62.5vw;
   padding-left: 25vw;
   margin: 2em auto;
 }
@@ -94,6 +95,10 @@ p, ul, ol, blockquote {
   font-size: 13.5pt;
   color: #333;
 }
+p > img:first-child{
+  max-width: 100%
+}
+
 ul ul {
   margin: 0.4em 0;
 }
@@ -158,6 +163,20 @@ img:-moz-broken {
 	width: 100%;
 	height: 10em;
 	display: block;
+}
+
+div.historical-note {
+	margin: 1.4em 0;
+	padding: 1em;
+	line-height: 1.4em;
+	border-radius: 0.5em;
+
+	background-color: lemonchiffon;
+	box-shadow: 0px 0px 5px #aaa;
+
+	font-family: Palatino, serif;
+	font-size: 13.5pt;
+	font-style: italic;
 }
 </style>
 </head>
@@ -261,6 +280,8 @@ find({
 				or die "$_: $!\n";
 			s|.md$||;
 			`mkdir -p $options{output}/$_`;
+			-d "$options{output}/$_"
+				or die "$options{output}/$_: failed to create directory\n";
 			s|$|/index.html|;
 			open my $out, ">", "$options{output}/$_"
 				or die "$options{output}/$_: $!\n";

@@ -48,11 +48,11 @@ tenants:
         role: engineer
 
     systems:
-      - name:   Important Files
+      - name:   Demo Web Root
         agent:  agent:5444
         plugin: fs
         config:
-          base_dir: /data
+          base_dir: /www
 
         jobs:
           - name:    Hourly

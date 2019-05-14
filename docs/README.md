@@ -37,7 +37,7 @@ style guide:
   6. Always spell-check.  Yes, it's a pain thanks to all the
      jargon and initialism, but it's worth it every time.
 
-  7.  Use emphasis _sparingly_, but **use it when you need to.**
+  7. Use emphasis _sparingly_, but **use it when you need to.**
 
   8. Avoid the passive voice.
 
@@ -59,6 +59,37 @@ things:
 From the root of the codebase, run `./bin/mkdocs` to get the
 help and usage information.
 
+To generate _working copy_ documentation, suitable for hosting
+with something like [gow](https://github.com/jhunt/gow):
+
+    $ ./bin/mkdocs --version 8.2.0   \
+                   --docroot /docs   \
+                   --output tmp/docs \
+                   --style basic
+    [mkdir]  tmp/docs/docs/ops
+    [render] tmp/docs/docs/ops/architecture.md
+    [render] tmp/docs/docs/ops/getting-started.md
+    [render] tmp/docs/docs/ops/plugins.md
+    [render] tmp/docs/docs/ops/manual.md
+    [mkdir]  tmp/docs/docs/ops/architecture
+    [copy]   tmp/docs/docs/ops/architecture/agent.png
+    [copy]   tmp/docs/docs/ops/architecture/webui.png
+    [copy]   tmp/docs/docs/ops/architecture/database.png
+    [copy]   tmp/docs/docs/ops/architecture/overview.png
+    ... etc ...
+
+    $ (cd tmp/doc && gow)
+    binding *:3001 to serve / -> .
+
+You can now access the documentation at
+<http://127.0.0.1:3001/docs>.
+
+You can also just run
+
+    make docs
+
+:)
+
 
 Screenshots / Terminal Output
 -----------------------------
@@ -77,6 +108,64 @@ To use it (assuming you have Docker and Docker Compose
 SHIELD should be available at http://localhost:9009/; you can
 visit that in your browser, or hit it via the CLI.  The default
 admin (failsafe) credentials are `admin` / `password`.
+
+There is a SHIELD import file, `docs/documentum.yml`, that you can
+then use to re-inflate all of the test data.  This import data set
+will evolve and grow over time, so add to it as needed.
+
+    $ cd docs
+    $ shield api http://localhost:9009 documentum
+    $ shield -c documentum login
+      ... provide admin creds ...
+    $ shield -c documentum import documentum.yml
+
+Now you have a fully-populated SHIELD instance that will stay
+consistent across developers, machines, and environments!  Go you!
+
+Firefox has this wonderful thing called _Responsive Mode_.  It's
+actually for testing out mobile platforms without needing one of
+every phone / tablet / phablet that has ever been made, but it has
+a few interesting features that make it ideal for distributed
+screenshot taking:
+
+  1. It allows you to set the screen dimensions
+  2. It has a _screenshot_ button
+
+You can access it via the context menu > Web Developer >
+Responsive Design Mode.  If you prefer shortcuts, its ⌥⌘ (at least
+on macOS).
+
+All screenshots are 1200px wide, unless you have a very good
+reason to need something smaller.  Scrensshots should be as tall
+as necessary to show what needs showing, but no taller.
+
+
+Asset Organization
+------------------
+
+Each document exists as a `.md` file (containing the markdown),
+and a directory, that share a short name.  For example, the
+_Getting Started_ document's short name is `getting-started`.  If
+you look in the `docs/ops` folder, you will see the following:
+
+- `getting-started.md` - The text of the document.
+- `getting-started/` - All assets pertinent to the document.
+
+This helps us avoid naming collisions that we would otherwise run
+into with a shared directory for images, SVG files, YAML, etc.
+
+When the documentation is built into its final HTML form, the
+markdown file will be saved _into_ the asset folder as
+`index.html`.  You'll want to avoid naming an asset `index.html`
+for this reason.  This also lets you link to or embed other assets
+using relative HTTP paths.  For example:
+
+    <img src="intro.png">
+
+Will resolve from inside of the `getting-started/` directory, and
+find the appropriate image.  This is the most portable way, that
+allows us (and our pipelines!) to auto-generate and relocate
+instances of the documentation, as need arises.
 
 
 The Document Landscape

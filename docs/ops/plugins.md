@@ -49,16 +49,14 @@ glob_ which will be matched against each file name.
 
 Shell globs have the following syntax:
 
-```
-*      Match zero or more characters.
-?      Match zero or one character.
-[a-z]  Match a range of characters, in this example,
-       lowercase alphabetic characters.
-[^a-z] Match anything that doesn't match [a-z]
-[xaby] Match either 'x', 'a', 'b', or 'y'
-\*     Match a literal asterisk.
-       Also works for '?', '[', and ']'
-```
+    *      Match zero or more characters.
+    ?      Match zero or one character.
+    [a-z]  Match a range of characters, in this example,
+           lowercase alphabetic characters.
+    [^a-z] Match anything that doesn't match [a-z]
+    [xaby] Match either 'x', 'a', 'b', or 'y'
+    \*     Match a literal asterisk.
+           Also works for '?', '[', and ']'
 
 For example, the file name `/var/data/index/foo.db` would match all of the
 following globs:

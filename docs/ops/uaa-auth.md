@@ -22,37 +22,31 @@ UAA itself can be found [here][4].
 You will also need to install `uaac`, the UAA CLI utility, which
 is packaged as a Ruby gem:
 
-```shell
-gem install cf-uaac
-uaac version
-```
+    gem install cf-uaac
+    uaac version
 
 ## Registering A Client with UAA
 
 First, you will need to authenticate to UAA:
 
-```shell
-uaac target --skip-ssl-validation http(s)://<the uaa address>
+    uaac target --skip-ssl-validation http(s)://<the uaa address>
 
-uaac token client get admin
+    uaac token client get admin
 
-<enter the admin client password>
-#note that this differs from the admin user password
-```
+    <enter the admin client password>
+    #note that this differs from the admin user password
 
 Then, create a new client for SHIELD to use:
 
-```shell
-uaac client add $CLIENT_ID \
-  --name $CLIENT_NAME \
-  --scope openid \
-  --authorities uaa.none \
-  --authorized_grant_types authorization_code \
-  --redirect_uri https://$SHIELD/auth/$IDENTIFIER/redir \
-  --access_token_validity  180 \
-  --refresh_token_validity 180 \
-  --secret $CLIENT_SECRET
-```
+    uaac client add $CLIENT_ID \
+      --name $CLIENT_NAME \
+      --scope openid \
+      --authorities uaa.none \
+      --authorized_grant_types authorization_code \
+      --redirect_uri https://$SHIELD/auth/$IDENTIFIER/redir \
+      --access_token_validity  180 \
+      --refresh_token_validity 180 \
+      --secret $CLIENT_SECRET
 
 Where:
 
@@ -79,20 +73,18 @@ To configure SHIELD to work with your UAA, you need to add a new
 _authentication provider_ configuration stanza to the SHIELD Core
 configuration file:
 
-```yaml
-# ... all the other shield core configuration ...
+    # ... all the other shield core configuration ...
 
-auth:
-  - identifier: uaa     # or whatever you used when registering
-    name:       Cloud Foundry UAA
-    backend:    uaa
-    properties:
-      client_id:      YOUR-UAA-CLIENT-ID
-      client_secret:  YOUR-UAA-CLIENT-SECRET
-      uaa_endpoint:   https://uaa.shield.10.244.156.2.netip.cc:8443
+    auth:
+      - identifier: uaa     # or whatever you used when registering
+        name:       Cloud Foundry UAA
+        backend:    uaa
+        properties:
+          client_id:      YOUR-UAA-CLIENT-ID
+          client_secret:  YOUR-UAA-CLIENT-SECRET
+          uaa_endpoint:   https://uaa.shield.10.244.156.2.netip.cc:8443
 
-      mapping:  []    # more on this later
-```
+          mapping:  []    # more on this later
 
 The `auth` key is a list of all configured authentication
 providers; if your configuration already features other providers,
@@ -142,13 +134,11 @@ two systems.
 
 The format of each rule is:
 
-```yaml
-      tenant: SHIELD Tenant Name
-      rights:
-        - scim: scim.right.name
-          role: SHIELD Role
-        # ... etc ...
-```
+    tenant: SHIELD Tenant Name
+    rights:
+      - scim: scim.right.name
+        role: SHIELD Role
+      # ... etc ...
 
 Rules are processed by first looking through the list of `rights`,
 until a `scim` right is found that the authenticated user has been
@@ -157,25 +147,23 @@ granted (by UAA).  Then, that user is granted access to the named
 
 Here's an example:
 
-```yaml
-auth:
-  - identifier: uaa
-    name:       Cloud Foundry UAA
-    backend:    uaa
-    properties:
-      client_id:      YOUR-UAA-CLIENT-ID
-      client_secret:  YOUR-UAA-CLIENT-SECRET
-      uaa_endpoint:   https://uaa.shield.10.244.156.2.netip.cc:8443
+    auth:
+      - identifier: uaa
+        name:       Cloud Foundry UAA
+        backend:    uaa
+        properties:
+          client_id:      YOUR-UAA-CLIENT-ID
+          client_secret:  YOUR-UAA-CLIENT-SECRET
+          uaa_endpoint:   https://uaa.shield.10.244.156.2.netip.cc:8443
 
-      mapping:
-        - tenant: Stark & Wayne
-          rights:
-            - scim: uaa.admin
-              role: admin
-            - scim: uaa.write
-              role: engineer
-            - role: operator
-```
+          mapping:
+            - tenant: Stark & Wayne
+              rights:
+                - scim: uaa.admin
+                  role: admin
+                - scim: uaa.write
+                  role: engineer
+                - role: operator
 
 In this configuration, SHIELD will assign someone with the
 `uaa.admin` SCIM right to the _Stark & Wayne_ SHIELD tenant, as an

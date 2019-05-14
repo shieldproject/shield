@@ -39,16 +39,25 @@ services:
     image: 'shieldproject/shield:8'
     ports: ['9009:80']
     networks: [internal]
-    command: ['/shield/init/core', '--log-level', 'debug']
+    command: ['/shield/init/core']
     environment:
       VAULT_ADDR: http://vault:8200
-      DEBUG:      'yes'
 
       SHIELD_ENV_NAME: documentum
       SHIELD_COLOR:    lightgreen
     volumes:
       - 'shield-data:/var/shield'
       - 'shield-etc:/etc/shield'
+
+  demo:
+    depends_on:
+      - core
+      - webdav
+    image: 'shieldproject/demo:latest'
+    ports: ['9008:80']
+    networks: [internal]
+    volumes:
+      - 'demo-data:/www'
 
   agent:
     depends_on:
@@ -57,18 +66,18 @@ services:
     image: 'shieldproject/shield:8'
     ports: [5444]
     networks: [internal]
-    command: ['/shield/init/agent', '--log-level', 'debug']
+    command: ['/shield/init/agent']
     environment:
-      SHIELD_API: 'http://core:80'
-      DEBUG:      'yes'
+      SHIELD_API:        'http://core:80'
+      SHIELD_AGENT_NAME: 'documentum-shield-agent'
     volumes:
       - 'shield-data:/var/shield'
       - 'shield-etc:/etc/shield'
-      - 'shield-test:/data'
+      - 'demo-data:/www'
 
   webdav:
-    image: 'morrisjobke/webdav:latest'
-    ports: [80]
+    image: 'shieldproject/webdav:latest'
+    ports: ['9007:80']
     networks: [internal]
     environment:
       USERNAME: webdav
@@ -84,4 +93,4 @@ volumes:
   shield-data:
   shield-etc:
   webdav-data:
-  shield-test:
+  demo-data:

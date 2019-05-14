@@ -60,6 +60,9 @@ demo: clean shield plugins
 	(cd demo && docker-compose up)
 
 docs: docs/dev/API.md
+	./bin/mkdocs --version latest --docroot /docs --output tmp/docs --style basic
+	gow -r tmp/docs
+
 docs/dev/API.md: docs/dev/API.yml
 	perl ./docs/regen.pl <$+ >$@~
 	mv $@~ $@
@@ -165,4 +168,4 @@ docker-release:
 	done
 
 
-.PHONY: plugins dev shield shieldd shield-schema shield-agent shield-crypt shield-report demo
+.PHONY: plugins dev shield shieldd shield-schema shield-agent shield-crypt shield-report demo docs

@@ -32,19 +32,17 @@ Agent-Request.
 
 The format of an Agent-Request is as follows:
 
-```
-{
-  "operation"       : "OP-STRING",
+    {
+      "operation"       : "OP-STRING",
 
-  "target_plugin"   : "PLUGIN-NAME",
-  "target_endpoint" : "JSON-encoded STRING",
+      "target_plugin"   : "PLUGIN-NAME",
+      "target_endpoint" : "JSON-encoded STRING",
 
-  "store_plugin"    : "PLUGIN-NAME",
-  "store_endpoint"  : "JSON-encoded STRING",
+      "store_plugin"    : "PLUGIN-NAME",
+      "store_endpoint"  : "JSON-encoded STRING",
 
-  "restore_key"     : "OPAQUE-IDENTIFIER",
-}
-```
+      "restore_key"     : "OPAQUE-IDENTIFIER",
+    }
 
 As of SHIELD v0.10.8, the only recognized operations are:
 
@@ -86,11 +84,9 @@ new request types:
 The SHIELD Core requests Agent status by issuing the following
 Agent-Request:
 
-```
-{
-  "operation" : "status"
-}
-```
+    {
+      "operation" : "status"
+    }
 
 Older SHIELD agents will respond to this with an error.  SHIELD
 Core will have to mark the agent as v0.0.0 (or whatever the most
@@ -99,31 +95,29 @@ treat the health as "degraded"
 
 Newer SHIELD agents will respond with the following JSON:
 
-```
-{
-  "name"    : "<name-set-by-admin>",
-  "version" : "<X.Y.Z>",
-  "health"  : "ok",
-  "plugins" : {
-    "s3" : {
-      "name"    : "S3 Backup + Storage Plugin",
-      "author"  : "Stark \u0026 Wayne",
-      "version" : "0.0.1",
-      "features": {
-          "target" : "no",
-          "store"  : "yes"
-      },
-      "config" : {
-        "store" : [
-          { FIELD-DEFINITION },
-          ...
-        ]
+    {
+      "name"    : "<name-set-by-admin>",
+      "version" : "<X.Y.Z>",
+      "health"  : "ok",
+      "plugins" : {
+        "s3" : {
+          "name"    : "S3 Backup + Storage Plugin",
+          "author"  : "Stark \u0026 Wayne",
+          "version" : "0.0.1",
+          "features": {
+              "target" : "no",
+              "store"  : "yes"
+          },
+          "config" : {
+            "store" : [
+              { FIELD-DEFINITION },
+              ...
+            ]
+          }
+        },
+        ...
       }
-    },
-    ...
-  }
-}
-```
+    }
 
 The `name` and `version` field are just strings.  The Web UI will
 interpret `version` and search for appropriate misconfigurations
@@ -158,15 +152,13 @@ the `info` command.  Legacy plugin binaries will not include the
 The SHIELD Core requests a plugin configuration test by issuing
 the following Agent-Request:
 
-```
-{
-  "operation" : "test"
-  "plugin"    : "<PLUGIN-NAME>"
-  "endpoint"  : {
-     ...
-  }
-}
-```
+    {
+      "operation" : "test"
+      "plugin"    : "<PLUGIN-NAME>"
+      "endpoint"  : {
+         ...
+      }
+    }
 
 Older SHIELD agents will respond to this with an error.  SHIELD
 Core must interpret this as a non-blocking failure of plugin
@@ -176,21 +168,17 @@ may call for more or less caution.
 
 Newer SHIELD agents will respond with the following JSON:
 
-```
-{
-  "status"  : "ok",
-  "message" : "Targeting S3 at s3.example.com"
-}
-```
+    {
+      "status"  : "ok",
+      "message" : "Targeting S3 at s3.example.com"
+    }
 
 or, in the event of failure:
 
-```
-{
-  "status"  : "failed",
-  "message" : "Unable to contact s3.example.com - connection refused"
-}
-```
+    {
+      "status"  : "failed",
+      "message" : "Unable to contact s3.example.com - connection refused"
+    }
 
 The only two valid values for `status` are `"ok"` and `"failed"`.
 
@@ -203,14 +191,12 @@ embedding sensitive information in the status message.
 The SHIELD Core requests validation of a given plugin + endpoint
 by issuing the following Agent-Request:
 
-```
-{
-  "operation" : "validate"
-  "plugin"    : "<PLUGIN-NAME>"
-  "endpoint"  : {
-     ...
-  }
-```
+    {
+      "operation" : "validate"
+      "plugin"    : "<PLUGIN-NAME>"
+      "endpoint"  : {
+         ...
+      }
 
 A _validation_ is run by the plugin against the endpoint
 configuration (passed here as a first-class map, instead of a
