@@ -109,7 +109,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
 		       t.uuid, t.name, t.plugin, t.endpoint,
-		       s.uuid, s.name, s.plugin, s.endpoint,
+		       s.uuid, s.name, s.plugin, s.endpoint, s.agent,
 		       a.status, a.purge_reason, a.job, a.encryption_type,
 		       a.compression, a.tenant_uuid, a.size
 
@@ -162,7 +162,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		if err = r.Scan(
 			&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
 			&a.TargetUUID, &targetName, &a.TargetPlugin, &a.TargetEndpoint,
-			&a.StoreUUID, &storeName, &a.StorePlugin, &a.StoreEndpoint,
+			&a.StoreUUID, &storeName, &a.StorePlugin, &a.StoreEndpoint, &a.StoreAgent,
 			&a.Status, &a.PurgeReason, &a.Job, &a.EncryptionType,
 			&a.Compression, &a.TenantUUID, &size); err != nil {
 

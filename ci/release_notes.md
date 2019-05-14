@@ -7,6 +7,10 @@
   option of restoring invalid archives (i.e. purged stuff).
   Thanks @thomasmitchell for finding and reporting in #506.
 
+- System-initiated archive purges now properly set the store agent
+  for purgation, so that the purge task has someone to talk to for
+  removal of the archive from cloud storage.  See #514.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'
