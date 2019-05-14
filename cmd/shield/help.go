@@ -6,6 +6,36 @@ import (
 
 func ShowHelp(command string) {
 	switch command {
+	case "annotate-archive": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} annotate-archive --tenant @Y{TENANT} @Y{UUID} --notes ...\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Annotate a Backup Archive with Notes.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When SHIELD successfully performs a backup operation, it generates\n")
+		fmt.Printf("  a backup archive containing all of the protected data form that\n")
+		fmt.Printf("  particular system, at that particular point in time.  This archive\n")
+		fmt.Printf("  is then placed in cloud storage, awaiting either expiry and purgation,\n")
+		fmt.Printf("  or restoration to a data system.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  As an operator, you can attach helpful little notes, like \"this is\n")
+		fmt.Printf("  the production backup for change #12345\", to archives.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --notes         (required) The notes to attach to this archive.\n")
+		fmt.Printf("                  This text will be set in the \"notes\" field for the\n")
+		fmt.Printf("                  archive, replacing whatever was there before.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Examples:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  # This archive is for tonight's change:\n")
+		fmt.Printf("  @W{shield annotate-archive} \\\n")
+		fmt.Printf("    @Y{ca24f30b-87f6-4599-bf9e-818998c4b0de} \\\n")
+		fmt.Printf("    @Y{--notes} \"Prod backup for change #12345\"\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "api": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} api [OPTIONS] @Y{ALIAS} @Y{URL}\n")
 		fmt.Printf("\n")
