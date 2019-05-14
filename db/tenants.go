@@ -251,7 +251,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		/* detach and expire all archives from this tenant */
 		err = db.Exec(`
 		   UPDATE archives
-		      SET tenant_uuid = '', status = 'expired'
+		      SET tenant_uuid = '', status = 'tenant deleted'
 		    WHERE tenant_uuid = ?`, tenant.UUID)
 		if err != nil {
 			return fmt.Errorf("unable to mark tenant archives for deletion: %s", err)

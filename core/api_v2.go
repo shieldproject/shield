@@ -3046,7 +3046,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Bad(err, "The backup archive could not be deleted at this time. Archive is already %s", archive.Status))
 		}
 
-		err = c.db.ExpireArchive(archive.UUID)
+		err = c.db.ManuallyPurgeArchive(archive.UUID)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to delete backup archive"))
 			return

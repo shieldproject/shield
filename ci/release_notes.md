@@ -45,6 +45,8 @@
 - Archives can now be annotated from the command-line, with the
   `annotate-archive` command.
 
+- Manually purged archives now track their reason for purge as
+  "manually purged", instead of "expired".  See #517.
 
 # Release Engineering
 

@@ -300,6 +300,10 @@ func (db *DB) ExpireArchive(id string) error {
 	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id)
 }
 
+func (db *DB) ManuallyPurgeArchive(id string) error {
+	return db.Exec(`UPDATE archives SET status = 'manually purged' WHERE uuid = ?`, id)
+}
+
 func (db *DB) DeleteArchive(id string) (bool, error) {
 	return true, db.Exec(`DELETE FROM archives WHERE uuid = ?`, id)
 }
