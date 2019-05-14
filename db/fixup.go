@@ -19,7 +19,7 @@ func init() {
 	fixups = append(fixups, fixup{
 		id:      "purge-task-516",
 		name:    "Re-schedule Failed Purge Tasks",
-		created: time.Date(2019, 05, 14, 11, 54, 00, 0, nil),
+		created: time.Date(2019, 05, 14, 15, 54, 00, 0, time.UTC),
 		summary: `
 There was an issue in versions of SHIELD between
 8.1.0 and 8.2.0, where purge tasks would fail, but
