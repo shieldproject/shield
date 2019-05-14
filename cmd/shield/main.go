@@ -258,7 +258,7 @@ var opts struct {
 	RestoreArchive struct {
 		Target string `cli:"--target, --to"`
 	} `cli:"restore-archive"`
-	PurgeArchive struct{
+	PurgeArchive struct {
 		Reason string `cli:"--reason"`
 	} `cli:"purge-archive"`
 	AnnotateArchive struct {

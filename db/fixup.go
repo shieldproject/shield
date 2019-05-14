@@ -10,7 +10,7 @@ type fixup struct {
 	name    string
 	summary string
 	created time.Time
-	fn      func (*DB) error
+	fn      func(*DB) error
 }
 
 var fixups []fixup
@@ -33,7 +33,7 @@ that do **not** have a successful purge operation
 task attached to them.
 
 See [issue #516](https://github.com/starkandwayne/shield/issues/516) in GitHub for details.`,
-		fn: func (db *DB) error {
+		fn: func(db *DB) error {
 			/* look through all archives with status = 'purged',
 			   and then cross-ref with all tasks, looking for those
 			   without any op=purge/status=done attached.
