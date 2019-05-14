@@ -36,6 +36,13 @@
   parameter, affording operators more flexibility.
   The alternative was confusion!  See #509.
 
+- When purging archives manually, you can now supply
+  human-friendly reasons for the purge.  For example, if the data
+  is known to be bad in that particular vintage of the target
+  system, you can purge the archives containing it, and explain
+  that.  See #520
+
+
 # Release Engineering
 
 - Docker images can now be built with embedded release versions,

@@ -258,7 +258,9 @@ var opts struct {
 	RestoreArchive struct {
 		Target string `cli:"--target, --to"`
 	} `cli:"restore-archive"`
-	PurgeArchive struct{} `cli:"purge-archive"`
+	PurgeArchive struct{
+		Reason string `cli:"--reason"`
+	} `cli:"purge-archive"`
 
 	/* }}} */
 	/* TASKS {{{ */
@@ -2540,6 +2542,7 @@ tenants:
 		r.Add("Key", archive.Key)
 		r.Add("Compression", archive.Compression)
 		r.Add("Status", archive.Status)
+		r.Add("Notes", archive.Notes)
 		r.Output(os.Stdout)
 
 	/* }}} */
@@ -2583,6 +2586,14 @@ tenants:
 
 		archive, err := c.GetArchive(tenant, args[0])
 		bail(err)
+
+		if opts.PurgeArchive.Reason != "" {
+			archive.Notes = opts.PurgeArchive.Reason
+			_, err = c.UpdateArchive(tenant, archive)
+			if err != nil && !opts.JSON {
+				fmt.Fprintf(os.Stderr, "@Y{WARNING: Unable to update archive with reason for purge}: %s", err)
+			}
+		}
 
 		rs, err := c.DeleteArchive(tenant, archive)
 		bail(err)
