@@ -223,7 +223,7 @@ func (p S3Plugin) Meta() plugin.PluginInfo {
 
 func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
-		s    string
+		h, s string
 		err  error
 		fail bool
 	)
@@ -233,7 +233,13 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 s3_host               %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 s3_host}               @C{%s}\n", s)
+		h = s
+		bare := hostname(s)
+		if bare != s {
+			fmt.Printf("@G{\u2713 s3_host}               @C{%s} (from @C{%s})\n", bare, s)
+		} else {
+			fmt.Printf("@G{\u2713 s3_host}               @C{%s}\n", bare)
+		}
 	}
 
 	useInstanceProfiles, err := endpoint.BooleanValueDefault("use_instance_profile", DefaultUseInstanceProfiles)
@@ -273,7 +279,12 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			fmt.Printf("@R{\u2717 s3_port               %s but s3_host cannot be empty}\n", s)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@G{\u2713 s3_port}               (autodetect)\n")
+			s = hostport(h)
+			if s == "" {
+				fmt.Printf("@G{\u2713 s3_port}               (autodetect)\n")
+			} else {
+				fmt.Printf("@G{\u2713 s3_port}               @C{%s} (from s3_host)\n", s)
+			}
 		} else {
 			fmt.Printf("@G{\u2713 s3_port}               @C{%s}\n", s)
 		}
@@ -462,6 +473,8 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	if err != nil {
 		return s3Endpoint{}, err
 	}
+	p := hostport(host)
+	host = hostname(host)
 
 	insecure_ssl, err := e.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
@@ -538,6 +551,9 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 	port, err := e.StringValueDefault("s3_port", "")
 	if err != nil {
 		return s3Endpoint{}, err
+	}
+	if port == "" {
+		port = p
 	}
 
 	return s3Endpoint{
@@ -632,4 +648,24 @@ func getInstanceProfileCredentials() (instanceProfileCredentials, error) {
 	}
 
 	return creds, nil
+}
+
+func hostname(s string) string {
+	if u, err := url.Parse(s); err == nil {
+		return u.Hostname()
+	}
+	return s
+}
+
+func hostport(s string) string {
+	if u, err := url.Parse(s); err == nil {
+		if p := u.Port(); p != "" {
+			return p
+		}
+		if u.Scheme == "https" {
+			return "443"
+		}
+		return "80"
+	}
+	return s
 }

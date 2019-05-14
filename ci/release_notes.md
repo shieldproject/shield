@@ -18,6 +18,10 @@
   the `shieldd` daemon, and all helper binaries now sport options
   for getting their usage (`--help`) and versions (`--versions`).
 
+- The `s3` plugin now accepts a URL as its `s3_host` endpoint
+  parameter, affording operators more flexibility.
+  The alternative was confusion!  See #509.
+
 # Release Engineering
 
 - Docker images can now be built with embedded release versions,
