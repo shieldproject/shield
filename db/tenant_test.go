@@ -247,8 +247,8 @@ var _ = Describe("tenant Management", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(0))
 
-		//only one job was marked as expired
-		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"expired"}})
+		//only one job was marked as 'tenant deleted'
+		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"tenant deleted"}})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))
 
@@ -271,12 +271,12 @@ var _ = Describe("tenant Management", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(targets).ShouldNot(BeNil())
 
-		//show archive in expired but pre purged status
-		archives, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"expired"}})
+		//show archive in 'tenant deleted' but pre purged status
+		archives, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"tenant deleted"}})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))
 
-		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'expired'`)
+		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'tenant deleted'`)
 		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))
@@ -297,13 +297,13 @@ var _ = Describe("tenant Management", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(store).ShouldNot(BeNil())
 
-		//show archive in expired but pre purged status
-		archives, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"expired"}})
+		//show archive in 'tenant deleted' but pre purged status
+		archives, err := db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"tenant deleted"}})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))
 
 		//"purge" archive
-		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'expired'`)
+		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'tenant deleted'`)
 		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))
