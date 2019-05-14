@@ -261,6 +261,9 @@ var opts struct {
 	PurgeArchive struct{
 		Reason string `cli:"--reason"`
 	} `cli:"purge-archive"`
+	AnnotateArchive struct {
+		Notes string `cli:"--notes"`
+	} `cli:"annotate-archive"`
 
 	/* }}} */
 	/* TASKS {{{ */
@@ -570,6 +573,7 @@ func main() {
 			printc("  archive                  Display the details for a single backup archive.\n")
 			printc("  restore-archive          Restore a backup archive to its original target system, or a new one.\n")
 			printc("  purge-archive            Remove a backup archive from its cloud storage, and mark it invalid.\n")
+			printc("  annotate-archive         Add notes about this archive, for the benefit of other operators.\n")
 		}
 		if show("task", "tasks") {
 			header("Task Management")
@@ -2604,6 +2608,37 @@ tenants:
 		}
 
 		fmt.Printf("%s\n", rs.OK)
+
+	/* }}} */
+	case "annotate-archive": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s NAME-or-UUID --notes ...\n", command)
+		}
+
+		required(opts.AnnotateArchive.Notes != "", "Missing required --notes option.")
+		required(opts.Tenant != "", "Missing required --tenant option.")
+		tenant, err := c.FindMyTenant(opts.Tenant, true)
+		bail(err)
+
+		archive, err := c.GetArchive(tenant, args[0])
+		bail(err)
+
+		archive.Notes = opts.AnnotateArchive.Notes
+		archive, err = c.UpdateArchive(tenant, archive)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(archive))
+			break
+		}
+
+		r := tui.NewReport()
+		r.Add("UUID", archive.UUID)
+		r.Add("Key", archive.Key)
+		r.Add("Compression", archive.Compression)
+		r.Add("Status", archive.Status)
+		r.Add("Notes", archive.Notes)
+		r.Output(os.Stdout)
 
 	/* }}} */
 

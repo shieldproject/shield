@@ -42,6 +42,9 @@
   system, you can purge the archives containing it, and explain
   that.  See #520
 
+- Archives can now be annotated from the command-line, with the
+  `annotate-archive` command.
+
 
 # Release Engineering
 
