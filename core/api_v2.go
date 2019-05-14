@@ -1204,7 +1204,10 @@ func (c *Core) v2API() *route.Router {
 			&db.TargetFilter{
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  r.Args[1],
@@ -2100,11 +2103,13 @@ func (c *Core) v2API() *route.Router {
 
 		targets, err := c.db.GetAllTargets(
 			&db.TargetFilter{
-				UUID:       r.Param("uuid", ""),
 				ForTenant:  r.Args[1],
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 			},
@@ -2322,7 +2327,10 @@ func (c *Core) v2API() *route.Router {
 			&db.StoreFilter{
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  r.Args[1],
@@ -2545,6 +2553,7 @@ func (c *Core) v2API() *route.Router {
 				SkipPaused:   r.ParamIs("paused", "f"),
 				SkipUnpaused: r.ParamIs("paused", "t"),
 
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
 
 				ForTarget:  r.Param("target", ""),
@@ -3241,10 +3250,12 @@ func (c *Core) v2API() *route.Router {
 
 		stores, err := c.db.GetAllStores(
 			&db.StoreFilter{
-				UUID:       r.Param("uuid", ""),
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  db.GlobalTenantUUID,

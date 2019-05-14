@@ -60,6 +60,7 @@ func (c *Client) FindStore(tenant *Tenant, q string, fuzzy bool) (*Store, error)
 	}
 
 	l, err := c.ListStores(tenant, &StoreFilter{
+		UUID:  q,
 		Name:  q,
 		Fuzzy: fuzzy,
 	})
@@ -129,6 +130,7 @@ func (c *Client) FindGlobalStore(q string, fuzzy bool) (*Store, error) {
 	}
 
 	l, err := c.ListGlobalStores(&StoreFilter{
+		UUID:  q,
 		Name:  q,
 		Fuzzy: fuzzy,
 	})

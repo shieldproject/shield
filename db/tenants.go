@@ -22,7 +22,7 @@ type TenantFilter struct {
 }
 
 func (f *TenantFilter) Query() (string, []interface{}) {
-	wheres := []string{"t.uuid = t.uuid"}
+	wheres := []string{}
 	var args []interface{}
 
 	if f.UUID != "" {
@@ -43,6 +43,12 @@ func (f *TenantFilter) Query() (string, []interface{}) {
 			wheres = append(wheres, "t.name LIKE ?")
 			args = append(args, Pattern(f.Name))
 		}
+	}
+
+	if len(wheres) == 0 {
+		wheres = []string{"1"}
+	} else if len(wheres) > 1 {
+		wheres = []string{strings.Join(wheres, " OR ")}
 	}
 
 	limit := ""

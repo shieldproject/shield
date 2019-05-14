@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	qs "github.com/jhunt/go-querytron"
+	"github.com/pborman/uuid"
 )
 
 type Archive struct {
@@ -22,7 +23,7 @@ type Archive struct {
 
 type ArchiveFilter struct {
 	UUID   string `qs:"uuid"`
-	Fuzzy  string `qs:"exact:f:t"`
+	Fuzzy  bool   `qs:"exact:f:t"`
 	Target string `qs:"target"`
 	Store  string `qs:"store"`
 	Status string `qs:"status"`
@@ -47,6 +48,29 @@ func (c *Client) ListArchives(parent *Tenant, filter *ArchiveFilter) ([]*Archive
 		fixupArchiveResponse(p)
 	}
 	return out, nil
+}
+
+func (c *Client) FindArchive(tenant *Tenant, q string, fuzzy bool) (*Archive, error) {
+	if uuid.Parse(q) != nil {
+		return c.GetArchive(tenant, q)
+	}
+
+	l, err := c.ListArchives(tenant, &ArchiveFilter{
+		UUID:  q,
+		Fuzzy: fuzzy,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(l) == 0 {
+		return nil, fmt.Errorf("no matching archive found")
+	}
+	if len(l) > 1 {
+		return nil, fmt.Errorf("multiple matching archives found")
+	}
+
+	return c.GetArchive(tenant, l[0].UUID)
 }
 
 func (c *Client) GetArchive(parent *Tenant, uuid string) (*Archive, error) {

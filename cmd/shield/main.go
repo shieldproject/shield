@@ -36,6 +36,7 @@ var opts struct {
 	Core   string `cli:"-c, --core" env:"SHIELD_CORE"`
 	Config string `cli:"--config" env:"SHIELD_CLI_CONFIG"`
 	JSON   bool   `cli:"--json" env:"SHIELD_JSON_MODE"`
+	Long   bool   `cli:"-L, --long"`
 
 	Exact  bool   `cli:"--exact"`
 	Fuzzy  bool   `cli:"--fuzzy"`
@@ -1361,6 +1362,7 @@ tenants:
 		}
 		if len(args) == 1 {
 			filter.Name = args[0]
+			filter.UUID = args[0]
 		}
 
 		tenants, err := c.ListTenants(filter)
@@ -1373,7 +1375,7 @@ tenants:
 
 		tbl := table.NewTable("UUID", "Name")
 		for _, tenant := range tenants {
-			tbl.Row(tenant, tenant.UUID, tenant.Name)
+			tbl.Row(tenant, uuid8full(tenant.UUID, opts.Long), tenant.Name)
 		}
 		tbl.Output(os.Stdout)
 
@@ -1550,6 +1552,7 @@ tenants:
 		}
 		if len(args) == 1 {
 			filter.Name = args[0]
+			filter.UUID = args[0]
 		}
 		if opts.Targets.Used || opts.Targets.Unused {
 			x := opts.Targets.Used
@@ -1569,7 +1572,7 @@ tenants:
 
 		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration")
 		for _, target := range targets {
-			tbl.Row(target, target.UUID, target.Name, target.Summary, target.Plugin, target.Agent, asJSON(target.Config))
+			tbl.Row(target, uuid8full(target.UUID, opts.Long), target.Name, wrap(target.Summary, 35), target.Plugin, target.Agent, asJSON(target.Config))
 		}
 		tbl.Output(os.Stdout)
 
@@ -1594,7 +1597,7 @@ tenants:
 		r := tui.NewReport()
 		r.Add("UUID", t.UUID)
 		r.Add("Name", t.Name)
-		r.Add("Summary", t.Summary)
+		r.Add("Summary", wrap(t.Summary, 35))
 		r.Add("Compression", t.Compression)
 		r.Add("SHIELD Agent", t.Agent)
 		r.Add("Backup Plugin", t.Plugin)
@@ -1752,6 +1755,7 @@ tenants:
 		}
 		if len(args) == 1 {
 			filter.Name = args[0]
+			filter.UUID = args[0]
 		}
 		if opts.Stores.Used || opts.Stores.Unused {
 			x := opts.Stores.Used
@@ -1775,7 +1779,7 @@ tenants:
 			if !store.Healthy {
 				health = fmt.Sprintf("@R{no}")
 			}
-			tbl.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Agent, asJSON(store.Config), health)
+			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, asJSON(store.Config), health)
 		}
 		tbl.Output(os.Stdout)
 
@@ -1968,6 +1972,7 @@ tenants:
 		}
 		if len(args) == 1 {
 			filter.Name = args[0]
+			filter.UUID = args[0]
 		}
 		if opts.GlobalStores.Used || opts.GlobalStores.Unused {
 			x := opts.GlobalStores.Used
@@ -1988,7 +1993,7 @@ tenants:
 			if !store.Healthy {
 				health = fmt.Sprintf("@R{no}")
 			}
-			tbl.Row(store, store.UUID, store.Name, store.Summary, store.Plugin, store.Agent, asJSON(store.Config), health)
+			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, asJSON(store.Config), health)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2167,6 +2172,7 @@ tenants:
 		}
 		if len(args) == 1 {
 			filter.Name = args[0]
+			filter.UUID = args[0]
 		}
 
 		tenant, err := c.FindMyTenant(opts.Tenant, true)
@@ -2182,7 +2188,7 @@ tenants:
 
 		tbl := table.NewTable("UUID", "Name", "Summary", "Schedule", "Status", "Retention", "SHIELD Agent", "Target", "Store", "Fixed-Key")
 		for _, job := range jobs {
-			tbl.Row(job, job.UUID, job.Name, job.Summary, job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
+			tbl.Row(job, uuid8full(job.UUID, opts.Long), job.Name, wrap(job.Summary, 35), job.Schedule, job.Status(), fmt.Sprintf("%dd (%d archives)", job.KeepDays, job.KeepN), job.Agent, job.Target.Name, job.Store.Name, job.FixedKey)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2488,6 +2494,7 @@ tenants:
 
 	case "archives": /* {{{ */
 		required(opts.Tenant != "", "Missing required --tenant option.")
+		required(len(args) <= 1, "Too many arguments.")
 
 		tenant, err := c.FindMyTenant(opts.Tenant, true)
 		bail(err)
@@ -2505,11 +2512,18 @@ tenants:
 			bail(err)
 			opts.Archives.Store = s.UUID
 		}
-		archives, err := c.ListArchives(tenant, &shield.ArchiveFilter{
+
+		filter := &shield.ArchiveFilter{
 			Target: opts.Archives.Target,
 			Store:  opts.Archives.Store,
 			Limit:  &opts.Archives.Limit,
-		})
+			Fuzzy:  !opts.Exact,
+		}
+		if len(args) == 1 {
+			filter.UUID = args[0]
+		}
+
+		archives, err := c.ListArchives(tenant, filter)
 		bail(err)
 
 		if opts.JSON {
@@ -2519,7 +2533,7 @@ tenants:
 
 		tbl := table.NewTable("UUID", "Key", "Compression", "Status")
 		for _, archive := range archives {
-			tbl.Row(archive, archive.UUID, archive.Key, archive.Compression, archive.Status)
+			tbl.Row(archive, uuid8full(archive.UUID, opts.Long), archive.Key, archive.Compression, archive.Status)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2533,7 +2547,7 @@ tenants:
 		tenant, err := c.FindMyTenant(opts.Tenant, true)
 		bail(err)
 
-		archive, err := c.GetArchive(tenant, args[0])
+		archive, err := c.FindArchive(tenant, args[0], !opts.Exact)
 		bail(err)
 
 		if opts.JSON {
@@ -2642,8 +2656,6 @@ tenants:
 
 	/* }}} */
 
-	/* FIXME: allow partial search by UUID */
-
 	case "tasks": /* {{{ */
 		required(!(opts.Tasks.Active && opts.Tasks.Inactive),
 			"The --active and --inactive options are mutually exclusive.")
@@ -2746,7 +2758,7 @@ tenants:
 			if task.StoppedAt != 0 {
 				stopped = strftime(task.StoppedAt)
 			}
-			tbl.Row(task, task.UUID, task.Type, task.Status, task.Owner, strftime(task.RequestedAt), started, stopped)
+			tbl.Row(task, uuid8full(task.UUID, opts.Long), task.Type, task.Status, task.Owner, strftime(task.RequestedAt), started, stopped)
 		}
 		tbl.Output(os.Stdout)
 
@@ -2771,7 +2783,7 @@ tenants:
 			bail(fmt.Errorf("No task found with UUID prefix `%s'", args[0]))
 		}
 
-		task, err := c.GetTask(tenant, args[0])
+		task, err := c.GetTask(tenant, tasks[0].UUID)
 		bail(err)
 
 		if opts.JSON {
@@ -2868,8 +2880,6 @@ tenants:
 
 		/* }}} */
 
-	/* FIXME: global tasks */
-
 	case "users": /* {{{ */
 		required(len(args) <= 1, "Too many arguments.")
 
@@ -2891,7 +2901,7 @@ tenants:
 
 		tbl := table.NewTable("UUID", "Name", "Account", "System Role")
 		for _, user := range users {
-			tbl.Row(user, user.UUID, user.Name, user.Account, user.SysRole)
+			tbl.Row(user, uuid8full(user.UUID, opts.Long), user.Name, user.Account, user.SysRole)
 		}
 		tbl.Output(os.Stdout)
 
@@ -3062,7 +3072,7 @@ tenants:
 
 		tbl := table.NewTable("UUID", "Account", "Created At", "Last Seen", "IP Address", "User Agent")
 		for _, session := range sessions {
-			tbl.Row(session, session.UUID, session.UserAccount, strftime(session.CreatedAt), strftimenil(session.LastSeen, "(nerver)"), session.IP, session.UserAgent)
+			tbl.Row(session, uuid8full(session.UUID, opts.Long), session.UserAccount, strftime(session.CreatedAt), strftimenil(session.LastSeen, "(nerver)"), session.IP, session.UserAgent)
 		}
 		tbl.Output(os.Stdout)
 

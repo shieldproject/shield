@@ -52,7 +52,7 @@ type TargetFilter struct {
 }
 
 func (f *TargetFilter) Query() (string, []interface{}) {
-	wheres := []string{"t.uuid = t.uuid"}
+	wheres := []string{}
 	args := []interface{}{}
 
 	if f.UUID != "" {
@@ -74,6 +74,13 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 			args = append(args, Pattern(f.SearchName))
 		}
 	}
+
+	if len(wheres) == 0 {
+		wheres = []string{"1"}
+	} else if len(wheres) > 1 {
+		wheres = []string{strings.Join(wheres, " OR ")}
+	}
+
 	if f.ForTenant != "" {
 		wheres = append(wheres, "t.tenant_uuid = ?")
 		args = append(args, f.ForTenant)

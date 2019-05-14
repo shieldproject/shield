@@ -78,6 +78,7 @@ func (c *Client) FindJob(tenant *Tenant, q string, fuzzy bool) (*Job, error) {
 	}
 
 	l, err := c.ListJobs(tenant, &JobFilter{
+		UUID:  q,
 		Name:  q,
 		Fuzzy: fuzzy,
 	})

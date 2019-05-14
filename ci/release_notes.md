@@ -48,6 +48,10 @@
 - Manually purged archives now track their reason for purge as
   "manually purged", instead of "expired".  See #517.
 
+- All system- and tenant-level objects can now be searched for,
+  and referenced by short UUIDs.  This is huge (though short),
+  going a long way to making the CLI easier to work with.
+
 # Release Engineering
 
 - Docker images can now be built with embedded release versions,
