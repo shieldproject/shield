@@ -135,6 +135,12 @@ func (w *Worker) Execute(chore Chore) {
 		panic(fmt.Errorf("failed to retrieve task '%s' from database: %s", chore.TaskUUID, err))
 	}
 
+	if rc != 0 {
+		log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+		w.db.FailTask(chore.TaskUUID, time.Now())
+		return
+	}
+
 	switch task.Op {
 	case db.BackupOperation:
 		output = strings.TrimSpace(output)
@@ -315,12 +321,6 @@ func (w *Worker) Execute(chore Chore) {
 		}
 	}
 
-	if rc == 0 {
-		log.Debugf("%s: completing task '%s' in database", chore, chore.TaskUUID)
-		w.db.CompleteTask(chore.TaskUUID, time.Now())
-
-	} else {
-		log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
-		w.db.FailTask(chore.TaskUUID, time.Now())
-	}
+	log.Debugf("%s: completing task '%s' in database", chore, chore.TaskUUID)
+	w.db.CompleteTask(chore.TaskUUID, time.Now())
 }

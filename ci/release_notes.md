@@ -11,6 +11,13 @@
   for purgation, so that the purge task has someone to talk to for
   removal of the archive from cloud storage.  See #514.
 
+- The core scheduler now immediately fails any task for which the
+  remote SHIELD agent does not signal a successful (rc=0) exit
+  status.  This should clean up some task logs, and remove red
+  herring issues like JSON unmarshal failures, while
+  simultaneously ensuring that failed purge tasks are re-tried.
+  See #518.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'
