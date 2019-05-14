@@ -119,7 +119,14 @@ func (f LegacyFabric) Execute(op, id string, command Command) scheduler.Chore {
 		id,
 		func(chore scheduler.Chore) {
 			log.Debugf("starting up legacy agent execution...")
-			log.Debugf("marshaling command into JSON for transport across SSH (legacy) fabric")
+			log.Debugf("checking that we have a SHIELD agent...")
+			if f.ip == "" {
+				chore.Errorf("ERR> unable to determine SHIELD agent to connect to")
+				chore.UnixExit(2)
+				return
+			}
+
+			log.Debugf("marshaling command into JSON for transport across SSH (legacy) fabric...")
 			b, err := json.Marshal(command)
 			if err != nil {
 				chore.Errorf("ERR> unable to marshal %s task payload: %s", op, err)
