@@ -3,6 +3,10 @@
 - The `shieldd` binary now properly reports its release version in
   both CLI (`-v`) and web UI contexts.
 
+- The archives list on the system page now no longer gives you the
+  option of restoring invalid archives (i.e. purged stuff).
+  Thanks @thomasmitchell for finding and reporting in #506.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'

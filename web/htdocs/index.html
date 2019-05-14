@@ -1959,7 +1959,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   [[ var store = AEGIS.store(archive.store_uuid); ]]
                   <td>[[= store.name ]] ([[= store.plugin ]])</td>
                   <td>[[= archive.status ]]</td>
-                  <td><a href="restore:[[= archive.uuid ]]">restore</a></td>
+                  <td>[[ if (archive.status == "valid") { ]]<a href="restore:[[= archive.uuid ]]">restore</a>[[ } ]]</td>
                 </tr>
                 [[ }); ]]
               </tbody>
