@@ -1,5 +1,5 @@
-# issues / PRs that are inactive for 60 days are maked as stale
-daysUntilStale: 60
+# issues / PRs that are inactive for 60 days are marked as stale
+daysUntilStale: 30
 
 # stale issues are closed after 2 weeks
 daysUntilClose: 14
@@ -15,7 +15,7 @@ staleLabel: abandoned
 # comment when an issue becomes stale
 markComment: >
   This issue has been automatically marked as abandoned because it has not
-  seen any activity or updates in 60 days.  It will be closed in 14 days if
+  seen any activity or updates in 30 days.  It will be closed in 14 days if
   no further activity occurs.  Thank you for your contributions.
 
 # no comment on auto-close
