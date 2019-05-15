@@ -21,6 +21,12 @@
 - Purge tasks are now being properly supplied with the restore key
   necessary for deleting the archive blob.  See #516.
 
+- Agent Status tasks (op `agent-status`) were not previously being
+  created with proper global tenant association.  This prohibited
+  operators from viewing the details of those tasks.  We fixed
+  this, and added a data fixup created to re-associate existing
+  tasks.  See #522.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'

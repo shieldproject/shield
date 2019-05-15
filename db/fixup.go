@@ -49,6 +49,31 @@ See [issue #516](https://github.com/starkandwayne/shield/issues/516) in GitHub f
 				                     WHERE op     = 'purge'
 				                       AND status = 'done')`)
 		},
+
+	}, fixup{
+		id:      "agent-status-task-tenant-uuid-522",
+		name:    "Associate Orphaned agent-status Tasks with Global Tenant",
+		created: time.Date(2019, 05, 15, 12, 32, 00, 0, time.UTC),
+		summary: `
+There was an issue in versions of SHIELD prior to
+8.2.0, where <code>agent-status</code> tasks were
+inserted into the database with an empty tenant UUID.
+
+This renders them inaccessible to the
+<code>/v2/tasks/:uuid</code> endpoint, which drives
+the <code>shield task $uuid</code> command.
+
+This fixup re-associates all agent-status tasks with
+the global tenant UUID, to fix that.
+
+See [issue #522](https://github.com/starkandwayne/shield/issues/522) in GitHub for details.`,
+		fn: func(db *DB) error {
+			return db.Exec(`
+				UPDATE tasks
+				   SET tenant_uuid = ?
+				 WHERE tenant_uuid = ''
+				   AND op          = 'agent-status'`, GlobalTenantUUID)
+		},
 	})
 }
 
