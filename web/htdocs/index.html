@@ -538,6 +538,13 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       jobs:    "ok"
                     };
 
+                    $.each(AEGIS.stores({ global: true }),
+                           function (_, store) {
+                             if (!store.healthy) {
+                               health.storage = "failing";
+                             }
+                           });
+
                     if (AEGIS.current) {
                       $.each(AEGIS.stores({ tenant: AEGIS.current.uuid }),
                              function (_, store) {
@@ -550,13 +557,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                              function (_, job) {
                                if (!job.healthy) {
                                  health.jobs = "failing";
-                               }
-                             });
-                    } else {
-                      $.each(AEGIS.stores({ global: true }),
-                             function (_, store) {
-                               if (!store.healthy) {
-                                 health.storage = "failing";
                                }
                              });
                     }

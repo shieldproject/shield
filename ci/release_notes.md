@@ -27,6 +27,11 @@
   this, and added a data fixup created to re-associate existing
   tasks.  See #522.
 
+- The HUD now always registers the global cloud storage in its
+  health data, so operators are aware of all issues with storaage
+  systems that they might be using, global or tenant-private.
+  See #504.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'
