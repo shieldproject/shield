@@ -440,7 +440,7 @@
         var data = $form.serializeObject();
         $form.find('[name=master]').val('');
         if (data.master == "") {
-          $form.error('unlock-master', 'missing');
+          $form.error('master', 'missing');
           return;
         }
 
@@ -452,15 +452,9 @@
             $('#lock-state .locked').fadeOut();
             goto(AEGIS.is('engineer') ? '#!/admin' : '#!/systems');
           },
-          statusCode: {
-            403: function () {
-              $form.error('unlock-master', 'incorrect')
-            },
-            500: function (xhr) {
-              $form.error(xhr.responseJSON);
-            }
-          },
-          error: {}
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
         });
       }) /* }}} */
 

@@ -37,6 +37,10 @@
   Accompanying this is a new data fixup that should re-calculate
   the `keep_n` database field wherever it is zero.  See #460.
 
+- Unlocking SHIELD was not properly giving feedback when a wrong
+  password was given or no password at all. This is now working.
+  See #524.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'

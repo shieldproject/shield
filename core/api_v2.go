@@ -694,19 +694,19 @@ func (c *Core) v2API() *route.Router {
 
 		status, err := c.vault.Status()
 		if err != nil {
-			r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core"))
+			r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
 			return
 		}
 		if status == "uninitialized" {
-			r.Fail(route.Bad(nil, "this SHIELD Core has not yet been initialized"))
+			r.Fail(route.Bad(nil, "Unable to unlock the SHIELD Core: this SHIELD Core has not yet been initialized"))
 			return
 		}
 		if err := c.vault.Unseal(c.CryptFile(), in.Master); err != nil {
-			if strings.Contains(err.Error(), "Incorrect Password") {
-				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core"))
+			if strings.Contains(err.Error(), "incorrect master password") {
+				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: incorrect password"))
 				return
 			}
-			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core"))
+			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
 			return
 		}
 

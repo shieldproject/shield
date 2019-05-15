@@ -90,8 +90,14 @@
 
           [[ if (AEGIS.is('engineer')) { ]]
           <form id="unlock-shield">
-            <input type="password" name="master" placeholder="SHIELD Master Password">[[#
-            ]]<button type="submit">Unlock</button>
+            <div class="error"></div>
+            <div data-field="master">
+              <div class="errors">
+                  <span data-error="missing">Please supply your password.</span>
+              </div>
+              <input type="password" name="master" id="master" placeholder="SHIELD Master Password">[[#
+              ]]<button type="submit">Unlock</button>
+            </div>
           </form>
           [[ } else { ]]
           <p>Please contact your SHIELD administrator(s) and ask them to kindly unlock SHIELD.</p>
