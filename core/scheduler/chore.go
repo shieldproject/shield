@@ -135,18 +135,18 @@ func (w *Worker) Execute(chore Chore) {
 		panic(fmt.Errorf("failed to retrieve task '%s' from database: %s", chore.TaskUUID, err))
 	}
 
-	if rc != 0 {
-		log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
-		w.db.FailTask(chore.TaskUUID, time.Now())
-		return
-	}
-
 	switch task.Op {
 	case db.BackupOperation:
 		output = strings.TrimSpace(output)
-		log.Infof("%s: parsing output of %s operation, '%s'", chore, task.Op, output)
 		w.db.UpdateTaskLog(task.UUID, fmt.Sprintf("BACKUP: `%s`\n", output))
 
+		if rc != 0 {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+			w.db.FailTask(chore.TaskUUID, time.Now())
+			return
+		}
+
+		log.Infof("%s: parsing output of %s operation, '%s'", chore, task.Op, output)
 		var v struct {
 			Key         string `json:"key"`
 			Size        int64  `json:"archive_size"`
@@ -217,13 +217,21 @@ func (w *Worker) Execute(chore Chore) {
 		w.db.UpdateTaskLog(task.UUID, "\n\n")
 
 	case db.PurgeOperation:
+		if rc != 0 {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+			w.db.UpdateTaskLog(task.UUID, "\nPURGE: operation failed; keeping archive metadata intact.\n")
+			w.db.UpdateTaskLog(task.UUID, "PURGE: will try again later...\n")
+			w.db.FailTask(chore.TaskUUID, time.Now())
+			return
+		}
+
 		log.Infof("%s: purged archive '%s' from storage", chore, task.ArchiveUUID)
 		err = w.db.PurgeArchive(task.ArchiveUUID)
 		if err != nil {
 			panic(fmt.Errorf("%s: failed to purge the archive record from the database: %s", chore, err))
 		}
 
-		w.db.UpdateTaskLog(task.UUID, "\nBACKUP: recalculating cloud storage usage statistics...\n")
+		w.db.UpdateTaskLog(task.UUID, "\nPURGE: recalculating cloud storage usage statistics...\n")
 		archive, err := w.db.GetArchive(task.ArchiveUUID)
 		if err != nil {
 			panic(fmt.Errorf("%s: failed to retrieve archive record from the database: %s", chore, err))
@@ -271,11 +279,6 @@ func (w *Worker) Execute(chore Chore) {
 			Healthy bool `json:"healthy"`
 		}
 
-		err = json.Unmarshal([]byte(output), &v)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal output [%s] from %s operation: %s", output, task.Op, err))
-		}
-
 		store, err := w.db.GetStore(task.StoreUUID)
 		if err != nil {
 			panic(fmt.Errorf("failed to retrieve store '%s' from database: %s", task.StoreUUID, err))
@@ -284,13 +287,45 @@ func (w *Worker) Execute(chore Chore) {
 			panic(fmt.Errorf("store '%s' not found in database", task.StoreUUID))
 		}
 
-		store.Healthy = v.Healthy
+		if rc == 0 {
+			err = json.Unmarshal([]byte(output), &v)
+			if err != nil {
+				panic(fmt.Errorf("failed to unmarshal output [%s] from %s operation: %s", output, task.Op, err))
+			}
+			if v.Healthy {
+				if store.Healthy != v.Healthy {
+					w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as HEALTHY (recovery).\n")
+				} else {
+					w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: storage is still HEALTHY.\n")
+				}
+			} else {
+				w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as UNHEALTHY.\n")
+			}
+			store.Healthy = v.Healthy
+
+		} else {
+			store.Healthy = false
+			w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as UNHEALTHY.\n")
+		}
+
 		err = w.db.UpdateStore(store)
 		if err != nil {
 			panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
 		}
 
+		if rc != 0 {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+			w.db.FailTask(chore.TaskUUID, time.Now())
+			return
+		}
+
 	case db.AgentStatusOperation:
+		if rc != 0 {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+			w.db.FailTask(chore.TaskUUID, time.Now())
+			return
+		}
+
 		var v struct {
 			Name    string `json:"name"`
 			Version string `json:"version"`
