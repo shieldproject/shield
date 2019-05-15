@@ -32,6 +32,11 @@
   systems that they might be using, global or tenant-private.
   See #504.
 
+- Jobs created via the Web UI now properly set their "KeepN"
+  attribute, which was missing from the ingestion / insertion.
+  Accompanying this is a new data fixup that should re-calculate
+  the `keep_n` database field wherever it is zero.  See #460.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'

@@ -1409,18 +1409,39 @@ func (c *Core) v2API() *route.Router {
 				KeepDays int    `json:"keep_days"`
 				FixedKey bool   `json:"fixed_key"`
 				Paused   bool   `json:"paused"`
+
+				KeepN int
 			} `json:"job"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
+		sched, err := timespec.Parse(in.Job.Schedule)
+		if err != nil {
+			r.Fail(route.Oops(err, "Invalid or malformed SHIELD Job Schedule '%s'", in.Job.Schedule))
+			return
+		}
+
+		if in.Job.KeepDays < 0 {
+			r.Fail(route.Oops(nil, "Invalid or malformed SHIELD Job Archive Retention Period '%dd'", in.Job.KeepDays))
+			return
+		}
+		if in.Job.KeepDays < c.Config.Limit.Retention.Min {
+			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%dd' is too short, archives must be kept for a minimum of %d days", in.Job.KeepDays, c.Config.Limit.Retention.Min))
+			return
+		}
+		if in.Job.KeepDays > c.Config.Limit.Retention.Max {
+			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%dd' is too long, archives may be kept for a maximum of %d days", in.Job.KeepDays, c.Config.Limit.Retention.Max))
+			return
+		}
+		in.Job.KeepN = sched.KeepN(in.Job.KeepDays)
+
 		if in.Target.Compression == "" {
 			in.Target.Compression = DefaultCompressionType
 		}
 
 		var (
-			err    error
 			target *db.Target
 			store  *db.Store
 		)
@@ -1489,6 +1510,7 @@ func (c *Core) v2API() *route.Router {
 			TenantUUID: r.Args[1],
 			Name:       in.Job.Name,
 			Schedule:   in.Job.Schedule,
+			KeepN:      in.Job.KeepN,
 			KeepDays:   in.Job.KeepDays,
 			Paused:     in.Job.Paused,
 			StoreUUID:  store.UUID,

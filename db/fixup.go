@@ -3,6 +3,8 @@ package db
 import (
 	"fmt"
 	"time"
+
+	"github.com/starkandwayne/shield/timespec"
 )
 
 type fixup struct {
@@ -49,7 +51,6 @@ See [issue #516](https://github.com/starkandwayne/shield/issues/516) in GitHub f
 				                     WHERE op     = 'purge'
 				                       AND status = 'done')`)
 		},
-
 	}, fixup{
 		id:      "agent-status-task-tenant-uuid-522",
 		name:    "Associate Orphaned agent-status Tasks with Global Tenant",
@@ -73,6 +74,58 @@ See [issue #522](https://github.com/starkandwayne/shield/issues/522) in GitHub f
 				   SET tenant_uuid = ?
 				 WHERE tenant_uuid = ''
 				   AND op          = 'agent-status'`, GlobalTenantUUID)
+		},
+	}, fixup{
+		id:      "",
+		name:    "",
+		created: time.Date(2019, 05, 15, 15, 43, 00, 0, time.UTC),
+		summary: `
+The holistic <code>/v2/tenants/systems/...</code> API
+handlers were incorrectly skipping the calculation and
+population of the number of kept backups, leading to
+front-end display of jobs created via the Web UI (only)
+that claim to be keeping "0 backups / X days".
+
+This has been fixed as of 8.2.0, and this data fixup
+re-calculates the "keep-n" attribute of all jobs that
+were affected.
+
+See [issue #460](https://github.com/starkandwayne/shield/issues/460) in GitHub for details.`,
+		fn: func(db *DB) error {
+			r, err := db.Query(`
+				SELECT uuid
+				  FROM jobs
+				 WHERE keep_n = 0`)
+			if err != nil {
+				return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
+			}
+			defer r.Close()
+
+			for r.Next() {
+				var uuid string
+				if err = r.Scan(&uuid); err != nil {
+					return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
+				}
+
+				job, err := db.GetJob(uuid)
+				if err != nil {
+					return fmt.Errorf("unable to retrieve job '%s': %s", uuid, err)
+				}
+
+				sched, err := timespec.Parse(job.Schedule)
+				if err != nil {
+					/* FIXME log stuff! */
+					continue
+				}
+				job.KeepN = sched.KeepN(job.KeepDays)
+				err = db.UpdateJob(job)
+				if err != nil {
+					/* FIXME log stuff! */
+					continue
+				}
+			}
+
+			return nil
 		},
 	})
 }
