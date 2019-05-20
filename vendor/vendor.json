@@ -26,6 +26,12 @@
 			"revisionTime": "2018-07-11T09:15:04Z"
 		},
 		{
+			"checksumSHA1": "DH4jGpdC9u1a5FHhVri+LnEJztQ=",
+			"path": "github.com/cloudfoundry-community/vaultkv",
+			"revision": "0ed39daafa01eaa5f526c6bc2581e80896e9674f",
+			"revisionTime": "2019-04-18T21:12:05Z"
+		},
+		{
 			"checksumSHA1": "DGMu2GgXR+RjkEcsJRxQaFQH0VE=",
 			"path": "github.com/dsnet/compress",
 			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
