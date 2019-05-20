@@ -12,7 +12,6 @@ set -eu
 # ---------------------
 #
 #   SHIELD_DATA_DIR     Path to the SHIELD Core data directory.
-#   SHIELD_PLUGIN_PATH  Path to plugin dir for use of the fs plugin
 #   SHIELD_RESTARTER    Path to the script to exec to restart.  Should be provided
 #                       by the distribution / packaging method (BOSH, k8s, etc.)
 #
@@ -34,8 +33,6 @@ set -eu
 # This script exists because it's far easier to write the instrumentation
 # and environmental munging work in Bash, than it is in Go itself.
 #
-
-export PATH=$SHIELD_PLUGIN_PATH:$PATH
 
 if [[ -n ${SHIELD_DATA_DIR:-} ]]; then
   mkdir -p $SHIELD_DATA_DIR
