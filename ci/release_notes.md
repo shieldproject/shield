@@ -41,6 +41,10 @@
   password was given or no password at all. This is now working.
   See #524.
 
+- Previously we had issues doing a fs backup and restore of SHIELD
+  itself. Improvments to the fs plugin, and fixing permissions issues
+  within core now allow SHIELD to properly backup and restore itself.
+
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'

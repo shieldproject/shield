@@ -76,6 +76,8 @@ spin_shieldd() {
 debug:    true
 data-dir: ${DATA_DIRECTORY}
 web-root: ./web/htdocs
+plugin_paths:
+  - $(pwd)
 
 vault:
   address: http://127.0.0.1:8219
