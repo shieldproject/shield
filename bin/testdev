@@ -249,6 +249,8 @@ EOF
 debug:    true
 data-dir: ${workdir}/var/
 web-root: ./web/htdocs
+plugin_paths:
+  - ${workdir}/bin
 
 scheduler:
   fast-loop: 5
