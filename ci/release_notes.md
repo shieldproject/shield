@@ -45,10 +45,6 @@
   itself. Improvments to the fs plugin, and fixing permissions issues
   within core now allow SHIELD to properly backup and restore itself.
 
-- Previously we were having issues with a fs backup and restore of
-  SHIELD itself. Added a plugin_paths to SHIELD core to allow
-  shield-recover to use the fs plugin. 
-
 # Improvements
 
 - All `-v` handlers in CLI utilities now properly handle the 'dev'
