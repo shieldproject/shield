@@ -39,9 +39,9 @@ type Core struct {
 }
 
 type Config struct {
-	Debug      bool     `yaml:"debug"`
-	DataDir    string   `yaml:"data-dir"`
-	WebRoot    string   `yaml:"web-root"`
+	Debug       bool     `yaml:"debug"`
+	DataDir     string   `yaml:"data-dir"`
+	WebRoot     string   `yaml:"web-root"`
 	PluginPaths []string `yaml:"plugin_paths"`
 
 	Scheduler struct {
