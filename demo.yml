@@ -1,0 +1,44 @@
+---
+global:
+  storage:
+    - name: WebDAV
+      summary: |
+        Dockerized (demo) WebDAV storage solution.
+      agent:  agent:5444
+      plugin: webdav
+      config:
+        url:      http://webdav
+        username: webdav
+        password: password
+
+users:
+  - name:     Esther Byrd
+    username: ebyrd
+    password: password
+    sysrole:  engineer
+
+  - name:     Priscilla Bell
+    username: pbell
+    password: password
+
+tenants:
+  - name: Demo Enterprises
+    members:
+      - user: ebyrd@local
+        role: admin
+      - user: pbell@local
+        role: engineer
+
+    systems:
+      - name:   Demo Web Root
+        agent:  agent:5444
+        plugin: fs
+        config:
+          base_dir: /www
+
+        jobs:
+          - name:    Hourly
+            when:    hourly at *:15
+            retain:  1d
+            storage: Tier 1 Storage
+            paused:  true
