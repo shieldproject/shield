@@ -3,18 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "git.openstack.org/openstack/golang-client/objectstorage/v1",
-			"revision": "f8471e433432b26dd29aa1c1cd42317a9d79a551"
-		},
-		{
-			"path": "git.openstack.org/openstack/golang-client/openstack",
-			"revision": "f8471e433432b26dd29aa1c1cd42317a9d79a551"
-		},
-		{
-			"path": "git.openstack.org/openstack/golang-client/util",
-			"revision": "f8471e433432b26dd29aa1c1cd42317a9d79a551"
-		},
-		{
 			"comment": "v8.1.1-beta",
 			"path": "github.com/Azure/azure-sdk-for-go/storage",
 			"revision": "4897648e310020dae650a89c31ff633284c13a24"
@@ -24,42 +12,6 @@
 			"path": "github.com/ErikDubbelboer/gspt",
 			"revision": "e39e726e09cc23d1ccf13b36ce10dbdb4a4510e0",
 			"revisionTime": "2018-07-11T09:15:04Z"
-		},
-		{
-			"checksumSHA1": "DGMu2GgXR+RjkEcsJRxQaFQH0VE=",
-			"path": "github.com/dsnet/compress",
-			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
-			"revisionTime": "2017-09-08T23:15:55Z"
-		},
-		{
-			"checksumSHA1": "Q8Y8aBNAuiO4/HVyj9PRyBz50YM=",
-			"path": "github.com/dsnet/compress/bzip2",
-			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
-			"revisionTime": "2017-09-08T23:15:55Z"
-		},
-		{
-			"checksumSHA1": "1VvFp/kLZQMhrm0z5oetYJyo3Gw=",
-			"path": "github.com/dsnet/compress/bzip2/internal/sais",
-			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
-			"revisionTime": "2017-09-08T23:15:55Z"
-		},
-		{
-			"checksumSHA1": "u6VJ7jTVulLgPZaXKWCIHc4hbQs=",
-			"path": "github.com/dsnet/compress/internal",
-			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
-			"revisionTime": "2017-09-08T23:15:55Z"
-		},
-		{
-			"checksumSHA1": "KDfyyvx86cyY/HUA2SSWRWjn7yI=",
-			"path": "github.com/dsnet/compress/internal/errors",
-			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
-			"revisionTime": "2017-09-08T23:15:55Z"
-		},
-		{
-			"checksumSHA1": "Txyi+DYhWRT65KnJokyQWB2xj3A=",
-			"path": "github.com/dsnet/compress/internal/prefix",
-			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
-			"revisionTime": "2017-09-08T23:15:55Z"
 		},
 		{
 			"path": "github.com/fsouza/go-dockerclient",
@@ -144,12 +96,6 @@
 			"revisionTime": "2016-06-02T00:10:21Z"
 		},
 		{
-			"checksumSHA1": "p/8vSviYF91gFflhrt5vkyksroo=",
-			"path": "github.com/golang/snappy",
-			"revision": "553a641470496b2327abcac10b36396bd98e45c9",
-			"revisionTime": "2017-02-15T23:32:05Z"
-		},
-		{
 			"path": "github.com/google/go-github/github",
 			"revision": "af17a5fa8537e159dfa73f1dd1d3f08e34dea200"
 		},
@@ -221,17 +167,6 @@
 			"revision": "caf65aa76491dc533bac68ad3243ce72fa4e0a0a"
 		},
 		{
-			"checksumSHA1": "Ncf0ItwKAuTF5eNkGW+Pk78pwzM=",
-			"path": "github.com/lib/pq",
-			"revision": "b269bd035a727d6c1081f76e7a239a1b00674c40",
-			"revisionTime": "2015-08-05T09:05:26Z"
-		},
-		{
-			"comment": "go1.0-cutoff-59-gb269bd0",
-			"path": "github.com/lib/pq/oid",
-			"revision": "b269bd035a727d6c1081f76e7a239a1b00674c40"
-		},
-		{
 			"comment": "v1.0.0",
 			"path": "github.com/mattn/go-shellwords",
 			"revision": "f4e566c536cf69158e808ec28ef4182a37fdc981"
@@ -247,16 +182,10 @@
 			"revision": "86681de00adef4f8040947b7d35f97000fc5a230"
 		},
 		{
-			"checksumSHA1": "q4+FQZRU9VNpr1dcdn+5MP3Xg4k=",
-			"path": "github.com/mholt/archiver",
-			"revision": "3c2e5cf1f43ddea9711d0f0a3d30d3dfeb27f48b",
-			"revisionTime": "2017-09-22T20:54:32Z"
-		},
-		{
-			"checksumSHA1": "H4cr9VWdZBK2OqHE1bnxMthh4ak=",
-			"path": "github.com/nwaples/rardecode",
-			"revision": "f22b7ef81a0afac9ce1447d37e5ab8e99fbd2f73",
-			"revisionTime": "2017-01-12T11:05:16Z"
+			"checksumSHA1": "JtK6LT/2hT6840BDKs4ovfQhBco=",
+			"path": "github.com/ncw/swift",
+			"revision": "753d2090bb62619675997bd87a8e3af423a00f2d",
+			"revisionTime": "2019-04-10T20:22:54Z"
 		},
 		{
 			"comment": "v1.2.0-87-g00054c0",
@@ -413,18 +342,6 @@
 			"revision": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655"
 		},
 		{
-			"checksumSHA1": "FGg99nQ56Fo3radSCuU1AeEUJug=",
-			"path": "github.com/pierrec/lz4",
-			"revision": "08c27939df1bd95e881e2c2367a749964ad1fceb",
-			"revisionTime": "2017-08-28T19:29:35Z"
-		},
-		{
-			"checksumSHA1": "zPWRjzsPeXCoqmidIcJtHbvrvRs=",
-			"path": "github.com/pierrec/xxHash/xxHash32",
-			"revision": "a0006b13c722f7f12368c00a3d3c2ae8a999a0c6",
-			"revisionTime": "2017-07-14T08:24:55Z"
-		},
-		{
 			"checksumSHA1": "+bqkymIDXrOgmsuUHjWsdpcwn+8=",
 			"path": "github.com/starkandwayne/goutils/ansi",
 			"revision": "d28cacc19462737f05e67bfee385190ffa593d65",
@@ -477,30 +394,6 @@
 			"path": "github.com/tredoe/osutil/user/crypt/sha512_crypt",
 			"revision": "7d3ee1afa71c90fd1514c8f557ae6c5f414208eb",
 			"revisionTime": "2016-11-30T13:35:08Z"
-		},
-		{
-			"checksumSHA1": "z2kAtVle4NFV2OExI85fZoTcsI4=",
-			"path": "github.com/ulikunitz/xz",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
-		},
-		{
-			"checksumSHA1": "vjnTkzNrMs5Xj6so/fq0mQ6dT1c=",
-			"path": "github.com/ulikunitz/xz/internal/hash",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
-		},
-		{
-			"checksumSHA1": "m0pm57ASBK/CTdmC0ppRHO17mBs=",
-			"path": "github.com/ulikunitz/xz/internal/xlog",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
-		},
-		{
-			"checksumSHA1": "2vZw6zc8xuNlyVz2QKvdlNSZQ1U=",
-			"path": "github.com/ulikunitz/xz/lzma",
-			"revision": "0c6b41e72360850ca4f98dc341fd999726ea007f",
-			"revisionTime": "2017-06-05T21:53:11Z"
 		},
 		{
 			"path": "golang.org/x/crypto/bcrypt",

@@ -773,10 +773,16 @@ at:
 #### Configuration Options
 
 - `auth_url` **(required)** - The URL of the OpenStack authentication API.
-  For example: `https://identity.api.rackspacecloud.com/v2.0`.
 
-- `project_name` **(required)** - The name of the OpenStack project that
-  will own the blobstore data.
+  V2 example: `https://identity.api.rackspacecloud.com/v2.0`.
+
+  V3 example: `https://identity.api.rackspacecloud.com/v3.0`.
+
+- `project_name` **(required for v2 auth only)** - The name of the OpenStack
+  project/tenant that will own the blobstore data.
+
+- `domain` **(required for v3 auth only)** - The name of the OpenStack domain
+  that will own the blobstore data.
 
 - `username` **(required)** - The username to authenticate to OpenStack.
 
@@ -791,9 +797,6 @@ at:
   separate for out-of-band retrieval.
 
   By default, no prefix will be used.
-
-- `debug` - (boolean) Whether or not to enable debugging output.
-  By default, debug messages are not printed.
 
 
 ### WebDAV Filesystem
