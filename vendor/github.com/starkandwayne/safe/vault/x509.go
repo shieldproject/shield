@@ -16,30 +16,28 @@ import (
 )
 
 type X509 struct {
-	Certificate *x509.Certificate
-	PrivateKey  *rsa.PrivateKey
-	Serial      *big.Int
-	CRL         *pkix.CertificateList
+	Intermediaries []*x509.Certificate
+	Certificate    *x509.Certificate
+	PrivateKey     *rsa.PrivateKey
+	Serial         *big.Int
+	CRL            *pkix.CertificateList
 
 	KeyUsage    x509.KeyUsage
 	ExtKeyUsage []x509.ExtKeyUsage
 }
 
-func (s Secret) X509() (*X509, error) {
+func (s Secret) X509(requireKey bool) (*X509, error) {
 	if !s.Has("certificate") {
 		return nil, fmt.Errorf("not a valid certificate (missing the `certificate` attribute)")
 	}
-	if !s.Has("key") {
+	if !s.Has("key") && requireKey {
 		return nil, fmt.Errorf("not a valid certificate (missing the `key` attribute)")
 	}
 
-	v := s.Get("certificate")
-	block, rest := pem.Decode([]byte(v))
+	b := []byte(s.Get("certificate"))
+	block, rest := pem.Decode(b)
 	if block == nil {
 		return nil, fmt.Errorf("not a valid certificate (failed to decode certificate PEM block)")
-	}
-	if len(rest) > 0 {
-		return nil, fmt.Errorf("contains multiple certificates (is this a bundle?)")
 	}
 	if block.Type != "CERTIFICATE" {
 		return nil, fmt.Errorf("not a valid certificate (type '%s' != 'CERTIFICATE')", block.Type)
@@ -50,32 +48,69 @@ func (s Secret) X509() (*X509, error) {
 		return nil, fmt.Errorf("not a valid certificate (%s)", err)
 	}
 
-	v = s.Get("key")
-	block, rest = pem.Decode([]byte(v))
-	if block == nil {
-		return nil, fmt.Errorf("not a valid certificate (failed to decode key PEM block)")
-	}
-	if len(rest) > 0 {
-		return nil, fmt.Errorf("contains multiple keys (what?)")
-	}
-	if block.Type != "RSA PRIVATE KEY" {
-		return nil, fmt.Errorf("not a valid certificate (type '%s' != 'RSA PRIVATE KEY')", block.Type)
+	var (
+		n              int
+		intermediaries []*x509.Certificate
+	)
+
+	for len(rest) > 0 {
+		n++
+		b = rest
+		block, rest = pem.Decode(b)
+		if block == nil {
+			return nil, fmt.Errorf("intermediary #%d: not a valid certificate (failed to decode certificate PEM block)", n)
+		}
+
+		if block.Type != "CERTIFICATE" {
+			return nil, fmt.Errorf("intermediary #%d: not a valid certificate (type '%s' != 'CERTIFICATE')", n, block.Type)
+		}
+
+		c, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("intermediary #%d: not a valid certificate (%s)", n, err)
+		}
+
+		intermediaries = append(intermediaries, c)
 	}
 
-	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("not a valid private key (%s)", err)
+	var key *rsa.PrivateKey
+	if requireKey {
+		v := s.Get("key")
+		block, rest = pem.Decode([]byte(v))
+		if block == nil {
+			return nil, fmt.Errorf("not a valid certificate (failed to decode key PEM block)")
+		}
+		if len(rest) > 0 {
+			return nil, fmt.Errorf("contains multiple keys (what?)")
+		}
+		if block.Type != "RSA PRIVATE KEY" && block.Type != "PRIVATE KEY" {
+			return nil, fmt.Errorf("not a valid certificate (type '%s' != 'RSA PRIVATE KEY' or 'PRIVATE KEY')", block.Type)
+		}
+
+		key, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			pkcs8TmpKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+			if err != nil {
+				return nil, fmt.Errorf("not a valid private key (%s)", err)
+			}
+			var isRSAEncoded bool
+			key, isRSAEncoded = pkcs8TmpKey.(*rsa.PrivateKey)
+			if !isRSAEncoded {
+				return nil, fmt.Errorf("private key not RSA encoded")
+			}
+		}
 	}
 
 	o := &X509{
-		Certificate: cert,
-		PrivateKey:  key,
-		KeyUsage:    cert.KeyUsage,
-		ExtKeyUsage: cert.ExtKeyUsage,
+		Intermediaries: intermediaries,
+		Certificate:    cert,
+		PrivateKey:     key,
+		KeyUsage:       cert.KeyUsage,
+		ExtKeyUsage:    cert.ExtKeyUsage,
 	}
 
 	if s.Has("serial") {
-		v = s.Get("serial")
+		v := s.Get("serial")
 		i, err := strconv.ParseInt(v, 16, 64)
 		if err != nil {
 			return nil, fmt.Errorf("not a valid CA certificate (serial '%s' is malformed)", v)
@@ -84,7 +119,7 @@ func (s Secret) X509() (*X509, error) {
 	}
 
 	if s.Has("crl") {
-		v = s.Get("crl")
+		v := s.Get("crl")
 		crl, err := x509.ParseCRL([]byte(v))
 		if err != nil {
 			return nil, fmt.Errorf("not a valid CA certificate (CRL parsing failed: %s)", err)
@@ -125,6 +160,10 @@ func (x *X509) Subject() string {
 
 func (x *X509) Issuer() string {
 	return formatSubject(x.Certificate.Issuer)
+}
+
+func (x *X509) IntermediarySubject(n int) string {
+	return formatSubject(x.Intermediaries[n].Subject)
 }
 
 func parseSubject(subj string) (pkix.Name, error) {
@@ -217,6 +256,28 @@ var extendedKeyUsageLookup = map[string]x509.ExtKeyUsage{
 	"timestamping":     x509.ExtKeyUsageTimeStamping,
 }
 
+var signatureAlgorithmLookup = map[string]x509.SignatureAlgorithm{
+	"md5":           x509.MD5WithRSA,
+	"md5-rsa":       x509.MD5WithRSA,
+	"sha1":          x509.SHA1WithRSA,
+	"sha1-rsa":      x509.SHA1WithRSA,
+	"sha256":        x509.SHA256WithRSA,
+	"sha256-rsa":    x509.SHA256WithRSA,
+	"sha384":        x509.SHA384WithRSA,
+	"sha384-rsa":    x509.SHA384WithRSA,
+	"sha512":        x509.SHA512WithRSA,
+	"sha512-rsa":    x509.SHA512WithRSA,
+	"sha256-rsapss": x509.SHA256WithRSAPSS,
+	"sha384-rsapss": x509.SHA384WithRSAPSS,
+	"sha512-rsapss": x509.SHA512WithRSAPSS,
+	"dsa-sha1":      x509.DSAWithSHA1,
+	"dsa-sha256":    x509.DSAWithSHA256,
+	"ecdsa-sha1":    x509.ECDSAWithSHA1,
+	"ecdsa-sha256":  x509.ECDSAWithSHA256,
+	"ecdsa-sha384":  x509.ECDSAWithSHA384,
+	"ecdsa-sha512":  x509.ECDSAWithSHA512,
+}
+
 func translateKeyUsage(input []string) (keyUsage x509.KeyUsage, err error) {
 	var found bool
 
@@ -252,7 +313,17 @@ func translateExtendedKeyUsage(input []string) (extendedKeyUsage []x509.ExtKeyUs
 	return
 }
 
-func NewCertificate(subj string, names, keyUsage []string, bits int) (*X509, error) {
+func TranslateSignatureAlgorithm(signatureAlgorithm string) (sigAlgo x509.SignatureAlgorithm, err error) {
+	var found bool
+	sigAlgo, found = signatureAlgorithmLookup[signatureAlgorithm]
+	if !found {
+		err = fmt.Errorf("%s is not a supported signature algorithm", signatureAlgorithm)
+	}
+
+	return
+}
+
+func NewCertificate(subj string, names, keyUsage []string, signatureAlgorithm string, bits int) (*X509, error) {
 	if bits != 1024 && bits != 2048 && bits != 4096 {
 		return nil, fmt.Errorf("invalid RSA key strength '%d', must be one of: 1024, 2048, 4096", bits)
 	}
@@ -285,10 +356,18 @@ func NewCertificate(subj string, names, keyUsage []string, bits int) (*X509, err
 		return nil, err
 	}
 
+	translatedSigAlgo := x509.SHA512WithRSA
+	if signatureAlgorithm != "" {
+		translatedSigAlgo, err = TranslateSignatureAlgorithm(signatureAlgorithm)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &X509{
 		PrivateKey: key,
 		Certificate: &x509.Certificate{
-			SignatureAlgorithm: x509.SHA512WithRSA, /* FIXME: hard-coded */
+			SignatureAlgorithm: translatedSigAlgo,
 			PublicKeyAlgorithm: x509.RSA,
 			Subject:            name,
 			DNSNames:           domains,
@@ -437,11 +516,21 @@ func (x X509) Secret(skipIfExists bool) (*Secret, error) {
 	}
 
 	if x.IsCA() {
+		if x.Serial == nil {
+			x.Serial = big.NewInt(1)
+		}
+
 		err = s.Set("serial", x.Serial.Text(16), skipIfExists)
 		if err != nil {
 			return s, err
 		}
 
+		if x.CRL == nil {
+			x.CRL = &pkix.CertificateList{}
+		}
+		if x.CRL.TBSCertList.RevokedCertificates == nil {
+			x.CRL.TBSCertList.RevokedCertificates = make([]pkix.RevokedCertificate, 0)
+		}
 		b, err := x.Certificate.CreateCRL(rand.Reader, x.PrivateKey, x.CRL.TBSCertList.RevokedCertificates, time.Now(), time.Now().Add(10*365*24*time.Hour))
 		if err != nil {
 			return s, err

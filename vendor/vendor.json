@@ -14,6 +14,48 @@
 			"revisionTime": "2018-07-11T09:15:04Z"
 		},
 		{
+			"checksumSHA1": "DH4jGpdC9u1a5FHhVri+LnEJztQ=",
+			"path": "github.com/cloudfoundry-community/vaultkv",
+			"revision": "0ed39daafa01eaa5f526c6bc2581e80896e9674f",
+			"revisionTime": "2019-04-18T21:12:05Z"
+		},
+		{
+			"checksumSHA1": "DGMu2GgXR+RjkEcsJRxQaFQH0VE=",
+			"path": "github.com/dsnet/compress",
+			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
+			"revisionTime": "2017-09-08T23:15:55Z"
+		},
+		{
+			"checksumSHA1": "Q8Y8aBNAuiO4/HVyj9PRyBz50YM=",
+			"path": "github.com/dsnet/compress/bzip2",
+			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
+			"revisionTime": "2017-09-08T23:15:55Z"
+		},
+		{
+			"checksumSHA1": "1VvFp/kLZQMhrm0z5oetYJyo3Gw=",
+			"path": "github.com/dsnet/compress/bzip2/internal/sais",
+			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
+			"revisionTime": "2017-09-08T23:15:55Z"
+		},
+		{
+			"checksumSHA1": "u6VJ7jTVulLgPZaXKWCIHc4hbQs=",
+			"path": "github.com/dsnet/compress/internal",
+			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
+			"revisionTime": "2017-09-08T23:15:55Z"
+		},
+		{
+			"checksumSHA1": "KDfyyvx86cyY/HUA2SSWRWjn7yI=",
+			"path": "github.com/dsnet/compress/internal/errors",
+			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
+			"revisionTime": "2017-09-08T23:15:55Z"
+		},
+		{
+			"checksumSHA1": "Txyi+DYhWRT65KnJokyQWB2xj3A=",
+			"path": "github.com/dsnet/compress/internal/prefix",
+			"revision": "c4dbed65594871659ea7347a85e1b8dcd97b9990",
+			"revisionTime": "2017-09-08T23:15:55Z"
+		},
+		{
 			"path": "github.com/fsouza/go-dockerclient",
 			"revision": "d750ee8aff39bca4ccf0b362db4f04510145d678"
 		},
@@ -360,10 +402,10 @@
 			"revisionTime": "2018-06-09T13:39:22Z"
 		},
 		{
-			"checksumSHA1": "bhzxyrmHJFo+e3pe6H2B9WCwGsU=",
+			"checksumSHA1": "82vQMy4d99r6hYYsIhRtaqX+lbU=",
 			"path": "github.com/starkandwayne/safe/vault",
-			"revision": "3cf6c887f8adf4230e6069f4ea4266d05917ea8a",
-			"revisionTime": "2018-06-09T13:39:22Z"
+			"revision": "923d720c7365d3a98be350792a1d264cacd9e0a5",
+			"revisionTime": "2019-04-30T13:51:04Z"
 		},
 		{
 			"checksumSHA1": "MFwXW+d+HJR+bLmIjhSV6XnDs9A=",
