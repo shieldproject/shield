@@ -188,6 +188,16 @@ The Document Landscape
   This is (more or less) the same document as _Getting Started_,
   in fewer words.
 
+- **SHIELD Architecture**
+
+  Audience: operators evaluating SHIELD to determine if it is a
+  good fit for their use-case, from the architectural "pieces and
+  parts" standpoint.
+
+  Required reading for all developers wishing to get involved in
+  contributing to SHIELD, and for all operators who want to truly
+  understand the guts of SHIELD.
+
 - **Operations Manual**
 
   Audience: operators who want to learn how to use SHIELD, in full
