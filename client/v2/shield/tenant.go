@@ -23,6 +23,7 @@ type Tenant struct {
 }
 
 type TenantFilter struct {
+	UUID  string `qs:"uuid"`
 	Fuzzy bool   `qs:"exact:f:t"`
 	Name  string `qs:"name"`
 }
@@ -95,6 +96,7 @@ func (c *Client) FindTenant(q string, fuzzy bool) (*Tenant, error) {
 	}
 
 	l, err := c.ListTenants(&TenantFilter{
+		UUID:  q,
 		Name:  q,
 		Fuzzy: fuzzy,
 	})

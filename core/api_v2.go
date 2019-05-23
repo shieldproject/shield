@@ -694,19 +694,19 @@ func (c *Core) v2API() *route.Router {
 
 		status, err := c.vault.Status()
 		if err != nil {
-			r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core"))
+			r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
 			return
 		}
 		if status == "uninitialized" {
-			r.Fail(route.Bad(nil, "this SHIELD Core has not yet been initialized"))
+			r.Fail(route.Bad(nil, "Unable to unlock the SHIELD Core: this SHIELD Core has not yet been initialized"))
 			return
 		}
 		if err := c.vault.Unseal(c.CryptFile(), in.Master); err != nil {
-			if strings.Contains(err.Error(), "Incorrect Password") {
-				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core"))
+			if strings.Contains(err.Error(), "incorrect master password") {
+				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: incorrect password"))
 				return
 			}
-			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core"))
+			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
 			return
 		}
 
@@ -1204,7 +1204,10 @@ func (c *Core) v2API() *route.Router {
 			&db.TargetFilter{
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  r.Args[1],
@@ -1406,18 +1409,39 @@ func (c *Core) v2API() *route.Router {
 				KeepDays int    `json:"keep_days"`
 				FixedKey bool   `json:"fixed_key"`
 				Paused   bool   `json:"paused"`
+
+				KeepN int
 			} `json:"job"`
 		}
 		if !r.Payload(&in) {
 			return
 		}
 
+		sched, err := timespec.Parse(in.Job.Schedule)
+		if err != nil {
+			r.Fail(route.Oops(err, "Invalid or malformed SHIELD Job Schedule '%s'", in.Job.Schedule))
+			return
+		}
+
+		if in.Job.KeepDays < 0 {
+			r.Fail(route.Oops(nil, "Invalid or malformed SHIELD Job Archive Retention Period '%dd'", in.Job.KeepDays))
+			return
+		}
+		if in.Job.KeepDays < c.Config.Limit.Retention.Min {
+			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%dd' is too short, archives must be kept for a minimum of %d days", in.Job.KeepDays, c.Config.Limit.Retention.Min))
+			return
+		}
+		if in.Job.KeepDays > c.Config.Limit.Retention.Max {
+			r.Fail(route.Oops(nil, "SHIELD Job Archive Retention Period '%dd' is too long, archives may be kept for a maximum of %d days", in.Job.KeepDays, c.Config.Limit.Retention.Max))
+			return
+		}
+		in.Job.KeepN = sched.KeepN(in.Job.KeepDays)
+
 		if in.Target.Compression == "" {
 			in.Target.Compression = DefaultCompressionType
 		}
 
 		var (
-			err    error
 			target *db.Target
 			store  *db.Store
 		)
@@ -1486,6 +1510,7 @@ func (c *Core) v2API() *route.Router {
 			TenantUUID: r.Args[1],
 			Name:       in.Job.Name,
 			Schedule:   in.Job.Schedule,
+			KeepN:      in.Job.KeepN,
 			KeepDays:   in.Job.KeepDays,
 			Paused:     in.Job.Paused,
 			StoreUUID:  store.UUID,
@@ -2100,11 +2125,13 @@ func (c *Core) v2API() *route.Router {
 
 		targets, err := c.db.GetAllTargets(
 			&db.TargetFilter{
-				UUID:       r.Param("uuid", ""),
 				ForTenant:  r.Args[1],
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 			},
@@ -2322,7 +2349,10 @@ func (c *Core) v2API() *route.Router {
 			&db.StoreFilter{
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  r.Args[1],
@@ -2545,6 +2575,7 @@ func (c *Core) v2API() *route.Router {
 				SkipPaused:   r.ParamIs("paused", "f"),
 				SkipUnpaused: r.ParamIs("paused", "t"),
 
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
 
 				ForTarget:  r.Param("target", ""),
@@ -3046,7 +3077,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Bad(err, "The backup archive could not be deleted at this time. Archive is already %s", archive.Status))
 		}
 
-		err = c.db.ExpireArchive(archive.UUID)
+		err = c.db.ManuallyPurgeArchive(archive.UUID)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to delete backup archive"))
 			return
@@ -3241,10 +3272,12 @@ func (c *Core) v2API() *route.Router {
 
 		stores, err := c.db.GetAllStores(
 			&db.StoreFilter{
-				UUID:       r.Param("uuid", ""),
 				SkipUsed:   r.ParamIs("unused", "t"),
 				SkipUnused: r.ParamIs("unused", "f"),
+
+				UUID:       r.Param("uuid", ""),
 				SearchName: r.Param("name", ""),
+
 				ForPlugin:  r.Param("plugin", ""),
 				ExactMatch: r.ParamIs("exact", "t"),
 				ForTenant:  db.GlobalTenantUUID,
@@ -3462,7 +3495,7 @@ func (c *Core) v2API() *route.Router {
 		log.Infof("BOOTSTRAP: executing shield-recover process...")
 		cmd := exec.Command("shield-recover")
 		cmd.Stdin = in
-		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", os.Getenv("PATH")))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s:%s", strings.Join(c.Config.PluginPaths, ":"), os.Getenv("PATH")))
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_DATA_DIR=%s", c.Config.DataDir))
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_RESTARTER=%s", c.Config.Bootstrapper))
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_ENCRYPT_TYPE=%s", enc.Type))

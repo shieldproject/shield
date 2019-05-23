@@ -250,6 +250,37 @@
       }) /* }}} */
       /* }}} */
 
+       /* "Delete user" links (href="delete-user:...") */
+       .on('click', 'a[href^="delete-user:"], button[rel^="delete-user:"]', function (event) { /* {{{ */
+        event.preventDefault();
+        var uuid;
+        if ($(event.target).is('button')) {
+          uuid = $(event.target).attr('rel');
+        } else {
+          uuid  = $(event.target).closest('a[href^="delete-user:"]').attr('href');
+        }
+        uuid = uuid.replace(/^delete-user:/, '');
+        name = $(event.target).extract('user-name');
+
+        modal($.template('admin-users-delete', {
+            uuid: uuid,
+            name: name,
+          })).on('click', '[rel=yes]', function(event) {
+            api({
+              type: 'DELETE',
+              url:  '/v2/auth/local/users/'+uuid,
+              success: function () {
+                banner('Deleted User "'+name+'" ');
+                goto('#!/admin/users');
+              },
+              error: function () {
+                banner('unable to delete', 'error');
+              }
+            });
+          });
+      }) /* }}} */
+      /* }}} */
+
       /* Task Pagination */
         .on('click', '.paginate .load-more.tasks', function (event) { /* {{{ */
           console.log('loading more tasks...');
@@ -409,7 +440,7 @@
         var data = $form.serializeObject();
         $form.find('[name=master]').val('');
         if (data.master == "") {
-          $form.error('unlock-master', 'missing');
+          $form.error('master', 'missing');
           return;
         }
 
@@ -421,15 +452,9 @@
             $('#lock-state .locked').fadeOut();
             goto(AEGIS.is('engineer') ? '#!/admin' : '#!/systems');
           },
-          statusCode: {
-            403: function () {
-              $form.error('unlock-master', 'incorrect')
-            },
-            500: function (xhr) {
-              $form.error(xhr.responseJSON);
-            }
-          },
-          error: {}
+          error: function (xhr) {
+            $form.error(xhr.responseJSON);
+          }
         });
       }) /* }}} */
 

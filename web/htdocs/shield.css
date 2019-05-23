@@ -1251,6 +1251,7 @@ form .ctl span.errors {
   text-align: right;
 }
 form .error,
+form .errors span[data-error],
 form .ctl span[data-error] {
   display: none;
 }
@@ -2151,13 +2152,14 @@ pre.task-failed.override   code { background-color: #333; }
 }
 
 .unlock-shield input {
-  display: inline-block;
+  font-size: 18px;
+  margin-bottom: 4px;
 }
 
-.unlock-shield .errors {
-  color: crimson;
-  font-size: 13px;
-  position: fixed;
+#unlock-shield .error,
+#unlock-shield .errors {
+  color: yellow;
+  padding-bottom: .25em;
 }
 
 .unlock-shield button {

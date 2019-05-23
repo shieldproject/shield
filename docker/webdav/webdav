@@ -1,0 +1,5 @@
+#!/bin/bash
+
+mkdir -p /var/webdav
+chown -R nginx /var/webdav
+exec nginx "$@"

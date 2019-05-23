@@ -19,6 +19,7 @@ import (
 func (c Core) Main() {
 	/* we need a usable database first */
 	c.ConnectToDatabase()
+	c.ApplyFixups()
 	c.ConfigureMessageBus()
 	c.WireUpAuthenticationProviders()
 
@@ -87,6 +88,11 @@ func (c *Core) ConnectToDatabase() {
 	c.MaybeTerminate(c.db.CheckCurrentSchema())
 
 	log.Debugf("connected successfully to database!")
+}
+
+func (c *Core) ApplyFixups() {
+	err := c.db.ApplyFixups()
+	c.MaybeTerminate(err)
 }
 
 func (c *Core) CreateFailsafeUser() {

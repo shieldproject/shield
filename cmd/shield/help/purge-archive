@@ -14,3 +14,16 @@ USAGE: @G{shield} purge-archive --tenant @Y{TENANT} @Y{UUID}
 
   @R{This is a dangerous operation that cannot be undone.}
 
+@B{Options:}
+
+  --reason        Set a (human-readable) reason for purging this archive.
+                  This text will be set in the "notes" field for the
+                  archive, replacing whatever was there before.
+
+@B{Examples:}
+
+  # This archive is known to have bad data...
+  @W{shield purge-archive} \
+    @Y{d5a80d64-72bd-423a-8411-61b65dbb4188} \
+    @Y{--reason} "Before data reconcile; bad data."
+

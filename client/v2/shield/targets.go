@@ -51,6 +51,7 @@ func (c *Client) FindTarget(tenant *Tenant, q string, fuzzy bool) (*Target, erro
 	}
 
 	l, err := c.ListTargets(tenant, &TargetFilter{
+		UUID:  q,
 		Name:  q,
 		Fuzzy: fuzzy,
 	})

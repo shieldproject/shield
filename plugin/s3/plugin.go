@@ -197,6 +197,8 @@ type S3Plugin plugin.PluginInfo
 
 type s3Endpoint struct {
 	Host                string
+	Port                string
+	Protocol            string
 	SkipSSLValidation   bool
 	UseInstanceProfiles bool
 	AccessKey           string
@@ -207,7 +209,6 @@ type s3Endpoint struct {
 	PathPrefix          string
 	SignatureVersion    int
 	SOCKS5Proxy         string
-	Port                string
 	PartSize            int
 }
 
@@ -223,17 +224,39 @@ func (p S3Plugin) Meta() plugin.PluginInfo {
 
 func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
-		s    string
+		s3_host, scheme, host, port string
+
 		err  error
 		fail bool
 	)
 
-	s, err = endpoint.StringValueDefault("s3_host", DefaultS3Host)
+	s, err := endpoint.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
 		fmt.Printf("@R{\u2717 s3_host               %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 s3_host}               @C{%s}\n", s)
+		s3_host = s /* save for s3_port reporting */
+		scheme, host, port = parse(s)
+		if host != s3_host {
+			fmt.Printf("@G{\u2713 s3_host}               @C{%s} via @C{%s} (from @C{%s})\n", host, scheme, s)
+		} else {
+			fmt.Printf("@G{\u2713 s3_host}               @C{%s} via @C{%s}\n", s, scheme)
+		}
+	}
+
+	s, err = endpoint.StringValueDefault("s3_port", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 s3_port               %s}\n", err)
+		fail = true
+	} else {
+		if h, err := endpoint.StringValueDefault("s3_host", ""); s != "" && err == nil && h == "" {
+			fmt.Printf("@R{\u2717 s3_port               %s but s3_host cannot be empty}\n", s)
+			fail = true
+		} else if s == "" {
+			fmt.Printf("@G{\u2713 s3_port}               @C{%s} (from s3_host: @C{%s})\n", port, h)
+		} else {
+			fmt.Printf("@G{\u2713 s3_port}               @C{%s} (manually overridden)\n", s)
+		}
 	}
 
 	useInstanceProfiles, err := endpoint.BooleanValueDefault("use_instance_profile", DefaultUseInstanceProfiles)
@@ -261,21 +284,6 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			fail = true
 		} else {
 			fmt.Printf("@G{\u2713 secret_access_key}     @C{%s}\n", plugin.Redact(s))
-		}
-	}
-
-	s, err = endpoint.StringValueDefault("s3_port", "")
-	if err != nil {
-		fmt.Printf("@R{\u2717 s3_port               %s}\n", err)
-		fail = true
-	} else {
-		if s3Host, err := endpoint.StringValueDefault("s3_host", ""); s != "" && err == nil && s3Host == "" {
-			fmt.Printf("@R{\u2717 s3_port               %s but s3_host cannot be empty}\n", s)
-			fail = true
-		} else if s == "" {
-			fmt.Printf("@G{\u2713 s3_port}               (autodetect)\n")
-		} else {
-			fmt.Printf("@G{\u2713 s3_port}               @C{%s}\n", s)
 		}
 	}
 
@@ -458,10 +466,11 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		secret string
 		token  string
 	)
-	host, err := e.StringValueDefault("s3_host", DefaultS3Host)
+	s3_host, err := e.StringValueDefault("s3_host", DefaultS3Host)
 	if err != nil {
 		return s3Endpoint{}, err
 	}
+	scheme, host, port := parse(s3_host)
 
 	insecure_ssl, err := e.BooleanValueDefault("skip_ssl_validation", DefaultSkipSSLValidation)
 	if err != nil {
@@ -535,13 +544,18 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		return s3Endpoint{}, err
 	}
 
-	port, err := e.StringValueDefault("s3_port", "")
+	override, err := e.StringValueDefault("s3_port", "")
 	if err != nil {
 		return s3Endpoint{}, err
+	}
+	if override != "" {
+		port = override
 	}
 
 	return s3Endpoint{
 		Host:                host,
+		Port:                port,
+		Protocol:            scheme,
 		SkipSSLValidation:   insecure_ssl,
 		UseInstanceProfiles: useInstanceProfiles,
 		AccessKey:           key,
@@ -552,7 +566,6 @@ func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
 		PathPrefix:          prefix,
 		SignatureVersion:    sigVer,
 		SOCKS5Proxy:         proxy,
-		Port:                port,
 		PartSize:            partSize,
 	}, nil
 }
@@ -569,30 +582,21 @@ func (e s3Endpoint) genBackupPath() string {
 }
 
 func (e s3Endpoint) Connect() (*s3.Client, error) {
-	var protocol string
-	host := e.Host
-
-	if u, err := url.Parse(host); err == nil {
-		protocol = u.Scheme
-		host = u.Host
-	}
-
-	if e.Port != "" {
-		host = host + ":" + e.Port
-	}
-
 	return s3.NewClient(&s3.Client{
-		SignatureVersion:   e.SignatureVersion,
-		AccessKeyID:        e.AccessKey,
-		SecretAccessKey:    e.SecretKey,
-		Token:              e.Token,
-		Region:             e.Region,
-		Domain:             host,
-		Bucket:             e.Bucket,
+		Protocol: e.Protocol,
+		Domain:   e.Host + ":" + e.Port,
+
+		SignatureVersion: e.SignatureVersion,
+		AccessKeyID:      e.AccessKey,
+		SecretAccessKey:  e.SecretKey,
+		Token:            e.Token,
+
+		Region: e.Region,
+		Bucket: e.Bucket,
+
 		InsecureSkipVerify: e.SkipSSLValidation,
 		SOCKS5Proxy:        e.SOCKS5Proxy,
 		UsePathBuckets:     true,
-		Protocol:           protocol,
 		/* FIXME: CA Certs */
 	})
 }
@@ -632,4 +636,20 @@ func getInstanceProfileCredentials() (instanceProfileCredentials, error) {
 	}
 
 	return creds, nil
+}
+
+func parse(host string) (string, string, string) {
+	if u, err := url.Parse(host); err == nil && u.Host != "" {
+		port := u.Port()
+		if port == "" {
+			if u.Scheme == "https" {
+				port = "443"
+			} else {
+				port = "80"
+			}
+		}
+		return u.Scheme, u.Hostname(), port
+	}
+
+	return "https", host, "443"
 }

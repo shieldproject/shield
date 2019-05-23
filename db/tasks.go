@@ -519,12 +519,12 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 	id := RandomID()
 	err = db.Exec(`
 	   INSERT INTO tasks (uuid, op, status, log, requested_at,
-	                      agent, attempts, owner, tenant_uuid)
+	                      tenant_uuid, agent, attempts, owner, tenant_uuid)
 	
 	              VALUES (?, ?, ?, ?, ?,
-	                      ?, ?, ?, ?)`,
+	                      ?, ?, ?, ?, ?)`,
 		id, AgentStatusOperation, PendingStatus, "", time.Now().Unix(),
-		agent.Address, 0, owner, "",
+		GlobalTenantUUID, agent.Address, 0, owner, "",
 	)
 
 	if err != nil {

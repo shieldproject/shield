@@ -72,7 +72,7 @@ type JobFilter struct {
 }
 
 func (f *JobFilter) Query() (string, []interface{}) {
-	wheres := []string{"1"}
+	wheres := []string{}
 	args := []interface{}{}
 
 	if f.UUID != "" {
@@ -95,6 +95,13 @@ func (f *JobFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, fmt.Sprintf("j.name %s ?", comparator))
 		args = append(args, toAdd)
 	}
+
+	if len(wheres) == 0 {
+		wheres = []string{"1"}
+	} else if len(wheres) > 1 {
+		wheres = []string{strings.Join(wheres, " OR ")}
+	}
+
 	if f.ForTenant != "" {
 		wheres = append(wheres, "j.tenant_uuid = ?")
 		args = append(args, f.ForTenant)

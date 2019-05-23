@@ -90,8 +90,14 @@
 
           [[ if (AEGIS.is('engineer')) { ]]
           <form id="unlock-shield">
-            <input type="password" name="master" placeholder="SHIELD Master Password">[[#
-            ]]<button type="submit">Unlock</button>
+            <div class="error"></div>
+            <div data-field="master">
+              <div class="errors">
+                  <span data-error="missing">Please supply your password.</span>
+              </div>
+              <input type="password" name="master" id="master" placeholder="SHIELD Master Password">[[#
+              ]]<button type="submit">Unlock</button>
+            </div>
           </form>
           [[ } else { ]]
           <p>Please contact your SHIELD administrator(s) and ask them to kindly unlock SHIELD.</p>
@@ -538,6 +544,13 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       jobs:    "ok"
                     };
 
+                    $.each(AEGIS.stores({ global: true }),
+                           function (_, store) {
+                             if (!store.healthy) {
+                               health.storage = "failing";
+                             }
+                           });
+
                     if (AEGIS.current) {
                       $.each(AEGIS.stores({ tenant: AEGIS.current.uuid }),
                              function (_, store) {
@@ -550,13 +563,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                              function (_, job) {
                                if (!job.healthy) {
                                  health.jobs = "failing";
-                               }
-                             });
-                    } else {
-                      $.each(AEGIS.stores({ global: true }),
-                             function (_, store) {
-                               if (!store.healthy) {
-                                 health.storage = "failing";
                                }
                              });
                     }
@@ -1745,7 +1751,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
 
                case "enum": ]]
                [[ value = (field.name in _.config ? _.config[field.name] : null); ]]
-              <select>
+              <select name="[[= _.prefix ]][[= field.name ]]">
                 <option value="">[[ if (field.default) { ]][[= field.default ]][[ } ]]</option>
                 [[ for (var n = 0; n < field.enum.length; n++) { ]]
                 <option value="[[= field.enum[n] ]]"[[ if (value == field.enum[n]) { ]] selected[[ } ]]>[[= h(field.enum[n]) ]]</option>
@@ -1959,7 +1965,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   [[ var store = AEGIS.store(archive.store_uuid); ]]
                   <td>[[= store.name ]] ([[= store.plugin ]])</td>
                   <td>[[= archive.status ]]</td>
-                  <td><a href="restore:[[= archive.uuid ]]">restore</a></td>
+                  <td>[[ if (archive.status == "valid") { ]]<a href="restore:[[= archive.uuid ]]">restore</a>[[ } ]]</td>
                 </tr>
                 [[ }); ]]
               </tbody>
@@ -3085,7 +3091,10 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                   </td>
                   <td>
                     [[ if (AEGIS.is('manager')) { ]]
-                    <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a>
+                    <td>
+                      <a href="#!/admin/users/edit:uuid:[[= user.uuid ]]">edit</a> |
+                      <a data-user-name="[[= user.name]]" href="delete-user:[[= user.uuid ]]">delete</a>
+                    </td>
                     [[ } ]]
                   </td>
                 </tr>
@@ -3209,6 +3218,25 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                       </div>
                     </div>
 
+                    <div class="field" data-field="password">
+                      <div class="x3"><label for="password">New Password</label></div>
+                      <div class="x9">
+                        <input type="password" name="password" id="password">
+                        <span class="errors">
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="field" data-field="confirm">
+                      <div class="x3"><label for="confirm">Confirm</label></div>
+                      <div class="x9">
+                        <input type="password" name="confirm" id="confirm">
+                        <span class="errors">
+                          <span data-error="mismatch">These passwords don't match.</span>
+                        </span>
+                      </div>
+                    </div>
+
                     <div class="x12 buttons">
                       <button class="final">Update</button>
                     </div>
@@ -3217,6 +3245,26 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
               </div>
             </form>
           </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:admin-users-delete"><!-- {{{ -->
+      [[#
+        {admin-users-delete} template
+
+        Confirmation an admin really wants to delete a user.
+      ]]
+        <div class="confirm">
+          <h2>You Are About To Delete A User</h2>
+          
+          <p class="q">Are you sure you want to delete user: <em>[[= _.name ]]</em>?</p>
+
+          <p>As a result this user will no longer be able to log in. Please note any current sessions
+              will continue to exist unless terminated by an admin. This username will still be associated
+              with anything they've done previously in SHIELD.</p>
+          <div class="a">
+            <button class="closes safe" rel="close">No, Cancel This Operation</button>
+            <button class="closes danger" rel="yes">Yes, Delete</button>
+          </div>
+        </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:sessions"><!-- {{{ -->
         [[#

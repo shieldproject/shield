@@ -59,8 +59,9 @@ type StoreFilter struct {
 }
 
 func (f *StoreFilter) Query() (string, []interface{}) {
-	wheres := []string{"s.uuid = s.uuid"}
+	wheres := []string{}
 	args := []interface{}{}
+
 	if f.UUID != "" {
 		if f.ExactMatch {
 			wheres = append(wheres, "s.uuid = ?")
@@ -70,6 +71,7 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 			args = append(args, PatternPrefix(f.UUID))
 		}
 	}
+
 	if f.SearchName != "" {
 		if f.ExactMatch {
 			wheres = append(wheres, "s.name = ?")
@@ -79,6 +81,13 @@ func (f *StoreFilter) Query() (string, []interface{}) {
 			args = append(args, Pattern(f.SearchName))
 		}
 	}
+
+	if len(wheres) == 0 {
+		wheres = []string{"1"}
+	} else if len(wheres) > 1 {
+		wheres = []string{strings.Join(wheres, " OR ")}
+	}
+
 	if f.ForPlugin != "" {
 		wheres = append(wheres, "s.plugin = ?")
 		args = append(args, f.ForPlugin)
