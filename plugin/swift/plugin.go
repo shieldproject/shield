@@ -5,20 +5,18 @@ package main
 import (
 	"bufio"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"git.openstack.org/openstack/golang-client/objectstorage/v1"
-	"git.openstack.org/openstack/golang-client/openstack"
 	fmt "github.com/jhunt/go-ansi"
+
+	"github.com/ncw/swift"
 
 	"github.com/starkandwayne/shield/plugin"
 )
 
 const (
-	defaultDebug  = false
 	defaultPrefix = ""
 )
 
@@ -39,13 +37,11 @@ func main() {
   "password":      "secret-access-key",
   "container":     "bucket-name",
   "prefix":        "/path/inside/bucket/to/place/backup/data",
-  "debug":         false
 }
 `,
 		Defaults: `
 {
   "prefix":        "",
-  "debug":         false
 }
 `,
 
@@ -64,8 +60,16 @@ func main() {
 				Name:     "project_name",
 				Type:     "string",
 				Title:    "Project Name",
-				Help:     "Name of the openstack project",
-				Required: true,
+				Help:     "Name of the openstack project/tenant (v2 auth only)",
+				Required: false,
+			},
+			plugin.Field{
+				Mode:     "store",
+				Name:     "domain",
+				Type:     "string",
+				Title:    "Domain",
+				Help:     "Name of the openstack domain (v3 auth only)",
+				Required: false,
 			},
 			plugin.Field{
 				Mode:     "store",
@@ -108,12 +112,12 @@ type SwiftPlugin plugin.PluginInfo
 
 type SwiftConnectionInfo struct {
 	AuthURL     string
-	ProjectName string
+	ProjectName string // v2 auth only
+	Domain      string // v3 auth only
 	Username    string
 	Password    string
 	Container   string
 	PathPrefix  string
-	Debug       bool
 }
 
 func (p SwiftPlugin) Meta() plugin.PluginInfo {
@@ -157,9 +161,8 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 	if err != nil {
 		return "", 0, err
 	}
-	openstack.Debug = &swift.Debug
 
-	baseURL, session, err := swift.Connect()
+	conn, err := swift.Connect()
 	if err != nil {
 		return "", 0, err
 	}
@@ -173,50 +176,48 @@ func (p SwiftPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error
 		return "", 0, err
 	}
 
-	headers := http.Header{}
-	url := baseURL + "/" + swift.Container + "/" + path
-	err = objectstorage.PutObject(session, &contents, url, headers)
-	if err != nil {
+	if err := conn.ObjectPutBytes(swift.Container, path, contents, ""); err != nil {
 		return "", 0, err
 	}
 
 	return path, int64(len(contents)), nil
 }
 
-func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) (err error) {
+func (p SwiftPlugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
-		return
-	}
-	openstack.Debug = &swift.Debug
-	baseURL, session, err := swift.Connect()
-	if err != nil {
-		return
+		return err
 	}
 
-	url := baseURL + "/" + swift.Container + "/" + file
-	_, contents, err := objectstorage.GetObject(session, url)
+	conn, err := swift.Connect()
 	if err != nil {
-		return
+		return err
 	}
 
-	_, err = os.Stdout.Write(contents)
-	return
+	contents, err := conn.ObjectGetBytes(swift.Container, file)
+	if err != nil {
+		return err
+	}
+
+	if _, err = os.Stdout.Write(contents); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (p SwiftPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) (err error) {
+func (p SwiftPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	swift, err := getConnInfo(endpoint)
 	if err != nil {
-		return
-	}
-	baseURL, session, err := swift.Connect()
-	if err != nil {
-		return
+		return err
 	}
 
-	url := baseURL + "/" + swift.Container + "/" + file
-	err = objectstorage.DeleteObject(session, url)
-	return
+	conn, err := swift.Connect()
+	if err != nil {
+		return err
+	}
+
+	return conn.ObjectDelete(swift.Container, file)
 }
 
 func getConnInfo(e plugin.ShieldEndpoint) (info *SwiftConnectionInfo, err error) {
@@ -226,7 +227,12 @@ func getConnInfo(e plugin.ShieldEndpoint) (info *SwiftConnectionInfo, err error)
 		return
 	}
 
-	info.ProjectName, err = e.StringValue("project_name")
+	info.ProjectName, err = e.StringValueDefault("project_name", "")
+	if err != nil {
+		return
+	}
+
+	info.Domain, err = e.StringValueDefault("domain", "")
 	if err != nil {
 		return
 	}
@@ -252,11 +258,6 @@ func getConnInfo(e plugin.ShieldEndpoint) (info *SwiftConnectionInfo, err error)
 	}
 	info.PathPrefix = strings.TrimLeft(info.PathPrefix, "/")
 
-	info.Debug, err = e.BooleanValueDefault("debug", defaultDebug)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
@@ -271,37 +272,18 @@ func (info SwiftConnectionInfo) genBackupPath() string {
 	return path
 }
 
-func (swift SwiftConnectionInfo) Connect() (baseURL string, session *openstack.Session, err error) {
-	creds := openstack.AuthOpts{
-		AuthUrl:     swift.AuthURL,
-		ProjectName: swift.ProjectName,
-		Username:    swift.Username,
-		Password:    swift.Password,
-	}
-	auth, err := openstack.DoAuthRequest(creds)
-	if err != nil {
-		return
-	}
-	if !auth.GetExpiration().After(time.Now()) {
-		return "", nil, fmt.Errorf("There was an error. The auth token has an invalid expiration.")
+func (info SwiftConnectionInfo) Connect() (*swift.Connection, error) {
+	conn := &swift.Connection{
+		UserName: info.Username,
+		ApiKey:   info.Password,
+		AuthUrl:  info.AuthURL,
+		Domain:   info.Domain,
+		Tenant:   info.ProjectName,
 	}
 
-	// Find the endpoint for object storage.
-	baseURL, err = auth.GetEndpoint("object-store", "")
-	if baseURL == "" || err != nil {
-		return "", nil, fmt.Errorf("object-store url not found during authentication")
+	if err := conn.Authenticate(); err != nil {
+		return nil, err
 	}
 
-	// Make a new client with these creds
-	session, err = openstack.NewSession(nil, auth, nil)
-	if err != nil {
-		return "", nil, fmt.Errorf("Error crating new Session: %v", err)
-	}
-
-	_, err = objectstorage.GetAccountMeta(session, baseURL)
-	if err != nil {
-		return "", nil, fmt.Errorf("There was an error getting account metadata: %v", err)
-	}
-
-	return
+	return conn, nil
 }
