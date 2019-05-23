@@ -156,6 +156,8 @@ docker-release:
 	docker build -t shieldproject/demo:$(VERSION) docker/demo
 	
 	for I in shieldproject/shield shieldproject/webdav shieldproject/demo; do \
+		docker tag $$I:$(VERSION) $$I:latest; \
+		docker push $$I:latest; \
 		for V in $(VERSION) $(shell echo "$(VERSION)" | sed -e 's/\.[^.]*$$//') $(shell echo "$(VERSION)" | sed -e 's/\..*$$//'); do \
 			docker tag $$I:$(VERSION) $$I:$$V; \
 			docker push $$I:$$V; \
