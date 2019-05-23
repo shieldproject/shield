@@ -201,7 +201,36 @@ func configure(endpoint plugin.ShieldEndpoint) (WebDAV, error) {
 		Username:   username,
 		Password:   password,
 		SkipVerify: skip,
-	}, nil
+	}.setup()
+}
+
+func (dav WebDAV) setup() (WebDAV, error) {
+	/* create the prefix, if there is one */
+	u, err := url.Parse(dav.URL)
+	if err != nil {
+		return dav, fmt.Errorf("unable to parse WebDAV URL '%s': %s", dav.URL, err)
+	}
+
+	parts := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
+	for i := 1; i <= len(parts); i++ {
+		dir := strings.Join(parts[:i], "/")
+		plugin.Infof("creating prefix directory '%s'", dir)
+		u.Path = dir + "/"
+		fmt.Fprintf(os.Stderr, "requesting MKCOL %s\n", u)
+		req, err := http.NewRequest("MKCOL", u.String(), nil)
+		if err != nil {
+			return dav, fmt.Errorf("unable to create WebDAV prefix directory %s: %s", dir, err)
+		}
+		res, err := dav.request(req)
+		if err != nil {
+			return dav, fmt.Errorf("unable to create WebDAV prefix directory %s: %s", dir, err)
+		}
+		if res.StatusCode != 201 && res.StatusCode != 405 {
+			return dav, fmt.Errorf("unable to create WebDAV prefix directory %s: got an HTTP %d response from the WebDAV server", dir, res.StatusCode)
+		}
+	}
+
+	return dav, nil
 }
 
 func (dav WebDAV) generate() string {
@@ -211,6 +240,23 @@ func (dav WebDAV) generate() string {
 	path := fmt.Sprintf("%04d/%02d/%02d/%04d-%02d-%02d-%02d%02d%02d-%s",
 		y, m, d, y, m, d, H, M, S, plugin.GenUUID())
 	return strings.Replace(path, "//", "/", -1)
+}
+
+func (dav WebDAV) request(req *http.Request) (*http.Response, error) {
+	if dav.Username != "" {
+		req.SetBasicAuth(dav.Username, dav.Password)
+	}
+
+	if dav.c == nil {
+		dav.c = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: dav.SkipVerify,
+				},
+			},
+		}
+	}
+	return dav.c.Do(req)
 }
 
 func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) {
@@ -226,20 +272,7 @@ func (dav WebDAV) do(method, path string, in io.Reader) (*http.Response, error) 
 		return nil, err
 	}
 
-	if dav.Username != "" {
-		req.SetBasicAuth(dav.Username, dav.Password)
-	}
-
-	if dav.c == nil {
-		dav.c = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: dav.SkipVerify,
-				},
-			},
-		}
-	}
-	return dav.c.Do(req)
+	return dav.request(req)
 }
 
 func (dav WebDAV) Put(path string, in io.Reader) (int64, error) {
