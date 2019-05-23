@@ -66,16 +66,16 @@ with something like [gow](https://github.com/jhunt/gow):
                    --docroot /docs   \
                    --output tmp/docs \
                    --style basic
-    [mkdir]  tmp/docs/docs/ops
-    [render] tmp/docs/docs/ops/architecture.md
-    [render] tmp/docs/docs/ops/getting-started.md
-    [render] tmp/docs/docs/ops/plugins.md
-    [render] tmp/docs/docs/ops/manual.md
-    [mkdir]  tmp/docs/docs/ops/architecture
-    [copy]   tmp/docs/docs/ops/architecture/agent.png
-    [copy]   tmp/docs/docs/ops/architecture/webui.png
-    [copy]   tmp/docs/docs/ops/architecture/database.png
-    [copy]   tmp/docs/docs/ops/architecture/overview.png
+    [mkdir]  tmp/docs/ops
+    [render] tmp/docs/ops/architecture.md
+    [render] tmp/docs/ops/getting-started.md
+    [render] tmp/docs/ops/plugins.md
+    [render] tmp/docs/ops/manual.md
+    [mkdir]  tmp/docs/ops/architecture
+    [copy]   tmp/docs/ops/architecture/agent.png
+    [copy]   tmp/docs/ops/architecture/webui.png
+    [copy]   tmp/docs/ops/architecture/database.png
+    [copy]   tmp/docs/ops/architecture/overview.png
     ... etc ...
 
     $ (cd tmp/doc && gow)
