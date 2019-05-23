@@ -39,7 +39,7 @@ services:
     image: 'shieldproject/shield:8'
     ports: ['9009:80']
     networks: [internal]
-    command: ['/shield/init/core', '--log-level', 'debug']
+    command: ['/shield/init/core']
     environment:
       VAULT_ADDR: http://vault:8200
     volumes:
@@ -63,7 +63,7 @@ services:
     image: 'shieldproject/shield:8'
     ports: [5444]
     networks: [internal]
-    command: ['/shield/init/agent', '--log-level', 'debug']
+    command: ['/shield/init/agent']
     environment:
       SHIELD_API:        'http://core:80'
       SHIELD_AGENT_NAME: 'demo-shield-agent'
