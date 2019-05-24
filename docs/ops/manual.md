@@ -674,11 +674,28 @@ TBD
 Running Backups / Restores
 --------------------------
 
-TBD
+The primary point of running SHIELD is to run regularly-scheduled
+backup jobs, and then (when necessary) restore backups to their
+original data system.
 
 ### Ad hoc vs. Scheduled
 
-TBD
+SHIELD can run backup jobs in one of two ways.
+
+**Ad hoc** backup jobs are executed in one-off scenarios, at the
+direction of a SHIELD operator.
+
+**Scheduled** backup jobs are run at specific, cyclical times.
+Operators can specify that backups should be taken hourly, daily,
+weekly, or monthly.  Inside SHIELD, the _scheduler_ keeps track of
+the next scheduled run of each job, and executes accordingly.
+
+For maximum value, you will probably want to schedule most of your
+backups.  The two modes of operation are not mutually exclusive;
+you can trigger an ad hoc run of a scheduled job.  This comes in
+handy when carrying out maintenance or change operations against a
+system and you want the freshest _pre-change_ backup archives as
+you can get.
 
 ### The Ad hoc backup Wizard
 
