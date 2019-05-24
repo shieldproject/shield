@@ -238,7 +238,7 @@
             <div[[ if (_.providers.length == 0) { ]] class="local-only"[[ } ]]>
               <h1>SHIELD<span style="color: [[= h(_.info.color || 'green') ]]">[[= h(_.info.env) ]]<span></h1>
               <div class="dialog">
-                <div class="motd">[[= md(_.info.motd) ]]</div>
+                [[ if (_.info.motd) { ]]<div class="motd">[[= md(_.info.motd) ]]</div>[[ } ]]
 
                 [[ if (_.providers.length > 0) { ]]
                 <div class="oauth2">
