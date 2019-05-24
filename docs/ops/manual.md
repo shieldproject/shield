@@ -215,7 +215,7 @@ the case, you will need to provide additional command-line options to the
 
 Once BOSH has finished deploying SHIELD, you should be able to access the
 SHIELD management console at [https://$IP](#).  The default login will be
-`admin` (username) and `shield` (password).
+`admin` (username) and `password` (password).
 
 #### Deploying SHIELD Agents
 

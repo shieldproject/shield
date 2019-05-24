@@ -126,7 +126,7 @@ func init() {
 	DefaultConfig.API.Bind = "*:8888"
 	DefaultConfig.API.Session.Timeout = 720 /* hours; 30 days */
 	DefaultConfig.API.Failsafe.Username = "admin"
-	DefaultConfig.API.Failsafe.Password = "shield"
+	DefaultConfig.API.Failsafe.Password = "password"
 
 	DefaultConfig.API.Env = "SHIELD"
 	DefaultConfig.API.Color = "yellow"

@@ -53,7 +53,7 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
   shield create-user \
             --name        Administrator \
             --username    admin \
-            --password    admin \
+            --password    password \
             --system-role admin \
     2>&1 | indent4
   echo ; echo "  - Setting up engineer account"
@@ -64,8 +64,8 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
             --system-role engineer \
     2>&1 | indent4
 
-  echo ; echo "  - Logging in as admin:admin"
-  shield login --username admin --password admin 2>&1 | indent4
+  echo ; echo "  - Logging in as admin:password"
+  shield login --username admin --password password 2>&1 | indent4
   shield id 2>&1 | indent4
 
   echo ; echo "Setting up Global Resources"
@@ -240,8 +240,8 @@ if [[ "$SHIELD_DATA_SET" == "dev" ]]; then # {{{
 
   export SHIELD_TENANT=Other
   echo ; echo "Populating 'Other Tenant' tenant with targets, stores, etc."
-         echo "  - loggin in as admin:admin"
-  shield login --username admin --password admin 2>&1 | indent4
+         echo "  - loggin in as admin:password"
+  shield login --username admin --password password 2>&1 | indent4
   shield id 2>&1 | indent4
 
   echo ; echo "  - creating 'CloudStor' cloud storage system"
@@ -303,12 +303,12 @@ elif [[ "$SHIELD_DATA_SET" == "minimal" ]]; then
   shield create-user \
             --name        Administrator \
             --username    admin \
-            --password    admin \
+            --password    password \
             --system-role admin \
     2>&1 | indent4
 
-  echo ; echo "  - Logging in as admin:admin"
-  shield login --username admin --password admin 2>&1 | indent4
+  echo ; echo "  - Logging in as admin:password"
+  shield login --username admin --password password 2>&1 | indent4
   shield id 2>&1 | indent4
 fi
 
