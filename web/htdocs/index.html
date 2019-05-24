@@ -1997,7 +1997,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                     [[= h(job.name) ]]
                   </td>
                   <td class="enc">
-                    [[ if (job.fixed_key) { ]]<span class="tag fixed">fixed</span>[[ } ]]
+                    [[ if (job.fixed_key) { ]]<span class="tag fixed">fixed</span>[[ } else { ]]<span class="tag randomized">randomized</span>[[ } ]]
                   </td>
                   <td class="schedule" data-sort="[[= job.keep_n / job.keep_days * 1000 ]]" data-sort-as="number">
                     [[= h(job.schedule) ]][[ if (job.paused) { ]] (paused)[[ } ]]

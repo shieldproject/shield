@@ -12,6 +12,10 @@
   tasks based on their task type (i.e. "backup", or "restore")
   See #523
 
+- The `Encryption` column of the system detail page's backup jobs
+  table now _always_ shows something.  For jobs that do not used
+  the fixed key, the new tag is `randomized`.  See #536
+
 # Bug Fixes
 
 - The MotD separator no longer displays if the MotD is empty

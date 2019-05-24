@@ -1031,12 +1031,15 @@ table.lean td.name > .tag,
   font-family: monospace;
   font-weight: bold;
   color: #fff;
-  background-color: darkorchid;
+  background-color: #aaa;
   border-radius: 4px;
   padding: 3px 5px;
   border: none;
   vertical-align: top;
 }
+.lean td .tag.fixed      { background-color: darkorchid; }
+.lean td .tag.randomized { background-color: darkblue; }
+
 .lean tbody tr:nth-child(2n+1) {
   background-color: #F2F2F2;
 }
