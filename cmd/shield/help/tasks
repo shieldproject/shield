@@ -35,6 +35,25 @@ USAGE: @G{shield} tasks --tenant @Y{TENANT}
                  to show all tasks, regardless of their status.
 
 
+      --type     Only show tasks that are of the given type.
+                 The following type values are defined:
+
+                   @M{backup}            Take a backup of a system.
+
+                   @M{restore}           Restore a backup to a system.
+
+                   @M{purge}             Purge a single backup archive
+                                     from cloud storage.
+
+                   @M{test-store}        Test a cloud storage system for
+                                     viability (a small store+retrieve).
+
+                   @M{agent-status}      Retrieve health and metadata
+                                     from a single SHIELD agent.
+
+                   @M{analyze-storage}   Process global storage usage.
+
+
       --active   Only show tasks that are still running (@W{active}),
     --inactive   or that are no longer running (@W{inactive}).
 

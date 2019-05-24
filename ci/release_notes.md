@@ -8,6 +8,10 @@
   from `shield` to `password`, for more continuity across various
   packaging formats.  See #531
 
+- The `shield tasks` command (and the backing API) can now filter
+  tasks based on their task type (i.e. "backup", or "restore")
+  See #523
+
 # Bug Fixes
 
 - The MotD separator no longer displays if the MotD is empty

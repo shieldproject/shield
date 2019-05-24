@@ -30,6 +30,7 @@ type TaskFilter struct {
 	Debug  *bool  `qs:"debug:t:f"`
 	Limit  *int   `qs:"limit"`
 	Target string `qs:"target"`
+	Type   string `qs:"type"`
 	Before int64  `qs:"before"`
 }
 

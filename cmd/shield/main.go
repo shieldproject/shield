@@ -274,6 +274,7 @@ var opts struct {
 		Inactive bool   `cli:"--inactive"`
 		All      bool   `cli:"-a, --all"`
 		Target   string `cli:"--target"`
+		Type     string `cli:"--type"`
 		Limit    int    `cli:"-l, --limit"`
 		Before   string `cli:"--before"`
 	} `cli:"tasks"`
@@ -2706,6 +2707,7 @@ tenants:
 			Status: opts.Tasks.Status,
 			Limit:  &opts.Tasks.Limit,
 			Target: opts.Tasks.Target,
+			Type:   opts.Tasks.Type,
 			Before: timeBefore,
 		}
 
@@ -2722,6 +2724,7 @@ tenants:
 					Status: opts.Tasks.Status,
 					Limit:  &opts.Tasks.Limit,
 					Target: opts.Tasks.Target,
+					Type:   opts.Tasks.Type,
 					Before: timeBefore,
 				}
 
