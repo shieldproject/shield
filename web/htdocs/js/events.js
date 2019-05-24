@@ -384,17 +384,18 @@
             ann.clear = "normal";
           }
 
+          $form.submitting(true);
           api({
             type: 'PATCH',
             url:  '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+uuid,
             data: { "annotations": [ann] },
             success: function (data) {
-              $form.hide();
+              $form.hide().submitting(false);
               banner("task annotation saved.");
               reload();
             },
             error: function (xhr) {
-              $form.hide();
+              $form.hide().submitting(false);
               banner("task annotation failed to save.", 'error');
             }
           });
@@ -444,6 +445,7 @@
           return;
         }
 
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/unlock',
@@ -453,6 +455,7 @@
             goto(AEGIS.is('engineer') ? '#!/admin' : '#!/systems');
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });
@@ -534,7 +537,9 @@
         event.preventDefault();
         $(event.target).addClass('submitting');
 
-        var data = $(event.target).closest('.wizard2').data('submission');
+        var $form = $(event.target).closest('.wizard2');
+        var data  = $form.data('submission');
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/systems',
@@ -542,6 +547,7 @@
 
           error: "Failed to create system via the SHIELD API.",
           complete: function () {
+            $form.submitting(false);
             $(event.target).removeClass('submitting');
           },
           success: function (data) {
@@ -607,7 +613,9 @@
         event.preventDefault();
         $(event.target).addClass('submitting');
 
-        var data = $(event.target).closest('.wizard2').data('submission');
+        var $form = $(event.target).closest('.wizard2');
+        var data  = $form.data('submission');
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/jobs/'+data.job.uuid+'/run',
@@ -615,6 +623,7 @@
 
           error: "Failed to schedule a backup operation via the SHIELD API.",
           complete: function () {
+            $form.submitting(false);
             $(event.target).removeClass('submitting');
           },
           success: function () {
@@ -663,7 +672,9 @@
         event.preventDefault();
         $(event.target).addClass('submitting');
 
-        var data = $(event.target).closest('.wizard2').data('submission');
+        var $form = $(event.target).closest('.wizard2');
+        var data  = $form.data('submission');
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/archives/'+data.archive.uuid+'/restore',
@@ -671,6 +682,7 @@
 
           error: "Failed to schedule a restore operation via the SHIELD API.",
           complete: function () {
+            $form.submitting(false);
             $(event.target).removeClass('submitting');
           },
           success: function () {

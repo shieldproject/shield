@@ -820,4 +820,27 @@
     }
   };
   // }}}
+
+  /***************************************************
+     $(...).submitting($bool) - Mark a form as "submitting"
+
+   ***************************************************/
+  $.fn.submitting = function (on) { // {{{
+    this.each(function (i, form) {
+      var $form = $(form);
+      $form.find('button[data-alt]').each(function (i, b) {
+        var $b = $(b);
+        if (on) {
+          $b.attr('data-alt-orig', $b.html())
+            .prop('disabled', true)
+            .html($b.attr('data-alt'));
+        } else {
+          $b.html($b.attr('data-alt-orig'))
+            .prop('disabled', false);
+        }
+      });
+    });
+    return this;
+  };
+  // }}}
 })(jQuery, window, document);

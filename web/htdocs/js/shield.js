@@ -185,6 +185,7 @@ function dispatch(page) {
             if (!$form.isOK()) {
               return;
             }
+            $form.submitting(true);
             api({
               type: 'POST',
               url: '/v2/init',
@@ -194,6 +195,7 @@ function dispatch(page) {
                 $('#viewport').template('fixedkey', data);
               },
               error: function (xhr) {
+                $form.submitting(false);
                 $(event.target).error(xhr.responseJSON);
               }
             });
@@ -325,6 +327,7 @@ function dispatch(page) {
         if (!$form.reset().validate().isOK()) { return; }
 
         var data = $form.serializeObject();
+        $form.submitting(true);
         api({
           type: 'PUT',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/targets/'+args.uuid,
@@ -333,6 +336,7 @@ function dispatch(page) {
             goto("#!/systems/system:uuid:"+args.uuid);
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });
@@ -408,6 +412,8 @@ function dispatch(page) {
         if (!$form.reset().validate().isOK()) { return; }
         var data = $form.serializeObject().store;
         data.threshold = readableToBytes(data.threshold);
+
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/stores',
@@ -416,6 +422,7 @@ function dispatch(page) {
             goto("#!/stores");
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });
@@ -444,6 +451,7 @@ function dispatch(page) {
         var data = $form.serializeObject().store;
         data.threshold = readableToBytes(data.threshold);
 
+        $form.submitting(true);
         api({
           type: 'PUT',
           url:  '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid,
@@ -452,6 +460,7 @@ function dispatch(page) {
             goto("#!/stores/store:uuid:"+args.uuid);
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });
@@ -709,6 +718,7 @@ function dispatch(page) {
         }
 
         delete data.confirm;
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/rekey',
@@ -722,6 +732,7 @@ function dispatch(page) {
             banner('Succcessfully rekeyed the SHIELD Core.');
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });
@@ -799,7 +810,7 @@ function dispatch(page) {
         }
 
         $form.reset();
-
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/tenants',
@@ -808,6 +819,7 @@ function dispatch(page) {
             goto("#!/admin/tenants");
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });
@@ -910,7 +922,7 @@ function dispatch(page) {
             var data = $form.serializeObject();
 
             $form.reset();
-
+            $form.submitting(true);
             api({
               type: 'PATCH',
               url:  '/v2/tenants/'+args.uuid,
@@ -919,6 +931,7 @@ function dispatch(page) {
                 goto("#!/admin/tenants");
               },
               error: function (xhr) {
+                $form.submitting(false);
                 $form.error(xhr.responseJSON);
               }
             });
@@ -970,6 +983,7 @@ function dispatch(page) {
         }
 
         banner("Creating new user...", "info");
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/auth/local/users',
@@ -979,6 +993,7 @@ function dispatch(page) {
             goto("#!/admin/users");
           },
           error: function (xhr) {
+            $form.submitting(false);
             banner("Failed to create new user", "error");
           }
         });
@@ -1002,7 +1017,7 @@ function dispatch(page) {
             event.preventDefault();
             var $form = $(event.target);
             var data = $form.serializeObject();
-            
+
             $form.reset();
             if (data.password != data.confirm) {
               $form.error('confirm', 'mismatch');
@@ -1027,6 +1042,7 @@ function dispatch(page) {
             }
 
             banner("Updating user...", "info");
+            $form.submitting(true);
             api({
               type: 'PATCH',
               url:  '/v2/auth/local/users/'+args.uuid,
@@ -1036,6 +1052,7 @@ function dispatch(page) {
                 goto("#!/admin/users");
               },
               error: function (xhr) {
+                $form.submitting(false);
                 banner("Failed to update user", "error");
               }
             });
@@ -1093,6 +1110,7 @@ function dispatch(page) {
         var data = $form.serializeObject().store;
         data.threshold = readableToBytes(data.threshold);
 
+        $form.submitting(true);
         api({
           type: 'POST',
           url:  '/v2/global/stores',
@@ -1101,6 +1119,7 @@ function dispatch(page) {
             goto("#!/admin/stores");
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });
@@ -1128,6 +1147,8 @@ function dispatch(page) {
 
         var data = $form.serializeObject().store;
         data.threshold = readableToBytes(data.threshold);
+
+        $form.submitting(true);
         api({
           type: 'PUT',
           url:  '/v2/global/stores/'+args.uuid,
@@ -1136,6 +1157,7 @@ function dispatch(page) {
             goto("#!/admin/stores/store:uuid:"+args.uuid);
           },
           error: function (xhr) {
+            $form.submitting(false);
             $form.error(xhr.responseJSON);
           }
         });

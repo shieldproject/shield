@@ -96,7 +96,7 @@
                   <span data-error="missing">Please supply your password.</span>
               </div>
               <input type="password" name="master" id="master" placeholder="SHIELD Master Password">[[#
-              ]]<button type="submit">Unlock</button>
+              ]]<button data-alt="Unlocking..." type="submit">Unlock</button>
             </div>
           </form>
           [[ } else { ]]
@@ -311,7 +311,7 @@
                         </div>
                         <textarea id="key" name="key"></textarea>
                       </div>
-                      <button>Restore</button>
+                      <button data-alt="Restoring...">Restore</button>
                     </form>
                   </div>
 
@@ -340,7 +340,7 @@
                         </div>
                         <input type="password" id="masterpassconf" name="masterpassconf">
                       </div>
-                      <button>Set up</button>
+                      <button data-alt="Setting up...">Set up</button>
                     </form>
                   </div>
 
@@ -948,7 +948,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <div class="x9 r2 buttons">
                 [[ if (AEGIS.locked()) { ]]<p class="wizard-cannot-continue">Uh-oh, it looks like this SHIELD Is locked, so you cannot schedule a backup task!</p>[[ } ]]
                 <button rel="prev">◀ Back to <span>Cloud Storage</span></button>
-                <button class="final"[[ if (AEGIS.locked()) { ]] disabled[[ } ]]>Run Backup</button>
+                <button data-alt="Running Backup..." class="final"[[ if (AEGIS.locked()) { ]] disabled[[ } ]]>Run Backup</button>
               </div>
             </div>
     <!-- }}} --></script>
@@ -1163,7 +1163,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <div class="x9 r2 buttons">
                 [[ if (AEGIS.locked()) { ]]<p class="wizard-cannot-continue">Uh-oh, it looks like this SHIELD Is locked, so you cannot schedule a restore task!</p>[[ } ]]
                 <button rel="prev">◀ Back to <span>Choose an Archive</span></button>
-                <button class="final"[[ if (AEGIS.locked()) { ]] disabled[[ } ]]>Restore Data</button>
+                <button data-alt="Restoring Data..." class="final"[[ if (AEGIS.locked()) { ]] disabled[[ } ]]>Restore Data</button>
               </div>
             </div>
     <!-- }}} --></script>
@@ -1657,7 +1657,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <div class="c12">
               <div class="x9 r2 buttons">
                 <button rel="prev">◀ Back to <span>Job Details</span></button>
-                <button class="final">Create <span>Backup Job</span></button>
+                <button data-alt="Creating..." class="final">Create <span>Backup Job</span></button>
               </div>
             </div>
     <!-- }}} --></script>
@@ -1697,7 +1697,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                config: _.config
              }); ]]
           <div class="x12 buttons">
-            <button class="final">Save Changes</button>
+            <button data-alt="Saving..." class="final">Save Changes</button>
           </div>
         [[ } ]]
 
@@ -2065,7 +2065,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
           <div class="l1 x10"><h3><strong>[[= h(plugin.name) ]]</strong> Properties</h3></div>
           [[ include('plugin-configuration-form', { prefix: 'config.', plugin: plugin, config: _.target.config }); ]]
           <div class="x12 buttons">
-            <button class="final">Save Changes</button>
+            <button data-alt="Saving..." class="final">Save Changes</button>
           </div>
           [[ } ]]
         [[ } ]]
@@ -2217,7 +2217,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
 [[ } ]]
 <p><textarea name="notes" id="notes"
             placeholder="no notes recorded yet...">[[= h(lens.maybe(_.task.notes, '')) ]]</textarea></p>
-<button>Save</button>
+<button data-alt="Saving...">Save</button>
 </form>[[ } ]]
 
 </div><em>task <em>[[= _.task.uuid ]]</em></em>
@@ -2712,7 +2712,11 @@ for job <em>[[= _.task.job_uuid ]]</em>
                       </div>
                     </div>
                     <div class="x12 buttons">
-                      <button class="final">[[ if (_.tenant) { ]]Save[[ } else { ]]Create[[ } ]]</button>
+                    [[ if (_.tenant) { ]]
+                      <button data-alt="Saving..." class="final">Save</button>
+                    [[ } else { ]]
+                      <button data-alt="Creating..." class="final">Create</button>
+                    [[ } ]]
                     </div>
                   </div>
                 </div>
@@ -3040,7 +3044,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     </div>
 
                     <div class="x12">
-                      <button class="final">Rekey</button>
+                      <button data-alt="Rekeying..." class="final">Rekey</button>
                     </div>
                   </div>
                 </div>
@@ -3173,7 +3177,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     </div>
 
                     <div class="x12 buttons">
-                      <button class="final">Create</button>
+                      <button data-alt="Creating..." class="final">Create</button>
                     </div>
                   </div>
                 </div>
@@ -3238,7 +3242,7 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                     </div>
 
                     <div class="x12 buttons">
-                      <button class="final">Update</button>
+                      <button data-alt="Updating..." class="final">Update</button>
                     </div>
                   </div>
                 </div>
