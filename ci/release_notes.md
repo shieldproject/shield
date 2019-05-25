@@ -20,3 +20,8 @@
 
 - The MotD separator no longer displays if the MotD is empty
   or not specified.  See #530
+
+- The Ad Hoc Backup and Restore wizards now handle the "empty"
+  state more gracefully, and instead of showing an empty table
+  when there are no data systems, they warn you that you have
+  no systems to backup or restore.  See #532 and #533

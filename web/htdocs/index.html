@@ -774,6 +774,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         data system they want to restore, and how fresh the backup needs
         to be.
       ]]
+      [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
       <div class="gutter blk wizard2 steps4 do-backup">
         <form class="new-form1">
           <div class="progress">[[# {{{ ]]
@@ -802,9 +803,16 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 jobs; this wizard will not allow you to arbitrarily choose storage
                 and data systems.</p>
 
+                [[ if (systems.length == 0) { ]]
+                <div class="no-further">
+                  You have no backup jobs that can be run.
+                  <a href="#!/do/configure">Configure one</a>
+                </div>
+                [[ } else { ]]
                 <div class="buttons">
                   <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
                 </div>
+                [[ } ]]
               </div>
             </div>[[# }}} ]]
           </div>
@@ -813,7 +821,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <h2><span>Run an Ad Hoc Backup</span>Choose Your Data System</h2>
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
-                [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
                 <table class="lean sortable selectable choose target">
                   <thead>
                     <tr>
@@ -961,6 +968,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         finding the correct archive to restore, based on what data system
         they want to restore, and how fresh the restore needs to be.
       ]]
+      [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
       <div class="gutter blk wizard2 steps4 do-restore">
         <form class="new-form1">
           <div class="progress">[[# {{{ ]]
@@ -987,9 +995,15 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                 to include only those that were taken from that system, and are in
                 a valid, restorable state.</p>
 
+                [[ if (systems.length == 0) { ]]
+                <div class="no-further">
+                  You have no backup archives that can be restored.
+                </div>
+                [[ } else { ]]
                 <div class="buttons">
                   <button rel="next">First up: <span>Choose a Data System</span> ▶</button>
                 </div>
+                [[ } ]]
               </div>
             </div>[[# }}} ]]
           </div>
@@ -998,7 +1012,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             <h2><span>Restore Data</span>Choose Your Data System</h2>
             <div class="c12 band">[[# {{{ ]]
               <div class="x9">
-                [[ var systems = AEGIS.systems({ tenant: AEGIS.current.uuid }); ]]
                 <table class="lean sortable selectable choose target">
                   <thead>
                     <tr>

@@ -1690,6 +1690,20 @@ pre.task-failed.override   code { background-color: #333; }
   display: block;
   margin: 1em 0 0.33em 0;
 }
+.wizard2 .no-further {
+  margin: 1em;
+  padding: 1em;
+  background-color: darkred;
+  color: white;
+  border-radius: 0.5em;
+  width: 70%;
+}
+.wizard2 .no-further a {
+  font-weight: bold;
+  border-bottom: 1px dotted #fff;
+  color: inherit;
+  text-decoration: none;
+}
 .wizard2 .band {
   clear: both;
   padding: 0.5em 0;
