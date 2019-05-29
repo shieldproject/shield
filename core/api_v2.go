@@ -2029,7 +2029,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		if tenant == nil {
-			r.Fail(route.Oops(err, "No such tenant"))
+			r.Fail(route.NotFound(err, "No such tenant"))
 			return
 		}
 
@@ -2493,7 +2493,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		if store == nil || store.TenantUUID != r.Args[1] {
-			r.Fail(route.Oops(err, "No such storage system"))
+			r.Fail(route.NotFound(err, "No such storage system"))
 			return
 		}
 
@@ -2547,7 +2547,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		if store == nil || store.TenantUUID != r.Args[1] {
-			r.Fail(route.Oops(err, "No such storage system"))
+			r.Fail(route.NotFound(err, "No such storage system"))
 			return
 		}
 
@@ -3402,7 +3402,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.Oops(err, "No such storage system"))
+			r.Fail(route.NotFound(err, "No such storage system"))
 			return
 		}
 
@@ -3450,7 +3450,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		if store == nil || store.TenantUUID != db.GlobalTenantUUID {
-			r.Fail(route.Oops(err, "No such storage system"))
+			r.Fail(route.NotFound(err, "No such storage system"))
 			return
 		}
 
