@@ -26,4 +26,5 @@
   when there are no data systems, they warn you that you have
   no systems to backup or restore.  See #532 and #533
 
-- You can now delete global stores!
+- Stores (global and tenant-specific) can now be properly deleted
+  via the web UI and CLI.

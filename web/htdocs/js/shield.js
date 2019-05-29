@@ -479,7 +479,7 @@ function dispatch(page) {
     }
     api({
       type: 'GET',
-      url:  '/v2/tenants/'+AEGIS.current+'/stores/'+args.uuid,
+      url:  '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid,
       error: "Failed to retrieve storage system information from the SHIELD API.",
       success: function (store) {
         modal($($.template('stores-delete', { store: store }))
