@@ -28,3 +28,6 @@
 
 - Stores (global and tenant-specific) can now be properly deleted
   via the web UI and CLI.
+
+- When editing targets and stores on the webui changes are now
+  persisted when editing again without a refresh.  

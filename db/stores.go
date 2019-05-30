@@ -24,7 +24,7 @@ type Store struct {
 	Threshold     int64 `json:"threshold"      mbus:"threshold"`
 	ArchiveCount  int   `json:"archive_count"  mbus:"archive_count"`
 
-	Config map[string]interface{} `json:"config,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty" mbus:"config"`
 
 	LastTestTaskUUID string `json:"last_test_task_uuid"`
 }
