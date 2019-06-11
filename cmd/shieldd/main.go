@@ -10,7 +10,7 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/starkandwayne/shield/core"
+	"github.com/shieldproject/shield/core"
 )
 
 var Version = ""

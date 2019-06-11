@@ -13,11 +13,11 @@ import (
 
 	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/shield/core/vault"
-	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/route"
-	"github.com/starkandwayne/shield/timespec"
-	"github.com/starkandwayne/shield/util"
+	"github.com/shieldproject/shield/core/vault"
+	"github.com/shieldproject/shield/db"
+	"github.com/shieldproject/shield/route"
+	"github.com/shieldproject/shield/timespec"
+	"github.com/shieldproject/shield/util"
 )
 
 type v2SystemArchive struct {

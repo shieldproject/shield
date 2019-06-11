@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/starkandwayne/shield/timespec"
+	. "github.com/shieldproject/shield/timespec"
 )
 
 var _ = Describe("Timespec", func() {

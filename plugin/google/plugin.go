@@ -12,7 +12,7 @@ import (
 	oauthgoogle "golang.org/x/oauth2/google"
 	"google.golang.org/api/storage/v1"
 
-	"github.com/starkandwayne/shield/plugin"
+	"github.com/shieldproject/shield/plugin"
 )
 
 const (

@@ -11,7 +11,7 @@ import (
 
 	"github.com/jhunt/go-cli"
 
-	"github.com/starkandwayne/shield/core/vault"
+	"github.com/shieldproject/shield/core/vault"
 )
 
 var Version = ""

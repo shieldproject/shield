@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/starkandwayne/shield/db"
+	"github.com/shieldproject/shield/db"
 )
 
 type Bearing struct {

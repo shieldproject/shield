@@ -6,9 +6,9 @@ import (
 	"os"
 
 	fmt "github.com/jhunt/go-ansi"
-
 	"github.com/starkandwayne/safe/vault"
-	"github.com/starkandwayne/shield/plugin"
+
+	"github.com/shieldproject/shield/plugin"
 )
 
 var ()

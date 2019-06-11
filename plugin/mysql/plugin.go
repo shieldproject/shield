@@ -1,15 +1,16 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"os"
+
+	// sql drivers
+	_ "github.com/go-sql-driver/mysql"
 
 	fmt "github.com/jhunt/go-ansi"
 
-	"database/sql"
-	"errors"
-	"github.com/starkandwayne/shield/plugin"
-	// sql drivers
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/shieldproject/shield/plugin"
 )
 
 var (

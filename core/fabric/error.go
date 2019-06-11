@@ -1,9 +1,9 @@
 package fabric
 
 import (
-	"github.com/starkandwayne/shield/core/scheduler"
-	"github.com/starkandwayne/shield/core/vault"
-	"github.com/starkandwayne/shield/db"
+	"github.com/shieldproject/shield/core/scheduler"
+	"github.com/shieldproject/shield/core/vault"
+	"github.com/shieldproject/shield/db"
 )
 
 func Error(err error) ErrorFabric {

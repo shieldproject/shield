@@ -6,7 +6,7 @@ import (
 
 	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/shield/core/bus"
+	"github.com/shieldproject/shield/core/bus"
 )
 
 func datauuid(thing interface{}) string {

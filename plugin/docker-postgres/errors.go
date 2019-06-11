@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	. "github.com/starkandwayne/shield/plugin"
+	"github.com/shieldproject/shield/plugin"
 )
 
 type MultiError struct {
@@ -13,7 +13,7 @@ type MultiError struct {
 }
 
 func (e *MultiError) Append(x error) {
-	DEBUG(x.Error())
+	plugin.DEBUG(x.Error())
 	e.errors = append(e.errors, x)
 }
 

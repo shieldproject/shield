@@ -9,7 +9,7 @@ import (
 
 	fmt "github.com/jhunt/go-ansi"
 
-	"github.com/starkandwayne/shield/plugin"
+	"github.com/shieldproject/shield/plugin"
 )
 
 func main() {

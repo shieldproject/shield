@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/starkandwayne/shield/timespec"
+	"github.com/shieldproject/shield/timespec"
 )
 
 type v6Schema struct{}

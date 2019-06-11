@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/starkandwayne/shield/plugin"
+	"github.com/shieldproject/shield/plugin"
 )
 
 type Agent struct {

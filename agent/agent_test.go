@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/starkandwayne/shield/agent"
+	. "github.com/shieldproject/shield/agent"
 
 	"golang.org/x/crypto/ssh"
 )

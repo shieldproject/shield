@@ -4,7 +4,7 @@ import (
 	fmt "github.com/jhunt/go-ansi"
 	"strings"
 
-	"github.com/starkandwayne/shield/client/v2/shield"
+	"github.com/shieldproject/shield/client/v2/shield"
 )
 
 type ImportManifest struct {

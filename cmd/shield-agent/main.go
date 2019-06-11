@@ -7,7 +7,7 @@ import (
 	"github.com/jhunt/go-cli"
 	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/shield/agent"
+	"github.com/shieldproject/shield/agent"
 )
 
 var Version = ""

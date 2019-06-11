@@ -10,10 +10,9 @@ import (
 	"time"
 
 	fmt "github.com/jhunt/go-ansi"
-
 	"github.com/ncw/swift"
 
-	"github.com/starkandwayne/shield/plugin"
+	"github.com/shieldproject/shield/plugin"
 )
 
 const (

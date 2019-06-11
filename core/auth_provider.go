@@ -6,9 +6,9 @@ import (
 
 	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/route"
-	"github.com/starkandwayne/shield/util"
+	"github.com/shieldproject/shield/db"
+	"github.com/shieldproject/shield/route"
+	"github.com/shieldproject/shield/util"
 )
 
 var (

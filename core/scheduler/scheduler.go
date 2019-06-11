@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/starkandwayne/shield/db"
+	"github.com/shieldproject/shield/db"
 )
 
 const MaxPriority = 100

@@ -9,7 +9,7 @@ import (
 	// sql drivers
 	_ "github.com/mattn/go-sqlite3"
 
-	. "github.com/starkandwayne/shield/db"
+	. "github.com/shieldproject/shield/db"
 )
 
 var T00 = time.Date(1997, 8, 29, 2, 14, 0, 0, time.UTC)

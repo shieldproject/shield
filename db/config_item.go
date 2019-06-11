@@ -3,7 +3,7 @@ package db
 import (
 	"fmt"
 
-	"github.com/starkandwayne/shield/plugin"
+	"github.com/shieldproject/shield/plugin"
 )
 
 type ConfigItem struct {

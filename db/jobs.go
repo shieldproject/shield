@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/starkandwayne/shield/timespec"
+	"github.com/shieldproject/shield/timespec"
 )
 
 type Job struct {

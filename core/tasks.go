@@ -7,7 +7,7 @@ import (
 
 	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/shield/db"
+	"github.com/shieldproject/shield/db"
 )
 
 func (c *Core) TaskErrored(task *db.Task, fail string, args ...interface{}) {

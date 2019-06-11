@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pborman/uuid"
 
-	"github.com/starkandwayne/shield/core/bus"
+	"github.com/shieldproject/shield/core/bus"
 )
 
 var GlobalTenantUUID = uuid.NIL.String()

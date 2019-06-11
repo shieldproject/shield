@@ -5,7 +5,7 @@ import (
 
 	"github.com/jhunt/go-table"
 
-	"github.com/starkandwayne/shield/client/v2/shield"
+	"github.com/shieldproject/shield/client/v2/shield"
 )
 
 func SearchTargets(c *shield.Client, tenant *shield.Tenant, q string) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/starkandwayne/shield/timespec"
+	"github.com/shieldproject/shield/timespec"
 )
 
 type fixup struct {
@@ -34,7 +34,7 @@ This fixup resets the "purged" status on archives
 that do **not** have a successful purge operation
 task attached to them.
 
-See [issue #516](https://github.com/starkandwayne/shield/issues/516) in GitHub for details.`,
+See [issue #516](https://github.com/shieldproject/shield/issues/516) in GitHub for details.`,
 		fn: func(db *DB) error {
 			/* look through all archives with status = 'purged',
 			   and then cross-ref with all tasks, looking for those
@@ -67,7 +67,7 @@ the <code>shield task $uuid</code> command.
 This fixup re-associates all agent-status tasks with
 the global tenant UUID, to fix that.
 
-See [issue #522](https://github.com/starkandwayne/shield/issues/522) in GitHub for details.`,
+See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub for details.`,
 		fn: func(db *DB) error {
 			return db.Exec(`
 				UPDATE tasks
@@ -90,7 +90,7 @@ This has been fixed as of 8.2.0, and this data fixup
 re-calculates the "keep-n" attribute of all jobs that
 were affected.
 
-See [issue #460](https://github.com/starkandwayne/shield/issues/460) in GitHub for details.`,
+See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub for details.`,
 		fn: func(db *DB) error {
 			r, err := db.Query(`
 				SELECT uuid

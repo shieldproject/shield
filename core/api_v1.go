@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/starkandwayne/shield/route"
+	"github.com/shieldproject/shield/route"
 )
 
 func (c *Core) v1API() *route.Router {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/shield/db"
+	"github.com/shieldproject/shield/db"
 )
 
 var serial = 0

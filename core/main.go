@@ -9,11 +9,11 @@ import (
 
 	"github.com/jhunt/go-log"
 
-	"github.com/starkandwayne/shield/core/bus"
-	"github.com/starkandwayne/shield/core/scheduler"
-	"github.com/starkandwayne/shield/core/vault"
-	"github.com/starkandwayne/shield/db"
-	"github.com/starkandwayne/shield/timespec"
+	"github.com/shieldproject/shield/core/bus"
+	"github.com/shieldproject/shield/core/scheduler"
+	"github.com/shieldproject/shield/core/vault"
+	"github.com/shieldproject/shield/db"
+	"github.com/shieldproject/shield/timespec"
 )
 
 func (c Core) Main() {

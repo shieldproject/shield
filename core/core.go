@@ -10,11 +10,11 @@ import (
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 
-	"github.com/starkandwayne/shield/core/bus"
-	"github.com/starkandwayne/shield/core/fabric"
-	"github.com/starkandwayne/shield/core/scheduler"
-	"github.com/starkandwayne/shield/core/vault"
-	"github.com/starkandwayne/shield/db"
+	"github.com/shieldproject/shield/core/bus"
+	"github.com/shieldproject/shield/core/fabric"
+	"github.com/shieldproject/shield/core/scheduler"
+	"github.com/shieldproject/shield/core/vault"
+	"github.com/shieldproject/shield/db"
 )
 
 type Core struct {

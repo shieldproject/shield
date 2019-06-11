@@ -16,9 +16,9 @@ import (
 	"github.com/jhunt/go-table"
 	"gopkg.in/yaml.v2"
 
-	"github.com/starkandwayne/shield/client/v2/shield"
-	"github.com/starkandwayne/shield/core/vault"
-	"github.com/starkandwayne/shield/tui"
+	"github.com/shieldproject/shield/client/v2/shield"
+	"github.com/shieldproject/shield/core/vault"
+	"github.com/shieldproject/shield/tui"
 )
 
 var Version = ""
