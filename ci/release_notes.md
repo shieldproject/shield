@@ -4,6 +4,12 @@
   and (b) change their text to indicate an ongoing operation.
   This greatly increases the usability of the web UI.  See #505
 
+- The web UI for rekeying SHIELD Core now correctly identifies
+  when the operator would like to rotate the fixed key.  Also, the
+  error messaging for an incorrect _current_ master password is
+  better now, and by default, the "rotate fixed key" checkbox on
+  the rekeying form is off.  See #546
+
 - The default password for the failsafe account has been changed
   from `shield` to `password`, for more continuity across various
   packaging formats.  See #531
