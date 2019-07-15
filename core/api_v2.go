@@ -704,7 +704,7 @@ func (c *Core) v2API() *route.Router {
 		}
 		if err := c.vault.Unseal(c.CryptFile(), in.Master); err != nil {
 			if strings.Contains(err.Error(), "incorrect master password") {
-				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: incorrect password"))
+				r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: incorrect master password"))
 				return
 			}
 			r.Fail(route.Oops(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
@@ -731,7 +731,11 @@ func (c *Core) v2API() *route.Router {
 
 		fixedKey, err := c.vault.Rekey(c.CryptFile(), in.Current, in.New, in.RotateFixed)
 		if err != nil {
-			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core"))
+			if strings.Contains(err.Error(), "incorrect master password") {
+				r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core: incorrect (current) master password"))
+				return
+			}
+			r.Fail(route.Oops(err, "Unable to rekey the SHIELD Core: an internal error has occurred"))
 			return
 		}
 

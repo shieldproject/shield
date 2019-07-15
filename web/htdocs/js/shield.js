@@ -712,7 +712,7 @@ function dispatch(page) {
           $form.error('confirm', 'mismatch');
         }
 
-        data.rotate_fixed_key = (data.rotate_fixed_key == "true");
+        data.rotate_fixed_key = !!data.rotate_fixed_key;
 
         if (!$form.isOK()) {
           return;
