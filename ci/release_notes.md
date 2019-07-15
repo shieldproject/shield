@@ -45,3 +45,9 @@
 
 - The "Agents of SHIELD" admin page no longer gets stuck in a
   loading loop whenever websocket events are seen.
+
+- Global Storage Configuration details are now properly loaded
+  when accessing a global store detail page from the admin panel.
+  Previously, the details would only load if you visited the
+  global store from the "Storage Systems" (non-admin) top-level,
+  which only works if you actually have a tenant.  See #535
