@@ -1081,6 +1081,17 @@ function dispatch(page) {
     }
     args.admin = true;
     $('#main').template('store', args);
+    $.ajax({
+      type:     'GET',
+      url:      '/v2/global/stores/'+args.uuid+'/config',
+      dataType: 'json'
+    }).then(function (config) {
+      args.config = config || []
+      $('#main').template('store', args);
+    }, function () {
+      args.config = "denied"
+      $('#main').template('store', args);
+    });
     break; /* #!/admin/stores/store */
     // }}}
   case '#!/admin/stores/new': /* {{{ */
