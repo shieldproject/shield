@@ -16,6 +16,17 @@
   table now _always_ shows something.  For jobs that do not used
   the fixed key, the new tag is `randomized`.  See #536
 
+- SHIELD now tracks when it last checked each agent separately
+  from when it last "saw" the agent.  _Last Seen_ now means the
+  point in time when the agent last connected to the SHIELD core,
+  and _Last Checked_ is when the core last connected to the agent
+  for metadata retrieval.
+
+- SHIELD now allows agents to change their IP address; only the
+  agent name is unchangeable.  Previously, attempts to change an
+  agents registered IP address (without changing its name) would
+  fail.
+
 # Bug Fixes
 
 - The MotD separator no longer displays if the MotD is empty
@@ -30,4 +41,7 @@
   via the web UI and CLI.
 
 - When editing targets and stores on the webui changes are now
-  persisted when editing again without a refresh.  
+  persisted when editing again without a refresh.
+
+- The "Agents of SHIELD" admin page no longer gets stuck in a
+  loading loop whenever websocket events are seen.

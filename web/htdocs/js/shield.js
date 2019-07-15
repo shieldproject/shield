@@ -617,6 +617,7 @@ function dispatch(page) {
       $('#main').template('access-denied', { level: 'system', need: 'engineer' });
       break;
     }
+    Scratch.track('redrawable', false);
     $('#main').template('loading');
     api({
       type: 'GET',
