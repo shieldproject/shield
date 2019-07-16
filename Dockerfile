@@ -7,21 +7,21 @@ RUN curl -sLo /bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq
  && chmod 0755 /bin/jq
 
 ARG VERSION
-COPY / /go/src/github.com/starkandwayne/shield/
-RUN cd /go/src/github.com/starkandwayne/shield \
+COPY / /go/src/github.com/shieldproject/shield/
+RUN cd /go/src/github.com/shieldproject/shield \
  && make build BUILD_TYPE="build -ldflags='-X main.Version=$VERSION'"
 RUN mkdir -p /dist/bin /dist/plugins \
- && mv /go/src/github.com/starkandwayne/shield/shieldd \
-       /go/src/github.com/starkandwayne/shield/shield-agent \
-       /go/src/github.com/starkandwayne/shield/shield-crypt \
-       /go/src/github.com/starkandwayne/shield/shield-report \
-       /go/src/github.com/starkandwayne/shield/shield-schema \
-       /go/src/github.com/starkandwayne/shield/bin/shield-pipe \
+ && mv /go/src/github.com/shieldproject/shield/shieldd \
+       /go/src/github.com/shieldproject/shield/shield-agent \
+       /go/src/github.com/shieldproject/shield/shield-crypt \
+       /go/src/github.com/shieldproject/shield/shield-report \
+       /go/src/github.com/shieldproject/shield/shield-schema \
+       /go/src/github.com/shieldproject/shield/bin/shield-pipe \
        /dist/bin \
- && for plugin in $(cat /go/src/github.com/starkandwayne/shield/plugins); do \
-      cp /go/src/github.com/starkandwayne/shield/$plugin /dist/plugins; \
+ && for plugin in $(cat /go/src/github.com/shieldproject/shield/plugins); do \
+      cp /go/src/github.com/shieldproject/shield/$plugin /dist/plugins; \
     done \
- && cp -R /go/src/github.com/starkandwayne/shield/web/htdocs /dist/ui
+ && cp -R /go/src/github.com/shieldproject/shield/web/htdocs /dist/ui
 
 ADD init /dist/init
 RUN chmod 0755 /dist/init/*
