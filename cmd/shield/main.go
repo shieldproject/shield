@@ -691,6 +691,7 @@ func main() {
 			Session:            "",
 			InsecureSkipVerify: opts.API.SkipSSLValidation,
 			CACertificate:      cacert,
+			TrustSystemCAs:     true,
 		}
 		nfo, err := c.Info()
 		bail(err)
@@ -844,6 +845,7 @@ tenants:
 		Session:            config.Current.Session,
 		InsecureSkipVerify: config.Current.InsecureSkipVerify,
 		CACertificate:      config.Current.CACertificate,
+		TrustSystemCAs:     true,
 	}
 
 	switch command {
