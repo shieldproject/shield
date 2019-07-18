@@ -289,12 +289,12 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValueDefault("region", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 bucket                %s}\n", err)
+		fmt.Printf("@R{\u2717 region                %s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 bucket}                @C{%s} (default)\n", DefaultRegion)
+		fmt.Printf("@G{\u2713 region}                @C{%s} (default)\n", DefaultRegion)
 	} else {
-		fmt.Printf("@G{\u2713 bucket}                @C{%s}\n", s)
+		fmt.Printf("@G{\u2713 region}                @C{%s}\n", s)
 	}
 
 	s, err = endpoint.StringValue("bucket")
