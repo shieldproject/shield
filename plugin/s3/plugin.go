@@ -301,6 +301,9 @@ func (p S3Plugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	if err != nil {
 		fmt.Printf("@R{\u2717 bucket                %s}\n", err)
 		fail = true
+	} else if s == "" {
+		fmt.Printf("@R{\u2717 bucket                no s3 bucket specified}\n")
+		fail = true
 	} else if !validBucketName(s) {
 		fmt.Printf("@R{\u2717 bucket                '%s' is an invalid bucket name (must be all lowercase)}\n", s)
 		fail = true
