@@ -33,6 +33,9 @@
   agents registered IP address (without changing its name) would
   fail.
 
+- Both the SHIELD Agent and the SHIELD CLI now trust the system
+  X.509 CA Certificate Stores.  See #555 and #556
+
 # Bug Fixes
 
 - The MotD separator no longer displays if the MotD is empty

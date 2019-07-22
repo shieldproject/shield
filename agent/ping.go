@@ -21,7 +21,7 @@ func (agent *Agent) Ping() {
 		return
 	}
 
-	pool := x509.NewCertPool()
+	pool, _ := x509.SystemCertPool()
 	if agent.Registration.ShieldCACert != "" {
 		if ok := pool.AppendCertsFromPEM([]byte(agent.Registration.ShieldCACert)); !ok {
 			log.Errorf("Invalid or malformed CA Certificate")
