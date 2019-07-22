@@ -397,6 +397,12 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 
 	upload, err := client.NewUpload(path, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "301 response missing Location header") {
+			client.UsePathBuckets = false
+			upload, err = client.NewUpload(path, nil)
+		}
+	}
+	if err != nil {
 		return "", 0, err
 	}
 
@@ -431,6 +437,12 @@ func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 		"    from path '%s\n"+
 		"    in bucket '%s'", file, c.Bucket)
 	reader, err := c.Get(file)
+	if err != nil {
+		if strings.Contains(err.Error(), "301 response missing Location header") {
+			c.UsePathBuckets = false
+			reader, err = c.Get(file)
+		}
+	}
 	if err != nil {
 		return err
 	}
