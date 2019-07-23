@@ -2637,7 +2637,7 @@ tenants:
 		tenant, err := c.FindMyTenant(opts.Tenant, true)
 		bail(err)
 
-		archive, err := c.GetArchive(tenant, args[0])
+		archive, err := c.FindArchive(tenant, args[0], !opts.Exact)
 		bail(err)
 
 		archive.Notes = opts.AnnotateArchive.Notes
