@@ -27,16 +27,16 @@ func main() {
 		},
 		Example: `
 			{
-			"endpoints"      : "https://192.168.42.45:2379"             # REQUIRED
-
-			"auth"           : false                                    # is role based or cert based auth enabled on the etcd cluster
-			"username"       : "admin",                                 # username for role based authentication
-			"password"       : "p@ssw0rd"                               # password for role based authentication
-			"clientCertPath" : "/tmp/test-certs/test-client.crt"        # path to client certificate
-			"clientKeyPath"  : "/tmp/test-certs/test-client-key.key"    # path to client key
-			"caCertPath"     : "/tmp/test-certs/test-ca.crt"            # path to CA certificate
-			"overwrite"      : "false"                                  # enable or disable full overwrite of the cluster
-			"prefix"         : "starkandwayne/"                         # backup specific keys
+			"endpoints"   : "https://192.168.42.45:2379"                                                                        # REQUIRED
+        
+			"auth"        : false                                                                                               # is role based or cert based auth enabled on the etcd cluster
+			"username"    : "admin",                                                                                            # username for role based authentication
+			"password"    : "p@ssw0rd"                                                                                          # password for role based authentication
+			"client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            #  path to client certificate
+			"client_key"  : "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----"    # path to client key
+			"ca_cert"     : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to CA certificate
+			"overwrite"   : "false"                                                                                             # enable or disable full overwrite of the cluster
+			"prefix"      : "starkandwayne/"                                                                                    # backup specific keys
 			}
 			`,
 		Defaults: `
@@ -79,34 +79,34 @@ func main() {
 			},
 			plugin.Field{
 				Mode:    "target",
-				Name:    "clientCertPath",
-				Type:    "string",
+				Name:    "client_cert",
+				Type:    "pem-x509",
 				Help:    "Path to the certificate issued by the CA for the client connecting to the ETCD cluster",
 				Title:   "Client Certificate File Path",
-				Example: "/tmp/test-certs/test-client.crt",
+				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
 			},
 			plugin.Field{
 				Mode:    "target",
-				Name:    "clientKeyPath",
-				Type:    "string",
+				Name:    "client_key",
+				Type:    "pem-x509",
 				Help:    "Path to the key issued by the CA for the client connecting to the ETCD cluster",
 				Title:   "Client Key File Path",
-				Example: "/tmp/test-certs/test-client-key.key",
+				Example: "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----",
 			},
 			plugin.Field{
 				Mode:    "target",
-				Name:    "caCertPath",
-				Type:    "string",
+				Name:    "ca_cert",
+				Type:    "pem-x509",
 				Help:    "Path to the CA certificate that issued the client cert and key",
 				Title:   "Trusted CA File Path",
-				Example: "/tmp/test-certs/test-ca.crt",
+				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
 			},
 			plugin.Field{
 				Mode:    "target",
 				Name:    "overwrite",
 				Type:    "bool",
-				Help:    "If this is enabled, the existing key/value pairs will be deleted. The values will be restored using the backup archive.",
-				Title:   "Full Overwrite",
+				Help:    "If this is enabled, only keys mentioned in prefix will be deleted. The values will be restored using the backup archive.",
+				Title:   "Overwrite",
 				Example: "false",
 			},
 			plugin.Field{
@@ -130,10 +130,10 @@ type EtcdConfig struct {
 	Authentication bool
 	Username       string
 	Password       string
-	ClientCertPath string
-	ClientKeyPath  string
-	CaCertPath     string
-	overwrite      bool
+	ClientCert     string
+	ClientKey      string
+	CACert         string
+	Overwrite      bool
 	Prefix         string
 }
 
@@ -157,21 +157,21 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		return nil, err
 	}
 
-	password, err := endpoint.StringValueDefault("pass", "")
+	password, err := endpoint.StringValueDefault("password", "")
 	if err != nil {
 		return nil, err
 	}
 
-	clientCert, err := endpoint.StringValueDefault("clientCertPath", "")
+	clientCert, err := endpoint.StringValueDefault("client_cert", "")
 	if err != nil {
 		return nil, err
 	}
 
-	clientKey, err := endpoint.StringValueDefault("clientKeyPath", "")
+	clientKey, err := endpoint.StringValueDefault("client_key", "")
 	if err != nil {
 		return nil, err
 	}
-	caCert, err := endpoint.StringValueDefault("caCertPath", "")
+	caCert, err := endpoint.StringValueDefault("ca_cert", "")
 	if err != nil {
 		return nil, err
 	}
@@ -191,10 +191,10 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		Authentication: auth,
 		Username:       username,
 		Password:       password,
-		ClientCertPath: clientCert,
-		ClientKeyPath:  clientKey,
-		CaCertPath:     caCert,
-		overwrite:      overwrite,
+		ClientCert:     clientCert,
+		ClientKey:      clientKey,
+		CACert:         caCert,
+		Overwrite:      overwrite,
 		Prefix:         prefix,
 	}, nil
 }
@@ -225,7 +225,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	if b {
-		s, err = endpoint.StringValueDefault("user", "")
+		s, err = endpoint.StringValueDefault("username", "")
 		if err != nil {
 			fmt.Printf("@R{\u2717 user  %s}\n", err)
 			fail = true
@@ -245,7 +245,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			fmt.Printf("@G{\u2713 password} @C{%s}\n", plugin.Redact(s))
 		}
 
-		s, err = endpoint.StringValueDefault("clientCertPath", "")
+		s, err = endpoint.StringValueDefault("client_cert", "")
 		if err != nil {
 			fmt.Printf("@R{\u2717 client certificate path  %s}\n", err)
 		} else if s == "" {
@@ -254,7 +254,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			fmt.Printf("@G{\u2713 client certificate path} was provided\n")
 		}
 
-		s, err = endpoint.StringValueDefault("clientKeyPath", "")
+		s, err = endpoint.StringValueDefault("client_key", "")
 		if err != nil {
 			fmt.Printf("@R{\u2717 client key path  %s}\n", err)
 		} else if s == "" {
@@ -263,7 +263,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			fmt.Printf("@G{\u2713 client key path} was provided\n")
 		}
 
-		s, err = endpoint.StringValueDefault("caCertPath", "")
+		s, err = endpoint.StringValueDefault("ca_cert", "")
 		if err != nil {
 			fmt.Printf("@R{\u2717 CA certificate path  %s}\n", err)
 		} else if s == "" {
@@ -308,9 +308,9 @@ func (p EtcdPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	tlsInfo := transport.TLSInfo{
-		CertFile:      etcd.ClientCertPath,
-		KeyFile:       etcd.ClientKeyPath,
-		TrustedCAFile: etcd.CaCertPath,
+		CertFile:      etcd.ClientCert,
+		KeyFile:       etcd.ClientKey,
+		TrustedCAFile: etcd.CACert,
 	}
 
 	tlsConfig, err := tlsInfo.ClientConfig()
@@ -356,9 +356,9 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	tlsInfo := transport.TLSInfo{
-		CertFile:      etcd.ClientCertPath,
-		KeyFile:       etcd.ClientKeyPath,
-		TrustedCAFile: etcd.CaCertPath,
+		CertFile:      etcd.ClientCert,
+		KeyFile:       etcd.ClientKey,
+		TrustedCAFile: etcd.CACert,
 	}
 
 	tlsConfig, err := tlsInfo.ClientConfig()
@@ -379,7 +379,7 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 	defer cli.Close()
 
-	if etcd.overwrite {
+	if etcd.Overwrite {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		_, err := cli.Delete(ctx, etcd.Prefix, clientv3.WithPrefix())
 		if err != nil {
