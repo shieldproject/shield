@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -28,16 +27,16 @@ func main() {
 		},
 		Example: `
 			{
-			"endpoints" : "https://192.168.42.45:2379"   # REQUIRED
+			"endpoints"      : "https://192.168.42.45:2379"             # REQUIRED
 
-			"auth"  : false												# is role based or cert based auth enabled on the etcd cluster
-			"user"  : "admin",            								# username for role based authentication
-			"pass"  : "p@ssw0rd"          								# password for role based authentication
-			"clientCertPath" : "/tmp/test-certs/test-client.crt" 		# path to client certificate
-			"clientKeyPath"  : "/tmp/test-certs/test-client-key.key" 	# path to client key
-			"caCertPath"     : "/tmp/test-certs/test-ca.crt" 			# path to CA certificate
-			"fullOverwrite"  : "false"								    # enable or disable full overwrite of the cluster
-			"prefix"		 : "starkandwayne/"							# backup specific keys
+			"auth"           : false                                    # is role based or cert based auth enabled on the etcd cluster
+			"username"       : "admin",                                 # username for role based authentication
+			"password"       : "p@ssw0rd"                               # password for role based authentication
+			"clientCertPath" : "/tmp/test-certs/test-client.crt"        # path to client certificate
+			"clientKeyPath"  : "/tmp/test-certs/test-client-key.key"    # path to client key
+			"caCertPath"     : "/tmp/test-certs/test-ca.crt"            # path to CA certificate
+			"overwrite"      : "false"                                  # enable or disable full overwrite of the cluster
+			"prefix"         : "starkandwayne/"                         # backup specific keys
 			}
 			`,
 		Defaults: `
@@ -64,7 +63,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:    "target",
-				Name:    "user",
+				Name:    "username",
 				Type:    "string",
 				Help:    "Username for role based authentication",
 				Title:   "Username",
@@ -72,7 +71,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:    "target",
-				Name:    "pass",
+				Name:    "password",
 				Type:    "password",
 				Help:    "Password for role based authentication",
 				Title:   "Password",
@@ -104,7 +103,7 @@ func main() {
 			},
 			plugin.Field{
 				Mode:    "target",
-				Name:    "fullOverwrite",
+				Name:    "overwrite",
 				Type:    "bool",
 				Help:    "If this is enabled, the existing key/value pairs will be deleted. The values will be restored using the backup archive.",
 				Title:   "Full Overwrite",
@@ -134,7 +133,7 @@ type EtcdConfig struct {
 	ClientCertPath string
 	ClientKeyPath  string
 	CaCertPath     string
-	FullOverwrite  bool
+	overwrite      bool
 	Prefix         string
 }
 
@@ -153,12 +152,12 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		return nil, err
 	}
 
-	user, err := endpoint.StringValueDefault("user", "")
+	username, err := endpoint.StringValueDefault("username", "")
 	if err != nil {
 		return nil, err
 	}
 
-	pass, err := endpoint.StringValueDefault("pass", "")
+	password, err := endpoint.StringValueDefault("pass", "")
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +176,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		return nil, err
 	}
 
-	fullOverwrite, err := endpoint.BooleanValueDefault("fullOverwrite", false)
+	overwrite, err := endpoint.BooleanValueDefault("overwrite", false)
 	if err != nil {
 		return nil, err
 	}
@@ -190,12 +189,12 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 	return &EtcdConfig{
 		EtcdEndpoints:  etcdEndpoint,
 		Authentication: auth,
-		Username:       user,
-		Password:       pass,
+		Username:       username,
+		Password:       password,
 		ClientCertPath: clientCert,
 		ClientKeyPath:  clientKey,
 		CaCertPath:     caCert,
-		FullOverwrite:  fullOverwrite,
+		overwrite:      overwrite,
 		Prefix:         prefix,
 	}, nil
 }
@@ -236,12 +235,12 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			fmt.Printf("@G{\u2713 username} @C{%s}\n", plugin.Redact(s))
 		}
 
-		s, err = endpoint.StringValueDefault("pass", "")
+		s, err = endpoint.StringValueDefault("password", "")
 		if err != nil {
-			fmt.Printf("@R{\u2717 pass  %s}\n", err)
+			fmt.Printf("@R{\u2717 password  %s}\n", err)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@R{\u2713 pass} password was not provided so cert based auth will be used\n")
+			fmt.Printf("@R{\u2713 password} password was not provided so cert based auth will be used\n")
 		} else {
 			fmt.Printf("@G{\u2713 password} @C{%s}\n", plugin.Redact(s))
 		}
@@ -274,7 +273,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		}
 	}
 
-	b, err = endpoint.BooleanValueDefault("fullOverwrite", false)
+	b, err = endpoint.BooleanValueDefault("overwrite", false)
 	if err != nil {
 		fmt.Printf("@R{\u2717 full restore  %s}\n", err)
 		fail = true
@@ -316,7 +315,7 @@ func (p EtcdPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 
 	tlsConfig, err := tlsInfo.ClientConfig()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -327,9 +326,8 @@ func (p EtcdPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		Password:    etcd.Password,
 		TLS:         tlsConfig,
 	})
-
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	defer cli.Close()
@@ -338,7 +336,7 @@ func (p EtcdPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	resp, err := cli.Get(ctx, etcd.Prefix, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	for _, ev := range resp.Kvs {
@@ -365,7 +363,7 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	tlsConfig, err := tlsInfo.ClientConfig()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
@@ -377,26 +375,17 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	})
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer cli.Close()
 
-	if etcd.FullOverwrite {
-		if etcd.Prefix == "" {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			_, err := cli.Delete(ctx, "", clientv3.WithPrefix())
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer cancel()
-		} else {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			_, err := cli.Delete(ctx, etcd.Prefix, clientv3.WithPrefix())
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer cancel()
+	if etcd.overwrite {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		_, err := cli.Delete(ctx, etcd.Prefix, clientv3.WithPrefix())
+		if err != nil {
+			return err
 		}
+		defer cancel()
 	}
 
 	for {
@@ -432,7 +421,7 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		_, err = cli.Put(ctx, fmt.Sprintf("%s", datakey), fmt.Sprintf("%s", dataval))
 		defer cancel()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 	return nil
