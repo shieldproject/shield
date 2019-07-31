@@ -158,10 +158,10 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		a := &Archive{}
 
 		var takenAt, expiresAt, size *int64
-		var targetName, storeName *string
+		var targetUUID, targetPlugin, targetEndpoint, targetName, storeName *string
 		if err = r.Scan(
 			&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
-			&a.TargetUUID, &targetName, &a.TargetPlugin, &a.TargetEndpoint,
+			&targetUUID, &targetName, &targetPlugin, &targetEndpoint,
 			&a.StoreUUID, &storeName, &a.StorePlugin, &a.StoreEndpoint, &a.StoreAgent,
 			&a.Status, &a.PurgeReason, &a.Job, &a.EncryptionType,
 			&a.Compression, &a.TenantUUID, &size); err != nil {
@@ -176,6 +176,15 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		}
 		if targetName != nil {
 			a.TargetName = *targetName
+		}
+		if targetUUID != nil {
+			a.TargetUUID = *targetUUID
+		}
+		if targetPlugin != nil {
+			a.TargetPlugin = *targetPlugin
+		}
+		if targetEndpoint != nil {
+			a.TargetPlugin = *targetEndpoint
 		}
 		if storeName != nil {
 			a.StoreName = *storeName
