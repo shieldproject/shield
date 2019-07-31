@@ -27,7 +27,7 @@ func main() {
 		},
 		Example: `
 			{
-			"etcd_url"   : "https://192.168.42.45:2379"                                                                        # REQUIRED
+			"endpoint"   : "https://192.168.42.45:2379"                                                                        # REQUIRED
 			"auth"        : false                                                                                               # is role based or cert based auth enabled on the etcd cluster
 			"username"    : "admin",                                                                                            # username for role based authentication
 			"password"    : "p@ssw0rd"                                                                                          # password for role based authentication
@@ -45,9 +45,9 @@ func main() {
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
-				Name:     "etcd_url",
+				Name:     "endpoint",
 				Type:     "string",
-				Title:    "Endpoint",
+				Title:    "etcd URL",
 				Help:     "It is the upstream etcd client endpoint",
 				Example:  "https://192.168.42.45:2379",
 				Required: true,
@@ -141,7 +141,7 @@ func (p EtcdPlugin) Meta() plugin.PluginInfo {
 }
 
 func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
-	etcdEndpoint, err := endpoint.StringValue("etcd_url")
+	etcdEndpoint, err := endpoint.StringValue("endpoint")
 	if err != nil {
 		return nil, err
 	}
@@ -209,12 +209,12 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		err  error
 		fail bool
 	)
-	s, err = endpoint.StringValue("etcd_url")
+	s, err = endpoint.StringValue("endpoint")
 	if err != nil {
-		fmt.Printf("@R{\u2717 etcd_url  %s}\n", err)
+		fmt.Printf("@R{\u2717 endpoint  %s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 etcd etcd_url} data in @C{%s} will be backed up\n", s)
+		fmt.Printf("@G{\u2713 etcd endpoint} data in @C{%s} will be backed up\n", s)
 	}
 
 	b, err = endpoint.BooleanValueDefault("auth", false)
