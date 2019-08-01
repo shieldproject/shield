@@ -89,7 +89,7 @@ func main() {
 				Type:    "abspath",
 				Title:   "BBR bin/ Path",
 				Help:    "The absolute path to the bin/ directory that contains the `bbr` command.",
-				Default: "/var/vcap/packages/bbr/bin",
+				Default: DefaultBinDir,
 			},
 			plugin.Field{
 				Mode:    "target",
