@@ -2,6 +2,7 @@ package main
 
 import (
 	fmt "github.com/jhunt/go-ansi"
+	"strings"
 
 	"github.com/shieldproject/shield/plugin"
 )
@@ -207,25 +208,26 @@ func (p MongoPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 }
 
 func connectionString(info *MongoConnectionInfo, backup bool) string {
+	opts := fmt.Sprintf("--archive --host %s", info.Host);
 
-	var options string
 	if info.Options != "" {
-		options = fmt.Sprintf(" %s ", info.Options)
+		opts += fmt.Sprintf(" %s ", info.Options)
 	}
 
-	var db string
 	if info.Database != "" {
-		db = fmt.Sprintf(" --db %s", info.Database)
+		opts += fmt.Sprintf(" --db %s", info.Database)
 	}
 
-	var auth string
 	if info.User != "" && info.Password != "" {
-		auth = fmt.Sprintf(" --authenticationDatabase admin --username %s --password %s",
+		opts += fmt.Sprintf(" --authenticationDatabase admin --username %s --password %s",
 			info.User, info.Password)
 	}
 
-	return fmt.Sprintf("--archive --host %s --port %s%s%s%s",
-		info.Host, info.Port, auth, db, options)
+	if !strings.ContainsAny(info.Host, ":") {
+		opts += fmt.Sprintf(" --port %s", info.Port)
+	}
+
+	return opts
 }
 
 func mongoConnectionInfo(endpoint plugin.ShieldEndpoint) (*MongoConnectionInfo, error) {

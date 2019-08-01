@@ -65,3 +65,8 @@
 
 - Orphaned archives from a target deletion no longer prevent users
   from loggin into SHIELD
+
+- The `mongo` plugin now handles hosts with embedded ports,
+  allowing operators to configure multi-node mongo across
+  different ports on the same node, without `--port` getting in
+  the way.
