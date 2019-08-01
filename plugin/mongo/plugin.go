@@ -29,6 +29,7 @@ func main() {
   "mongo_user"     : "username",    # optional
   "mongo_password" : "password",    # optional
   "mongo_database" : "db",          # optional
+  "mongo_authdb"   : "other-db",    # optional
   "mongo_bindir"   : "/path/to/bin" # optional
   "mongo_options"  : "--ssl"        # optional
 }
@@ -79,6 +80,14 @@ func main() {
 				Help:    "Limit the scope of the backup to the named database.  By default, all databases are backed up.",
 				Example: "salesdb1",
 			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "mongo_authdb",
+				Type:    "string",
+				Title:   "Authentication Database",
+				Help:    "The database to authenticate against.",
+				Example: "admin",
+			},
 
 			plugin.Field{
 				Mode:    "target",
@@ -112,6 +121,7 @@ type MongoConnectionInfo struct {
 	Password string
 	Bin      string
 	Database string
+	AuthDB   string
 	Options  string
 }
 
@@ -219,8 +229,8 @@ func connectionString(info *MongoConnectionInfo, backup bool) string {
 	}
 
 	if info.User != "" && info.Password != "" {
-		opts += fmt.Sprintf(" --authenticationDatabase admin --username %s --password %s",
-			info.User, info.Password)
+		opts += fmt.Sprintf(" --authenticationDatabase %s --username %s --password %s",
+			info.AuthDB, info.User, info.Password)
 	}
 
 	if !strings.ContainsAny(info.Host, ":") {
@@ -261,6 +271,12 @@ func mongoConnectionInfo(endpoint plugin.ShieldEndpoint) (*MongoConnectionInfo, 
 	}
 	plugin.DEBUG("MONGO_DB: '%s'", db)
 
+	authdb, err := endpoint.StringValueDefault("mongo_authdb", "admin")
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("MONGO_AUTHDB: '%s'", authdb)
+
 	bin, err := endpoint.StringValueDefault("mongo_bindir", DefaultMongoBinDir)
 	if err != nil {
 		return nil, err
@@ -280,6 +296,7 @@ func mongoConnectionInfo(endpoint plugin.ShieldEndpoint) (*MongoConnectionInfo, 
 		Password: password,
 		Bin:      bin,
 		Database: db,
+		AuthDB:   authdb,
 		Options:  options,
 	}, nil
 }

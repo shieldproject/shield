@@ -70,3 +70,6 @@
   allowing operators to configure multi-node mongo across
   different ports on the same node, without `--port` getting in
   the way.
+
+- The `mongo` plugin now allows you to authenticate against a
+  database _other_ than "admin" (which remains the default).
