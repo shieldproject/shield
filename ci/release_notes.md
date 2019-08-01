@@ -60,3 +60,8 @@
   Previously, the details would only load if you visited the
   global store from the "Storage Systems" (non-admin) top-level,
   which only works if you actually have a tenant.  See #535
+
+- `shield annotate-archive` now works with short uuids
+
+- Orphaned archives from a target deletion no longer prevent users
+  from loggin into SHIELD
