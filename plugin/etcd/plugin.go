@@ -28,16 +28,16 @@ func main() {
 		},
 		Example: `
 			{
-			"endpoints"   : "https://192.168.42.45:2379"                                                                        # REQUIRED
+			"url"   : "https://192.168.42.45:2379"                                                                              # REQUIRED
         
-			"auth"        : ""                                                                                             # is role based or cert based auth enabled on the etcd cluster
-			"username"    : "admin",                                                                                           # username for role based authentication
+			"auth"        : ""                                                                                                  # is role based or cert based auth enabled on the etcd cluster
+			"username"    : "admin",                                                                                            # username for role based authentication
 			"password"    : "p@ssw0rd"                                                                                          # password for role based authentication
 			"client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to client certificate
 			"client_key"  : "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----"    # path to client key
 			"ca_cert"     : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to CA certificate
 			"overwrite"   : "false"                                                                                             # enable or disable full overwrite of the cluster
-			"prefix"      : "starkandwayne/"                                                                                    # backup specific keys
+			"prefix"      : "starkandwayne"                                                                                     # backup specific keys
 			}
 			`,
 		Defaults: `
