@@ -119,9 +119,9 @@ func main() {
 				Mode:    "target",
 				Name:    "prefix",
 				Type:    "string",
-				Help:    "This is the input string for prefix based backup-restore. The trailing \"/\" is required.",
+				Help:    "This is the input string for prefix based backup-restore.",
 				Title:   "Prefix",
-				Example: "starkandwayne/",
+				Example: "starkandwayne",
 			},
 		},
 	}
