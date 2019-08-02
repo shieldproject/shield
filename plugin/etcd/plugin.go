@@ -30,8 +30,8 @@ func main() {
 			{
 			"endpoints"   : "https://192.168.42.45:2379"                                                                        # REQUIRED
         
-			"auth"        : false                                                                                               # is role based or cert based auth enabled on the etcd cluster
-			"username"    : "admin",                                                                                            # username for role based authentication
+			"auth"        : ""                                                                                             # is role based or cert based auth enabled on the etcd cluster
+			"username"    : "admin",                                                                                           # username for role based authentication
 			"password"    : "p@ssw0rd"                                                                                          # password for role based authentication
 			"client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to client certificate
 			"client_key"  : "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----"    # path to client key
@@ -71,7 +71,7 @@ func main() {
 				Mode:    "target",
 				Name:    "username",
 				Type:    "string",
-				Help:    "Username for role based authentication",
+				Help:    "Username for role based authentication.",
 				Title:   "Username",
 				Example: "admin",
 			},
@@ -79,7 +79,7 @@ func main() {
 				Mode:    "target",
 				Name:    "password",
 				Type:    "password",
-				Help:    "Password for role based authentication",
+				Help:    "Password for role based authentication.",
 				Title:   "Password",
 				Example: "p@ssw0rd",
 			},
@@ -87,7 +87,7 @@ func main() {
 				Mode:    "target",
 				Name:    "client_cert",
 				Type:    "pem-x509",
-				Help:    "Path to the certificate issued by the CA for the client connecting to the ETCD cluster",
+				Help:    "Path to the certificate issued by the CA for the client connecting to the ETCD cluster.",
 				Title:   "Client Certificate",
 				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
 			},
@@ -95,7 +95,7 @@ func main() {
 				Mode:    "target",
 				Name:    "client_key",
 				Type:    "pem-rsa-pk",
-				Help:    "Path to the key issued by the CA for the client connecting to the ETCD cluster",
+				Help:    "Path to the key issued by the CA for the client connecting to the ETCD cluster.",
 				Title:   "Client Private Key",
 				Example: "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----",
 			},
@@ -103,7 +103,7 @@ func main() {
 				Mode:    "target",
 				Name:    "ca_cert",
 				Type:    "pem-x509",
-				Help:    "Path to the CA certificate that issued the client cert and key",
+				Help:    "Path to the CA certificate that issued the client cert and key.",
 				Title:   "CA Certificate",
 				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
 			},
@@ -111,7 +111,7 @@ func main() {
 				Mode:    "target",
 				Name:    "overwrite",
 				Type:    "bool",
-				Help:    "If this is enabled, only keys mentioned in prefix will be deleted. The values will be restored using the backup archive.",
+				Help:    "If this is enabled, only keys mentioned in the 'Prefix' field will be deleted. The values will be restored using the backup archive.",
 				Title:   "Overwrite",
 				Example: "false",
 			},
@@ -119,7 +119,7 @@ func main() {
 				Mode:    "target",
 				Name:    "prefix",
 				Type:    "string",
-				Help:    "This is the input string for prefix based backup-restore",
+				Help:    "This is the input string for prefix based backup-restore. The trailing \"/\" is required.",
 				Title:   "Prefix",
 				Example: "starkandwayne/",
 			},
@@ -234,99 +234,86 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	)
 	s, err = endpoint.StringValue("url")
 	if err != nil {
-		fmt.Printf("@R{\u2717 url}                @C{%s}\n", err)
+		fmt.Printf("@R{\u2717 url}                   @C{%s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 url}                data in @C{%s} will be backed up\n", s)
+		fmt.Printf("@G{\u2713 url}                   data in @C{%s} will be backed up\n", s)
 	}
 
 	s, err = endpoint.StringValueDefault("auth", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 authentication}           %s\n", err)
+		fmt.Printf("@R{\u2717 authentication}        @C{%s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 authentication}           Not using any authentication methods\n")
+		fmt.Printf("@G{\u2713 authentication}        Not using any authentication methods\n")
 	} else if s == "Role-Based Authentication" {
-		fmt.Printf("@G{\u2713 authentication}           Role-Based authentication chosen\n")
+		fmt.Printf("@G{\u2713 authentication}        Role-Based authentication chosen\n")
 	} else if s == "Certificate-Based Authenticaiton" {
-		fmt.Printf("@G{\u2713 authentication}           Certificate-Based authentication chosen\n")
+		fmt.Printf("@G{\u2713 authentication}        Certificate-Based authentication chosen\n")
 	} else if s == "Both" {
-		fmt.Printf("@G{\u2713 authentication}           Both ways of authentication are chosed\n")
+		fmt.Printf("@G{\u2713 authentication}        Both ways of authentication are chosed\n")
 		b = true
 	}
 
 	if s == "Role-Based Authentication" || b {
-		s, err = endpoint.StringValueDefault("username", "")
+		s, err = endpoint.StringValue("username")
 		if err != nil {
-			fmt.Printf("@R{\u2717 username}            %s\n", err)
-			fail = true
-		} else if s == "" {
-			fmt.Printf("@R{\u2717 username}            Role-based authentication was chosen so username is required\n")
+			fmt.Printf("@R{\u2717 username}              @C{%s}\n", err)
 			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 username}            @C{%s}\n", plugin.Redact(s))
+			fmt.Printf("@G{\u2713 username}              @C{%s}\n", plugin.Redact(s))
 		}
 
-		s, err = endpoint.StringValueDefault("password", "")
+		s, err = endpoint.StringValue("password")
 		if err != nil {
-			fmt.Printf("@R{\u2717 password}            %s\n", err)
-			fail = true
-		} else if s == "" {
-			fmt.Printf("@R{\u2717 password}            Role-based authentication was chosen so password is required\n")
+			fmt.Printf("@R{\u2717 password}              @C{%s}\n", err)
 			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 password}            @C{%s}\n", plugin.Redact(s))
+			fmt.Printf("@G{\u2713 password}              @C{%s}\n", plugin.Redact(s))
 		}
 	}
 
 	if s == "Certificate-Based Authenticaiton" || b {
-		s, err = endpoint.StringValueDefault("client_cert", "")
+		s, err = endpoint.StringValue("client_cert")
 		if err != nil {
-			fmt.Printf("@R{\u2717 client_cert}        %s\n", err)
-		} else if s == "" {
-			fmt.Printf("@R{\u2717 client_cert}        Certificate-based authentication was chosen so client cert is required\n")
-			fail = true
+			fmt.Printf("@R{\u2717 client_cert}           @C{%s}\n", err)
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
 			lines := strings.Split(s, "\n")
-			fmt.Printf("@G{\u2713 client_cert}       @C{%s}\n", lines[0])
+			fmt.Printf("@G{\u2713 client_cert}           @C{%s}\n", lines[0])
 			if len(lines) > 1 {
 				for _, line := range lines[1:] {
-					fmt.Printf("                     @C{%s}\n", line)
+					fmt.Printf("                         @C{%s}\n", line)
 				}
 			}
 		}
 
-		if s, err := endpoint.StringValue("client_key"); err != nil {
-			fmt.Printf("@R{\u2717 client_key}        %s\n", err)
-			fail = true
-		} else if s == "" {
-			fmt.Printf("@R{\u2717 client_key}        Certificate-based authentication was chosen so client key is required\n")
+		s, err = endpoint.StringValue("client_key")
+		if err != nil {
+			fmt.Printf("@R{\u2717 client_key}            @C{%s}\n", err)
 			fail = true
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
 			lines := strings.Split(s, "\n")
-			fmt.Printf("@G{\u2713 ca_key}            @C{%s}\n", plugin.Redact(lines[0]))
+			fmt.Printf("@G{\u2713 ca_key}                @C{%s}\n", plugin.Redact(lines[0]))
 			if len(lines) > 1 {
 				for _, line := range lines[1:] {
-					fmt.Printf("                     @C{%s}\n", plugin.Redact(line))
+					fmt.Printf("                         @C{%s}\n", plugin.Redact(line))
 				}
 			}
 		}
 
-		if s, err := endpoint.StringValue("ca_cert"); err != nil {
-			fmt.Printf("@R{\u2717 ca_cert}           @C{s}\n", err)
-			fail = true
-		} else if s == "" {
-			fmt.Printf("@R{\u2717 ca_cert}           Certificate-based authentication was chosen so ca cert is required\n")
+		s, err = endpoint.StringValue("ca_cert")
+		if err != nil {
+			fmt.Printf("@R{\u2717 ca_cert}               @C{%s}\n", err)
 			fail = true
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
 			lines := strings.Split(s, "\n")
-			fmt.Printf("@G{\u2713 ca_cert}           @C{%s}\n", lines[0])
+			fmt.Printf("@G{\u2713 ca_cert}               @C{%s}\n", lines[0])
 			if len(lines) > 1 {
 				for _, line := range lines[1:] {
-					fmt.Printf("                     @C{%s}\n", line)
+					fmt.Printf("                         @C{%s}\n", line)
 				}
 			}
 		}
