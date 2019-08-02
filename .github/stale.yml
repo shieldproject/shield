@@ -6,6 +6,8 @@ daysUntilClose: 14
 
 # we never consider `confirmed` or `security` issues to be stale
 exemptLabels:
+  - eval
+  - triage
   - confirmed
   - security
 
