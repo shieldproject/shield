@@ -3,13 +3,14 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"io"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/pkg/transport"
 	fmt "github.com/jhunt/go-ansi"
 	"go.etcd.io/etcd/clientv3"
 
@@ -27,11 +28,12 @@ func main() {
 		},
 		Example: `
 			{
-			"endpoint"   : "https://192.168.42.45:2379"                                                                        # REQUIRED
+			"endpoints"   : "https://192.168.42.45:2379"                                                                        # REQUIRED
+        
 			"auth"        : false                                                                                               # is role based or cert based auth enabled on the etcd cluster
 			"username"    : "admin",                                                                                            # username for role based authentication
 			"password"    : "p@ssw0rd"                                                                                          # password for role based authentication
-			"client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            #  path to client certificate
+			"client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to client certificate
 			"client_key"  : "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----"    # path to client key
 			"ca_cert"     : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to CA certificate
 			"overwrite"   : "false"                                                                                             # enable or disable full overwrite of the cluster
@@ -45,20 +47,25 @@ func main() {
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
-				Name:     "endpoint",
+				Name:     "url",
 				Type:     "string",
-				Title:    "etcd URL",
-				Help:     "It is the upstream etcd client endpoint",
+				Title:    "Endpoint",
+				Help:     "The client URL of the etcd cluster.",
 				Example:  "https://192.168.42.45:2379",
 				Required: true,
 			},
 			plugin.Field{
-				Mode:    "target",
-				Name:    "auth",
-				Type:    "bool",
+				Mode: "target",
+				Name: "auth",
+				Type: "enum",
+				Enum: []string{
+					"Role-Based Authentication",
+					"Certificate-Based Authenticaiton",
+					"Both",
+				},
 				Title:   "Authentication",
-				Help:    "Is role based or cert based authentication enabled on the etcd cluster",
-				Example: "false",
+				Help:    "Type of authentication for accessing the ETCD cluster. No authentication is done if left blank.",
+				Example: "Role-Based Authentication",
 			},
 			plugin.Field{
 				Mode:    "target",
@@ -81,15 +88,15 @@ func main() {
 				Name:    "client_cert",
 				Type:    "pem-x509",
 				Help:    "Path to the certificate issued by the CA for the client connecting to the ETCD cluster",
-				Title:   "Client Certificate File Path",
+				Title:   "Client Certificate",
 				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
 			},
 			plugin.Field{
 				Mode:    "target",
 				Name:    "client_key",
-				Type:    "pem-x509",
+				Type:    "pem-rsa-pk",
 				Help:    "Path to the key issued by the CA for the client connecting to the ETCD cluster",
-				Title:   "Client Key File Path",
+				Title:   "Client Private Key",
 				Example: "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----",
 			},
 			plugin.Field{
@@ -97,7 +104,7 @@ func main() {
 				Name:    "ca_cert",
 				Type:    "pem-x509",
 				Help:    "Path to the CA certificate that issued the client cert and key",
-				Title:   "Trusted CA File Path",
+				Title:   "CA Certificate",
 				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
 			},
 			plugin.Field{
@@ -126,12 +133,8 @@ type EtcdPlugin plugin.PluginInfo
 
 type EtcdConfig struct {
 	EtcdEndpoints  string
-	Authentication bool
-	Username       string
-	Password       string
-	ClientCert     string
-	ClientKey      string
-	CACert         string
+	Authentication string
+	EtcdClient     *clientv3.Client
 	Overwrite      bool
 	Prefix         string
 }
@@ -141,12 +144,12 @@ func (p EtcdPlugin) Meta() plugin.PluginInfo {
 }
 
 func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
-	etcdEndpoint, err := endpoint.StringValue("endpoint")
+	etcdEndpoint, err := endpoint.StringValue("url")
 	if err != nil {
 		return nil, err
 	}
 
-	auth, err := endpoint.BooleanValueDefault("auth", false)
+	auth, err := endpoint.StringValueDefault("auth", "")
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +173,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	caCert, err := endpoint.StringValueDefault("ca_cert", "")
 	if err != nil {
 		return nil, err
@@ -183,20 +187,39 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 	prefix, err := endpoint.StringValueDefault("prefix", "")
 	if err != nil {
 		return nil, err
-	} else {
-		if prefix[len(prefix)-1:] != "\\" {
-			prefix = prefix + "\\"
-		}
+	}
+
+	caCertPool := x509.NewCertPool()
+	check := caCertPool.AppendCertsFromPEM([]byte(caCert))
+	if check != true {
+		plugin.DEBUG("CA cert did't parse right.\n")
+	}
+
+	cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+	if err != nil {
+		return nil, err
+	}
+
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+	}
+
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints:   []string{etcdEndpoint},
+		DialTimeout: 2 * time.Second,
+		Username:    username,
+		Password:    password,
+		TLS:         tlsConfig,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &EtcdConfig{
 		EtcdEndpoints:  etcdEndpoint,
 		Authentication: auth,
-		Username:       username,
-		Password:       password,
-		ClientCert:     clientCert,
-		ClientKey:      clientKey,
-		CACert:         caCert,
+		EtcdClient:     cli,
 		Overwrite:      overwrite,
 		Prefix:         prefix,
 	}, nil
@@ -209,91 +232,124 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		err  error
 		fail bool
 	)
-	s, err = endpoint.StringValue("endpoint")
+	s, err = endpoint.StringValue("url")
 	if err != nil {
-		fmt.Printf("@R{\u2717 endpoint  %s}\n", err)
+		fmt.Printf("@R{\u2717 url}                @C{%s}\n", err)
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 etcd endpoint} data in @C{%s} will be backed up\n", s)
+		fmt.Printf("@G{\u2713 url}                data in @C{%s} will be backed up\n", s)
 	}
 
-	b, err = endpoint.BooleanValueDefault("auth", false)
+	s, err = endpoint.StringValueDefault("auth", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 authentication %s}\n", err)
+		fmt.Printf("@R{\u2717 authentication}           %s\n", err)
 		fail = true
-	} else if b {
-		fmt.Printf("@G{\u2713 auth} authentication is enabled\n")
-	} else {
-		fmt.Printf("@G{\u2713 auth} authentication is disabled\n")
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 authentication}           Not using any authentication methods\n")
+	} else if s == "Role-Based Authentication" {
+		fmt.Printf("@G{\u2713 authentication}           Role-Based authentication chosen\n")
+	} else if s == "Certificate-Based Authenticaiton" {
+		fmt.Printf("@G{\u2713 authentication}           Certificate-Based authentication chosen\n")
+	} else if s == "Both" {
+		fmt.Printf("@G{\u2713 authentication}           Both ways of authentication are chosed\n")
+		b = true
 	}
 
-	if b {
+	if s == "Role-Based Authentication" || b {
 		s, err = endpoint.StringValueDefault("username", "")
 		if err != nil {
-			fmt.Printf("@R{\u2717 user  %s}\n", err)
+			fmt.Printf("@R{\u2717 username}            %s\n", err)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@G{\u2713 user} username was not provided so cert based auth will be used\n")
+			fmt.Printf("@R{\u2717 username}            Role-based authentication was chosen so username is required\n")
+			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 username} @C{%s}\n", plugin.Redact(s))
+			fmt.Printf("@G{\u2713 username}            @C{%s}\n", plugin.Redact(s))
 		}
 
 		s, err = endpoint.StringValueDefault("password", "")
 		if err != nil {
-			fmt.Printf("@R{\u2717 password  %s}\n", err)
+			fmt.Printf("@R{\u2717 password}            %s\n", err)
 			fail = true
 		} else if s == "" {
-			fmt.Printf("@R{\u2713 password} password was not provided so cert based auth will be used\n")
+			fmt.Printf("@R{\u2717 password}            Role-based authentication was chosen so password is required\n")
+			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 password} @C{%s}\n", plugin.Redact(s))
+			fmt.Printf("@G{\u2713 password}            @C{%s}\n", plugin.Redact(s))
 		}
+	}
 
+	if s == "Certificate-Based Authenticaiton" || b {
 		s, err = endpoint.StringValueDefault("client_cert", "")
 		if err != nil {
-			fmt.Printf("@R{\u2717 client certificate path  %s}\n", err)
+			fmt.Printf("@R{\u2717 client_cert}        %s\n", err)
 		} else if s == "" {
-			fmt.Printf("@R{\u2713 client certificate path} was not provided\n")
+			fmt.Printf("@R{\u2717 client_cert}        Certificate-based authentication was chosen so client cert is required\n")
+			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 client certificate path} was provided\n")
+			/* FIXME: validate that it is an X.509 PEM certificate */
+			lines := strings.Split(s, "\n")
+			fmt.Printf("@G{\u2713 client_cert}       @C{%s}\n", lines[0])
+			if len(lines) > 1 {
+				for _, line := range lines[1:] {
+					fmt.Printf("                     @C{%s}\n", line)
+				}
+			}
 		}
 
-		s, err = endpoint.StringValueDefault("client_key", "")
-		if err != nil {
-			fmt.Printf("@R{\u2717 client key path  %s}\n", err)
+		if s, err := endpoint.StringValue("client_key"); err != nil {
+			fmt.Printf("@R{\u2717 client_key}        %s\n", err)
+			fail = true
 		} else if s == "" {
-			fmt.Printf("@R{\u2713 client key path} was not provided\n")
+			fmt.Printf("@R{\u2717 client_key}        Certificate-based authentication was chosen so client key is required\n")
+			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 client key path} was provided\n")
+			/* FIXME: validate that it is an X.509 PEM certificate */
+			lines := strings.Split(s, "\n")
+			fmt.Printf("@G{\u2713 ca_key}            @C{%s}\n", plugin.Redact(lines[0]))
+			if len(lines) > 1 {
+				for _, line := range lines[1:] {
+					fmt.Printf("                     @C{%s}\n", plugin.Redact(line))
+				}
+			}
 		}
 
-		s, err = endpoint.StringValueDefault("ca_cert", "")
-		if err != nil {
-			fmt.Printf("@R{\u2717 CA certificate path  %s}\n", err)
+		if s, err := endpoint.StringValue("ca_cert"); err != nil {
+			fmt.Printf("@R{\u2717 ca_cert}           @C{s}\n", err)
+			fail = true
 		} else if s == "" {
-			fmt.Printf("@R{\u2713 CA certificate path} was not provided\n")
+			fmt.Printf("@R{\u2717 ca_cert}           Certificate-based authentication was chosen so ca cert is required\n")
+			fail = true
 		} else {
-			fmt.Printf("@G{\u2713 CA certificate path} was provided\n")
+			/* FIXME: validate that it is an X.509 PEM certificate */
+			lines := strings.Split(s, "\n")
+			fmt.Printf("@G{\u2713 ca_cert}           @C{%s}\n", lines[0])
+			if len(lines) > 1 {
+				for _, line := range lines[1:] {
+					fmt.Printf("                     @C{%s}\n", line)
+				}
+			}
 		}
 	}
 
 	b, err = endpoint.BooleanValueDefault("overwrite", false)
 	if err != nil {
-		fmt.Printf("@R{\u2717 full restore  %s}\n", err)
+		fmt.Printf("@R{\u2717 overwrite}             %s\n", err)
 		fail = true
 	} else if b {
-		fmt.Printf("@G{\u2713} full restore enabled\n")
+		fmt.Printf("@G{\u2713 overwrite}             @C{%t} - While restoring the existing keys/values in the cluster are removed and then backed up\n", b)
 	} else {
-		fmt.Printf("@G{\u2713} full restore disabled\n")
+		fmt.Printf("@G{\u2713 overwrite}             @C{%t} - Keys/values will be appended to the existing etcd cluster when restored\n", b)
 	}
 
 	s, err = endpoint.StringValueDefault("prefix", "")
 	if err != nil {
-		fmt.Printf("@R{\u2717 prefix  %s}\n", err)
+		fmt.Printf("@R{\u2717 prefix}                %s\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@R{\u2713 prefix} prefix was not provided so everything will be backed-up/restored\n")
+		fmt.Printf("@G{\u2713 prefix}                Prefix was not provided so everything will be backed-up/restored\n")
 	} else {
-		fmt.Printf("@G{\u2713 prefix} @C{%s}\n", plugin.Redact(s))
+		fmt.Printf("@G{\u2713 prefix}                @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -310,34 +366,11 @@ func (p EtcdPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	tlsInfo := transport.TLSInfo{
-		CertFile:      etcd.ClientCert,
-		KeyFile:       etcd.ClientKey,
-		TrustedCAFile: etcd.CACert,
-	}
-
-	tlsConfig, err := tlsInfo.ClientConfig()
-	if err != nil {
-		return err
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{etcd.EtcdEndpoints},
-		DialTimeout: 2 * time.Second,
-		Username:    etcd.Username,
-		Password:    etcd.Password,
-		TLS:         tlsConfig,
-	})
-	if err != nil {
-		return err
-	}
-
-	defer cli.Close()
 	defer cancel()
+	defer etcd.EtcdClient.Close()
 
-	resp, err := cli.Get(ctx, etcd.Prefix, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
-
+	resp, err := etcd.EtcdClient.Get(ctx, etcd.Prefix, clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
 	if err != nil {
 		return err
 	}
@@ -358,37 +391,15 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	tlsInfo := transport.TLSInfo{
-		CertFile:      etcd.ClientCert,
-		KeyFile:       etcd.ClientKey,
-		TrustedCAFile: etcd.CACert,
-	}
-
-	tlsConfig, err := tlsInfo.ClientConfig()
-	if err != nil {
-		return err
-	}
-
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{etcd.EtcdEndpoints},
-		DialTimeout: 2 * time.Second,
-		Username:    etcd.Username,
-		Password:    etcd.Password,
-		TLS:         tlsConfig,
-	})
-
-	if err != nil {
-		return err
-	}
-	defer cli.Close()
+	defer etcd.EtcdClient.Close()
 
 	if etcd.Overwrite {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		_, err := cli.Delete(ctx, etcd.Prefix, clientv3.WithPrefix())
+		_, err := etcd.EtcdClient.Delete(ctx, etcd.Prefix, clientv3.WithPrefix())
+		defer cancel()
 		if err != nil {
 			return err
 		}
-		defer cancel()
 	}
 
 	for {
@@ -421,7 +432,7 @@ func (p EtcdPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		_, err = cli.Put(ctx, fmt.Sprintf("%s", datakey), fmt.Sprintf("%s", dataval))
+		_, err = etcd.EtcdClient.Put(ctx, fmt.Sprintf("%s", datakey), fmt.Sprintf("%s", dataval))
 		defer cancel()
 		if err != nil {
 			return err
