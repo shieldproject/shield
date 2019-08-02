@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	qs "github.com/jhunt/go-querytron"
+	"github.com/pborman/uuid"
 )
 
 type Task struct {
@@ -55,6 +56,29 @@ func (c *Client) ListTasks(parent *Tenant, filter *TaskFilter) ([]*Task, error) 
 		fixupTaskResponse(p)
 	}
 	return out, nil
+}
+
+func (c *Client) FindTask(parent *Tenant, q string, fuzzy bool) (*Task, error) {
+	if uuid.Parse(q) != nil {
+		return c.GetTask(parent, q)
+	}
+
+	l, err := c.ListTasks(parent, &TaskFilter{
+		UUID:  q,
+		Fuzzy: fuzzy,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(l) == 0 {
+		return nil, fmt.Errorf("no matching task found")
+	}
+	if len(l) > 1 {
+		return nil, fmt.Errorf("multiple matching tasks found")
+	}
+
+	return c.GetTask(parent, l[0].UUID)
 }
 
 func (c *Client) GetTask(parent *Tenant, uuid string) (*Task, error) {
