@@ -259,6 +259,11 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		err  error
 		fail bool
 	)
+
+	roleAuth := "Role-Based Authentication"
+	certAuth := "Certificate-Based Authentication"
+	bothAuth := "Both"
+
 	s, err = endpoint.StringValue("url")
 	if err != nil {
 		fmt.Printf("@R{\u2717 url}                   @C{%s}\n", err)
@@ -287,19 +292,22 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail = true
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 authentication}        Not using any authentication methods\n")
-	} else if s == "Role-Based Authentication" {
+	} else if s == roleAuth {
 		fmt.Printf("@G{\u2713 authentication}        Role-Based authentication chosen\n")
-	} else if s == "Certificate-Based Authentication" {
+	} else if s == certAuth {
 		fmt.Printf("@G{\u2713 authentication}        Certificate-Based authentication chosen\n")
-	} else if s == "Both" {
+	} else if s == bothAuth {
 		fmt.Printf("@G{\u2713 authentication}        Both ways of authentication are chosed\n")
 		b = true
 	}
 
-	if s == "Role-Based Authentication" || b {
+	if s == roleAuth || b {
 		s, err = endpoint.StringValue("username")
 		if err != nil {
 			fmt.Printf("@R{\u2717 username}              @C{%s}\n", err)
+			fail = true
+		} else if s == "" {
+			fmt.Printf("@R{\u2717 username}              Role based authentication chosen but username was not provided\n")
 			fail = true
 		} else {
 			fmt.Printf("@G{\u2713 username}              @C{%s}\n", plugin.Redact(s))
@@ -309,15 +317,21 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		if err != nil {
 			fmt.Printf("@R{\u2717 password}              @C{%s}\n", err)
 			fail = true
+		} else if s == "" {
+			fmt.Printf("@R{\u2717 password}              Role based authentication chosen but password was not provided\n")
+			fail = true
 		} else {
 			fmt.Printf("@G{\u2713 password}              @C{%s}\n", plugin.Redact(s))
 		}
 	}
 
-	if s == "Certificate-Based Authentication" || b {
+	if s == certAuth || b {
 		s, err = endpoint.StringValue("client_cert")
 		if err != nil {
 			fmt.Printf("@R{\u2717 client_cert}           @C{%s}\n", err)
+		} else if s == "" {
+			fmt.Printf("@R{\u2717 client_cert}           Certificate based authentication chosen but client certificate was not provided\n")
+			fail = true
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
 			lines := strings.Split(s, "\n")
@@ -333,6 +347,9 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		if err != nil {
 			fmt.Printf("@R{\u2717 client_key}            @C{%s}\n", err)
 			fail = true
+		} else if s == "" {
+			fmt.Printf("@R{\u2717 client_key}            Certificate based authentication chosen but client private key was not provided\n")
+			fail = true
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
 			fmt.Printf("@G{\u2713 client_key}			 Key present\n")
@@ -341,6 +358,9 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		s, err = endpoint.StringValue("ca_cert")
 		if err != nil {
 			fmt.Printf("@R{\u2717 ca_cert}               @C{%s}\n", err)
+			fail = true
+		} else if s == "" {
+			fmt.Printf("@R{\u2717 ca_cert}               Certificate based authentication chosen but CA certificate was not provided\n")
 			fail = true
 		} else {
 			/* FIXME: validate that it is an X.509 PEM certificate */
@@ -375,7 +395,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	if fail {
-		return fmt.Errorf("etcd: invalid configuration")
+		return fmt.Errorf("etcd: invalid configuration\n")
 	}
 
 	return nil
