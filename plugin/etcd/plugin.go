@@ -15,7 +15,7 @@ import (
 	fmt "github.com/jhunt/go-ansi"
 	"go.etcd.io/etcd/clientv3"
 
-	"github.com/starkandwayne/shield/plugin"
+	"github.com/shieldproject/shield/plugin"
 )
 
 func main() {
