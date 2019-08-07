@@ -28,24 +28,24 @@ func main() {
 			Store:  "no",
 		},
 		Example: `
-			{
-			"url"         : "https://192.168.42.45:2379,https://192.168.23.54:2379"                                             # REQUIRED
-            "timeout"     : "9"                                                                                                 # REQUIRED
-
-			"auth"        : ""                                                                                                  # is role based or cert based auth enabled on the etcd cluster
-			"username"    : "admin",                                                                                            # username for role based authentication
-			"password"    : "p@ssw0rd"                                                                                          # password for role based authentication
-			"client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to client certificate
-			"client_key"  : "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----"    # path to client key
-			"ca_cert"     : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to CA certificate
-			"overwrite"   : "false"                                                                                             # enable or disable full overwrite of the cluster
-			"prefix"      : "starkandwayne"                                                                                     # backup specific keys
-			}
-			`,
+            {
+            "url"         : "https://192.168.42.45:2379,https://192.168.23.54:2379"                                             # REQUIRED
+            
+            "timeout"     : "2"                                                                                                 # connection timeout
+            "auth"        : ""                                                                                                  # is role based or cert based auth enabled on the etcd cluster
+            "username"    : "admin",                                                                                            # username for role based authentication
+            "password"    : "p@ssw0rd"                                                                                          # password for role based authentication
+            "client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to client certificate
+            "client_key"  : "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----"    # path to client key
+            "ca_cert"     : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to CA certificate
+            "overwrite"   : "false"                                                                                             # enable or disable full overwrite of the cluster
+            "prefix"      : "starkandwayne"                                                                                     # backup specific keys
+            }
+            `,
 		Defaults: `
-			{
-			}
-			`,
+            {
+            }
+            `,
 		Fields: []plugin.Field{
 			plugin.Field{
 				Mode:     "target",
@@ -57,13 +57,12 @@ func main() {
 				Required: true,
 			},
 			plugin.Field{
-				Mode:     "target",
-				Name:     "timeout",
-				Type:     "string",
-				Title:    "Dial Timeout",
-				Help:     "DialTimeout is the timeout for failing to establish a connection. Enter time in seconds.",
-				Example:  "9",
-				Required: true,
+				Mode:    "target",
+				Name:    "timeout",
+				Type:    "string",
+				Title:   "Connection Timeout",
+				Help:    "The timeout for failing to establish a connection. Enter time in seconds.",
+				Example: "2",
 			},
 			plugin.Field{
 				Mode: "target",
@@ -161,7 +160,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 
 	etcdUrls := strings.Split(etcdEndpoint, ",")
 
-	timeoutStr, err := endpoint.StringValue("timeout")
+	timeoutStr, err := endpoint.StringValueDefault("timeout", "2")
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +271,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 url}                   data in @C{%s} clients will be backed up\n", s)
 	}
 
-	s, err = endpoint.StringValue("timeout")
+	s, err = endpoint.StringValueDefault("timeout", "2")
 	if err != nil {
 		fmt.Printf("@R{\u2717 timeout}               @C{%s}\n", err)
 		fail = true
@@ -291,7 +290,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@R{\u2717 authentication}        @C{%s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@G{\u2713 authentication}        Not using any authentication methods\n")
+		fmt.Printf("@G{\u2713 authentication}        not using any authentication methods\n")
 	} else if s == roleAuth {
 		fmt.Printf("@G{\u2713 authentication}        Role-Based authentication chosen\n")
 	} else if s == certAuth {
