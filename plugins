@@ -6,6 +6,7 @@ cassandra
 consul
 consul-snapshot
 docker-postgres
+etcd
 fs
 google
 mongo
