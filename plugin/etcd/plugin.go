@@ -237,7 +237,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-		tlsConfig.Certificates = cert
+		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
