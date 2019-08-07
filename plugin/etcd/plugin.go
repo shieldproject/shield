@@ -61,6 +61,7 @@ func main() {
 				Name:    "timeout",
 				Type:    "string",
 				Title:   "Connection Timeout",
+				Default: "2",
 				Help:    "The timeout for failing to establish a connection. Enter time in seconds.",
 				Example: "2",
 			},
