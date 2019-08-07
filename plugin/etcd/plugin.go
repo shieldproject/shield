@@ -219,9 +219,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 			plugin.DEBUG("CA cert did't parse right.\n")
 		}
 
-		tlsConfig = &tls.Config{
-			RootCAs: caCertPool,
-		}
+		tlsConfig.RootCAs = caCertPool
 	}
 
 	overwrite, err := endpoint.BooleanValueDefault("overwrite", false)
@@ -239,11 +237,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		tlsConfig = &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			RootCAs:      caCertPool,
-		}
+		tlsConfig.Certificates = cert
 	}
 
 	cli, err := clientv3.New(clientv3.Config{
