@@ -778,6 +778,13 @@
 			"revision": "b5adcc2dcdf009d0391547edc6ecbaff889f5bb9"
 		},
 		{
+			"checksumSHA1": "6aR7w8AeySHBwf96Jha1+cuh8Vw=",
+			"origin": "github.com/shieldproject/shield/vendor/golang.org/x/sys/unix",
+			"path": "golang.org/x/sys/unix",
+			"revision": "51ab0e2deafac1f46c46ad59cf0921be2f180c3d",
+			"revisionTime": "2019-08-02T02:30:53Z"
+		},
+		{
 			"path": "golang.org/x/text/encoding",
 			"revision": "1cbadb444a806fd9430d14ad08967ed91da4fa0a"
 		},
