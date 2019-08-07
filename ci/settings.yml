@@ -7,38 +7,34 @@ meta:
   initial_version: 0.6.4
 
   go:
-    version:    "1.9"
+    version:    "1.12"
     binary:     shield
     cmd_module: ./cmd/shield
 
+  bosh-lite:
+    target:   ((bosh.url))
+    username: ((bosh.username))
+    password: ((bosh.password))
+    cacert:   ((bosh.ca-certificate))
+
   aws:
-    access_key: (( vault "secret/pipelines/aws/cf-community:access" ))
-    secret_key: (( vault "secret/pipelines/aws/cf-community:secret" ))
+    access_key: ((aws.access_key_id))
+    secret_key: ((aws.secret_access_key))
 
   git:
     name: Stark & Wayne CI Bot
     email: ci@starkandwayne.com
 
   github:
-    owner: starkandwayne
-    repo: shield
-    private_key:  (( vault "secret/pipelines/github/starkandwayne/ci-bot:private" ))
-    access_token: (( vault "secret/pipelines/github/starkandwayne/ci-bot:access_token" ))
-
-  bosh-lite:
-    target:   https://10.200.131.9:25555
-    username: admin
-    password: (( vault "secret/thunder/dome/bosh/users/admin:password" ))
-    cacert:   (( vault "secret/thunder/dome/bosh/ssl/ca:certificate" ))
-
-  aws:
-    access_key: (( vault "secret/pipelines/aws/cf-community:access" ))
-    secret_key: (( vault "secret/pipelines/aws/cf-community:secret" ))
+    owner: shieldproject
+    repo:  shield
+    private_key:  ((github.private_key))
+    access_token: ((github.access_token))
 
   shout:
-    url:      http://10.200.131.1:7109
-    username: ops
-    password: (( vault "secret/buffalo/lab/concourse/shout/ops:password" ))
+    url:      ((shout.url))
+    username: ((shout.username))
+    password: ((shout.password))
 
 #################################################################################
 
@@ -52,7 +48,7 @@ resources:
   - name: phalanx
     type: git
     source:
-      uri:    https://github.com/starkandwayne/shield-phalanx
+      uri:    https://github.com/shieldproject/shield-phalanx
       branch: master
 
 jobs:
@@ -61,7 +57,7 @@ jobs:
     serial: true
     plan:
       - do:
-        - aggregate:
+        - in_parallel:
           - { get: git,     trigger: true, passed: [testflight] }
           - { get: phalanx, trigger: true }
           - { get: version }
@@ -75,14 +71,14 @@ jobs:
                 tag: (( grab meta.go.version ))
             inputs:
               - name: git
-                path: gopath/src/github.com/starkandwayne/shield
+                path: gopath/src/github.com/shieldproject/shield
               - name: phalanx
               - name: version
             run:
               path: ./phalanx/ci/run
               args: []
             params:
-              SHIELD:  gopath/src/github.com/starkandwayne/shield
+              SHIELD:  gopath/src/github.com/shieldproject/shield
               PHALANX: phalanx
               VERSION: version
               OUTPUT:  out
@@ -91,8 +87,8 @@ jobs:
               BOSH_CLIENT_SECRET:   (( grab meta.bosh-lite.password ))
               BOSH_DEPLOYMENT:      shield-phalanx-tests
               BOSH_CA_CERT:         (( grab meta.bosh-lite.cacert ))
-              AWS_ACCESS_KEY:       (( vault "secret/aws/cfcommunity:access" ))
-              AWS_SECRET_KEY:       (( vault "secret/aws/cfcommunity:secret" ))
+              AWS_ACCESS_KEY:       (( grab meta.aws.access_key ))
+              AWS_SECRET_KEY:       (( grab meta.aws.secret_key ))
         on_success:
           put: notify
           params:
@@ -111,7 +107,7 @@ jobs:
   - name: pre
     plan:
       - do:
-        - aggregate:
+        - in_parallel:
           - get: git
             passed:
               - (( replace ))
