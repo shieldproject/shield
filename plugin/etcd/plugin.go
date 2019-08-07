@@ -361,7 +361,6 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail = true
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 ca_cert}               CA cert was not provided.\n")
-		fail = true
 	} else {
 		/* FIXME: validate that it is an X.509 PEM certificate */
 		lines := strings.Split(s, "\n")
