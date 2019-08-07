@@ -18,6 +18,13 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
+//global variables
+var (
+	RoleBasedAuthentication   = "Role-Based Authentication"
+	CertificateAuthentication = "Certificate-Based Authentication"
+	BothAuthentication        = "Both"
+)
+
 func main() {
 	p := EtcdPlugin{
 		Name:    "Etcd Backup Plugin",
@@ -33,7 +40,7 @@ func main() {
             
             "timeout"     : "2"                                                                                                 # connection timeout
             "auth"        : ""                                                                                                  # is role based or cert based auth enabled on the etcd cluster
-            "username"    : "admin",                                                                                            # username for role based authentication
+            "username"    : "admin"                                                                                             # username for role based authentication
             "password"    : "p@ssw0rd"                                                                                          # password for role based authentication
             "client_cert" : "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----"            # path to client certificate
             "client_key"  : "-----BEGIN RSA PRIVATE KEY-----\n(cert contents)\n(... etc ...)\n-----END RSA PRIVATE KEY-----"    # path to client key
@@ -44,6 +51,7 @@ func main() {
             `,
 		Defaults: `
             {
+                "timeout"	: "2"
             }
             `,
 		Fields: []plugin.Field{
@@ -70,9 +78,9 @@ func main() {
 				Name: "auth",
 				Type: "enum",
 				Enum: []string{
-					"Role-Based Authentication",
-					"Certificate-Based Authentication",
-					"Both",
+					RoleBasedAuthentication,
+					CertificateAuthentication,
+					BothAuthentication,
 				},
 				Title:   "Authentication",
 				Help:    "Type of authentication for accessing the ETCD cluster. No authentication is done if left blank.",
@@ -119,12 +127,11 @@ func main() {
 				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
 			},
 			plugin.Field{
-				Mode:    "target",
-				Name:    "overwrite",
-				Type:    "bool",
-				Help:    "If this is enabled, only keys mentioned in the 'Prefix' field will be deleted. The values will be restored using the backup archive.",
-				Title:   "Overwrite",
-				Example: "false",
+				Mode:  "target",
+				Name:  "overwrite",
+				Type:  "bool",
+				Help:  "If this is enabled, only keys mentioned in the 'Prefix' field will be deleted. The values will be restored using the backup archive.",
+				Title: "Overwrite",
 			},
 			plugin.Field{
 				Mode:    "target",
@@ -203,6 +210,20 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		return nil, err
 	}
 
+	tlsConfig := &tls.Config{}
+	caCertPool := x509.NewCertPool()
+
+	if caCert != "" {
+		check := caCertPool.AppendCertsFromPEM([]byte(caCert))
+		if check != true {
+			plugin.DEBUG("CA cert did't parse right.\n")
+		}
+
+		tlsConfig = &tls.Config{
+			RootCAs: caCertPool,
+		}
+	}
+
 	overwrite, err := endpoint.BooleanValueDefault("overwrite", false)
 	if err != nil {
 		return nil, err
@@ -213,14 +234,7 @@ func getEtcdConfig(endpoint plugin.ShieldEndpoint) (*EtcdConfig, error) {
 		return nil, err
 	}
 
-	tlsConfig := &tls.Config{}
-	if auth == "Certificate-Based Authentication" {
-		caCertPool := x509.NewCertPool()
-		check := caCertPool.AppendCertsFromPEM([]byte(caCert))
-		if check != true {
-			plugin.DEBUG("CA cert did't parse right.\n")
-		}
-
+	if auth == CertificateAuthentication || auth == BothAuthentication {
 		cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
 		if err != nil {
 			return nil, err
@@ -260,10 +274,6 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail bool
 	)
 
-	roleAuth := "Role-Based Authentication"
-	certAuth := "Certificate-Based Authentication"
-	bothAuth := "Both"
-
 	s, err = endpoint.StringValue("url")
 	if err != nil {
 		fmt.Printf("@R{\u2717 url}                   @C{%s}\n", err)
@@ -292,16 +302,16 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail = true
 	} else if s == "" {
 		fmt.Printf("@G{\u2713 authentication}        not using any authentication methods\n")
-	} else if s == roleAuth {
+	} else if s == RoleBasedAuthentication {
 		fmt.Printf("@G{\u2713 authentication}        Role-Based authentication chosen\n")
-	} else if s == certAuth {
+	} else if s == CertificateAuthentication {
 		fmt.Printf("@G{\u2713 authentication}        Certificate-Based authentication chosen\n")
-	} else if s == bothAuth {
+	} else if s == BothAuthentication {
 		fmt.Printf("@G{\u2713 authentication}        Both ways of authentication are chosed\n")
 		b = true
 	}
 
-	if s == roleAuth || b {
+	if s == RoleBasedAuthentication || b {
 		s, err = endpoint.StringValue("username")
 		if err != nil {
 			fmt.Printf("@R{\u2717 username}              @C{%s}\n", err)
@@ -325,7 +335,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		}
 	}
 
-	if s == certAuth || b {
+	if s == CertificateAuthentication || b {
 		s, err = endpoint.StringValue("client_cert")
 		if err != nil {
 			fmt.Printf("@R{\u2717 client_cert}           @C{%s}\n", err)
@@ -354,22 +364,22 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 			/* FIXME: validate that it is an X.509 PEM certificate */
 			fmt.Printf("@G{\u2713 client_key}			 Key present\n")
 		}
+	}
 
-		s, err = endpoint.StringValue("ca_cert")
-		if err != nil {
-			fmt.Printf("@R{\u2717 ca_cert}               @C{%s}\n", err)
-			fail = true
-		} else if s == "" {
-			fmt.Printf("@R{\u2717 ca_cert}               Certificate based authentication chosen but CA certificate was not provided\n")
-			fail = true
-		} else {
-			/* FIXME: validate that it is an X.509 PEM certificate */
-			lines := strings.Split(s, "\n")
-			fmt.Printf("@G{\u2713 ca_cert}               @C{%s}\n", lines[0])
-			if len(lines) > 1 {
-				for _, line := range lines[1:] {
-					fmt.Printf("                         @C{%s}\n", line)
-				}
+	s, err = endpoint.StringValueDefault("ca_cert", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 ca_cert}               @C{%s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 ca_cert}               CA cert was not provided.\n")
+		fail = true
+	} else {
+		/* FIXME: validate that it is an X.509 PEM certificate */
+		lines := strings.Split(s, "\n")
+		fmt.Printf("@G{\u2713 ca_cert}               @C{%s}\n", lines[0])
+		if len(lines) > 1 {
+			for _, line := range lines[1:] {
+				fmt.Printf("                         @C{%s}\n", line)
 			}
 		}
 	}
@@ -395,7 +405,7 @@ func (p EtcdPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	if fail {
-		return fmt.Errorf("etcd: invalid configuration\n")
+		return fmt.Errorf("etcd: invalid configuration")
 	}
 
 	return nil
