@@ -46,7 +46,7 @@ func main() {
 				Name:     "director",
 				Type:     "string",
 				Title:    "BOSH Director",
-				Help:     "The hostname or IP address of your BOSH Director.",
+				Help:     "The hostname or IP address of your BOSH Director. Previously called `bbr_host'",
 				Required: true,
 			},
 			plugin.Field{
@@ -54,7 +54,7 @@ func main() {
 				Name:     "username",
 				Type:     "string",
 				Title:    "Username",
-				Help:     "Username to SSH to the BOSH Director as (director backups only).",
+				Help:     "Username to SSH to the BOSH Director as (director backups only). Previously called `bbr_sshusername'",
 				Required: true,
 			},
 			plugin.Field{
@@ -62,7 +62,7 @@ func main() {
 				Name:     "key",
 				Type:     "pem-rsa-pk",
 				Title:    "Private Key",
-				Help:     "RSA Private Key for the System user.",
+				Help:     "RSA Private Key for the System user. Previously called `bbr_privatekey'",
 				Required: true,
 			},
 			plugin.Field{
