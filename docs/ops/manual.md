@@ -244,7 +244,7 @@ Here's a working runtime config:
     ---
     releases:
       - name:    shield
-        version: 8.0.8
+        version: 8.4.0
 
     addons:
       - name: shield
@@ -264,13 +264,51 @@ specific deployments / VMs, read the
 
 ### Using Docker
 
-#### The SHIELD Core Image
+#### The SHIELD Image
 
-TBD
+The SHIELD project builds Docker images for all releases, and
+hosts them on [Docker Hub][project-dockerhub].
 
-#### The SHIELD Agent Standalone Image
+To cut down on space used in image registries, and on
+containerization hosts, we bundle both components of a typical
+SHIELD deployment &mdash; the core and the agent &mdash; into a
+single Docker image: `shieldproject/shield`.  If you want a SHIELD
+core, run the container with the `/shield/init/core` command.  For
+agents, run `/shield/init.agent`.
 
-TBD
+#### Configuring the SHIELD Core
+
+A (containerized) SHIELD Core relies on two directories that you
+probably want to bind-mount in from a persistent backing store:
+
+  - `/var/shield` stores the SHIELD database, which houses all of
+    the live configuration and metadata, including pointers to all
+    backup archives.  It's kind of a big deal.
+
+  - `/etc/shield` stores the SHIELD static configuration.
+
+The latter directory is trickier to get right, since it contains
+some specific files that you may want to specify:
+
+  1. `/etc/shield/shieldd.conf` - A full SHIELD core YAML
+     configuration file.  If not present, one will be created for
+     you during container boot, pursuant to a set of environment
+     variables (detailed next).
+
+  2. `/etc/shield/ssh.key` - A private key to be used for core
+     &lrarr; communication (initiated by the core).  If you don't
+     specify a `shieldd.conf` file, the image will create one for
+     you, and pull the SSH key from this file.  _Otherwise, this
+     file is **ignored**._
+
+If you don't want to provide files, you _can_ configure your new
+SHIELD core via environment variables.  See _SHIELD Core
+Configuration Reference_, below.
+
+
+
+
+[project-dockerhub]: https://cloud.docker.com/u/shieldproject/repository/list
 
 #### Embedding the SHIELD Agent
 
@@ -282,7 +320,7 @@ TBD
 This section contains detailed descriptions of all configuration options for
 the SHIELD core, and SHIELD agents.
 
-#### SHIELD Core Configuration File Reference
+#### SHIELD Core Configuration Reference
 
 The SHIELD core configuration file is a YAML file, read at startup by the
 `shieldd` binary.
@@ -322,10 +360,16 @@ that are currently supported:
   value here (i.e. `##003300`) or other CSS-compatible color identifier, and
   the web UI will use it to colorize the environment name.
 
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_COLOR` environment variable.
+
 - **api.env** - An name for the environment, that SHIELD will pass
   through to clients accessing its API and web management console.  This can
   be useful for differentiating your staging SHIELD from your production
   SHIELD.  By default, no environment is set.
+
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_ENV_NAME` environment variable.
 
 - **api.failsafe.username** - When the SHIELD core starts up, it
   checks the local users table.  If it is empty (there are no
@@ -333,9 +377,15 @@ that are currently supported:
   parameters.  This is designed to assist in a safe and secure
   bootstrap.
 
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_FAILSAFE_USERNAME` environment variable.
+
 - **api.failsafe.password** - The cleartext password to assign the
   failsafe user, upon creation.  You can change this later,
   without needing to reconfigure or re-deploy SHIELD.
+
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_FAILSAFE_PASSWORD` environment variable.
 
 - **api.motd** - A (hopefully) short message to display to operators on the
   login screen.  You can use this for compliance messages, important
@@ -350,6 +400,9 @@ that are currently supported:
 - **api.session.timeout** - How long (in hours) before idle
   authenticated sessions are invalidated.  Defaults to 720 hours
   (about a month).
+
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_SESSION_TIMEOUT` environment variable.
 
 - **auth** - A list of non-local authentication backends.
 
@@ -399,6 +452,9 @@ that are currently supported:
   - `$datadir/bootstrap.log` - A log of what occurred during a SHIELD
     _from-nothing_ recovery.
 
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_DATA` environment variable.
+
 - **debug** - Whether or not to enable verbose debug logging.  This is a
   boolean, and it defaults to `no`, which is a sane choice for any
   production or staging environment.  Debug logging is verbose, and very
@@ -420,10 +476,16 @@ that are currently supported:
   ensure that tenants don't overrun storage with excessively long
   retention periods.
 
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_MAXIMUM_RETENTION` environment variable.
+
 - **limit.retention.min** - The minimum number of days that all
   backup archives must be retained for.  This allows SHIELD
   operators to enforce organization-wide compliance for archive
   retention.  Defaults to 1 (day).
+
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_MINIMUM_RETENTION` environment variable.
 
 - **scheduler.fast-loop** - The frequency, in seconds, of the
   SHIELD scheduler's "fast loop."  On every iteration of the fast
@@ -433,6 +495,9 @@ that are currently supported:
 
   By default, the fast loop executes once a second.  Unles you have an
   urgent need otherwise, you shouldn't change this.
+
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_FAST_LOOP` environment variable.
 
 - **scheduler.slow-loop** - The frequency, in seconds, of the
   SHIELD scheduler's "slow loop."  The slow loop handles
@@ -445,8 +510,11 @@ that are currently supported:
   storage systems.  Decreasing the frequency will cause expired archives to
   remain in cloud storage for longer.
 
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_SLOW_LOOP` environment variable.
+
 - **scheduler.threads** - How many worker threads should the
-  SHIELD core spin.  This defaults to `2`, but you should increase
+  SHIELD core spin.  This defaults to `5`, but you should increase
   the 1.5 times the number of concurrent backup tasks you expect to
   see, at peak.
 
@@ -455,9 +523,22 @@ that are currently supported:
   multiplier accounts for purge operations, cloud storage tests, and
   other background tests.
 
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_THREADS` environment variable.
+
+- **scheduler.timeout** - How long (in hours) should the SHIELD
+  core allow a single task to execute before considering it
+  _hung_, and terminate it.
+
+  In the Docker image (under automatic configuration), this can be
+  set by the `$SHIELD_TASK_TIMEOUT` environment variable.
+
 - **vault.address** - The URL of the SHIELD Vault.  This should almost
   always be `https://127.0.0.1:8200`.  If you are using the BOSH release,
   this cannot be configured.
+
+  In the Docker image (under automatic configuration), this can be
+  set by the `$VAULT_ADDR` environment variable.
 
 - **vault.ca** - The path to the X.509 Certificate Authority certificate,
   PEM-encoded, for validating the Vault certificate.  If you are using the

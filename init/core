@@ -30,8 +30,10 @@ data-dir: ${SHIELD_DATA}
 web-root: /shield/ui
 
 scheduler:
-  fast-loop: ${SHIELD_FAST_LOOP:-5}
-  slow-loop: ${SHIELD_FAST_LOOP:-40}
+  fast-loop: ${SHIELD_FAST_LOOP:-1}
+  slow-loop: ${SHIELD_SLOW_LOOP:-300}
+  timeout:   ${SHIELD_TASK_TIMEOUT:-12}
+  threads:   ${SHIELD_THREADS:-5}
 
 vault:
   address: ${VAULT_ADDR}
@@ -46,7 +48,12 @@ api:
     password: ${SHIELD_FAILSAFE_PASSWORD:-password}
 
   session:
-    timeout: ${SHIELD_SESSION_TIMEOUT:-8}
+    timeout: ${SHIELD_SESSION_TIMEOUT:-720}
+
+limit:
+  retention:
+    min: ${SHIELD_MINIMUM_RETENTION:-1}
+    max: ${SHIELD_MAXIMUM_RETENTION:-390}
 
 fabrics:
   - name: legacy
