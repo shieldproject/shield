@@ -22,7 +22,7 @@ func Database(sqls ...string) (*DB, error) {
 	}
 
 	for _, s := range sqls {
-		err := db.Exec(s)
+		err := db.exec(s)
 		if err != nil {
 			db.Disconnect()
 			return nil, err
@@ -46,14 +46,14 @@ var _ = Describe("Database Schema", func() {
 			})
 
 			It("should not create tables until Setup() is called", func() {
-				Ω(db.Exec("SELECT * FROM schema_info")).
+				Ω(db.exec("SELECT * FROM schema_info")).
 					Should(HaveOccurred())
 			})
 
 			It("should create tables during Setup()", func() {
 				_, err := db.Setup(0)
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(db.Exec("SELECT * FROM schema_info")).
+				Ω(db.exec("SELECT * FROM schema_info")).
 					Should(Succeed())
 			})
 
@@ -61,7 +61,9 @@ var _ = Describe("Database Schema", func() {
 				_, err := db.Setup(0)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				r, err := db.Query(`SELECT version FROM schema_info`)
+				db.exclusive.Lock()
+				defer db.exclusive.Unlock()
+				r, err := db.query(`SELECT version FROM schema_info`)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(r).ShouldNot(BeNil())
 				Ω(r.Next()).Should(BeTrue())
@@ -77,7 +79,7 @@ var _ = Describe("Database Schema", func() {
 
 				tableExists := func(table string) {
 					sql := fmt.Sprintf("SELECT * FROM %s", table)
-					Ω(db.Exec(sql)).Should(Succeed())
+					Ω(db.exec(sql)).Should(Succeed())
 				}
 
 				tableExists("targets")

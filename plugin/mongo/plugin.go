@@ -218,7 +218,7 @@ func (p MongoPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 }
 
 func connectionString(info *MongoConnectionInfo, backup bool) string {
-	opts := fmt.Sprintf("--archive --host %s", info.Host);
+	opts := fmt.Sprintf("--archive --host %s", info.Host)
 
 	if info.Options != "" {
 		opts += fmt.Sprintf(" %s ", info.Options)

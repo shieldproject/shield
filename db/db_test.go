@@ -31,12 +31,13 @@ var _ = Describe("Database", func() {
 		})
 
 		AfterEach(func() {
-			db.Disconnect()
+			err := db.Disconnect()
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("With an empty database", func() {
 			It("can create tables", func() {
-				Ω(db.Exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
+				Ω(db.exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
 			})
 		})
 
@@ -55,40 +56,42 @@ var _ = Describe("Database", func() {
 				db, err = Connect(":memory:")
 				Ω(err).ShouldNot(HaveOccurred())
 
-				Ω(db.Exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
+				Ω(db.exec(`CREATE TABLE things (type TEXT, number INTEGER)`)).Should(Succeed())
 			})
 
 			It("can insert records", func() {
-				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "monkey")
+				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "monkey")
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(0))
 			})
 
 			It("can update records", func() {
-				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
-				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 42, "monkey")).Should(Succeed())
+				Ω(db.exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.exec(`UPDATE things SET number = number + ? WHERE type = ?`, 42, "monkey")).Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "monkey")
+				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "monkey")
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(42))
 			})
 
 			It("can handle queries without arguments", func() {
-				Ω(db.Exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
-				Ω(db.Exec(`UPDATE things SET number = number + ? WHERE type = ?`, 13, "monkey")).Should(Succeed())
+				Ω(db.exec(`INSERT INTO things (type, number) VALUES (?, 0)`, "monkey")).Should(Succeed())
+				Ω(db.exec(`UPDATE things SET number = number + ? WHERE type = ?`, 13, "monkey")).Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = "monkey"`)
+				r, err := db.query(`SELECT number FROM things WHERE type = "monkey"`)
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(13))
 			})
 
 			It("can run arbitrary SQL", func() {
-				Ω(db.Exec("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
+				Ω(db.exec("INSERT INTO things (type, number) VALUES (?, ?)", "lion", 3)).
 					Should(Succeed())
 
-				r, err := db.Query(`SELECT number FROM things WHERE type = ?`, "lion")
+				db.exclusive.Lock()
+				defer db.exclusive.Unlock()
+				r, err := db.query(`SELECT number FROM things WHERE type = ?`, "lion")
 				Ω(err).Should(Succeed())
 				Ω(numberOfThingsIn(r)).Should(Equal(3))
 			})
@@ -96,7 +99,7 @@ var _ = Describe("Database", func() {
 
 		Context("With malformed SQL queries", func() {
 			It("propagates errors from sql driver", func() {
-				Ω(db.Exec(`DO STUFF IN SQL`)).Should(HaveOccurred())
+				Ω(db.exec(`DO STUFF IN SQL`)).Should(HaveOccurred())
 			})
 		})
 	})
@@ -109,17 +112,18 @@ var _ = Describe("Database", func() {
 				var err error
 				db, err = Connect("file::memory:?cache=shared")
 				Ω(err).ShouldNot(HaveOccurred())
-				Ω(db.Exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
+				Ω(db.exec(`CREATE TABLE stuff (numb INTEGER, iter INTEGER)`)).Should(Succeed())
 			})
 
 			AfterEach(func() {
-				db.Disconnect()
+				err := db.Disconnect()
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			stressor := func(reply chan error, db *DB, n, times int) {
 				Ω(db.Connected()).Should(BeTrue())
 				for i := 0; i < times; i++ {
-					err := db.Exec("INSERT INTO stuff (numb, iter) VALUES (?, ?)", n, i)
+					err := db.exec("INSERT INTO stuff (numb, iter) VALUES (?, ?)", n, i)
 					if err != nil {
 						reply <- err
 						return

@@ -46,13 +46,21 @@ func (t AuthTokenFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doGetAllAuthTokens(filter)
+}
+
+func (db *DB) doGetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
 	if filter == nil {
 		filter = &AuthTokenFilter{}
 	}
 
 	l := []*AuthToken{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -70,7 +78,14 @@ func (db *DB) GetAllAuthTokens(filter *AuthTokenFilter) ([]*AuthToken, error) {
 }
 
 func (db *DB) GetAuthToken(id string) (*AuthToken, error) {
-	r, err := db.GetAllAuthTokens(&AuthTokenFilter{UUID: id})
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doGetAuthToken(id)
+}
+
+//The caller must Lock the db Mutex
+func (db *DB) doGetAuthToken(id string) (*AuthToken, error) {
+	r, err := db.doGetAllAuthTokens(&AuthTokenFilter{UUID: id})
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +102,9 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 
 	id := RandomID()
 	token := RandomID()
-	err := db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err := db.exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, token, name)
 	                 VALUES (?,    ?,         ?,          ?,     ?)`,
 		id, user.UUID, time.Now().Unix(), token, name)
@@ -95,10 +112,12 @@ func (db *DB) GenerateAuthToken(name string, user *User) (*AuthToken, string, er
 		return nil, "", err
 	}
 
-	t, err := db.GetAuthToken(token)
+	t, err := db.doGetAuthToken(token)
 	return t, token, err
 }
 
 func (db *DB) DeleteAuthToken(id string, user *User) error {
-	return db.Exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.exec(`DELETE FROM sessions WHERE token = ? AND user_uuid = ?`, id, user.UUID)
 }

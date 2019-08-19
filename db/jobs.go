@@ -151,13 +151,20 @@ func (f *JobFilter) Query() (string, []interface{}) {
 }
 
 func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doGetAllJobs(filter)
+}
+
+//the caller must Lock the Mutex
+func (db *DB) doGetAllJobs(filter *JobFilter) ([]*Job, error) {
 	if filter == nil {
 		filter = &JobFilter{}
 	}
 
 	l := []*Job{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -196,7 +203,14 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 }
 
 func (db *DB) GetJob(id string) (*Job, error) {
-	l, err := db.GetAllJobs(&JobFilter{UUID: id})
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doGetJob(id)
+}
+
+//The caller must Lock the Mutex
+func (db *DB) doGetJob(id string) (*Job, error) {
+	l, err := db.doGetAllJobs(&JobFilter{UUID: id})
 	if err != nil {
 		return nil, err
 	}
@@ -206,16 +220,17 @@ func (db *DB) GetJob(id string) (*Job, error) {
 	return nil, nil
 }
 
-func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
-	n, err := db.Count(`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`, id, !pause)
+//the caller must hold the lock
+func (db *DB) doPauseOrUnpauseJob(id string, pause bool) (bool, error) {
+	n, err := db.count(`SELECT uuid FROM jobs WHERE uuid = ? AND paused = ?`, id, !pause)
 	if n == 0 || err != nil {
 		return false, err
 	}
-	err = db.Exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
+	err = db.exec(`UPDATE jobs SET paused = ? WHERE uuid = ? AND paused = ?`, pause, id, !pause)
 	if err != nil {
 		return true, err
 	}
-	job, err := db.GetJob(id)
+	job, err := db.doGetJob(id)
 	if err != nil {
 		return true, err
 	}
@@ -224,17 +239,23 @@ func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
 }
 
 func (db *DB) PauseJob(id string) (bool, error) {
-	return db.PauseOrUnpauseJob(id, true)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doPauseOrUnpauseJob(id, true)
 }
 
 func (db *DB) UnpauseJob(id string) (bool, error) {
-	return db.PauseOrUnpauseJob(id, false)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doPauseOrUnpauseJob(id, false)
 }
 
 func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job.UUID = RandomID()
 
-	err := db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err := db.exec(`
 	   INSERT INTO jobs (uuid, tenant_uuid,
 	                     name, summary, schedule, keep_n, keep_days, paused,
 	                     target_uuid, store_uuid, fixed_key)
@@ -248,7 +269,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return nil, err
 	}
 
-	job, err = db.GetJob(job.UUID)
+	job, err = db.doGetJob(job.UUID)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +279,14 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 }
 
 func (db *DB) UpdateJob(job *Job) error {
-	err := db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doUpdateJob(job)
+}
+
+//The caller must Lock the Mutex
+func (db *DB) doUpdateJob(job *Job) error {
+	err := db.exec(`
 	   UPDATE jobs
 	      SET name           = ?,
 	          summary        = ?,
@@ -276,7 +304,7 @@ func (db *DB) UpdateJob(job *Job) error {
 		return err
 	}
 
-	update, err := db.GetJob(job.UUID)
+	update, err := db.doGetJob(job.UUID)
 	if err != nil {
 		return err
 	}
@@ -289,7 +317,9 @@ func (db *DB) UpdateJob(job *Job) error {
 }
 
 func (db *DB) DeleteJob(id string) (bool, error) {
-	job, err := db.GetJob(id)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	job, err := db.doGetJob(id)
 	if err != nil {
 		return false, err
 	}
@@ -299,7 +329,7 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 		return true, nil
 	}
 
-	err = db.Exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID)
+	err = db.exec(`DELETE FROM jobs WHERE uuid = ?`, job.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -310,7 +340,9 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 
 func (db *DB) RescheduleJob(j *Job, t time.Time) error {
 	/* note: this update does not require a message bus notification */
-	return db.Exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.exec(`UPDATE jobs SET next_run = ? WHERE uuid = ?`, t.Unix(), j.UUID)
 }
 
 func (j *Job) Reschedule() error {
