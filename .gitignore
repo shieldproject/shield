@@ -26,6 +26,7 @@
 /docker-postgres*
 /dummy
 /elasticsearch
+/etcd
 /fs
 /google
 /mock
