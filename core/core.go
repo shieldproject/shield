@@ -92,6 +92,10 @@ type Config struct {
 
 		SSHKey string `yaml:"ssh-key"`
 
+		//A value of zero means no timeout - the timeout will fall back to when
+		// the system drops the connection
+		SSHDialTimeout *int `yaml:"ssh-dial-timeout"`
+
 		legacy struct {
 			cc  *ssh.ClientConfig
 			pub string
@@ -243,10 +247,15 @@ func Configure(file string, config Config) (*Core, error) {
 				signer.PublicKey().Type(),
 				base64.StdEncoding.EncodeToString(signer.PublicKey().Marshal()))
 
+			timeout := 30 * time.Second
+			if c.Config.Fabrics[i].SSHDialTimeout != nil {
+				timeout = time.Duration(*(c.Config.Fabrics[i].SSHDialTimeout)) * time.Second
+			}
+
 			c.Config.Fabrics[i].legacy.cc = &ssh.ClientConfig{
 				Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-				Timeout:         30 * time.Second,
+				Timeout:         timeout,
 			}
 
 		case "dummy":
