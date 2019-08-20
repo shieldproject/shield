@@ -279,14 +279,25 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return true, nil
 	}
 
-	numJobs, err := db.count(`SELECT * FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
 	if err != nil {
 		return false, err
 	}
+	defer r.Close()
 
+	if !r.Next() {
+		/*already deleted (temporal anomaly detected) */
+		return true, nil
+	}
+
+	var numJobs uint
+	if err = r.Scan(&numJobs); err != nil {
+		return false, err
+	}
 	if numJobs > 0 {
 		return false, nil
 	}
+	r.Close()
 
 	err = db.exec(`DELETE FROM targets WHERE uuid = ?`, id)
 	if err != nil {
