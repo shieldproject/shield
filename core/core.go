@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/jhunt/go-log"
 	"golang.org/x/crypto/ssh"
@@ -243,7 +244,9 @@ func Configure(file string, config Config) (*Core, error) {
 				base64.StdEncoding.EncodeToString(signer.PublicKey().Marshal()))
 
 			c.Config.Fabrics[i].legacy.cc = &ssh.ClientConfig{
-				Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+				Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+				Timeout:         30 * time.Second,
 			}
 
 		case "dummy":

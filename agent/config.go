@@ -137,7 +137,7 @@ func LoadAuthorizedKeys(path string) ([]ssh.PublicKey, error) {
 
 func ConfigureSSHServer(hostKeyPath string, authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {
 	certChecker := &ssh.CertChecker{
-		IsAuthority: func(key ssh.PublicKey) bool {
+		IsUserAuthority: func(key ssh.PublicKey) bool {
 			return false
 		},
 
@@ -171,20 +171,4 @@ func ConfigureSSHServer(hostKeyPath string, authorizedKeys []ssh.PublicKey) (*ss
 	config.AddHostKey(private)
 
 	return config, nil
-}
-
-func ConfigureSSHClient(privateKeyPath string) (*ssh.ClientConfig, error) {
-	raw, err := ioutil.ReadFile(privateKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	signer, err := ssh.ParsePrivateKey(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ssh.ClientConfig{
-		Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
-	}, nil
 }
