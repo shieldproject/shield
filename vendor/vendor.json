@@ -684,14 +684,46 @@
 			"revision": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},
 		{
+			"checksumSHA1": "LBGzsIWPQD6uFAeSYFg8Bd28Grw=",
+			"path": "golang.org/x/crypto/ed25519",
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
+			"checksumSHA1": "0JTAFXPkankmWcZGQJGScLDiaN8=",
+			"path": "golang.org/x/crypto/ed25519/internal/edwards25519",
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
+			"checksumSHA1": "h4wzbDZpTQFnG8pZg2UVMX4UUqQ=",
+			"path": "golang.org/x/crypto/internal/chacha20",
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
+			"checksumSHA1": "/U7f2gaH6DnEmLguVLDbipU6kXU=",
+			"path": "golang.org/x/crypto/internal/subtle",
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
 			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
 			"path": "golang.org/x/crypto/pbkdf2",
 			"revision": "7d9177d70076375b9a59c8fde23d52d9c4a7ecd5",
 			"revisionTime": "2017-09-15T19:08:28Z"
 		},
 		{
+			"checksumSHA1": "vWXjCp+37T1tIpGO2ymEFmcaUpo=",
+			"path": "golang.org/x/crypto/poly1305",
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
+			"checksumSHA1": "iQGJZEJ72V7RgorvSmjzvBxTqtQ=",
 			"path": "golang.org/x/crypto/ssh",
-			"revision": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
 		},
 		{
 			"path": "golang.org/x/crypto/ssh/terminal",
@@ -779,7 +811,6 @@
 		},
 		{
 			"checksumSHA1": "6aR7w8AeySHBwf96Jha1+cuh8Vw=",
-			"origin": "github.com/shieldproject/shield/vendor/golang.org/x/sys/unix",
 			"path": "golang.org/x/sys/unix",
 			"revision": "51ab0e2deafac1f46c46ad59cf0921be2f180c3d",
 			"revisionTime": "2019-08-02T02:30:53Z"
