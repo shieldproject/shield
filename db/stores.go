@@ -136,7 +136,9 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 
 	l := []*Store{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -189,7 +191,14 @@ func (db *DB) GetAllStores(filter *StoreFilter) ([]*Store, error) {
 }
 
 func (db *DB) GetStore(id string) (*Store, error) {
-	r, err := db.Query(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doGetStore(id)
+}
+
+//The caller must Lock the Mutex
+func (db *DB) doGetStore(id string) (*Store, error) {
+	r, err := db.query(`
 	       SELECT s.uuid, s.name, s.summary, s.agent,
 	              s.plugin, s.endpoint, s.tenant_uuid,
 	              s.daily_increase,
@@ -256,7 +265,9 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 	}
 
 	store.UUID = RandomID()
-	err = db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err = db.exec(`
 	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
 	                       plugin, endpoint,
 	                       threshold, healthy, last_test_task_uuid)
@@ -284,7 +295,9 @@ func (db *DB) UpdateStore(store *Store) error {
 		return fmt.Errorf("unable to marshal storage endpoint configs: %s", err)
 	}
 
-	err = db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err = db.exec(`
 	   UPDATE stores
 	      SET name                    = ?,
 	          summary                 = ?,
@@ -307,7 +320,7 @@ func (db *DB) UpdateStore(store *Store) error {
 		return err
 	}
 
-	update, err := db.GetStore(store.UUID)
+	update, err := db.doGetStore(store.UUID)
 	if err != nil {
 		return err
 	}
@@ -320,7 +333,9 @@ func (db *DB) UpdateStore(store *Store) error {
 }
 
 func (db *DB) DeleteStore(id string) (bool, error) {
-	store, err := db.GetStore(id)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	store, err := db.doGetStore(id)
 	if err != nil {
 		return false, err
 	}
@@ -330,7 +345,7 @@ func (db *DB) DeleteStore(id string) (bool, error) {
 		return true, nil
 	}
 
-	r, err := db.Query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`, store.UUID)
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.store_uuid = ?`, store.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -341,19 +356,16 @@ func (db *DB) DeleteStore(id string) (bool, error) {
 		return true, nil
 	}
 
-	var numJobs int
+	var numJobs uint
 	if err = r.Scan(&numJobs); err != nil {
 		return false, err
-	}
-	if numJobs < 0 {
-		return false, fmt.Errorf("Store %s is in used by %d (negative) Jobs", id, numJobs)
 	}
 	if numJobs > 0 {
 		return false, nil
 	}
 	r.Close()
 
-	err = db.Exec(`DELETE FROM stores WHERE uuid = ?`, store.UUID)
+	err = db.exec(`DELETE FROM stores WHERE uuid = ?`, store.UUID)
 	if err != nil {
 		return false, err
 	}
@@ -371,7 +383,9 @@ func (store Store) ConfigJSON() (string, error) {
 }
 
 func (db *DB) CleanStores() error {
-	return db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.exec(`
 	   DELETE FROM stores
 	         WHERE uuid IN (SELECT uuid
 	                          FROM stores s WHERE tenant_uuid = ''

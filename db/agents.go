@@ -99,7 +99,9 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 
 	l := []*Agent{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -132,7 +134,14 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 }
 
 func (db *DB) GetAgent(id string) (*Agent, error) {
-	r, err := db.Query(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doGetAgent(id)
+}
+
+//The caller must hold the lock
+func (db *DB) doGetAgent(id string) (*Agent, error) {
+	r, err := db.query(`
 		SELECT a.uuid, a.name, a.address, a.version,
 		       a.hidden, a.last_seen_at, a.last_checked_at, a.last_error, a.status,
 		       a.metadata
@@ -170,7 +179,9 @@ func (db *DB) GetAgent(id string) (*Agent, error) {
 }
 
 func (db *DB) GetAgentPluginMetadata(addr, name string) (*plugin.PluginInfo, error) {
-	r, err := db.Query(`SELECT metadata FROM agents WHERE address = ?`, addr)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(`SELECT metadata FROM agents WHERE address = ?`, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +220,9 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	}
 
 	if len(existing) > 0 {
-		return db.Exec(`
+		db.exclusive.Lock()
+		defer db.exclusive.Unlock()
+		return db.exec(`
 		  UPDATE agents
 		     SET address      = ?,
 		         last_seen_at = ?
@@ -219,16 +232,20 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	}
 
 	id := RandomID()
-	err = db.Exec(`
+
+	db.exclusive.Lock()
+	err = db.exec(`
 	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
 	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
 		id, name, address, false, "pending", time.Now().Unix(),
 	)
 	if err != nil {
+		db.exclusive.Unlock()
 		return err
 	}
 
-	agent, err := db.GetAgent(id)
+	agent, err := db.doGetAgent(id)
+	db.exclusive.Unlock()
 	if err != nil {
 		return err
 	}
@@ -238,7 +255,9 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 }
 
 func (db *DB) UpdateAgent(agent *Agent) error {
-	return db.Exec(
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.exec(
 		`UPDATE agents SET name            = ?,
 		                   address         = ?,
 		                   version         = ?,

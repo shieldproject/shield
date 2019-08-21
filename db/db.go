@@ -67,10 +67,8 @@ func (db *DB) Inform(mbus *bus.Bus) {
 }
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
-func (db *DB) Exec(sql string, args ...interface{}) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
+// The caller is responsible for locking the Mutex.
+func (db *DB) exec(sql string, args ...interface{}) error {
 	s, err := db.statement(sql)
 	if err != nil {
 		return err
@@ -84,10 +82,9 @@ func (db *DB) Exec(sql string, args ...interface{}) error {
 }
 
 // Execute a named, data query (SELECT)
-func (db *DB) Query(sql string, args ...interface{}) (*sql.Rows, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-
+// The caller is responsible for holding the database lock, as the rows object
+// returned holds a SQLite read lock until the rows object is closed.
+func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
 	s, err := db.statement(sql)
 	if err != nil {
 		return nil, err
@@ -106,8 +103,9 @@ func (db *DB) Query(sql string, args ...interface{}) (*sql.Rows, error) {
 }
 
 // Execute a data query (SELECT) and return how many rows were returned
-func (db *DB) Count(sql string, args ...interface{}) (uint, error) {
-	r, err := db.Query(sql, args...)
+// The caller is responsible for locking the Mutex.
+func (db *DB) count(sql string, args ...interface{}) (uint, error) {
+	r, err := db.query(sql, args...)
 	if err != nil {
 		return 0, err
 	}

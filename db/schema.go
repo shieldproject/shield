@@ -72,7 +72,9 @@ func currentSchema() int {
 }
 
 func (db *DB) SchemaVersion() (int, error) {
-	r, err := db.Query(`SELECT version FROM schema_info LIMIT 1`)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(`SELECT version FROM schema_info LIMIT 1`)
 	if err != nil {
 		if err.Error() == "no such table: schema_info" {
 			return 0, nil

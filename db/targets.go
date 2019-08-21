@@ -121,19 +121,12 @@ func (db *DB) CountTargets(filter *TargetFilter) (int, error) {
 		filter = &TargetFilter{}
 	}
 
-	var i int
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
-	if err != nil {
-		return i, err
-	}
-	defer r.Close()
-
-	for r.Next() {
-		i++
-	}
-
-	return i, nil
+	db.exclusive.Lock()
+	uintRet, err := db.count(query, args...)
+	db.exclusive.Unlock()
+	ret := int(uintRet)
+	return ret, err
 }
 
 func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
@@ -143,7 +136,9 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 
 	l := []*Target{}
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -172,7 +167,14 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 }
 
 func (db *DB) GetTarget(id string) (*Target, error) {
-	r, err := db.Query(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.doGetTarget(id)
+}
+
+//The caller must Lock the db Mutex
+func (db *DB) doGetTarget(id string) (*Target, error) {
+	r, err := db.query(`
 	    SELECT uuid, tenant_uuid, name, summary, plugin,
 	           endpoint, agent, compression
 
@@ -212,7 +214,9 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 	}
 
 	target.UUID = RandomID()
-	err = db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err = db.exec(`
 	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
 	                         endpoint, agent, compression)
 	                 VALUES (?, ?, ?, ?, ?,
@@ -233,7 +237,9 @@ func (db *DB) UpdateTarget(target *Target) error {
 		return err
 	}
 
-	err = db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err = db.exec(`
 	  UPDATE targets
 	     SET name        = ?,
 	         summary     = ?,
@@ -248,7 +254,7 @@ func (db *DB) UpdateTarget(target *Target) error {
 		return err
 	}
 
-	update, err := db.GetTarget(target.UUID)
+	update, err := db.doGetTarget(target.UUID)
 	if err != nil {
 		return err
 	}
@@ -261,7 +267,9 @@ func (db *DB) UpdateTarget(target *Target) error {
 }
 
 func (db *DB) DeleteTarget(id string) (bool, error) {
-	target, err := db.GetTarget(id)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	target, err := db.doGetTarget(id)
 	if err != nil {
 		return false, err
 	}
@@ -271,30 +279,27 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 		return true, nil
 	}
 
-	r, err := db.Query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
+	r, err := db.query(`SELECT COUNT(uuid) FROM jobs WHERE jobs.target_uuid = ?`, target.UUID)
 	if err != nil {
 		return false, err
 	}
 	defer r.Close()
 
 	if !r.Next() {
-		/* already deleted (temporal anomaly detected) */
+		/*already deleted (temporal anomaly detected) */
 		return true, nil
 	}
 
-	var numJobs int
+	var numJobs uint
 	if err = r.Scan(&numJobs); err != nil {
 		return false, err
-	}
-	if numJobs < 0 {
-		return false, fmt.Errorf("Target %s is in used by %d (negative) Jobs", id, numJobs)
 	}
 	if numJobs > 0 {
 		return false, nil
 	}
 	r.Close()
 
-	err = db.Exec(`DELETE FROM targets WHERE uuid = ?`, id)
+	err = db.exec(`DELETE FROM targets WHERE uuid = ?`, id)
 	if err != nil {
 		return false, err
 	}
@@ -304,7 +309,9 @@ func (db *DB) DeleteTarget(id string) (bool, error) {
 }
 
 func (db *DB) CleanTargets() error {
-	return db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.exec(`
 	   DELETE FROM targets
 	         WHERE uuid in (SELECT uuid
 	                          FROM targets t

@@ -42,7 +42,9 @@ See [issue #516](https://github.com/shieldproject/shield/issues/516) in GitHub f
 
 			   set those archives to 'expired' */
 
-			return db.Exec(`
+			db.exclusive.Lock()
+			defer db.exclusive.Unlock()
+			return db.exec(`
 				UPDATE archives
 				   SET status = 'expired'
 				 WHERE status = 'purged'
@@ -69,7 +71,9 @@ the global tenant UUID, to fix that.
 
 See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub for details.`,
 		fn: func(db *DB) error {
-			return db.Exec(`
+			db.exclusive.Lock()
+			defer db.exclusive.Unlock()
+			return db.exec(`
 				UPDATE tasks
 				   SET tenant_uuid = ?
 				 WHERE tenant_uuid = ''
@@ -92,22 +96,30 @@ were affected.
 
 See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub for details.`,
 		fn: func(db *DB) error {
-			r, err := db.Query(`
+			db.exclusive.Lock()
+			defer db.exclusive.Unlock()
+			r, err := db.query(`
 				SELECT uuid
 				  FROM jobs
 				 WHERE keep_n = 0`)
 			if err != nil {
 				return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
 			}
-			defer r.Close()
 
+			var uuids []string
 			for r.Next() {
 				var uuid string
 				if err = r.Scan(&uuid); err != nil {
+					r.Close()
 					return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
 				}
 
-				job, err := db.GetJob(uuid)
+				uuids = append(uuids, uuid)
+			}
+			r.Close()
+
+			for _, uuid := range uuids {
+				job, err := db.doGetJob(uuid)
 				if err != nil {
 					return fmt.Errorf("unable to retrieve job '%s': %s", uuid, err)
 				}
@@ -118,13 +130,12 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 					continue
 				}
 				job.KeepN = sched.KeepN(job.KeepDays)
-				err = db.UpdateJob(job)
+				err = db.doUpdateJob(job)
 				if err != nil {
 					/* FIXME log stuff! */
 					continue
 				}
 			}
-
 			return nil
 		},
 	})
@@ -132,22 +143,33 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 
 func (db *DB) RegisterFixups() error {
 	for _, f := range fixups {
-		n, err := db.Count(`SELECT id FROM fixups WHERE id = ?`, f.id)
+		err := db.registerFixup(f)
 		if err != nil {
-			return fmt.Errorf("unable to register fixup '%s': %s", f.id, err)
+			return err
 		}
-		if n == 0 {
-			err = db.Exec(
-				`INSERT INTO fixups
+	}
+	return nil
+}
+
+func (db *DB) registerFixup(f fixup) error {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	n, err := db.count(`SELECT id FROM fixups WHERE id = ?`, f.id)
+	if err != nil {
+		return fmt.Errorf("unable to register fixup '%s': %s", f.id, err)
+	}
+	if n == 0 {
+		err = db.exec(
+			`INSERT INTO fixups
 				    (id, name, summary, created_at, applied_at)
 				  VALUES
 				    (?, ?, ?, ?, NULL)`,
-				f.id, f.name, f.summary, f.created)
-			if err != nil {
-				return fmt.Errorf("unable to register fixup '%s': %s", f.id, err)
-			}
+			f.id, f.name, f.summary, f.created)
+		if err != nil {
+			return fmt.Errorf("unable to register fixup '%s': %s", f.id, err)
 		}
 	}
+
 	return nil
 }
 
@@ -159,8 +181,10 @@ func (db *DB) ApplyFixup(id string) error {
 				return fmt.Errorf("unable to apply fixup '%s': %s", f.id, err)
 			}
 
-			err = db.Exec(`UPDATE fixups SET applied_at = ? WHERE id = ?`,
+			db.exclusive.Lock()
+			err = db.exec(`UPDATE fixups SET applied_at = ? WHERE id = ?`,
 				time.Now().Unix(), f.id)
+			db.exclusive.Unlock()
 			if err != nil {
 				return fmt.Errorf("unable to track application of fixup '%s' in database: %s", f.id, err)
 			}

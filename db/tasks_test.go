@@ -29,13 +29,17 @@ var _ = Describe("Task Management", func() {
 	)
 
 	shouldExist := func(q string, params ...interface{}) {
-		n, err := db.Count(q, params...)
+		db.exclusive.Lock()
+		defer db.exclusive.Unlock()
+		n, err := db.count(q, params...)
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(n).Should(BeNumerically(">", 0))
 	}
 
 	shouldNotExist := func(q string, params ...interface{}) {
-		n, err := db.Count(q, params...)
+		db.exclusive.Lock()
+		defer db.exclusive.Unlock()
+		n, err := db.count(q, params...)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(n).Should(BeNumerically("==", 0))
 	}
@@ -328,12 +332,14 @@ var _ = Describe("Task Management", func() {
 		TENANT2_UUID := RandomID()
 
 		BeforeEach(func() {
-			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, tenant_uuid)`+
+			db.exclusive.Lock()
+			defer db.exclusive.Unlock()
+			err := db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, tenant_uuid)`+
 				`VALUES('%s', '%s', '%s', '%s', %d, '%s')`,
 				TASK1_UUID, "system", BackupOperation, PendingStatus, 0, TENANT1_UUID))
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = db.Exec(
+			err = db.exec(
 				fmt.Sprintf(`INSERT INTO tasks (uuid, owner, op, status, requested_at, archive_uuid, job_uuid, tenant_uuid)`+
 					`VALUES('%s', '%s', '%s', '%s', %d, '%s', '%s', '%s')`,
 					TASK2_UUID, "system", RestoreOperation, PendingStatus, 2,
@@ -383,11 +389,13 @@ var _ = Describe("Task Management", func() {
 		runningTaskTargetUUID := RandomID()
 
 		BeforeEach(func() {
-			err := db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
+			db.exclusive.Lock()
+			defer db.exclusive.Unlock()
+			err := db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
 				`VALUES('%s', '%s', '%s', %d, '%s')`,
 				RandomID(), BackupOperation, PendingStatus, 0, notRunningTaskTargetUUID))
 			Expect(err).ShouldNot(HaveOccurred())
-			err = db.Exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
+			err = db.exec(fmt.Sprintf(`INSERT INTO tasks (uuid, op, status, requested_at, target_uuid)`+
 				`VALUES('%s', '%s', '%s', %d, '%s')`,
 				RandomID(), BackupOperation, RunningStatus, 0, runningTaskTargetUUID))
 			Expect(err).ShouldNot(HaveOccurred())

@@ -9,8 +9,11 @@ type v6Schema struct{}
 func (s v6Schema) Deploy(db *DB) error {
 	var err error
 
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+
 	// set the tenant_uuid column to NOT NULL
-	err = db.Exec(`CREATE TABLE jobs_new (
+	err = db.exec(`CREATE TABLE jobs_new (
 	               uuid               UUID PRIMARY KEY,
 	               target_uuid        UUID NOT NULL,
 	               store_uuid         UUID NOT NULL,
@@ -28,7 +31,7 @@ func (s v6Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
-	err = db.Exec(`INSERT INTO jobs_new (uuid, target_uuid, store_uuid, tenant_uuid,
+	err = db.exec(`INSERT INTO jobs_new (uuid, target_uuid, store_uuid, tenant_uuid,
 	                                     schedule, next_run, keep_days,
 	                                     priority, paused, name, summary)
 	                              SELECT j.uuid, j.target_uuid, j.store_uuid, j.tenant_uuid,
@@ -39,32 +42,35 @@ func (s v6Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
-	err = db.Exec(`DROP TABLE jobs`)
+	err = db.exec(`DROP TABLE jobs`)
 	if err != nil {
 		return err
 	}
-	err = db.Exec(`ALTER TABLE jobs_new RENAME TO jobs`)
+	err = db.exec(`ALTER TABLE jobs_new RENAME TO jobs`)
 	if err != nil {
 		return err
 	}
-	err = db.Exec(`DROP TABLE retention`)
+	err = db.exec(`DROP TABLE retention`)
 	if err != nil {
 		return err
 	}
 
 	/* fix keep_n on all jobs */
-	jobs, err := db.GetAllJobs(nil)
+	jobs, err := db.doGetAllJobs(nil)
 	if err != nil {
 		return err
 	}
 	for _, job := range jobs {
 		if sched, err := timespec.Parse(job.Schedule); err != nil {
 			job.KeepN = sched.KeepN(job.KeepDays)
-			db.UpdateJob(job)
+			err = db.doUpdateJob(job)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	err = db.Exec(`UPDATE schema_info set version = 6`)
+	err = db.exec(`UPDATE schema_info set version = 6`)
 	if err != nil {
 		return err
 	}

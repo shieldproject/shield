@@ -71,7 +71,9 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 
 	l := make([]*Tenant, 0)
 	query, args := filter.Query()
-	r, err := db.Query(query, args...)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
 	}
@@ -104,7 +106,9 @@ func (db *DB) GetAllTenants(filter *TenantFilter) ([]*Tenant, error) {
 }
 
 func (db *DB) GetTenant(id string) (*Tenant, error) {
-	r, err := db.Query(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	r, err := db.query(`
 	     SELECT t.uuid, t.name,
 	            t.daily_increase, t.storage_used, t.archive_count
 
@@ -164,7 +168,9 @@ func (db *DB) CreateTenant(tenant *Tenant) (*Tenant, error) {
 	if tenant.UUID == "" {
 		tenant.UUID = RandomID()
 	}
-	err := db.Exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant.UUID, tenant.Name)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err := db.exec(`INSERT INTO tenants (uuid, name) VALUES (?, ?)`, tenant.UUID, tenant.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +179,9 @@ func (db *DB) CreateTenant(tenant *Tenant) (*Tenant, error) {
 }
 
 func (db *DB) UpdateTenant(tenant *Tenant) (*Tenant, error) {
-	err := db.Exec(`
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	err := db.exec(`
 	   UPDATE tenants
 	      SET name = ?,
 	          daily_increase = ?,
@@ -191,7 +199,9 @@ func (db *DB) UpdateTenant(tenant *Tenant) (*Tenant, error) {
 }
 
 func (db *DB) GetTenantRole(org string, team string) (string, string, error) {
-	rows, err := db.Query(`SELECT tenant_uuid, role FROM org_team_tenant_role WHERE org = ? AND team = ?`, org, team)
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	rows, err := db.query(`SELECT tenant_uuid, role FROM org_team_tenant_role WHERE org = ? AND team = ?`, org, team)
 	if err != nil {
 		return "", "", err
 	}
@@ -210,9 +220,11 @@ func (db *DB) GetTenantRole(org string, team string) (string, string, error) {
 }
 
 func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
 	if recurse {
 		/* delete all non-running tasks for this tenant */
-		err := db.Exec(`
+		err := db.exec(`
 		   DELETE FROM tasks
 		         WHERE stopped_at IS NOT NULL 
 		           AND tenant_uuid = ?`, tenant.UUID)
@@ -221,7 +233,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		}
 
 		/* delete all tenant memberships for this tenant */
-		err = db.Exec(`
+		err = db.exec(`
 		   DELETE FROM memberships 
 		         WHERE tenant_uuid = ?`, tenant.UUID)
 		if err != nil {
@@ -229,7 +241,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		}
 
 		/* delete all backup jobs for this tenant */
-		err = db.Exec(`
+		err = db.exec(`
 		   DELETE FROM jobs
 		         WHERE tenant_uuid = ?`, tenant.UUID)
 		if err != nil {
@@ -237,7 +249,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		}
 
 		/* detach all data systems from this tenant */
-		err = db.Exec(`
+		err = db.exec(`
 		  UPDATE targets
 		     SET tenant_uuid = ''
 		   WHERE tenant_uuid = ?`, tenant.UUID)
@@ -246,7 +258,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		}
 
 		/* detach all cloud storage systems from this tenant */
-		err = db.Exec(`
+		err = db.exec(`
 		   UPDATE stores
 		      SET tenant_uuid = ''
 		    WHERE tenant_uuid = ?`, tenant.UUID)
@@ -255,7 +267,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		}
 
 		/* detach and expire all archives from this tenant */
-		err = db.Exec(`
+		err = db.exec(`
 		   UPDATE archives
 		      SET tenant_uuid = '', status = 'tenant deleted'
 		    WHERE tenant_uuid = ?`, tenant.UUID)
@@ -264,28 +276,28 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 		}
 
 	} else {
-		if n, _ := db.Count(`SELECT uuid FROM jobs WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+		if n, _ := db.count(`SELECT uuid FROM jobs WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding jobs")
 		}
 
-		if n, _ := db.Count(`SELECT uuid FROM stores WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+		if n, _ := db.count(`SELECT uuid FROM stores WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding stores")
 		}
 
-		if n, _ := db.Count(`SELECT uuid FROM targets WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+		if n, _ := db.count(`SELECT uuid FROM targets WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding targets")
 		}
 
-		if n, _ := db.Count(`SELECT uuid FROM archives WHERE tenant_uuid = ? and status NOT IN ("purged")`, tenant.UUID); n > 0 {
+		if n, _ := db.count(`SELECT uuid FROM archives WHERE tenant_uuid = ? and status NOT IN ("purged")`, tenant.UUID); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding archives")
 		}
 
-		if n, _ := db.Count(`SELECT uuid FROM tasks WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
+		if n, _ := db.count(`SELECT uuid FROM tasks WHERE tenant_uuid = ?`, tenant.UUID); n > 0 {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding tasks")
 		}
 	}
 
-	return db.Exec(`
+	return db.exec(`
 	   DELETE FROM tenants
 	         WHERE uuid = ?`, tenant.UUID)
 }
