@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jhunt/go-log"
@@ -9,22 +10,64 @@ import (
 	"github.com/shieldproject/shield/timespec"
 )
 
-type fixup struct {
-	id      string
-	name    string
-	summary string
-	created time.Time
-	fn      func(*DB) error
+type Fixup struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Summary   string `json:"summary"`
+	CreatedAt int64  `json:"created_at"`
+	AppliedAt int64  `json:"applied_at"`
+	fn        func(*DB) error
 }
 
-var fixups []fixup
+func (f *Fixup) Apply(db *DB) error {
+	err := f.fn(db)
+	if err != nil {
+		return fmt.Errorf("unable to apply fixup '%s': %s", f.ID, err)
+	}
+
+	db.exclusive.Lock()
+	err = db.exec(`UPDATE fixups SET applied_at = ? WHERE id = ?`, time.Now().Unix(), f.ID)
+	db.exclusive.Unlock()
+	if err != nil {
+		return fmt.Errorf("unable to track application of fixup '%s' in database: %s", f.ID, err)
+	}
+
+	return nil
+}
+
+type FixupFilter struct {
+	ID          string
+	SkipApplied bool
+}
+
+func (f *FixupFilter) Query() (string, []interface{}) {
+	wheres := []string{"f.id = f.id"}
+	var args []interface{}
+
+	if f.SkipApplied {
+		wheres = append(wheres, "f.applied_at IS NOT NULL")
+	}
+
+	if f.ID != "" {
+		wheres = append(wheres, "f.id = ?")
+		args = append(args, f.ID)
+	}
+
+	return `
+		SELECT f.id, f.name, f.summary, f.created_at, f.updated_at
+		 WHERE ` + strings.Join(wheres, " AND ") + `
+		 ORDER BY created_at ASC`, args
+}
+
+var fixups map[string]*Fixup
 
 func init() {
-	fixups = append(fixups, fixup{
-		id:      "purge-task-516",
-		name:    "Re-schedule Failed Purge Tasks",
-		created: time.Date(2019, 05, 14, 15, 54, 00, 0, time.UTC),
-		summary: `
+	fixups = make(map[string]*Fixup)
+
+	fixups["purge-task-516"] = &Fixup{
+		Name:      "Re-schedule Failed Purge Tasks",
+		CreatedAt: time.Date(2019, 05, 14, 15, 54, 00, 0, time.UTC).Unix(),
+		Summary: `
 There was an issue in versions of SHIELD between
 8.1.0 and 8.2.0, where purge tasks would fail, but
 still mark the archive as having been removed from
@@ -55,11 +98,12 @@ See [issue #516](https://github.com/shieldproject/shield/issues/516) in GitHub f
 				                     WHERE op     = 'purge'
 				                       AND status = 'done')`)
 		},
-	}, fixup{
-		id:      "agent-status-task-tenant-uuid-522",
-		name:    "Associate Orphaned agent-status Tasks with Global Tenant",
-		created: time.Date(2019, 05, 15, 12, 32, 00, 0, time.UTC),
-		summary: `
+	}
+
+	fixups["agent-status-task-tenant-uuid-522"] = &Fixup{
+		Name:      "Associate Orphaned agent-status Tasks with Global Tenant",
+		CreatedAt: time.Date(2019, 05, 15, 12, 32, 00, 0, time.UTC).Unix(),
+		Summary: `
 There was an issue in versions of SHIELD prior to
 8.2.0, where <code>agent-status</code> tasks were
 inserted into the database with an empty tenant UUID.
@@ -81,11 +125,12 @@ See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub f
 				 WHERE tenant_uuid = ''
 				   AND op          = 'agent-status'`, GlobalTenantUUID)
 		},
-	}, fixup{
-		id:      "",
-		name:    "",
-		created: time.Date(2019, 05, 15, 15, 43, 00, 0, time.UTC),
-		summary: `
+	}
+
+	fixups["keep-n-460"] = &Fixup{
+		Name:      "Job Keep-N=0 Fix",
+		CreatedAt: time.Date(2019, 05, 15, 15, 43, 00, 0, time.UTC).Unix(),
+		Summary: `
 The holistic <code>/v2/tenants/systems/...</code> API
 handlers were incorrectly skipping the calculation and
 population of the number of kept backups, leading to
@@ -128,79 +173,86 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 
 				sched, err := timespec.Parse(job.Schedule)
 				if err != nil {
-					log.Errorf("failed to parse job schedule '%s': %s", job.Schedule, err)
+					/* FIXME log stuff! */
 					continue
 				}
 				job.KeepN = sched.KeepN(job.KeepDays)
 				err = db.doUpdateJob(job)
 				if err != nil {
-					log.Errorf("failed to apply UpdateJob fixup: %s", err)
+					/* FIXME log stuff! */
 					continue
 				}
 			}
 			return nil
 		},
-	})
-}
-
-func (db *DB) RegisterFixups() error {
-	for _, f := range fixups {
-		err := db.registerFixup(f)
-		if err != nil {
-			return err
-		}
 	}
-	return nil
+
+	/* put the IDs back in so that we don't have to do it manually */
+	for id, f := range fixups {
+		f.ID = id
+	}
 }
 
-func (db *DB) registerFixup(f fixup) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	n, err := db.count(`SELECT id FROM fixups WHERE id = ?`, f.id)
+func (db *DB) GetAllFixups(filter *FixupFilter) ([]*Fixup, error) {
+	if filter == nil {
+		filter = &FixupFilter{}
+	}
+
+	l := []*Fixup{}
+	query, args := filter.Query()
+	r, err := db.query(query, args...)
 	if err != nil {
-		return fmt.Errorf("unable to register fixup '%s': %s", f.id, err)
+		return l, err
 	}
-	if n == 0 {
-		err = db.exec(
-			`INSERT INTO fixups
-				    (id, name, summary, created_at, applied_at)
-				  VALUES
-				    (?, ?, ?, ?, NULL)`,
-			f.id, f.name, f.summary, f.created)
-		if err != nil {
-			return fmt.Errorf("unable to register fixup '%s': %s", f.id, err)
+	defer r.Close()
+
+	for r.Next() {
+		f := &Fixup{}
+
+		if err = r.Scan(r, &f.ID, &f.Name, f.Summary, f.CreatedAt, f.AppliedAt); err != nil {
+			return l, err
 		}
+
+		l = append(l, f)
 	}
 
-	return nil
+	return l, nil
 }
 
-func (db *DB) ApplyFixup(id string) error {
-	for _, f := range fixups {
-		if f.id == id {
-			err := f.fn(db)
-			if err != nil {
-				return fmt.Errorf("unable to apply fixup '%s': %s", f.id, err)
-			}
-
-			db.exclusive.Lock()
-			err = db.exec(`UPDATE fixups SET applied_at = ? WHERE id = ?`,
-				time.Now().Unix(), f.id)
-			db.exclusive.Unlock()
-			if err != nil {
-				return fmt.Errorf("unable to track application of fixup '%s' in database: %s", f.id, err)
-			}
-			return nil
-		}
+func (db *DB) GetFixup(id string) (*Fixup, error) {
+	r, err := db.GetAllFixups(&FixupFilter{ID: id})
+	if err != nil {
+		return nil, err
 	}
-	return fmt.Errorf("unrecognized fixup '%s' attempted", id)
+	if len(r) == 0 {
+		return nil, nil
+	}
+	return r[0], nil
 }
 
 func (db *DB) ApplyFixups() error {
+	db.Exec(`DELETE FROM fixups WHERE id = ""`)
+
 	for _, f := range fixups {
-		if err := db.ApplyFixup(f.id); err != nil {
+		if existing, err := db.GetFixup(f.ID); err != nil {
+			log.Infof("INITIALIZING: creating fixup record for %s...", f.ID)
+
+			err = db.Exec(`
+				INSERT INTO fixups (id, name, summary, created_at, applied_at)
+				              VALUES (?,  ?,    ?,       ?,          NULL)`,
+				f.ID, f.Name, f.Summary, f.CreatedAt)
+			if err != nil {
+				return fmt.Errorf("unable to register fixup '%s': %s", f.ID, err)
+			}
+		} else if existing == nil {
+			return fmt.Errorf("unable to find fixup '%s' in database: %s", f.ID, err)
+		}
+
+		log.Infof("INITIALIZING: applying fixup %s...", f.ID)
+		if err := f.Apply(db); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }

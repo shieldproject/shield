@@ -67,6 +67,13 @@ func (db *DB) Inform(mbus *bus.Bus) {
 }
 
 // Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
+func (db *DB) Exec(sql string, args ...interface{}) error {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.exec(sql, args...)
+}
+
+// Execute a named, non-data query (INSERT, UPDATE, DELETE, etc.)
 // The caller is responsible for locking the Mutex.
 func (db *DB) exec(sql string, args ...interface{}) error {
 	s, err := db.statement(sql)
