@@ -80,8 +80,8 @@ See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub f
 				   AND op          = 'agent-status'`, GlobalTenantUUID)
 		},
 	}, fixup{
-		id:      "",
-		name:    "",
+		id:      "keep-n-460",
+		name:    "Job Keep-N=0 Fix",
 		created: time.Date(2019, 05, 15, 15, 43, 00, 0, time.UTC),
 		summary: `
 The holistic <code>/v2/tenants/systems/...</code> API
@@ -142,6 +142,13 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 }
 
 func (db *DB) RegisterFixups() error {
+	db.exclusive.Lock()
+	err := db.exec(`DELETE FROM fixups WHERE id = ""`)
+	db.exclusive.Unlock()
+	if err != nil {
+		return err
+	}
+
 	for _, f := range fixups {
 		err := db.registerFixup(f)
 		if err != nil {
@@ -154,6 +161,7 @@ func (db *DB) RegisterFixups() error {
 func (db *DB) registerFixup(f fixup) error {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
+
 	n, err := db.count(`SELECT id FROM fixups WHERE id = ?`, f.id)
 	if err != nil {
 		return fmt.Errorf("unable to register fixup '%s': %s", f.id, err)
