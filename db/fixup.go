@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jhunt/go-log"
+
 	"github.com/shieldproject/shield/timespec"
 )
 
@@ -126,13 +128,13 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 
 				sched, err := timespec.Parse(job.Schedule)
 				if err != nil {
-					/* FIXME log stuff! */
+					log.Errorf("failed to parse job schedule '%s': %s", job.Schedule, err)
 					continue
 				}
 				job.KeepN = sched.KeepN(job.KeepDays)
 				err = db.doUpdateJob(job)
 				if err != nil {
-					/* FIXME log stuff! */
+					log.Errorf("failed to apply UpdateJob fixup: %s", err)
 					continue
 				}
 			}
