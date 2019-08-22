@@ -179,7 +179,7 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 				job.KeepN = sched.KeepN(job.KeepDays)
 				err = db.doUpdateJob(job)
 				if err != nil {
-					/* FIXME log stuff! */
+					log.Errorf("failed to apply UpdateJob fixup: %s", err)
 					continue
 				}
 			}
