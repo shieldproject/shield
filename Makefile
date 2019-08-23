@@ -19,7 +19,7 @@ plugin-tests: plugins
 	./t/plugins
 	@rm -f mock
 go-tests: shield
-	go list ./... | grep -v vendor/ | PATH=$$PWD:$$PWD/bin:$$PWD/test/bin:$$PATH xargs go test
+	go list ./... | grep -v vendor/ | PATH=$$PWD:$$PWD/bin:$$PWD/test/bin:$$PATH xargs go test -race
 api-tests: shieldd shield-schema shield-crypt shield-agent shield-report
 	./t/api
 
