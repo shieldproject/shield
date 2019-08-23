@@ -327,6 +327,7 @@ var opts struct {
 	Op struct {
 		Pry struct{} `cli:"pry"`
 		IFK struct{} `cli:"ifk"`
+		SQL struct{} `cli:"sql"`
 	} `cli:"op"`
 }
 
@@ -3283,6 +3284,57 @@ tenants:
 			break
 		}
 		fmt.Printf("%s\n", r.OK)
+
+	/* }}} */
+
+	case "op sql": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s QUERY\n", command)
+		}
+
+		in := struct {
+			Query string `json:"q"`
+		}{
+			Query: args[0],
+		}
+		b, err := json.Marshal(&in)
+		bail(err)
+
+		code, response, err := c.Curl("POST", "/v2/expert/sql", string(b))
+		bail(err)
+
+		if code != 200 {
+			var out struct {
+				Error      string `json:"error"`
+				Diagnostic string `json:"diagnostic"`
+			}
+			err = json.Unmarshal([]byte(response), &out)
+			bail(err)
+
+			fmt.Fprintf(os.Stderr, "query `@C{%s}` failed:\n", in.Query)
+			fmt.Fprintf(os.Stderr, "@R{error: %s}\n", out.Error)
+			if out.Diagnostic != "" {
+				fmt.Fprintf(os.Stderr, "@R{       %s}\n", out.Diagnostic)
+			}
+			os.Exit(1)
+		}
+
+		var out struct {
+			Columns []string `json:"columns"`
+			Rows []map[string] interface{} `json:"rows"`
+		}
+		err = json.Unmarshal([]byte(response), &out)
+		bail(err)
+
+		tbl := table.NewTable(out.Columns...)
+		for _, r := range out.Rows {
+			vals := make([]interface{}, len(out.Columns))
+			for i := range out.Columns {
+				vals[i] = r[out.Columns[i]]
+			}
+			tbl.Row(r, vals...)
+		}
+		tbl.Output(os.Stdout)
 
 	/* }}} */
 

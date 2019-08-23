@@ -3498,6 +3498,33 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("POST /v2/expert/sql", func(r *route.Request) { // {{{
+		if c.IsNotSystemAdmin(r) {
+			return
+		}
+
+		var in struct {
+			Query string `json:"q"`
+		}
+
+		if !r.Payload(&in) {
+			return
+		}
+
+		if r.Missing("q", in.Query) {
+			return
+		}
+
+		rows, err := c.db.Query(in.Query)
+		if err != nil {
+			r.Fail(route.Oops(err, "Failed to run query"))
+			return
+		}
+
+		r.OK(rows)
+	})
+	// }}}
+
 	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
 		if c.IsNotSystemAdmin(r) {
 			return

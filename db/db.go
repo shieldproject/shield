@@ -109,6 +109,52 @@ func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
 	return r, nil
 }
 
+type SimpleResult struct {
+	Columns []string                 `json:"columns"`
+	Rows    []map[string]interface{} `json:"rows"`
+}
+
+func (db *DB) Query(q string, args ...interface{}) (*SimpleResult, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+
+	r, err := db.connection.Query(q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	keys, err := r.Columns()
+	if err != nil {
+		return nil, err
+	}
+	vals := make([]interface{}, len(keys))
+	for i := range vals {
+		var x sql.NullString
+		vals[i] = &x
+	}
+
+	var rr []map[string]interface{}
+	for r.Next() {
+		if err = r.Scan(vals...); err != nil {
+			return nil, err
+		}
+		row := make(map[string]interface{})
+		for i := range keys {
+			x := vals[i].(*sql.NullString)
+			if x != nil && x.Valid {
+				row[keys[i]] = x.String
+			}
+		}
+		rr = append(rr, row)
+	}
+
+	return &SimpleResult{
+		Columns: keys,
+		Rows:    rr,
+	}, nil
+}
+
 // Execute a data query (SELECT) and return how many rows were returned
 func (db *DB) Count(sql string, args ...interface{}) (uint, error) {
 	db.exclusive.Lock()
