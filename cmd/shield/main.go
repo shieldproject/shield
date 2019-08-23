@@ -3081,7 +3081,7 @@ tenants:
 
 		tbl := table.NewTable("UUID", "Account", "Created At", "Last Seen", "IP Address", "User Agent")
 		for _, session := range sessions {
-			tbl.Row(session, uuid8full(session.UUID, opts.Long), session.UserAccount, strftime(session.CreatedAt), strftimenil(session.LastSeen, "(nerver)"), session.IP, session.UserAgent)
+			tbl.Row(session, uuid8full(session.UUID, opts.Long), session.UserAccount, strftime(session.CreatedAt), strftimenil(session.LastSeen, "(never)"), session.IP, session.UserAgent)
 		}
 		tbl.Output(os.Stdout)
 
