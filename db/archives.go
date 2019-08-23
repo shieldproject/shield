@@ -199,11 +199,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 func (db *DB) GetArchive(id string) (*Archive, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
-	return db.doGetArchive(id)
-}
 
-//The caller must lock the db Mutex
-func (db *DB) doGetArchive(id string) (*Archive, error) {
 	r, err := db.query(`
 		SELECT a.uuid, a.store_key,
 		       a.taken_at, a.expires_at, a.notes,
@@ -258,18 +254,14 @@ func (db *DB) doGetArchive(id string) (*Archive, error) {
 }
 
 func (db *DB) UpdateArchive(update *Archive) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(
+	return db.Exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ?`,
 		update.Notes, update.UUID,
 	)
 }
 
 func (db *DB) AnnotateTargetArchive(target, id, notes string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(
+	return db.Exec(
 		`UPDATE archives SET notes = ? WHERE uuid = ? AND target_uuid = ?`,
 		notes, id, target,
 	)
@@ -292,15 +284,11 @@ func (db *DB) GetExpiredArchives() ([]*Archive, error) {
 }
 
 func (db *DB) InvalidateArchive(id string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id)
+	return db.Exec(`UPDATE archives SET status = 'invalid' WHERE uuid = ?`, id)
 }
 
 func (db *DB) PurgeArchive(id string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	a, err := db.doGetArchive(id)
+	a, err := db.GetArchive(id)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve archive [%s]: %s", id, err)
 	}
@@ -309,30 +297,24 @@ func (db *DB) PurgeArchive(id string) error {
 		return fmt.Errorf("invalid attempt to purge a 'valid' archive detected")
 	}
 
-	err = db.exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id)
+	err = db.Exec(`UPDATE archives SET purge_reason = status WHERE uuid = ?`, id)
 	if err != nil {
 		return err
 	}
 
-	return db.exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id)
+	return db.Exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id)
 }
 
 func (db *DB) ExpireArchive(id string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id)
+	return db.Exec(`UPDATE archives SET status = 'expired' WHERE uuid = ?`, id)
 }
 
 func (db *DB) ManuallyPurgeArchive(id string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`UPDATE archives SET status = 'manually purged' WHERE uuid = ?`, id)
+	return db.Exec(`UPDATE archives SET status = 'manually purged' WHERE uuid = ?`, id)
 }
 
 func (db *DB) DeleteArchive(id string) (bool, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return true, db.exec(`DELETE FROM archives WHERE uuid = ?`, id)
+	return true, db.Exec(`DELETE FROM archives WHERE uuid = ?`, id)
 }
 
 func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
@@ -422,9 +404,7 @@ func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {
 }
 
 func (db *DB) CleanArchives() error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`
+	return db.Exec(`
 	   UPDATE archives
 	      SET status = "expired"
 	    WHERE uuid IN (SELECT a.uuid

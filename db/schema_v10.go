@@ -4,14 +4,12 @@ type v10Schema struct{}
 
 func (s v10Schema) Deploy(db *DB) error {
 	var err error
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 
 	/* delete all duplicate agents, except for the most recently
 	   seen (via last_seen_at) to fix up some database issues
 	   so that we can place a UNIQUE constraint on (address)
 	*/
-	err = db.exec(`
+	err = db.Exec(`
 		DELETE FROM agents
 		      WHERE last_seen_at != (SELECT MAX(last_seen_at)
 		                               FROM agents a
@@ -31,13 +29,13 @@ func (s v10Schema) Deploy(db *DB) error {
 
 	   (see https://www.sqlite.org/lang_createtable.html#constraints)
 	*/
-	err = db.exec(`CREATE UNIQUE INDEX address ON agents (address)`)
+	err = db.Exec(`CREATE UNIQUE INDEX address ON agents (address)`)
 	if err != nil {
 		return err
 	}
 
 	/* hello, v10! */
-	err = db.exec(`UPDATE schema_info set version = 10`)
+	err = db.Exec(`UPDATE schema_info set version = 10`)
 	if err != nil {
 		return err
 	}

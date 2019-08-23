@@ -167,6 +167,7 @@ func (db *DB) GetUserByID(id string) (*User, error) {
 func (db *DB) GetUser(account string, backend string) (*User, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
+
 	r, err := db.query(`
 	    SELECT u.uuid, u.name, u.account, u.backend, u.sysrole, u.pwhash,
 	           u.default_tenant
@@ -192,9 +193,7 @@ func (db *DB) CreateUser(user *User) (*User, error) {
 	if user.UUID == "" {
 		user.UUID = RandomID()
 	}
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(`
+	err := db.Exec(`
 	    INSERT INTO users (uuid, name, account, backend, sysrole, pwhash)
 	               VALUES (?, ?, ?, ?, ?, ?)
 	`, user.UUID, user.Name, user.Account, user.Backend, user.SysRole, user.pwhash)
@@ -202,9 +201,7 @@ func (db *DB) CreateUser(user *User) (*User, error) {
 }
 
 func (db *DB) UpdateUser(user *User) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`
+	return db.Exec(`
 	   UPDATE users
 	      SET name = ?, account = ?, backend = ?, sysrole = ?, pwhash = ?
 	    WHERE uuid = ?
@@ -212,9 +209,7 @@ func (db *DB) UpdateUser(user *User) error {
 }
 
 func (db *DB) UpdateUserSettings(user *User) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`
+	return db.Exec(`
 	   UPDATE users
 	      SET default_tenant = ?
 	    WHERE uuid = ?
@@ -222,9 +217,7 @@ func (db *DB) UpdateUserSettings(user *User) error {
 }
 
 func (db *DB) DeleteUser(user *User) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`
+	return db.Exec(`
 		DELETE FROM users
 		      WHERE uuid = ?`, user.UUID)
 }

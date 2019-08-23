@@ -198,9 +198,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	}
 
 	if len(existing) > 0 {
-		db.exclusive.Lock()
-		defer db.exclusive.Unlock()
-		return db.exec(`
+		return db.Exec(`
 		  UPDATE agents
 		     SET address      = ?,
 		         last_seen_at = ?
@@ -230,9 +228,7 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 }
 
 func (db *DB) UpdateAgent(agent *Agent) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(
+	return db.Exec(
 		`UPDATE agents SET name            = ?,
 		                   address         = ?,
 		                   version         = ?,

@@ -69,6 +69,8 @@ type TaskFilter struct {
 	SkipInactive  bool
 	OnlyRelevant  bool
 	ForOp         string
+	ForAgent      string
+	SkipStopped   bool
 	ForTenant     string
 	ForTarget     string
 	ForStatus     string
@@ -133,6 +135,15 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		args = append(args, f.ForOp)
 	}
 
+	if f.ForAgent != "" {
+		wheres = append(wheres, "t.agent = ?")
+		args = append(args, f.ForAgent)
+	}
+
+	if f.SkipStopped {
+		wheres = append(wheres, "t.stopped_at IS NULL")
+	}
+
 	if f.ForTarget != "" {
 		wheres = append(wheres, "t.target_uuid = ?")
 		args = append(args, f.ForTarget)
@@ -192,11 +203,7 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
-	return db.doGetAllTasks(filter)
-}
 
-//The caller must Lock the db Mutex
-func (db *DB) doGetAllTasks(filter *TaskFilter) ([]*Task, error) {
 	if filter == nil {
 		filter = &TaskFilter{}
 	}
@@ -263,28 +270,19 @@ func (db *DB) doGetAllTasks(filter *TaskFilter) ([]*Task, error) {
 }
 
 func (db *DB) GetTask(id string) (*Task, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.doGetTask(id)
-}
-
-//The caller must Lock the db Mutex
-func (db *DB) doGetTask(id string) (*Task, error) {
-	r, err := db.doGetAllTasks(&TaskFilter{UUID: id, ExactMatch: true})
+	all, err := db.GetAllTasks(&TaskFilter{UUID: id, ExactMatch: true})
 	if err != nil {
 		return nil, err
 	}
-	if len(r) == 0 {
+	if len(all) == 0 {
 		return nil, nil
 	}
-	return r[0], nil
+	return all[0], nil
 }
 
 func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 	id := RandomID()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, status, tenant_uuid, log, requested_at)
 		  VALUES
@@ -295,7 +293,7 @@ func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 		return nil, err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
 	}
@@ -311,9 +309,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	id := RandomID()
 	archive := RandomID()
 
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log, requested_at,
 		     archive_uuid, store_uuid, store_plugin, store_endpoint,
@@ -334,7 +330,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 		return nil, err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
 	}
@@ -349,9 +345,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) {
 	id := RandomID()
 	now := time.Now().Unix()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, job_uuid, status, log,
 		     requested_at, started_at, stopped_at, ok,
@@ -375,7 +369,7 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 		return nil, err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
 	}
@@ -394,9 +388,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	}
 
 	id := RandomID()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err = db.exec(
+	err = db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
@@ -417,7 +409,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 		return nil, err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
 	}
@@ -431,9 +423,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	id := RandomID()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`INSERT INTO tasks
 		    (uuid, owner, op, archive_uuid, status, log, requested_at,
 		     store_uuid, store_plugin, store_endpoint,
@@ -454,7 +444,7 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 		return nil, err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
 	}
@@ -472,9 +462,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		return nil, err
 	}
 	id := RandomID()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err = db.exec(
+	err = db.Exec(
 		`INSERT INTO tasks
 			(uuid, op,
 			 store_uuid, store_plugin, store_endpoint,
@@ -489,12 +477,11 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		PendingStatus, "", time.Now().Unix(), store.Agent,
 		0, store.TenantUUID, owner,
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.exec(
+	err = db.Exec(
 		`UPDATE stores
 		 SET last_test_task_uuid = ?
 		 WHERE uuid=?`,
@@ -504,7 +491,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 		return nil, err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
 	}
@@ -521,31 +508,20 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 }
 
 func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	r, err := db.query(`
-	   SELECT uuid
-
-	     FROM tasks
-
-	    WHERE op         = ?
-	      AND agent      = ?
-	      AND stopped_at IS NULL`,
-		AgentStatusOperation, agent.Address)
+	tasks, err := db.GetAllTasks(&TaskFilter{
+		ForOp:       AgentStatusOperation,
+		ForAgent:    agent.Address,
+		SkipStopped: true,
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
-	if r.Next() {
-		var id string
-		if err = r.Scan(&id); err != nil {
-			return nil, err
-		}
-		return db.doGetTask(id)
+	if len(tasks) > 0 {
+		return tasks[0], nil
 	}
 
 	id := RandomID()
-	err = db.exec(`
+	err = db.Exec(`
 	   INSERT INTO tasks (uuid, op, status, log, requested_at,
 	                      tenant_uuid, agent, attempts, owner, tenant_uuid)
 	
@@ -559,7 +535,7 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 		return nil, err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return nil, err
 	}
@@ -613,9 +589,7 @@ func (db *DB) taskQueue(id string) string {
 }
 
 func (db *DB) StartTask(id string, at time.Time) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`UPDATE tasks SET status = ?, started_at = ? WHERE uuid = ?`,
 		RunningStatus, effectively(at), id,
 	)
@@ -623,7 +597,7 @@ func (db *DB) StartTask(id string, at time.Time) error {
 		return err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return err
 	}
@@ -636,16 +610,14 @@ func (db *DB) StartTask(id string, at time.Time) error {
 }
 
 func (db *DB) ScheduledTask(id string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`UPDATE tasks SET status = ? WHERE uuid = ?`,
 		ScheduledStatus, id)
 	if err != nil {
 		return err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return err
 	}
@@ -658,16 +630,14 @@ func (db *DB) ScheduledTask(id string) error {
 }
 
 func (db *DB) updateTaskStatus(id, status string, at int64, ok int) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`UPDATE tasks SET status = ?, stopped_at = ?, ok = ? WHERE uuid = ?`,
 		status, at, ok, id)
 	if err != nil {
 		return err
 	}
 
-	task, err := db.doGetTask(id)
+	task, err := db.GetTask(id)
 	if err != nil {
 		return err
 	}
@@ -701,9 +671,7 @@ func (db *DB) CompleteTask(id string, at time.Time) error {
 }
 
 func (db *DB) UpdateTaskLog(id string, more string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`UPDATE tasks SET log = log || ? WHERE uuid = ?`,
 		more, id,
 	)
@@ -721,31 +689,36 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 	}
 
 	// determine how long we need to keep this specific archive for
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	r, err := db.query(`
-	       SELECT j.keep_days
-	         FROM jobs j
-	   INNER JOIN tasks t ON j.uuid = t.job_uuid
-	        WHERE t.uuid = ?`,
-		id)
+	n, err := (func () (int, error) {
+		db.exclusive.Lock()
+		defer db.exclusive.Unlock()
+		r, err := db.query(`
+			   SELECT j.keep_days
+				 FROM jobs j
+		   INNER JOIN tasks t ON j.uuid = t.job_uuid
+				WHERE t.uuid = ?`,
+			id)
+		if err != nil {
+			return 0, err
+		}
+		defer r.Close()
+
+		if !r.Next() {
+			return 0, fmt.Errorf("failed to determine expiration for task %s", id)
+		}
+
+		var n int
+		if err = r.Scan(&n); err != nil {
+			return 0, fmt.Errorf("failed to determine expiration for task %s: %s", id, err)
+		}
+		return n, nil
+	})()
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
-
-	if !r.Next() {
-		return "", fmt.Errorf("failed to determine expiration for task %s", id)
-	}
-
-	var keepdays int
-	if err := r.Scan(&keepdays); err != nil {
-		return "", err
-	}
-	r.Close()
 
 	// insert an archive with all proper references, expiration, etc.
-	err = db.exec(`
+	err = db.Exec(`
 	  INSERT INTO archives
 	    (uuid, target_uuid, store_uuid, store_key, taken_at,
 	     expires_at, notes, status, purge_reason, job,
@@ -760,19 +733,17 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 	         INNER JOIN stores  s     ON s.uuid = j.store_uuid
 	      WHERE tasks.uuid = ?`,
 		archive_id, key,
-		effectively(at), at.Add(time.Duration(keepdays*24)*time.Hour).Unix(),
-		compression, encryptionType, archive_size, tenant_uuid, id,
-	)
+		effectively(at), at.Add(time.Duration(n*24)*time.Hour).Unix(),
+		compression, encryptionType, archive_size, tenant_uuid, id)
 	if err != nil {
 		log.Errorf("failed to insert archive with UUID %s into database: %s", archive_id, err)
 		return "", err
 	}
 
 	// and finally, associate task -> archive
-	return archive_id, db.exec(
+	return archive_id, db.Exec(
 		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
-		archive_id, id,
-	)
+		archive_id, id)
 }
 
 type TaskAnnotation struct {
@@ -799,40 +770,36 @@ func (db *DB) AnnotateTargetTask(target, id string, t *TaskAnnotation) error {
 	}
 
 	args = append(args, target, id)
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(
+	return db.Exec(
 		`UPDATE tasks SET `+strings.Join(updates, ", ")+
 			`WHERE target_uuid = ? AND uuid = ?`, args...)
 }
 
 func (db *DB) MarkTasksIrrelevant() error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(
+	err := db.Exec(
 		`UPDATE tasks SET relevant = 0
-		  WHERE relevant = 1
-		    AND clear = 'immediate'`)
+	  WHERE relevant = 1
+		AND clear = 'immediate'`)
 
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(
+	err = db.Exec(
 		`UPDATE tasks SET relevant = 0
-		  WHERE relevant = 1 AND clear = 'normal'
-		    AND uuid IN (
-		      SELECT tasks.uuid FROM tasks
-		        INNER JOIN jobs ON jobs.uuid = tasks.job_uuid
-		             WHERE jobs.keepdays * 86400 + tasks.started_at < ?`, time.Now().Unix())
+	  WHERE relevant = 1 AND clear = 'normal'
+		AND uuid IN (
+		  SELECT tasks.uuid FROM tasks
+			INNER JOIN jobs ON jobs.uuid = tasks.job_uuid
+				 WHERE jobs.keepdays * 86400 + tasks.started_at < ?`, time.Now().Unix())
 
 	if err != nil {
 		return err
 	}
 
-	err = db.exec(
+	err = db.Exec(
 		`UPDATE tasks SET relevant = 1
-		  WHERE relevant = 0 AND clear = 'manual'`)
+	  WHERE relevant = 0 AND clear = 'manual'`)
 	if err != nil {
 		return err
 	}
@@ -857,7 +824,5 @@ func (db *DB) RedactAllTaskLogs(tasks []*Task) {
 //UnscheduleAllTasks takes all tasks which are in the scheduled state and puts
 //them back in a pending state.
 func (db *DB) UnscheduleAllTasks() error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`UPDATE tasks SET status = 'pending' WHERE status = 'scheduled'`)
+	return db.Exec(`UPDATE tasks SET status = 'pending' WHERE status = 'scheduled'`)
 }

@@ -121,11 +121,7 @@ func (db *DB) GetAllSessions(filter *SessionFilter) ([]*Session, error) {
 func (db *DB) GetSession(id string) (*Session, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
-	return db.doGetSession(id)
-}
 
-//The caller must Lock the Mutex
-func (db *DB) doGetSession(id string) (*Session, error) {
 	r, err := db.query(`
 	         SELECT s.uuid, s.user_uuid, s.created_at, s.last_seen, s.token,
 	                s.name, s.ip_addr, s.user_agent, u.account, u.backend
@@ -202,9 +198,7 @@ func (db *DB) CreateSession(session *Session) (*Session, error) {
 	}
 
 	id := RandomID()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(`
+	err := db.Exec(`
 	   INSERT INTO sessions (uuid, user_uuid, created_at, last_seen, ip_addr, user_agent)
 	                 VALUES (   ?,         ?,          ?,         ?,       ?,          ?)`,
 		id, session.UserUUID, time.Now().Unix(), time.Now().Unix(), stripIP(session.IP), session.UserAgent)
@@ -212,31 +206,23 @@ func (db *DB) CreateSession(session *Session) (*Session, error) {
 		return nil, err
 	}
 
-	return db.doGetSession(id)
+	return db.GetSession(id)
 }
 
 func (db *DB) ClearAllSessions() error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`DELETE FROM sessions`)
+	return db.Exec(`DELETE FROM sessions`)
 }
 
 func (db *DB) ClearExpiredSessions(expiration_threshold time.Time) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`DELETE FROM sessions WHERE token IS NULL AND last_seen < ?`, expiration_threshold.Unix())
+	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND last_seen < ?`, expiration_threshold.Unix())
 }
 
 func (db *DB) ClearSession(id string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`DELETE FROM sessions WHERE token IS NULL AND uuid = ?`, id)
+	return db.Exec(`DELETE FROM sessions WHERE token IS NULL AND uuid = ?`, id)
 }
 
 func (db *DB) PokeSession(session *Session) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`
+	return db.Exec(`
 	   UPDATE sessions SET last_seen = ?, user_uuid = ?, ip_addr = ?, user_agent = ?
 	    WHERE uuid = ?`, time.Now().Unix(), session.UserUUID, session.IP, session.UserAgent, session.UUID)
 }

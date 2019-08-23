@@ -110,6 +110,13 @@ func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
 }
 
 // Execute a data query (SELECT) and return how many rows were returned
+func (db *DB) Count(sql string, args ...interface{}) (uint, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.count(sql, args...)
+}
+
+// Execute a data query (SELECT) and return how many rows were returned
 // The caller is responsible for locking the Mutex.
 func (db *DB) count(sql string, args ...interface{}) (uint, error) {
 	r, err := db.query(sql, args...)
@@ -123,6 +130,26 @@ func (db *DB) count(sql string, args ...interface{}) (uint, error) {
 	}
 	r.Close()
 	return n, nil
+}
+
+// Execute a data query (SELECT) and return true if any rows exist
+func (db *DB) Exists(sql string, args ...interface{}) (bool, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.exists(sql, args...)
+}
+
+// Execute a data query (SELECT) and return true if any rows exist
+// The caller is responsible for locking the Mutex.
+func (db *DB) exists(sql string, args ...interface{}) (bool, error) {
+	n, err := db.count(sql, args...)
+	return n > 0, err
+}
+
+func (db *DB) exclusively(fn func() error) error {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return fn()
 }
 
 // Return the prepared statement for a given SQL query

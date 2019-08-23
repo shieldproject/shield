@@ -169,58 +169,60 @@ var _ = Describe("tenant Management", func() {
 
 	It("Will fail non recursive with jobs", func() {
 		err := db.DeleteTenant(Tenant2, false)
+		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding jobs"))
 	})
 
 	It("Will fail non recursive with stores", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).NotTo(HaveOccurred())
+
 		err = db.DeleteTenant(Tenant2, false)
+		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding stores"))
 	})
 
 	It("Will fail non recursive with targets", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		db.exclusive.Lock()
-		err = db.exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
-		db.exclusive.Unlock()
+
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
+
 		err = db.DeleteTenant(Tenant2, false)
+		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding targets"))
 	})
 
 	It("Will fail non recursive with archives", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		db.exclusive.Lock()
-		err = db.exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
-		db.exclusive.Unlock()
+
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		db.exclusive.Lock()
-		err = db.exec(`DELETE from targets where uuid=?`, SomeTarget.UUID)
-		db.exclusive.Unlock()
+
+		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
+
 		err = db.DeleteTenant(Tenant2, false)
+		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding archives"))
 	})
 
 	It("Will fail non recursive with tasks", func() {
 		_, err := db.DeleteJob(SomeJob.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		db.exclusive.Lock()
-		err = db.exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
-		db.exclusive.Unlock()
+		err = db.Exec(`DELETE from stores where tenant_uuid=?`, Tenant2.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		db.exclusive.Lock()
-		err = db.exec(`DELETE from targets where uuid=?`, SomeTarget.UUID)
-		db.exclusive.Unlock()
+
+		err = db.Exec(`DELETE from targets where uuid=?`, SomeTarget.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
-		db.exclusive.Lock()
-		err = db.exec(`UPDATE archives SET status= "purged" where uuid=?`, SomeArchive.UUID)
-		db.exclusive.Unlock()
+
+		err = db.Exec(`UPDATE archives SET status= "purged" where uuid=?`, SomeArchive.UUID)
 		Expect(err).ShouldNot(HaveOccurred())
+
 		err = db.DeleteTenant(Tenant2, false)
+		Expect(err).Should(HaveOccurred())
 		Expect(err.Error()).Should(Equal("unable to delete tenant: tenant has outstanding tasks"))
 	})
 
@@ -287,9 +289,7 @@ var _ = Describe("tenant Management", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))
 
-		db.exclusive.Lock()
-		err = db.exec(`UPDATE archives SET status = 'purged' WHERE status = 'tenant deleted'`)
-		db.exclusive.Unlock()
+		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'tenant deleted'`)
 		Expect(err).NotTo(HaveOccurred())
 		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
 		Expect(err).ShouldNot(HaveOccurred())
@@ -317,10 +317,9 @@ var _ = Describe("tenant Management", func() {
 		Expect(len(archives)).Should(Equal(1))
 
 		//"purge" archive
-		db.exclusive.Lock()
-		err = db.exec(`UPDATE archives SET status = 'purged' WHERE status = 'tenant deleted'`)
-		db.exclusive.Unlock()
+		err = db.Exec(`UPDATE archives SET status = 'purged' WHERE status = 'tenant deleted'`)
 		Expect(err).NotTo(HaveOccurred())
+
 		archives, err = db.GetAllArchives(&ArchiveFilter{WithStatus: []string{"purged"}})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(archives)).Should(Equal(1))

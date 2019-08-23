@@ -33,15 +33,11 @@ func (db *DB) GetMembershipsForUser(user string) ([]*Membership, error) {
 }
 
 func (db *DB) ClearMembershipsFor(user *User) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID)
+	return db.Exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID)
 }
 
 func (db *DB) AddUserToTenant(user, tenant, role string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	r, err := db.query(`
+	exists, err := db.Exists(`
 	    SELECT m.role
 	      FROM memberships m
 	     WHERE m.user_uuid = ?
@@ -49,12 +45,8 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 	if err != nil {
 		return err
 	}
-
-	exists := r.Next()
-	r.Close() /* so we can run another query... */
-
 	if exists {
-		err = db.exec(`
+		err = db.Exec(`
 		    UPDATE memberships
 		       SET role = ?
 		     WHERE user_uuid = ?
@@ -62,7 +54,7 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 			role, user, tenant)
 
 	} else {
-		err = db.exec(`
+		err = db.Exec(`
 		    INSERT INTO memberships (user_uuid, tenant_uuid, role)
 		                     VALUES (?, ?, ?)`,
 			user, tenant, role)
@@ -77,9 +69,7 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 }
 
 func (db *DB) RemoveUserFromTenant(user, tenant string) error {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	err := db.exec(`
+	err := db.Exec(`
 	    DELETE FROM memberships
 	          WHERE user_uuid = ?
 	            AND tenant_uuid = ?`, user, tenant)

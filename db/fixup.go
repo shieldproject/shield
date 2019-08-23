@@ -25,9 +25,7 @@ func (f *Fixup) Apply(db *DB) error {
 		return fmt.Errorf("unable to apply fixup '%s': %s", f.ID, err)
 	}
 
-	db.exclusive.Lock()
-	err = db.exec(`UPDATE fixups SET applied_at = ? WHERE id = ?`, time.Now().Unix(), f.ID)
-	db.exclusive.Unlock()
+	err = db.Exec(`UPDATE fixups SET applied_at = ? WHERE id = ?`, time.Now().Unix(), f.ID)
 	if err != nil {
 		return fmt.Errorf("unable to track application of fixup '%s' in database: %s", f.ID, err)
 	}
@@ -88,9 +86,7 @@ See [issue #516](https://github.com/shieldproject/shield/issues/516) in GitHub f
 
 			   set those archives to 'expired' */
 
-			db.exclusive.Lock()
-			defer db.exclusive.Unlock()
-			return db.exec(`
+			return db.Exec(`
 				UPDATE archives
 				   SET status = 'expired'
 				 WHERE status = 'purged'
@@ -118,9 +114,7 @@ the global tenant UUID, to fix that.
 
 See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub for details.`,
 		fn: func(db *DB) error {
-			db.exclusive.Lock()
-			defer db.exclusive.Unlock()
-			return db.exec(`
+			return db.Exec(`
 				UPDATE tasks
 				   SET tenant_uuid = ?
 				 WHERE tenant_uuid = ''
@@ -144,30 +138,34 @@ were affected.
 
 See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub for details.`,
 		fn: func(db *DB) error {
-			db.exclusive.Lock()
-			defer db.exclusive.Unlock()
-			r, err := db.query(`
-				SELECT uuid
-				  FROM jobs
-				 WHERE keep_n = 0`)
-			if err != nil {
-				return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
-			}
-
 			var uuids []string
-			for r.Next() {
-				var uuid string
-				if err = r.Scan(&uuid); err != nil {
-					r.Close()
+			err := db.exclusively(func () error {
+				r, err := db.query(`
+					SELECT uuid
+					  FROM jobs
+					 WHERE keep_n = 0`)
+				if err != nil {
 					return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
 				}
 
-				uuids = append(uuids, uuid)
+				for r.Next() {
+					var uuid string
+					if err = r.Scan(&uuid); err != nil {
+						r.Close()
+						return fmt.Errorf("unable to retrieve jobs with keep_n == 0: %s", err)
+					}
+
+					uuids = append(uuids, uuid)
+				}
+				r.Close()
+				return nil
+			})
+			if err != nil {
+				return err
 			}
-			r.Close()
 
 			for _, uuid := range uuids {
-				job, err := db.doGetJob(uuid)
+				job, err := db.GetJob(uuid)
 				if err != nil {
 					return fmt.Errorf("unable to retrieve job '%s': %s", uuid, err)
 				}
@@ -178,7 +176,7 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 					continue
 				}
 				job.KeepN = sched.KeepN(job.KeepDays)
-				err = db.doUpdateJob(job)
+				err = db.UpdateJob(job)
 				if err != nil {
 					log.Errorf("failed to apply UpdateJob fixup: %s", err)
 					continue
