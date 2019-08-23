@@ -21,7 +21,7 @@ const (
 func main() {
 	bbr := BBRPlugin{
 		Name:    "BBR Director Plugin",
-		Author:  "Stark & Wayne",
+		Author:  "SHIELD Core Team",
 		Version: "1.4.0",
 		Features: plugin.PluginFeatures{
 			Target: "yes",

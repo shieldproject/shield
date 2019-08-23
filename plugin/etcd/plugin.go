@@ -28,7 +28,7 @@ var (
 func main() {
 	p := EtcdPlugin{
 		Name:    "Etcd Backup Plugin",
-		Author:  "Jason Zhou, Pururva Lakkad, Naveed Ahmad, Sriniketh Varma Dasarraju",
+		Author:  "Stark & Wayne",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
 			Target: "yes",

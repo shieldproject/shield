@@ -12,7 +12,7 @@ import (
 func main() {
 	p := RedisBrokerPlugin{
 		Name:    "Pivotal Redis Broker Backup Plugin",
-		Author:  "Stark & Wayne",
+		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
 			Target: "yes",

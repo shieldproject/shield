@@ -21,7 +21,7 @@ func main() {
 		// give it some authorship info
 		meta: plugin.PluginInfo{
 			Name:    "Dummy Plugin",
-			Author:  "Stark & Wayne",
+			Author:  "SHIELD Core Team",
 			Version: "1.0.0",
 			Features: plugin.PluginFeatures{
 				Target: "yes",

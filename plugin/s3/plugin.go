@@ -65,7 +65,7 @@ func validBucketName(v string) bool {
 func main() {
 	p := S3Plugin{
 		Name:    "Amazon S3 Storage Plugin",
-		Author:  "Stark & Wayne",
+		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
 			Target: "no",

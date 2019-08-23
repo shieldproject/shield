@@ -22,7 +22,7 @@ const (
 func main() {
 	p := DockerPostgresPlugin{
 		Name:    "Dockerized PostgreSQL Backup Plugin",
-		Author:  "Stark & Wayne",
+		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
 			Target: "yes",

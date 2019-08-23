@@ -20,7 +20,7 @@ const (
 func main() {
 	p := AzurePlugin{
 		Name:    "Microsoft Azure Storage Plugin",
-		Author:  "Stark & Wayne",
+		Author:  "SHIELD Core Team",
 		Version: "0.0.1",
 		Features: plugin.PluginFeatures{
 			Target: "no",
