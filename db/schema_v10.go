@@ -10,7 +10,7 @@ func (s v10Schema) Deploy(db *DB) error {
 	/* delete all duplicate agents, except for the most recently
 	   seen (via last_seen_at) to fix up some database issues
 	   so that we can place a UNIQUE constraint on (address)
-	 */
+	*/
 	err = db.exec(`
 		DELETE FROM agents
 		      WHERE last_seen_at != (SELECT MAX(last_seen_at)
@@ -30,7 +30,7 @@ func (s v10Schema) Deploy(db *DB) error {
 	   uniqueness constraints.
 
 	   (see https://www.sqlite.org/lang_createtable.html#constraints)
-	 */
+	*/
 	err = db.exec(`CREATE UNIQUE INDEX address ON agents (address)`)
 	if err != nil {
 		return err
