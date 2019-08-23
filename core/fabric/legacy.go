@@ -139,7 +139,7 @@ func (f LegacyFabric) Execute(op, id string, command Command) scheduler.Chore {
 			chore.Errorf("connecting to %s (tcp/ipv4)", f.ip)
 			conn, err := ssh.Dial("tcp4", f.ip, f.ssh)
 			if err != nil {
-				chore.Errorf("ERR> unable to connect to %s: %s", err)
+				chore.Errorf("ERR> unable to connect to %s: %s", f.ip, err)
 				chore.UnixExit(2)
 				return
 			}
