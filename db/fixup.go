@@ -54,7 +54,8 @@ func (f *FixupFilter) Query() (string, []interface{}) {
 	}
 
 	return `
-		SELECT f.id, f.name, f.summary, f.created_at, f.updated_at
+		SELECT f.id, f.name, f.summary, f.created_at, f.applied_at
+		  FROM fixups f
 		 WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY created_at ASC`, args
 }
@@ -209,7 +210,7 @@ func (db *DB) GetAllFixups(filter *FixupFilter) ([]*Fixup, error) {
 	for r.Next() {
 		f := &Fixup{}
 
-		if err = r.Scan(r, &f.ID, &f.Name, f.Summary, f.CreatedAt, f.AppliedAt); err != nil {
+		if err = r.Scan(&f.ID, &f.Name, &f.Summary, &f.CreatedAt, &f.AppliedAt); err != nil {
 			return l, err
 		}
 
@@ -235,6 +236,9 @@ func (db *DB) ApplyFixups() error {
 
 	for _, f := range fixups {
 		if existing, err := db.GetFixup(f.ID); err != nil {
+			return fmt.Errorf("unable to determine if fixup '%s' is in the database already: %s", f.ID, err)
+
+		} else if existing == nil {
 			log.Infof("INITIALIZING: creating fixup record for %s...", f.ID)
 
 			err = db.Exec(`
@@ -244,8 +248,6 @@ func (db *DB) ApplyFixups() error {
 			if err != nil {
 				return fmt.Errorf("unable to register fixup '%s': %s", f.ID, err)
 			}
-		} else if existing == nil {
-			return fmt.Errorf("unable to find fixup '%s' in database: %s", f.ID, err)
 		}
 
 		log.Infof("INITIALIZING: applying fixup %s...", f.ID)
