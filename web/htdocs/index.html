@@ -2876,9 +2876,12 @@ for job <em>[[= _.task.job_uuid ]]</em>
                       [[ } else            { ]]<a href="#" rel="hide">hide</a>[[ } ]]
                       | <a href="#" rel="resync">resync</a></td>
                 </tr>
-                [[ if (problems.length != 0) { ]]
+                [[ if (problems.length != 0 || agent.last_error != '') { ]]
                 <tr class="note fail">
                   <td colspan="8">
+                    [[ if (agent.last_error != '') { ]]
+                    <strong>ERROR:</strong><div class="last">[[= agent.last_error ]]</div>
+                    [[ } ]]
                     [[ $.each(problems, function (j, problem) { ]]
                     <strong>Note:</strong><div>[[= md(problem) ]]</div>
                     [[ }); ]]

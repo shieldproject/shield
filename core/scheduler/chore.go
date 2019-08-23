@@ -351,9 +351,11 @@ func (w *Worker) Execute(chore Chore) {
 			agent.Status = v.Health
 			agent.RawMeta = output
 			agent.LastCheckedAt = time.Now().Unix()
+			agent.LastError = ""
 		} else {
 			agent.Status = "error"
 			agent.LastCheckedAt = time.Now().Unix()
+			agent.LastError = fmt.Sprintf("The SHIELD Core was unable to check the status of this agent (see task %s)", chore.TaskUUID)
 		}
 		err = w.db.UpdateAgent(agent)
 		if err != nil {
