@@ -1,6 +1,7 @@
 #!/bin/bash
 set -u
 exec </dev/null
+trap 'exit 1' INT
 
 echo "S.H.I.E.L.D. API TESTS"
 echo "======================"
