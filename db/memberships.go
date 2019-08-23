@@ -1,5 +1,9 @@
 package db
 
+import (
+	"fmt"
+)
+
 type Membership struct {
 	TenantUUID string `json:"tenant_uuid" mbus:"tenant_uuid"`
 	TenantName string `json:"tenant_name" mbus:"tenant_name"`
@@ -37,29 +41,40 @@ func (db *DB) ClearMembershipsFor(user *User) error {
 }
 
 func (db *DB) AddUserToTenant(user, tenant, role string) error {
-	exists, err := db.Exists(`
-	    SELECT m.role
-	      FROM memberships m
-	     WHERE m.user_uuid = ?
-	       AND m.tenant_uuid = ?`, user, tenant)
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = db.Exec(`
-		    UPDATE memberships
-		       SET role = ?
-		     WHERE user_uuid = ?
-		       AND tenant_uuid = ?`,
-			role, user, tenant)
+	err := db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(tenant); err != nil {
+			return fmt.Errorf("unable to create tenant membership: %s", err)
+		}
 
-	} else {
-		err = db.Exec(`
-		    INSERT INTO memberships (user_uuid, tenant_uuid, role)
-		                     VALUES (?, ?, ?)`,
-			user, tenant, role)
-	}
+		/* validate the user */
+		if err := db.userShouldExist(user); err != nil {
+			return fmt.Errorf("unable to create tenant membership: %s", err)
+		}
 
+		exists, err := db.exists(`
+		    SELECT m.role
+		      FROM memberships m
+		     WHERE m.user_uuid = ?
+		       AND m.tenant_uuid = ?`, user, tenant)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return db.exec(`
+			    UPDATE memberships
+			       SET role = ?
+			     WHERE user_uuid = ?
+			       AND tenant_uuid = ?`,
+				role, user, tenant)
+
+		} else {
+			return db.exec(`
+			    INSERT INTO memberships (user_uuid, tenant_uuid, role)
+			                     VALUES (?, ?, ?)`,
+				user, tenant, role)
+		}
+	})
 	if err != nil {
 		return err
 	}
@@ -83,55 +98,55 @@ func (db *DB) RemoveUserFromTenant(user, tenant string) error {
 
 //GetTenantsForUser given a user's uuid returns a slice of Tenants that the user has membership with
 func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	r, err := db.query(`
-	    SELECT t.uuid, t.name
-	      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
-	     WHERE m.user_uuid = ?`, user)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
 	l := make([]*Tenant, 0)
-	for r.Next() {
-		t := &Tenant{}
+	return l, db.exclusively(func () error {
+		r, err := db.query(`
+		    SELECT t.uuid, t.name
+		      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
+		     WHERE m.user_uuid = ?`, user)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
 
-		if err := r.Scan(&t.UUID, &t.Name); err != nil {
-			return l, err
+		for r.Next() {
+			t := &Tenant{}
+
+			if err := r.Scan(&t.UUID, &t.Name); err != nil {
+				return err
+			}
+
+			l = append(l, t)
 		}
 
-		l = append(l, t)
-	}
-
-	return l, nil
+		return nil
+	})
 }
 
 func (db *DB) GetUsersForTenant(tenant string) ([]*User, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	r, err := db.query(`
-	    SELECT u.uuid, u.name, u.account, u.backend,
-	           m.role
-	      FROM users u INNER JOIN memberships m
-	        ON u.uuid = m.user_uuid
-	     WHERE m.tenant_uuid = ?`, tenant)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
 	l := make([]*User, 0)
-	for r.Next() {
-		u := &User{}
+	return l, db.exclusively(func () error {
+		r, err := db.query(`
+		    SELECT u.uuid, u.name, u.account, u.backend,
+		           m.role
+		      FROM users u INNER JOIN memberships m
+		        ON u.uuid = m.user_uuid
+		     WHERE m.tenant_uuid = ?`, tenant)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
 
-		if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.Role); err != nil {
-			return nil, err
+		for r.Next() {
+			u := &User{}
+
+			if err = r.Scan(&u.UUID, &u.Name, &u.Account, &u.Backend, &u.Role); err != nil {
+				return err
+			}
+
+			l = append(l, u)
 		}
 
-		l = append(l, u)
-	}
-
-	return l, nil
+		return nil
+	})
 }

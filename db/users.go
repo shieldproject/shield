@@ -221,3 +221,12 @@ func (db *DB) DeleteUser(user *User) error {
 		DELETE FROM users
 		      WHERE uuid = ?`, user.UUID)
 }
+
+func (db *DB) userShouldExist(uuid string) error {
+	if ok, err := db.exists(`SELECT uuid FROM users WHERE uuid = ?`, uuid); err != nil {
+		return fmt.Errorf("unable to look up user [%s]: %s", uuid, err)
+	} else if !ok {
+		return fmt.Errorf("user [%s] does not exist", uuid)
+	}
+	return nil
+}

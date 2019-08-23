@@ -295,3 +295,17 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 	   DELETE FROM tenants
 	         WHERE uuid = ?`, tenant.UUID)
 }
+
+func (db *DB) tenantShouldExist(uuid string) error {
+	/* the global system UUID always exists... */
+	if uuid == GlobalTenantUUID {
+		return nil
+	}
+
+	if ok, err := db.exists(`SELECT uuid FROM tenants WHERE uuid = ?`, uuid); err != nil {
+		return fmt.Errorf("unable to look up tenant [%s]: %s", uuid, err)
+	} else if !ok {
+		return fmt.Errorf("tenant [%s] does not exist", uuid)
+	}
+	return nil
+}

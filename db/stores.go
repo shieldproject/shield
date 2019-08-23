@@ -263,16 +263,23 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 	}
 
 	store.UUID = RandomID()
-	err = db.Exec(`
-	   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
-	                       plugin, endpoint,
-	                       threshold, healthy, last_test_task_uuid)
-	               VALUES (?, ?, ?, ?, ?,
-	                       ?, ?,
-	                       ?, ?, ?)`,
-		store.UUID, store.TenantUUID, store.Name, store.Summary, store.Agent,
-		store.Plugin, string(rawconfig),
-		store.Threshold, store.Healthy, store.LastTestTaskUUID)
+	err = db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(store.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create store: %s", err)
+		}
+
+		return db.exec(`
+		   INSERT INTO stores (uuid, tenant_uuid, name, summary, agent,
+		                       plugin, endpoint,
+		                       threshold, healthy, last_test_task_uuid)
+		               VALUES (?, ?, ?, ?, ?,
+		                       ?, ?,
+		                       ?, ?, ?)`,
+			store.UUID, store.TenantUUID, store.Name, store.Summary, store.Agent,
+			store.Plugin, string(rawconfig),
+			store.Threshold, store.Healthy, store.LastTestTaskUUID)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -370,4 +377,13 @@ func (db *DB) CleanStores() error {
 	                                  FROM archives a
 	                                 WHERE a.store_uuid = s.uuid
 	                                   AND a.status != 'purged') = 0)`)
+}
+
+func (db *DB) storeShouldExist(uuid string) error {
+	if ok, err := db.exists(`SELECT uuid FROM stores WHERE uuid = ?`, uuid); err != nil {
+		return fmt.Errorf("unable to look up store [%s]: %s", uuid, err)
+	} else if !ok {
+		return fmt.Errorf("store [%s] does not exist", uuid)
+	}
+	return nil
 }

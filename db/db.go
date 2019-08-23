@@ -146,6 +146,8 @@ func (db *DB) exists(sql string, args ...interface{}) (bool, error) {
 	return n > 0, err
 }
 
+// Run some arbitrary code with the database lock held,
+// properly releasing it whenever the passed function returns.
 func (db *DB) exclusively(fn func() error) error {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()

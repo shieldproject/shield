@@ -237,16 +237,33 @@ func (db *DB) UnpauseJob(id string) (bool, error) {
 func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job.UUID = RandomID()
 
-	err := db.Exec(`
-	   INSERT INTO jobs (uuid, tenant_uuid,
-	                     name, summary, schedule, keep_n, keep_days, paused,
-	                     target_uuid, store_uuid, fixed_key)
-	             VALUES (?, ?,
-	                     ?, ?, ?, ?, ?, ?,
-	                     ?, ?, ?)`,
-		job.UUID, job.TenantUUID,
-		job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
-		job.TargetUUID, job.StoreUUID, job.FixedKey)
+	err := db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create job: %s", err)
+		}
+
+		/* validate the store */
+		if err := db.storeShouldExist(job.StoreUUID); err != nil {
+			return fmt.Errorf("unable to create job: %s", err)
+		}
+
+		/* validate the target */
+		if err := db.targetShouldExist(job.TargetUUID); err != nil {
+			return fmt.Errorf("unable to create job: %s", err)
+		}
+
+		return db.exec(`
+		   INSERT INTO jobs (uuid, tenant_uuid,
+		                     name, summary, schedule, keep_n, keep_days, paused,
+		                     target_uuid, store_uuid, fixed_key)
+		             VALUES (?, ?,
+		                     ?, ?, ?, ?, ?, ?,
+		                     ?, ?, ?)`,
+			job.UUID, job.TenantUUID,
+			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
+			job.TargetUUID, job.StoreUUID, job.FixedKey)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -261,20 +278,36 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 }
 
 func (db *DB) UpdateJob(job *Job) error {
-	err := db.Exec(`
-	   UPDATE jobs
-	      SET name           = ?,
-	          summary        = ?,
-	          schedule       = ?,
-	          keep_n         = ?,
-	          keep_days      = ?,
-	          target_uuid    = ?,
-	          store_uuid     = ?,
-	          fixed_key      = ?
-	    WHERE uuid = ?`,
-		job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
-		job.TargetUUID, job.StoreUUID, job.FixedKey,
-		job.UUID)
+	err := db.exclusively(func () error {
+		/* validate the store */
+		if ok, err := db.exists(`SELECT uuid FROM stores WHERE uuid = ?`, job.StoreUUID); err != nil {
+			return fmt.Errorf("unable to validate existence of store with UUID [%s]: %s", job.StoreUUID, err)
+		} else if !ok {
+			return fmt.Errorf("unable to set job store to [%s]: no such store in database", job.StoreUUID)
+		}
+
+		/* validate the target */
+		if ok, err := db.exists(`SELECT uuid FROM targets WHERE uuid = ?`, job.TargetUUID); err != nil {
+			return fmt.Errorf("unable to validate existence of target with UUID [%s]: %s", job.TargetUUID, err)
+		} else if !ok {
+			return fmt.Errorf("unable to set job target to [%s]: no such target in database", job.TargetUUID)
+		}
+
+		return db.exec(`
+		   UPDATE jobs
+		      SET name           = ?,
+		          summary        = ?,
+		          schedule       = ?,
+		          keep_n         = ?,
+		          keep_days      = ?,
+		          target_uuid    = ?,
+		          store_uuid     = ?,
+		          fixed_key      = ?
+		    WHERE uuid = ?`,
+			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays,
+			job.TargetUUID, job.StoreUUID, job.FixedKey,
+			job.UUID)
+	})
 	if err != nil {
 		return err
 	}

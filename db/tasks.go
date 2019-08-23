@@ -282,13 +282,18 @@ func (db *DB) GetTask(id string) (*Task, error) {
 
 func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 	id := RandomID()
-	err := db.Exec(
-		`INSERT INTO tasks
-		    (uuid, owner, op, status, tenant_uuid, log, requested_at)
-		  VALUES
-		    (?, ?, ?, ?, ?, ?, ?)`,
-		id, owner, op, RunningStatus, tenant, "", time.Now().Unix())
 
+	err := db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(tenant); err != nil {
+			return fmt.Errorf("unable to create internal task: %s", err)
+		}
+
+		return db.exec(`
+		  INSERT INTO tasks (uuid, owner, op, status, tenant_uuid, log, requested_at)
+		             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			id, owner, op, RunningStatus, tenant, "", time.Now().Unix())
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -309,23 +314,43 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	id := RandomID()
 	archive := RandomID()
 
-	err := db.Exec(
-		`INSERT INTO tasks
-		    (uuid, owner, op, job_uuid, status, log, requested_at,
-		     archive_uuid, store_uuid, store_plugin, store_endpoint,
-		     target_uuid, target_plugin, target_endpoint, restore_key,
-		     agent, attempts, tenant_uuid, fixed_key, compression)
-		  VALUES
-		    (?, ?, ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?,
-		     ?, ?, ?, ?,
-		     ?, ?, ?, ?, ?)`,
-		id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
-		archive, job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
-		job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
-		job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression,
-	)
+	err := db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create backup task: %s", err)
+		}
 
+		/* validate the target */
+		if err := db.targetShouldExist(job.TargetUUID); err != nil {
+			return fmt.Errorf("unable to create backup task: %s", err)
+		}
+
+		/* validate the store */
+		if err := db.storeShouldExist(job.StoreUUID); err != nil {
+			return fmt.Errorf("unable to create backup task: %s", err)
+		}
+
+		/* note: the archive has not yet been created;
+		   we record it in the task record so that when the
+		   store plugin gives us the details, we know where
+		   to put it already. */
+
+		return db.exec(
+			`INSERT INTO tasks
+			    (uuid, owner, op, job_uuid, status, log, requested_at,
+			     archive_uuid, store_uuid, store_plugin, store_endpoint,
+			     target_uuid, target_plugin, target_endpoint, restore_key,
+			     agent, attempts, tenant_uuid, fixed_key, compression)
+			  VALUES
+			    (?, ?, ?, ?, ?, ?, ?,
+			     ?, ?, ?, ?,
+			     ?, ?, ?, ?,
+			     ?, ?, ?, ?, ?)`,
+			id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
+			archive, job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
+			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
+			job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -345,26 +370,42 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) {
 	id := RandomID()
 	now := time.Now().Unix()
-	err := db.Exec(
-		`INSERT INTO tasks
-		    (uuid, owner, op, job_uuid, status, log,
-		     requested_at, started_at, stopped_at, ok,
-		     store_uuid, store_plugin, store_endpoint,
-		     target_uuid, target_plugin, target_endpoint, restore_key,
-		     agent, attempts, tenant_uuid, fixed_key, compression)
-		  VALUES
-		    (?, ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?,
-		     ?, ?, ?,
-		     ?, ?, ?, ?,
-		     ?, ?, ?, ?, ?)`,
-		id, owner, BackupOperation, job.UUID, CanceledStatus, msg,
-		now, now, now, 0,
-		job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
-		job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
-		job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression,
-	)
 
+	err := db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
+		}
+
+		/* validate the target */
+		if err := db.targetShouldExist(job.TargetUUID); err != nil {
+			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
+		}
+
+		/* validate the store */
+		if err := db.storeShouldExist(job.StoreUUID); err != nil {
+			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
+		}
+
+		return db.exec(
+			`INSERT INTO tasks
+			    (uuid, owner, op, job_uuid, status, log,
+			     requested_at, started_at, stopped_at, ok,
+			     store_uuid, store_plugin, store_endpoint,
+			     target_uuid, target_plugin, target_endpoint, restore_key,
+			     agent, attempts, tenant_uuid, fixed_key, compression)
+			  VALUES
+			    (?, ?, ?, ?, ?, ?,
+			     ?, ?, ?, ?,
+			     ?, ?, ?,
+			     ?, ?, ?, ?,
+			     ?, ?, ?, ?, ?)`,
+			id, owner, BackupOperation, job.UUID, CanceledStatus, msg,
+			now, now, now, 0,
+			job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
+			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
+			job.Agent, 0, job.TenantUUID, job.FixedKey, job.Target.Compression)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -388,23 +429,43 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	}
 
 	id := RandomID()
-	err = db.Exec(
-		`INSERT INTO tasks
-		    (uuid, owner, op, archive_uuid, status, log, requested_at,
-		     store_uuid, store_plugin, store_endpoint,
-		     target_uuid, target_plugin, target_endpoint,
-		     restore_key, agent, attempts, tenant_uuid)
-		  VALUES
-		    (?, ?, ?, ?, ?, ?, ?,
-		     ?, ?, ?,
-		     ?, ?, ?,
-		     ?, ?, ?, ?)`,
-		id, owner, RestoreOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
-		archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
-		target.UUID, target.Plugin, endpoint,
-		archive.StoreKey, target.Agent, 0, archive.TenantUUID,
-	)
+	err = db.exclusively(func () error {
+		/* validate the archive */
+		if err := db.archiveShouldExist(archive.UUID); err != nil {
+			return fmt.Errorf("unable to create restore task: %s", err)
+		}
 
+		/* validate the tenant */
+		if err := db.tenantShouldExist(archive.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create restore task: %s", err)
+		}
+
+		/* validate the target */
+		if err := db.targetShouldExist(target.UUID); err != nil {
+			return fmt.Errorf("unable to create restore task: %s", err)
+		}
+
+		/* validate the store */
+		if err := db.storeShouldExist(archive.StoreUUID); err != nil {
+			return fmt.Errorf("unable to create restore task: %s", err)
+		}
+
+		return db.exec(
+			`INSERT INTO tasks
+			    (uuid, owner, op, archive_uuid, status, log, requested_at,
+			     store_uuid, store_plugin, store_endpoint,
+			     target_uuid, target_plugin, target_endpoint,
+			     restore_key, agent, attempts, tenant_uuid)
+			  VALUES
+			    (?, ?, ?, ?, ?, ?, ?,
+			     ?, ?, ?,
+			     ?, ?, ?,
+			     ?, ?, ?, ?)`,
+			id, owner, RestoreOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
+			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
+			target.UUID, target.Plugin, endpoint,
+			archive.StoreKey, target.Agent, 0, archive.TenantUUID)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -423,23 +484,38 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	id := RandomID()
-	err := db.Exec(
-		`INSERT INTO tasks
-		    (uuid, owner, op, archive_uuid, status, log, requested_at,
-		     store_uuid, store_plugin, store_endpoint,
-		     target_plugin, target_endpoint,
-		     restore_key, agent, attempts, tenant_uuid)
-		  VALUES
-		    (?, ?, ?, ?, ?, ?, ?,
-		     ?, ?, ?,
-		     ?, ?,
-		     ?, ?, ?, ?)`,
-		id, owner, PurgeOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
-		archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
-		"", "",
-		archive.StoreKey, archive.StoreAgent, 0, archive.TenantUUID,
-	)
+	err := db.exclusively(func () error {
+		/* validate the archive */
+		if err := db.archiveShouldExist(archive.UUID); err != nil {
+			return fmt.Errorf("unable to create purge task: %s", err)
+		}
 
+		/* validate the tenant */
+		if err := db.tenantShouldExist(archive.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create purge task: %s", err)
+		}
+
+		/* validate the store */
+		if err := db.storeShouldExist(archive.StoreUUID); err != nil {
+			return fmt.Errorf("unable to create purge task: %s", err)
+		}
+
+		return db.exec(
+			`INSERT INTO tasks
+			    (uuid, owner, op, archive_uuid, status, log, requested_at,
+			     store_uuid, store_plugin, store_endpoint,
+			     target_plugin, target_endpoint,
+			     restore_key, agent, attempts, tenant_uuid)
+			  VALUES
+			    (?, ?, ?, ?, ?, ?, ?,
+			     ?, ?, ?,
+			     ?, ?,
+			     ?, ?, ?, ?)`,
+			id, owner, PurgeOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
+			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
+			"", "",
+			archive.StoreKey, archive.StoreAgent, 0, archive.TenantUUID)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -461,32 +537,41 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	id := RandomID()
-	err = db.Exec(
-		`INSERT INTO tasks
-			(uuid, op,
-			 store_uuid, store_plugin, store_endpoint,
-			 status, log, requested_at, agent,
-			 attempts, tenant_uuid, owner)
-		 VALUES
-			(?, ?, ?, ?, ?,
-			 ?, ?, ?, ?, 
-			 ?, ?, ?)`,
-		id, TestStoreOperation,
-		store.UUID, store.Plugin, endpoint,
-		PendingStatus, "", time.Now().Unix(), store.Agent,
-		0, store.TenantUUID, owner,
-	)
-	if err != nil {
-		return nil, err
-	}
 
-	err = db.Exec(
-		`UPDATE stores
-		 SET last_test_task_uuid = ?
-		 WHERE uuid=?`,
-		id, store.UUID,
-	)
+	id := RandomID()
+	err = db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(store.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create test-store task: %s", err)
+		}
+
+		/* validate the store */
+		if err := db.storeShouldExist(store.UUID); err != nil {
+			return fmt.Errorf("unable to create test-store task: %s", err)
+		}
+
+		err := db.exec(
+			`INSERT INTO tasks
+			    (uuid, owner, op, status, log, requested_at,
+			     store_uuid, store_plugin, store_endpoint,
+			     agent, attempts, tenant_uuid)
+			  VALUES
+			    (?, ?, ?, ?, ?, ?,
+			     ?, ?, ?,
+			     ?, ?, ?)`,
+			id, owner, TestStoreOperation, PendingStatus, "", time.Now().Unix(),
+			store.UUID, store.Plugin, endpoint,
+			store.Agent, 0, store.TenantUUID)
+		if err != nil {
+			return err
+		}
+
+		return db.exec(
+			`UPDATE stores
+			    SET last_test_task_uuid = ?
+			  WHERE uuid=?`,
+			id, store.UUID)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -825,4 +910,13 @@ func (db *DB) RedactAllTaskLogs(tasks []*Task) {
 //them back in a pending state.
 func (db *DB) UnscheduleAllTasks() error {
 	return db.Exec(`UPDATE tasks SET status = 'pending' WHERE status = 'scheduled'`)
+}
+
+func (db *DB) archiveShouldExist(uuid string) error {
+	if ok, err := db.exists(`SELECT uuid FROM archives WHERE uuid = ?`, uuid); err != nil {
+		return fmt.Errorf("unable to look up archive [%s]: %s", uuid, err)
+	} else if !ok {
+		return fmt.Errorf("archive [%s] does not exist", uuid)
+	}
+	return nil
 }

@@ -208,13 +208,20 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 	}
 
 	target.UUID = RandomID()
-	err = db.Exec(`
-	    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
-	                         endpoint, agent, compression)
-	                 VALUES (?, ?, ?, ?, ?,
-	                         ?, ?, ?)`,
-		target.UUID, target.TenantUUID, target.Name, target.Summary, target.Plugin,
-		string(rawconfig), target.Agent, target.Compression)
+	err = db.exclusively(func () error {
+		/* validate the tenant */
+		if err := db.tenantShouldExist(target.TenantUUID); err != nil {
+			return fmt.Errorf("unable to create target: %s", err)
+		}
+
+		return db.exec(`
+		    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
+		                         endpoint, agent, compression)
+		                 VALUES (?, ?, ?, ?, ?,
+		                         ?, ?, ?)`,
+			target.UUID, target.TenantUUID, target.Name, target.Summary, target.Plugin,
+			string(rawconfig), target.Agent, target.Compression)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -291,4 +298,13 @@ func (db *DB) CleanTargets() error {
 	                                  FROM archives a
 	                                 WHERE a.target_uuid = t.uuid
 	                                   AND a.status != 'purged') = 0)`)
+}
+
+func (db *DB) targetShouldExist(uuid string) error {
+	if ok, err := db.exists(`SELECT uuid FROM targets WHERE uuid = ?`, uuid); err != nil {
+		return fmt.Errorf("unable to look up target [%s]: %s", uuid, err)
+	} else if !ok {
+		return fmt.Errorf("target [%s] does not exist", uuid)
+	}
+	return nil
 }
