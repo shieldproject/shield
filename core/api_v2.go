@@ -1613,8 +1613,10 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		agents, err := c.db.GetAllAgents(&db.AgentFilter{
-			UUID:       r.Param("uuid", ""),
-			ExactMatch: r.ParamIs("exact", "t"),
+			UUID:        r.Param("uuid", ""),
+			ExactMatch:  r.ParamIs("exact", "t"),
+			SkipHidden:  r.ParamIs("hidden", "f"),
+			SkipVisible: r.ParamIs("hidden", "t"),
 		})
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
@@ -1684,6 +1686,30 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		r.OK(resp)
+	})
+	// }}}
+	r.Dispatch("DELETE /v2/agents/:uuid", func(r *route.Request) { // {{{
+		if c.IsNotSystemAdmin(r) {
+			return
+		}
+
+		agent, err := c.db.GetAgent(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve agent information"))
+			return
+		}
+		if agent == nil {
+			r.Fail(route.NotFound(nil, "No such agent"))
+			return
+		}
+
+		err = c.db.DeleteAgent(agent)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to delete agent"))
+			return
+		}
+
+		r.Success("deleted agent %s (at %s)", agent.Name, agent.Address)
 	})
 	// }}}
 	r.Dispatch("POST /v2/agents", func(r *route.Request) { // {{{

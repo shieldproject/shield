@@ -310,6 +310,19 @@ var opts struct {
 	Session       struct{} `cli:"session"`
 	DeleteSession struct{} `cli:"delete-session"`
 	/* }}} */
+	/* AGENTS {{{ */
+	Agents struct {
+		Limit   int    `cli:"-l, --limit"`
+		Visible bool   `cli:"--visible"`
+		Hidden  bool   `cli:"--hidden"`
+		Status  string `cli:"-s, --status"`
+	} `cli:"agents"`
+	Agent struct {
+		Metadata bool `cli:"-m, --metadata"`
+		Plugins  bool `cli:"-p, --plugins"`
+	} `cli:"agent"`
+	DeleteAgent struct{} `cli:"delete-agent"`
+	/* }}} */
 
 	Op struct {
 		Pry struct{} `cli:"pry"`
@@ -3114,6 +3127,155 @@ tenants:
 			}
 		}
 		r, err := c.DeleteSession(session)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(r))
+			break
+		}
+		fmt.Printf("%s\n", r.OK)
+
+	/* }}} */
+
+	case "agents": /* {{{ */
+		required(len(args) <= 1, "Too many arguments.")
+		required(!(opts.Agents.Visible && opts.Agents.Hidden),
+			"The --visible and --hidden options are mutually exclusive.")
+
+		filter := &shield.AgentFilter{}
+		if opts.Agents.Visible || opts.Agents.Hidden {
+			filter.Hidden = &opts.Agents.Hidden
+		}
+
+		agents, err := c.ListAgents(filter)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(agents))
+			break
+		}
+
+		tbl := table.NewTable("UUID", "Name", "Version", "Address", "Status", "Last Seen", "Last Checked", "Problems")
+		for _, agent := range agents {
+			st := agent.Status
+			if agent.Hidden {
+				st += " (hidden)"
+			}
+			tbl.Row(agent, uuid8full(agent.UUID, opts.Long), agent.Name, agent.Version, agent.Address, st, strftime(agent.LastSeenAt), strftimenil(agent.LastCheckedAt, "(never)"), len(agent.Problems))
+		}
+		tbl.Output(os.Stdout)
+
+	/* }}} */
+	case "agent": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s UUID\n", command)
+		}
+
+		agent, err := c.FindAgent(args[0], !opts.Exact)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(agent))
+			break
+		}
+
+		r := tui.NewReport()
+		r.Add("UUID", agent.UUID)
+		r.Add("Name", agent.Name)
+		r.Add("Version", agent.Version)
+		r.Add("Address", agent.Address)
+		r.Add("Status", agent.Status)
+		r.Add("Last Seen", strftime(agent.LastSeenAt))
+		r.Add("Last Checked", strftimenil(agent.LastCheckedAt, "(never)"))
+
+		if opts.Agent.Metadata {
+			r.Break()
+
+			b, err := json.MarshalIndent(agent.Metadata, "", "  ")
+			if err != nil {
+				r.Add("Metadata", fmt.Sprintf("<error: %s>"))
+			} else {
+				r.Add("Metadata", string(b))
+			}
+		}
+
+		r.Break()
+		if agent.LastError != "" {
+			r.Add("Last Error", agent.LastError)
+		}
+		r.Add("Problems", wrap(strings.Join(agent.Problems, "\n\n"), 70))
+		r.Output(os.Stdout)
+
+		if opts.Agent.Plugins {
+			plugins, err := shield.ParseAgentMetadata(agent.Metadata)
+			bail(err)
+
+			tbl := table.NewTable("Type", "Plugin", "Version", "Name", "Author(s)")
+			for _, p := range plugins {
+				t := "-"
+				if p.CanStore && p.CanTarget {
+					t = "store / target"
+				} else if p.CanStore {
+					t = "store"
+				} else if p.CanTarget {
+					t = "target"
+				}
+				tbl.Row(agent, t, p.ID, p.Version, p.Name, p.Author)
+			}
+			fmt.Printf("\n")
+			tbl.Output(os.Stdout)
+			fmt.Printf("\n")
+		}
+
+	/* }}} */
+	case "hide-agent": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s UUID\n", command)
+		}
+
+		agent, err := c.GetAgent(args[0])
+		bail(err)
+
+		r, err := c.HideAgent(agent)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(r))
+			break
+		}
+		fmt.Printf("%s\n", r.OK)
+
+	/* }}} */
+	case "show-agent": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s UUID\n", command)
+		}
+
+		agent, err := c.GetAgent(args[0])
+		bail(err)
+
+		r, err := c.ShowAgent(agent)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(r))
+			break
+		}
+		fmt.Printf("%s\n", r.OK)
+
+	/* }}} */
+	case "delete-agent": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s UUID\n", command)
+		}
+
+		agent, err := c.GetAgent(args[0])
+		bail(err)
+
+		if !confirm(opts.Yes, "Delete agent @Y{%s} at @Y{%s}?", agent.Name, agent.Address) {
+			break
+		}
+		r, err := c.DeleteAgent(agent)
 		bail(err)
 
 		if opts.JSON {

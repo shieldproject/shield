@@ -33,13 +33,13 @@ func (a *Agent) Metadata() (map[string]interface{}, error) {
 }
 
 type AgentFilter struct {
-	UUID       string
-	ExactMatch bool
-	Address    string
-	Name       string
-	Status     string
-	OnlyHidden bool
-	SkipHidden bool
+	UUID        string
+	ExactMatch  bool
+	Address     string
+	Name        string
+	Status      string
+	SkipHidden  bool
+	SkipVisible bool
 
 	InflateMetadata bool
 }
@@ -58,12 +58,13 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 		}
 	}
 
-	if f.OnlyHidden {
+	if f.SkipHidden || f.SkipVisible {
 		wheres = append(wheres, "a.hidden = ?")
-		args = append(args, true)
-	} else if f.SkipHidden {
-		wheres = append(wheres, "a.hidden = ?")
-		args = append(args, false)
+		if f.SkipHidden {
+			args = append(args, false)
+		} else {
+			args = append(args, true)
+		}
 	}
 
 	if f.Status != "" {
@@ -242,4 +243,18 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
 		agent.LastCheckedAt, agent.LastSeenAt, agent.LastError,
 		agent.UUID)
+}
+
+func (db *DB) DeleteAgent(agent *Agent) error {
+	return db.exclusively(func() error {
+		n, err := db.count(`SELECT uuid FROM jobs WHERE agent = ?`, agent.Address)
+		if err != nil {
+			return fmt.Errorf("unable to determine if agent can be deleted: %s", err)
+		}
+		if n > 0 {
+			return fmt.Errorf("agent is still referenced by configured data protection jobs")
+		}
+
+		return db.exec(`DELETE FROM agents WHERE uuid = ?`, agent.UUID)
+	})
 }
