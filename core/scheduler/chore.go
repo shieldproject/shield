@@ -320,40 +320,52 @@ func (w *Worker) Execute(chore Chore) {
 		}
 
 	case db.AgentStatusOperation:
+		agent, err := w.db.GetAgentByAddress(task.Agent)
+		if err != nil {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+			w.db.FailTask(chore.TaskUUID, time.Now())
+			panic(fmt.Errorf("failed to retrieve agent '%s' from database: %s", task.Agent, err))
+		}
+		if agent == nil {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+			w.db.FailTask(chore.TaskUUID, time.Now())
+			panic(fmt.Errorf("failed to retrieve agent '%s' from database: no such agent", task.Agent))
+		}
+
+		if rc == 0 {
+			var v struct {
+				Name    string `json:"name"`
+				Version string `json:"version"`
+				Health  string `json:"health"`
+			}
+
+			err = json.Unmarshal([]byte(output), &v)
+			if err != nil {
+				log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+				w.db.FailTask(chore.TaskUUID, time.Now())
+				panic(fmt.Errorf("failed to unmarshal output [%s] from %s operation: %s", output, task.Op, err))
+			}
+
+			agent.Name = v.Name
+			agent.Version = v.Version
+			agent.Status = v.Health
+			agent.RawMeta = output
+			agent.LastCheckedAt = time.Now().Unix()
+		} else {
+			agent.Status = "error"
+			agent.LastCheckedAt = time.Now().Unix()
+		}
+		err = w.db.UpdateAgent(agent)
+		if err != nil {
+			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
+			w.db.FailTask(chore.TaskUUID, time.Now())
+			panic(fmt.Errorf("failed to update agent '%s' record in database: %s", task.Agent, err))
+		}
+
 		if rc != 0 {
 			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
 			w.db.FailTask(chore.TaskUUID, time.Now())
 			return
-		}
-
-		var v struct {
-			Name    string `json:"name"`
-			Version string `json:"version"`
-			Health  string `json:"health"`
-		}
-
-		err = json.Unmarshal([]byte(output), &v)
-		if err != nil {
-			panic(fmt.Errorf("failed to unmarshal output [%s] from %s operation: %s", output, task.Op, err))
-		}
-
-		agents, err := w.db.GetAllAgents(&db.AgentFilter{Address: task.Agent})
-		if err != nil {
-			panic(fmt.Errorf("failed to retrieve agent '%s' from database: %s", task.Agent, err))
-		}
-		if len(agents) != 1 {
-			panic(fmt.Errorf("found %d agent records for address '%s' (expected 1)", len(agents), task.Agent))
-		}
-
-		agent := agents[0]
-		agent.Name = v.Name
-		agent.Version = v.Version
-		agent.Status = v.Health
-		agent.RawMeta = output
-		agent.LastCheckedAt = time.Now().Unix()
-		err = w.db.UpdateAgent(agent)
-		if err != nil {
-			panic(fmt.Errorf("failed to update agent '%s' record in database: %s", task.Agent, err))
 		}
 	}
 
