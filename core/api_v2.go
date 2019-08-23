@@ -266,7 +266,7 @@ func (c *Core) v2API() *route.Router {
 					j, found := jobs[task.JobUUID]
 					if !found {
 						j, err = c.db.GetJob(task.JobUUID)
-						if err == nil {
+						if j != nil && err == nil {
 							jobs[j.UUID] = j
 							found = true
 						}
@@ -287,7 +287,7 @@ func (c *Core) v2API() *route.Router {
 						t, found := tenants[task.TenantUUID]
 						if !found {
 							t, err = c.db.GetTenant(task.TenantUUID)
-							if err == nil {
+							if t != nil && err == nil {
 								tenants[t.UUID] = t
 								found = true
 							}
@@ -303,7 +303,7 @@ func (c *Core) v2API() *route.Router {
 					s, found := stores[task.StoreUUID]
 					if !found {
 						s, err = c.db.GetStore(task.StoreUUID)
-						if err == nil {
+						if s != nil && err == nil {
 							stores[s.UUID] = s
 							found = true
 						}
@@ -320,7 +320,7 @@ func (c *Core) v2API() *route.Router {
 					t, found := systems[task.TargetUUID]
 					if !found {
 						t, err = c.db.GetTarget(task.TargetUUID)
-						if err == nil {
+						if t != nil && err == nil {
 							systems[t.UUID] = t
 							found = true
 						}
@@ -337,7 +337,7 @@ func (c *Core) v2API() *route.Router {
 					a, found := archives[task.ArchiveUUID]
 					if !found {
 						a, err = c.db.GetArchive(task.ArchiveUUID)
-						if err == nil && a != nil {
+						if a != nil && err == nil {
 							archives[a.UUID] = a
 							found = true
 						}
@@ -371,7 +371,7 @@ func (c *Core) v2API() *route.Router {
 					j, found := jobs[task.JobUUID]
 					if !found {
 						j, err = c.db.GetJob(task.JobUUID)
-						if err == nil {
+						if j != nil && err == nil {
 							jobs[j.UUID] = j
 							found = true
 						}
@@ -392,7 +392,7 @@ func (c *Core) v2API() *route.Router {
 						t, found := tenants[task.TenantUUID]
 						if !found {
 							t, err = c.db.GetTenant(task.TenantUUID)
-							if err == nil {
+							if t != nil && err == nil {
 								tenants[t.UUID] = t
 								found = true
 							}
@@ -408,7 +408,7 @@ func (c *Core) v2API() *route.Router {
 					s, found := stores[task.StoreUUID]
 					if !found {
 						s, err = c.db.GetStore(task.StoreUUID)
-						if err == nil {
+						if s != nil && err == nil {
 							stores[s.UUID] = s
 							found = true
 						}
@@ -425,7 +425,7 @@ func (c *Core) v2API() *route.Router {
 					t, found := systems[task.TargetUUID]
 					if !found {
 						t, err = c.db.GetTarget(task.TargetUUID)
-						if err == nil {
+						if t != nil && err == nil {
 							systems[t.UUID] = t
 							found = true
 						}
@@ -442,7 +442,7 @@ func (c *Core) v2API() *route.Router {
 					a, found := archives[task.ArchiveUUID]
 					if !found {
 						a, err = c.db.GetArchive(task.ArchiveUUID)
-						if err == nil && a != nil {
+						if a != nil && err == nil {
 							archives[a.UUID] = a
 							found = true
 						}
@@ -1167,7 +1167,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		session, err := c.db.GetSession(r.Args[1])
-		if err != nil {
+		if session == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve session information"))
 			return
 		}
@@ -1183,7 +1183,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 		session, err := c.db.GetSession(r.Args[1])
-		if err != nil {
+		if session == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve session information"))
 			return
 		}
@@ -2553,7 +2553,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		store, err = c.db.GetStore(store.UUID)
-		if err != nil {
+		if store == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to retrieve storage system information"))
 			return
 		}
