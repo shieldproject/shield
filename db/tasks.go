@@ -778,10 +778,10 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 		db.exclusive.Lock()
 		defer db.exclusive.Unlock()
 		r, err := db.query(`
-			   SELECT j.keep_days
-				 FROM jobs j
+		       SELECT j.keep_days
+		         FROM jobs j
 		   INNER JOIN tasks t ON j.uuid = t.job_uuid
-				WHERE t.uuid = ?`,
+		        WHERE t.uuid = ?`,
 			id)
 		if err != nil {
 			return 0, err
