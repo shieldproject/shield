@@ -37,7 +37,7 @@ function dispatch(page) {
     args[argv[0+i]] = argv[1+i]
   }
 
-  console.log('dispatching to %s (from %s)...', page, dest);
+  console.log('dispatching to %s (from "%s")...', page, dest);
 
   var top = page.replace(/^(#!\/[^\/]+)(\/.*)?$/, '$1');
   $('nav li.current').removeClass('current');
@@ -626,17 +626,18 @@ function dispatch(page) {
       success: function (data) {
         $('#main').html($($.template('agents', data))
           .on('click', 'a[rel]', function (event) {
+            event.preventDefault();
+
             var action = $(event.target).closest('a[rel]').attr('rel');
             if (action == 'hide' || action == 'show') {
-              event.preventDefault();
               api({
                 type: 'POST',
                 url:  '/v2/agents/'+$(event.target).extract('agent-uuid')+'/'+action,
                 error: "Unable to "+action+" agent via the SHIELD API.",
                 success: function () { reload(); }
               });
+
             } else if (action == 'resync') {
-              event.preventDefault();
               api({
                 type: 'POST',
                 url:  '/v2/agents/'+$(event.target).extract('agent-uuid')+'/resync',
@@ -1290,7 +1291,7 @@ function goto(page) {
   }
 }
 function reload() {
-  goto(document.location.hash)
+  goto(document.location.hash);
 }
 
 $(function () {
@@ -1312,7 +1313,7 @@ $(function () {
           .on('shield:navigate', function (event, to) {
             dispatch(to);
           })
-          .on('click', 'a[href^="#"]', function (event) {
+          .on('click', 'a[href^="#"]:not([rel])', function (event) {
             goto($(event.target).closest('[href]').attr('href'));
           });
         $(window).on('hashchange', function (event) {

@@ -2611,3 +2611,11 @@ a.load-more {
 }
 
 h3 strong { color: #0071bc; }
+
+
+
+.lean.hidden tbody tr td {
+  opacity: 0.5;
+  font-weight: normal;
+  font-style: italic;
+}

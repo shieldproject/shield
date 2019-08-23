@@ -2841,11 +2841,38 @@ for job <em>[[= _.task.job_uuid ]]</em>
       ]]
           <div class="gutter blk">
             <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
-            <h2>Agents of SHIELD</h2>
+            [[ include('agents-table', {
+                 heading:  'Agents of SHIELD',
+                 intro:    'The following Agents are available for use by SHIELD users, for configuring their data protection targets and stores.',
+                 none:     'No usable Agents have registered with this SHIELD instance yet.',
+                 agents:   $.grep(_.agents, function (a) { return !a.hidden }),
+                 problems: _.problems
+               }); ]]
+            [[ include('agents-table', {
+                 class:    'hidden',
+                 heading:  'Hidden Agents',
+                 intro:    'The following Agents are registered with this SHIELD, but <em>cannot</em> be used for configuring targets or stores.',
+                 agents:   $.grep(_.agents, function (a) { return a.hidden }),
+                 problems: _.problems
+               }); ]]
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:agents-table"><!-- {{{ -->
+      [[#
+        {agents-table} (sub-)template
+
+        Renders an agent table, with all the requisite detail, so that we
+        can reuse the component and separate visible agents from hidden ones.
+      ]]
             [[ if (_.agents.length == 0) { ]]
-            <div class="no-data">No Agents have registered with this SHIELD instance yet.</div>
+              [[ if (_.none) { ]]
+            <h2>[[= _.heading ]]</h2>
+            <div class="no-data">[[= _.none ]]</div>
+              [[ } ]]
             [[ } else { ]]
-            <table class="lean">
+            <h2>[[= _.heading ]]</h2>
+            [[ if (_.intro) { ]]<div class="intro">[[= _.intro ]]</div>[[ } ]]
+            <table class="lean[[ if (_.class) { ]] [[= _.class ]][[ } ]]">
               <thead><tr>
                 <th>Name</th>
                 <th>Address</th>
@@ -2892,7 +2919,6 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </tbody>
             </table>
             [[ } ]]
-          </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:auth-providers"><!-- {{{ -->
       [[#
