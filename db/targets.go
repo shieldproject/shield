@@ -208,7 +208,7 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 	}
 
 	target.UUID = RandomID()
-	err = db.exclusively(func () error {
+	err = db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(target.TenantUUID); err != nil {
 			return fmt.Errorf("unable to create target: %s", err)

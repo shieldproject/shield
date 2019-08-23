@@ -283,7 +283,7 @@ func (db *DB) GetTask(id string) (*Task, error) {
 func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 	id := RandomID()
 
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(tenant); err != nil {
 			return fmt.Errorf("unable to create internal task: %s", err)
@@ -314,7 +314,7 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 	id := RandomID()
 	archive := RandomID()
 
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
 			return fmt.Errorf("unable to create backup task: %s", err)
@@ -371,7 +371,7 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 	id := RandomID()
 	now := time.Now().Unix()
 
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
 			return fmt.Errorf("unable to create (skipped) backup task: %s", err)
@@ -429,7 +429,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 	}
 
 	id := RandomID()
-	err = db.exclusively(func () error {
+	err = db.exclusively(func() error {
 		/* validate the archive */
 		if err := db.archiveShouldExist(archive.UUID); err != nil {
 			return fmt.Errorf("unable to create restore task: %s", err)
@@ -484,7 +484,7 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 
 func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 	id := RandomID()
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		/* validate the archive */
 		if err := db.archiveShouldExist(archive.UUID); err != nil {
 			return fmt.Errorf("unable to create purge task: %s", err)
@@ -539,7 +539,7 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 	}
 
 	id := RandomID()
-	err = db.exclusively(func () error {
+	err = db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(store.TenantUUID); err != nil {
 			return fmt.Errorf("unable to create test-store task: %s", err)
@@ -774,7 +774,7 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 	}
 
 	// determine how long we need to keep this specific archive for
-	n, err := (func () (int, error) {
+	n, err := (func() (int, error) {
 		db.exclusive.Lock()
 		defer db.exclusive.Unlock()
 		r, err := db.query(`

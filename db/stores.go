@@ -263,7 +263,7 @@ func (db *DB) CreateStore(store *Store) (*Store, error) {
 	}
 
 	store.UUID = RandomID()
-	err = db.exclusively(func () error {
+	err = db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(store.TenantUUID); err != nil {
 			return fmt.Errorf("unable to create store: %s", err)

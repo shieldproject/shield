@@ -41,7 +41,7 @@ func (db *DB) ClearMembershipsFor(user *User) error {
 }
 
 func (db *DB) AddUserToTenant(user, tenant, role string) error {
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(tenant); err != nil {
 			return fmt.Errorf("unable to create tenant membership: %s", err)
@@ -99,7 +99,7 @@ func (db *DB) RemoveUserFromTenant(user, tenant string) error {
 //GetTenantsForUser given a user's uuid returns a slice of Tenants that the user has membership with
 func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
 	l := make([]*Tenant, 0)
-	return l, db.exclusively(func () error {
+	return l, db.exclusively(func() error {
 		r, err := db.query(`
 		    SELECT t.uuid, t.name
 		      FROM tenants t INNER JOIN memberships m ON m.tenant_uuid = t.uuid
@@ -125,7 +125,7 @@ func (db *DB) GetTenantsForUser(user string) ([]*Tenant, error) {
 
 func (db *DB) GetUsersForTenant(tenant string) ([]*User, error) {
 	l := make([]*User, 0)
-	return l, db.exclusively(func () error {
+	return l, db.exclusively(func() error {
 		r, err := db.query(`
 		    SELECT u.uuid, u.name, u.account, u.backend,
 		           m.role

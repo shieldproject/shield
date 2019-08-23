@@ -139,7 +139,7 @@ were affected.
 See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub for details.`,
 		fn: func(db *DB) error {
 			var uuids []string
-			err := db.exclusively(func () error {
+			err := db.exclusively(func() error {
 				r, err := db.query(`
 					SELECT uuid
 					  FROM jobs

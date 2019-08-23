@@ -237,7 +237,7 @@ func (db *DB) UnpauseJob(id string) (bool, error) {
 func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job.UUID = RandomID()
 
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(job.TenantUUID); err != nil {
 			return fmt.Errorf("unable to create job: %s", err)
@@ -278,7 +278,7 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 }
 
 func (db *DB) UpdateJob(job *Job) error {
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		/* validate the store */
 		if ok, err := db.exists(`SELECT uuid FROM stores WHERE uuid = ?`, job.StoreUUID); err != nil {
 			return fmt.Errorf("unable to validate existence of store with UUID [%s]: %s", job.StoreUUID, err)
