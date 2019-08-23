@@ -292,6 +292,9 @@ func (db *DB) PurgeArchive(id string) error {
 	if err != nil {
 		return fmt.Errorf("unable to retrieve archive [%s]: %s", id, err)
 	}
+	if a == nil {
+		return fmt.Errorf("unable to retrieve archive [%s]: not found in database.", id)
+	}
 
 	if a.Status == "valid" {
 		return fmt.Errorf("invalid attempt to purge a 'valid' archive detected")

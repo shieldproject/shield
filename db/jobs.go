@@ -222,6 +222,10 @@ func (db *DB) PauseOrUnpauseJob(id string, pause bool) (bool, error) {
 	if err != nil {
 		return true, err
 	}
+	if job == nil {
+		return true, fmt.Errorf("unable to update job [%s]: not found in database.", id)
+	}
+
 	db.sendUpdateObjectEvent(job, "tenant:"+job.TenantUUID)
 	return true, nil
 }
@@ -271,6 +275,9 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job, err = db.GetJob(job.UUID)
 	if err != nil {
 		return nil, err
+	}
+	if job == nil {
+		return nil, fmt.Errorf("failed to retrieve newly-inserted job [%s]: not found in database.", job.UUID)
 	}
 
 	db.sendCreateObjectEvent(job, "tenant:"+job.TenantUUID)

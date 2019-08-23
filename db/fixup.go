@@ -169,6 +169,9 @@ See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub f
 				if err != nil {
 					return fmt.Errorf("unable to retrieve job '%s': %s", uuid, err)
 				}
+				if job == nil {
+					return fmt.Errorf("unable to retrieve job '%s': not found in database.", uuid)
+				}
 
 				sched, err := timespec.Parse(job.Schedule)
 				if err != nil {

@@ -223,6 +223,9 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 	if err != nil {
 		return err
 	}
+	if agent == nil {
+		return fmt.Errorf("failed to retrieve newly-inserted agent [%s]: not found in database.", id)
+	}
 
 	db.sendCreateObjectEvent(agent, "*")
 	return nil

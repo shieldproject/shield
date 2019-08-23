@@ -41,8 +41,11 @@ func (store *Store) Configuration(db *DB, private bool) ([]ConfigItem, error) {
 	}
 
 	meta, err := db.GetAgentPluginMetadata(store.Agent, store.Plugin)
-	if meta == nil || err != nil {
+	if err != nil {
 		return nil, err
+	}
+	if meta == nil {
+		return nil, fmt.Errorf("unable to retrieve store configuration: agent metadata not found in database.")
 	}
 
 	return DisplayableConfig("store", meta, store.Config, private), nil
