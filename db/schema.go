@@ -9,15 +9,16 @@ import (
 var CurrentSchema int = currentSchema()
 
 var Schemas = map[int]Schema{
-	1: v1Schema{},
-	2: v2Schema{},
-	3: v3Schema{},
-	4: v4Schema{},
-	5: v5Schema{},
-	6: v6Schema{},
-	7: v7Schema{},
-	8: v8Schema{},
-	9: v9Schema{},
+	1:  v1Schema{},
+	2:  v2Schema{},
+	3:  v3Schema{},
+	4:  v4Schema{},
+	5:  v5Schema{},
+	6:  v6Schema{},
+	7:  v7Schema{},
+	8:  v8Schema{},
+	9:  v9Schema{},
+	10: v10Schema{},
 }
 
 type Schema interface {
