@@ -350,6 +350,7 @@ func (w *Worker) Execute(chore Chore) {
 		agent.Version = v.Version
 		agent.Status = v.Health
 		agent.RawMeta = output
+		agent.LastCheckedAt = time.Now().Unix()
 		err = w.db.UpdateAgent(agent)
 		if err != nil {
 			panic(fmt.Errorf("failed to update agent '%s' record in database: %s", task.Agent, err))

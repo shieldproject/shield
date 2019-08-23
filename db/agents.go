@@ -265,9 +265,10 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		                   hidden          = ?,
 		                   metadata        = ?,
 		                   last_checked_at = ?,
+		                   last_seen_at    = ?,
 		                   last_error      = ?
 		        WHERE uuid = ?`,
 		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
-		time.Now().Unix(), agent.LastError,
+		agent.LastCheckedAt, agent.LastSeenAt, agent.LastError,
 		agent.UUID)
 }
