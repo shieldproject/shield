@@ -84,7 +84,7 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 	return `
 	   SELECT a.uuid, a.name, a.address, a.version,
 	          a.hidden, a.last_seen_at, a.last_checked_at, a.status,
-	          a.metadata
+	          a.metadata, a.last_error
 
 	     FROM agents a
 
@@ -113,7 +113,8 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 		var seen, checked *int64
 		if err = r.Scan(
 			&agent.UUID, &agent.Name, &agent.Address, &agent.Version,
-			&agent.Hidden, &seen, &checked, &agent.Status, &agent.RawMeta); err != nil {
+			&agent.Hidden, &seen, &checked, &agent.Status, &agent.RawMeta,
+			&agent.LastError); err != nil {
 			return l, err
 		}
 		if seen != nil {
@@ -134,48 +135,25 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 }
 
 func (db *DB) GetAgent(id string) (*Agent, error) {
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
-	return db.doGetAgent(id)
-}
-
-//The caller must hold the lock
-func (db *DB) doGetAgent(id string) (*Agent, error) {
-	r, err := db.query(`
-		SELECT a.uuid, a.name, a.address, a.version,
-		       a.hidden, a.last_seen_at, a.last_checked_at, a.last_error, a.status,
-		       a.metadata
-
-		FROM agents a
-
-		WHERE a.uuid = ?`, id)
+	all, err := db.GetAllAgents(&AgentFilter{UUID: id, ExactMatch: true})
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
-
-	if !r.Next() {
+	if len(all) == 0 {
 		return nil, nil
 	}
+	return all[0], nil
+}
 
-	agent := &Agent{}
-
-	var seen, checked *int64
-	if err = r.Scan(
-		&agent.UUID, &agent.Name, &agent.Address, &agent.Version,
-		&agent.Hidden, &seen, &checked, &agent.LastError, &agent.Status,
-		&agent.RawMeta); err != nil {
-
+func (db *DB) GetAgentByAddress(address string) (*Agent, error) {
+	all, err := db.GetAllAgents(&AgentFilter{Address: address})
+	if err != nil {
 		return nil, err
 	}
-	if seen != nil {
-		agent.LastSeenAt = *seen
+	if len(all) == 0 {
+		return nil, nil
 	}
-	if checked != nil {
-		agent.LastCheckedAt = *checked
-	}
-
-	return agent, nil
+	return all[0], nil
 }
 
 func (db *DB) GetAgentPluginMetadata(addr, name string) (*plugin.PluginInfo, error) {
@@ -233,19 +211,16 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 
 	id := RandomID()
 
-	db.exclusive.Lock()
-	err = db.exec(`
+	err = db.Exec(`
 	   INSERT INTO agents (uuid, name, address, hidden, status, last_seen_at)
 	               VALUES (?,    ?,    ?,       ?,      ?,      ?)`,
 		id, name, address, false, "pending", time.Now().Unix(),
 	)
 	if err != nil {
-		db.exclusive.Unlock()
 		return err
 	}
 
-	agent, err := db.doGetAgent(id)
-	db.exclusive.Unlock()
+	agent, err := db.GetAgent(id)
 	if err != nil {
 		return err
 	}
