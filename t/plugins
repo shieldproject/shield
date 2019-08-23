@@ -187,7 +187,7 @@ GOOD_ENDPOINT='{
 try "basic -h (short help) output"
 (./mock -h &> $WORKDIR/out
 ok $? "retrieved help from mock plugin"
-with "Mock Plugin v0.0.1 - Stark & Wayne"
+with "Mock Plugin v0.0.1 - SHIELD Core Team"
 with "USAGE: .*OPTIONS.*COMMAND.*OPTIONS"
 with "-h, --help"
 with "-D, --debug"
@@ -206,7 +206,7 @@ with "DEFAULT ENDPOINT") 2>&1 | indent
 try "basic --help (long help) output"
 (./mock --help &> $WORKDIR/out
 ok $? "retrieved long help from mock plugin"
-with "Mock Plugin v0.0.1 - Stark & Wayne"
+with "Mock Plugin v0.0.1 - SHIELD Core Team"
 with "USAGE: .*OPTIONS.*COMMAND.*OPTIONS"
 with "-h, --help"
 with "-D, --debug"
@@ -297,7 +297,7 @@ try "retrieving info from the mock plugin"
 ok $? "\`mock info\` succeded"
 is "$(cat $WORKDIR/out)" '{
     "name": "Mock Plugin",
-    "author": "Stark \u0026 Wayne",
+    "author": "SHIELD Core Team",
     "version": "0.0.1",
     "features": {
         "target": "yes",
