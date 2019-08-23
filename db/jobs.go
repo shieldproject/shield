@@ -117,9 +117,9 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	if f.SkipPaused || f.SkipUnpaused {
 		wheres = append(wheres, "j.paused = ?")
 		if f.SkipPaused {
-			args = append(args, 0)
+			args = append(args, false)
 		} else {
-			args = append(args, 1)
+			args = append(args, true)
 		}
 	}
 	if f.Overdue {
