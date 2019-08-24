@@ -505,20 +505,31 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		log.Infof("registering message bus web client")
-		ch, _, err := c.bus.Register(queues)
+		ch, slot, err := c.bus.Register(queues)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to begin streaming SHIELD events"))
 			return
 		}
+		log.Infof("registered with message bus as [slot:%d]", slot)
 
-		go socket.Discard()
+		go socket.Discard(func () { close(ch) })
 		for event := range ch {
 			b, err := json.Marshal(event)
 			if err != nil {
-				log.Errorf("message bus web client failed to marshal JSON for websocket relay: %s", err)
+				log.Errorf("message bus web client [slot:%d] failed to marshal JSON for websocket relay: %s", slot, err)
 			} else {
-				socket.Write(b)
+				if done, err := socket.Write(b); done {
+					break
+				} else if err != nil {
+					log.Errorf("failed to write message to message bus web client [slot:%d]: %s", slot, err)
+				}
 			}
+		}
+
+		log.Infof("message bus web client [slot:%d] disconnected; unregistering...", slot)
+		err = c.bus.Unregister(slot)
+		if err != nil {
+			log.Errorf("message bus web client [slot:%d] failed to unregister after disconnect: %s", slot, err)
 		}
 	})
 	// }}}
