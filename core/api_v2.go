@@ -512,7 +512,10 @@ func (c *Core) v2API() *route.Router {
 		}
 		log.Infof("registered with message bus as [slot:%d]", slot)
 
-		go socket.Discard(func () { close(ch) })
+		go socket.Discard(func() {
+			defer recover()
+			close(ch)
+		})
 		for event := range ch {
 			b, err := json.Marshal(event)
 			if err != nil {
