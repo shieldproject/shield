@@ -512,16 +512,18 @@ func (c *Core) v2API() *route.Router {
 		}
 		log.Infof("registered with message bus as [slot:%d]", slot)
 
-		go socket.Discard(func() {
+		closeMeSoftly := func () {
 			defer recover()
 			close(ch)
-		})
+		}
+		go socket.Discard(closeMeSoftly)
 		for event := range ch {
 			b, err := json.Marshal(event)
 			if err != nil {
 				log.Errorf("message bus web client [slot:%d] failed to marshal JSON for websocket relay: %s", slot, err)
 			} else {
 				if done, err := socket.Write(b); done {
+					closeMeSoftly()
 					break
 				} else if err != nil {
 					log.Errorf("failed to write message to message bus web client [slot:%d]: %s", slot, err)

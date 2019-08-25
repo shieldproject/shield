@@ -83,7 +83,10 @@ func (b *Bus) Unregister(idx int) error {
 	b.slots[idx].ch = nil
 	b.slots[idx].acl = nil
 
-	close(ch)
+	func () {
+		defer recover()
+		close(ch)
+	}()
 	return nil
 }
 
