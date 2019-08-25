@@ -3320,8 +3320,8 @@ tenants:
 		}
 
 		var out struct {
-			Columns []string `json:"columns"`
-			Rows []map[string] interface{} `json:"rows"`
+			Columns []string                 `json:"columns"`
+			Rows    []map[string]interface{} `json:"rows"`
 		}
 		err = json.Unmarshal([]byte(response), &out)
 		bail(err)
