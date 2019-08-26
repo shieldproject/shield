@@ -523,10 +523,15 @@ func (c *Core) v2API() *route.Router {
 				log.Errorf("message bus web client [slot:%d] failed to marshal JSON for websocket relay: %s", slot, err)
 			} else {
 				if done, err := socket.Write(b); done {
+					log.Infof("message bus web client [slot:%d] closed their end of the socket", slot)
+					log.Infof("message bus web client [slot:%d] shutting down", slot)
 					closeMeSoftly()
 					break
 				} else if err != nil {
-					log.Errorf("failed to write message to message bus web client [slot:%d]: %s", slot, err)
+					log.Errorf("message bus web client [slot:%d] failed to write message to remote end: %s", slot, err)
+					log.Errorf("message bus web client [slot:%d] shutting down", slot)
+					closeMeSoftly()
+					break
 				}
 			}
 		}
