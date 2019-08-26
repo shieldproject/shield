@@ -29,7 +29,7 @@ func (r *Request) Upgrade() *WebSocket {
 	}
 }
 
-func (ws *WebSocket) Discard() {
+func (ws *WebSocket) Discard(onclose func()) {
 	for {
 		if _, _, err := ws.conn.NextReader(); err != nil {
 			log.Infof("discarding message from ws client...")
@@ -37,8 +37,10 @@ func (ws *WebSocket) Discard() {
 			break
 		}
 	}
+	onclose()
 }
 
-func (ws *WebSocket) Write(b []byte) error {
-	return ws.conn.WriteMessage(websocket.TextMessage, b)
+func (ws *WebSocket) Write(b []byte) (bool, error) {
+	err := ws.conn.WriteMessage(websocket.TextMessage, b)
+	return !websocket.IsCloseError(err), err
 }

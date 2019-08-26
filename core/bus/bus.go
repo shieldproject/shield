@@ -27,6 +27,12 @@ type Event struct {
 type Bus struct {
 	lock  sync.Mutex
 	slots []slot
+
+	lifetime, current struct {
+		connections int64
+	}
+	events   map[string]int64
+	messages map[string]int64
 }
 
 type slot struct {
@@ -35,9 +41,12 @@ type slot struct {
 }
 
 func New(n int) *Bus {
-	return &Bus{
+	b := Bus{
 		slots: make([]slot, n),
 	}
+	b.events = make(map[string]int64)
+	b.messages = make(map[string]int64)
+	return &b
 }
 
 func (b *Bus) Register(queues []string) (chan Event, int, error) {
@@ -46,6 +55,8 @@ func (b *Bus) Register(queues []string) (chan Event, int, error) {
 
 	for i := range b.slots {
 		if b.slots[i].ch == nil {
+			b.lifetime.connections += 1
+			b.current.connections += 1
 			b.slots[i].ch = make(chan Event, 0)
 			b.slots[i].acl = make(map[string]bool)
 			for _, q := range queues {
@@ -67,12 +78,15 @@ func (b *Bus) Unregister(idx int) error {
 		return fmt.Errorf("could not unregister channel #%d: index out of range", idx)
 	}
 
+	b.current.connections -= 1
 	ch := b.slots[idx].ch
 	b.slots[idx].ch = nil
 	b.slots[idx].acl = nil
 
-	for range ch {
-	}
+	func () {
+		defer recover()
+		close(ch)
+	}()
 	return nil
 }
 
@@ -95,6 +109,14 @@ func (b *Bus) SendEvent(queues []string, ev Event) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
+	if _, ok := b.events[ev.Event]; !ok {
+		b.events[ev.Event] = 0
+	}
+	if _, ok := b.messages[ev.Event]; !ok {
+		b.messages[ev.Event] = 0
+	}
+
+	b.events[ev.Event] += 1
 	for _, s := range b.slots {
 		if s.ch == nil {
 			continue
@@ -105,6 +127,7 @@ func (b *Bus) SendEvent(queues []string, ev Event) {
 				if q == "*" {
 					ev.Queue = q
 					s.ch <- ev
+					b.messages[ev.Event] += 1
 					return
 				}
 			}
@@ -112,6 +135,7 @@ func (b *Bus) SendEvent(queues []string, ev Event) {
 				if _, ok := s.acl[q]; ok {
 					ev.Queue = q
 					s.ch <- ev
+					b.messages[ev.Event] += 1
 					return
 				}
 			}
