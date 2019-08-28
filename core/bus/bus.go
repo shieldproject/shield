@@ -3,6 +3,8 @@ package bus
 import (
 	"fmt"
 	"sync"
+
+	"github.com/jhunt/go-log"
 )
 
 const (
@@ -27,8 +29,11 @@ type Event struct {
 type Bus struct {
 	lock  sync.Mutex
 	slots []slot
+	//slotMap maps unique identifiers given to clients to slot slice indices
+	slotMap map[int64]int
+	chanLen int
 
-	lifetime, current struct {
+	lifetime, current, dropped struct {
 		connections int64
 	}
 	events   map[string]int64
@@ -36,58 +41,74 @@ type Bus struct {
 }
 
 type slot struct {
-	ch  chan Event
-	acl map[string]bool
+	ch         chan Event
+	id         int64
+	mostQueued int
+	acl        map[string]bool
 }
 
-func New(n int) *Bus {
+func New(n, chanLen int) *Bus {
 	b := Bus{
-		slots: make([]slot, n),
+		slots:    make([]slot, n),
+		slotMap:  map[int64]int{},
+		chanLen:  chanLen,
+		events:   make(map[string]int64),
+		messages: make(map[string]int64),
 	}
-	b.events = make(map[string]int64)
-	b.messages = make(map[string]int64)
 	return &b
 }
 
-func (b *Bus) Register(queues []string) (chan Event, int, error) {
+func (b *Bus) Register(queues []string) (chan Event, int64, error) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
 	for i := range b.slots {
 		if b.slots[i].ch == nil {
-			b.lifetime.connections += 1
 			b.current.connections += 1
-			b.slots[i].ch = make(chan Event, 0)
+			b.lifetime.connections += 1
+			b.slots[i].id = b.lifetime.connections
+			b.slotMap[b.lifetime.connections] = i
+
+			b.slots[i].ch = make(chan Event, b.chanLen)
 			b.slots[i].acl = make(map[string]bool)
 			for _, q := range queues {
 				b.slots[i].acl[q] = true
 			}
 
-			return b.slots[i].ch, i, nil
+			return b.slots[i].ch, b.slots[i].id, nil
 		}
 	}
 
 	return nil, -1, fmt.Errorf("too many message bus clients")
 }
 
-func (b *Bus) Unregister(idx int) error {
+//Unregister causes the bus to stop routing events to the handler with the given ID.
+// The channel returned from the matching call to register is closed. Multiple calls
+// to Unregister with the same id are idempotent.
+func (b *Bus) Unregister(id int64) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
+	b.unregister(id)
+}
 
+func (b *Bus) unregister(id int64) {
+	idx, found := b.slotMap[id]
+	if !found {
+		return //already closed. moving on.
+	}
+
+	delete(b.slotMap, id)
 	if idx < 0 || idx >= len(b.slots) {
-		return fmt.Errorf("could not unregister channel #%d: index out of range", idx)
+		log.Errorf("could not unregister channel #%d: index out of range", idx)
+		panic(fmt.Sprintf("could not unregister channel #%d: index out of range", idx))
 	}
 
 	b.current.connections -= 1
-	ch := b.slots[idx].ch
+	close(b.slots[idx].ch)
 	b.slots[idx].ch = nil
 	b.slots[idx].acl = nil
-
-	func () {
-		defer recover()
-		close(ch)
-	}()
-	return nil
+	b.slots[idx].mostQueued = 0
+	b.slots[idx].id = 0x0dedbeef
 }
 
 func (b *Bus) SendError(err error, queues ...string) {
@@ -117,28 +138,27 @@ func (b *Bus) SendEvent(queues []string, ev Event) {
 	}
 
 	b.events[ev.Event] += 1
-	for _, s := range b.slots {
+	for i, s := range b.slots {
 		if s.ch == nil {
 			continue
 		}
 
-		func() {
-			for _, q := range queues {
-				if q == "*" {
-					ev.Queue = q
-					s.ch <- ev
+		for _, q := range queues {
+			if q == "*" || s.acl[q] {
+				ev.Queue = q
+				select {
+				case s.ch <- ev:
+					queued := len(s.ch)
+					if queued > s.mostQueued {
+						b.slots[i].mostQueued = queued
+					}
 					b.messages[ev.Event] += 1
-					return
+				default:
+					b.unregister(s.id)
+					b.dropped.connections++
 				}
+				break
 			}
-			for _, q := range queues {
-				if _, ok := s.acl[q]; ok {
-					ev.Queue = q
-					s.ch <- ev
-					b.messages[ev.Event] += 1
-					return
-				}
-			}
-		}()
+		}
 	}
 }

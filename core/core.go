@@ -108,6 +108,11 @@ type Config struct {
 		ca      string /* PEM-encoded contents */
 	} `yaml:"vault"`
 
+	Mbus struct {
+		MaxSlots int `yaml:"max-slots"`
+		SlotSize int `yaml:"slot-size"`
+	} `yaml:"mbus"`
+
 	Cipher string `yaml:"cipher"`
 
 	Bootstrapper string `yaml:"bootstrapper"`
@@ -144,6 +149,9 @@ func init() {
 	DefaultConfig.Cipher = "aes256-ctr"
 
 	DefaultConfig.Bootstrapper = "shield-restarter"
+
+	DefaultConfig.Mbus.MaxSlots = 2048
+	DefaultConfig.Mbus.SlotSize = 100
 }
 
 func Configure(file string, config Config) (*Core, error) {

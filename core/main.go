@@ -258,7 +258,7 @@ func (c *Core) StartScheduler() {
 
 func (c *Core) ConfigureMessageBus() {
 	log.Infof("INITIALIZING: configuring message bus...")
-	c.bus = bus.New(2048)
+	c.bus = bus.New(c.Config.Mbus.MaxSlots, c.Config.Mbus.SlotSize)
 	c.db.Inform(c.bus)
 }
 

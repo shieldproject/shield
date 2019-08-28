@@ -2,13 +2,15 @@ package route
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/jhunt/go-log"
 )
 
 type WebSocket struct {
-	conn *websocket.Conn
+	conn    *websocket.Conn
+	timeout time.Duration
 }
 
 func (r *Request) Upgrade() *WebSocket {
@@ -41,6 +43,18 @@ func (ws *WebSocket) Discard(onclose func()) {
 }
 
 func (ws *WebSocket) Write(b []byte) (bool, error) {
-	err := ws.conn.WriteMessage(websocket.TextMessage, b)
-	return !websocket.IsCloseError(err), err
+	err := ws.conn.SetWriteDeadline(time.Now().Add(ws.timeout))
+	if err != nil {
+		return true, err
+	}
+	err = ws.conn.WriteMessage(websocket.TextMessage, b)
+	return websocket.IsUnexpectedCloseError(err), err
+}
+
+func (ws *WebSocket) SetWriteTimeout(timeout time.Duration) {
+	ws.timeout = timeout
+}
+
+func (ws *WebSocket) SendClose() error {
+	return ws.conn.WriteControl(websocket.CloseMessage, nil, time.Now().Add(ws.timeout))
 }
