@@ -504,43 +504,43 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
+		socket.SetWriteTimeout(45 * time.Second)
+
 		log.Infof("registering message bus web client")
 		ch, slot, err := c.bus.Register(queues)
 		if err != nil {
 			r.Fail(route.Oops(err, "Unable to begin streaming SHIELD events"))
 			return
 		}
-		log.Infof("registered with message bus as [slot:%d]", slot)
+		log.Infof("registered with message bus as [id:%d]", slot)
 
-		closeMeSoftly := func () {
-			defer recover()
-			close(ch)
-		}
+		closeMeSoftly := func() { c.bus.Unregister(slot) }
 		go socket.Discard(closeMeSoftly)
 		for event := range ch {
 			b, err := json.Marshal(event)
 			if err != nil {
-				log.Errorf("message bus web client [slot:%d] failed to marshal JSON for websocket relay: %s", slot, err)
+				log.Errorf("message bus web client [id:%d] failed to marshal JSON for websocket relay: %s", slot, err)
 			} else {
 				if done, err := socket.Write(b); done {
-					log.Infof("message bus web client [slot:%d] closed their end of the socket", slot)
-					log.Infof("message bus web client [slot:%d] shutting down", slot)
+					log.Infof("message bus web client [id:%d] closed their end of the socket", slot)
+					log.Infof("message bus web client [id:%d] shutting down", slot)
 					closeMeSoftly()
 					break
 				} else if err != nil {
-					log.Errorf("message bus web client [slot:%d] failed to write message to remote end: %s", slot, err)
-					log.Errorf("message bus web client [slot:%d] shutting down", slot)
+					log.Errorf("message bus web client [id:%d] failed to write message to remote end: %s", slot, err)
+					log.Errorf("message bus web client [id:%d] shutting down", slot)
 					closeMeSoftly()
+					err := socket.SendClose()
+					if err != nil {
+						log.Warnf("message bus web client [id:%d] failed to write close message")
+					}
 					break
 				}
 			}
 		}
 
-		log.Infof("message bus web client [slot:%d] disconnected; unregistering...", slot)
-		err = c.bus.Unregister(slot)
-		if err != nil {
-			log.Errorf("message bus web client [slot:%d] failed to unregister after disconnect: %s", slot, err)
-		}
+		log.Infof("message bus web client [id:%d] disconnected; unregistering...", slot)
+		closeMeSoftly()
 	})
 	// }}}
 
