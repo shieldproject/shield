@@ -50,7 +50,7 @@ type slot struct {
 func New(n, backlog int) *Bus {
 	b := Bus{
 		slots:    make([]slot, n),
-		slotMap:  map[int64]int{},
+		slotMap:  make(map[int64]int, n),
 		backlog:  backlog,
 		events:   make(map[string]int64),
 		messages: make(map[string]int64),
