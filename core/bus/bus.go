@@ -31,7 +31,7 @@ type Bus struct {
 	slots []slot
 	//slotMap maps unique identifiers given to clients to slot slice indices
 	slotMap map[int64]int
-	chanLen int
+	backlog int
 
 	lifetime, current, dropped struct {
 		connections int64
@@ -47,11 +47,11 @@ type slot struct {
 	acl        map[string]bool
 }
 
-func New(n, chanLen int) *Bus {
+func New(n, backlog int) *Bus {
 	b := Bus{
 		slots:    make([]slot, n),
 		slotMap:  map[int64]int{},
-		chanLen:  chanLen,
+		backlog:  backlog,
 		events:   make(map[string]int64),
 		messages: make(map[string]int64),
 	}
@@ -69,7 +69,7 @@ func (b *Bus) Register(queues []string) (chan Event, int64, error) {
 			b.slots[i].id = b.lifetime.connections
 			b.slotMap[b.lifetime.connections] = i
 
-			b.slots[i].ch = make(chan Event, b.chanLen)
+			b.slots[i].ch = make(chan Event, b.backlog)
 			b.slots[i].acl = make(map[string]bool)
 			for _, q := range queues {
 				b.slots[i].acl[q] = true
@@ -108,7 +108,7 @@ func (b *Bus) unregister(id int64) {
 	b.slots[idx].ch = nil
 	b.slots[idx].acl = nil
 	b.slots[idx].mostQueued = 0
-	b.slots[idx].id = 0x0dedbeef
+	b.slots[idx].id = -1
 }
 
 func (b *Bus) SendError(err error, queues ...string) {

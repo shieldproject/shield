@@ -541,9 +541,6 @@ func (c *Core) v2API() *route.Router {
 
 		log.Infof("message bus web client [id:%d] disconnected; unregistering...", slot)
 		closeMeSoftly()
-		if err != nil {
-			log.Errorf("message bus web client [id:%d] failed to unregister after disconnect: %s", slot, err)
-		}
 	})
 	// }}}
 

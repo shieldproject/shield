@@ -110,7 +110,7 @@ type Config struct {
 
 	Mbus struct {
 		MaxSlots int `yaml:"max-slots"`
-		SlotSize int `yaml:"slot-size"`
+		Backlog  int `yaml:"backlog"`
 	} `yaml:"mbus"`
 
 	Cipher string `yaml:"cipher"`
@@ -151,7 +151,7 @@ func init() {
 	DefaultConfig.Bootstrapper = "shield-restarter"
 
 	DefaultConfig.Mbus.MaxSlots = 2048
-	DefaultConfig.Mbus.SlotSize = 100
+	DefaultConfig.Mbus.Backlog = 100
 }
 
 func Configure(file string, config Config) (*Core, error) {

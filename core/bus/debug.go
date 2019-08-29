@@ -5,7 +5,7 @@ import "sort"
 type Metrics struct {
 	Configuration struct {
 		MaxSlots int `json:"max_slots"`
-		SlotSize int `json:"slot_size"`
+		Backlog  int `json:"backlog"`
 	} `json:"configuration"`
 	Connections struct {
 		Lifetime int64 `json:"lifetime"`
@@ -32,7 +32,7 @@ func (b *Bus) DumpState() Metrics {
 
 	var m Metrics
 	m.Configuration.MaxSlots = len(b.slots)
-	m.Configuration.SlotSize = b.chanLen
+	m.Configuration.Backlog = b.backlog
 	m.Connections.Lifetime = b.lifetime.connections
 	m.Connections.Current = b.current.connections
 	m.Connections.Dropped = b.dropped.connections
