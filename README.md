@@ -80,6 +80,13 @@ Back up the data stored in your Consul key-value store.
 More information can be found
 [here](https://godoc.org/github.com/starkandwayne/shield/plugin/consul).
 
+### `etcd` - etcd Backup Plugin
+
+Back up the data stored in your etcd key-value store.
+
+More information can be found
+[here](https://godoc.org/github.com/starkandwayne/shield/plugin/etcd).
+
 ### `mongo` - MongoDB Backup Plugin
 
 Back up your MongoDB NoSQL database(s)!
