@@ -15,6 +15,7 @@ var (
 	DefaultDataDir       = "/var/lib/mysql"
 	DefaultTempTargetDir = "/tmp/backups"
 	DefaultXtrabackup    = "/var/vcap/packages/shield-mysql/bin/xtrabackup"
+	DefaultBackupType    = "fullLegacy"
 )
 
 func main() {
@@ -28,17 +29,18 @@ func main() {
 		},
 		Example: `
 {
-  "mysql_user":           "username-for-mysql",      # REQUIRED
-  "mysql_password":       "password-for-above-user", # REQUIRED
+  "mysql_user":            "username-for-mysql",      # REQUIRED
+  "mysql_password":        "password-for-above-user", # REQUIRED
 
-  "mysql_databases":      "db1,db2",              # List of databases to limit
+  "mysql_databases":       "db1,db2",              # List of databases to limit
                                                   # backup and recovery to.
 
-  "mysql_datadir":        "/var/lib/mysql",                         # Path to the MySQL data directory
-  "mysql_socket":         "/var/vcap/sys/run/mysql/mysqld.sock",    # Path to the MySQL socket
-  "mysql_xtrabackup":     "/path/to/xtrabackup",                    # Full path to the xtrabackup binary
-  "mysql_temp_targetdir": "/tmp/backups"                            # Temporary work directory
-  "mysql_tar":            "tar"                                     # Tar-compatible archival tool to use
+  "mysql_datadir":         "/var/lib/mysql",                         # Path to the MySQL data directory
+  "mysql_socket":          "/var/vcap/sys/run/mysql/mysqld.sock",    # Path to the MySQL socket
+  "mysql_xtrabackup":      "/path/to/xtrabackup",                    # Full path to the xtrabackup binary
+  "mysql_temp_targetdir":  "/tmp/backups",                           # Temporary work directory
+  "mysql_tar":             "tar",                                    # Tar-compatible archival tool to use
+  "mysql_xtrabackup_type": "fullLegacy"                              # Backup full by default
 }
 `,
 		Defaults: `
@@ -46,7 +48,8 @@ func main() {
   "mysql_tar"           : "tar",
   "mysql_datadir"       : "/var/lib/mysql",
   "mysql_xtrabackup"    : "/var/vcap/packages/shield-mysql/bin/xtrabackup",
-  "mysql_temp_targetdir": "/tmp/backups"
+  "mysql_temp_targetdir": "/tmp/backups",
+  "mysql_xtrabackup_type": "fullLegacy"
 }
 `,
 		Fields: []plugin.Field{
@@ -111,6 +114,14 @@ func main() {
 				Help:    "Path to a temporary directory that `xtrabackup` will use for its own purposes.",
 				Default: "/tmp/backups",
 			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "mysql_xtrabackup_type",
+				Type:    "string",
+				Title:   "Mysql Xtrabackup type",
+				Help:    "Mysql Xtrabackup type full by default or differential backup",
+				Default: "fullLegacy",
+			},
 		},
 	}
 
@@ -128,6 +139,7 @@ type XtraBackupEndpoint struct {
 	Bin       string
 	TargetDir string
 	Tar       string
+	Type      string
 }
 
 func (p XtraBackupPlugin) Meta() plugin.PluginInfo {
@@ -221,6 +233,14 @@ func (p XtraBackupPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 mysql_tar}  @C{%s}\n", s)
 	}
 
+	s, err = endpoint.StringValueDefault("mysql_xtrabackup_type", DefaultBackupType)
+	if s != "full" && s != "differential" && s != "fullLegacy" {
+		fmt.Printf("@R{\u2717 mysql_xtrabackup_type is incorrect, set \"full\" or \"differential\" or don't set it}\n")
+		fail = true
+	} else {
+		fmt.Printf("@G{\u2713 mysql_xtrabackup_type}  @C{%s}\n", s)
+	}
+
 	if fail {
 		return fmt.Errorf("xtrabackup: invalid configuration")
 	}
@@ -234,21 +254,22 @@ func (p XtraBackupPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	targetDir := xtrabackup.TargetDir
-	if fi, err := os.Lstat(targetDir); err == nil {
-		if fi.IsDir() {
+	if _, err := os.Stat(targetDir); !os.IsNotExist(err) {
+		if xtrabackup.Type == "full" || xtrabackup.Type == "fullLegacy" {
 			err = os.RemoveAll(targetDir)
-		} else {
-			err = os.Remove(targetDir)
 		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Check existing temporary target directory} %s \n", xtrabackup.TargetDir)
-			return err
+	} else if xtrabackup.Type == "differential" {
+		fmt.Fprintf(os.Stderr, "@R{\u2717 Run full backup before running differential} \n")
+		return err
+	}
+
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		if errMkdir := os.MkdirAll(targetDir, 0755); errMkdir != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Cannot create target directory} \n")
+			return errMkdir
 		}
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Check existing temporary target directory} %s \n", xtrabackup.TargetDir)
-	defer func() {
-		os.RemoveAll(targetDir)
-	}()
+
 	socket := ""
 	if xtrabackup.Socket != "" {
 		socket = fmt.Sprintf(`--socket="%s"`, xtrabackup.Socket)
@@ -258,8 +279,31 @@ func (p XtraBackupPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		dbs = fmt.Sprintf(`--databases="%s"`, xtrabackup.Databases)
 	}
 
+	// removing previous differential as it is not used
+	defer func() {
+		if xtrabackup.Type == "differential" {
+			os.RemoveAll(fmt.Sprintf("%s/diff/", targetDir))
+		} else if xtrabackup.Type == "fullLegacy" {
+			os.RemoveAll(fmt.Sprintf("%s/", targetDir))
+		}
+	}()
+
 	// create backup files
-	cmdString := fmt.Sprintf("%s --backup --target-dir=%s --datadir=%s %s %s --user=%s --password=%s", xtrabackup.Bin, targetDir, xtrabackup.DataDir, socket, dbs, xtrabackup.User, xtrabackup.Password)
+	var cmdString string
+	tarDir := targetDir
+
+	// default values if "fullLegacy" for retro compatibility on --target-dir passed value
+
+	if xtrabackup.Type == "full" || xtrabackup.Type == "fullLegacy" {
+		if xtrabackup.Type == "full" {
+			tarDir = fmt.Sprintf("%s/base", targetDir)
+		}
+		cmdString = fmt.Sprintf("%s --backup --target-dir=%s --datadir=%s %s %s --user=%s --password=%s", xtrabackup.Bin, tarDir, xtrabackup.DataDir, socket, dbs, xtrabackup.User, xtrabackup.Password)
+	} else if xtrabackup.Type == "differential" {
+		tarDir = fmt.Sprintf("%s/diff", targetDir)
+		cmdString = fmt.Sprintf("%s --backup --target-dir=%s --incremental-basedir=%s/base --datadir=%s %s %s --user=%s --password=%s", xtrabackup.Bin, tarDir, targetDir, xtrabackup.DataDir, socket, dbs, xtrabackup.User, xtrabackup.Password)
+	}
+
 	opts := plugin.ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
@@ -274,14 +318,16 @@ func (p XtraBackupPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	fmt.Fprintf(os.Stderr, "@G{\u2713 Created backup files}\n")
 
 	// create and return archive
-	cmdString = fmt.Sprintf("%s -cf - -C %s .", xtrabackup.Tar, targetDir)
+	cmdString = fmt.Sprintf("%s -cf - -C %s/ .", xtrabackup.Tar, tarDir)
 	if err = plugin.Exec(cmdString, plugin.STDOUT); err != nil {
 		fmt.Fprintf(os.Stderr, "@R{\u2717 Creating archive failed}\n")
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "@G{\u2713 Created archive}\n")
-	// remove temporary target directory
-	return os.RemoveAll(targetDir)
+
+	// do not remove temporary target directory for differential backup
+	// i.e: return os.RemoveAll(targetDir)
+	return nil
 }
 
 func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
@@ -297,21 +343,33 @@ func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 	fmt.Fprintf(os.Stderr, "@G{\u2713 MySQL is stopped}\n")
 	// targetdir must not exist
-	backupDir := xtrabackup.TargetDir
-	if fi, err := os.Lstat(backupDir); err == nil {
-		if fi.IsDir() {
-			err = os.RemoveAll(backupDir)
-		} else {
-			err = os.Remove(backupDir)
-		}
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "@R{\u2717 Checking existing temporary backup directory failed} %s \n", backupDir)
-			return err
+
+	restoreDir := xtrabackup.TargetDir
+
+	var restoreFullDir string
+
+	if restoreFullDir = restoreDir; xtrabackup.Type == "full" || xtrabackup.Type == "differential" {
+		restoreFullDir = fmt.Sprintf("%s/base", restoreDir)
+	}
+
+	restoreDiffDir := fmt.Sprintf("%s/diff", restoreDir)
+
+	if _, err := os.Stat(restoreDir); !os.IsNotExist(err) {
+		if xtrabackup.Type == "full" {
+			err = os.RemoveAll(restoreDir)
+		} else if xtrabackup.Type == "differential" {
+			if _, errDiff := os.Stat(restoreFullDir); os.IsNotExist(errDiff) {
+				fmt.Fprintf(os.Stderr, "@R{\u2717 Run full restore before running differential} \n")
+				return errDiff
+			}
 		}
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Checked temporary backup directory} %s \n", backupDir)
+
 	defer func() {
-		os.RemoveAll(backupDir)
+		//in case of full backup we let the base directory present
+		if xtrabackup.Type == "fullLegacy" || xtrabackup.Type == "differential" {
+			os.RemoveAll(restoreDir)
+		}
 	}()
 
 	// datadir exist
@@ -333,6 +391,7 @@ func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		fmt.Fprintf(os.Stderr, "@R{\u2717 unable to read the directory} %s \n", dataDir)
 		return err
 	}
+
 	for _, f := range files {
 		err = os.RemoveAll(f)
 		if err != nil {
@@ -342,53 +401,85 @@ func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 	}
 	fmt.Fprintf(os.Stderr, "@G{\u2713 Checked datadir directory} %s \n", dataDir)
 
-	// create tmp folder
-	cmdString = fmt.Sprintf("mkdir -p %s", backupDir)
+	tarDir := restoreFullDir
+
+	if xtrabackup.Type == "differential" {
+		tarDir = restoreDiffDir
+	}
+
+	// create archive folder to extract in
+	if _, err := os.Stat(tarDir); os.IsNotExist(err) {
+		if errMkdir := os.MkdirAll(tarDir, 0755); errMkdir != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Cannot create specific restore directory} \n")
+			return errMkdir
+		}
+	}
+	fmt.Fprintf(os.Stderr, "@G{\u2713 Created temporary specific restore directory} %s \n", tarDir)
+
+	// unpack archive
+	cmdString = fmt.Sprintf("%s -xf - -C %s", xtrabackup.Tar, tarDir)
 	opts := plugin.ExecOptions{
 		Cmd:      cmdString,
 		Stdout:   os.Stdout,
 		ExpectRC: []int{0},
 	}
 	plugin.DEBUG("Executing: `%s`", cmdString)
-	if err = plugin.ExecWithOptions(opts); err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Creating temporary backup directory failed} %s \n", backupDir)
-		return err
-	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Created temporary backup directory} %s \n", backupDir)
-
-	// unpack archive
-	cmdString = fmt.Sprintf("%s -xf - -C %s", xtrabackup.Tar, backupDir)
-	plugin.DEBUG("Executing: `%s`", cmdString)
 	if err = plugin.Exec(cmdString, plugin.STDIN); err != nil {
 		fmt.Fprintf(os.Stderr, "@R{\u2717 Unpacking backup file failed} \n")
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "@G{\u2713 Unpacked backup file} \n")
-	cmdString = fmt.Sprintf("%s --prepare --target-dir=%s", xtrabackup.Bin, backupDir)
-	opts = plugin.ExecOptions{
-		Cmd:      cmdString,
-		Stdout:   os.Stdout,
-		ExpectRC: []int{0},
-	}
-	plugin.DEBUG("Executing: `%s`", cmdString)
-	if err = plugin.ExecWithOptions(opts); err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 The Xtrabackup Prepare operation failed}\n")
-		return err
-	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 The Xtrabackup Prepare operation is performed}\n")
+	//Set targetdir before prepare and move-back
+	if xtrabackup.Type == "full" || xtrabackup.Type == "fullLegacy" {
+		//prepare backup base for apply-log-only
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Using target dir : %d}\n", xtrabackup.TargetDir)
+		cmdString = fmt.Sprintf("%s --prepare --apply-log-only --target-dir=%s", xtrabackup.Bin, restoreFullDir)
+		opts = plugin.ExecOptions{
+			Cmd:      cmdString,
+			Stdout:   os.Stdout,
+			ExpectRC: []int{0},
+		}
 
-	cmdString = fmt.Sprintf("%s --move-back --target-dir=%s --datadir=%s", xtrabackup.Bin, backupDir, xtrabackup.DataDir)
-	opts = plugin.ExecOptions{
-		Cmd:      cmdString,
-		Stdout:   os.Stdout,
-		ExpectRC: []int{0},
+		plugin.DEBUG("Executing: `%s`", cmdString)
+		if err = plugin.ExecWithOptions(opts); err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 The Xtrabackup Prepare apply-log-only base operation failed}\n")
+			return err
+		}
+
+		plugin.DEBUG(fmt.Sprintf("Run manually this command if you want to complete the restore full: '%s --move-back --target-dir=%s --datadir=%s'", xtrabackup.Bin, restoreFullDir, xtrabackup.DataDir))
+
+	} else if xtrabackup.Type == "differential" {
+		//Prepare differential backup
+		cmdString = fmt.Sprintf("%s --prepare --apply-log-only --target-dir=%s --incremental-dir=%s", xtrabackup.Bin, restoreFullDir, restoreDiffDir)
+		opts = plugin.ExecOptions{
+			Cmd:      cmdString,
+			Stdout:   os.Stdout,
+			ExpectRC: []int{0},
+		}
+		plugin.DEBUG("Executing: `%s`", cmdString)
+		if err = plugin.ExecWithOptions(opts); err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 The Xtrabackup Prepare differential operation failed}\n")
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "@G{\u2713 The Xtrabackup Prepare differential operation is performed}\n")
 	}
-	plugin.DEBUG("Executing: `%s`", cmdString)
-	if err = plugin.ExecWithOptions(opts); err != nil {
-		fmt.Fprintf(os.Stderr, "@R{\u2717 Restoring MySQL server failed}\n")
-		return err
+
+	// handling retro compatibility where move back isn't done in container
+	if xtrabackup.Type == "differential" || xtrabackup.Type == "fullLegacy" {
+		cmdString = fmt.Sprintf("%s --move-back --target-dir=%s --datadir=%s", xtrabackup.Bin, restoreFullDir, xtrabackup.DataDir)
+		opts = plugin.ExecOptions{
+			Cmd:      cmdString,
+			Stdout:   os.Stdout,
+			ExpectRC: []int{0},
+		}
+		plugin.DEBUG("Executing: `%s`", cmdString)
+		if err = plugin.ExecWithOptions(opts); err != nil {
+			fmt.Fprintf(os.Stderr, "@R{\u2717 Restoring MySQL server failed}\n")
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "@G{\u2713 Restored MySQL server}\n")
 	}
-	fmt.Fprintf(os.Stderr, "@G{\u2713 Restored MySQL server}\n")
+
 	// change uid and gid of restore file
 	err = filepath.Walk(xtrabackup.DataDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -399,6 +490,7 @@ func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		}
 		return nil
 	})
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "@R{\u2717 Changing files ownership failed}\n")
 		return err
@@ -406,7 +498,8 @@ func (p XtraBackupPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	fmt.Fprintf(os.Stderr, "@G{\u2713 Changed files ownership}\n")
 	// remove temporary target directory
-	return os.RemoveAll(xtrabackup.TargetDir)
+	//return os.RemoveAll(xtrabackup.TargetDir)
+	return nil
 }
 
 func (p XtraBackupPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
@@ -470,6 +563,12 @@ func getXtraBackupEndpoint(endpoint plugin.ShieldEndpoint) (XtraBackupEndpoint, 
 	}
 	plugin.DEBUG("MYSQL_TAR: '%s'", tar)
 
+	bckptype, err := endpoint.StringValueDefault("mysql_xtrabackup_type", DefaultBackupType)
+	if err != nil {
+		return XtraBackupEndpoint{}, err
+	}
+	plugin.DEBUG("MYSQL_XTRABACKUP_TYPE: '%s'", bckptype)
+
 	return XtraBackupEndpoint{
 		User:      user,
 		Password:  password,
@@ -479,5 +578,6 @@ func getXtraBackupEndpoint(endpoint plugin.ShieldEndpoint) (XtraBackupEndpoint, 
 		Socket:    socket,
 		Bin:       xtrabackupBin,
 		Tar:       tar,
+		Type:      bckptype,
 	}, nil
 }
