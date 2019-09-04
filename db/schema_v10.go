@@ -1,7 +1,5 @@
 package db
 
-import "sort"
-
 type v10Schema struct{}
 
 func (s v10Schema) Deploy(db *DB) error {
@@ -13,25 +11,31 @@ func (s v10Schema) Deploy(db *DB) error {
 	*/
 
 	err = db.exclusively(func() error {
-		r, err := db.query(`SELECT uuid, address, last_seen_at FROM agents`)
+		r, err := db.query(`
+		  SELECT uuid, address
+		  FROM agents 
+		  ORDER BY address ASC, last_seen_at DESC, uuid ASC
+		`)
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
-		type migrationAgent struct {
-			uuid         string
-			address      string
-			last_seen_at int64
-		}
-		agents := []migrationAgent{}
+		var lastAgentAddress string
+		toDelete := []string{}
 		for r.Next() {
-			idx := len(agents)
-			agents = append(agents, migrationAgent{})
-			err = r.Scan(&agents[idx].uuid, &agents[idx].address, &agents[idx].last_seen_at)
+			var uuid, address string
+			err = r.Scan(&uuid, &address)
 			if err != nil {
 				return err
 			}
+
+			if address != lastAgentAddress {
+				lastAgentAddress = address
+				continue
+			}
+
+			toDelete = append(toDelete, uuid)
 		}
 
 		err = r.Close()
@@ -39,26 +43,8 @@ func (s v10Schema) Deploy(db *DB) error {
 			return err
 		}
 
-		sort.Slice(agents, func(i, j int) bool {
-			if agents[i].address < agents[j].address {
-				return true
-			}
-
-			if agents[i].last_seen_at < agents[j].last_seen_at {
-				return true
-			}
-
-			return agents[i].uuid < agents[j].uuid
-		})
-
-		lastAgentAddress := ""
-		for i := len(agents) - 1; i >= 0; i-- {
-			if agents[i].address != lastAgentAddress {
-				lastAgentAddress = agents[i].address
-				continue
-			}
-
-			err = db.exec(`DELETE FROM agents WHERE uuid = ?`, agents[i].uuid)
+		for _, uuid := range toDelete {
+			err = db.exec(`DELETE FROM agents WHERE uuid = ?`, uuid)
 			if err != nil {
 				return err
 			}
