@@ -9,11 +9,50 @@ func (s v10Schema) Deploy(db *DB) error {
 	   seen (via last_seen_at) to fix up some database issues
 	   so that we can place a UNIQUE constraint on (address)
 	*/
-	err = db.Exec(`
-		DELETE FROM agents
-		      WHERE last_seen_at != (SELECT MAX(last_seen_at)
-		                               FROM agents a
-		                              WHERE a.address = agents.address)`)
+
+	err = db.exclusively(func() error {
+		r, err := db.query(`
+		  SELECT uuid, address
+		  FROM agents 
+		  ORDER BY address ASC, last_seen_at DESC, uuid ASC
+		`)
+		if err != nil {
+			return err
+		}
+		defer r.Close()
+
+		var lastAgentAddress string
+		toDelete := []string{}
+		for r.Next() {
+			var uuid, address string
+			err = r.Scan(&uuid, &address)
+			if err != nil {
+				return err
+			}
+
+			if address != lastAgentAddress {
+				lastAgentAddress = address
+				continue
+			}
+
+			toDelete = append(toDelete, uuid)
+		}
+
+		err = r.Close()
+		if err != nil {
+			return err
+		}
+
+		for _, uuid := range toDelete {
+			err = db.exec(`DELETE FROM agents WHERE uuid = ?`, uuid)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
