@@ -26,3 +26,6 @@
   configuration details and a `shield:navigate` away from the
   page.  Other such race conditions involving AJAX should now also
   be fixed.
+
+- Switching between tenants (with differing levels of access) now
+  properly re-renders the sidebar to show your new privileges.

@@ -73,6 +73,7 @@
         AEGIS.use(uuid);
 
         $('.top-bar').template('top-bar');
+        $('#viewport').template('layout');
         $('#hud').template('hud');
 
         var page = document.location.hash.replace(/^(#!\/[^\/]*).*/, '$1');
