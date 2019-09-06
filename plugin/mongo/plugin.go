@@ -106,6 +106,24 @@ func main() {
 				Help:    "You can tune `mongodump` and `mongorestore` by specifying additional options and command-line arguments.  If you don't know why you might need this, leave it blank.",
 				Example: "--ssl",
 			},
+
+			plugin.Field{
+				Mode:    "target",
+				Name:    "mongorestore_options",
+				Type:    "string",
+				Title:   "mongorestore options",
+				Help:    "You can tune `mongorestore` (only) by specifying additional options and command-line arguments.  If you don't know why you might need this, leave it blank.",
+				Example: "--ssl",
+			},
+
+			plugin.Field{
+				Mode:    "target",
+				Name:    "mongodump_options",
+				Type:    "string",
+				Title:   "mongodump options",
+				Help:    "You can tune `mongodump` (only) by specifying additional options and command-line arguments.  If you don't know why you might need this, leave it blank.",
+				Example: "--ssl",
+			},
 		},
 	}
 
@@ -115,14 +133,16 @@ func main() {
 type MongoPlugin plugin.PluginInfo
 
 type MongoConnectionInfo struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Bin      string
-	Database string
-	AuthDB   string
-	Options  string
+	Host           string
+	Port           string
+	User           string
+	Password       string
+	Bin            string
+	Database       string
+	AuthDB         string
+	Options        string
+	DumpOptions    string
+	RestoreOptions string
 }
 
 func (p MongoPlugin) Meta() plugin.PluginInfo {
@@ -188,7 +208,7 @@ func (p MongoPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	cmd := fmt.Sprintf("%s/mongodump %s", mongo.Bin, connectionString(mongo, true))
+	cmd := fmt.Sprintf("%s/mongodump %s %s", mongo.Bin, connectionString(mongo), mongo.DumpOptions)
 	plugin.DEBUG("Executing: `%s`", cmd)
 	return plugin.Exec(cmd, plugin.STDOUT)
 }
@@ -200,7 +220,7 @@ func (p MongoPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	cmd := fmt.Sprintf("%s/mongorestore %s", mongo.Bin, connectionString(mongo, false))
+	cmd := fmt.Sprintf("%s/mongorestore %s %s", mongo.Bin, connectionString(mongo), mongo.RestoreOptions)
 	plugin.DEBUG("Exec: %s", cmd)
 	return plugin.Exec(cmd, plugin.STDIN)
 }
@@ -217,7 +237,7 @@ func (p MongoPlugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	return plugin.UNIMPLEMENTED
 }
 
-func connectionString(info *MongoConnectionInfo, backup bool) string {
+func connectionString(info *MongoConnectionInfo) string {
 	opts := fmt.Sprintf("--archive --host %s", info.Host)
 
 	if info.Options != "" {
@@ -289,14 +309,28 @@ func mongoConnectionInfo(endpoint plugin.ShieldEndpoint) (*MongoConnectionInfo, 
 	}
 	plugin.DEBUG("MONGO_OPTIONS: '%s'", options)
 
+	dumpOptions, err := endpoint.StringValueDefault("mongodump_options", "")
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("MONGODUMP_OPTIONS: '%s'", dumpOptions)
+
+	restoreOptions, err := endpoint.StringValueDefault("mongorestore_options", "")
+	if err != nil {
+		return nil, err
+	}
+	plugin.DEBUG("MONGORESTORE_OPTIONS: '%s'", restoreOptions)
+
 	return &MongoConnectionInfo{
-		Host:     host,
-		Port:     port,
-		User:     user,
-		Password: password,
-		Bin:      bin,
-		Database: db,
-		AuthDB:   authdb,
-		Options:  options,
+		Host:           host,
+		Port:           port,
+		User:           user,
+		Password:       password,
+		Bin:            bin,
+		Database:       db,
+		AuthDB:         authdb,
+		Options:        options,
+		DumpOptions:    dumpOptions,
+		RestoreOptions: restoreOptions,
 	}, nil
 }

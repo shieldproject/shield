@@ -1,3 +1,8 @@
+# Improvements
+
+- The `mongo` target plugin can now have options applied
+  individually to just `mongodump` or `mongorestore`.
+
 # Bug Fixes
 
 - The Data System detail page in the web interface no longer has a
