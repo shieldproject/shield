@@ -641,7 +641,7 @@ run create-target \
       --plugin  postgres
 
 run create-store \
-      --name    fs \
+      --name    filesies \
       --summary "A filesystem store" \
       --agent   "$SHIELD_AGENT_ADDR" \
       --plugin  fs \
@@ -667,7 +667,7 @@ run create-job \
       --summary  "Daily Backups of Redis to the local fs" \
       --exact \
       --target   redis-shared \
-      --store    fs \
+      --store    filesies \
       --schedule "daily at 11:24pm" \
       --retain   8 \
       --paused
@@ -1048,27 +1048,27 @@ try "Listing stores" # {{{
 (run stores
  context 'all stores'
  includes store s3
- includes store fs
+ includes store filesies
 
  pick s3
  attr name    s3
  attr summary 'Amazon S3 Archival Storage'
  attr plugin  s3
 
- run stores fs
- context 'stores named "fs"'
+ run stores filesies
+ context 'stores named "filesies"'
  excludes store s3
- includes store fs
+ includes store filesies
 
- run stores --fuzzy F
- context 'stores named "*F*"'
+ run stores --fuzzy I
+ context 'stores named "*I*"'
  excludes store s3
- includes store fs
+ includes store filesies
 
  run stores --fuzzy s
  context 'stores named "*s*"'
  includes store s3
- includes store fs
+ includes store filesies
 
  run stores --fuzzy xyzzy
  none 'no stores are named "*xyzzy*"'
@@ -1076,17 +1076,17 @@ try "Listing stores" # {{{
  run stores --used
  context 'used stores'
  excludes store s3
- includes store fs
+ includes store filesies
 
  run stores --unused
  context 'unused stores'
  includes store s3
- excludes store fs
+ excludes store filesies
 
  run stores --with-plugin fs
  context 'stores using the "fs" plugin'
  excludes store s3
- includes store fs
+ includes store filesies
 
  run stores --with-plugin enoent
  none "Should find no results for bogus store plugin search"
@@ -1097,7 +1097,7 @@ try "Listing stores" # {{{
  run stores --with-plugin fs --used
  context 'in-use stores using the "fs" plugin'
  excludes store s3
- includes store fs
+ includes store filesies
 ) 2>&1 | indent
 
 
@@ -1163,7 +1163,7 @@ try "Running through store lifecycle" # {{{
   attr config.key ''
 
  context 'it is in use by at least one job'
-  cannot_delete store fs
+  cannot_delete store filesies
 
  context 'it is not in use by any jobs'
   can_delete store my-updated-store
@@ -1183,8 +1183,8 @@ try "Finding a single job" # {{{
  attr schedule        'daily at 11:24pm'
  attr keep_days       8
 
- attr store.uuid      "$(uuidof store fs)"
- attr store.name      fs
+ attr store.uuid      "$(uuidof store filesies)"
+ attr store.name      filesies
  attr store.plugin    fs
  attr store.endpoint  '{"dir":"/path/to/data","tar":"bsdtar"}'
 
@@ -1213,8 +1213,8 @@ try "Listing jobs" # {{{
  attr schedule        'daily at 11:24pm'
  attr keep_days       8
 
- attr store.uuid      "$(uuidof store fs)"
- attr store.name      fs
+ attr store.uuid      "$(uuidof store filesies)"
+ attr store.name      filesies
  attr store.plugin    fs
  attr store.endpoint  '{"dir":"/path/to/data","tar":"bsdtar"}'
 
