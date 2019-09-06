@@ -26,6 +26,9 @@ func (r *Request) Upgrade() *WebSocket {
 		return nil
 	}
 
+	/* track that we are "responding" with a websocket upgrade */
+	r.bt = append(r.bt, "Upgrade")
+
 	return &WebSocket{
 		conn: conn,
 	}
