@@ -2315,7 +2315,7 @@ tenants:
 
 		r.Add("Data System", job.Target.Name)
 		r.Add("Backup Plugin", job.Target.Plugin)
-		r.Add("SHIELD Agent", job.Target.Agent)
+		r.Add("SHIELD Agent", job.Agent)
 		r.Break()
 
 		r.Add("Cloud Storage", job.Store.Name)

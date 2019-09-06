@@ -42,3 +42,6 @@
 
 - Switching between tenants (with differing levels of access) now
   properly re-renders the sidebar to show your new privileges.
+
+- The `shield job X` command now populates the "Status" and
+  "Agent" fields, using data in the API responses.

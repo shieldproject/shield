@@ -17,7 +17,7 @@ type Job struct {
 	Retain     string `json:"-"`
 	Paused     bool   `json:"paused"`
 	Agent      string `json:"agent"`
-	LastStatus string `json:"status"`
+	LastStatus string `json:"last_task_status"`
 	LastRun    int64  `json:"last_run"`
 	FixedKey   bool   `json:"fixed_key"`
 
@@ -186,5 +186,12 @@ func (j Job) Status() string {
 	if j.Paused {
 		return "paused"
 	}
-	return j.LastStatus
+	switch j.LastStatus {
+	case "done":
+		return "healthy"
+	case "":
+		return "(never run)"
+	default:
+		return j.LastStatus
+	}
 }
