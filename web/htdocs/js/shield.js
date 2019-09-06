@@ -302,10 +302,9 @@ function dispatch(page) {
     }
     $('#main').template('system', args);
     $('#main .paginate .load-more').trigger('click');
-    $.ajax({
+    api({
       type:     'GET',
-      url:      '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+args.uuid+'/config',
-      dataType: 'json',
+      url:      '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+args.uuid+'/config'
     }).then(function (config) {
       args.config = config;
       $('#main').template('system', args);
@@ -358,26 +357,21 @@ function dispatch(page) {
       $('#main').template('you-have-no-tenants');
       break;
     }
+
+    var store = AEGIS.store(args.uuid);
     $('#main').template('store', args);
-    $.ajax({
+    api({
       type:     'GET',
-      url:      '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid+'/config',
+      url:      (store && store.global
+                   ? '/v2/global/stores/'+args.uuid+'/config'
+                   : '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid+'/config'),
       dataType: 'json',
     }).then(function (config) {
       args.config = config || [];
       $('#main').template('store', args);
     }, function () {
-      $.ajax({
-        type:     'GET',
-        url:      '/v2/global/stores/'+args.uuid+'/config',
-        dataType: 'json'
-      }).then(function (config) {
-        args.config = config || []
-        $('#main').template('store', args);
-      }, function () {
-        args.config = "denied"
-        $('#main').template('store', args);
-      });
+      args.config = "denied"
+      $('#main').template('store', args);
     });
     break; /* #!/stores/store */
     // }}}
@@ -1082,7 +1076,7 @@ function dispatch(page) {
     }
     args.admin = true;
     $('#main').template('store', args);
-    $.ajax({
+    api({
       type:     'GET',
       url:      '/v2/global/stores/'+args.uuid+'/config',
       dataType: 'json'
@@ -1311,6 +1305,7 @@ $(function () {
         }
         $(document.body)
           .on('shield:navigate', function (event, to) {
+            api(); // clear outstanding API calls
             dispatch(to);
           })
           .on('click', 'a[href^="#"]:not([rel])', function (event) {

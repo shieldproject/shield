@@ -279,6 +279,10 @@
         $inflight = {};
       }
 
+      if (!options) {
+        return;
+      }
+
       if ('data' in options) {
         options.data = JSON.stringify(options.data);
         options.contentType = 'application/json';
