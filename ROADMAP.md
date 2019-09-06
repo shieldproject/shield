@@ -37,7 +37,7 @@ proposition for review and management of jobs, tasks, archives,
 etc.
 
 We would like to move to a more robust access model that permits
-individual customers, be they operators or develoeprs, to view and
+individual customers, be they operators or developers, to view and
 control a limited subset of the data set, and effect backup and
 restore operations on owned jobs and target systems.
 
