@@ -1,0 +1,173 @@
+tenants:
+  - name: SHIELD Sampler
+    members:
+      - { user: admin@local, role: admin }
+    storage:
+      - name:  Azure
+        agent: '127.0.0.1:5444'
+        plugin: azure
+        config:
+          storge_account:      My-Azure-Account
+          storage_account_key: its-a-secret
+          storage_container:   tupperware
+          prefix:              /testdev/backups
+
+      - name: Backblaze
+        plugin: backblaze
+        agent: '127.0.0.1:5444'
+        config:
+          access_key_id:     My-Backblaze-Key
+          secret_access_key: its-a-secret
+          bucket:            testdev-backups
+          prefix:            /testdev/backups
+
+      - name: Google
+        plugin: google
+        agent: '127.0.0.1:5444'
+        config:
+          json_key: '{"json":"key"}'
+          bucket:   testdev-backups
+          prefix:   /testdev/backups
+
+      - name: S3
+        plugin: s3
+        agent: '127.0.0.1:5444'
+        config:
+          access_key_id:     My-Amazon-Key
+          secret_access_key: its-a-secret
+          bucket:            testdev-backups
+          prefix:            /testdev/backups
+
+      - name: WebDav
+        plugin: webdav
+        agent: '127.0.0.1:5444'
+        config:
+          url: https://127.0.0.1:8080
+          username: My-WebDAV-User
+          password: its-a-secret
+
+    systems:
+      - name: BBR-Deployment
+        plugin: bbr-deployment
+        agent: '127.0.0.1:5444'
+        config:
+          director:   bosh-director
+          deployment: some-deployment
+          ca_cert:    (X509 certificate)
+          username:   bosh-username
+          password:   its-a-secret
+        jobs: &jobs
+          - name: Test
+            when: daily 6am
+            paused: yes
+            storage: WebDav
+            retain: 2d
+
+      - name: BBR-Director
+        plugin: bbr-director
+        agent: '127.0.0.1:5444'
+        config:
+          director:   bosh-director
+          username:   bosh-username
+          key: |
+            -----BEGIN PRIVATE KEY-----
+            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
+            -----END PRIVATE KEY-----
+        jobs: *jobs
+
+      - name: Cassandra
+        plugin: cassandra
+        agent: '127.0.0.1:5444'
+        config:
+          username: my-cassandra-username
+          password: its-a-secret
+        jobs: *jobs
+
+      - name: Consul
+        plugin: consul
+        agent: '127.0.0.1:5444'
+        config:
+          username: my-consul-username
+          password: its-a-secret
+        jobs: *jobs
+
+      - name: Etcd
+        plugin: etcd
+        agent: '127.0.0.1:5444'
+        config:
+          url: https://127.0.0.1:2379
+          auth: Role-Based Authentication
+          username: my-etcd-username
+          password: its-a-secret
+        jobs: *jobs
+
+      - name: Filesystem
+        plugin: fs
+        agent: '127.0.0.1:5444'
+        config:
+          base_dir: /some/path
+        jobs: *jobs
+
+      - name: Mongo
+        plugin: mongo
+        agent: '127.0.0.1:5444'
+        config:
+          mongo_user:     my-mongo-user
+          mongo_password: its-a-secret
+        jobs: *jobs
+
+      - name: MySQL
+        plugin: mysql
+        agent: '127.0.0.1:5444'
+        config:
+          mysql_user:     my-mysql-user
+          mysql_password: its-a-secret
+        jobs: *jobs
+
+      - name: Postgres
+        plugin: postgres
+        agent: '127.0.0.1:5444'
+        config:
+          pg_user:     my-pg-user
+          pg_password: its-a-secret
+        jobs: *jobs
+
+      - name: Vault
+        plugin: vault
+        agent: '127.0.0.1:5444'
+        config:
+          url: https://127.0.0.1:8282
+          token: its-a-secret
+        jobs: *jobs
+
+      - name: Xtrabackup
+        plugin: xtrabackup
+        agent: '127.0.0.1:5444'
+        config:
+          mysql_user:     my-mysql-user
+          mysql_password: its-a-secret
+        jobs: *jobs

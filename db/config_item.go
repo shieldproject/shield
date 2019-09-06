@@ -13,6 +13,7 @@ type ConfigItem struct {
 	Type     string `json:"type"`
 	Default  string `json:"default"`
 	Redacted bool   `json:"redacted"`
+	Obscure  bool   `json:"obscure"`
 }
 
 func DisplayableConfig(typ string, info *plugin.PluginInfo, config map[string]interface{}, private bool) []ConfigItem {
@@ -23,12 +24,11 @@ func DisplayableConfig(typ string, info *plugin.PluginInfo, config map[string]in
 		}
 
 		item := ConfigItem{
-			Key:      field.Name,
-			Label:    field.Title,
-			Default:  field.Default,
-			Value:    fmt.Sprintf("%v", config[field.Name]),
-			Type:     field.Type,
-			Redacted: false,
+			Key:     field.Name,
+			Label:   field.Title,
+			Default: field.Default,
+			Value:   fmt.Sprintf("%v", config[field.Name]),
+			Type:    field.Type,
 		}
 		if field.Type == "bool" {
 			if config[field.Name] == nil {
@@ -36,9 +36,12 @@ func DisplayableConfig(typ string, info *plugin.PluginInfo, config map[string]in
 			} else {
 				item.Value = "yes"
 			}
-		} else if !private && field.Type == "password" {
-			item.Value = ""
-			item.Redacted = true
+		} else if field.Type == "password" || field.Type == "pem-rsa-pk" {
+			item.Obscure = true
+			if !private {
+				item.Value = ""
+				item.Redacted = true
+			}
 		} else if config[field.Name] == nil {
 			item.Value = ""
 		}

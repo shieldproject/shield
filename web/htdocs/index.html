@@ -1940,10 +1940,15 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
 
                 [[   $.each(_.config, function (i, kv) { ]]
                 <dt>[[= h(kv.label) ]]</dt>
-                <dd>[[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
-                } else if (kv.value)    { ]][[= h(kv.value) ]][[
-                } else if (kv.default)  { ]]<span class="not-configured">[[= h(kv.default) ]]</span>[[
-                } else                  { ]]<span class="not-configured">not configured.</span>[[
+                <dd> [[ if (kv.redacted) { ]]<span class="redacted">REDACTED</span>[[
+                } else {
+                  if (kv.obscure) { ]]<redacted>[[ }
+
+                         if (kv.value)    { ]][[= h(kv.value) ]][[
+                  } else if (kv.default)  { ]]<span class="not-configured">[[= h(kv.default) ]]</span>[[
+                  } else                  { ]]<span class="not-configured">not configured.</span>[[
+                  }
+                  if (kv.obscure) { ]]</redacted>[[ }
                 } ]]</dd>
                 [[   }); ]]
               </dl>
