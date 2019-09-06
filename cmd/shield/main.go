@@ -1142,17 +1142,62 @@ tenants:
 			break
 		}
 
+		fmt.Printf("@B{###############################################}\n\n")
 		if info.Version == "" {
-			fmt.Printf("@W{SHIELD %s} @R{(development)}\n", info.Env)
+			fmt.Printf("  @W{SHIELD %s} @Y{(development)} :: api @C{v%d}\n", info.Env, info.API)
 		} else {
-			fmt.Printf("@W{SHIELD %s} v@G{%s}\n", info.Env, info.Version)
+			fmt.Printf("  @W{SHIELD %s} @C{v%s} :: api @C{v%d}\n", info.Env, info.Version, info.API)
 		}
-		fmt.Printf("API Version @G{%d}\n", info.API)
+		fmt.Printf("\n\n")
+
 		if info.MOTD != "" {
-			fmt.Printf("\n---[ MOTD ]-------------------------------------\n")
-			fmt.Printf("%s", info.MOTD)
-			fmt.Printf("\n------------------------------------------------\n\n")
+			fmt.Printf("@B{##} @M{MESSAGE OF THE DAY} @B{#########################}\n\n")
+			fmt.Printf("%s\n\n", wrap(info.MOTD, 60))
 		}
+
+		fmt.Printf("@B{##} @M{CURRENT HEALTH} @B{#############################}\n\n")
+		good := "✔"
+		bad := "✘"
+		if status.Health.Core == "unlocked" {
+			fmt.Printf("   @G{%s} core is %s\n", good, status.Health.Core)
+		} else {
+			fmt.Printf("   @R{%s} core is %s\n", bad, status.Health.Core)
+		}
+		if status.Health.StorageOK {
+			fmt.Printf("   @G{%s} cloud storage is connected\n", good)
+		} else {
+			fmt.Printf("   @R{%s} cloud storage is @R{FAILING}\n", bad)
+		}
+		if status.Health.JobsOK {
+			fmt.Printf("   @G{%s} jobs are running successfully\n", good)
+		} else {
+			fmt.Printf("   @R{%s} jobs are @R{FAILING}\n", bad)
+		}
+		fmt.Printf("\n")
+
+		fmt.Printf("  @C{%d} @W{systems} / @C{%d} @W{jobs} / @C{%d} @W{archives}\n", status.Stats.Systems, status.Stats.Jobs, status.Stats.Archives)
+		fmt.Printf("  @C{%s} @W{total storage} used\n", formatBytes(status.Stats.StorageUsed))
+		fmt.Printf("\n\n")
+
+		fmt.Printf("@B{##} @M{STORAGE HEALTH} @B{#############################}\n\n")
+		for _, s := range status.Storage {
+			if s.Health {
+				fmt.Printf("   @G{%s} %s is @G{OK}\n", good, s.Name)
+			} else {
+				fmt.Printf("   @R{%s} %s is @R{FAILING}\n", bad, s.Name)
+			}
+		}
+		fmt.Printf("\n\n")
+
+		fmt.Printf("@B{##} @M{BACKUP JOB HEALTH} @B{##########################}\n\n")
+		for _, j := range status.Jobs {
+			if j.Healthy{
+				fmt.Printf("   @G{%s} %s/%s is @G{OK}\n", good, j.Target, j.Job)
+			} else {
+				fmt.Printf("   @R{%s} %s/%s is @R{FAILING}\n", bad,j.Target, j.Job)
+			}
+		}
+		fmt.Printf("\n\n")
 
 	/* }}} */
 	case "events": /* {{{ */

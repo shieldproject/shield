@@ -1,5 +1,8 @@
 # Improvements
 
+- The `shield status` command is twice as pretty and three times
+  as useful.
+
 - Cloud Storage detail pages in the web interface now show a
   timeline similar to the one shown for Data Systems, so that
   SHIELD operators have an easier time of troubleshooting failing
