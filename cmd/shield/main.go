@@ -1598,9 +1598,9 @@ tenants:
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent")
 		for _, target := range targets {
-			tbl.Row(target, uuid8full(target.UUID, opts.Long), target.Name, wrap(target.Summary, 35), target.Plugin, target.Agent, asJSON(target.Config))
+			tbl.Row(target, uuid8full(target.UUID, opts.Long), target.Name, wrap(target.Summary, 35), target.Plugin, target.Agent)
 		}
 		tbl.Output(os.Stdout)
 
@@ -1629,6 +1629,7 @@ tenants:
 		r.Add("Compression", t.Compression)
 		r.Add("SHIELD Agent", t.Agent)
 		r.Add("Backup Plugin", t.Plugin)
+		r.Break()
 		r.Add("Configuration", asJSON(t.Config))
 		r.Output(os.Stdout)
 
@@ -1801,13 +1802,13 @@ tenants:
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Healthy?")
 		for _, store := range stores {
 			health := fmt.Sprintf("@G{yes}")
 			if !store.Healthy {
 				health = fmt.Sprintf("@R{no}")
 			}
-			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, asJSON(store.Config), health)
+			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, health)
 		}
 		tbl.Output(os.Stdout)
 
@@ -1858,7 +1859,9 @@ tenants:
 		r.Add("Healthy?", health)
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
-		r.Add("Backup Plugin", store.Plugin)
+		r.Add("Storage Plugin", store.Plugin)
+		r.Break()
+		r.Add("Configuration", asJSON(store.Config))
 		if len(tasks) == 1 {
 			r.Break()
 			r.Add("Last Checked", strftime(tasks[0].RequestedAt))
@@ -2046,13 +2049,13 @@ tenants:
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Configuration", "Healthy?")
+		tbl := table.NewTable("UUID", "Name", "Summary", "Plugin", "SHIELD Agent", "Healthy?")
 		for _, store := range stores {
 			health := fmt.Sprintf("@G{yes}")
 			if !store.Healthy {
 				health = fmt.Sprintf("@R{no}")
 			}
-			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, asJSON(store.Config), health)
+			tbl.Row(store, uuid8full(store.UUID, opts.Long), store.Name, wrap(store.Summary, 35), store.Plugin, store.Agent, health)
 		}
 		tbl.Output(os.Stdout)
 
