@@ -73,6 +73,7 @@ type TaskFilter struct {
 	SkipStopped   bool
 	ForTenant     string
 	ForTarget     string
+	ForStore      string
 	ForStatus     string
 	ForArchive    string
 	Limit         int
@@ -82,7 +83,6 @@ type TaskFilter struct {
 	StoppedAfter  *time.Duration
 	StartedBefore *time.Duration
 	StoppedBefore *time.Duration
-	// FIXME: add options for store
 }
 
 func effectively(t time.Time) int64 {
@@ -147,6 +147,11 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 	if f.ForTarget != "" {
 		wheres = append(wheres, "t.target_uuid = ?")
 		args = append(args, f.ForTarget)
+	}
+
+	if f.ForStore != "" {
+		wheres = append(wheres, "t.store_uuid = ?")
+		args = append(args, f.ForStore)
 	}
 
 	if f.Before > 0 {

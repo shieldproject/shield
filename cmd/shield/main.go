@@ -274,6 +274,7 @@ var opts struct {
 		Inactive bool   `cli:"--inactive"`
 		All      bool   `cli:"-a, --all"`
 		Target   string `cli:"--target"`
+		Store    string `cli:"--store"`
 		Type     string `cli:"--type"`
 		Limit    int    `cli:"-l, --limit"`
 		Before   string `cli:"--before"`
@@ -2714,6 +2715,19 @@ tenants:
 				bail(err)
 				opts.Tasks.Target = t.UUID
 			}
+
+			if opts.Tasks.Store != "" {
+				s, err := c.FindStore(tenant, opts.Tasks.Store, !opts.Exact)
+				bail(err)
+				opts.Tasks.Store = s.UUID
+			}
+
+		} else {
+			if opts.Tasks.Store != "" {
+				s, err := c.FindGlobalStore(opts.Tasks.Store, !opts.Exact)
+				bail(err)
+				opts.Tasks.Store = s.UUID
+			}
 		}
 
 		var timeBefore int64
@@ -2727,6 +2741,7 @@ tenants:
 			Status: opts.Tasks.Status,
 			Limit:  &opts.Tasks.Limit,
 			Target: opts.Tasks.Target,
+			Store:  opts.Tasks.Store,
 			Type:   opts.Tasks.Type,
 			Before: timeBefore,
 		}

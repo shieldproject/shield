@@ -14,6 +14,9 @@
   required privilege will instead see the blurred-out obscured
   text that they can hover over to reveal.
 
+- The `shield tasks` command can now filter down to only tasks
+  that involve a particular tenant or global cloud storage system.
+
 # Bug Fixes
 
 - Data Fixups will now be properly skipped if they've already been
