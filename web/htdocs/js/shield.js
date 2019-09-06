@@ -305,7 +305,7 @@ function dispatch(page) {
     api({
       type:     'GET',
       url:      '/v2/tenants/'+AEGIS.current.uuid+'/systems/'+args.uuid+'/config'
-    }).then(function (config) {
+    }, true).then(function (config) {
       args.config = config;
       $('#main').template('system', args);
     });
@@ -366,12 +366,14 @@ function dispatch(page) {
                    ? '/v2/global/stores/'+args.uuid+'/config'
                    : '/v2/tenants/'+AEGIS.current.uuid+'/stores/'+args.uuid+'/config'),
       dataType: 'json',
-    }).then(function (config) {
+    }, true).then(function (config) {
       args.config = config || [];
-      $('#main').template('store', args);
+      $('#main').template('store', args)
+        .find('.paginate .load-more').trigger('click');
     }, function () {
       args.config = "denied"
-      $('#main').template('store', args);
+      $('#main').template('store', args)
+        .find('.paginate .load-more').trigger('click');
     });
     break; /* #!/stores/store */
     // }}}
@@ -1080,12 +1082,14 @@ function dispatch(page) {
       type:     'GET',
       url:      '/v2/global/stores/'+args.uuid+'/config',
       dataType: 'json'
-    }).then(function (config) {
+    }, true).then(function (config) {
       args.config = config || []
-      $('#main').template('store', args);
+      $('#main').template('store', args)
+        .find('.paginate .load-more').trigger('click');
     }, function () {
       args.config = "denied"
-      $('#main').template('store', args);
+      $('#main').template('store', args)
+        .find('.paginate .load-more').trigger('click');
     });
     break; /* #!/admin/stores/store */
     // }}}

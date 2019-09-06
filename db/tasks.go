@@ -29,15 +29,15 @@ const (
 
 type Task struct {
 	UUID           string         `json:"uuid"            mbus:"uuid"`
-	TenantUUID     string         `json:"-"               mbus:"tenant_uuid"`
+	TenantUUID     string         `json:"tenant_uuid"     mbus:"tenant_uuid"`
 	Owner          string         `json:"owner"           mbus:"owner"`
 	Op             string         `json:"type"            mbus:"op"`
 	JobUUID        string         `json:"job_uuid"        mbus:"job_uuid"`
 	ArchiveUUID    string         `json:"archive_uuid"    mbus:"archive_uuid"`
-	StoreUUID      string         `json:"-"               mbus:"store_uuid"`
+	StoreUUID      string         `json:"store_uuid"      mbus:"store_uuid"`
 	StorePlugin    string         `json:"-"`
 	StoreEndpoint  string         `json:"-"`
-	TargetUUID     string         `json:"-"               mbus:"target_uuid"`
+	TargetUUID     string         `json:"target_uuid"     mbus:"target_uuid"`
 	TargetPlugin   string         `json:"-"`
 	TargetEndpoint string         `json:"-"`
 	Compression    string         `json:"-"`

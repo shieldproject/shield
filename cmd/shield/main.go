@@ -167,7 +167,10 @@ var opts struct {
 		Unused     bool   `cli:"--unused"`
 		WithPlugin string `cli:"--with-plugin"`
 	} `cli:"stores"`
-	Store       struct{} `cli:"store"`
+	Store struct {
+		WithLog    bool `cli:"--with-log"`
+		WithoutLog bool `cli:"--without-log"`
+	} `cli:"store"`
 	DeleteStore struct{} `cli:"delete-store"`
 	CreateStore struct {
 		Name      string   `cli:"-n, --name"`
@@ -194,7 +197,10 @@ var opts struct {
 		Unused     bool   `cli:"--unused"`
 		WithPlugin string `cli:"--with-plugin"`
 	} `cli:"global-stores"`
-	GlobalStore       struct{} `cli:"global-store"`
+	GlobalStore struct {
+		WithLog    bool `cli:"--with-log"`
+		WithoutLog bool `cli:"--without-log"`
+	} `cli:"global-store"`
 	DeleteGlobalStore struct{} `cli:"delete-global-store"`
 	CreateGlobalStore struct {
 		Name      string   `cli:"-n, --name"`
@@ -1810,6 +1816,8 @@ tenants:
 		if len(args) != 1 {
 			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
 		}
+		required(!(opts.Store.WithLog && opts.Store.WithoutLog),
+			"The --with-log and --without-log options are mutually exclusive.")
 
 		required(opts.Tenant != "", "Missing required --tenant option.")
 		tenant, err := c.FindMyTenant(opts.Tenant, true)
@@ -1826,6 +1834,22 @@ tenants:
 		health := fmt.Sprintf("@G{yes}")
 		if !store.Healthy {
 			health = fmt.Sprintf("@R{no}")
+			if !opts.Store.WithoutLog {
+				opts.Store.WithLog = true
+			}
+		}
+
+		var tasks []*shield.Task
+		if opts.Store.WithLog && !opts.Store.WithoutLog {
+			limit := 1
+			active := false
+			tasks, err = c.ListTasks(tenant, &shield.TaskFilter{
+				Store:  store.UUID,
+				Type:   "test-store",
+				Limit:  &limit,
+				Active: &active,
+			})
+			bail(err)
 		}
 
 		r := tui.NewReport()
@@ -1835,6 +1859,19 @@ tenants:
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
+		if len(tasks) == 1 {
+			r.Break()
+			r.Add("Last Checked", strftime(tasks[0].RequestedAt))
+			r.Add("Check Task", tasks[0].UUID)
+			r.Add("Status", tasks[0].Status)
+			r.Break()
+			r.Add("Task Log", tasks[0].Log)
+		} else if opts.Store.WithLog {
+			r.Break()
+			r.Add("Last Checked", "(unknown)")
+			r.Add("Check Task", "(unknown)")
+			r.Add("Status", "(unknown)")
+		}
 		r.Output(os.Stdout)
 
 	/* }}} */
@@ -2024,6 +2061,8 @@ tenants:
 		if len(args) != 1 {
 			fail(2, "Usage: shield %s NAME-or-UUID\n", command)
 		}
+		required(!(opts.GlobalStore.WithLog && opts.GlobalStore.WithoutLog),
+			"The --with-log and --without-log options are mutually exclusive.")
 
 		store, err := c.FindGlobalStore(args[0], !opts.Exact)
 		bail(err)
@@ -2036,6 +2075,22 @@ tenants:
 		health := fmt.Sprintf("@G{yes}")
 		if !store.Healthy {
 			health = fmt.Sprintf("@R{no}")
+			if !opts.GlobalStore.WithoutLog {
+				opts.GlobalStore.WithLog = true
+			}
+		}
+
+		var tasks []*shield.Task
+		if opts.GlobalStore.WithLog && !opts.GlobalStore.WithoutLog {
+			limit := 1
+			active := false
+			tasks, err = c.ListTasks(nil, &shield.TaskFilter{
+				Store:  store.UUID,
+				Type:   "test-store",
+				Limit:  &limit,
+				Active: &active,
+			})
+			bail(err)
 		}
 
 		r := tui.NewReport()
@@ -2045,6 +2100,19 @@ tenants:
 		r.Add("Summary", store.Summary)
 		r.Add("SHIELD Agent", store.Agent)
 		r.Add("Backup Plugin", store.Plugin)
+		if len(tasks) == 1 {
+			r.Break()
+			r.Add("Last Checked", strftime(tasks[0].RequestedAt))
+			r.Add("Check Task", tasks[0].UUID)
+			r.Add("Status", tasks[0].Status)
+			r.Break()
+			r.Add("Task Log", tasks[0].Log)
+		} else if opts.Store.WithLog {
+			r.Break()
+			r.Add("Last Checked", "(unknown)")
+			r.Add("Check Task", "(unknown)")
+			r.Add("Status", "(unknown)")
+		}
 		r.Output(os.Stdout)
 
 	/* }}} */

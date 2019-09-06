@@ -1,5 +1,15 @@
 # Improvements
 
+- Cloud Storage detail pages in the web interface now show a
+  timeline similar to the one shown for Data Systems, so that
+  SHIELD operators have an easier time of troubleshooting failing
+  storage configurations.
+
+- The SHIELD CLI now displays task+log data for the last
+  test-store task of a given store (for `shield store X` and
+  `shield global-store Y`), to assist in troubleshooting failing
+  storage configurations.
+
 - Operators now have a web interface and some CLI commands for
   inspecting the state of SHIELD Data Fixups, and re-running them
   (if / when necessary).

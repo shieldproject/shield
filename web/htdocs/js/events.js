@@ -295,22 +295,22 @@
             type: 'GET',
             url:  url.replace('{oldest}', oldest),
             error: 'Failed to retrieve tasks from the SHIELD API.',
-            success: function (system) {
+            success: function (tasks) {
               var $outer = $(event.target).closest('.paginate').find('.results');
-              for (var i = 0; i < system.tasks.length; i++) {
-                AEGIS.insert('task', system.tasks[i]);
-                $outer.append($.template('timeline-entry', system.tasks[i]));
-                if (oldest > system.tasks[i].requested_at) {
-                    oldest = system.tasks[i].requested_at;
+              for (var i = 0; i < tasks.length; i++) {
+                AEGIS.insert('task', tasks[i]);
+                $outer.append($.template('timeline-entry', tasks[i]));
+                if (oldest > tasks[i].requested_at) {
+                    oldest = tasks[i].requested_at;
                 }
               }
               $(event.target).closest('[data-oldest]').attr('data-oldest', oldest.toString());
-              if (system.tasks.length == 0) {
+              if (tasks.length == 0) {
                 $(event.target).closest('.load-more').hide();
               }
               $(event.target).closest('.paginate').find('.loading').hide();
             }
-          });
+          }, true);
         }) /* }}} */
         .on('click', '.load-more.archives', function (event) { /* {{{ */
           event.preventDefault();

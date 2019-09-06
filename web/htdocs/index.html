@@ -2040,9 +2040,10 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             </table>
 
             <h2>Timeline</h2>
-            <div class="paginate" data-url="/v2/tenants/[[= AEGIS.current.uuid ]]/systems/[[= target.uuid ]]?before={oldest}" data-oldest="[[= new Date().getTime() ]]">
+            [[ var timeline = $.sortBy(AEGIS.tasks({ system: target.uuid }), 'requested_at'); ]]
+            <div class="paginate" data-url="/v2/tenants/[[= AEGIS.current.uuid ]]/tasks?target=[[= target.uuid ]]&before={oldest}" data-oldest="[[= timeline.length > 0 ? timeline[0].requested_at : new Date().getTime() ]]">
               <div class="timeline results">
-                [[ $.each($.sortBy(AEGIS.tasks({ system: target.uuid }), 'requested_at').reverse(), function (i, task) { ]]
+                [[ $.each(timeline.reverse(), function (i, task) { ]]
                 [[ include('timeline-entry', task); ]]
                 [[ }); ]]
               </div>
@@ -2213,6 +2214,9 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
           [[ } else if (_.type == "purge") { ]]
             <li class="desc">Purge Expired Archive</li>
             <li class="meta">...</li>
+          [[ } else if (_.type == "test-store") { ]]
+            <li class="desc">Storage Health Check</li>
+            <li class="meta">initiated by [[= h(_.owner) ]] at [[= strftime("%l:%M%P", _.requested_at) ]]</li>
           [[ } else { ]]
             <li class="desc">[[= h(_.type) ]] Task</li>
           [[ } ]]
@@ -2239,7 +2243,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
         also display a big RESTORE button in the task output.
       ]]
 <pre class="task-[[= _.task.status ]][[ if (_.task.ok) { ]] override[[ } ]]"><code><div>
-<button class="close" rel="close">X</button>[[ if (_.task.stopped_at) { ]]
+<button class="close" rel="close">X</button>[[ if (_.task.stopped_at && _.task.type != "test-store" && _.task.type != "agent-status") { ]]
 <button class="annotate" rel="annotate:[[= _.task.uuid ]]">Annotate</button>[[ if (_.restorable) { ]]<button class="restore" rel="restore:[[= _.task.uuid ]]">Restore</button>[[ } ]]
 <form class="annotate"[[ if (Scratch('anno:'+_.task.uuid)) { ]] style="display: block;"[[ } ]]>
 <input type="hidden" name="uuid" value="[[= _.task.uuid ]]" />
@@ -2521,11 +2525,25 @@ for job <em>[[= _.task.job_uuid ]]</em>
                     <text x="[[= 100.0 * store.projected / total ]]%" y="300" class="size" text-anchor="end">[[= bytes(store.projected) ]]</text>
                   </g>
                 </g>
-                [[}]]
+                [[ } ]]
               </svg>
             </div>
+            [[ } ]]
+
+            [[ if (store.global ? AEGIS.is('engineer') : AEGIS.is(store.tenant_uuid, 'operator')) { ]]
+            <h2>Timeline</h2>
+            [[ var timeline = $.sortBy(AEGIS.tasks({ store: store.uuid }), 'requested_at'); ]]
+            <div class="paginate" data-url="/v2/[[ if (!_.admin) { ]]tenants/[[= AEGIS.current.uuid ]]/[[ } ]]tasks?store=[[= store.uuid ]]&before={oldest}" data-oldest="[[= timeline.length > 0 ? timeline[0].requested_at : new Date().getTime() ]]">
+              <div class="timeline results">
+                [[ $.each(timeline.reverse(), function (i, task) { ]]
+                [[ include('timeline-entry', task); ]]
+                [[ }); ]]
+              </div>
+              <div class="loading">Fetching more tasks...</div>
+              <a class="load-more tasks" href="">More Tasks...</a>
+            </div>
+            [[ } ]]
           </div>
-          [[ } ]]
     <!-- }}} --></script>
     <script type="text/html" id="template:stores-form"><!-- {{{ -->
       [[#

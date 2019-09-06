@@ -2653,3 +2653,7 @@ h3 strong { color: #0071bc; }
 .lean.fixups a[href^="apply-fixup:"] {
   white-space: nowrap;
 }
+
+.paginate .loading {
+  display: none;
+}
