@@ -2131,24 +2131,38 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                       </div>
                     </div>
 
-                    <div class="field required" data-field="plugin" data-type="selection">
-                      <div class="x3"><label for="plugin">Plugin</label></div>
-                      <div class="x9">
-                        <select name="plugin">
-                          <option></option>
-                          [[ $.each(AEGIS.plugins('target').list, function (i, plugin) { ]]
-                          <option value="[[= plugin.id ]]"[[ if (target.plugin == plugin.id) { ]] selected [[ } ]]>[[= h(plugin.label) ]]</option>
-                          [[ }); ]]
-                        </select>
+                    [[ var plugin_idx;
+                       $.each(AEGIS.plugins('target').list, function (i, plugin) {
+                         if (target.plugin == plugin.id) {
+                           plugin_idx = i;
+                         }
+                       }); ]]
+                    [[ if (plugin_idx) { ]]
+                      <div class="field required" data-field="plugin" data-type="selection">
+                        <div class="x3"><label for="plugin">Plugin</label></div>
+                        <div class="x9">
+                          <select name="plugin">
+                            <option></option>
+                            [[ $.each(AEGIS.plugins('target').list, function (i, plugin) { ]]
+                            <option value="[[= plugin.id ]]"[[ if (target.plugin == plugin.id) { ]] selected [[ } ]]>[[= h(plugin.label) ]]</option>
+                            [[ }); ]]
+                          </select>
+                        </div>
                       </div>
-                    </div>
 
-                    <div class="redraw target">
-                    [[ _.selected_target_plugin = target.plugin; ]]
-                    [[ _.selected_target_agent = target.agent; ]]
-                    [[ _.target = target; ]]
-                    [[ include('targets-form-plugin', _); ]]
-                    </div>
+                      <div class="redraw target">
+                      [[ _.selected_target_plugin = target.plugin; ]]
+                      [[ _.selected_target_agent = target.agent; ]]
+                      [[ _.target = target; ]]
+                      [[ include('targets-form-plugin', _); ]]
+                      </div>
+                    [[ } else { ]]
+                      <div class="cant-go-further">
+                        <p>Plugin Metadata Missing</p>
+                        <p>The metadata for the plugin that was configured for this target (<em>[[= target.plugin ]]</em>) cannot be found on any known SHIELD agent.</p>
+                        <p>Please contact a SHIELD administrator to correct this problem, or leverage the SHIELD command-line utility to update this system.</p>
+                      </div>
+                    [[ } ]]
                   </div>
                 </div>
               </div>

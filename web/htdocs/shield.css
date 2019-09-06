@@ -2613,6 +2613,13 @@ a.load-more {
 h3 strong { color: #0071bc; }
 
 
+.cant-go-further {
+  display: block;
+  background-color: firebrick;
+  color: #fff;
+  padding: 0.1em 1em;
+  width: 100%;
+}
 
 .lean.hidden tbody tr td {
   opacity: 0.5;
