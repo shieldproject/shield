@@ -3519,6 +3519,54 @@ func (c *Core) v2API() *route.Router {
 	})
 	// }}}
 
+	r.Dispatch("GET /v2/fixups", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		fixups, err := c.db.GetAllFixups(nil)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve data fixups information"))
+			return
+		}
+
+		r.OK(fixups)
+	})
+	// }}}
+	r.Dispatch("GET /v2/fixups/:id", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+		fixup, err := c.db.GetFixup(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve data fixup"))
+			return
+		}
+
+		r.OK(fixup)
+	})
+	// }}}
+	r.Dispatch("POST /v2/fixups/:id/apply", func(r *route.Request) { // {{{
+		if c.IsNotSystemEngineer(r) {
+			return
+		}
+
+		fixup, err := c.db.GetFixup(r.Args[1])
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to retrieve data fixups information"))
+			return
+		}
+
+		err = fixup.ReApply(c.db)
+		if err != nil {
+			r.Fail(route.Oops(err, "Unable to apply data fixup successfully"))
+			return
+		}
+
+		r.Success("applied fixup")
+	})
+	// }}}
+
 	r.Dispatch("POST /v2/bootstrap/restore", func(r *route.Request) { // {{{
 		if c.IsNotSystemAdmin(r) {
 			return

@@ -2626,3 +2626,30 @@ h3 strong { color: #0071bc; }
   font-weight: normal;
   font-style: italic;
 }
+
+
+.lean.fixups .identity {
+  font-size: 18px;
+  font-weight: bold;
+}
+.lean.fixups .identity > span {
+  display: block;
+  font-size: 12px;
+  font-family: monospace;
+  font-weight: normal;
+}
+
+.lean {
+  line-height: 1.2em;
+}
+.lean.fixups code {
+  font-weight: bold;
+  font-family: monospace;
+  padding: 2pt 3pt;
+  border-radius: 4pt;
+  background-color: rgba(0,0,0, 0.05);
+  border: 1px solid rgba(0,0,0, 0.15);
+}
+.lean.fixups a[href^="apply-fixup:"] {
+  white-space: nowrap;
+}

@@ -19,6 +19,13 @@ type Fixup struct {
 	fn        func(*DB) error
 }
 
+func (f *Fixup) ReApply(db *DB) error {
+	if ff, found := fixups[f.ID]; found {
+		return ff.Apply(db)
+	}
+	return fmt.Errorf("unrecognized fixup '%s'", f.ID)
+}
+
 func (f *Fixup) Apply(db *DB) error {
 	err := f.fn(db)
 	if err != nil {
@@ -66,17 +73,9 @@ func init() {
 	fixups["purge-task-516"] = &Fixup{
 		Name:      "Re-schedule Failed Purge Tasks",
 		CreatedAt: time.Date(2019, 05, 14, 15, 54, 00, 0, time.UTC).Unix(),
-		Summary: `
-There was an issue in versions of SHIELD between
-8.1.0 and 8.2.0, where purge tasks would fail, but
-still mark the archive as having been removed from
-cloud storage.  This caused SHIELD to never retry
-the purge operation, leading to ever-increasing
-usage of cloud storage.
+		Summary: `There was an issue in versions of SHIELD between 8.1.0 and 8.2.0, where purge tasks would fail, but still mark the archive as having been removed from cloud storage.  This caused SHIELD to never retry the purge operation, leading to ever-increasing usage of cloud storage.
 
-This fixup resets the "purged" status on archives
-that do **not** have a successful purge operation
-task attached to them.
+This fixup resets the "purged" status on archives that do **not** have a successful purge operation task attached to them.
 
 See [issue #516](https://github.com/shieldproject/shield/issues/516) in GitHub for details.`,
 		fn: func(db *DB) error {
@@ -100,17 +99,11 @@ See [issue #516](https://github.com/shieldproject/shield/issues/516) in GitHub f
 	fixups["agent-status-task-tenant-uuid-522"] = &Fixup{
 		Name:      "Associate Orphaned agent-status Tasks with Global Tenant",
 		CreatedAt: time.Date(2019, 05, 15, 12, 32, 00, 0, time.UTC).Unix(),
-		Summary: `
-There was an issue in versions of SHIELD prior to
-8.2.0, where <code>agent-status</code> tasks were
-inserted into the database with an empty tenant UUID.
+		Summary: `There was an issue in versions of SHIELD prior to 8.2.0, where ` + "`" + `agent-status` + "`" + ` tasks were inserted into the database with an empty tenant UUID.
 
-This renders them inaccessible to the
-<code>/v2/tasks/:uuid</code> endpoint, which drives
-the <code>shield task $uuid</code> command.
+This renders them inaccessible to the ` + "`" + `/v2/tasks/:uuid` + "`" + ` endpoint, which drives the ` + "`" + `shield task $uuid` + "`" + ` command.
 
-This fixup re-associates all agent-status tasks with
-the global tenant UUID, to fix that.
+This fixup re-associates all agent-status tasks with the global tenant UUID, to fix that.
 
 See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub for details.`,
 		fn: func(db *DB) error {
@@ -125,16 +118,9 @@ See [issue #522](https://github.com/shieldproject/shield/issues/522) in GitHub f
 	fixups["keep-n-460"] = &Fixup{
 		Name:      "Job Keep-N=0 Fix",
 		CreatedAt: time.Date(2019, 05, 15, 15, 43, 00, 0, time.UTC).Unix(),
-		Summary: `
-The holistic <code>/v2/tenants/systems/...</code> API
-handlers were incorrectly skipping the calculation and
-population of the number of kept backups, leading to
-front-end display of jobs created via the Web UI (only)
-that claim to be keeping "0 backups / X days".
+		Summary: `The holistic ` + "`" + `/v2/tenants/systems/...` + "`" + ` API handlers were incorrectly skipping the calculation and population of the number of kept backups, leading to front-end display of jobs created via the Web UI (only) that claim to be keeping "0 backups / X days".
 
-This has been fixed as of 8.2.0, and this data fixup
-re-calculates the "keep-n" attribute of all jobs that
-were affected.
+This has been fixed as of 8.2.0, and this data fixup re-calculates the "keep-n" attribute of all jobs that were affected.
 
 See [issue #460](https://github.com/shieldproject/shield/issues/460) in GitHub for details.`,
 		fn: func(db *DB) error {
@@ -248,6 +234,17 @@ func (db *DB) ApplyFixups() error {
 				f.ID, f.Name, f.Summary, f.CreatedAt)
 			if err != nil {
 				return fmt.Errorf("unable to register fixup '%s': %s", f.ID, err)
+			}
+
+		} else {
+			// in case we fix a typo in a name / summary / date...
+			_ = db.Exec(`
+				UPDATE fixups SET name = ?, summary = ?, created_at = ?
+				            WHERE id = ?`, f.Name, f.Summary, f.CreatedAt, f.ID)
+
+			if existing.AppliedAt > 0 {
+				log.Infof("INITIALIZING: skipping fixup %s (already applied)...", f.ID)
+				continue
 			}
 		}
 

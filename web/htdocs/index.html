@@ -2841,6 +2841,13 @@ for job <em>[[= _.task.job_uuid ]]</em>
                 want to, you can rekey this SHIELD Core and pick a new master password.</p>
               </li>
 
+              <li><a href="#!/admin/fixups">Database Fixups</a>
+                <p>SHIELD has a self-healing mechanism built into it, to <em>"fixup"</em> issues
+                in its database caused by previously undiagnosed bugs and incorrect behavior.
+                From here, you can review what fixups exist, when they were last applied, and
+                (optionally) re-apply them manually.</p>
+              </li>
+
               [[ if (AEGIS.is('admin')) { ]]
               <li><a href="#!/admin/sessions">Manage User Sessions</a>
                 <p>Upon login, users are granted a session token to be used for the duration of
@@ -3389,6 +3396,46 @@ $ uaac client add '<span class="hi">[[= p.client_id ]]</span>' \
                 <button class="safe" rel="close">No, Keep It</button>
                 <button class="danger" rel="yes">Yes, Delete It</button>
               </div>
+            </div>
+      <!-- }}} --></script>
+    <script type="text/html" id="template:fixups"><!-- {{{ -->
+        [[#
+          {fixups} template
+
+          Renders the list of all defined data fixups
+        ]]
+            <div class="gutter blk">
+              <a class="breadcrumb" href="#!/admin">&laquo; Back to Administration</a>
+              <h2>Data Fixups</h2>
+              [[ if (_.fixups.length == 0) { ]]
+              <div class="no-data">No data fixups were found.  This is probably a bug.</div>
+              [[ } else { ]]
+              <table class="lean sortable fixups">
+                <thead><tr>
+                  <th class="sortable">Name</th>
+                  <th>Summary</th>
+                  <th class="sortable">Created At</th>
+                  <th class="sortable">Applied At</th>
+                </tr></thead>
+                <tbody>
+                  [[ $.each(_.fixups, function (i, fixup) { ]]
+                  <tr>
+                    <td class="identity">[[= h(fixup.name) ]]<span>[[= h(fixup.id) ]]</td>
+                    <td>[[= md(fixup.summary) ]]</td>
+                    <td data-sort="[[= fixup.created_at ]]" data-sort-as="number">[[= strftime("%Y-%m-%d %I:%M:%S%P", fixup.created_at) ]]</td>
+                    <td data-sort="[[= fixup.applied_at ]]" data-sort-as="number">
+                      [[ if (fixup.applied_at == 0) { ]]
+                      (never) <a href="apply-fixup:[[= fixup.id ]]">apply now</a>
+                      [[ } else { ]]
+                      [[= strftime("%Y-%m-%d %I:%M:%S%P", fixup.applied_at) ]]
+                      <a href="apply-fixup:[[= fixup.id ]]">re-apply</a>
+                      [[ } ]]
+                    </td>
+                  </tr>
+                  [[ }); ]]
+                </tbody>
+              </table>
+              [[ } ]]
             </div>
       <!-- }}} --></script>
     <script type="text/html" id="template:"><!-- {{{ -->

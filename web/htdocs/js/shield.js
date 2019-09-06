@@ -1265,6 +1265,39 @@ function dispatch(page) {
     break; /* #!/admin/sessions/delete */
     // }}}
 
+  case '#!/admin/fixups': /* {{{ */
+    if (!AEGIS.is('engineer')) {
+      $('#main').template('access-denied', { level: 'system', need: 'engineer' });
+      break;
+    }
+    Scratch.track('redrawable', false);
+    $('#main').template('loading');
+    api({
+      type: 'GET',
+      url:  '/v2/fixups',
+      error: "Failed retrieving the list of data fixups from the SHIELD API.",
+      success: function (data) {
+        $('#main').template('fixups', { fixups: data })
+          .on('click', 'a[href^="apply-fixup:"]', function (event) {
+            event.preventDefault();
+
+            var a = $(event.target).closest('a[href^="apply-fixup:"]');
+            var id = a.attr('href').replace(/^apply-fixup:/, '')
+            api({
+              type: 'POST',
+              url:  '/v2/fixups/'+id+'/apply',
+              error: 'Unable to apply data fixup "'+id+'".',
+              success: function () {
+                banner('Fixup "'+id+'" applied successfully!');
+                reload();
+              }
+            });
+          });
+      }
+    });
+    break; /* #!/admin/fixups */
+    // }}}
+
   default: /* 404 {{{ */
     $('#main').template('404', {
       wanted:  page,

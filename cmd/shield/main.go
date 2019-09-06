@@ -323,6 +323,11 @@ var opts struct {
 	} `cli:"agent"`
 	DeleteAgent struct{} `cli:"delete-agent"`
 	/* }}} */
+	/* FIXUPS {{{ */
+	Fixups     struct{} `cli:"fixups"`
+	Fixup      struct{} `cli:"fixup"`
+	ApplyFixup struct{} `cli:"apply-fixup"`
+	/* }}} */
 
 	Op struct {
 		Pry struct{} `cli:"pry"`
@@ -3276,6 +3281,62 @@ tenants:
 			break
 		}
 		r, err := c.DeleteAgent(agent)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(r))
+			break
+		}
+		fmt.Printf("%s\n", r.OK)
+
+	/* }}} */
+
+	case "fixups": /* {{{ */
+		required(len(args) == 0, "Too many arguments.")
+
+		fixups, err := c.ListFixups(nil)
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(fixups))
+			break
+		}
+
+		tbl := table.NewTable("ID", "Name", "Created at", "Applied at")
+		for _, fixup := range fixups {
+			tbl.Row(fixup, fixup.ID, fixup.Name, strftime(fixup.CreatedAt), strftimenil(fixup.AppliedAt, "(never)"))
+		}
+		tbl.Output(os.Stdout)
+
+	/* }}} */
+	case "fixup": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s ID\n", command)
+		}
+
+		fixup, err := c.GetFixup(args[0])
+		bail(err)
+
+		if opts.JSON {
+			fmt.Printf("%s\n", asJSON(fixup))
+			break
+		}
+
+		r := tui.NewReport()
+		r.Add("ID", fixup.ID)
+		r.Add("Name", fixup.Name)
+		r.Add("Created at", strftime(fixup.CreatedAt))
+		r.Add("Applied at", strftimenil(fixup.AppliedAt, "(never)"))
+		r.Add("Summary", wrap(fixup.Summary, 65))
+		r.Output(os.Stdout)
+
+	/* }}} */
+	case "apply-fixup": /* {{{ */
+		if len(args) != 1 {
+			fail(2, "Usage: shield %s ID\n", command)
+		}
+
+		r, err := c.ApplyFixup(args[0])
 		bail(err)
 
 		if opts.JSON {
