@@ -499,12 +499,12 @@ func (c *Core) v2API() *route.Router {
 			queues = append(queues, "admins")
 		}
 
-		socket := r.Upgrade()
+		socket := r.Upgrade(route.WebSocketSettings{
+			WriteTimeout: time.Duration(c.Config.API.Websocket.WriteTimeout) * time.Second,
+		})
 		if socket == nil {
 			return
 		}
-
-		socket.SetWriteTimeout(45 * time.Second)
 
 		log.Infof("registering message bus web client")
 		ch, slot, err := c.bus.Register(queues)
@@ -516,29 +516,48 @@ func (c *Core) v2API() *route.Router {
 
 		closeMeSoftly := func() { c.bus.Unregister(slot) }
 		go socket.Discard(closeMeSoftly)
-		for event := range ch {
-			b, err := json.Marshal(event)
-			if err != nil {
-				log.Errorf("message bus web client [id:%d] failed to marshal JSON for websocket relay: %s", slot, err)
-			} else {
-				if done, err := socket.Write(b); done {
-					log.Infof("message bus web client [id:%d] closed their end of the socket", slot)
-					log.Infof("message bus web client [id:%d] shutting down", slot)
-					closeMeSoftly()
-					break
-				} else if err != nil {
-					log.Errorf("message bus web client [id:%d] failed to write message to remote end: %s", slot, err)
-					log.Errorf("message bus web client [id:%d] shutting down", slot)
-					closeMeSoftly()
-					err := socket.SendClose()
-					if err != nil {
-						log.Warnf("message bus web client [id:%d] failed to write close message")
+
+		pingInterval := time.Duration(c.Config.API.Websocket.PingInterval) * time.Second
+		pingTimer := time.NewTimer(pingInterval)
+	writeLoop:
+		for {
+			select {
+			case event := <-ch:
+				b, err := json.Marshal(event)
+				if err != nil {
+					log.Errorf("message bus web client [id:%d] failed to marshal JSON for websocket relay: %s", slot, err)
+				} else {
+					if done, err := socket.Write(b); done {
+						log.Infof("message bus web client [id:%d] closed their end of the socket", slot)
+						log.Infof("message bus web client [id:%d] shutting down", slot)
+						closeMeSoftly()
+						break writeLoop
+					} else if err != nil {
+						log.Errorf("message bus web client [id:%d] failed to write message to remote end: %s", slot, err)
+						log.Errorf("message bus web client [id:%d] shutting down", slot)
+						closeMeSoftly()
+						err := socket.SendClose()
+						if err != nil {
+							log.Warnf("message bus web client [id:%d] failed to write close message")
+						}
+						break writeLoop
 					}
-					break
+				}
+
+				if !pingTimer.Stop() {
+					<-pingTimer.C
+				}
+			case <-pingTimer.C:
+				if err := socket.Ping(); err != nil {
+					log.Infof("message bus web client [id:%d] failed to write ping")
+					closeMeSoftly()
+					break writeLoop
 				}
 			}
+			pingTimer.Reset(pingInterval)
 		}
 
+		pingTimer.Stop()
 		log.Infof("message bus web client [id:%d] disconnected; unregistering...", slot)
 		closeMeSoftly()
 	})
