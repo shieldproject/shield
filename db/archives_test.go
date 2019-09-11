@@ -36,9 +36,9 @@ var _ = Describe("Archive Management", func() {
 		var err error
 		db, err = Database(
 			// need a target
-			`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES ("`+TARGET_UUID+`", "target_plugin", "target_endpoint", "127.0.0.1:5444", "target_name")`,
+			`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES ("`+TARGET_UUID+`", "target_plugin", "{}", "127.0.0.1:5444", "target_name")`,
 			// need a store
-			`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES ("`+STORE_UUID+`", "store_plugin", "store_endpoint", "store_name")`,
+			`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES ("`+STORE_UUID+`", "store_plugin", "{}", "store_name")`,
 			// need an ARCHIVE
 			`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status, notes, purge_reason, tenant_uuid)
 				VALUES ("`+ARCHIVE_UUID+`", "`+TARGET_UUID+`",
@@ -106,10 +106,10 @@ var _ = Describe("Archive Management", func() {
 		ARCHIVE_STORE2 := RandomID()
 		BeforeEach(func() {
 			var err error
-			err = db.Exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID + `","target_plugin2", "target_endpoint2", "127.0.0.1:5444", "target_name2")`)
+			err = db.Exec(`INSERT INTO targets (uuid, plugin, endpoint, agent, name) VALUES("` + TARGET2_UUID + `","target_plugin2", "{}", "127.0.0.1:5444", "target_name2")`)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			err = db.Exec(`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES("` + STORE2_UUID + `","store_plugin2", "store_endpoint2", "store_name2")`)
+			err = db.Exec(`INSERT INTO stores (uuid, plugin, endpoint, name) VALUES("` + STORE2_UUID + `","store_plugin2", "{}", "store_name2")`)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			err = db.Exec(`INSERT INTO archives (uuid, target_uuid, store_uuid, store_key, taken_at, expires_at, status) VALUES("` +
@@ -155,10 +155,10 @@ var _ = Describe("Archive Management", func() {
 					TargetUUID:     TARGET_UUID,
 					TargetName:     "target_name",
 					TargetPlugin:   "target_plugin",
-					TargetEndpoint: "target_endpoint",
+					TargetEndpoint: "{}",
 					StoreUUID:      STORE_UUID,
 					StoreName:      "store_name",
-					StoreEndpoint:  "store_endpoint",
+					StoreEndpoint:  "{}",
 					StorePlugin:    "store_plugin",
 				}))
 			})

@@ -60,16 +60,16 @@ var _ = Describe("tenant Management", func() {
 		db, err = Database(
 			// need a target1
 			`INSERT INTO targets (uuid, name, summary, plugin, endpoint, agent, tenant_uuid)
-			   VALUES ("`+SomeTarget.UUID+`", "name", "a summary", "plugin", "endpoint", "127.0.0.1:5444", "`+Tenant2.UUID+`")`,
+			   VALUES ("`+SomeTarget.UUID+`", "name", "a summary", "plugin", "{}", "127.0.0.1:5444", "`+Tenant2.UUID+`")`,
 			// need a target2
 			`INSERT INTO targets (tenant_uuid, uuid, name, summary, plugin, endpoint, agent)
 			VALUES ("`+Tenant3.UUID+`", "`+SomeTarget2.UUID+`", "name2", "a summary2", "plugin2", "endpoint2", "127.0.0.2:5444")`,
 			// need a store1
 			`INSERT INTO stores (tenant_uuid, uuid, name, summary, plugin, endpoint)
-			   VALUES ("`+Tenant2.UUID+`", "`+SomeStore.UUID+`", "name", "", "plugin", "endpoint")`,
+			   VALUES ("`+Tenant2.UUID+`", "`+SomeStore.UUID+`", "name", "", "plugin", "{}")`,
 			//need a store2
 			`INSERT INTO stores (tenant_uuid, uuid, name, summary, plugin, endpoint)
-			VALUES ("`+Tenant3.UUID+`", "`+SomeStore2.UUID+`", "name", "", "plugin", "endpoint")`,
+			VALUES ("`+Tenant3.UUID+`", "`+SomeStore2.UUID+`", "name", "", "plugin", "{}")`,
 			// need a job1
 			`INSERT INTO jobs (uuid, name, summary, paused, target_uuid, store_uuid, keep_n, keep_days, schedule, tenant_uuid)
 			  VALUES ("`+SomeJob.UUID+`", "Some Job", "A summary", 0, "`+SomeTarget.UUID+`", "`+SomeStore.UUID+`", 4, 4, "daily 3am", "`+Tenant2.UUID+`")`,
