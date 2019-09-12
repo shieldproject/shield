@@ -114,7 +114,7 @@
 				manager:  false,
 				engineer: false
 			}
-		}
+		},
 
     delete: function (type, object) {
       delete this.data[type][object.uuid];
