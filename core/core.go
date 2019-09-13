@@ -65,6 +65,15 @@ type Config struct {
 			Password string `yaml:"password"`
 		} `yaml:"failsafe"`
 
+		Websocket struct {
+			//WriteTimeout is the time allowed for each WebSocket message to be
+			// written, in seconds. If a deadline is missed, the connection is
+			// terminated.
+			WriteTimeout int `yaml:"write-timeout"`
+			//PingInteval is the time between WebSocket Ping messages, in seconds
+			PingInterval int `yaml:"ping-interval"`
+		} `yaml:"websocket"`
+
 		Env   string `yaml:"env"`
 		Color string `yaml:"color"`
 		MOTD  string `yaml:"motd"`
@@ -141,6 +150,9 @@ func init() {
 	DefaultConfig.API.Env = "SHIELD"
 	DefaultConfig.API.Color = "yellow"
 
+	DefaultConfig.API.Websocket.WriteTimeout = 45
+	DefaultConfig.API.Websocket.PingInterval = 30
+
 	DefaultConfig.Limit.Retention.Min = 1
 	DefaultConfig.Limit.Retention.Max = 390
 
@@ -190,6 +202,22 @@ func Configure(file string, config Config) (*Core, error) {
 
 	if c.Config.API.Session.Timeout <= 0 {
 		return nil, fmt.Errorf("api.session.timeout of '%d' hours is invalid (must be greater than zero)", c.Config.API.Session.Timeout)
+	}
+
+	if c.Config.API.Websocket.PingInterval <= 0 {
+		return nil, fmt.Errorf("api.websocket.ping-interval of '%d' seconds is invalid (must be greater than zero)", c.Config.API.Websocket.PingInterval)
+	}
+
+	if c.Config.API.Websocket.WriteTimeout <= 0 {
+		return nil, fmt.Errorf("api.websocket.write-timeout of '%d' seconds is invalid (must be greater than zero)", c.Config.API.Websocket.WriteTimeout)
+	}
+
+	if c.Config.Mbus.MaxSlots <= 0 {
+		return nil, fmt.Errorf("mbus.max-slots of '%d' is invalid (must be greater than zero)", c.Config.Mbus.MaxSlots)
+	}
+
+	if c.Config.Mbus.Backlog < 0 {
+		return nil, fmt.Errorf("mbus.backlog of '%d' is invalid (must be a positive integer)", c.Config.Mbus.Backlog)
 	}
 
 	if c.Config.Cipher == "" {

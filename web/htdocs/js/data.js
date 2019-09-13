@@ -106,6 +106,16 @@
       return this;
     },
 
+		clear: function (type, object) {
+			this.data = {};
+			this.grants.tenant = {}
+			this.grants.system = {
+				admin:    false,
+				manager:  false,
+				engineer: false
+			}
+		},
+
     delete: function (type, object) {
       delete this.data[type][object.uuid];
     },
@@ -378,6 +388,7 @@
       this.ws.onclose = function () {
         self.ws = undefined;
         df.reject();
+        self.subscribe()
       };
 
       this.ws.onmessage = function (m) {
@@ -420,6 +431,7 @@
 
       this.ws.onopen = function () {
         console.log('connected to event stream.');
+        self.clear()
         console.log('getting our bearings (via %s)...', opts.bearings);
         api({
           type: 'GET',
