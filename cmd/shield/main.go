@@ -329,6 +329,8 @@ var opts struct {
 		Plugins  bool `cli:"-p, --plugins"`
 	} `cli:"agent"`
 	DeleteAgent struct{} `cli:"delete-agent"`
+	HideAgent   struct{} `cli:"hide-agent"`
+	ShowAgent   struct{} `cli:"show-agent"`
 	/* }}} */
 	/* FIXUPS {{{ */
 	Fixups     struct{} `cli:"fixups"`
