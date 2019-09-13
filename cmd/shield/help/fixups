@@ -1,0 +1,9 @@
+USAGE: @G{shield} fixups
+
+  List SHIELD Data Fixups.
+
+  From time to time, we fix bugs in SHIELD, and the fixes need to
+  retroactively update existing data that may have been munged or
+  corrupted by previously buggy versions of SHIELD.  These fixes
+  are called "Data Fixups".
+

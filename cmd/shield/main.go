@@ -319,10 +319,9 @@ var opts struct {
 	/* }}} */
 	/* AGENTS {{{ */
 	Agents struct {
-		Limit   int    `cli:"-l, --limit"`
-		Visible bool   `cli:"--visible"`
-		Hidden  bool   `cli:"--hidden"`
-		Status  string `cli:"-s, --status"`
+		Limit   int  `cli:"-l, --limit"`
+		Visible bool `cli:"--visible"`
+		Hidden  bool `cli:"--hidden"`
 	} `cli:"agents"`
 	Agent struct {
 		Metadata bool `cli:"-m, --metadata"`

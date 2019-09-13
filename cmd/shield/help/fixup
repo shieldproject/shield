@@ -1,0 +1,9 @@
+USAGE: @G{shield} fixup @Y{NAME-OR-UUID}
+
+  Display more detail about a single SHIELD Data Fixup.
+
+  From time to time, we fix bugs in SHIELD, and the fixes need to
+  retroactively update existing data that may have been munged or
+  corrupted by previously buggy versions of SHIELD.  These fixes
+  are called "Data Fixups".
+

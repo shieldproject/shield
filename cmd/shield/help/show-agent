@@ -1,0 +1,8 @@
+USAGE: @G{shield} show-agent @Y{NAME-OR-UUID}
+
+  Hide a single SHIELD Agent.
+
+  Agents perform all backup / restore / purge / test operations on
+  behalf of the SHIELD Core.  Visible SHIELD Agents can be used by
+  tenants when configuring data and storage systems.
+

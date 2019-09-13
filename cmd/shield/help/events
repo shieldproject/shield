@@ -1,0 +1,34 @@
+USAGE: @G{shield} events [--skip @Y{EVENT-or-QUEUE} [--skip ...]]
+
+  Stream SHIELD Core Websocket Events.
+
+@B{Options:}
+
+  By default, all events that are accessible to the authenticated
+  session will be displayed.  You may filter the results using the
+  "skip" flag:
+
+    --skip EVENT-TYPE    This option can be given more than once.
+    --skip QUEUE         Event Types are a fixed set of keywords
+                         (listed below).  Queue names are usually
+                         based on tenant UUIDs.
+
+  Known event types are:
+
+    @C{error}               An error has occurred.
+    @C{unlock-core}         The SHIELD Core was unlocked.
+    @C{create-object}       A new target, store, etc. was created.
+    @C{update-object}       A target, store, etc. was updated.
+    @C{delete-object}       A target, store, etc. was deleted.
+    @C{task-status-update}  A task changed status.
+    @C{task-log-update}     New task log output appeared.
+    @C{tenant-invite}       A user was invited to a tenant.
+    @C{tenant-banish}       A user was banished from a tenant.
+
+@B{Examples:}
+
+  # What is SHIELD doing (and I don't care about tasks)?
+  @W{shield events} \
+     @Y{--skip} @C{task-log-update} \
+     @Y{--skip} @C{task-status-update}
+

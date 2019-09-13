@@ -1,0 +1,13 @@
+USAGE: @G{shield} apply-fixup @Y{NAME-OR-UUID}
+
+  (Re-)Apply a SHIELD Data Fixup.
+
+  From time to time, we fix bugs in SHIELD, and the fixes need to
+  retroactively update existing data that may have been munged or
+  corrupted by previously buggy versions of SHIELD.  These fixes
+  are called "Data Fixups".
+
+  Data Fixups run normally, when the SHIELD Core boots up, but
+  only if that particular fixup has not already been applied
+  (SHIELD keeps track).  This command lets you force a re-run.
+

@@ -6,6 +6,46 @@ import (
 
 func ShowHelp(command string) {
 	switch command {
+	case "agent": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} agent @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Show a single SHIELD Agent.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Agents perform all backup / restore / purge / test operations on\n")
+		fmt.Printf("  behalf of the SHIELD Core.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "agents": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} agents [OPTIONS]\n")
+		fmt.Printf("\n")
+		fmt.Printf("  List SHIELD Agents.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Agents perform all backup / restore / purge / test operations on\n")
+		fmt.Printf("  behalf of the SHIELD Core.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  By default, all registered agentswill be displayed.\n")
+		fmt.Printf("  You may filter the results with the following command-line flags.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --visible       Only show agents that are available to tenants\n")
+		fmt.Printf("                  to configure storage and data systems.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  --hidden        Only show agents that are NOT available to\n")
+		fmt.Printf("                  tenants to configure storage and data systems.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  -l, --limit     Only show the given number of agents.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Examples:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  # What Agents can people use?\n")
+		fmt.Printf("  @W{shield agents} @Y{--visible}\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "annotate-archive": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} annotate-archive --tenant @Y{TENANT} @Y{UUID} --notes ...\n")
 		fmt.Printf("\n")
@@ -60,6 +100,23 @@ func ShowHelp(command string) {
 		fmt.Printf("                            certificate representing the Certificate\n")
 		fmt.Printf("                            Authority that signed the SHIELD Core's TLS\n")
 		fmt.Printf("                            certificate.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "apply-fixup": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} apply-fixup @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  (Re-)Apply a SHIELD Data Fixup.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  From time to time, we fix bugs in SHIELD, and the fixes need to\n")
+		fmt.Printf("  retroactively update existing data that may have been munged or\n")
+		fmt.Printf("  corrupted by previously buggy versions of SHIELD.  These fixes\n")
+		fmt.Printf("  are called \"Data Fixups\".\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Data Fixups run normally, when the SHIELD Core boots up, but\n")
+		fmt.Printf("  only if that particular fixup has not already been applied\n")
+		fmt.Printf("  (SHIELD keeps track).  This command lets you force a re-run.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -539,6 +596,17 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "delete-agent": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} delete-agent @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Delete a SHIELD Agent.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Agents perform all backup / restore / purge / test operations on\n")
+		fmt.Printf("  behalf of the SHIELD Core.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "delete-global-store": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} delete-global-store @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
@@ -637,6 +705,23 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "delete-tenant": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} delete-tenant @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Delete a SHIELD Tenant.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Each SHIELD Core defines one or more tenants, each with their own\n")
+		fmt.Printf("  set of cloud storage configurations, data systems, and backup jobs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When you delete a tenant, all of its private storage systems, data\n")
+		fmt.Printf("  systems, jobs, and archives will be removed from the database.\n")
+		fmt.Printf("  @R{This operation cannot be undone!}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "delete-user": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} delete-user @Y{NAME-OR-UUID}\n")
 		fmt.Printf("\n")
@@ -654,6 +739,70 @@ func ShowHelp(command string) {
 		fmt.Printf("  and also remove any auth tokens they may have issued.\n")
 		fmt.Printf("\n")
 		fmt.Printf("  @R{This is a dangerous operation that cannot be undone.}\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "events": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} events [--skip @Y{EVENT-or-QUEUE} [--skip ...]]\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Stream SHIELD Core Websocket Events.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Options:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  By default, all events that are accessible to the authenticated\n")
+		fmt.Printf("  session will be displayed.  You may filter the results using the\n")
+		fmt.Printf("  \"skip\" flag:\n")
+		fmt.Printf("\n")
+		fmt.Printf("    --skip EVENT-TYPE    This option can be given more than once.\n")
+		fmt.Printf("    --skip QUEUE         Event Types are a fixed set of keywords\n")
+		fmt.Printf("                         (listed below).  Queue names are usually\n")
+		fmt.Printf("                         based on tenant UUIDs.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Known event types are:\n")
+		fmt.Printf("\n")
+		fmt.Printf("    @C{error}               An error has occurred.\n")
+		fmt.Printf("    @C{unlock-core}         The SHIELD Core was unlocked.\n")
+		fmt.Printf("    @C{create-object}       A new target, store, etc. was created.\n")
+		fmt.Printf("    @C{update-object}       A target, store, etc. was updated.\n")
+		fmt.Printf("    @C{delete-object}       A target, store, etc. was deleted.\n")
+		fmt.Printf("    @C{task-status-update}  A task changed status.\n")
+		fmt.Printf("    @C{task-log-update}     New task log output appeared.\n")
+		fmt.Printf("    @C{tenant-invite}       A user was invited to a tenant.\n")
+		fmt.Printf("    @C{tenant-banish}       A user was banished from a tenant.\n")
+		fmt.Printf("\n")
+		fmt.Printf("@B{Examples:}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  # What is SHIELD doing (and I don't care about tasks)?\n")
+		fmt.Printf("  @W{shield events} \\\n")
+		fmt.Printf("     @Y{--skip} @C{task-log-update} \\\n")
+		fmt.Printf("     @Y{--skip} @C{task-status-update}\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "fixup": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} fixup @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Display more detail about a single SHIELD Data Fixup.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  From time to time, we fix bugs in SHIELD, and the fixes need to\n")
+		fmt.Printf("  retroactively update existing data that may have been munged or\n")
+		fmt.Printf("  corrupted by previously buggy versions of SHIELD.  These fixes\n")
+		fmt.Printf("  are called \"Data Fixups\".\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "fixups": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} fixups\n")
+		fmt.Printf("\n")
+		fmt.Printf("  List SHIELD Data Fixups.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  From time to time, we fix bugs in SHIELD, and the fixes need to\n")
+		fmt.Printf("  retroactively update existing data that may have been munged or\n")
+		fmt.Printf("  corrupted by previously buggy versions of SHIELD.  These fixes\n")
+		fmt.Printf("  are called \"Data Fixups\".\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -713,6 +862,57 @@ func ShowHelp(command string) {
 		fmt.Printf("  # Which shared storage systems can we decomission?\n")
 		fmt.Printf("  @W{shield global-stores} \\\n")
 		fmt.Printf("    @Y{--unused}\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "help": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} help @Y{COMMAND}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Help, I need somebody\n")
+		fmt.Printf("  Help, not just anybody\n")
+		fmt.Printf("  Help, you know I need someone, help\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When I was younger, so much younger than today\n")
+		fmt.Printf("  I never needed anybody's help in any way\n")
+		fmt.Printf("  But now these days are gone, I'm not so self assured\n")
+		fmt.Printf("  Now I find I've changed my mind and opened up the doors\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Help me if you can, I'm feeling down\n")
+		fmt.Printf("  And I do appreciate you being round\n")
+		fmt.Printf("  Help me get my feet back on the ground\n")
+		fmt.Printf("  Won't you please, please help me\n")
+		fmt.Printf("\n")
+		fmt.Printf("  And now my life has changed in oh so many ways\n")
+		fmt.Printf("  My independence seems to vanish in the haze\n")
+		fmt.Printf("  But every now and then I feel so insecure\n")
+		fmt.Printf("  I know that I just need you like I've never done before\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Help me if you can, I'm feeling down\n")
+		fmt.Printf("  And I do appreciate you being round\n")
+		fmt.Printf("  Help me get my feet back on the ground\n")
+		fmt.Printf("  Won't you please, please help me\n")
+		fmt.Printf("\n")
+		fmt.Printf("  When I was younger, so much younger than today\n")
+		fmt.Printf("  I never needed anybody's help in any way\n")
+		fmt.Printf("  But now these days are gone, I'm not so self assured\n")
+		fmt.Printf("  Now I find I've changed my mind and opened up the doors\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Help me if you can, I'm feeling down\n")
+		fmt.Printf("  And I do appreciate you being round\n")
+		fmt.Printf("  Help me get my feet back on the ground\n")
+		fmt.Printf("  Won't you please, please help me, help me, help me, oh\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "hide-agent": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} hide-agent @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Hide a single SHIELD Agent.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Agents perform all backup / restore / purge / test operations on\n")
+		fmt.Printf("  behalf of the SHIELD Core.  Hidden SHIELD Agents cannot be used\n")
+		fmt.Printf("  by tenants when configuring data and storage systems.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 
@@ -988,6 +1188,17 @@ func ShowHelp(command string) {
 		fmt.Printf("\n")
 
 	/* }}} */
+	case "ps": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} ps\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Display the internal process state of a SHIELD Core.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  This command shows what tasks the scheduler threads inside of a\n")
+		fmt.Printf("  SHIELD Core are currently executing.\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
 	case "purge-archive": /* {{{ */
 		fmt.Printf("USAGE: @G{shield} purge-archive --tenant @Y{TENANT} @Y{UUID}\n")
 		fmt.Printf("\n")
@@ -1173,6 +1384,18 @@ func ShowHelp(command string) {
 		fmt.Printf("  # Who is logging in from 10.56.78.9?\n")
 		fmt.Printf("  @W{shield sessions} \\\n")
 		fmt.Printf("    @Y{--ip} @C{10.56.78.9}\n")
+		fmt.Printf("\n")
+		fmt.Printf("\n")
+
+	/* }}} */
+	case "show-agent": /* {{{ */
+		fmt.Printf("USAGE: @G{shield} show-agent @Y{NAME-OR-UUID}\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Hide a single SHIELD Agent.\n")
+		fmt.Printf("\n")
+		fmt.Printf("  Agents perform all backup / restore / purge / test operations on\n")
+		fmt.Printf("  behalf of the SHIELD Core.  Visible SHIELD Agents can be used by\n")
+		fmt.Printf("  tenants when configuring data and storage systems.\n")
 		fmt.Printf("\n")
 		fmt.Printf("\n")
 

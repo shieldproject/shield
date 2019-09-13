@@ -1,0 +1,7 @@
+USAGE: @G{shield} ps
+
+  Display the internal process state of a SHIELD Core.
+
+  This command shows what tasks the scheduler threads inside of a
+  SHIELD Core are currently executing.
+

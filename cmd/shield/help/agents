@@ -1,0 +1,25 @@
+USAGE: @G{shield} agents [OPTIONS]
+
+  List SHIELD Agents.
+
+  Agents perform all backup / restore / purge / test operations on
+  behalf of the SHIELD Core.
+
+@B{Options:}
+
+  By default, all registered agentswill be displayed.
+  You may filter the results with the following command-line flags.
+
+  --visible       Only show agents that are available to tenants
+                  to configure storage and data systems.
+
+  --hidden        Only show agents that are NOT available to
+                  tenants to configure storage and data systems.
+
+  -l, --limit     Only show the given number of agents.
+
+@B{Examples:}
+
+  # What Agents can people use?
+  @W{shield agents} @Y{--visible}
+

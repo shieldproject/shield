@@ -1,0 +1,13 @@
+USAGE: @G{shield} delete-tenant @Y{NAME-OR-UUID}
+
+  Delete a SHIELD Tenant.
+
+  Each SHIELD Core defines one or more tenants, each with their own
+  set of cloud storage configurations, data systems, and backup jobs.
+
+  When you delete a tenant, all of its private storage systems, data
+  systems, jobs, and archives will be removed from the database.
+  @R{This operation cannot be undone!}
+
+  @Y{NOTE:} This command is only available to @R{SHIELD Site Managers}.
+
