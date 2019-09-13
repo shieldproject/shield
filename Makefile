@@ -77,16 +77,6 @@ HELP := $(shell ls -1 cmd/shield/help/*)
 cmd/shield/help.go: $(HELP) cmd/shield/help.pl
 	./cmd/shield/help.pl $(HELP) > $@
 
-
-# Run tests with coverage tracking, writing output to coverage/
-coverage: agent.cov db.cov plugin.cov supervisor.cov timespec.cov
-%.cov:
-	@mkdir -p coverage
-	@go test -coverprofile coverage/$@ ./$*
-
-report:
-	go tool cover -html=coverage/$(FOR).cov
-
 fixmes: fixme
 fixme:
 	@grep -rn FIXME * | grep -v vendor/ | grep -v README.md | grep --color FIXME || echo "No FIXMES!  YAY!"
