@@ -250,12 +250,20 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 
 func (db *DB) DeleteAgent(agent *Agent) error {
 	return db.exclusively(func() error {
-		n, err := db.count(`SELECT uuid FROM jobs WHERE agent = ?`, agent.Address)
+		n, err := db.count(`SELECT uuid FROM targets WHERE agent = ?`, agent.Address)
 		if err != nil {
 			return fmt.Errorf("unable to determine if agent can be deleted: %s", err)
 		}
 		if n > 0 {
-			return fmt.Errorf("agent is still referenced by configured data protection jobs")
+			return fmt.Errorf("agent is still referenced by configured data systems")
+		}
+
+		n, err = db.count(`SELECT uuid FROM stores WHERE agent = ?`, agent.Address)
+		if err != nil {
+			return fmt.Errorf("unable to determine if agent can be deleted: %s", err)
+		}
+		if n > 0 {
+			return fmt.Errorf("agent is still referenced by configured storage systems")
 		}
 
 		return db.exec(`DELETE FROM agents WHERE uuid = ?`, agent.UUID)
