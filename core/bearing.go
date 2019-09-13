@@ -46,7 +46,7 @@ func (c *Core) BearingFor(m *db.Membership) (Bearing, error) {
 
 	b.Archives, err = c.db.GetAllArchives(&db.ArchiveFilter{ForTenant: b.Tenant.UUID})
 	if err != nil {
-		return b, fmt.Errorf("unable to retreieve archives for tenant [%s]: %s", b.Tenant.UUID, err)
+		return b, fmt.Errorf("unable to retrieve archives for tenant [%s]: %s", b.Tenant.UUID, err)
 	}
 
 	/* assemble jobs for this tenant */
