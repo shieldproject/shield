@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -114,7 +115,7 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		       a.compression, a.tenant_uuid, a.size
 
 		FROM archives a
-		   LEFT JOIN targets t   ON t.uuid = a.target_uuid
+		   LEFT  JOIN targets t   ON t.uuid = a.target_uuid
 		   INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
 		WHERE ` + strings.Join(wheres, " AND ") + `
@@ -155,7 +156,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		a := &Archive{}
 
 		var takenAt, expiresAt, size *int64
-		var targetUUID, targetPlugin, targetEndpoint, targetName, storeName *string
+		var targetUUID, targetPlugin, targetEndpoint, targetName, storeName sql.NullString
 		if err = r.Scan(
 			&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
 			&targetUUID, &targetName, &targetPlugin, &targetEndpoint,
@@ -171,20 +172,20 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 		if expiresAt != nil {
 			a.ExpiresAt = *expiresAt
 		}
-		if targetName != nil {
-			a.TargetName = *targetName
+		if targetName.Valid {
+			a.TargetName = targetName.String
 		}
-		if targetUUID != nil {
-			a.TargetUUID = *targetUUID
+		if targetUUID.Valid {
+			a.TargetUUID = targetUUID.String
 		}
-		if targetPlugin != nil {
-			a.TargetPlugin = *targetPlugin
+		if targetPlugin.Valid {
+			a.TargetPlugin = targetPlugin.String
 		}
-		if targetEndpoint != nil {
-			a.TargetPlugin = *targetEndpoint
+		if targetEndpoint.Valid {
+			a.TargetPlugin = targetEndpoint.String
 		}
-		if storeName != nil {
-			a.StoreName = *storeName
+		if storeName.Valid {
+			a.StoreName = storeName.String
 		}
 		if size != nil {
 			a.Size = *size
@@ -209,7 +210,7 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 		       a.compression, a.tenant_uuid, a.size
 
 		FROM archives a
-		   INNER JOIN targets t   ON t.uuid = a.target_uuid
+		   LEFT  JOIN targets t   ON t.uuid = a.target_uuid
 		   INNER JOIN stores  s   ON s.uuid = a.store_uuid
 
 		WHERE a.uuid = ?`, id)
@@ -224,10 +225,10 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 	a := &Archive{}
 
 	var takenAt, expiresAt, size *int64
-	var targetName, storeName *string
+	var targetUUID, targetName, targetPlugin, targetEndpoint, storeName sql.NullString
 	if err = r.Scan(
 		&a.UUID, &a.StoreKey, &takenAt, &expiresAt, &a.Notes,
-		&a.TargetUUID, &targetName, &a.TargetPlugin, &a.TargetEndpoint,
+		&targetUUID, &targetName, &targetPlugin, &targetEndpoint,
 		&a.StoreUUID, &storeName, &a.StorePlugin, &a.StoreEndpoint, &a.StoreAgent,
 		&a.Status, &a.PurgeReason, &a.Job, &a.EncryptionType,
 		&a.Compression, &a.TenantUUID, &size); err != nil {
@@ -240,11 +241,20 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 	if expiresAt != nil {
 		a.ExpiresAt = *expiresAt
 	}
-	if targetName != nil {
-		a.TargetName = *targetName
+	if targetUUID.Valid {
+		a.TargetUUID = targetUUID.String
 	}
-	if storeName != nil {
-		a.StoreName = *storeName
+	if targetName.Valid {
+		a.TargetName = targetName.String
+	}
+	if targetPlugin.Valid {
+		a.TargetPlugin = targetPlugin.String
+	}
+	if targetEndpoint.Valid {
+		a.TargetEndpoint = targetEndpoint.String
+	}
+	if storeName.Valid {
+		a.StoreName = storeName.String
 	}
 	if size != nil {
 		a.Size = *size
