@@ -3371,7 +3371,7 @@ tenants:
 			fail(2, "Usage: shield %s UUID\n", command)
 		}
 
-		agent, err := c.GetAgent(args[0])
+		agent, err := c.FindAgent(args[0], !opts.Exact)
 		bail(err)
 
 		r, err := c.HideAgent(agent)
@@ -3389,7 +3389,7 @@ tenants:
 			fail(2, "Usage: shield %s UUID\n", command)
 		}
 
-		agent, err := c.GetAgent(args[0])
+		agent, err := c.FindAgent(args[0], !opts.Exact)
 		bail(err)
 
 		r, err := c.ShowAgent(agent)
@@ -3407,7 +3407,7 @@ tenants:
 			fail(2, "Usage: shield %s UUID\n", command)
 		}
 
-		agent, err := c.GetAgent(args[0])
+		agent, err := c.FindAgent(args[0], !opts.Exact)
 		bail(err)
 
 		if !confirm(opts.Yes, "Delete agent @Y{%s} at @Y{%s}?", agent.Name, agent.Address) {
