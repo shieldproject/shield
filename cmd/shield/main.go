@@ -1193,10 +1193,10 @@ tenants:
 
 		fmt.Printf("@B{##} @M{BACKUP JOB HEALTH} @B{##########################}\n\n")
 		for _, j := range status.Jobs {
-			if j.Healthy{
+			if j.Healthy {
 				fmt.Printf("   @G{%s} %s/%s is @G{OK}\n", good, j.Target, j.Job)
 			} else {
-				fmt.Printf("   @R{%s} %s/%s is @R{FAILING}\n", bad,j.Target, j.Job)
+				fmt.Printf("   @R{%s} %s/%s is @R{FAILING}\n", bad, j.Target, j.Job)
 			}
 		}
 		fmt.Printf("\n\n")
