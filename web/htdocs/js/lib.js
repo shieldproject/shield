@@ -211,15 +211,21 @@
         timer = undefined;
       }
 
-      if (!$banner) { $(document.body).append( $banner = $('<div class="banner-top">').hide() ); }
+      if (!$banner) {
+        $(document.body).append(
+          $banner = $('<div class="banner-top">')
+            .on('click', 'a', function (event) {
+              event.preventDefault();
+              event.stopPropagation();
+              $banner.hide();
+            })
+            .hide());
+      }
+
       if (typeof type == 'undefined') { type = 'info' }
       $banner.show().template('banner', {
         type:    type,
         message: message
-      });
-      $banner.on('click', 'a', function (event) {
-        event.preventDefault();
-        $banner.hide();
       });
       if (type !== 'error') {
         time = window.setTimeout(function () {
