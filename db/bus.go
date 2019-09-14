@@ -41,6 +41,11 @@ func datauuid(thing interface{}) string {
 	case *Task:
 		return fmt.Sprintf("task [%s]", thing.(*Task).UUID)
 
+	case Archive:
+		return fmt.Sprintf("archive [%s]", thing.(Archive).UUID)
+	case *Archive:
+		return fmt.Sprintf("archive [%s]", thing.(*Archive).UUID)
+
 	default:
 		panic("SHIELD was unable to determine the type of thing, in order to craft a message bus event for it.  This is most certainly a bug in SHIELD itself.")
 	}
@@ -65,6 +70,9 @@ func datatype(thing interface{}) string {
 
 	case Task, *Task:
 		return "task"
+
+	case Archive, *Archive:
+		return "archive"
 
 	default:
 		panic("SHIELD was unable to determine the type of thing, in order to craft a message bus event for it.  This is most certainly a bug in SHIELD itself.")
