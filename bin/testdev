@@ -242,103 +242,37 @@ EOF
 (shieldd)
   ssh-keygen -m PEM -t rsa -f ${workdir}/config/shieldd_key -N '' >/dev/null
   rm ${workdir}/config/shieldd_key.pub
-  legacy_ssh_key=$(cat ${workdir}/config/shieldd_key | sed -e 's/^/      /')
 
-  cat >${workdir}/etc/shieldd.conf <<EOF
----
-debug:    true
-data-dir: ${workdir}/var/
-web-root: ./web/htdocs
-plugin_paths:
-  - ${workdir}/bin
-
-scheduler:
-  fast-loop: 5
-  slow-loop: 40
-
-api:
-  bind: 127.0.0.1:8180
-  pprof: ':8185'
-  env:   TESTDEV
-  color: yellow
-  motd: |
-    Welcome to the testdev S.H.I.E.L.D. environment!
-
-  failsafe:
-    username: failsafe
-    password: sekrit
-
-  session:
-    timeout: 8
-
-fabrics:
-  - name: legacy
-    ssh-key: |
-${legacy_ssh_key}
-
-auth:
-  - name:       Github
-    identifier: github
-    backend:    github
-    properties:
-      client_id:     35f670b0ee9c9b4bc37c
-      client_secret: b33d1309ea69e75c0ccd51f2caac9493e9326830
-      mapping:
-        - github: starkandwayne  # <-- github org name
-          tenant: starkandwayne  # <-- shield tenant name
-          rights:
-            - team: Owners       # <-- github team name
-              role: admin        # <-- shield role name
-            - team: Engineering  #   (first match wins)
-              role: engineer
-            - role: operator     # = (default match)
-
-        - github: starkandwayne
-          tenant: SYSTEM
-          rights:
-            - team: Engineering
-              role: admin
-
-        - github: cloudfoundry-community
-          tenant: CF Community
-          rights:
-            - role: engineer
-
-  - name:       UAA
-    identifier: uaa1
-    backend:    uaa
-    properties:
-      client_id:       shield-dev
-      client_secret:   s.h.i.e.l.d.
-      uaa_endpoint:    https://uaa.shield.10.244.156.2.netip.cc:8443
-      skip_verify_tls: true
-      mapping:
-        - tenant: UAA          # <-- shield tenant name
-          rights:
-            - scim: uaa.admin  # <-- uaa scim right
-              role: admin      # <-- shield role
-                               #   (first match wins)
-            - scim: cloud_controller.write
-              role: engineer
-
-            - role: operator   # = (default match)
-
-        - tenant: UAA Admins Club
-          rights:
-            - scim: uaa.admin
-              role: admin
-
-EOF
+  export SHIELD_DEBUG=yes
+  export SHIELD_LOG_LEVEL=debug
+  export SHIELD_DATA_DIR="${workdir}/var/"
+  export SHIELD_WEB_ROOT="${PWD}/web/htdocs"
+  export SHIELD_SCHEDULER_FAST_LOOP=5
+  export SHIELD_SCHEDULER_SLOW_LOOP=40
+  export SHIELD_API_BIND="127.0.0.1:8180"
+  export SHIELD_API_PPROF=":8185"
+  export SHIELD_API_ENV="TESTDEV"
+  export SHIELD_API_COLOR="yellow"
+  export SHIELD_API_MOTD="Welcome to the testdev S.H.I.E.L.D. environment!"
+  export SHIELD_API_FAILSAFE_USERNAME="failsafe"
+  export SHIELD_API_FAILSAFE_PASSWORD="sekrit"
+  export SHIELD_API_SESSION_TIMEOUT=8
+  export SHIELD_LEGACY_AGENTS_ENABLED=yes
+  export SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT=5
+  export SHIELD_LEGACY_AGENTS_PRIVATE_KEY=$(cat ${workdir}/config/shieldd_key)
+  export SHIELD_PLUGIN_PATHS="${workdir}/bin"
 
   export PATH=$(pwd):$(pwd)/bin:${PATH}
   while true; do
+    env | grep ^SHIELD_
+    echo
     echo ">> Setting up SHIELD schema"
     ./shield-schema -d ${workdir}/var/shield.db
     echo
 
-    echo ">> RUNNING SHIELDD"
+    echo ">> RUNNING SHIELD CORE"
     trap ":" INT # ignore Ctrl-C
-    GODEBUG=schedtrace=1000 ./shieldd -c ${workdir}/etc/shieldd.conf --log-level debug 2>&1 | tee ${workdir}/var/shieldd.log
+    GODEBUG=schedtrace=1000 ./shieldd 2>&1 | tee ${workdir}/var/shieldd.log
     echo
     echo "shieldd exited."
     echo "Do you want to restart it?"
@@ -357,29 +291,21 @@ EOF
       sleep 1
   done
 
-  ssh-keygen -m PEM -t rsa -f ${workdir}/var/shield-agent_key -N '' >/dev/null
-  rm ${workdir}/var/shield-agent_key.pub
-
-  `curl -XGET -H "X-Shield-Session: ${SHIELD_API_TOKEN}" http://127.0.0.1:${PORT}/v1/meta/pubkey >> ${workdir}/var/authorized_keys`
-  cat >${workdir}/etc/shield-agent.conf <<EOF
----
-authorized_keys_file: ${workdir}/var/authorized_keys
-host_key_file: ${workdir}/var/shield-agent_key
-listen_address: 0.0.0.0:5444
-plugin_paths:
-  - ${workdir}/bin
-
-name: bond-james-bond
-registration:
-  url: http://localhost:${PORT}
-  interval: 15
-EOF
+  export SHIELD_AGENT_NAME="bond-james-bond"
+  export SHIELD_AGENT_LISTEN_ADDRESS="0.0.0.0:5444"
+  export SHIELD_AGENT_LOG_LEVEL=debug
+  export SHIELD_AGENT_REGISTRATION_URL="http://127.0.0.1:${PORT}"
+  export SHIELD_AGENT_REGISTRATION_INTERVAL=15
+  export SHIELD_AGENT_AUTHORIZED_KEY=$(curl -H "X-Shield-Session: ${SHIELD_API_TOKEN}" ${SHIELD_AGENT_REGISTRATION_URL}/v1/meta/pubkey)
+  export SHIELD_AGENT_PLUGIN_PATHS="${workdir}/bin"
 
   export PATH=$(pwd):$(pwd)/bin:${PATH}
   while true; do
+    env | grep ^SHIELD_
+    echo
     echo ">> RUNNING SHIELD AGENT"
     trap ":" INT # ignore Ctrl-C
-    ./shield-agent -c ${workdir}/etc/shield-agent.conf --log-level debug 2>&1 | tee ${workdir}/var/shield-agent.log
+    ./shield-agent 2>&1 | tee ${workdir}/var/shield-agent.log
     echo
     echo "shield-agent exited."
     echo "Do you want to restart it?"

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jhunt/go-cli"
+	env "github.com/jhunt/go-envirotron"
 	"github.com/jhunt/go-log"
 
 	"github.com/shieldproject/shield/agent"
@@ -17,10 +18,11 @@ func main() {
 		Help    bool `cli:"-h, --help"`
 		Version bool `cli:"-v, --version"`
 
-		ConfigFile string `cli:"-c, --config"`
-		Log        string `cli:"-l, --log-level"`
+		ConfigFile string `cli:"-c, --config"    env:"SHIELD_AGENT_CONFIG_FILE"`
+		Log        string `cli:"-l, --log-level" env:"SHIELD_AGENT_LOG_LEVEL"`
 	}
 	opts.Log = "info"
+	env.Override(&opts)
 
 	_, args, err := cli.Parse(&opts)
 	if err != nil {
@@ -51,11 +53,6 @@ func main() {
 			fmt.Printf("shield-agent v%s\n", Version)
 		}
 		os.Exit(0)
-	}
-
-	if opts.ConfigFile == "" {
-		fmt.Fprintf(os.Stderr, "You must specify a configuration file via `--config`\n")
-		os.Exit(1)
 	}
 
 	log.SetupLogging(log.LogConfig{

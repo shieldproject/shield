@@ -10,13 +10,10 @@ func (c *Core) v1API() *route.Router {
 	}
 
 	r.Dispatch("GET /v1/meta/pubkey", func(r *route.Request) {
-		for _, fc := range c.Config.Fabrics {
-			if fc.Name == "legacy" {
-				r.Respond(200, "text/plain", "%s\n", fc.legacy.pub)
-				return
-			}
+		if !c.Config.LegacyAgents.Enabled {
+			r.Respond(403, "text/plain", "# legacy agent communication disabled.\n")
 		}
-		r.Respond(404, "text/plain", "# no legacy fabric(s) configured!\n")
+		r.Respond(200, "text/plain", "%s\n", c.Config.LegacyAgents.pub)
 	})
 
 	return r
