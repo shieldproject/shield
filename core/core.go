@@ -32,7 +32,6 @@ type Core struct {
 	info struct {
 		API     int    `json:"api"`
 		Version string `json:"version,omitempty"`
-		IP      string `json:"ip,omitempty"`
 		Env     string `json:"env,omitempty"`
 		Color   string `json:"color,omitempty"`
 		MOTD    string `json:"motd,omitempty"`
@@ -304,7 +303,6 @@ func Configure(file string, config Config) (*Core, error) {
 	/* set up information for /v2/info and /init.js */
 	c.info.API = 2
 	c.info.Version = Version
-	c.info.IP = ip()
 	c.info.MOTD = c.Config.API.MOTD
 	c.info.Env = c.Config.API.Env
 	c.info.Color = c.Config.API.Color

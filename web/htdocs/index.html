@@ -475,7 +475,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
       ]]
         <a class="cli" href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a>
         <a class="cli" href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a>
-        <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= h(AEGIS.shield.env) ]]</span> <span>[[= h(AEGIS.shield.ip) ]]</span></a></h1>
+        <h1><a href="#!/systems">SHIELD [[ if (AEGIS.shield.color) { ]]<span style="color:[[= AEGIS.shield.color ]]">[[ } ]][[= h(AEGIS.shield.env) ]]</span></a></h1>
         [[ if (AEGIS.authenticated()) { ]]
         <a href="#!/account" rel="account">[[= h(AEGIS.user.name) ]][[ if (AEGIS.current) { ]] ([[= h(AEGIS.current.name) ]] :: [[= AEGIS.role(AEGIS.current.uuid) ]])[[ } ]]</a>
         <div class="flyout ephemeral">
@@ -520,7 +520,6 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   [[ if (AEGIS.shield.version) { ]]<span class="v">[[= h(AEGIS.shield.version) ]]</span>
                   [[ } else { ]]<span class="v dev">(development)</span>
                   [[ } ]]</li>
-                [[ if (AEGIS.shield.ip)   { ]]<li class="ip">[[= h(AEGIS.shield.ip) ]]</li>[[ } ]]
                 [[ if (AEGIS.shield.fqdn) { ]]<li class="fqdn">[[= h(AEGIS.shield.fqdn) ]]</li>[[ } ]]
                 <li class="env"><span style="color: [[= h(lens.maybe(AEGIS.shield.color, "#8CC63F")) ]]">[[= h(AEGIS.shield.env) ]]</span></li>
               </ul>
