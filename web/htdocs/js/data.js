@@ -419,6 +419,14 @@
         case 'task-status-update':
           self.update('task', update.data);
           break;
+        case 'tenant-banish': console.log('tenant-banish');
+                              self.grant(update.data.tenant_uuid, update.data.role); 
+                              $('.top-bar').template('top-bar');
+                              break;
+        case 'tenant-invite': console.log('tenant-invite'); 
+                              self.grant(update.data.tenant_uuid, update.data.role); 
+                              $('.top-bar').template('top-bar');
+                              break;
         default:
           console.log('unrecognized websocket message "%s": %s', update.event, JSON.stringify(update.data));
           return;

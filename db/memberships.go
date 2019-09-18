@@ -40,10 +40,13 @@ func (db *DB) ClearMembershipsFor(user *User) error {
 	return db.Exec(`DELETE FROM memberships WHERE user_uuid = ?`, user.UUID)
 }
 
-func (db *DB) AddUserToTenant(user, tenant, role string) error {
-	err := db.exclusively(func() error {
+func (db *DB) AddUserToTenant(user, tenant_id, role string) error {
+	var tenant *Tenant
+	var err error
+	err = db.exclusively(func() error {
 		/* validate the tenant */
-		if err := db.tenantShouldExist(tenant); err != nil {
+		tenant, err = db.GetTenant(tenant_id)
+		if err != nil {
 			return fmt.Errorf("unable to create tenant membership: %s", err)
 		}
 
@@ -56,7 +59,7 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 		    SELECT m.role
 		      FROM memberships m
 		     WHERE m.user_uuid = ?
-		       AND m.tenant_uuid = ?`, user, tenant)
+		       AND m.tenant_uuid = ?`, user, tenant.UUID)
 		if err != nil {
 			return err
 		}
@@ -66,13 +69,13 @@ func (db *DB) AddUserToTenant(user, tenant, role string) error {
 			       SET role = ?
 			     WHERE user_uuid = ?
 			       AND tenant_uuid = ?`,
-				role, user, tenant)
+				role, user, tenant.UUID)
 
 		} else {
 			return db.exec(`
 			    INSERT INTO memberships (user_uuid, tenant_uuid, role)
 			                     VALUES (?, ?, ?)`,
-				user, tenant, role)
+				user, tenant.UUID, role)
 		}
 	})
 	if err != nil {
