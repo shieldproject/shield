@@ -369,10 +369,6 @@
       }
     },
 
-    chooseTenant: function(tenant_uuid) {
-      
-    },
-
     subscribe: function (opts) {
       opts = $.extend({
         bearings:  '/v2/bearings',
