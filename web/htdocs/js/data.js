@@ -369,6 +369,10 @@
       }
     },
 
+    chooseTenant: function(tenant_uuid) {
+      
+    },
+
     subscribe: function (opts) {
       opts = $.extend({
         bearings:  '/v2/bearings',
@@ -420,12 +424,38 @@
           self.update('task', update.data);
           break;
         case 'tenant-banish': console.log('tenant-banish');
-                              self.grant(update.data.tenant_uuid, update.data.role); 
+                              var tenant = {uuid: update.data.tenant_uuid};
+                              self.delete("tenant", tenant);
+                              var tenants = self.tenants();
+                              for (index of tenants) {
+                                console.log(index.uuid);
+                              }
+                              if (tenants.length == 0) {
+                                console.log("no other tenants");
+                                self.grant({uuid: update.data.tenant_uuid}, "");
+                                self.current = "";
+                              } else {
+                                console.log("tenant chosen");
+                                tenant = tenants[0];
+                                self.current = tenant;
+                                console.dir(self.current);
+                              }
+                              console.dir(update);
                               $('.top-bar').template('top-bar');
+                              $('#side-bar').template('side-bar');
                               break;
         case 'tenant-invite': console.log('tenant-invite'); 
-                              self.grant(update.data.tenant_uuid, update.data.role); 
+                              var tenants = self.tenants();
+                              var length = tenants.length;
+                              self.insert("tenant", update.data.tenant)
+                              self.grant(update.data.tenant.uuid, update.data.role);
+                              if (length == 0) {
+                                self.current = update.data.tenant;
+                                console.dir(self.current)
+                              }
+                              console.dir(update);
                               $('.top-bar').template('top-bar');
+                              $('#side-bar').template('side-bar');
                               break;
         default:
           console.log('unrecognized websocket message "%s": %s', update.event, JSON.stringify(update.data));

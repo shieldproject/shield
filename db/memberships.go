@@ -41,20 +41,15 @@ func (db *DB) ClearMembershipsFor(user *User) error {
 }
 
 func (db *DB) AddUserToTenant(user, tenant_id, role string) error {
-	var tenant *Tenant
-	var err error
+	tenant, err := db.GetTenant(tenant_id)
+	if err != nil {
+		return fmt.Errorf("unable to create tenant membership: %s", err)
+	}
 	err = db.exclusively(func() error {
-		/* validate the tenant */
-		tenant, err = db.GetTenant(tenant_id)
-		if err != nil {
-			return fmt.Errorf("unable to create tenant membership: %s", err)
-		}
-
 		/* validate the user */
 		if err := db.userShouldExist(user); err != nil {
 			return fmt.Errorf("unable to create tenant membership: %s", err)
 		}
-
 		exists, err := db.exists(`
 		    SELECT m.role
 		      FROM memberships m
