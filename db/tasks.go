@@ -190,19 +190,19 @@ func (f *TaskFilter) Query() (string, []interface{}) {
 		args = append(args, f.Limit)
 	}
 	return `
-		SELECT t.uuid, t.tenant_uuid, t.owner, t.op,
-		       t.job_uuid, t.archive_uuid,
-		       t.store_uuid,  t.store_plugin,  t.store_endpoint,
-		       t.target_uuid, t.target_plugin, t.target_endpoint,
-		       t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
-		       t.restore_key, t.attempts, t.agent, t.log,
-		       t.ok, t.notes, t.clear, t.fixed_key, t.compression
+        SELECT t.uuid, t.tenant_uuid, t.owner, t.op,
+               t.job_uuid, t.archive_uuid,
+               t.store_uuid,  t.store_plugin,  t.store_endpoint,
+               t.target_uuid, t.target_plugin, t.target_endpoint,
+               t.status, t.requested_at, t.started_at, t.stopped_at, t.timeout_at,
+               t.restore_key, t.attempts, t.agent, t.log,
+               t.ok, t.notes, t.clear, t.fixed_key, t.compression
 
-		FROM tasks t
+        FROM tasks t
 
-		WHERE ` + strings.Join(wheres, " AND ") + `
-		ORDER BY t.requested_at DESC, t.started_at DESC, t.uuid ASC
-	` + limit, args
+        WHERE ` + strings.Join(wheres, " AND ") + `
+        ORDER BY t.requested_at DESC, t.started_at DESC, t.uuid ASC
+    ` + limit, args
 }
 
 func (db *DB) GetAllTasks(filter *TaskFilter) ([]*Task, error) {
@@ -295,8 +295,8 @@ func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 		}
 
 		return db.exec(`
-		  INSERT INTO tasks (uuid, owner, op, status, tenant_uuid, log, requested_at)
-		             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          INSERT INTO tasks (uuid, owner, op, status, tenant_uuid, log, requested_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
 			id, owner, op, RunningStatus, tenant, "", time.Now().Unix())
 	})
 	if err != nil {
@@ -342,15 +342,15 @@ func (db *DB) CreateBackupTask(owner string, job *Job) (*Task, error) {
 
 		return db.exec(
 			`INSERT INTO tasks
-			    (uuid, owner, op, job_uuid, status, log, requested_at,
-			     archive_uuid, store_uuid, store_plugin, store_endpoint,
-			     target_uuid, target_plugin, target_endpoint, restore_key,
-			     agent, attempts, tenant_uuid, fixed_key, compression)
-			  VALUES
-			    (?, ?, ?, ?, ?, ?, ?,
-			     ?, ?, ?, ?,
-			     ?, ?, ?, ?,
-			     ?, ?, ?, ?, ?)`,
+                (uuid, owner, op, job_uuid, status, log, requested_at,
+                 archive_uuid, store_uuid, store_plugin, store_endpoint,
+                 target_uuid, target_plugin, target_endpoint, restore_key,
+                 agent, attempts, tenant_uuid, fixed_key, compression)
+              VALUES
+                (?, ?, ?, ?, ?, ?, ?,
+                 ?, ?, ?, ?,
+                 ?, ?, ?, ?,
+                 ?, ?, ?, ?, ?)`,
 			id, owner, BackupOperation, job.UUID, PendingStatus, "", time.Now().Unix(),
 			archive, job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
 			job.Target.UUID, job.Target.Plugin, job.Target.Endpoint, "",
@@ -394,17 +394,17 @@ func (db *DB) SkipBackupTask(owner string, job *Job, msg string) (*Task, error) 
 
 		return db.exec(
 			`INSERT INTO tasks
-			    (uuid, owner, op, job_uuid, status, log,
-			     requested_at, started_at, stopped_at, ok,
-			     store_uuid, store_plugin, store_endpoint,
-			     target_uuid, target_plugin, target_endpoint, restore_key,
-			     agent, attempts, tenant_uuid, fixed_key, compression)
-			  VALUES
-			    (?, ?, ?, ?, ?, ?,
-			     ?, ?, ?, ?,
-			     ?, ?, ?,
-			     ?, ?, ?, ?,
-			     ?, ?, ?, ?, ?)`,
+                (uuid, owner, op, job_uuid, status, log,
+                 requested_at, started_at, stopped_at, ok,
+                 store_uuid, store_plugin, store_endpoint,
+                 target_uuid, target_plugin, target_endpoint, restore_key,
+                 agent, attempts, tenant_uuid, fixed_key, compression)
+              VALUES
+                (?, ?, ?, ?, ?, ?,
+                 ?, ?, ?, ?,
+                 ?, ?, ?,
+                 ?, ?, ?, ?,
+                 ?, ?, ?, ?, ?)`,
 			id, owner, BackupOperation, job.UUID, CanceledStatus, msg,
 			now, now, now, 0,
 			job.Store.UUID, job.Store.Plugin, job.Store.Endpoint,
@@ -457,15 +457,15 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
 
 		return db.exec(
 			`INSERT INTO tasks
-			    (uuid, owner, op, archive_uuid, status, log, requested_at,
-			     store_uuid, store_plugin, store_endpoint,
-			     target_uuid, target_plugin, target_endpoint,
-			     restore_key, agent, attempts, tenant_uuid)
-			  VALUES
-			    (?, ?, ?, ?, ?, ?, ?,
-			     ?, ?, ?,
-			     ?, ?, ?,
-			     ?, ?, ?, ?)`,
+                (uuid, owner, op, archive_uuid, status, log, requested_at,
+                 store_uuid, store_plugin, store_endpoint,
+                 target_uuid, target_plugin, target_endpoint,
+                 restore_key, agent, attempts, tenant_uuid)
+              VALUES
+                (?, ?, ?, ?, ?, ?, ?,
+                 ?, ?, ?,
+                 ?, ?, ?,
+                 ?, ?, ?, ?)`,
 			id, owner, RestoreOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
 			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
 			target.UUID, target.Plugin, endpoint,
@@ -507,15 +507,15 @@ func (db *DB) CreatePurgeTask(owner string, archive *Archive) (*Task, error) {
 
 		return db.exec(
 			`INSERT INTO tasks
-			    (uuid, owner, op, archive_uuid, status, log, requested_at,
-			     store_uuid, store_plugin, store_endpoint,
-			     target_plugin, target_endpoint,
-			     restore_key, agent, attempts, tenant_uuid)
-			  VALUES
-			    (?, ?, ?, ?, ?, ?, ?,
-			     ?, ?, ?,
-			     ?, ?,
-			     ?, ?, ?, ?)`,
+                (uuid, owner, op, archive_uuid, status, log, requested_at,
+                 store_uuid, store_plugin, store_endpoint,
+                 target_plugin, target_endpoint,
+                 restore_key, agent, attempts, tenant_uuid)
+              VALUES
+                (?, ?, ?, ?, ?, ?, ?,
+                 ?, ?, ?,
+                 ?, ?,
+                 ?, ?, ?, ?)`,
 			id, owner, PurgeOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
 			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
 			"", "",
@@ -557,13 +557,13 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 
 		err := db.exec(
 			`INSERT INTO tasks
-			    (uuid, owner, op, status, log, requested_at,
-			     store_uuid, store_plugin, store_endpoint,
-			     agent, attempts, tenant_uuid)
-			  VALUES
-			    (?, ?, ?, ?, ?, ?,
-			     ?, ?, ?,
-			     ?, ?, ?)`,
+                (uuid, owner, op, status, log, requested_at,
+                 store_uuid, store_plugin, store_endpoint,
+                 agent, attempts, tenant_uuid)
+              VALUES
+                (?, ?, ?, ?, ?, ?,
+                 ?, ?, ?,
+                 ?, ?, ?)`,
 			id, owner, TestStoreOperation, PendingStatus, "", time.Now().Unix(),
 			store.UUID, store.Plugin, endpoint,
 			store.Agent, 0, store.TenantUUID)
@@ -573,8 +573,8 @@ func (db *DB) CreateTestStoreTask(owner string, store *Store) (*Task, error) {
 
 		return db.exec(
 			`UPDATE stores
-			    SET last_test_task_uuid = ?
-			  WHERE uuid=?`,
+                SET last_test_task_uuid = ?
+              WHERE uuid=?`,
 			id, store.UUID)
 	})
 	if err != nil {
@@ -612,11 +612,11 @@ func (db *DB) CreateAgentStatusTask(owner string, agent *Agent) (*Task, error) {
 
 	id := RandomID()
 	err = db.Exec(`
-	   INSERT INTO tasks (uuid, op, status, log, requested_at,
-	                      tenant_uuid, agent, attempts, owner, tenant_uuid)
-	
-	              VALUES (?, ?, ?, ?, ?,
-	                      ?, ?, ?, ?, ?)`,
+       INSERT INTO tasks (uuid, op, status, log, requested_at,
+                          tenant_uuid, agent, attempts, owner, tenant_uuid)
+    
+                  VALUES (?, ?, ?, ?, ?,
+                          ?, ?, ?, ?, ?)`,
 		id, AgentStatusOperation, PendingStatus, "", time.Now().Unix(),
 		GlobalTenantUUID, agent.Address, 0, owner, "",
 	)
@@ -646,8 +646,8 @@ func (db *DB) IsTaskRunnable(task *Task) (bool, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 	r, err := db.query(`
-		SELECT uuid FROM tasks
-		  WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID, RunningStatus)
+        SELECT uuid FROM tasks
+          WHERE target_uuid = ? AND status = ? LIMIT 1`, task.TargetUUID, RunningStatus)
 	if err != nil {
 		return false, err
 	}
@@ -783,10 +783,10 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 		db.exclusive.Lock()
 		defer db.exclusive.Unlock()
 		r, err := db.query(`
-		       SELECT j.keep_days
-		         FROM jobs j
-		   INNER JOIN tasks t ON j.uuid = t.job_uuid
-		        WHERE t.uuid = ?`,
+               SELECT j.keep_days
+                 FROM jobs j
+           INNER JOIN tasks t ON j.uuid = t.job_uuid
+                WHERE t.uuid = ?`,
 			id)
 		if err != nil {
 			return 0, err
@@ -808,27 +808,21 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 	}
 
 	// insert an archive with all proper references, expiration, etc.
-	err = db.Exec(`
-	  INSERT INTO archives
-	    (uuid, target_uuid, store_uuid, store_key, taken_at,
-	     expires_at, notes, status, purge_reason, job,
-	     compression, encryption_type, size, tenant_uuid)
-
-	      SELECT ?, t.uuid, s.uuid, ?, ?,
-	             ?, '', 'valid', '', j.Name,
-	             ?, ?, ?, ?
-	      FROM tasks
-	         INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
-	         INNER JOIN targets t     ON t.uuid = j.target_uuid
-	         INNER JOIN stores  s     ON s.uuid = j.store_uuid
-	      WHERE tasks.uuid = ?`,
-		archive_id, key,
-		effectively(at), at.Add(time.Duration(n*24)*time.Hour).Unix(),
-		compression, encryptionType, archive_size, tenant_uuid, id)
+	archive, err := db.CreateArchiveFromTask(id, Archive{
+		UUID:           archive_id,
+		StoreKey:       key,
+		TakenAt:        effectively(at),
+		ExpiresAt:      at.Add(time.Duration(n*24) * time.Hour).Unix(),
+		EncryptionType: encryptionType,
+		Compression:    compression,
+		Size:           archive_size,
+		TenantUUID:     tenant_uuid,
+	})
 	if err != nil {
-		log.Errorf("failed to insert archive with UUID %s into database: %s", archive_id, err)
+		log.Errorf("failed to insert archive with UUID %s into database: %s", archive.UUID, err)
 		return "", err
 	}
+	db.sendCreateObjectEvent(archive, "tenant:"+archive.TenantUUID)
 
 	// and finally, associate task -> archive
 	return archive_id, db.Exec(
@@ -868,8 +862,8 @@ func (db *DB) AnnotateTargetTask(target, id string, t *TaskAnnotation) error {
 func (db *DB) MarkTasksIrrelevant() error {
 	err := db.Exec(
 		`UPDATE tasks SET relevant = 0
-	  WHERE relevant = 1
-		AND clear = 'immediate'`)
+      WHERE relevant = 1
+        AND clear = 'immediate'`)
 
 	if err != nil {
 		return err
@@ -877,11 +871,11 @@ func (db *DB) MarkTasksIrrelevant() error {
 
 	err = db.Exec(
 		`UPDATE tasks SET relevant = 0
-	  WHERE relevant = 1 AND clear = 'normal'
-		AND uuid IN (
-		  SELECT tasks.uuid FROM tasks
-			INNER JOIN jobs ON jobs.uuid = tasks.job_uuid
-				 WHERE jobs.keepdays * 86400 + tasks.started_at < ?`, time.Now().Unix())
+      WHERE relevant = 1 AND clear = 'normal'
+        AND uuid IN (
+          SELECT tasks.uuid FROM tasks
+            INNER JOIN jobs ON jobs.uuid = tasks.job_uuid
+                 WHERE jobs.keepdays * 86400 + tasks.started_at < ?`, time.Now().Unix())
 
 	if err != nil {
 		return err
@@ -889,7 +883,7 @@ func (db *DB) MarkTasksIrrelevant() error {
 
 	err = db.Exec(
 		`UPDATE tasks SET relevant = 1
-	  WHERE relevant = 0 AND clear = 'manual'`)
+      WHERE relevant = 0 AND clear = 'manual'`)
 	if err != nil {
 		return err
 	}
