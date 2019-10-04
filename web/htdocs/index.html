@@ -12,6 +12,7 @@
       <a class="cli" href="/cli/mac/shield"   title="Download MacOS SHIELD CLI"><i class="fab fa-1x fa-apple"></i></a>
       <a class="cli" href="/cli/linux/shield" title="Download Linux SHIELD CLI"><i class="fab fa-1x fa-linux"></i></a>
       <h1>SHIELD</h1></div>
+    <div id="side-bar"></div>
     <div id="viewport" class="full"></div>
 
     <script type="text/html" id="template:layout"><!-- {{{ -->
@@ -20,34 +21,6 @@
 
         The main (authenticated) layout for the UI
       ]]
-      <div class="story-sidebar">
-        <nav>
-          [[ if (AEGIS.is('tenant', 'operator')) { ]]
-            <li><a href="#!/do/backup">Run an ad hoc backup</a>
-                <p>Run a backup job whenever you need to, regardless of the job's
-                schedule.</p></li>
-
-            <li><a href="#!/do/restore">Restore data from a backup</a>
-                <p>Restore a protected system back to the state it was in when a
-                backup archive was taken.</p></li>
-            [[ if (AEGIS.is('tenant', 'engineer')) { ]]
-              <li><a href="#!/do/configure">Configure a new backup job</a>
-                  <p>Set up a new protected system, and configure the how, when,
-                  and for how long of managing its backup archives.</p></li>
-            [[ } ]]
-          [[ } else { ]]
-            <li><a>You have no tenants...</a>
-                <p>Operator stories will show up on the sidebar here, but only
-                if you have been assigned to one or more SHIELD tenants.</p></li>
-          [[ } ]]
-        </nav>
-        <footer>
-          <a target="_blank" href="https://github.com/starkandwayne/shield"><img src="/i/social/github.png"></a>
-          <a target="_blank" href="https://shieldproject.slack.com"><img src="/i/social/slack.png"></a>
-          <a target="_blank" href="https://twitter.com/starkandwayne"><img src="/i/social/twitter.png"></a>
-          <p>SHIELD Copyright &copy; 2019 Stark & Wayne</p>
-        </footer>
-      </div>
       <div class="pane">
         [[ if (AEGIS.is('engineer') || AEGIS.is('tenant', 'operator')) { ]]
         <div class="hud blk" id="hud">
@@ -106,6 +79,40 @@
         <div class="field" id="main">
           <img id="loading" src="/i/loading.svg"/>
         </div>
+      </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:side-bar"><!-- {{{ -->
+      [[#
+        {side-bar} template
+        The side-bar which contains options for restore and backup
+      ]]
+      <div class="story-sidebar">
+        <nav>
+          [[ if (AEGIS.is('tenant', 'operator')) { ]]
+            <li><a href="#!/do/backup">Run an ad hoc backup</a>
+                <p>Run a backup job whenever you need to, regardless of the job's
+                schedule.</p></li>
+
+            <li><a href="#!/do/restore">Restore data from a backup</a>
+                <p>Restore a protected system back to the state it was in when a
+                backup archive was taken.</p></li>
+            [[ if (AEGIS.is('tenant', 'engineer')) { ]]
+              <li><a href="#!/do/configure">Configure a new backup job</a>
+                  <p>Set up a new protected system, and configure the how, when,
+                  and for how long of managing its backup archives.</p></li>
+            [[ } ]]
+          [[ } else { ]]
+            <li><a>You have no tenants...</a>
+                <p>Operator stories will show up on the sidebar here, but only
+                if you have been assigned to one or more SHIELD tenants.</p></li>
+          [[ } ]]
+        </nav>
+        <footer>
+          <a target="_blank" href="https://github.com/starkandwayne/shield"><img src="/i/social/github.png"></a>
+          <a target="_blank" href="https://shieldproject.slack.com"><img src="/i/social/slack.png"></a>
+          <a target="_blank" href="https://twitter.com/starkandwayne"><img src="/i/social/twitter.png"></a>
+          <p>SHIELD Copyright &copy; 2019 Stark & Wayne</p>
+        </footer>
       </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:loading"><!-- {{{ -->
@@ -485,7 +492,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
             </div>
             <div class="divider"></div>
             <div class="header">Your Tenants</div>
-            [[ var tenants = AEGIS.tenants(); ]]
+            [[ var tenants = AEGIS.myTenants(); ]]
             [[ if (tenants.length == 0) { ]]
             <span class="dropdown odd">you have no tenants</span>
             [[ } else { ]]

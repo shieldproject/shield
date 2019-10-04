@@ -126,12 +126,23 @@
       throw 'not implemented'; /* FIXME */
     },
 
+    myTenants: function () {
+      var tenants = [];
+      for (var uuid in this.grants.tenant) {
+        var tenant = this.data.tenant[uuid];
+        if (tenant) {
+          tenants.push(tenant);
+        }
+      }
+      return tenants;
+    },
     tenants: function () {
-
       var tenants = [];
       for (var uuid in this.data.tenant || {}) {
         var tenant = this.data.tenant[uuid];
-        tenants.push(tenant);
+        if (tenant) {
+          tenants.push(tenant);
+        }
       }
       return tenants;
     },
@@ -296,14 +307,35 @@
     authenticated: function () {
       return typeof(this.user) !== 'undefined';
     },
+    revoke: function () {
+      if (arguments.length == 0) {
+        /* revoke system rights: revoke() */
+        this.grants.system.admin    = false;
+        this.grants.system.manager  = false;
+        this.grants.system.engineer = false;
+
+      } else {
+        /* revoke a tenant rights: revoke($tenant) */
+        var uuid = arguments[0];
+
+        delete this.grants.tenant[uuid];
+
+        /* if we are no longer a member of our current
+           tenant, change the current tenant */
+        if (this.current && this.current.uuid == uuid) {
+          var tenants = this.myTenants();
+          this.current = tenants.length == 0 ? undefined : tenants[0];
+        }
+      }
+      return this;
+    },
+
     grant: function () {
       if (arguments.length == 1) {
         /* grant a system role: grant($role) */
 
         /* first revoke all explicit / implicit grants */
-        this.grants.system.admin    = false;
-        this.grants.system.manager  = false;
-        this.grants.system.engineer = false;
+        this.revoke()
 
         /* then grant only the privileges for this role */
         switch (arguments[0]) {
@@ -328,6 +360,10 @@
         case 'admin':    this.grants.tenant[uuid].admin    = true;
         case 'engineer': this.grants.tenant[uuid].engineer = true;
         case 'operator': this.grants.tenant[uuid].operator = true;
+        }
+
+        if (!this.current) {
+          this.current = this.tenant(uuid);
         }
       }
       return this;
@@ -419,6 +455,18 @@
         case 'task-status-update':
           self.update('task', update.data);
           break;
+        case 'tenant-banish': var tenant = {uuid: update.data.tenant_uuid};
+                              self.revoke(tenant.uuid)
+                              self.delete("tenant", tenant);
+                              $('.top-bar').template('top-bar');
+                              $('#side-bar').template('side-bar');
+                              break;
+
+        case 'tenant-invite': self.insert("tenant", update.data.tenant)
+                              self.grant(update.data.tenant.uuid, update.data.role);
+                              $('.top-bar').template('top-bar');
+                              $('#side-bar').template('side-bar');
+                              break;
         default:
           console.log('unrecognized websocket message "%s": %s', update.event, JSON.stringify(update.data));
           return;

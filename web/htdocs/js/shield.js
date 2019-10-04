@@ -1334,6 +1334,7 @@ $(function () {
         document.title = "SHIELD "+AEGIS.shield.env;
         $('.top-bar').template('top-bar');
         if (AEGIS.authenticated()) {
+          $('#side-bar').template('side-bar')
           $('#viewport').template('layout');
           $('#hud').template('hud');
           if (AEGIS.vault == "locked") {

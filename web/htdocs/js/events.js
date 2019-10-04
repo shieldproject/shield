@@ -73,6 +73,7 @@
         AEGIS.use(uuid);
 
         $('.top-bar').template('top-bar');
+        $('#side-bar').template('side-bar')
         $('#viewport').template('layout');
         $('#hud').template('hud');
 

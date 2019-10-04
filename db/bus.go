@@ -123,13 +123,13 @@ func (db *DB) sendTaskLogUpdateEvent(id, msg string, queues ...string) {
 	}
 }
 
-func (db *DB) sendTenantInviteEvent(user, tenant, role string) {
+func (db *DB) sendTenantInviteEvent(user string, tenant *Tenant, role string) {
 	if db.bus != nil {
 		db.bus.Send(bus.TenantInviteEvent, "", map[string]interface{}{
-			"user_uuid":   user,
-			"tenant_uuid": tenant,
-			"role":        role,
-		}, "user:"+user, "tenant:"+tenant)
+			"user_uuid": user,
+			"tenant":    tenant,
+			"role":      role,
+		}, "user:"+user, "tenant:"+tenant.UUID)
 	}
 }
 
