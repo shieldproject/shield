@@ -296,14 +296,30 @@
     authenticated: function () {
       return typeof(this.user) !== 'undefined';
     },
+    revoke: function () {
+      if (arguments.length == 0) {
+        /* revoke system rights: revoke() */
+        this.grants.system.admin    = false;
+        this.grants.system.manager  = false;
+        this.grants.system.engineer = false;
+
+      } else {
+        /* revoke a tenant rights: revoke($tenant) */
+        this.grants.tenant[arguments[0]] = {
+          admin:    false,
+          engineer: false,
+          operator: false
+        };
+      }
+      return this;
+    },
+
     grant: function () {
       if (arguments.length == 1) {
         /* grant a system role: grant($role) */
 
         /* first revoke all explicit / implicit grants */
-        this.grants.system.admin    = false;
-        this.grants.system.manager  = false;
-        this.grants.system.engineer = false;
+        this.revoke()
 
         /* then grant only the privileges for this role */
         switch (arguments[0]) {
@@ -317,11 +333,7 @@
         var uuid = arguments[0];
 
         /* first revoke all expliit / implicit grants */
-        this.grants.tenant[uuid] = {
-          admin:    false,
-          engineer: false,
-          operator: false
-        };
+        this.revoke(uuid)
 
         /* then grant only the privileges for this role */
         switch (arguments[1]) {
