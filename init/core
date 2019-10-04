@@ -20,7 +20,7 @@ if [[ ! -f "${SHIELD_ETC}/ssh.key" ]]; then
   rm -f "${SHIELD_ETC}/ssh.key.pub"
 fi
 
-if [[ ! -f "${SHIELD_ETC}/shieldd.conf" ]]; then
+if [[ ! -f "${SHIELD_ETC}/shieldd.conf" && -z ${SHIELD_LEGACY_AGENTS_PRIVATE_KEY:-} ]]; then
   legacy_ssh_key=$(cat ${SHIELD_ETC}/ssh.key | sed -e 's/^/      /')
 
   cat > "${SHIELD_ETC}/shieldd.conf" <<EOF

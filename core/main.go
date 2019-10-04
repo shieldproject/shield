@@ -203,7 +203,7 @@ func (c *Core) CleanupLeftoverTasks() {
 func (c *Core) ConnectToVault() {
 	log.Infof("INITIALIZING: connecting to the local SHIELD vault...")
 
-	v, err := vault.Connect(c.Config.Vault.Address, c.Config.Vault.ca)
+	v, err := vault.Connect(c.Config.Vault.Address, c.Config.Vault.CACert)
 	c.MaybeTerminate(err)
 
 	status, err := v.Status()

@@ -2,72 +2,104 @@ package agent
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
 
+	env "github.com/jhunt/go-envirotron"
 	"github.com/jhunt/go-log"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	Name               string   `yaml:"name"`
-	AuthorizedKeysFile string   `yaml:"authorized_keys_file"`
-	HostKeyFile        string   `yaml:"host_key_file"`
-	ListenAddress      string   `yaml:"listen_address"`
+	Name               string   `yaml:"name"                 env:"SHIELD_AGENT_NAME"`
+	AuthorizedKeysFile string   `yaml:"authorized_keys_file" env:"SHIELD_AGENT_AUTHORIZED_KEYS_FILE"`
+	AuthorizedKey      string   `yaml:"authorized_key"       env:"SHIELD_AGENT_AUTHORIZED_KEY"`
+	HostKeyFile        string   `yaml:"host_key_file"        env:"SHIELD_AGENT_HOST_KEY_FILE"`
+	HostKey            string   `yaml:"host_key"             env:"SHIELD_AGENT_HOST_KEY"`
+	ListenAddress      string   `yaml:"listen_address"       env:"SHIELD_AGENT_LISTEN_ADDRESS"`
 	PluginPaths        []string `yaml:"plugin_paths"`
+	PluginPathsEnv     string   `yaml:"-"                    env:"SHIELD_AGENT_PLUGIN_PATHS"`
 	Registration       struct {
-		URL          string `yaml:"url"`
-		Interval     int    `yaml:"interval"`
-		ShieldCACert string `yaml:"shield_ca_cert"`
-		SkipVerify   bool   `yaml:"skip_verify"`
+		URL          string `yaml:"url"             env:"SHIELD_AGENT_REGISTRATION_URL"`
+		Interval     int    `yaml:"interval"        env:"SHIELD_AGENT_REGISTRATION_INTERVAL"`
+		ShieldCACert string `yaml:"shield_ca_cert"  env:"SHIELD_AGENT_REGISTRATION_SHIELD_CA_CERT"`
+		SkipVerify   bool   `yaml:"skip_verify"     env:"SHIELD_AGENT_REGISTRATION_SKIP_VERIFY"`
 	} `yaml:"registration"`
 }
 
 func (agent *Agent) ReadConfig(path string) error {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
+	var err error
 	var config Config
-	err = yaml.Unmarshal(b, &config)
 
-	if err != nil {
-		return err
+	if path != "" {
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := yaml.Unmarshal(b, &config); err != nil {
+			return err
+		}
 	}
+
+	env.Override(&config)
 
 	if config.Name == "" {
 		return fmt.Errorf("No agent name specified.")
 	}
-	if config.AuthorizedKeysFile == "" {
-		return fmt.Errorf("No authorized keys file supplied.")
-	}
-	if config.HostKeyFile == "" {
-		return fmt.Errorf("No host key file supplied.")
-	}
 	if config.ListenAddress == "" {
 		return fmt.Errorf("No listen address and/or port supplied.")
+	}
+
+	if config.AuthorizedKeysFile == "" && config.AuthorizedKey == "" {
+		return fmt.Errorf("No authorized keys supplied.")
+	}
+
+	if config.PluginPathsEnv != "" {
+		p := strings.Split(config.PluginPathsEnv, ":")
+		for _, path := range config.PluginPaths {
+			p = append(p, path)
+		}
+		config.PluginPaths = p
 	}
 	if len(config.PluginPaths) == 0 {
 		return fmt.Errorf("No plugin path supplied.")
 	}
 
-	authorizedKeys, err := LoadAuthorizedKeys(config.AuthorizedKeysFile)
+	var authorizedKeys []ssh.PublicKey
+	if config.AuthorizedKey != "" {
+		authorizedKeys, err = LoadAuthorizedKeysFromBytes([]byte(config.AuthorizedKey))
+	} else {
+		authorizedKeys, err = LoadAuthorizedKeysFromFile(config.AuthorizedKeysFile)
+	}
 	if err != nil {
 		log.Errorf("failed to load authorized keys: %s\n", err)
 		return err
 	}
 
-	server, err := ConfigureSSHServer(config.HostKeyFile, authorizedKeys)
+	var hostKey ssh.Signer
+	if config.HostKey != "" {
+		hostKey, err = LoadPrivateKeyFromBytes([]byte(config.HostKey))
+	} else if config.HostKeyFile != "" {
+		hostKey, err = LoadPrivateKeyFromBytes([]byte(config.HostKey))
+	} else {
+		hostKey, err = GeneratePrivateKey()
+	}
+	if err != nil {
+		log.Errorf("failed to load host key: %s\n", err)
+		return err
+	}
+
+	agent.config, err = ConfigureSSHServer(hostKey, authorizedKeys)
 	if err != nil {
 		log.Errorf("failed to configure SSH server: %s", err)
 		return err
 	}
-	agent.config = server
 
 	agent.Name = config.Name
 	l := strings.Split(config.ListenAddress, ":")
@@ -88,12 +120,11 @@ func (agent *Agent) ReadConfig(path string) error {
 		agent.Port = int(n)
 	}
 
-	listener, err := net.Listen("tcp4", config.ListenAddress)
+	agent.Listen, err = net.Listen("tcp4", config.ListenAddress)
 	if err != nil {
 		log.Errorf("failed to bind %s: %s", config.ListenAddress, err)
 		return err
 	}
-	agent.Listen = listener
 
 	agent.PluginPaths = config.PluginPaths
 
@@ -102,40 +133,66 @@ func (agent *Agent) ReadConfig(path string) error {
 	agent.Registration.SkipVerify = config.Registration.SkipVerify
 
 	if config.Registration.ShieldCACert != "" {
-		b, err := ioutil.ReadFile(config.Registration.ShieldCACert)
-		if err != nil {
-			log.Errorf("failed to configure shield-agent: failed to read CA-Cert with err '%s' ", err)
-			return err
+		if !strings.HasPrefix(config.Registration.ShieldCACert, "---") {
+			b, err := ioutil.ReadFile(config.Registration.ShieldCACert)
+			if err != nil {
+				log.Errorf("failed to configure shield-agent: failed to read CA-Cert with err '%s' ", err)
+				return err
+			}
+			config.Registration.ShieldCACert = string(b)
 		}
-		agent.Registration.ShieldCACert = string(b)
+		agent.Registration.ShieldCACert = config.Registration.ShieldCACert
 	}
 
 	return nil
 }
 
-func LoadAuthorizedKeys(path string) ([]ssh.PublicKey, error) {
-	authorizedKeysBytes, err := ioutil.ReadFile(path)
+func LoadAuthorizedKeysFromFile(path string) ([]ssh.PublicKey, error) {
+	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
+	return LoadAuthorizedKeysFromBytes(b)
+}
 
-	var authorizedKeys []ssh.PublicKey
+func LoadAuthorizedKeysFromBytes(b []byte) ([]ssh.PublicKey, error) {
+	var keys []ssh.PublicKey
 
 	for {
-		key, _, _, rest, err := ssh.ParseAuthorizedKey(authorizedKeysBytes)
+		key, _, _, rest, err := ssh.ParseAuthorizedKey(b)
 		if err != nil {
 			break
 		}
 
-		authorizedKeys = append(authorizedKeys, key)
-
-		authorizedKeysBytes = rest
+		keys = append(keys, key)
+		b = rest
 	}
 
-	return authorizedKeys, nil
+	return keys, nil
 }
 
-func ConfigureSSHServer(hostKeyPath string, authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {
+func GeneratePrivateKey() (ssh.Signer, error) {
+	k, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+	return ssh.NewSignerFromKey(k)
+}
+
+func LoadPrivateKeyFromFile(path string) (ssh.Signer, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return LoadPrivateKeyFromBytes(b)
+}
+
+func LoadPrivateKeyFromBytes(b []byte) (ssh.Signer, error) {
+	return ssh.ParsePrivateKey(b)
+}
+
+func ConfigureSSHServer(key ssh.Signer, authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {
 	certChecker := &ssh.CertChecker{
 		IsUserAuthority: func(key ssh.PublicKey) bool {
 			return false
@@ -158,17 +215,7 @@ func ConfigureSSHServer(hostKeyPath string, authorizedKeys []ssh.PublicKey) (*ss
 		},
 	}
 
-	privateBytes, err := ioutil.ReadFile(hostKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
-	private, err := ssh.ParsePrivateKey(privateBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	config.AddHostKey(private)
+	config.AddHostKey(key)
 
 	return config, nil
 }

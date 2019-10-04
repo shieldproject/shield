@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jhunt/go-cli"
+	env "github.com/jhunt/go-envirotron"
 	"github.com/jhunt/go-log"
 
 	// sql drivers
@@ -22,10 +23,11 @@ func main() {
 		Help    bool `cli:"-h, --help"`
 		Version bool `cli:"-v, --version"`
 
-		ConfigFile string `cli:"-c, --config"`
-		Log        string `cli:"-l, --log-level"`
+		ConfigFile string `cli:"-c, --config"    env:"SHIELD_CONFIG_FILE"`
+		Log        string `cli:"-l, --log-level" env:"SHIELD_LOG_LEVEL"`
 	}
 	opts.Log = "info"
+	env.Override(&opts)
 
 	_, args, err := cli.Parse(&opts)
 	if err != nil {
