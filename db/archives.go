@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/jhunt/go-log"
 )
 
 type Archive struct {
@@ -199,8 +197,7 @@ func (db *DB) GetAllArchives(filter *ArchiveFilter) ([]*Archive, error) {
 	return l, nil
 }
 
-//this getarchive function doesn't have a lock
-func (db *DB) getarchive(id string) (*Archive, error) {
+func (db *DB) getArchive(id string) (*Archive, error) {
 	r, err := db.query(`
         SELECT a.uuid, a.store_key,
                a.taken_at, a.expires_at, a.notes,
@@ -266,42 +263,40 @@ func (db *DB) getarchive(id string) (*Archive, error) {
 func (db *DB) GetArchive(id string) (*Archive, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
-	a, err := db.getarchive(id)
-	if err != nil {
-		log.Errorf("failed to get archive with UUID %s: %s", id, err)
-	}
-	return a, nil
+	return db.getArchive(id)
 }
 
 func (db *DB) CreateArchiveFromTask(task_uuid string, archive Archive) (*Archive, error) {
-	err := db.Exec(`
-    INSERT INTO archives
-      (uuid, target_uuid, store_uuid, store_key, taken_at,
-       expires_at, notes, status, purge_reason, job,
-       compression, encryption_type, size, tenant_uuid)
+	var out *Archive
 
-        SELECT ?, t.uuid, s.uuid, ?, ?,
-               ?, '', 'valid', '', j.Name,
-               ?, ?, ?, ?
-        FROM tasks
-           INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
-           INNER JOIN targets t     ON t.uuid = j.target_uuid
-           INNER JOIN stores  s     ON s.uuid = j.store_uuid
-        WHERE tasks.uuid = ?`,
-		archive.UUID, archive.StoreKey, archive.TakenAt, archive.ExpiresAt,
-		archive.Compression, archive.EncryptionType, archive.Size, archive.TenantUUID, task_uuid)
-	if err != nil {
-		log.Errorf("failed to insert archive with UUID %s into database: %s", archive.UUID, err)
-		return nil, err
-	}
+	err := db.exclusively(func () error {
+		err := db.exec(`
+                  INSERT INTO archives
+                    (uuid, target_uuid, store_uuid, store_key, taken_at,
+                     expires_at, notes, status, purge_reason, job,
+                     compression, encryption_type, size, tenant_uuid)
 
-	a, err := db.getarchive(archive.UUID)
-	if err != nil {
-		log.Errorf("failed to get archive with talk UUID %s from database: %s", task_uuid, err)
-		return nil, err
-	}
+                      SELECT ?, t.uuid, s.uuid, ?, ?,
+                             ?, '', 'valid', '', j.Name,
+                             ?, ?, ?, ?
+                      FROM tasks
+                         INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
+                         INNER JOIN targets t     ON t.uuid = j.target_uuid
+                         INNER JOIN stores  s     ON s.uuid = j.store_uuid
+                      WHERE tasks.uuid = ?`,
+			archive.UUID, archive.StoreKey, archive.TakenAt,
+			archive.ExpiresAt,
+			archive.Compression, archive.EncryptionType, archive.Size, archive.TenantUUID,
+			task_uuid)
+		if err != nil {
+			return err
+		}
 
-	return a, err
+		out, err = db.getArchive(archive.UUID)
+		return err
+	})
+
+	return out, err
 }
 
 func (db *DB) UpdateArchive(update *Archive) error {
