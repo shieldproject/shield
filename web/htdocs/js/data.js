@@ -126,12 +126,23 @@
       throw 'not implemented'; /* FIXME */
     },
 
+    myTenants: function () {
+      var tenants = [];
+      for (var uuid in this.grants.tenant) {
+        var tenant = this.data.tenant[uuid];
+        if (tenant) {
+          tenants.push(tenant);
+        }
+      }
+      return tenants;
+    },
     tenants: function () {
-
       var tenants = [];
       for (var uuid in this.data.tenant || {}) {
         var tenant = this.data.tenant[uuid];
-        tenants.push(tenant);
+        if (tenant) {
+          tenants.push(tenant);
+        }
       }
       return tenants;
     },
@@ -305,11 +316,16 @@
 
       } else {
         /* revoke a tenant rights: revoke($tenant) */
-        this.grants.tenant[arguments[0]] = {
-          admin:    false,
-          engineer: false,
-          operator: false
-        };
+        var uuid = arguments[0];
+
+        delete this.grants.tenant[uuid];
+
+        /* if we are no longer a member of our current
+           tenant, change the current tenant */
+        if (this.current && this.current.uuid == uuid) {
+          var tenants = this.myTenants();
+          this.current = tenants.length == 0 ? undefined : tenants[0];
+        }
       }
       return this;
     },
@@ -333,13 +349,21 @@
         var uuid = arguments[0];
 
         /* first revoke all expliit / implicit grants */
-        this.revoke(uuid)
+        this.grants.tenant[uuid] = {
+          admin:    false,
+          engineer: false,
+          operator: false
+        };
 
         /* then grant only the privileges for this role */
         switch (arguments[1]) {
         case 'admin':    this.grants.tenant[uuid].admin    = true;
         case 'engineer': this.grants.tenant[uuid].engineer = true;
         case 'operator': this.grants.tenant[uuid].operator = true;
+        }
+
+        if (!this.current) {
+          this.current = this.tenant(uuid);
         }
       }
       return this;
@@ -432,25 +456,14 @@
           self.update('task', update.data);
           break;
         case 'tenant-banish': var tenant = {uuid: update.data.tenant_uuid};
+                              self.revoke(tenant.uuid)
                               self.delete("tenant", tenant);
-                              var tenants = self.tenants();
-                              if (tenants.length == 0) {
-                                self.grant({uuid: update.data.tenant_uuid}, "");
-                                self.current = "";
-                              } else {
-                                tenant = tenants[0];
-                                self.current = tenant;
-                              }
                               $('.top-bar').template('top-bar');
                               $('#side-bar').template('side-bar');
                               break;
-        case 'tenant-invite': var tenants = self.tenants();
-                              var length = tenants.length;
-                              self.insert("tenant", update.data.tenant)
+
+        case 'tenant-invite': self.insert("tenant", update.data.tenant)
                               self.grant(update.data.tenant.uuid, update.data.role);
-                              if (length == 0) {
-                                self.current = update.data.tenant;
-                              }
                               $('.top-bar').template('top-bar');
                               $('#side-bar').template('side-bar');
                               break;
