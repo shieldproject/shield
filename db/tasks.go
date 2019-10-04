@@ -460,16 +460,16 @@ func (db *DB) CreateRestoreTask(owner string, archive *Archive, target *Target) 
                 (uuid, owner, op, archive_uuid, status, log, requested_at,
                  store_uuid, store_plugin, store_endpoint,
                  target_uuid, target_plugin, target_endpoint,
-                 restore_key, agent, attempts, tenant_uuid)
+                 restore_key, compression, agent, attempts, tenant_uuid)
               VALUES
                 (?, ?, ?, ?, ?, ?, ?,
                  ?, ?, ?,
                  ?, ?, ?,
-                 ?, ?, ?, ?)`,
+                 ?, ?, ?, ?, ?)`,
 			id, owner, RestoreOperation, archive.UUID, PendingStatus, "", time.Now().Unix(),
 			archive.StoreUUID, archive.StorePlugin, archive.StoreEndpoint,
 			target.UUID, target.Plugin, endpoint,
-			archive.StoreKey, target.Agent, 0, archive.TenantUUID)
+			archive.StoreKey, archive.Compression, target.Agent, 0, archive.TenantUUID)
 	})
 	if err != nil {
 		return nil, err
