@@ -2670,9 +2670,9 @@ tenants:
 			break
 		}
 
-		tbl := table.NewTable("UUID", "Key", "Compression", "Status")
+		tbl := table.NewTable("UUID", "Key", "Size", "Status", "Compression", "Encryption")
 		for _, archive := range archives {
-			tbl.Row(archive, uuid8full(archive.UUID, opts.Long), archive.Key, archive.Compression, archive.Status)
+			tbl.Row(archive, uuid8full(archive.UUID, opts.Long), archive.Key, archive.Status, archive.Compression, archive.EncryptionType, formatBytes(archive.Size))
 		}
 		tbl.Output(os.Stdout)
 
@@ -2697,8 +2697,10 @@ tenants:
 		r := tui.NewReport()
 		r.Add("UUID", archive.UUID)
 		r.Add("Key", archive.Key)
-		r.Add("Compression", archive.Compression)
 		r.Add("Status", archive.Status)
+		r.Add("Size", formatBytes(archive.Size))
+		r.Add("Compression", archive.Compression)
+		r.Add("Encryption", archive.EncryptionType)
 		r.Add("Notes", archive.Notes)
 		r.Output(os.Stdout)
 
