@@ -17,6 +17,9 @@ import (
 )
 
 func (c Core) Main() {
+	/* print out our configuration */
+	c.PrintConfiguration()
+
 	/* we need a usable database first */
 	c.ConnectToDatabase()
 	c.ApplyFixups()
@@ -62,6 +65,8 @@ func (c Core) Main() {
 			c.MarkIrrelevantTasks()
 			c.ScheduleAgentStatusCheckTasks(nil)
 			c.AnalyzeStorage()
+			c.TruncateOldTaskLogs()
+			c.DeleteOldPurgedArchives()
 			c.CleanupOrphanedObjects()
 
 			if c.Unlocked() {
@@ -70,6 +75,36 @@ func (c Core) Main() {
 			}
 		}
 	}
+}
+
+func (c *Core) PrintConfiguration() {
+	log.Infof("CONFIG | data directory:    '%s'", c.Config.DataDir)
+	log.Infof("CONFIG | web root:          '%s'", c.Config.WebRoot)
+	if len(c.Config.PluginPaths) == 0 {
+		log.Infof("CONFIG | plugin paths:      (none)")
+	} else {
+		log.Infof("CONFIG | plugin paths:")
+		for _, path := range c.Config.PluginPaths {
+			log.Infof("CONFIG |  - '%s'", path)
+		}
+	}
+
+	log.Infof("CONFIG | scheduler loop:    fast=%ds slow=%ds", c.Config.Scheduler.FastLoop, c.Config.Scheduler.SlowLoop)
+	log.Infof("CONFIG | scheduler threads: %d", c.Config.Scheduler.Threads)
+	log.Infof("CONFIG | scheduler timeout: %ds", c.Config.Scheduler.Timeout)
+	log.Infof("CONFIG | api bind:          '%s'", c.Config.API.Bind)
+	log.Infof("CONFIG | session timeout:   %ds", c.Config.API.Session.Timeout)
+	log.Infof("CONFIG | failsafe username: '%s'", c.Config.API.Failsafe.Username)
+	log.Infof("CONFIG | websocket timeout: %ds", c.Config.API.Websocket.WriteTimeout)
+	log.Infof("CONFIG | websocket ping:    %ds", c.Config.API.Websocket.PingInterval)
+	log.Infof("CONFIG | mbus max clients:  %d", c.Config.Mbus.MaxSlots)
+	log.Infof("CONFIG | mbus backlog:      %d connections", c.Config.Mbus.Backlog)
+	log.Infof("")
+	log.Infof("CONFIG | backup archives must be kept for at least %s", (duration)(c.Config.Limit.Retention.Min))
+	log.Infof("CONFIG | backup archives are kept for no more than %s", (duration)(c.Config.Limit.Retention.Max))
+	log.Infof("CONFIG | task logs will be truncated after %s", c.Config.Metadata.Retention.TaskLogs)
+	log.Infof("CONFIG | purged archives will be deleted after %s", c.Config.Metadata.Retention.PurgedArchives)
+	log.Infof("")
 }
 
 func (c *Core) ConnectToDatabase() {
@@ -646,6 +681,24 @@ func (c *Core) AnalyzeStorage() {
 			chore.Errorf("")
 			chore.Errorf("COMPLETE")
 		}))
+}
+
+func (c *Core) TruncateOldTaskLogs() {
+	when := c.Config.Metadata.Retention.TaskLogs
+	log.Infof("UPKEEP: truncating logs for tasks older than %s...", when)
+
+	if err := c.db.TruncateTaskLogs((int)(when)); err != nil {
+		log.Errorf("Failed to truncate task logs from %s ago (or more): %s", when, err)
+	}
+}
+
+func (c *Core) DeleteOldPurgedArchives() {
+	when := c.Config.Metadata.Retention.PurgedArchives
+	log.Infof("UPKEEP: deleting archives purged more than %s ago...", when)
+
+	if err := c.db.CleanupArchives((int)(when)); err != nil {
+		log.Errorf("Failed to deleted archives purged more then %s ago: %s", when, err)
+	}
 }
 
 func (c *Core) CleanupOrphanedObjects() {

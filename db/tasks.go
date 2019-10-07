@@ -919,3 +919,11 @@ func (db *DB) archiveShouldExist(uuid string) error {
 	}
 	return nil
 }
+
+func (db *DB) TruncateTaskLogs(age int) error {
+	return db.Exec(`
+       UPDATE tasks SET log = "(log truncated)"
+                  WHERE stopped_at IS NOT NULL
+                    AND stopped_at < ?`,
+		(int)(time.Now().Unix())-age)
+}

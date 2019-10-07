@@ -233,8 +233,10 @@
 			"revision": "d74b1b6905297834d014b95038b9a58539832140"
 		},
 		{
+			"checksumSHA1": "rNZJS9wunHHoTjHd9oFqBrFCtz0=",
 			"path": "github.com/jhunt/go-envirotron",
-			"revision": "6bdf7cebaa407f9ef7869eeb673a268d04126c90"
+			"revision": "c8f2a184ad0f6023b23eafba1d0aaa382a357a6b",
+			"revisionTime": "2019-10-07T15:50:51Z"
 		},
 		{
 			"checksumSHA1": "0zh8BzWlmxf6Sh76Qn3b+maOOKg=",

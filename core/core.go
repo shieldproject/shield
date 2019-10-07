@@ -88,6 +88,13 @@ type Config struct {
 		} `yaml:"retention"`
 	} `yaml:"limit"`
 
+	Metadata struct {
+		Retention struct {
+			PurgedArchives duration `yaml:"purged_archives" env:"SHIELD_METADATA_RETENTION_PURGED_ARCHIVES"`
+			TaskLogs       duration `yaml:"task_logs"       env:"SHIELD_METADATA_RETENTION_TASK_LOGS"`
+		} `yaml:"retention"`
+	} `yaml:"metadata"`
+
 	Auth []struct {
 		Name       string `yaml:"name"`
 		Identifier string `yaml:"identifier"`
@@ -148,6 +155,9 @@ func init() {
 
 	DefaultConfig.Limit.Retention.Min = 1
 	DefaultConfig.Limit.Retention.Max = 390
+
+	DefaultConfig.Metadata.Retention.PurgedArchives = 60 * 60 * 24 * 90
+	DefaultConfig.Metadata.Retention.TaskLogs = 60 * 60 * 24 * 90
 
 	DefaultConfig.LegacyAgents.Enabled = true
 	DefaultConfig.LegacyAgents.DialTimeout = 30
