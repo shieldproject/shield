@@ -359,7 +359,7 @@ func (db *DB) ExpireArchive(id string) error {
 }
 
 func (db *DB) ManuallyPurgeArchive(id string) error {
-	err := db.exclusively(func() error {
+	return db.exclusively(func() error {
 		err := db.exec(`UPDATE archives SET status = 'manually purged' WHERE uuid = ?`, id)
 		if err != nil {
 			return err
@@ -370,11 +370,8 @@ func (db *DB) ManuallyPurgeArchive(id string) error {
 			return fmt.Errorf("unable to retrieve archive [%s]: %s", id, err)
 		}
 		db.sendUpdateObjectEvent(archive, "tenant:"+archive.TenantUUID)
-
-		return err
+		return nil
 	})
-
-	return err
 }
 
 func (db *DB) DeleteArchive(id string) (bool, error) {
