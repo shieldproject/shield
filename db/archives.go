@@ -269,7 +269,7 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 func (db *DB) CreateArchiveFromTask(task_uuid string, archive Archive) (*Archive, error) {
 	var out *Archive
 
-	err := db.exclusively(func () error {
+	err := db.exclusively(func() error {
 		err := db.exec(`
                   INSERT INTO archives
                     (uuid, target_uuid, store_uuid, store_key, taken_at,
@@ -359,7 +359,19 @@ func (db *DB) ExpireArchive(id string) error {
 }
 
 func (db *DB) ManuallyPurgeArchive(id string) error {
-	return db.Exec(`UPDATE archives SET status = 'manually purged' WHERE uuid = ?`, id)
+	return db.exclusively(func() error {
+		err := db.exec(`UPDATE archives SET status = 'manually purged' WHERE uuid = ?`, id)
+		if err != nil {
+			return err
+		}
+
+		archive, err := db.getArchive(id)
+		if err != nil {
+			return fmt.Errorf("unable to retrieve archive [%s]: %s", id, err)
+		}
+		db.sendUpdateObjectEvent(archive, "tenant:"+archive.TenantUUID)
+		return nil
+	})
 }
 
 func (db *DB) DeleteArchive(id string) (bool, error) {
