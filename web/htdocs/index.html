@@ -1031,14 +1031,20 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                     [[ $.each(systems, function (i, target) {
                          var archives = AEGIS.archives({ tenant: target.tenant_uuid,
                                                          system: target.uuid });
+                         var n = 0;
+                         for(var archive of archives) {
+                           if(archive.status == "valid") {
+                             n++;
+                           }
+                         }
                     ]]
-                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]][[ if (archives.length == 0) { ]] no-archive not-selectable[[ } ]]"
+                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]][[ if (h(n) == 0) { ]] no-archive not-selectable[[ } ]]"
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
                         [[= h(target.name) ]]
                       </td>
-                      <td>[[ if (archives.length == 0) { ]]<em>none</em>[[ } else { ]][[= archives.length ]][[ } ]]</td>
+                      <td>[[ if (h(n) == 0) { ]]<em>none</em>[[ } else { ]][[= h(n) ]][[ } ]]</td>
                       <td>[[= h(target.plugin) ]]</td>
                       <td class="notes">
                         [[= md(target.summary) ]]
@@ -1919,8 +1925,10 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                  $.each(AEGIS.archives({ tenant: target.tenant_uuid,
                                          system: target.uuid }),
                         function (i, archive) {
-                          n++;
-                          used += archive.size;
+                          if (archive.status == "valid") {
+                            n++;
+                            used += archive.size;
+                          }
                         }); ]]
               <dl>
                 <dt>Backup Archives</dt>
@@ -1979,6 +1987,7 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               </tr></thead>
               <tbody>
                 [[ $.each(show, function (i, archive) { ]]
+                  [[ if (archive.status == "valid") { ]]
                 <tr data-archive-uuid="[[= archive.uuid ]]">
                   <td class="uuid">[[= archive.uuid.substr(0,8) ]]</td>
                   <td class="date" data-sort-as="number" data-sort="[[= archive.taken_at ]]">
@@ -1989,8 +1998,9 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                   [[ var store = AEGIS.store(archive.store_uuid); ]]
                   <td>[[= store.name ]] ([[= store.plugin ]])</td>
                   <td>[[= archive.status ]]</td>
-                  <td>[[ if (archive.status == "valid") { ]]<a href="restore:[[= archive.uuid ]]">restore</a>[[ } ]]</td>
+                  <td><a href="restore:[[= archive.uuid ]]">restore</a></td>
                 </tr>
+                  [[ } ]]
                 [[ }); ]]
               </tbody>
             </table>
