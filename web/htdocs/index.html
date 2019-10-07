@@ -1038,13 +1038,13 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
                            }
                          }
                     ]]
-                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]][[ if (h(n) == 0) { ]] no-archive not-selectable[[ } ]]"
+                    <tr class="[[ if (!target.healthy) { ]]fail[[ } else { ]]ok[[ } ]][[ if (n == 0) { ]] no-archive not-selectable[[ } ]]"
                         data-target-uuid="[[= target.uuid ]]">
                       <td class="name">
                         <img src="i/shield-[[= target.healthy ? 'ok' : 'fail' ]].svg">
                         [[= h(target.name) ]]
                       </td>
-                      <td>[[ if (h(n) == 0) { ]]<em>none</em>[[ } else { ]][[= h(n) ]][[ } ]]</td>
+                      <td>[[ if (n == 0) { ]]<em>none</em>[[ } else { ]][[= n ]][[ } ]]</td>
                       <td>[[= h(target.plugin) ]]</td>
                       <td class="notes">
                         [[= md(target.summary) ]]
