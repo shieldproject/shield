@@ -155,7 +155,14 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 }
 
 func (db *DB) GetAgent(id string) (*Agent, error) {
-	return db.getAgent(id)
+	all, err := db.GetAllAgents(&AgentFilter{UUID: id, ExactMatch: true})
+	if err != nil {
+		return nil, err
+	}
+	if len(all) == 0 {
+		return nil, nil
+	}
+	return all[0], nil
 }
 
 func (db *DB) GetAgentByAddress(address string) (*Agent, error) {
