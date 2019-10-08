@@ -147,14 +147,12 @@ func (db *DB) getAgent(id string) (*Agent, error) {
 func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
-
 	return db.getAllAgents(filter)
 }
 
 func (db *DB) GetAgent(id string) (*Agent, error) {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
-
 	return db.getAgent(id)
 }
 
