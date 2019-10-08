@@ -145,56 +145,17 @@ func (db *DB) getAgent(id string) (*Agent, error) {
 }
 
 func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
-	if filter == nil {
-		filter = &AgentFilter{}
-	}
-
 	l := []*Agent{}
-	query, args := filter.Query()
+
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
-	r, err := db.query(query, args...)
-	if err != nil {
-		return l, err
-	}
-	defer r.Close()
-
-	for r.Next() {
-		agent := &Agent{}
-
-		var seen, checked *int64
-		if err = r.Scan(
-			&agent.UUID, &agent.Name, &agent.Address, &agent.Version,
-			&agent.Hidden, &seen, &checked, &agent.Status, &agent.RawMeta,
-			&agent.LastError); err != nil {
-			return l, err
-		}
-		if seen != nil {
-			agent.LastSeenAt = *seen
-		}
-		if checked != nil {
-			agent.LastCheckedAt = *checked
-		}
-
-		if filter.InflateMetadata {
-			agent.Meta, _ = agent.Metadata()
-		}
-
-		l = append(l, agent)
-	}
+	l, _ = db.getAllAgents(filter)
 
 	return l, nil
 }
 
 func (db *DB) GetAgent(id string) (*Agent, error) {
-	all, err := db.GetAllAgents(&AgentFilter{UUID: id, ExactMatch: true})
-	if err != nil {
-		return nil, err
-	}
-	if len(all) == 0 {
-		return nil, nil
-	}
-	return all[0], nil
+	return db.getAgent(id)
 }
 
 func (db *DB) GetAgentByAddress(address string) (*Agent, error) {
