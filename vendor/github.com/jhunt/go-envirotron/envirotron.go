@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+type Unmarshaler interface {
+	UnmarshalEnv(string)
+}
+
 func override(t reflect.Type, v *reflect.Value) {
 	if t.Kind() != reflect.Struct {
 		return
@@ -30,6 +34,16 @@ func override(t reflect.Type, v *reflect.Value) {
 		}
 		tag := field.Tag.Get("env")
 		if e := os.Getenv(tag); e != "" {
+
+			// handle instances of envirotron.Unmarshaler,
+			// for custom parsing behavior.
+			if v.Field(i).CanAddr() {
+				if u, ok := v.Field(i).Addr().Interface().(Unmarshaler); ok {
+					u.UnmarshalEnv(stringify(e))
+					continue
+				}
+			}
+
 			switch field.Type.Kind() {
 			case reflect.String:
 				v.Field(i).Set(reflect.ValueOf(stringify(e)))

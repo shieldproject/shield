@@ -351,7 +351,7 @@ func (db *DB) PurgeArchive(id string) error {
 		return err
 	}
 
-	return db.Exec(`UPDATE archives SET status = 'purged' WHERE uuid = ?`, id)
+	return db.Exec(`UPDATE archives SET status = 'purged', expires_at = ? WHERE uuid = ?`, time.Now().Unix(), id)
 }
 
 func (db *DB) ExpireArchive(id string) error {
@@ -360,7 +360,7 @@ func (db *DB) ExpireArchive(id string) error {
 
 func (db *DB) ManuallyPurgeArchive(id string) error {
 	return db.exclusively(func() error {
-		err := db.exec(`UPDATE archives SET status = 'manually purged' WHERE uuid = ?`, id)
+		err := db.exec(`UPDATE archives SET status = 'manually purged', expires_at = ? WHERE uuid = ?`, time.Now().Unix(), id)
 		if err != nil {
 			return err
 		}
@@ -376,6 +376,14 @@ func (db *DB) ManuallyPurgeArchive(id string) error {
 
 func (db *DB) DeleteArchive(id string) (bool, error) {
 	return true, db.Exec(`DELETE FROM archives WHERE uuid = ?`, id)
+}
+
+func (db *DB) CleanupArchives(age int) error {
+	return db.Exec(`
+       DELETE FROM archives
+             WHERE status IN ('purged', 'manually purged')
+               AND expires_at < ?`,
+		(int)(time.Now().Unix())-age)
 }
 
 func (db *DB) ArchiveStorageFootprint(filter *ArchiveFilter) (int64, error) {

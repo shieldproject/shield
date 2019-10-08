@@ -1,6 +1,8 @@
 Envirotron
 ==========
 
+![Travis CI](https://travis-ci.org/jhunt/go-envirotron.svg?branch=master)
+
 Ever wanted to easily allow users to override configuration values
 in a Go program via environment variables, but didn't want to deal
 with the tedium of checking that variables are set, and the

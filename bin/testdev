@@ -261,6 +261,8 @@ EOF
   export SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT=5
   export SHIELD_LEGACY_AGENTS_PRIVATE_KEY=$(cat ${workdir}/config/shieldd_key)
   export SHIELD_PLUGIN_PATHS="${workdir}/bin"
+  export SHIELD_METADATA_RETENTION_PURGED_ARCHIVES="90s"
+  export SHIELD_METADATA_RETENTION_TASK_LOGS="1h"
 
   export PATH=$(pwd):$(pwd)/bin:${PATH}
   while true; do
