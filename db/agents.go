@@ -20,7 +20,7 @@ type Agent struct {
 	LastError     string `json:"last_error"      mbus:"last_error"`
 	Status        string `json:"status"          mbus:"status"`
 
-	Meta    map[string]interface{} `json:"metadata,omitempty"`
+	Meta    map[string]interface{} `json:"metadata,omitempty"       mbus:"metadata"`
 	RawMeta string                 `json:"-"`
 }
 
@@ -93,15 +93,13 @@ func (f *AgentFilter) Query() (string, []interface{}) {
 	 ORDER BY a.name DESC, a.uuid ASC`, args
 }
 
-func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
+func (db *DB) getAllAgents(filter *AgentFilter) ([]*Agent, error) {
 	if filter == nil {
 		filter = &AgentFilter{}
 	}
 
 	l := []*Agent{}
 	query, args := filter.Query()
-	db.exclusive.Lock()
-	defer db.exclusive.Unlock()
 	r, err := db.query(query, args...)
 	if err != nil {
 		return l, err
@@ -135,8 +133,8 @@ func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
 	return l, nil
 }
 
-func (db *DB) GetAgent(id string) (*Agent, error) {
-	all, err := db.GetAllAgents(&AgentFilter{UUID: id, ExactMatch: true})
+func (db *DB) getAgent(id string) (*Agent, error) {
+	all, err := db.getAllAgents(&AgentFilter{UUID: id, ExactMatch: true, InflateMetadata: true})
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +142,18 @@ func (db *DB) GetAgent(id string) (*Agent, error) {
 		return nil, nil
 	}
 	return all[0], nil
+}
+
+func (db *DB) GetAllAgents(filter *AgentFilter) ([]*Agent, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.getAllAgents(filter)
+}
+
+func (db *DB) GetAgent(id string) (*Agent, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+	return db.getAgent(id)
 }
 
 func (db *DB) GetAgentByAddress(address string) (*Agent, error) {
@@ -232,8 +242,9 @@ func (db *DB) PreRegisterAgent(host, name string, port int) error {
 }
 
 func (db *DB) UpdateAgent(agent *Agent) error {
-	return db.Exec(
-		`UPDATE agents SET name            = ?,
+	return db.exclusively(func() error {
+		err := db.exec(
+			`UPDATE agents SET name            = ?,
 		                   address         = ?,
 		                   version         = ?,
 		                   status          = ?,
@@ -243,9 +254,24 @@ func (db *DB) UpdateAgent(agent *Agent) error {
 		                   last_seen_at    = ?,
 		                   last_error      = ?
 		        WHERE uuid = ?`,
-		agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
-		agent.LastCheckedAt, agent.LastSeenAt, agent.LastError,
-		agent.UUID)
+			agent.Name, agent.Address, agent.Version, agent.Status, agent.Hidden, agent.RawMeta,
+			agent.LastCheckedAt, agent.LastSeenAt, agent.LastError,
+			agent.UUID)
+		if err != nil {
+			return err
+		}
+
+		agentUpdate, err := db.getAgent(agent.UUID)
+		if err != nil {
+			return err
+		}
+		if agentUpdate == nil {
+			return fmt.Errorf("failed to retrieve updated agent [%s]: not found in database.", agent.UUID)
+		}
+
+		db.sendUpdateObjectEvent(agentUpdate, "*")
+		return nil
+	})
 }
 
 func (db *DB) DeleteAgent(agent *Agent) error {
