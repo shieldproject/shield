@@ -209,6 +209,16 @@
         if ('tenant' in q && job.tenant_uuid != q.tenant) {
           continue;
         }
+        var tasks = this.tasks(q);
+        for (task of tasks) {
+          if (job.uuid == task.job_uuid) {
+            if (task.status == "failed") {
+              job.healthy = false;
+            } else if (task.status == "done") {
+              job.healthy = true;
+            }
+          }
+        }
         jobs.push(job);
       }
       return jobs;
