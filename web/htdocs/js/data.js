@@ -103,6 +103,17 @@
           this.data[type][object.uuid][k] = object[k];
         }
       }
+      if (type == 'task' && 'ok' in object) {
+        var task = this.task(object.uuid);
+        if (task.job_uuid != '') {
+          var job = this.job(task.job_uuid);
+          if (task.ok == false) {
+            job.healthy = false;
+          } else {
+            job.healthy = true;
+          }
+        }
+      }
       return this;
     },
 
@@ -208,16 +219,6 @@
         }
         if ('tenant' in q && job.tenant_uuid != q.tenant) {
           continue;
-        }
-        var tasks = this.tasks(q);
-        for (task of tasks) {
-          if (job.uuid == task.job_uuid) {
-            if (task.status == "failed") {
-              job.healthy = false;
-            } else if (task.status == "done") {
-              job.healthy = true;
-            }
-          }
         }
         jobs.push(job);
       }
