@@ -103,6 +103,15 @@
           this.data[type][object.uuid][k] = object[k];
         }
       }
+      if (type == 'task' && 'ok' in object) {
+        var task = this.task(object.uuid);
+        if (task.job_uuid != '') {
+          var job = this.job(task.job_uuid);
+          if (job != undefined) {
+            job.healthy = task.ok;
+          }
+        }
+      }
       return this;
     },
 
