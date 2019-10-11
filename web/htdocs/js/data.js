@@ -107,10 +107,8 @@
         var task = this.task(object.uuid);
         if (task.job_uuid != '') {
           var job = this.job(task.job_uuid);
-          if (task.ok == false) {
-            job.healthy = false;
-          } else {
-            job.healthy = true;
+          if (job != undefined) {
+            job.healthy = task.ok;
           }
         }
       }
