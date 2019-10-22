@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/jhunt/go-log"
@@ -15,15 +14,19 @@ type Metrics struct {
 }
 
 const (
-	namespace     = "shield"
-	tenantsTotal  = "tenants_total"
-	agentsTotal   = "agents_total"
-	targetsTotal  = "targets_total"
-	storesTotal   = "stores_total"
-	jobsTotal     = "jobs_total"
-	tasksTotal    = "tasks_total"
-	archivesTotal = "archives_total"
-	coreStatus    = "core_status"
+	namespace         = "shield"
+	tenantsTotal      = "tenants_total"
+	agentsTotal       = "agents_total"
+	targetsTotal      = "targets_total"
+	storesTotal       = "stores_total"
+	jobsTotal         = "jobs_total"
+	tasksTotal        = "tasks_total"
+	archivesTotal     = "archives_total"
+	storageBytesTotal = "storage_used_bytes"
+
+	targetHealthStatus = "target_health_status"
+	storeHealthStatus  = "storeHealthStatus"
+	coreStatus         = "core_status"
 )
 
 var (
@@ -76,6 +79,27 @@ var (
 			Help:      "How many Backup Archives have been generated",
 		})
 
+	storageUsedBytesGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      storageBytesTotal,
+			Help:      "How much storage has been used, in bytes.",
+		})
+
+	targetHealthGaugeVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      targetHealthStatus,
+			Help:      "A generic health status for targets, that is differentiated into different contexts based on labels. For example, the label target=x tenant=y means that the metric applies to the health of a given target, owned by a tenant.",
+		}, []string{"tenant_name", "tenant_uuid", "target_name", "target_uuid"})
+
+	storeHealthGaugeVec = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      storeHealthStatus,
+			Help:      "A generic health status for stores, that is differentiated into different contexts based on labels. For example, the label store=x tenant=y means that the metric applies to the health of a given store, owned by a tenant.",
+		}, []string{"tenant_name", "tenant_uuid", "store_name", "store_uuid"})
+
 	coreStatusGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -101,6 +125,10 @@ func (m *Metrics) RegisterExporter(tenantCount, agentsCount, targetsCount, store
 	prometheus.MustRegister(jobsGauge)
 	prometheus.MustRegister(tasksGauge)
 	prometheus.MustRegister(archivesGauge)
+	prometheus.MustRegister(storageUsedBytesGauge)
+
+	prometheus.MustRegister(targetHealthGaugeVec)
+	prometheus.MustRegister(storeHealthGaugeVec)
 	prometheus.MustRegister(coreStatusGauge)
 
 	tenantsGauge.Set(tenantCount)
@@ -111,6 +139,7 @@ func (m *Metrics) RegisterExporter(tenantCount, agentsCount, targetsCount, store
 	tasksGauge.Set(tasksCount)
 	archivesGauge.Set(archivesCount)
 	coreStatusGauge.Set(coreStatusInitial)
+	storageUsedBytesGauge.Set(0)
 }
 
 func (m *Metrics) ServeExporter() http.Handler {
@@ -118,9 +147,6 @@ func (m *Metrics) ServeExporter() http.Handler {
 }
 
 func CreateObjectCount(typeThing string) {
-	fmt.Printf("\n")
-	fmt.Printf("Prometheus Data: Increasing count for type ---> %s\n", typeThing)
-	fmt.Printf("\n")
 	switch typeThing {
 	case "tenant":
 		tenantsGauge.Inc()
@@ -148,6 +174,8 @@ func UpdateObjectCount(typeThing string, data interface{}) {
 		if interfaceData["status"] == "manually purged" {
 			archivesGauge.Dec()
 		}
+	case "tenant":
+		storageUsedBytesGauge.Set(float64(interfaceData["storage_used"].(int64)))
 	}
 }
 
@@ -166,6 +194,10 @@ func DeleteObjectCount(typeThing string) {
 	default:
 		log.Infof("Event type not recognized or not implemented yet.")
 	}
+}
+
+func UpdateTargetHealth (type thing, data interface{}) {
+    
 }
 
 func (m *Metrics) UpdateCoreStatus(value float64) {
@@ -194,6 +226,8 @@ func (m *Metrics) RegisterBusEvents(queues ...string) {
 			UpdateObjectCount(typeThing, data)
 		} else if event == "delete-object" {
 			DeleteObjectCount(typeThing)
-		}
+		} else if event == "update-task-status" {
+
+        }
 	}
 }

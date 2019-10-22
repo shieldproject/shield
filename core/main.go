@@ -287,16 +287,16 @@ func (c *Core) ConnectToVault() {
 	status, err := v.Status()
 	c.MaybeTerminate(err)
 
-	if status != "unsealed" {
+	if status != "unlocked" {
 		log.Errorf("SHIELD's vault is %s; please initialize or unlock this SHIELD core via the web UI or the CLI", status)
 	}
 
-	if status == "uninitialized" {
-		c.metrics.UpdateCoreStatus(0)
-	} else if status == "locked" {
+	if status == "locked" {
 		c.metrics.UpdateCoreStatus(1)
-	} else {
+	} else if status == "unlocked" {
 		c.metrics.UpdateCoreStatus(2)
+	} else {
+		c.metrics.UpdateCoreStatus(0)
 	}
 	c.vault = v
 }
