@@ -299,6 +299,7 @@ func Configure(file string, config Config) (*Core, error) {
 			Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 			Timeout:         time.Duration(c.Config.LegacyAgents.DialTimeout) * time.Second,
+			Config:          ssh.Config{MACs: []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"}},
 		}
 	}
 

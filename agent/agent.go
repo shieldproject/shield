@@ -34,7 +34,11 @@ type Agent struct {
 }
 
 func NewAgent() *Agent {
-	return &Agent{}
+	return &Agent{
+		config: &ssh.ServerConfig{
+			Config: ssh.Config{MACs: []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"}},
+		},
+	}
 }
 
 func (agent *Agent) ResolveBinary(name string) (string, error) {
