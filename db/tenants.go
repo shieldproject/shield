@@ -172,7 +172,7 @@ func (db *DB) CreateTenant(tenant *Tenant) (*Tenant, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	db.sendCreateObjectEvent(tenant, "tenant:"+tenant.UUID)
 	return tenant, nil
 }
 
@@ -290,7 +290,7 @@ func (db *DB) DeleteTenant(tenant *Tenant, recurse bool) error {
 			return fmt.Errorf("unable to delete tenant: tenant has outstanding tasks")
 		}
 	}
-
+	db.sendDeleteObjectEvent(tenant, "tenant:"+tenant.UUID)
 	return db.Exec(`
 	   DELETE FROM tenants
 	         WHERE uuid = ?`, tenant.UUID)

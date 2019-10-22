@@ -15,6 +15,7 @@ import (
 
 	"github.com/shieldproject/shield/core/bus"
 	"github.com/shieldproject/shield/core/fabric"
+	"github.com/shieldproject/shield/core/metrics"
 	"github.com/shieldproject/shield/core/scheduler"
 	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
@@ -28,6 +29,7 @@ type Core struct {
 	providers map[string]AuthProvider
 	bus       *bus.Bus
 	scheduler *scheduler.Scheduler
+	metrics   *metrics.Metrics
 
 	bailout bool
 

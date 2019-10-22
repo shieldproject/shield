@@ -10,6 +10,7 @@ import (
 	"github.com/jhunt/go-log"
 
 	"github.com/shieldproject/shield/core/bus"
+	"github.com/shieldproject/shield/core/metrics"
 	"github.com/shieldproject/shield/core/scheduler"
 	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
@@ -22,6 +23,7 @@ func (c Core) Main() {
 
 	/* we need a usable database first */
 	c.ConnectToDatabase()
+	c.InitalizePrometheus() //Initalize metirc values
 	c.ApplyFixups()
 	c.ConfigureMessageBus()
 	c.WireUpAuthenticationProviders()
@@ -36,6 +38,7 @@ func (c Core) Main() {
 	c.ConnectToVault()
 	c.Bind()
 	c.StartScheduler()
+	go c.metrics.RegisterBusEvents("*")
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
 
@@ -123,6 +126,46 @@ func (c *Core) ConnectToDatabase() {
 	c.MaybeTerminate(c.db.CheckCurrentSchema())
 
 	log.Debugf("connected successfully to database!")
+}
+
+func (c *Core) InitalizePrometheus() {
+	tenants, err := c.db.GetAllTenants(nil)
+	if err != nil {
+		log.Debugf("No tenats found in database")
+	}
+
+	agents, err := c.db.GetAllAgents(nil)
+	if err != nil {
+		log.Debugf("No agents found in database")
+	}
+
+	targets, err := c.db.GetAllTargets(nil)
+	if err != nil {
+		log.Debugf("No targets found in database")
+	}
+
+	stores, err := c.db.GetAllStores(nil)
+	if err != nil {
+		log.Debugf("No agents found in database")
+	}
+
+	jobs, err := c.db.GetAllJobs(nil)
+	if err != nil {
+		log.Debugf("No jobs found in database")
+	}
+
+	tasks, err := c.db.GetAllTasks(nil)
+	if err != nil {
+		log.Debugf("No tasks found in database")
+	}
+
+	archives, err := c.db.GetAllArchives(nil)
+	if err != nil {
+		log.Debugf("No archives found in database")
+	}
+
+	c.metrics = metrics.InitalizeMetrics()
+	c.metrics.RegisterExporter(float64(len(tenants)), float64(len(agents)), float64(len(targets)), float64(len(stores)), float64(len(jobs)), float64(len(tasks)), float64(len(archives)), 0)
 }
 
 func (c *Core) ApplyFixups() {
@@ -248,6 +291,13 @@ func (c *Core) ConnectToVault() {
 		log.Errorf("SHIELD's vault is %s; please initialize or unlock this SHIELD core via the web UI or the CLI", status)
 	}
 
+	if status == "uninitialized" {
+		c.metrics.UpdateCoreStatus(0)
+	} else if status == "locked" {
+		c.metrics.UpdateCoreStatus(1)
+	} else {
+		c.metrics.UpdateCoreStatus(2)
+	}
 	c.vault = v
 }
 
@@ -274,6 +324,7 @@ func (c *Core) Bind() {
 	http.Handle("/v1/", c.v1API())
 	http.Handle("/v2/", c.v2API())
 	http.Handle("/auth/", c.authAPI())
+	http.Handle("/metrics/", c.metrics.ServeExporter()) //serve prometheus metircs at this endpoint
 	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
 	go func() {
@@ -294,6 +345,7 @@ func (c *Core) StartScheduler() {
 func (c *Core) ConfigureMessageBus() {
 	log.Infof("INITIALIZING: configuring message bus with %d slots and %d backlog per slot...", c.Config.Mbus.MaxSlots, c.Config.Mbus.Backlog)
 	c.bus = bus.New(c.Config.Mbus.MaxSlots, c.Config.Mbus.Backlog)
+	c.metrics.Inform(c.bus)
 	c.db.Inform(c.bus)
 }
 

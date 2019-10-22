@@ -291,7 +291,7 @@ func (db *DB) DeleteAgent(agent *Agent) error {
 		if n > 0 {
 			return fmt.Errorf("agent is still referenced by configured storage systems")
 		}
-
+		db.sendDeleteObjectEvent(agent, "*")
 		return db.exec(`DELETE FROM agents WHERE uuid = ?`, agent.UUID)
 	})
 }
