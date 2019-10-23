@@ -104,9 +104,10 @@ type Config struct {
 	} `yaml:"auth"`
 
 	LegacyAgents struct {
-		Enabled     bool   `yaml:"enabled"      env:"SHIELD_LEGACY_AGENTS_ENABLED"`
-		PrivateKey  string `yaml:"private-key"  env:"SHIELD_LEGACY_AGENTS_PRIVATE_KEY"`
-		DialTimeout int    `yaml:"dial-timeout" env:"SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT"`
+		Enabled     bool     `yaml:"enabled"      env:"SHIELD_LEGACY_AGENTS_ENABLED"`
+		PrivateKey  string   `yaml:"private-key"  env:"SHIELD_LEGACY_AGENTS_PRIVATE_KEY"`
+		DialTimeout int      `yaml:"dial-timeout" env:"SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT"`
+		MACs        []string `yaml:"macs"`
 
 		cc  *ssh.ClientConfig
 		pub string
@@ -295,11 +296,15 @@ func Configure(file string, config Config) (*Core, error) {
 		if c.Config.LegacyAgents.DialTimeout < 0 {
 			return nil, fmt.Errorf("Invalid connection timeout provided for communicating with legacy agents: %d is less than 0", c.Config.LegacyAgents.DialTimeout)
 		}
+
+		if len(c.Config.LegacyAgents.MACs) == 0 {
+			c.Config.LegacyAgents.MACs = []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"}
+		}
 		c.Config.LegacyAgents.cc = &ssh.ClientConfig{
 			Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 			Timeout:         time.Duration(c.Config.LegacyAgents.DialTimeout) * time.Second,
-			Config:          ssh.Config{MACs: []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"}},
+			Config:          ssh.Config{MACs: c.Config.LegacyAgents.MACs},
 		}
 	}
 
