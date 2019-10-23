@@ -131,7 +131,7 @@ func (c *Core) ConnectToDatabase() {
 func (c *Core) InitializePrometheus() {
 	tenants, err := c.db.GetAllTenants(nil)
 	if err != nil {
-		log.Debugf("No tenats found in database")
+		log.Debugf("No tenants found in database")
 	}
 
 	agents, err := c.db.GetAllAgents(nil)
