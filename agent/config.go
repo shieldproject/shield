@@ -22,6 +22,7 @@ type Config struct {
 	AuthorizedKey      string   `yaml:"authorized_key"       env:"SHIELD_AGENT_AUTHORIZED_KEY"`
 	HostKeyFile        string   `yaml:"host_key_file"        env:"SHIELD_AGENT_HOST_KEY_FILE"`
 	HostKey            string   `yaml:"host_key"             env:"SHIELD_AGENT_HOST_KEY"`
+	MACs               []string `yaml:"macs"`
 	ListenAddress      string   `yaml:"listen_address"       env:"SHIELD_AGENT_LISTEN_ADDRESS"`
 	PluginPaths        []string `yaml:"plugin_paths"`
 	PluginPathsEnv     string   `yaml:"-"                    env:"SHIELD_AGENT_PLUGIN_PATHS"`
@@ -95,7 +96,7 @@ func (agent *Agent) ReadConfig(path string) error {
 		return err
 	}
 
-	agent.config, err = ConfigureSSHServer(hostKey, authorizedKeys)
+	agent.config, err = ConfigureSSHServer(hostKey, authorizedKeys, config.MACs)
 	if err != nil {
 		log.Errorf("failed to configure SSH server: %s", err)
 		return err
@@ -192,7 +193,7 @@ func LoadPrivateKeyFromBytes(b []byte) (ssh.Signer, error) {
 	return ssh.ParsePrivateKey(b)
 }
 
-func ConfigureSSHServer(key ssh.Signer, authorizedKeys []ssh.PublicKey) (*ssh.ServerConfig, error) {
+func ConfigureSSHServer(key ssh.Signer, authorizedKeys []ssh.PublicKey, macs []string) (*ssh.ServerConfig, error) {
 	certChecker := &ssh.CertChecker{
 		IsUserAuthority: func(key ssh.PublicKey) bool {
 			return false
@@ -209,10 +210,15 @@ func ConfigureSSHServer(key ssh.Signer, authorizedKeys []ssh.PublicKey) (*ssh.Se
 		},
 	}
 
+	if len(macs) == 0 {
+		macs = []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"}
+	}
+
 	config := &ssh.ServerConfig{
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
 			return certChecker.Authenticate(conn, key)
 		},
+		Config: ssh.Config{MACs: macs},
 	}
 
 	config.AddHostKey(key)
