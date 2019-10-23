@@ -130,57 +130,33 @@ func (c *Core) ConnectToDatabase() {
 
 func (c *Core) InitializePrometheus() error {
 	tenants, err := c.db.GetAllTenants(nil)
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	agents, err := c.db.GetAllAgents(nil)
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	targets, err := c.db.GetAllTargets(nil)
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	stores, err := c.db.GetAllStores(nil)
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	jobs, err := c.db.GetAllJobs(nil)
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	tasks, err := c.db.GetAllTasks(nil)
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	archives, err := c.db.GetAllArchives(nil)
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	storageBytesUsed, err := c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
 		WithStatus: []string{"valid"},
 	})
-	if err != nil {
-		log.Errorf("Error initializing prometheus exporter: %s", err)
-		c.MaybeTerminate(err)
-	}
+	c.MaybeTerminate(err)
 
 	c.metrics = metrics.New(metrics.Config{
-		Namespace:        c.Config.PrometheusNamespace,
+		Namespace:        c.Config.Prometheus.Namespace,
 		TenantCount:      len(tenants),
 		AgentCount:       len(agents),
 		TargetCount:      len(targets),

@@ -43,12 +43,11 @@ type Core struct {
 }
 
 type Config struct {
-	Debug               bool     `yaml:"debug"          env:"SHIELD_DEBUG"`
-	DataDir             string   `yaml:"data-dir"       env:"SHIELD_DATA_DIR"`
-	WebRoot             string   `yaml:"web-root"       env:"SHIELD_WEB_ROOT"`
-	PluginPaths         []string `yaml:"plugin_paths"`
-	PluginPathsEnv      string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`
-	PrometheusNamespace string
+	Debug          bool     `yaml:"debug"          env:"SHIELD_DEBUG"`
+	DataDir        string   `yaml:"data-dir"       env:"SHIELD_DATA_DIR"`
+	WebRoot        string   `yaml:"web-root"       env:"SHIELD_WEB_ROOT"`
+	PluginPaths    []string `yaml:"plugin_paths"`
+	PluginPathsEnv string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`
 
 	Scheduler struct {
 		FastLoop int `yaml:"fast-loop" env:"SHIELD_SCHEDULER_FAST_LOOP"`
@@ -125,6 +124,10 @@ type Config struct {
 		Backlog  int `yaml:"backlog"   env:"SHIELD_MBUS_BACKLOG"`
 	} `yaml:"mbus"`
 
+	Prometheus struct {
+		Namespace string `yaml:"namespace`
+	}
+
 	Cipher string `yaml:"cipher" env:"SHIELD_CIPHER"`
 
 	Bootstrapper string `yaml:"bootstrapper" env:"SHIELD_BOOTSTRAPPER"`
@@ -139,7 +142,6 @@ func init() {
 	DefaultConfig.DataDir = "/shield/data"
 	DefaultConfig.WebRoot = "/shield/ui"
 	DefaultConfig.PluginPathsEnv = "/shield/plugins"
-	DefaultConfig.PrometheusNamespace = "shield"
 
 	DefaultConfig.Scheduler.FastLoop = 1
 	DefaultConfig.Scheduler.SlowLoop = 300
@@ -174,6 +176,8 @@ func init() {
 
 	DefaultConfig.Mbus.MaxSlots = 2048
 	DefaultConfig.Mbus.Backlog = 100
+
+	DefaultConfig.Prometheus.Namespace = "shield"
 }
 
 func Configure(file string, config Config) (*Core, error) {
