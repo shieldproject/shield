@@ -128,47 +128,55 @@ func (c *Core) ConnectToDatabase() {
 	log.Debugf("connected successfully to database!")
 }
 
-func (c *Core) InitializePrometheus() {
+func (c *Core) InitializePrometheus() err error{
 	tenants, err := c.db.GetAllTenants(nil)
 	if err != nil {
-		log.Debugf("No tenants found in database")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	agents, err := c.db.GetAllAgents(nil)
 	if err != nil {
-		log.Debugf("No agents found in database")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	targets, err := c.db.GetAllTargets(nil)
 	if err != nil {
-		log.Debugf("No targets found in database")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	stores, err := c.db.GetAllStores(nil)
 	if err != nil {
-		log.Debugf("No agents found in database")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	jobs, err := c.db.GetAllJobs(nil)
 	if err != nil {
-		log.Debugf("No jobs found in database")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	tasks, err := c.db.GetAllTasks(nil)
 	if err != nil {
-		log.Debugf("No tasks found in database")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	archives, err := c.db.GetAllArchives(nil)
 	if err != nil {
-		log.Debugf("No archives found in database")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	storageBytesUsed, err := c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
 		WithStatus: []string{"valid"},
 	})
 	if err != nil {
-		log.Debugf("Could not calculate bytes used by the storage")
+		log.Errorf("Error initializing prometheus exporter: %s", err)
+		c.MaybeTerminate(err)
 	}
 
 	c.metrics = metrics.New(metrics.Config{
@@ -182,6 +190,8 @@ func (c *Core) InitializePrometheus() {
 		ArchiveCount:     len(archives),
 		StorageUsedCount: storageBytesUsed,
 	})
+
+	return nil
 }
 
 func (c *Core) ApplyFixups() {
@@ -333,7 +343,7 @@ func (c *Core) Bind() {
 	http.Handle("/v1/", c.v1API())
 	http.Handle("/v2/", c.v2API())
 	http.Handle("/auth/", c.authAPI())
-	http.Handle("/metrics/", c.metrics.ServeExporter()) //serve prometheus metircs at this endpoint
+	http.Handle("/metrics/", c.metrics.ServeExporter()) //serve prometheus metrics at this endpoint
 	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
 	go func() {

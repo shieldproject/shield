@@ -139,7 +139,7 @@ func init() {
 	DefaultConfig.DataDir = "/shield/data"
 	DefaultConfig.WebRoot = "/shield/ui"
 	DefaultConfig.PluginPathsEnv = "/shield/plugins"
-	DefaultConfig.PrometheusNamespace = ""
+	DefaultConfig.PrometheusNamespace = "shield"
 
 	DefaultConfig.Scheduler.FastLoop = 1
 	DefaultConfig.Scheduler.SlowLoop = 300

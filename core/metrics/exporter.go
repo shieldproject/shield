@@ -51,9 +51,6 @@ const (
 func New(config Config) *Metrics {
 	metrics := &Metrics{}
 	namespace := config.Namespace
-	if namespace == "" {
-		namespace = "shield"
-	}
 	metrics.tenantsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
