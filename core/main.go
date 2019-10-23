@@ -128,7 +128,7 @@ func (c *Core) ConnectToDatabase() {
 	log.Debugf("connected successfully to database!")
 }
 
-func (c *Core) InitializePrometheus() err error{
+func (c *Core) InitializePrometheus() error {
 	tenants, err := c.db.GetAllTenants(nil)
 	if err != nil {
 		log.Errorf("Error initializing prometheus exporter: %s", err)
