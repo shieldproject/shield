@@ -165,7 +165,7 @@ func (c *Core) InitalizePrometheus() {
 	}
 
 	c.metrics = metrics.InitalizeMetrics()
-	c.metrics.RegisterExporter(float64(len(tenants)), float64(len(agents)), float64(len(targets)), float64(len(stores)), float64(len(jobs)), float64(len(tasks)), float64(len(archives)), 0)
+	c.metrics.RegisterExporter(float64(len(tenants)), float64(len(agents)), float64(len(targets)), float64(len(stores)), float64(len(jobs)), float64(len(tasks)), float64(len(archives)))
 }
 
 func (c *Core) ApplyFixups() {
@@ -291,13 +291,6 @@ func (c *Core) ConnectToVault() {
 		log.Errorf("SHIELD's vault is %s; please initialize or unlock this SHIELD core via the web UI or the CLI", status)
 	}
 
-	if status == "locked" {
-		c.metrics.UpdateCoreStatus(1)
-	} else if status == "unlocked" {
-		c.metrics.UpdateCoreStatus(2)
-	} else {
-		c.metrics.UpdateCoreStatus(0)
-	}
 	c.vault = v
 }
 

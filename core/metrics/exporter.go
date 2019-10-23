@@ -23,10 +23,10 @@ const (
 	tasksTotal        = "tasks_total"
 	archivesTotal     = "archives_total"
 	storageBytesTotal = "storage_used_bytes"
-
+	/* To be implemented
 	targetHealthStatus = "target_health_status"
 	storeHealthStatus  = "storeHealthStatus"
-	coreStatus         = "core_status"
+	coreStatus         = "core_status" */
 )
 
 var (
@@ -86,6 +86,7 @@ var (
 			Help:      "How much storage has been used, in bytes.",
 		})
 
+	/* To be implemented
 	targetHealthGaugeVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -106,6 +107,7 @@ var (
 			Name:      coreStatus,
 			Help:      "The global initialized / locked status of the SHIELD core; (0=uninitialized, 1=locked, 2=unlocked)",
 		})
+	*/
 )
 
 func InitalizeMetrics() *Metrics {
@@ -117,7 +119,7 @@ func (m *Metrics) Inform(mbus *bus.Bus) {
 	m.bus = mbus
 }
 
-func (m *Metrics) RegisterExporter(tenantCount, agentsCount, targetsCount, storesCount, jobsCount, tasksCount, archivesCount, coreStatusInitial float64) {
+func (m *Metrics) RegisterExporter(tenantCount, agentsCount, targetsCount, storesCount, jobsCount, tasksCount, archivesCount float64) {
 	prometheus.MustRegister(tenantsGauge)
 	prometheus.MustRegister(agentsGauge)
 	prometheus.MustRegister(targetsGauge)
@@ -126,10 +128,10 @@ func (m *Metrics) RegisterExporter(tenantCount, agentsCount, targetsCount, store
 	prometheus.MustRegister(tasksGauge)
 	prometheus.MustRegister(archivesGauge)
 	prometheus.MustRegister(storageUsedBytesGauge)
-
+	/* To be done
 	prometheus.MustRegister(targetHealthGaugeVec)
 	prometheus.MustRegister(storeHealthGaugeVec)
-	prometheus.MustRegister(coreStatusGauge)
+	prometheus.MustRegister(coreStatusGauge) */
 
 	tenantsGauge.Set(tenantCount)
 	agentsGauge.Set(agentsCount)
@@ -138,8 +140,9 @@ func (m *Metrics) RegisterExporter(tenantCount, agentsCount, targetsCount, store
 	jobsGauge.Set(jobsCount)
 	tasksGauge.Set(tasksCount)
 	archivesGauge.Set(archivesCount)
-	coreStatusGauge.Set(coreStatusInitial)
 	storageUsedBytesGauge.Set(0)
+	/* To be done
+	coreStatusGauge.Set(coreStatusInitial) */
 }
 
 func (m *Metrics) ServeExporter() http.Handler {
@@ -196,13 +199,10 @@ func DeleteObjectCount(typeThing string) {
 	}
 }
 
-func UpdateTargetHealth (type thing, data interface{}) {
-    
-}
-
+/* to be done
 func (m *Metrics) UpdateCoreStatus(value float64) {
 	coreStatusGauge.Set(value)
-}
+} */
 
 func (m *Metrics) RegisterBusEvents(queues ...string) {
 	ch, _, err := m.bus.Register(queues)
@@ -217,17 +217,19 @@ func (m *Metrics) RegisterBusEvents(queues ...string) {
 		var data interface{} = eventObject.Data
 		data = eventObject.Data
 		if event == "lock-core" {
-			coreStatusGauge.Set(1)
+			log.Infof("To be done")
+			// coreStatusGauge.Set(1)
 		} else if event == "unlock-core" {
-			coreStatusGauge.Set(2)
+			log.Infof("To be done")
+			// coreStatusGauge.Set(2)
 		} else if event == "create-object" {
 			CreateObjectCount(typeThing)
 		} else if event == "update-object" {
 			UpdateObjectCount(typeThing, data)
 		} else if event == "delete-object" {
 			DeleteObjectCount(typeThing)
-		} else if event == "update-task-status" {
-
-        }
+		} else {
+			log.Infof("Event not recognized yet")
+		}
 	}
 }
