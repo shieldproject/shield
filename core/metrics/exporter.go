@@ -9,12 +9,30 @@ import (
 	"github.com/shieldproject/shield/core/bus"
 )
 
+type Config struct {
+	TenantCount      int
+	AgentCount       int
+	TargetCount      int
+	StoreCount       int
+	JobCount         int
+	TaskCount        int
+	ArchiveCount     int
+	StorageUsedCount int64
+}
+
 type Metrics struct {
-	bus *bus.Bus
+	bus                   *bus.Bus
+	tenantsGauge          prometheus.Gauge
+	agentsGauge           prometheus.Gauge
+	targetsGauge          prometheus.Gauge
+	storesGauge           prometheus.Gauge
+	jobsGauge             prometheus.Gauge
+	tasksGauge            prometheus.Gauge
+	archivesGauge         prometheus.Gauge
+	storageUsedBytesGauge prometheus.Gauge
 }
 
 const (
-	namespace         = "shield"
 	tenantsTotal      = "tenants_total"
 	agentsTotal       = "agents_total"
 	targetsTotal      = "targets_total"
@@ -23,95 +41,91 @@ const (
 	tasksTotal        = "tasks_total"
 	archivesTotal     = "archives_total"
 	storageBytesTotal = "storage_used_bytes"
-	/* To be implemented
+	/* TODO
 	targetHealthStatus = "target_health_status"
 	storeHealthStatus  = "storeHealthStatus"
 	coreStatus         = "core_status" */
 )
 
-var (
-	tenantsGauge = prometheus.NewGauge(
+func New(namespace string, config Config) *Metrics {
+	metrics := &Metrics{}
+	if namespace == "" {
+		namespace = "shield"
+	}
+	metrics.tenantsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      tenantsTotal,
 			Help:      "How many Tenants exist",
 		})
 
-	agentsGauge = prometheus.NewGauge(
+	metrics.agentsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      agentsTotal,
 			Help:      "How many SHIELD Agents have been registered",
 		})
 
-	targetsGauge = prometheus.NewGauge(
+	metrics.targetsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      targetsTotal,
 			Help:      "How many Target Systems have been defined",
 		})
 
-	storesGauge = prometheus.NewGauge(
+	metrics.storesGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      storesTotal,
 			Help:      "How many Cloud Storage Systems have been defined",
 		})
 
-	jobsGauge = prometheus.NewGauge(
+	metrics.jobsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      jobsTotal,
 			Help:      "How many backup jobs have been defined",
 		})
 
-	tasksGauge = prometheus.NewGauge(
+	metrics.tasksGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      tasksTotal,
 			Help:      "How many tasks have been created",
 		})
 
-	archivesGauge = prometheus.NewGauge(
+	metrics.archivesGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      archivesTotal,
 			Help:      "How many Backup Archives have been generated",
 		})
 
-	storageUsedBytesGauge = prometheus.NewGauge(
+	metrics.storageUsedBytesGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      storageBytesTotal,
 			Help:      "How much storage has been used, in bytes.",
 		})
 
-	/* To be implemented
-	targetHealthGaugeVec = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      targetHealthStatus,
-			Help:      "A generic health status for targets, that is differentiated into different contexts based on labels. For example, the label target=x tenant=y means that the metric applies to the health of a given target, owned by a tenant.",
-		}, []string{"tenant_name", "tenant_uuid", "target_name", "target_uuid"})
+	prometheus.MustRegister(metrics.tenantsGauge)
+	prometheus.MustRegister(metrics.agentsGauge)
+	prometheus.MustRegister(metrics.targetsGauge)
+	prometheus.MustRegister(metrics.storesGauge)
+	prometheus.MustRegister(metrics.jobsGauge)
+	prometheus.MustRegister(metrics.tasksGauge)
+	prometheus.MustRegister(metrics.archivesGauge)
+	prometheus.MustRegister(metrics.storageUsedBytesGauge)
 
-	storeHealthGaugeVec = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      storeHealthStatus,
-			Help:      "A generic health status for stores, that is differentiated into different contexts based on labels. For example, the label store=x tenant=y means that the metric applies to the health of a given store, owned by a tenant.",
-		}, []string{"tenant_name", "tenant_uuid", "store_name", "store_uuid"})
+	metrics.tenantsGauge.Set(float64(config.TenantCount))
+	metrics.agentsGauge.Set(float64(config.AgentCount))
+	metrics.targetsGauge.Set(float64(config.TargetCount))
+	metrics.storesGauge.Set(float64(config.StoreCount))
+	metrics.jobsGauge.Set(float64(config.JobCount))
+	metrics.tasksGauge.Set(float64(config.TaskCount))
+	metrics.archivesGauge.Set(float64(config.ArchiveCount))
+	metrics.storageUsedBytesGauge.Set(float64(config.StorageUsedCount))
 
-	coreStatusGauge = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      coreStatus,
-			Help:      "The global initialized / locked status of the SHIELD core; (0=uninitialized, 1=locked, 2=unlocked)",
-		})
-	*/
-)
-
-func InitalizeMetrics() *Metrics {
-	metrics := &Metrics{}
 	return metrics
 }
 
@@ -119,87 +133,62 @@ func (m *Metrics) Inform(mbus *bus.Bus) {
 	m.bus = mbus
 }
 
-func (m *Metrics) RegisterExporter(tenantCount, agentsCount, targetsCount, storesCount, jobsCount, tasksCount, archivesCount float64) {
-	prometheus.MustRegister(tenantsGauge)
-	prometheus.MustRegister(agentsGauge)
-	prometheus.MustRegister(targetsGauge)
-	prometheus.MustRegister(storesGauge)
-	prometheus.MustRegister(jobsGauge)
-	prometheus.MustRegister(tasksGauge)
-	prometheus.MustRegister(archivesGauge)
-	prometheus.MustRegister(storageUsedBytesGauge)
-	/* To be done
-	prometheus.MustRegister(targetHealthGaugeVec)
-	prometheus.MustRegister(storeHealthGaugeVec)
-	prometheus.MustRegister(coreStatusGauge) */
-
-	tenantsGauge.Set(tenantCount)
-	agentsGauge.Set(agentsCount)
-	targetsGauge.Set(targetsCount)
-	storesGauge.Set(storesCount)
-	jobsGauge.Set(jobsCount)
-	tasksGauge.Set(tasksCount)
-	archivesGauge.Set(archivesCount)
-	storageUsedBytesGauge.Set(0)
-	/* To be done
-	coreStatusGauge.Set(coreStatusInitial) */
-}
-
 func (m *Metrics) ServeExporter() http.Handler {
 	return promhttp.Handler()
 }
 
-func CreateObjectCount(typeThing string) {
+func (m *Metrics) CreateObjectCount(typeThing string, data interface{}) {
+	interfaceData := data.(map[string]interface{})
 	switch typeThing {
 	case "tenant":
-		tenantsGauge.Inc()
+		m.tenantsGauge.Inc()
 	case "agent":
-		agentsGauge.Inc()
+		m.agentsGauge.Inc()
 	case "target":
-		targetsGauge.Inc()
+		m.targetsGauge.Inc()
 	case "store":
-		storesGauge.Inc()
+		m.storesGauge.Inc()
 	case "job":
-		jobsGauge.Inc()
+		m.jobsGauge.Inc()
 	case "task":
-		tasksGauge.Inc()
+		m.tasksGauge.Inc()
 	case "archive":
-		archivesGauge.Inc()
+		m.archivesGauge.Inc()
+		m.storageUsedBytesGauge.Add(float64(interfaceData["size"].(int64)))
 	default:
 		log.Infof("Event type not recognized or not implemented yet.")
 	}
 }
 
-func UpdateObjectCount(typeThing string, data interface{}) {
+func (m *Metrics) UpdateObjectCount(typeThing string, data interface{}) {
 	interfaceData := data.(map[string]interface{})
 	switch typeThing {
 	case "archive":
 		if interfaceData["status"] == "manually purged" {
-			archivesGauge.Dec()
+			m.archivesGauge.Dec()
+			m.storageUsedBytesGauge.Sub(float64(interfaceData["size"].(int64)))
 		}
-	case "tenant":
-		storageUsedBytesGauge.Set(float64(interfaceData["storage_used"].(int64)))
 	}
 }
 
-func DeleteObjectCount(typeThing string) {
+func (m *Metrics) DeleteObjectCount(typeThing string) {
 	switch typeThing {
 	case "tenant":
-		tenantsGauge.Dec()
+		m.tenantsGauge.Dec()
 	case "agent":
-		agentsGauge.Dec()
+		m.agentsGauge.Dec()
 	case "target":
-		targetsGauge.Dec()
+		m.targetsGauge.Dec()
 	case "store":
-		storesGauge.Dec()
+		m.storesGauge.Dec()
 	case "job":
-		jobsGauge.Dec()
+		m.jobsGauge.Dec()
 	default:
 		log.Infof("Event type not recognized or not implemented yet.")
 	}
 }
 
-/* to be done
+/* TODO
 func (m *Metrics) UpdateCoreStatus(value float64) {
 	coreStatusGauge.Set(value)
 } */
@@ -217,17 +206,15 @@ func (m *Metrics) RegisterBusEvents(queues ...string) {
 		var data interface{} = eventObject.Data
 		data = eventObject.Data
 		if event == "lock-core" {
-			log.Infof("To be done")
-			// coreStatusGauge.Set(1)
+			log.Infof("TODO")
 		} else if event == "unlock-core" {
-			log.Infof("To be done")
-			// coreStatusGauge.Set(2)
+			log.Infof("TODO")
 		} else if event == "create-object" {
-			CreateObjectCount(typeThing)
+			m.CreateObjectCount(typeThing, data)
 		} else if event == "update-object" {
-			UpdateObjectCount(typeThing, data)
+			m.UpdateObjectCount(typeThing, data)
 		} else if event == "delete-object" {
-			DeleteObjectCount(typeThing)
+			m.DeleteObjectCount(typeThing)
 		} else {
 			log.Infof("Event not recognized yet")
 		}

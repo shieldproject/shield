@@ -23,7 +23,7 @@ func (c Core) Main() {
 
 	/* we need a usable database first */
 	c.ConnectToDatabase()
-	c.InitalizePrometheus() //Initalize metirc values
+	c.InitializePrometheus() //Initialize metric values
 	c.ApplyFixups()
 	c.ConfigureMessageBus()
 	c.WireUpAuthenticationProviders()
@@ -128,7 +128,7 @@ func (c *Core) ConnectToDatabase() {
 	log.Debugf("connected successfully to database!")
 }
 
-func (c *Core) InitalizePrometheus() {
+func (c *Core) InitializePrometheus() {
 	tenants, err := c.db.GetAllTenants(nil)
 	if err != nil {
 		log.Debugf("No tenats found in database")
@@ -164,8 +164,23 @@ func (c *Core) InitalizePrometheus() {
 		log.Debugf("No archives found in database")
 	}
 
-	c.metrics = metrics.InitalizeMetrics()
-	c.metrics.RegisterExporter(float64(len(tenants)), float64(len(agents)), float64(len(targets)), float64(len(stores)), float64(len(jobs)), float64(len(tasks)), float64(len(archives)))
+	storageBytesUsed, err := c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
+		WithStatus: []string{"valid"},
+	})
+	if err != nil {
+		log.Debugf("Could not calculate bytes used by the storage")
+	}
+
+	c.metrics = metrics.New("", metrics.Config{
+		TenantCount:      len(tenants),
+		AgentCount:       len(agents),
+		TargetCount:      len(targets),
+		StoreCount:       len(stores),
+		JobCount:         len(jobs),
+		TaskCount:        len(tasks),
+		ArchiveCount:     len(archives),
+		StorageUsedCount: storageBytesUsed,
+	})
 }
 
 func (c *Core) ApplyFixups() {
