@@ -125,7 +125,7 @@ type Config struct {
 	} `yaml:"mbus"`
 
 	Prometheus struct {
-		Namespace string `yaml:"namespace`
+		Namespace string `yaml:"namespace"`
 	} `yaml:"prometheus"`
 
 	Cipher string `yaml:"cipher" env:"SHIELD_CIPHER"`
