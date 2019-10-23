@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	Namespace        string
 	TenantCount      int
 	AgentCount       int
 	TargetCount      int
@@ -47,8 +48,9 @@ const (
 	coreStatus         = "core_status" */
 )
 
-func New(namespace string, config Config) *Metrics {
+func New(config Config) *Metrics {
 	metrics := &Metrics{}
+	namespace := config.Namespace
 	if namespace == "" {
 		namespace = "shield"
 	}
@@ -156,7 +158,7 @@ func (m *Metrics) CreateObjectCount(typeThing string, data interface{}) {
 		m.archivesGauge.Inc()
 		m.storageUsedBytesGauge.Add(float64(interfaceData["size"].(int64)))
 	default:
-		log.Infof("Event type not recognized or not implemented yet.")
+		log.Debugf("Metrics ignoring create event for object type `%s'", typeThing)
 	}
 }
 
@@ -168,6 +170,8 @@ func (m *Metrics) UpdateObjectCount(typeThing string, data interface{}) {
 			m.archivesGauge.Dec()
 			m.storageUsedBytesGauge.Sub(float64(interfaceData["size"].(int64)))
 		}
+	default:
+		log.Debugf("Metrics ignoring create event for object type `%s'", typeThing)
 	}
 }
 
@@ -184,7 +188,7 @@ func (m *Metrics) DeleteObjectCount(typeThing string) {
 	case "job":
 		m.jobsGauge.Dec()
 	default:
-		log.Infof("Event type not recognized or not implemented yet.")
+		log.Debugf("Metrics ignoring create event for object type `%s'", typeThing)
 	}
 }
 
@@ -216,7 +220,7 @@ func (m *Metrics) RegisterBusEvents(queues ...string) {
 		} else if event == "delete-object" {
 			m.DeleteObjectCount(typeThing)
 		} else {
-			log.Infof("Event not recognized yet")
+			log.Debugf("Metrics ignoring event of type `%s'", event)
 		}
 	}
 }

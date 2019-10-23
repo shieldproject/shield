@@ -171,7 +171,8 @@ func (c *Core) InitializePrometheus() {
 		log.Debugf("Could not calculate bytes used by the storage")
 	}
 
-	c.metrics = metrics.New("", metrics.Config{
+	c.metrics = metrics.New(metrics.Config{
+		Namespace:        c.Config.PrometheusNamespace,
 		TenantCount:      len(tenants),
 		AgentCount:       len(agents),
 		TargetCount:      len(targets),

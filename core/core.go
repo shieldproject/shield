@@ -43,11 +43,12 @@ type Core struct {
 }
 
 type Config struct {
-	Debug          bool     `yaml:"debug"          env:"SHIELD_DEBUG"`
-	DataDir        string   `yaml:"data-dir"       env:"SHIELD_DATA_DIR"`
-	WebRoot        string   `yaml:"web-root"       env:"SHIELD_WEB_ROOT"`
-	PluginPaths    []string `yaml:"plugin_paths"`
-	PluginPathsEnv string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`
+	Debug               bool     `yaml:"debug"          env:"SHIELD_DEBUG"`
+	DataDir             string   `yaml:"data-dir"       env:"SHIELD_DATA_DIR"`
+	WebRoot             string   `yaml:"web-root"       env:"SHIELD_WEB_ROOT"`
+	PluginPaths         []string `yaml:"plugin_paths"`
+	PluginPathsEnv      string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`
+	PrometheusNamespace string
 
 	Scheduler struct {
 		FastLoop int `yaml:"fast-loop" env:"SHIELD_SCHEDULER_FAST_LOOP"`
@@ -138,6 +139,7 @@ func init() {
 	DefaultConfig.DataDir = "/shield/data"
 	DefaultConfig.WebRoot = "/shield/ui"
 	DefaultConfig.PluginPathsEnv = "/shield/plugins"
+	DefaultConfig.PrometheusNamespace = "shield"
 
 	DefaultConfig.Scheduler.FastLoop = 1
 	DefaultConfig.Scheduler.SlowLoop = 300
