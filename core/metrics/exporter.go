@@ -163,7 +163,7 @@ func (m *Metrics) UpdateObjectCount(typeThing string, data interface{}) {
 			m.storageUsedBytesGauge.Sub(float64(interfaceData["size"].(int64)))
 		}
 	default:
-		log.Debugf("Metrics ignoring create event for object type `%s'", typeThing)
+		log.Debugf("Metrics ignoring update event for object type `%s'", typeThing)
 	}
 }
 
@@ -180,7 +180,7 @@ func (m *Metrics) DeleteObjectCount(typeThing string) {
 	case "job":
 		m.jobsGauge.Dec()
 	default:
-		log.Debugf("Metrics ignoring create event for object type `%s'", typeThing)
+		log.Debugf("Metrics ignoring delete event for object type `%s'", typeThing)
 	}
 }
 
