@@ -107,14 +107,9 @@ func New(config Config) *Metrics {
 			Help:      "How much storage has been used, in bytes.",
 		})
 
-	prometheus.MustRegister(metrics.tenantsGauge)
-	prometheus.MustRegister(metrics.agentsGauge)
-	prometheus.MustRegister(metrics.targetsGauge)
-	prometheus.MustRegister(metrics.storesGauge)
-	prometheus.MustRegister(metrics.jobsGauge)
-	prometheus.MustRegister(metrics.tasksGauge)
-	prometheus.MustRegister(metrics.archivesGauge)
-	prometheus.MustRegister(metrics.storageUsedBytesGauge)
+	prometheus.MustRegister(metrics.tenantsGauge, metrics.agentsGauge,
+		metrics.targetsGauge, metrics.storesGauge, metrics.jobsGauge,
+		metrics.tasksGauge, metrics.archivesGauge, metrics.storageUsedBytesGauge)
 
 	metrics.tenantsGauge.Set(float64(config.TenantCount))
 	metrics.agentsGauge.Set(float64(config.AgentCount))
