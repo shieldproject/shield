@@ -441,7 +441,7 @@
         case 'create-object': self.insert(update.type, update.data); break;
         case 'update-object': self.update(update.type, update.data); break;
         case 'delete-object': self.delete(update.type, update.data); break;
-        case 'health-update': self.update(update.type, update.data); console.log(update); break;
+        case 'health-update': self.update(update.type, update.data); break;
         case 'task-log-update':
           var task = self.task(update.data.uuid);
           if (task) {
