@@ -103,15 +103,7 @@
           this.data[type][object.uuid][k] = object[k];
         }
       }
-      if (type == 'task' && 'ok' in object) {
-        var task = this.task(object.uuid);
-        if (task.job_uuid != '') {
-          var job = this.job(task.job_uuid);
-          if (job != undefined) {
-            job.healthy = task.ok;
-          }
-        }
-      }
+
       return this;
     },
 
@@ -167,8 +159,6 @@
         for (var uuid in this.data.target || {}) {
           if (this.data.target[uuid].tenant_uuid == q.tenant) {
             var target = this.data.target[uuid];
-            target.healthy = $.all(this.jobs({ system: target.uuid }),
-                                   function (j) { return j.healthy; });
             systems.push(target);
           }
         }
@@ -177,10 +167,6 @@
     },
     system: function (uuid) {
       var target = this.find('target', { uuid: uuid });
-      if (target) {
-        target.healthy = $.all(this.jobs({ system: target.uuid }),
-                               function (j) { return j.healthy; });
-      }
       return target;
     },
 
@@ -455,6 +441,7 @@
         case 'create-object': self.insert(update.type, update.data); break;
         case 'update-object': self.update(update.type, update.data); break;
         case 'delete-object': self.delete(update.type, update.data); break;
+        case 'health-update': self.update(update.type, update.data); console.log(update); break;
         case 'task-log-update':
           var task = self.task(update.data.uuid);
           if (task) {

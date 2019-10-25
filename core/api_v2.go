@@ -1512,6 +1512,7 @@ func (c *Core) v2API() *route.Router {
 				Config:      in.Target.Config,
 				Agent:       in.Target.Agent,
 				Compression: in.Target.Compression,
+				Healthy:     true,
 			})
 			if target == nil || err != nil {
 				r.Fail(route.Oops(err, "Unable to create new data target"))
@@ -2286,6 +2287,7 @@ func (c *Core) v2API() *route.Router {
 			Config:      in.Config,
 			Agent:       in.Agent,
 			Compression: in.Compression,
+			Healthy:     true,
 		})
 		if target == nil || err != nil {
 			r.Fail(route.Oops(err, "Unable to create new data target"))

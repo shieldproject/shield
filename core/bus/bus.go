@@ -17,6 +17,7 @@ const (
 	TaskLogUpdateEvent    = "task-log-update"
 	TenantInviteEvent     = "tenant-invite"
 	TenantBanishEvent     = "tenant-banish"
+	HealthUpdateEvent     = "health-update"
 )
 
 type Event struct {

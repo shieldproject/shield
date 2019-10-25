@@ -336,6 +336,30 @@ func (db *DB) UpdateStore(store *Store) error {
 	return nil
 }
 
+func (db *DB) UpdateStoreHealth(store *Store) error {
+	err := db.Exec(`
+	UPDATE stores
+	   SET healthy                 = ?,
+		   last_test_task_uuid     = ?
+	 WHERE uuid = ?`,
+		store.Healthy, store.LastTestTaskUUID,
+		store.UUID)
+	if err != nil {
+		return err
+	}
+
+	update, err := db.GetStore(store.UUID)
+	if err != nil {
+		return err
+	}
+	if update == nil {
+		return fmt.Errorf("unable to retrieve store %s after update", store.UUID)
+	}
+
+	db.sendHealthUpdateEvent(store, "tenant:"+store.TenantUUID)
+	return nil
+}
+
 func (db *DB) DeleteStore(id string) (bool, error) {
 	store, err := db.GetStore(id)
 	if err != nil {

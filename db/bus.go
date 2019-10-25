@@ -93,6 +93,13 @@ func (db *DB) sendUpdateObjectEvent(thing interface{}, queues ...string) {
 	}
 }
 
+func (db *DB) sendHealthUpdateEvent(thing interface{}, queues ...string) {
+	if db.bus != nil {
+		log.Infof("sending %s to [%s] for %s", bus.HealthUpdateEvent, strings.Join(queues, ", "), datauuid(thing))
+		db.bus.Send(bus.HealthUpdateEvent, datatype(thing), thing, queues...)
+	}
+}
+
 func (db *DB) sendDeleteObjectEvent(thing interface{}, queues ...string) {
 	if db.bus != nil {
 		log.Infof("sending %s to [%s] for %s", bus.DeleteObjectEvent, strings.Join(queues, ", "), datauuid(thing))

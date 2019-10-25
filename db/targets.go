@@ -16,6 +16,7 @@ type Target struct {
 	Plugin      string `json:"plugin"      mbus:"plugin"`
 	Agent       string `json:"agent"       mbus:"agent"`
 	Compression string `json:"compression" mbus:"compression"`
+	Healthy     bool   `json:"healthy"     mbus:"healthy"`
 
 	Config map[string]interface{} `json:"config,omitempty"  mbus:"config"`
 }
@@ -263,6 +264,17 @@ func (db *DB) UpdateTarget(target *Target) error {
 	}
 
 	db.sendUpdateObjectEvent(target, "tenant:"+target.TenantUUID)
+	return nil
+}
+
+func (db *DB) UpdateTargetHealth(id string, health bool) error {
+	target, err := db.GetTarget(id)
+	if err != nil {
+		return err
+	}
+	target.Healthy = health
+
+	db.sendHealthUpdateEvent(target, "tenant:"+target.TenantUUID)
 	return nil
 }
 
