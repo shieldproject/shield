@@ -331,12 +331,16 @@ func (db *DB) UpdateJob(job *Job) error {
 	return nil
 }
 
-func (db *DB) UpdateJobHealth(id string) error {
-	//Getting the job is supposed to update the health based on last task status
+func (db *DB) UpdateJobHealth(id string, status bool) error {
 	job, err := db.GetJob(id)
 	if err != nil {
 		return fmt.Errorf("unable to find job %s to update health: %s", id, err)
 	}
+	job.Healthy = true
+	if !status {
+		job.Healthy = false
+	}
+
 	db.sendHealthUpdateEvent(job, "tenant:"+job.TenantUUID)
 	return nil
 }

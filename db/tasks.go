@@ -761,7 +761,7 @@ func (db *DB) FailTask(id string, at time.Time) error {
 		return err
 	}
 	if task.JobUUID != "" {
-		err = db.UpdateJobHealth(task.JobUUID)
+		err = db.UpdateJobHealth(task.JobUUID, false)
 		if err != nil {
 			return err
 		}
@@ -784,7 +784,7 @@ func (db *DB) CompleteTask(id string, at time.Time) error {
 		return err
 	}
 	if task.JobUUID != "" {
-		err = db.UpdateJobHealth(task.JobUUID)
+		err = db.UpdateJobHealth(task.JobUUID, true)
 		if err != nil {
 			return err
 		}
