@@ -23,17 +23,18 @@ func (s v6Schema) Deploy(db *DB) error {
 	               next_run           INTEGER DEFAULT 0,
 	               priority           INTEGER DEFAULT 50,
 	               paused             BOOLEAN,
-	               fixed_key          INTEGER DEFAULT 0
+				   fixed_key          INTEGER DEFAULT 0,
+				   healthy            BOOLEAN
 	             )`)
 	if err != nil {
 		return err
 	}
 	err = db.Exec(`INSERT INTO jobs_new (uuid, target_uuid, store_uuid, tenant_uuid,
 	                                     schedule, next_run, keep_days,
-	                                     priority, paused, name, summary)
+	                                     priority, paused, name, summary, healthy)
 	                              SELECT j.uuid, j.target_uuid, j.store_uuid, j.tenant_uuid,
 	                                     j.schedule, j.next_run, r.expiry / 86400,
-	                                     j.priority, j.paused, j.name, j.summary
+	                                     j.priority, j.paused, j.name, j.summary, j.healthy
 	                                FROM jobs j INNER JOIN retention r
 	                                  ON j.retention_uuid = r.uuid`)
 	if err != nil {

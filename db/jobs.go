@@ -136,7 +136,7 @@ func (f *JobFilter) Query() (string, []interface{}) {
 	        )
 
 	   SELECT j.uuid, j.name, j.summary, j.paused, j.schedule,
-	          j.tenant_uuid, j.fixed_key, j.keep_n, j.keep_days,
+	          j.tenant_uuid, j.fixed_key, j.healthy, j.keep_n, j.keep_days,
 	          s.uuid, s.name, s.plugin, s.endpoint, s.summary, s.healthy,
 	          t.uuid, t.name, t.plugin, t.endpoint, t.agent, t.compression,
 	          k.started_at, k.status
@@ -175,7 +175,7 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		)
 		if err = r.Scan(
 			&j.UUID, &j.Name, &j.Summary, &j.Paused, &j.Schedule,
-			&j.TenantUUID, &j.FixedKey, &j.KeepN, &j.KeepDays,
+			&j.TenantUUID, &j.FixedKey, &j.Healthy, &j.KeepN, &j.KeepDays,
 			&j.Store.UUID, &j.Store.Name, &j.Store.Plugin, &j.Store.Endpoint, &j.Store.Summary, &j.Store.Healthy,
 			&j.Target.UUID, &j.Target.Name, &j.Target.Plugin, &j.Target.Endpoint,
 			&j.Agent, &j.Target.Compression, &last, &status); err != nil {
@@ -184,10 +184,8 @@ func (db *DB) GetAllJobs(filter *JobFilter) ([]*Job, error) {
 		if last != nil {
 			j.LastRun = *last
 		}
-		j.Healthy = true
 		if status.Valid {
 			j.LastTaskStatus = status.String
-			j.Healthy = j.LastTaskStatus == "done"
 		}
 
 		j.StoreUUID = j.Store.UUID
@@ -240,6 +238,7 @@ func (db *DB) UnpauseJob(id string) (bool, error) {
 
 func (db *DB) CreateJob(job *Job) (*Job, error) {
 	job.UUID = RandomID()
+	job.Healthy = true
 
 	err := db.exclusively(func() error {
 		/* validate the tenant */
@@ -260,13 +259,13 @@ func (db *DB) CreateJob(job *Job) (*Job, error) {
 		return db.exec(`
 		   INSERT INTO jobs (uuid, tenant_uuid,
 		                     name, summary, schedule, keep_n, keep_days, paused,
-		                     target_uuid, store_uuid, fixed_key)
+		                     target_uuid, store_uuid, fixed_key, healthy)
 		             VALUES (?, ?,
 		                     ?, ?, ?, ?, ?, ?,
-		                     ?, ?, ?)`,
+		                     ?, ?, ?, ?)`,
 			job.UUID, job.TenantUUID,
 			job.Name, job.Summary, job.Schedule, job.KeepN, job.KeepDays, job.Paused,
-			job.TargetUUID, job.StoreUUID, job.FixedKey)
+			job.TargetUUID, job.StoreUUID, job.FixedKey, job.Healthy)
 	})
 	if err != nil {
 		return nil, err
@@ -336,9 +335,15 @@ func (db *DB) UpdateJobHealth(id string, status bool) error {
 	if err != nil {
 		return fmt.Errorf("unable to find job %s to update health: %s", id, err)
 	}
-	job.Healthy = true
-	if !status {
-		job.Healthy = false
+	job.Healthy = status
+	err = db.Exec(`
+        UPDATE jobs
+            SET healthy = ?
+        WHERE uuid = ?`,
+		job.Healthy,
+		job.UUID)
+	if err != nil {
+		return err
 	}
 
 	db.sendHealthUpdateEvent(job, "tenant:"+job.TenantUUID)

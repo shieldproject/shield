@@ -23,7 +23,7 @@ func (s v1Schema) Deploy(db *DB) error {
 	                 summary   TEXT,
 	                 plugin    TEXT NOT NULL,
 	                 endpoint  TEXT NOT NULL,
-	                 agent     TEXT NOT NULL
+                     agent     TEXT NOT NULL
 	               )`)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (s v1Schema) Deploy(db *DB) error {
 	                 priority        INTEGER DEFAULT 50,
 	                 paused          BOOLEAN,
 	                 name            TEXT,
-	                 summary         TEXT
+					 summary         TEXT
 	               )`)
 	if err != nil {
 		return err
