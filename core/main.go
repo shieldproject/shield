@@ -38,7 +38,7 @@ func (c Core) Main() {
 	c.ConnectToVault()
 	c.Bind()
 	c.StartScheduler()
-	go c.metrics.RegisterBusEvents("*")
+	go c.metrics.Watch("*")
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
 
