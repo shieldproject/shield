@@ -319,7 +319,7 @@ func (c *Core) Bind() {
 	http.Handle("/v1/", c.v1API())
 	http.Handle("/v2/", c.v2API())
 	http.Handle("/auth/", c.authAPI())
-	http.Handle("/metrics/", c.metrics.ServeExporter()) //serve prometheus metrics at this endpoint
+	http.Handle("/metrics/", c.metrics.Handler()) //serve prometheus metrics at this endpoint
 	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
 	go func() {

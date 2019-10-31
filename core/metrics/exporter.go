@@ -127,11 +127,11 @@ func (m *Metrics) Inform(mbus *bus.Bus) {
 	m.bus = mbus
 }
 
-func (m *Metrics) ServeExporter() http.Handler {
+func (m *Metrics) Handler() http.Handler {
 	return promhttp.Handler()
 }
 
-func (m *Metrics) CreateObjectCount(typeThing string, data interface{}) {
+func (m *Metrics) createObjectCount(typeThing string, data interface{}) {
 	interfaceData := data.(map[string]interface{})
 	switch typeThing {
 	case "tenant":
@@ -154,7 +154,7 @@ func (m *Metrics) CreateObjectCount(typeThing string, data interface{}) {
 	}
 }
 
-func (m *Metrics) UpdateObjectCount(typeThing string, data interface{}) {
+func (m *Metrics) updateObjectCount(typeThing string, data interface{}) {
 	interfaceData := data.(map[string]interface{})
 	switch typeThing {
 	case "archive":
@@ -167,7 +167,7 @@ func (m *Metrics) UpdateObjectCount(typeThing string, data interface{}) {
 	}
 }
 
-func (m *Metrics) DeleteObjectCount(typeThing string) {
+func (m *Metrics) deleteObjectCount(typeThing string) {
 	switch typeThing {
 	case "tenant":
 		m.tenantsGauge.Dec()
@@ -189,7 +189,7 @@ func (m *Metrics) UpdateCoreStatus(value float64) {
 	coreStatusGauge.Set(value)
 } */
 
-func (m *Metrics) RegisterBusEvents(queues ...string) {
+func (m *Metrics) Watch(queues ...string) {
 	ch, _, err := m.bus.Register(queues)
 	if err != nil {
 		log.Infof("bus didn't register for mbus")
@@ -206,11 +206,11 @@ func (m *Metrics) RegisterBusEvents(queues ...string) {
 		} else if event == "unlock-core" {
 			log.Infof("TODO")
 		} else if event == "create-object" {
-			m.CreateObjectCount(typeThing, data)
+			m.createObjectCount(typeThing, data)
 		} else if event == "update-object" {
-			m.UpdateObjectCount(typeThing, data)
+			m.updateObjectCount(typeThing, data)
 		} else if event == "delete-object" {
-			m.DeleteObjectCount(typeThing)
+			m.deleteObjectCount(typeThing)
 		} else {
 			log.Debugf("Metrics ignoring event of type `%s'", event)
 		}
