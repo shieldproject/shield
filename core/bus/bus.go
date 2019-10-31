@@ -144,7 +144,7 @@ func (b *Bus) SendEvent(queues []string, ev Event) {
 		}
 
 		for _, q := range queues {
-			if q == "*" || s.acl[q] {
+			if q == "*" || s.acl[q] || s.acl["*"] {
 				ev.Queue = q
 				select {
 				case s.ch <- ev:

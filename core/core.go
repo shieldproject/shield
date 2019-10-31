@@ -15,6 +15,7 @@ import (
 
 	"github.com/shieldproject/shield/core/bus"
 	"github.com/shieldproject/shield/core/fabric"
+	"github.com/shieldproject/shield/core/metrics"
 	"github.com/shieldproject/shield/core/scheduler"
 	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
@@ -28,6 +29,7 @@ type Core struct {
 	providers map[string]AuthProvider
 	bus       *bus.Bus
 	scheduler *scheduler.Scheduler
+	metrics   *metrics.Metrics
 
 	bailout bool
 
@@ -123,6 +125,10 @@ type Config struct {
 		Backlog  int `yaml:"backlog"   env:"SHIELD_MBUS_BACKLOG"`
 	} `yaml:"mbus"`
 
+	Prometheus struct {
+		Namespace string `yaml:"namespace"`
+	} `yaml:"prometheus"`
+
 	Cipher string `yaml:"cipher" env:"SHIELD_CIPHER"`
 
 	Bootstrapper string `yaml:"bootstrapper" env:"SHIELD_BOOTSTRAPPER"`
@@ -171,6 +177,8 @@ func init() {
 
 	DefaultConfig.Mbus.MaxSlots = 2048
 	DefaultConfig.Mbus.Backlog = 100
+
+	DefaultConfig.Prometheus.Namespace = "shield"
 }
 
 func Configure(file string, config Config) (*Core, error) {

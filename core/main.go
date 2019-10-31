@@ -10,6 +10,7 @@ import (
 	"github.com/jhunt/go-log"
 
 	"github.com/shieldproject/shield/core/bus"
+	"github.com/shieldproject/shield/core/metrics"
 	"github.com/shieldproject/shield/core/scheduler"
 	"github.com/shieldproject/shield/core/vault"
 	"github.com/shieldproject/shield/db"
@@ -22,6 +23,7 @@ func (c Core) Main() {
 
 	/* we need a usable database first */
 	c.ConnectToDatabase()
+	c.InitializePrometheus() //Initialize metric values
 	c.ApplyFixups()
 	c.ConfigureMessageBus()
 	c.WireUpAuthenticationProviders()
@@ -36,6 +38,7 @@ func (c Core) Main() {
 	c.ConnectToVault()
 	c.Bind()
 	c.StartScheduler()
+	go c.metrics.Watch("*")
 
 	log.Infof("INITIALIZATION COMPLETE; entering main loop.")
 
@@ -123,6 +126,48 @@ func (c *Core) ConnectToDatabase() {
 	c.MaybeTerminate(c.db.CheckCurrentSchema())
 
 	log.Debugf("connected successfully to database!")
+}
+
+func (c *Core) InitializePrometheus() error {
+	tenants, err := c.db.GetAllTenants(nil)
+	c.MaybeTerminate(err)
+
+	agents, err := c.db.GetAllAgents(nil)
+	c.MaybeTerminate(err)
+
+	targets, err := c.db.GetAllTargets(nil)
+	c.MaybeTerminate(err)
+
+	stores, err := c.db.GetAllStores(nil)
+	c.MaybeTerminate(err)
+
+	jobs, err := c.db.GetAllJobs(nil)
+	c.MaybeTerminate(err)
+
+	tasks, err := c.db.GetAllTasks(nil)
+	c.MaybeTerminate(err)
+
+	archives, err := c.db.GetAllArchives(nil)
+	c.MaybeTerminate(err)
+
+	storageBytesUsed, err := c.db.ArchiveStorageFootprint(&db.ArchiveFilter{
+		WithStatus: []string{"valid"},
+	})
+	c.MaybeTerminate(err)
+
+	c.metrics = metrics.New(metrics.Config{
+		Namespace:        c.Config.Prometheus.Namespace,
+		TenantCount:      len(tenants),
+		AgentCount:       len(agents),
+		TargetCount:      len(targets),
+		StoreCount:       len(stores),
+		JobCount:         len(jobs),
+		TaskCount:        len(tasks),
+		ArchiveCount:     len(archives),
+		StorageUsedCount: storageBytesUsed,
+	})
+
+	return nil
 }
 
 func (c *Core) ApplyFixups() {
@@ -274,6 +319,7 @@ func (c *Core) Bind() {
 	http.Handle("/v1/", c.v1API())
 	http.Handle("/v2/", c.v2API())
 	http.Handle("/auth/", c.authAPI())
+	http.Handle("/metrics/", c.metrics.Handler()) //serve prometheus metrics at this endpoint
 	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
 	go func() {
@@ -294,6 +340,7 @@ func (c *Core) StartScheduler() {
 func (c *Core) ConfigureMessageBus() {
 	log.Infof("INITIALIZING: configuring message bus with %d slots and %d backlog per slot...", c.Config.Mbus.MaxSlots, c.Config.Mbus.Backlog)
 	c.bus = bus.New(c.Config.Mbus.MaxSlots, c.Config.Mbus.Backlog)
+	c.metrics.Inform(c.bus)
 	c.db.Inform(c.bus)
 }
 
