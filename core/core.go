@@ -29,7 +29,7 @@ type Core struct {
 	providers map[string]AuthProvider
 	bus       *bus.Bus
 	scheduler *scheduler.Scheduler
-	metrics   *metrics.Metrics
+	metrics   *metrics.Exporter
 
 	bailout bool
 
@@ -127,6 +127,10 @@ type Config struct {
 
 	Prometheus struct {
 		Namespace string `yaml:"namespace"`
+
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+		Realm    string `yaml:"realm"`
 	} `yaml:"prometheus"`
 
 	Cipher string `yaml:"cipher" env:"SHIELD_CIPHER"`
@@ -179,6 +183,9 @@ func init() {
 	DefaultConfig.Mbus.Backlog = 100
 
 	DefaultConfig.Prometheus.Namespace = "shield"
+	DefaultConfig.Prometheus.Username = "prometheus"
+	DefaultConfig.Prometheus.Password = "shield"
+	DefaultConfig.Prometheus.Realm = "SHIELD Prometheus Exporter"
 }
 
 func Configure(file string, config Config) (*Core, error) {

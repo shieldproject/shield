@@ -155,8 +155,12 @@ func (c *Core) InitializePrometheus() error {
 	})
 	c.MaybeTerminate(err)
 
-	c.metrics = metrics.New(metrics.Config{
-		Namespace:        c.Config.Prometheus.Namespace,
+	c.metrics = metrics.New(&metrics.Exporter{
+		Username:  c.Config.Prometheus.Username,
+		Password:  c.Config.Prometheus.Password,
+		Realm:     c.Config.Prometheus.Realm,
+		Namespace: c.Config.Prometheus.Namespace,
+
 		TenantCount:      len(tenants),
 		AgentCount:       len(agents),
 		TargetCount:      len(targets),
@@ -319,7 +323,7 @@ func (c *Core) Bind() {
 	http.Handle("/v1/", c.v1API())
 	http.Handle("/v2/", c.v2API())
 	http.Handle("/auth/", c.authAPI())
-	http.Handle("/metrics/", c.metrics.Handler()) //serve prometheus metrics at this endpoint
+	http.Handle("/metrics/", c.metrics.Handler())
 	http.Handle("/", http.FileServer(http.Dir(c.Config.WebRoot)))
 
 	go func() {

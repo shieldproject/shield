@@ -9,7 +9,7 @@ import (
 	"github.com/shieldproject/shield/core/bus"
 )
 
-type Config struct {
+type Exporter struct {
 	Namespace        string
 	TenantCount      int
 	AgentCount       int
@@ -19,9 +19,11 @@ type Config struct {
 	TaskCount        int
 	ArchiveCount     int
 	StorageUsedCount int64
-}
 
-type Metrics struct {
+	Username string
+	Password string
+	Realm    string
+
 	bus                   *bus.Bus
 	tenantsGauge          prometheus.Gauge
 	agentsGauge           prometheus.Gauge
@@ -48,149 +50,176 @@ const (
 	coreStatus         = "core_status" */
 )
 
-func New(config Config) *Metrics {
-	metrics := &Metrics{}
-	namespace := config.Namespace
-	metrics.tenantsGauge = prometheus.NewGauge(
+func New(endpoint *Exporter) *Exporter {
+	if endpoint == nil {
+		endpoint = &Exporter{}
+	}
+
+	if endpoint.Username == "" {
+		endpoint.Username = "prometheus"
+	}
+	if endpoint.Password == "" {
+		endpoint.Password = "shield"
+	}
+	if endpoint.Realm == "" {
+		endpoint.Realm = "SHIELD Prometheus Exporter"
+	}
+	if endpoint.Namespace == "" {
+		endpoint.Namespace = "shield"
+	}
+
+	endpoint.tenantsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      tenantsTotal,
 			Help:      "How many Tenants exist",
 		})
 
-	metrics.agentsGauge = prometheus.NewGauge(
+	endpoint.agentsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      agentsTotal,
 			Help:      "How many SHIELD Agents have been registered",
 		})
 
-	metrics.targetsGauge = prometheus.NewGauge(
+	endpoint.targetsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      targetsTotal,
 			Help:      "How many Target Systems have been defined",
 		})
 
-	metrics.storesGauge = prometheus.NewGauge(
+	endpoint.storesGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      storesTotal,
 			Help:      "How many Cloud Storage Systems have been defined",
 		})
 
-	metrics.jobsGauge = prometheus.NewGauge(
+	endpoint.jobsGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      jobsTotal,
 			Help:      "How many backup jobs have been defined",
 		})
 
-	metrics.tasksGauge = prometheus.NewGauge(
+	endpoint.tasksGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      tasksTotal,
 			Help:      "How many tasks have been created",
 		})
 
-	metrics.archivesGauge = prometheus.NewGauge(
+	endpoint.archivesGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      archivesTotal,
 			Help:      "How many Backup Archives have been generated",
 		})
 
-	metrics.storageUsedBytesGauge = prometheus.NewGauge(
+	endpoint.storageUsedBytesGauge = prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Namespace: namespace,
+			Namespace: endpoint.Namespace,
 			Name:      storageBytesTotal,
 			Help:      "How much storage has been used, in bytes.",
 		})
 
-	prometheus.MustRegister(metrics.tenantsGauge, metrics.agentsGauge,
-		metrics.targetsGauge, metrics.storesGauge, metrics.jobsGauge,
-		metrics.tasksGauge, metrics.archivesGauge, metrics.storageUsedBytesGauge)
+	prometheus.MustRegister(
+		endpoint.tenantsGauge,
+		endpoint.agentsGauge,
+		endpoint.targetsGauge,
+		endpoint.storesGauge,
+		endpoint.jobsGauge,
+		endpoint.tasksGauge,
+		endpoint.archivesGauge,
+		endpoint.storageUsedBytesGauge,
+	)
 
-	metrics.tenantsGauge.Set(float64(config.TenantCount))
-	metrics.agentsGauge.Set(float64(config.AgentCount))
-	metrics.targetsGauge.Set(float64(config.TargetCount))
-	metrics.storesGauge.Set(float64(config.StoreCount))
-	metrics.jobsGauge.Set(float64(config.JobCount))
-	metrics.tasksGauge.Set(float64(config.TaskCount))
-	metrics.archivesGauge.Set(float64(config.ArchiveCount))
-	metrics.storageUsedBytesGauge.Set(float64(config.StorageUsedCount))
+	endpoint.tenantsGauge.Set(float64(endpoint.TenantCount))
+	endpoint.agentsGauge.Set(float64(endpoint.AgentCount))
+	endpoint.targetsGauge.Set(float64(endpoint.TargetCount))
+	endpoint.storesGauge.Set(float64(endpoint.StoreCount))
+	endpoint.jobsGauge.Set(float64(endpoint.JobCount))
+	endpoint.tasksGauge.Set(float64(endpoint.TaskCount))
+	endpoint.archivesGauge.Set(float64(endpoint.ArchiveCount))
+	endpoint.storageUsedBytesGauge.Set(float64(endpoint.StorageUsedCount))
 
-	return metrics
+	return endpoint
 }
 
-func (m *Metrics) Inform(mbus *bus.Bus) {
-	m.bus = mbus
+func (e *Exporter) Inform(mbus *bus.Bus) {
+	e.bus = mbus
 }
 
-func (m *Metrics) Handler() http.Handler {
-	return promhttp.Handler()
-}
-
-func (m *Metrics) createObjectCount(typeThing string, data interface{}) {
-	interfaceData := data.(map[string]interface{})
-	switch typeThing {
-	case "tenant":
-		m.tenantsGauge.Inc()
-	case "agent":
-		m.agentsGauge.Inc()
-	case "target":
-		m.targetsGauge.Inc()
-	case "store":
-		m.storesGauge.Inc()
-	case "job":
-		m.jobsGauge.Inc()
-	case "task":
-		m.tasksGauge.Inc()
-	case "archive":
-		m.archivesGauge.Inc()
-		m.storageUsedBytesGauge.Add(float64(interfaceData["size"].(int64)))
-	default:
-		log.Debugf("Metrics ignoring create event for object type `%s'", typeThing)
+func (e *Exporter) Handler() http.Handler {
+	return BasicAuthenticator{
+		username: e.Username,
+		password: e.Password,
+		realm:    e.Realm,
+		handler:  promhttp.Handler(),
 	}
 }
 
-func (m *Metrics) updateObjectCount(typeThing string, data interface{}) {
-	interfaceData := data.(map[string]interface{})
-	switch typeThing {
+func (e *Exporter) createObjectCount(typ string, raw interface{}) {
+	data := raw.(map[string]interface{})
+	switch typ {
+	case "tenant":
+		e.tenantsGauge.Inc()
+	case "agent":
+		e.agentsGauge.Inc()
+	case "target":
+		e.targetsGauge.Inc()
+	case "store":
+		e.storesGauge.Inc()
+	case "job":
+		e.jobsGauge.Inc()
+	case "task":
+		e.tasksGauge.Inc()
 	case "archive":
-		if interfaceData["status"] == "manually purged" {
-			m.archivesGauge.Dec()
-			m.storageUsedBytesGauge.Sub(float64(interfaceData["size"].(int64)))
+		e.archivesGauge.Inc()
+		e.storageUsedBytesGauge.Add(float64(data["size"].(int64)))
+	default:
+		log.Debugf("ignoring create event for object type `%s'", typ)
+	}
+}
+
+func (e *Exporter) updateObjectCount(typ string, raw interface{}) {
+	data := raw.(map[string]interface{})
+	switch typ {
+	case "archive":
+		if data["status"] == "manually purged" {
+			e.archivesGauge.Dec()
+			e.storageUsedBytesGauge.Sub(float64(data["size"].(int64)))
 		}
 	default:
-		log.Debugf("Metrics ignoring update event for object type `%s'", typeThing)
+		log.Debugf("ignoring update event for object type `%s'", typ)
 	}
 }
 
-func (m *Metrics) deleteObjectCount(typeThing string) {
-	switch typeThing {
+func (e *Exporter) deleteObjectCount(typ string) {
+	switch typ {
 	case "tenant":
-		m.tenantsGauge.Dec()
+		e.tenantsGauge.Dec()
 	case "agent":
-		m.agentsGauge.Dec()
+		e.agentsGauge.Dec()
 	case "target":
-		m.targetsGauge.Dec()
+		e.targetsGauge.Dec()
 	case "store":
-		m.storesGauge.Dec()
+		e.storesGauge.Dec()
 	case "job":
-		m.jobsGauge.Dec()
+		e.jobsGauge.Dec()
 	default:
-		log.Debugf("Metrics ignoring delete event for object type `%s'", typeThing)
+		log.Debugf("ignoring delete event for object type `%s'", typ)
 	}
 }
 
 /* TODO
-func (m *Metrics) UpdateCoreStatus(value float64) {
+func (e *Exporter) UpdateCoreStatus(value float64) {
 	coreStatusGauge.Set(value)
 } */
 
-func (m *Metrics) Watch(queues ...string) {
-	ch, _, err := m.bus.Register(queues)
+func (e *Exporter) Watch(queues ...string) {
+	ch, _, err := e.bus.Register(queues)
 	if err != nil {
 		log.Infof("bus didn't register for mbus")
 		return
@@ -198,7 +227,7 @@ func (m *Metrics) Watch(queues ...string) {
 
 	for eventObject := range ch {
 		event := eventObject.Event
-		typeThing := eventObject.Type
+		typ := eventObject.Type
 		var data interface{} = eventObject.Data
 		data = eventObject.Data
 		if event == "lock-core" {
@@ -206,13 +235,13 @@ func (m *Metrics) Watch(queues ...string) {
 		} else if event == "unlock-core" {
 			log.Infof("TODO")
 		} else if event == "create-object" {
-			m.createObjectCount(typeThing, data)
+			e.createObjectCount(typ, data)
 		} else if event == "update-object" {
-			m.updateObjectCount(typeThing, data)
+			e.updateObjectCount(typ, data)
 		} else if event == "delete-object" {
-			m.deleteObjectCount(typeThing)
+			e.deleteObjectCount(typ)
 		} else {
-			log.Debugf("Metrics ignoring event of type `%s'", event)
+			log.Debugf("ignoring event of type `%s'", event)
 		}
 	}
 }
