@@ -265,7 +265,7 @@ func Configure(file string, config Config) (*Core, error) {
 		return nil, fmt.Errorf("SHIELD web root directory '%s' is invalid (not a directory)", c.Config.WebRoot)
 	}
 
-	if c.Config.PluginPathsEnv != "" {
+	if len(c.Config.PluginPaths) == 0 && c.Config.PluginPathsEnv != "" {
 		p := strings.Split(c.Config.PluginPathsEnv, ":")
 		for _, path := range c.Config.PluginPaths {
 			p = append(p, path)
