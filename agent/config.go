@@ -87,7 +87,7 @@ func (agent *Agent) ReadConfig(path string) error {
 	if config.HostKey != "" {
 		hostKey, err = LoadPrivateKeyFromBytes([]byte(config.HostKey))
 	} else if config.HostKeyFile != "" {
-		hostKey, err = LoadPrivateKeyFromBytes([]byte(config.HostKey))
+		hostKey, err = LoadPrivateKeyFromFile(config.HostKeyFile)
 	} else {
 		hostKey, err = GeneratePrivateKey()
 	}

@@ -7,8 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/shieldproject/shield/agent"
-
-	"golang.org/x/crypto/ssh"
 )
 
 var _ = Describe("Agent", func() {
@@ -51,36 +49,30 @@ var _ = Describe("Agent", func() {
 
 	Describe("Authorized Keys Loader", func() {
 		It("throws an error when loading authorized keys from a non-existent file", func() {
-			_, err := LoadAuthorizedKeys("test/enoent")
+			_, err := LoadAuthorizedKeysFromFile("test/enoent")
 			Ω(err).Should(HaveOccurred())
 		})
 
 		It("can load authorized keys from a file", func() {
-			keys, err := LoadAuthorizedKeys("test/authorized_keys")
+			keys, err := LoadAuthorizedKeysFromFile("test/authorized_keys")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(len(keys)).Should(Equal(2))
 		})
 
 		It("ignores malformed keys in the authorized keys file", func() {
-			keys, err := LoadAuthorizedKeys("test/authorized_keys.malformed")
+			keys, err := LoadAuthorizedKeysFromFile("test/authorized_keys.malformed")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(len(keys)).Should(Equal(2))
 		})
 	})
 
 	Describe("SSH Server Configurator", func() {
-		It("throws an error when given a bad host key path", func() {
-			_, err := ConfigureSSHServer("test/enoent", []ssh.PublicKey{})
-			Ω(err).Should(HaveOccurred())
-		})
-
-		It("throws an error when given a malformed host key", func() {
-			_, err := ConfigureSSHServer("test/identities/bad/malformed", []ssh.PublicKey{})
-			Ω(err).Should(HaveOccurred())
-		})
-
 		It("returns a ServerConfig when given a valid host key", func() {
-			config, err := ConfigureSSHServer("test/identities/server/id_rsa", []ssh.PublicKey{})
+			key, err := LoadPrivateKeyFromFile("test/identities/server/id_rsa")
+			Ω(err).ShouldNot(HaveOccurred())
+			keys, err := LoadAuthorizedKeysFromFile("test/authorized_keys")
+			Ω(err).ShouldNot(HaveOccurred())
+			config, err := ConfigureSSHServer(key, keys, nil)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(config).ShouldNot(BeNil())
 		})
