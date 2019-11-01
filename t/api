@@ -93,9 +93,9 @@ api:
     username: ${SHIELD_USER}
     password: ${SHIELD_PASS}
 
-fabrics:
-  - name: legacy
-    ssh-key: |
+legacy-agents:
+  enabled: yes
+  private-key:  |
 ${legacy_ssh_key}
 
 auth:
