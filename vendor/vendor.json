@@ -452,6 +452,12 @@
 			"revision": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655"
 		},
 		{
+			"checksumSHA1": "x5CuZuHwidIOrzy/g2NQMDJMIxQ=",
+			"path": "github.com/prometheus/client_golang/prometheus",
+			"revision": "170205fb58decfd011f1550d4cfb737230d7ae4f",
+			"revisionTime": "2019-08-01T13:37:03Z"
+		},
+		{
 			"checksumSHA1": "+bqkymIDXrOgmsuUHjWsdpcwn+8=",
 			"path": "github.com/starkandwayne/goutils/ansi",
 			"revision": "d28cacc19462737f05e67bfee385190ffa593d65",
