@@ -767,7 +767,7 @@ func (c *Core) CleanupOrphanedObjects() {
 func (c *Core) PurgeExpiredAPISessions() {
 	log.Infof("UPKEEP: purging expired API sessions...")
 
-	if err := c.db.ClearExpiredSessions(time.Now().Add(0 - (time.Duration(c.Config.API.Session.Timeout) * time.Hour))); err != nil {
+	if err := c.db.ClearExpiredSessions(time.Now().Add(0 - (time.Duration(c.Config.API.Session.Timeout) * time.Second))); err != nil {
 		log.Errorf("Failed to purge expired API sessions: %s", err)
 	}
 }
