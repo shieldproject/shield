@@ -52,7 +52,7 @@ func (d duration) String() string {
 func (d duration) parse(raw string) (int, error) {
 	m := durationPattern.FindStringSubmatch(raw)
 	if m == nil {
-		return 0, fmt.Errorf("invalid duration '%s' (expecting something like '90d')")
+		return 0, fmt.Errorf("invalid duration '%s' (expecting something like '90d')", raw)
 	}
 
 	f, err := strconv.ParseFloat(m[1], 64)
