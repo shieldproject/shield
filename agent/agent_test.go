@@ -2,6 +2,8 @@ package agent_test
 
 import (
 	"strings"
+	"fmt"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,6 +12,13 @@ import (
 )
 
 var _ = Describe("Agent", func() {
+	pathify := func (rel string) string {
+		cwd, err := os.Getwd()
+		Ω(err).ShouldNot(HaveOccurred())
+
+		return fmt.Sprintf("%s/%s", cwd, rel)
+	}
+
 	Describe("Plugin Loader", func() {
 		var a *Agent
 
@@ -259,11 +268,14 @@ var _ = Describe("Agent", func() {
 
 		BeforeEach(func() {
 			var err error
+			Ω(err).ShouldNot(HaveOccurred())
+
 			cmd, err = ParseCommand([]byte(`{
 				"operation"       : "backup",
-				"target_plugin"   : "test/bin/dummy",
+				"compression"     : "bzip2",
+				"target_plugin"   : "`+pathify("test/bin/dummy")+`",
 				"target_endpoint" : "{mode:target,endpoint:config}",
-				"store_plugin"    : "test/bin/dummy",
+				"store_plugin"    : "`+pathify("test/bin/dummy")+`",
 				"store_endpoint"  : "{mode:store,endpoint:config}"
 			}`))
 			Ω(err).ShouldNot(HaveOccurred())
@@ -413,8 +425,8 @@ var _ = Describe("Agent", func() {
 
 			go collect(out, c)
 
-			cmd.TargetPlugin = "test/bin/enoent"
-			cmd.StorePlugin = "test/bin/enoent"
+			cmd.TargetPlugin = pathify("test/bin/enoent")
+			cmd.StorePlugin = pathify("test/bin/enoent")
 
 			err := a.Execute(cmd, c)
 			Ω(err).Should(HaveOccurred())
@@ -434,7 +446,7 @@ var _ = Describe("Agent", func() {
 
 			go collect(out, c)
 
-			cmd.StorePlugin = "test/bin/enoent"
+			cmd.StorePlugin = pathify("test/bin/enoent")
 
 			err := a.Execute(cmd, c)
 			Ω(err).Should(HaveOccurred())
@@ -454,7 +466,7 @@ var _ = Describe("Agent", func() {
 
 			go collect(out, c)
 
-			cmd.TargetPlugin = "test/bin/enoent"
+			cmd.TargetPlugin = pathify("test/bin/enoent")
 
 			err := a.Execute(cmd, c)
 			Ω(err).Should(HaveOccurred())
@@ -475,13 +487,7 @@ var _ = Describe("Agent", func() {
 			ag := NewAgent()
 			err := ag.ReadConfig("test/auth_key_test.conf")
 			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(Equal("No authorized keys file supplied."))
-		})
-		It("Requires a host_key_file", func() {
-			ag := NewAgent()
-			err := ag.ReadConfig("test/host_key_test.conf")
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(Equal("No host key file supplied."))
+			Ω(err.Error()).Should(Equal("No authorized keys supplied."))
 		})
 		It("Requires a listen_address", func() {
 			ag := NewAgent()
