@@ -730,12 +730,18 @@
 
    ***************************************************/
   exported.bytes = function (x) { // {{{
+  	var sign = "";
+  	if (x < 0) {
+  		x = -x;
+			sign = "-";
+  	}
+
     var units = ["b", "K", "M", "G", "T"];
     while (units.length > 1 && x >= 1024) {
       units.shift();
       x /= 1024;
     }
-    return (Math.round(x * 10) / 10).toString() + units[0];
+    return sign + (Math.round(x * 10) / 10).toString() + units[0];
   };
 
   /***************************************************
