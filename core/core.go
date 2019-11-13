@@ -117,7 +117,7 @@ type Config struct {
 
 	Vault struct {
 		Address string `yaml:"address" env:"SHIELD_VAULT_ADDRESS"`
-		CACert  string `yaml:"ca" env:"SHIELD_VAULT_CA"`
+		CACert  string `yaml:"ca"      env:"SHIELD_VAULT_CA"`
 	} `yaml:"vault"`
 
 	Mbus struct {
@@ -126,11 +126,11 @@ type Config struct {
 	} `yaml:"mbus"`
 
 	Prometheus struct {
-		Namespace string `yaml:"namespace"`
+		Namespace string `yaml:"namespace" env:"SHIELD_PROMETHEUS_NAMESPACE"`
 
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-		Realm    string `yaml:"realm"`
+		Username string `yaml:"username"   env:"SHIELD_PROMETHEUS_USERNAME"`
+		Password string `yaml:"password"   env:"SHIELD_PROMETHEUS_PASSWORD"`
+		Realm    string `yaml:"realm"      env:"SHIELD_PROMETHEUS_REALM"`
 	} `yaml:"prometheus"`
 
 	Cipher string `yaml:"cipher" env:"SHIELD_CIPHER"`
