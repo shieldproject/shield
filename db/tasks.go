@@ -752,12 +752,48 @@ func (db *DB) CancelTask(id string, at time.Time) error {
 
 func (db *DB) FailTask(id string, at time.Time) error {
 	//updateTaskStatus grabs the lock
-	return db.updateTaskStatus(id, FailedStatus, effectively(at), 0)
+	err := db.updateTaskStatus(id, FailedStatus, effectively(at), 0)
+	if err != nil {
+		return err
+	}
+	task, err := db.GetTask(id)
+	if err != nil {
+		return err
+	}
+	if task.JobUUID != "" {
+		err = db.UpdateJobHealth(task.JobUUID, false)
+		if err != nil {
+			return err
+		}
+		err = db.UpdateTargetHealth(task.TargetUUID, false)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (db *DB) CompleteTask(id string, at time.Time) error {
 	//updateTaskStatus grabs the lock
-	return db.updateTaskStatus(id, DoneStatus, effectively(at), 1)
+	err := db.updateTaskStatus(id, DoneStatus, effectively(at), 1)
+	if err != nil {
+		return err
+	}
+	task, err := db.GetTask(id)
+	if err != nil {
+		return err
+	}
+	if task.JobUUID != "" {
+		err = db.UpdateJobHealth(task.JobUUID, true)
+		if err != nil {
+			return err
+		}
+		err = db.UpdateTargetHealth(task.TargetUUID, true)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (db *DB) UpdateTaskLog(id string, more string) error {

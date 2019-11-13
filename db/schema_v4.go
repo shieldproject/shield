@@ -96,7 +96,7 @@ func (s v4Schema) Deploy(db *DB) error {
 	               paused             BOOLEAN,
 	               name               TEXT,
 	               summary            TEXT,
-	               fixed_key          INTEGER DEFAULT 0
+				   fixed_key          INTEGER DEFAULT 0
 	             )`)
 	if err != nil {
 		return err
@@ -243,6 +243,11 @@ func (s v4Schema) Deploy(db *DB) error {
 	}
 
 	err = db.Exec(`ALTER TABLE stores ADD COLUMN last_test_task_uuid BOOLEAN DEFAULT NULL`)
+	if err != nil {
+		return err
+	}
+
+	err = db.Exec(`ALTER TABLE jobs ADD COLUMN healthy BOOLEAN DEFAULT FALSE`)
 	if err != nil {
 		return err
 	}

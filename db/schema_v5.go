@@ -10,6 +10,11 @@ func (s v5Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	err = db.Exec(`ALTER TABLE targets ADD COLUMN healthy BOOLEAN DEFAULT FALSE`)
+	if err != nil {
+		return err
+	}
+
 	err = db.Exec(`UPDATE targets SET compression = 'bzip2'`)
 	if err != nil {
 		return err

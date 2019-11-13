@@ -16,6 +16,7 @@ type Target struct {
 	Plugin      string `json:"plugin"      mbus:"plugin"`
 	Agent       string `json:"agent"       mbus:"agent"`
 	Compression string `json:"compression" mbus:"compression"`
+	Healthy     bool   `json:"healthy"     mbus:"healthy"`
 
 	Config map[string]interface{} `json:"config,omitempty"  mbus:"config"`
 }
@@ -96,7 +97,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 	if !f.SkipUsed && !f.SkipUnused {
 		return `
 		   SELECT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
-		          t.endpoint, t.agent, t.compression, -1 AS n
+		          t.endpoint, t.agent, t.compression, t.healthy, -1 AS n
 		     FROM targets t
 		    WHERE ` + strings.Join(wheres, " AND ") + `
 		 ORDER BY t.name, t.uuid ASC`, args
@@ -109,7 +110,7 @@ func (f *TargetFilter) Query() (string, []interface{}) {
 
 	return `
 	   SELECT DISTINCT t.uuid, t.tenant_uuid, t.name, t.summary, t.plugin,
-	                   t.endpoint, t.agent, t.compression, COUNT(j.uuid) AS n
+	                   t.endpoint, t.agent, t.compression, t.healthy, COUNT(j.uuid) AS n
 	              FROM targets t
 	         LEFT JOIN jobs j
 	                ON j.target_uuid = t.uuid
@@ -152,7 +153,7 @@ func (db *DB) GetAllTargets(filter *TargetFilter) ([]*Target, error) {
 			n         int
 			rawconfig []byte
 		)
-		if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression, &n); err != nil {
+		if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin, &rawconfig, &t.Agent, &t.Compression, &t.Healthy, &n); err != nil {
 			return l, err
 		}
 		if rawconfig != nil {
@@ -173,7 +174,7 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 
 	r, err := db.query(`
 	    SELECT uuid, tenant_uuid, name, summary, plugin,
-	           endpoint, agent, compression
+	           endpoint, agent, compression, healthy
 
 	      FROM targets
 
@@ -192,7 +193,7 @@ func (db *DB) GetTarget(id string) (*Target, error) {
 		rawconfig []byte
 	)
 	if err = r.Scan(&t.UUID, &t.TenantUUID, &t.Name, &t.Summary, &t.Plugin,
-		&rawconfig, &t.Agent, &t.Compression); err != nil {
+		&rawconfig, &t.Agent, &t.Compression, &t.Healthy); err != nil {
 		return nil, err
 	}
 	if rawconfig != nil {
@@ -211,6 +212,7 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 	}
 
 	target.UUID = RandomID()
+	target.Healthy = true
 	err = db.exclusively(func() error {
 		/* validate the tenant */
 		if err := db.tenantShouldExist(target.TenantUUID); err != nil {
@@ -219,11 +221,11 @@ func (db *DB) CreateTarget(target *Target) (*Target, error) {
 
 		return db.exec(`
 		    INSERT INTO targets (uuid, tenant_uuid, name, summary, plugin,
-		                         endpoint, agent, compression)
+		                         endpoint, agent, compression, healthy)
 		                 VALUES (?, ?, ?, ?, ?,
-		                         ?, ?, ?)`,
+		                         ?, ?, ?, ?)`,
 			target.UUID, target.TenantUUID, target.Name, target.Summary, target.Plugin,
-			string(rawconfig), target.Agent, target.Compression)
+			string(rawconfig), target.Agent, target.Compression, target.Healthy)
 	})
 	if err != nil {
 		return nil, err
@@ -263,6 +265,26 @@ func (db *DB) UpdateTarget(target *Target) error {
 	}
 
 	db.sendUpdateObjectEvent(target, "tenant:"+target.TenantUUID)
+	return nil
+}
+
+func (db *DB) UpdateTargetHealth(id string, health bool) error {
+	target, err := db.GetTarget(id)
+	if err != nil {
+		return err
+	}
+	target.Healthy = health
+	err = db.Exec(`
+        UPDATE targets
+            SET healthy = ?
+        WHERE uuid = ?`,
+		target.Healthy,
+		target.UUID)
+	if err != nil {
+		return err
+	}
+
+	db.sendHealthUpdateEvent(target, "tenant:"+target.TenantUUID)
 	return nil
 }
 

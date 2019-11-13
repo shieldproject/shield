@@ -308,11 +308,10 @@ func (w *Worker) Execute(chore Chore) {
 			w.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: marking storage system as UNHEALTHY.\n")
 		}
 
-		err = w.db.UpdateStore(store)
+		err = w.db.UpdateStoreHealth(store)
 		if err != nil {
 			panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
 		}
-
 		if rc != 0 {
 			log.Debugf("%s: FAILING task '%s' in database", chore, chore.TaskUUID)
 			w.db.FailTask(chore.TaskUUID, time.Now())
