@@ -3,6 +3,7 @@
 
 BUILD_TYPE   ?= build
 DOCKER_TAG   ?= dev
+EDGE         ?= edge
 
 # Everything; this is the default behavior
 all: build test
@@ -138,6 +139,14 @@ docker-webdav:
 	docker build -t shieldproject/webdav:$(DOCKER_TAG) docker/webdav
 docker-demo:
 	docker build -t shieldproject/demo:$(DOCKER_TAG) docker/demo
+
+docker-edge:
+	@echo "Checking that VERSION was defined in the calling environment"
+	@test -n "$(VERSION)"
+	@echo "OK.  VERSION=$(VERSION)"
+	
+	docker build -t shieldproject/shield:$(EDGE) . --build-arg VERSION=$(VERSION)
+	docker push shieldproject/shield:$(EDGE)
 
 docker-release:
 	@echo "Checking that VERSION was defined in the calling environment"
