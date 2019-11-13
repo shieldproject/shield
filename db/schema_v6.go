@@ -23,8 +23,8 @@ func (s v6Schema) Deploy(db *DB) error {
 	               next_run           INTEGER DEFAULT 0,
 	               priority           INTEGER DEFAULT 50,
 	               paused             BOOLEAN,
-				   fixed_key          INTEGER DEFAULT 0,
-				   healthy            BOOLEAN
+	               fixed_key          INTEGER DEFAULT 0,
+	               healthy            BOOLEAN
 	             )`)
 	if err != nil {
 		return err
