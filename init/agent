@@ -1,17 +1,6 @@
 #!/bin/bash
 set -eu
 
-SHIELD_ETC="${SHIELD_ETC:-/etc/shield}"
-PORT=${PORT:-5444}
-
-if [[ ! -d "${SHIELD_ETC}" ]]; then
-  echo >&2 "${SHIELD_ETC}/ directory not found."
-  echo >&2
-  echo >&2 "Perhaps you forgot to set a custom SHIELD_ETC"
-  echo >&2 "environment variable..."
-  exit 1
-fi
-
 if [[ -z "${SHIELD_API:-}" ]]; then
   echo >&2 "SHIELD_API not set in environment."
   echo >&2
@@ -19,9 +8,10 @@ if [[ -z "${SHIELD_API:-}" ]]; then
   exit 1
 fi
 
-if [[ ! -f "${SHIELD_ETC}/ssh.key" ]]; then
-  ssh-keygen -m PEM -t rsa -f "${SHIELD_ETC}/ssh.key" -N ''
-  rm -f "${SHIELD_ETC}/ssh.key.pub"
+mkdir -p /etc/shield
+if [[ ! -f /etc/shield/ssh.key ]]; then
+  ssh-keygen -m PEM -t rsa -f /etc/shield/ssh.key -N ''
+  rm -f /etc/shield/ssh.key.pub
 fi
 
 echo "waiting for SHIELD Core to spin up on ${SHIELD_API}..."
@@ -34,12 +24,12 @@ while ! curl -Ls ${SHIELD_API}/v2/info 2>/dev/null | grep -q '"api"'; do
     exit 2
   fi
 done
-curl "${SHIELD_API}/v1/meta/pubkey" >> "${SHIELD_ETC}/authorized_keys"
-cat > "${SHIELD_ETC}/agent.conf" <<EOF
+curl "${SHIELD_API}/v1/meta/pubkey" >> /etc/shield/authorized_keys
+cat > /etc/shield/agent.conf <<EOF
 ---
-authorized_keys_file: ${SHIELD_ETC}/authorized_keys
-host_key_file: ${SHIELD_ETC}/ssh.key
-listen_address: 0.0.0.0:${PORT}
+authorized_keys_file: /etc/shield/authorized_keys
+host_key_file: /etc/shield/ssh.key
+listen_address: 0.0.0.0:5444
 plugin_paths:
   - /shield/plugins
 
@@ -50,5 +40,5 @@ registration:
 EOF
 
 export PATH=$PATH:/shield/bin
-exec /shield/bin/shield-agent --config "${SHIELD_ETC}/agent.conf" "$@"
+exec /shield/bin/shield-agent --config "/etc/shield/agent.conf" "$@"
 exit 1

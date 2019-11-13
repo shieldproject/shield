@@ -1,67 +1,16 @@
 #!/bin/bash
 set -eu
 
-SHIELD_ETC="${SHIELD_ETC:-/etc/shield}"
-SHIELD_DATA="${SHIELD_DATA:-/var/shield}"
-PORT="${PORT:-80}"
-VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
-
-if [[ ! -d "${SHIELD_ETC}" ]]; then
-  echo >&2 "${SHIELD_ETC}/ directory not found."
-  echo >&2
-  echo >&2 "Perhaps you forgot to set a custom SHIELD_ETC"
-  echo >&2 "environment variable..."
-  exit 1
+mkdir -p /etc/shield
+if [[ ! -f /etc/shield/ssh.key ]]; then
+  rm -f /etc/shield/ssh.key.pub
+  ssh-keygen -m PEM -t rsa -f /etc/shield/ssh.key -N ''
+  rm -f /etc/shield/ssh.key.pub
 fi
+export SHIELD_LEGACY_AGENTS_PRIVATE_KEY=$(cat /etc/shield/ssh.key)
 
-if [[ ! -f "${SHIELD_ETC}/ssh.key" ]]; then
-  rm -f "${SHIELD_ETC}/ssh.key.pub"
-  ssh-keygen -m PEM -t rsa -f "${SHIELD_ETC}/ssh.key" -N ''
-  rm -f "${SHIELD_ETC}/ssh.key.pub"
-fi
-
-if [[ ! -f "${SHIELD_ETC}/shieldd.conf" && -z ${SHIELD_LEGACY_AGENTS_PRIVATE_KEY:-} ]]; then
-  legacy_ssh_key=$(cat ${SHIELD_ETC}/ssh.key | sed -e 's/^/      /')
-
-  cat > "${SHIELD_ETC}/shieldd.conf" <<EOF
----
-debug:    ${DEBUG:-no}
-data-dir: ${SHIELD_DATA}
-web-root: /shield/ui
-
-scheduler:
-  fast-loop: ${SHIELD_FAST_LOOP:-1}
-  slow-loop: ${SHIELD_SLOW_LOOP:-300}
-  timeout:   ${SHIELD_TASK_TIMEOUT:-12}
-  threads:   ${SHIELD_THREADS:-5}
-
-vault:
-  address: ${VAULT_ADDR}
-
-api:
-  bind:  "0.0.0.0:${PORT}"
-  env:   "${SHIELD_ENV_NAME:-DOCKER}"
-  color: "${SHIELD_COLOR:-yellow}"
-
-  failsafe:
-    username: ${SHIELD_FAILSAFE_USERNAME:-admin}
-    password: ${SHIELD_FAILSAFE_PASSWORD:-password}
-
-  session:
-    timeout: ${SHIELD_SESSION_TIMEOUT:-720}
-
-limit:
-  retention:
-    min: ${SHIELD_MINIMUM_RETENTION:-1}
-    max: ${SHIELD_MAXIMUM_RETENTION:-390}
-
-fabrics:
-  - name: legacy
-    ssh-key: |
-${legacy_ssh_key}
-EOF
-fi
-
-/shield/bin/shield-schema --database "${SHIELD_DATA}/shield.db"
-exec /shield/bin/shieldd --config "${SHIELD_ETC}/shieldd.conf" "$@"
+export SHIELD_WEB_ROOT=/shield/ui
+export SHIELD_DATA_DIR=/var/shield
+/shield/bin/shield-schema --database $SHIELD_DATA_DIR/shield.db
+exec /shield/bin/shieldd "$@"
 exit 1
