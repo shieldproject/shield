@@ -19,6 +19,7 @@ var Schemas = map[int]Schema{
 	8:  v8Schema{},
 	9:  v9Schema{},
 	10: v10Schema{},
+	11: v11Schema{},
 }
 
 type Schema interface {
