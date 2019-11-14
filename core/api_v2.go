@@ -3669,11 +3669,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-<<<<<<< Updated upstream
-		if out := r.StreamJSON(); out != nil {
-=======
 		if out := r.JSONEncoder(); out != nil {
->>>>>>> Stashed changes
 			c.db.Export(out, c.vault)
 		} else {
 			r.Fail(route.Oops(nil, "Failed to export SHIELD data"))
@@ -3683,10 +3679,6 @@ func (c *Core) v2API() *route.Router {
 		if c.IsNotSystemAdmin(r) {
 			return
 		}
-<<<<<<< Updated upstream
-		/* FIXME */
-		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
-=======
 
 		st, err := c.vault.Status()
 		if err != nil {
@@ -3704,7 +3696,6 @@ func (c *Core) v2API() *route.Router {
 		} else {
 			r.Fail(route.Oops(nil, "Failed to import SHIELD data"))
 		}
->>>>>>> Stashed changes
 	}) // }}}
 
 	return r
