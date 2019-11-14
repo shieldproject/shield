@@ -260,7 +260,7 @@ EOF
   export SHIELD_LEGACY_AGENTS_ENABLED=yes
   export SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT="5s"
   export SHIELD_LEGACY_AGENTS_PRIVATE_KEY=$(cat ${workdir}/config/shieldd_key)
-  export SHIELD_PLUGIN_PATHS="${workdir}/bin"
+  export SHIELD_PLUGIN_PATHS="${workdir}/bin:${PWD}/test/plugins"
   export SHIELD_METADATA_RETENTION_PURGED_ARCHIVES="90s"
   export SHIELD_METADATA_RETENTION_TASK_LOGS="1h"
 
@@ -299,7 +299,7 @@ EOF
   export SHIELD_AGENT_REGISTRATION_URL="http://127.0.0.1:${PORT}"
   export SHIELD_AGENT_REGISTRATION_INTERVAL=15
   export SHIELD_AGENT_AUTHORIZED_KEY=$(curl -H "X-Shield-Session: ${SHIELD_API_TOKEN}" ${SHIELD_AGENT_REGISTRATION_URL}/v1/meta/pubkey)
-  export SHIELD_AGENT_PLUGIN_PATHS="${workdir}/bin"
+  export SHIELD_AGENT_PLUGIN_PATHS="${workdir}/bin:${PWD}/test/plugins"
 
   export PATH=$(pwd):$(pwd)/bin:${PATH}
   while true; do

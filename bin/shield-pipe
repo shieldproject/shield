@@ -144,10 +144,10 @@ EOF
 	# PLUGIN inventory
 	# Choose mode format based on BSD or GNU find
 	find --version 2>&1 | grep "GNU" >/dev/null && EXECABLE="/111" || EXECABLE="+111"
+	echo "\"plugins\": {"
+	comma=""
 	(IFS=:; for x in $SHIELD_PLUGINS_PATH; do
 	   say "checking for plugins in $x..."
-	   echo "\"plugins\": {"
-	   comma=""
 	   while IFS= read -r -d '' plugin; do
 	     name=${plugin##*/}
 	     set +e ; output=$($plugin info 2>/dev/null) ; set -e
@@ -156,9 +156,8 @@ EOF
 	       comma=","
 	     fi
 	   done < <(find $x -maxdepth 1 -type f -perm "$EXECABLE" -print0)
-	   echo "}"
 	 done)
-	echo "}"
+	echo "}}"
 
 	exit 0
 	;;
