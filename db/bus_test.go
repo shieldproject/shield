@@ -164,6 +164,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Schedule: "daily",
 					Paused:   true,
 					FixedKey: false,
+					Healthy:  false,
 				}, "*")
 			})
 
@@ -181,6 +182,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(j.Schedule).Should(Equal("daily"))
 				Ω(j.Paused).Should(Equal(true))
 				Ω(j.FixedKey).Should(Equal(false))
+				Ω(j.Healthy).Should(Equal(false))
 
 				close(done)
 			}, 2 /* timeout (in seconds) */)
@@ -198,6 +200,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Schedule: "weekly",
 					Paused:   true,
 					FixedKey: false,
+					Healthy:  false,
 				}, "*")
 			})
 
@@ -215,10 +218,28 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(j.Schedule).Should(Equal("weekly"))
 				Ω(j.Paused).Should(Equal(true))
 				Ω(j.FixedKey).Should(Equal(false))
+				Ω(j.Healthy).Should(Equal(false))
 				/* etc. */
 
 				close(done)
 			}, 2 /* timeout (in seconds) */)
+		})
+
+		Context("when sending an healthUpdate message for Job", func() {
+			BeforeEach(func() {
+				db.sendHealthUpdateEvent(Job{
+					Healthy: true,
+				}, "*")
+			})
+
+			It("should receive a health-update message bus event for Job, eventually", func(done Done) {
+				var j Job
+
+				receive(<-events, "health-update", "job", &j)
+				Ω(j.Healthy).Should(Equal(true))
+
+				close(done)
+			}, 2)
 		})
 
 		/* Message bus tests for Store */
@@ -232,7 +253,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Agent:   "agent",
 					Plugin:  "test plugin",
 					Global:  true,
-					Healthy: true,
+					Healthy: false,
 				}, "*")
 			})
 
@@ -248,7 +269,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(s.Agent).Should(Equal("agent"))
 				Ω(s.Plugin).Should(Equal("test plugin"))
 				Ω(s.Global).Should(Equal(true))
-				Ω(s.Healthy).Should(Equal(true))
+				Ω(s.Healthy).Should(Equal(false))
 
 				close(done)
 			}, 2 /* timeout (in seconds) */)
@@ -286,6 +307,26 @@ var _ = Describe("MessageBus Database Integration", func() {
 			}, 2 /* timeout (in seconds) */)
 		})
 
+		Context("when sending an healthUpdate message for Store", func() {
+			BeforeEach(func() {
+				/* Update Store health field*/
+				db.sendHealthUpdateEvent(Store{
+					Healthy: true,
+				}, "*")
+			})
+
+			It("should receive a health-update message bus event for Store, eventually", func(done Done) {
+				/* this is executed in a goroutine */
+				var s Store
+
+				/* Update Store health message bus event*/
+				receive(<-events, "health-update", "store", &s)
+				Ω(s.Healthy).Should(Equal(true))
+
+				close(done)
+			}, 2 /* timeout (in seconds) */)
+		})
+
 		/* Message bus tests for Target */
 		Context("when sending a createObject message for Target", func() {
 			BeforeEach(func() {
@@ -297,6 +338,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Agent:       "agent",
 					Plugin:      "test plugin",
 					Compression: "zip",
+					Healthy:     false,
 				}, "*")
 			})
 
@@ -312,6 +354,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(t.Agent).Should(Equal("agent"))
 				Ω(t.Plugin).Should(Equal("test plugin"))
 				Ω(t.Compression).Should(Equal("zip"))
+				Ω(t.Healthy).Should(Equal(false))
 
 				close(done)
 			}, 2 /* timeout (in seconds) */)
@@ -327,6 +370,7 @@ var _ = Describe("MessageBus Database Integration", func() {
 					Agent:       "Agent",
 					Plugin:      "plugin",
 					Compression: "zip",
+					Healthy:     false,
 				}, "*")
 			})
 
@@ -342,6 +386,27 @@ var _ = Describe("MessageBus Database Integration", func() {
 				Ω(t.Agent).Should(Equal("Agent"))
 				Ω(t.Plugin).Should(Equal("plugin"))
 				Ω(t.Compression).Should(Equal("zip"))
+				Ω(t.Healthy).Should(Equal(false))
+
+				close(done)
+			}, 2 /* timeout (in seconds) */)
+		})
+
+		Context("when sending an healthUpdate message for Target", func() {
+			BeforeEach(func() {
+				/* Update Target health field*/
+				db.sendHealthUpdateEvent(Target{
+					Healthy: true,
+				}, "*")
+			})
+
+			It("should receive a health-update message bus event for Target, eventually", func(done Done) {
+				/* this is executed in a goroutine */
+				var t Target
+
+				/* Update Target health message bus event*/
+				receive(<-events, "health-update", "target", &t)
+				Ω(t.Healthy).Should(Equal(true))
 
 				close(done)
 			}, 2 /* timeout (in seconds) */)
