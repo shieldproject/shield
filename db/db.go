@@ -20,7 +20,6 @@ type DB struct {
 	DSN        string
 
 	exclusive sync.Mutex
-	cache     map[string]*sql.Stmt
 	bus       *bus.Bus
 }
 
@@ -37,10 +36,6 @@ func Connect(file string) (*DB, error) {
 	}
 	db.connection = connection
 
-	if db.cache == nil {
-		db.cache = make(map[string]*sql.Stmt)
-	}
-
 	return db, nil
 }
 
@@ -56,7 +51,6 @@ func (db *DB) Disconnect() error {
 			return err
 		}
 		db.connection = nil
-		db.cache = make(map[string]*sql.Stmt)
 	}
 	return nil
 }
@@ -160,20 +154,7 @@ func (db *DB) statement(sql string) (*sql.Stmt, error) {
 		return nil, fmt.Errorf("Not connected to database")
 	}
 
-	sql = db.connection.Rebind(sql)
-	if _, ok := db.cache[sql]; !ok {
-		stmt, err := db.connection.Prepare(sql)
-		if err != nil {
-			return nil, err
-		}
-		db.cache[sql] = stmt
-	}
-
-	if q, ok := db.cache[sql]; ok {
-		return q, nil
-	}
-
-	return nil, fmt.Errorf("Weird bug: query '%s' is still not properly prepared", sql)
+	return db.connection.Prepare(db.connection.Rebind(sql))
 }
 
 // Generate a randomized UUID
