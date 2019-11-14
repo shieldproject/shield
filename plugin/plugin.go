@@ -34,7 +34,6 @@ type Opt struct {
 	Text      bool   `cli:"--text"`
 
 	Info     struct{} `cli:"info"`
-	Example  struct{} `cli:"example"`
 	Validate struct{} `cli:"validate"`
 	Backup   struct{} `cli:"backup"`
 	Restore  struct{} `cli:"restore"`
