@@ -128,11 +128,7 @@ func (r *Request) Fail(e Error) {
 	r.respond(e.code, "Fail", "application/json", string(b))
 }
 
-<<<<<<< Updated upstream
-func (r *Request) StreamJSON() *json.Encoder {
-=======
 func (r *Request) JSONEncoder() *json.Encoder {
->>>>>>> Stashed changes
 	/* have we already responded for this request? */
 	if r.Done() {
 		log.Errorf("%s handler bug: called StreamJSON() having already called [%v]", r, r.bt)

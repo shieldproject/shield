@@ -358,7 +358,6 @@ func (c *Core) WireUpAuthenticationProviders() {
 func (c *Core) ScheduleBackupTasks() {
 	log.Infof("UPKEEP: scheduling backup tasks...")
 
-	log.Infof("UPKEEP: >> getting all jobs...")
 	l, err := c.db.GetAllJobs(&db.JobFilter{
 		Overdue:    true,
 		SkipPaused: true,
@@ -368,7 +367,6 @@ func (c *Core) ScheduleBackupTasks() {
 		return
 	}
 
-	log.Infof("UPKEEP: >> getting all tasks...")
 	tasks, err := c.db.GetAllTasks(&db.TaskFilter{
 		ForOp:        "backup",
 		SkipInactive: true,
