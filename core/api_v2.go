@@ -3653,6 +3653,60 @@ func (c *Core) v2API() *route.Router {
 			Log string `json:"log"`
 		}{Log: string(b)})
 	}) // }}}
+
+	r.Dispatch("GET /v2/export", func(r *route.Request) { // {{{
+		if c.IsNotSystemAdmin(r) {
+			return
+		}
+
+		st, err := c.vault.Status()
+		if err != nil {
+			r.Fail(route.Oops(err, "Failed to export SHIELD data"))
+			return
+		}
+		if st != "unlocked" {
+			r.Fail(route.Oops(fmt.Errorf("vault is locked"), "Failed to export SHIELD data"))
+			return
+		}
+
+<<<<<<< Updated upstream
+		if out := r.StreamJSON(); out != nil {
+=======
+		if out := r.JSONEncoder(); out != nil {
+>>>>>>> Stashed changes
+			c.db.Export(out, c.vault)
+		} else {
+			r.Fail(route.Oops(nil, "Failed to export SHIELD data"))
+		}
+	}) // }}}
+	r.Dispatch("POST /v2/import", func(r *route.Request) { // {{{
+		if c.IsNotSystemAdmin(r) {
+			return
+		}
+<<<<<<< Updated upstream
+		/* FIXME */
+		r.Fail(route.Errorf(501, nil, "%s: not implemented", r))
+=======
+
+		st, err := c.vault.Status()
+		if err != nil {
+			r.Fail(route.Oops(err, "Failed to export SHIELD data"))
+			return
+		}
+		if st != "unlocked" {
+			r.Fail(route.Oops(fmt.Errorf("vault is locked"), "Failed to import SHIELD data"))
+			return
+		}
+
+		if in := r.JSONDecoder(); in != nil {
+			c.db.Import(in, c.vault)
+			r.Success("imported successfully")
+		} else {
+			r.Fail(route.Oops(nil, "Failed to import SHIELD data"))
+		}
+>>>>>>> Stashed changes
+	}) // }}}
+
 	return r
 }
 

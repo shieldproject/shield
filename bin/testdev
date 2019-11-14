@@ -256,7 +256,7 @@ EOF
   export SHIELD_API_MOTD="Welcome to the testdev S.H.I.E.L.D. environment!"
   export SHIELD_API_FAILSAFE_USERNAME="failsafe"
   export SHIELD_API_FAILSAFE_PASSWORD="sekrit"
-  export SHIELD_API_SESSION_TIMEOUT=8
+  export SHIELD_API_SESSION_TIMEOUT=3600
   export SHIELD_LEGACY_AGENTS_ENABLED=yes
   export SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT=5
   export SHIELD_LEGACY_AGENTS_PRIVATE_KEY=$(cat ${workdir}/config/shieldd_key)
