@@ -8,6 +8,7 @@ import (
 	"log/syslog"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -129,6 +130,21 @@ func (c *Command) Details() string {
 	}
 }
 
+func appendEndpointVariables(env []string, prefix, raw string) []string {
+	cooked := make(map[string]interface{})
+	err := json.Unmarshal([]byte(raw), &cooked)
+	if err != nil {
+		return env
+	}
+
+	re := regexp.MustCompile(`[^A-Z0-9]+`)
+	for k, v := range cooked {
+		k = re.ReplaceAllString(strings.ToUpper(k), "_")
+		env = append(env, fmt.Sprintf("%s%s=%v", prefix, k, v))
+	}
+	return env
+}
+
 func (agent *Agent) Execute(c *Command, out chan string) error {
 	cmd := exec.Command("shield-pipe")
 
@@ -157,6 +173,8 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		fmt.Sprintf("SHIELD_ENCRYPT_IV=%s", c.EncryptIV),
 		fmt.Sprintf("SHIELD_COMPRESSION=%s", c.Compression),
 	}
+	cmd.Env = appendEndpointVariables(cmd.Env, "SHIELD_TARGET_PARAM_", c.TargetEndpoint)
+	cmd.Env = appendEndpointVariables(cmd.Env, "SHIELD_STORE_PARAM_", c.StoreEndpoint)
 
 	if log.LogLevel() == syslog.LOG_DEBUG {
 		cmd.Env = append(cmd.Env, "DEBUG=true")
