@@ -247,8 +247,8 @@ EOF
   export SHIELD_LOG_LEVEL=debug
   export SHIELD_DATA_DIR="${workdir}/var/"
   export SHIELD_WEB_ROOT="${PWD}/web/htdocs"
-  export SHIELD_SCHEDULER_FAST_LOOP=5
-  export SHIELD_SCHEDULER_SLOW_LOOP=40
+  export SHIELD_SCHEDULER_FAST_LOOP="5s"
+  export SHIELD_SCHEDULER_SLOW_LOOP="40s"
   export SHIELD_API_BIND="127.0.0.1:8180"
   export SHIELD_API_PPROF=":8185"
   export SHIELD_API_ENV="TESTDEV"
@@ -256,9 +256,9 @@ EOF
   export SHIELD_API_MOTD="Welcome to the testdev S.H.I.E.L.D. environment!"
   export SHIELD_API_FAILSAFE_USERNAME="failsafe"
   export SHIELD_API_FAILSAFE_PASSWORD="sekrit"
-  export SHIELD_API_SESSION_TIMEOUT=8
+  export SHIELD_API_SESSION_TIMEOUT="8h"
   export SHIELD_LEGACY_AGENTS_ENABLED=yes
-  export SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT=5
+  export SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT="5s"
   export SHIELD_LEGACY_AGENTS_PRIVATE_KEY=$(cat ${workdir}/config/shieldd_key)
   export SHIELD_PLUGIN_PATHS="${workdir}/bin"
   export SHIELD_METADATA_RETENTION_PURGED_ARCHIVES="90s"

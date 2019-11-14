@@ -225,7 +225,7 @@ func (c *Core) AuthenticatedUser(r *route.Request) (*db.User, error) {
 	session.IP = r.RemoteIP()
 	session.UserAgent = r.UserAgent()
 
-	if session.Expired(c.Config.API.Session.Timeout) {
+	if session.Expired(int(c.Config.API.Session.Timeout)) {
 		log.Infof("session %s expired; purging...", r.SessionID())
 		c.db.ClearSession(session.UUID)
 		return nil, nil
