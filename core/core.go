@@ -50,18 +50,18 @@ type Config struct {
 	PluginPathsEnv string   `yaml:"-"              env:"SHIELD_PLUGIN_PATHS"`
 
 	Scheduler struct {
-		FastLoop int `yaml:"fast-loop" env:"SHIELD_SCHEDULER_FAST_LOOP"`
-		SlowLoop int `yaml:"slow-loop" env:"SHIELD_SCHEDULER_SLOW_LOOP"`
-		Threads  int `yaml:"threads"   env:"SHIELD_SCHEDULER_THREADS"`
-		Timeout  int `yaml:"timeout"   env:"SHIELD_SCHEDULER_TIMEOUT"`
+		FastLoop duration `yaml:"fast-loop" env:"SHIELD_SCHEDULER_FAST_LOOP"`
+		SlowLoop duration `yaml:"slow-loop" env:"SHIELD_SCHEDULER_SLOW_LOOP"`
+		Threads  int      `yaml:"threads"   env:"SHIELD_SCHEDULER_THREADS"`
+		Timeout  int      `yaml:"timeout"   env:"SHIELD_SCHEDULER_TIMEOUT"`
 	} `yaml:"scheduler"`
 
 	API struct {
 		Bind    string `yaml:"bind"  env:"SHIELD_API_BIND"`
 		PProf   string `yaml:"pprof" env:"SHIELD_API_PPROF"`
 		Session struct {
-			ClearOnBoot bool `yaml:"clear-on-boot" env:"SHIELD_API_SESSION_CLEAR_ON_BOOT"`
-			Timeout     int  `yaml:"timeout"       env:"SHIELD_API_SESSION_TIMEOUT"`
+			ClearOnBoot bool     `yaml:"clear-on-boot" env:"SHIELD_API_SESSION_CLEAR_ON_BOOT"`
+			Timeout     duration `yaml:"timeout"       env:"SHIELD_API_SESSION_TIMEOUT"`
 		} `yaml:"session"`
 
 		Failsafe struct {
@@ -70,12 +70,8 @@ type Config struct {
 		} `yaml:"failsafe"`
 
 		Websocket struct {
-			//WriteTimeout is the time allowed for each WebSocket message to be
-			// written, in seconds. If a deadline is missed, the connection is
-			// terminated.
-			WriteTimeout int `yaml:"write-timeout" env:"SHIELD_API_WEBSOCKET_WRITE_TIMEOUT"`
-			//PingInteval is the time between WebSocket Ping messages, in seconds
-			PingInterval int `yaml:"ping-interval" env:"SHIELD_API_WEBSOCKET_PING_INTERVAL"`
+			WriteTimeout duration `yaml:"write-timeout" env:"SHIELD_API_WEBSOCKET_WRITE_TIMEOUT"`
+			PingInterval duration `yaml:"ping-interval" env:"SHIELD_API_WEBSOCKET_PING_INTERVAL"`
 		} `yaml:"websocket"`
 
 		Env   string `yaml:"env"   env:"SHIELD_API_ENV"`
@@ -108,7 +104,7 @@ type Config struct {
 	LegacyAgents struct {
 		Enabled     bool     `yaml:"enabled"      env:"SHIELD_LEGACY_AGENTS_ENABLED"`
 		PrivateKey  string   `yaml:"private-key"  env:"SHIELD_LEGACY_AGENTS_PRIVATE_KEY"`
-		DialTimeout int      `yaml:"dial-timeout" env:"SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT"`
+		DialTimeout duration `yaml:"dial-timeout" env:"SHIELD_LEGACY_AGENTS_DIAL_TIMEOUT"`
 		MACs        []string `yaml:"macs"`
 
 		cc  *ssh.ClientConfig
