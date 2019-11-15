@@ -1,0 +1,62 @@
+#!/bin/bash
+set -eu
+
+case "${1:-}" in
+info)
+	cat <<EOF
+{
+    "name": "TEST: DD",
+    "author": "SHIELD Core Team",
+    "version": "1.0.0",
+    "features": {
+        "target": "yes",
+        "store": "no"
+    },
+    "fields": [
+        {
+           "mode": "target",
+           "name": "megabytes",
+           "type": "number",
+           "title": "Megabytes",
+           "help": "How much random data, in megabytes, to generate.",
+           "example": "10",
+           "required": true
+        },
+        {
+           "mode": "target",
+           "name": "input",
+           "type": "abspath",
+           "title": "Input Source",
+           "help": "Where to get the data from.",
+           "example": "/dev/urandom",
+           "default": "/dev/urandom",
+           "required": true
+        }
+    ]
+}
+EOF
+	exit 0
+	;;
+
+validate)
+	echo "looks good!"
+	exit 0
+	;;
+
+backup)
+	echo >&2 "Running 'dd if=$SHIELD_TARGET_PARAM_INPUT bs=1048576 count=$SHIELD_TARGET_PARAM_MEGABYTES'..."
+	dd if="$SHIELD_TARGET_PARAM_INPUT" bs=1048576 count="$SHIELD_TARGET_PARAM_MEGABYTES"
+	exit 0
+	;;
+
+restore)
+	echo "(restore does nothing, btw)"
+	exit 0
+	;;
+
+*)
+	echo "The '$1' command is currently unsupported by this plugin"
+	exit 2
+	;;
+
+esac

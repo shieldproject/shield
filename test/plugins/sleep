@@ -1,0 +1,56 @@
+#!/bin/bash
+set -eu
+
+case "${1:-}" in
+info)
+	cat <<EOF
+{
+    "name": "TEST: Sleep",
+    "author": "SHIELD Core Team",
+    "version": "1.0.0",
+    "features": {
+        "target": "yes",
+        "store": "no"
+    },
+    "fields": [
+        {
+           "mode": "target",
+           "name": "nap",
+           "type": "number",
+           "title": "Nap",
+           "help": "How long to sleep for, in seconds.",
+           "example": "20",
+           "required": true
+        }
+    ]
+}
+EOF
+	exit 0
+	;;
+
+validate)
+	echo "looks good!"
+	exit 0
+	;;
+
+backup|restore)
+	echo >&2 "Sleeping for $SHIELD_TARGET_PARAM_NAP seconds..."
+	n=$SHIELD_TARGET_PARAM_NAP
+	while [[ $n != 0 ]]; do
+		sleep 1
+		n=$(( n - 1 ))
+		echo >&2 "... $n seconds left until we wake up ..."
+	done
+	echo >&2 "GOOD MORNING SUNSHINE!"
+	if [[ $1 = "backup" ]]; then
+		echo "DATA"
+	fi
+	exit 0
+	;;
+
+*)
+	echo "The '$1' command is currently unsupported by this plugin"
+	exit 2
+	;;
+
+esac

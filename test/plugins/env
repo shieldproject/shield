@@ -1,0 +1,59 @@
+#!/bin/bash
+set -eu
+
+case "${1:-}" in
+info)
+	cat <<EOF
+{
+    "name": "TEST: Environment",
+    "author": "SHIELD Core Team",
+    "version": "1.0.0",
+    "features": {
+        "target": "yes",
+        "store": "no"
+    },
+    "fields": [
+        {
+           "mode": "target",
+           "name": "a_message",
+           "type": "string",
+           "title": "A Message",
+           "help": "Something to add to the environment...",
+           "example": "Hello, World!",
+           "required": false
+        },
+        {
+           "mode": "target",
+           "name": " weird? ok, but---",
+           "type": "string",
+           "title": "Another Message",
+           "help": "This one tests our name munging code...",
+           "required": false
+        }
+    ]
+}
+EOF
+	exit 0
+	;;
+
+validate)
+	echo "looks good!"
+	exit 0
+	;;
+
+backup|restore)
+	(env | grep SHIELD_ | grep _PARAM_ | sort
+	echo
+	echo "(all done)") >&2
+	if [[ $1 = "backup" ]]; then
+		echo "DATA"
+	fi
+	exit 0;
+	;;
+
+*)
+	echo "The '$1' command is currently unsupported by this plugin"
+	exit 2
+	;;
+
+esac
