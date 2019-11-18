@@ -68,13 +68,24 @@ func (s v11Schema) Deploy(db *DB) error {
 		return err
 	}
 
-	err = db.Exec(`INSERT INTO targets_new (uuid, tenant_uuid, name summary,
+	err = db.Exec(`INSERT INTO targets_new (uuid, tenant_uuid, name, summary,
                                             plugin, endpoint, agent, compression,
                                             healthy)
                         SELECT t.uuid, t.tenant_uuid, t.name, t.summary,
-                                    t.plugin, t.endpoing, t.agent, t.compression,
+                                    t.plugin, t.endpoint, t.agent, t.compression,
                                     0
-                            FROM targets t)`)
+                            FROM targets t`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`DROP TABLE targets`)
+	if err != nil {
+		return err
+	}
+	err = db.Exec(`ALTER TABLE targets_new RENAME TO targets`)
+	if err != nil {
+		return err
+	}
 
 	targets, err := db.GetAllTargets(&TargetFilter{})
 	if err != nil {
