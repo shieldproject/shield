@@ -367,6 +367,16 @@ func (db *DB) DeleteJob(id string) (bool, error) {
 	}
 
 	db.sendDeleteObjectEvent(job, "tenant:"+job.TenantUUID)
+
+	jobs, err := db.GetAllJobs(&JobFilter{ForTarget: job.TargetUUID})
+	if err != nil {
+		return false, nil
+	}
+	// if target has no jobs, it the target should be healthy
+	if len(jobs) == 0 {
+		db.UpdateTargetHealth(job.TargetUUID, true)
+	}
+
 	return true, nil
 }
 
