@@ -634,7 +634,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to retrieve task information"))
 			return
 		}
-		if task == nil || task.TenantUUID != db.GlobalTenantUUID {
+		if task == nil || task.TenantUUID == db.GlobalTenantUUID {
 			r.Fail(route.NotFound(err, "No such task"))
 			return
 		}
