@@ -7,21 +7,21 @@ func (s v11Schema) Deploy(db *DB) error {
 
 	// set the tenant_uuid column to NOT NULL
 	err = db.Exec(`CREATE TABLE jobs_new (
-			        uuid               UUID PRIMARY KEY,
-					target_uuid        UUID NOT NULL,
-					store_uuid         UUID NOT NULL,
-					tenant_uuid        UUID NOT NULL,
-					name               TEXT NOT NULL,
-					summary            TEXT NOT NULL,
-					schedule           TEXT NOT NULL,
-					keep_n             INTEGER NOT NULL DEFAULT 0,
-					keep_days          INTEGER NOT NULL DEFAULT 0,
-					next_run           INTEGER DEFAULT 0,
-					priority           INTEGER DEFAULT 50,
-					paused             BOOLEAN NOT NULL DEFAULT 0,
-					fixed_key          INTEGER DEFAULT 0,
-					healthy            BOOLEAN NOT NULL DEFAULT 0
-	            )`)
+                    uuid               UUID PRIMARY KEY,
+                    target_uuid        UUID NOT NULL,
+                    store_uuid         UUID NOT NULL,
+                    tenant_uuid        UUID NOT NULL,
+                    name               TEXT NOT NULL,
+                    summary            TEXT NOT NULL,
+                    schedule           TEXT NOT NULL,
+                    keep_n             INTEGER NOT NULL DEFAULT 0,
+                    keep_days          INTEGER NOT NULL DEFAULT 0,
+                    next_run           INTEGER DEFAULT 0,
+                    priority           INTEGER DEFAULT 50,
+                    paused             BOOLEAN NOT NULL DEFAULT 0,
+                    fixed_key          INTEGER DEFAULT 0,
+                    healthy            BOOLEAN NOT NULL DEFAULT 0
+                )`)
 	if err != nil {
 		return err
 	}
