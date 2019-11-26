@@ -55,9 +55,9 @@ func (s v12Schema) Deploy(db *DB) error {
 
 	err = db.Exec(`CREATE TABLE targets_new (
                     uuid               UUID PRIMARY KEY,
-                    tenant_uuid        UUID NOT NULL,
+                    tenant_uuid        UUID NOT NULL DEFAULT '',
                     name               TEXT NOT NULL,
-                    summary            TEXT NOT NULL,
+                    summary            TEXT NOT NULL DEFAULT '',
                     plugin             TEXT NOT NULL,
                     endpoint           TEXT NOT NULL,
                     agent              TEXT NOT NULL,
@@ -67,7 +67,6 @@ func (s v12Schema) Deploy(db *DB) error {
 	if err != nil {
 		return err
 	}
-
 	err = db.Exec(`INSERT INTO targets_new (uuid, tenant_uuid, name, summary,
                                             plugin, endpoint, agent, compression,
                                             healthy)

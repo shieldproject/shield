@@ -44,6 +44,15 @@ func (s v11Schema) Deploy(db *DB) error {
 		return err
 	}
 
+	jobs, err := db.GetAllJobs(&JobFilter{})
+	if err != nil {
+		return nil
+	}
+	for _, job := range jobs {
+		healthy := job.LastTaskStatus == "done"
+		db.UpdateJobHealth(job.UUID, healthy)
+	}
+
 	err = db.Exec(`UPDATE schema_info set version = 11`)
 	if err != nil {
 		return err
