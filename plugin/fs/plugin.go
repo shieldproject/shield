@@ -26,7 +26,8 @@ func main() {
   "base_dir" : "/path/to/backup"   # REQUIRED
 
   "include"  : "*.txt",            # UNIX glob of files to include in backup
-  "exclude"  : "*.o"               # ... and another for what to exclude
+  "exclude"  : "*.o",              # ... and another for what to exclude
+	"verbose"  : false               # Can set to true for debugging
 }
 `,
 		Defaults: `
@@ -65,6 +66,13 @@ func main() {
 				Title: "Strict Mode",
 				Help:  "If files go missing while walking the directory, consider that a fatal error.",
 			},
+			plugin.Field{
+				Mode:  "target",
+				Name:  "verbose",
+				Type:  "bool",
+				Title: "Verbose Logging",
+				Help:  "List the names of files included in the backup",
+			},
 		},
 	}
 
@@ -79,6 +87,7 @@ type FSConfig struct {
 	Exclude  string
 	BasePath string
 	Strict   bool
+	Verbose  bool
 }
 
 func (cfg *FSConfig) Match(path string) bool {
@@ -121,11 +130,17 @@ func getFSConfig(endpoint plugin.ShieldEndpoint) (*FSConfig, error) {
 		return nil, err
 	}
 
+	verbose, err := endpoint.BooleanValueDefault("verbose", false)
+	if err != nil {
+		return nil, err
+	}
+
 	return &FSConfig{
 		Include:  include,
 		Exclude:  exclude,
 		BasePath: base_dir,
 		Strict:   strict,
+		Verbose:  verbose,
 	}, nil
 }
 
@@ -188,6 +203,7 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	archive := tar.NewWriter(os.Stdout)
+	copyBuf := make([]byte, 32*1024)
 	n := 0
 	walker := func(path string, info os.FileInfo, err error) error {
 		baseRelative := strings.TrimPrefix(strings.Replace(path, cfg.BasePath, "", 1), "/")
@@ -195,7 +211,9 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			return nil
 		}
 
-		fmt.Fprintf(os.Stderr, " - found '%s' ... ", path)
+		if cfg.Verbose {
+			fmt.Fprintf(os.Stderr, " - found '%s' ... ", path)
+		}
 		if info == nil {
 			if _, ok := err.(*os.PathError); !cfg.Strict && ok {
 				fmt.Fprintf(os.Stderr, "no longer exists; skipping.\n")
@@ -207,14 +225,18 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		}
 
 		if !cfg.Match(info.Name()) {
-			fmt.Fprintf(os.Stderr, "ignoring (per include/exclude)\n")
+			if cfg.Verbose {
+				fmt.Fprintf(os.Stderr, "ignoring (per include/exclude)\n")
+			}
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 		n += 1
-		fmt.Fprintf(os.Stderr, "ok\n")
+		if cfg.Verbose {
+			fmt.Fprintf(os.Stderr, "ok\n")
+		}
 
 		link := ""
 		if info.Mode()&os.ModeType == os.ModeSymlink {
@@ -242,7 +264,9 @@ func (p FSPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 			if err != nil {
 				return err
 			}
-			io.Copy(archive, f)
+			io.CopyBuffer(archive, f, copyBuf)
+
+			f.Close()
 			return nil
 		}
 
@@ -270,6 +294,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	n := 0
 	archive := tar.NewReader(os.Stdin)
+	copyBuf := make([]byte, 32*1024)
 	for {
 		header, err := archive.Next()
 		if err != nil {
@@ -296,7 +321,7 @@ func (p FSPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 				fmt.Fprintf(os.Stderr, "FAILED (could not create new file)\n")
 				return err
 			}
-			if _, err := io.Copy(f, archive); err != nil {
+			if _, err := io.CopyBuffer(f, archive, copyBuf); err != nil {
 				fmt.Fprintf(os.Stderr, "FAILED (could not copy data to disk)\n")
 				return err
 			}
