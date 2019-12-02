@@ -249,8 +249,8 @@
       return agents;
     },
     agent: function (uuid) {
-      for (var uuid in this.data.agent || {}) {
-        var agent = this.data.agent[uuid];
+      for (var u in this.data.agent || {}) {
+        var agent = this.data.agent[u];
         if (!agent.hidden && (agent.uuid == uuid || agent.address == uuid)) {
           return agent;
         }
