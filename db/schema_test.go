@@ -70,7 +70,7 @@ var _ = Describe("Database Schema", func() {
 
 				var v int
 				Ω(r.Scan(&v)).Should(Succeed())
-				Ω(v).Should(Equal(11))
+				Ω(v).Should(Equal(12))
 			})
 
 			It("creates the correct tables", func() {
