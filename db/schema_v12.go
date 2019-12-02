@@ -1,7 +1,5 @@
 package db
 
-import "fmt"
-
 type v12Schema struct{}
 
 func (s v12Schema) Deploy(db *DB) error {
@@ -15,8 +13,7 @@ func (s v12Schema) Deploy(db *DB) error {
 		healthy := job.LastTaskStatus == "done"
 		db.UpdateJobHealth(job.UUID, healthy)
 	}
-	tenant := RandomID()
-	err = db.Exec(fmt.Sprintf(`CREATE TABLE targets_new (
+	err = db.Exec(`CREATE TABLE targets_new (
                     uuid               UUID PRIMARY KEY,
                     tenant_uuid        UUID NOT NULL DEFAULT '%s',
                     name               TEXT NOT NULL,
@@ -26,7 +23,7 @@ func (s v12Schema) Deploy(db *DB) error {
                     agent              TEXT NOT NULL,
                     compression        TEXT NOT NULL DEFAULT 'none',
                     healthy            BOOLEAN NOT NULL DEFAULT 0
-                )`, tenant))
+                )`)
 	if err != nil {
 		return err
 	}
