@@ -51,7 +51,8 @@ help.all: cmd/shield/main.go
 plugin: plugins
 plugins:
 	go $(BUILD_TYPE) ./plugin/dummy
-	for plugin in $$(cat plugins); do \
+	@for plugin in $$(cat plugins); do \
+		echo building plugin $$plugin... \
 		go $(BUILD_TYPE) ./plugin/$$plugin; \
 	done
 
