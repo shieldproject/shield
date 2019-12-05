@@ -5,6 +5,12 @@ type v11Schema struct{}
 func (s v11Schema) Deploy(db *DB) error {
 	var err error
 
+	//drop the jobs_new table if it exists
+	err = db.Exec(`DROP TABLE IF EXISTS jobs_new`)
+	if err != nil {
+		return err
+	}
+
 	// set the tenant_uuid column to NOT NULL
 	err = db.Exec(`CREATE TABLE jobs_new (
                     uuid               UUID PRIMARY KEY,
