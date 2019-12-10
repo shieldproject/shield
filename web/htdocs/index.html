@@ -1923,7 +1923,8 @@ src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKEAAAChCAYAAACvUd+2AAAACXBIW
               <h3>Storage Footprint</h3>
               [[ var n = 0, used = 0;
                  $.each(AEGIS.archives({ tenant: target.tenant_uuid,
-                                         system: target.uuid }),
+                                         system: target.uuid,
+                                         purged: false }),
                         function (i, archive) {
                           if (archive.status == "valid") {
                             n++;
