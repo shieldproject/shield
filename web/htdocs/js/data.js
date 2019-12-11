@@ -266,8 +266,8 @@
         for (var uuid in this.data.archive || {}) {
           var archive = this.data.archive[uuid];
           if (archive.tenant_uuid != q.tenant
-           || ('system'  in q && archive.target_uuid  != q.system)
-           || ('store'   in q && archive.store_uuid   != q.store)
+           || ('system'  in q && archive.target_uuid          != q.system)
+           || ('store'   in q && archive.store_uuid           != q.store)
            || ('purged'  in q && (archive.status == "purged") != q.purged)) {
             continue;
           }
