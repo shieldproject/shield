@@ -271,14 +271,16 @@ func (db *DB) UpdateTarget(target *Target) error {
 func (db *DB) UpdateTargetHealth(id string, health bool) error {
 	target, err := db.GetTarget(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error when finding target with uuid `%s' to update health: %s", id, err)
 	}
-	target.Healthy = health
+	if target == nil {
+		return fmt.Errorf("No target with uuid `%s' was found to update health")
+	}
 	err = db.Exec(`
         UPDATE targets
             SET healthy = ?
         WHERE uuid = ?`,
-		target.Healthy,
+		health,
 		target.UUID)
 	if err != nil {
 		return err

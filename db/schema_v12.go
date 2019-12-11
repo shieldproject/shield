@@ -7,11 +7,14 @@ func (s v12Schema) Deploy(db *DB) error {
 
 	jobs, err := db.GetAllJobs(&JobFilter{})
 	if err != nil {
-		return nil
+		return err
 	}
 	for _, job := range jobs {
 		healthy := job.LastTaskStatus == "done"
-		db.UpdateJobHealth(job.UUID, healthy)
+		err = db.UpdateJobHealth(job.UUID, healthy)
+		if err != nil {
+			return err
+		}
 	}
 	err = db.Exec(`CREATE TABLE targets_new (
                     uuid               UUID PRIMARY KEY,

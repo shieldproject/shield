@@ -333,14 +333,16 @@ func (db *DB) UpdateJob(job *Job) error {
 func (db *DB) UpdateJobHealth(id string, status bool) error {
 	job, err := db.GetJob(id)
 	if err != nil {
-		return fmt.Errorf("unable to find job %s to update health: %s", id, err)
+		return fmt.Errorf("Error when finding job with uuid `%s' to update health: %s", id, err)
 	}
-	job.Healthy = status
+	if job == nil {
+		return fmt.Errorf("No job with uuid `%s' was found to update health")
+	}
 	err = db.Exec(`
         UPDATE jobs
             SET healthy = ?
         WHERE uuid = ?`,
-		job.Healthy,
+		status,
 		job.UUID)
 	if err != nil {
 		return err
