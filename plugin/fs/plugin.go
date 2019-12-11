@@ -27,7 +27,7 @@ func main() {
 
   "include"  : "*.txt",            # UNIX glob of files to include in backup
   "exclude"  : "*.o",              # ... and another for what to exclude
-	"verbose"  : false               # Can set to true for debugging
+  "verbose"  : false               # Can set to true for debugging
 }
 `,
 		Defaults: `
@@ -71,7 +71,7 @@ func main() {
 				Name:  "verbose",
 				Type:  "bool",
 				Title: "Verbose Logging",
-				Help:  "List the names of files included in the backup",
+				Help:  "List the names of files included in the backup.",
 			},
 		},
 	}
