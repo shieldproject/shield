@@ -319,31 +319,36 @@ QUnit.module('AEGIS Object Queries');
         uuid: 'shield-backup-archive-1',
         tenant_uuid: 'the-system-tenant',
         target_uuid: 'the-shield-target',
-        store_uuid:  'the-system-s3-store'
+        store_uuid:  'the-system-s3-store',
+        status:      'valid'
       })
       .insert('archive', {
         uuid: 'shield-backup-archive-2',
         tenant_uuid: 'the-system-tenant',
         target_uuid: 'the-shield-target',
-        store_uuid:  'the-system-s3-store'
+        store_uuid:  'the-system-s3-store',
+        status:      'invalid'
       })
       .insert('archive', {
         uuid: 'shield-backup-archive-3',
         tenant_uuid: 'the-system-tenant',
         target_uuid: 'the-shield-target',
-        store_uuid:  'the-global-store'
+        store_uuid:  'the-global-store',
+        status:      'purged'
       })
       .insert('archive', {
         uuid: 'ccdb-backup-archive-1',
         tenant_uuid: 'the-acme-tenant',
         target_uuid: 'the-ccdb-target',
-        store_uuid:  'the-global-store'
+        store_uuid:  'the-global-store',
+        status:      'purged'
       })
       .insert('archive', {
         uuid: 'uaadb-backup-archive-1',
         tenant_uuid: 'the-acme-tenant',
         target_uuid: 'the-uaadb-target',
-        store_uuid:  'the-global-store'
+        store_uuid:  'the-global-store',
+        status:      'valid'
       })
     ;
   };
@@ -536,6 +541,19 @@ QUnit.module('AEGIS Object Queries');
       [ { uuid: 'shield-backup-archive-1' },
         { uuid: 'shield-backup-archive-2' } ],
       'the-system-tenant has two archives for the-shield-target in the-system-s3-store');
+
+    /* by tenant + purged-less-ness */
+    is.set(db.archives({ tenant: 'the-system-tenant',
+                         purged: false }),
+      [ { uuid:   'shield-backup-archive-1' },
+        { uuid:   'shield-backup-archive-2' } ],
+      'asking only for non-purged archives correctly retrieves valid and invalid archives, but not purged');
+
+    /* by tenant + purged-ness */
+    is.set(db.archives({ tenant: 'the-acme-tenant',
+                         purged: true }),
+      [ { uuid: "ccdb-backup-archive-1" } ],
+      'asking only for purged archives correctly retrieves only purged archives');
 
     /* single archive retrieval */
     is.contained(
