@@ -642,6 +642,28 @@ function dispatch(page) {
                   banner("Resynchronization of agent underway");
                 }
               });
+            } else if (action == 'delete') {
+              var agent_uuid = $(event.target).extract('agent-uuid');
+              modal($($.template('agents-delete', { agent: data.agents[0] }))
+              .on('click', '[rel="yes"]', function (event) {
+                event.preventDefault();
+                api({
+                  type: 'DELETE',
+                  url:  '/v2/agents/'+agent_uuid,
+                  error: "Unable to delete agent",
+                  complete: function () {
+                    modal(true);
+                  },
+                  success: function (event) {
+                    goto('#!/admin/agents');
+                  }
+                });
+              })
+              .on('click', '[rel="close"]', function (event) {
+                  modal(true);
+                  goto('#!/admin/agents');
+                })
+              );
             }
           }));
       }
