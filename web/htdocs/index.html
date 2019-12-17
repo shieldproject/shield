@@ -2662,7 +2662,7 @@ for job <em>[[= _.task.job_uuid ]]</em>
             <h2>Delete The <em>[[= h(_.store.name) ]]</em> Cloud Storage System?</h2>
 
             <p>You have requested that SHIELD remove the configuration for
-            the cloud storage system "[[= h(_.store.name) ]]".  <em>This is a
+            the cloud storage system "[[= h(_.store.name) ]]".  <em>This is an
             irreversible action; it cannot be undone.</em></p>
 
             <p class="q">Are you sure you want to delete <em>[[= h(_.store.name) ]]</em>?</p>
@@ -2962,7 +2962,8 @@ for job <em>[[= _.task.job_uuid ]]</em>
                   <td>[[ if (agent.hidden) { ]]no[[ } else { ]]yes[[ } ]]</td>
                   <td>[[ if (agent.hidden) { ]]<a href="#" rel="show">show</a>
                       [[ } else            { ]]<a href="#" rel="hide">hide</a>[[ } ]]
-                      | <a href="#" rel="resync">resync</a></td>
+                      | <a href="#" rel="resync">resync</a>
+                      | <a href="#" rel="delete">delete</a></td>
                 </tr>
                 [[ if (problems.length != 0 || agent.last_error != '') { ]]
                 <tr class="note fail">
@@ -2980,6 +2981,28 @@ for job <em>[[= _.task.job_uuid ]]</em>
               </tbody>
             </table>
             [[ } ]]
+    <!-- }}} --></script>
+    <script type="text/html" id="template:agents-delete"><!-- {{{ -->
+      [[#
+        {agents-delete}
+
+        A modal interaction screen that requires the operator to acknowledge
+        that what they are about to do will result in the destruction of
+        configuration data.
+      ]]
+          <div class="confirm">
+            <h2>Delete The <em>[[= h(_.agent.name) ]]</em> Agent?</h2>
+
+            <p>You have requested that SHIELD remove the configuration for
+            the agent "[[= h(_.agent.name) ]]".  <em>This is an
+            irreversible action; it cannot be undone.</em></p>
+
+            <p class="q">Are you sure you want to delete <em>[[= h(_.agent.name) ]]</em>?</p>
+            <div class="a">
+              <button class="safe" rel="close">No, Keep It</button>
+              <button class="danger" rel="yes">Yes, Delete It</button>
+            </div>
+          </div>
     <!-- }}} --></script>
     <script type="text/html" id="template:auth-providers"><!-- {{{ -->
       [[#
