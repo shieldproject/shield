@@ -1,8 +1,6 @@
 package db
 
 import (
-	"database/sql"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -41,7 +39,7 @@ var _ = Describe("Database", func() {
 			})
 		})
 
-		numberOfThingsIn := func(r *sql.Rows) int {
+		numberOfThingsIn := func(r *queryResult) int {
 			var n int
 
 			Ω(r).ShouldNot(BeNil())

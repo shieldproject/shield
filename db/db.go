@@ -75,17 +75,36 @@ func (db *DB) exec(sql string, args ...interface{}) error {
 		return err
 	}
 	_, err = s.Exec(args...)
+	s.Close()
+	return err
+}
+
+type queryResult struct {
+	stmt *sql.Stmt
+	rows *sql.Rows
+}
+
+func (r *queryResult) Next() bool {
+	return r.rows.Next()
+}
+
+func (r *queryResult) Scan(dest ...interface{}) error {
+	return r.rows.Scan(dest...)
+}
+
+func (r *queryResult) Close() error {
+	err := r.rows.Close()
 	if err != nil {
+		r.stmt.Close()
 		return err
 	}
-
-	return nil
+	return r.stmt.Close()
 }
 
 // Execute a named, data query (SELECT)
 // The caller is responsible for holding the database lock, as the rows object
 // returned holds a SQLite read lock until the rows object is closed.
-func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
+func (db *DB) query(sql string, args ...interface{}) (*queryResult, error) {
 	s, err := db.statement(sql)
 	if err != nil {
 		return nil, err
@@ -97,10 +116,14 @@ func (db *DB) query(sql string, args ...interface{}) (*sql.Rows, error) {
 
 	r, err := s.Query(args...)
 	if err != nil {
+		s.Close()
 		return nil, err
 	}
 
-	return r, nil
+	return &queryResult{
+		stmt: s,
+		rows: r,
+	}, nil
 }
 
 // Execute a data query (SELECT) and return how many rows were returned
