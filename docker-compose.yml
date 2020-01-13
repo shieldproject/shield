@@ -41,7 +41,8 @@ services:
     networks: [internal]
     command: ['/shield/init/core']
     environment:
-      VAULT_ADDR: http://vault:8200
+      SHIELD_VAULT_ADDRESS: http://vault:8200
+      SHIELD_API_BIND: core:80
     volumes:
       - 'shield-data:/var/shield'
       - 'shield-etc:/etc/shield'
