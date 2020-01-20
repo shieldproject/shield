@@ -157,6 +157,7 @@ docker-release:
 	docker build -t shieldproject/shield:$(VERSION) . --build-arg VERSION=$(VERSION)
 	docker build -t shieldproject/webdav:$(VERSION) docker/webdav
 	docker build -t shieldproject/demo:$(VERSION) docker/demo
+	docker run --rm shieldproject/shield:$(VERSION) /shield/bin/shieldd --version
 	
 	for I in shieldproject/shield shieldproject/webdav shieldproject/demo; do \
 		docker tag $$I:$(VERSION) $$I:latest; \

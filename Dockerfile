@@ -1,4 +1,4 @@
-FROM golang:1.11 as build
+FROM golang:1.11-stretch as build
 
 RUN apt-get update \
  && apt-get install -y bzip2 unzip curl openssh-client
@@ -26,7 +26,7 @@ RUN mkdir -p /dist/bin /dist/plugins \
 ADD init /dist/init
 RUN chmod 0755 /dist/init/*
 
-FROM ubuntu:19.04
+FROM ubuntu:18.04
 RUN apt-get update \
  && apt-get install -y bzip2 curl openssh-client \
  && rm -rf /var/lib/apt/lists/*
