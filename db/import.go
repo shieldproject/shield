@@ -92,8 +92,8 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) {
 		}
 
 		err = vlt.Store(v.UUID, vault.Parameters{
-			Key: v.EncryptionKey,
-			IV: v.EncryptionIV,
+			Key:  v.EncryptionKey,
+			IV:   v.EncryptionIV,
 			Type: v.EncryptionType,
 		})
 		if err != nil {
@@ -188,10 +188,10 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) {
 
 		err := db.exec(`
 		  INSERT INTO memberships
-		    (tenant_uuid, user_uuid, role)
+		    (user_uuid, tenant_uuid, role)
 		  VALUES
 		    (?, ?, ?)`,
-			v.TenantUUID, v.UserUUID, v.Role)
+			v.UserUUID, v.TenantUUID, v.Role)
 		if err != nil {
 			panic(err)
 		}
@@ -298,7 +298,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) {
 		Agent          string  `json:"agent"`
 		FixedKey       string  `json:"fixed_key"`
 		TargetPlugin   string  `json:"target_plugin"`
-		TargetEndpoint string  `json;"target_endpoint"`
+		TargetEndpoint string  `json:"target_endpoint"`
 		StorePlugin    string  `json:"store_plugin"`
 		StoreEndpoint  string  `json:"store_endpoint"`
 		RestoreKey     string  `json:"restore_key"`
@@ -312,34 +312,37 @@ func (db *DB) importTasks(n uint, in *json.Decoder) {
 		if err := in.Decode(&v); err != nil {
 			panic(err)
 		}
-
-		log.Infof("<<import>> inserting task %s...", v.UUID)
-		err := db.exec(`
-		  INSERT INTO tasks
-		    (uuid, owner, op,
-		     tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
-		     status, requested_at, started_at, stopped_at, timeout_at,
-		     log, attempts, agent, fixed_key,
-		     target_plugin, target_endpoint,
-		     store_plugin, store_endpoint, restore_key,
-		     ok, notes, clear)
-		  VALUES
-		    (?, ?, ?,
-		     ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?, ?,
-		     ?, ?, ?, ?,
-		     ?, ?,
-		     ?, ?, ?,
-		     ?, ?, ?)`,
-			v.UUID, v.Owner, v.Op,
-			v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID, v.StoreUUID,
-			v.Status, v.RequestedAt, v.StartedAt, v.StoppedAt, v.TimeoutAt,
-			v.Log, v.Attempts, v.Agent, v.FixedKey,
-			v.TargetPlugin, v.TargetEndpoint,
-			v.StorePlugin, v.StoreEndpoint, v.RestoreKey,
-			v.OK, v.Notes, v.Clear)
-		if err != nil {
-			panic(err)
+		if v.Status == "done" || v.Status == "failed" {
+			log.Infof("<<import>> inserting task %s...", v.UUID)
+			err := db.exec(`
+            INSERT INTO tasks
+                (uuid, owner, op,
+                tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+                status, requested_at, started_at, stopped_at, timeout_at,
+                log, attempts, agent, fixed_key,
+                target_plugin, target_endpoint,
+                store_plugin, store_endpoint, restore_key,
+                ok, notes, clear)
+            VALUES
+                (?, ?, ?,
+                ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?,
+                ?, ?, ?,
+                ?, ?, ?)`,
+				v.UUID, v.Owner, v.Op,
+				v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID, v.StoreUUID,
+				v.Status, v.RequestedAt, v.StartedAt, v.StoppedAt, v.TimeoutAt,
+				v.Log, v.Attempts, v.Agent, v.FixedKey,
+				v.TargetPlugin, v.TargetEndpoint,
+				v.StorePlugin, v.StoreEndpoint, v.RestoreKey,
+				v.OK, v.Notes, v.Clear)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			log.Infof("<<import>> skipping insert task %s...", v.UUID)
 		}
 	}
 }

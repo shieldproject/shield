@@ -225,7 +225,7 @@ func (db *DB) exportMemberships(out *json.Encoder) {
 	}
 
 	r, err := db.query(`
-	  SELECT tenant_uuid, user_uuid, role
+	  SELECT user_uuid, tenant_uuid, role
 	    FROM memberships`)
 	if err != nil {
 		panic(err)
@@ -299,7 +299,7 @@ func (db *DB) exportTargets(out *json.Encoder) {
 		Summary     string `json:"summary"`
 		Plugin      string `json:"plugin"`
 		Endpoint    string `json:"endpoint"`
-		Agent       string `json:"agents"`
+		Agent       string `json:"agent"`
 		Compression string `json:"compression"`
 		Healthy     bool   `json:"healthy"`
 	}
@@ -349,7 +349,7 @@ func (db *DB) exportTasks(out *json.Encoder) {
 		Agent          string  `json:"agent"`
 		FixedKey       string  `json:"fixed_key"`
 		TargetPlugin   string  `json:"target_plugin"`
-		TargetEndpoint string  `json;"target_endpoint"`
+		TargetEndpoint string  `json:"target_endpoint"`
 		StorePlugin    string  `json:"store_plugin"`
 		StoreEndpoint  string  `json:"store_endpoint"`
 		RestoreKey     string  `json:"restore_key"`
