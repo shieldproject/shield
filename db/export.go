@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -455,6 +456,51 @@ func (db *DB) exportUsers(out *json.Encoder) {
 	}
 }
 
+func (db *DB) exportSessions(out *json.Encoder) {
+	db.exportHeader(out, "sessions")
+
+	type Session struct {
+		UUID           string `json:"uuid"`
+		UserUUID       string `json:"user_uuid"`
+		CreatedAt      int64  `json:"created_at"`
+		LastSeen       int64  `json:"last_seen_at"`
+		Token          string `json:"token_uuid"`
+		Name           string `json:"name"`
+		IP             string `json:"ip_addr"`
+		UserAgent      string `json:"user_agent"`
+		UserAccount    string `json:"user_account"`
+		CurrentSession bool   `json:"current_session"`
+	}
+
+	r, err := db.query(`
+        SELECT uuid, user_uuid, created_at, last_seen,
+                token, name, ip_addr, user_agent
+            FROM sessions`)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Close()
+
+	for r.Next() {
+		s := &Session{}
+
+		var (
+			last  *int64
+			token sql.NullString
+		)
+		if err := r.Scan(&s.UUID, &s.UserUUID, &s.CreatedAt, &last, &token, &s.Name, &s.IP, &s.UserAgent); err != nil {
+			panic(err)
+		}
+		if last != nil {
+			s.LastSeen = *last
+		}
+		if token.Valid {
+			s.Token = token.String
+		}
+		out.Encode(&s)
+	}
+}
+
 func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
 	db.exclusively(func() error {
 		db.exportAgents(out)
@@ -467,6 +513,7 @@ func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
 		db.exportTasks(out)
 		db.exportUsers(out)
 		db.exportMemberships(out)
+		db.exportSessions(out)
 		db.exportFooter(out)
 		return nil
 	})

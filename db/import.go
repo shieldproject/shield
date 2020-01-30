@@ -411,6 +411,42 @@ func (db *DB) importUsers(n uint, in *json.Decoder) {
 	}
 }
 
+func (db *DB) importSessions(n uint, in *json.Decoder) {
+	type Session struct {
+		UUID           string `json:"uuid"`
+		UserUUID       string `json:"user_uuid"`
+		CreatedAt      int64  `json:"created_at"`
+		LastSeen       int64  `json:"last_seen_at"`
+		Token          string `json:"token_uuid"`
+		Name           string `json:"name"`
+		IP             string `json:"ip_addr"`
+		UserAgent      string `json:"user_agent"`
+		UserAccount    string `json:"user_account"`
+		CurrentSession bool   `json:"current_session"`
+	}
+
+	for ; n > 0; n-- {
+		var v Session
+		if err := in.Decode(&v); err != nil {
+			panic(err)
+		}
+
+		log.Infof("<<import>> inserting session %s...", v.UUID)
+		err := db.exec(`
+          INSERT INTO sessions
+            (uuid, user_uuid, created_at, last_seen,
+             token, name, ip_addr, user_agent)
+          VALUES
+             (?, ?, ?, ?,
+              ?, ?, ?, ?)`,
+			v.UUID, v.UserUUID, v.CreatedAt, v.LastSeen,
+			v.Token, v.Name, v.IP, v.UserAgent)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (db *DB) clear(tables ...string) {
 	for _, t := range tables {
 		log.Infof("<<import>> clearing table %s...", t)
@@ -457,7 +493,8 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client) {
 				db.importTenants(h.N, in)
 			case "users":
 				db.importUsers(h.N, in)
-
+			case "sessions":
+				db.importSessions(h.N, in)
 			case "":
 			default:
 				panic(fmt.Errorf("unrecognized import header type '%s'", h.Type))
