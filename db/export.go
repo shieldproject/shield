@@ -110,7 +110,7 @@ func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) {
 	r, err := db.query(`
 	  SELECT uuid, tenant_uuid, target_uuid, store_uuid,
 	         store_key, taken_at, expires_at, notes, purge_reason,
-	         status, size, job, encryption_type,compression
+	         status, size, job,compression
 	    FROM archives`)
 	if err != nil {
 		panic(err)
@@ -123,7 +123,7 @@ func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) {
 		if err = r.Scan(
 			&v.UUID, &v.TenantUUID, &v.TargetUUID, &v.StoreUUID,
 			&v.StoreKey, &v.TakenAt, &v.ExpiresAt, &v.Notes, &v.PurgeReason,
-			&v.Status, &v.Size, &v.Job, &v.EncryptionType, &v.Compression); err != nil {
+			&v.Status, &v.Size, &v.Job, &v.Compression); err != nil {
 
 			panic(err)
 		}
@@ -131,6 +131,7 @@ func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) {
 		if e, err := vault.Retrieve(v.UUID); err == nil {
 			v.EncryptionKey = e.Key
 			v.EncryptionIV = e.IV
+			v.EncryptionType = e.Type
 		} else {
 			panic(err)
 		}
