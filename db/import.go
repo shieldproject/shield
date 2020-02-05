@@ -9,7 +9,7 @@ import (
 	"github.com/shieldproject/shield/core/vault"
 )
 
-func (db *DB) importAgents(n uint, in *json.Decoder) {
+func (db *DB) importAgents(n uint, in *json.Decoder) error {
 	type agent struct {
 		UUID          string `json:"uuid"`
 		Name          string `json:"name"`
@@ -26,7 +26,7 @@ func (db *DB) importAgents(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v agent
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting agent %s...", v.UUID)
@@ -43,12 +43,13 @@ func (db *DB) importAgents(n uint, in *json.Decoder) {
 			v.LastSeenAt, v.LastCheckedAt, v.LastError,
 			v.Status, v.Metadata)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) {
+func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) error {
 	type archive struct {
 		UUID           string `json:"uuid"`
 		TenantUUID     string `json:"tenant_uuid"`
@@ -71,7 +72,7 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) {
 	for ; n > 0; n-- {
 		var v archive
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting archive %s...", v.UUID)
@@ -88,7 +89,7 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) {
 			v.StoreKey, v.TakenAt, v.ExpiresAt, v.Notes, v.PurgeReason,
 			v.Status, v.Size, v.Job, v.EncryptionType, v.Compression)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		err = vlt.Store(v.UUID, vault.Parameters{
@@ -97,12 +98,13 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) {
 			Type: v.EncryptionType,
 		})
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importFixups(n uint, in *json.Decoder) {
+func (db *DB) importFixups(n uint, in *json.Decoder) error {
 	type fixup struct {
 		ID        string `json:"id"`
 		Name      string `json:"name"`
@@ -114,7 +116,7 @@ func (db *DB) importFixups(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v fixup
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting fixup #%s...", v.ID)
@@ -125,12 +127,13 @@ func (db *DB) importFixups(n uint, in *json.Decoder) {
 		    (?, ?, ?, ?, ?)`,
 			v.ID, v.Name, v.Summary, v.CreatedAt, v.AppliedAt)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importJobs(n uint, in *json.Decoder) {
+func (db *DB) importJobs(n uint, in *json.Decoder) error {
 	type job struct {
 		UUID       string `json:"uuid"`
 		TargetUUID string `json:"target_uuid"`
@@ -151,7 +154,7 @@ func (db *DB) importJobs(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v job
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting job %s...", v.UUID)
@@ -168,12 +171,13 @@ func (db *DB) importJobs(n uint, in *json.Decoder) {
 			v.Name, v.Summary, v.Schedule, v.KeepN, v.KeepDays,
 			v.NextRun, v.Priority, v.Paused, v.FixedKey, v.Healthy)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importMemberships(n uint, in *json.Decoder) {
+func (db *DB) importMemberships(n uint, in *json.Decoder) error {
 	type membership struct {
 		TenantUUID string `json:"tenant_uuid"`
 		UserUUID   string `json:"user_uuid"`
@@ -183,7 +187,7 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v membership
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		err := db.exec(`
@@ -193,12 +197,13 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) {
 		    (?, ?, ?)`,
 			v.UserUUID, v.TenantUUID, v.Role)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importStores(n uint, in *json.Decoder) {
+func (db *DB) importStores(n uint, in *json.Decoder) error {
 	type store struct {
 		UUID             string `json:"uuid"`
 		TenantUUID       string `json:"tenant_uuid"`
@@ -218,7 +223,7 @@ func (db *DB) importStores(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v store
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting store %s...", v.UUID)
@@ -238,12 +243,13 @@ func (db *DB) importStores(n uint, in *json.Decoder) {
 			v.DailyIncrease, v.StorageUsed, v.ArchiveCount,
 			v.Threshold, v.Healthy, v.LastTestTaskUUID)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importTargets(n uint, in *json.Decoder) {
+func (db *DB) importTargets(n uint, in *json.Decoder) error {
 	type target struct {
 		UUID        string `json:"uuid"`
 		TenantUUID  string `json:"tenant_uuid"`
@@ -259,7 +265,7 @@ func (db *DB) importTargets(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v target
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting target %s...", v.UUID)
@@ -273,12 +279,13 @@ func (db *DB) importTargets(n uint, in *json.Decoder) {
 			v.UUID, v.TenantUUID, v.Name, v.Summary,
 			v.Plugin, v.Endpoint, v.Agent, v.Compression, v.Healthy)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importTasks(n uint, in *json.Decoder) {
+func (db *DB) importTasks(n uint, in *json.Decoder) error {
 	type task struct {
 		UUID           string  `json:"uuid"`
 		Owner          string  `json:"owner"`
@@ -310,7 +317,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v task
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 		if v.Status == "done" || v.Status == "failed" {
 			log.Infof("<<import>> inserting task %s...", v.UUID)
@@ -339,15 +346,16 @@ func (db *DB) importTasks(n uint, in *json.Decoder) {
 				v.StorePlugin, v.StoreEndpoint, v.RestoreKey,
 				v.OK, v.Notes, v.Clear)
 			if err != nil {
-				panic(err)
+				return err
 			}
 		} else {
 			log.Infof("<<import>> skipping insert task %s...", v.UUID)
 		}
 	}
+	return nil
 }
 
-func (db *DB) importTenants(n uint, in *json.Decoder) {
+func (db *DB) importTenants(n uint, in *json.Decoder) error {
 	type tenant struct {
 		UUID          string `json:"uuid"`
 		Name          string `json:"name"`
@@ -359,7 +367,7 @@ func (db *DB) importTenants(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v tenant
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting tenant %s...", v.UUID)
@@ -373,12 +381,13 @@ func (db *DB) importTenants(n uint, in *json.Decoder) {
 			v.UUID, v.Name,
 			v.DailyIncrease, v.StorageUsed, v.ArchiveCount)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importUsers(n uint, in *json.Decoder) {
+func (db *DB) importUsers(n uint, in *json.Decoder) error {
 	type user struct {
 		UUID          string `json:"uuid"`
 		Name          string `json:"name"`
@@ -392,7 +401,7 @@ func (db *DB) importUsers(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v user
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting user %s...", v.UUID)
@@ -406,12 +415,13 @@ func (db *DB) importUsers(n uint, in *json.Decoder) {
 			v.UUID, v.Name, v.Account, v.Backend,
 			v.PasswordHash, v.SystemRole, v.DefaultTenant)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) importSessions(n uint, in *json.Decoder) {
+func (db *DB) importSessions(n uint, in *json.Decoder) error {
 	type Session struct {
 		UUID           string `json:"uuid"`
 		UserUUID       string `json:"user_uuid"`
@@ -428,7 +438,7 @@ func (db *DB) importSessions(n uint, in *json.Decoder) {
 	for ; n > 0; n-- {
 		var v Session
 		if err := in.Decode(&v); err != nil {
-			panic(err)
+			return err
 		}
 
 		log.Infof("<<import>> inserting session %s...", v.UUID)
@@ -442,65 +452,113 @@ func (db *DB) importSessions(n uint, in *json.Decoder) {
 			v.UUID, v.UserUUID, v.CreatedAt, v.LastSeen,
 			v.Token, v.Name, v.IP, v.UserAgent)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
-func (db *DB) clear(tables ...string) {
+func (db *DB) clear(tables ...string) error {
 	for _, t := range tables {
 		log.Infof("<<import>> clearing table %s...", t)
 		if err := db.exec(fmt.Sprintf("DELETE FROM %s", t)); err != nil {
-			panic(fmt.Errorf("clear table failed: %s", err))
+			return fmt.Errorf("clear table failed: %s", err)
 		}
 	}
+	return nil
 }
 
-func (db *DB) Import(in *json.Decoder, vault *vault.Client) {
+func (db *DB) Import(in *json.Decoder, vault *vault.Client) error {
 	var h header
 
-	db.transactionally(func() error {
-		db.clear("agents", "archives", "fixups", "jobs", "memberships", "stores")
-		db.clear("targets", "tasks", "tenants", "users")
-		db.clear("sessions")
+	err := db.transactionally(func() error {
+		err := db.clear("agents", "archives", "fixups", "jobs", "memberships", "stores")
+		if err != nil {
+			return err
+		}
+		err = db.clear("targets", "tasks", "tenants", "users")
+		if err != nil {
+			return nil
+		}
+		err = db.clear("sessions")
+		if err != nil {
+			return nil
+		}
 
 		for in.More() {
 			if err := in.Decode(&h); err != nil {
-				panic(err)
+				return err
 			}
 			if h.V != "v1" {
-				panic(fmt.Errorf("unrecognized import header version '%s'", h.V))
+				return fmt.Errorf("unrecognized import header version '%s'", h.V)
 			}
 
 			switch h.Type {
 			case "agents":
-				db.importAgents(h.N, in)
+				err := db.importAgents(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "archives":
-				db.importArchives(h.N, in, vault)
+				err := db.importArchives(h.N, in, vault)
+				if err != nil {
+					return err
+				}
 			case "fixups":
-				db.importFixups(h.N, in)
+				err := db.importFixups(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "jobs":
-				db.importJobs(h.N, in)
+				err := db.importJobs(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "memberships":
-				db.importMemberships(h.N, in)
+				err := db.importMemberships(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "stores":
-				db.importStores(h.N, in)
+				err := db.importStores(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "targets":
-				db.importTargets(h.N, in)
+				err := db.importTargets(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "tasks":
-				db.importTasks(h.N, in)
+				err := db.importTasks(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "tenants":
-				db.importTenants(h.N, in)
+				err := db.importTenants(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "users":
-				db.importUsers(h.N, in)
+				err := db.importUsers(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "sessions":
-				db.importSessions(h.N, in)
+				err := db.importSessions(h.N, in)
+				if err != nil {
+					return err
+				}
 			case "":
 			default:
-				panic(fmt.Errorf("unrecognized import header type '%s'", h.Type))
+				return fmt.Errorf("unrecognized import header type '%s'", h.Type)
 			}
 		}
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

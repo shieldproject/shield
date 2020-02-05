@@ -3670,7 +3670,11 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		if out := r.JSONEncoder(); out != nil {
-			c.db.Export(out, c.vault)
+			err := c.db.Export(out, c.vault)
+			if err != nil {
+				r.Fail(route.Oops(err, "Faild to export SHIELD data"))
+				return
+			}
 		} else {
 			r.Fail(route.Oops(nil, "Failed to export SHIELD data"))
 		}
@@ -3682,7 +3686,7 @@ func (c *Core) v2API() *route.Router {
 
 		st, err := c.vault.Status()
 		if err != nil {
-			r.Fail(route.Oops(err, "Failed to export SHIELD data"))
+			r.Fail(route.Oops(err, "Failed to import SHIELD data"))
 			return
 		}
 		if st != "unlocked" {
@@ -3691,7 +3695,11 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		if in := r.JSONDecoder(); in != nil {
-			c.db.Import(in, c.vault)
+			err = c.db.Import(in, c.vault)
+			if err != nil {
+				r.Fail(route.Oops(err, "Failed to import SHIELD data"))
+				return
+			}
 			r.Success("imported successfully")
 		} else {
 			r.Fail(route.Oops(nil, "Failed to import SHIELD data"))

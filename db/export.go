@@ -16,10 +16,10 @@ type header struct {
 	N    uint   `json:"n"`
 }
 
-func (db *DB) exportHeader(out *json.Encoder, table string) {
+func (db *DB) exportHeader(out *json.Encoder, table string) error {
 	n, err := db.count(fmt.Sprintf(`SELECT * FROM %s`, table))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	out.Encode(header{
@@ -27,6 +27,7 @@ func (db *DB) exportHeader(out *json.Encoder, table string) {
 		Type: table,
 		N:    n,
 	})
+	return nil
 }
 
 func (db *DB) exportFooter(out *json.Encoder) {
@@ -37,7 +38,7 @@ func (db *DB) exportFooter(out *json.Encoder) {
 	})
 }
 
-func (db *DB) exportAgents(out *json.Encoder) {
+func (db *DB) exportAgents(out *json.Encoder) error {
 	db.exportHeader(out, "agents")
 
 	type agent struct {
@@ -59,7 +60,7 @@ func (db *DB) exportAgents(out *json.Encoder) {
 	         last_error, status, metadata
 	    FROM agents`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -72,7 +73,7 @@ func (db *DB) exportAgents(out *json.Encoder) {
 			&v.Hidden, &seen, &checked,
 			&v.LastError, &v.Status, &v.Metadata); err != nil {
 
-			panic(err)
+			return err
 		}
 		if seen != nil {
 			v.LastSeenAt = *seen
@@ -83,9 +84,10 @@ func (db *DB) exportAgents(out *json.Encoder) {
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) {
+func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) error {
 	db.exportHeader(out, "archives")
 
 	type archive struct {
@@ -113,7 +115,7 @@ func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) {
 	         status, size, job,compression
 	    FROM archives`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -125,7 +127,7 @@ func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) {
 			&v.StoreKey, &v.TakenAt, &v.ExpiresAt, &v.Notes, &v.PurgeReason,
 			&v.Status, &v.Size, &v.Job, &v.Compression); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		if e, err := vault.Retrieve(v.UUID); err == nil {
@@ -133,14 +135,15 @@ func (db *DB) exportArchives(out *json.Encoder, vault *vault.Client) {
 			v.EncryptionIV = e.IV
 			v.EncryptionType = e.Type
 		} else {
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportFixups(out *json.Encoder) {
+func (db *DB) exportFixups(out *json.Encoder) error {
 	db.exportHeader(out, "fixups")
 
 	type fixup struct {
@@ -155,7 +158,7 @@ func (db *DB) exportFixups(out *json.Encoder) {
 	  SELECT id, name, summary, created_at, applied_at
 	    FROM fixups`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -165,14 +168,15 @@ func (db *DB) exportFixups(out *json.Encoder) {
 		if err = r.Scan(
 			&v.ID, &v.Name, &v.Summary, &v.CreatedAt, &v.AppliedAt); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportJobs(out *json.Encoder) {
+func (db *DB) exportJobs(out *json.Encoder) error {
 	db.exportHeader(out, "jobs")
 
 	type job struct {
@@ -198,7 +202,7 @@ func (db *DB) exportJobs(out *json.Encoder) {
 	         next_run, priority, paused, fixed_key, healthy
 	    FROM jobs`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -210,14 +214,15 @@ func (db *DB) exportJobs(out *json.Encoder) {
 			&v.Name, &v.Summary, &v.Schedule, &v.KeepN, &v.KeepDays,
 			&v.NextRun, &v.Priority, &v.Paused, &v.FixedKey, &v.Healthy); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportMemberships(out *json.Encoder) {
+func (db *DB) exportMemberships(out *json.Encoder) error {
 	db.exportHeader(out, "memberships")
 
 	type membership struct {
@@ -230,7 +235,7 @@ func (db *DB) exportMemberships(out *json.Encoder) {
 	  SELECT user_uuid, tenant_uuid, role
 	    FROM memberships`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -240,14 +245,15 @@ func (db *DB) exportMemberships(out *json.Encoder) {
 		if err = r.Scan(
 			&v.UserUUID, &v.TenantUUID, &v.Role); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportStores(out *json.Encoder) {
+func (db *DB) exportStores(out *json.Encoder) error {
 	db.exportHeader(out, "stores")
 
 	type store struct {
@@ -272,7 +278,7 @@ func (db *DB) exportStores(out *json.Encoder) {
 	         threshold, healthy, last_test_task_uuid
 	    FROM stores`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -284,14 +290,15 @@ func (db *DB) exportStores(out *json.Encoder) {
 			&v.Agent, &v.DailyIncrease, &v.StorageUsed, &v.ArchiveCount,
 			&v.Threshold, &v.Healthy, &v.LastTestTaskUUID); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportTargets(out *json.Encoder) {
+func (db *DB) exportTargets(out *json.Encoder) error {
 	db.exportHeader(out, "targets")
 
 	type target struct {
@@ -311,7 +318,7 @@ func (db *DB) exportTargets(out *json.Encoder) {
 	         agent, compression, healthy
 	    FROM targets`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -322,14 +329,15 @@ func (db *DB) exportTargets(out *json.Encoder) {
 			&v.UUID, &v.TenantUUID, &v.Name, &v.Summary, &v.Plugin, &v.Endpoint,
 			&v.Agent, &v.Compression, &v.Healthy); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportTasks(out *json.Encoder) {
+func (db *DB) exportTasks(out *json.Encoder) error {
 	db.exportHeader(out, "tasks")
 
 	type task struct {
@@ -368,7 +376,7 @@ func (db *DB) exportTasks(out *json.Encoder) {
 	         restore_key, ok, notes, clear
 	    FROM tasks`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -382,14 +390,15 @@ func (db *DB) exportTasks(out *json.Encoder) {
 			&v.TargetPlugin, &v.TargetEndpoint, &v.StorePlugin, &v.StoreEndpoint,
 			&v.RestoreKey, &v.OK, &v.Notes, &v.Clear); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportTenants(out *json.Encoder) {
+func (db *DB) exportTenants(out *json.Encoder) error {
 	db.exportHeader(out, "tenants")
 
 	type tenant struct {
@@ -404,7 +413,7 @@ func (db *DB) exportTenants(out *json.Encoder) {
 	  SELECT uuid, name, daily_increase, storage_used, archive_count
 	    FROM tenants`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -414,14 +423,15 @@ func (db *DB) exportTenants(out *json.Encoder) {
 		if err = r.Scan(
 			&v.UUID, &v.Name, &v.DailyIncrease, &v.StorageUsed, &v.ArchiveCount); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportUsers(out *json.Encoder) {
+func (db *DB) exportUsers(out *json.Encoder) error {
 	db.exportHeader(out, "users")
 
 	type user struct {
@@ -439,7 +449,7 @@ func (db *DB) exportUsers(out *json.Encoder) {
 	         pwhash, sysrole, default_tenant
 	    FROM users`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -450,14 +460,15 @@ func (db *DB) exportUsers(out *json.Encoder) {
 			&v.UUID, &v.Name, &v.Account, &v.Backend,
 			&v.PasswordHash, &v.SystemRole, &v.DefaultTenant); err != nil {
 
-			panic(err)
+			return err
 		}
 
 		out.Encode(&v)
 	}
+	return nil
 }
 
-func (db *DB) exportSessions(out *json.Encoder) {
+func (db *DB) exportSessions(out *json.Encoder) error {
 	db.exportHeader(out, "sessions")
 
 	type Session struct {
@@ -478,7 +489,7 @@ func (db *DB) exportSessions(out *json.Encoder) {
                 token, name, ip_addr, user_agent
             FROM sessions`)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer r.Close()
 
@@ -490,7 +501,7 @@ func (db *DB) exportSessions(out *json.Encoder) {
 			token sql.NullString
 		)
 		if err := r.Scan(&s.UUID, &s.UserUUID, &s.CreatedAt, &last, &token, &s.Name, &s.IP, &s.UserAgent); err != nil {
-			panic(err)
+			return err
 		}
 		if last != nil {
 			s.LastSeen = *last
@@ -500,22 +511,60 @@ func (db *DB) exportSessions(out *json.Encoder) {
 		}
 		out.Encode(&s)
 	}
+	return nil
 }
 
-func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
-	db.exclusively(func() error {
-		db.exportAgents(out)
-		db.exportFixups(out)
-		db.exportTenants(out)
-		db.exportStores(out)
-		db.exportTargets(out)
-		db.exportJobs(out)
-		db.exportArchives(out, vault)
-		db.exportTasks(out)
-		db.exportUsers(out)
-		db.exportMemberships(out)
-		db.exportSessions(out)
+func (db *DB) Export(out *json.Encoder, vault *vault.Client) error {
+	err := db.exclusively(func() error {
+		err := db.exportAgents(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportFixups(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportTenants(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportStores(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportTargets(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportJobs(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportArchives(out, vault)
+		if err != nil {
+			return err
+		}
+		err = db.exportTasks(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportUsers(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportMemberships(out)
+		if err != nil {
+			return err
+		}
+		err = db.exportSessions(out)
+		if err != nil {
+			return err
+		}
 		db.exportFooter(out)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
