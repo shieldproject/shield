@@ -360,6 +360,27 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
+		// if v.TargetPlugin == "shieldp" {
+		// 	err := db.exec(`
+		// 	INSERT INTO archives
+		// 	  (uuid, tenant_uuid, target_uuid, store_uuid,
+		// 	   store_key, taken_at, expires_at, notes, purge_reason,
+		// 	   status, size, job, encryption_type, compression)
+		// 	VALUES
+		// 	  (?, ?, ?, ?,
+		// 	   ?, ?, ?, ?, '',
+		// 	   'valid', ?, ?, ?, ?)`,
+		// 		v.UUID, v.TenantUUID, v.TargetUUID, v.StoreUUID,
+		// 		v.RestoreKey, effectively(time.Now()), time.Now().Add(time.Duration(n*24)*time.Hour).Unix(), v.Notes,
+		// 		v.Size, v.Job, v.EncryptionType, v.Compression)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
+		if v.TargetPlugin == "shieldp" {
+			v.Status = "done"
+			v.OK = true
+		}
 		if v.Status == "done" || v.Status == "failed" {
 			log.Infof("<<import>> inserting task %s...", v.UUID)
 			err := db.exec(`
