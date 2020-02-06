@@ -492,11 +492,11 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client) error {
 		}
 		err = db.clear("targets", "tasks", "tenants", "users")
 		if err != nil {
-			return nil
+			return err
 		}
 		err = db.clear("sessions")
 		if err != nil {
-			return nil
+			return err
 		}
 
 		for in.More() {
