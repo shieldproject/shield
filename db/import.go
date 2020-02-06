@@ -458,6 +458,20 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 	return nil
 }
 
+func (db *DB) importErrors(in *json.Decoder) error {
+	type fail struct {
+		V    string `json:"v"`
+		Type string `json:"type"`
+		E    error  `json:"error"`
+	}
+
+	var v fail
+	if err := in.Decode(&v); err != nil {
+		return err
+	}
+	return (fmt.Errorf("Import of %s table has errors: %s", v.Type, v.E))
+}
+
 func (db *DB) clear(tables ...string) error {
 	for _, t := range tables {
 		log.Infof("<<import>> clearing table %s...", t)
@@ -549,6 +563,9 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client) error {
 				if err != nil {
 					return err
 				}
+			case "errors":
+				err := db.importErrors(in)
+				return err
 			case "":
 			default:
 				return fmt.Errorf("unrecognized import header type '%s'", h.Type)

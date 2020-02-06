@@ -3670,11 +3670,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		if out := r.JSONEncoder(); out != nil {
-			err := c.db.Export(out, c.vault)
-			if err != nil {
-				r.Fail(route.Oops(err, "Faild to export SHIELD data"))
-				return
-			}
+			c.db.Export(out, c.vault)
 		} else {
 			r.Fail(route.Oops(nil, "Failed to export SHIELD data"))
 		}

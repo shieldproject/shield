@@ -16,6 +16,12 @@ type header struct {
 	N    uint   `json:"n"`
 }
 
+type fail struct {
+	V    string `json:"v"`
+	Type string `json:"type"`
+	E    error  `json:"error"`
+}
+
 func (db *DB) exportHeader(out *json.Encoder, table string) error {
 	n, err := db.count(fmt.Sprintf(`SELECT * FROM %s`, table))
 	if err != nil {
@@ -35,6 +41,20 @@ func (db *DB) exportFooter(out *json.Encoder) {
 		V:    exportVersion,
 		Type: "",
 		N:    0,
+	})
+}
+
+func (db *DB) exportErrors(table string, out *json.Encoder, err error) {
+	out.Encode(header{
+		V:    exportVersion,
+		Type: "error",
+		N:    0,
+	})
+
+	out.Encode(fail{
+		V:    exportVersion,
+		Type: table,
+		E:    err,
 	})
 }
 
@@ -514,57 +534,53 @@ func (db *DB) exportSessions(out *json.Encoder) error {
 	return nil
 }
 
-func (db *DB) Export(out *json.Encoder, vault *vault.Client) error {
-	err := db.exclusively(func() error {
+func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
+	db.exclusively(func() error {
 		err := db.exportAgents(out)
 		if err != nil {
-			return err
+			db.exportErrors("agents", out, err)
 		}
 		err = db.exportFixups(out)
 		if err != nil {
-			return err
+			db.exportErrors("fixups", out, err)
 		}
 		err = db.exportTenants(out)
 		if err != nil {
-			return err
+			db.exportErrors("tenants", out, err)
 		}
 		err = db.exportStores(out)
 		if err != nil {
-			return err
+			db.exportErrors("stores", out, err)
 		}
 		err = db.exportTargets(out)
 		if err != nil {
-			return err
+			db.exportErrors("targets", out, err)
 		}
 		err = db.exportJobs(out)
 		if err != nil {
-			return err
+			db.exportErrors("jobs", out, err)
 		}
 		err = db.exportArchives(out, vault)
 		if err != nil {
-			return err
+			db.exportErrors("archives", out, err)
 		}
 		err = db.exportTasks(out)
 		if err != nil {
-			return err
+			db.exportErrors("tasks", out, err)
 		}
 		err = db.exportUsers(out)
 		if err != nil {
-			return err
+			db.exportErrors("users", out, err)
 		}
 		err = db.exportMemberships(out)
 		if err != nil {
-			return err
+			db.exportErrors("memberships", out, err)
 		}
 		err = db.exportSessions(out)
 		if err != nil {
-			return err
+			db.exportErrors("sessions", out, err)
 		}
 		db.exportFooter(out)
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	return nil
 }
