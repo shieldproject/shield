@@ -21,12 +21,17 @@ func (db *DB) importAgents(n uint, in *json.Decoder) error {
 		LastError     string `json:"last_error"`
 		Status        string `json:"status"`
 		Metadata      string `json:"metadata"`
+		Error         string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v agent
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting agent %s...", v.UUID)
@@ -67,12 +72,17 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) error 
 		Compression    string `json:"compression"`
 		EncryptionKey  string `json:"encryption_key"`
 		EncryptionIV   string `json:"encryption_iv"`
+		Error          string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v archive
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting archive %s...", v.UUID)
@@ -111,12 +121,17 @@ func (db *DB) importFixups(n uint, in *json.Decoder) error {
 		Summary   string `json:"summary"`
 		CreatedAt int    `json:"created_at"`
 		AppliedAt int    `json:"applied_at"`
+		Error     string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v fixup
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting fixup #%s...", v.ID)
@@ -149,12 +164,17 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 		Paused     bool   `json:"paused"`
 		FixedKey   bool   `json:"fixed_key"`
 		Healthy    bool   `json:"healthy"`
+		Error      string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v job
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting job %s...", v.UUID)
@@ -182,12 +202,17 @@ func (db *DB) importMemberships(n uint, in *json.Decoder) error {
 		TenantUUID string `json:"tenant_uuid"`
 		UserUUID   string `json:"user_uuid"`
 		Role       string `json:"role"`
+		Error      string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v membership
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		err := db.exec(`
@@ -218,12 +243,17 @@ func (db *DB) importStores(n uint, in *json.Decoder) error {
 		Threshold        *int   `json:"threshold"`
 		Healthy          bool   `json:"healthy"`
 		LastTestTaskUUID string `json:"last_test_task_uuid"`
+		Error            string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v store
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting store %s...", v.UUID)
@@ -260,12 +290,17 @@ func (db *DB) importTargets(n uint, in *json.Decoder) error {
 		Agent       string `json:"agent"`
 		Compression string `json:"compression"`
 		Healthy     bool   `json:"healthy"`
+		Error       string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v target
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting target %s...", v.UUID)
@@ -312,6 +347,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		OK             bool    `json:"ok"`
 		Notes          string  `json:"notes"`
 		Clear          string  `json:"clear"`
+		Error          string  `json:"error"`
 	}
 
 	for ; n > 0; n-- {
@@ -319,6 +355,11 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		if err := in.Decode(&v); err != nil {
 			return err
 		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
+		}
+
 		if v.Status == "done" || v.Status == "failed" {
 			log.Infof("<<import>> inserting task %s...", v.UUID)
 			err := db.exec(`
@@ -362,12 +403,17 @@ func (db *DB) importTenants(n uint, in *json.Decoder) error {
 		DailyIncrease *int   `json:"daily_increase"`
 		StorageUsed   *int   `json:"storage_used"`
 		ArchiveCount  *int   `json:"archive_count"`
+		Error         string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v tenant
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting tenant %s...", v.UUID)
@@ -396,12 +442,17 @@ func (db *DB) importUsers(n uint, in *json.Decoder) error {
 		PasswordHash  string `json:"password_hash"`
 		SystemRole    string `json:"system_role"`
 		DefaultTenant string `json:"default_tenant"`
+		Error         string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v user
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting user %s...", v.UUID)
@@ -433,12 +484,17 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 		UserAgent      string `json:"user_agent"`
 		UserAccount    string `json:"user_account"`
 		CurrentSession bool   `json:"current_session"`
+		Error          string `json:"error"`
 	}
 
 	for ; n > 0; n-- {
 		var v Session
 		if err := in.Decode(&v); err != nil {
 			return err
+		}
+
+		if v.Error != "" {
+			return fmt.Errorf(v.Error)
 		}
 
 		log.Infof("<<import>> inserting session %s...", v.UUID)
@@ -456,20 +512,6 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 		}
 	}
 	return nil
-}
-
-func (db *DB) importErrors(in *json.Decoder) error {
-	type fail struct {
-		V    string `json:"v"`
-		Type string `json:"type"`
-		E    error  `json:"error"`
-	}
-
-	var v fail
-	if err := in.Decode(&v); err != nil {
-		return err
-	}
-	return (fmt.Errorf("Import of %s table has errors: %s", v.Type, v.E))
 }
 
 func (db *DB) clear(tables ...string) error {

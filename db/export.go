@@ -17,9 +17,7 @@ type header struct {
 }
 
 type fail struct {
-	V    string `json:"v"`
-	Type string `json:"type"`
-	E    error  `json:"error"`
+	E string `json:"error"`
 }
 
 func (db *DB) exportHeader(out *json.Encoder, table string) error {
@@ -44,11 +42,9 @@ func (db *DB) exportFooter(out *json.Encoder) {
 	})
 }
 
-func (db *DB) exportErrors(table string, out *json.Encoder, err error) {
+func (db *DB) exportErrors(out *json.Encoder, err error) {
 	out.Encode(fail{
-		V:    exportVersion,
-		Type: table,
-		E:    err,
+		E: err.Error(),
 	})
 }
 
@@ -532,47 +528,47 @@ func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
 	db.exclusively(func() error {
 		err := db.exportAgents(out)
 		if err != nil {
-			db.exportErrors("agents", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportFixups(out)
 		if err != nil {
-			db.exportErrors("fixups", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportTenants(out)
 		if err != nil {
-			db.exportErrors("tenants", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportStores(out)
 		if err != nil {
-			db.exportErrors("stores", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportTargets(out)
 		if err != nil {
-			db.exportErrors("targets", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportJobs(out)
 		if err != nil {
-			db.exportErrors("jobs", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportArchives(out, vault)
 		if err != nil {
-			db.exportErrors("archives", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportTasks(out)
 		if err != nil {
-			db.exportErrors("tasks", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportUsers(out)
 		if err != nil {
-			db.exportErrors("users", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportMemberships(out)
 		if err != nil {
-			db.exportErrors("memberships", out, err)
+			db.exportErrors(out, err)
 		}
 		err = db.exportSessions(out)
 		if err != nil {
-			db.exportErrors("sessions", out, err)
+			db.exportErrors(out, err)
 		}
 		db.exportFooter(out)
 		return nil
