@@ -563,8 +563,6 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client) error {
 				if err != nil {
 					return err
 				}
-			case "errors":
-				return db.importErrors(in)
 			case "":
 			default:
 				return fmt.Errorf("unrecognized import header type '%s'", h.Type)
