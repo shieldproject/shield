@@ -101,7 +101,7 @@ func main() {
 				Type:    "string",
 				Title:   "Additional `pg_dump` options",
 				Help:    "You can tune `pg_dump` (which performs the backup) by specifying additional options and command-line arguments.  If you don't know why you might need this, leave it blank.",
-				Example: "--data--only",
+				Example: "--data-only",
 			},
 			plugin.Field{
 				Mode:    "target",
