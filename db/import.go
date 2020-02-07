@@ -564,8 +564,7 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client) error {
 					return err
 				}
 			case "errors":
-				err := db.importErrors(in)
-				return err
+				return db.importErrors(in)
 			case "":
 			default:
 				return fmt.Errorf("unrecognized import header type '%s'", h.Type)
