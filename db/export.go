@@ -45,12 +45,6 @@ func (db *DB) exportFooter(out *json.Encoder) {
 }
 
 func (db *DB) exportErrors(table string, out *json.Encoder, err error) {
-	out.Encode(header{
-		V:    exportVersion,
-		Type: "error",
-		N:    0,
-	})
-
 	out.Encode(fail{
 		V:    exportVersion,
 		Type: table,
