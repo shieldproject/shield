@@ -128,6 +128,23 @@ func (r *Request) Fail(e Error) {
 	r.respond(e.code, "Fail", "application/json", string(b))
 }
 
+func (r *Request) JSONEncoder() *json.Encoder {
+	/* have we already responded for this request? */
+	if r.Done() {
+		log.Errorf("%s handler bug: called StreamJSON() having already called [%v]", r, r.bt)
+		return nil
+	}
+
+	/* respond ... */
+	r.w.Header().Set("Content-Type", "application/json")
+	r.w.WriteHeader(200)
+
+	/* track that OK() or Fail() called us... */
+	r.bt = append(r.bt, "StreamJSON")
+
+	return json.NewEncoder(r.w)
+}
+
 //Payload unmarshals the JSON body of this request into the given interface.
 // Returns true if successful and false otherwise.
 func (r *Request) Payload(v interface{}) bool {
@@ -142,6 +159,15 @@ func (r *Request) Payload(v interface{}) bool {
 	}
 
 	return true
+}
+
+func (r *Request) JSONDecoder() *json.Decoder {
+	if r.Req.Body == nil {
+		r.Fail(Bad(nil, "no JSON input payload present in request"))
+		return nil
+	}
+
+	return json.NewDecoder(r.Req.Body)
 }
 
 func (r *Request) Param(name, def string) string {

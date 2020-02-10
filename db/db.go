@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/jhunt/go-log"
 	"github.com/jmoiron/sqlx"
 	"github.com/pborman/uuid"
 
@@ -169,6 +170,32 @@ func (db *DB) exclusively(fn func() error) error {
 	db.exclusive.Lock()
 	defer db.exclusive.Unlock()
 	return fn()
+}
+
+func (db *DB) transactionally(fn func() error) error {
+	return db.exclusively(func () (err error) {
+		log.Infof("beginning transaction...")
+		if err = db.exec("BEGIN TRANSACTION"); err != nil {
+			return
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				log.Infof("rolling back (panic: %s)...", r)
+				db.exec("ROLLBACK")
+				panic(r)
+			}
+
+			if err != nil {
+				log.Infof("rolling back (error: %s)...", err)
+				db.exec("ROLLBACK")
+				return
+			}
+
+			log.Infof("commiting transaction...")
+			err = db.exec("COMMIT")
+		}()
+		return fn()
+	})
 }
 
 // Return the prepared statement for a given SQL query
