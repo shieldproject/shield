@@ -347,7 +347,7 @@ func (db *DB) exportTargets(out *json.Encoder) error {
 	return nil
 }
 
-func (db *DB) exportTasks(out *json.Encoder) error {
+func (db *DB) exportTasks(out *json.Encoder, vault *vault.Client) error {
 	db.exportHeader(out, "tasks")
 
 	type task struct {
@@ -362,7 +362,7 @@ func (db *DB) exportTasks(out *json.Encoder) error {
 		Status         string  `json:"status"`
 		RequestedAt    int     `json:"requested_at"`
 		StartedAt      *int    `json:"started_at"`
-		StoppedAt      *int    `json:"stopped_at"`
+		StoppedAt      *int64  `json:"stopped_at"`
 		TimeoutAt      *int    `json:"timeout_at"`
 		Log            string  `json:"log"`
 		Attempts       int     `json:"attempts"`
@@ -376,12 +376,15 @@ func (db *DB) exportTasks(out *json.Encoder) error {
 		OK             bool    `json:"ok"`
 		Notes          string  `json:"notes"`
 		Clear          string  `json:"clear"`
+		EncryptionType string  `json:"encryption_type"`
+		EncryptionKey  string  `json:"encryption_key"`
+		Compression    string  `json:"compression"`
 	}
 
 	r, err := db.query(`
 	  SELECT uuid, owner, op, tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
 	         status, requested_at, started_at, stopped_at, timeout_at,
-	         log, attempts, agent, fixed_key,
+	         log, attempts, agent, fixed_key, compression,
 	         target_plugin, target_endpoint, store_plugin, store_endpoint,
 	         restore_key, ok, notes, clear
 	    FROM tasks`)
@@ -396,11 +399,19 @@ func (db *DB) exportTasks(out *json.Encoder) error {
 		if err = r.Scan(
 			&v.UUID, &v.Owner, &v.Op, &v.TenantUUID, &v.JobUUID, &v.ArchiveUUID, &v.TargetUUID, &v.StoreUUID,
 			&v.Status, &v.RequestedAt, &v.StartedAt, &v.StoppedAt, &v.TimeoutAt,
-			&v.Log, &v.Attempts, &v.Agent, &v.FixedKey,
+			&v.Log, &v.Attempts, &v.Agent, &v.FixedKey, &v.Compression,
 			&v.TargetPlugin, &v.TargetEndpoint, &v.StorePlugin, &v.StoreEndpoint,
 			&v.RestoreKey, &v.OK, &v.Notes, &v.Clear); err != nil {
 
 			return err
+		}
+
+		if v.TargetPlugin == "shieldp" && v.Op == "backup" && v.Status == "running" {
+			if e, err := vault.Retrieve(*v.ArchiveUUID); err == nil {
+				v.EncryptionType = e.Type
+			} else {
+				return err
+			}
 		}
 
 		out.Encode(&v)
@@ -554,7 +565,7 @@ func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
 		if err != nil {
 			db.exportErrors(out, err)
 		}
-		err = db.exportTasks(out)
+		err = db.exportTasks(out, vault)
 		if err != nil {
 			db.exportErrors(out, err)
 		}

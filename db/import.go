@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/jhunt/go-log"
 
@@ -333,7 +334,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		Status         string  `json:"status"`
 		RequestedAt    int     `json:"requested_at"`
 		StartedAt      *int    `json:"started_at"`
-		StoppedAt      *int    `json:"stopped_at"`
+		StoppedAt      *int64  `json:"stopped_at"`
 		TimeoutAt      *int    `json:"timeout_at"`
 		Log            string  `json:"log"`
 		Attempts       int     `json:"attempts"`
@@ -348,6 +349,8 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		Notes          string  `json:"notes"`
 		Clear          string  `json:"clear"`
 		Error          string  `json:"error"`
+		EncryptionType string  `json:"encryption_type"`
+		Compression    string  `json:"compression"`
 	}
 
 	for ; n > 0; n-- {
@@ -359,36 +362,23 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		if v.Error != "" {
 			return fmt.Errorf(v.Error)
 		}
-
-		// if v.TargetPlugin == "shieldp" {
-		// 	err := db.exec(`
-		// 	INSERT INTO archives
-		// 	  (uuid, tenant_uuid, target_uuid, store_uuid,
-		// 	   store_key, taken_at, expires_at, notes, purge_reason,
-		// 	   status, size, job, encryption_type, compression)
-		// 	VALUES
-		// 	  (?, ?, ?, ?,
-		// 	   ?, ?, ?, ?, '',
-		// 	   'valid', ?, ?, ?, ?)`,
-		// 		v.UUID, v.TenantUUID, v.TargetUUID, v.StoreUUID,
-		// 		v.RestoreKey, effectively(time.Now()), time.Now().Add(time.Duration(n*24)*time.Hour).Unix(), v.Notes,
-		// 		v.Size, v.Job, v.EncryptionType, v.Compression)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
-		if v.TargetPlugin == "shieldp" {
+		var b bool
+		if v.TargetPlugin == "shieldp" && v.Op == "backup" && v.Status == "running" {
+			log.Infof("<<import>> SHIELDP insert task %s...", v.UUID)
 			v.Status = "done"
 			v.OK = true
+			at := time.Now().Unix()
+			v.StoppedAt = &at
+			b = true
 		}
-		if v.Status == "done" || v.Status == "failed" {
-			log.Infof("<<import>> inserting task %s...", v.UUID)
+		if v.Status == "done" || v.Status == "failed" || v.Status == "canceled" {
+			log.Infof("<<import>> inserting task %s... Restore Key: %s", v.UUID, v.RestoreKey)
 			err := db.exec(`
             INSERT INTO tasks
                 (uuid, owner, op,
                 tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
                 status, requested_at, started_at, stopped_at, timeout_at,
-                log, attempts, agent, fixed_key,
+                log, attempts, agent, fixed_key, compression,
                 target_plugin, target_endpoint,
                 store_plugin, store_endpoint, restore_key,
                 ok, notes, clear)
@@ -396,19 +386,42 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
                 (?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
+                ?, ?, ?, ?, ?,
                 ?, ?,
                 ?, ?, ?,
                 ?, ?, ?)`,
 				v.UUID, v.Owner, v.Op,
 				v.TenantUUID, v.JobUUID, v.ArchiveUUID, v.TargetUUID, v.StoreUUID,
 				v.Status, v.RequestedAt, v.StartedAt, v.StoppedAt, v.TimeoutAt,
-				v.Log, v.Attempts, v.Agent, v.FixedKey,
+				v.Log, v.Attempts, v.Agent, v.FixedKey, v.Compression,
 				v.TargetPlugin, v.TargetEndpoint,
 				v.StorePlugin, v.StoreEndpoint, v.RestoreKey,
 				v.OK, v.Notes, v.Clear)
 			if err != nil {
 				return err
+			}
+			if b {
+				at := time.Now()
+				log.Infof("<<import>> SHIELDP insert archive %s...", v.UUID)
+				err := db.exec(`
+			    INSERT INTO archives
+			      (uuid, target_uuid, store_uuid, store_key, taken_at,
+			       expires_at, notes, status, purge_reason, job,
+			       compression, encryption_type, size, tenant_uuid)
+
+			        SELECT ?, ?, ?, ?, ?,
+			               ?, '', 'valid', '', j.Name,
+			               ?, ?, 0, ?
+			        FROM tasks
+			           INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
+			        WHERE tasks.uuid = ?`,
+					v.ArchiveUUID, v.TargetUUID, v.StoreUUID, v.RestoreKey, effectively(at),
+					at.Add(time.Duration(n*24)*time.Hour).Unix(),
+					v.Compression, v.EncryptionType, v.TenantUUID,
+					v.UUID)
+				if err != nil {
+					return err
+				}
 			}
 		} else {
 			log.Infof("<<import>> skipping insert task %s...", v.UUID)

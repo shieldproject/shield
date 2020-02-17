@@ -150,7 +150,7 @@ func (p ShieldPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		plugin.DEBUG("%s", out)
 		return err
 	}
-	plugin.DEBUG("%s", out)
+
 	fmt.Printf("%s\n", out)
 	return nil
 }
