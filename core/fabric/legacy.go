@@ -35,6 +35,8 @@ type Command struct {
 	StorePlugin   string `json:"store_plugin,omitempty"`
 	StoreEndpoint string `json:"store_endpoint,omitempty"`
 
+	TaskUUID string `json:"task_uuid,omitempty"`
+
 	RestoreKey string `json:"restore_key,omitempty"`
 
 	EncryptType string `json:"encrypt_type,omitempty"`
@@ -55,6 +57,8 @@ func (f LegacyFabric) Backup(task *db.Task, encryption vault.Parameters) schedul
 
 		StorePlugin:   task.StorePlugin,
 		StoreEndpoint: task.StoreEndpoint,
+
+		TaskUUID: task.UUID,
 
 		Compression: task.Compression,
 
@@ -79,6 +83,8 @@ func (f LegacyFabric) Restore(task *db.Task, encryption vault.Parameters) schedu
 
 		StorePlugin:   task.StorePlugin,
 		StoreEndpoint: task.StoreEndpoint,
+
+		TaskUUID: task.UUID,
 
 		Compression: task.Compression,
 

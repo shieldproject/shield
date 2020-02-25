@@ -10,6 +10,36 @@ import (
 	"github.com/shieldproject/shield/core/vault"
 )
 
+type shieldInformation struct {
+	UUID           string  `json:"uuid"`
+	Owner          string  `json:"owner"`
+	Op             string  `json:"op"`
+	TenantUUID     *string `json:"tenant_uuid"`
+	JobUUID        *string `json:"job_uuid"`
+	ArchiveUUID    *string `json:"archive_uuid"`
+	TargetUUID     *string `json:"target_uuid"`
+	StoreUUID      *string `json:"store_uuid"`
+	Status         string  `json:"status"`
+	RequestedAt    int     `json:"requested_at"`
+	StartedAt      *int    `json:"started_at"`
+	StoppedAt      *int64  `json:"stopped_at"`
+	TimeoutAt      *int    `json:"timeout_at"`
+	Log            string  `json:"log"`
+	Attempts       int     `json:"attempts"`
+	Agent          string  `json:"agent"`
+	FixedKey       string  `json:"fixed_key"`
+	TargetPlugin   string  `json:"target_plugin"`
+	TargetEndpoint string  `json:"target_endpoint"`
+	StorePlugin    string  `json:"store_plugin"`
+	StoreEndpoint  string  `json:"store_endpoint"`
+	RestoreKey     string  `json:"restore_key"`
+	OK             bool    `json:"ok"`
+	Notes          string  `json:"notes"`
+	Clear          string  `json:"clear"`
+	Compression    string  `json:"compression"`
+	Size           *int    `json:"size"`
+}
+
 func (db *DB) importAgents(n uint, in *json.Decoder) error {
 	type agent struct {
 		UUID          string `json:"uuid"`
@@ -362,17 +392,16 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		if v.Error != "" {
 			return fmt.Errorf(v.Error)
 		}
-		var b bool
+
 		if v.TargetPlugin == "shieldp" && v.Op == "backup" && v.Status == "running" {
 			log.Infof("<<import>> SHIELDP insert task %s...", v.UUID)
 			v.Status = "done"
 			v.OK = true
 			at := time.Now().Unix()
 			v.StoppedAt = &at
-			b = true
 		}
 		if v.Status == "done" || v.Status == "failed" || v.Status == "canceled" {
-			log.Infof("<<import>> inserting task %s... Restore Key: %s", v.UUID, v.RestoreKey)
+			log.Infof("<<import>> inserting task %s... ", v.UUID)
 			err := db.exec(`
             INSERT INTO tasks
                 (uuid, owner, op,
@@ -399,29 +428,6 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 				v.OK, v.Notes, v.Clear)
 			if err != nil {
 				return err
-			}
-			if b {
-				at := time.Now()
-				log.Infof("<<import>> SHIELDP insert archive %s...", v.UUID)
-				err := db.exec(`
-			    INSERT INTO archives
-			      (uuid, target_uuid, store_uuid, store_key, taken_at,
-			       expires_at, notes, status, purge_reason, job,
-			       compression, encryption_type, size, tenant_uuid)
-
-			        SELECT ?, ?, ?, ?, ?,
-			               ?, '', 'valid', '', j.Name,
-			               ?, ?, 0, ?
-			        FROM tasks
-			           INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
-			        WHERE tasks.uuid = ?`,
-					v.ArchiveUUID, v.TargetUUID, v.StoreUUID, v.RestoreKey, effectively(at),
-					at.Add(time.Duration(n*24)*time.Hour).Unix(),
-					v.Compression, v.EncryptionType, v.TenantUUID,
-					v.UUID)
-				if err != nil {
-					return err
-				}
 			}
 		} else {
 			log.Infof("<<import>> skipping insert task %s...", v.UUID)
@@ -548,6 +554,136 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 	return nil
 }
 
+func (db *DB) importFinalizer(n uint, in *json.Decoder, restoreKey string, shield shieldInformation) error {
+	type finalizer struct {
+		UUID           string `json:"task_uuid"`
+		TenantUUID     string `json:"tenant_uuid"`
+		JobUUID        string `json:"job_uuid"`
+		ArchiveUUID    string `json:"archive_uuid"`
+		TargetUUID     string `json:"target_uuid"`
+		StoreUUID      string `json:"store_uuid"`
+		Compression    string `json:"compression"`
+		EncryptionType string `json:"encryption_type"`
+		EncryptionKey  string `json:"encryption_key"`
+		EncryptionIV   string `json:"encryption_iv"`
+		TakenAt        int64  `json:"taken_at"`
+		ExpiresAt      int64  `json:"expires_at"`
+		Error          string `json:"error"`
+	}
+
+	var v finalizer
+
+	if err := in.Decode(&v); err != nil {
+		return err
+	}
+
+	if v.Error != "" {
+		return fmt.Errorf(v.Error)
+	}
+
+	log.Infof("<<import>> SHIELDP insert archive %s...", v.UUID)
+	err := db.exec(`
+    INSERT INTO archives
+        (uuid, target_uuid, store_uuid, store_key, taken_at,
+        expires_at, notes, status, purge_reason, job,
+        compression, encryption_type, size, tenant_uuid)
+
+        SELECT ?, ?, ?, ?, ?,
+                ?, '', 'valid', '', j.Name,
+                ?, ?, ?, ?
+        FROM tasks
+            INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
+        WHERE tasks.uuid = ?`,
+		v.ArchiveUUID, v.TargetUUID, v.StoreUUID, restoreKey, v.TakenAt,
+		v.ExpiresAt,
+		v.Compression, v.EncryptionType, shield.Size, v.TenantUUID,
+		v.UUID)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("<<import>> SHIELD restore task %s...", v.UUID)
+	at := time.Now().Unix()
+	shield.StoppedAt = &at
+	shield.Status = "done"
+	shield.OK = true
+	err = db.exec(`
+        INSERT INTO tasks
+            (uuid, owner, op,
+            tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+            status, requested_at, started_at, stopped_at, timeout_at,
+            log, attempts, agent, fixed_key, compression,
+            target_plugin, target_endpoint,
+            store_plugin, store_endpoint, restore_key,
+            ok, notes, clear)
+        VALUES
+            (?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?,
+            ?, ?, ?,
+            ?, ?, ?)`,
+		shield.UUID, shield.Owner, shield.Op,
+		shield.TenantUUID, shield.JobUUID, shield.ArchiveUUID, shield.TargetUUID, shield.StoreUUID,
+		shield.Status, shield.RequestedAt, shield.StartedAt, shield.StoppedAt, shield.TimeoutAt,
+		shield.Log, shield.Attempts, shield.Agent, shield.FixedKey, shield.Compression,
+		shield.TargetPlugin, shield.TargetEndpoint,
+		shield.StorePlugin, shield.StoreEndpoint, shield.RestoreKey,
+		shield.OK, shield.Notes, shield.Clear)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) getShieldSelfBackupInformation(restoreKey, uuid string) (shieldInformation, error) {
+	var s shieldInformation
+
+	r, err := db.query(`
+	SELECT store_key, size
+	  FROM archives
+	    WHERE store_key=?`, restoreKey)
+	if err != nil {
+		return s, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		err := r.Scan(&s.RestoreKey, &s.Size)
+		if err != nil {
+			return s, err
+		}
+	}
+
+	r, err = db.query(`
+    SELECT uuid, owner, op, tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+           status, requested_at, started_at, stopped_at, timeout_at,
+           log, attempts, agent, fixed_key, compression,
+           target_plugin, target_endpoint, store_plugin, store_endpoint,
+           restore_key, ok, notes, clear
+      FROM tasks
+        WHERE uuid=?`, uuid)
+	if err != nil {
+		return s, err
+	}
+	defer r.Close()
+
+	for r.Next() {
+		if err = r.Scan(
+			&s.UUID, &s.Owner, &s.Op, &s.TenantUUID, &s.JobUUID, &s.ArchiveUUID, &s.TargetUUID, &s.StoreUUID,
+			&s.Status, &s.RequestedAt, &s.StartedAt, &s.StoppedAt, &s.TimeoutAt,
+			&s.Log, &s.Attempts, &s.Agent, &s.FixedKey, &s.Compression,
+			&s.TargetPlugin, &s.TargetEndpoint, &s.StorePlugin, &s.StoreEndpoint,
+			&s.RestoreKey, &s.OK, &s.Notes, &s.Clear); err != nil {
+			return s, err
+		}
+	}
+
+	return s, nil
+}
+
 func (db *DB) clear(tables ...string) error {
 	for _, t := range tables {
 		log.Infof("<<import>> clearing table %s...", t)
@@ -558,11 +694,16 @@ func (db *DB) clear(tables ...string) error {
 	return nil
 }
 
-func (db *DB) Import(in *json.Decoder, vault *vault.Client) error {
+func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid string) error {
 	var h header
 
 	err := db.transactionally(func() error {
-		err := db.clear("agents", "archives", "fixups", "jobs", "memberships", "stores")
+		shield, err := db.getShieldSelfBackupInformation(restoreKey, uuid)
+		if err != nil {
+			return err
+		}
+
+		err = db.clear("agents", "archives", "fixups", "jobs", "memberships", "stores")
 		if err != nil {
 			return err
 		}
@@ -636,6 +777,11 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client) error {
 				}
 			case "sessions":
 				err := db.importSessions(h.N, in)
+				if err != nil {
+					return err
+				}
+			case "finalizer":
+				err := db.importFinalizer(h.N, in, restoreKey, shield)
 				if err != nil {
 					return err
 				}

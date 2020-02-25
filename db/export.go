@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/shieldproject/shield/core/vault"
 )
@@ -347,8 +348,9 @@ func (db *DB) exportTargets(out *json.Encoder) error {
 	return nil
 }
 
-func (db *DB) exportTasks(out *json.Encoder, vault *vault.Client) error {
+func (db *DB) exportTasks(out *json.Encoder, task_uuid string) (bool, error) {
 	db.exportHeader(out, "tasks")
+	shieldSelfBackup := false
 
 	type task struct {
 		UUID           string  `json:"uuid"`
@@ -376,8 +378,6 @@ func (db *DB) exportTasks(out *json.Encoder, vault *vault.Client) error {
 		OK             bool    `json:"ok"`
 		Notes          string  `json:"notes"`
 		Clear          string  `json:"clear"`
-		EncryptionType string  `json:"encryption_type"`
-		EncryptionKey  string  `json:"encryption_key"`
 		Compression    string  `json:"compression"`
 	}
 
@@ -389,7 +389,7 @@ func (db *DB) exportTasks(out *json.Encoder, vault *vault.Client) error {
 	         restore_key, ok, notes, clear
 	    FROM tasks`)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer r.Close()
 
@@ -403,20 +403,16 @@ func (db *DB) exportTasks(out *json.Encoder, vault *vault.Client) error {
 			&v.TargetPlugin, &v.TargetEndpoint, &v.StorePlugin, &v.StoreEndpoint,
 			&v.RestoreKey, &v.OK, &v.Notes, &v.Clear); err != nil {
 
-			return err
+			return false, err
 		}
 
-		if v.TargetPlugin == "shieldp" && v.Op == "backup" && v.Status == "running" {
-			if e, err := vault.Retrieve(*v.ArchiveUUID); err == nil {
-				v.EncryptionType = e.Type
-			} else {
-				return err
-			}
+		if v.TargetPlugin == "shieldp" && v.Status == "running" && v.UUID == task_uuid {
+			shieldSelfBackup = true
 		}
 
 		out.Encode(&v)
 	}
-	return nil
+	return shieldSelfBackup, nil
 }
 
 func (db *DB) exportTenants(out *json.Encoder) error {
@@ -535,7 +531,66 @@ func (db *DB) exportSessions(out *json.Encoder) error {
 	return nil
 }
 
-func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
+func (db *DB) exportFinalizer(out *json.Encoder, vault *vault.Client, task_uuid string) error {
+	out.Encode(header{
+		V:    exportVersion,
+		Type: "finalizer",
+		N:    1,
+	})
+	type finalizer struct {
+		UUID           string `json:"task_uuid"`
+		TenantUUID     string `json:"tenant_uuid"`
+		JobUUID        string `json:"job_uuid"`
+		ArchiveUUID    string `json:"archive_uuid"`
+		TargetUUID     string `json:"target_uuid"`
+		StoreUUID      string `json:"store_uuid"`
+		Compression    string `json:"compression"`
+		EncryptionType string `json:"encryption_type"`
+		EncryptionKey  string `json:"encryption_key"`
+		EncryptionIV   string `json:"encryption_iv"`
+		TakenAt        int64  `json:"taken_at"`
+		ExpiresAt      int64  `json:"expires_at"`
+	}
+	at := time.Now()
+
+	r, err := db.query(`
+	SELECT uuid, tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+	       compression
+	  FROM tasks
+	    WHERE uuid=?`, task_uuid)
+	if err != nil {
+		return err
+	}
+
+	defer r.Close()
+
+	v := finalizer{}
+
+	for r.Next() {
+		err = r.Scan(&v.UUID, &v.TenantUUID, &v.JobUUID, &v.ArchiveUUID, &v.TargetUUID, &v.StoreUUID,
+			&v.Compression)
+		if err != nil {
+			return err
+		}
+
+		if e, err := vault.Retrieve(v.ArchiveUUID); err == nil {
+			v.EncryptionKey = e.Key
+			v.EncryptionIV = e.IV
+			v.EncryptionType = e.Type
+		} else {
+			return err
+		}
+
+		n := 100
+		v.TakenAt = effectively(at)
+		v.ExpiresAt = at.Add(time.Duration(n*24) * time.Hour).Unix()
+		out.Encode(&v)
+	}
+
+	return nil
+}
+
+func (db *DB) Export(out *json.Encoder, vault *vault.Client, task_uuid string) {
 	db.exclusively(func() error {
 		err := db.exportAgents(out)
 		if err != nil {
@@ -565,7 +620,7 @@ func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
 		if err != nil {
 			db.exportErrors(out, err)
 		}
-		err = db.exportTasks(out, vault)
+		shieldSelfBackup, err := db.exportTasks(out, task_uuid)
 		if err != nil {
 			db.exportErrors(out, err)
 		}
@@ -580,6 +635,12 @@ func (db *DB) Export(out *json.Encoder, vault *vault.Client) {
 		err = db.exportSessions(out)
 		if err != nil {
 			db.exportErrors(out, err)
+		}
+		if shieldSelfBackup {
+			err = db.exportFinalizer(out, vault, task_uuid)
+			if err != nil {
+				db.exportErrors(out, err)
+			}
 		}
 		db.exportFooter(out)
 		return nil

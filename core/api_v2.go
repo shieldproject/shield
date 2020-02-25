@@ -3670,7 +3670,7 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		if out := r.JSONEncoder(); out != nil {
-			c.db.Export(out, c.vault)
+			c.db.Export(out, c.vault, r.Param("task", ""))
 		} else {
 			r.Fail(route.Oops(nil, "Failed to export SHIELD data"))
 		}
@@ -3691,12 +3691,13 @@ func (c *Core) v2API() *route.Router {
 		}
 
 		if in := r.JSONDecoder(); in != nil {
-			err = c.db.Import(in, c.vault)
+
+			err = c.db.Import(in, c.vault, r.Param("key", ""), r.Param("task", ""))
 			if err != nil {
 				r.Fail(route.Oops(err, "Failed to import SHIELD data"))
 				return
 			}
-			r.Success("imported successfully")
+			r.Success("imported successfully: %s    %s", r.Param("key", ""), r.Param("task", ""))
 		} else {
 			r.Fail(route.Oops(nil, "Failed to import SHIELD data"))
 		}

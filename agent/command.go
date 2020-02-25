@@ -26,6 +26,7 @@ type Command struct {
 	EncryptKey     string `json:"encrypt_key,omitempty"`
 	EncryptIV      string `json:"encrypt_iv,omitempty"`
 	Compression    string `json:"compression,omitempty"`
+	TaskUUID       string `json:"task_uuid,omitempty"`
 }
 
 func ParseCommand(b []byte) (*Command, error) {
@@ -52,6 +53,10 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
 
+		if cmd.TaskUUID == "" {
+			return nil, fmt.Errorf("missing required 'task_uuid' value in payload")
+		}
+
 	case "restore", "shield-restore":
 		if cmd.TargetPlugin == "" {
 			return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
@@ -69,6 +74,10 @@ func ParseCommand(b []byte) (*Command, error) {
 
 		if cmd.RestoreKey == "" {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
+		}
+
+		if cmd.TaskUUID == "" {
+			return nil, fmt.Errorf("missing required 'task_uuid' value in payload")
 		}
 
 	case "purge":
@@ -113,8 +122,8 @@ func ParseCommandFromSSHRequest(r *ssh.Request) (*Command, error) {
 func (c *Command) Details() string {
 	switch c.Op {
 	case "backup":
-		return fmt.Sprintf("backup of target '%s' to store '%s'",
-			c.TargetPlugin, c.StorePlugin)
+		return fmt.Sprintf("backup of target '%s' to store '%s' with task_uuid '%s'",
+			c.TargetPlugin, c.StorePlugin, c.TaskUUID)
 
 	case "restore":
 		return fmt.Sprintf("restore of [%s] from store '%s' to target '%s'",
@@ -148,6 +157,7 @@ func (agent *Agent) Execute(c *Command, out chan string) error {
 		fmt.Sprintf("SHIELD_STORE_ENDPOINT=%s", c.StoreEndpoint),
 		fmt.Sprintf("SHIELD_TARGET_PLUGIN=%s", c.TargetPlugin),
 		fmt.Sprintf("SHIELD_TARGET_ENDPOINT=%s", c.TargetEndpoint),
+		fmt.Sprintf("SHIELD_TASK_UUID=%s", c.TaskUUID),
 		fmt.Sprintf("SHIELD_RESTORE_KEY=%s", c.RestoreKey),
 		fmt.Sprintf("SHIELD_PLUGINS_PATH=%s", strings.Join(agent.PluginPaths, ":")),
 		fmt.Sprintf("SHIELD_AGENT_NAME=%s", agent.Name),

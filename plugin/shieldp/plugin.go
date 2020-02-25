@@ -111,18 +111,18 @@ func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 	s, err = endpoint.StringValue("alias")
 	if err != nil {
-		fmt.Printf("@R{\u2717 url}                   @C{%s}\n", err)
+		fmt.Printf("@R{\u2717 alias}                 @C{%s}\n", err)
 	}
 
 	s, err = endpoint.StringValue("token")
 	if err != nil {
-		fmt.Printf("@R{\u2717 token}              @C{%s}\n", err)
+		fmt.Printf("@R{\u2717 token}                 @C{%s}\n", err)
 		fail = true
 	} else if s == "" {
-		fmt.Printf("@R{\u2717 token}              token was not provided\n")
+		fmt.Printf("@R{\u2717 token}                 token was not provided\n")
 		fail = true
 	} else {
-		fmt.Printf("@G{\u2713 token}              @C{%s}\n", plugin.Redact(s))
+		fmt.Printf("@G{\u2713 token}                 @C{%s}\n", plugin.Redact(s))
 	}
 
 	if fail {
@@ -144,7 +144,7 @@ func (p ShieldPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	relativeURL := shield.core + "/v2/export"
+	relativeURL := shield.core + "/v2/export?task=" + os.Getenv("SHIELD_TASK_UUID")
 	out, err = exec.Command("shield", "--core", shield.alias, "curl", "GET", relativeURL).Output()
 	if err != nil {
 		plugin.DEBUG("%s", out)
@@ -164,16 +164,16 @@ func (p ShieldPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 
 	out, err := exec.Command("shield", "--core", shield.alias, "login", "--token", shield.token).Output()
 	if err != nil {
-		plugin.DEBUG("%s", out)
+		plugin.DEBUG("ERROR>:    %s", out)
 		return err
 	}
 
-	relativeURL := shield.core + "/v2/import"
+	relativeURL := shield.core + "/v2/import?key=" + os.Getenv("SHIELD_RESTORE_KEY") + "&task=" + os.Getenv("SHIELD_TASK_UUID")
 	cmd := exec.Command("shield", "--core", shield.alias, "curl", "POST", relativeURL, "-")
 	cmd.Stdin = os.Stdin
 	out, err = cmd.Output()
 	if err != nil {
-		plugin.DEBUG("ERROR:    %s", out)
+		plugin.DEBUG("ERROR>:    %s", out)
 		return err
 	}
 	return nil
