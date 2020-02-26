@@ -5,11 +5,11 @@ import (
 	"net/http"
 )
 
-func (c *Client) Import(in io.Reader) error {
+func (c *Client) Import(task, key string, in io.Reader) error {
 	var req *http.Request
 	var err error
 
-	req, err = http.NewRequest("POST", "/v2/import", in)
+	req, err = http.NewRequest("POST", "/v2/import?task="+task+"&key="+key, in)
 	if err != nil {
 		return err
 	}

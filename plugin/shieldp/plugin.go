@@ -134,7 +134,7 @@ func (p ShieldPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	return c.Import(os.Stdin)
+	return c.Import(os.Getenv("SHIELD_TASK_UUID"), os.Getenv("SHIELD_RESTORE_KEY"), os.Stdin)
 }
 
 func (p ShieldPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
