@@ -1,12 +1,13 @@
 package main
 
 import (
+	"io"
 	"os"
-	"os/exec"
 
 	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/shieldproject/shield/plugin"
+	"github.com/shieldproject/shield/client/v2/shield"
 )
 
 func main() {
@@ -30,15 +31,6 @@ func main() {
 			},
 			plugin.Field{
 				Mode:     "target",
-				Name:     "alias",
-				Type:     "string",
-				Title:    "SHIELD Core Alias",
-				Help:     "Alias for SHIELD core.",
-				Example:  "demoshield",
-				Required: true,
-			},
-			plugin.Field{
-				Mode:     "target",
 				Name:     "token",
 				Type:     "password",
 				Title:    "Auth Token",
@@ -54,9 +46,8 @@ func main() {
 
 type ShieldPlugin plugin.PluginInfo
 
-type ShieldConfig struct {
-	core  string
-	alias string
+type Client struct {
+	url   string
 	token string
 }
 
@@ -64,20 +55,9 @@ func (p ShieldPlugin) Meta() plugin.PluginInfo {
 	return plugin.PluginInfo(p)
 }
 
-func getShieldConfig(endpoint plugin.ShieldEndpoint) (*ShieldConfig, error) {
-	core, err := endpoint.StringValue("url")
+func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
+	url, err := endpoint.StringValue("url")
 	if err != nil {
-		return nil, err
-	}
-
-	alias, err := endpoint.StringValue("alias")
-	if err != nil {
-		return nil, err
-	}
-
-	err = exec.Command("shield", "api", core, alias).Run()
-	if err != nil {
-		fmt.Printf("Failed to connect to SHIELD core.")
 		return nil, err
 	}
 
@@ -86,10 +66,9 @@ func getShieldConfig(endpoint plugin.ShieldEndpoint) (*ShieldConfig, error) {
 		return nil, err
 	}
 
-	return &ShieldConfig{
-		core:  core,
-		alias: alias,
-		token: token,
+	return &shield.Client{
+		URL: url,
+		Session: token,
 	}, nil
 }
 
@@ -133,50 +112,29 @@ func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 
 // Backup SHIELD data
 func (p ShieldPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
-	shield, err := getShieldConfig(endpoint)
+	c, err := getClient(endpoint)
 	if err != nil {
 		return err
 	}
 
-	out, err := exec.Command("shield", "--core", shield.alias, "login", "--token", shield.token).Output()
+	src, err := c.Export(os.Getenv("SHIELD_TASK_UUID"))
 	if err != nil {
-		plugin.DEBUG("%s", out)
 		return err
 	}
 
-	relativeURL := shield.core + "/v2/export?task=" + os.Getenv("SHIELD_TASK_UUID")
-	out, err = exec.Command("shield", "--core", shield.alias, "curl", "GET", relativeURL).Output()
-	if err != nil {
-		plugin.DEBUG("%s", out)
-		return err
-	}
-
-	fmt.Printf("%s\n", out)
+	io.Copy(os.Stdout, src)
+	fmt.Printf("\n")
 	return nil
 }
 
 // Restore SHIELD data
 func (p ShieldPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
-	shield, err := getShieldConfig(endpoint)
+	c, err := getClient(endpoint)
 	if err != nil {
 		return err
 	}
 
-	out, err := exec.Command("shield", "--core", shield.alias, "login", "--token", shield.token).Output()
-	if err != nil {
-		plugin.DEBUG("ERROR>:    %s", out)
-		return err
-	}
-
-	relativeURL := shield.core + "/v2/import?key=" + os.Getenv("SHIELD_RESTORE_KEY") + "&task=" + os.Getenv("SHIELD_TASK_UUID")
-	cmd := exec.Command("shield", "--core", shield.alias, "curl", "POST", relativeURL, "-")
-	cmd.Stdin = os.Stdin
-	out, err = cmd.Output()
-	if err != nil {
-		plugin.DEBUG("ERROR>:    %s", out)
-		return err
-	}
-	return nil
+	return c.Import(os.Stdin)
 }
 
 func (p ShieldPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
