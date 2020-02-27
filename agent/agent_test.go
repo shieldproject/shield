@@ -119,22 +119,25 @@ var _ = Describe("Agent", func() {
 		It("errors for a payload missing required 'operation' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
-					"target_plugin":"plugin",
-					"target_endpoint":"endpoint",
-					"store_plugin":"plugin",
-					"store_endpoint":"endpoint"
+					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"target_plugin"   : "plugin",
+					"target_endpoint" : "endpoint",
+					"store_plugin"    : "plugin",
+					"store_endpoint"  : "endpoint"
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(MatchRegexp(`missing required 'operation' `))
 		})
 
 		It("errors for a payload missing required 'target_plugin' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
-					"operation":"backup",
-					"target_endpoint":"endpoint",
-					"store_plugin":"plugin",
-					"store_endpoint":"endpoint"
+					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"       : "backup",
+					"target_endpoint" : "endpoint",
+					"store_plugin"    : "plugin",
+					"store_endpoint"  : "endpoint"
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -144,10 +147,11 @@ var _ = Describe("Agent", func() {
 		It("errors for a payload missing required 'target_endpoint' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
-					"operation":"backup",
-					"target_plugin":"plugin",
-					"store_plugin":"plugin",
-					"store_endpoint":"endpoint"
+					"task_uuid"      : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"      : "backup",
+					"target_plugin"  : "plugin",
+					"store_plugin"   : "plugin",
+					"store_endpoint" : "endpoint"
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -157,10 +161,11 @@ var _ = Describe("Agent", func() {
 		It("errors for a payload missing required 'store_plugin' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
-					"operation":"backup",
-					"target_plugin":"plugin",
-					"target_endpoint":"endpoint",
-					"store_endpoint":"endpoint"
+					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"       : "backup",
+					"target_plugin"   : "plugin",
+					"target_endpoint" : "endpoint",
+					"store_endpoint"  : "endpoint"
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -170,10 +175,11 @@ var _ = Describe("Agent", func() {
 		It("errors for a payload missing required 'store_endpoint' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
-					"operation":"backup",
-					"target_plugin":"plugin",
-					"target_endpoint":"endpoint",
-					"store_plugin":"plugin"
+					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"       : "backup",
+					"target_plugin"   : "plugin",
+					"target_endpoint" : "endpoint",
+					"store_plugin"    : "plugin"
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -183,11 +189,12 @@ var _ = Describe("Agent", func() {
 		It("errors for a restore payload missing required 'restore_key' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
-					"operation":"restore",
-					"target_plugin":"plugin",
-					"target_endpoint":"endpoint",
-					"store_plugin":"plugin",
-					"store_endpoint":"endpoint"
+					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"       : "restore",
+					"target_plugin"   : "plugin",
+					"target_endpoint" : "endpoint",
+					"store_plugin"    : "plugin",
+					"store_endpoint"  : "endpoint"
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -197,9 +204,10 @@ var _ = Describe("Agent", func() {
 		It("errors for a purge payload missing required 'restore_key' field", func() {
 			_, err := ParseCommand([]byte(`
 				{
-					"operation":"purge",
-					"store_plugin":"plugin",
-					"store_endpoint":"endpoint"
+					"task_uuid"      : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"      : "purge",
+					"store_plugin"   : "plugin",
+					"store_endpoint" : "endpoint"
 				}
 			`))
 			Ω(err).Should(HaveOccurred())
@@ -223,11 +231,12 @@ var _ = Describe("Agent", func() {
 		It("returns a Command object for a valid backup operation", func() {
 			cmd, err := ParseCommand([]byte(`
 				{
-					"operation":"backup",
-					"target_plugin":"t.plugin",
-					"target_endpoint":"t.endpoint",
-					"store_plugin":"s.plugin",
-					"store_endpoint":"s.endpoint"
+					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"       : "backup",
+					"target_plugin"   : "t.plugin",
+					"target_endpoint" : "t.endpoint",
+					"store_plugin"    : "s.plugin",
+					"store_endpoint"  : "s.endpoint"
 				}
 			`))
 			Ω(err).ShouldNot(HaveOccurred())
@@ -243,12 +252,13 @@ var _ = Describe("Agent", func() {
 		It("returns a Command object for a valid restore operation", func() {
 			cmd, err := ParseCommand([]byte(`
 				{
-					"operation":"restore",
-					"target_plugin":"t.plugin",
-					"target_endpoint":"t.endpoint",
-					"store_plugin":"s.plugin",
-					"store_endpoint":"s.endpoint",
-					"restore_key":"r.key"
+					"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
+					"operation"       : "restore",
+					"target_plugin"   : "t.plugin",
+					"target_endpoint" : "t.endpoint",
+					"store_plugin"    : "s.plugin",
+					"store_endpoint"  : "s.endpoint",
+					"restore_key"     : "r.key"
 				}
 			`))
 			Ω(err).ShouldNot(HaveOccurred())
@@ -271,6 +281,7 @@ var _ = Describe("Agent", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			cmd, err = ParseCommand([]byte(`{
+				"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
 				"operation"       : "backup",
 				"compression"     : "bzip2",
 				"target_plugin"   : "` + pathify("test/bin/dummy") + `",
@@ -558,6 +569,7 @@ var _ = Describe("Agent", func() {
 
 			go collect(final, partial)
 			err = client.Run(partial, `{
+				"task_uuid"       : "d9b66d82-b016-4e4a-8d7a-800ef9699112",
 				"operation"       : "backup",
 				"target_plugin"   : "dummy",
 				"target_endpoint" : "TARGET-ENDPOINT",
