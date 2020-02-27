@@ -15,7 +15,7 @@ postgres
 rabbitmq-broker
 redis-broker
 s3
-shieldp
+metashield
 swift
 vault
 webdav

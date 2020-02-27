@@ -10,6 +10,8 @@ import (
 	"github.com/shieldproject/shield/core/vault"
 )
 
+const MetaPluginName = "metashield"
+
 type preimport struct {
 	RestoreTask *Task
 	Archive     *Archive
@@ -369,8 +371,8 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		if v.TargetPlugin == "shieldp" && v.Op == "backup" && v.Status == "running" {
-			log.Infof("IMPORT: SHIELDP insert task %s...", v.UUID)
+		if v.TargetPlugin == MetaPluginName && v.Op == "backup" && v.Status == "running" {
+			log.Infof("IMPORT: inserting task %s (as done)...", v.UUID)
 			v.Status = "done"
 			v.OK = true
 			at := time.Now().Unix()
