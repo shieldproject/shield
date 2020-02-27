@@ -285,6 +285,33 @@ func (db *DB) GetTask(id string) (*Task, error) {
 	return all[0], nil
 }
 
+func (db *DB) ReinsertTask(task *Task) error {
+	return db.Exec(`
+        INSERT INTO tasks
+            (uuid, owner, op,
+             tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
+             status, requested_at, started_at, stopped_at, timeout_at,
+             log, attempts, agent, fixed_key, compression,
+             target_plugin, target_endpoint,
+             store_plugin, store_endpoint, restore_key,
+             ok, notes, clear)
+        VALUES
+            (?, ?, ?,
+             ?, ?, ?, ?, ?,
+             ?, ?, ?, ?, ?,
+             ?, ?, ?, ?, ?,
+             ?, ?,
+             ?, ?, ?,
+             ?, ?, ?)`,
+		task.UUID, task.Owner, task.Op,
+		task.TenantUUID, task.JobUUID, task.ArchiveUUID, task.TargetUUID, task.StoreUUID,
+		task.Status, task.RequestedAt, task.StartedAt, task.StoppedAt, task.TimeoutAt,
+		task.Log, task.Attempts, task.Agent, task.FixedKey, task.Compression,
+		task.TargetPlugin, task.TargetEndpoint,
+		task.StorePlugin, task.StoreEndpoint, task.RestoreKey,
+		task.OK, task.Notes, task.Clear)
+}
+
 func (db *DB) CreateInternalTask(owner, op, tenant string) (*Task, error) {
 	id := RandomID()
 
@@ -809,42 +836,41 @@ func (db *DB) UpdateTaskLog(id string, more string) error {
 	return nil
 }
 
-func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
+func (db *DB) getTaskArchiveRetention(id string) (int, error) {
+	r, err := db.query(`
+	         SELECT j.keep_days
+	           FROM jobs j
+	     INNER JOIN tasks t ON j.uuid = t.job_uuid
+	          WHERE t.uuid = ?`, id)
+	if err != nil {
+		return 0, err
+	}
+	defer r.Close()
+
+	if !r.Next() {
+		return 0, fmt.Errorf("failed to determine expiration for task %s", id)
+	}
+
+	var n int
+	if err = r.Scan(&n); err != nil {
+		return 0, fmt.Errorf("failed to determine expiration for task %s: %s", id, err)
+	}
+	return n, nil
+}
+
+func (db *DB) createTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
 	if key == "" {
 		return "", fmt.Errorf("cannot create an archive without a store_key")
 	}
 
 	// determine how long we need to keep this specific archive for
-	n, err := (func() (int, error) {
-		db.exclusive.Lock()
-		defer db.exclusive.Unlock()
-		r, err := db.query(`
-               SELECT j.keep_days
-                 FROM jobs j
-           INNER JOIN tasks t ON j.uuid = t.job_uuid
-                WHERE t.uuid = ?`,
-			id)
-		if err != nil {
-			return 0, err
-		}
-		defer r.Close()
-
-		if !r.Next() {
-			return 0, fmt.Errorf("failed to determine expiration for task %s", id)
-		}
-
-		var n int
-		if err = r.Scan(&n); err != nil {
-			return 0, fmt.Errorf("failed to determine expiration for task %s: %s", id, err)
-		}
-		return n, nil
-	})()
+	n, err := db.getTaskArchiveRetention(id)
 	if err != nil {
 		return "", err
 	}
 
 	// insert an archive with all proper references, expiration, etc.
-	archive, err := db.CreateArchiveFromTask(id, Archive{
+	archive, err := db.createArchiveFromTask(id, Archive{
 		UUID:           archive_id,
 		StoreKey:       key,
 		TakenAt:        effectively(at),
@@ -861,9 +887,16 @@ func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryp
 	db.sendCreateObjectEvent(archive, "tenant:"+archive.TenantUUID)
 
 	// and finally, associate task -> archive
-	return archive_id, db.Exec(
+	return archive_id, db.exec(
 		`UPDATE tasks SET archive_uuid = ? WHERE uuid = ?`,
 		archive_id, id)
+}
+
+func (db *DB) CreateTaskArchive(id, archive_id, key string, at time.Time, encryptionType, compression string, archive_size int64, tenant_uuid string) (string, error) {
+	db.exclusive.Lock()
+	defer db.exclusive.Unlock()
+
+	return db.createTaskArchive(id, archive_id, key, at, encryptionType, compression, archive_size, tenant_uuid)
 }
 
 type TaskAnnotation struct {

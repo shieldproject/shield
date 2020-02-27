@@ -10,34 +10,10 @@ import (
 	"github.com/shieldproject/shield/core/vault"
 )
 
-type shieldInformation struct {
-	UUID           string  `json:"uuid"`
-	Owner          string  `json:"owner"`
-	Op             string  `json:"op"`
-	TenantUUID     *string `json:"tenant_uuid"`
-	JobUUID        *string `json:"job_uuid"`
-	ArchiveUUID    *string `json:"archive_uuid"`
-	TargetUUID     *string `json:"target_uuid"`
-	StoreUUID      *string `json:"store_uuid"`
-	Status         string  `json:"status"`
-	RequestedAt    int     `json:"requested_at"`
-	StartedAt      *int    `json:"started_at"`
-	StoppedAt      *int64  `json:"stopped_at"`
-	TimeoutAt      *int    `json:"timeout_at"`
-	Log            string  `json:"log"`
-	Attempts       int     `json:"attempts"`
-	Agent          string  `json:"agent"`
-	FixedKey       string  `json:"fixed_key"`
-	TargetPlugin   string  `json:"target_plugin"`
-	TargetEndpoint string  `json:"target_endpoint"`
-	StorePlugin    string  `json:"store_plugin"`
-	StoreEndpoint  string  `json:"store_endpoint"`
-	RestoreKey     string  `json:"restore_key"`
-	OK             bool    `json:"ok"`
-	Notes          string  `json:"notes"`
-	Clear          string  `json:"clear"`
-	Compression    string  `json:"compression"`
-	Size           *int    `json:"size"`
+type preimport struct {
+	RestoreTask *Task
+	Archive     *Archive
+	Finalizer   *finalizer
 }
 
 func (db *DB) importAgents(n uint, in *json.Decoder) error {
@@ -65,7 +41,7 @@ func (db *DB) importAgents(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting agent %s...", v.UUID)
+		log.Infof("IMPORT: inserting agent %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO agents
 		    (uuid, name, address, version, hidden,
@@ -116,7 +92,7 @@ func (db *DB) importArchives(n uint, in *json.Decoder, vlt *vault.Client) error 
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting archive %s...", v.UUID)
+		log.Infof("IMPORT: inserting archive %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO archives
 		    (uuid, tenant_uuid, target_uuid, store_uuid,
@@ -165,7 +141,7 @@ func (db *DB) importFixups(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting fixup #%s...", v.ID)
+		log.Infof("IMPORT: inserting fixup #%s...", v.ID)
 		err := db.exec(`
 		  INSERT INTO fixups
 		    (id, name, summary, created_at, applied_at)
@@ -208,7 +184,7 @@ func (db *DB) importJobs(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting job %s...", v.UUID)
+		log.Infof("IMPORT: inserting job %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO jobs
 		    (uuid, target_uuid, store_uuid, tenant_uuid,
@@ -287,7 +263,7 @@ func (db *DB) importStores(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting store %s...", v.UUID)
+		log.Infof("IMPORT: inserting store %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO stores
 		    (uuid, tenant_uuid, name, summary,
@@ -334,7 +310,7 @@ func (db *DB) importTargets(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting target %s...", v.UUID)
+		log.Infof("IMPORT: inserting target %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO targets
 		    (uuid, tenant_uuid, name, summary,
@@ -394,14 +370,14 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 		}
 
 		if v.TargetPlugin == "shieldp" && v.Op == "backup" && v.Status == "running" {
-			log.Infof("<<import>> SHIELDP insert task %s...", v.UUID)
+			log.Infof("IMPORT: SHIELDP insert task %s...", v.UUID)
 			v.Status = "done"
 			v.OK = true
 			at := time.Now().Unix()
 			v.StoppedAt = &at
 		}
 		if v.Status == "done" || v.Status == "failed" || v.Status == "canceled" {
-			log.Infof("<<import>> inserting task %s... ", v.UUID)
+			log.Infof("IMPORT: inserting task %s... ", v.UUID)
 			err := db.exec(`
             INSERT INTO tasks
                 (uuid, owner, op,
@@ -430,7 +406,7 @@ func (db *DB) importTasks(n uint, in *json.Decoder) error {
 				return err
 			}
 		} else {
-			log.Infof("<<import>> skipping insert task %s...", v.UUID)
+			log.Infof("IMPORT: skipping insert task %s...", v.UUID)
 		}
 	}
 	return nil
@@ -456,7 +432,7 @@ func (db *DB) importTenants(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting tenant %s...", v.UUID)
+		log.Infof("IMPORT: inserting tenant %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO tenants
 		    (uuid, name,
@@ -495,7 +471,7 @@ func (db *DB) importUsers(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting user %s...", v.UUID)
+		log.Infof("IMPORT: inserting user %s...", v.UUID)
 		err := db.exec(`
 		  INSERT INTO users
 		    (uuid, name, account, backend,
@@ -537,7 +513,7 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 			return fmt.Errorf(v.Error)
 		}
 
-		log.Infof("<<import>> inserting session %s...", v.UUID)
+		log.Infof("IMPORT: inserting session %s...", v.UUID)
 		err := db.exec(`
           INSERT INTO sessions
             (uuid, user_uuid, created_at, last_seen,
@@ -554,60 +530,47 @@ func (db *DB) importSessions(n uint, in *json.Decoder) error {
 	return nil
 }
 
-func (db *DB) importFinalizer(n uint, in *json.Decoder, restoreKey string, shield shieldInformation) error {
-	type finalizer struct {
-		UUID           string `json:"task_uuid"`
-		TenantUUID     string `json:"tenant_uuid"`
-		JobUUID        string `json:"job_uuid"`
-		ArchiveUUID    string `json:"archive_uuid"`
-		TargetUUID     string `json:"target_uuid"`
-		StoreUUID      string `json:"store_uuid"`
-		Compression    string `json:"compression"`
-		EncryptionType string `json:"encryption_type"`
-		EncryptionKey  string `json:"encryption_key"`
-		EncryptionIV   string `json:"encryption_iv"`
-		TakenAt        int64  `json:"taken_at"`
-		ExpiresAt      int64  `json:"expires_at"`
-		Error          string `json:"error"`
-	}
+func (db *DB) importFinalizer(n uint, in *json.Decoder, restoreKey string, ctx *preimport) error {
+	var fin finalizer
 
-	var v finalizer
-
-	if err := in.Decode(&v); err != nil {
+	if err := in.Decode(&fin); err != nil {
 		return err
 	}
 
-	if v.Error != "" {
-		return fmt.Errorf(v.Error)
+	if fin.Error != "" {
+		return fmt.Errorf(fin.Error)
 	}
 
-	log.Infof("<<import>> SHIELDP insert archive %s...", v.UUID)
-	err := db.exec(`
-    INSERT INTO archives
-        (uuid, target_uuid, store_uuid, store_key, taken_at,
-        expires_at, notes, status, purge_reason, job,
-        compression, encryption_type, size, tenant_uuid)
+	log.Infof("IMPORT: finalizing progenitor backup task [%s], which was in-flight when the export was taken", fin.Task)
 
-        SELECT ?, ?, ?, ?, ?,
-                ?, '', 'valid', '', j.Name,
-                ?, ?, ?, ?
-        FROM tasks
-            INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
-        WHERE tasks.uuid = ?`,
-		v.ArchiveUUID, v.TargetUUID, v.StoreUUID, restoreKey, v.TakenAt,
-		v.ExpiresAt,
-		v.Compression, v.EncryptionType, shield.Size, v.TenantUUID,
-		v.UUID)
+	log.Infof("IMPORT: retrieving progenitor backup task [%s] from the database (post-restore)", fin.Task)
+	task, err := db.GetTask(fin.Task)
 	if err != nil {
 		return err
 	}
 
-	log.Infof("<<import>> SHIELD restore task %s...", v.UUID)
-	at := time.Now().Unix()
-	shield.StoppedAt = &at
-	shield.Status = "done"
-	shield.OK = true
-	err = db.exec(`
+	log.Infof("IMPORT: creating progenitor backup task [%s] archive record for archive [%s]", task.UUID, task.ArchiveUUID)
+
+	log.Infof("IMPORT:   using restore key provided during restore operation: '%s'", restoreKey)
+	var size int64 = 0
+	if ctx != nil && ctx.Archive != nil {
+		size = ctx.Archive.Size
+		log.Infof("IMPORT:   using detected archive size of '%d'", size)
+	} else {
+		log.Infof("IMPORT:   unable to detect archive size; using %d", size)
+	}
+	_, err = db.createTaskArchive(task.UUID, task.ArchiveUUID, restoreKey, time.Unix(fin.TakenAt, 0), fin.EncryptionType, task.Compression, size, task.TenantUUID)
+	if err != nil {
+		return err
+	}
+
+	if ctx != nil && ctx.RestoreTask != nil {
+		t := ctx.RestoreTask
+		log.Infof("IMPORT: re-inserting stored restore task [%s] for continuity's sake", t.UUID)
+		t.StoppedAt = time.Now().Unix()
+		t.Status = "done"
+		t.OK = true
+		err = db.exec(`
         INSERT INTO tasks
             (uuid, owner, op,
             tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
@@ -624,69 +587,46 @@ func (db *DB) importFinalizer(n uint, in *json.Decoder, restoreKey string, shiel
             ?, ?,
             ?, ?, ?,
             ?, ?, ?)`,
-		shield.UUID, shield.Owner, shield.Op,
-		shield.TenantUUID, shield.JobUUID, shield.ArchiveUUID, shield.TargetUUID, shield.StoreUUID,
-		shield.Status, shield.RequestedAt, shield.StartedAt, shield.StoppedAt, shield.TimeoutAt,
-		shield.Log, shield.Attempts, shield.Agent, shield.FixedKey, shield.Compression,
-		shield.TargetPlugin, shield.TargetEndpoint,
-		shield.StorePlugin, shield.StoreEndpoint, shield.RestoreKey,
-		shield.OK, shield.Notes, shield.Clear)
-	if err != nil {
-		return err
+			t.UUID, t.Owner, t.Op,
+			t.TenantUUID, t.JobUUID, t.ArchiveUUID, t.TargetUUID, t.StoreUUID,
+			t.Status, t.RequestedAt, t.StartedAt, t.StoppedAt, t.TimeoutAt,
+			t.Log, t.Attempts, t.Agent, t.FixedKey, t.Compression,
+			t.TargetPlugin, t.TargetEndpoint,
+			t.StorePlugin, t.StoreEndpoint, t.RestoreKey,
+			t.OK, t.Notes, t.Clear)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (db *DB) getShieldSelfBackupInformation(restoreKey, uuid string) (shieldInformation, error) {
-	var s shieldInformation
+func (db *DB) preimportState(restoreKey, uuid string) (*preimport, error) {
+	ctx := preimport{}
 
-	r, err := db.query(`
-	SELECT store_key, size
-	  FROM archives
-	    WHERE store_key=?`, restoreKey)
+	archives, err := db.GetAllArchives(&ArchiveFilter{
+		ForStoreKey: restoreKey,
+	})
 	if err != nil {
-		return s, err
-	}
-	defer r.Close()
-
-	for r.Next() {
-		err := r.Scan(&s.RestoreKey, &s.Size)
-		if err != nil {
-			return s, err
-		}
+		return nil, err
 	}
 
-	r, err = db.query(`
-    SELECT uuid, owner, op, tenant_uuid, job_uuid, archive_uuid, target_uuid, store_uuid,
-           status, requested_at, started_at, stopped_at, timeout_at,
-           log, attempts, agent, fixed_key, compression,
-           target_plugin, target_endpoint, store_plugin, store_endpoint,
-           restore_key, ok, notes, clear
-      FROM tasks
-        WHERE uuid=?`, uuid)
+	if len(archives) == 1 {
+		ctx.Archive = archives[0]
+	}
+
+	task, err := db.GetTask(uuid)
 	if err != nil {
-		return s, err
+		return nil, err
 	}
-	defer r.Close()
-
-	for r.Next() {
-		if err = r.Scan(
-			&s.UUID, &s.Owner, &s.Op, &s.TenantUUID, &s.JobUUID, &s.ArchiveUUID, &s.TargetUUID, &s.StoreUUID,
-			&s.Status, &s.RequestedAt, &s.StartedAt, &s.StoppedAt, &s.TimeoutAt,
-			&s.Log, &s.Attempts, &s.Agent, &s.FixedKey, &s.Compression,
-			&s.TargetPlugin, &s.TargetEndpoint, &s.StorePlugin, &s.StoreEndpoint,
-			&s.RestoreKey, &s.OK, &s.Notes, &s.Clear); err != nil {
-			return s, err
-		}
-	}
-
-	return s, nil
+	ctx.RestoreTask = task
+	return &ctx, nil
 }
 
 func (db *DB) clear(tables ...string) error {
 	for _, t := range tables {
-		log.Infof("<<import>> clearing table %s...", t)
+		log.Infof("IMPORT: clearing table %s...", t)
 		if err := db.exec(fmt.Sprintf("DELETE FROM %s", t)); err != nil {
 			return fmt.Errorf("clear table failed: %s", err)
 		}
@@ -697,12 +637,12 @@ func (db *DB) clear(tables ...string) error {
 func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid string) error {
 	var h header
 
-	err := db.transactionally(func() error {
-		shield, err := db.getShieldSelfBackupInformation(restoreKey, uuid)
-		if err != nil {
-			return err
-		}
+	ctx, err := db.preimportState(restoreKey, uuid)
+	if err != nil {
+		return err
+	}
 
+	err = db.transactionally(func() error {
 		err = db.clear("agents", "archives", "fixups", "jobs", "memberships", "stores")
 		if err != nil {
 			return err
@@ -726,65 +666,72 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid str
 
 			switch h.Type {
 			case "agents":
-				err := db.importAgents(h.N, in)
-				if err != nil {
+				if err := db.importAgents(h.N, in); err != nil {
 					return err
 				}
+
 			case "archives":
-				err := db.importArchives(h.N, in, vault)
-				if err != nil {
+				if err := db.importArchives(h.N, in, vault); err != nil {
 					return err
 				}
+
 			case "fixups":
-				err := db.importFixups(h.N, in)
-				if err != nil {
+				if err := db.importFixups(h.N, in); err != nil {
 					return err
 				}
+
 			case "jobs":
-				err := db.importJobs(h.N, in)
-				if err != nil {
+				if err := db.importJobs(h.N, in); err != nil {
 					return err
 				}
+
 			case "memberships":
-				err := db.importMemberships(h.N, in)
-				if err != nil {
+				if err := db.importMemberships(h.N, in); err != nil {
 					return err
 				}
+
 			case "stores":
-				err := db.importStores(h.N, in)
-				if err != nil {
+				if err := db.importStores(h.N, in); err != nil {
 					return err
 				}
+
 			case "targets":
-				err := db.importTargets(h.N, in)
-				if err != nil {
+				if err := db.importTargets(h.N, in); err != nil {
 					return err
 				}
+
 			case "tasks":
-				err := db.importTasks(h.N, in)
-				if err != nil {
+				if err := db.importTasks(h.N, in); err != nil {
 					return err
 				}
+
 			case "tenants":
-				err := db.importTenants(h.N, in)
-				if err != nil {
+				if err := db.importTenants(h.N, in); err != nil {
 					return err
 				}
+
 			case "users":
-				err := db.importUsers(h.N, in)
-				if err != nil {
+				if err := db.importUsers(h.N, in); err != nil {
 					return err
 				}
+
 			case "sessions":
-				err := db.importSessions(h.N, in)
-				if err != nil {
+				if err := db.importSessions(h.N, in); err != nil {
 					return err
 				}
+
 			case "finalizer":
-				err := db.importFinalizer(h.N, in, restoreKey, shield)
-				if err != nil {
+				if h.N != 1 {
+					return fmt.Errorf("bad FINALIZER section: %d constituent elements found (expected exactly one)", h.N)
+				}
+				if err := in.Decode(&ctx.Finalizer); err != nil {
 					return err
 				}
+
+				if ctx.Finalizer.Error != "" {
+					return fmt.Errorf(ctx.Finalizer.Error)
+				}
+
 			case "":
 			default:
 				return fmt.Errorf("unrecognized import header type '%s'", h.Type)
@@ -796,5 +743,51 @@ func (db *DB) Import(in *json.Decoder, vault *vault.Client, restoreKey, uuid str
 	if err != nil {
 		return err
 	}
+
+	if ctx.Finalizer != nil && ctx.Finalizer.Task != "" {
+		log.Infof("IMPORT: finalizing progenitor backup task [%s], which was in-flight when the export was taken", ctx.Finalizer.Task)
+
+		log.Infof("IMPORT: retrieving progenitor backup task [%s] from the database (post-restore)", ctx.Finalizer.Task)
+		task, err := db.GetTask(ctx.Finalizer.Task)
+		if err != nil {
+			return err
+		}
+
+		if task == nil {
+			log.Errorf("IMPORT: unable to find task [%s] in the database; skipping finalization...")
+		} else {
+			log.Infof("IMPORT: marking progenitor backup task [%s] as complete", task.UUID)
+			err = db.CompleteTask(task.UUID, time.Unix(ctx.Finalizer.TakenAt, 0))
+			if err != nil {
+				return err
+			}
+
+			if ctx.Archive == nil {
+				log.Errorf("IMPORT: unable to locate the archive re just restored; skipping finalization...")
+			} else {
+				log.Infof("IMPORT: creating archive [%s] record (for progenitor backup task)", task.ArchiveUUID)
+				log.Infof("IMPORT:   using restore key provided during restore operation: '%s'", ctx.Archive.StoreKey)
+				log.Infof("IMPORT:   using detected archive size of '%d'", ctx.Archive.Size)
+				_, err = db.CreateTaskArchive(task.UUID, task.ArchiveUUID, restoreKey, time.Unix(ctx.Finalizer.TakenAt, 0), ctx.Finalizer.EncryptionType, task.Compression, ctx.Archive.Size, task.TenantUUID)
+
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if ctx.RestoreTask == nil {
+		log.Errorf("IMPORT: unable to locate the restore task we are currently running; skipping finalization...")
+	} else {
+		t := ctx.RestoreTask
+		log.Infof("IMPORT: re-inserting stored restore task [%s] for continuity's sake", t.UUID)
+
+		err = db.ReinsertTask(t)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
