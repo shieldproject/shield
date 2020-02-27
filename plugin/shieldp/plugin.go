@@ -88,11 +88,6 @@ func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fmt.Printf("@G{\u2713 url}                   data in @C{%s} core will be backed up\n", s)
 	}
 
-	s, err = endpoint.StringValue("alias")
-	if err != nil {
-		fmt.Printf("@R{\u2717 alias}                 @C{%s}\n", err)
-	}
-
 	s, err = endpoint.StringValue("token")
 	if err != nil {
 		fmt.Printf("@R{\u2717 token}                 @C{%s}\n", err)
