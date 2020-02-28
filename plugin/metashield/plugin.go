@@ -6,8 +6,8 @@ import (
 
 	fmt "github.com/jhunt/go-ansi"
 
-	"github.com/shieldproject/shield/plugin"
 	"github.com/shieldproject/shield/client/v2/shield"
+	"github.com/shieldproject/shield/plugin"
 )
 
 func main() {
@@ -67,7 +67,7 @@ func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
 	}
 
 	return &shield.Client{
-		URL: url,
+		URL:     url,
 		Session: token,
 	}, nil
 }
@@ -100,7 +100,7 @@ func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	}
 
 	if fail {
-		return fmt.Errorf("shield: invalid configuration")
+		return fmt.Errorf("metashield: invalid configuration")
 	}
 	return nil
 }
@@ -112,7 +112,12 @@ func (p ShieldPlugin) Backup(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	src, err := c.Export(os.Getenv("SHIELD_TASK_UUID"))
+	taskUUID := os.Getenv("SHIELD_TASK_UUID")
+	if taskUUID == "" {
+		return fmt.Errorf("SHIELD agent needs to be updated to have SHIELD_TASK_UUID environment variable")
+	}
+
+	src, err := c.Export(taskUUID)
 	if err != nil {
 		return err
 	}
@@ -129,7 +134,11 @@ func (p ShieldPlugin) Restore(endpoint plugin.ShieldEndpoint) error {
 		return err
 	}
 
-	return c.Import(os.Getenv("SHIELD_TASK_UUID"), os.Getenv("SHIELD_RESTORE_KEY"), os.Stdin)
+	taskUUID := os.Getenv("SHIELD_TASK_UUID")
+	if taskUUID == "" {
+		return fmt.Errorf("SHIELD agent needs to be updated to have SHIELD_TASK_UUID environment variable")
+	}
+	return c.Import(taskUUID, os.Getenv("SHIELD_RESTORE_KEY"), os.Stdin)
 }
 
 func (p ShieldPlugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {

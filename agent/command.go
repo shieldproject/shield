@@ -53,10 +53,6 @@ func ParseCommand(b []byte) (*Command, error) {
 			return nil, fmt.Errorf("missing required 'store_endpoint' value in payload")
 		}
 
-		if cmd.TaskUUID == "" {
-			return nil, fmt.Errorf("missing required 'task_uuid' value in payload")
-		}
-
 	case "restore", "shield-restore":
 		if cmd.TargetPlugin == "" {
 			return nil, fmt.Errorf("missing required 'target_plugin' value in payload")
@@ -74,10 +70,6 @@ func ParseCommand(b []byte) (*Command, error) {
 
 		if cmd.RestoreKey == "" {
 			return nil, fmt.Errorf("missing required 'restore_key' value in payload (for restore operation)")
-		}
-
-		if cmd.TaskUUID == "" {
-			return nil, fmt.Errorf("missing required 'task_uuid' value in payload")
 		}
 
 	case "purge":
