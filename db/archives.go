@@ -44,6 +44,7 @@ type ArchiveFilter struct {
 	WithStatus    []string
 	WithOutStatus []string
 	ForTenant     string
+	ForStoreKey   string
 	Limit         int
 }
 
@@ -100,6 +101,12 @@ func (f *ArchiveFilter) Query() (string, []interface{}) {
 		wheres = append(wheres, "a.tenant_uuid = ?")
 		args = append(args, f.ForTenant)
 	}
+
+	if f.ForStoreKey != "" {
+		wheres = append(wheres, "a.store_key = ?")
+		args = append(args, f.ForStoreKey)
+	}
+
 	limit := ""
 	if f.Limit > 0 {
 		limit = " LIMIT ?"
@@ -266,37 +273,30 @@ func (db *DB) GetArchive(id string) (*Archive, error) {
 	return db.getArchive(id)
 }
 
-func (db *DB) CreateArchiveFromTask(task_uuid string, archive Archive) (*Archive, error) {
-	var out *Archive
+func (db *DB) createArchiveFromTask(task_uuid string, archive Archive) (*Archive, error) {
+	err := db.exec(`
+              INSERT INTO archives
+                (uuid, target_uuid, store_uuid, store_key, taken_at,
+                 expires_at, notes, status, purge_reason, job,
+                 compression, encryption_type, size, tenant_uuid)
 
-	err := db.exclusively(func() error {
-		err := db.exec(`
-                  INSERT INTO archives
-                    (uuid, target_uuid, store_uuid, store_key, taken_at,
-                     expires_at, notes, status, purge_reason, job,
-                     compression, encryption_type, size, tenant_uuid)
+                  SELECT ?, t.uuid, s.uuid, ?, ?,
+                         ?, '', 'valid', '', j.Name,
+                         ?, ?, ?, ?
+                  FROM tasks
+                     INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
+                     INNER JOIN targets t     ON t.uuid = j.target_uuid
+                     INNER JOIN stores  s     ON s.uuid = j.store_uuid
+                  WHERE tasks.uuid = ?`,
+		archive.UUID, archive.StoreKey, archive.TakenAt,
+		archive.ExpiresAt,
+		archive.Compression, archive.EncryptionType, archive.Size, archive.TenantUUID,
+		task_uuid)
+	if err != nil {
+		return nil, err
+	}
 
-                      SELECT ?, t.uuid, s.uuid, ?, ?,
-                             ?, '', 'valid', '', j.Name,
-                             ?, ?, ?, ?
-                      FROM tasks
-                         INNER JOIN jobs    j     ON j.uuid = tasks.job_uuid
-                         INNER JOIN targets t     ON t.uuid = j.target_uuid
-                         INNER JOIN stores  s     ON s.uuid = j.store_uuid
-                      WHERE tasks.uuid = ?`,
-			archive.UUID, archive.StoreKey, archive.TakenAt,
-			archive.ExpiresAt,
-			archive.Compression, archive.EncryptionType, archive.Size, archive.TenantUUID,
-			task_uuid)
-		if err != nil {
-			return err
-		}
-
-		out, err = db.getArchive(archive.UUID)
-		return err
-	})
-
-	return out, err
+	return db.getArchive(archive.UUID)
 }
 
 func (db *DB) UpdateArchive(update *Archive) error {
