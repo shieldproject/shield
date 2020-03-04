@@ -169,6 +169,25 @@ backup:
 Check the [add-on's README][shield-postgres] for full details of available
 versions.
 
+### SHIELD
+
+The `metashield` plugin lets you back up and restore SHIELD configuration
+data. Under the hood it uses the `/v2/export` endpoint for backup, and the `/v2/import`
+endpoint for restore.
+
+**We recommend operators to use the fixedkey to encrypt the backups. This can be done by disabling the `Randomize Encryption Keys` option while configuring the job. In an event where the vault gets corrupted or SHIELD goes offline, the fixed key can be used to decrypt the `metashield` archive, and then use the `/v2/import` endpoint to restore SHIELD.**
+
+This plugin takes a snapshot of the current state of SHIELD for backing up, so it doesn't
+interfere with any other running processes. On restore all tasks that were marked as `running`
+will be ignored by SHIELD, only exception being the backup task of SHIELD itself.
+
+##### Configuration Options
+
+- `url` **(required)** - The IP address of the SHIELD core to target.
+
+- `token` **(required)** - The session token SHIELD uses to authenticate the client that is performing
+   backups and restores. Use the command `shield --core corename create-auth-token tokenname`
+   to generate the token.
 
 ### MySQL / MariaDB
 
