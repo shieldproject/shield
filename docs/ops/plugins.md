@@ -186,7 +186,8 @@ will be ignored by SHIELD, only exception being the backup task of SHIELD itself
 - `url` **(required)** - The IP address of the SHIELD core to target.
 
 - `token` **(required)** - The session token SHIELD uses to authenticate the client that is performing
-   backups and restores.
+   backups and restores. Use the command `shield --core corename create-auth-token tokenname`
+   to generate the token.
 
 ### MySQL / MariaDB
 
