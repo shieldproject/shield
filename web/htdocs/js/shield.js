@@ -1356,8 +1356,10 @@ $(function () {
         document.title = "SHIELD "+AEGIS.shield.env;
         $('.top-bar').template('top-bar');
         if (AEGIS.authenticated()) {
-          $('#side-bar').template('side-bar')
           $('#viewport').template('layout');
+          if (AEGIS.vault != "uninitialized") {
+            $('#side-bar').template('side-bar');
+          }
           $('#hud').template('hud');
           if (AEGIS.vault == "locked") {
             $('#lock-state').fadeIn();
