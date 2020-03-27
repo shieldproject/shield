@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"golang.org/x/crypto/pbkdf2"
+	"github.com/cloudfoundry-community/vaultkv"
 )
 
 type Parameters struct {
@@ -96,28 +97,34 @@ func DeriveFixedParameters(key []byte) (Parameters, error) {
 	}, nil
 }
 
+func (c *Client) pathTo(id string) string {
+	return fmt.Sprintf("%s/archives/%s", c.Prefix, id)
+}
+
 func (c *Client) Store(id string, params Parameters) error {
-	params.UUID = id
-	params.Key = Encode(params.Key, 4)
-	params.IV = Encode(params.IV, 4)
-	return c.Post("secret/archives/"+id, params, nil)
+	_, err := c.kv.Set(c.pathTo(id), map[string]string {
+		"uuid": id,
+		"key":  Encode(params.Key, 4),
+		"iv":   Encode(params.IV, 4),
+		"type": params.Type,
+	}, nil)
+	return err
 }
 
 func (c *Client) Retrieve(id string) (Parameters, error) {
-	var out struct {
-		Data Parameters `json:"data"`
-	}
-	ok, err := c.Get(fmt.Sprintf("secret/archives/%s", id), &out)
-	if !ok {
-		err = fmt.Errorf("not found in vault")
-	}
+	var params Parameters
+	_, err := c.kv.Get(c.pathTo(id), &params, nil)
 	if err != nil {
-		return out.Data, fmt.Errorf("failed to retrieve encryption parameters for [%s]: %s", id, err)
+		return params, fmt.Errorf("failed to retrieve encryption parameters for [%s]: %s", id, err)
 	}
 
-	out.Data.Key = Decode(out.Data.Key)
-	out.Data.IV = Decode(out.Data.IV)
-	return out.Data, nil
+	params.Key = Decode(params.Key)
+	params.IV = Decode(params.IV)
+	return params, nil
+}
+
+func (c *Client) Delete(id string) error {
+	return c.kv.Delete(c.pathTo(id), &vaultkv.KVDeleteOpts{V1Destroy: true})
 }
 
 func (c *Client) RetrieveFixed() (Parameters, error) {

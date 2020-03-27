@@ -135,7 +135,7 @@ func (c *Core) v2API() *route.Router {
 			out.User = user
 
 			/* retrieve vault status */
-			out.Vault, err = c.vault.Status()
+			out.Vault, err = c.vault.StatusString()
 			if err != nil {
 				r.Fail(route.Oops(err, "Unable to retrieve vault status"))
 				return
@@ -679,7 +679,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Oops(err, "Unable to initialize the SHIELD Core"))
 			return
 		}
-		if status != "uninitialized" {
+		if status != vault.Blank {
 			r.Fail(route.Bad(nil, "this SHIELD Core has already been initialized"))
 			return
 		}
@@ -709,7 +709,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Forbidden(err, "Unable to lock the SHIELD Core"))
 			return
 		}
-		if status == "uninitialized" {
+		if status == vault.Blank {
 			r.Fail(route.Bad(nil, "this SHIELD Core has not yet been initialized"))
 			return
 		}
@@ -739,7 +739,7 @@ func (c *Core) v2API() *route.Router {
 			r.Fail(route.Forbidden(err, "Unable to unlock the SHIELD Core: an internal error has occurred"))
 			return
 		}
-		if status == "uninitialized" {
+		if status == vault.Blank {
 			r.Fail(route.Bad(nil, "Unable to unlock the SHIELD Core: this SHIELD Core has not yet been initialized"))
 			return
 		}
@@ -3659,7 +3659,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		st, err := c.vault.Status()
+		st, err := c.vault.StatusString()
 		if err != nil {
 			r.Fail(route.Oops(err, "Failed to export SHIELD data"))
 			return
@@ -3680,7 +3680,7 @@ func (c *Core) v2API() *route.Router {
 			return
 		}
 
-		st, err := c.vault.Status()
+		st, err := c.vault.StatusString()
 		if err != nil {
 			r.Fail(route.Oops(err, "Failed to import SHIELD data"))
 			return

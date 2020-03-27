@@ -83,7 +83,7 @@ func (c *Core) checkHealth() (Health, error) {
 	}
 	health.Stats.Jobs = len(jobs)
 
-	if health.Health.Core, err = c.vault.Status(); err != nil {
+	if health.Health.Core, err = c.vault.StatusString(); err != nil {
 		return health, fmt.Errorf("failed to retrieve vault status: %s", err)
 	}
 
@@ -152,7 +152,7 @@ func (c *Core) checkTenantHealth(tenantUUID string) (Health, error) {
 		return health, err
 	}
 
-	if health.Health.Core, err = c.vault.Status(); err != nil {
+	if health.Health.Core, err = c.vault.StatusString(); err != nil {
 		return health, err
 	}
 

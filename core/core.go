@@ -387,22 +387,12 @@ func (c *Core) MaybeTerminate(err error) {
 }
 
 func (c *Core) Unlocked() bool {
-	init, err := c.vault.Initialized()
+	status, err := c.vault.Status()
 	if err != nil {
-		log.Errorf("unable to check Vault initialization status: %s", err)
+		log.Errorf("unable to check Vault status: %s", err)
 		return false
 	}
-	if init {
-		sealed, err := c.vault.Sealed()
-		if err != nil {
-			log.Errorf("unable to check Vault sealed status: %s", err)
-			return false
-		}
-
-		return !sealed
-	}
-
-	return false
+	return status == vault.Ready
 }
 
 func (c *Core) DataFile(rel string) string {
