@@ -62,6 +62,10 @@ func validBucketName(v string) bool {
 	return ok && err == nil
 }
 
+func clientUsesPathBuckets(err error) bool {
+	return !strings.Contains(err.Error(), "301 response missing Location header")
+}
+
 func main() {
 	p := S3Plugin{
 		Name:    "Amazon S3 Storage Plugin",
@@ -397,7 +401,7 @@ func (p S3Plugin) Store(endpoint plugin.ShieldEndpoint) (string, int64, error) {
 
 	upload, err := client.NewUpload(path, nil)
 	if err != nil {
-		if strings.Contains(err.Error(), "301 response missing Location header") {
+		if !clientUsesPathBuckets(err) {
 			client.UsePathBuckets = false
 			upload, err = client.NewUpload(path, nil)
 		}
@@ -428,19 +432,19 @@ func (p S3Plugin) Retrieve(endpoint plugin.ShieldEndpoint, file string) error {
 	}
 
 	plugin.Infof("connecting to s3...")
-	c, err := e.Connect()
+	client, err := e.Connect()
 	if err != nil {
 		return err
 	}
 
 	plugin.Infof("retrieving backup archive\n"+
 		"    from path '%s\n"+
-		"    in bucket '%s'", file, c.Bucket)
-	reader, err := c.Get(file)
+		"    in bucket '%s'", file, client.Bucket)
+	reader, err := client.Get(file)
 	if err != nil {
-		if strings.Contains(err.Error(), "301 response missing Location header") {
-			c.UsePathBuckets = false
-			reader, err = c.Get(file)
+		if !clientUsesPathBuckets(err) {
+			client.UsePathBuckets = false
+			reader, err = client.Get(file)
 		}
 	}
 	if err != nil {
@@ -464,15 +468,30 @@ func (p S3Plugin) Purge(endpoint plugin.ShieldEndpoint, file string) error {
 	}
 
 	plugin.Infof("connecting to s3...")
-	c, err := e.Connect()
+	client, err := e.Connect()
 	if err != nil {
 		return err
 	}
 
 	plugin.Infof("deleting backup archive\n"+
 		"    at path   '%s'\n"+
-		"    in bucket '%s'", file, c.Bucket)
-	return c.Delete(file)
+		"    in bucket '%s'", file, client.Bucket)
+
+	err = client.Delete(file)
+	if err != nil {
+		if !clientUsesPathBuckets(err) {
+			client.UsePathBuckets = false
+			err = client.Delete(file)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	plugin.Infof("deleted backup archivee\n"+
+		"    at path   '%s'\n"+
+		"    in bucket '%s'", file, client.Bucket)
+
+	return nil
 }
 
 func getS3ConnInfo(e plugin.ShieldEndpoint) (s3Endpoint, error) {
