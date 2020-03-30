@@ -283,6 +283,104 @@
             </div>
           </div>
     <!-- }}} --></script>
+    <script type="text/html" id="template:decide"><!-- {{{ -->
+      [[#
+            {restore or init} template
+
+            Allows the user to chose whether they are looking to restore or initialize their SHIELD
+      ]]
+          <div id="initialize" class="frontdoor">
+            <h1>SHIELD<span style="color: [[= h(AEGIS.shield.color || 'green') ]]">[[= h(AEGIS.shield.env) ]]<span></h1>
+              <div class="dialog">
+                <p class="motd">[[= md(AEGIS.shield.motd) ]]</p>
+
+                <div class="restore">
+                  <h2>Restore SHIELD</h2>
+                  <p class="restore_divert">If you would like to initialize this SHIELD installation
+                    with a previous SHIELD Core Backup.
+                  </p>
+                  <form id="restore">
+                    <button data-alt="Restoring...">Restore</button>
+                  </form>
+                </div>
+                <div class="setpass">
+                  <h2>Initialize SHIELD</h2>
+                  <p class="divert">SHIELD maintains an internal encrypted vault of secrets,
+                    for protecting your data archives with strong encryption.
+
+                    This vault must be initialized, and protected with a new master password,
+                    before SHIELD will be able to use it</p>
+                  <form id="restore">
+                    <button data-alt="Setting up...">Set up</button>
+                  </form>
+                </div>
+              </div>
+          </div>
+    <!-- }}} --></script>
+    <script type="text/html" id="template:restore"><!-- {{{ -->
+      [[#
+            {restore} template
+
+            This is where a user inputs the data they need to restore their SHIELD core
+      ]]
+          <div id="initialize" class="frontdoor">
+            <h1>SHIELD<span style="color: [[= h(AEGIS.shield.color || 'green') ]]">[[= h(AEGIS.shield.env) ]]<span></h1>
+            <div class="dialog">
+
+              <div class="restore-form">
+                <div class="restore">
+                  <h2>Restore SHIELD</h2>
+                  <p class="restore_divert">If you would like to initialize this SHIELD installation
+                  with a previous SHIELD Core Backup, provide that archive file and the fixed key
+                  used to encrypt it.</p>
+
+                  <form id="restore">
+                    <div class="error"></div>
+                    <div class="ctl" data-field="archive">
+                      <label for="archive">SHIELD Backup
+                        <div class="file-upload">Select Archive</div>
+                      </label>
+                      <input type="file" id="archive" name="archive">
+                      <div class="errors">
+                        <span data-error="missing">Please supply your SHIELD backup.</span>
+                      </div>
+                    </div>
+                    <div class="ctl" data-field="key">
+                      <label for="key">Fixed Key</label>
+                      <div class="errors">
+                        <span data-error="missing">Please supply your SHIELD Fixed Key.</span>
+                      </div>
+                      <textarea id="key" name="key"></textarea>
+                    </div>
+                    <div class="ctl" data-field="token">
+                      <label for="token">Auth Token</label>
+                      <div class="errors">
+                        <span data-error="missing">Please supply your SHIELD Auth Token.</span>
+                      </div>
+                      <input type="text" id="token" name="token">
+                    </div>
+                    <div class="ctl" data-field="masterpass">
+                      <label for="masterpass">Master Password</label>
+                      <div class="errors">
+                        <span data-error="missing">Please supply your password.</span>
+                      </div>
+                      <input type="password" id="masterpass" name="masterpass">
+                    </div>
+                    <div class="ctl" data-field="masterpassconf">
+                      <label for="masterpassconf">Confirm Password</label>
+                      <div class="errors">
+                        <span data-error="missing">Please supply your password.</span>
+                        <span data-error="mismatch">Your passwords do not match</span>
+                      </div>
+                      <input type="password" id="masterpassconf" name="masterpassconf">
+                    </div>
+                    <button data-alt="Restoring...">Restore</button>
+                  </form>
+                </div>
+            </div>
+            </div>
+          </div>
+    <!-- }}} --></script>
     <script type="text/html" id="template:init"><!-- {{{ -->
           [[#
             {init} template
@@ -292,43 +390,14 @@
               <div id="initialize" class="frontdoor">
                 <h1>SHIELD<span style="color: [[= h(AEGIS.shield.color || 'green') ]]">[[= h(AEGIS.shield.env) ]]<span></h1>
                 <div class="dialog">
-                  <p class="motd">[[= md(AEGIS.shield.motd) ]]</p>
-
-                  <div class="restore">
-                    <h2>Restore SHIELD</h2>
-                    <p class="restore_divert">If you would like to initialize this SHIELD installation
-                    with a previous SHIELD Core Backup, provide that archive file and the fixed key
-                    used to encrypt it.</p>
-
-                    <form id="restore">
-                      <div class="error"></div>
-                      <div class="ctl" data-field="archive">
-                        <label for="archive">SHIELD Backup
-                          <div class="file-upload">Select Archive</div>
-                        </label>
-                        <input type="file" id="archive" name="archive">
-                        <div class="errors">
-                          <span data-error="missing">Please supply your SHIELD backup.</span>
-                        </div>
-                      </div>
-                      <div class="ctl" data-field="key">
-                        <label for="key">Fixed Key</label>
-                        <div class="errors">
-                          <span data-error="missing">Please supply your SHIELD Fixed Key.</span>
-                        </div>
-                        <textarea id="key" name="key"></textarea>
-                      </div>
-                      <button data-alt="Restoring...">Restore</button>
-                    </form>
-                  </div>
-
+                  <div class="setpass-form">
                   <div class="setpass">
                     <h2>Initialize SHIELD</h2>
                     <p class="divert">SHIELD maintains an internal encrypted vault of secrets,
                     for protecting your data archives with strong encryption.
 
                     This vault must be initialized, and protected with a new master password,
-                    before SHIELD will be able to use it</p>
+                    before SHIELD will be able to use it.</p>
 
                     <form id="setpass">
                       <div class="error"></div>
@@ -350,6 +419,7 @@
                       <button data-alt="Setting up...">Set up</button>
                     </form>
                   </div>
+                </div>
 
                 </div>
               </div>
