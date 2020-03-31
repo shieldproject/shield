@@ -38,6 +38,23 @@ func main() {
 				Example:  "daa9a25d-8f52-4b9a-b9c8-2730e0e4a9eb",
 				Required: true,
 			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "core_ca_cert",
+				Type:    "pem-x509",
+				Help:    "CA certificate in pem format that is associated with your shield core.",
+				Title:   "CA Certificate",
+				Example: "-----BEGIN CERTIFICATE-----\n(cert contents)\n(... etc ...)\n-----END CERTIFICATE-----",
+				Default: "",
+			},
+			plugin.Field{
+				Mode:    "target",
+				Name:    "skip_ssl_validation",
+				Type:    "bool",
+				Title:   "Skip SSL Validation",
+				Help:    "If your SHIELD certificate is invalid, expired, or signed by an unknown Certificate Authority, you can disable SSL validation.  This is not recommended from a security standpoint, however.",
+				Default: "false",
+			},
 		},
 	}
 	fmt.Fprintf(os.Stderr, "SHIELD plugin starting up...\n")
@@ -66,9 +83,21 @@ func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
 		return nil, err
 	}
 
+	ca, err := endpoint.StringValue("core_ca_cert")
+	if err != nil {
+		return nil, err
+	}
+
+	ssl, err := endpoint.BooleanValue("skip_ssl_validation")
+	if err != nil {
+		return nil, err
+	}
+
 	return &shield.Client{
 		URL:     url,
 		Session: token,
+		CACertificate: ca,
+		InsecureSkipVerify: ssl,
 	}, nil
 }
 
