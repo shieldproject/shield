@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os"
+	"strings"
 
 	fmt "github.com/jhunt/go-ansi"
 
@@ -88,7 +89,7 @@ func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
 		return nil, err
 	}
 
-	ssl, err := endpoint.BooleanValue("skip_ssl_validation")
+	ssl, err := endpoint.BooleanValueDefault("skip_ssl_validation", false)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +106,7 @@ func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
 func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 	var (
 		s    string
+		ssl  bool
 		err  error
 		fail bool
 	)
@@ -126,6 +128,30 @@ func (p ShieldPlugin) Validate(endpoint plugin.ShieldEndpoint) error {
 		fail = true
 	} else {
 		fmt.Printf("@G{\u2713 token}                 @C{%s}\n", plugin.Redact(s))
+	}
+
+	s, err = endpoint.StringValueDefault("core_ca_cert", "")
+	if err != nil {
+		fmt.Printf("@R{\u2717 core_ca_cert}               @C{%s}\n", err)
+		fail = true
+	} else if s == "" {
+		fmt.Printf("@G{\u2713 core_ca_cert}               CA cert was not provided.\n")
+	} else {
+		lines := strings.Split(s, "\n")
+		fmt.Printf("@G{\u2713 core_ca_cert}               @C{%s}\n", lines[0])
+		if len(lines) > 1 {
+			for _, line := range lines[1:] {
+				fmt.Printf("                         @C{%s}\n", line)
+			}
+		}
+	}
+
+	ssl, err = endpoint.BooleanValueDefault("skip_ssl_validation", false)
+	if err != nil {
+		fmt.Printf("@R{\u2717 skip_ssl_validation  %s}\n", err)
+		fail = true
+	} else {
+		fmt.Printf("@G{\u2713 skip_ssl_validation}  @C{%t}\n", ssl)
 	}
 
 	if fail {
