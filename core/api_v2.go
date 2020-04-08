@@ -3636,7 +3636,7 @@ func (c *Core) v2API() *route.Router {
 
 		/* execute the shield-recover command */
 		log.Infof("BOOTSTRAP: executing shield-recover process...")
-		cmd := exec.Command("shield-recover-v2")
+		cmd := exec.Command("shield-recover")
 		cmd.Stdin = in
 		cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s:%s", strings.Join(c.Config.PluginPaths, ":"), os.Getenv("PATH")))
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SHIELD_DATA_DIR=%s", c.Config.DataDir))
