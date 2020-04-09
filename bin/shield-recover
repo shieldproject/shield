@@ -148,7 +148,7 @@ if file ${archive} | grep -q bzip2; then
 	echo >&2
 	cat ${archive} | \
 		bunzip2 | \
-		metashield restore -e "{\"url\":\"http://127.0.0.1:8181\",\"token\":\"$SHIELD_AUTH_TOKEN\"}"
+		metashield restore -e "{\"url\":\"http://127.0.0.1:8080\",\"token\":\"$SHIELD_AUTH_TOKEN\"}"
 
 else
 	header "Running restore"
@@ -156,7 +156,7 @@ else
 	echo >&2 " - compression: none"
 	echo >&2
 	cat ${archive} | \
-		metashield restore -e "{\"url\":\"http://127.0.0.1\",\"token\":\"$SHIELD_AUTH_TOKEN\"}"
+		metashield restore -e "{\"url\":\"http://127.0.0.1:8080\",\"token\":\"$SHIELD_AUTH_TOKEN\"}"
 fi
 
 # trigger the exit handler,
