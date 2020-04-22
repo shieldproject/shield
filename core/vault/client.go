@@ -65,11 +65,7 @@ const (
 )
 
 func (c *Client) Status() (Status, error) {
-	err := c.vault.TokenIsValid()
-	if err != nil {
-		return Locked, nil
-	}
-	err = c.vault.Health(false)
+	err := c.vault.Health(false)
 	if err == nil {
 		return Ready, nil
 	}
@@ -77,6 +73,10 @@ func (c *Client) Status() (Status, error) {
 		return Blank, nil
 	}
 	if vaultkv.IsSealed(err) {
+		return Locked, nil
+	}
+	err = c.vault.TokenIsValid()
+	if err != nil {
 		return Locked, nil
 	}
 	return Unknown, err
