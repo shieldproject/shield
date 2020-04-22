@@ -21,6 +21,8 @@ github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kB
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cloudfoundry-community/vaultkv v0.0.0-20190418211205-0ed39daafa01 h1:dGWI8CKuHbAWd0ExV+oz6hrNz/yn6sJ73xqLtUqskfk=
 github.com/cloudfoundry-community/vaultkv v0.0.0-20190418211205-0ed39daafa01/go.mod h1:pMz8czjvi3S7Lb7hgAK4J8knpIi+4fK3Bbe+LyzsHus=
+github.com/cloudfoundry-community/vaultkv v0.0.0-20200311151509-343c0e6fc506 h1:o5GNr/sb9Wkxif5MctE5cZekAPB7jbCUhuXwH7uDJWM=
+github.com/cloudfoundry-community/vaultkv v0.0.0-20200311151509-343c0e6fc506/go.mod h1:pMz8czjvi3S7Lb7hgAK4J8knpIi+4fK3Bbe+LyzsHus=
 github.com/coreos/etcd v3.3.18+incompatible h1:Zz1aXgDrFFi1nadh58tA9ktt06cmPTwNNP3dXwIq1lE=
 github.com/coreos/etcd v3.3.18+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f h1:JOrtw2xFKzlg+cbHpyrpLDmnN1HqhBfnX7WDiW7eG2c=

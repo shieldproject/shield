@@ -14,8 +14,8 @@ import (
 type Client struct {
 	Prefix string
 
-	vault  vaultkv.Client
-	kv     *vaultkv.KV
+	vault vaultkv.Client
+	kv    *vaultkv.KV
 }
 
 type Credentials struct {
@@ -65,7 +65,11 @@ const (
 )
 
 func (c *Client) Status() (Status, error) {
-	err := c.vault.Health(false)
+	err := c.vault.TokenIsValid()
+	if err != nil {
+		return Locked, nil
+	}
+	err = c.vault.Health(false)
 	if err == nil {
 		return Ready, nil
 	}
@@ -131,7 +135,7 @@ func (c *Client) Unseal(crypt, master string) error {
 	if err != nil {
 		return err
 	}
-
+	c.vault.SetAuthToken(creds.RootToken)
 	/* unseal the vault */
 	_, err = c.vault.Unseal(creds.SealKey)
 	return err
