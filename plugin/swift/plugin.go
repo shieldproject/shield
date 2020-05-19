@@ -1,4 +1,4 @@
-package main
+package swift
 
 // https://github.com/openstack/golang-client/blob/master/examples/objectstorage/objectstorage.go
 
@@ -19,7 +19,7 @@ const (
 	defaultPrefix = ""
 )
 
-func main() {
+func Run() {
 	p := SwiftPlugin{
 		Name:    "OpenStack Swift Storage Plugin",
 		Author:  "SHIELD Core Team",

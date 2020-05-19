@@ -1,4 +1,4 @@
-package main
+package bbrdeployment
 
 import (
 	"archive/tar"
@@ -18,7 +18,7 @@ const (
 	DefaultBinDir = "/var/vcap/packages/bbr/bin"
 )
 
-func main() {
+func Run() {
 	bbr := BBRPlugin{
 		Name:    "BBR Deployment Plugin",
 		Author:  "SHIELD Core Team",

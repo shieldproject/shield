@@ -85,7 +85,7 @@
 // its PATH. This will typically be the standard GNU Tar utility, as provided
 // by BOSH stemcells.
 
-package main
+package cassandra
 
 import (
 	"os"
@@ -108,7 +108,7 @@ const (
 	SnapshotName  = "shield-backup"
 )
 
-func main() {
+func Run() {
 	p := CassandraPlugin{
 		Name:    "Cassandra Backup Plugin",
 		Author:  "Orange",

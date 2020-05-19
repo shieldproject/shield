@@ -1,4 +1,4 @@
-package main
+package mock
 
 import (
 	"io"
@@ -9,7 +9,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func main() {
+func Run() {
 	p := MockPlugin{
 		Name:    "Mock Plugin",
 		Author:  "SHIELD Core Team",

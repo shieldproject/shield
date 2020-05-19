@@ -1,4 +1,4 @@
-package main
+package rabbitmq
 
 import (
 	"crypto/tls"
@@ -12,7 +12,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func main() {
+func Run() {
 	p := RabbitMQBrokerPlugin{
 		Name:    "Pivotal RabbitMQ Broker Backup Plugin",
 		Author:  "SHIELD Core Team",

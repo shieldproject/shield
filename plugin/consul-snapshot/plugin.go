@@ -40,7 +40,7 @@
 // DEPENDENCIES
 //
 //
-package main
+package consulsnapshot
 
 import (
 	"io/ioutil"
@@ -57,7 +57,7 @@ var (
 	DefaultConsul  = "/var/vcap/packages/consul/bin/consul"
 )
 
-func main() {
+func Run() {
 	p := ConsulPlugin{
 		Name:    "Consul Snapshot Backup Plugin",
 		Author:  "SHIELD Core Team",

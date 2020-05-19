@@ -1,4 +1,4 @@
-package main
+package backblaze
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func validBucketName(v string) bool {
 	return ok && err == nil
 }
 
-func main() {
+func Run() {
 	p := BackblazePlugin{
 		Name:    "Backblaze Storage Plugin",
 		Author:  "SHIELD Core Team",

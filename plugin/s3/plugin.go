@@ -1,4 +1,4 @@
-package main
+package s3
 
 import (
 	"encoding/json"
@@ -62,7 +62,7 @@ func validBucketName(v string) bool {
 	return ok && err == nil
 }
 
-func main() {
+func Run() {
 	p := S3Plugin{
 		Name:    "Amazon S3 Storage Plugin",
 		Author:  "SHIELD Core Team",

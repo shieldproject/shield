@@ -1,4 +1,4 @@
-package main
+package webdav
 
 import (
 	"crypto/tls"
@@ -14,7 +14,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func main() {
+func Run() {
 	p := WebDAVPlugin{
 		Name:    "WebDAV Plugin",
 		Author:  "SHIELD Core Team",

@@ -1,4 +1,4 @@
-package main
+package xtrabackup
 
 import (
 	"os"
@@ -17,7 +17,7 @@ var (
 	DefaultXtrabackup    = "/var/vcap/packages/shield-mysql/bin/xtrabackup"
 )
 
-func main() {
+func Run() {
 	p := XtraBackupPlugin{
 		Name:    "MySQL XtraBackup Plugin",
 		Author:  "Swisscom",

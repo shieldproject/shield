@@ -1,4 +1,4 @@
-package main
+package consul
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ var (
 	DefaultHostPort = "http://127.0.0.1:8500"
 )
 
-func main() {
+func Run() {
 	p := ConsulPlugin{
 		Name:    "Consul Backup Plugin",
 		Author:  "SHIELD Core Team",

@@ -1,4 +1,4 @@
-package main
+package google
 
 import (
 	"io"
@@ -20,7 +20,7 @@ const (
 	DefaultPrefix  = ""
 )
 
-func main() {
+func Run() {
 	p := GooglePlugin{
 		Name:    "Google Cloud Storage Plugin",
 		Author:  "SHIELD Core Team",

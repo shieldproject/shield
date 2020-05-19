@@ -1,4 +1,4 @@
-package main
+package postgres
 
 import (
 	"bufio"
@@ -16,7 +16,7 @@ var (
 	DefaultPort = "5432"
 )
 
-func main() {
+func Run() {
 	p := PostgresPlugin{
 		Name:    "PostgreSQL Backup Plugin",
 		Author:  "SHIELD Core Team",

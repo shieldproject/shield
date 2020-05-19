@@ -1,8 +1,9 @@
-package main
+package mongo
 
 import (
-	fmt "github.com/jhunt/go-ansi"
 	"strings"
+
+	fmt "github.com/jhunt/go-ansi"
 
 	"github.com/shieldproject/shield/plugin"
 )
@@ -13,7 +14,7 @@ var (
 	DefaultMongoBinDir = "/var/vcap/packages/shield-mongo/bin"
 )
 
-func main() {
+func Run() {
 	p := MongoPlugin{
 		Name:    "MongoDB Backup Plugin",
 		Author:  "Szlachta, Jacek",

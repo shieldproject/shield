@@ -1,4 +1,4 @@
-package main
+package metashield
 
 import (
 	"io"
@@ -10,7 +10,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func main() {
+func Run() {
 	p := ShieldPlugin{
 		Name:    "SHIELD Backup Plugin",
 		Author:  "Stark and Wayne",

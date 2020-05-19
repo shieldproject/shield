@@ -1,4 +1,4 @@
-package main
+package fs
 
 import (
 	"archive/tar"
@@ -12,7 +12,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func main() {
+func Run() {
 	p := FSPlugin{
 		Name:    "Local Filesystem Plugin",
 		Author:  "SHIELD Core Team",

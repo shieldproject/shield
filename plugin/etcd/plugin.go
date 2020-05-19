@@ -1,4 +1,4 @@
-package main
+package etcd
 
 import (
 	"bufio"
@@ -25,7 +25,7 @@ var (
 	BothAuthentication        = "Both"
 )
 
-func main() {
+func Run() {
 	p := EtcdPlugin{
 		Name:    "Etcd Backup Plugin",
 		Author:  "Stark & Wayne",

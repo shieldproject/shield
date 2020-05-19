@@ -1,4 +1,4 @@
-package main
+package mysql
 
 import (
 	"database/sql"
@@ -18,7 +18,7 @@ var (
 	DefaultPort = "3306"
 )
 
-func main() {
+func Run() {
 	p := MySQLPlugin{
 		Name:    "MySQL Backup Plugin",
 		Author:  "SHIELD Core Team",

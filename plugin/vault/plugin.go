@@ -1,4 +1,4 @@
-package main
+package vault
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 
 var ()
 
-func main() {
+func Run() {
 	p := VaultPlugin{
 		Name:    "Vault Backup Plugin",
 		Author:  "SHIELD Core Team",

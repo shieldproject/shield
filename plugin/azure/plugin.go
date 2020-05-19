@@ -1,4 +1,4 @@
-package main
+package azure
 
 import (
 	"io"
@@ -17,7 +17,7 @@ const (
 	DefaultPrefix = ""
 )
 
-func main() {
+func Run() {
 	p := AzurePlugin{
 		Name:    "Microsoft Azure Storage Plugin",
 		Author:  "SHIELD Core Team",

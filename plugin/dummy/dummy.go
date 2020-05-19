@@ -1,4 +1,4 @@
-package main
+package dummy
 
 /*
 
@@ -15,7 +15,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func main() {
+func Run() {
 	// Create an object representing this plugin, which is a type conforming to the Plugin interface
 	dummy := DummyPlugin{
 		// give it some authorship info

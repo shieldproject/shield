@@ -1,4 +1,4 @@
-package main
+package dockerpostgres
 
 import (
 	"archive/tar"

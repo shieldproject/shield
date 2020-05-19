@@ -1,4 +1,4 @@
-package main
+package redis
 
 import (
 	"os"
@@ -9,7 +9,7 @@ import (
 	"github.com/shieldproject/shield/plugin"
 )
 
-func main() {
+func Run() {
 	p := RedisBrokerPlugin{
 		Name:    "Pivotal Redis Broker Backup Plugin",
 		Author:  "SHIELD Core Team",

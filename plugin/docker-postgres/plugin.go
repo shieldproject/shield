@@ -1,4 +1,4 @@
-package main
+package dockerpostgres
 
 import (
 	"io"
@@ -19,7 +19,7 @@ const (
 	DefaultSocket = "unix:///var/vcap/sys/run/docker/docker.sock"
 )
 
-func main() {
+func Run() {
 	p := DockerPostgresPlugin{
 		Name:    "Dockerized PostgreSQL Backup Plugin",
 		Author:  "SHIELD Core Team",
