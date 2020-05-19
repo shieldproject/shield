@@ -36,6 +36,7 @@
 /rabbitmq-broker
 /redis-broker
 /s3
+/ssg
 /swift
 /scality
 /metashield

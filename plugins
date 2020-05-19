@@ -9,13 +9,14 @@ docker-postgres
 etcd
 fs
 google
+metashield
 mongo
 mysql
 postgres
 rabbitmq-broker
 redis-broker
 s3
-metashield
+ssg
 swift
 vault
 webdav

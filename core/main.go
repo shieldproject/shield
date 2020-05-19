@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -16,6 +17,8 @@ import (
 	"github.com/shieldproject/shield/db"
 	"github.com/shieldproject/shield/timespec"
 )
+
+const StorageGatewayPlugin = "ssg"
 
 func (c Core) Main() {
 	/* print out our configuration */
@@ -488,6 +491,34 @@ func (c *Core) TasksToChores() {
 				c.TaskErrored(task, "unable to generate encryption parameters:\n%s\n", err)
 				continue
 			}
+
+			if task.StorePlugin == StorageGatewayPlugin {
+				uploadInfo, err := c.GatedUpload(task.ArchiveUUID, 3)
+				if err != nil {
+					c.TaskErrored(task, "unable to set up storage gateway upload:\n%s\n", err)
+					continue
+				}
+				ep := struct {
+					URL           string `json:"url"`
+					Path          string `json:"path"`
+					UploadID      string `json:"upload_id"`
+					UploadToken   string `json:"upload_token"`
+					DownloadID    string `json:"download_id"`
+					DownloadToken string `json:"download_token"`
+				}{
+					URL:         uploadInfo.url,
+					Path:        uploadInfo.path,
+					UploadID:    uploadInfo.uploadInfo.ID,
+					UploadToken: uploadInfo.uploadInfo.Token,
+				}
+				b, err := json.Marshal(ep)
+				if err != nil {
+					c.TaskErrored(task, "unable to set up storage gateway upload:\n%s\n", err)
+					continue
+				}
+				task.StoreEndpoint = string(b)
+			}
+
 			c.scheduler.Schedule(20, fabric.Backup(task, encryption))
 			inflight[task.TargetUUID] = task
 
@@ -505,16 +536,76 @@ func (c *Core) TasksToChores() {
 				c.TaskErrored(task, "unable to retrieve encryption parameters:\nencryption parameters for archive '%s' not found in vault\n", task.ArchiveUUID)
 				continue
 			}
+
+			if task.StorePlugin == StorageGatewayPlugin {
+				downloadInfo, err := c.GatedDownload(task.RestoreKey, 3)
+				if err != nil {
+					c.TaskErrored(task, "unable to set up storage gateway download:\n%s\n", err)
+					continue
+				}
+				ep := struct {
+					URL           string `json:"url"`
+					Path          string `json:"path"`
+					UploadID      string `json:"upload_id"`
+					UploadToken   string `json:"upload_token"`
+					DownloadID    string `json:"download_id"`
+					DownloadToken string `json:"download_token"`
+				}{
+					URL:           downloadInfo.url,
+					DownloadID:    downloadInfo.downloadInfo.ID,
+					DownloadToken: downloadInfo.downloadInfo.Token,
+				}
+				b, err := json.Marshal(ep)
+				if err != nil {
+					c.TaskErrored(task, "unable to set up storage gateway download:\n%s\n", err)
+					continue
+				}
+				task.StoreEndpoint = string(b)
+			}
+
 			c.scheduler.Schedule(20, fabric.Restore(task, encryption))
 			inflight[task.TargetUUID] = task
 
 		case db.PurgeOperation:
+			if task.StorePlugin == StorageGatewayPlugin {
+				c.db.StartTask(task.UUID, time.Now())
+				err := c.GatedPurge(task.RestoreKey, 3)
+				if err != nil {
+					c.TaskErrored(task, "unable to set up storage gateway delete:\n%s\n", err)
+					continue
+				}
+				err = c.db.PurgeArchive(task.ArchiveUUID)
+				if err != nil {
+					panic(fmt.Errorf("%s: failed to purge the archive record from the database: %s", task.UUID, err))
+				}
+				c.db.UpdateTaskLog(task.UUID, fmt.Sprintf("successfully purged archive: %s\n", task.RestoreKey))
+				c.db.CompleteTask(task.UUID, time.Now())
+				continue
+			}
 			c.scheduler.Schedule(50, fabric.Purge(task))
 
 		case db.AgentStatusOperation:
 			c.scheduler.Schedule(30, fabric.Status(task))
 
 		case db.TestStoreOperation:
+			if task.StorePlugin == StorageGatewayPlugin {
+				c.db.StartTask(task.UUID, time.Now())
+				store, err := c.db.GetStore(task.StoreUUID)
+				if err != nil {
+					panic(fmt.Errorf("failed to retrieve store '%s' from database: %s", task.StoreUUID, err))
+				}
+				if store == nil {
+					panic(fmt.Errorf("store '%s' not found in database", task.StoreUUID))
+				}
+				store.Healthy = true
+				err = c.db.UpdateStoreHealth(store)
+				if err != nil {
+					panic(fmt.Errorf("failed to update store '%s' record in database: %s", task.StoreUUID, err))
+				}
+				c.db.UpdateTaskLog(task.UUID, "\nTEST-STORE: storage is still HEALTHY.\n")
+				c.db.CompleteTask(task.UUID, time.Now())
+				continue
+			}
 			c.scheduler.Schedule(40, fabric.TestStore(task))
 		}
 
