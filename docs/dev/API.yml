@@ -107,7 +107,7 @@ sections:
         intro: |
           Returns minimal information necessary for forward-compatibility
           with different versions of SHIELD Core and clients.
-        access: ~
+        access: any
 
         response:
           json: |
