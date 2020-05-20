@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"golang.org/x/crypto/pbkdf2"
 	"github.com/cloudfoundry-community/vaultkv"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 type Parameters struct {
@@ -102,7 +102,7 @@ func (c *Client) pathTo(id string) string {
 }
 
 func (c *Client) Store(id string, params Parameters) error {
-	_, err := c.kv.Set(c.pathTo(id), map[string]string {
+	_, err := c.kv.Set(c.pathTo(id), map[string]string{
 		"uuid": id,
 		"key":  Encode(params.Key, 4),
 		"iv":   Encode(params.IV, 4),

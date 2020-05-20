@@ -22,7 +22,7 @@ type fail struct {
 }
 
 type finalizer struct {
-	Task string `json:"task"`
+	Task           string `json:"task"`
 	EncryptionType string `json:"encryption_type"`
 	EncryptionKey  string `json:"encryption_key"`
 	EncryptionIV   string `json:"encryption_iv"`
@@ -424,11 +424,11 @@ func (db *DB) exportTasks(out *json.Encoder, task_uuid string, vault *vault.Clie
 			}
 
 			final = &finalizer{
-				Task: v.UUID,
-				EncryptionKey: enc.Key,
-				EncryptionIV: enc.IV,
+				Task:           v.UUID,
+				EncryptionKey:  enc.Key,
+				EncryptionIV:   enc.IV,
 				EncryptionType: enc.Type,
-				TakenAt: 0, // to be updated later
+				TakenAt:        0, // to be updated later
 			}
 		}
 

@@ -95,9 +95,9 @@ func getClient(endpoint plugin.ShieldEndpoint) (*shield.Client, error) {
 	}
 
 	return &shield.Client{
-		URL:     url,
-		Session: token,
-		CACertificate: ca,
+		URL:                url,
+		Session:            token,
+		CACertificate:      ca,
 		InsecureSkipVerify: ssl,
 	}, nil
 }

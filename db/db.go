@@ -173,7 +173,7 @@ func (db *DB) exclusively(fn func() error) error {
 }
 
 func (db *DB) transactionally(fn func() error) error {
-	return db.exclusively(func () (err error) {
+	return db.exclusively(func() (err error) {
 		log.Infof("beginning transaction...")
 		if err = db.exec("BEGIN TRANSACTION"); err != nil {
 			return
