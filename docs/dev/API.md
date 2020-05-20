@@ -130,17 +130,11 @@ two possible values:
 
 **Access Control**
 
-You must be authenticated to access this API endpoint.
+This endpoint requires no authentication or authorization.
 
 **Errors**
 
-The following error messages can be returned:
-
-- **Authorization required**:
-  The request was made without an authenticated session or auth token.
-  See **Authentication** for more details.  The request may be retried
-  after authentication.
-
+This API endpoint does not return any error conditions.
 
 ### GET /v2/bearings
 
@@ -312,7 +306,7 @@ FIXME
 
 **Access Control**
 
-This endpoint requires no authentication or authorization.
+You must be authenticated to access this API endpoint.
 
 **Errors**
 
